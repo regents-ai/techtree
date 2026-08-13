@@ -16,7 +16,7 @@ defmodule TechtreeWeb.PagesTest do
     "/",
     "/start",
     "/climbs",
-    "/climbs/procedure-transfer-dev",
+    "/climbs/hello-world-climb",
     "/proofs/local",
     "/protocol"
   ]
@@ -110,7 +110,7 @@ defmodule TechtreeWeb.PagesTest do
     end
 
     test "long values are marked so that they wrap on a narrow screen", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/climbs/procedure-transfer-dev")
+      {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
 
       assert html =~ ~s|class="digest"|
       assert html =~ ~s|class="command__block"|
@@ -159,7 +159,7 @@ defmodule TechtreeWeb.PagesTest do
     end
 
     test "a Climb page is not found rather than empty", %{conn: conn} do
-      assert_error_sent 404, fn -> live(conn, ~p"/climbs/procedure-transfer-dev") end
+      assert_error_sent 404, fn -> live(conn, ~p"/climbs/hello-world-climb") end
     end
   end
 

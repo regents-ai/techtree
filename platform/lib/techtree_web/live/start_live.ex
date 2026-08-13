@@ -10,13 +10,17 @@ defmodule TechtreeWeb.StartLive do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias TechtreeWeb.ClimbCopy
 
   @impl true
   def mount(_params, _session, socket) do
+    published = instructions()
+
     {:ok,
      socket
      |> assign(page_title: "Start on your machine")
-     |> assign(instructions: instructions())}
+     |> assign(instructions: published)
+     |> assign(copy: ClimbCopy.for_reference(introductory(published)))}
   end
 
   @impl true
@@ -92,6 +96,7 @@ defmodule TechtreeWeb.StartLive do
             </.next_step>
             <.next_step title="Read the introductory Climb, then enter it.">
               <.command_block argv={["techtree", "climb", "show", introductory(@instructions)]} />
+              <p :if={@copy} class="small quiet">{@copy.scope}</p>
               <p :if={introductory_slug(@instructions)} class="small">
                 <a href={~p"/climbs/#{introductory_slug(@instructions)}"}>
                   What this Climb measures

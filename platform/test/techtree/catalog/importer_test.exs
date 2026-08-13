@@ -56,12 +56,12 @@ defmodule Techtree.Catalog.ImporterTest do
       assert [climb] = Query.list_climbs()
 
       assert climb.reference == CatalogFixture.climb_reference()
-      assert climb.title == "Procedure Transfer Development Climb"
+      assert climb.title == "Techtree Hello World"
       assert climb.status == "development"
-      assert climb.summary =~ "development Climb"
+      assert climb.summary =~ "A toy Skill-uplift Climb"
 
       assert %{
-               "slug" => "procedure-transfer-dev",
+               "slug" => "hello-world-climb",
                "version" => 1,
                "campaign_spec_digest" => campaign_digest,
                "purpose" => "component_uplift",
@@ -215,7 +215,7 @@ defmodule Techtree.Catalog.ImporterTest do
     end
 
     test "a partial bundle never reaches the database", %{first: first, bundle: bundle} do
-      File.rm!(Path.join(bundle, "campaigns/procedure-transfer-dev.json"))
+      File.rm!(Path.join(bundle, "campaigns/hello-world-climb.json"))
 
       error = assert_raise Error, fn -> Importer.import!(bundle) end
       assert error.code == :catalog_object_missing
@@ -255,11 +255,11 @@ defmodule Techtree.Catalog.ImporterTest do
       bundle
       |> CatalogFixture.read!(CatalogFixture.climb_path())
       |> String.replace(
-        "Procedure Transfer Development Climb",
-        "Procedure Transfer Development Climb, revised"
+        "Techtree Hello World",
+        "Techtree Hello World, revised"
       )
 
-    path = "climbs/procedure-transfer-dev-revised.json"
+    path = "climbs/hello-world-climb-revised.json"
     CatalogFixture.write!(bundle, path, replacement)
     digest = Digest.hash_bytes(replacement)
 

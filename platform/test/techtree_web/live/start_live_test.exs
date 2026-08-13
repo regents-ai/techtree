@@ -21,8 +21,15 @@ defmodule TechtreeWeb.StartLiveTest do
       assert html =~ "hermes plugins doctor techtree --ci"
       assert html =~ "techtree setup"
       assert html =~ "techtree climb list"
-      assert html =~ "techtree climb show procedure-transfer-dev@1"
-      assert html =~ "Set up Techtree and run the introductory Climb."
+      assert html =~ "techtree climb show hello-world-climb@1"
+      assert html =~ "Set up Techtree and run the Hello World Climb."
+    end
+
+    test "the introductory Climb is described as a toy demonstration", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+
+      assert html =~
+               "A toy introductory demonstration of the mechanism, not a measure of broad capability."
     end
 
     test "the placeholder release is labelled where the commands are shown", %{conn: conn} do
@@ -44,7 +51,7 @@ defmodule TechtreeWeb.StartLiveTest do
     test "the introductory Climb is linked", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/start")
 
-      assert live |> element(~s|a[href="/climbs/procedure-transfer-dev"]|) |> has_element?()
+      assert live |> element(~s|a[href="/climbs/hello-world-climb"]|) |> has_element?()
     end
 
     test "no command is presented as a line to be run by the site", %{conn: conn} do

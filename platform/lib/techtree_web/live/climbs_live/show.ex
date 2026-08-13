@@ -12,6 +12,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias TechtreeWeb.ClimbCopy
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -20,7 +21,8 @@ defmodule TechtreeWeb.ClimbsLive.Show do
         {:ok,
          socket
          |> assign(page_title: climb.title)
-         |> assign(climb: climb, facts: climb.projection)}
+         |> assign(climb: climb, facts: climb.projection)
+         |> assign(copy: ClimbCopy.for_reference(climb.reference))}
 
       {:error, _error} ->
         raise TechtreeWeb.NotFoundError, "no Climb is published under that name"
@@ -38,6 +40,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
         <.status_badge status={@climb.status} />
       </div>
 
+      <p :if={@copy} class="plain quiet">{@copy.subtitle}</p>
       <p class="lede">{@climb.summary}</p>
       <p class="digest">{@climb.reference}</p>
 
@@ -59,6 +62,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
             <.digest value={fact(@facts, "climb_digest")} href={object_url(@facts, "climb_digest")} />
           </:side>
           <:side title="The trial">
+            <p :if={@copy}><strong>{@copy.campaign_title}</strong></p>
             <p>
               What is compared, on which tasks, under which conditions, and how the
               score is decided. This is the part that has to stay fixed.
@@ -78,9 +82,8 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           <:fact term="What may differ">
             {mutation_words(get_in(@facts, ["mutation_contract", "kind"]))}
           </:fact>
-          <:fact term="Tasks">
-            {fact(@facts, "task_count")} tasks from {fact(@facts, "taskset_id")}
-          </:fact>
+          <:fact term="Tasks">{fact(@facts, "task_count")}</:fact>
+          <:fact :if={@copy} term="Task family">{@copy.task_family}</:fact>
           <:fact term="Score">
             {plain(get_in(@facts, ["scoring", "primary_reward"]))}, averaged across tasks.
             The change counts only if the new run scores above the old one.
@@ -135,6 +138,12 @@ defmodule TechtreeWeb.ClimbsLive.Show do
       <section class="section">
         <h2>What a result may be called</h2>
         <p>{proof_grade_words(fact(@facts, "proof_grade"))}</p>
+        <.definition_list :if={@copy}>
+          <:fact term="The result of a run">{@copy.first_result_label}</:fact>
+          <:fact term="The result of a guided second attempt">
+            {@copy.second_result_label}
+          </:fact>
+        </.definition_list>
         <p>
           A trial runs on your machine, and this site does not watch it happen. What
           can be checked is that the documents are the ones named here, that only the
@@ -148,6 +157,10 @@ defmodule TechtreeWeb.ClimbsLive.Show do
         <ol class="steps">
           <.next_step title="Read the Climb as your machine sees it.">
             <.command_block argv={["techtree", "climb", "show", @climb.reference]} />
+          </.next_step>
+          <.next_step :if={@copy} title="Start from the published starter Skill.">
+            <p class="digest">{@copy.starter_skill}</p>
+            <p>{@copy.starter_note}</p>
           </.next_step>
           <.next_step title="Prepare your submission.">
             <.command_block argv={[

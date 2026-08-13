@@ -11,10 +11,10 @@ defmodule Techtree.CatalogFixture do
 
   alias Techtree.Catalog.Digest
 
-  @climb_reference "procedure-transfer-dev@1"
-  @climb_path "climbs/procedure-transfer-dev.json"
-  @campaign_digest "sha256:7a71aff1ec8d4eabb28955b7449ffd69e49d2ae760c10fab4310db262d633e4b"
-  @catalog_digest "sha256:834df675f7d72c577da4ea0e7ca17761570a47035b1be545f1b10628b272e83d"
+  @climb_reference "hello-world-climb@1"
+  @climb_path "climbs/hello-world-climb.json"
+  @campaign_digest "sha256:b65c1b0204dd2ceb1ec4c72a58c9888e6216c75d0eb40b7a11b18c85215a6b8b"
+  @catalog_digest "sha256:91f7ba524194884bfd0556d4d47db1fc9c809e43081913cb15d4fd5b93abe0c8"
 
   @doc """
   The fixture bundle, as generated. Never write to this directory.

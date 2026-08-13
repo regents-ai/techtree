@@ -12,11 +12,11 @@ defmodule TechtreeWeb.ClimbControllerTest do
     end
 
     test "a Climb is summarized for choosing between Climbs", %{conn: conn} do
-      summary = conn |> get(~p"/api/v1/climbs/procedure-transfer-dev") |> json_response(200)
+      summary = conn |> get(~p"/api/v1/climbs/hello-world-climb") |> json_response(200)
 
       assert summary["kind"] == "climb_summary_projection"
       assert summary["reference"] == CatalogFixture.climb_reference()
-      assert summary["title"] == "Procedure Transfer Development Climb"
+      assert summary["title"] == "Techtree Hello World"
       assert summary["status"] == "development"
       assert summary["purpose"] == "component_uplift"
       assert summary["task_count"] == 36
@@ -34,7 +34,7 @@ defmodule TechtreeWeb.ClimbControllerTest do
     end
 
     test "the summary does not pose as a protocol object", %{conn: conn} do
-      summary = conn |> get(~p"/api/v1/climbs/procedure-transfer-dev") |> json_response(200)
+      summary = conn |> get(~p"/api/v1/climbs/hello-world-climb") |> json_response(200)
 
       refute Map.has_key?(summary, "schema_version")
       refute Map.has_key?(summary, "campaign")
@@ -42,7 +42,7 @@ defmodule TechtreeWeb.ClimbControllerTest do
     end
 
     test "the linked objects resolve to the exact protocol bytes", %{conn: conn} do
-      summary = conn |> get(~p"/api/v1/climbs/procedure-transfer-dev") |> json_response(200)
+      summary = conn |> get(~p"/api/v1/climbs/hello-world-climb") |> json_response(200)
 
       assert Map.keys(summary["objects"]) |> Enum.sort() == [
                "campaign",
@@ -73,7 +73,7 @@ defmodule TechtreeWeb.ClimbControllerTest do
     end
 
     test "a slug is never treated as a path", %{conn: conn} do
-      for slug <- ["..%2F..%2Fetc%2Fpasswd", "procedure-transfer-dev%00", "%2E%2E"] do
+      for slug <- ["..%2F..%2Fetc%2Fpasswd", "hello-world-climb%00", "%2E%2E"] do
         conn = get(conn, "/api/v1/climbs/#{slug}")
 
         assert conn.status == 404
@@ -88,7 +88,7 @@ defmodule TechtreeWeb.ClimbControllerTest do
     end
 
     test "no Climb resolves", %{conn: conn} do
-      assert get(conn, ~p"/api/v1/climbs/procedure-transfer-dev").status == 404
+      assert get(conn, ~p"/api/v1/climbs/hello-world-climb").status == 404
     end
   end
 end

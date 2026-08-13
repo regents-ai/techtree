@@ -37,7 +37,7 @@ defmodule Techtree.Catalog.QueryTest do
     end
 
     test "a bare slug resolves to the Climb it names" do
-      assert {:ok, climb} = Query.get_climb_by_slug("procedure-transfer-dev")
+      assert {:ok, climb} = Query.get_climb_by_slug("hello-world-climb")
       assert climb.reference == CatalogFixture.climb_reference()
 
       assert {:error, %Error{code: :catalog_object_missing}} =
@@ -48,7 +48,7 @@ defmodule Techtree.Catalog.QueryTest do
       digest = CatalogFixture.campaign_digest()
 
       assert {:ok, entry} = Query.get_entry_by_digest(digest)
-      assert entry.relative_path == "campaigns/procedure-transfer-dev.json"
+      assert entry.relative_path == "campaigns/hello-world-climb.json"
 
       assert {:error, %Error{code: :catalog_bundle_invalid}} =
                Query.get_entry_by_digest("../../etc/passwd")
@@ -87,7 +87,7 @@ defmodule Techtree.Catalog.QueryTest do
     end
 
     test "drifted bytes are refused rather than served", %{bundle: bundle} do
-      CatalogFixture.write!(bundle, "campaigns/procedure-transfer-dev.json", "{}")
+      CatalogFixture.write!(bundle, "campaigns/hello-world-climb.json", "{}")
 
       assert {:error, %Error{code: :catalog_object_digest_mismatch}} =
                Query.object_bytes(CatalogFixture.campaign_digest())
@@ -100,7 +100,7 @@ defmodule Techtree.Catalog.QueryTest do
     end
 
     test "a removed object is reported as missing", %{bundle: bundle} do
-      File.rm!(Path.join(bundle, "campaigns/procedure-transfer-dev.json"))
+      File.rm!(Path.join(bundle, "campaigns/hello-world-climb.json"))
 
       assert {:error, %Error{code: :catalog_object_missing}} =
                Query.object_bytes(CatalogFixture.campaign_digest())

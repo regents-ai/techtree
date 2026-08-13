@@ -63,8 +63,10 @@ defmodule TechtreeWeb.BootstrapControllerTest do
       assert payload["cli"]["version"] =~ "placeholder"
       assert payload["hermes_plugin"]["plugin_id"] == "techtree"
       assert String.match?(payload["hermes_plugin"]["revision"], ~r/\A[0-9a-f]{40}\z/)
-      assert payload["introductory_climb"]["reference"] == CatalogFixture.climb_reference()
-      assert payload["introductory_climb"]["host_prompt"] != ""
+      assert payload["introductory_climb"]["reference"] == "hello-world-climb@1"
+
+      assert payload["introductory_climb"]["host_prompt"] ==
+               "Set up Techtree and run the Hello World Climb."
     end
 
     test "the payload says outright that its coordinates are placeholders", %{conn: conn} do

@@ -14,8 +14,8 @@ defmodule Techtree.Catalog.VerifierTest do
     @tag :tmp_dir
     test "a mutated object is rejected", %{tmp_dir: tmp_dir} do
       bundle = CatalogFixture.copy!(tmp_dir)
-      original = CatalogFixture.read!(bundle, "data-policies/procedure-transfer-dev.json")
-      CatalogFixture.write!(bundle, "data-policies/procedure-transfer-dev.json", original <> " ")
+      original = CatalogFixture.read!(bundle, "data-policies/hello-world-climb.json")
+      CatalogFixture.write!(bundle, "data-policies/hello-world-climb.json", original <> " ")
 
       assert {:error, error} = verify(bundle)
       assert error.code == :catalog_object_digest_mismatch
@@ -24,11 +24,11 @@ defmodule Techtree.Catalog.VerifierTest do
     @tag :tmp_dir
     test "a missing object is rejected", %{tmp_dir: tmp_dir} do
       bundle = CatalogFixture.copy!(tmp_dir)
-      File.rm!(Path.join(bundle, "validation-evidence/procedure-transfer-dev.json"))
+      File.rm!(Path.join(bundle, "validation-evidence/hello-world-climb.json"))
 
       assert {:error, error} = verify(bundle)
       assert error.code == :catalog_object_missing
-      assert error.details["path"] == "validation-evidence/procedure-transfer-dev.json"
+      assert error.details["path"] == "validation-evidence/hello-world-climb.json"
     end
   end
 
@@ -110,7 +110,7 @@ defmodule Techtree.Catalog.VerifierTest do
         Map.update!(index, "objects", &Map.delete(&1, CatalogFixture.campaign_digest()))
       end)
 
-      File.rm!(Path.join(bundle, "campaigns/procedure-transfer-dev.json"))
+      File.rm!(Path.join(bundle, "campaigns/hello-world-climb.json"))
 
       assert {:error, error} = verify(bundle)
       assert error.code == :catalog_object_missing

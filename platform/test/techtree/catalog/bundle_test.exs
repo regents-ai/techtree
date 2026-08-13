@@ -38,9 +38,9 @@ defmodule Techtree.Catalog.BundleTest do
       assert Enum.map(entries, & &1.kind) == [
                :climb,
                :validation_evidence,
-               :campaign,
                :taskset_validation,
-               :data_policy
+               :data_policy,
+               :campaign
              ]
 
       climb = hd(entries)
@@ -58,7 +58,7 @@ defmodule Techtree.Catalog.BundleTest do
       assert Bundle.read_object!(bundle, CatalogFixture.campaign_digest()) ==
                CatalogFixture.read!(
                  CatalogFixture.root(),
-                 "campaigns/procedure-transfer-dev.json"
+                 "campaigns/hello-world-climb.json"
                )
     end
 
@@ -73,7 +73,7 @@ defmodule Techtree.Catalog.BundleTest do
     @tag :tmp_dir
     test "refuses bytes that drifted from the digest they are filed under", %{tmp_dir: tmp_dir} do
       bundle = CatalogFixture.copy!(tmp_dir)
-      CatalogFixture.write!(bundle, "campaigns/procedure-transfer-dev.json", "{}")
+      CatalogFixture.write!(bundle, "campaigns/hello-world-climb.json", "{}")
 
       error =
         assert_raise Error, fn ->
@@ -81,7 +81,7 @@ defmodule Techtree.Catalog.BundleTest do
         end
 
       assert error.code == :catalog_object_digest_mismatch
-      assert error.details["path"] == "campaigns/procedure-transfer-dev.json"
+      assert error.details["path"] == "campaigns/hello-world-climb.json"
     end
   end
 
@@ -99,7 +99,7 @@ defmodule Techtree.Catalog.BundleTest do
       assert {:error, %Error{}} = Bundle.resolve(bundle, "climbs/../../outside.json")
       assert {:error, %Error{}} = Bundle.resolve(bundle, "escape.json")
       assert {:error, %Error{}} = Bundle.resolve(bundle, "up/outside.json")
-      assert {:error, %Error{}} = Bundle.resolve(bundle, "climbs\\procedure-transfer-dev.json")
+      assert {:error, %Error{}} = Bundle.resolve(bundle, "climbs\\hello-world-climb.json")
       assert {:ok, _path} = Bundle.resolve(bundle, CatalogFixture.climb_path())
     end
   end

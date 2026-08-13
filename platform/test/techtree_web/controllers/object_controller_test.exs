@@ -105,7 +105,7 @@ defmodule TechtreeWeb.ObjectControllerTest do
     end
 
     test "the object is refused rather than served", %{conn: conn, bundle: bundle} do
-      CatalogFixture.write!(bundle, "campaigns/procedure-transfer-dev.json", "{}")
+      CatalogFixture.write!(bundle, "campaigns/hello-world-climb.json", "{}")
 
       conn = get(conn, ~p"/api/v1/objects/#{CatalogFixture.campaign_digest()}")
 

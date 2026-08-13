@@ -31,7 +31,7 @@
     "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]
   },
   "introductory_climb": {
-    "reference": "procedure-transfer-dev@1",
-    "host_prompt": "Set up Techtree and run the introductory Climb."
+    "reference": "hello-world-climb@1",
+    "host_prompt": "Set up Techtree and run the Hello World Climb."
   }
 }
