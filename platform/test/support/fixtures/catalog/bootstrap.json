@@ -1,0 +1,36 @@
+{
+  "schema_version": "techtree.bootstrap.v1alpha1",
+  "channel": "development",
+  "published_at": "2026-08-13T00:00:00Z",
+  "minimums": {
+    "hermes_version": "0.19.0",
+    "python": "3.12",
+    "uv": "0.11.1",
+    "docker_required": true
+  },
+  "cli": {
+    "distribution": "techtree",
+    "version": "0.1.0",
+    "source_revision": "0123456789abcdef0123456789abcdef01234567",
+    "install_argv": ["uv", "tool", "install", "techtree==0.1.0"]
+  },
+  "hermes_plugin": {
+    "plugin_id": "techtree",
+    "repository": "regents-labs/techtree-hermes",
+    "revision": "89abcdef0123456789abcdef0123456789abcdef",
+    "install_argv": [
+      "hermes",
+      "plugins",
+      "install",
+      "regents-labs/techtree-hermes",
+      "--ref",
+      "89abcdef0123456789abcdef0123456789abcdef",
+      "--enable"
+    ],
+    "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]
+  },
+  "introductory_climb": {
+    "reference": "procedure-transfer-dev@1",
+    "host_prompt": "Set up Techtree and run the introductory Climb."
+  }
+}
