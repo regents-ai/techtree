@@ -51,7 +51,6 @@ packages = ["src/techtree"]
 artifacts = [
   "src/techtree/resources/catalog/**/*",
   "src/techtree/resources/engines/**/*",
-  "src/techtree/resources/engine_scripts/**/*",
 ]
 
 [tool.hatch.build.targets.sdist]
