@@ -11,8 +11,7 @@ the site is discovery and onboarding, never a runtime dependency.
 
 ## What is implemented so far
 
-Work package 8a: the Ash resources behind the public projection and the release
-state, and the transactional importer that ingests a generated catalog bundle.
+The catalog kernel and the public API over it. The pages come next.
 
 ```text
 lib/techtree/catalog/
@@ -27,7 +26,49 @@ lib/techtree/catalog/
 └── query.ex             the only read path the web surface may call
 ```
 
-Public routes and pages are added by work packages 8b and 8c.
+## The published surface
+
+```text
+GET /healthz                    is a catalog being served, and which one
+GET /api/v1/bootstrap           the installation contract, exact bytes
+GET /api/v1/catalog             the generated catalog index, exact bytes
+GET /api/v1/climbs/:slug        one Climb summarized, with links to its objects
+GET /api/v1/objects/:digest     one protocol object, exact bytes
+```
+
+Every route is a read. There is no route that creates, accepts, uploads,
+authenticates, or ranks anything.
+
+Caching follows how immutable each address is. A content-addressed object may be
+kept forever; the catalog index and the installation contract are cached briefly
+and revalidated against their digest, and both honour `If-None-Match`.
+
+Refusals share one shape — a stable code, a message that is safe to show a
+stranger, and whether retrying could help:
+
+```text
+400  the digest in the path is not a digest
+404  the digest or slug names nothing this release ships
+503  nothing is imported yet, or the stored bytes no longer match their digest
+```
+
+The last one is deliberate: bytes that do not match the digest they are filed
+under are never served, under any status.
+
+### The installation contract
+
+`/api/v1/bootstrap` publishes the pinned installation path: the minimum host
+Hermes version, the exact CLI version, the plugin repository and its full
+immutable commit, and the introductory Climb. Every executable instruction is an
+array of arguments. Nothing in the payload is a shell string, nothing in it is a
+credential, and the server never runs any of it.
+
+Until the real release coordinates are signed off, the shipped contract is a
+placeholder and says so in the payload itself: `placeholder_release` is `true`,
+the versions read `0.0.0-placeholder`, and the pinned commits are all zeroes, so
+an instruction that escaped review would fail rather than install the wrong
+thing. Every bootstrap document must state `placeholder_release` either way — a
+release that forgot to say would be read as real.
 
 ## Exact bytes
 
@@ -48,12 +89,13 @@ mix run --no-start scripts/sync_catalog.exs \
   --source ../techtree-python/src/techtree/resources/catalog \
   --source-revision <full-commit> \
   --generator-version <generator-version> \
-  --bootstrap <path-to-bootstrap.json>
+  --bootstrap priv/bootstrap/development.json
 ```
 
-`--source-revision`, `--generator-version`, and the bootstrap release are
+`--source-revision`, `--generator-version`, and the bootstrap document are
 release inputs, supplied explicitly rather than guessed: the pinned CLI version
-and the pinned Hermes plugin commit are founder-owned decisions.
+and the pinned Hermes plugin commit are founder-owned decisions. The document in
+`priv/bootstrap` is the placeholder used until they are made.
 
 Then verify and import:
 

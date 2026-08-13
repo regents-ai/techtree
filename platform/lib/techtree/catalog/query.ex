@@ -101,16 +101,32 @@ defmodule Techtree.Catalog.Query do
   end
 
   @doc """
-  The exact bytes of one content-addressed object, verified before returning.
+  The exact bytes of one content-addressed object, verified before returning,
+  with the catalog entry that describes them.
 
   The digest is looked up in the imported index and only the stored
-  catalog-relative path is resolved; a digest never becomes a path directly.
+  catalog-relative path is resolved; a digest never becomes a path directly. The
+  entry comes back with the bytes because the media type a response declares is
+  the one the catalog recorded, not one inferred from the file.
   """
-  @spec object_bytes(String.t()) :: {:ok, binary(), String.t()} | {:error, Error.t()}
+  @spec object_bytes(String.t()) :: {:ok, binary(), CatalogEntry.t()} | {:error, Error.t()}
   def object_bytes(digest) do
-    with {:ok, entry} <- get_entry_by_digest(digest),
-         {:ok, bytes} <- read_file(entry.relative_path) do
-      verified(bytes, entry.protocol_digest, entry.relative_path)
+    with {:ok, _release} <- active_catalog_release(),
+         {:ok, entry} <- get_entry_by_digest(digest),
+         {:ok, bytes} <- read_file(entry.relative_path),
+         {:ok, bytes, _digest} <- verified(bytes, entry.protocol_digest, entry.relative_path) do
+      {:ok, bytes, entry}
+    end
+  end
+
+  @doc """
+  The exact bootstrap payload the active release publishes, verified against the
+  digest it was imported under.
+  """
+  @spec bootstrap_payload() :: {:ok, binary(), String.t()} | {:error, Error.t()}
+  def bootstrap_payload do
+    with {:ok, release} <- active_bootstrap_release() do
+      verified(release.raw_payload, release.payload_digest, "bootstrap.json")
     end
   end
 

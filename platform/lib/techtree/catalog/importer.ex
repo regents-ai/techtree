@@ -145,7 +145,8 @@ defmodule Techtree.Catalog.Importer do
         cli_version: get_in(bootstrap, ["cli", "version"]),
         plugin_revision: get_in(bootstrap, ["hermes_plugin", "revision"]),
         minimum_hermes_version: get_in(bootstrap, ["minimums", "hermes_version"]),
-        published_at: bootstrap["published_at"]
+        published_at: bootstrap["published_at"],
+        placeholder_release: bootstrap["placeholder_release"]
       },
       @internal
     )

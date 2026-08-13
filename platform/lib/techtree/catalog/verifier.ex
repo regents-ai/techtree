@@ -98,6 +98,7 @@ defmodule Techtree.Catalog.Verifier do
   def verify_bootstrap(%Bundle{bootstrap: bootstrap} = bundle) do
     with :ok <- check_schema_version(bootstrap, @bootstrap_schema_version, "bootstrap.json"),
          :ok <- check_string(bootstrap, ["channel"]),
+         :ok <- check_boolean(bootstrap, ["placeholder_release"]),
          :ok <- check_timestamp(bootstrap, ["published_at"]),
          :ok <- check_string(bootstrap, ["minimums", "hermes_version"]),
          :ok <- check_string(bootstrap, ["cli", "distribution"]),
@@ -304,6 +305,23 @@ defmodule Techtree.Catalog.Verifier do
       other ->
         {:error,
          Error.bundle_invalid("a required catalog field is not a non-empty string", %{
+           "field" => Enum.join(path, "."),
+           "found" => inspect(other)
+         })}
+    end
+  end
+
+  # Whether the coordinates below are real is stated, never inferred. A release
+  # that forgot to say would otherwise be read as real, which is the one
+  # direction of that mistake that could send someone to install nothing.
+  defp check_boolean(document, path) do
+    case get_in(document, path) do
+      value when is_boolean(value) ->
+        :ok
+
+      other ->
+        {:error,
+         Error.bundle_invalid("a required catalog field is not stated as true or false", %{
            "field" => Enum.join(path, "."),
            "found" => inspect(other)
          })}

@@ -99,16 +99,18 @@ defmodule Techtree.Catalog.ImporterTest do
       expected = CatalogFixture.read!(CatalogFixture.root(), "bootstrap.json")
       assert bootstrap.raw_payload == expected
       assert bootstrap.payload_digest == Digest.hash_bytes(expected)
-      assert bootstrap.cli_version == "0.1.0"
-      assert bootstrap.plugin_revision == "89abcdef0123456789abcdef0123456789abcdef"
+      assert bootstrap.cli_version == "0.0.0-placeholder"
+      assert bootstrap.plugin_revision == String.duplicate("0", 40)
       assert bootstrap.minimum_hermes_version == "0.19.0"
       assert bootstrap.schema_version == "techtree.bootstrap.v1alpha1"
+      assert bootstrap.placeholder_release
     end
 
     test "serves every object byte for byte" do
       for entry <- Ash.read!(CatalogEntry) do
-        assert {:ok, bytes, digest} = Query.object_bytes(entry.protocol_digest)
-        assert digest == entry.protocol_digest
+        assert {:ok, bytes, served} = Query.object_bytes(entry.protocol_digest)
+        assert served.protocol_digest == entry.protocol_digest
+        assert served.media_type == entry.media_type
         assert bytes == CatalogFixture.read!(CatalogFixture.root(), entry.relative_path)
       end
 
@@ -155,7 +157,7 @@ defmodule Techtree.Catalog.ImporterTest do
       assert {:ok, previous} = Query.get_entry_by_digest(retired)
       refute previous.active
 
-      assert {:ok, bytes, ^retired} = Query.object_bytes(retired)
+      assert {:ok, bytes, %{protocol_digest: ^retired}} = Query.object_bytes(retired)
       assert bytes == CatalogFixture.read!(CatalogFixture.root(), CatalogFixture.climb_path())
     end
 

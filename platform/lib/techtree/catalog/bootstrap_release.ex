@@ -50,7 +50,8 @@ defmodule Techtree.Catalog.BootstrapRelease do
         :cli_version,
         :plugin_revision,
         :minimum_hermes_version,
-        :published_at
+        :published_at,
+        :placeholder_release
       ]
 
       upsert? true
@@ -63,6 +64,7 @@ defmodule Techtree.Catalog.BootstrapRelease do
         :plugin_revision,
         :minimum_hermes_version,
         :published_at,
+        :placeholder_release,
         :active
       ]
 
@@ -141,6 +143,12 @@ defmodule Techtree.Catalog.BootstrapRelease do
 
     attribute :published_at, :utc_datetime_usec do
       description "When this bootstrap release was published."
+      allow_nil? false
+      public? true
+    end
+
+    attribute :placeholder_release, :boolean do
+      description "Whether the pinned coordinates are placeholders rather than a real release."
       allow_nil? false
       public? true
     end
