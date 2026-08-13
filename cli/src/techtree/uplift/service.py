@@ -12,16 +12,17 @@ Everything it does is a pure function of files the run already owns, so it
 spends nothing, starts nothing, and reaches nothing outside the run directory:
 
 1. ``building_receipts`` — one receipt per committed task per variant, written
-   into the run's receipt tree, sealed, and committed to by an ordered
-   receipt-set manifest per variant.
+   into the run's receipt tree, signed under the local executor identity, and
+   committed to by an ordered receipt-set manifest per variant.
 2. ``verifying_comparison`` — one observed fingerprint per variant, taken from
    the traces and the configuration the engine resolved, checked against the
    manifests and against each other.
-3. ``building_report`` — the paired rewards, the aggregate, and the report,
-   written through the run store so that the journal announces the digest of
-   the report it wrote.
+3. ``building_report`` — the paired rewards, the aggregate, the report, its
+   signature, and the portable proof bundle the report is verified from before
+   it is written through the run store, so that the journal announces the
+   digest of a report whose proof already checked out.
 
-Three choices are worth stating.
+Four choices are worth stating.
 
 *The run's own copies are the only inputs.* The Campaign, the two manifests and
 the committed membership come from ``inputs/``, which the artifact store
@@ -33,6 +34,12 @@ did.
 *The receipts are written before the comparison is checked.* They are the
 expensive evaluation's only durable scientific record, and a comparison that
 fails is exactly the case where an operator most needs to read them.
+
+*The proof is verified before the result is recorded.* Signing is not a
+formality performed on the way out: the bundle is written, verified offline by
+the same code a stranger would run, and only then does the report become the
+run's result. A run whose proof does not check out fails with its evidence
+intact rather than completing with a report nobody could verify.
 
 *It records the run's completion itself.* The fake executor writes its own
 result and appends its own completion event, and a real run needs the same two
@@ -51,17 +58,29 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Final
 
 from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import digest_object
-from techtree.errors import ValidationError
+from techtree.errors import ValidationError, VerificationError
+from techtree.identity.models import ExecutorIdentity
+from techtree.identity.service import IdentityService
+from techtree.models.base import ObjectEnvelope
 from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.experiment import ExperimentVariant
 from techtree.models.run import RunPhase, RunRequest
 from techtree.models.uplift_report import UpliftReport
 from techtree.models.validation import TasksetLock
 from techtree.paths import TechtreePaths
+from techtree.receipts.bundle import (
+    PROOF_BUNDLE_INVALID,
+    LocalProofBundleContents,
+    ReferencedObject,
+    assess_local_attestation,
+    write_local_bundle,
+)
 from techtree.receipts.compare import (
     COMPARISON_INVALID,
     ObservedVariant,
@@ -75,16 +94,15 @@ from techtree.receipts.set import (
     ReceiptSetManifest,
     build_receipt_set,
     receipt_set_path,
-    seal_receipt,
     write_receipt_set,
 )
 from techtree.receipts.uplift import (
-    LocalAttestation,
     aggregate_primary_result,
     build_uplift_report,
     pair_task_rewards,
     summarize_receipts,
 )
+from techtree.receipts.verify import verify_local_bundle
 from techtree.runs.artifacts import RunArtifactStore, RunInputBundle
 from techtree.runs.events import DETAIL_RESULT_DIGEST, RUN_COMPLETED
 from techtree.runs.executor import raise_if_cancel_requested
@@ -118,15 +136,16 @@ _VARIANT_ORDER: Final[tuple[VariantName, ...]] = (
 
 @dataclass(frozen=True)
 class VariantReceipts:
-    """One variant's receipts, its commitment over them, and what it ran."""
+    """One variant's signed receipts, its commitment over them, and what it ran."""
 
     receipts: list[EpisodeReceipt]
+    signed_receipts: list[ObjectEnvelope[EpisodeReceipt]]
     receipt_set: ReceiptSetManifest
     observed: ObservedVariant
 
 
 class RealUpliftReportService:
-    """Completes a real run by turning its evidence into an UpliftReport."""
+    """Completes a real run by turning its evidence into a signed UpliftReport."""
 
     def __init__(
         self,
@@ -134,23 +153,28 @@ class RealUpliftReportService:
         paths: TechtreePaths,
         run_store: RunStore,
         artifact_store: RunArtifactStore,
+        identity: IdentityService,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._paths = paths
         self._run_store = run_store
         self._artifacts = artifact_store
+        self._identity = identity
         self._clock = clock or _utc_now
 
     def complete(
         self, *, request: RunRequest, execution: RealExecutionResult
     ) -> UpliftReport:
-        """Build, check, aggregate and record this run's result."""
+        """Build, check, aggregate, sign, prove and record this run's result."""
         run_id = request.run_id
         raise_if_cancel_requested(self._run_store, run_id)
 
         inputs = self._artifacts.load_inputs(run_id, request)
         run_paths = RunPaths.for_run(self._paths, run_id)
         lock = self._taskset_lock(run_paths, inputs)
+        # Before anything is sealed, so that a machine which cannot sign says so
+        # while its evidence is still the only thing at stake.
+        identity = self._identity.ensure()
 
         self._run_store.append(run_id, phase=RunPhase.BUILDING_RECEIPTS)
         sides = {
@@ -176,7 +200,18 @@ class RealUpliftReportService:
         report = self._report(
             request=request,
             inputs=inputs,
+            lock=lock,
+            identity=identity,
             comparison=comparison,
+            baseline=baseline,
+            candidate=candidate,
+        )
+        self._prove(
+            request=request,
+            inputs=inputs,
+            lock=lock,
+            identity=identity,
+            report=report,
             baseline=baseline,
             candidate=candidate,
         )
@@ -222,7 +257,12 @@ class RealUpliftReportService:
                 request.run_id, position=position, receipt=receipt
             )
 
-        envelopes = [seal_receipt(receipt) for receipt in receipts]
+        # Signed here, at the moment the receipts exist and before anything is
+        # committed to them: the receipt-set manifest commits to the digest of
+        # each receipt's payload, which signing does not move, so the
+        # commitment and the signature are two independent seals over the same
+        # bytes rather than one wrapped in the other.
+        envelopes = [self._identity.sign_object(receipt) for receipt in receipts]
         protocol_variant = experiment_variant_of(variant)
         receipt_set = build_receipt_set(
             run_id=request.run_id,
@@ -237,6 +277,7 @@ class RealUpliftReportService:
 
         return VariantReceipts(
             receipts=receipts,
+            signed_receipts=envelopes,
             receipt_set=receipt_set,
             observed=observe_variant(
                 result=result,
@@ -277,6 +318,8 @@ class RealUpliftReportService:
         *,
         request: RunRequest,
         inputs: RunInputBundle,
+        lock: TasksetLock,
+        identity: ExecutorIdentity,
         comparison: RealComparisonResult,
         baseline: VariantReceipts,
         candidate: VariantReceipts,
@@ -311,11 +354,126 @@ class RealUpliftReportService:
             primary=primary,
             score=score,
             evidence=evidence,
-            # No local identity signs anything in this build, so no report it
-            # produces is entitled to P1. WP7c changes this one argument.
-            attestation=LocalAttestation.UNATTESTED,
+            # The one argument that decides the grade, and it is decided by the
+            # decisions-0005 section 3.4 conditions rather than by the presence
+            # of a key. Every condition is checked; any failure withholds the
+            # verdict instead of claiming a grade this run did not earn.
+            attestation=assess_local_attestation(
+                identity=identity,
+                identity_self_check=self._identity.store.verify_pair(),
+                referenced_objects=self._referenced_objects(
+                    request=request, inputs=inputs, lock=lock
+                ),
+                signed_receipts={
+                    ExperimentVariant.BASELINE: baseline.signed_receipts,
+                    ExperimentVariant.CANDIDATE: candidate.signed_receipts,
+                },
+                comparison=comparison.status,
+                score=score,
+            ).attestation,
             created_at=self._clock(),
         )
+
+    # -- the proof ----------------------------------------------------------
+
+    def _prove(
+        self,
+        *,
+        request: RunRequest,
+        inputs: RunInputBundle,
+        lock: TasksetLock,
+        identity: ExecutorIdentity,
+        report: UpliftReport,
+        baseline: VariantReceipts,
+        candidate: VariantReceipts,
+    ) -> Path:
+        """Sign the report, write the portable proof, and verify it offline.
+
+        The bundle is verified before the report is recorded, from the bytes
+        just written, with the same verifier a stranger would use. That is what
+        turns "the report says P1" into "the conditions P1 names hold in this
+        directory": a bundle that does not verify fails the run, and no report
+        claiming a grade it cannot support becomes a result.
+        """
+        signed_report = self._identity.sign_object(report)
+        run_root = self._paths.run_dir(request.run_id)
+        directory = write_local_bundle(
+            run_root=run_root,
+            contents=LocalProofBundleContents(
+                identity=identity,
+                campaign=inputs.campaign,
+                data_policy=inputs.resolved_climb.data_policy,
+                taskset_lock=lock,
+                validation_receipt=inputs.resolved_climb.publisher_validation,
+                experiments={
+                    ExperimentVariant.BASELINE: inputs.baseline,
+                    ExperimentVariant.CANDIDATE: inputs.candidate,
+                },
+                receipt_sets={
+                    ExperimentVariant.BASELINE: baseline.receipt_set,
+                    ExperimentVariant.CANDIDATE: candidate.receipt_set,
+                },
+                receipts={
+                    ExperimentVariant.BASELINE: baseline.signed_receipts,
+                    ExperimentVariant.CANDIDATE: candidate.signed_receipts,
+                },
+                report=signed_report,
+            ),
+            identity_service=self._identity,
+        )
+
+        verification = verify_local_bundle(directory)
+        if verification.verified:
+            return directory
+        raise VerificationError(
+            "this run's local proof does not verify from the bytes it just "
+            "wrote, so its report is not recorded as a result",
+            code=PROOF_BUNDLE_INVALID,
+            details={
+                "run_id": request.run_id,
+                "proof_grade": report.proof_grade,
+                "failed_checks": [message.id for message in verification.failures],
+            },
+        )
+
+    def _referenced_objects(
+        self, *, request: RunRequest, inputs: RunInputBundle, lock: TasksetLock
+    ) -> list[ReferencedObject]:
+        """Return every object this report cites, with the digest it cites it under.
+
+        Section 3.4's first condition is that all referenced artifact digests
+        verify, and this is the list: each object recomputed from itself and
+        compared against the digest some *other* document names it by, so no
+        value is ever checked against itself.
+        """
+        campaign = inputs.campaign
+        publisher_validation = inputs.resolved_climb.publisher_validation
+        return [
+            ReferencedObject("campaign", campaign, request.campaign_spec_digest),
+            ReferencedObject(
+                "data-policy",
+                inputs.resolved_climb.data_policy,
+                campaign.data_policy_digest,
+            ),
+            ReferencedObject(
+                "taskset-validation-receipt",
+                publisher_validation,
+                campaign.taskset.validation_receipt_digest,
+            ),
+            ReferencedObject(
+                "taskset-lock", lock, publisher_validation.taskset_lock_digest
+            ),
+            ReferencedObject(
+                "baseline-experiment",
+                inputs.baseline,
+                request.baseline_manifest_digest,
+            ),
+            ReferencedObject(
+                "candidate-experiment",
+                inputs.candidate,
+                request.candidate_manifest_digest,
+            ),
+        ]
 
     # -- inputs -------------------------------------------------------------
 

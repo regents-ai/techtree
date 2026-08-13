@@ -171,6 +171,7 @@ run status
 run logs
 run cancel
 run result
+proof verify
 engine install
 engine status
 engine verify

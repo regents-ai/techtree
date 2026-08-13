@@ -149,7 +149,9 @@ def test_the_finished_run_reads_back_from_a_fresh_process(
     result = run_cli(survivor.home, "run", "result", survivor.run_id)
 
     assert result.exit_code == EXIT_OK
-    report = result.data()
+    # ``run result`` answers with the report and the neutral presentation
+    # payload every channel draws from (spec section 7.21).
+    report = result.data()["report"]
     assert report["run_id"] == survivor.run_id
     assert len(report["task_deltas"]) == SLOW_TASK_COUNT
     assert report["publication_eligible"] is False

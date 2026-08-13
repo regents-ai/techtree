@@ -3,7 +3,12 @@
 One command that takes a machine from "Techtree is installed" to "Techtree can
 run a Climb here": create the local layout, refuse early if a prerequisite is
 missing, install the engine this build ships, make it the active one, verify
-it, and say what to do next.
+it, settle the local signing key, and say what to do next.
+
+The signing key is created here rather than on first use, and it is announced
+rather than assumed: a person running setup is asking this machine to be made
+ready, which is the moment to tell them a key exists, what it is for, and that
+nothing uploads it.
 
 It does not install the Hermes plugin. ``--hermes`` is reserved so that the
 name means one thing when it does exist, and until then it says so.
@@ -27,13 +32,26 @@ from techtree.doctor.service import DoctorService
 from techtree.engines.installer import EngineInstaller, find_uv
 from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError
+from techtree.identity.service import IdentityService
+from techtree.identity.store import IdentityStore
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.engine import EngineStatus
 from techtree.paths import ensure_path_layout
 
-__all__ = ["setup_command"]
+__all__ = ["LOCAL_SIGNING_KEY_NOTICE", "setup_command"]
 
 COMMAND = "setup"
+
+#: Spec section 7.5. Printed whenever setup settles this machine's identity,
+#: whether it made one or found one, because the sentence a person needs is
+#: what the key is for and where it goes — and the answer to the second half is
+#: "nowhere".
+LOCAL_SIGNING_KEY_NOTICE = (
+    "Techtree keeps a local signing key, used only to detect changes to your "
+    "local receipts. The key is not uploaded in this release, and only its "
+    "public half ever leaves the key directory.\n"
+    "Key: {key_id}"
+)
 
 
 def setup_command(
@@ -62,10 +80,16 @@ def setup_command(
         installed = installer.install()
         registry.set_active(installed.digest)
         status = installer.verify(installed.digest)
+        identity = IdentityService(IdentityStore(context.paths)).ensure()
 
         return CommandResult(
             data=status,
             messages=[
+                CliMessage(
+                    level=MessageLevel.INFO,
+                    code="local_signing_key",
+                    text=LOCAL_SIGNING_KEY_NOTICE.format(key_id=identity.key_id),
+                ),
                 CliMessage(
                     level=MessageLevel.INFO,
                     code="setup_complete",
@@ -73,7 +97,7 @@ def setup_command(
                         f"This machine is ready. Evaluation engine "
                         f"{status.digest} is installed, verified, and active."
                     ),
-                )
+                ),
             ],
             next_actions=[_browse_climbs()],
         )

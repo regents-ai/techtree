@@ -33,28 +33,30 @@ tolerance instead, and the frozen
 tolerance to apply. For the discrete rewards v0.1 measures — ``exact_match`` is
 0.0 or 1.0 — exact equality is also the right rule rather than a fallback.
 
-WHAT GRADE AN UNSIGNED REAL REPORT CARRIES, AND WHY
+WHAT GRADE A REAL REPORT CARRIES, AND WHY
 
 Decisions document 0005 section 3.4 lets a report claim ``proof_grade: P1``
 only when its receipts and the report itself are wrapped in *signed* envelopes
 under the local executor identity, that identity's public key travels with
-them, the comparison is controlled, and the score is valid. Signing is WP7c's
-and does not exist yet, so nothing this module builds today can satisfy those
-conditions.
+them, the comparison is controlled, and the score is valid. Whether those
+conditions hold is not this module's judgement to make: it arrives as
+:class:`LocalAttestation`, decided by
+:func:`techtree.receipts.bundle.assess_local_attestation`, which checks each
+condition by name and re-checks them all against the written bundle before the
+report is recorded.
 
-The frozen model offers exactly two grades, and it couples the weaker one to the
-verdict: a ``development_only`` report must reach a ``development_only``
-decision and must not be publication eligible. So an unsigned real report
-states everything it measured — execution completed, score valid, evidence
-complete, comparison controlled, both means, every task delta — and withholds
-the *verdict*, because the verdict is the field the frozen model ties to the
-proof grade. It is not a fake report: a fake one is ``development_only`` in its
-score, evidence and comparison statuses too, and this one is not.
+What this module owns is the consequence. The frozen model offers exactly two
+grades and couples the weaker one to the verdict: a ``development_only`` report
+must reach a ``development_only`` decision and must not be publication
+eligible. So an unattested real report states everything it measured —
+execution completed, score valid, evidence complete, comparison controlled,
+both means, every task delta — and withholds the *verdict*, because the verdict
+is the field the frozen model ties to the proof grade. It is still not a fake
+report: a fake one is ``development_only`` in its score, evidence and
+comparison statuses too, and this one is not.
 
-:func:`decide_uplift` still computes the verdict, and
-:class:`LocalAttestation` is the single argument WP7c flips to
-``local_ed25519`` once the identity signs. At that point the same inputs
-produce a P1 report carrying accepted, rejected or inconclusive.
+An attested one carries P1 and the verdict :func:`decide_uplift` computed:
+accepted, rejected or inconclusive, by the Campaign's own predeclared rules.
 """
 
 from __future__ import annotations
@@ -121,12 +123,13 @@ class LocalAttestation(StrEnum):
     that knows the answer.
     """
 
-    #: No identity has sealed anything. What this build does today.
+    #: At least one decisions-0005 section 3.4 condition does not hold, so
+    #: nothing has sealed this evidence in the sense the grade requires.
     UNATTESTED = "unattested"
 
     #: Every receipt and the report travel in signed envelopes under the
-    #: participant's own Ed25519 key, and the public key travels with them.
-    #: WP7c, decisions document 0005 section 3.4.
+    #: participant's own Ed25519 key, the public key travels with them, and
+    #: every other section 3.4 condition holds.
     LOCAL_ED25519 = "local_ed25519"
 
 

@@ -26,15 +26,19 @@ import pytest
 from pydantic import BaseModel
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
+from techtree.identity.models import ExecutorIdentity
+from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import CampaignSpec
 from techtree.models.catalog import ClimbSummary
 from techtree.models.cli import CliEnvelope
 from techtree.models.climb import ClimbManifest
 from techtree.models.data_policy import DataPolicy
+from techtree.models.episode_receipt import EpisodeReceipt
 from techtree.models.experiment import ExperimentManifest, ExperimentVariant
 from techtree.models.skill import SkillArtifact
 from techtree.models.uplift_report import UpliftReport
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
+from techtree.presentation.models import UpliftPresentationPayload
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 GOLDEN_DIRECTORY = REPOSITORY_ROOT / "tests" / "golden"
@@ -46,9 +50,13 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "cli-envelope": CliEnvelope[ClimbSummary],
     "climb": ClimbManifest,
     "data-policy": DataPolicy,
+    "executor-identity": ExecutorIdentity,
     "experiment-baseline": ExperimentManifest,
     "experiment-candidate": ExperimentManifest,
     "fake-uplift-report": UpliftReport,
+    "presentation-payload": UpliftPresentationPayload,
+    "real-episode-receipt": ObjectEnvelope[EpisodeReceipt],
+    "real-uplift-report": ObjectEnvelope[UpliftReport],
     "skill-artifact": SkillArtifact,
     "taskset-lock": TasksetLock,
     "taskset-validation-receipt": TasksetValidationReceipt,
@@ -223,6 +231,110 @@ def test_the_fake_report_is_unmistakably_a_development_artifact() -> None:
     assert report.statuses.comparison.value == "development_only"
     assert report.statuses.publication.value == "blocked"
     assert report.publication_eligible is False
+
+
+def test_the_real_report_states_what_it_measured_and_grades_itself_honestly() -> None:
+    """Spec section 3.4: what a signed real report is allowed to claim."""
+    sealed: ObjectEnvelope[UpliftReport] = load("real-uplift-report")
+    report = sealed.payload
+
+    assert report.proof_grade == "P1"
+    assert report.decision.value == "accepted"
+    assert report.statuses.score.value == "valid"
+    assert report.statuses.evidence.value == "complete"
+    assert report.statuses.comparison.value == "controlled_with_warnings"
+    # Nothing was uploaded and nothing could have been. Spec section 7.10.
+    assert report.statuses.publication.value == "not_requested"
+    assert report.publication_eligible is False
+
+
+def test_the_real_receipt_is_a_verifiers_receipt_rather_than_a_fake_one() -> None:
+    sealed: ObjectEnvelope[EpisodeReceipt] = load("real-episode-receipt")
+    receipt = sealed.payload
+
+    assert receipt.execution_backend == "verifiers"
+    assert receipt.subject_runtime.kind == "docker"
+    assert receipt.score_status.value == "valid"
+    assert receipt.evidence_status.value == "complete"
+
+
+@pytest.mark.parametrize("name", ["real-episode-receipt", "real-uplift-report"])
+def test_a_signed_golden_carries_a_signature_over_its_own_payload(name: str) -> None:
+    """The envelope's digest describes the payload it travels with."""
+    sealed: ObjectEnvelope[Any] = load(name)
+
+    assert sealed.signature is not None
+    assert sealed.signature.algorithm == "ed25519"
+    assert sealed.payload_digest == digest_object(sealed.payload)
+
+
+@pytest.mark.parametrize("name", ["real-episode-receipt", "real-uplift-report"])
+def test_a_signed_golden_verifies_against_the_fixture_identity(name: str) -> None:
+    """A golden signature is checkable, which is the only thing that makes it
+    worth committing: a stale one would be a silently unverifiable example."""
+    from techtree.identity.service import verify_signed_object
+
+    identity = _fixture_identity()
+    sealed: ObjectEnvelope[Any] = load(name)
+
+    assert sealed.signature is not None
+    assert sealed.signature.key_id == identity.key_id
+    assert verify_signed_object(identity=identity, envelope=sealed).verified
+
+
+def test_no_golden_carries_private_key_material() -> None:
+    """Only the public half of a key ever appears in a stored document."""
+    for name in GOLDEN_MODELS:
+        text = golden_text(name).lower()
+        assert "private" not in text
+
+
+def test_the_presentation_payload_says_only_what_the_report_says() -> None:
+    """Spec section 7.13: a view of the report, never a second opinion."""
+    payload: UpliftPresentationPayload = load("presentation-payload")
+    report: UpliftReport = load("real-uplift-report").payload
+
+    assert payload.run_id == report.run_id
+    assert payload.decision == report.decision.value
+    assert payload.proof_grade == report.proof_grade
+    assert payload.baseline_score == report.primary_result.baseline_mean
+    assert payload.candidate_score == report.primary_result.candidate_mean
+    assert (payload.wins, payload.losses, payload.ties) == (
+        report.primary_result.wins,
+        report.primary_result.losses,
+        report.primary_result.ties,
+    )
+    assert len(payload.task_rows) == len(report.task_deltas)
+
+
+def test_the_presentation_payload_explains_p1_in_the_permitted_words() -> None:
+    """Decisions 0005 section 3.4: never "independently reproduced"."""
+    payload: UpliftPresentationPayload = load("presentation-payload")
+    text = golden_text("presentation-payload")
+    codes = {caveat.code for caveat in payload.caveats}
+
+    absent = next(
+        caveat
+        for caveat in payload.caveats
+        if caveat.code == "no_independent_reproduction"
+    )
+
+    assert "integrity-bound, participant-attested local execution" in text
+    # The phrase may appear only as the denial it is.
+    assert absent.text.startswith("Nobody has independently reproduced")
+    assert text.count("independently reproduced") == 1
+    assert {
+        "local_participant_attestation",
+        "no_independent_reproduction",
+        "no_server_upload",
+        "no_external_evidence_service",
+    } <= codes
+
+
+def _fixture_identity() -> ExecutorIdentity:
+    """Return the committed public identity the signed goldens name."""
+    identity: ExecutorIdentity = load("executor-identity")
+    return identity
 
 
 def test_the_cli_envelope_golden_carries_the_committed_climb_summary() -> None:

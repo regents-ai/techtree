@@ -5,10 +5,11 @@ material in and out of raw bytes, sign a digest string, and check a signature.
 It knows nothing about where keys live, which key is "ours", or when signing
 should happen.
 
-Decisions document 0001 freezes that boundary for WP0–WP5: the primitives are
-implemented and tested now so the protocol shape is settled, but no flow signs
-anything and no device key is ever generated or persisted. There is no key
-store here on purpose, not by omission.
+Decisions document 0001 froze that boundary for WP0–WP5, when nothing signed
+anything; decisions document 0005 amendment 4 turned signing on in WP7. The
+boundary itself did not move. There is still no key store here on purpose:
+:mod:`techtree.identity` is the one place that knows where a key lives, which
+key is this machine's, and when something is signed with it.
 
 What gets signed is the ASCII digest string — ``sha256:`` and 64 hexadecimal
 characters — rather than the canonical bytes themselves. A verifier can then

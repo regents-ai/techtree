@@ -15,10 +15,13 @@ before any code is written that produces one.
 Spec `docs/spec/climb-v0.1-wp6-wp8.md` §3.4. Decisions
 `docs/decisions/0005-wp6-wp8-protocol-amendments-and-roadmap.md`, amendment 4.
 
-`proof_grade` is already a literal on `UpliftReport`. Nothing in this repository
-signs anything yet: the Ed25519 primitives exist and WP7 activates them. This
-section records the conditions in advance so that the grade cannot acquire a
-looser meaning by being implemented first and defined afterwards.
+`proof_grade` is already a literal on `UpliftReport`. The conditions below were
+recorded before anything signed anything, so that the grade could not acquire a
+looser meaning by being implemented first and defined afterwards. WP7 activated
+the Ed25519 primitives against them: `techtree.identity` owns the one local key
+a machine has, every receipt and every report travels in a signed
+`ObjectEnvelope`, and `techtree.receipts.bundle` evaluates each condition below
+by name before a report is entitled to the grade.
 
 ### When P1 is permitted
 
@@ -40,7 +43,11 @@ score status is valid
 ```
 
 Every one of those is a condition on stored bytes. None of them is satisfied by
-a claim in a document about itself.
+a claim in a document about itself, and none of them is taken on trust: the
+conditions are evaluated a second time, from the written bytes, by
+`techtree.receipts.verify.verify_local_bundle`, and a run whose proof does not
+re-establish them does not record its report as a result. `techtree proof
+verify` runs the same check offline on any bundle.
 
 ### What P1 means
 

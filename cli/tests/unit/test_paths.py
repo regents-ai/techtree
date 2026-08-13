@@ -4,10 +4,11 @@ The layout is derived from one root and nothing is created at import time, so
 the tests check both: that every path hangs off the root a caller named, and
 that resolving the layout touches no disk until asked.
 
-``identities_dir`` gets its own test. Decisions document 0001 forbids identity
-storage through WP5, so the path is settled but the directory must not exist —
-a distinction that is easy to lose the first time someone loops over the
-layout.
+``identities_dir`` gets its own test. Resolving the layout must not create it:
+the local signing identity is made by ``techtree setup`` or by a run that needs
+to sign, and :class:`~techtree.identity.store.IdentityStore` creates the
+directory then. A layout that made it in advance would leave every machine
+looking as though it held a key.
 """
 
 from __future__ import annotations
@@ -82,8 +83,8 @@ def test_creating_the_layout_twice_is_harmless(tmp_path: Path) -> None:
     assert paths.runs_dir.is_dir()
 
 
-def test_the_identities_directory_is_never_created(tmp_path: Path) -> None:
-    """Decisions 0001: no device keys and no identity storage through WP5."""
+def test_the_identities_directory_is_not_part_of_the_layout(tmp_path: Path) -> None:
+    """Spec section 7.5: the identity store creates it, when a key is made."""
     paths = paths_from_root(tmp_path / "techtree")
 
     ensure_path_layout(paths)

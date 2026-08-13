@@ -28,6 +28,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pydantic import BaseModel
 
 from techtree.canonical import digest_object, sha256_digest_bytes, to_json_value
@@ -36,6 +37,7 @@ from techtree.constants import (
     CLI_SCHEMA_VERSION,
     CLIMB_SCHEMA_VERSION,
     DATA_POLICY_SCHEMA_VERSION,
+    EPISODE_RECEIPT_SCHEMA_VERSION,
     EVALUATION_BACKEND_SCHEMA_VERSION,
     EXPERIMENT_SCHEMA_VERSION,
     PINNED_VERIFIERS_REVISION,
@@ -44,9 +46,21 @@ from techtree.constants import (
     TASKSET_VALIDATION_SCHEMA_VERSION,
     UPLIFT_SCHEMA_VERSION,
 )
-from techtree.models.base import ArtifactRef, Digest
+from techtree.crypto import (
+    load_private_key,
+    public_key_bytes,
+    public_key_to_base64,
+    sign_digest,
+)
+from techtree.identity.models import (
+    ExecutorIdentity,
+    VerificationMessage,
+    VerificationResult,
+)
+from techtree.models.base import ArtifactRef, Digest, ObjectEnvelope
 from techtree.models.campaign import (
     SKILL_MUTATION_POINTER,
+    SUBJECT_AGENT,
     AgentSpec,
     BudgetSpec,
     CampaignContext,
@@ -94,7 +108,13 @@ from techtree.models.data_policy import (
     RawEpisodePolicy,
     RevocationPolicy,
 )
-from techtree.models.episode_receipt import EvidenceStatus, ScoreStatus
+from techtree.models.episode_receipt import (
+    EpisodeReceipt,
+    EvidenceStatus,
+    NamedTraceReceipt,
+    ScoreStatus,
+    SubjectRuntimeReceipt,
+)
 from techtree.models.evaluation_backend import (
     AttestationKind,
     EvaluationBackendKind,
@@ -104,6 +124,7 @@ from techtree.models.experiment import (
     ExperimentConfiguration,
     ExperimentManifest,
     ExperimentVariant,
+    JsonDifference,
     ManifestComparison,
 )
 from techtree.models.skill import SkillArtifact, SkillFile
@@ -124,6 +145,9 @@ from techtree.models.validation import (
     ValidationCheck,
     ValidationMethod,
 )
+from techtree.presentation.build import build_uplift_presentation
+from techtree.presentation.models import UpliftPresentationPayload
+from techtree.receipts.uplift import aggregate_primary_result
 from techtree.tasksets.membership import membership_digest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
@@ -600,6 +624,238 @@ def build_fake_uplift_report(
     )
 
 
+def fixture_private_key() -> Ed25519PrivateKey:
+    """Return the fixed key the signed goldens are signed with.
+
+    A signed golden needs a key, and a golden that generated a fresh one would
+    differ from itself on every regeneration. The seed is derived from a label
+    like every other fixture value here, so this is a development fixture key
+    and nothing else: it signs three example documents, it exists in this file
+    where anyone can see it, and no machine's real identity is ever this.
+    """
+    _, _, hexadecimal = fixture_digest("executor-identity").partition(":")
+    return load_private_key(bytes.fromhex(hexadecimal))
+
+
+def build_executor_identity() -> ExecutorIdentity:
+    """Return the public half of the fixture signing key. Spec section 7.5."""
+    private_key = fixture_private_key()
+    return ExecutorIdentity(
+        kind="local_ed25519",
+        key_id=sha256_digest_bytes(public_key_bytes(private_key)),
+        algorithm="ed25519",
+        public_key=public_key_to_base64(private_key.public_key()),
+        created_at=FIXED_TIME,
+    )
+
+
+def sign_fixture[T: BaseModel](value: T) -> ObjectEnvelope[T]:
+    """Wrap one fixture object in the signed envelope a real one travels in.
+
+    Ed25519 signatures are deterministic, so the same object and the same key
+    always produce the same bytes and the golden is stable.
+    """
+    identity = build_executor_identity()
+    digest = digest_object(value)
+    return ObjectEnvelope[T](
+        payload=value,
+        payload_digest=digest,
+        signature=sign_digest(fixture_private_key(), digest, key_id=identity.key_id),
+    )
+
+
+def build_real_episode_receipt(
+    campaign_digest: Digest,
+    climb_digest: Digest,
+    data_policy_digest: Digest,
+    candidate: ExperimentManifest,
+) -> EpisodeReceipt:
+    """Return one receipt of the shape a real Verifiers episode produces.
+
+    The difference from a fake receipt is the whole point of the golden: the
+    execution backend is ``verifiers``, the subject ran in a Docker image that
+    reported a digest, the reward is one Verifiers recorded, and the score and
+    evidence statuses are real ones rather than ``development_only``.
+    """
+    task_hash = ordered_task_hashes()[0]
+    return EpisodeReceipt(
+        schema_version=EPISODE_RECEIPT_SCHEMA_VERSION,
+        id=fixture_id("receipt", "episode-receipt"),
+        run_id=fixture_id("run", "real-run"),
+        campaign_spec_digest=campaign_digest,
+        program_ref=None,
+        public_context=PublicContext(kind="climb", climb_digest=climb_digest),
+        data_policy_digest=data_policy_digest,
+        outcome_contract_digest=None,
+        evaluation_backend=build_evaluation_backend(),
+        subject_runtime=SubjectRuntimeReceipt(
+            kind="docker",
+            resolved_image_digest=fixture_digest("subject-image"),
+            platform="linux/arm64",
+        ),
+        variant=ExperimentVariant.CANDIDATE,
+        experiment_manifest_digest=digest_object(candidate),
+        episode_id=fixture_id("episode", "episode"),
+        episode_digest=fixture_digest("raw-episode"),
+        task_hash=task_hash,
+        named_traces={
+            SUBJECT_AGENT: [
+                NamedTraceReceipt(
+                    role=SUBJECT_AGENT,
+                    trace_id=fixture_id("trace", "trace"),
+                    trace_digest=fixture_digest("raw-trace"),
+                    task_hash=task_hash,
+                    rewards={"exact_match": 1.0},
+                    metrics={},
+                    ok=True,
+                )
+            ]
+        },
+        score_status=ScoreStatus.VALID,
+        evidence_status=EvidenceStatus.COMPLETE,
+        execution_backend="verifiers",
+        artifacts=[
+            ArtifactRef(
+                digest=fixture_digest("resolved-config"),
+                media_type="application/toml",
+                size=2048,
+                relative_path=None,
+            ),
+            ArtifactRef(
+                digest=fixture_digest("raw-traces"),
+                media_type="application/x-ndjson",
+                size=262144,
+                relative_path=None,
+            ),
+            ArtifactRef(
+                digest=fixture_digest("eval-log"),
+                media_type="text/plain",
+                size=16384,
+                relative_path=None,
+            ),
+            ArtifactRef(
+                digest=fixture_digest("normalized-episodes"),
+                media_type="application/x-ndjson",
+                size=65536,
+                relative_path=None,
+            ),
+        ],
+    )
+
+
+def real_task_deltas() -> list[TaskDelta]:
+    """Return a fixed set of paired task rewards with wins, losses and ties."""
+    pattern = {position: value for position, value in enumerate([1.0] * 6 + [0.0] * 14)}
+    rows: list[TaskDelta] = []
+    for position, task_hash in enumerate(ordered_task_hashes()):
+        baseline = pattern[position]
+        # Six tasks the baseline already passed stay passed, eight more pass
+        # with the Skill, and two regress: a golden that only improved would
+        # not exercise the shape a reader most needs to be able to read.
+        candidate = 1.0 if 6 <= position < 14 else (0.0 if position < 2 else baseline)
+        rows.append(
+            TaskDelta(
+                task_hash=task_hash,
+                baseline_reward=baseline,
+                candidate_reward=candidate,
+                delta=candidate - baseline,
+            )
+        )
+    return rows
+
+
+def build_real_uplift_report(
+    campaign_digest: Digest,
+    climb_digest: Digest,
+    data_policy_digest: Digest,
+    receipt_digest: Digest,
+    baseline: ExperimentManifest,
+    candidate: ExperimentManifest,
+) -> UpliftReport:
+    """Return the shape a signed real report takes. Spec sections 7.10 and 3.4.
+
+    ``P1`` is stated here because the decisions-0005 section 3.4 conditions are
+    what a real run establishes before it may write one, and a golden's job is
+    to show the shape a reader will meet. The statuses are the ones a real
+    controlled comparison in this build produces, warnings included.
+    """
+    deltas = real_task_deltas()
+    return UpliftReport(
+        schema_version=UPLIFT_SCHEMA_VERSION,
+        id=fixture_id("uplift", "real-uplift-report"),
+        run_id=fixture_id("run", "real-run"),
+        campaign_spec_digest=campaign_digest,
+        program_ref=None,
+        public_context=PublicContext(kind="climb", climb_digest=climb_digest),
+        data_policy_digest=data_policy_digest,
+        outcome_contract_digest=None,
+        evaluation_backend=build_evaluation_backend(),
+        taskset_validation_receipt_digest=receipt_digest,
+        baseline_manifest_digest=digest_object(baseline),
+        candidate_manifest_digest=digest_object(candidate),
+        statuses=UpliftStatuses(
+            execution=ExecutionStatus.COMPLETED,
+            score=ScoreStatus.VALID,
+            evidence=EvidenceStatus.COMPLETE,
+            # The honest status of a real comparison in this build: no mismatch
+            # was found, and two claims are weaker than they would like to be.
+            comparison=ComparisonStatus.CONTROLLED_WITH_WARNINGS,
+            publication=PublicationStatus.NOT_REQUESTED,
+        ),
+        manifest_comparison=ManifestComparison(
+            baseline_configuration_digest=baseline.configuration_digest,
+            candidate_configuration_digest=candidate.configuration_digest,
+            differences=[
+                JsonDifference(
+                    pointer=f"{SKILL_MUTATION_POINTER}/0",
+                    baseline=None,
+                    candidate=fixture_digest("skill-archive"),
+                )
+            ],
+            allowed_differences=[SKILL_MUTATION_POINTER],
+            controlled=True,
+            violations=[],
+        ),
+        primary_result=aggregate_primary_result(deltas, "exact_match"),
+        task_deltas=deltas,
+        decision=UpliftDecision.ACCEPTED,
+        proof_grade="P1",
+        publication_eligible=False,
+        created_at=FIXED_TIME,
+    )
+
+
+def build_presentation_payload(
+    report: UpliftReport,
+    receipt: EpisodeReceipt,
+    skill: SkillArtifact,
+    climb: ClimbManifest,
+) -> UpliftPresentationPayload:
+    """Return what every channel draws one real result from. Spec section 7.13."""
+    return build_uplift_presentation(
+        report=report,
+        baseline_receipts=[receipt],
+        candidate_receipts=[receipt],
+        campaign_title=climb.metadata.title,
+        baseline_skill=None,
+        candidate_skill=skill,
+        # A fixture verdict standing in for a real offline verification, which
+        # needs a bundle on disk. The payload only reads whether it verified.
+        verification=VerificationResult(
+            verified=True,
+            messages=[
+                VerificationMessage(
+                    id="bundle.signature",
+                    status="passed",
+                    code="signature_verification_failed",
+                    detail="the signature verifies against the public key carried "
+                    "with it",
+                )
+            ],
+        ),
+    )
+
+
 def build_climb_summary(
     campaign: CampaignSpec,
     campaign_digest: Digest,
@@ -743,11 +999,26 @@ def golden_objects() -> dict[str, BaseModel]:
         campaign, campaign_digest, climb, climb_digest, data_policy
     )
 
+    real_receipt = build_real_episode_receipt(
+        campaign_digest, climb_digest, data_policy_digest, candidate
+    )
+    real_report = build_real_uplift_report(
+        campaign_digest,
+        climb_digest,
+        data_policy_digest,
+        receipt_digest,
+        baseline,
+        candidate,
+    )
+
     return {
         "campaign": campaign,
         "climb": climb,
         "cli-envelope": build_cli_envelope(summary),
         "data-policy": data_policy,
+        # The public half of the key the two signed goldens were signed with,
+        # so a reader of those signatures has something to check them against.
+        "executor-identity": build_executor_identity(),
         "experiment-baseline": baseline,
         "experiment-candidate": candidate,
         "fake-uplift-report": build_fake_uplift_report(
@@ -758,6 +1029,15 @@ def golden_objects() -> dict[str, BaseModel]:
             baseline,
             candidate,
         ),
+        "presentation-payload": build_presentation_payload(
+            real_report, real_receipt, skill, climb
+        ),
+        # The two real shapes travel signed, because that is how they exist on
+        # disk once a run has proved itself: the receipt inside its envelope in
+        # the proof bundle, and the report inside the envelope the bundle
+        # commits to. Spec sections 7.5 and 7.11.
+        "real-episode-receipt": sign_fixture(real_receipt),
+        "real-uplift-report": sign_fixture(real_report),
         "skill-artifact": skill,
         "taskset-lock": lock,
         "taskset-validation-receipt": receipt,

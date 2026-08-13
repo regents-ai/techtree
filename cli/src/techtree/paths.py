@@ -9,9 +9,12 @@ Nothing here touches the filesystem at import time. Directories are created
 only when :func:`ensure_path_layout` is called, which keeps ``import techtree``
 free of side effects.
 
-``identities_dir`` is resolved but never created. Decisions document 0001
-forbids device keys and identity storage through WP5, so the path exists as a
-settled location and the directory does not exist at all.
+``identities_dir`` is resolved here and created elsewhere. The local executor
+identity (spec section 7.5) is made by ``techtree setup``, or by a run that
+reaches the point of signing its receipts, and
+:class:`~techtree.identity.store.IdentityStore` creates the directory then.
+Creating it as part of the layout would leave every machine looking as though
+it held a key.
 """
 
 from __future__ import annotations

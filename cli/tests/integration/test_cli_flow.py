@@ -32,6 +32,7 @@ from fixtures.drafts.support import VALID_SKILL
 from fixtures.runs.support import CliRun, run_cli, wait_for_terminal
 from techtree.cli.commands.run import development_only_result_notice
 from techtree.errors import EXIT_OK
+from techtree.identity.store import IdentityStore
 from techtree.models.uplift_report import UpliftReport
 from techtree.paths import paths_from_root
 from techtree.runs.artifacts import RunArtifactStore
@@ -110,8 +111,11 @@ def flow(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
 def _report(flow: dict[str, Any]) -> UpliftReport:
     # Loaded from bytes, never from a decoded dict: JSON is the spelling the
     # strict protocol models accept, and it is what a real reader would have.
+    # ``run result`` answers with the report and the neutral presentation
+    # payload every channel draws from (spec section 7.21), so the report is
+    # one field of the response rather than the whole of it.
     result: CliRun = flow["result"]
-    return UpliftReport.model_validate_json(json.dumps(result.data()))
+    return UpliftReport.model_validate_json(json.dumps(result.data()["report"]))
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +131,22 @@ def test_setup_installs_verifies_and_activates_the_engine(
     assert engine["installed"] is True
     assert engine["verified"] is True
     assert engine["active"] is True
+
+
+def test_setup_creates_the_local_signing_key_and_says_what_it_is_for(
+    flow: dict[str, Any],
+) -> None:
+    """Spec section 7.5: a key is made here, and announced rather than assumed."""
+    messages = flow["setup"].envelope()["messages"]
+    notice = next(
+        message for message in messages if message["code"] == "local_signing_key"
+    )
+    store = IdentityStore(paths_from_root(flow["home"]))
+
+    assert store.exists() is True
+    assert store.verify_pair() is True
+    assert "not uploaded in this release" in notice["text"]
+    assert store.load_public().key_id in notice["text"]
 
 
 def test_list_shows_the_development_climb(flow: dict[str, Any]) -> None:
@@ -308,10 +328,16 @@ def test_nothing_was_evaluated(flow: dict[str, Any]) -> None:
     )
 
 
-def test_the_next_action_after_a_result_is_the_log(flow: dict[str, Any]) -> None:
+def test_the_result_offers_the_tasks_first_and_the_log_after(
+    flow: dict[str, Any],
+) -> None:
+    """What to do about the result comes before how to debug the run."""
     actions = flow["result"].envelope()["next_actions"]
 
-    assert actions[0]["cli"] == ["techtree", "run", "logs", flow["run_id"]]
+    assert actions[0]["cli"][:3] == ["techtree", "run", "result"]
+    assert ["techtree", "run", "logs", flow["run_id"]] in [
+        action["cli"] for action in actions
+    ]
 
 
 def test_no_secret_reaches_the_run_directory(flow: dict[str, Any]) -> None:

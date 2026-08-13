@@ -27,8 +27,10 @@ to mistake an invented number for a measurement is the one reading JSON.
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Iterator
+from enum import StrEnum
 from typing import Annotated, Final, Literal
 
 import typer
@@ -40,11 +42,24 @@ from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import human_console
 from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
-from techtree.errors import TechtreeError, UsageError
+from techtree.errors import TechtreeError, UsageError, VerificationError
+from techtree.identity.models import VerificationResult
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
 from techtree.models.cli import CliError, CliMessage, MessageLevel, NextAction
+from techtree.models.experiment import ExperimentVariant
 from techtree.models.run import RunPhase, RunProgress, VariantProgress
 from techtree.models.uplift_report import UpliftReport
+from techtree.presentation.build import build_uplift_presentation
+from techtree.presentation.compact import render_uplift_markdown
+from techtree.presentation.models import UpliftPresentationPayload
+from techtree.presentation.rich import TaskDisplay, render_uplift_console
+from techtree.receipts.bundle import (
+    BUNDLE_DIRECTORY,
+    PROOF_BUNDLE_INVALID,
+    REPORT_FILENAME,
+    proof_bundle_dir,
+)
+from techtree.receipts.verify import LocalProofVerifier
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.launcher import (
     WorkerLauncher,
@@ -74,8 +89,10 @@ __all__ = [
     "RUN_WATCH_NOT_SUPPORTED_IN_JSON",
     "SCORE_PROVISIONAL_NOTICE",
     "STATUS_COMMAND",
+    "ResultFormat",
     "RunCancelPayload",
     "RunLogsPayload",
+    "RunResultPayload",
     "RunStatusPayload",
     "build_run_service",
     "cancel_run_command",
@@ -195,6 +212,29 @@ class RunCancelPayload(ProtocolModel):
     phase: RunPhase
     cancel_requested_at: UtcDateTime | None
     worker_alive: bool
+
+
+class ResultFormat(StrEnum):
+    """How a person asked for a finished result to be drawn."""
+
+    RICH = "rich"
+    COMPACT = "compact"
+    PATH = "path"
+
+
+class RunResultPayload(ProtocolModel):
+    """A finished run's report, and the neutral payload every channel draws.
+
+    Both, always. The report is the evidence and the presentation is the view;
+    a machine caller that received only one of them would either have to render
+    the evidence itself — inventing the wording this product is careful about —
+    or trust a view it cannot check against anything.
+    """
+
+    report: UpliftReport
+    presentation: UpliftPresentationPayload
+    format: ResultFormat
+    show_tasks: TaskDisplay
 
 
 def build_run_service(context: CliContext) -> RunService:
@@ -591,11 +631,32 @@ def result_run_command(
         str,
         typer.Argument(metavar="RUN_ID", help="The finished run to report on."),
     ],
+    result_format: Annotated[
+        ResultFormat | None,
+        typer.Option(
+            "--format",
+            help=(
+                "How to show the result. Defaults to rich in a terminal and "
+                "compact when the output is piped."
+            ),
+        ),
+    ] = None,
+    show_tasks: Annotated[
+        TaskDisplay,
+        typer.Option("--show-tasks", help="Which per-task rows to print."),
+    ] = TaskDisplay.CHANGED,
+    verify: Annotated[
+        bool,
+        typer.Option(
+            "--verify/--no-verify",
+            help="Check the run's local proof before showing the result.",
+        ),
+    ] = True,
 ) -> None:
     """Show the finished report for a run."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[UpliftReport]:
+    def action() -> CommandResult[RunResultPayload]:
         service = build_run_service(context)
         try:
             report = service.result(run_id)
@@ -606,13 +667,101 @@ def result_run_command(
                 error.next_actions = [_check_status(run_id)]
             raise
 
+        verification = _verify_proof(context, run_id, report) if verify else None
+        payload = RunResultPayload(
+            report=report,
+            presentation=_presentation(context, run_id, report, verification),
+            format=result_format or _default_format(context),
+            show_tasks=show_tasks,
+        )
         return CommandResult(
-            data=report,
+            data=payload,
             warnings=_result_warnings(report),
-            next_actions=[_read_logs(run_id)],
+            next_actions=[*payload.presentation.next_actions, _read_logs(run_id)],
+            # A result whose own proof does not check out is shown and
+            # reported as a failure: the caller still gets the report, and
+            # the exit code says not to believe it.
+            error=_unverified_error(run_id, verification),
         )
 
     invoke_command(context, RESULT_COMMAND, action, render_data=_render_result)
+
+
+def _presentation(
+    context: CliContext,
+    run_id: str,
+    report: UpliftReport,
+    verification: VerificationResult | None,
+) -> UpliftPresentationPayload:
+    """Build the channel-neutral payload every rendering of this result uses.
+
+    The Skill and the Climb's title come from the run's own staged inputs,
+    which the artifact store verifies against the run's immutable request, so
+    what is shown is what was executed rather than whatever a draft or a
+    catalog holds now.
+
+    ``baseline_skill`` is ``None`` because every comparison this build prepares
+    is a Skill insertion: the baseline declares no Skill. The replacement case
+    belongs to the slice that can prepare one.
+    """
+    artifacts = RunArtifactStore(context.paths)
+    inputs = artifacts.load_inputs(run_id, RunStore(context.paths).get_request(run_id))
+    return build_uplift_presentation(
+        report=report,
+        baseline_receipts=artifacts.episode_receipts(
+            run_id, ExperimentVariant.BASELINE
+        ),
+        candidate_receipts=artifacts.episode_receipts(
+            run_id, ExperimentVariant.CANDIDATE
+        ),
+        campaign_title=inputs.resolved_climb.climb.metadata.title,
+        baseline_skill=None,
+        candidate_skill=inputs.skill,
+        verification=verification,
+    )
+
+
+def _verify_proof(
+    context: CliContext, run_id: str, report: UpliftReport
+) -> VerificationResult | None:
+    """Check the run's local proof, when it has one to check.
+
+    A development-only report has no proof bundle and never claimed one, so
+    there is nothing to verify and nothing is claimed about it. A graded report
+    always has one, and a missing bundle for a graded report is a failed
+    verification rather than a silent "not checked".
+    """
+    if report.proof_grade == "development_only":
+        return None
+    return LocalProofVerifier().verify_bundle(
+        proof_bundle_dir(context.paths.run_dir(run_id))
+    )
+
+
+def _unverified_error(
+    run_id: str, verification: VerificationResult | None
+) -> VerificationError | None:
+    """Return the failure a result carries when its proof did not verify."""
+    if verification is None or verification.verified:
+        return None
+    return VerificationError(
+        f"run {run_id} produced a report whose local proof does not verify",
+        code=PROOF_BUNDLE_INVALID,
+        details={
+            "run_id": run_id,
+            "failed_checks": [message.id for message in verification.failures],
+        },
+    )
+
+
+def _default_format(context: CliContext) -> ResultFormat:
+    """Return the rendering a reader gets when they did not choose one.
+
+    Spec section 7.21: rich for a person at a terminal, compact when the output
+    is going somewhere else — a pipe, a file, or a gateway that will forward
+    it. Machine mode renders neither.
+    """
+    return ResultFormat.RICH if sys.stdout.isatty() else ResultFormat.COMPACT
 
 
 # ---------------------------------------------------------------------------
@@ -793,43 +942,44 @@ def _render_cancel(data: object, console: Console) -> None:
 
 
 def _render_result(data: object, console: Console) -> None:
-    if not isinstance(data, UpliftReport):
+    """Draw a finished result in the shape the reader asked for.
+
+    The development-only banner comes before everything in every format. A
+    reader who stops at the first line of an invented result has still been
+    told that it is invented.
+    """
+    if not isinstance(data, RunResultPayload):
         return
 
-    if data.proof_grade == "development_only":
+    if data.report.proof_grade == "development_only":
         console.print(DEVELOPMENT_ONLY_BANNER)
         console.print()
 
-    primary = data.primary_result
+    if data.format is ResultFormat.PATH:
+        _render_result_paths(data, console)
+        return
+    if data.format is ResultFormat.COMPACT:
+        console.print(render_uplift_markdown(data.presentation))
+        return
+    render_uplift_console(data.presentation, console, show_tasks=data.show_tasks)
+
+
+def _render_result_paths(data: RunResultPayload, console: Console) -> None:
+    """Print where this run's result and proof live, and nothing else.
+
+    ``--format path`` exists for a caller that is going to open the files
+    itself, so it prints paths relative to the run directory rather than the
+    absolute ones: the run identifier is what a caller already has.
+    """
     _print_pairs(
         console,
         [
-            ("Run", data.run_id),
-            ("Campaign", data.campaign_spec_digest),
-            ("Reward", primary.reward_name),
-            ("Baseline mean", f"{primary.baseline_mean:.4f}"),
-            ("Candidate mean", f"{primary.candidate_mean:.4f}"),
-            ("Absolute delta", f"{primary.absolute_delta:+.4f}"),
-            ("Relative delta", _relative_text(primary.relative_delta)),
-            ("Wins/losses/ties", f"{primary.wins}/{primary.losses}/{primary.ties}"),
-            ("Tasks", str(len(data.task_deltas))),
-            (
-                "Comparison",
-                "controlled"
-                if data.manifest_comparison.controlled
-                else "not controlled",
-            ),
-            ("Decision", data.decision.value.replace("_", " ")),
-            ("Proof grade", data.proof_grade.replace("_", " ")),
-            ("Publication", data.statuses.publication.value),
+            ("Run", data.report.run_id),
+            ("Report", "report/uplift.json"),
+            ("Proof bundle", f"{BUNDLE_DIRECTORY}/"),
+            ("Signed report", f"{BUNDLE_DIRECTORY}/{REPORT_FILENAME}"),
         ],
     )
-
-
-def _relative_text(relative: float | None) -> str:
-    if relative is None:
-        return "undefined (the baseline scored nothing)"
-    return f"{relative:+.2%}"
 
 
 def _print_pairs(console: Console, pairs: list[tuple[str, str]]) -> None:

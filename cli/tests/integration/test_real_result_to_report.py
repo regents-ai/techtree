@@ -257,8 +257,14 @@ def test_the_completed_run_leaves_checkable_receipts(tmp_path: Path) -> None:
             signed_receipts=envelopes,
             ordered_task_hashes=committed,
         )
-        # Nothing is signed yet, which is what keeps the report off P1.
-        assert all(envelope.signature is None for envelope in envelopes)
+        # The receipts on disk are the payloads; the signatures live on the
+        # envelopes in the run's proof bundle, which
+        # ``test_local_sign_and_verify`` checks. Re-sealing them here proves
+        # the commitment holds over the bytes the run wrote, which is the
+        # property this test is about.
+        assert [envelope.payload_digest for envelope in envelopes] == list(
+            manifest.ordered_receipt_digests
+        )
 
 
 def test_a_completed_run_records_no_second_result(tmp_path: Path) -> None:

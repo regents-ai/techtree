@@ -6,7 +6,7 @@ the command groups, and closes the last gap in the error boundary: a typed
 failure raised while the context is still being built still owes the caller one
 envelope and one documented exit code.
 
-``climb``, ``run``, and ``engine`` are registered with their real command names
+``climb``, ``run``, ``engine``, and ``proof`` are registered with their real names
 even where this build implements only some of them. A name that exists and
 answers ``not_implemented`` is discoverable and scriptable; a name that does not
 exist yet is indistinguishable from a typo. The reserved namespaces — ``program``,
@@ -48,6 +48,7 @@ from techtree.cli.commands.engine import (
     status_engine_command,
     verify_engine_command,
 )
+from techtree.cli.commands.proof import verify_proof_command
 from techtree.cli.commands.run import (
     cancel_run_command,
     logs_run_command,
@@ -222,6 +223,7 @@ def create_app() -> typer.Typer:
     app.add_typer(_climb_app(), name="climb")
     app.add_typer(_run_app(), name="run")
     app.add_typer(_engine_app(), name="engine")
+    app.add_typer(_proof_app(), name="proof")
     return app
 
 
@@ -278,6 +280,16 @@ def _run_app() -> typer.Typer:
     app.command("result", help="Show the finished report for a run.")(
         result_run_command
     )
+    return app
+
+
+def _proof_app() -> typer.Typer:
+    app = typer.Typer(help="Check local proofs.", no_args_is_help=True)
+
+    app.command(
+        "verify",
+        help="Check a local proof offline, from the bytes the run stored.",
+    )(verify_proof_command)
     return app
 
 

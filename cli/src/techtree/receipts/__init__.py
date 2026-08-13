@@ -39,6 +39,12 @@ The division of labour:
 ``uplift``
     The paired rewards, the aggregate over them, and the report — which is the
     only place in this package where two variants meet.
+``bundle``
+    The portable proof: which documents travel, and the decisions-0005 section
+    3.4 conditions a report has to establish before it may be graded.
+``verify``
+    Reading one of those bundles back and answering, offline and from its own
+    bytes, whether it still holds together.
 """
 
 from __future__ import annotations

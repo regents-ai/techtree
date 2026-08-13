@@ -48,6 +48,8 @@ from techtree.errors import (
     sanitize_exception_message,
     sanitize_text,
 )
+from techtree.identity.service import IdentityService
+from techtree.identity.store import IdentityStore
 from techtree.models.run import RunPhase, RunRequest
 from techtree.models.uplift_report import UpliftReport
 from techtree.paths import TechtreePaths, default_paths, paths_from_root
@@ -380,6 +382,10 @@ def _require_report(
             paths=paths,
             run_store=run_store,
             artifact_store=artifact_store,
+            # A run a person started is explicit enough to create the local
+            # signing key it needs. Nothing creates one at import time, and
+            # nothing creates one for a machine that is only being inspected.
+            identity=IdentityService(IdentityStore(paths)),
             clock=_utc_now,
         ).complete(request=request, execution=produced)
     raise RunError(

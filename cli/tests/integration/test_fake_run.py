@@ -72,8 +72,12 @@ def finished_run(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
 def _report(finished_run: dict[str, Any]) -> UpliftReport:
     # Protocol documents are loaded from bytes, never from a decoded dict: it
     # is the JSON spelling the strict models accept, and it is what a real
-    # reader of this envelope would have.
-    return UpliftReport.model_validate_json(json.dumps(finished_run["result"].data()))
+    # reader of this envelope would have. ``run result`` returns the report
+    # together with the neutral presentation payload every channel draws from
+    # (spec section 7.21), so the report is one field of the response.
+    return UpliftReport.model_validate_json(
+        json.dumps(finished_run["result"].data()["report"])
+    )
 
 
 def _paths(finished_run: dict[str, Any]) -> TechtreePaths:
@@ -283,4 +287,4 @@ def test_the_source_skill_and_the_draft_may_be_deleted(
 
     assert final["phase"] == "completed"
     assert result.exit_code == EXIT_OK
-    assert json.loads(result.stdout)["data"]["run_id"] == run_id
+    assert json.loads(result.stdout)["data"]["report"]["run_id"] == run_id

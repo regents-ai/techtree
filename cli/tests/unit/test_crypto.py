@@ -1,12 +1,14 @@
-"""Ed25519 primitives and the WP0–WP5 prohibitions around them.
+"""Ed25519 primitives and the boundary around private key material.
 
-Spec sections 10.8, 2.6, and 2.7; decisions document 0001.
+Spec sections 10.8, 2.6, 2.7 and 7.5; decisions documents 0001 and 0005.
 
 Two things are under test. First, that the primitives are correct: a signature
 made over a digest verifies with the matching public key and fails every other
-way it could be presented. Second — and just as binding — that nothing in the
-package actually uses them yet. WP0 freezes the shape of signing; it does not
-turn signing on, does not create device keys, and does not store identities.
+way it could be presented. Second — and just as binding — that private key
+material stays inside one package. WP0 froze the shape of signing and WP7
+switched it on (decisions document 0005, amendment 4), so the standing rule is
+no longer "nothing signs": it is that only :mod:`techtree.identity` may hold a
+private key, and every other module asks it to sign.
 """
 
 from __future__ import annotations
@@ -294,8 +296,11 @@ def imported_roots(tree: ast.AST) -> set[str]:
 
 FORBIDDEN_IMPORT_ROOTS = frozenset({"verifiers", "hermes", "nemo", "nemo_rl", "relay"})
 
-#: The names that would mean a real signing flow exists. Only ``crypto`` itself
-#: and this test may mention them.
+#: The names that mean private key material is being handled. WP7 activates
+#: signing (decisions document 0005, amendment 4), so the rule is no longer
+#: "nothing signs" — it is that exactly one package does, and everything else
+#: asks that package. A second module that reached for these would be a second
+#: place private material could be mishandled.
 SIGNING_NAMES = frozenset(
     {
         "generate_private_key",
@@ -305,6 +310,10 @@ SIGNING_NAMES = frozenset(
         "Ed25519PrivateKey",
     }
 )
+
+#: The modules entitled to touch them: the primitives themselves, and the
+#: identity package that owns the one key this machine has.
+SIGNING_MODULES = frozenset({"crypto.py", "identity/store.py", "identity/service.py"})
 
 
 def test_the_package_never_imports_verifiers_hermes_or_relay() -> None:
@@ -317,10 +326,11 @@ def test_the_package_never_imports_verifiers_hermes_or_relay() -> None:
     assert offenders == {}
 
 
-def test_no_module_outside_crypto_reaches_for_a_signing_primitive() -> None:
+def test_no_module_outside_the_identity_layer_touches_private_key_material() -> None:
     offenders: dict[str, set[str]] = {}
     for module in package_modules():
-        if module.name == "crypto.py":
+        relative = module.relative_to(PACKAGE_ROOT).as_posix()
+        if relative in SIGNING_MODULES:
             continue
         tree = ast.parse(module.read_text(encoding="utf-8"), filename=str(module))
         used = {
