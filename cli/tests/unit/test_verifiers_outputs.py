@@ -46,6 +46,7 @@ def normalized_trace(task_hash: str = TASK_HASH) -> NormalizedTrace:
         verifiers_version=VERIFIERS_VERSION,
         verifiers_revision=VERIFIERS_REVISION,
         model_id="vendor/small-instruct",
+        sampling={"max_tokens": 512, "temperature": 0.0},
         harness_id="hermes-agent",
         harness_version="0.19.0",
         use_bundled_skill=False,
@@ -54,8 +55,7 @@ def normalized_trace(task_hash: str = TASK_HASH) -> NormalizedTrace:
             kind="docker",
             runtime_id="container-1",
             image=f"ghcr.io/techtree/subject@{IMAGE_DIGEST}",
-            resolved_image_digest=IMAGE_DIGEST,
-            image_digest_source="runtime",
+            image_index_digest=IMAGE_DIGEST,
             cpu=2.0,
             memory_gb=4.0,
         ),
@@ -65,6 +65,7 @@ def normalized_trace(task_hash: str = TASK_HASH) -> NormalizedTrace:
         ],
         metrics={},
         usage=NormalizedUsage(input_tokens=10, output_tokens=4, total_tokens=14),
+        model_calls=1,
         num_turns=1,
         last_reply="BRANCH-01",
         errors=[],
@@ -231,16 +232,3 @@ def test_an_episode_whose_trace_scores_another_task_is_unrepresentable() -> None
 def test_a_reward_carrying_a_non_finite_number_is_unrepresentable() -> None:
     with pytest.raises(ValueError, match="finite"):
         NormalizedReward(name="exact_match", score=float("nan"), weight=1.0, value=0.0)
-
-
-def test_a_runtime_digest_must_say_where_it_came_from() -> None:
-    with pytest.raises(ValueError, match="agree"):
-        NormalizedRuntime(
-            kind="docker",
-            runtime_id=None,
-            image="ghcr.io/techtree/subject:latest",
-            resolved_image_digest=IMAGE_DIGEST,
-            image_digest_source="unavailable",
-            cpu=None,
-            memory_gb=None,
-        )

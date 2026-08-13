@@ -185,6 +185,10 @@ class ReplacementEvidenceExecutor:
                     "child_outcome": recorded_result.child_outcome.model_copy(
                         update={"variant": variant}
                     ),
+                    # As does what the daemon answered about the container.
+                    "image_resolution": recorded_result.image_resolution.model_copy(
+                        update={"variant": variant}
+                    ),
                     "episodes": read_variant_episodes(episodes_path),
                     "normalized_episodes": _written(episodes_path),
                     "resolved_verifiers_config": _written(

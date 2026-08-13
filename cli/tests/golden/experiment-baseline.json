@@ -1,5 +1,5 @@
 {
-  "campaign_spec_digest": "sha256:eda214ea0693f5d4e069097c39c3a33d0d20815fe567e46e8153e147cfbdb93e",
+  "campaign_spec_digest": "sha256:9680cd12222341f2f288f8c8a57578a070db20e786e1613ceac03d2301e4b35b",
   "configuration": {
     "agents": {
       "subject": {
@@ -17,7 +17,11 @@
         },
         "runtime": {
           "cpu": 2.0,
-          "image": "techtree-development-placeholder:not-executed",
+          "image": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
+          "image_platform_digests": {
+            "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",
+            "linux/arm64": "sha256:20eadabc42589e6543b24a64ab305b9895e9fcf6dbb2cadb14812f394ecdbadf"
+          },
           "memory_gb": 4.0,
           "network_policy": "restricted",
           "supported_platforms": [
@@ -125,12 +129,12 @@
       "validation_receipt_digest": "sha256:3cbd6ed39a9d2f5690fb03a6dc24a38d2f5b61ad0883f53ea34b5a455512736e"
     }
   },
-  "configuration_digest": "sha256:5c57f28efe6c27c166f5844517777e5fa534c850e74d087913c88afb47cac83c",
+  "configuration_digest": "sha256:c51fe2fe5c37b38367a60e97bd8b9e7be5add17ceb5b2a1cf1fb3d79eda573a6",
   "created_at": "2026-01-01T00:00:00Z",
   "id": "receipt_cb5af344e0b2011f02e6008bffddc955",
   "program_ref": null,
   "public_context": {
-    "climb_digest": "sha256:ee960a5a559bc194aeb935defebc7cf1ef81448d44062e0d01008b0f4c2e03af",
+    "climb_digest": "sha256:b51ed16c5cdbb5bc75d4e86215db06adae02277e466b4d684bca97ed3202a56c",
     "kind": "climb"
   },
   "schema_version": "techtree.experiment.v1alpha1",

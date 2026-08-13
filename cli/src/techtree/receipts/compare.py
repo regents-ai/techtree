@@ -34,19 +34,24 @@ Skill-management tool. Across two recorded probes of the same Campaign the
 fifteen tool names, fifteen parameter schemas and fourteen of the fifteen
 descriptions are byte-identical, and ``skill_manage``'s description differs. A
 check that required one tool-inventory digest would therefore reject every
-clean run. What is permitted is precisely that: the same tool names, the same
-parameter schemas, and at most one differing description, on
-:data:`SKILL_INDEX_TOOL`. A second differing description, a differing schema,
-or a differing description anywhere else is a violation.
+clean run. What is permitted is the exact derived difference decisions document
+0007 ratified: the tool names and parameter schemas of the pinned harness
+conformance fixture (:mod:`techtree.harness`), unchanged on both sides, with at
+most one differing description and only on :data:`SKILL_INDEX_TOOL`. A second
+differing description, a differing schema, a differing description anywhere
+else, or any departure from the fixture's own surface is a violation — the
+fixture is what stops a moved harness pin from being read as the Skill index
+doing what the Skill index does.
 
-*A weaker claim is a warning, never silence and never a failure.* Two things
-about a real run are honestly unverifiable here: a provider that publishes no
-model revision cannot be pinned to one, and a Docker daemon that reports no
-resolved image digest leaves the Campaign's own pin as the only evidence. Both
-are recorded as warnings, which is what
+*A weaker claim is a warning, never silence and never a failure.* One thing
+about a real run is honestly unverifiable here: a provider that publishes no
+model revision cannot be pinned to one. It is recorded as a warning, which is
+what
 :class:`~techtree.models.uplift_report.ComparisonStatus.CONTROLLED_WITH_WARNINGS`
-exists for. Neither is ever allowed to absorb an actual mismatch: a model that
-differs is a failure whether or not its revision was discoverable.
+exists for, and it is never allowed to absorb an actual mismatch: a model that
+differs is a failure whether or not its revision was discoverable. What ran in
+the container used to be a warning of the same kind and is a check now — see
+:func:`_runtime_pin_checks`.
 
 *This function reports; it does not refuse.* Like
 :func:`~techtree.manifests.compare.compare_manifests`, it returns what it found
@@ -73,6 +78,7 @@ from typing import Any, Final, Literal, Self
 from pydantic import Field, model_validator
 
 from techtree.canonical import digest_object, validate_digest
+from techtree.harness import harness_conformance
 from techtree.manifests.compare import compare_manifests
 from techtree.models.base import Digest, JsonValue, NonEmptyString, ProtocolModel
 from techtree.models.campaign import (
@@ -80,6 +86,7 @@ from techtree.models.campaign import (
     AgentSpec,
     CampaignSpec,
     MutationKind,
+    RuntimeSpec,
     VariantSchedule,
 )
 from techtree.models.episode_receipt import EpisodeReceipt
@@ -231,7 +238,7 @@ class ObservedVariant:
     fingerprint, and it commits the tool inventory to a single digest. A
     controlled comparison has to look inside that digest — one tool description
     is allowed to differ — so the tools travel beside it, together with the
-    resolved sampling table the fingerprint also summarizes, the tasks this
+    effective sampling table the fingerprint also summarizes, the tasks this
     variant actually scored, and the operational envelope its child recorded.
     """
 
@@ -248,6 +255,7 @@ def observe_variant(
     *,
     result: VariantExecutionResult,
     resolved_config: Mapping[str, Any],
+    runtime: RuntimeSpec,
 ) -> ObservedVariant:
     """Fingerprint one executed variant from its own evidence.
 
@@ -256,22 +264,20 @@ def observe_variant(
     single observed configuration, and there is nothing to compare.
     """
     configuration = observed_from_episodes(
-        result.episodes, resolved_config=resolved_config
+        result.episodes,
+        resolved_config=resolved_config,
+        image_resolution=result.image_resolution,
+        runtime=runtime,
     )
     # The same reference rollout the fingerprint was taken from, chosen the
     # same way: every rollout of one variant has already been required to agree
     # with every other, so the first one describes all of them.
     reference = next(trace for episode in result.episodes for trace in episode.traces)
-    sampling = resolved_config.get("sampling")
     return ObservedVariant(
         variant=ExperimentVariant(result.variant.value),
         configuration=configuration,
         tools=sorted(reference.tools, key=lambda tool: tool.name),
-        sampling=(
-            {str(key): value for key, value in sorted(sampling.items())}
-            if isinstance(sampling, Mapping)
-            else {}
-        ),
+        sampling=dict(reference.sampling),
         ordered_task_hashes=[
             validate_digest(episode.task_hash) for episode in result.episodes
         ],
@@ -620,9 +626,16 @@ def _observed_checks(
         _same(
             "observed_runtime_image",
             "subject runtime or image",
-            (left.runtime_kind, left.runtime_image, left.runtime_image_digest),
-            (right.runtime_kind, right.runtime_image, right.runtime_image_digest),
+            (left.runtime_kind, left.runtime_image, left.runtime_image_index_digest),
+            (right.runtime_kind, right.runtime_image, right.runtime_image_index_digest),
         ),
+        _same(
+            "observed_runtime_platform_digest",
+            "resolved platform-specific image digest",
+            (left.runtime_platform, left.runtime_image_platform_digest),
+            (right.runtime_platform, right.runtime_image_platform_digest),
+        ),
+        *_runtime_pin_checks(campaign, baseline, candidate),
         _tool_surface_check(baseline, candidate),
         _same(
             "observed_reward_contract",
@@ -638,7 +651,7 @@ def _observed_checks(
         ),
         _declared_to_observed(baseline_manifest, baseline),
         _declared_to_observed(candidate_manifest, candidate),
-        *_weaker_claim_warnings(campaign, baseline, candidate),
+        *_weaker_claim_warnings(campaign),
     ]
 
 
@@ -648,6 +661,10 @@ def _tool_surface_check(
     """Permit the Skill index delta and nothing else. See :data:`SKILL_INDEX_TOOL`."""
     left = {tool.name: tool for tool in baseline.tools}
     right = {tool.name: tool for tool in candidate.tools}
+
+    departure = _conformance_departure(baseline, candidate)
+    if departure is not None:
+        return _check("observed_tool_inventory", _FAILED, departure)
 
     if set(left) != set(right):
         added = sorted(set(right) - set(left))
@@ -698,6 +715,63 @@ def _tool_surface_check(
         f"the description of {', '.join(descriptions)} differs between the two "
         f"variants; only {SKILL_INDEX_TOOL}'s may",
     )
+
+
+def _conformance_departure(
+    baseline: ObservedVariant, candidate: ObservedVariant
+) -> str | None:
+    """Return why the offered tools are not the pinned harness's, or nothing.
+
+    Decisions document 0007 R9 item 4. A comparison sees one description
+    differing on one tool and cannot tell, from inside itself, whether that is
+    the Skill index doing its job or a harness that changed underneath the
+    Campaign. The pinned fixture is the outside evidence: it fixes the tool
+    count, the names and the parameter schemas of the harness build the
+    Campaign declares, so anything else is a departure and not a derived
+    difference.
+    """
+    for observed in (baseline, candidate):
+        configuration = observed.configuration
+        try:
+            pinned = harness_conformance(
+                configuration.harness_id, configuration.harness_version
+            )
+        except FileNotFoundError:
+            return (
+                f"no tool surface was ever recorded for "
+                f"{configuration.harness_id} {configuration.harness_version}, "
+                "so the difference between the two variants cannot be shown to "
+                "be the Skill index alone"
+            )
+        offered = sorted(tool.name for tool in observed.tools)
+        if offered != sorted(pinned.tool_names):
+            return (
+                f"the {observed.variant.value} was offered {len(offered)} tools "
+                f"where {configuration.harness_id} "
+                f"{configuration.harness_version} offers "
+                f"{len(pinned.tool_names)}, so the harness is not the one the "
+                "Campaign declares"
+            )
+        expected = pinned.parameters_by_tool
+        reshaped = sorted(
+            tool.name
+            for tool in observed.tools
+            if tool.parameters_digest != expected[tool.name]
+        )
+        if reshaped:
+            return (
+                f"the {observed.variant.value} was offered a different "
+                f"parameter schema for {', '.join(reshaped)} than "
+                f"{configuration.harness_id} {configuration.harness_version} "
+                "records"
+            )
+        if pinned.skill_index_tool != SKILL_INDEX_TOOL:
+            return (
+                f"{configuration.harness_id} {configuration.harness_version} "
+                f"renders its Skill index into {pinned.skill_index_tool}, not "
+                f"{SKILL_INDEX_TOOL}"
+            )
+    return None
 
 
 def _declared_to_observed(
@@ -754,46 +828,82 @@ def _declared_to_observed(
     )
 
 
-def _weaker_claim_warnings(
+def _runtime_pin_checks(
     campaign: CampaignSpec, baseline: ObservedVariant, candidate: ObservedVariant
 ) -> list[ComparisonCheck]:
-    """Record the two facts about a real run that cannot be independently pinned.
+    """Hold both executions to the container the Campaign pinned.
 
-    Neither is a scientific failure and neither may be left unsaid. A report
-    that presented "the Campaign asked for this image" as "the daemon confirmed
-    this image ran" would be making the stronger claim from the weaker
-    evidence, which is the whole thing a controlled comparison exists to stop.
+    Decisions document 0007 R5. This used to be a warning, because the only
+    evidence of what ran was the reference the Campaign had asked for: the
+    pinned Verifiers build records no resolved digest, so "the image is the one
+    we asked for" was the strongest true statement available. It is a check now
+    because the Campaign pins a manifest digest per platform and every run asks
+    the local daemon what it holds, so the claim has evidence under it. An
+    execution that cannot be tied to the pin is invalid rather than warned
+    about — a container nobody can name is not a weaker result.
     """
-    warnings: list[ComparisonCheck] = []
-    if campaign.subject.model.revision is None:
-        warnings.append(
-            _check(
-                "model_revision_discoverable",
-                _WARNING,
-                f"the provider publishes no revision for "
-                f"{campaign.subject.model.model_id}, so both variants are known "
-                "to have used the same model identifier and not the same "
-                "model build",
-            )
-        )
-    unconfirmed = sorted(
-        {
-            observed.variant.value
-            for observed in (baseline, candidate)
-            if observed.configuration.runtime_image_digest_source != "runtime"
-        }
+    runtime = campaign.subject.runtime
+    pinned = runtime.image_index_digest
+    matched = sorted(
+        observed.variant.value
+        for observed in (baseline, candidate)
+        if observed.configuration.runtime_image_index_digest == pinned
     )
-    if unconfirmed:
-        warnings.append(
-            _check(
-                "runtime_image_digest_confirmed",
-                _WARNING,
-                "the container runtime reported no resolved image digest for "
-                f"the {' and '.join(unconfirmed)}, so the image is the one the "
-                "Campaign pinned rather than one the daemon confirmed",
-            )
+    both = len(matched) == 2
+
+    platforms = sorted(
+        {observed.configuration.runtime_platform for observed in (baseline, candidate)}
+    )
+    pinned_platform = len(platforms) == 1 and platforms[0] in (
+        runtime.image_platform_digests
+    )
+    return [
+        _check(
+            "observed_runtime_image_pinned",
+            _PASSED if both else _FAILED,
+            (
+                "the daemon confirmed both variants ran the image content the "
+                "Campaign pinned"
+                if both
+                else "the container the daemon holds is not the one the Campaign pinned"
+            ),
+        ),
+        _check(
+            "observed_runtime_platform_pinned",
+            _PASSED if pinned_platform else _FAILED,
+            (
+                f"both variants were served on {platforms[0]}, a platform the "
+                "Campaign pins a manifest digest for"
+                if pinned_platform
+                else "the variants were served on platforms the Campaign does "
+                "not pin one manifest digest for"
+            ),
+        ),
+    ]
+
+
+def _weaker_claim_warnings(campaign: CampaignSpec) -> list[ComparisonCheck]:
+    """Record the one fact about a real run that cannot be independently pinned.
+
+    It is not a scientific failure and it may not be left unsaid. Presenting
+    "both variants named the same model" as "both variants ran the same model
+    build" would be making the stronger claim from the weaker evidence, which is
+    the whole thing a controlled comparison exists to stop. Decisions document
+    0007 R5 accepts it for v0.1 and forbids suppressing it to obtain the word
+    "controlled".
+    """
+    if campaign.subject.model.revision is not None:
+        return []
+    return [
+        _check(
+            "model_revision_discoverable",
+            _WARNING,
+            f"the provider publishes no revision for "
+            f"{campaign.subject.model.model_id}, so both variants are known "
+            "to have used the same model identifier and not the same "
+            "model build",
         )
-    return warnings
+    ]
 
 
 # ---------------------------------------------------------------------------

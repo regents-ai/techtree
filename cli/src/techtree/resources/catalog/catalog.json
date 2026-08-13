@@ -1,31 +1,31 @@
 {
   "climbs": [
     {
-      "digest": "sha256:631d28c75d89526ec75ce2b20a8b8b7480c72f7046d177e5d609b01ec7f49b6c",
+      "digest": "sha256:e6cb884f76e00eee3edfd24f23d75d64502437b7f216f3c33643e31f649c6e7e",
       "path": "climbs/procedure-transfer-dev.json",
       "reference": "procedure-transfer-dev@1"
     }
   ],
   "objects": {
-    "sha256:04072e02ff77baaa43d1c85c23eb7db78664a1e6a40db326e9f7d68733b355fb": {
-      "kind": "campaign",
-      "media_type": "application/json",
-      "path": "campaigns/procedure-transfer-dev.json"
-    },
-    "sha256:20625fe5fca2d9ada8f4d9a3f4473e1745be3d36e6835293e81d38236436f21f": {
-      "kind": "taskset_validation",
-      "media_type": "application/json",
-      "path": "taskset-validations/procedure-transfer-dev.json"
-    },
-    "sha256:2d2ef8f78ccb6882317ab5da023c94e10aff61550b57da3d08b4024bf3a1fd2f": {
+    "sha256:5875f31fe28251c70b2d40e19b7579578dce6a4b70717583510044392118837c": {
       "kind": "validation_evidence",
       "media_type": "application/json",
       "path": "validation-evidence/procedure-transfer-dev.json"
+    },
+    "sha256:a0a1875e831f4604851c2ed927f898a52f70b28655af35cc6926dd8e8a347810": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/procedure-transfer-dev.json"
     },
     "sha256:b257724db5dcc4a6392c56bfc403cb4b7c5221675cefed9970258c42512b4fbe": {
       "kind": "data_policy",
       "media_type": "application/json",
       "path": "data-policies/procedure-transfer-dev.json"
+    },
+    "sha256:b65c1b0204dd2ceb1ec4c72a58c9888e6216c75d0eb40b7a11b18c85215a6b8b": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/procedure-transfer-dev.json"
     }
   },
   "schema_version": "techtree.catalog.v1alpha1"

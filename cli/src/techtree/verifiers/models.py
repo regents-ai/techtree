@@ -26,6 +26,7 @@ from pydantic import Field, model_validator
 from techtree.models.base import (
     ArtifactRef,
     Digest,
+    JsonValue,
     NonEmptyString,
     ProtocolModel,
 )
@@ -50,6 +51,7 @@ __all__ = [
     "NormalizedUsage",
     "RealExecutionResult",
     "RunPaths",
+    "SubjectImageResolution",
     "VariantExecutionPlan",
     "VariantExecutionResult",
     "VariantName",
@@ -200,6 +202,29 @@ class VariantExecutionPlan(ProtocolModel):
     max_concurrent: int = Field(ge=1)
 
 
+class SubjectImageResolution(ProtocolModel):
+    """What the local daemon answered about the pinned subject image.
+
+    The pinned Verifiers build asks Docker for a reference and records only the
+    reference, so the evaluation's own output cannot say what the daemon held or
+    which platform it served. Techtree asks, once per variant, immediately
+    before that variant's child is launched, and records the answer here.
+
+    Two facts, both from the daemon: the content digest it holds for the
+    reference — for a multi-platform repository, the OCI image index — and the
+    platform it resolved that index to on this host. The platform-specific
+    manifest digest is not asked of the daemon because the daemon does not know
+    it; it is a property of the pinned index, recorded in the Campaign per
+    supported platform, and the comparison reads it out by the platform observed
+    here.
+    """
+
+    variant: VariantName
+    image: NonEmptyString
+    index_digest: Digest
+    platform: NonEmptyString
+
+
 class ChildProcessOutcome(ProtocolModel):
     """What one Verifiers child process did.
 
@@ -265,12 +290,19 @@ class NormalizedReward(ProtocolModel):
 
 
 class NormalizedUsage(ProtocolModel):
-    """Token consumption for one trace."""
+    """Token consumption for one trace, and what the provider said it cost.
+
+    ``cost_usd`` is the provider's own figure and is absent whenever the
+    provider publishes none. Nothing here computes a cost from a price list:
+    an operational record downstream states where a cost came from, and a
+    number invented at this level could not be told apart from a reported one.
+    """
 
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
     total_tokens: int = Field(ge=0)
     cached_input_tokens: int | None = Field(default=None, ge=0)
+    cost_usd: float | None = Field(default=None, ge=0.0)
 
 
 class NormalizedTool(ProtocolModel):
@@ -287,34 +319,22 @@ class NormalizedTool(ProtocolModel):
 
 
 class NormalizedRuntime(ProtocolModel):
-    """The box one trace ran in.
+    """The box one trace ran in, as the evaluation recorded it.
 
-    ``resolved_image_digest`` is what the Docker engine reported. It is
-    frequently absent from the wire record, in which case ``image_digest_source``
-    says the digest came from the Campaign's own pinned reference instead of
-    from the daemon — a weaker claim that must not be silently presented as the
-    stronger one.
+    ``image_index_digest`` is the content the reference names — for a
+    multi-platform repository, the OCI image index. The pinned Verifiers build
+    records the reference it was asked to run and nothing about what the daemon
+    resolved it to, so this is a projection of the request rather than a report
+    from the daemon; what the daemon confirmed is captured separately by
+    :class:`SubjectImageResolution` and the two are required to agree.
     """
 
     kind: Literal["docker"]
     runtime_id: str | None
     image: NonEmptyString
-    resolved_image_digest: Digest | None
-    image_digest_source: Literal["runtime", "declared", "unavailable"]
+    image_index_digest: Digest
     cpu: float | None
     memory_gb: float | None
-
-    @model_validator(mode="after")
-    def _check_the_digest_and_its_source_agree(self) -> Self:
-        """Reject a runtime that names a source without a digest, or vice versa."""
-        has_digest = self.resolved_image_digest is not None
-        claims_digest = self.image_digest_source != "unavailable"
-        if has_digest != claims_digest:
-            raise ValueError(
-                "resolved_image_digest and image_digest_source must agree; a "
-                "digest needs a source and a source needs a digest"
-            )
-        return self
 
 
 class NormalizedTrace(ProtocolModel):
@@ -330,6 +350,10 @@ class NormalizedTrace(ProtocolModel):
     verifiers_version: NonEmptyString
     verifiers_revision: NonEmptyString
     model_id: NonEmptyString
+    # The settings this rollout was actually sampled under, resolved by the
+    # engine and carried by the rollout itself. Two variants that disagree here
+    # were sampled differently, whatever their manifests declared.
+    sampling: dict[str, JsonValue]
     harness_id: NonEmptyString
     harness_version: NonEmptyString
     use_bundled_skill: bool
@@ -339,6 +363,7 @@ class NormalizedTrace(ProtocolModel):
     rewards: list[NormalizedReward]
     metrics: dict[str, float | None]
     usage: NormalizedUsage | None
+    model_calls: int = Field(ge=0)
     num_turns: int = Field(ge=0)
     last_reply: str | None
     errors: list[NormalizedExecutionError]
@@ -350,6 +375,15 @@ class NormalizedTrace(ProtocolModel):
         names = [reward.name for reward in self.rewards]
         if len(set(names)) != len(names):
             raise ValueError("a trace records each reward exactly once")
+        return self
+
+    @model_validator(mode="after")
+    def _check_sampling_was_resolved(self) -> Self:
+        """Reject a trace that records no sampling settings at all."""
+        if not self.sampling:
+            raise ValueError(
+                "a trace records the sampling settings its rollout resolved"
+            )
         return self
 
     def reward(self, name: str) -> NormalizedReward | None:
@@ -399,6 +433,7 @@ class VariantExecutionResult(ProtocolModel):
     eval_log: ArtifactRef
     normalized_episodes: ArtifactRef
     child_outcome: ChildProcessOutcome
+    image_resolution: SubjectImageResolution
     episodes: list[NormalizedEpisode]
 
     @model_validator(mode="after")
@@ -408,6 +443,11 @@ class VariantExecutionResult(ProtocolModel):
             raise ValueError(
                 f"a {self.variant.value} result carries a "
                 f"{self.child_outcome.variant.value} child outcome"
+            )
+        if self.image_resolution.variant is not self.variant:
+            raise ValueError(
+                f"a {self.variant.value} result carries a "
+                f"{self.image_resolution.variant.value} image resolution"
             )
         return self
 

@@ -51,6 +51,9 @@ packages = ["src/techtree"]
 artifacts = [
   "src/techtree/resources/catalog/**/*",
   "src/techtree/resources/engines/**/*",
+  # Decisions 0007 R9: the pinned harness tool surface a comparison checks the
+  # Skill-index delta against.
+  "src/techtree/resources/harness/**/*",
   # Spec section 9.6: the wheel contains the exact ReleaseCore.
   "src/techtree/resources/release/**/*",
 ]

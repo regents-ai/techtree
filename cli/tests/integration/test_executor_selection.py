@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import stat
 from pathlib import Path
-from typing import Final
 
 import pytest
 
@@ -47,7 +46,6 @@ pytestmark = pytest.mark.integration
 #: rather than read from the local daemon: nothing here starts a container, so
 #: requiring Docker to answer a routing question would be a cost with no
 #: evidence attached to it.
-_SUBJECT_IMAGE: Final = "python@sha256:" + "0" * 64
 
 
 def test_a_development_placeholder_campaign_still_gets_the_fake_executor(
@@ -68,7 +66,7 @@ def test_a_campaign_with_real_subject_coordinates_gets_the_real_executor(
 ) -> None:
     """A Campaign that names a real model on a real image is evaluated for real."""
     home = tmp_path / "home"
-    run = local_run(home, campaign=local_campaign(image=_SUBJECT_IMAGE).campaign)
+    run = local_run(home, campaign=local_campaign().campaign)
 
     executor = executor_for(run.request, paths=paths_from_root(home))
     assert isinstance(executor, RealVerifiersExecutor)
@@ -129,9 +127,7 @@ def test_the_selection_reads_the_campaign_rather_than_the_request(
     """Two runs with identical request shapes route differently by Campaign."""
     placeholder = run_harness(tmp_path / "fake-home")
     placeholder_id = placeholder.start().state.run_id
-    real = local_run(
-        tmp_path / "real-home", campaign=local_campaign(image=_SUBJECT_IMAGE).campaign
-    )
+    real = local_run(tmp_path / "real-home", campaign=local_campaign().campaign)
 
     fake_request: RunRequest = placeholder.request(placeholder_id)
     assert fake_request.executor_kind == real.request.executor_kind == "fake"

@@ -1,23 +1,27 @@
 """What the engine actually resolved and ran. Spec section 7.8.
 
 A manifest says what the experiment was supposed to be. This module says what
-it turned out to be, computed from two sources that were written by something
+it turned out to be, computed from three sources that were written by something
 other than Techtree:
 
-* the traces the pinned Verifiers build recorded — which model answered, which
-  harness drove it, which container it ran in, which tools it was offered, and
-  which rewards were scored;
+* the traces the pinned Verifiers build recorded — which model answered, under
+  which sampling settings, which harness drove it, which container it was given,
+  which tools it was offered, and which rewards were scored;
 * the configuration the engine resolved and wrote back out — which is where the
-  sampling parameters and the skill mount paths live.
+  skill mount paths live, and which carries its own copy of the sampling
+  settings;
+* what the local Docker daemon answered about the pinned subject image, asked
+  once per variant immediately before that variant was launched.
 
-Keeping the two together is what makes the fingerprint an observation rather
-than a restatement. The resolved configuration is the engine's own answer to
-"what did you understand Techtree to be asking for", and the traces are the
-runtime's answer to "what did you actually do"; a disagreement between them is
-exactly the sort of drift a controlled comparison has to detect, so this module
-requires them to agree and refuses when they do not.
+Keeping them together is what makes the fingerprint an observation rather than
+a restatement. The resolved configuration is the engine's own answer to "what
+did you understand Techtree to be asking for", the traces are the runtime's
+answer to "what did you actually do", and the daemon's answer is the only one
+that can say which content was really on this machine; a disagreement between
+any of them is exactly the sort of drift a controlled comparison has to detect,
+so this module requires them to agree and refuses when they do not.
 
-Two details are worth stating.
+Three details are worth stating.
 
 *The skill digests are recovered from the mount paths.* The normalized trace
 carries the skill digests the *manifest* declared, because Verifiers records
@@ -27,12 +31,18 @@ folder name is a property of the content, so the resolved configuration lets the
 mounted skill be read back by digest. That reading is an observation; the
 trace's copy is a declaration, and the two are required to match.
 
-*A weaker claim stays weaker.* Docker does not always report a resolved image
-digest, in which case the normalizer records the Campaign's own pinned
-reference and says the digest came from a declaration. The fingerprint carries
-that provenance rather than dropping it, because "the daemon told us what ran"
-and "we asked for something pinned" must not be presented as the same
-statement.
+*The sampling settings are read from the rollouts, and checked against the
+file.* Both are the engine's own answers, but only the rollout's copy travels
+with the thing it describes. The resolved configuration's copy is required to
+match it, because an engine whose file and whose rollouts disagree about how
+the subject was sampled has not established either.
+
+*Which bytes ran is a three-way agreement, not a claim.* The evaluation records
+the reference it was given; the daemon says it holds that content and which
+platform it served; the Campaign pins one manifest digest per platform. All
+three must line up, and when they do, the digest that ran is a fact rather than
+the Campaign's hope. When they do not, this module refuses — an unidentifiable
+container is not a weaker result, it is no result.
 
 Comparing this fingerprint against the declared manifest is the next slice's
 work (spec section 7.9); everything here is extraction and internal
@@ -44,12 +54,17 @@ from __future__ import annotations
 import tomllib
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Final, Literal
+from typing import Any, Final
 
 from techtree.canonical import digest_object, validate_digest
 from techtree.errors import ValidationError, VerificationError
 from techtree.models.base import Digest, JsonValue, NonEmptyString, ProtocolModel
-from techtree.verifiers.models import NormalizedEpisode, NormalizedTrace
+from techtree.models.campaign import RuntimeSpec
+from techtree.verifiers.models import (
+    NormalizedEpisode,
+    NormalizedTrace,
+    SubjectImageResolution,
+)
 
 __all__ = [
     "OBSERVED_CONFIGURATION_MISMATCH",
@@ -77,8 +92,9 @@ class ObservedSubjectConfiguration(ProtocolModel):
     skill_root_digests: list[Digest]
     runtime_kind: NonEmptyString
     runtime_image: NonEmptyString
-    runtime_image_digest: Digest | None
-    runtime_image_digest_source: Literal["runtime", "declared", "unavailable"]
+    runtime_image_index_digest: Digest
+    runtime_platform: NonEmptyString
+    runtime_image_platform_digest: Digest
     tool_inventory_digest: Digest
     reward_contract_digest: Digest
     verifiers_version: NonEmptyString
@@ -104,6 +120,8 @@ def observed_from_episodes(
     episodes: Sequence[NormalizedEpisode],
     *,
     resolved_config: Mapping[str, Any],
+    image_resolution: SubjectImageResolution,
+    runtime: RuntimeSpec,
 ) -> ObservedSubjectConfiguration:
     """Fingerprint one variant, requiring every episode to agree.
 
@@ -142,18 +160,20 @@ def observed_from_episodes(
             },
         )
     _require_config_agrees_with_traces(reference, resolved_config)
+    platform_digest = _resolved_platform_digest(reference, image_resolution, runtime)
 
     return ObservedSubjectConfiguration(
         model_id=reference.model_id,
-        sampling_digest=digest_object(_sampling_of(resolved_config)),
+        sampling_digest=digest_object(reference.sampling),
         harness_id=reference.harness_id,
         harness_version=reference.harness_version,
         use_bundled_skill=reference.use_bundled_skill,
         skill_root_digests=mounted,
         runtime_kind=reference.runtime.kind,
         runtime_image=reference.runtime.image,
-        runtime_image_digest=reference.runtime.resolved_image_digest,
-        runtime_image_digest_source=reference.runtime.image_digest_source,
+        runtime_image_index_digest=image_resolution.index_digest,
+        runtime_platform=image_resolution.platform,
+        runtime_image_platform_digest=platform_digest,
         tool_inventory_digest=digest_object(
             [
                 {
@@ -193,11 +213,12 @@ def _require_no_drift(traces: Sequence[NormalizedTrace]) -> None:
         ("harness", {trace.harness_id for trace in traces}),
         ("harness version", {trace.harness_version for trace in traces}),
         ("bundled-skill setting", {trace.use_bundled_skill for trace in traces}),
+        ("sampling", {digest_object(trace.sampling) for trace in traces}),
         ("runtime kind", {trace.runtime.kind for trace in traces}),
         ("runtime image", {trace.runtime.image for trace in traces}),
         (
-            "resolved image digest",
-            {trace.runtime.resolved_image_digest for trace in traces},
+            "runtime image digest",
+            {trace.runtime.image_index_digest for trace in traces},
         ),
         (
             "skill list",
@@ -264,6 +285,75 @@ def _require_config_agrees_with_traces(
             },
         )
 
+    if _sampling_of(resolved_config) != dict(trace.sampling):
+        raise VerificationError(
+            "the sampling settings the engine resolved are not the ones this "
+            "variant's rollouts record being sampled under",
+            code=OBSERVED_CONFIGURATION_MISMATCH,
+            details={
+                "resolved": _text_detail(_sampling_of(resolved_config)),
+                "recorded": _text_detail(trace.sampling),
+            },
+        )
+
+
+def _resolved_platform_digest(
+    trace: NormalizedTrace,
+    image_resolution: SubjectImageResolution,
+    runtime: RuntimeSpec,
+) -> Digest:
+    """Return the image digest that actually ran, and refuse if it is unclear.
+
+    Three separate statements have to line up before the phrase "this container
+    ran" means anything. The evaluation says which reference it was given. The
+    local daemon says it holds that reference's content, and which platform it
+    resolved the reference to on this host. The Campaign says which manifest
+    that platform pins. Any disagreement leaves what ran unidentified, which is
+    a refusal rather than a weaker claim.
+    """
+    if image_resolution.image != trace.runtime.image:
+        raise VerificationError(
+            "the image the daemon was asked about is not the image this "
+            "variant's rollouts ran",
+            code=OBSERVED_CONFIGURATION_MISMATCH,
+            details={
+                "resolved": image_resolution.image,
+                "recorded": trace.runtime.image,
+            },
+        )
+    if image_resolution.index_digest != trace.runtime.image_index_digest:
+        raise VerificationError(
+            "the content the daemon holds for the subject image is not the "
+            "content this variant's rollouts name",
+            code=OBSERVED_CONFIGURATION_MISMATCH,
+            details={
+                "resolved": image_resolution.index_digest,
+                "recorded": trace.runtime.image_index_digest,
+            },
+        )
+    if image_resolution.index_digest != runtime.image_index_digest:
+        raise VerificationError(
+            "the content the daemon holds for the subject image is not the "
+            "content the Campaign pinned",
+            code=OBSERVED_CONFIGURATION_MISMATCH,
+            details={
+                "resolved": image_resolution.index_digest,
+                "pinned": runtime.image_index_digest,
+            },
+        )
+    pinned = runtime.image_platform_digests.get(image_resolution.platform)
+    if pinned is None:
+        raise VerificationError(
+            "the daemon served the subject image on a platform the Campaign "
+            "pins no manifest for, so which bytes ran cannot be established",
+            code=OBSERVED_CONFIGURATION_MISMATCH,
+            details={
+                "platform": image_resolution.platform,
+                "pinned_platforms": _text_detail(runtime.image_platform_digests),
+            },
+        )
+    return validate_digest(pinned)
+
 
 # ---------------------------------------------------------------------------
 # Reading the resolved configuration
@@ -298,7 +388,7 @@ def _table(document: Mapping[str, Any], name: str) -> Mapping[str, Any]:
 
 
 def _sampling_of(resolved_config: Mapping[str, Any]) -> dict[str, JsonValue]:
-    """Return the sampling parameters the subject was actually sampled under."""
+    """Return the sampling parameters the engine wrote back out."""
     sampling = _table(resolved_config, "sampling")
     values: dict[str, JsonValue] = {}
     for key, value in sorted(sampling.items()):

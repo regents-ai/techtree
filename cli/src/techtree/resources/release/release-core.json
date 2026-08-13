@@ -1,8 +1,8 @@
 {
-  "catalog_digest": "sha256:bf901ffd5a5665af56629c9b18c17f3b87d9e3e3d04ed9330277a40169584ad0",
+  "catalog_digest": "sha256:61b47d3d916410f0f26b1389c8dae68317d28fc35390a888dd59986d962ebdac",
   "cli_source_commit": "0000000000000000000000000000000000000000",
   "cli_version": "0.0.0-placeholder",
-  "engine_digest": "sha256:9e898679c5ea75fb8e0c6d1d4403b31b862eff6cb34a3f6bfeda04e834458245",
+  "engine_digest": "sha256:dbc82a92f1a0d3f6a66d8592692ee7b8366aecb6464b6411d0605bcff52c9d0e",
   "intro_climb_reference": "procedure-transfer-dev@1",
   "maximum_tested_host_hermes_version": "0.0.0-placeholder",
   "minimum_host_hermes_version": "0.19.0",

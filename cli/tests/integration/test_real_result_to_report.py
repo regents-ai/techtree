@@ -107,8 +107,7 @@ def test_the_recorded_probes_produce_a_complete_report() -> None:
         check.detail for check in comparison.failures
     ]
     assert [check.id for check in comparison.warnings] == [
-        "model_revision_discoverable",
-        "runtime_image_digest_confirmed",
+        "model_revision_discoverable"
     ]
     assert SKILL_INDEX_TOOL in next(
         check.detail

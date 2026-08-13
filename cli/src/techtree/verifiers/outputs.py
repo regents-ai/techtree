@@ -38,6 +38,7 @@ from techtree.verifiers.models import (
     NORMALIZED_EPISODES_FILENAME,
     ChildProcessOutcome,
     NormalizedEpisode,
+    SubjectImageResolution,
     VariantExecutionPlan,
     VariantExecutionResult,
 )
@@ -258,6 +259,7 @@ def build_variant_result(
     *,
     plan: VariantExecutionPlan,
     outcome: ChildProcessOutcome,
+    image_resolution: SubjectImageResolution,
     engine_registry: EngineRegistry,
     engine_digest: Digest,
     engine_runner: EngineRunner,
@@ -315,6 +317,7 @@ def build_variant_result(
         eval_log=artifact_for(paths["eval_log"], EVAL_LOG_MEDIA_TYPE),
         normalized_episodes=artifact_for(destination, NORMALIZED_EPISODES_MEDIA_TYPE),
         child_outcome=outcome,
+        image_resolution=image_resolution,
         episodes=episodes,
     )
 

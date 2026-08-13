@@ -94,6 +94,10 @@ from techtree.receipts.compare import (
     observe_variant,
 )
 from techtree.receipts.episode import build_variant_receipts, experiment_variant_of
+from techtree.receipts.execution import (
+    ComparisonExecutionRecord,
+    build_comparison_execution_record,
+)
 from techtree.receipts.observed import read_resolved_config
 from techtree.receipts.set import (
     ReceiptSetManifest,
@@ -233,6 +237,18 @@ class RealUpliftReportService:
             baseline=baseline,
             candidate=candidate,
         )
+        # Decisions 0007 R6: what the comparison consumed, recorded beside
+        # what it measured and signed with the same key. Built from evidence
+        # the run already wrote, so it can neither change the report nor fail
+        # the run — a comparison whose economics are unknown is still a
+        # comparison, and this record is where that is said out loud.
+        execution_record = build_comparison_execution_record(
+            run_id=run_id,
+            campaign_spec_digest=request.campaign_spec_digest,
+            campaign_max_concurrent=inputs.campaign.execution.max_concurrent,
+            execution=execution,
+            run_root=self._paths.run_dir(run_id),
+        )
         self._prove(
             request=request,
             inputs=inputs,
@@ -241,6 +257,7 @@ class RealUpliftReportService:
             report=report,
             baseline=baseline,
             candidate=candidate,
+            execution_record=execution_record,
         )
 
         self._run_store.write_result(run_id, report)
@@ -311,6 +328,7 @@ class RealUpliftReportService:
                 resolved_config=read_resolved_config(
                     run_paths.variant_output_dir(variant) / CONFIG_FILENAME
                 ),
+                runtime=campaign.subject.runtime,
             ),
         )
 
@@ -413,6 +431,7 @@ class RealUpliftReportService:
         report: UpliftReport,
         baseline: VariantReceipts,
         candidate: VariantReceipts,
+        execution_record: ComparisonExecutionRecord,
     ) -> Path:
         """Sign the report, write the portable proof, and verify it offline.
 
@@ -445,6 +464,7 @@ class RealUpliftReportService:
                     ExperimentVariant.CANDIDATE: candidate.signed_receipts,
                 },
                 report=signed_report,
+                execution_record=self._identity.sign_object(execution_record),
             ),
             identity_service=self._identity,
         )

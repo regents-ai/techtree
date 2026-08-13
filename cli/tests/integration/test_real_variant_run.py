@@ -50,6 +50,7 @@ from techtree.verifiers.credentials import (
     require_credentials,
     scrubbed_child_environment,
 )
+from techtree.verifiers.image import resolve_subject_image
 from techtree.verifiers.models import (
     NormalizedEpisode,
     RunPaths,
@@ -243,6 +244,9 @@ def test_one_real_baseline_variant_runs_end_to_end(
     result = build_variant_result(
         plan=_plan(paths, campaign, variant, compiled.max_concurrent),
         outcome=outcome,
+        image_resolution=resolve_subject_image(
+            campaign.campaign.subject.runtime, variant
+        ),
         engine_registry=registry,
         engine_digest=engine_digest,
         engine_runner=runner,

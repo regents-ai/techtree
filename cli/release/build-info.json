@@ -1,14 +1,14 @@
 {
   "artifacts": {
-    "release/release-core.json": "sha256:7f8c8d9bfab76f12bf95b06eba7f3b409f096d808b38c1a68b6174107cf4defd",
+    "release/release-core.json": "sha256:903c742e2b870d4ef68b46866e3d8ba21c79ca53f258ea1c3dc5a8669c0b91db",
     "release/release-core.schema.json": "sha256:6fb6ea1a9447a3651c5d28038fd7257ed3e2c66e73e903de6d46c3a0390fdedc",
-    "src/techtree/resources/release/release-core.json": "sha256:7f8c8d9bfab76f12bf95b06eba7f3b409f096d808b38c1a68b6174107cf4defd"
+    "src/techtree/resources/release/release-core.json": "sha256:903c742e2b870d4ef68b46866e3d8ba21c79ca53f258ea1c3dc5a8669c0b91db"
   },
   "generator": "tools/build_release_core.py",
   "generator_version": "0.1.0",
   "inputs": {
-    "catalog_digest": "sha256:bf901ffd5a5665af56629c9b18c17f3b87d9e3e3d04ed9330277a40169584ad0",
-    "engine_digest": "sha256:9e898679c5ea75fb8e0c6d1d4403b31b862eff6cb34a3f6bfeda04e834458245",
+    "catalog_digest": "sha256:61b47d3d916410f0f26b1389c8dae68317d28fc35390a888dd59986d962ebdac",
+    "engine_digest": "sha256:dbc82a92f1a0d3f6a66d8592692ee7b8366aecb6464b6411d0605bcff52c9d0e",
     "intro_climb_reference": "procedure-transfer-dev@1",
     "protocol_version": "v1alpha1",
     "pyproject_version": "0.1.0",

@@ -25,7 +25,7 @@ is generated separately and ships empty until the real generation chain exists
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -42,6 +42,8 @@ from techtree.constants import (
     EXPERIMENT_SCHEMA_VERSION,
     PINNED_VERIFIERS_REVISION,
     SKILL_SCHEMA_VERSION,
+    SUBJECT_IMAGE,
+    SUBJECT_IMAGE_PLATFORM_DIGESTS,
     TASKSET_LOCK_SCHEMA_VERSION,
     TASKSET_VALIDATION_SCHEMA_VERSION,
     UPLIFT_SCHEMA_VERSION,
@@ -147,6 +149,16 @@ from techtree.models.validation import (
 )
 from techtree.presentation.build import build_uplift_presentation
 from techtree.presentation.models import UpliftPresentationPayload
+from techtree.receipts.execution import (
+    COMPARISON_EXECUTION_SCHEMA_VERSION,
+    NO_COST_SOURCE,
+    ComparisonExecutionRecord,
+    PairOutcome,
+    UsageProvenance,
+    VariantExecutionSummary,
+    VariantUsage,
+    unavailable_cost,
+)
 from techtree.receipts.uplift import aggregate_primary_result
 from techtree.tasksets.membership import membership_digest
 from techtree.uplift.context import SkillImprovementContext
@@ -343,8 +355,9 @@ def build_subject_agent(skills: list[ArtifactRef]) -> AgentSpec:
         ),
         runtime=RuntimeSpec(
             type="docker",
-            image="techtree-development-placeholder:not-executed",
-            supported_platforms=["linux/amd64", "linux/arm64"],
+            image=SUBJECT_IMAGE,
+            supported_platforms=sorted(SUBJECT_IMAGE_PLATFORM_DIGESTS),
+            image_platform_digests=dict(SUBJECT_IMAGE_PLATFORM_DIGESTS),
             cpu=2.0,
             memory_gb=4.0,
             network_policy="restricted",
@@ -829,11 +842,105 @@ def build_real_uplift_report(
     )
 
 
+def build_comparison_execution(
+    report: UpliftReport,
+    campaign_digest: Digest,
+    baseline: ExperimentManifest,
+    candidate: ExperimentManifest,
+) -> ComparisonExecutionRecord:
+    """Return one comparison's operational record. Decisions 0007 R6+R8.
+
+    The numbers are what this build's runs actually produce: tokens summed
+    from the engine's normalized traces, and no cost at all, because nothing
+    reports one and this release pins no price to compute one from. A golden
+    showing a provider-reported figure would be showing a state no run in this
+    build can reach, and the whole point of the provenance field is that a
+    reader can tell those apart.
+    """
+    started = FIXED_TIME
+    baseline_finished = started + timedelta(seconds=612)
+    candidate_finished = started + timedelta(seconds=598)
+    return ComparisonExecutionRecord(
+        schema_version=COMPARISON_EXECUTION_SCHEMA_VERSION,
+        run_id=report.run_id,
+        campaign_spec_digest=campaign_digest,
+        engine_digest=fixture_digest("engine-bundle"),
+        execution_backend="verifiers",
+        schedule=VariantSchedule.PARALLEL,
+        started_at=started,
+        finished_at=baseline_finished,
+        elapsed_seconds=612.0,
+        launch_skew_seconds=0.031,
+        first_launched=ExperimentVariant.BASELINE,
+        overlap_seconds=598.0,
+        campaign_max_concurrent=4,
+        outcome=PairOutcome.COMPLETED,
+        baseline=build_variant_execution(
+            ExperimentVariant.BASELINE,
+            manifest=baseline,
+            started_at=started,
+            finished_at=baseline_finished,
+            input_tokens=1_186_432,
+            output_tokens=24_918,
+            model_calls=163,
+        ),
+        candidate=build_variant_execution(
+            ExperimentVariant.CANDIDATE,
+            manifest=candidate,
+            started_at=started,
+            finished_at=candidate_finished,
+            input_tokens=1_204_771,
+            output_tokens=26_004,
+            model_calls=171,
+        ),
+    )
+
+
+def build_variant_execution(
+    variant: ExperimentVariant,
+    *,
+    manifest: ExperimentManifest,
+    started_at: datetime,
+    finished_at: datetime,
+    input_tokens: int,
+    output_tokens: int,
+    model_calls: int,
+) -> VariantExecutionSummary:
+    """Return one side of the operational record."""
+    return VariantExecutionSummary(
+        variant=variant,
+        started_at=started_at,
+        finished_at=finished_at,
+        elapsed_seconds=(finished_at - started_at).total_seconds(),
+        exit_code=0,
+        cancelled=False,
+        episode_count=TASK_COUNT,
+        max_concurrent=2,
+        usage=VariantUsage(
+            provenance=UsageProvenance.NORMALIZED_TRACES,
+            model_calls=model_calls,
+            input_tokens=input_tokens,
+            cached_input_tokens=0,
+            output_tokens=output_tokens,
+            total_tokens=input_tokens + output_tokens,
+            traces_total=TASK_COUNT,
+            traces_with_usage=TASK_COUNT,
+        ),
+        cost=unavailable_cost(NO_COST_SOURCE),
+        experiment_manifest_digest=digest_object(manifest),
+        argv_digest=fixture_digest(f"{variant.value}-argv"),
+        normalized_episodes_digest=fixture_digest(f"{variant.value}-normalized"),
+        raw_traces_digest=fixture_digest(f"{variant.value}-raw-traces"),
+        resolved_config_digest=fixture_digest(f"{variant.value}-resolved-config"),
+    )
+
+
 def build_presentation_payload(
     report: UpliftReport,
     receipt: EpisodeReceipt,
     skill: SkillArtifact,
     climb: ClimbManifest,
+    execution: ComparisonExecutionRecord,
 ) -> UpliftPresentationPayload:
     """Return what every channel draws one real result from. Spec section 7.13."""
     return build_uplift_presentation(
@@ -843,6 +950,7 @@ def build_presentation_payload(
         campaign_title=climb.metadata.title,
         baseline_skill=None,
         candidate_skill=skill,
+        execution_record=execution,
         # A fixture verdict standing in for a real offline verification, which
         # needs a bundle on disk. The payload only reads whether it verified.
         verification=VerificationResult(
@@ -1076,6 +1184,9 @@ def golden_objects() -> dict[str, BaseModel]:
         baseline,
         candidate,
     )
+    real_execution = build_comparison_execution(
+        real_report, campaign_digest, baseline, candidate
+    )
 
     return {
         "campaign": campaign,
@@ -1098,8 +1209,9 @@ def golden_objects() -> dict[str, BaseModel]:
         "improvement-context": build_improvement_context(
             real_report, real_receipt, campaign, skill
         ),
+        "comparison-execution": real_execution,
         "presentation-payload": build_presentation_payload(
-            real_report, real_receipt, skill, climb
+            real_report, real_receipt, skill, climb, real_execution
         ),
         # The two real shapes travel signed, because that is how they exist on
         # disk once a run has proved itself: the receipt inside its envelope in

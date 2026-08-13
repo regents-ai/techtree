@@ -36,7 +36,7 @@ from techtree.settings import Settings
 
 def executable_campaign() -> CampaignSpec:
     """Return the same Campaign with real subject coordinates."""
-    return local_campaign(image=f"python@sha256:{'b' * 64}").campaign
+    return local_campaign().campaign
 
 
 def registry(home: Path) -> EngineRegistry:
@@ -57,10 +57,15 @@ def test_the_shipped_campaign_is_refused_for_a_real_run() -> None:
 
 
 def test_the_refusal_names_which_coordinates_are_placeholders() -> None:
+    """The subject model is still a placeholder; the container is not.
+
+    Decisions document 0007 R5 pins the shipped Campaign's image by content,
+    so the only coordinate left waiting on the founder is which model answers.
+    """
     check = check_live_campaign(shipped_campaign())
 
     assert "model_id=development-placeholder" in check.detail
-    assert "image=techtree-development-placeholder:not-executed" in check.detail
+    assert "image=" not in check.detail
 
 
 def test_a_campaign_with_real_coordinates_is_executable() -> None:
@@ -150,7 +155,11 @@ def test_an_image_that_is_not_present_locally_blocks() -> None:
     runtime = RuntimeSpec(
         type="docker",
         image=f"techtree-nothing-has-this-name@sha256:{'d' * 64}",
-        supported_platforms=["linux/arm64", "linux/amd64"],
+        supported_platforms=["linux/amd64", "linux/arm64"],
+        image_platform_digests={
+            "linux/amd64": f"sha256:{'e' * 64}",
+            "linux/arm64": f"sha256:{'f' * 64}",
+        },
         cpu=2.0,
         memory_gb=4.0,
         network_policy="restricted",
@@ -162,6 +171,7 @@ def test_an_image_that_is_not_present_locally_blocks() -> None:
     assert check.blocking
     # Pulling is an explicit setup step, never something a check does quietly.
     assert "pull it" in check.detail
+    assert check.metadata["pull"] == f"docker pull {runtime.image}"
 
 
 # ---------------------------------------------------------------------------

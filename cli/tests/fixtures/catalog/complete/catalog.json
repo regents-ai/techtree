@@ -1,31 +1,31 @@
 {
   "climbs": [
     {
-      "digest": "sha256:c9fa74f7921af7445ff0136993d4d70d03bdbab92b7bb42c5ac2706dd67a7246",
+      "digest": "sha256:1260156ee426c218b9d1bdf9f2c3aed3ce2fa2fff728c8ef9f84bea38c110f84",
       "path": "climbs/synthetic-open.json",
       "reference": "synthetic-open@1"
     },
     {
-      "digest": "sha256:bfcc3465f934eb4f5f0199410271b3311dad7980242cdf4dd8861f5674301d27",
+      "digest": "sha256:ce62a366280639a2a291240d27eb7944457b321f59d778031fe5f2d01364b388",
       "path": "climbs/synthetic-development.json",
       "reference": "synthetic-development@1"
     },
     {
-      "digest": "sha256:77ff9524c1c5c251ab1a7a0db68522dbd6760175c177b3b9a3876ca7bfd0b85b",
+      "digest": "sha256:fd582cfca6730c77499695c92f8a1bd8ec321bb81a9d6f96ebd701757e720e8f",
       "path": "climbs/synthetic-closed.json",
       "reference": "synthetic-closed@1"
     }
   ],
   "objects": {
-    "sha256:304d244266de56bb04e52f6c0400e6bb005a9b57376c0d88f0072002d9bb614f": {
-      "kind": "campaign",
-      "media_type": "application/json",
-      "path": "campaigns/synthetic.json"
-    },
     "sha256:88ad47c15e31ace586490770e2266e40c80f7c7be37099a49e37a12052094822": {
       "kind": "data_policy",
       "media_type": "application/json",
       "path": "data-policies/synthetic.json"
+    },
+    "sha256:d52d22a443cd73ed12f9dd170bdda5bc5da75b5c4809e8cddee07ad4801ce675": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/synthetic.json"
     },
     "sha256:de4747504f2c37a40991a50b8ed3f8c2fa273f41e8f7a933bd41dafb5954efc0": {
       "kind": "validation_evidence",

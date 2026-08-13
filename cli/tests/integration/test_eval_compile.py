@@ -53,7 +53,11 @@ from techtree.verifiers.compiler import (
 )
 from techtree.verifiers.config import EvalToml, config_to_toml_bytes
 from techtree.verifiers.credentials import credential_status
-from techtree.verifiers.models import RunPaths, VariantName
+from techtree.verifiers.models import (
+    RunPaths,
+    SubjectImageResolution,
+    VariantName,
+)
 from techtree.verifiers.verify import dry_run_variant_config
 
 pytestmark = pytest.mark.integration
@@ -368,6 +372,7 @@ for position, task_hash in reversed(list(enumerate(hashes))):
                 ),
                 runtime={"type": "docker", "image": image},
                 model=model,
+                sampling={"temperature": 0.0, "max_tokens": 512},
             ),
             runtime=DockerRuntimeInfo(
                 id="container-%d" % position, image=image, cpu=2.0, memory=4.0
@@ -484,6 +489,12 @@ def test_the_engine_normalizer_orders_episodes_by_committed_membership(
     result = build_variant_result(
         plan=plan,
         outcome=outcome,
+        image_resolution=SubjectImageResolution(
+            variant=variant,
+            image=campaign.subject.runtime.image,
+            index_digest=campaign.subject.runtime.image_index_digest,
+            platform=sorted(campaign.subject.runtime.image_platform_digests)[0],
+        ),
         engine_registry=EngineRegistry(engine_paths, Settings()),
         engine_digest=named_subject_engine.digest,
         engine_runner=engine_runner,

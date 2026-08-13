@@ -58,6 +58,8 @@ from techtree.constants import (
     CLIMB_SCHEMA_VERSION,
     DATA_POLICY_SCHEMA_VERSION,
     EVALUATION_BACKEND_SCHEMA_VERSION,
+    SUBJECT_IMAGE,
+    SUBJECT_IMAGE_PLATFORM_DIGESTS,
 )
 from techtree.engines.bundle import default_engine_descriptor
 from techtree.engines.installer import EngineInstaller, find_uv
@@ -142,6 +144,7 @@ TASK_COUNT: Final = 36
 
 #: The reward the reference taskset defines, spec section 22.5.
 PRIMARY_REWARD: Final = "exact_match"
+
 
 MEDIA_TYPE: Final = "application/json"
 
@@ -291,9 +294,16 @@ def build_procedure_transfer_campaign(
 ) -> CampaignSpec:
     """Return the scientific contract. Spec section 23.3, decisions 0001.
 
-    Every subject value is the frozen development placeholder. Nothing in
-    WP0–WP5 reads a model credential, resolves the image, or starts a
-    container, and the placeholder image name says so out loud.
+    The subject *model* is the frozen development placeholder: which model
+    answers is a founder-ratified release coordinate (decisions document 0006),
+    and ``check_live_campaign`` refuses to execute a Campaign that still names
+    the placeholder.
+
+    The subject *runtime* is not a placeholder any more. Decisions document
+    0007 R5 makes image pinning release-blocking, and an image pin is not a
+    coordinate anybody ratifies — it is a fact about a registry, read from one.
+    So the container this Campaign will run is named here by content, for every
+    platform it supports, from the day WP11 pinned it.
     """
     return CampaignSpec(
         schema_version=CAMPAIGN_SCHEMA_VERSION,
@@ -332,8 +342,9 @@ def build_procedure_transfer_campaign(
                 ),
                 runtime=RuntimeSpec(
                     type="docker",
-                    image="techtree-development-placeholder:not-executed",
-                    supported_platforms=["linux/arm64", "linux/amd64"],
+                    image=SUBJECT_IMAGE,
+                    supported_platforms=sorted(SUBJECT_IMAGE_PLATFORM_DIGESTS),
+                    image_platform_digests=dict(SUBJECT_IMAGE_PLATFORM_DIGESTS),
                     cpu=2.0,
                     memory_gb=4.0,
                     network_policy="restricted",

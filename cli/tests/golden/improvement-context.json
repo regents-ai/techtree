@@ -1,5 +1,5 @@
 {
-  "campaign_spec_digest": "sha256:eda214ea0693f5d4e069097c39c3a33d0d20815fe567e46e8153e147cfbdb93e",
+  "campaign_spec_digest": "sha256:9680cd12222341f2f288f8c8a57578a070db20e786e1613ceac03d2301e4b35b",
   "constraints": [
     "The revision is an instruction Skill: Markdown and plain text files, with SKILL.md as its entry point.",
     "The revision changes only the Skill's own files. Nothing else about the experiment may differ, and nothing else will be allowed to.",
@@ -280,6 +280,6 @@
     "unredacted local filesystem paths"
   ],
   "schema_version": "techtree.skill-improvement-context.v1",
-  "source_report_digest": "sha256:85d167e8691ae99859d5723b784c6ac851c48995568cc17d76eea361675194d9",
+  "source_report_digest": "sha256:ce2c83a1b30fea7ec25e1402b8e6c973b63c770cffc4a6042e72c87c2b16a4dd",
   "source_run_id": "run_bc6bcf8a52493f173292f667c596bfb7"
 }

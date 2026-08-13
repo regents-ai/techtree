@@ -39,6 +39,7 @@ from fixtures.receipts.support import (
 )
 from techtree.canonical import sha256_digest_bytes
 from techtree.models.base import ObjectEnvelope
+from techtree.models.campaign import SUBJECT_AGENT
 from techtree.models.episode_receipt import (
     EpisodeReceipt,
     EvidenceStatus,
@@ -141,6 +142,8 @@ def test_receipts_are_built_from_a_run_directory_without_executing_anything(
     observed = observed_from_episodes(
         episodes,
         resolved_config=read_resolved_config(output / RESOLVED_CONFIG_FILE),
+        image_resolution=recorded.image_resolution,
+        runtime=recorded.campaign.agents[SUBJECT_AGENT].runtime,
     )
     assert observed.model_id == "qwen/qwen3.7-flash"
     assert observed.runtime_kind == "docker"

@@ -30,13 +30,14 @@ import pytest
 from fixtures.receipts.support import RecordedVariant, recorded_variant
 from techtree.canonical import digest_object
 from techtree.errors import TechtreeError
+from techtree.models.campaign import SUBJECT_AGENT
 from techtree.receipts.observed import (
     OBSERVED_CONFIGURATION_MISMATCH,
     ObservedSubjectConfiguration,
     observed_from_episodes,
     read_resolved_config,
 )
-from techtree.verifiers.models import VariantName
+from techtree.verifiers.models import NormalizedEpisode, VariantName
 
 
 @pytest.fixture(params=[VariantName.BASELINE, VariantName.CANDIDATE])
@@ -49,14 +50,17 @@ def recorded(request: pytest.FixtureRequest) -> RecordedVariant:
 def observed_of(
     recorded: RecordedVariant,
     *,
+    episodes: list[NormalizedEpisode] | None = None,
     resolved_config: dict[str, Any] | None = None,
 ) -> ObservedSubjectConfiguration:
-    """Fingerprint one recorded variant."""
+    """Fingerprint one recorded variant, or a deliberately drifted copy of it."""
     return observed_from_episodes(
-        recorded.episodes,
+        recorded.episodes if episodes is None else episodes,
         resolved_config=(
             recorded.resolved_config if resolved_config is None else resolved_config
         ),
+        image_resolution=recorded.image_resolution,
+        runtime=recorded.campaign.agents[SUBJECT_AGENT].runtime,
     )
 
 
@@ -78,8 +82,16 @@ def test_the_fingerprint_reports_what_the_evidence_records(
     assert observed.use_bundled_skill is False
     assert observed.runtime_kind == "docker"
     assert observed.runtime_image == trace.runtime.image
-    assert observed.runtime_image_digest == trace.runtime.resolved_image_digest
-    assert observed.runtime_image_digest_source == trace.runtime.image_digest_source
+    assert observed.runtime_image_index_digest == trace.runtime.image_index_digest
+    assert observed.runtime_platform == recorded.image_resolution.platform
+    assert (
+        observed.runtime_image_platform_digest
+        == (
+            recorded.campaign.agents[SUBJECT_AGENT].runtime.image_platform_digests[
+                recorded.image_resolution.platform
+            ]
+        )
+    )
     assert observed.verifiers_version == trace.verifiers_version
     assert observed.verifiers_revision == trace.verifiers_revision
 
@@ -122,17 +134,48 @@ def test_the_fingerprint_is_stable(recorded: RecordedVariant) -> None:
     assert digest_object(observed_of(recorded)) == digest_object(observed_of(recorded))
 
 
-def test_the_sampling_digest_follows_the_resolved_sampling(
+def test_the_sampling_digest_is_taken_from_the_rollouts(
     recorded: RecordedVariant,
 ) -> None:
-    """Sampling is only in the resolved configuration, and it is committed to."""
+    """Decisions document 0007 R9 item 1: the rollout's own settings are the fact.
+
+    Both the file and the rollouts are the engine's answers, but only the
+    rollout's copy travels with the thing it describes, so the fingerprint
+    commits to that one.
+    """
+    trace = recorded.episodes[0].traces[0]
+
+    assert observed_of(recorded).sampling_digest == digest_object(trace.sampling)
+
+
+def test_a_configuration_that_resolved_different_sampling_is_refused(
+    recorded: RecordedVariant,
+) -> None:
+    """An engine whose file and whose rollouts disagree has established neither."""
     warmer = deepcopy(recorded.resolved_config)
     warmer["sampling"]["temperature"] = 0.7
 
-    assert (
-        observed_of(recorded, resolved_config=warmer).sampling_digest
-        != observed_of(recorded).sampling_digest
-    )
+    with pytest.raises(TechtreeError) as failure:
+        observed_of(recorded, resolved_config=warmer)
+
+    assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
+
+
+def test_rollouts_sampled_differently_from_each_other_are_refused(
+    recorded: RecordedVariant,
+) -> None:
+    """One variant is one sampling configuration executed many times."""
+    first, *rest = recorded.episodes
+    if not rest:
+        pytest.skip("this recorded variant has one episode, so it cannot drift")
+    warmer = first.traces[0].model_copy(update={"sampling": {"temperature": 0.7}})
+    drifted = first.model_copy(update={"traces": [warmer]})
+
+    with pytest.raises(TechtreeError) as failure:
+        observed_of(recorded, episodes=[drifted, *rest])
+
+    assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
+    assert failure.value.details["field"] == "sampling"
 
 
 def test_both_variants_were_scored_under_the_same_reward_contract() -> None:
@@ -194,9 +237,7 @@ def test_rollouts_that_ran_different_models_are_refused(
     )
 
     with pytest.raises(TechtreeError) as failure:
-        observed_from_episodes(
-            [drifted, *rest], resolved_config=recorded.resolved_config
-        )
+        observed_of(recorded, episodes=[drifted, *rest])
 
     assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
     assert failure.value.details["field"] == "model"
@@ -215,9 +256,7 @@ def test_rollouts_that_ran_different_images_are_refused(
     )
 
     with pytest.raises(TechtreeError) as failure:
-        observed_from_episodes(
-            [drifted, *rest], resolved_config=recorded.resolved_config
-        )
+        observed_of(recorded, episodes=[drifted, *rest])
 
     assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
 
@@ -287,12 +326,70 @@ def test_a_configuration_without_sampling_is_refused(
     assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
 
 
+def test_an_image_the_daemon_was_not_asked_about_is_refused(
+    recorded: RecordedVariant,
+) -> None:
+    """Decisions document 0007 R5: the daemon must have answered about this image."""
+    elsewhere = recorded.image_resolution.model_copy(
+        update={"image": f"somewhere/else@{'sha256:' + 'ab' * 32}"}
+    )
+
+    with pytest.raises(TechtreeError) as failure:
+        observed_from_episodes(
+            recorded.episodes,
+            resolved_config=recorded.resolved_config,
+            image_resolution=elsewhere,
+            runtime=recorded.campaign.agents[SUBJECT_AGENT].runtime,
+        )
+
+    assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
+
+
+def test_content_the_daemon_holds_that_the_rollouts_did_not_name_is_refused(
+    recorded: RecordedVariant,
+) -> None:
+    """A daemon holding other content than the rollouts ran identifies nothing."""
+    other = recorded.image_resolution.model_copy(
+        update={"index_digest": f"sha256:{'ab' * 32}"}
+    )
+
+    with pytest.raises(TechtreeError) as failure:
+        observed_from_episodes(
+            recorded.episodes,
+            resolved_config=recorded.resolved_config,
+            image_resolution=other,
+            runtime=recorded.campaign.agents[SUBJECT_AGENT].runtime,
+        )
+
+    assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
+
+
+def test_a_platform_the_campaign_pins_no_manifest_for_is_refused(
+    recorded: RecordedVariant,
+) -> None:
+    """Without a pinned manifest for the platform served, which bytes ran is unknown."""
+    unpinned = recorded.image_resolution.model_copy(
+        update={"platform": "linux/riscv64"}
+    )
+
+    with pytest.raises(TechtreeError) as failure:
+        observed_from_episodes(
+            recorded.episodes,
+            resolved_config=recorded.resolved_config,
+            image_resolution=unpinned,
+            runtime=recorded.campaign.agents[SUBJECT_AGENT].runtime,
+        )
+
+    assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
+    assert failure.value.details["platform"] == "linux/riscv64"
+
+
 def test_no_episodes_means_no_observed_configuration(
     recorded: RecordedVariant,
 ) -> None:
     """Nothing ran, so nothing can be said about what ran."""
     with pytest.raises(TechtreeError) as failure:
-        observed_from_episodes([], resolved_config=recorded.resolved_config)
+        observed_of(recorded, episodes=[])
 
     assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
 

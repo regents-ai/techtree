@@ -9,8 +9,9 @@ transcript — most of which is either non-deterministic or not something a
 receipt should carry.
 
 This helper extracts the part that is a claim: for each task, in membership
-order, which subject ran it under which configuration, and what Verifiers
-scored it. Everything else stays where it is. The normalizer does not replace
+order, which subject ran it under which configuration, under which sampling
+settings, at what recorded token cost, and what Verifiers scored it. Everything
+else stays where it is. The normalizer does not replace
 ``traces.jsonl``; Techtree keeps the raw evidence and this projection side by
 side, because a projection nobody can check against its source is an assertion
 rather than evidence.
@@ -57,7 +58,9 @@ DOCKER_RUNTIME = "docker"
 TECHTREE_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 RAW_TASK_HASH = re.compile(r"^[0-9a-f]{64}$")
 #: An OCI reference that names content. The digest is what a receipt can cite.
-IMAGE_DIGEST = re.compile(r"@(sha256:[0-9a-f]{64})$")
+#: For a multi-platform repository it is the image *index* digest, which is what
+#: a Campaign pins and what the local daemon confirms it holds.
+IMAGE_INDEX_DIGEST = re.compile(r"@(sha256:[0-9a-f]{64})$")
 
 
 def parse_args() -> argparse.Namespace:
@@ -179,14 +182,19 @@ def normalize_tool(tool: Any) -> dict[str, Any]:
     }
 
 
-def normalize_runtime(trace: Any, experiment: dict[str, Any]) -> dict[str, Any]:
+def normalize_runtime(trace: Any) -> dict[str, Any]:
     """Project the box one trace ran in.
 
-    The Docker engine does not always put a resolved content digest on the wire
-    record. When it does not, the Campaign's own digest-pinned reference is
-    recorded instead and the source says so, because "the daemon told us what
-    ran" and "we asked for something pinned" are different strengths of claim
-    and must not be presented as the same one.
+    The pinned Verifiers build records the reference it was asked to run and
+    nothing about what the daemon resolved it to, so this projection reports
+    exactly that: the reference, and the content digest the reference names. A
+    Campaign pins its subject image by digest, so a reference that names no
+    content is a run of something nobody can identify and is refused here
+    rather than described as if it were pinned.
+
+    What the local daemon confirmed — that it holds that content, and which
+    platform it served — is captured by Techtree beside this projection, and the
+    two are required to agree before a comparison is called controlled.
     """
     info = trace.agent.runtime
     if info is None:
@@ -203,28 +211,69 @@ def normalize_runtime(trace: Any, experiment: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(image, str) or not image:
         raise SystemExit(f"trace {trace.id} records no runtime image")
 
-    declared = subject_of(experiment)["runtime"].get("image")
-    resolved = getattr(info, "resolved_image_digest", None)
-    if isinstance(resolved, str) and TECHTREE_DIGEST.fullmatch(resolved):
-        digest, source = resolved, "runtime"
-    else:
-        match = IMAGE_DIGEST.search(image) or IMAGE_DIGEST.search(declared or "")
-        digest = match.group(1) if match else None
-        source = "declared" if match else "unavailable"
+    match = IMAGE_INDEX_DIGEST.search(image)
+    if match is None:
+        raise SystemExit(
+            f"trace {trace.id} ran {image!r}, which names a tag rather than "
+            "content; a controlled comparison runs a digest-pinned image"
+        )
 
     return {
         "kind": DOCKER_RUNTIME,
         "runtime_id": getattr(info, "id", None),
         "image": image,
-        "resolved_image_digest": digest,
-        "image_digest_source": source,
+        "image_index_digest": match.group(1),
         "cpu": _optional_float(getattr(info, "cpu", None)),
         "memory_gb": _optional_float(getattr(info, "memory", None)),
     }
 
 
+def normalize_sampling(trace: Any) -> dict[str, Any]:
+    """Project the settings the subject was actually sampled under.
+
+    Read from the trace rather than from the configuration file the engine
+    wrote back out. Both are the engine's own answers, but only this one
+    travels with the rollout it describes, so a consumer holding a normalized
+    episode can compare two variants' effective sampling without opening a
+    second document beside it.
+
+    ``SamplingConfig`` allows provider-specific keys through, so every key the
+    engine resolved is projected and none is filtered: a parameter Techtree
+    never declared is exactly the sort of uncontrolled difference a comparison
+    has to be able to see.
+    """
+    sampling = trace.agent.config.sampling
+    if sampling is None:
+        raise SystemExit(
+            f"trace {trace.id} records no sampling settings, so how its subject "
+            "was sampled is unknown"
+        )
+    values: dict[str, Any] = {}
+    for key, value in sorted(sampling.model_dump(mode="json").items()):
+        if value is None:
+            continue
+        if not isinstance(value, str | int | float | bool):
+            raise SystemExit(
+                f"trace {trace.id} was sampled under a non-scalar {key!r}, "
+                "which cannot be compared between two variants"
+            )
+        values[str(key)] = value
+    if not values:
+        raise SystemExit(
+            f"trace {trace.id} resolved an empty sampling table, so how its "
+            "subject was sampled is unknown"
+        )
+    return values
+
+
 def normalize_usage(trace: Any) -> dict[str, Any] | None:
-    """Project provider-reported token accounting, or nothing."""
+    """Project provider-reported token accounting, or nothing.
+
+    ``cost_usd`` is the provider's own number and is frequently absent. It is
+    projected as-is, never computed here: an operational record downstream
+    states where a cost came from, and a number this helper invented could not
+    be told apart from one the provider reported.
+    """
     usage = trace.usage
     if usage is None:
         return None
@@ -237,6 +286,7 @@ def normalize_usage(trace: Any) -> dict[str, Any] | None:
             if usage.cached_input_tokens is None
             else int(usage.cached_input_tokens)
         ),
+        "cost_usd": (None if usage.cost is None else float(usage.cost)),
     }
 
 
@@ -267,11 +317,12 @@ def normalize_trace(trace: Any, experiment: dict[str, Any]) -> dict[str, Any]:
         "verifiers_version": trace.verifiers.version,
         "verifiers_revision": revision,
         "model_id": trace.agent.config.model or "",
+        "sampling": normalize_sampling(trace),
         "harness_id": harness.id,
         "harness_version": str(getattr(harness, "version", "")),
         "use_bundled_skill": bool(getattr(harness, "use_bundled_skill", False)),
         "skill_root_digests": skill_root_digests(experiment),
-        "runtime": normalize_runtime(trace, experiment),
+        "runtime": normalize_runtime(trace),
         "tools": sorted(
             (normalize_tool(tool) for tool in trace.tools),
             key=lambda entry: entry["name"],
@@ -285,6 +336,10 @@ def normalize_trace(trace: Any, experiment: dict[str, Any]) -> dict[str, Any]:
             for name, value in sorted(trace.metrics.items())
         },
         "usage": normalize_usage(trace),
+        # One entry per exchange the interception layer recorded. The token
+        # counts above are an aggregate over exactly these calls, so a record
+        # that reports a cost has the call count that cost was incurred over.
+        "model_calls": len(trace.calls),
         "num_turns": int(trace.num_turns),
         "last_reply": trace.last_reply or None,
         "errors": [normalize_error(error) for error in trace.errors],

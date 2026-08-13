@@ -579,7 +579,7 @@
     },
     "RuntimeSpec": {
       "additionalProperties": false,
-      "description": "Where the subject agent executes. Not the evaluation backend.",
+      "description": "Where the subject agent executes. Not the evaluation backend.\n\nThe image is pinned twice over, because one pin is not enough to say what\nran. ``image`` names content rather than a tag, and for a multi-platform\nrepository the content it names is an OCI image *index* — a list of\nper-platform manifests, not a filesystem. Two hosts on different\narchitectures pulling the same index digest therefore run different bytes,\nand a comparison that recorded only the index digest could not tell whether\nthe two variants ran the same subject container.\n\n``image_platform_digests`` closes that: one platform-specific manifest\ndigest per supported platform, resolved from the registry when the pin is\nmade and carried in the Campaign from then on. A run records the platform\nthe local daemon resolved, and the digest that actually ran is this table's\nentry for that platform.",
       "properties": {
         "cpu": {
           "anyOf": [
@@ -595,6 +595,16 @@
         },
         "image": {
           "$ref": "#/$defs/NonEmptyString"
+        },
+        "image_platform_digests": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Digest"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Image Platform Digests",
+          "type": "object"
         },
         "memory_gb": {
           "anyOf": [
@@ -633,6 +643,7 @@
         "type",
         "image",
         "supported_platforms",
+        "image_platform_digests",
         "cpu",
         "memory_gb",
         "network_policy"

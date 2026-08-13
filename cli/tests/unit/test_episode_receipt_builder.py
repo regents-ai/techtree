@@ -240,7 +240,7 @@ def test_a_receipt_names_the_container_the_subject_ran_in(
         runtime = episode.traces[0].runtime
         assert receipt.subject_runtime.kind == "docker"
         assert receipt.subject_runtime.resolved_image_digest == (
-            runtime.resolved_image_digest
+            runtime.image_index_digest
         )
 
 
@@ -526,24 +526,6 @@ def test_a_non_finite_metric_is_refused(recorded: RecordedVariant) -> None:
     assert failure.value.code == EVALUATION_OUTPUT_CORRUPT
 
 
-def test_a_runtime_without_a_resolved_image_cannot_be_receipted(
-    recorded: RecordedVariant,
-) -> None:
-    """A receipt may not claim a container it cannot name."""
-    first, *rest = recorded.episodes
-    unpinned = first.traces[0].runtime.model_copy(
-        update={"resolved_image_digest": None, "image_digest_source": "unavailable"}
-    )
-    vague = first.model_copy(
-        update={"traces": [first.traces[0].model_copy(update={"runtime": unpinned})]}
-    )
-
-    with pytest.raises(TechtreeError) as failure:
-        receipts_for(recorded, result=with_episodes(recorded, [vague, *rest]))
-
-    assert failure.value.code == EVALUATION_OUTPUT_CORRUPT
-
-
 # ---------------------------------------------------------------------------
 # The evidence boundary
 # ---------------------------------------------------------------------------
@@ -640,12 +622,14 @@ def test_recorded_evidence_carries_no_secret(recorded: RecordedVariant) -> None:
         "harness_version",
         "last_reply",
         "metrics",
+        "model_calls",
         "model_id",
         "num_turns",
         "ok",
         "raw_trace_digest",
         "rewards",
         "runtime",
+        "sampling",
         "skill_root_digests",
         "task_hash",
         "tools",

@@ -45,6 +45,7 @@ from techtree.doctor.checks import (
 )
 from techtree.engines.bundle import read_engine_descriptor
 from techtree.engines.registry import EngineRegistry
+from techtree.errors import ValidationError
 from techtree.models.base import Digest, JsonValue
 from techtree.models.campaign import (
     SUBJECT_AGENT,
@@ -55,6 +56,8 @@ from techtree.models.campaign import (
 from techtree.models.cli import CheckStatus, DoctorCheck
 from techtree.verifiers.child import EVAL_EXECUTABLE
 from techtree.verifiers.credentials import credential_status
+from techtree.verifiers.image import resolve_subject_image
+from techtree.verifiers.models import VariantName
 
 __all__ = [
     "DEVELOPMENT_PLACEHOLDER_MARKERS",
@@ -72,9 +75,13 @@ __all__ = [
 IMAGE_INSPECT_TIMEOUT_SECONDS: Final = DAEMON_TIMEOUT_SECONDS
 
 #: Substrings that mark a Campaign as a development fixture rather than
-#: something that may be executed for real. The shipped Campaign carries a model
-#: id and an image reference built out of these, so a real run must not start
-#: from it until the founder ratifies the release coordinates.
+#: something that may be executed for real. The shipped Campaign's subject model
+#: is still one of these, so a real run must not start from it until the founder
+#: ratifies the release coordinates. Its container is not: decisions document
+#: 0007 R5 pins the image by content, which is a fact about a registry rather
+#: than a coordinate anybody ratifies. Every field is still scanned, because
+#: which fields happen to carry a placeholder today is not what the check is
+#: about.
 DEVELOPMENT_PLACEHOLDER_MARKERS: Final[tuple[str, ...]] = (
     "development-placeholder",
     "not-executed",
@@ -238,69 +245,47 @@ def check_prime_auth(model: ModelSpec) -> DoctorCheck:
 
 
 def check_subject_image(runtime: RuntimeSpec) -> DoctorCheck:
-    """Report whether the declared subject image is present on this machine.
+    """Report whether the pinned subject image is on this machine, as pinned.
 
     Absent is a failure with an argument vector attached, not a prompt to pull.
     Downloading an image is an explicit setup operation the operator asks for
     (spec section 6.18); a check that did it silently would spend somebody's
     bandwidth to make its own answer come out right.
+
+    Present-but-different is a failure too. The Campaign pins the image by
+    content and pins one manifest digest per platform it supports, so a daemon
+    holding something else, or serving the pin on a platform the Campaign never
+    recorded, cannot run this Campaign — and finding that out here is much
+    cheaper than finding it out from a comparison that has already been paid
+    for.
     """
     metadata: dict[str, JsonValue] = {"image": runtime.image}
 
-    if shutil.which("docker") is None:
+    try:
+        resolution = resolve_subject_image(runtime, VariantName.BASELINE)
+    except ValidationError as refusal:
         return DoctorCheck(
             id="execution_subject_image",
             label="Subject runtime image",
             status=CheckStatus.FAIL,
-            detail="docker was not found on PATH, so no image can be inspected",
+            detail=refusal.message,
             blocking=True,
-            metadata=metadata,
+            metadata={**metadata, "pull": f"docker pull {runtime.image}"},
         )
 
-    inspected = _run(
-        [
-            "docker",
-            "image",
-            "inspect",
-            runtime.image,
-            "--format",
-            "{{.Os}}/{{.Architecture}}",
-        ],
-        timeout=IMAGE_INSPECT_TIMEOUT_SECONDS,
-    )
-    if inspected is None:
-        return DoctorCheck(
-            id="execution_subject_image",
-            label="Subject runtime image",
-            status=CheckStatus.FAIL,
-            detail=(
-                f"{runtime.image} is not present locally; pull it as an explicit "
-                "setup step before running an evaluation"
-            ),
-            blocking=True,
-            metadata=metadata,
-        )
-
-    metadata["image_platform"] = inspected
-    if inspected not in runtime.supported_platforms:
-        return DoctorCheck(
-            id="execution_subject_image",
-            label="Subject runtime image",
-            status=CheckStatus.FAIL,
-            detail=(
-                f"{runtime.image} is present as {inspected}, which the Campaign "
-                f"does not declare; it supports "
-                f"{', '.join(runtime.supported_platforms)}"
-            ),
-            blocking=True,
-            metadata=metadata,
-        )
-
+    metadata["image_platform"] = resolution.platform
+    metadata["image_platform_digest"] = runtime.image_platform_digests[
+        resolution.platform
+    ]
     return DoctorCheck(
         id="execution_subject_image",
         label="Subject runtime image",
         status=CheckStatus.PASS,
-        detail=f"{runtime.image} is present locally as {inspected}",
+        detail=(
+            f"the daemon holds the pinned subject image and serves it as "
+            f"{resolution.platform}, which the Campaign pins a manifest digest "
+            "for"
+        ),
         blocking=False,
         metadata=metadata,
     )
@@ -309,10 +294,10 @@ def check_subject_image(runtime: RuntimeSpec) -> DoctorCheck:
 def check_live_campaign(campaign: CampaignSpec) -> DoctorCheck:
     """Refuse a Campaign whose coordinates are development placeholders.
 
-    The shipped Campaign names a model and an image that exist to be compiled
-    and dry-run, never to be executed. Catching that here is the difference
-    between a clear refusal and a container that starts, authenticates against
-    nothing, and fails at the first model call.
+    The shipped Campaign names a model that exists to be compiled and dry-run,
+    never to be executed. Catching that here is the difference between a clear
+    refusal and a container that starts, authenticates against nothing, and
+    fails at the first model call.
     """
     subject = campaign.agents.get(SUBJECT_AGENT)
     metadata: dict[str, JsonValue] = {"campaign_id": campaign.metadata.id}

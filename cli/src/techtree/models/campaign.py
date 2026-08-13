@@ -81,6 +81,10 @@ CREDENTIAL_ENV_PATTERN = r"^[A-Z][A-Z0-9_]{2,63}$"
 
 _CREDENTIAL_ENV_RE = re.compile(CREDENTIAL_ENV_PATTERN)
 
+#: An OCI reference that names content rather than a moving tag. For a
+#: multi-platform repository the digest names the image index.
+_IMAGE_INDEX_DIGEST_RE = re.compile(r"@(sha256:[0-9a-f]{64})$")
+
 
 # ---------------------------------------------------------------------------
 # Shared low-level references
@@ -231,14 +235,37 @@ class HarnessSpec(ProtocolModel):
 
 
 class RuntimeSpec(ProtocolModel):
-    """Where the subject agent executes. Not the evaluation backend."""
+    """Where the subject agent executes. Not the evaluation backend.
+
+    The image is pinned twice over, because one pin is not enough to say what
+    ran. ``image`` names content rather than a tag, and for a multi-platform
+    repository the content it names is an OCI image *index* — a list of
+    per-platform manifests, not a filesystem. Two hosts on different
+    architectures pulling the same index digest therefore run different bytes,
+    and a comparison that recorded only the index digest could not tell whether
+    the two variants ran the same subject container.
+
+    ``image_platform_digests`` closes that: one platform-specific manifest
+    digest per supported platform, resolved from the registry when the pin is
+    made and carried in the Campaign from then on. A run records the platform
+    the local daemon resolved, and the digest that actually ran is this table's
+    entry for that platform.
+    """
 
     type: Literal["docker"]
     image: NonEmptyString
     supported_platforms: list[NonEmptyString]
+    image_platform_digests: dict[NonEmptyString, Digest]
     cpu: PositiveFloat | None
     memory_gb: PositiveFloat | None
     network_policy: Literal["restricted", "open"]
+
+    @property
+    def image_index_digest(self) -> Digest:
+        """The content the pinned reference names."""
+        match = _IMAGE_INDEX_DIGEST_RE.search(self.image)
+        assert match is not None  # the validator below refuses anything else
+        return match.group(1)
 
     @model_validator(mode="after")
     def _check_platforms_are_listed_once(self) -> Self:
@@ -247,6 +274,23 @@ class RuntimeSpec(ProtocolModel):
             raise ValueError("a runtime must support at least one platform")
         if len(set(self.supported_platforms)) != len(self.supported_platforms):
             raise ValueError("supported_platforms must not repeat a platform")
+        return self
+
+    @model_validator(mode="after")
+    def _check_the_image_is_pinned_for_every_platform(self) -> Self:
+        """Reject a moving image, and a platform with no digest behind it."""
+        if _IMAGE_INDEX_DIGEST_RE.search(self.image) is None:
+            raise ValueError(
+                f"image must name content, as repository@sha256:..., not a "
+                f"tag; got {self.image!r}"
+            )
+        declared = sorted(self.image_platform_digests)
+        supported = sorted(self.supported_platforms)
+        if declared != supported:
+            raise ValueError(
+                "image_platform_digests must name exactly the supported "
+                f"platforms; it names {declared} for {supported}"
+            )
         return self
 
 

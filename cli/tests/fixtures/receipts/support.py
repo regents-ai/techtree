@@ -27,13 +27,14 @@ configurations is the mounted Skill — which is what the Climb measures.
 
 WHAT IS RECORDED AND WHAT IS DERIVED
 
-Recorded, byte for byte as the run produced it:
+Recorded, as the run produced it:
 
 * ``normalized-episodes.jsonl`` — written by the pinned engine's own
   normalizer, run over the raw ``traces.jsonl`` those probes wrote. Techtree
   never reads a raw upstream record, so this is the evidence the receipt code
   is supposed to see.
-* ``config.toml`` — the configuration the engine resolved and wrote back out.
+* ``config.toml`` — the configuration the engine resolved and wrote back out,
+  byte for byte.
 * ``campaign.json``, ``experiment.json``, ``request.json`` — the run's own
   staged copies of what it executed.
 * the artifact digests and sizes in ``execution.json``, each hashed from the
@@ -49,6 +50,26 @@ the finish instant is when the child last wrote to its capture files; the exit
 code is zero because every committed task produced a complete scored episode.
 None of it is scientific — spec section 6.15 calls the child record
 operational — and no test asserts anything about the experiment from it.
+
+WHAT WAS RE-PROJECTED, AND WHY
+
+Decisions document 0007 R5 and R9 changed three shapes these probes predate: a
+Campaign pins its subject container per platform, a normalized trace carries the
+sampling settings it ran under and the number of model calls it made, and a
+normalized runtime carries the image index digest its reference names. The raw
+``traces.jsonl`` was never retained, so the projection cannot be recomputed from
+its source; it was re-projected in place instead, and ``recorded/provenance.json``
+records field by field what each new value was derived from.
+
+One of them is not a measurement and is labelled as such there: the projection
+that wrote this evidence recorded no per-trace call list, so ``model_calls``
+carries the trace's own ``num_turns`` as the closest count the recording can
+account for. Nothing asserts on it, and re-recording these probes replaces it
+with the real figure.
+
+The subject platform is derived the same way: these probes ran on a darwin/arm64
+workstation, so the daemon served the pinned image index as ``linux/arm64``, and
+that is what :attr:`RecordedVariant.image_resolution` reports.
 
 WHY THE NORMALIZED PROJECTION CARRIES NO SECRET
 
@@ -82,6 +103,7 @@ from techtree.receipts.observed import read_resolved_config
 from techtree.verifiers.models import (
     ChildProcessOutcome,
     NormalizedEpisode,
+    SubjectImageResolution,
     VariantExecutionResult,
     VariantName,
 )
@@ -90,6 +112,7 @@ __all__ = [
     "NORMALIZED_EPISODES_FILE",
     "RESOLVED_CONFIG_FILE",
     "RecordedVariant",
+    "recorded_platform",
     "recorded_root",
     "recorded_variant",
 ]
@@ -101,6 +124,7 @@ _EXECUTION_FILE: Final = "execution.json"
 _MEMBERSHIP_FILE: Final = "membership.json"
 _CAMPAIGN_FILE: Final = "campaign.json"
 _EXPERIMENT_FILE: Final = "experiment.json"
+_PROVENANCE_FILE: Final = "provenance.json"
 _REQUEST_FILE: Final = "request.json"
 
 
@@ -117,6 +141,7 @@ class RecordedVariant:
     episodes: list[NormalizedEpisode]
     result: VariantExecutionResult
     resolved_config: dict[str, Any]
+    image_resolution: SubjectImageResolution
 
     @property
     def normalized_episodes_path(self) -> Path:
@@ -137,6 +162,17 @@ class RecordedVariant:
 def recorded_root() -> Path:
     """Return the directory holding the recorded evaluation evidence."""
     return Path(__file__).resolve().parent / "recorded"
+
+
+def recorded_platform() -> str:
+    """Return the platform the daemon served these probes' container on.
+
+    Derived rather than recorded, and written down in ``provenance.json`` so
+    the derivation is read from the fixture rather than repeated in code.
+    """
+    document = json.loads((recorded_root() / _PROVENANCE_FILE).read_text("utf-8"))
+    platform: str = document["subject_platform"]
+    return platform
 
 
 def recorded_variant(variant: VariantName) -> RecordedVariant:
@@ -171,6 +207,16 @@ def recorded_variant(variant: VariantName) -> RecordedVariant:
     episodes = read_variant_episodes(normalized)
     membership = json.loads((directory / _MEMBERSHIP_FILE).read_text(encoding="utf-8"))
     ordered: list[Digest] = list(membership["ordered_task_hashes"])
+    campaign = CampaignSpec.model_validate_json(
+        (directory / _CAMPAIGN_FILE).read_bytes()
+    )
+    runtime = campaign.agents["subject"].runtime
+    image_resolution = SubjectImageResolution(
+        variant=variant,
+        image=runtime.image,
+        index_digest=runtime.image_index_digest,
+        platform=recorded_platform(),
+    )
 
     return RecordedVariant(
         variant=variant,
@@ -178,12 +224,11 @@ def recorded_variant(variant: VariantName) -> RecordedVariant:
         request=RunRequest.model_validate_json(
             (directory / _REQUEST_FILE).read_bytes()
         ),
-        campaign=CampaignSpec.model_validate_json(
-            (directory / _CAMPAIGN_FILE).read_bytes()
-        ),
+        campaign=campaign,
         experiment=experiment,
         ordered_task_hashes=ordered,
         episodes=episodes,
+        image_resolution=image_resolution,
         result=VariantExecutionResult(
             variant=variant,
             experiment_manifest_digest=execution["experiment_manifest_digest"],
@@ -194,6 +239,7 @@ def recorded_variant(variant: VariantName) -> RecordedVariant:
             child_outcome=ChildProcessOutcome.model_validate_json(
                 json.dumps(execution["child_outcome"])
             ),
+            image_resolution=image_resolution,
             episodes=episodes,
         ),
         resolved_config=read_resolved_config(directory / RESOLVED_CONFIG_FILE),

@@ -44,6 +44,40 @@ SUPPORTED_HOST_PLATFORMS: Final[tuple[str, ...]] = (
     "linux/arm64",
 )
 
+#: The subject container every generated Campaign pins, and the per-platform
+#: manifests that index resolves to. Decisions document 0007 R5 makes this
+#: release-blocking: a tag moves, so a Campaign naming one could not claim its
+#: two variants ran the same subject, and a multi-platform index digest alone
+#: does not say which bytes a given host ran.
+#:
+#: Hermes Agent is installed into the container at setup time from a PEP 723
+#: script, so the image needs a shell, ``pip`` and nothing else; the agent's own
+#: interpreter is provisioned by ``uv`` inside the container. That is why the
+#: pin is a stock ``python:3.11-slim`` and not something Techtree publishes.
+#:
+#: Every digest below was read from the registry rather than written from
+#: memory, on 2026-08-13::
+#:
+#:     docker image inspect python:3.11-slim --format '{{index .RepoDigests 0}}'
+#:     docker manifest inspect python@sha256:90744cff...
+#:
+#: ``tests/preflight/test_subject_image_pin.py`` re-reads both and fails if the
+#: registry ever stops agreeing with what is written here.
+SUBJECT_IMAGE_REPOSITORY: Final = "python"
+SUBJECT_IMAGE_TAG: Final = "3.11-slim"
+SUBJECT_IMAGE_INDEX_DIGEST: Final = (
+    "sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff"
+)
+SUBJECT_IMAGE: Final = f"{SUBJECT_IMAGE_REPOSITORY}@{SUBJECT_IMAGE_INDEX_DIGEST}"
+SUBJECT_IMAGE_PLATFORM_DIGESTS: Final[dict[str, str]] = {
+    "linux/amd64": (
+        "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553"
+    ),
+    "linux/arm64": (
+        "sha256:20eadabc42589e6543b24a64ab305b9895e9fcf6dbb2cadb14812f394ecdbadf"
+    ),
+}
+
 DEFAULT_CONFIRMATION_TTL_SECONDS: Final = 900
 DEFAULT_WORKER_HEARTBEAT_SECONDS: Final = 2
 DEFAULT_STALE_HEARTBEAT_SECONDS: Final = 15

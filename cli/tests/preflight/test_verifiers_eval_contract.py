@@ -348,6 +348,92 @@ def test_the_command_line_flag_overrides_an_upload_in_the_file(
         assert tomllib.load(handle)["push"] is False
 
 
+def _upload_probe(directory: Path) -> Path:
+    """Write a ``sitecustomize`` that records whether the uploader was reached.
+
+    The pinned CLI imports ``verifiers.v1.utils.platform`` *inside* the branch
+    that uploads, in both the plain and the dashboard code paths, and nothing
+    else in the package imports it. So the module's presence in the child's own
+    ``sys.modules`` when it exits is a direct observation of whether the upload
+    path ran — stronger than reading the source, and it cannot be satisfied by
+    a configuration that merely says the right thing.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "sitecustomize.py").write_text(
+        "import atexit, os, sys\n"
+        "def _record():\n"
+        "    reached = 'verifiers.v1.utils.platform' in sys.modules\n"
+        "    with open(os.environ['TECHTREE_UPLOAD_PROBE'], 'w') as handle:\n"
+        "        handle.write('reached' if reached else 'not-reached')\n"
+        "atexit.register(_record)\n",
+        encoding="utf-8",
+    )
+    return directory
+
+
+def _run_with_upload_probe(
+    eval_cli: Path, root: Path, *, push: bool, credential: bool
+) -> str:
+    """Run one complete evaluation under the probe and return what it saw."""
+    output = root / "run"
+    document = techtree_shaped_config(output, harness_id=TASKSET_ID)
+    document["push"] = push
+    del document["env"]["subject"]["harness"]["version"]
+    del document["env"]["subject"]["harness"]["use_bundled_skill"]
+    document["env"]["subject"]["runtime"] = {"type": "subprocess"}
+
+    probe = root / "probe.txt"
+    environment = scrubbed_environment(
+        PYTHONPATH=str(_upload_probe(root / "probe-path")),
+        TECHTREE_UPLOAD_PROBE=str(probe),
+    )
+    if not credential:
+        # No key anywhere, including the Prime config file a real HOME may
+        # hold: the uploader must have nothing to authenticate with, so this
+        # test can prove the probe fires without any request being made.
+        environment["PRIME_API_KEY"] = ""
+        environment["HOME"] = str(root / "empty-home")
+        Path(environment["HOME"]).mkdir(parents=True, exist_ok=True)
+
+    result = run_engine_command(
+        eval_cli, "@", write_toml(root / "input.toml", document), env=environment
+    )
+    assert result.returncode == 0, result.stderr
+    return probe.read_text(encoding="utf-8")
+
+
+def test_the_upload_path_is_never_reached_when_push_is_off(
+    eval_cli: Path, tmp_path: Path
+) -> None:
+    """Decisions 0007 R9 item 6, and the release ratification behind it.
+
+    Techtree's compiled configuration disables the upload and its resolved
+    configuration is checked to confirm it. This is the third statement, and
+    the only one about behaviour: a complete run with ``push = false`` never
+    loads the uploader at all. A future pin that ignored the setting, or moved
+    the upload out of that branch, fails here.
+    """
+    assert (
+        _run_with_upload_probe(eval_cli, tmp_path / "off", push=False, credential=True)
+        == "not-reached"
+    )
+
+
+def test_the_upload_probe_sees_the_path_when_push_is_on(
+    eval_cli: Path, tmp_path: Path
+) -> None:
+    """The control. A probe that can never fire would prove nothing above.
+
+    Run with the upload *on* and with no credential resolvable anywhere, which
+    upstream handles by logging and returning before it builds a request. The
+    uploader is therefore loaded and observed, and nothing is sent.
+    """
+    assert (
+        _run_with_upload_probe(eval_cli, tmp_path / "on", push=True, credential=False)
+        == "reached"
+    )
+
+
 # ---------------------------------------------------------------------------
 # E2 / 6.3 — what a dry run writes, and what a real run writes
 # ---------------------------------------------------------------------------
@@ -567,6 +653,43 @@ def test_each_trace_records_the_configuration_it_ran_under(
     assert config["model"] == "stub/preflight-model"
     assert config["harness"]["id"] == TASKSET_ID
     assert config["client"]["api_key_var"] == "PRIME_API_KEY"
+
+
+def test_each_trace_records_the_sampling_it_was_run_under(
+    finished_run: dict[str, Any],
+) -> None:
+    """Decisions 0007 R9 item 1: effective sampling travels with the rollout.
+
+    The engine merges the run's sampling onto each agent's own overrides and
+    writes the *resolved* settings into the trace, so a consumer holding one
+    normalized episode can compare two variants' effective sampling without
+    opening the configuration file beside it. Every trace of the run carries
+    them, and they are the ones the configuration asked for.
+    """
+    sampling = [
+        trace["agent"]["config"]["sampling"]
+        for episode in finished_run["episodes"]
+        for trace in episode["traces"]
+    ]
+    assert sampling, "the run produced no traces to read sampling from"
+    for resolved in sampling:
+        assert resolved["temperature"] == 0.0
+        assert resolved["max_tokens"] == 64
+
+
+def test_each_trace_counts_the_model_calls_it_made(
+    finished_run: dict[str, Any],
+) -> None:
+    """Decisions 0007 R9 item 7: the call count is per trace, always present.
+
+    The fixture harness answers without opening the interception endpoint, so
+    the honest count here is zero. That is the point: ``calls`` is a list every
+    trace carries, so a variant always knows how many calls it made even when
+    no provider reported any tokens.
+    """
+    for episode in finished_run["episodes"]:
+        for trace in episode["traces"]:
+            assert isinstance(trace["calls"], list)
 
 
 def test_each_trace_carries_its_own_task_hash_to_pair_on(

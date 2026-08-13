@@ -15,7 +15,11 @@
       },
       "runtime": {
         "cpu": 2.0,
-        "image": "techtree-development-placeholder:not-executed",
+        "image": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
+        "image_platform_digests": {
+          "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",
+          "linux/arm64": "sha256:20eadabc42589e6543b24a64ab305b9895e9fcf6dbb2cadb14812f394ecdbadf"
+        },
         "memory_gb": 4.0,
         "network_policy": "restricted",
         "supported_platforms": [

@@ -94,10 +94,12 @@ from techtree.verifiers.credentials import (
     require_credentials,
     scrubbed_child_environment,
 )
+from techtree.verifiers.image import resolve_subject_image
 from techtree.verifiers.models import (
     ChildProcessOutcome,
     RealExecutionResult,
     RunPaths,
+    SubjectImageResolution,
     VariantExecutionPlan,
     VariantExecutionResult,
     VariantName,
@@ -290,9 +292,16 @@ class RealVerifiersExecutor:
         validation = self._validate_taskset(context, inputs)
         lock_path = self._write_taskset_lock(run_paths, validation)
 
-        # 8-11. Both configurations compiled and survived by the real engine.
+        # 8-11. Both configurations compiled and survived by the real engine,
+        # and what this machine's daemon holds for the container they pin —
+        # asked for both variants before either is launched, so that a missing
+        # or unexpected image costs nothing rather than half a comparison.
         self._materialize_skill_mounts(inputs, run_paths)
         pair = self._compile_pair(campaign, inputs, run_paths, engine, subject.model)
+        images = {
+            variant: resolve_subject_image(subject.runtime, variant)
+            for variant in _VARIANT_ORDER
+        }
 
         try:
             # 12-15. Both children, started and watched.
@@ -304,6 +313,7 @@ class RealVerifiersExecutor:
             results = self._normalize(
                 pair=pair,
                 outcome=outcome,
+                images=images,
                 inputs=inputs,
                 validation=validation,
                 engine=engine,
@@ -631,6 +641,7 @@ class RealVerifiersExecutor:
         *,
         pair: VariantPair,
         outcome: VariantPairOutcome,
+        images: Mapping[VariantName, SubjectImageResolution],
         inputs: RunInputBundle,
         validation: TasksetValidationOutcome,
         engine: _ResolvedEngine,
@@ -652,6 +663,7 @@ class RealVerifiersExecutor:
             result = build_variant_result(
                 plan=pair.plan(variant),
                 outcome=outcomes[variant],
+                image_resolution=images[variant],
                 engine_registry=self._registry,
                 engine_digest=engine.digest,
                 engine_runner=engine.runner,

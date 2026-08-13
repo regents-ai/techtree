@@ -86,19 +86,11 @@ from techtree.tasksets.membership import membership_digest
 from techtree.verifiers.models import VariantExecutionResult, VariantName
 
 __all__ = [
-    "RECORDED_SUBJECT_IMAGE",
     "RecordedPair",
     "recorded_pair",
     "recorded_report",
     "trimmed_campaign",
 ]
-
-#: The subject image both probes ran on, pinned by digest in their own resolved
-#: configurations. Passed to the local Campaign derivation so that deriving it
-#: needs no Docker daemon.
-RECORDED_SUBJECT_IMAGE: Final = (
-    "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff"
-)
 
 #: A moment inside the window the probes ran in. Fixed rather than current so
 #: that two loads of this fixture produce the same documents.
@@ -142,6 +134,7 @@ class RecordedPair:
         return observe_variant(
             result=self.results[variant],
             resolved_config=self.resolved_configs[variant],
+            runtime=self.campaign.agents[SUBJECT_AGENT].runtime,
         )
 
     def receipts(self, variant: VariantName) -> list[EpisodeReceipt]:
@@ -241,7 +234,7 @@ def trimmed_campaign(task_hashes: list[Digest] | None = None) -> CampaignSpec:
     """
     from fixtures.verifiers.support import local_campaign
 
-    full = local_campaign(image=RECORDED_SUBJECT_IMAGE).campaign
+    full = local_campaign().campaign
     committed = task_hashes or _shared_task_hashes()
     return CampaignSpec(
         **{
@@ -487,7 +480,7 @@ def _require_recorded_campaign(probe: RecordedVariant) -> None:
     """
     from fixtures.verifiers.support import local_campaign
 
-    derived = digest_object(local_campaign(image=RECORDED_SUBJECT_IMAGE).campaign)
+    derived = digest_object(local_campaign().campaign)
     recorded = digest_object(probe.campaign)
     if derived != recorded:
         raise AssertionError(

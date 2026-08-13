@@ -129,6 +129,36 @@ def with_tools(
     return dataclasses.replace(observed, tools=sorted(tools, key=lambda t: t.name))
 
 
+def _sampled_with(
+    pair: RecordedPair, variant: VariantName, **changes: float
+) -> ObservedVariant:
+    """Fingerprint one side as if it had been sampled under other settings.
+
+    Both the rollouts and the resolved configuration are moved together,
+    because the fingerprint refuses a variant whose two records of its own
+    sampling disagree — which is a different defect from the one under test.
+    """
+    result = pair.results[variant]
+    episodes = [
+        episode.model_copy(
+            update={
+                "traces": [
+                    trace.model_copy(update={"sampling": {**trace.sampling, **changes}})
+                    for trace in episode.traces
+                ]
+            }
+        )
+        for episode in result.episodes
+    ]
+    resolved = dict(pair.resolved_configs[variant])
+    resolved["sampling"] = {**resolved["sampling"], **changes}
+    return observe_variant(
+        result=result.model_copy(update={"episodes": episodes}),
+        resolved_config=resolved,
+        runtime=pair.campaign.subject.runtime,
+    )
+
+
 def with_reward_weight(
     result: VariantExecutionResult, weight: float
 ) -> VariantExecutionResult:
@@ -167,30 +197,24 @@ def test_a_recorded_skill_insertion_is_controlled(pair: RecordedPair) -> None:
     assert result.manifest_comparison.controlled
 
 
-def test_the_two_honest_warnings_are_the_only_ones(pair: RecordedPair) -> None:
-    """A provider without a revision and a daemon without a digest, named."""
+def test_the_one_honest_warning_is_the_only_one(pair: RecordedPair) -> None:
+    """Decisions document 0007 R5: the image warning is gone, the revision stays.
+
+    The container is pinned by content per platform now and the daemon is asked
+    what it holds, so what ran is a check. What model build answered still is
+    not discoverable, and that is said out loud.
+    """
     assert [check.id for check in compare(pair).warnings] == [
-        "model_revision_discoverable",
-        "runtime_image_digest_confirmed",
+        "model_revision_discoverable"
     ]
 
 
-def test_a_pinned_revision_and_a_confirmed_image_are_simply_controlled() -> None:
-    """``controlled`` is reachable: it needs a Campaign and a daemon that say more."""
+def test_a_pinned_revision_is_simply_controlled() -> None:
+    """``controlled`` is reachable: it needs a Campaign that says more."""
     campaign = _with_model_revision(trimmed_campaign(), "2026-08-01")
     pinned = recorded_pair(campaign=campaign)
-    confirmed = {
-        variant: with_configuration(
-            pinned.observed(variant), runtime_image_digest_source="runtime"
-        )
-        for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
-    }
 
-    result = compare(
-        pinned,
-        baseline_observed=confirmed[VariantName.BASELINE],
-        candidate_observed=confirmed[VariantName.CANDIDATE],
-    )
+    result = compare(pinned)
 
     assert result.status is ComparisonStatus.CONTROLLED
     assert not result.warnings
@@ -370,7 +394,12 @@ def test_an_extra_tool_is_not_permitted(pair: RecordedPair) -> None:
         ({"harness_id": "another-agent"}, "observed_harness"),
         ({"use_bundled_skill": True}, "observed_bundled_skill"),
         ({"runtime_image": "python@sha256:" + "0" * 64}, "observed_runtime_image"),
-        ({"runtime_image_digest": _OTHER_SKILL}, "observed_runtime_image"),
+        ({"runtime_image_index_digest": _OTHER_SKILL}, "observed_runtime_image"),
+        (
+            {"runtime_image_platform_digest": _OTHER_SKILL},
+            "observed_runtime_platform_digest",
+        ),
+        ({"runtime_platform": "linux/amd64"}, "observed_runtime_platform_digest"),
         ({"verifiers_revision": "0" * 40}, "observed_verifiers_build"),
         ({"verifiers_version": "0.4.0"}, "observed_verifiers_build"),
     ],
@@ -401,6 +430,7 @@ def test_a_different_reward_weight_is_invalid(pair: RecordedPair) -> None:
     reweighted = observe_variant(
         result=with_reward_weight(pair.results[VariantName.CANDIDATE], 2.0),
         resolved_config=pair.resolved_configs[VariantName.CANDIDATE],
+        runtime=pair.campaign.subject.runtime,
     )
 
     result = compare(pair, candidate_observed=reweighted)
@@ -440,12 +470,8 @@ def test_a_baseline_that_mounted_a_skill_is_invalid(pair: RecordedPair) -> None:
 def test_a_subject_sampled_differently_than_declared_is_invalid(
     pair: RecordedPair,
 ) -> None:
-    """The resolved sampling table is checked against the manifest, key by key."""
-    warmer = dict(pair.resolved_configs[VariantName.CANDIDATE])
-    warmer["sampling"] = {**warmer["sampling"], "temperature": 0.7}
-    observed = observe_variant(
-        result=pair.results[VariantName.CANDIDATE], resolved_config=warmer
-    )
+    """The effective sampling table is checked against the manifest, key by key."""
+    observed = _sampled_with(pair, VariantName.CANDIDATE, temperature=0.7)
 
     result = compare(pair, candidate_observed=observed)
 
@@ -456,11 +482,7 @@ def test_a_subject_sampled_differently_than_declared_is_invalid(
 
 def test_an_undeclared_sampling_parameter_is_invalid(pair: RecordedPair) -> None:
     """A parameter nobody declared is a difference nobody authorized."""
-    extended = dict(pair.resolved_configs[VariantName.BASELINE])
-    extended["sampling"] = {**extended["sampling"], "top_p": 0.9}
-    observed = observe_variant(
-        result=pair.results[VariantName.BASELINE], resolved_config=extended
-    )
+    observed = _sampled_with(pair, VariantName.BASELINE, top_p=0.9)
 
     result = compare(pair, baseline_observed=observed)
 

@@ -442,22 +442,14 @@ def _require_finite(
 def _subject_runtime(trace: NormalizedTrace) -> SubjectRuntimeReceipt:
     """Describe the box the subject actually executed in.
 
-    A Docker receipt must cite the image it ran. The normalizer is allowed to
-    record that the daemon never reported one, but a receipt is not allowed to
-    claim a runtime it cannot name, so an execution without a resolved image
-    digest is refused here rather than described vaguely.
+    A Docker receipt must cite the image it ran, and it cites the content the
+    pinned reference names. Which platform that content was served on is a fact
+    about the machine rather than about the episode, so it lives in the
+    comparison's observed configuration and is left unset here.
     """
-    runtime = trace.runtime
-    if runtime.resolved_image_digest is None:
-        raise VerificationError(
-            f"trace {trace.trace_id} records no resolved subject image, so a "
-            "receipt cannot say what the subject ran on",
-            code=EVALUATION_OUTPUT_CORRUPT,
-            details={"trace_id": trace.trace_id, "image": runtime.image},
-        )
     return SubjectRuntimeReceipt(
         kind="docker",
-        resolved_image_digest=validate_digest(runtime.resolved_image_digest),
+        resolved_image_digest=validate_digest(trace.runtime.image_index_digest),
         platform=None,
     )
 

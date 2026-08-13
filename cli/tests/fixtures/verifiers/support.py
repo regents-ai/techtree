@@ -1,16 +1,16 @@
 """A Campaign that can actually be executed, derived locally. Spec section 6.18.
 
-The Campaign this build ships names ``development-placeholder`` as its model and
-``techtree-development-placeholder:not-executed`` as its subject image. Both are
-deliberate: WP0–WP5 compile and dry-run that Campaign and never execute it, and
+The Campaign this build ships names ``development-placeholder`` as its subject
+model, which is deliberate: WP0–WP5 compile and dry-run that Campaign and never
+execute it, and
 :func:`techtree.doctor.execution_checks.check_live_campaign` refuses to let
 anybody execute it by accident.
 
 The real release coordinates are ratified by the founder at WP11h. Until then
 the honest way to prove that a real execution works is to derive a *local*
 Campaign that carries real coordinates and change nothing else, which is what
-this module does. Every field except the subject's model, the subject's image
-and the run budget comes from the shipped Campaign, so the taskset reference,
+this module does. Every field except the subject's model and the run budget
+comes from the shipped Campaign, so the taskset reference, the subject image,
 the committed membership, the mutation contract, the scoring rule and the data
 policy digest are the shipped ones and the experiment being executed is the
 shipped experiment.
@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -49,7 +48,6 @@ from techtree.models.campaign import (
     CampaignSpec,
     ExecutionSpec,
     ModelSpec,
-    RuntimeSpec,
     VariantSchedule,
 )
 from techtree.models.catalog import (
@@ -72,7 +70,6 @@ __all__ = [
     "LOCAL_BUDGET_USD",
     "LOCAL_MAXIMUM_OUTPUT_TOKENS",
     "LOCAL_MAX_CONCURRENT",
-    "SUBJECT_IMAGE_REPOSITORY",
     "SUBJECT_INPUT_USD_PER_MTOK",
     "SUBJECT_MODEL_ID",
     "SUBJECT_MODEL_PROVIDER",
@@ -83,7 +80,6 @@ __all__ = [
     "local_campaign",
     "local_catalog",
     "local_run",
-    "resolve_subject_image",
     "shipped_campaign",
 ]
 
@@ -118,12 +114,6 @@ SUBJECT_MODEL_ID: Final = "qwen/qwen3.7-flash"
 #: Prime models endpoint. Used only to report what a run cost.
 SUBJECT_INPUT_USD_PER_MTOK: Final = 0.03
 SUBJECT_OUTPUT_USD_PER_MTOK: Final = 0.13
-
-#: The subject container. Hermes Agent is installed into it at setup time from
-#: a PEP 723 script, so the image needs a shell, ``pip`` and nothing else; the
-#: agent's own interpreter is provisioned by ``uv`` inside the container.
-SUBJECT_IMAGE_REPOSITORY: Final = "python"
-SUBJECT_IMAGE_TAG: Final = "3.11-slim"
 
 #: The per-run ceiling decisions document 0006 fixes. A hard cap, not a target.
 LOCAL_BUDGET_USD: Final = 1.00
@@ -209,49 +199,23 @@ def shipped_campaign() -> CampaignSpec:
     return repository.load_campaign(climb.campaign_spec_digest)
 
 
-def resolve_subject_image() -> str:
-    """Return the subject image pinned by the digest Docker holds locally.
-
-    A tag is a moving target and a Campaign that named one could not claim two
-    variants ran on the same thing. The digest is read from the local daemon
-    rather than written down, so this fixture describes the image that is
-    actually present rather than one somebody hoped was.
-    """
-    reference = f"{SUBJECT_IMAGE_REPOSITORY}:{SUBJECT_IMAGE_TAG}"
-    completed = subprocess.run(
-        [
-            "docker",
-            "image",
-            "inspect",
-            reference,
-            "--format",
-            "{{index .RepoDigests 0}}",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-        stdin=subprocess.DEVNULL,
-    )
-    if completed.returncode != 0 or not completed.stdout.strip():
-        raise RuntimeError(
-            f"{reference} is not present locally; run `docker pull {reference}` "
-            "before deriving a locally executable Campaign"
-        )
-    return completed.stdout.strip()
-
-
 def local_campaign(
-    *, image: str | None = None, schedule: VariantSchedule = VariantSchedule.PARALLEL
+    *, schedule: VariantSchedule = VariantSchedule.PARALLEL
 ) -> LocalCampaign:
     """Derive a locally executable Campaign from the one this build ships.
 
-    Four things change and nothing else does. Three are named in decisions
-    document 0006 — the subject's model, the subject's runtime image, and the
-    spend ceiling — and the fourth is the execution schedule, because the
-    shipped Campaign runs its variants one after the other and WP6c is about
-    running them side by side. The taskset reference, the thirty-six committed
+    Three things change and nothing else does. Two are named in decisions
+    document 0006 — the subject's model and the spend ceiling — and the third is
+    the execution schedule, because the shipped Campaign runs its variants one
+    after the other and WP6c is about running them side by side.
+
+    The subject's runtime is *not* one of them any more. Decisions document 0007
+    R5 pins the container in the shipped Campaign itself, by content and per
+    platform, so a locally executable Campaign inherits the real pin and a real
+    run exercises the image the release ships rather than whatever this machine
+    happened to have pulled. The taskset reference, the thirty-six committed
     task hashes, the membership digest, the mutation contract, the scoring rule
-    and the data-policy digest are all the shipped Campaign's, so what gets
+    and the data-policy digest are all the shipped Campaign's too, so what gets
     executed is the shipped experiment.
     """
     shipped = shipped_campaign()
@@ -260,9 +224,6 @@ def local_campaign(
     # Constructed rather than copied. ``model_copy`` does not re-run a model's
     # validators, and a locally derived Campaign that skipped them would not be
     # the same kind of object the shipped one is.
-    runtime = RuntimeSpec(
-        **{**dict(subject.runtime), "image": image or resolve_subject_image()}
-    )
     executable_subject = AgentSpec(
         **{
             **dict(subject),
@@ -272,7 +233,6 @@ def local_campaign(
                 revision=None,
                 credential_env="PRIME_API_KEY",
             ),
-            "runtime": runtime,
         }
     )
     campaign = CampaignSpec(

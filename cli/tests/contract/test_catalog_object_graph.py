@@ -44,6 +44,7 @@ from techtree.catalog.service import (
 )
 from techtree.cli.app import create_app
 from techtree.cli.commands.climb import abbreviated_digest
+from techtree.constants import SUBJECT_IMAGE
 from techtree.errors import (
     EXIT_NOT_FOUND,
     EXIT_OK,
@@ -753,7 +754,9 @@ def test_show_displays_everything_a_person_needs_before_entering(
         "4 tasks",
         "hermes-agent 0.19.0",
         "development/development-placeholder",
-        "techtree-development-placeholder:not-executed",
+        # The pinned reference is long enough that the table wraps it, so the
+        # assertion is on the part that stays on one line.
+        SUBJECT_IMAGE[:40],
         "synthetic_reward",
         "participant",
         "required for climb",
