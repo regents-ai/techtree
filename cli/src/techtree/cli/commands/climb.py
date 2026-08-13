@@ -1,11 +1,11 @@
-"""``techtree climb list`` and ``techtree climb show``. Spec section 12.6.
+"""``techtree climb list``, ``show``, and ``prepare``. Spec 12.6 and PR6 §6.9.
 
-Neither command decides anything about a Climb. The catalog service resolves
-the graph, checks it, and answers whether this machine could run it; these
-functions turn that answer into one envelope, some warnings, and at most three
-next steps.
+No command here decides anything about a Climb. The catalog service resolves
+the graph and answers whether this machine could run it; the preparation
+service turns a directory into an immutable draft. These functions turn those
+answers into one envelope, some warnings, and at most three next steps.
 
-Two of those translations are worth naming.
+Four translations are worth naming.
 
 A compatibility issue becomes a next action only when something runnable would
 address it. An absent engine has an install command; an unsupported machine has
@@ -16,20 +16,31 @@ only in the human rendering. A host agent reading JSON is exactly the caller
 most likely to treat a fixture result as evidence, so the caveat travels with
 the data.
 
-``prepare`` and ``start`` are not part of this build and remain registered
-stubs; nothing here reads a candidate path, starts a process, or reaches the
-network.
+``show`` returns a payload rather than a bare summary. Four facts a reader
+needs before entering a Climb — which model answers, where it runs, which
+reward decides the comparison, and who owns a submitted skill — have no field
+on :class:`~techtree.models.catalog.ClimbSummary`, and a host agent should not
+have to read them out of a rendered table.
+
+``prepare`` returns its confirmation token exactly once, in the response, and
+nothing writes it anywhere else. The start action it offers carries the draft,
+the token, and the DataPolicy digest that will have to be accepted, and is
+marked as requiring a person's confirmation, because starting a run commits to
+both rights and work.
+
+``start`` is not part of this build and remains a registered stub.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Final
+from pathlib import Path
+from typing import Annotated, Final, Literal
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from techtree.catalog.repository import EmbeddedCatalogRepository
+from techtree.catalog.repository import EmbeddedCatalogRepository, climb_reference
 from techtree.catalog.service import (
     CatalogService,
     InstalledEngineStatus,
@@ -37,7 +48,16 @@ from techtree.catalog.service import (
 )
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
-from techtree.errors import NotFoundError
+from techtree.drafts.confirmation import ConfirmationService
+from techtree.drafts.store import DraftStore
+from techtree.errors import NotFoundError, PrerequisiteError
+from techtree.models.base import (
+    Digest,
+    NonEmptyString,
+    ProtocolModel,
+    UtcDateTime,
+)
+from techtree.models.campaign import ModelSpec, RuntimeSpec
 from techtree.models.catalog import (
     ClimbSummary,
     CompatibilityResult,
@@ -45,17 +65,26 @@ from techtree.models.catalog import (
 )
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.climb import ResolvedClimb
+from techtree.models.skill import PolicyAcceptanceRequirement
+from techtree.skills.service import PreparedDraft, SkillPreparationService
 
 __all__ = [
     "LIST_COMMAND",
+    "PREPARE_COMMAND",
     "SHOW_COMMAND",
+    "ClimbPreparePayload",
+    "ClimbShowPayload",
+    "PreparedComparison",
     "build_catalog_service",
+    "build_preparation_service",
     "list_climbs_command",
+    "prepare_climb_command",
     "show_climb_command",
 ]
 
 LIST_COMMAND: Final = "climb list"
 SHOW_COMMAND: Final = "climb show"
+PREPARE_COMMAND: Final = "climb prepare"
 
 #: What a reader is told when the build ships no Climbs at all. This is the
 #: normal state of a development build: the packaged catalog is valid and
@@ -63,12 +92,76 @@ SHOW_COMMAND: Final = "climb show"
 _NO_CLIMBS = "This build does not include any Climbs yet."
 
 
+class ClimbShowPayload(ProtocolModel):
+    """What ``climb show`` returns: the summary, plus the Campaign facts.
+
+    The four extra fields are read straight off the resolved graph. They are
+    carried here rather than added to ``ClimbSummary`` because the summary is a
+    published protocol object with an exported schema, and this is one
+    command's response shape.
+    """
+
+    climb: ClimbSummary
+    subject_model: ModelSpec
+    subject_runtime: RuntimeSpec
+    primary_reward: NonEmptyString
+    candidate_skill_ownership: Literal["participant", "account", "shared"]
+
+
+class PreparedComparison(ProtocolModel):
+    """The controlled-comparison result, as a reader needs to check it."""
+
+    controlled: bool
+    differences: list[NonEmptyString]
+    allowed_differences: list[NonEmptyString]
+
+
+class ClimbPreparePayload(ProtocolModel):
+    """What ``climb prepare`` returns, including the token, once."""
+
+    draft_id: NonEmptyString
+    draft_digest: Digest
+    confirmation_token: NonEmptyString
+    confirmation_expires_at: UtcDateTime
+    climb_reference: NonEmptyString
+    climb_digest: Digest
+    campaign_spec_digest: Digest
+    data_policy_digest: Digest
+    candidate_label: NonEmptyString
+    skill_root_digest: Digest
+    included_files: list[NonEmptyString]
+    baseline_skill_count: int
+    candidate_skill_count: int
+    estimated_episodes: int
+    candidate_ownership: Literal["participant", "account", "shared"]
+    candidate_public_release: Literal[
+        "required_for_climb", "allowed", "prohibited", "consent_required"
+    ]
+    raw_episode_server_upload: Literal["allowed", "prohibited", "consent_required"]
+    raw_episode_training_use: Literal["allowed", "prohibited", "consent_required"]
+    proof_grade: Literal["development_only", "P1"]
+    policy_acceptance: PolicyAcceptanceRequirement
+    comparison: PreparedComparison
+    warnings: list[NonEmptyString]
+
+
 def build_catalog_service(context: CliContext) -> CatalogService:
-    """Construct the service both commands read the catalog through."""
+    """Construct the service every command reads the catalog through."""
     return CatalogService(
         EmbeddedCatalogRepository.packaged(),
         current_host_info(),
         InstalledEngineStatus(context.paths),
+    )
+
+
+def build_preparation_service(context: CliContext) -> SkillPreparationService:
+    """Construct the service ``prepare`` builds a draft through."""
+    confirmation = ConfirmationService()
+    return SkillPreparationService(
+        paths=context.paths,
+        catalog=build_catalog_service(context),
+        draft_store=DraftStore(context.paths, confirmation),
+        confirmation_service=confirmation,
     )
 
 
@@ -121,13 +214,7 @@ def show_climb_command(
     """Show public policy, Campaign summary, data rights, and compatibility."""
     context = cli_context(ctx)
 
-    # The Campaign facts a ClimbSummary has no field for — the subject model,
-    # its runtime, the reward being compared, and who owns a submitted skill —
-    # are kept here by the command so the human rendering can show all of spec
-    # section 26 without resolving the graph a second time.
-    details: list[tuple[str, str]] = []
-
-    def action() -> CommandResult[ClimbSummary]:
+    def action() -> CommandResult[ClimbShowPayload]:
         service = build_catalog_service(context)
         try:
             resolved = service.get_climb(reference)
@@ -139,10 +226,9 @@ def show_climb_command(
                 error.next_actions = _unknown_climb_actions(error)
             raise
         summary = service.climb_summary(resolved)
-        details.extend(_resolved_details(resolved))
 
         return CommandResult(
-            data=summary,
+            data=_show_payload(resolved, summary),
             warnings=_development_warnings([summary])
             + [
                 CliMessage(
@@ -155,10 +241,84 @@ def show_climb_command(
             next_actions=_show_next_actions(summary.compatibility),
         )
 
-    def render(data: object, console: Console) -> None:
-        _render_show(data, console, details)
+    invoke_command(context, SHOW_COMMAND, action, render_data=_render_show)
 
-    invoke_command(context, SHOW_COMMAND, action, render_data=render)
+
+def prepare_climb_command(
+    ctx: typer.Context,
+    reference: Annotated[
+        str,
+        typer.Argument(
+            metavar="REFERENCE",
+            help="A Climb slug, slug@version, or public identifier.",
+        ),
+    ],
+    skill: Annotated[
+        Path,
+        typer.Option(
+            "--skill",
+            metavar="PATH",
+            help="The candidate skill directory, or its SKILL.md.",
+        ),
+    ],
+    label: Annotated[
+        str | None,
+        typer.Option(
+            "--label",
+            metavar="LABEL",
+            help="What to call this candidate. Defaults to the directory name.",
+        ),
+    ] = None,
+) -> None:
+    """Resolve the Climb graph and prepare one candidate skill draft."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ClimbPreparePayload]:
+        service = build_preparation_service(context)
+        try:
+            prepared = service.prepare(
+                climb_reference=reference,
+                skill_path=skill,
+                candidate_label=label,
+            )
+        except NotFoundError as error:
+            if error.code == "climb_not_found":
+                error.next_actions = _unknown_climb_actions(error)
+            raise
+        except PrerequisiteError as error:
+            # An absent engine has a command that fixes it. An unsupported
+            # machine does not, and inventing one would waste the caller's
+            # time; the reason is already in the error message.
+            blocking = error.details.get("blocking_issues")
+            if isinstance(blocking, list) and "engine_not_installed" in blocking:
+                error.next_actions = [_install_engine()]
+            raise
+
+        payload = _prepare_payload(reference, prepared)
+        return CommandResult(
+            data=payload,
+            messages=[
+                CliMessage(
+                    level=MessageLevel.INFO,
+                    code="draft_prepared",
+                    text=(
+                        f"Prepared {payload.candidate_label} for "
+                        f"{payload.climb_reference}. Nothing has run yet."
+                    ),
+                )
+            ],
+            warnings=[
+                CliMessage(
+                    level=MessageLevel.WARNING,
+                    code="draft_warning",
+                    text=warning,
+                )
+                for warning in payload.warnings
+            ],
+            next_actions=[_start_draft(payload)],
+        )
+
+    invoke_command(context, PREPARE_COMMAND, action, render_data=_render_prepare)
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +418,36 @@ def _verify_engine() -> NextAction:
     )
 
 
+def _start_draft(payload: ClimbPreparePayload) -> NextAction:
+    """Offer the start, carrying everything a start has to be given.
+
+    The DataPolicy digest is spelled out because possessing the confirmation
+    token has never implied accepting the rights policy — decisions document
+    0003 A5 — and a machine caller has to state the acceptance explicitly.
+    """
+    return NextAction(
+        id="start_climb",
+        label=f"Start {payload.candidate_label} on {payload.climb_reference}",
+        reason=(
+            f"Runs {payload.estimated_episodes} episodes, baseline first. "
+            "Accepting the data policy is part of starting."
+        ),
+        cli=[
+            "techtree",
+            "climb",
+            "start",
+            payload.draft_id,
+            "--confirmation-token",
+            payload.confirmation_token,
+            "--accept-data-policy",
+            payload.data_policy_digest,
+        ],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=True,
+    )
+
+
 def _check_environment() -> NextAction:
     return NextAction(
         id="check_environment",
@@ -300,32 +490,108 @@ def _render_list(data: object, console: Console) -> None:
     console.print(table)
 
 
-def _render_show(
-    data: object, console: Console, details: list[tuple[str, str]]
-) -> None:
+def _render_show(data: object, console: Console) -> None:
     """Print everything a person needs before entering a Climb."""
-    if not isinstance(data, ClimbSummary):
+    if not isinstance(data, ClimbShowPayload):
         return
+    summary = data.climb
+    runtime = data.subject_runtime
+    platforms = ", ".join(runtime.supported_platforms)
 
-    console.print(data.title)
-    console.print(data.summary)
+    console.print(summary.title)
+    console.print(summary.summary)
     console.print()
 
     _print_pairs(
         console,
         [
-            ("Climb", data.reference),
-            ("Status", data.status),
-            ("Campaign", data.campaign_spec_digest),
-            ("Purpose", _phrase(data.purpose)),
-            ("Taskset", f"{data.taskset_id} ({data.task_count} tasks)"),
+            ("Climb", summary.reference),
+            ("Status", summary.status),
+            ("Campaign", summary.campaign_spec_digest),
+            ("Purpose", _phrase(summary.purpose)),
+            ("Taskset", f"{summary.taskset_id} ({summary.task_count} tasks)"),
             (
                 "Subject harness",
-                f"{data.subject_harness} {data.subject_harness_version}",
+                f"{summary.subject_harness} {summary.subject_harness_version}",
             ),
-            *details,
-            ("Evaluated by", data.evaluation_backend.value),
-            ("Allowed change", _phrase(data.mutation_kind)),
+            (
+                "Subject model",
+                f"{data.subject_model.provider}/{data.subject_model.model_id}",
+            ),
+            ("Subject runtime", f"{runtime.type} {runtime.image} ({platforms})"),
+            ("Primary reward", data.primary_reward),
+            ("Candidate ownership", data.candidate_skill_ownership),
+            ("Evaluated by", summary.evaluation_backend.value),
+            ("Allowed change", _phrase(summary.mutation_kind)),
+            ("Proof grade", _phrase(summary.proof_grade)),
+        ],
+    )
+
+    console.print()
+    console.print("Data rights")
+    _print_pairs(
+        console,
+        [
+            ("Candidate skills", summary.candidate_skill_visibility),
+            (
+                "Public release",
+                _phrase(summary.data_policy.candidate_skill_public_release),
+            ),
+            (
+                "Raw episode upload",
+                _phrase(summary.data_policy.raw_episode_server_upload),
+            ),
+            ("Training use", _phrase(summary.data_policy.raw_episode_training_use)),
+            ("Uplift report", _phrase(summary.data_policy.uplift_report_visibility)),
+        ],
+    )
+
+    console.print()
+    console.print("This machine")
+    _print_pairs(
+        console,
+        [
+            ("Host platform", summary.compatibility.host_platform),
+            ("Engine", _phrase(summary.compatibility.engine_status.value)),
+            ("Runs here", "yes" if summary.compatibility.compatible else "no"),
+        ],
+    )
+
+
+def _render_prepare(data: object, console: Console) -> None:
+    """Print everything spec PR6 §6.9 requires before a person confirms."""
+    if not isinstance(data, ClimbPreparePayload):
+        return
+
+    _print_pairs(
+        console,
+        [
+            ("Draft", data.draft_id),
+            ("Climb", data.climb_reference),
+            ("Climb digest", data.climb_digest),
+            ("Campaign digest", data.campaign_spec_digest),
+            ("DataPolicy digest", data.data_policy_digest),
+            ("Candidate", data.candidate_label),
+            ("Skill content digest", data.skill_root_digest),
+        ],
+    )
+
+    console.print()
+    console.print(f"Included files ({len(data.included_files)})")
+    for path in data.included_files:
+        console.print(f"  {path}")
+
+    console.print()
+    console.print("The comparison")
+    _print_pairs(
+        console,
+        [
+            ("Allowed difference", ", ".join(data.comparison.allowed_differences)),
+            ("Found difference", ", ".join(data.comparison.differences)),
+            ("Baseline skills", str(data.baseline_skill_count)),
+            ("Candidate skills", str(data.candidate_skill_count)),
+            ("Controlled", "yes" if data.comparison.controlled else "no"),
+            ("Estimated episodes", str(data.estimated_episodes)),
             ("Proof grade", _phrase(data.proof_grade)),
         ],
     )
@@ -335,29 +601,24 @@ def _render_show(
     _print_pairs(
         console,
         [
-            ("Candidate skills", data.candidate_skill_visibility),
+            ("Candidate ownership", data.candidate_ownership),
+            ("Public release", _phrase(data.candidate_public_release)),
+            ("Raw episode upload", _phrase(data.raw_episode_server_upload)),
+            ("Training use", _phrase(data.raw_episode_training_use)),
             (
-                "Public release",
-                _phrase(data.data_policy.candidate_skill_public_release),
+                "Acceptance",
+                "required before starting"
+                if data.policy_acceptance.required
+                else "not required",
             ),
-            (
-                "Raw episode upload",
-                _phrase(data.data_policy.raw_episode_server_upload),
-            ),
-            ("Training use", _phrase(data.data_policy.raw_episode_training_use)),
-            ("Uplift report", _phrase(data.data_policy.uplift_report_visibility)),
         ],
     )
+    console.print(data.policy_acceptance.summary)
 
     console.print()
-    console.print("This machine")
-    _print_pairs(
-        console,
-        [
-            ("Host platform", data.compatibility.host_platform),
-            ("Engine", _phrase(data.compatibility.engine_status.value)),
-            ("Runs here", "yes" if data.compatibility.compatible else "no"),
-        ],
+    console.print(
+        "Confirmation expires "
+        f"{data.confirmation_expires_at.isoformat().replace('+00:00', 'Z')}."
     )
 
 
@@ -380,16 +641,55 @@ def _print_pairs(console: Console, pairs: list[tuple[str, str]]) -> None:
     console.print(table)
 
 
-def _resolved_details(resolved: ResolvedClimb) -> list[tuple[str, str]]:
-    """Return the Campaign facts a summary has no field for."""
+# ---------------------------------------------------------------------------
+# Payloads
+# ---------------------------------------------------------------------------
+
+
+def _show_payload(resolved: ResolvedClimb, summary: ClimbSummary) -> ClimbShowPayload:
+    """Return the summary plus the Campaign facts it has no field for."""
     subject = resolved.campaign.subject
-    platforms = ", ".join(subject.runtime.supported_platforms)
-    return [
-        ("Subject model", f"{subject.model.provider}/{subject.model.model_id}"),
-        (
-            "Subject runtime",
-            f"{subject.runtime.type} {subject.runtime.image} ({platforms})",
+    return ClimbShowPayload(
+        climb=summary,
+        subject_model=subject.model,
+        subject_runtime=subject.runtime,
+        primary_reward=resolved.campaign.scoring.primary_reward,
+        candidate_skill_ownership=resolved.data_policy.candidate_skill.ownership,
+    )
+
+
+def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePayload:
+    """Project a prepared draft into the response a caller acts on."""
+    draft = prepared.draft
+    resolved = prepared.resolved_climb
+    data_policy = resolved.data_policy
+    comparison = prepared.manifest_comparison
+
+    return ClimbPreparePayload(
+        draft_id=draft.id,
+        draft_digest=prepared.draft_digest,
+        confirmation_token=prepared.confirmation_token,
+        confirmation_expires_at=prepared.confirmation_expires_at,
+        climb_reference=climb_reference(resolved.climb),
+        climb_digest=resolved.climb_digest,
+        campaign_spec_digest=draft.campaign_spec_digest,
+        data_policy_digest=draft.data_policy_digest,
+        candidate_label=draft.skill_artifact.name,
+        skill_root_digest=draft.skill_artifact.root_digest,
+        included_files=list(draft.included_files),
+        baseline_skill_count=0,
+        candidate_skill_count=1,
+        estimated_episodes=draft.estimated_episodes,
+        candidate_ownership=data_policy.candidate_skill.ownership,
+        candidate_public_release=data_policy.candidate_skill.public_release,
+        raw_episode_server_upload=data_policy.raw_episodes.server_upload,
+        raw_episode_training_use=data_policy.raw_episodes.training_use,
+        proof_grade=resolved.climb.publication.proof_grade,
+        policy_acceptance=draft.policy_acceptance,
+        comparison=PreparedComparison(
+            controlled=comparison.controlled,
+            differences=[difference.pointer for difference in comparison.differences],
+            allowed_differences=list(comparison.allowed_differences),
         ),
-        ("Primary reward", resolved.campaign.scoring.primary_reward),
-        ("Candidate ownership", resolved.data_policy.candidate_skill.ownership),
-    ]
+        warnings=list(draft.warnings),
+    )

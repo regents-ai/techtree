@@ -36,7 +36,11 @@ from typing import Annotated, Any, NoReturn
 import typer
 from typer.core import TyperGroup
 
-from techtree.cli.commands.climb import list_climbs_command, show_climb_command
+from techtree.cli.commands.climb import (
+    list_climbs_command,
+    prepare_climb_command,
+    show_climb_command,
+)
 from techtree.cli.commands.doctor import doctor_command
 from techtree.cli.commands.engine import (
     install_engine_command,
@@ -263,10 +267,9 @@ def _climb_app() -> typer.Typer:
         "whether this machine can run it.",
     )(show_climb_command)
 
-    @app.command("prepare", help="Prepare a skill for submission to a Climb.")
-    def prepare_climb_command(ctx: typer.Context) -> None:
-        """Resolve the Climb graph and prepare one candidate skill draft."""
-        _not_implemented(ctx, "climb prepare")
+    app.command("prepare", help="Prepare a skill for submission to a Climb.")(
+        prepare_climb_command
+    )
 
     @app.command("start", help="Start a prepared submission running.")
     def start_climb_command(ctx: typer.Context) -> None:

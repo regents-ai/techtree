@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from typing import Final, Protocol
 
 from techtree.catalog.repository import EmbeddedCatalogRepository, climb_reference
-from techtree.errors import PolicyError, PrerequisiteError, UsageError
+from techtree.errors import NotFoundError, PolicyError, PrerequisiteError, UsageError
 from techtree.models.base import Digest
 from techtree.models.catalog import (
     ClimbSummary,
@@ -52,6 +52,7 @@ from techtree.models.climb import ResolvedClimb, check_climb_policy_consistency
 from techtree.models.data_policy import DataPolicy
 from techtree.models.engine import normalize_host_platform
 from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
+from techtree.models.validation import ValidationEvidence
 from techtree.paths import TechtreePaths
 
 __all__ = [
@@ -232,6 +233,24 @@ class CatalogService:
             evaluation_backend_supported=backend_supported,
             issues=issues,
         )
+
+    def validation_evidence(self, resolved: ResolvedClimb) -> ValidationEvidence:
+        """Return the normalized evidence this Climb's receipt was issued from.
+
+        Preparing a submission copies the evidence into the draft so that the
+        draft stays verifiable when the catalog that shipped it does not
+        (decisions document 0003 A4). The graph was already checked when it was
+        resolved, so a receipt with no evidence here is a caller asking for
+        something this Climb does not have.
+        """
+        reference = resolved.publisher_validation.normalized_evidence
+        if reference is None:
+            raise NotFoundError(
+                "this Climb's publisher validation names no normalized evidence",
+                code="publisher_validation_evidence_missing",
+                details={"climb": climb_reference(resolved.climb)},
+            )
+        return self._repository.load_validation_evidence(reference.digest)
 
     def validate_public_policy(self, resolved: ResolvedClimb) -> None:
         """Reject contradictions among the Climb, Campaign, and DataPolicy.

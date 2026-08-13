@@ -629,11 +629,23 @@ def test_show_returns_a_summary_a_host_agent_can_validate(
 
     # Validated from JSON rather than from the parsed mapping: a protocol model
     # is strict, and a host agent reads the bytes, not a Python object.
-    summary = ClimbSummary.model_validate_json(json.dumps(envelope["data"]))
+    summary = ClimbSummary.model_validate_json(json.dumps(envelope["data"]["climb"]))
     assert summary.reference == "synthetic-open@1"
     assert summary.task_count == 4
     assert summary.data_policy.candidate_skill_public_release == "required_for_climb"
     assert summary.compatibility.compatible is False
+
+
+def test_show_gives_a_host_agent_the_campaign_facts_a_summary_omits(
+    populated_cli: Callable[..., dict[str, Any]],
+) -> None:
+    """Spec section 26 WP1's display list, machine-readable rather than rendered."""
+    payload = populated_cli("climb", "show", "synthetic-open", "--json")["data"]
+
+    assert payload["subject_model"]["model_id"] == "development-placeholder"
+    assert payload["subject_runtime"]["type"] == "docker"
+    assert payload["primary_reward"] == "synthetic_reward"
+    assert payload["candidate_skill_ownership"] == "participant"
 
 
 def test_show_displays_everything_a_person_needs_before_entering(
