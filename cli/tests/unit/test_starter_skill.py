@@ -1,0 +1,255 @@
+"""Obtaining the release's starter Skill. Spec section 10.5, decisions 0008.
+
+Three questions, and the second is the one that matters.
+
+*Does the right Skill arrive?* A local copy is read, scanned, and cached under
+the Techtree home, and a second call reuses what is already there.
+
+*Is anything else refused?* Bytes that do not hash to the pinned tree digest,
+a Skill the ordinary policy would reject from anybody, a cached directory that
+has been edited, a build that pins no starter Skill at all, and a source that
+is not a source. Every one of those leaves the home unchanged.
+
+*Is it the tree digest?* Decisions document 0008 pins the starter Skill by its
+``SkillArtifact.root_digest`` — the ordered content-tree digest the scanner
+computes — and not by the hash of a file. The expected digest below is built
+from the fixture's own bytes with the same construction the manifest builder
+uses, so a change to either definition shows up here.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from fixtures.starter import (
+    SKILL_FIXTURES,
+    STARTER_FIXTURE,
+    tree_digest,
+)
+from fixtures.starter import (
+    release_pinning as release,
+)
+from techtree.errors import (
+    NotFoundError,
+    PrerequisiteError,
+    UsageError,
+    ValidationError,
+    VerificationError,
+)
+from techtree.models.base import Digest
+from techtree.paths import paths_from_root
+from techtree.release.models import PLACEHOLDER_DIGEST
+from techtree.skills.starter import (
+    STARTER_SKILL_DIGEST_MISMATCH,
+    STARTER_SKILL_NOT_PINNED,
+    STARTER_SKILL_SOURCE_REFUSED,
+    STARTER_SKILL_UNAVAILABLE,
+    StarterSkillService,
+)
+
+#: Any digest that is not the fixture's, spelled so a failure is readable.
+OTHER_DIGEST: Digest = f"sha256:{'1' * 64}"
+
+
+@pytest.fixture
+def pinned() -> Digest:
+    return tree_digest(STARTER_FIXTURE)
+
+
+@pytest.fixture
+def service(temp_techtree_home: Path) -> StarterSkillService:
+    return StarterSkillService(paths_from_root(temp_techtree_home))
+
+
+# ---------------------------------------------------------------------------
+# The Skill arrives
+# ---------------------------------------------------------------------------
+
+
+def test_a_local_copy_is_verified_and_cached_under_the_techtree_home(
+    temp_techtree_home: Path, service: StarterSkillService, pinned: Digest
+) -> None:
+    """The cache is Techtree's own directory, named by the verified digest."""
+    materialized = service.materialize(
+        release=release(pinned), local_file=STARTER_FIXTURE
+    )
+
+    paths = paths_from_root(temp_techtree_home)
+    assert materialized.origin == "local_file"
+    assert materialized.root == paths.skill_cache_dir(pinned)
+    assert materialized.root.is_relative_to(paths.cache_dir)
+    assert materialized.root_digest == pinned
+    assert materialized.entrypoint.read_text("utf-8") == (
+        (STARTER_FIXTURE / "SKILL.md").read_text("utf-8")
+    )
+    assert materialized.file_count == 1
+
+
+def test_naming_the_entry_file_and_naming_its_directory_agree(
+    service: StarterSkillService, pinned: Digest
+) -> None:
+    """``--from-file`` accepts a Skill the way every other command does."""
+    from_directory = service.materialize(
+        release=release(pinned), local_file=STARTER_FIXTURE
+    )
+    from_entrypoint = service.materialize(
+        release=release(pinned), local_file=STARTER_FIXTURE / "SKILL.md"
+    )
+
+    assert from_directory.root_digest == from_entrypoint.root_digest == pinned
+
+
+def test_a_second_call_reuses_what_this_machine_already_has(
+    service: StarterSkillService, pinned: Digest
+) -> None:
+    """A cache exists so the second guided run does not fetch anything."""
+    first = service.materialize(release=release(pinned), local_file=STARTER_FIXTURE)
+    second = service.materialize(release=release(pinned))
+
+    assert first.origin == "local_file"
+    assert second.origin == "cache"
+    assert second.root == first.root
+    assert second.root_digest == pinned
+
+
+def test_a_cached_skill_is_re_verified_rather_than_trusted(
+    service: StarterSkillService, pinned: Digest
+) -> None:
+    """A cached directory somebody edited is not a shortcut past the check."""
+    cached = service.materialize(
+        release=release(pinned), local_file=STARTER_FIXTURE
+    ).root
+    entrypoint = cached / "SKILL.md"
+    entrypoint.chmod(0o600)
+    entrypoint.write_text("something else entirely\n", encoding="utf-8")
+
+    with pytest.raises(NotFoundError) as raised:
+        service.materialize(release=release(pinned))
+
+    assert raised.value.code == STARTER_SKILL_UNAVAILABLE
+
+    # And naming the source again repairs it, because the source is verified.
+    repaired = service.materialize(release=release(pinned), local_file=STARTER_FIXTURE)
+    assert repaired.root_digest == pinned
+    assert (repaired.root / "SKILL.md").read_text(
+        "utf-8"
+    ) != "something else entirely\n"
+
+
+# ---------------------------------------------------------------------------
+# What is refused
+# ---------------------------------------------------------------------------
+
+
+def test_a_build_that_pins_no_starter_skill_says_so(
+    service: StarterSkillService,
+) -> None:
+    """Decision R10: a placeholder release has not chosen a Skill."""
+    with pytest.raises(PrerequisiteError) as raised:
+        service.materialize(
+            release=release(PLACEHOLDER_DIGEST), local_file=STARTER_FIXTURE
+        )
+
+    assert raised.value.code == STARTER_SKILL_NOT_PINNED
+    assert [action.id for action in raised.value.next_actions] == ["inspect_release"]
+
+
+def test_bytes_that_are_not_the_pinned_skill_are_refused(
+    temp_techtree_home: Path, service: StarterSkillService
+) -> None:
+    """The release names the Skill; a caller only names where to look."""
+    with pytest.raises(VerificationError) as raised:
+        service.materialize(release=release(OTHER_DIGEST), local_file=STARTER_FIXTURE)
+
+    assert raised.value.code == STARTER_SKILL_DIGEST_MISMATCH
+    assert raised.value.details["expected"] == OTHER_DIGEST
+    # Nothing was published, and no staging residue was left behind.
+    paths = paths_from_root(temp_techtree_home)
+    assert not paths.skill_cache_dir(OTHER_DIGEST).exists()
+    assert (
+        sorted(
+            item.name for item in paths.skills_cache_dir().iterdir() if item.is_dir()
+        )
+        == []
+    )
+
+
+def test_a_skill_the_ordinary_policy_refuses_is_refused_here_too(
+    temp_techtree_home: Path, service: StarterSkillService
+) -> None:
+    """There is no privileged path for a Skill because a release named it."""
+    secret_skill = SKILL_FIXTURES / "invalid-secret"
+
+    with pytest.raises(ValidationError) as raised:
+        service.materialize(
+            release=release(tree_digest(secret_skill)), local_file=secret_skill
+        )
+
+    assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED
+    paths = paths_from_root(temp_techtree_home)
+    assert not any(paths.skills_cache_dir().glob("sha256-*"))
+
+
+def test_a_source_that_is_not_there_is_refused(
+    service: StarterSkillService, pinned: Digest, tmp_path: Path
+) -> None:
+    with pytest.raises(NotFoundError) as raised:
+        service.materialize(
+            release=release(pinned), local_file=tmp_path / "nowhere" / "SKILL.md"
+        )
+
+    assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED
+
+
+def test_naming_two_sources_is_refused(
+    service: StarterSkillService, pinned: Digest
+) -> None:
+    with pytest.raises(UsageError) as raised:
+        service.materialize(
+            release=release(pinned),
+            local_file=STARTER_FIXTURE,
+            url="https://example.invalid/SKILL.md",
+        )
+
+    assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED
+
+
+def test_naming_no_source_on_a_machine_that_has_nothing_is_refused(
+    service: StarterSkillService, pinned: Digest
+) -> None:
+    """The refusal says what is missing rather than fetching from somewhere."""
+    with pytest.raises(NotFoundError) as raised:
+        service.materialize(release=release(pinned))
+
+    assert raised.value.code == STARTER_SKILL_UNAVAILABLE
+    assert raised.value.details["expected"] == pinned
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "file:///etc/passwd",
+        "ftp://example.com/SKILL.md",
+        "http://example.com/SKILL.md",
+        "not a url",
+        "",
+    ],
+)
+def test_a_source_that_is_not_a_web_address_is_never_opened(
+    temp_techtree_home: Path, pinned: Digest, url: str
+) -> None:
+    """Nothing reaches the network layer until the URL is one Techtree fetches."""
+
+    def never_called(_: str) -> bytes:
+        raise AssertionError("the downloader must not be reached")
+
+    service = StarterSkillService(
+        paths_from_root(temp_techtree_home), download=never_called
+    )
+
+    with pytest.raises(UsageError) as raised:
+        service.materialize(release=release(pinned), url=url)
+
+    assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED

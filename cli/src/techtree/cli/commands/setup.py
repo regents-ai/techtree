@@ -29,7 +29,11 @@ from techtree.cli.commands.engine import render_engine_status
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command, not_implemented_error
 from techtree.doctor.service import DoctorService
-from techtree.engines.installer import EngineInstaller, find_uv
+from techtree.engines.installer import (
+    EngineInstaller,
+    InterruptedInstall,
+    find_uv,
+)
 from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError
 from techtree.identity.service import IdentityService
@@ -77,6 +81,11 @@ def setup_command(
         registry = EngineRegistry(context.paths, context.settings)
         installer = EngineInstaller(context.paths, registry, find_uv())
 
+        # Decisions 0004, ratified as 0007 R7: an install that was killed is
+        # found here, said out loud, and discarded by the install that
+        # follows. Reported before the install so the sentence a person reads
+        # is about the machine they left behind, not about this run.
+        interrupted = installer.interrupted_installs()
         installed = installer.install()
         registry.set_active(installed.digest)
         status = installer.verify(installed.digest)
@@ -99,10 +108,25 @@ def setup_command(
                     ),
                 ),
             ],
+            warnings=[_interrupted_notice(install) for install in interrupted],
             next_actions=[_browse_climbs()],
         )
 
     invoke_command(context, COMMAND, action, render_data=_render)
+
+
+def _interrupted_notice(install: InterruptedInstall) -> CliMessage:
+    """Say that an earlier install did not finish, and what became of it."""
+    when = "" if install.started_at is None else f", started {install.started_at}"
+    return CliMessage(
+        level=MessageLevel.WARNING,
+        code="engine_install_interrupted",
+        text=(
+            f"An earlier install of evaluation engine {install.digest} did not "
+            f"finish{when}. What it left behind was removed and the engine was "
+            "installed again from scratch."
+        ),
+    )
 
 
 def _check_prerequisites(context: CliContext) -> None:

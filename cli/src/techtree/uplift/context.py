@@ -51,7 +51,7 @@ from techtree.errors import ValidationError
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.campaign import CampaignSpec
 from techtree.models.episode_receipt import EpisodeReceipt, ScoreStatus
-from techtree.models.skill import SkillArtifact
+from techtree.models.skill import SKILL_ENTRY_FILE, SkillArtifact
 from techtree.models.uplift_report import (
     PrimaryUpliftResult,
     TaskDelta,
@@ -77,6 +77,7 @@ __all__ = [
     "TaskPublicProjection",
     "TaskPublicProjectionProvider",
     "build_improvement_context",
+    "entrypoint_digest",
     "hash_only_projection",
 ]
 
@@ -193,12 +194,24 @@ class ImprovementExample(ProtocolModel):
 
 
 class SkillImprovementContext(ProtocolModel):
-    """Everything a host agent is given to propose one Skill revision."""
+    """Everything a host agent is given to propose one Skill revision.
+
+    The four fingerprints decisions document 0007 R2 requires are all here:
+    the source Skill's root digest, its entrypoint file digest, the source run
+    ID, and the source report digest. They are what lets a consumer resolve
+    the run-owned verified snapshot, re-verify it, and bind a proposal to the
+    exact Skill and the exact result it was made against. None of them is the
+    Skill's text: the text is read through ``techtree uplift skill-source``,
+    which verifies it against these same digests, so a context that travelled
+    somewhere cannot carry a Skill nobody checked.
+    """
 
     schema_version: Literal["techtree.skill-improvement-context.v1"]
     source_run_id: NonEmptyString
+    source_report_digest: Digest
     campaign_spec_digest: Digest
     parent_skill_digest: Digest
+    parent_skill_entrypoint_digest: Digest
     data_policy_digest: Digest
     objective: NonEmptyString
     current_result: PrimaryUpliftResult
@@ -258,8 +271,10 @@ def build_improvement_context(
     context = SkillImprovementContext(
         schema_version=IMPROVEMENT_CONTEXT_SCHEMA_VERSION,
         source_run_id=report.run_id,
+        source_report_digest=digest_object(report),
         campaign_spec_digest=report.campaign_spec_digest,
         parent_skill_digest=parent_skill.root_digest,
+        parent_skill_entrypoint_digest=entrypoint_digest(parent_skill),
         data_policy_digest=report.data_policy_digest,
         objective=_objective(campaign, report.primary_result),
         current_result=report.primary_result,
@@ -269,6 +284,28 @@ def build_improvement_context(
     )
     ensure_no_hidden_material(context)
     return context
+
+
+def entrypoint_digest(skill: SkillArtifact) -> Digest:
+    """Return the digest of the one file a Skill is read through.
+
+    Decisions document 0007 R2 pins the entrypoint separately from the tree it
+    belongs to, because the text a host model is shown is that one file. The
+    root digest says the whole Skill is unchanged; this says the file whose
+    bytes were actually read is the file that was measured.
+    """
+    for entry in skill.files:
+        if entry.path == SKILL_ENTRY_FILE:
+            return entry.digest
+    # Unreachable through the model, which refuses a Skill without its entry
+    # file. Stated anyway, because the alternative is an index that silently
+    # picks the wrong file the day that validator changes.
+    raise ValidationError(
+        f"the Skill this context describes lists no {SKILL_ENTRY_FILE}, so "
+        "there is no entrypoint to pin",
+        code=IMPROVEMENT_CONTEXT_INVALID,
+        details={"skill": skill.root_digest},
+    )
 
 
 def ensure_no_hidden_material(context: SkillImprovementContext) -> None:

@@ -30,6 +30,7 @@ import pytest
 
 from fixtures.drafts.support import VALID_SKILL
 from fixtures.runs.support import CliRun, run_cli, wait_for_terminal
+from techtree.cli.commands.climb import abbreviated_digest
 from techtree.cli.commands.run import development_only_result_notice
 from techtree.errors import EXIT_OK
 from techtree.identity.store import IdentityStore
@@ -176,9 +177,16 @@ def test_show_reports_the_campaign_and_the_data_policy(
     assert payload["climb"]["data_policy"]["candidate_skill_public_release"] == (
         "required_for_climb"
     )
-    assert payload["climb"]["campaign_spec_digest"] in unwrapped
     assert "Datarights" in unwrapped
-    # The DataPolicy digest is what `prepare` shows and `start` demands back.
+    # Decisions 0007 R3: the person gets the summary and shortened IDs, the
+    # machine payload gets both digests complete.
+    assert payload["data_policy_digest"] == flow["draft"]["data_policy_digest"]
+    assert "TechnicalIDs" in unwrapped
+    assert abbreviated_digest(payload["climb"]["campaign_spec_digest"]) in unwrapped
+    assert abbreviated_digest(payload["data_policy_digest"]) in unwrapped
+    assert payload["climb"]["campaign_spec_digest"] not in unwrapped
+    # The complete DataPolicy digest is what `prepare` shows and `start`
+    # demands back, and that has not changed.
     assert flow["draft"]["data_policy_digest"].startswith("sha256:")
 
 

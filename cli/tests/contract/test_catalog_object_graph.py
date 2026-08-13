@@ -43,6 +43,7 @@ from techtree.catalog.service import (
     current_host_info,
 )
 from techtree.cli.app import create_app
+from techtree.cli.commands.climb import abbreviated_digest
 from techtree.errors import (
     EXIT_NOT_FOUND,
     EXIT_OK,
@@ -672,6 +673,62 @@ def test_show_gives_a_host_agent_the_campaign_facts_a_summary_omits(
     assert payload["subject_runtime"]["type"] == "docker"
     assert payload["primary_reward"] == "synthetic_reward"
     assert payload["candidate_skill_ownership"] == "participant"
+
+
+def test_show_gives_a_machine_reader_both_complete_digests(
+    catalog_root: Path,
+    populated_cli: Callable[..., dict[str, Any]],
+) -> None:
+    """Decisions 0007 R3: complete campaign and data-policy digests in JSON."""
+    payload = populated_cli("climb", "show", "synthetic-open", "--json")["data"]
+    resolved = CatalogService(
+        EmbeddedCatalogRepository(catalog_root),
+        current_host_info(),
+        InstalledEngineStatus(paths_from_root(catalog_root)),
+    ).get_climb("synthetic-open")
+
+    assert payload["climb"]["campaign_spec_digest"] == resolved.campaign_digest
+    assert payload["data_policy_digest"] == resolved.data_policy_digest
+    assert payload["data_policy_digest"] == resolved.campaign.data_policy_digest
+    # Complete, not shortened: a caller comparing digests needs all of both.
+    for digest in (
+        payload["climb"]["campaign_spec_digest"],
+        payload["data_policy_digest"],
+    ):
+        assert len(digest) == len("sha256:") + 64
+        assert "…" not in digest
+
+
+def test_show_gives_a_person_a_technical_ids_block_with_short_digests(
+    catalog_root: Path,
+    populated_home: Path,
+) -> None:
+    """Decisions 0007 R3: the human reading is a summary, then the short IDs.
+
+    A complete digest in a terminal wraps across lines and is read by nobody.
+    What a person needs it for is recognition — telling one Campaign from
+    another — and the abbreviation says out loud that it is one.
+    """
+    resolved = CatalogService(
+        EmbeddedCatalogRepository(catalog_root),
+        current_host_info(),
+        InstalledEngineStatus(paths_from_root(catalog_root)),
+    ).get_climb("synthetic-open")
+
+    result = CliRunner().invoke(
+        create_app(),
+        ["--home", str(populated_home), "climb", "show", "synthetic-open"],
+    )
+    unwrapped = "".join(result.stdout.split())
+
+    assert result.exit_code == EXIT_OK
+    assert "TechnicalIDs" in unwrapped
+    assert abbreviated_digest(resolved.campaign_digest) in unwrapped
+    assert abbreviated_digest(resolved.data_policy_digest) in unwrapped
+    # The complete digests are not printed at a person, in either place.
+    assert resolved.campaign_digest not in unwrapped
+    assert resolved.data_policy_digest not in unwrapped
+    assert "--jsonforthecompletedigests" in unwrapped
 
 
 def test_show_displays_everything_a_person_needs_before_entering(

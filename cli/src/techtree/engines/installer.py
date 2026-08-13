@@ -25,14 +25,32 @@ directory count as an engine at all.
 That last point is also how an interrupted install is safe. The environment is
 built at its final content-addressed path — an editable path dependency and a
 virtual environment both record absolute paths, so a directory built somewhere
-else and moved afterwards is a broken environment, not a relocated one. The
-marker file, written last, is the thing that says the directory is finished; a
-directory without one is not an installation, and installing replaces it.
+else and moved afterwards is a broken environment, not a relocated one.
+``installed.json``, written last, is the thing that says the directory is
+finished; a directory without one is not an installation, and installing
+replaces it.
+
+Decisions document 0004, ratified as 0007 R7, adds the other half of that
+protocol: an install *announces itself* before it starts. A ``.installing-``
+marker is written into the engines directory before the engine directory is
+created and removed only after ``installed.json`` exists, so a machine can
+always tell the difference between the two reasons an engine might be absent.
+An engine that was never installed leaves nothing behind. An install that was
+killed — the power went, the terminal was closed, the machine rebooted mid-sync
+— leaves a marker, and the next setup finds it, says so, and removes the
+unfinished directory before building again rather than retrying on top of it.
+
+The marker lives beside the engine directory rather than inside it, for two
+reasons that are both about not disturbing what it protects: the bundle copy
+requires an empty destination, and an installed engine's directory is hashed
+file by file when it is verified. A marker inside would be either impossible to
+write first or something the digest rule would have to be taught to ignore.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -55,9 +73,14 @@ from techtree.engines.bundle import (
     engine_bundle_digest,
     read_engine_descriptor,
 )
-from techtree.engines.registry import EngineRegistry
+from techtree.engines.registry import EngineRegistry, digest_from_directory_name
 from techtree.errors import EngineError, PrerequisiteError, VerificationError
-from techtree.fs import ensure_private_directory, remove_tree
+from techtree.fs import (
+    atomic_write_json,
+    ensure_private_directory,
+    fsync_directory,
+    remove_tree,
+)
 from techtree.models.base import Digest
 from techtree.models.engine import (
     EngineDescriptor,
@@ -68,11 +91,13 @@ from techtree.models.engine import (
 from techtree.paths import TechtreePaths
 
 __all__ = [
+    "INSTALLING_MARKER_PREFIX",
     "INSTALL_LOCK_FILENAME",
     "SYNC_TIMEOUT_SECONDS",
     "VERIFICATION_TIMEOUT_SECONDS",
     "EngineInstaller",
     "EngineVerification",
+    "InterruptedInstall",
     "find_uv",
 ]
 
@@ -84,6 +109,16 @@ VERIFICATION_TIMEOUT_SECONDS: Final = 300.0
 #: One installer at a time per Techtree home.
 INSTALL_LOCK_FILENAME: Final = ".install.lock"
 INSTALL_LOCK_TIMEOUT_SECONDS: Final = 1800.0
+
+#: Written before an install starts and removed after it publishes. The engine
+#: directory's own name is appended, so one marker names one engine and a
+#: reader can tell which install did not finish.
+INSTALLING_MARKER_PREFIX: Final = ".installing-"
+
+#: What a marker says, for a person reading a directory rather than for code.
+#: Nothing branches on these values: the marker's *existence* is the signal, so
+#: an unreadable marker still means exactly what a readable one means.
+_MARKER_SCHEMA: Final = "techtree.engine-installing.v1"
 
 #: Asked of the engine, answered by the engine. Written as one expression-free
 #: script so it can be passed with ``-c`` and cannot import anything of
@@ -127,6 +162,22 @@ class EngineVerification:
     modules: dict[str, str]
 
 
+@dataclass(frozen=True)
+class InterruptedInstall:
+    """An install that announced itself and never published a result.
+
+    ``started_at`` and ``pid`` come from the marker and are diagnostics only.
+    A marker that cannot be read still describes an interrupted install; what
+    is missing is only the ability to say when it started.
+    """
+
+    digest: Digest
+    path: Path
+    marker: Path
+    started_at: str | None
+    pid: int | None
+
+
 class EngineInstaller:
     """Installs, verifies, and removes managed engines."""
 
@@ -157,6 +208,11 @@ class EngineInstaller:
         ensure_private_directory(self._paths.engines_dir)
 
         with self._install_lock():
+            # Decisions 0004, ratified as 0007 R7: whatever a killed install
+            # left behind goes before another one starts, so nothing is ever
+            # built on top of a half-built environment.
+            self.discard_interrupted()
+
             if self._registry.installation(bundle_digest) is not None:
                 verified = self._verified_status(bundle_digest, descriptor)
                 if verified is not None:
@@ -166,6 +222,54 @@ class EngineInstaller:
                 remove_tree(self._registry.path(bundle_digest))
 
             return self._install_fresh(root, descriptor, bundle_digest)
+
+    def interrupted_installs(self) -> list[InterruptedInstall]:
+        """Report every engine whose install started and never published.
+
+        A marker beside a complete installation is not one of these: the
+        install finished and only the marker's removal was lost, so there is
+        nothing unfinished to report and nothing to rebuild.
+        """
+        if not self._paths.engines_dir.is_dir():
+            return []
+
+        found: list[InterruptedInstall] = []
+        for marker in sorted(self._paths.engines_dir.iterdir()):
+            digest = _digest_from_marker_name(marker.name)
+            if digest is None or not marker.is_file():
+                continue
+            if self._registry.installation(digest) is not None:
+                continue
+            started_at, pid = _read_marker(marker)
+            found.append(
+                InterruptedInstall(
+                    digest=digest,
+                    path=self._registry.path(digest),
+                    marker=marker,
+                    started_at=started_at,
+                    pid=pid,
+                )
+            )
+        return found
+
+    def discard_interrupted(self) -> list[InterruptedInstall]:
+        """Remove what unfinished installs left behind, and say what was there.
+
+        Decisions 0004 step 5: a failed or interrupted install is removed
+        rather than resumed. Half of a virtual environment is not a smaller
+        engine — it is a directory whose contents nothing can vouch for — and
+        the only honest thing to do with one is build it again.
+
+        A marker left beside a *finished* install is dropped here too, in the
+        other order: the installation is complete, so only the marker goes.
+        """
+        discarded = self.interrupted_installs()
+        for install in discarded:
+            remove_tree(install.path)
+            _remove_marker(install.marker)
+        for marker in self._stale_markers_of_complete_installs():
+            _remove_marker(marker)
+        return discarded
 
     def verify(self, digest: Digest) -> EngineStatus:
         """Verify the installed bundle and the live environment."""
@@ -217,12 +321,17 @@ class EngineInstaller:
         # finish, because a finished one would have been reused above.
         remove_tree(destination)
 
+        # Written before the directory exists, so there is no moment where an
+        # engine is being built and nothing on disk says so.
+        marker = self._marker_path(digest)
+        _write_marker(marker, digest)
         try:
             copy_engine_bundle(root, destination)
             self._sync(destination, descriptor)
             verification = self._check_environment(digest, descriptor)
         except BaseException:
             remove_tree(destination)
+            _remove_marker(marker)
             raise
 
         self._registry.record(
@@ -234,6 +343,10 @@ class EngineInstaller:
                 verified=True,
             )
         )
+        # Last, and only after the one publication signal exists. A crash in
+        # between leaves a marker beside a complete install, which the next
+        # setup recognizes as residue rather than as unfinished work.
+        _remove_marker(marker)
         return self._registry.status(digest)
 
     def _sync(self, destination: Path, descriptor: EngineDescriptor) -> None:
@@ -373,6 +486,25 @@ class EngineInstaller:
             return None
         return self._registry.status(digest)
 
+    def _marker_path(self, digest: Digest) -> Path:
+        """Return where one engine's in-progress marker lives."""
+        return (
+            self._paths.engines_dir
+            / f"{INSTALLING_MARKER_PREFIX}{self._registry.path(digest).name}"
+        )
+
+    def _stale_markers_of_complete_installs(self) -> list[Path]:
+        """Return markers whose install finished after all."""
+        if not self._paths.engines_dir.is_dir():
+            return []
+        return [
+            marker
+            for marker in sorted(self._paths.engines_dir.iterdir())
+            if marker.is_file()
+            and (digest := _digest_from_marker_name(marker.name)) is not None
+            and self._registry.installation(digest) is not None
+        ]
+
     @contextmanager
     def _install_lock(self) -> Iterator[None]:
         """Serialize installs within one Techtree home."""
@@ -427,6 +559,48 @@ class EngineInstaller:
                 code="engine_install_unusable",
                 details={"argv0": argv[0]},
             ) from error
+
+
+def _write_marker(marker: Path, digest: Digest) -> None:
+    """Announce an install, durably, before anything is built."""
+    atomic_write_json(
+        marker,
+        {
+            "schema_version": _MARKER_SCHEMA,
+            "digest": digest,
+            "started_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            "pid": os.getpid(),
+        },
+    )
+
+
+def _remove_marker(marker: Path) -> None:
+    """Withdraw an announcement, and make the removal durable."""
+    marker.unlink(missing_ok=True)
+    fsync_directory(marker.parent)
+
+
+def _read_marker(marker: Path) -> tuple[str | None, int | None]:
+    """Return what a marker says about its install, when it can say anything."""
+    try:
+        document = json.loads(marker.read_bytes())
+    except (OSError, ValueError):
+        return None, None
+    if not isinstance(document, dict):
+        return None, None
+    started_at = document.get("started_at")
+    pid = document.get("pid")
+    return (
+        started_at if isinstance(started_at, str) else None,
+        pid if isinstance(pid, int) else None,
+    )
+
+
+def _digest_from_marker_name(name: str) -> Digest | None:
+    """Return the engine digest one marker names, or None if it names none."""
+    if not name.startswith(INSTALLING_MARKER_PREFIX):
+        return None
+    return digest_from_directory_name(name[len(INSTALLING_MARKER_PREFIX) :])
 
 
 def find_uv() -> Path:

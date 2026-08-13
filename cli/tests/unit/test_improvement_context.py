@@ -127,6 +127,67 @@ def test_the_context_pins_the_run_the_campaign_and_the_skill(
     assert context.current_result == report.primary_result
 
 
+def test_the_context_carries_the_four_fingerprints_r2_requires(
+    pair: RecordedPair,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReport,
+) -> None:
+    """Decisions 0007 R2: root digest, entrypoint digest, run ID, report digest.
+
+    All four together are what lets a consumer resolve the run's verified
+    snapshot and bind a proposal to it. Three of them and a guess is not the
+    contract: the entrypoint digest is what proves the file whose text was
+    read, and the report digest is what names the result being improved on.
+    """
+    context = build(pair, receipts, report)
+    skill = parent_skill()
+    entry = next(file for file in skill.files if file.path == "SKILL.md")
+
+    assert context.parent_skill_digest == skill.root_digest
+    assert context.parent_skill_entrypoint_digest == entry.digest
+    assert context.source_run_id == report.run_id
+    assert context.source_report_digest == digest_object(report)
+
+
+def test_the_pinned_report_digest_follows_the_report(
+    pair: RecordedPair,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReport,
+) -> None:
+    """A context built from a different result names a different result."""
+    other = report.model_copy(update={"id": f"{report.id}-again"})
+    assert digest_object(other) != digest_object(report)
+
+    assert build(pair, receipts, report).source_report_digest == digest_object(report)
+    assert build(pair, receipts, other).source_report_digest == digest_object(other)
+
+
+def test_the_pinned_entrypoint_digest_follows_the_entry_file(
+    pair: RecordedPair,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReport,
+) -> None:
+    """The entrypoint digest is SKILL.md's, not the first file's."""
+    skill = parent_skill()
+    with_extra = skill.model_copy(
+        update={
+            "files": [
+                SkillFile(
+                    path="REFERENCE.md",
+                    media_type="text/markdown",
+                    size=64,
+                    digest=f"sha256:{'d' * 64}",
+                ),
+                skill.files[0],
+            ]
+        }
+    )
+
+    context = build(pair, receipts, report, parent_skill=with_extra)
+
+    assert context.parent_skill_entrypoint_digest == skill.files[0].digest
+
+
 def test_the_objective_names_the_reward_and_the_threshold(
     pair: RecordedPair,
     receipts: dict[VariantName, list[EpisodeReceipt]],

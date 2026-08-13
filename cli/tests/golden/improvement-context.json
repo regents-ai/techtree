@@ -269,6 +269,7 @@
   ],
   "objective": "Revise the Skill so that mean reward over the same 20 committed tasks rises above 0.600, by at least 0.050, without changing anything else about the experiment.",
   "parent_skill_digest": "sha256:735d909e6eec92550cef4e4a25daf0e680b6e2b6ef41ba3b1fbd6e8dc35b1c48",
+  "parent_skill_entrypoint_digest": "sha256:6eb9c0e1e377a99fa6b95bdf88a1244cf8e2d72e5aca680bd2843f62dfeb1567",
   "prohibited_material": [
     "hidden expected answers",
     "hidden grader material",
@@ -279,5 +280,6 @@
     "unredacted local filesystem paths"
   ],
   "schema_version": "techtree.skill-improvement-context.v1",
+  "source_report_digest": "sha256:85d167e8691ae99859d5723b784c6ac851c48995568cc17d76eea361675194d9",
   "source_run_id": "run_bc6bcf8a52493f173292f667c596bfb7"
 }

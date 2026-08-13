@@ -52,8 +52,9 @@ Spec section 7.20's :class:`UpliftService` lives beside it, at the bottom of
 this module. It is a different object with a different job: the report service
 *closes* a run, and the uplift service is what the operator does with a run
 that has already closed — export a sanitized context for a host agent to read,
-or prepare the Skill-against-Skill comparison that follows from it. Nothing it
-does starts, scores, or signs anything.
+hand over the verified text of the Skill that run measured, or prepare the
+Skill-against-Skill comparison that follows from it. Nothing it does starts,
+scores, or signs anything.
 """
 
 from __future__ import annotations
@@ -118,6 +119,7 @@ from techtree.uplift.context import (
     SkillImprovementContext,
     build_improvement_context,
 )
+from techtree.uplift.source import VerifiedSourceSkill, read_verified_source_skill
 from techtree.verifiers.models import (
     RealExecutionResult,
     RunPaths,
@@ -599,6 +601,18 @@ class UpliftService:
             campaign=source.inputs.campaign,
             parent_skill=source.inputs.candidate_skill.artifact,
         )
+
+    def verified_source_skill(self, run_id: str) -> VerifiedSourceSkill:
+        """Return the verified text of the Skill this run measured.
+
+        The same run precondition the context rests on applies here, for the
+        same reason: text taken from a run that did not really execute would
+        be presented as the Skill a result was measured with, and no result
+        like that exists. What is returned is verified twice over — once when
+        the run's inputs are loaded, and again on the exact bytes handed back.
+        """
+        source = self._completed_real_run(run_id)
+        return read_verified_source_skill(source.inputs.candidate_skill, run_id=run_id)
 
     def prepare_replacement(
         self,

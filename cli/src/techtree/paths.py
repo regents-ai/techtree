@@ -60,6 +60,19 @@ class TechtreePaths:
         """Return the directory holding one run."""
         return self.runs_dir / validate_id(run_id, "run")
 
+    def skills_cache_dir(self) -> Path:
+        """Return the directory holding Skills Techtree materialized itself."""
+        return self.cache_dir / "skills"
+
+    def skill_cache_dir(self, digest: Digest) -> Path:
+        """Return the cache directory holding one Skill, named by its digest.
+
+        Content-addressed by the Skill's own root digest and spelled the way
+        an engine install is, so the same Skill is materialized once per home
+        and a directory's name is a claim its contents can be checked against.
+        """
+        return self.skills_cache_dir() / validate_digest(digest).replace(":", "-", 1)
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 

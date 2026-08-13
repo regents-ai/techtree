@@ -51,6 +51,9 @@ def install_engine_command(ctx: typer.Context, digest: DigestArgument = None) ->
     def action() -> CommandResult[EngineStatus]:
         registry = EngineRegistry(context.paths, context.settings)
         installer = EngineInstaller(context.paths, registry, find_uv())
+        # Reported before the install, which is what discards it. Decisions
+        # 0004, ratified as 0007 R7.
+        interrupted = installer.interrupted_installs()
         status = installer.install(_requested(digest))
 
         return CommandResult(
@@ -64,6 +67,18 @@ def install_engine_command(ctx: typer.Context, digest: DigestArgument = None) ->
                         f"verified at {status.path}."
                     ),
                 )
+            ],
+            warnings=[
+                CliMessage(
+                    level=MessageLevel.WARNING,
+                    code="engine_install_interrupted",
+                    text=(
+                        f"An earlier install of evaluation engine "
+                        f"{install.digest} did not finish. What it left behind "
+                        "was removed and the engine was installed again."
+                    ),
+                )
+                for install in interrupted
             ],
             next_actions=[_activate_or_browse(registry, status)],
         )

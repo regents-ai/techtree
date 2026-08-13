@@ -51,7 +51,7 @@ from fixtures.runs.support import (
     run_harness,
     utc_now,
 )
-from techtree.canonical import digest_object
+from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
 from techtree.errors import PolicyError, VerificationError
@@ -63,7 +63,7 @@ from techtree.models.uplift_report import UpliftDecision, UpliftReport
 from techtree.presentation.build import build_uplift_presentation
 from techtree.receipts.bundle import proof_bundle_dir
 from techtree.receipts.verify import verify_local_bundle
-from techtree.runs.artifacts import RunArtifactStore
+from techtree.runs.artifacts import RUN_INPUT_STAGING_FAILED, RunArtifactStore
 from techtree.runs.service import RunService
 from techtree.runs.store import RunStore
 from techtree.runs.validation import PublisherFixtureValidationProvider
@@ -421,6 +421,95 @@ def test_the_cli_exports_a_context_and_prepares_a_replacement(
     )
     assert started.exit_code == 0, started.stderr
     assert started.data()["policy_acknowledgement_method"] == "explicit_cli_digest"
+
+
+def test_the_cli_hands_over_the_runs_own_verified_skill_text(
+    tmp_path: Path,
+) -> None:
+    """Decisions 0007 R2: the text, verified, with the context's fingerprints.
+
+    This is the seam that keeps verification inside Techtree. A consumer asks
+    for the Skill by run, gets the text back with the digests it was checked
+    against, and never composes a path into a run directory of its own.
+    """
+    first = _first_run(tmp_path / "home")
+    home = first.paths.root
+
+    read = run_cli(home, "uplift", "skill-source", first.run_id)
+    assert read.exit_code == 0, read.stderr
+    payload = read.data()
+
+    inputs = first.artifacts.load_inputs(
+        first.run_id, first.run_store.get_request(first.run_id)
+    )
+    skill = inputs.candidate_skill.artifact
+    entry = next(file for file in skill.files if file.path == "SKILL.md")
+
+    assert payload["source_run_id"] == first.run_id
+    assert payload["skill_root_digest"] == skill.root_digest
+    assert payload["entrypoint_path"] == "SKILL.md"
+    assert payload["entrypoint_digest"] == entry.digest
+    assert payload["file_count"] == len(skill.files)
+    # The text really is the measured bytes, not a rendering of them.
+    text: str = payload["entrypoint_text"]
+    assert sha256_digest_bytes(text.encode("utf-8")) == entry.digest
+    assert payload["entrypoint_size"] == len(text.encode("utf-8"))
+
+    # And it lines up with what the context pins, which is what lets a caller
+    # bind a proposal to one Skill and one result.
+    context = run_cli(home, "uplift", "context", first.run_id).data()["context"]
+    assert context["parent_skill_digest"] == payload["skill_root_digest"]
+    assert context["parent_skill_entrypoint_digest"] == payload["entrypoint_digest"]
+    assert context["source_run_id"] == payload["source_run_id"]
+    assert context["source_report_digest"] == digest_object(
+        first.run_store.get_result(first.run_id)
+    )
+
+
+def test_the_cli_refuses_to_hand_over_a_snapshot_that_was_edited(
+    tmp_path: Path,
+) -> None:
+    """A run's copy that no longer hashes to what the run measured is refused.
+
+    Nobody may be handed text described as the Skill a result came from unless
+    it still is that Skill, so the check is made at the moment of the read
+    rather than trusted from when the run staged its inputs.
+    """
+    first = _first_run(tmp_path / "home")
+    home = first.paths.root
+    assert run_cli(home, "uplift", "skill-source", first.run_id).exit_code == 0
+
+    entrypoint = first.artifacts.skill_files_dir(first.run_id) / "SKILL.md"
+    entrypoint.chmod(0o600)
+    entrypoint.write_text(
+        f"{entrypoint.read_text(encoding='utf-8')}\nand one more rule.\n",
+        encoding="utf-8",
+    )
+
+    refused = run_cli(home, "uplift", "skill-source", first.run_id)
+
+    assert refused.exit_code != 0
+    assert refused.envelope()["error"]["code"] == RUN_INPUT_STAGING_FAILED
+
+
+def test_a_development_only_run_hands_over_no_skill_text(tmp_path: Path) -> None:
+    """Spec section 7.20 applies to the text as much as to the numbers."""
+    harness = run_harness(tmp_path / "home")
+    run_id = harness.start().state.run_id
+    assert execute_in_process(harness, run_id).proof_grade == "development_only"
+
+    preparation, _ = preparation_service(harness.paths)
+    service = UpliftService(
+        paths=harness.paths,
+        run_service=harness.service,
+        artifact_store=harness.artifacts,
+        skill_service=preparation,
+    )
+
+    with pytest.raises(PolicyError) as raised:
+        service.verified_source_skill(run_id)
+
+    assert raised.value.code == SOURCE_RUN_NOT_USABLE
 
 
 def test_the_cli_refuses_to_start_a_replacement_without_acceptance(

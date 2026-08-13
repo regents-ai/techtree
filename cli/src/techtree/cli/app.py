@@ -6,8 +6,9 @@ the command groups, and closes the last gap in the error boundary: a typed
 failure raised while the context is still being built still owes the caller one
 envelope and one documented exit code.
 
-``climb``, ``run``, ``engine``, ``proof`` and ``uplift`` are registered with
-their real names even where this build implements only some of them. A name
+``climb``, ``skill``, ``run``, ``engine``, ``proof``, ``release`` and
+``uplift`` are registered with their real names even where this build
+implements only some of what each will eventually hold. A name
 that exists and answers ``not_implemented`` is discoverable and scriptable; a
 name that does not exist yet is indistinguishable from a typo. The reserved
 namespaces — ``program``, ``blueprint``, ``forge``, ``verify``, ``trace``,
@@ -62,9 +63,11 @@ from techtree.cli.commands.run import (
     status_run_command,
 )
 from techtree.cli.commands.setup import setup_command
+from techtree.cli.commands.skill import starter_skill_command
 from techtree.cli.commands.uplift import (
     context_uplift_command,
     prepare_uplift_command,
+    skill_source_uplift_command,
     start_uplift_command,
 )
 from techtree.cli.context import build_cli_context
@@ -232,6 +235,7 @@ def create_app() -> typer.Typer:
     app.command("setup", help="Prepare this machine to run a Climb.")(setup_command)
 
     app.add_typer(_climb_app(), name="climb")
+    app.add_typer(_skill_app(), name="skill")
     app.add_typer(_run_app(), name="run")
     app.add_typer(_engine_app(), name="engine")
     app.add_typer(_proof_app(), name="proof")
@@ -296,6 +300,16 @@ def _run_app() -> typer.Typer:
     return app
 
 
+def _skill_app() -> typer.Typer:
+    app = typer.Typer(help="Obtain the Skills a release names.", no_args_is_help=True)
+
+    app.command(
+        "starter",
+        help="Put the starter Skill this release pins on this machine.",
+    )(starter_skill_command)
+    return app
+
+
 def _uplift_app() -> typer.Typer:
     app = typer.Typer(help="Improve a Skill from a finished run.", no_args_is_help=True)
 
@@ -303,6 +317,10 @@ def _uplift_app() -> typer.Typer:
         "context",
         help="Export the sanitized improvement context for a finished run.",
     )(context_uplift_command)
+    app.command(
+        "skill-source",
+        help="Show the verified text of the Skill a finished run measured.",
+    )(skill_source_uplift_command)
     app.command(
         "prepare",
         help="Prepare a comparison between a run's Skill and a revision of it.",

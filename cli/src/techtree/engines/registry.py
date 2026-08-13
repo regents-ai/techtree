@@ -34,7 +34,7 @@ from techtree.models.engine import EngineInstallation, EngineStatus
 from techtree.paths import TechtreePaths
 from techtree.settings import Settings, load_settings, save_settings
 
-__all__ = ["VENV_DIRECTORY", "EngineRegistry"]
+__all__ = ["VENV_DIRECTORY", "EngineRegistry", "digest_from_directory_name"]
 
 #: uv's project environment, relative to the engine root.
 VENV_DIRECTORY: Final = ".venv"
@@ -65,7 +65,7 @@ class EngineRegistry:
         for directory in sorted(self._paths.engines_dir.iterdir()):
             if not directory.is_dir():
                 continue
-            digest = _digest_from_directory_name(directory.name)
+            digest = digest_from_directory_name(directory.name)
             if digest is None:
                 continue
             if self.installation(digest) is not None:
@@ -209,7 +209,7 @@ def _plain(name: str) -> str:
     return name
 
 
-def _digest_from_directory_name(name: str) -> Digest | None:
+def digest_from_directory_name(name: str) -> Digest | None:
     """Return the digest a directory name encodes, or None if it encodes none."""
     algorithm, separator, hexadecimal = name.partition("-")
     if separator != "-" or algorithm != "sha256":

@@ -1,8 +1,14 @@
-"""``techtree uplift context``, ``prepare``, and ``start``. Spec section 7.21.
+"""``techtree uplift context``, ``skill-source``, ``prepare``, ``start``.
 
-Three commands, and together they are the local half of the improvement loop:
-say what a finished run showed, set up the comparison between the Skill it
-measured and a revision of it, and start that comparison running.
+Spec section 7.21. Four commands, and together they are the local half of the
+improvement loop: say what a finished run showed, hand over the verified text
+of the Skill it measured, set up the comparison between that Skill and a
+revision of it, and start that comparison running.
+
+``skill-source`` exists so that verification stays inside Techtree. Decisions
+document 0007 R2 has a host agent read the run-owned snapshot of SKILL.md and
+re-verify it; this is the surface it reads through, so nothing outside has to
+compose a path into a run directory or reimplement the digest check.
 
 What is deliberately *not* here is the revision itself. No command in this file
 calls a model, asks anything to write a Skill, or reads one that a model wrote
@@ -58,17 +64,21 @@ from techtree.uplift.service import UpliftService
 __all__ = [
     "CONTEXT_COMMAND",
     "PREPARE_COMMAND",
+    "SKILL_SOURCE_COMMAND",
     "START_COMMAND",
     "UpliftContextPayload",
     "UpliftPreparePayload",
+    "UpliftSkillSourcePayload",
     "UpliftStartPayload",
     "build_uplift_service",
     "context_uplift_command",
     "prepare_uplift_command",
+    "skill_source_uplift_command",
     "start_uplift_command",
 ]
 
 CONTEXT_COMMAND: Final = "uplift context"
+SKILL_SOURCE_COMMAND: Final = "uplift skill-source"
 PREPARE_COMMAND: Final = "uplift prepare"
 START_COMMAND: Final = "uplift start"
 
@@ -78,6 +88,30 @@ class UpliftContextPayload(ProtocolModel):
 
     context: SkillImprovementContext
     relative_path: NonEmptyString
+
+
+class UpliftSkillSourcePayload(ProtocolModel):
+    """The verified text of the Skill a run measured, with its fingerprints.
+
+    The digests are repeated beside the text on purpose. A caller that reads
+    this payload has everything the improvement context pins, so it can check
+    that the text it is about to send to a model belongs to the run the
+    context describes without resolving anything itself.
+
+    ``entrypoint_text`` is a plain string rather than a non-empty one. What
+    makes it legitimate is that it hashes to a digest the run measured, and a
+    response shape that second-guessed verified bytes would turn a Skill
+    somebody really ran into an internal error rather than into an answer.
+    """
+
+    source_run_id: NonEmptyString
+    skill_name: NonEmptyString
+    skill_root_digest: Digest
+    entrypoint_path: NonEmptyString
+    entrypoint_digest: Digest
+    entrypoint_size: int
+    entrypoint_text: str
+    file_count: int
 
 
 class UpliftPreparePayload(ProtocolModel):
@@ -195,6 +229,57 @@ def _write_context(
     path = directory / "context.json"
     atomic_write_bytes(path, canonical_json_bytes(context), mode=0o600)
     return path
+
+
+# ---------------------------------------------------------------------------
+# skill-source
+# ---------------------------------------------------------------------------
+
+
+def skill_source_uplift_command(
+    ctx: typer.Context,
+    run_id: Annotated[
+        str,
+        typer.Argument(
+            metavar="RUN_ID",
+            help="The finished run whose Skill text to read.",
+        ),
+    ],
+) -> None:
+    """Show the verified text of the Skill a finished run measured."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[UpliftSkillSourcePayload]:
+        skill = build_uplift_service(context).verified_source_skill(run_id)
+        payload = UpliftSkillSourcePayload(
+            source_run_id=skill.run_id,
+            skill_name=skill.name,
+            skill_root_digest=skill.root_digest,
+            entrypoint_path=skill.entrypoint_path,
+            entrypoint_digest=skill.entrypoint_digest,
+            entrypoint_size=skill.entrypoint_size,
+            entrypoint_text=skill.entrypoint_text,
+            file_count=skill.file_count,
+        )
+        return CommandResult(
+            data=payload,
+            messages=[
+                CliMessage(
+                    level=MessageLevel.INFO,
+                    code="source_skill_verified",
+                    text=(
+                        f"This is run {run_id}'s own copy of "
+                        f"{payload.entrypoint_path}, re-verified against the "
+                        "Skill the run measured as it was read."
+                    ),
+                )
+            ],
+            next_actions=[_prepare_replacement(run_id)],
+        )
+
+    invoke_command(
+        context, SKILL_SOURCE_COMMAND, action, render_data=_render_skill_source
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -470,6 +555,29 @@ def _render_context(data: object, console: Console) -> None:
     console.print("Not included")
     for item in improvement.prohibited_material:
         console.print(f"  {item}")
+
+
+def _render_skill_source(data: object, console: Console) -> None:
+    """Print what the text was verified against, then the text itself."""
+    if not isinstance(data, UpliftSkillSourcePayload):
+        return
+
+    _print_pairs(
+        console,
+        [
+            ("Run", data.source_run_id),
+            ("Skill", data.skill_name),
+            ("Skill content digest", data.skill_root_digest),
+            ("Entry file", data.entrypoint_path),
+            ("Entry file digest", data.entrypoint_digest),
+            ("Files in this Skill", str(data.file_count)),
+        ],
+    )
+
+    console.print()
+    console.print(f"{data.entrypoint_path} ({data.entrypoint_size} bytes)")
+    console.print()
+    console.print(data.entrypoint_text)
 
 
 def _render_prepare(data: object, console: Console) -> None:

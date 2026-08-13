@@ -96,6 +96,7 @@ __all__ = [
     "ClimbShowPayload",
     "ClimbStartPayload",
     "PreparedComparison",
+    "abbreviated_digest",
     "acknowledge_data_policy",
     "build_catalog_service",
     "build_preparation_service",
@@ -119,13 +120,22 @@ _NO_CLIMBS = "This build does not include any Climbs yet."
 class ClimbShowPayload(ProtocolModel):
     """What ``climb show`` returns: the summary, plus the Campaign facts.
 
-    The four extra fields are read straight off the resolved graph. They are
+    The five extra fields are read straight off the resolved graph. They are
     carried here rather than added to ``ClimbSummary`` because the summary is a
     published protocol object with an exported schema, and this is one
     command's response shape.
+
+    Decisions document 0007 R3 asks that a machine reader get both complete
+    digests. The Campaign's is on the summary, where it has always been and
+    where ``climb list`` also carries it; the DataPolicy's is here, because
+    the summary describes the rights in words but never named the document
+    they come from. Neither is ever abbreviated in the JSON — the shortening
+    is a courtesy to a terminal, and a caller comparing digests needs all of
+    both.
     """
 
     climb: ClimbSummary
+    data_policy_digest: Digest
     subject_model: ModelSpec
     subject_runtime: RuntimeSpec
     primary_reward: NonEmptyString
@@ -727,7 +737,6 @@ def _render_show(data: object, console: Console) -> None:
         [
             ("Climb", summary.reference),
             ("Status", summary.status),
-            ("Campaign", summary.campaign_spec_digest),
             ("Purpose", _phrase(summary.purpose)),
             ("Taskset", f"{summary.taskset_id} ({summary.task_count} tasks)"),
             (
@@ -775,6 +784,19 @@ def _render_show(data: object, console: Console) -> None:
             ("Engine", _phrase(summary.compatibility.engine_status.value)),
             ("Runs here", "yes" if summary.compatibility.compatible else "no"),
         ],
+    )
+
+    console.print()
+    console.print("Technical IDs")
+    _print_pairs(
+        console,
+        [
+            ("Campaign digest", abbreviated_digest(summary.campaign_spec_digest)),
+            ("Data policy digest", abbreviated_digest(data.data_policy_digest)),
+        ],
+    )
+    console.print(
+        "  Shortened to fit. Run this command with --json for the complete digests."
     )
 
 
@@ -861,6 +883,24 @@ def _render_start(data: object, console: Console) -> None:
     )
 
 
+#: How much of a digest a person is shown when the point is recognition
+#: rather than comparison. Twelve hexadecimal characters distinguish every
+#: object a build could plausibly hold, and the full value is one --json away.
+ABBREVIATED_DIGEST_CHARACTERS: Final = 12
+
+
+def abbreviated_digest(digest: str) -> str:
+    """Shorten one digest for a terminal, visibly.
+
+    Decisions document 0007 R3 puts abbreviated digests in ``climb show``'s
+    human output and complete ones in its JSON. The ellipsis is what keeps
+    that honest: a shortened digest that looked whole would be copied into a
+    comparison and quietly fail it.
+    """
+    algorithm, _, hexadecimal = digest.partition(":")
+    return f"{algorithm}:{hexadecimal[:ABBREVIATED_DIGEST_CHARACTERS]}…"
+
+
 def _phrase(value: str) -> str:
     """Render a protocol value as words rather than as an identifier.
 
@@ -890,6 +930,7 @@ def _show_payload(resolved: ResolvedClimb, summary: ClimbSummary) -> ClimbShowPa
     subject = resolved.campaign.subject
     return ClimbShowPayload(
         climb=summary,
+        data_policy_digest=resolved.data_policy_digest,
         subject_model=subject.model,
         subject_runtime=subject.runtime,
         primary_reward=resolved.campaign.scoring.primary_reward,

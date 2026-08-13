@@ -37,7 +37,11 @@ from techtree.engines.bundle import (
     package_source_digest,
     read_engine_descriptor,
 )
-from techtree.engines.installer import EngineInstaller, find_uv
+from techtree.engines.installer import (
+    INSTALLING_MARKER_PREFIX,
+    EngineInstaller,
+    find_uv,
+)
 from techtree.engines.registry import EngineRegistry
 from techtree.engines.runner import EngineRunner
 from techtree.errors import EngineError, VerificationError
@@ -449,6 +453,77 @@ def test_a_damaged_lock_is_named_and_leaves_no_engine_behind(
     assert failure.value.code == "engine_lock_mismatch"
     assert registry.installed() == []
     assert not registry.path(engine_bundle_digest(damaged)).exists()
+    # Decisions 0004, ratified as 0007 R7: a failed install takes its own
+    # marker with it, so the next setup has nothing stale to find.
+    assert not list(paths.engines_dir.glob(f"{INSTALLING_MARKER_PREFIX}*"))
+    assert installer.interrupted_installs() == []
+
+
+# ---------------------------------------------------------------------------
+# The marker protocol, against a real install. Decisions 0004 / 0007 R7.
+# ---------------------------------------------------------------------------
+
+
+def test_a_finished_install_leaves_its_marker_behind_nowhere(
+    installed_paths: TechtreePaths, installed_engine: EngineStatus
+) -> None:
+    """Written first, removed last — and last is after ``installed.json``."""
+    engine = installed_paths.engine_dir(installed_engine.digest)
+
+    assert (engine / INSTALLATION_FILENAME).is_file()
+    assert not list(installed_paths.engines_dir.glob(f"{INSTALLING_MARKER_PREFIX}*"))
+    assert (
+        EngineInstaller(
+            installed_paths,
+            EngineRegistry(installed_paths, Settings()),
+            find_uv(),
+        ).interrupted_installs()
+        == []
+    )
+
+
+def test_an_install_discards_what_a_killed_one_left_before_building(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A retry starts from nothing, never on top of a half-built environment.
+
+    The install this test starts then fails on a damaged lock, which is the
+    point: the discarding happens before any building, so it is observable
+    without paying for a successful install.
+    """
+    damaged = tmp_path / "damaged-bundle"
+    copy_engine_bundle(embedded_engine_root(), damaged)
+    (damaged / "uv.lock").write_text(
+        'version = 1\nrevision = 3\nrequires-python = "==3.12.*"\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        installer_module, "embedded_engine_root", lambda *args, **kwargs: damaged
+    )
+
+    paths = paths_from_root(tmp_path / "home")
+    ensure_path_layout(paths)
+    installer = EngineInstaller(paths, EngineRegistry(paths, Settings()), find_uv())
+
+    # What a machine that lost power halfway through an install looks like.
+    stale_digest = "sha256:" + "c" * 64
+    stale_engine = paths.engine_dir(stale_digest)
+    (stale_engine / ".venv" / "bin").mkdir(parents=True)
+    stale_marker = (
+        paths.engines_dir
+        / f"{INSTALLING_MARKER_PREFIX}{paths.engine_dir(stale_digest).name}"
+    )
+    stale_marker.write_text("{}\n", encoding="utf-8")
+
+    assert [install.digest for install in installer.interrupted_installs()] == [
+        stale_digest
+    ]
+
+    with pytest.raises(EngineError):
+        installer.install()
+
+    assert not stale_engine.exists()
+    assert not stale_marker.exists()
+    assert installer.interrupted_installs() == []
 
 
 # ---------------------------------------------------------------------------
