@@ -290,6 +290,43 @@ def test_a_token_budget_survives_redaction() -> None:
     assert "max_tokens=512" in message
 
 
+def test_a_techtree_identifier_survives_redaction() -> None:
+    """An error that names which campaign failed must keep naming it."""
+    for prefix in ("campaign", "draft", "run", "receipt", "uplift", "policy"):
+        identifier = f"{prefix}_93d932bd41a2aef87bd6ee2040f7e62a"
+        message = sanitize_exception_message(RuntimeError(f"{identifier} failed"))
+
+        assert identifier in message
+
+
+def test_a_usage_record_survives_redaction() -> None:
+    """NormalizedUsage's counts are what an operator needs on a spend question."""
+    usage = (
+        '{"input_tokens": 120, "output_tokens": 46, '
+        '"total_tokens": 166, "cached_input_tokens": 0}'
+    )
+    message = sanitize_exception_message(RuntimeError(usage))
+
+    assert '"input_tokens": 120' in message
+    assert '"output_tokens": 46' in message
+    assert '"cached_input_tokens": 0' in message
+
+
+def test_a_prefixed_identifier_shaped_credential_is_still_redacted() -> None:
+    """The exemption is exactly the Techtree ID shape, nothing wider."""
+    not_ids = (
+        # Right length, wrong prefix style for Techtree.
+        "secret_fixture_0123456789abcdef01234567",
+        # A Techtree prefix but a value that is not 32 lowercase hex.
+        "campaign_93D932BD41A2AEF87BD6EE2040F7E62A",
+        "campaign_notahexvalueatallnotahexvalueatall",
+    )
+    for value in not_ids:
+        message = sanitize_exception_message(RuntimeError(f"leaked {value}"))
+
+        assert value not in message
+
+
 def test_a_memory_address_is_stabilized() -> None:
     message = sanitize_exception_message(
         RuntimeError("<object at 0x7f9c8b2a1d30> is not serializable")

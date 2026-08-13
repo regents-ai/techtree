@@ -224,8 +224,13 @@ _SECRET_ASSIGNMENT = re.compile(
 _SAFE_NAMES: Final[frozenset[str]] = frozenset(
     {
         "credential_env",
+        # Every usage field NormalizedUsage defines: these counts are exactly
+        # what an operator needs when a run's spend is being questioned.
+        "cached_input_tokens",
+        "input_tokens",
         "max_tokens",
         "num_tokens",
+        "output_tokens",
         "token_count",
         "tokens",
         "total_tokens",
@@ -257,7 +262,17 @@ def _redact_opaque_run(match: re.Match[str]) -> str:
     token = match.group(0)
     if _PURE_HEX.fullmatch(token):
         return token
-    return REDACTED
+    # Techtree's own prefixed identifiers (campaign_<32 hex>, run_<32 hex>,
+    # ...) are the names an error needs in order to say which thing failed.
+    # They are random, not secret. Imported at call time: ids sits on top of
+    # this module, so the import must not run at load time.
+    from techtree.ids import validate_id
+
+    try:
+        validate_id(token)
+    except TechtreeError:
+        return REDACTED
+    return token
 
 
 def sanitize_text(text: str) -> str:
