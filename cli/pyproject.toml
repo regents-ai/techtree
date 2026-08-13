@@ -1,0 +1,110 @@
+[project]
+name = "techtree"
+version = "0.1.0"
+description = "Techtree Climb CLI, detached worker, managed Verifiers engine, and Campaign protocol kernel."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license-files = ["LICENSE"]
+authors = [{ name = "Techtree" }]
+keywords = ["techtree", "climb", "campaign", "verifiers", "evaluation"]
+classifiers = [
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+# Spec section 7.2. The ordinary package never depends on Verifiers, Hermes,
+# or NeMo Relay. Engine dependencies belong to the independently locked
+# managed engine under src/techtree/resources/engines/default/.
+dependencies = [
+  "cryptography>=45,<47",
+  "filelock>=3.18,<4",
+  "platformdirs>=4,<5",
+  "pydantic>=2.12,<3",
+  "rfc8785>=0.1,<1",
+  "rich>=14,<15",
+  "tomli-w>=1.2,<2",
+  "typer>=0.16,<1",
+]
+
+[project.scripts]
+techtree = "techtree.cli.app:main"
+techtree-worker = "techtree.worker.main:main"
+
+# Spec section 7.3.
+[dependency-groups]
+dev = [
+  "mypy>=1.17,<2",
+  "pytest>=8,<9",
+  "pytest-cov>=6,<8",
+  "pytest-xdist>=3,<4",
+  "ruff>=0.12,<1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/techtree"]
+# Spec section 9.1 required package data.
+artifacts = [
+  "src/techtree/resources/catalog/**/*",
+  "src/techtree/resources/engines/**/*",
+  "src/techtree/resources/engine_scripts/**/*",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/techtree",
+  "tools",
+  "schemas",
+  "tests",
+  "docs",
+  "Makefile",
+  "README.md",
+  "LICENSE",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests", "tools"]
+# Ruff formats Python blocks embedded in Markdown. Prose files here quote the
+# specification verbatim, so they are not Ruff's to rewrite.
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP", "W"]
+# The reference taskset deliberately exercises homoglyphs and unusual spaces,
+# so ambiguous-character warnings describe intended test data, not defects.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["techtree"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["src", "tests"]
+mypy_path = ["src"]
+# The preflight suite imports the pinned Verifiers build. That build belongs to
+# the managed engine environment, never to the ordinary package environment,
+# so its types are not resolvable here.
+exclude = ["^tests/preflight/"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests/unit", "tests/contract", "tests/integration"]
+addopts = [
+  "-ra",
+  "--strict-config",
+  "--strict-markers",
+  "-m",
+  "not integration and not preflight",
+]
+markers = [
+  "integration: exercises real filesystem and subprocess flows; run with `make test-integration`",
+  "preflight: pinned-Verifiers compatibility checks; run with `make verifiers-preflight`",
+]
