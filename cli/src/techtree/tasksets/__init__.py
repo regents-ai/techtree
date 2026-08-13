@@ -1,1 +1,1 @@
-"""The taskset subsystem: membership identity and deterministic locking."""
+"""The taskset subsystem: membership identity, locking, and validation."""

@@ -63,12 +63,10 @@ engine-bundle:
 		echo "engine-bundle: pass-through, $(TOOL_ENGINE_BUNDLE) is not part of this build yet"; \
 	fi
 
+# Installs the engine into a throwaway home and runs the real model-free
+# validation, so it needs uv and a warm or reachable package cache.
 fixture-catalog:
-	@if [ -f "$(TOOL_FIXTURE_CATALOG)" ]; then \
-		$(RUN) python $(TOOL_FIXTURE_CATALOG); \
-	else \
-		echo "fixture-catalog: pass-through, $(TOOL_FIXTURE_CATALOG) is not part of this build yet"; \
-	fi
+	$(RUN) python $(TOOL_FIXTURE_CATALOG)
 
 goldens:
 	$(RUN) python $(TOOL_GOLDENS)

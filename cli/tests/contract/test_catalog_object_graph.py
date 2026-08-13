@@ -1,10 +1,11 @@
 """The resolved Climb graph. Spec sections 14 and 27.3, decisions 0003 A2/A4.
 
-The packaged catalog of this build is valid and empty, so these tests resolve a
-complete synthetic catalog instead. It is built by
-``tests/fixtures/catalog/build_complete.py``, its digests are computed from the
-real contents of the real files, and the first test here fails if the committed
-fixture is not exactly what that script produces.
+These tests resolve a complete synthetic catalog rather than the packaged one.
+It is built by ``tests/fixtures/catalog/build_complete.py``, its digests are
+computed from the real contents of the real files, and the first test here
+fails if the committed fixture is not exactly what that script produces. Using
+a fixture keeps the negative cases available: a catalog can be broken one link
+at a time here, which is not something to do to the catalog this build ships.
 
 What is being tested is a chain of trust rather than a parser. The index says a
 file contains a particular object; the repository proves it by recomputing the
@@ -15,7 +16,8 @@ typed failure that link is protected by.
 
 The CLI is exercised from both ends: against the complete fixture, so that a
 populated listing and a full ``show`` are rendered and validated, and against
-the real packaged catalog, which is empty and must say so usefully.
+the real packaged catalog, which since PR4B holds the generated
+``procedure-transfer-dev@1`` graph and must resolve end to end.
 """
 
 from __future__ import annotations
@@ -548,27 +550,50 @@ def test_an_unsupported_host_is_named_rather_than_guessed_at(
 
 
 # ---------------------------------------------------------------------------
-# The packaged catalog, which is empty
+# The packaged catalog, which is generated
 # ---------------------------------------------------------------------------
 
 
-def test_the_packaged_catalog_is_valid_and_ships_nothing_yet() -> None:
-    """Decisions 0003 A2: valid and empty until the generator exists."""
+def test_the_packaged_catalog_ships_the_generated_development_climb() -> None:
+    """Decisions 0003 A2: PR4B replaced the empty catalog with the real graph."""
     packaged = EmbeddedCatalogRepository.packaged()
 
-    assert packaged.list_climb_references() == []
-    assert packaged.catalog_metadata()["object_count"] == 0
+    assert packaged.list_climb_references() == ["procedure-transfer-dev@1"]
+    assert packaged.catalog_metadata()["object_count"] == 4
 
 
-def test_list_says_so_usefully_when_the_build_ships_no_climbs(
+def test_the_packaged_graph_resolves_and_agrees_with_itself(
+    temp_techtree_home: Path,
+) -> None:
+    """Every digest in the shipped graph is recomputed from the shipped bytes."""
+    paths = paths_from_root(temp_techtree_home)
+    service = CatalogService(
+        EmbeddedCatalogRepository.packaged(),
+        current_host_info(),
+        InstalledEngineStatus(paths),
+    )
+
+    resolved = service.get_climb("procedure-transfer-dev")
+    service.validate_public_policy(resolved)
+    evidence = service.validation_evidence(resolved)
+
+    assert resolved.climb.metadata.status == "development"
+    assert resolved.publisher_validation.status == "valid"
+    assert [task.task_hash for task in evidence.tasks] == list(
+        resolved.campaign.taskset.membership.ordered_task_hashes
+    )
+
+
+def test_list_offers_the_climb_this_build_ships(
     temp_techtree_home: Path,
 ) -> None:
     envelope = _invoke(temp_techtree_home, "climb", "list", "--json")
 
     assert envelope["ok"] is True
-    assert envelope["data"] == []
-    assert envelope["messages"][0]["code"] == "no_climbs_available"
-    assert envelope["next_actions"][0]["cli"] == ["techtree", "doctor"]
+    assert [entry["reference"] for entry in envelope["data"]] == [
+        "procedure-transfer-dev@1"
+    ]
+    assert envelope["messages"][0]["code"] == "climbs_available"
 
 
 def test_show_reports_a_name_this_build_does_not_have(
@@ -582,7 +607,8 @@ def test_show_reports_a_name_this_build_does_not_have(
     assert result.exit_code == EXIT_NOT_FOUND
     envelope = json.loads(result.stdout.splitlines()[-1])
     assert envelope["error"]["code"] == "climb_not_found"
-    assert envelope["next_actions"][0]["id"] == "check_environment"
+    # This build does ship a Climb, so the useful next step is to see which.
+    assert envelope["next_actions"][0]["id"] == "list_climbs"
 
 
 # ---------------------------------------------------------------------------

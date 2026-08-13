@@ -59,10 +59,8 @@ from techtree.runs.executor import (
 from techtree.runs.fake import FakeRunExecutor
 from techtree.runs.machine import is_terminal
 from techtree.runs.store import RunStore
-from techtree.runs.validation import (
-    PublisherFixtureValidationProvider,
-    TasksetValidationProvider,
-)
+from techtree.runs.validation import TasksetValidationProvider
+from techtree.tasksets.provider import worker_validation_provider
 
 __all__ = [
     "EXIT_CANCELLED",
@@ -134,15 +132,24 @@ def executor_for(request: RunRequest) -> RunExecutor:
     )
 
 
-def validation_provider_for(request: RunRequest) -> TasksetValidationProvider:
-    """Return the validation source a fake run is entitled to use.
+def validation_provider_for(
+    request: RunRequest,
+    *,
+    paths: TechtreePaths | None = None,
+) -> TasksetValidationProvider:
+    """Return the validation source this run's Campaign actually has here.
 
-    A fake run may re-check the publisher's commitment because it produces
-    nothing that could be mistaken for evidence. When a real executor exists,
-    it will not be answered from here.
+    A Campaign whose taskset lives in a package the engine bundle ships is
+    validated for real, with the pinned Verifiers build, before anything is
+    scored on it. A Campaign whose taskset this build cannot obtain has only
+    the publisher's snapshotted commitment, which a fake run may re-check
+    because it produces nothing that could be mistaken for evidence. The
+    routing reads the run's own inputs, so it lives in the provider rather
+    than here; what happens is recorded in the run's validation marker either
+    way.
     """
     if request.executor_kind == "fake":
-        return PublisherFixtureValidationProvider()
+        return worker_validation_provider(worker_paths() if paths is None else paths)
     raise RunError(
         "this build has no taskset validation source for a "
         f"{request.executor_kind} run",
@@ -238,7 +245,7 @@ def execute_run(
             else executor_factory(request)
         )
         provider = (
-            validation_provider_for(request)
+            validation_provider_for(request, paths=resolved)
             if validation_provider_factory is None
             else validation_provider_factory(request)
         )

@@ -109,9 +109,9 @@ SHOW_COMMAND: Final = "climb show"
 PREPARE_COMMAND: Final = "climb prepare"
 START_COMMAND: Final = "climb start"
 
-#: What a reader is told when the build ships no Climbs at all. This is the
-#: normal state of a development build: the packaged catalog is valid and
-#: empty until the Climb it will carry has been generated end to end.
+#: What a reader is told when the build ships no Climbs at all. The packaged
+#: catalog is generated, so an empty one means this build was assembled without
+#: running the generator rather than that there is nothing to run.
 _NO_CLIMBS = "This build does not include any Climbs yet."
 
 

@@ -1,10 +1,11 @@
 """Builds the complete synthetic catalog fixture. Decisions 0003 A2.
 
-The packaged catalog is empty until the generation chain exists, so the graph
-logic has nothing real to resolve. This script writes the thing it can resolve
-instead: a small, entirely synthetic catalog whose digests are computed for
-real, so every check the repository and the service perform is exercised
-against a graph that genuinely holds together.
+The packaged catalog is generated from a real engine and a real validation run,
+which makes it the wrong thing to break on purpose. This script writes the
+thing that can be broken instead: a small, entirely synthetic catalog whose
+digests are computed for real, so every check the repository and the service
+perform is exercised against a graph that genuinely holds together — and can
+then be taken apart one link at a time.
 
 Nothing here is science. The tasks are named ``synthetic-task-000`` and the
 engine is a string, because a fixture that looked like a real Taskset would
