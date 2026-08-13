@@ -27,6 +27,7 @@ contract; they are not display strings and are never translated.
 | `validating_taskset` | Resolving the taskset and checking it against the Campaign's membership commitment. |
 | `running_baseline` | Producing baseline episodes. |
 | `running_candidate` | Producing candidate episodes. |
+| `running_variants` | Producing both sides' episodes at once. |
 | `building_receipts` | Persisting `EpisodeReceipt` objects for both sides. |
 | `verifying_comparison` | Checking that the candidate differs from the baseline only where the Campaign permits. |
 | `building_report` | Building and persisting the `UpliftReport`. |
@@ -50,12 +51,28 @@ created
 → completed
 ```
 
+One branch leaves it and comes back. A Campaign whose `execution.order` is
+`parallel_variants` runs both sides at once, so it takes `running_variants`
+instead of the sequential pair and rejoins the line at `building_receipts`:
+
+```text
+validating_taskset
+→ running_variants
+→ building_receipts
+```
+
+The sequential phases stay exactly as they were (spec §3.3): the fake executor
+walks them, and a run takes one route or the other and never both.
+
 Two escapes leave it:
 
 - **Failure.** Any phase that is still working may move to `failed`.
 - **Cancellation.** Any phase that is still working may move to
   `cancel_requested`, and from there to `cancelled` (wound down cleanly) or
   `failed` (broke while winding down).
+
+`running_variants` is a working phase in both respects: it may fail and it may
+be cancelled, on exactly the same terms as every other.
 
 `cancel_requested` never rejoins the normal path. A run that was asked to stop
 does not quietly complete instead.
@@ -70,15 +87,18 @@ making a transition, and the table does not pretend otherwise.
 ### Events that do not change the phase
 
 A run does have things to say while it stays where it is, and there are exactly
-three of them:
+six of them:
 
 | Kind | Where | What it reports |
 | --- | --- | --- |
 | `worker.started` | `created` | The process id of the worker that took the run on. |
 | `progress.updated` | any phase doing work | Position within the current phase. |
 | `result.written` | `building_report` | The digest of the report just persisted. |
+| `variant.started` | `running_variants` | One side of the concurrent comparison began. |
+| `variant.progress` | `running_variants` | How far one side has got. |
+| `variant.completed` | `running_variants` | One side stopped, whichever way it stopped. |
 
-`validate_same_phase_event` (`runs/machine.py`) admits those three and refuses
+`validate_same_phase_event` (`runs/machine.py`) admits those six and refuses
 everything else, including a second cancellation request and any event at all
 once the run has ended. `phase_progress_allowed` is the narrower rule inside it:
 `created` is a run that exists rather than a run doing something, so it has no
@@ -110,7 +130,7 @@ One event is one line of RFC 8785 canonical JSON in
 | `run_id` | The run this event belongs to. |
 | `previous_phase` | The phase left. `null` only on the created event. |
 | `phase` | The phase entered, or the phase retained. |
-| `kind` | What happened. One of nine names; see below. |
+| `kind` | What happened. One of twelve names; see below. |
 | `details` | JSON, free-form except for the keys the kind is defined to carry. |
 
 Both `previous_phase` and `phase` are recorded so that a reader reconstructing
@@ -118,7 +138,7 @@ a run never has to infer where it came from — which matters most for
 `cancel_requested`, where the phase the run was interrupted in is otherwise
 lost.
 
-### The nine kinds
+### The twelve kinds
 
 `kind` is a string in the frozen model and a closed set in the local store
 (`runs/events.py`). Each name fixes the phases it may sit between and the
@@ -135,6 +155,15 @@ details it carries:
 | `run.cancelled` | `cancel_requested` | `cancelled` | — |
 | `result.written` | `building_report` | `building_report` | `result_digest` |
 | `run.completed` | `building_report` | `completed` | `result_digest` |
+| `variant.started` | `running_variants` | `running_variants` | the six below |
+| `variant.progress` | `running_variants` | `running_variants` | the six below |
+| `variant.completed` | `running_variants` | `running_variants` | the six below |
+
+The three `variant.*` kinds each carry the whole of `VariantProgress` —
+`variant`, `completed`, `total`, `running`, `errored`, `state` — because an
+event that reported only part of it would leave the projection guessing at the
+rest. They are valid in `running_variants` and in no other phase, which is the
+existing one-phase rule applied to three more names rather than a new rule.
 
 `validate_event_kind` enforces the whole table and refuses an unknown name, a
 kind whose phases contradict it, or a kind missing a detail it is defined to
@@ -177,6 +206,7 @@ to be interpreted.
 | `cancel_requested_at` | The timestamp of `cancel.requested`, which a run records at most once. |
 | `error` | The `error` detail of `run.failed`. |
 | `progress` | The most recent `progress.updated` **within the current phase**. Entering a new phase clears it. |
+| `variant_progress` | One entry per variant, each the most recent `variant.*` event that named it, **within the current phase**. Entering a new phase clears it. |
 | `result_digest` | The `result_digest` detail of `result.written` or `run.completed`; carried forward. |
 | `heartbeat_at` | Not from events. See below. |
 

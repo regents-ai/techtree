@@ -8,8 +8,10 @@ The check runs in two stages, and the order matters.
 
 First the structural invariants are required outright: same Campaign, same
 improvement program, same public context, same DataPolicy, same OutcomeContract,
-same evaluation backend, the right variant on each side, no skill on the
-baseline, exactly one on the candidate. These are stated as invariants rather
+same evaluation backend, the right variant on each side, and the skill counts
+the Campaign's mutation kind requires — no skill on the baseline and exactly one
+on the candidate for an insertion, one differing skill on each side for a
+replacement. These are stated as invariants rather
 than discovered as differences because a diff can only say *that* two documents
 disagree — it cannot say which disagreements were structurally impossible.
 
@@ -52,7 +54,7 @@ from typing import Final
 from techtree.canonical import canonical_json_bytes
 from techtree.errors import VerificationError
 from techtree.models.base import JsonValue
-from techtree.models.campaign import MutationContract
+from techtree.models.campaign import MutationContract, MutationKind
 from techtree.models.experiment import (
     ExperimentManifest,
     ExperimentVariant,
@@ -323,16 +325,42 @@ def _skill_count_violations(
     if baseline_agent is None or candidate_agent is None:
         return [f"a variant defines no {target} agent to compare"]
 
+    baseline_skills = baseline_agent.harness.skills
+    candidate_skills = candidate_agent.harness.skills
+
     violations: list[str] = []
-    if baseline_agent.harness.skills:
+    # The candidate always carries exactly one skill. What the baseline carries
+    # is what the mutation kind decides: an insertion measures one skill against
+    # none, a replacement measures one revision against the previous one.
+    if mutation.kind is MutationKind.SKILL_INSERTION:
+        if baseline_skills:
+            violations.append(
+                f"the baseline carries {len(baseline_skills)} candidate skills; "
+                "a baseline carries none"
+            )
+    elif len(baseline_skills) != 1:
         violations.append(
-            f"the baseline carries {len(baseline_agent.harness.skills)} candidate "
-            "skills; a baseline carries none"
+            f"the baseline carries {len(baseline_skills)} skills; a replacement "
+            "replaces exactly one"
         )
-    if len(candidate_agent.harness.skills) != 1:
+    if len(candidate_skills) != 1:
         violations.append(
-            f"the candidate carries {len(candidate_agent.harness.skills)} skills; "
+            f"the candidate carries {len(candidate_skills)} skills; "
             "v0.1 measures exactly one"
+        )
+
+    # A replacement whose two sides name the same content is not a replacement.
+    # The root digest is what a skill reference is, so comparing it is the whole
+    # of the check.
+    if (
+        mutation.kind is MutationKind.SKILL_REPLACEMENT
+        and len(baseline_skills) == 1
+        and len(candidate_skills) == 1
+        and baseline_skills[0].digest == candidate_skills[0].digest
+    ):
+        violations.append(
+            "the candidate skill has the baseline skill's root digest, so the "
+            "replacement measures nothing"
         )
     return violations
 

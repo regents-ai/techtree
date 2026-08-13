@@ -84,6 +84,7 @@
         "validating_taskset",
         "running_baseline",
         "running_candidate",
+        "running_variants",
         "building_receipts",
         "verifying_comparison",
         "building_report",
@@ -124,6 +125,61 @@
     "UtcDateTime": {
       "format": "date-time",
       "type": "string"
+    },
+    "VariantProgress": {
+      "additionalProperties": false,
+      "description": "How far one side of a concurrent comparison has got. Spec section 3.3.\n\n``RunProgress`` measures one position in one phase, which is all a\nsequential run has to report. When both variants are in flight there are two\npositions at once, and each carries its own episode counts and its own\nlifecycle, so they are projected side by side rather than flattened.",
+      "properties": {
+        "completed": {
+          "minimum": 0,
+          "title": "Completed",
+          "type": "integer"
+        },
+        "errored": {
+          "minimum": 0,
+          "title": "Errored",
+          "type": "integer"
+        },
+        "running": {
+          "minimum": 0,
+          "title": "Running",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "running",
+            "completed",
+            "failed",
+            "cancelled"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        },
+        "variant": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ],
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variant",
+        "completed",
+        "total",
+        "running",
+        "errored",
+        "state"
+      ],
+      "title": "VariantProgress",
+      "type": "object"
     }
   },
   "$id": "https://schemas.techtree.dev/v1alpha1/run-state.schema.json",
@@ -194,6 +250,13 @@
     },
     "updated_at": {
       "$ref": "#/$defs/UtcDateTime"
+    },
+    "variant_progress": {
+      "additionalProperties": {
+        "$ref": "#/$defs/VariantProgress"
+      },
+      "title": "Variant Progress",
+      "type": "object"
     },
     "worker_pid": {
       "anyOf": [

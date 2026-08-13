@@ -21,6 +21,7 @@ than merely discouraged.
 from __future__ import annotations
 
 import re
+from enum import StrEnum
 from typing import Literal, Self
 
 from pydantic import Field, PositiveFloat, PositiveInt, model_validator
@@ -53,6 +54,7 @@ __all__ = [
     "HarnessSpec",
     "ModelSpec",
     "MutationContract",
+    "MutationKind",
     "PackageRef",
     "ProgramRef",
     "PublicContext",
@@ -62,6 +64,7 @@ __all__ = [
     "TaskMembershipCommitment",
     "TaskSelection",
     "TasksetRef",
+    "VariantSchedule",
 ]
 
 #: The only agent name v0.1 defines. A second named agent would be a second
@@ -268,10 +271,23 @@ class EnvironmentSpec(ProtocolModel):
 # ---------------------------------------------------------------------------
 
 
+class MutationKind(StrEnum):
+    """Which shape of skill change the candidate is allowed to make.
+
+    Spec section 3.1. ``skill_insertion`` measures a skill against no skill and
+    is what a public Climb requires. ``skill_replacement`` measures one revision
+    of a skill against the previous one, which is the shape a local improvement
+    loop needs and which no public Climb wraps.
+    """
+
+    SKILL_INSERTION = "skill_insertion"
+    SKILL_REPLACEMENT = "skill_replacement"
+
+
 class MutationContract(ProtocolModel):
     """What a candidate is allowed to change, and by how much."""
 
-    kind: Literal["skill_insertion"]
+    kind: MutationKind
     target_agent: Literal["subject"]
     allowed_differences: list[NonEmptyString]
     minimum_skills: int = Field(ge=0)
@@ -290,10 +306,22 @@ class MutationContract(ProtocolModel):
         return self
 
 
+class VariantSchedule(StrEnum):
+    """Whether the two variants run one after the other or side by side.
+
+    Spec section 3.2. ``max_concurrent`` is the Campaign-wide bound either way;
+    under ``parallel_variants`` the executor divides it between the two variants
+    rather than granting each of them the whole allowance.
+    """
+
+    SEQUENTIAL = "baseline_then_candidate"
+    PARALLEL = "parallel_variants"
+
+
 class ExecutionSpec(ProtocolModel):
     """How the two variants are executed against each other."""
 
-    order: Literal["baseline_then_candidate"]
+    order: VariantSchedule
     max_concurrent: int = Field(ge=1)
     timeout_seconds: int = Field(ge=1)
     retry_limit: int = Field(ge=0)
@@ -371,10 +399,20 @@ class CampaignSpec(ProtocolModel):
             )
 
         subject = self.agents[SUBJECT_AGENT]
-        if subject.harness.skills:
+        # The Campaign describes the baseline, so the subject harness carries
+        # the skill list the baseline side of the comparison starts from, and
+        # which list that is follows from the mutation kind (spec section 3.1).
+        baseline_skills = len(subject.harness.skills)
+        if self.mutation_contract.kind is MutationKind.SKILL_INSERTION:
+            if baseline_skills:
+                raise ValueError(
+                    "a skill_insertion Campaign describes a baseline that "
+                    "carries no skills; the candidate adds exactly one"
+                )
+        elif baseline_skills != 1:
             raise ValueError(
-                "the Campaign describes the baseline, so the subject harness "
-                "carries no skills; the candidate adds exactly one"
+                "a skill_replacement Campaign describes a baseline that carries "
+                f"exactly one skill to replace; got {baseline_skills}"
             )
         if subject.harness.use_bundled_skill:
             raise ValueError(

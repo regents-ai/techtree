@@ -289,7 +289,10 @@ class CatalogService:
             task_count=campaign.taskset.selection.num_tasks,
             subject_harness=campaign.subject.harness.id,
             subject_harness_version=campaign.subject.harness.version,
-            mutation_kind=campaign.mutation_contract.kind,
+            # Read off the Climb rather than the Campaign: a public Climb still
+            # requires skill_insertion, and ``ResolvedClimb`` refuses to exist
+            # unless the Campaign's mutation kind is the one the Climb names.
+            mutation_kind=climb.candidate_policy.required_mutation,
             candidate_skill_visibility=climb.candidate_policy.skill_visibility,
             evaluation_backend=campaign.evaluation_backend.kind,
             proof_grade=climb.publication.proof_grade,

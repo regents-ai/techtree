@@ -63,6 +63,7 @@ from techtree.models.campaign import (
     HarnessSpec,
     ModelSpec,
     MutationContract,
+    MutationKind,
     PackageRef,
     RuntimeSpec,
     SamplingSpec,
@@ -70,6 +71,7 @@ from techtree.models.campaign import (
     TaskMembershipCommitment,
     TaskSelection,
     TasksetRef,
+    VariantSchedule,
 )
 from techtree.models.catalog import (
     CatalogClimbEntry,
@@ -379,7 +381,7 @@ def build_campaign(
             )
         },
         mutation_contract=MutationContract(
-            kind="skill_insertion",
+            kind=MutationKind.SKILL_INSERTION,
             target_agent="subject",
             allowed_differences=[SKILL_MUTATION_POINTER],
             minimum_skills=1,
@@ -394,7 +396,7 @@ def build_campaign(
             executor_identity=None,
         ),
         execution=ExecutionSpec(
-            order="baseline_then_candidate",
+            order=VariantSchedule.SEQUENTIAL,
             max_concurrent=1,
             timeout_seconds=600,
             retry_limit=0,

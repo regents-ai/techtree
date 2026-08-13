@@ -36,6 +36,7 @@ from techtree.models.campaign import (
     CampaignSpec,
     HarnessSpec,
     MutationContract,
+    MutationKind,
     PublicContext,
 )
 from techtree.models.experiment import ExperimentManifest, ExperimentVariant
@@ -302,7 +303,7 @@ def test_a_campaign_that_does_not_allow_one_skill_refuses_a_candidate(
     demanding = graph.campaign.model_copy(
         update={
             "mutation_contract": MutationContract(
-                kind="skill_insertion",
+                kind=MutationKind.SKILL_INSERTION,
                 target_agent="subject",
                 allowed_differences=list(
                     graph.campaign.mutation_contract.allowed_differences

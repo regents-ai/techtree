@@ -44,7 +44,12 @@ from techtree.manifests.compare import (
     pointer_is_within,
 )
 from techtree.models.base import ArtifactRef, JsonValue
-from techtree.models.campaign import SKILL_MUTATION_POINTER, PublicContext
+from techtree.models.campaign import (
+    SKILL_MUTATION_POINTER,
+    MutationContract,
+    MutationKind,
+    PublicContext,
+)
 from techtree.models.experiment import (
     ExperimentConfiguration,
     ExperimentManifest,
@@ -447,6 +452,139 @@ def test_a_changed_program_reference_is_rejected(graph: SyntheticGraph) -> None:
 
     assert not comparison.controlled
     assert any("different improvement program" in v for v in comparison.violations)
+
+
+# ---------------------------------------------------------------------------
+# Skill replacement (spec section 3.1)
+# ---------------------------------------------------------------------------
+
+
+def replacement_contract(graph: SyntheticGraph) -> MutationContract:
+    """Return the synthetic Campaign's contract widened to a replacement."""
+    return graph.campaign.mutation_contract.model_copy(
+        update={"kind": MutationKind.SKILL_REPLACEMENT}
+    )
+
+
+def replacement_pair(
+    graph: SyntheticGraph,
+    *,
+    baseline_fill: str = "a",
+    candidate_fill: str = "b",
+) -> tuple[ExperimentManifest, ExperimentManifest]:
+    """Return a pair carrying one skill each, differing where ``fill`` differs."""
+    baseline, candidate = pair(graph)
+    return (
+        with_harness(
+            baseline,
+            skills=[build_skill_reference(artifact("skill-v1", baseline_fill))],
+        ),
+        with_harness(
+            candidate,
+            skills=[build_skill_reference(artifact("skill-v2", candidate_fill))],
+        ),
+    )
+
+
+def test_a_replacement_of_one_skill_by_another_is_controlled(
+    graph: SyntheticGraph,
+) -> None:
+    baseline, candidate = replacement_pair(graph)
+
+    comparison = compare_manifests(baseline, candidate, replacement_contract(graph))
+
+    assert comparison.controlled
+    assert comparison.violations == []
+    assert comparison.differences
+    assert all(
+        pointer_is_within(difference.pointer, SKILL_MUTATION_POINTER)
+        for difference in comparison.differences
+    )
+    assert_controlled_comparison(comparison)
+
+
+def test_a_replacement_by_the_same_skill_is_rejected(graph: SyntheticGraph) -> None:
+    baseline, candidate = replacement_pair(graph, candidate_fill="a")
+
+    comparison = compare_manifests(baseline, candidate, replacement_contract(graph))
+
+    assert not comparison.controlled
+    assert any("root digest" in v for v in comparison.violations)
+
+
+def test_a_replacement_that_only_repackages_the_same_content_is_rejected(
+    graph: SyntheticGraph,
+) -> None:
+    """A candidate whose skill is the baseline's, moved, measures nothing.
+
+    The configurations differ, so the identical-configuration rule does not
+    catch it. The root digest is what a skill reference means, and it is the
+    same on both sides.
+    """
+    baseline, _ = replacement_pair(graph)
+    reference = baseline.configuration.agents["subject"].harness.skills[0]
+    repackaged = with_harness(
+        baseline.model_copy(update={"variant": ExperimentVariant.CANDIDATE}),
+        skills=[reference.model_copy(update={"relative_path": "skills/moved.zip"})],
+    )
+
+    comparison = compare_manifests(baseline, repackaged, replacement_contract(graph))
+
+    # The configurations do differ, so the identical-configuration rule stays
+    # silent and the root-digest rule is the only thing that catches this.
+    assert comparison.differences
+    assert not comparison.controlled
+    assert any("root digest" in v for v in comparison.violations)
+    assert not any("identical to the baseline" in v for v in comparison.violations)
+
+
+@pytest.mark.parametrize("count", [0, 2], ids=["none", "two"])
+def test_a_replacement_baseline_carries_exactly_one_skill(
+    graph: SyntheticGraph, count: int
+) -> None:
+    baseline, candidate = replacement_pair(graph)
+    wrong = with_harness(
+        baseline,
+        skills=[
+            build_skill_reference(artifact(f"skill-{index}", fill))
+            for index, fill in enumerate("cd"[:count])
+        ],
+    )
+
+    comparison = compare_manifests(wrong, candidate, replacement_contract(graph))
+
+    assert not comparison.controlled
+    assert any("a replacement replaces exactly one" in v for v in comparison.violations)
+
+
+def test_a_replacement_candidate_still_carries_exactly_one_skill(
+    graph: SyntheticGraph,
+) -> None:
+    baseline, candidate = replacement_pair(graph)
+    two = with_harness(
+        candidate,
+        skills=[
+            build_skill_reference(artifact("skill-v2", "b")),
+            build_skill_reference(artifact("skill-v3", "c")),
+        ],
+    )
+
+    comparison = compare_manifests(baseline, two, replacement_contract(graph))
+
+    assert not comparison.controlled
+    assert any("carries 2 skills" in v for v in comparison.violations)
+
+
+def test_the_insertion_contract_still_refuses_a_replacement_shaped_pair(
+    graph: SyntheticGraph,
+) -> None:
+    """The branch is on the mutation kind, not on what the manifests look like."""
+    baseline, candidate = replacement_pair(graph)
+
+    comparison = compare(graph, baseline, candidate)
+
+    assert not comparison.controlled
+    assert any("a baseline carries none" in v for v in comparison.violations)
 
 
 # ---------------------------------------------------------------------------

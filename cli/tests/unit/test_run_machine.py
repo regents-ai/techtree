@@ -51,6 +51,7 @@ from techtree.models.run import (
     RunProgress,
     RunRequest,
     RunState,
+    VariantProgress,
 )
 from techtree.models.uplift_report import (
     ComparisonStatus,
@@ -65,13 +66,18 @@ from techtree.paths import TechtreePaths, paths_from_root
 from techtree.runs import store as store_module
 from techtree.runs.events import (
     CANCEL_REQUESTED,
+    DETAIL_COMPLETED,
     DETAIL_CURRENT,
     DETAIL_ERROR,
+    DETAIL_ERRORED,
     DETAIL_LABEL,
     DETAIL_REQUEST_DIGEST,
     DETAIL_REQUESTED_BY,
     DETAIL_RESULT_DIGEST,
+    DETAIL_RUNNING,
+    DETAIL_STATE,
     DETAIL_TOTAL,
+    DETAIL_VARIANT,
     DETAIL_WORKER_PID,
     EVENT_KINDS,
     PHASE_ENTERED,
@@ -82,6 +88,10 @@ from techtree.runs.events import (
     RUN_CREATED,
     RUN_FAILED,
     SAME_PHASE_EVENT_KINDS,
+    VARIANT_COMPLETED,
+    VARIANT_EVENT_KINDS,
+    VARIANT_PROGRESS,
+    VARIANT_STARTED,
     WORKER_STARTED,
     append_event,
     event_digest,
@@ -114,6 +124,12 @@ EXPECTED_TRANSITIONS: dict[RunPhase, set[RunPhase]] = {
     },
     RunPhase.VALIDATING_TASKSET: {
         RunPhase.RUNNING_BASELINE,
+        RunPhase.RUNNING_VARIANTS,
+        RunPhase.FAILED,
+        RunPhase.CANCEL_REQUESTED,
+    },
+    RunPhase.RUNNING_VARIANTS: {
+        RunPhase.BUILDING_RECEIPTS,
         RunPhase.FAILED,
         RunPhase.CANCEL_REQUESTED,
     },
@@ -153,7 +169,7 @@ EXPECTED_TRANSITIONS: dict[RunPhase, set[RunPhase]] = {
 
 TERMINAL_PHASES = {RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.CANCELLED}
 
-#: The nine canonical kinds, spelled out rather than imported, for the same
+#: The twelve canonical kinds, spelled out rather than imported, for the same
 #: reason the transition table is: they are a published contract.
 SPECIFIED_EVENT_KINDS = {
     "run.created",
@@ -165,6 +181,9 @@ SPECIFIED_EVENT_KINDS = {
     "run.cancelled",
     "result.written",
     "run.completed",
+    "variant.started",
+    "variant.progress",
+    "variant.completed",
 }
 
 #: The phases a run passes through on the way to a finished report.
@@ -322,6 +341,26 @@ def progress_details(current: int, total: int, label: str) -> dict[str, JsonValu
     return {DETAIL_CURRENT: current, DETAIL_TOTAL: total, DETAIL_LABEL: label}
 
 
+def variant_details(
+    variant: str,
+    *,
+    completed: int = 0,
+    total: int = 20,
+    running: int = 0,
+    errored: int = 0,
+    state: str = "running",
+) -> dict[str, JsonValue]:
+    """Return the details every ``variant.*`` event carries."""
+    return {
+        DETAIL_VARIANT: variant,
+        DETAIL_COMPLETED: completed,
+        DETAIL_TOTAL: total,
+        DETAIL_RUNNING: running,
+        DETAIL_ERRORED: errored,
+        DETAIL_STATE: state,
+    }
+
+
 def log_through(*phases: RunPhase, run_id: str = RUN_ID) -> list[RunEvent]:
     """Return a valid log that walks a run from created through ``phases``."""
     events = [created_event(run_id)]
@@ -456,20 +495,59 @@ def test_the_normal_path_runs_from_created_to_completed() -> None:
         validate_transition(current, target)
 
 
+def test_the_concurrent_path_branches_at_validating_taskset_and_rejoins() -> None:
+    """Spec section 3.3: one branch off the line, and it rejoins the line."""
+    path = [
+        RunPhase.CREATED,
+        RunPhase.VALIDATING_TASKSET,
+        RunPhase.RUNNING_VARIANTS,
+        RunPhase.BUILDING_RECEIPTS,
+        RunPhase.VERIFYING_COMPARISON,
+        RunPhase.BUILDING_REPORT,
+        RunPhase.COMPLETED,
+    ]
+    for current, target in itertools.pairwise(path):
+        validate_transition(current, target)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [RunPhase.FAILED, RunPhase.CANCEL_REQUESTED],
+    ids=lambda phase: phase.value,
+)
+def test_a_concurrent_run_can_still_fail_and_be_cancelled(target: RunPhase) -> None:
+    validate_transition(RunPhase.RUNNING_VARIANTS, target)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [RunPhase.RUNNING_BASELINE, RunPhase.RUNNING_CANDIDATE],
+    ids=lambda phase: phase.value,
+)
+def test_the_two_variant_routes_do_not_join_in_the_middle(target: RunPhase) -> None:
+    """A run runs its variants one way or the other, never both ways."""
+    with pytest.raises(RunError) as raised:
+        validate_transition(RunPhase.RUNNING_VARIANTS, target)
+    assert raised.value.code == "run_transition_invalid"
+
+
 # ---------------------------------------------------------------------------
 # Event kinds
 # ---------------------------------------------------------------------------
 
 
-def test_the_event_vocabulary_is_the_nine_specified_kinds() -> None:
+def test_the_event_vocabulary_is_the_twelve_specified_kinds() -> None:
     assert set(EVENT_KINDS) == SPECIFIED_EVENT_KINDS
 
 
-def test_the_three_same_phase_kinds_are_the_specified_ones() -> None:
+def test_the_same_phase_kinds_are_the_specified_ones() -> None:
     assert set(SAME_PHASE_EVENT_KINDS) == {
         "worker.started",
         "progress.updated",
         "result.written",
+        "variant.started",
+        "variant.progress",
+        "variant.completed",
     }
 
 
@@ -513,6 +591,24 @@ CANONICAL_PLACEMENTS: list[tuple[str, RunPhase | None, RunPhase, dict[str, Any]]
         RunPhase.BUILDING_REPORT,
         RunPhase.COMPLETED,
         {DETAIL_RESULT_DIGEST: digest_of("report")},
+    ),
+    (
+        VARIANT_STARTED,
+        RunPhase.RUNNING_VARIANTS,
+        RunPhase.RUNNING_VARIANTS,
+        variant_details("baseline", state="running"),
+    ),
+    (
+        VARIANT_PROGRESS,
+        RunPhase.RUNNING_VARIANTS,
+        RunPhase.RUNNING_VARIANTS,
+        variant_details("baseline", completed=7, running=2),
+    ),
+    (
+        VARIANT_COMPLETED,
+        RunPhase.RUNNING_VARIANTS,
+        RunPhase.RUNNING_VARIANTS,
+        variant_details("candidate", completed=20, state="completed"),
     ),
 ]
 
@@ -658,6 +754,24 @@ MISPLACED_EVENTS: list[tuple[str, str, RunPhase | None, RunPhase]] = [
         RunPhase.BUILDING_REPORT,
         RunPhase.BUILDING_REPORT,
     ),
+    (
+        "variant started in a sequential phase",
+        VARIANT_STARTED,
+        RunPhase.RUNNING_BASELINE,
+        RunPhase.RUNNING_BASELINE,
+    ),
+    (
+        "variant progress in a sequential phase",
+        VARIANT_PROGRESS,
+        RunPhase.RUNNING_CANDIDATE,
+        RunPhase.RUNNING_CANDIDATE,
+    ),
+    (
+        "variant completion as a transition",
+        VARIANT_COMPLETED,
+        RunPhase.RUNNING_VARIANTS,
+        RunPhase.BUILDING_RECEIPTS,
+    ),
 ]
 
 #: Details generous enough that no placement above fails for a missing key.
@@ -668,6 +782,7 @@ EVERY_DETAIL: dict[str, JsonValue] = {
     DETAIL_ERROR: FAILURE.model_dump(),
     DETAIL_RESULT_DIGEST: digest_of("report"),
     **progress_details(1, 20, "tasks"),
+    **variant_details("baseline"),
 }
 
 
@@ -815,6 +930,163 @@ def test_apply_event_admits_a_same_phase_event_the_table_has_no_edge_for() -> No
 
     assert reported.phase is RunPhase.RUNNING_BASELINE
     assert reported.progress == RunProgress(current=4, total=20, label="tasks")
+
+
+# ---------------------------------------------------------------------------
+# Concurrent variants (spec section 3.3)
+# ---------------------------------------------------------------------------
+
+CONCURRENT_PATH = (RunPhase.VALIDATING_TASKSET, RunPhase.RUNNING_VARIANTS)
+
+
+@pytest.mark.parametrize(
+    "kind", sorted(VARIANT_EVENT_KINDS), ids=lambda kind: str(kind)
+)
+def test_a_variant_event_reports_without_moving_the_run(kind: str) -> None:
+    events = log_through(*CONCURRENT_PATH)
+    state = reduce_events(events)
+
+    validate_same_phase_event(
+        state,
+        follow(
+            events,
+            phase=RunPhase.RUNNING_VARIANTS,
+            kind=kind,
+            details=variant_details("baseline"),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "kind", sorted(VARIANT_EVENT_KINDS), ids=lambda kind: str(kind)
+)
+@pytest.mark.parametrize(
+    "phase",
+    [
+        RunPhase.CREATED,
+        RunPhase.VALIDATING_TASKSET,
+        RunPhase.RUNNING_BASELINE,
+        RunPhase.RUNNING_CANDIDATE,
+        RunPhase.BUILDING_RECEIPTS,
+        RunPhase.BUILDING_REPORT,
+    ],
+    ids=lambda phase: phase.value,
+)
+def test_a_variant_event_belongs_to_no_other_phase(kind: str, phase: RunPhase) -> None:
+    with pytest.raises(ValidationError) as raised:
+        validate_event_kind(
+            build_event(
+                sequence=3,
+                phase=phase,
+                previous_phase=phase,
+                kind=kind,
+                details=variant_details("baseline"),
+            )
+        )
+    assert raised.value.code == "run_event_kind_invalid"
+
+
+@pytest.mark.parametrize(
+    "kind", sorted(VARIANT_EVENT_KINDS), ids=lambda kind: str(kind)
+)
+def test_a_variant_event_carries_the_whole_of_its_progress(kind: str) -> None:
+    details = variant_details("baseline")
+    del details[DETAIL_ERRORED]
+
+    with pytest.raises(ValidationError) as raised:
+        validate_event_kind(
+            build_event(
+                sequence=3,
+                phase=RunPhase.RUNNING_VARIANTS,
+                previous_phase=RunPhase.RUNNING_VARIANTS,
+                kind=kind,
+                details=details,
+            )
+        )
+    assert raised.value.code == "run_event_kind_invalid"
+
+
+def test_each_variant_projects_its_own_progress() -> None:
+    events = log_through(*CONCURRENT_PATH)
+    for details in (
+        variant_details("baseline", state="pending"),
+        variant_details("candidate", state="pending"),
+    ):
+        events.append(
+            follow(
+                events,
+                phase=RunPhase.RUNNING_VARIANTS,
+                kind=VARIANT_STARTED,
+                details=details,
+            )
+        )
+    events.append(
+        follow(
+            events,
+            phase=RunPhase.RUNNING_VARIANTS,
+            kind=VARIANT_PROGRESS,
+            details=variant_details("baseline", completed=9, running=3),
+        )
+    )
+
+    state = reduce_events(events)
+
+    assert state.variant_progress == {
+        "baseline": VariantProgress(
+            variant="baseline",
+            completed=9,
+            total=20,
+            running=3,
+            errored=0,
+            state="running",
+        ),
+        "candidate": VariantProgress(
+            variant="candidate",
+            completed=0,
+            total=20,
+            running=0,
+            errored=0,
+            state="pending",
+        ),
+    }
+
+
+def test_variant_progress_clears_when_the_run_leaves_the_phase() -> None:
+    events = log_through(*CONCURRENT_PATH)
+    events.append(
+        follow(
+            events,
+            phase=RunPhase.RUNNING_VARIANTS,
+            kind=VARIANT_COMPLETED,
+            details=variant_details("baseline", completed=20, state="completed"),
+        )
+    )
+    assert reduce_events(events).variant_progress
+
+    events.append(follow(events, phase=RunPhase.BUILDING_RECEIPTS))
+
+    assert reduce_events(events).variant_progress == {}
+
+
+def test_a_run_that_never_ran_variants_projects_none() -> None:
+    assert reduce_events(log_through(*WORKING_PATH)).variant_progress == {}
+
+
+def test_malformed_variant_progress_is_rejected() -> None:
+    events = log_through(*CONCURRENT_PATH)
+    state = reduce_events(events)
+
+    with pytest.raises(ValidationError) as raised:
+        apply_event(
+            state,
+            follow(
+                events,
+                phase=RunPhase.RUNNING_VARIANTS,
+                kind=VARIANT_PROGRESS,
+                details={**variant_details("baseline"), DETAIL_STATE: "paused"},
+            ),
+        )
+    assert raised.value.code == "run_event_kind_invalid"
 
 
 # ---------------------------------------------------------------------------
@@ -1472,6 +1744,37 @@ def test_append_advances_the_run_and_records_where_it_came_from(
     events = read_events(paths.run_dir(RUN_ID) / "events.jsonl")
     assert events[-1].previous_phase is RunPhase.CREATED
     assert events[-1].kind == PHASE_ENTERED
+
+
+def test_the_store_records_a_concurrent_run_without_a_special_case(
+    created_run: RunStore,
+    paths: TechtreePaths,
+) -> None:
+    """The store places variant events the same way it places every other kind."""
+    created_run.append(RUN_ID, phase=RunPhase.VALIDATING_TASKSET)
+    created_run.append(RUN_ID, phase=RunPhase.RUNNING_VARIANTS)
+    created_run.append(
+        RUN_ID,
+        phase=RunPhase.RUNNING_VARIANTS,
+        kind=VARIANT_STARTED,
+        details=variant_details("candidate", state="running"),
+    )
+    state = created_run.append(
+        RUN_ID,
+        phase=RunPhase.RUNNING_VARIANTS,
+        kind=VARIANT_PROGRESS,
+        details=variant_details("candidate", completed=5, running=1),
+    )
+
+    assert state.phase is RunPhase.RUNNING_VARIANTS
+    assert state.variant_progress["candidate"].completed == 5
+    events = read_events(paths.run_dir(RUN_ID) / "events.jsonl")
+    assert events[-1].previous_phase is RunPhase.RUNNING_VARIANTS
+    assert created_run.state(RUN_ID) == state
+    assert (
+        created_run.append(RUN_ID, phase=RunPhase.BUILDING_RECEIPTS).variant_progress
+        == {}
+    )
 
 
 def test_append_refuses_a_transition_the_machine_forbids(

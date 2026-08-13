@@ -24,7 +24,12 @@ from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.errors import PolicyError
-from techtree.models.campaign import SKILL_MUTATION_POINTER, CampaignSpec
+from techtree.models.campaign import (
+    SKILL_MUTATION_POINTER,
+    CampaignSpec,
+    MutationKind,
+    VariantSchedule,
+)
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EpisodeReceipt
@@ -156,18 +161,93 @@ def test_campaign_rejects_more_than_one_rollout() -> None:
         campaign(document)
 
 
+def skill_reference(fill: bytes = b"skill") -> dict[str, Any]:
+    """Return one harness skill reference; ``fill`` makes two of them differ."""
+    return {
+        "digest": sha256_digest_bytes(fill),
+        "media_type": "application/zip",
+        "size": 10,
+        "relative_path": None,
+    }
+
+
 def test_campaign_rejects_a_baseline_that_already_carries_a_skill() -> None:
     document = golden("campaign")
-    document["agents"]["subject"]["harness"]["skills"] = [
-        {
-            "digest": sha256_digest_bytes(b"skill"),
-            "media_type": "application/zip",
-            "size": 10,
-            "relative_path": None,
-        }
-    ]
+    document["agents"]["subject"]["harness"]["skills"] = [skill_reference()]
 
     with pytest.raises(PydanticValidationError, match="carries no skills"):
+        campaign(document)
+
+
+# ---------------------------------------------------------------------------
+# Mutation kinds (spec section 3.1)
+# ---------------------------------------------------------------------------
+
+
+def test_the_development_campaign_is_a_skill_insertion() -> None:
+    assert (
+        campaign(golden("campaign")).mutation_contract.kind
+        is MutationKind.SKILL_INSERTION
+    )
+
+
+def test_a_replacement_campaign_describes_a_baseline_carrying_one_skill() -> None:
+    document = golden("campaign")
+    document["mutation_contract"]["kind"] = "skill_replacement"
+    document["agents"]["subject"]["harness"]["skills"] = [skill_reference()]
+
+    assert campaign(document).mutation_contract.kind is MutationKind.SKILL_REPLACEMENT
+
+
+def test_a_replacement_campaign_rejects_a_baseline_with_no_skill() -> None:
+    document = golden("campaign")
+    document["mutation_contract"]["kind"] = "skill_replacement"
+
+    with pytest.raises(PydanticValidationError, match="exactly one skill to replace"):
+        campaign(document)
+
+
+def test_a_replacement_campaign_rejects_a_baseline_with_two_skills() -> None:
+    document = golden("campaign")
+    document["mutation_contract"]["kind"] = "skill_replacement"
+    document["agents"]["subject"]["harness"]["skills"] = [
+        skill_reference(b"first"),
+        skill_reference(b"second"),
+    ]
+
+    with pytest.raises(PydanticValidationError, match="exactly one skill to replace"):
+        campaign(document)
+
+
+def test_campaign_rejects_a_mutation_kind_outside_the_enum() -> None:
+    document = golden("campaign")
+    document["mutation_contract"]["kind"] = "harness_swap"
+
+    with pytest.raises(PydanticValidationError):
+        campaign(document)
+
+
+# ---------------------------------------------------------------------------
+# Variant schedule (spec section 3.2)
+# ---------------------------------------------------------------------------
+
+
+def test_the_development_campaign_runs_its_variants_in_sequence() -> None:
+    assert campaign(golden("campaign")).execution.order is VariantSchedule.SEQUENTIAL
+
+
+def test_a_campaign_may_run_its_variants_side_by_side() -> None:
+    document = golden("campaign")
+    document["execution"]["order"] = "parallel_variants"
+
+    assert campaign(document).execution.order is VariantSchedule.PARALLEL
+
+
+def test_campaign_rejects_a_schedule_outside_the_enum() -> None:
+    document = golden("campaign")
+    document["execution"]["order"] = "candidate_then_baseline"
+
+    with pytest.raises(PydanticValidationError):
         campaign(document)
 
 

@@ -10,6 +10,11 @@ The normal path is a straight line::
     created → validating_taskset → running_baseline → running_candidate
     → building_receipts → verifying_comparison → building_report → completed
 
+``running_variants`` is the one branch off it: a run whose two variants execute
+side by side leaves ``validating_taskset`` for it instead of for
+``running_baseline``, and rejoins the line at ``building_receipts``. The
+sequential pair stays for the fake executor.
+
 Two escapes leave it. Any phase that is still working may fail, and any phase
 that is still working may have cancellation requested of it; a run that has been
 asked to stop then reaches ``cancelled`` when the worker winds down, or
@@ -19,7 +24,8 @@ closed.
 
 No phase has an edge to itself. A run does still have things to report while it
 stays where it is — the worker's process id, its progress through a phase, the
-digest of the report it just wrote — but those are exactly three events, named
+digest of the report it just wrote, and how each variant of a concurrent
+comparison is getting on — but those are a closed set of events, named
 in :data:`techtree.runs.events.SAME_PHASE_EVENT_KINDS`, and
 :func:`validate_same_phase_event` rather than the transition table is what
 admits them. Recording them as events is what keeps the projection derivable
@@ -43,14 +49,25 @@ from techtree.canonical import validate_digest
 from techtree.errors import RunError, ValidationError
 from techtree.models.base import Digest, JsonValue
 from techtree.models.cli import CliError
-from techtree.models.run import RunEvent, RunPhase, RunProgress, RunState
+from techtree.models.run import (
+    RunEvent,
+    RunPhase,
+    RunProgress,
+    RunState,
+    VariantProgress,
+)
 from techtree.runs.events import (
     CANCEL_REQUESTED,
+    DETAIL_COMPLETED,
     DETAIL_CURRENT,
     DETAIL_ERROR,
+    DETAIL_ERRORED,
     DETAIL_LABEL,
     DETAIL_RESULT_DIGEST,
+    DETAIL_RUNNING,
+    DETAIL_STATE,
     DETAIL_TOTAL,
+    DETAIL_VARIANT,
     DETAIL_WORKER_PID,
     PROGRESS_UPDATED,
     RESULT_WRITTEN,
@@ -58,6 +75,7 @@ from techtree.runs.events import (
     RUN_CREATED,
     RUN_FAILED,
     SAME_PHASE_EVENT_KINDS,
+    VARIANT_EVENT_KINDS,
     WORKER_STARTED,
     validate_event_kind,
 )
@@ -96,6 +114,17 @@ _TERMINAL_PHASES: Final[frozenset[RunPhase]] = frozenset(
     {RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.CANCELLED}
 )
 
+#: The concurrent alternative to ``running_baseline → running_candidate``, as
+#: the phase it leaves, the phase it is, and the phase it rejoins at. Spec
+#: section 3.3 adds it beside the sequential pair rather than in place of it, so
+#: ``validating_taskset`` has two successors and both routes meet again at
+#: ``building_receipts``.
+_VARIANT_BRANCH: Final[tuple[RunPhase, RunPhase, RunPhase]] = (
+    RunPhase.VALIDATING_TASKSET,
+    RunPhase.RUNNING_VARIANTS,
+    RunPhase.BUILDING_RECEIPTS,
+)
+
 
 def _build_allowed_transitions() -> dict[RunPhase, frozenset[RunPhase]]:
     """Derive the transition table from the normal path and the two escapes."""
@@ -110,6 +139,12 @@ def _build_allowed_transitions() -> dict[RunPhase, frozenset[RunPhase]]:
                 RunPhase.CANCEL_REQUESTED,
             }
         )
+
+    entered_from, branch, rejoins_at = _VARIANT_BRANCH
+    allowed[entered_from] = allowed[entered_from] | {branch}
+    allowed[branch] = frozenset(
+        {rejoins_at, RunPhase.FAILED, RunPhase.CANCEL_REQUESTED}
+    )
 
     allowed[RunPhase.CANCEL_REQUESTED] = frozenset(
         {
@@ -306,6 +341,14 @@ def _project(previous: RunState, event: RunEvent) -> RunState:
     carries_result = event.kind in (RESULT_WRITTEN, RUN_COMPLETED)
     entered_new_phase = previous.phase is not event.phase
 
+    # Variant progress belongs to the phase that reported it, exactly as
+    # ``progress`` does, so entering a new phase discards it. Each variant keeps
+    # its own entry, replaced whole by the most recent event that named it.
+    variant_progress = {} if entered_new_phase else dict(previous.variant_progress)
+    if event.kind in VARIANT_EVENT_KINDS:
+        reported = _variant_progress(event)
+        variant_progress[reported.variant] = reported
+
     return RunState(
         run_id=event.run_id,
         phase=event.phase,
@@ -331,6 +374,7 @@ def _project(previous: RunState, event: RunEvent) -> RunState:
             if progress is not None
             else (None if entered_new_phase else previous.progress)
         ),
+        variant_progress=variant_progress,
         result_digest=(
             _result_digest(event) if carries_result else previous.result_digest
         ),
@@ -354,6 +398,7 @@ def _opening_state(event: RunEvent) -> RunState:
         cancel_requested_at=None,
         error=None,
         progress=None,
+        variant_progress={},
         result_digest=None,
     )
 
@@ -380,6 +425,26 @@ def _progress(event: RunEvent) -> RunProgress:
         raise _detail_invalid(
             event,
             f"progress is not valid ({error.errors()[0]['msg']})",
+        ) from error
+
+
+def _variant_progress(event: RunEvent) -> VariantProgress:
+    """Return the one variant's position this event reports."""
+    try:
+        return VariantProgress.model_validate(
+            {
+                "variant": event.details[DETAIL_VARIANT],
+                "completed": event.details[DETAIL_COMPLETED],
+                "total": event.details[DETAIL_TOTAL],
+                "running": event.details[DETAIL_RUNNING],
+                "errored": event.details[DETAIL_ERRORED],
+                "state": event.details[DETAIL_STATE],
+            }
+        )
+    except PydanticValidationError as error:
+        raise _detail_invalid(
+            event,
+            f"variant progress is not valid ({error.errors()[0]['msg']})",
         ) from error
 
 

@@ -43,6 +43,7 @@ __all__ = [
     "RunRequest",
     "RunState",
     "RunStatus",
+    "VariantProgress",
 ]
 
 
@@ -53,6 +54,9 @@ class RunPhase(StrEnum):
     VALIDATING_TASKSET = "validating_taskset"
     RUNNING_BASELINE = "running_baseline"
     RUNNING_CANDIDATE = "running_candidate"
+    #: Both variants in flight at once. The sequential pair above stays for the
+    #: fake executor; spec section 3.3 adds this one rather than replacing them.
+    RUNNING_VARIANTS = "running_variants"
     BUILDING_RECEIPTS = "building_receipts"
     VERIFYING_COMPARISON = "verifying_comparison"
     BUILDING_REPORT = "building_report"
@@ -137,6 +141,23 @@ class RunProgress(StateModel):
         return self
 
 
+class VariantProgress(StateModel):
+    """How far one side of a concurrent comparison has got. Spec section 3.3.
+
+    ``RunProgress`` measures one position in one phase, which is all a
+    sequential run has to report. When both variants are in flight there are two
+    positions at once, and each carries its own episode counts and its own
+    lifecycle, so they are projected side by side rather than flattened.
+    """
+
+    variant: Literal["baseline", "candidate"]
+    completed: int = Field(ge=0)
+    total: int = Field(ge=0)
+    running: int = Field(ge=0)
+    errored: int = Field(ge=0)
+    state: Literal["pending", "running", "completed", "failed", "cancelled"]
+
+
 class RunState(StateModel):
     """What is currently true of a run, rewritten as it advances."""
 
@@ -150,6 +171,7 @@ class RunState(StateModel):
     cancel_requested_at: UtcDateTime | None
     error: CliError | None
     progress: RunProgress | None
+    variant_progress: dict[str, VariantProgress] = Field(default_factory=dict)
     result_digest: Digest | None
 
 

@@ -286,9 +286,7 @@
           "type": "integer"
         },
         "order": {
-          "const": "baseline_then_candidate",
-          "title": "Order",
-          "type": "string"
+          "$ref": "#/$defs/VariantSchedule"
         },
         "retry_limit": {
           "minimum": 0,
@@ -498,9 +496,7 @@
           "type": "array"
         },
         "kind": {
-          "const": "skill_insertion",
-          "title": "Kind",
-          "type": "string"
+          "$ref": "#/$defs/MutationKind"
         },
         "maximum_skills": {
           "minimum": 1,
@@ -527,6 +523,15 @@
       ],
       "title": "MutationContract",
       "type": "object"
+    },
+    "MutationKind": {
+      "description": "Which shape of skill change the candidate is allowed to make.\n\nSpec section 3.1. ``skill_insertion`` measures a skill against no skill and\nis what a public Climb requires. ``skill_replacement`` measures one revision\nof a skill against the previous one, which is the shape a local improvement\nloop needs and which no public Climb wraps.",
+      "enum": [
+        "skill_insertion",
+        "skill_replacement"
+      ],
+      "title": "MutationKind",
+      "type": "string"
     },
     "NonEmptyString": {
       "minLength": 1,
@@ -811,6 +816,15 @@
     },
     "UtcDateTime": {
       "format": "date-time",
+      "type": "string"
+    },
+    "VariantSchedule": {
+      "description": "Whether the two variants run one after the other or side by side.\n\nSpec section 3.2. ``max_concurrent`` is the Campaign-wide bound either way;\nunder ``parallel_variants`` the executor divides it between the two variants\nrather than granting each of them the whole allowance.",
+      "enum": [
+        "baseline_then_candidate",
+        "parallel_variants"
+      ],
+      "title": "VariantSchedule",
       "type": "string"
     }
   },

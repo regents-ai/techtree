@@ -22,10 +22,10 @@ also what catches a truncated final line, because a partly written event fails
 to parse before its sequence is ever considered.
 
 The kinds a run may record are a closed set. ``RunEvent.kind`` is a string in
-the frozen protocol model, but nine names exhaust what a local run can say about
-itself, and each name fixes the phases it may appear between and the details it
-carries. :func:`validate_event_kind` holds every reader to that, so a log cannot
-contain an event whose name and position disagree.
+the frozen protocol model, but twelve names exhaust what a local run can say
+about itself, and each name fixes the phases it may appear between and the
+details it carries. :func:`validate_event_kind` holds every reader to that, so a
+log cannot contain an event whose name and position disagree.
 """
 
 from __future__ import annotations
@@ -44,13 +44,18 @@ from techtree.models.run import RunEvent, RunPhase
 
 __all__ = [
     "CANCEL_REQUESTED",
+    "DETAIL_COMPLETED",
     "DETAIL_CURRENT",
     "DETAIL_ERROR",
+    "DETAIL_ERRORED",
     "DETAIL_LABEL",
     "DETAIL_REQUESTED_BY",
     "DETAIL_REQUEST_DIGEST",
     "DETAIL_RESULT_DIGEST",
+    "DETAIL_RUNNING",
+    "DETAIL_STATE",
     "DETAIL_TOTAL",
+    "DETAIL_VARIANT",
     "DETAIL_WORKER_PID",
     "EVENT_KINDS",
     "PHASE_ENTERED",
@@ -61,6 +66,10 @@ __all__ = [
     "RUN_CREATED",
     "RUN_FAILED",
     "SAME_PHASE_EVENT_KINDS",
+    "VARIANT_COMPLETED",
+    "VARIANT_EVENT_KINDS",
+    "VARIANT_PROGRESS",
+    "VARIANT_STARTED",
     "WORKER_STARTED",
     "append_event",
     "event_digest",
@@ -77,9 +86,9 @@ _FILE_MODE: Final = 0o600
 # ---------------------------------------------------------------------------
 # Event kinds
 #
-# Nine names, and no tenth. A kind is not a free-text annotation: it fixes what
-# the event means, which phases it may sit between, and which details it must
-# carry, so a reader can interpret an event without guessing.
+# Twelve names, and no thirteenth. A kind is not a free-text annotation: it
+# fixes what the event means, which phases it may sit between, and which details
+# it must carry, so a reader can interpret an event without guessing.
 # ---------------------------------------------------------------------------
 
 #: The run exists and its request is fixed. Always sequence zero.
@@ -100,6 +109,19 @@ RUN_CANCELLED: Final = "run.cancelled"
 RESULT_WRITTEN: Final = "result.written"
 #: The run finished the normal path.
 RUN_COMPLETED: Final = "run.completed"
+#: One side of a concurrent comparison began. Spec section 3.3.
+VARIANT_STARTED: Final = "variant.started"
+#: How far one side of a concurrent comparison has got.
+VARIANT_PROGRESS: Final = "variant.progress"
+#: One side of a concurrent comparison stopped, whichever way it stopped.
+VARIANT_COMPLETED: Final = "variant.completed"
+
+#: The three kinds that speak for one variant rather than for the run. They
+#: exist only while both variants are in flight, which is one phase and no
+#: other.
+VARIANT_EVENT_KINDS: Final[frozenset[str]] = frozenset(
+    {VARIANT_STARTED, VARIANT_PROGRESS, VARIANT_COMPLETED}
+)
 
 #: Every kind a run may record. Anything else is a corrupt log.
 EVENT_KINDS: Final[frozenset[str]] = frozenset(
@@ -113,13 +135,14 @@ EVENT_KINDS: Final[frozenset[str]] = frozenset(
         RUN_CANCELLED,
         RESULT_WRITTEN,
         RUN_COMPLETED,
+        *VARIANT_EVENT_KINDS,
     }
 )
 
-#: The three kinds that report something true of a run without moving it on.
-#: Every other kind changes the phase. Spec section 7.6.
+#: The kinds that report something true of a run without moving it on. Every
+#: other kind changes the phase. Spec section 7.6, extended by section 3.3.
 SAME_PHASE_EVENT_KINDS: Final[frozenset[str]] = frozenset(
-    {WORKER_STARTED, PROGRESS_UPDATED, RESULT_WRITTEN}
+    {WORKER_STARTED, PROGRESS_UPDATED, RESULT_WRITTEN, *VARIANT_EVENT_KINDS}
 )
 
 
@@ -147,6 +170,28 @@ DETAIL_REQUESTED_BY: Final = "requested_by"
 DETAIL_ERROR: Final = "error"
 #: The digest of the ``UpliftReport`` this run produced.
 DETAIL_RESULT_DIGEST: Final = "result_digest"
+#: Which side of a concurrent comparison a variant event speaks for.
+DETAIL_VARIANT: Final = "variant"
+#: Episodes of this variant that have finished.
+DETAIL_COMPLETED: Final = "completed"
+#: Episodes of this variant currently in flight.
+DETAIL_RUNNING: Final = "running"
+#: Episodes of this variant that failed.
+DETAIL_ERRORED: Final = "errored"
+#: Where this variant is in its own lifecycle.
+DETAIL_STATE: Final = "state"
+
+#: The details every variant event carries. They are the whole of
+#: :class:`~techtree.models.run.VariantProgress`, because a variant event that
+#: reported only part of it would leave the projection guessing at the rest.
+_VARIANT_DETAILS: Final[tuple[str, ...]] = (
+    DETAIL_VARIANT,
+    DETAIL_COMPLETED,
+    DETAIL_TOTAL,
+    DETAIL_RUNNING,
+    DETAIL_ERRORED,
+    DETAIL_STATE,
+)
 
 #: What each kind is defined to carry. A kind missing one of its own details
 #: cannot be interpreted, so it is refused rather than projected as a blank.
@@ -158,6 +203,9 @@ _REQUIRED_DETAILS: Final[dict[str, tuple[str, ...]]] = {
     RUN_FAILED: (DETAIL_ERROR,),
     RESULT_WRITTEN: (DETAIL_RESULT_DIGEST,),
     RUN_COMPLETED: (DETAIL_RESULT_DIGEST,),
+    VARIANT_STARTED: _VARIANT_DETAILS,
+    VARIANT_PROGRESS: _VARIANT_DETAILS,
+    VARIANT_COMPLETED: _VARIANT_DETAILS,
 }
 
 
@@ -181,6 +229,9 @@ _EXCLUSIVE_PHASE_KINDS: Final[dict[RunPhase, str]] = {
 _ONLY_IN_PHASE: Final[dict[str, RunPhase]] = {
     WORKER_STARTED: RunPhase.CREATED,
     RESULT_WRITTEN: RunPhase.BUILDING_REPORT,
+    # A variant is a side of a concurrent comparison, and nothing is running
+    # two variants at once outside the one phase that says so.
+    **dict.fromkeys(VARIANT_EVENT_KINDS, RunPhase.RUNNING_VARIANTS),
 }
 
 #: The phase each of these kinds must have been reached from. Both are the last

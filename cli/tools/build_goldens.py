@@ -59,6 +59,7 @@ from techtree.models.campaign import (
     HarnessSpec,
     ModelSpec,
     MutationContract,
+    MutationKind,
     PackageRef,
     PublicContext,
     RuntimeSpec,
@@ -67,6 +68,7 @@ from techtree.models.campaign import (
     TaskMembershipCommitment,
     TaskSelection,
     TasksetRef,
+    VariantSchedule,
 )
 from techtree.models.catalog import (
     ClimbSummary,
@@ -326,7 +328,7 @@ def build_subject_agent(skills: list[ArtifactRef]) -> AgentSpec:
 def build_mutation_contract() -> MutationContract:
     """Return the single permitted difference between the two variants."""
     return MutationContract(
-        kind="skill_insertion",
+        kind=MutationKind.SKILL_INSERTION,
         target_agent="subject",
         allowed_differences=[SKILL_MUTATION_POINTER],
         minimum_skills=1,
@@ -382,7 +384,7 @@ def build_campaign(data_policy_digest: Digest, receipt_digest: Digest) -> Campai
         mutation_contract=build_mutation_contract(),
         evaluation_backend=build_evaluation_backend(),
         execution=ExecutionSpec(
-            order="baseline_then_candidate",
+            order=VariantSchedule.SEQUENTIAL,
             max_concurrent=1,
             timeout_seconds=1800,
             retry_limit=0,
@@ -484,7 +486,7 @@ def build_experiment_configuration(
         mutation_contract=build_mutation_contract(),
         evaluation_backend=build_evaluation_backend(),
         execution=ExecutionSpec(
-            order="baseline_then_candidate",
+            order=VariantSchedule.SEQUENTIAL,
             max_concurrent=1,
             timeout_seconds=1800,
             retry_limit=0,
