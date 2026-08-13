@@ -1,7 +1,7 @@
 {
-  "baseline_manifest_digest": "sha256:6b603ea0b9198b6d1c39130297730fc5bd7561ca9a90f7b065bda4c8debdf9b9",
-  "campaign_spec_digest": "sha256:c547e51773c78daf8f697a9424e218d2f6f8e4e95f5bd0d042c828cbb9be00b5",
-  "candidate_manifest_digest": "sha256:98ded8fe1d3c8c73036c74aa13a53abf07c7d76f958039a6d73115cccafb92bd",
+  "baseline_manifest_digest": "sha256:3feddb833da71175f289f125031118e081e24667e900cc5ad2cbf8d8f7b00f37",
+  "campaign_spec_digest": "sha256:eda214ea0693f5d4e069097c39c3a33d0d20815fe567e46e8153e147cfbdb93e",
+  "candidate_manifest_digest": "sha256:85e9a5a7ef3b9dec21e943de521e8a31a98df86f1f7db1bd51805913b1deeff1",
   "created_at": "2026-01-01T00:00:00Z",
   "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
   "decision": "development_only",
@@ -18,8 +18,8 @@
     "allowed_differences": [
       "/agents/subject/harness/skills"
     ],
-    "baseline_configuration_digest": "sha256:7b525c3d94247c78741b7ec74387fa3b76a3d94b9cfeed6432ce01de99ba4d5d",
-    "candidate_configuration_digest": "sha256:714379c772f45ea74c130234ce3e3ac0190b18653c29a8685870550172f90730",
+    "baseline_configuration_digest": "sha256:5c57f28efe6c27c166f5844517777e5fa534c850e74d087913c88afb47cac83c",
+    "candidate_configuration_digest": "sha256:294658cb5513713062f907cff67befc32d35be2be142d14e920170d92079db53",
     "controlled": true,
     "differences": [],
     "violations": []
@@ -38,7 +38,7 @@
   "program_ref": null,
   "proof_grade": "development_only",
   "public_context": {
-    "climb_digest": "sha256:91b24bbaf35d6c8df304b2421c1577b66c32a7c6ecb3ccfbea6e03321b0e304c",
+    "climb_digest": "sha256:ee960a5a559bc194aeb935defebc7cf1ef81448d44062e0d01008b0f4c2e03af",
     "kind": "climb"
   },
   "publication_eligible": false,
@@ -173,5 +173,5 @@
       "task_hash": "sha256:331ddd7dd1e56ccb23b6358980e142b0d0dd912646f9a546454e281e312a6fb5"
     }
   ],
-  "taskset_validation_receipt_digest": "sha256:df0d9c9d3320813293b638738f31f66553da157491dfa97ce404b0b40d441fec"
+  "taskset_validation_receipt_digest": "sha256:3cbd6ed39a9d2f5690fb03a6dc24a38d2f5b61ad0883f53ea34b5a455512736e"
 }

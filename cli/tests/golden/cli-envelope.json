@@ -1,9 +1,9 @@
 {
   "command": "climb show",
   "data": {
-    "campaign_spec_digest": "sha256:c547e51773c78daf8f697a9424e218d2f6f8e4e95f5bd0d042c828cbb9be00b5",
+    "campaign_spec_digest": "sha256:eda214ea0693f5d4e069097c39c3a33d0d20815fe567e46e8153e147cfbdb93e",
     "candidate_skill_visibility": "public",
-    "climb_digest": "sha256:91b24bbaf35d6c8df304b2421c1577b66c32a7c6ecb3ccfbea6e03321b0e304c",
+    "climb_digest": "sha256:ee960a5a559bc194aeb935defebc7cf1ef81448d44062e0d01008b0f4c2e03af",
     "compatibility": {
       "compatible": false,
       "engine_status": "not_installed",

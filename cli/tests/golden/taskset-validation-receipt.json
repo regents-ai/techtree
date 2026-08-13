@@ -46,7 +46,7 @@
   },
   "schema_version": "techtree.taskset-validation.v1alpha1",
   "status": "valid",
-  "taskset_lock_digest": "sha256:8d7b70e5668b626171f38fd9b049c8aa70f61cb0dfcb4b4321197942cf7e1db7",
+  "taskset_lock_digest": "sha256:6b9044be827c645e165347bf40d9fcb744c132eb8066c92bb5ed2834d6db5543",
   "upstream_summary": {
     "error": 0,
     "invalid": 0,

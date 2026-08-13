@@ -31,6 +31,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from techtree.canonical import digest_object, sha256_digest_bytes, to_json_value
+from techtree.tasksets.membership import membership_digest
 from techtree.constants import (
     CAMPAIGN_SCHEMA_VERSION,
     CLI_SCHEMA_VERSION,
@@ -204,7 +205,7 @@ def build_taskset_lock() -> TasksetLock:
         engine_digest=fixture_digest("engine-bundle"),
         resolved_package_digest=fixture_digest("reference-package"),
         ordered_task_hashes=hashes,
-        membership_digest=digest_object(hashes),
+        membership_digest=membership_digest(hashes),
         task_count=TASK_COUNT,
     )
 
@@ -358,7 +359,7 @@ def build_campaign_taskset(receipt_digest: Digest) -> CampaignTaskset:
         membership=TaskMembershipCommitment(
             mode="committed",
             ordered_task_hashes=hashes,
-            membership_digest=digest_object(hashes),
+            membership_digest=membership_digest(hashes),
         ),
         validation_receipt_digest=receipt_digest,
     )

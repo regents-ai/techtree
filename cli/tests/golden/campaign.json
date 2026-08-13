@@ -87,7 +87,7 @@
   },
   "taskset": {
     "membership": {
-      "membership_digest": "sha256:a5babda20762855cb67550f4177fab3e94d136fd1322002076f6e0f7b8908dca",
+      "membership_digest": "sha256:e1ec7b463400ebcd7e7c388d384c4eb84a95add186041737a9f00c920c22699b",
       "mode": "committed",
       "ordered_task_hashes": [
         "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
@@ -130,6 +130,6 @@
       "num_tasks": 20,
       "shuffle": false
     },
-    "validation_receipt_digest": "sha256:df0d9c9d3320813293b638738f31f66553da157491dfa97ce404b0b40d441fec"
+    "validation_receipt_digest": "sha256:3cbd6ed39a9d2f5690fb03a6dc24a38d2f5b61ad0883f53ea34b5a455512736e"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "campaign_spec_digest": "sha256:c547e51773c78daf8f697a9424e218d2f6f8e4e95f5bd0d042c828cbb9be00b5",
+  "campaign_spec_digest": "sha256:eda214ea0693f5d4e069097c39c3a33d0d20815fe567e46e8153e147cfbdb93e",
   "configuration": {
     "agents": {
       "subject": {
@@ -79,7 +79,7 @@
     },
     "taskset": {
       "membership": {
-        "membership_digest": "sha256:a5babda20762855cb67550f4177fab3e94d136fd1322002076f6e0f7b8908dca",
+        "membership_digest": "sha256:e1ec7b463400ebcd7e7c388d384c4eb84a95add186041737a9f00c920c22699b",
         "mode": "committed",
         "ordered_task_hashes": [
           "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
@@ -122,15 +122,15 @@
         "num_tasks": 20,
         "shuffle": false
       },
-      "validation_receipt_digest": "sha256:df0d9c9d3320813293b638738f31f66553da157491dfa97ce404b0b40d441fec"
+      "validation_receipt_digest": "sha256:3cbd6ed39a9d2f5690fb03a6dc24a38d2f5b61ad0883f53ea34b5a455512736e"
     }
   },
-  "configuration_digest": "sha256:7b525c3d94247c78741b7ec74387fa3b76a3d94b9cfeed6432ce01de99ba4d5d",
+  "configuration_digest": "sha256:5c57f28efe6c27c166f5844517777e5fa534c850e74d087913c88afb47cac83c",
   "created_at": "2026-01-01T00:00:00Z",
   "id": "receipt_cb5af344e0b2011f02e6008bffddc955",
   "program_ref": null,
   "public_context": {
-    "climb_digest": "sha256:91b24bbaf35d6c8df304b2421c1577b66c32a7c6ecb3ccfbea6e03321b0e304c",
+    "climb_digest": "sha256:ee960a5a559bc194aeb935defebc7cf1ef81448d44062e0d01008b0f4c2e03af",
     "kind": "climb"
   },
   "schema_version": "techtree.experiment.v1alpha1",

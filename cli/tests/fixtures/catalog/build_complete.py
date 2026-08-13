@@ -35,6 +35,7 @@ from typing import Final, Literal
 from pydantic import BaseModel
 
 from techtree.canonical import canonical_json_bytes, digest_object
+from techtree.tasksets.membership import membership_digest
 from techtree.constants import (
     CAMPAIGN_SCHEMA_VERSION,
     CATALOG_SCHEMA_VERSION,
@@ -232,7 +233,7 @@ def build_taskset_lock() -> TasksetLock:
         engine_digest=synthetic_digest("synthetic-engine-bundle"),
         resolved_package_digest=synthetic_digest("synthetic-package-source"),
         ordered_task_hashes=hashes,
-        membership_digest=synthetic_digest("|".join(hashes)),
+        membership_digest=membership_digest(hashes),
         task_count=TASK_COUNT,
     )
 
