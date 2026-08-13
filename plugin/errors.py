@@ -33,6 +33,13 @@ CODE_BOOTSTRAP_POST_INSTALL_VERIFY_FAILED: Final = (
 CODE_BOOTSTRAP_RELEASE_PLACEHOLDER: Final = "bootstrap_release_placeholder"
 CODE_UV_NOT_FOUND: Final = "uv_not_found"
 CODE_CHANNEL_INVALID: Final = "channel_invalid"
+CODE_HOST_LLM_UNAVAILABLE: Final = "host_llm_unavailable"
+CODE_HOST_LLM_OUTPUT_INVALID: Final = "host_llm_output_invalid"
+#: A second completion inside one improvement turn. Decision 0007 and spec
+#: section 8.11: the turn is one shot, and a retry would be a hidden second.
+CODE_HOST_LLM_ALREADY_COMPLETED: Final = "host_llm_already_completed"
+CODE_FOUNDER_SKILL_MISSING: Final = "founder_skill_missing"
+CODE_FOUNDER_SKILL_DIGEST_MISMATCH: Final = "founder_skill_digest_mismatch"
 CODE_UNEXPECTED: Final = "plugin_unexpected_error"
 
 
@@ -159,6 +166,16 @@ def scrub_text(value: str) -> str:
     scrubbed = _QUOTED_SECRET.sub(rf'\1"{REDACTED}"', scrubbed)
     scrubbed = _ENV_SECRET.sub(rf"\1={REDACTED}", scrubbed)
     return _PROVIDER_TOKEN.sub(REDACTED, scrubbed)
+
+
+def contains_secret_material(value: str) -> bool:
+    """Whether this text carries something that looks like a credential.
+
+    Used on files the plugin is about to read out to a model or ship in a
+    release. It is deliberately the same set of patterns the scrubber uses:
+    one definition of "this looks like a secret", checked in both directions.
+    """
+    return scrub_text(value) != value
 
 
 def safe_error_payload(error: Exception) -> dict[str, object]:

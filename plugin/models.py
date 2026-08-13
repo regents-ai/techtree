@@ -579,6 +579,44 @@ def parse_bootstrap_install_plan(value: Mapping[str, Any]) -> BootstrapInstallPl
     )
 
 
+# Revision provenance ------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SkillRevisionProvenance:
+    """What one proposed Skill revision was made from. Decision 0007 R2.
+
+    Every field is a digest or an identifier, and together they answer the only
+    question that matters about a proposal: exactly what was this made from?
+    The parent Skill it revises, the sanitized context it was allowed to see,
+    the complete request that was sent, the answer that came back, the Skill
+    that did the proposing, and which attempt this was — which, for the
+    introductory demo, is always the first and only one.
+    """
+
+    parent_skill_root_digest: str
+    parent_skill_entrypoint_digest: str
+    improvement_context_digest: str
+    host_request_digest: str
+    host_response_digest: str
+    skill_improver_digest: str
+    host_model_id: str
+    revision_attempt: int
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the provenance in the shape a proposal records it."""
+        return {
+            "parent_skill_root_digest": self.parent_skill_root_digest,
+            "parent_skill_entrypoint_digest": self.parent_skill_entrypoint_digest,
+            "improvement_context_digest": self.improvement_context_digest,
+            "host_request_digest": self.host_request_digest,
+            "host_response_digest": self.host_response_digest,
+            "skill_improver_digest": self.skill_improver_digest,
+            "host_model_id": self.host_model_id,
+            "revision_attempt": self.revision_attempt,
+        }
+
+
 # Actions ---------------------------------------------------------------------
 
 

@@ -9,7 +9,8 @@ RUN := $(UV) run
 
 .DEFAULT_GOAL := check
 
-.PHONY: install format format-check lint typecheck doctor schemas release-core \
+.PHONY: install format format-check lint typecheck doctor schemas founder-skills \
+	release-core \
 	release-core-cli \
 	test test-unit test-contract test-cli-contract check
 
@@ -36,6 +37,11 @@ doctor:
 
 schemas:
 	$(RUN) python scripts/export_tool_schemas.py
+
+# Checks the founder Skills against decision 0007's behavioural contracts.
+# Neither exists yet; run it over tests/fixtures/skills to see the shape.
+founder-skills:
+	$(RUN) python scripts/check_founder_skills.py
 
 release-core:
 	$(RUN) python scripts/verify_release_core.py
