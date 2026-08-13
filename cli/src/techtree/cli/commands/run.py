@@ -59,6 +59,10 @@ from techtree.receipts.bundle import (
     REPORT_FILENAME,
     proof_bundle_dir,
 )
+from techtree.receipts.execution import (
+    ComparisonExecutionRecord,
+    read_execution_record,
+)
 from techtree.receipts.verify import LocalProofVerifier
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.launcher import (
@@ -229,10 +233,18 @@ class RunResultPayload(ProtocolModel):
     a machine caller that received only one of them would either have to render
     the evidence itself — inventing the wording this product is careful about —
     or trust a view it cannot check against anything.
+
+    ``execution_record`` is the same argument applied to what the comparison
+    consumed. Decisions document 0007 R6 signs that separately from the
+    report, so the view's cost and timing are checkable against the record
+    they were read from rather than taken on the view's word. It is absent
+    for a run that produced none, which is a fact about the run and not about
+    the result.
     """
 
     report: UpliftReport
     presentation: UpliftPresentationPayload
+    execution_record: ComparisonExecutionRecord | None
     format: ResultFormat
     show_tasks: TaskDisplay
 
@@ -668,9 +680,11 @@ def result_run_command(
             raise
 
         verification = _verify_proof(context, run_id, report) if verify else None
+        record = read_execution_record(proof_bundle_dir(context.paths.run_dir(run_id)))
         payload = RunResultPayload(
             report=report,
-            presentation=_presentation(context, run_id, report, verification),
+            presentation=_presentation(context, run_id, report, verification, record),
+            execution_record=record,
             format=result_format or _default_format(context),
             show_tasks=show_tasks,
         )
@@ -692,6 +706,7 @@ def _presentation(
     run_id: str,
     report: UpliftReport,
     verification: VerificationResult | None,
+    execution_record: ComparisonExecutionRecord | None,
 ) -> UpliftPresentationPayload:
     """Build the channel-neutral payload every rendering of this result uses.
 
@@ -720,6 +735,10 @@ def _presentation(
         baseline_skill=None if baseline_skill is None else baseline_skill.artifact,
         candidate_skill=inputs.candidate_skill.artifact,
         verification=verification,
+        # Decisions 0007 R6's operational record, read from the same bundle
+        # the verification just checked. A run without one is shown as a run
+        # whose economics are unknown, never as one that cost nothing.
+        execution_record=execution_record,
     )
 
 

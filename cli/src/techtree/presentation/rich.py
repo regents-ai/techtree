@@ -47,6 +47,7 @@ from techtree.presentation.build import (
     score_bars,
 )
 from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
+from techtree.receipts.execution import CostProvenance
 
 __all__ = ["TaskDisplay", "outcome_label", "render_uplift_console", "verdict_line"]
 
@@ -216,23 +217,47 @@ def _selected(rows: list[TaskResultRow], show: TaskDisplay) -> list[TaskResultRo
 
 
 def _efficiency(payload: UpliftPresentationPayload, console: Console) -> None:
-    """Tokens and time, when the receipts carry them."""
+    """Tokens, time and cost, each shown only with the source it came from.
+
+    Decisions document 0007 R6 governs the last line: a cost is never printed
+    without saying where the figure is from, because "$4.10" and "$4.10,
+    estimated" are different claims and only one of them is about money that
+    was actually charged.
+    """
+    seconds = _pair(payload.baseline_seconds, payload.candidate_seconds, unit="s")
     console.print("Efficiency")
-    if payload.baseline_tokens is None and payload.candidate_tokens is None:
-        console.print("  Tokens   not recorded in the receipts for this run")
-    else:
-        console.print(
-            f"  Tokens   baseline {payload.baseline_tokens}, "
-            f"candidate {payload.candidate_tokens}"
-        )
-    if payload.baseline_seconds is None and payload.candidate_seconds is None:
-        console.print("  Time     not recorded in the receipts for this run")
-    else:
-        console.print(
-            f"  Time     baseline {payload.baseline_seconds}s, "
-            f"candidate {payload.candidate_seconds}s"
-        )
+    console.print(
+        f"  Tokens   {_pair(payload.baseline_tokens, payload.candidate_tokens)}"
+    )
+    console.print(f"  Time     {seconds}")
+    console.print(f"  Cost     {_cost(payload)}")
+    console.print(f"  Source   {_ECONOMICS_SOURCE[payload.economics_source]}")
     console.print()
+
+
+def _pair(
+    baseline: float | int | None, candidate: float | int | None, *, unit: str = ""
+) -> str:
+    """Return both sides of one measurement, or say it was not recorded."""
+    if baseline is None and candidate is None:
+        return "not recorded for this run"
+    return f"baseline {_number(baseline, unit)}, candidate {_number(candidate, unit)}"
+
+
+def _number(value: float | int | None, unit: str) -> str:
+    """Return one measurement, or the word for an absent one."""
+    if value is None:
+        return "unavailable"
+    if isinstance(value, float):
+        return f"{value:.1f}{unit}"
+    return f"{value}{unit}"
+
+
+def _cost(payload: UpliftPresentationPayload) -> str:
+    """Return the cost and its provenance, or say plainly that there is none."""
+    if payload.cost_usd is None:
+        return "unavailable"
+    return f"${payload.cost_usd:.2f} ({_COST_PROVENANCE[payload.cost_provenance]})"
 
 
 def _what_changed(payload: UpliftPresentationPayload, console: Console) -> None:
@@ -251,6 +276,23 @@ def _what_changed(payload: UpliftPresentationPayload, console: Console) -> None:
         "actually did."
     )
     console.print()
+
+
+#: How each cost provenance is spelled for a person. An estimate says so in
+#: the same breath as the number, which is decisions 0007 R6's requirement.
+_COST_PROVENANCE: Final[dict[CostProvenance, str]] = {
+    CostProvenance.PROVIDER_REPORTED: "reported by the provider",
+    CostProvenance.COMPUTED_FROM_PINNED_PRICE: "computed from the pinned price",
+    CostProvenance.ESTIMATED: "estimated, not billed",
+    CostProvenance.UNAVAILABLE: "unavailable",
+}
+
+#: Where the three numbers above came from, said in the reader's terms.
+_ECONOMICS_SOURCE: Final[dict[str, str]] = {
+    "comparison_execution_record": "this run's signed execution record",
+    "episode_receipts": "the run's receipts; no execution record was written",
+    "unavailable": "nothing recorded it",
+}
 
 
 def _caveats(payload: UpliftPresentationPayload, console: Console) -> None:

@@ -1,24 +1,24 @@
 {
   "absolute_delta": 0.3,
   "baseline_score": 0.3,
-  "baseline_seconds": null,
+  "baseline_seconds": 612.0,
   "baseline_skill": {
     "file_count": 0,
     "label": "No tested Skill",
     "root_digest": null,
     "total_bytes": 0
   },
-  "baseline_tokens": null,
+  "baseline_tokens": 1211350,
   "campaign_title": "Procedure Transfer Development Climb",
   "candidate_score": 0.6,
-  "candidate_seconds": null,
+  "candidate_seconds": 598.0,
   "candidate_skill": {
     "file_count": 2,
     "label": "procedure-transfer-notes",
     "root_digest": "sha256:735d909e6eec92550cef4e4a25daf0e680b6e2b6ef41ba3b1fbd6e8dc35b1c48",
     "total_bytes": 3072
   },
-  "candidate_tokens": null,
+  "candidate_tokens": 1230775,
   "caveats": [
     {
       "code": "comparison_controlled_with_warnings",
@@ -46,13 +46,16 @@
       "text": "No external evidence service is required, used, or contacted."
     },
     {
-      "code": "efficiency_not_recorded",
-      "severity": "info",
-      "text": "Token and time accounting is kept with the run's evaluation output rather than in its receipts, so it is not summarized here."
+      "code": "cost_unavailable",
+      "severity": "warning",
+      "text": "Timing and token counts come from this run's signed execution record. No cost was reported for it and this build pins no price to compute one from, so the cost is unavailable. What the comparison measured is unaffected."
     }
   ],
   "comparison_label": "No tested Skill → Skill v1",
+  "cost_provenance": "unavailable",
+  "cost_usd": null,
   "decision": "accepted",
+  "economics_source": "comparison_execution_record",
   "losses": 2,
   "next_actions": [
     {

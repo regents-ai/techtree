@@ -31,6 +31,7 @@ from techtree.presentation.build import (
     VERIFICATION_VERIFIED,
 )
 from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
+from techtree.receipts.execution import CostProvenance
 
 __all__ = [
     "DEFAULT_MAXIMUM_TASK_ROWS",
@@ -45,6 +46,14 @@ DEFAULT_MAXIMUM_TASK_ROWS: Final = 5
 UNVERIFIED_HEADLINE: Final = (
     "**This run's local proof did not verify. Do not rely on the numbers below.**"
 )
+
+#: How each cost provenance is spelled in one short line.
+_COST_PROVENANCE: Final[dict[CostProvenance, str]] = {
+    CostProvenance.PROVIDER_REPORTED: "reported by the provider",
+    CostProvenance.COMPUTED_FROM_PINNED_PRICE: "computed from the pinned price",
+    CostProvenance.ESTIMATED: "estimated, not billed",
+    CostProvenance.UNAVAILABLE: "unavailable",
+}
 
 _VERIFICATION_PHRASE: Final[dict[str, str]] = {
     VERIFICATION_VERIFIED: "signature verified offline",
@@ -87,6 +96,7 @@ def render_uplift_markdown(
         f"- Ties: {payload.ties}",
         f"- Proof: local {payload.proof_grade}, "
         f"{_VERIFICATION_PHRASE[payload.verification_status]}",
+        f"- Cost: {_cost(payload)}",
         "- Raw episodes: retained locally; not uploaded",
     ]
 
@@ -110,6 +120,18 @@ def render_uplift_markdown(
     lines.append("")
     lines.append(_next_line(payload))
     return "\n".join(lines)
+
+
+def _cost(payload: UpliftPresentationPayload) -> str:
+    """Return the one line a phone gets about money.
+
+    Decisions document 0007 R6 again: the provenance travels with the figure
+    even here, because the channel with the least room is the one where a
+    number is most likely to be read as more than it is.
+    """
+    if payload.cost_usd is None:
+        return "unavailable"
+    return f"${payload.cost_usd:.2f}, {_COST_PROVENANCE[payload.cost_provenance]}"
 
 
 def _next_line(payload: UpliftPresentationPayload) -> str:

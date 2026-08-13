@@ -45,6 +45,14 @@ from techtree.receipts.bundle import (
     proof_bundle_dir,
     receipt_filename,
 )
+from techtree.receipts.execution import (
+    EXECUTION_RECORD_FILENAME,
+    ComparisonExecutionRecord,
+    CostProvenance,
+    PairOutcome,
+    UsageProvenance,
+    read_execution_record,
+)
 from techtree.receipts.verify import LocalProofVerifier, verify_local_bundle
 from techtree.runs.validation import PublisherFixtureValidationProvider
 from techtree.worker.execute import execute_run
@@ -268,3 +276,97 @@ def test_two_runs_on_one_machine_share_the_same_identity(tmp_path: Path) -> None
         ).executor_identity
         == identity
     )
+
+
+# ---------------------------------------------------------------------------
+# The comparison's operational record. Decisions document 0007 R6+R8.
+# ---------------------------------------------------------------------------
+
+
+def test_a_real_run_signs_an_execution_record_into_its_proof(
+    run: StagedRecordedRun,
+) -> None:
+    """The record is written by the run, signed by the run's own key.
+
+    It describes the same comparison the report does, and its numbers come
+    from the run's own evidence: the child processes' recorded start and
+    finish, and the token usage the engine's normalized traces carry.
+    """
+    bundle = bundle_of(run)
+    envelope = ObjectEnvelope[ComparisonExecutionRecord].model_validate_json(
+        (bundle / EXECUTION_RECORD_FILENAME).read_bytes()
+    )
+    record = envelope.payload
+    identity = IdentityStore(run.paths).load_public()
+
+    assert verify_signed_object(
+        identity=identity, envelope=envelope, subject="execution-record"
+    ).verified
+    assert record.run_id == run.run_id
+    assert record.campaign_spec_digest == report_of(run).campaign_spec_digest
+    assert record.execution_backend == "verifiers"
+    assert record.baseline.elapsed_seconds > 0.0
+    assert record.candidate.elapsed_seconds > 0.0
+    assert record.outcome is PairOutcome.COMPLETED
+    # The recorded probes carry real usage, so the record carries real totals.
+    assert record.baseline.usage.provenance is UsageProvenance.NORMALIZED_TRACES
+    assert record.baseline.usage.total_tokens is not None
+    assert record.baseline.usage.traces_with_usage == (
+        record.baseline.usage.traces_total
+    )
+
+
+def test_a_real_runs_record_reports_no_cost_and_says_why(
+    run: StagedRecordedRun,
+) -> None:
+    """Decisions 0007 R6: no price feed, so no figure, and no pretending."""
+    record = read_execution_record(bundle_of(run))
+    assert record is not None
+
+    assert record.baseline.cost.provenance is CostProvenance.UNAVAILABLE
+    assert record.baseline.cost.cost_usd is None
+    assert record.total_cost.provenance is CostProvenance.UNAVAILABLE
+    assert record.total_cost.cost_usd is None
+
+
+def test_the_record_is_in_the_signed_index_and_verified_with_the_bundle(
+    run: StagedRecordedRun,
+) -> None:
+    """Nothing binds a record to a run except the manifest that names it."""
+    bundle = bundle_of(run)
+    manifest = (
+        ObjectEnvelope[LocalProofBundleManifest]
+        .model_validate_json((bundle / BUNDLE_MANIFEST_FILENAME).read_bytes())
+        .payload
+    )
+
+    assert manifest.artifact(EXECUTION_RECORD_FILENAME) is not None
+    result = verify_local_bundle(bundle)
+    assert result.verified
+    assert [
+        message.status
+        for message in result.messages
+        if message.id.startswith("execution_record.")
+    ] == ["passed", "passed"]
+
+
+def test_an_edited_record_fails_the_runs_own_proof(run: StagedRecordedRun) -> None:
+    """The operational record is held to the same standard as the rest.
+
+    The edited field is the pair's elapsed time, which the two recorded probes
+    make plainly non-zero: they ran back to back rather than side by side, so
+    the overlap this fixture records is a true zero and rewriting it to zero
+    would change no bytes at all.
+    """
+    bundle = bundle_of(run)
+    rewrite(
+        bundle / EXECUTION_RECORD_FILENAME,
+        lambda document: document["payload"].update({"elapsed_seconds": 0.0}),
+    )
+
+    result = verify_local_bundle(bundle)
+
+    assert not result.verified
+    assert f"artifact.{EXECUTION_RECORD_FILENAME}" in [
+        message.id for message in result.failures
+    ]

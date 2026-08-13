@@ -21,7 +21,7 @@ from a real evaluation, and a builder that refuses to make one is exactly what
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Final
 
@@ -41,7 +41,7 @@ from techtree.identity.service import IdentityService
 from techtree.identity.store import IdentityStore
 from techtree.manifests.builder import build_experiment_configuration, finalize_manifest
 from techtree.models.base import ArtifactRef, Digest, ObjectEnvelope
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec, VariantSchedule
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import (
     EpisodeReceipt,
@@ -72,12 +72,23 @@ from techtree.receipts.bundle import (
     LocalProofBundleContents,
     write_local_bundle,
 )
+from techtree.receipts.execution import (
+    COMPARISON_EXECUTION_SCHEMA_VERSION,
+    NO_COST_SOURCE,
+    ComparisonExecutionRecord,
+    PairOutcome,
+    UsageProvenance,
+    VariantExecutionSummary,
+    VariantUsage,
+    unavailable_cost,
+)
 from techtree.receipts.set import ReceiptSetManifest, build_receipt_set
 from techtree.receipts.uplift import aggregate_primary_result
 
 __all__ = [
     "PROOF_RUN_ID",
     "RecordedProof",
+    "execution_record",
     "signed_proof",
     "write_proof",
 ]
@@ -109,6 +120,10 @@ class RecordedProof:
     receipts: dict[ExperimentVariant, list[ObjectEnvelope[EpisodeReceipt]]]
     receipt_sets: dict[ExperimentVariant, ReceiptSetManifest]
     report: ObjectEnvelope[UpliftReport]
+    #: Decisions 0007 R6's operational record, when the proof carries one. A
+    #: proof without it is complete, which is the point of the field being
+    #: optional here as well as in the bundle.
+    execution_record: ObjectEnvelope[ComparisonExecutionRecord] | None = None
 
     @property
     def contents(self) -> LocalProofBundleContents:
@@ -123,6 +138,7 @@ class RecordedProof:
             receipt_sets=self.receipt_sets,
             receipts=self.receipts,
             report=self.report,
+            execution_record=self.execution_record,
         )
 
 
@@ -135,6 +151,7 @@ def signed_proof(
     score: ScoreStatus = ScoreStatus.VALID,
     sign_receipts: bool = True,
     sign_report: bool = True,
+    with_execution_record: bool = True,
 ) -> RecordedProof:
     """Build one complete proof, signed by a key created under ``home``.
 
@@ -243,6 +260,92 @@ def signed_proof(
         receipts=sealed,
         receipt_sets=receipt_sets,
         report=sealed_report,
+        execution_record=(
+            identity_service.sign_object(
+                execution_record(
+                    campaign_digest,
+                    {
+                        variant: digest_object(manifest)
+                        for variant, manifest in experiments.items()
+                    },
+                )
+            )
+            if with_execution_record
+            else None
+        ),
+    )
+
+
+def execution_record(
+    campaign_digest: Digest,
+    experiment_digests: dict[ExperimentVariant, Digest],
+    *,
+    run_id: str = PROOF_RUN_ID,
+) -> ComparisonExecutionRecord:
+    """Return the operational record this synthetic comparison would produce.
+
+    Constructed rather than built from an execution, for the same reason the
+    receipts here are: the verifier's tests need a record whose every field
+    they control. What
+    ``tests/unit/test_comparison_execution_record.py`` proves is that the real
+    builder produces this shape from real evidence.
+    """
+    finished = _FIXTURE_INSTANT + timedelta(seconds=90)
+    return ComparisonExecutionRecord(
+        schema_version=COMPARISON_EXECUTION_SCHEMA_VERSION,
+        run_id=run_id,
+        campaign_spec_digest=campaign_digest,
+        engine_digest=synthetic_digest("engine-bundle"),
+        execution_backend="verifiers",
+        schedule=VariantSchedule.PARALLEL,
+        started_at=_FIXTURE_INSTANT,
+        finished_at=finished,
+        elapsed_seconds=90.0,
+        launch_skew_seconds=0.02,
+        first_launched=ExperimentVariant.BASELINE,
+        overlap_seconds=88.0,
+        campaign_max_concurrent=4,
+        outcome=PairOutcome.COMPLETED,
+        baseline=_execution_side(
+            ExperimentVariant.BASELINE, experiment_digests, finished
+        ),
+        candidate=_execution_side(
+            ExperimentVariant.CANDIDATE, experiment_digests, finished
+        ),
+    )
+
+
+def _execution_side(
+    variant: ExperimentVariant,
+    experiment_digests: dict[ExperimentVariant, Digest],
+    finished: datetime,
+) -> VariantExecutionSummary:
+    """Return one side of the fixture's operational record."""
+    return VariantExecutionSummary(
+        variant=variant,
+        started_at=_FIXTURE_INSTANT,
+        finished_at=finished,
+        elapsed_seconds=90.0,
+        exit_code=0,
+        cancelled=False,
+        episode_count=2,
+        max_concurrent=2,
+        usage=VariantUsage(
+            provenance=UsageProvenance.NORMALIZED_TRACES,
+            model_calls=12,
+            input_tokens=2048,
+            cached_input_tokens=0,
+            output_tokens=256,
+            total_tokens=2304,
+            traces_total=2,
+            traces_with_usage=2,
+        ),
+        cost=unavailable_cost(NO_COST_SOURCE),
+        experiment_manifest_digest=experiment_digests[variant],
+        argv_digest=synthetic_digest(f"{variant.value}-argv"),
+        normalized_episodes_digest=synthetic_digest(f"{variant.value}-normalized"),
+        raw_traces_digest=synthetic_digest(f"{variant.value}-raw-traces"),
+        resolved_config_digest=synthetic_digest(f"{variant.value}-resolved-config"),
     )
 
 

@@ -15,10 +15,12 @@ from __future__ import annotations
 import pytest
 
 from fixtures.receipts.pair import RecordedPair, recorded_pair
+from fixtures.receipts.proof import execution_record as fixture_execution_record
 from techtree.canonical import canonical_json_bytes
 from techtree.identity.models import VerificationMessage, VerificationResult
 from techtree.models.campaign import VariantSchedule
 from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.experiment import ExperimentVariant
 from techtree.models.skill import SkillArtifact, SkillFile
 from techtree.models.uplift_report import UpliftReport
 from techtree.presentation.build import (
@@ -36,6 +38,11 @@ from techtree.presentation.models import (
 )
 from techtree.receipts.compare import compare_real_variants
 from techtree.receipts.episode import experiment_variant_of
+from techtree.receipts.execution import (
+    ComparisonExecutionRecord,
+    CostProvenance,
+    VariantCost,
+)
 from techtree.receipts.set import ReceiptSetManifest, build_receipt_set, seal_receipt
 from techtree.receipts.uplift import (
     LocalAttestation,
@@ -189,6 +196,7 @@ def build(
     report: UpliftReport,
     receipts: dict[VariantName, list[EpisodeReceipt]],
     verification: VerificationResult | None = None,
+    execution_record: ComparisonExecutionRecord | None = None,
 ) -> UpliftPresentationPayload:
     return build_uplift_presentation(
         report=report,
@@ -198,6 +206,31 @@ def build(
         baseline_skill=None,
         candidate_skill=candidate_skill(),
         verification=verification,
+        execution_record=execution_record,
+    )
+
+
+def execution_record(
+    report: UpliftReport, *, costs: dict[str, VariantCost] | None = None
+) -> ComparisonExecutionRecord:
+    """Return an operational record for this run, with the cost asked for."""
+    record = fixture_execution_record(
+        report.campaign_spec_digest,
+        {
+            ExperimentVariant.BASELINE: report.baseline_manifest_digest,
+            ExperimentVariant.CANDIDATE: report.candidate_manifest_digest,
+        },
+        run_id=report.run_id,
+    )
+    if costs is None:
+        return record
+    return record.model_copy(
+        update={
+            "baseline": record.baseline.model_copy(update={"cost": costs["baseline"]}),
+            "candidate": record.candidate.model_copy(
+                update={"cost": costs["candidate"]}
+            ),
+        }
     )
 
 
@@ -372,14 +405,81 @@ def test_the_payload_carries_no_hidden_material(
     assert "prompt" not in " ".join(fields)
 
 
-def test_the_efficiency_fields_are_absent_rather_than_invented(
+def test_a_result_without_an_execution_record_says_its_economics_are_unknown(
     report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
 ) -> None:
+    """Decisions 0007 R6: unavailable and warned about, never invented."""
     payload = build(report, receipts, verified())
 
+    assert payload.economics_source == "unavailable"
     assert payload.baseline_tokens is None
     assert payload.candidate_seconds is None
-    assert _caveat(payload, "efficiency_not_recorded").severity == "info"
+    assert payload.cost_usd is None
+    assert payload.cost_provenance is CostProvenance.UNAVAILABLE
+    caveat = _caveat(payload, "operational_evidence_unavailable")
+    assert caveat.severity == "warning"
+    assert "unaffected" in caveat.text
+
+
+def test_a_result_with_an_execution_record_is_sourced_from_it(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """The signed record is the source of timing, tokens and cost."""
+    record = execution_record(report)
+    payload = build(report, receipts, verified(), record)
+
+    assert payload.economics_source == "comparison_execution_record"
+    assert payload.baseline_tokens == record.baseline.usage.total_tokens
+    assert payload.candidate_tokens == record.candidate.usage.total_tokens
+    assert payload.baseline_seconds == record.baseline.elapsed_seconds
+    assert payload.candidate_seconds == record.candidate.elapsed_seconds
+
+
+@pytest.mark.parametrize(
+    ("provenance", "code", "severity"),
+    [
+        (CostProvenance.PROVIDER_REPORTED, "cost_provider_reported", "info"),
+        (
+            CostProvenance.COMPUTED_FROM_PINNED_PRICE,
+            "cost_computed_from_pinned_price",
+            "info",
+        ),
+        (CostProvenance.ESTIMATED, "cost_estimated", "warning"),
+    ],
+)
+def test_every_cost_provenance_reaches_the_payload_with_its_own_caveat(
+    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    provenance: CostProvenance,
+    code: str,
+    severity: str,
+) -> None:
+    """An estimate is labelled as one, in the payload every channel reads."""
+    cost = VariantCost(cost_usd=2.5, provenance=provenance, detail="from the feed")
+    payload = build(
+        report,
+        receipts,
+        verified(),
+        execution_record(report, costs={"baseline": cost, "candidate": cost}),
+    )
+
+    assert payload.cost_usd == 5.0
+    assert payload.cost_provenance is provenance
+    assert _caveat(payload, code).severity == severity
+
+
+def test_a_recorded_run_with_no_cost_says_so_without_touching_the_result(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """What this build produces today: timing and tokens, and no cost."""
+    payload = build(report, receipts, verified(), execution_record(report))
+
+    assert payload.cost_usd is None
+    assert payload.cost_provenance is CostProvenance.UNAVAILABLE
+    assert payload.baseline_tokens is not None
+    caveat = _caveat(payload, "cost_unavailable")
+    assert caveat.severity == "warning"
+    assert "unaffected" in caveat.text
 
 
 def test_the_next_actions_only_name_commands_this_build_has(

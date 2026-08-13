@@ -75,6 +75,10 @@ from techtree.models.episode_receipt import EpisodeReceipt, ScoreStatus
 from techtree.models.experiment import ExperimentManifest, ExperimentVariant
 from techtree.models.uplift_report import ComparisonStatus, UpliftReport
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
+from techtree.receipts.execution import (
+    EXECUTION_RECORD_FILENAME,
+    ComparisonExecutionRecord,
+)
 from techtree.receipts.set import ReceiptSetManifest
 from techtree.receipts.uplift import LocalAttestation
 
@@ -260,6 +264,11 @@ class LocalProofBundleContents:
     receipt_sets: Mapping[ExperimentVariant, ReceiptSetManifest]
     receipts: Mapping[ExperimentVariant, Sequence[ObjectEnvelope[EpisodeReceipt]]]
     report: ObjectEnvelope[UpliftReport]
+    #: Decisions document 0007 R6's operational record, already signed. It is
+    #: optional because it describes what the comparison consumed rather than
+    #: what it measured: a run that could not record its economics still has a
+    #: complete proof of its result, and R6 forbids treating one as the other.
+    execution_record: ObjectEnvelope[ComparisonExecutionRecord] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -306,6 +315,10 @@ def bundle_files(contents: LocalProofBundleContents) -> dict[str, bytes]:
         VALIDATION_RECEIPT_FILENAME: canonical_json_bytes(contents.validation_receipt),
         REPORT_FILENAME: canonical_json_bytes(contents.report),
     }
+    if contents.execution_record is not None:
+        files[EXECUTION_RECORD_FILENAME] = canonical_json_bytes(
+            contents.execution_record
+        )
     for variant in _VARIANT_ORDER:
         files[experiment_filename(variant)] = canonical_json_bytes(
             contents.experiments[variant]

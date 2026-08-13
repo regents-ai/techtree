@@ -31,12 +31,14 @@ from techtree.presentation.compact import (
 )
 from techtree.presentation.models import (
     PRESENTATION_SCHEMA_VERSION,
+    EconomicsSource,
     PresentationCaveat,
     SkillSummary,
     TaskResultRow,
     UpliftPresentationPayload,
 )
 from techtree.presentation.rich import TaskDisplay, render_uplift_console, verdict_line
+from techtree.receipts.execution import CostProvenance
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
@@ -70,6 +72,13 @@ def payload(
     decision: str = "accepted",
     proof_grade: str = "P1",
     verification_status: str = "verified_offline",
+    economics_source: EconomicsSource = "unavailable",
+    baseline_tokens: int | None = None,
+    candidate_tokens: int | None = None,
+    baseline_seconds: float | None = None,
+    candidate_seconds: float | None = None,
+    cost_usd: float | None = None,
+    cost_provenance: CostProvenance = CostProvenance.UNAVAILABLE,
 ) -> UpliftPresentationPayload:
     table = rows(task_count)
     return UpliftPresentationPayload(
@@ -94,10 +103,13 @@ def payload(
         losses=sum(1 for row in table if row.outcome == "loss"),
         ties=sum(1 for row in table if row.outcome == "tie"),
         task_rows=table,
-        baseline_tokens=None,
-        candidate_tokens=None,
-        baseline_seconds=None,
-        candidate_seconds=None,
+        baseline_tokens=baseline_tokens,
+        candidate_tokens=candidate_tokens,
+        baseline_seconds=baseline_seconds,
+        candidate_seconds=candidate_seconds,
+        economics_source=economics_source,
+        cost_usd=cost_usd,
+        cost_provenance=cost_provenance,
         decision=decision,
         proof_grade=proof_grade,
         verification_status=verification_status,
@@ -244,10 +256,59 @@ def test_a_failed_verification_is_visible_in_the_badge() -> None:
 
 
 def test_efficiency_says_it_was_not_recorded_rather_than_showing_zero() -> None:
+    """An unknown number is said to be unknown, never drawn as a zero."""
     text = rendered(payload())
 
-    assert "Tokens   not recorded in the receipts for this run" in text
-    assert "Time     not recorded in the receipts for this run" in text
+    assert "Tokens   not recorded for this run" in text
+    assert "Time     not recorded for this run" in text
+    assert "Cost     unavailable" in text
+    assert "Source   nothing recorded it" in text
+    assert "$" not in text
+
+
+def test_efficiency_shows_what_the_execution_record_recorded() -> None:
+    """Decisions 0007 R6: tokens, time and cost, from the signed record."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_tokens=1_186_432,
+            candidate_tokens=1_204_771,
+            baseline_seconds=612.0,
+            candidate_seconds=598.0,
+            cost_usd=4.1,
+            cost_provenance=CostProvenance.PROVIDER_REPORTED,
+        )
+    )
+
+    assert "Tokens   baseline 1186432, candidate 1204771" in text
+    assert "Time     baseline 612.0s, candidate 598.0s" in text
+    assert "Cost     $4.10 (reported by the provider)" in text
+    assert "Source   this run's signed execution record" in text
+
+
+@pytest.mark.parametrize(
+    ("provenance", "phrase"),
+    [
+        (CostProvenance.PROVIDER_REPORTED, "reported by the provider"),
+        (CostProvenance.COMPUTED_FROM_PINNED_PRICE, "computed from the pinned price"),
+        (CostProvenance.ESTIMATED, "estimated, not billed"),
+    ],
+)
+def test_every_cost_figure_is_shown_with_where_it_came_from(
+    provenance: CostProvenance, phrase: str
+) -> None:
+    """An estimate is never allowed to read as a figure the provider billed."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            cost_usd=4.1,
+            cost_provenance=provenance,
+        )
+    )
+
+    assert f"Cost     $4.10 ({phrase})" in text
+    if provenance is not CostProvenance.PROVIDER_REPORTED:
+        assert "reported by the provider" not in text
 
 
 # ---------------------------------------------------------------------------

@@ -19,13 +19,18 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from fixtures.receipts.proof import RecordedProof, signed_proof, write_proof
-from techtree.canonical import canonical_json_bytes, digest_object
+from techtree.canonical import (
+    canonical_json_bytes,
+    digest_object,
+    sha256_digest_bytes,
+)
 from techtree.identity.models import ExecutorIdentity, VerificationResult
 from techtree.identity.store import IdentityStore
 from techtree.models.base import ObjectEnvelope
@@ -49,6 +54,13 @@ from techtree.receipts.bundle import (
     assess_local_attestation,
     build_local_bundle,
     receipt_filename,
+    write_local_bundle,
+)
+from techtree.receipts.execution import (
+    COMPARISON_EXECUTION_RECORD_INVALID,
+    EXECUTION_RECORD_FILENAME,
+    OPERATIONAL_EVIDENCE_UNAVAILABLE,
+    read_execution_record,
 )
 from techtree.receipts.uplift import LocalAttestation
 from techtree.receipts.verify import LocalProofVerifier, verify_local_bundle
@@ -96,6 +108,7 @@ def test_a_bundle_carries_the_documents_a_reader_needs(bundle: Path) -> None:
         "campaign.json",
         "candidate-experiment.json",
         "candidate-receipt-set.json",
+        "comparison-execution.json",
         "data-policy.json",
         "executor-public.json",
         "receipts/baseline/0000.json",
@@ -501,3 +514,148 @@ def test_the_public_key_travels_with_the_proof(
     )
 
     assert stored == proof.identity
+
+
+# ---------------------------------------------------------------------------
+# The operational record. Decisions document 0007 R6+R8.
+# ---------------------------------------------------------------------------
+
+
+def test_the_execution_record_travels_signed_and_committed_to(
+    bundle: Path, proof: RecordedProof
+) -> None:
+    """It is in the bundle, in the signed index, and readable as itself."""
+    manifest = (
+        ObjectEnvelope[LocalProofBundleManifest]
+        .model_validate_json((bundle / BUNDLE_MANIFEST_FILENAME).read_bytes())
+        .payload
+    )
+    committed = manifest.artifact(EXECUTION_RECORD_FILENAME)
+    stored = read_execution_record(bundle)
+
+    assert committed is not None
+    assert committed.digest == sha256_digest_bytes(
+        (bundle / EXECUTION_RECORD_FILENAME).read_bytes()
+    )
+    assert proof.execution_record is not None
+    assert stored == proof.execution_record.payload
+    assert proof.execution_record.signature is not None
+
+
+def test_a_bundle_with_a_record_verifies_and_says_which_run_it_describes(
+    bundle: Path,
+) -> None:
+    result = verify_local_bundle(bundle)
+    checks = {message.id: message.status for message in result.messages}
+
+    assert result.verified
+    assert checks["execution_record.run"] == "passed"
+    assert checks["execution_record.experiments"] == "passed"
+    assert checks["execution-record.signature"] == "passed"
+
+
+def test_a_bundle_without_a_record_verifies_with_an_operational_warning(
+    tmp_path: Path,
+) -> None:
+    """Decisions 0007 R6: missing economics never invalidates a valid score."""
+    proof = signed_proof(tmp_path / "home", with_execution_record=False)
+    bundle = write_proof(proof, tmp_path / "run")
+
+    result = verify_local_bundle(bundle)
+    warning = next(
+        message
+        for message in result.messages
+        if message.id == "execution_record.present"
+    )
+
+    assert result.verified
+    assert warning.status == "warning"
+    assert warning.code == OPERATIONAL_EVIDENCE_UNAVAILABLE
+    assert "unaffected" in warning.detail
+    assert not (bundle / EXECUTION_RECORD_FILENAME).exists()
+    assert read_execution_record(bundle) is None
+
+
+def test_an_edited_execution_record_is_caught_by_its_digest(bundle: Path) -> None:
+    """The signed index commits to the bytes, so one changed number shows."""
+    rewrite(
+        bundle / EXECUTION_RECORD_FILENAME,
+        lambda document: document["payload"].update({"overlap_seconds": 1.0}),
+    )
+
+    result = verify_local_bundle(bundle)
+
+    assert not result.verified
+    assert f"artifact.{EXECUTION_RECORD_FILENAME}" in failed(result)
+
+
+def test_an_execution_record_resigned_for_another_run_is_refused(
+    tmp_path: Path,
+) -> None:
+    """A record that verifies as bytes still has to be about this comparison."""
+    proof = signed_proof(tmp_path / "home")
+    assert proof.execution_record is not None
+    elsewhere = proof.execution_record.payload.model_copy(
+        update={"run_id": "run_" + "9" * 26}
+    )
+    contents = replace(
+        proof,
+        execution_record=proof.identity_service.sign_object(elsewhere),
+    ).contents
+    bundle = write_local_bundle(
+        run_root=tmp_path / "run",
+        contents=contents,
+        identity_service=proof.identity_service,
+    )
+
+    result = verify_local_bundle(bundle)
+
+    assert not result.verified
+    assert "execution_record.run" in failed(result)
+
+
+def test_an_execution_record_about_other_experiments_is_refused(
+    tmp_path: Path,
+) -> None:
+    """The record accounts for the two experiments the bundle carries."""
+    proof = signed_proof(tmp_path / "home")
+    assert proof.execution_record is not None
+    record = proof.execution_record.payload
+    swapped = record.model_copy(
+        update={
+            "baseline": record.baseline.model_copy(
+                update={"experiment_manifest_digest": f"sha256:{'e' * 64}"}
+            )
+        }
+    )
+    bundle = write_local_bundle(
+        run_root=tmp_path / "run",
+        contents=replace(
+            proof, execution_record=proof.identity_service.sign_object(swapped)
+        ).contents,
+        identity_service=proof.identity_service,
+    )
+
+    result = verify_local_bundle(bundle)
+
+    assert not result.verified
+    assert "execution_record.experiments" in failed(result)
+
+
+def test_a_record_the_manifest_never_named_is_refused(tmp_path: Path) -> None:
+    """Bytes that arrived outside the signed index are not evidence."""
+    proof = signed_proof(tmp_path / "home", with_execution_record=False)
+    bundle = write_proof(proof, tmp_path / "run")
+    smuggled = signed_proof(tmp_path / "other-home").execution_record
+    assert smuggled is not None
+    (bundle / EXECUTION_RECORD_FILENAME).write_bytes(canonical_json_bytes(smuggled))
+
+    result = verify_local_bundle(bundle)
+
+    assert not result.verified
+    assert "execution_record.present" in failed(result)
+    assert [
+        message.code
+        for message in result.failures
+        if message.id == "execution_record.present"
+    ] == [COMPARISON_EXECUTION_RECORD_INVALID]

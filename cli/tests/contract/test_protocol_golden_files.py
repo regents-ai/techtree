@@ -39,6 +39,7 @@ from techtree.models.skill import SkillArtifact
 from techtree.models.uplift_report import UpliftReport
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
 from techtree.presentation.models import UpliftPresentationPayload
+from techtree.receipts.execution import ComparisonExecutionRecord
 from techtree.uplift.context import SkillImprovementContext
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -50,6 +51,10 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "campaign": CampaignSpec,
     "cli-envelope": CliEnvelope[ClimbSummary],
     "climb": ClimbManifest,
+    # Not a protocol object either — decisions 0007 R6 puts the comparison's
+    # operational record outside the frozen v0.1 protocol — and a golden for
+    # the same reason: presentation and the plugin both read this shape.
+    "comparison-execution": ComparisonExecutionRecord,
     "data-policy": DataPolicy,
     "executor-identity": ExecutorIdentity,
     "experiment-baseline": ExperimentManifest,

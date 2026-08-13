@@ -34,9 +34,11 @@ from pydantic import Field, model_validator
 
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.cli import NextAction
+from techtree.receipts.execution import CostProvenance
 
 __all__ = [
     "PRESENTATION_SCHEMA_VERSION",
+    "EconomicsSource",
     "PresentationCaveat",
     "ScoreBar",
     "SkillSummary",
@@ -53,6 +55,19 @@ PRESENTATION_SCHEMA_VERSION: Final = "techtree.presentation.uplift.v1"
 
 type TaskOutcome = Literal["win", "loss", "tie"]
 """Which way one task moved between the two variants."""
+
+
+type EconomicsSource = Literal[
+    "comparison_execution_record",
+    "episode_receipts",
+    "unavailable",
+]
+"""Where the cost and timing on a payload came from, if anywhere.
+
+Decisions document 0007 R6 puts the comparison's economics in a signed record
+of its own. A payload built from a run that has one says so; one built from a
+run that does not says that instead, and never quietly presents a number whose
+source it cannot name."""
 
 
 class ScoreBar(ProtocolModel):
@@ -127,6 +142,9 @@ class UpliftPresentationPayload(ProtocolModel):
     candidate_tokens: int | None
     baseline_seconds: float | None
     candidate_seconds: float | None
+    economics_source: EconomicsSource
+    cost_usd: float | None = Field(default=None, ge=0.0)
+    cost_provenance: CostProvenance
     decision: NonEmptyString
     proof_grade: NonEmptyString
     verification_status: NonEmptyString
@@ -152,5 +170,27 @@ class UpliftPresentationPayload(ProtocolModel):
         if positions != sorted(positions) or len(set(positions)) != len(positions):
             raise ValueError(
                 "task rows are carried in committed task order, each position once"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _check_the_cost_is_never_shown_without_its_source(self) -> Self:
+        """Reject a payload whose cost claims a provenance it does not have.
+
+        Decisions document 0007 R6 forbids exactly one thing about cost: a
+        figure presented as better sourced than it is. The shape enforces the
+        pair here so that no renderer has to remember to.
+        """
+        known = self.cost_usd is not None
+        claims_source = self.cost_provenance is not CostProvenance.UNAVAILABLE
+        if known != claims_source:
+            raise ValueError(
+                "a cost figure needs a provenance and a provenance needs a "
+                f"figure; got {self.cost_usd!r} as {self.cost_provenance.value}"
+            )
+        if known and self.economics_source != "comparison_execution_record":
+            raise ValueError(
+                "a cost figure comes from the signed execution record; a "
+                f"payload sourced from {self.economics_source} has none"
             )
         return self

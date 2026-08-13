@@ -90,6 +90,12 @@ from techtree.receipts.bundle import (
     receipt_set_filename,
 )
 from techtree.receipts.compare import COMPARISON_INVALID
+from techtree.receipts.execution import (
+    COMPARISON_EXECUTION_RECORD_INVALID,
+    EXECUTION_RECORD_FILENAME,
+    OPERATIONAL_EVIDENCE_UNAVAILABLE,
+    ComparisonExecutionRecord,
+)
 from techtree.receipts.set import (
     RECEIPT_SET_INVALID,
     ReceiptSetManifest,
@@ -241,6 +247,11 @@ def verify_local_bundle(path: Path) -> VerificationResult:
 
     # 10. Publication, which never happened and could not have.
     _check_publication(documents.report.payload, checks)
+
+    # The operational record, if this run produced one. Decisions 0007 R6: it
+    # is checked as carefully as everything else and its absence is a warning,
+    # because it says what the comparison consumed rather than what it proved.
+    _check_execution_record(directory, manifest, documents, identity, checks)
 
     # The decisions-0005 section 3.4 conditions, re-derived from these bytes.
     _check_p1_conditions(
@@ -577,6 +588,100 @@ def _check_aggregate(
         if matches
         else (
             "the report states a different result than the one its own receipts produce"
+        ),
+    )
+
+
+def _check_execution_record(
+    directory: Path,
+    manifest: LocalProofBundleManifest,
+    documents: _Documents,
+    identity: ExecutorIdentity,
+    checks: _Checks,
+) -> None:
+    """Check the comparison's operational record, when the bundle carries one.
+
+    Three states, and they mean three different things.
+
+    *The manifest commits to a record.* Then it is held to the same standard as
+    everything else: it parses, its signature verifies against the same key,
+    and it describes this run and these two experiments. A record that fails
+    any of those is a failed check — an operational claim signed into a proof
+    is still a claim.
+
+    *Nothing is there and nothing was promised.* Decisions document 0007 R6:
+    the economics are unknown, the measurement is untouched, and the reader is
+    told so as a warning rather than a failure.
+
+    *A file is there that the manifest never named.* That is a failure. The
+    signed index is what binds a record to this run, and bytes that arrived
+    outside it are not evidence of anything.
+    """
+    committed = manifest.artifact(EXECUTION_RECORD_FILENAME)
+    path = directory / EXECUTION_RECORD_FILENAME
+    if committed is None:
+        present = path.is_file()
+        checks.record(
+            "execution_record.present",
+            _FAILED if present else _WARNING,
+            COMPARISON_EXECUTION_RECORD_INVALID
+            if present
+            else OPERATIONAL_EVIDENCE_UNAVAILABLE,
+            (
+                "this bundle holds a comparison execution record its signed "
+                "manifest does not commit to, so nothing binds it to this run"
+                if present
+                else (
+                    "this bundle carries no comparison execution record, so "
+                    "the cost and timing of this comparison are unavailable; "
+                    "what it measured is unaffected"
+                )
+            ),
+        )
+        return
+
+    envelope = _load_envelope(
+        path, ComparisonExecutionRecord, checks, "execution-record"
+    )
+    if envelope is None:
+        return
+    checks.extend(
+        verify_signed_object(
+            identity=identity, envelope=envelope, subject="execution-record"
+        ).messages
+    )
+
+    record = envelope.payload
+    describes_this_run = (
+        record.run_id == manifest.run_id
+        and record.campaign_spec_digest == manifest.campaign_spec_digest
+    )
+    checks.record(
+        "execution_record.run",
+        _PASSED if describes_this_run else _FAILED,
+        COMPARISON_EXECUTION_RECORD_INVALID,
+        f"the execution record describes run {manifest.run_id}"
+        if describes_this_run
+        else "the execution record describes a different run or Campaign",
+    )
+
+    expected = {
+        variant: digest_object(documents.experiments[variant])
+        for variant in _VARIANT_ORDER
+    }
+    same_experiments = all(
+        record.side(variant).experiment_manifest_digest == expected[variant]
+        for variant in _VARIANT_ORDER
+    )
+    checks.record(
+        "execution_record.experiments",
+        _PASSED if same_experiments else _FAILED,
+        COMPARISON_EXECUTION_RECORD_INVALID,
+        "the execution record accounts for the two experiments this bundle carries"
+        if same_experiments
+        else (
+            "the execution record accounts for different experiments than the "
+            "ones this bundle carries"
         ),
     )
 

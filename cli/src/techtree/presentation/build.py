@@ -35,7 +35,8 @@ command that produces its input rather than a promise to think.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Final
+from dataclasses import dataclass
+from typing import Final, Literal
 
 from techtree.identity.models import VerificationResult
 from techtree.models.cli import NextAction
@@ -49,6 +50,7 @@ from techtree.models.uplift_report import (
 )
 from techtree.presentation.models import (
     PRESENTATION_SCHEMA_VERSION,
+    EconomicsSource,
     PresentationCaveat,
     ScoreBar,
     SkillSummary,
@@ -59,6 +61,11 @@ from techtree.presentation.models import (
 from techtree.presentation.sanitize import (
     ensure_no_hidden_task_material,
     sanitize_label,
+)
+from techtree.receipts.execution import (
+    ComparisonExecutionRecord,
+    CostProvenance,
+    TotalCost,
 )
 
 __all__ = [
@@ -100,6 +107,7 @@ def build_uplift_presentation(
     baseline_skill: SkillArtifact | None,
     candidate_skill: SkillArtifact,
     verification: VerificationResult | None,
+    execution_record: ComparisonExecutionRecord | None = None,
 ) -> UpliftPresentationPayload:
     """Build a channel-neutral presentation payload from a signed report.
 
@@ -108,7 +116,14 @@ def build_uplift_presentation(
     kept apart in ``verification_status`` because "not checked" and "checked
     and failed" are different things to tell somebody, and a development-only
     report has no proof to check at all.
+
+    ``execution_record`` is decisions document 0007 R6's signed operational
+    record, when the run carries one. It is the only source of a cost figure
+    and the preferred source of tokens and timing; a payload built without one
+    says so in ``economics_source`` and carries the operational-evidence
+    caveat rather than a number nobody signed.
     """
+    economics = _economics(execution_record, baseline_receipts, candidate_receipts)
     primary = report.primary_result
     payload = UpliftPresentationPayload(
         schema_version=PRESENTATION_SCHEMA_VERSION,
@@ -125,18 +140,17 @@ def build_uplift_presentation(
         losses=primary.losses,
         ties=primary.ties,
         task_rows=_task_rows(report.task_deltas),
-        # Token and wall-clock accounting is recorded in the engine's
-        # normalized output and is not carried into a receipt, so a
-        # presentation built from signed receipts cannot state it. It is
-        # ``None`` rather than zero, and a caveat says so.
-        baseline_tokens=_tokens(baseline_receipts),
-        candidate_tokens=_tokens(candidate_receipts),
-        baseline_seconds=None,
-        candidate_seconds=None,
+        baseline_tokens=economics.baseline_tokens,
+        candidate_tokens=economics.candidate_tokens,
+        baseline_seconds=economics.baseline_seconds,
+        candidate_seconds=economics.candidate_seconds,
+        economics_source=economics.source,
+        cost_usd=economics.cost.cost_usd,
+        cost_provenance=economics.cost.provenance,
         decision=report.decision.value,
         proof_grade=report.proof_grade,
         verification_status=_verification_status(verification),
-        caveats=_caveats(report, verification),
+        caveats=_caveats(report, verification, economics),
         next_actions=_next_actions(report.run_id, report.proof_grade),
     )
     ensure_no_hidden_task_material(payload)
@@ -236,6 +250,55 @@ def _outcome(delta: TaskDelta) -> TaskOutcome:
     return "tie"
 
 
+@dataclass(frozen=True)
+class _Economics:
+    """What a payload can honestly say about cost and time, and from where."""
+
+    source: EconomicsSource
+    baseline_tokens: int | None
+    candidate_tokens: int | None
+    baseline_seconds: float | None
+    candidate_seconds: float | None
+    cost: TotalCost
+
+
+def _economics(
+    record: ComparisonExecutionRecord | None,
+    baseline_receipts: Sequence[EpisodeReceipt],
+    candidate_receipts: Sequence[EpisodeReceipt],
+) -> _Economics:
+    """Decide what this payload may say about what the comparison consumed.
+
+    Decisions document 0007 R6 makes the signed execution record the source of
+    this, so it is preferred whenever there is one. Without it, the receipts
+    are asked for a token total — they carry one only if the evaluation
+    recorded tokens as a metric — and time and cost are simply not known. In
+    no branch is a number produced that this payload could not name a source
+    for.
+    """
+    if record is not None:
+        return _Economics(
+            source="comparison_execution_record",
+            baseline_tokens=record.baseline.usage.total_tokens,
+            candidate_tokens=record.candidate.usage.total_tokens,
+            baseline_seconds=record.baseline.elapsed_seconds,
+            candidate_seconds=record.candidate.elapsed_seconds,
+            cost=record.total_cost,
+        )
+
+    baseline_tokens = _tokens(baseline_receipts)
+    candidate_tokens = _tokens(candidate_receipts)
+    recorded = baseline_tokens is not None or candidate_tokens is not None
+    return _Economics(
+        source="episode_receipts" if recorded else "unavailable",
+        baseline_tokens=baseline_tokens,
+        candidate_tokens=candidate_tokens,
+        baseline_seconds=None,
+        candidate_seconds=None,
+        cost=TotalCost(cost_usd=None, provenance=CostProvenance.UNAVAILABLE),
+    )
+
+
 def _tokens(receipts: Sequence[EpisodeReceipt]) -> int | None:
     """Return one side's token total when the receipts carry one.
 
@@ -263,7 +326,9 @@ def _verification_status(verification: VerificationResult | None) -> str:
 
 
 def _caveats(
-    report: UpliftReport, verification: VerificationResult | None
+    report: UpliftReport,
+    verification: VerificationResult | None,
+    economics: _Economics,
 ) -> list[PresentationCaveat]:
     """Return everything a reader has to know to read the numbers correctly.
 
@@ -366,17 +431,7 @@ def _caveats(
             text="No external evidence service is required, used, or contacted.",
         )
     )
-    caveats.append(
-        PresentationCaveat(
-            code="efficiency_not_recorded",
-            severity="info",
-            text=(
-                "Token and time accounting is kept with the run's evaluation "
-                "output rather than in its receipts, so it is not summarized "
-                "here."
-            ),
-        )
-    )
+    caveats.append(_economics_caveat(economics))
     if report.decision is UpliftDecision.REJECTED:
         caveats.append(
             PresentationCaveat(
@@ -390,6 +445,78 @@ def _caveats(
             )
         )
     return caveats
+
+
+#: What each cost provenance means to a reader, in the words decisions
+#: document 0007 R6 requires: a computed or estimated figure is never allowed
+#: to read as one the provider billed.
+_COST_CAVEATS: Final[
+    dict[CostProvenance, tuple[str, Literal["info", "warning", "error"], str]]
+] = {
+    CostProvenance.PROVIDER_REPORTED: (
+        "cost_provider_reported",
+        "info",
+        "The cost shown is the figure the provider reported for this "
+        "comparison, taken from its signed execution record.",
+    ),
+    CostProvenance.COMPUTED_FROM_PINNED_PRICE: (
+        "cost_computed_from_pinned_price",
+        "info",
+        "The cost shown was computed from the recorded token usage and the "
+        "price this release pins. The provider did not report it.",
+    ),
+    CostProvenance.ESTIMATED: (
+        "cost_estimated",
+        "warning",
+        "The cost shown is an estimate. It is not a figure the provider "
+        "reported and it is not what you were charged.",
+    ),
+}
+
+
+def _economics_caveat(economics: _Economics) -> PresentationCaveat:
+    """Say where the cost and timing came from, or that they are unknown.
+
+    Decisions document 0007 R6: missing economics is an operational-evidence
+    warning about what is unknown, and never a finding about the measurement.
+    Both sentences below end by saying so, because the reader most likely to
+    meet this caveat is the one who needs to be told that their result still
+    stands.
+    """
+    if economics.source == "comparison_execution_record":
+        named = _COST_CAVEATS.get(economics.cost.provenance)
+        if named is not None:
+            code, severity, text = named
+            return PresentationCaveat(code=code, severity=severity, text=text)
+        return PresentationCaveat(
+            code="cost_unavailable",
+            severity="warning",
+            text=(
+                "Timing and token counts come from this run's signed execution "
+                "record. No cost was reported for it and this build pins no "
+                "price to compute one from, so the cost is unavailable. What "
+                "the comparison measured is unaffected."
+            ),
+        )
+    if economics.source == "episode_receipts":
+        return PresentationCaveat(
+            code="operational_evidence_unavailable",
+            severity="warning",
+            text=(
+                "This run has no signed execution record, so its timing and "
+                "cost are unavailable; the token count shown comes from the "
+                "receipts. What the comparison measured is unaffected."
+            ),
+        )
+    return PresentationCaveat(
+        code="operational_evidence_unavailable",
+        severity="warning",
+        text=(
+            "This run has no signed execution record, so how long it took, "
+            "how many tokens it used and what it cost are all unavailable. "
+            "What the comparison measured is unaffected."
+        ),
+    )
 
 
 def _next_actions(run_id: str, proof_grade: str) -> list[NextAction]:

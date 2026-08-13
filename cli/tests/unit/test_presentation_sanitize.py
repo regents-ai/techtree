@@ -30,6 +30,7 @@ from techtree.presentation.sanitize import (
     sanitize_error_summary,
     sanitize_label,
 )
+from techtree.receipts.execution import CostProvenance
 from techtree.verifiers.models import NormalizedExecutionError
 
 
@@ -70,6 +71,9 @@ def payload(**overrides: object) -> UpliftPresentationPayload:
         "candidate_tokens": None,
         "baseline_seconds": None,
         "candidate_seconds": None,
+        "economics_source": "unavailable",
+        "cost_usd": None,
+        "cost_provenance": CostProvenance.UNAVAILABLE,
         "decision": "accepted",
         "proof_grade": "P1",
         "verification_status": "verified_offline",
