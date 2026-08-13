@@ -486,6 +486,59 @@ def replacement_pair(
     )
 
 
+def test_a_built_replacement_pair_is_controlled(graph: SyntheticGraph) -> None:
+    """The real builders produce a replacement pair the comparison accepts.
+
+    Every other replacement test here works on manifests assembled with
+    ``model_copy``, which is what lets a test build a document the model would
+    refuse. This one uses no such licence: it derives both variants from a
+    replacement Campaign exactly as a run would.
+    """
+    prior = artifact("skill-v1", "d")
+    campaign = graph.campaign.model_copy(
+        update={
+            "mutation_contract": graph.campaign.mutation_contract.model_copy(
+                update={"kind": MutationKind.SKILL_REPLACEMENT}
+            ),
+            "agents": {
+                "subject": graph.campaign.subject.model_copy(
+                    update={
+                        "harness": graph.campaign.subject.harness.model_copy(
+                            update={"skills": [build_skill_reference(prior)]}
+                        )
+                    }
+                )
+            },
+        }
+    )
+    digest = digest_object(campaign)
+
+    comparison = compare_manifests(
+        build_baseline_manifest(
+            campaign=campaign,
+            campaign_digest=digest,
+            public_context=graph.public_context,
+            created_at=PINNED_TIME,
+        ),
+        build_candidate_manifest(
+            campaign=campaign,
+            campaign_digest=digest,
+            skill=artifact("skill-v2", "e"),
+            public_context=graph.public_context,
+            created_at=PINNED_TIME,
+        ),
+        campaign.mutation_contract,
+    )
+
+    assert comparison.controlled
+    # Both skills are one file of the same length, so the content tree digest
+    # is the only thing that differs — which is the whole of the mutation.
+    assert [item.pointer for item in comparison.differences] == [
+        f"{SKILL_MUTATION_POINTER}/0/digest"
+    ]
+    assert_controlled_comparison(comparison)
+
+
 def test_a_replacement_of_one_skill_by_another_is_controlled(
     graph: SyntheticGraph,
 ) -> None:

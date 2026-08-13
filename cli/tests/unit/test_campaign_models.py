@@ -583,6 +583,34 @@ def test_candidate_must_carry_exactly_one_skill() -> None:
         experiment(document)
 
 
+def test_a_replacement_baseline_carries_the_skill_it_replaces() -> None:
+    """Spec section 3.1: what a baseline carries follows from the mutation kind."""
+    document = golden("experiment-candidate")
+    document["variant"] = ExperimentVariant.BASELINE.value
+    document["configuration"]["mutation_contract"]["kind"] = "skill_replacement"
+
+    manifest = experiment(document)
+
+    assert len(manifest.configuration.agents["subject"].harness.skills) == 1
+
+
+def test_a_replacement_baseline_with_no_skill_is_rejected() -> None:
+    document = golden("experiment-baseline")
+    document["configuration"]["mutation_contract"]["kind"] = "skill_replacement"
+
+    with pytest.raises(PydanticValidationError, match="one skill to replace"):
+        experiment(document)
+
+
+def test_a_replacement_candidate_still_carries_exactly_one_skill() -> None:
+    document = golden("experiment-baseline")
+    document["variant"] = ExperimentVariant.CANDIDATE.value
+    document["configuration"]["mutation_contract"]["kind"] = "skill_replacement"
+
+    with pytest.raises(PydanticValidationError, match="exactly one skill"):
+        experiment(document)
+
+
 def test_experiment_configuration_digest_matches_its_configuration() -> None:
     for name in ("experiment-baseline", "experiment-candidate"):
         manifest = experiment(golden(name))

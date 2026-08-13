@@ -31,6 +31,7 @@ from techtree.manifests.builder import (
     build_skill_reference,
     skill_content_digest,
 )
+from techtree.models.base import ArtifactRef
 from techtree.models.campaign import (
     AgentSpec,
     CampaignSpec,
@@ -378,10 +379,17 @@ def test_the_postcondition_catches_a_manifest_that_drifted(
 def _campaign_with_a_skill(campaign: CampaignSpec) -> CampaignSpec:
     """Return a Campaign whose subject already carries a skill.
 
-    Built with ``model_copy`` because the Campaign model refuses to validate
+    Built with ``model_copy`` because an insertion Campaign refuses to validate
     one, and the point of the test is that the builder refuses it too rather
     than relying on the model having been the only gate.
     """
+    return _campaign_carrying(campaign, [build_skill_reference(skill_artifact())])
+
+
+def _campaign_carrying(
+    campaign: CampaignSpec, skills: list[ArtifactRef]
+) -> CampaignSpec:
+    """Return the Campaign with its subject's skill list replaced."""
     subject = campaign.subject
     return campaign.model_copy(
         update={
@@ -393,7 +401,7 @@ def _campaign_with_a_skill(campaign: CampaignSpec) -> CampaignSpec:
                         id=subject.harness.id,
                         version=subject.harness.version,
                         use_bundled_skill=False,
-                        skills=[build_skill_reference(skill_artifact())],
+                        skills=skills,
                     ),
                     runtime=subject.runtime,
                     trainable=subject.trainable,
@@ -401,6 +409,105 @@ def _campaign_with_a_skill(campaign: CampaignSpec) -> CampaignSpec:
             }
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# Skill replacement (spec section 3.1)
+# ---------------------------------------------------------------------------
+
+
+def prior_skill() -> SkillArtifact:
+    """Return the skill a replacement Campaign's baseline already carries."""
+    files = [
+        SkillFile(
+            path="SKILL.md",
+            media_type="text/markdown",
+            size=48,
+            digest=f"sha256:{'d' * 64}",
+        )
+    ]
+    return skill_artifact(files)
+
+
+def replacement_campaign(graph: SyntheticGraph) -> CampaignSpec:
+    """Return the synthetic Campaign as a replacement, baseline skill and all."""
+    widened = graph.campaign.model_copy(
+        update={
+            "mutation_contract": graph.campaign.mutation_contract.model_copy(
+                update={"kind": MutationKind.SKILL_REPLACEMENT}
+            )
+        }
+    )
+    return _campaign_carrying(widened, [build_skill_reference(prior_skill())])
+
+
+def test_a_replacement_campaign_builds_both_variants(graph: SyntheticGraph) -> None:
+    campaign = replacement_campaign(graph)
+    digest = digest_object(campaign)
+
+    baseline = build_baseline_manifest(
+        campaign=campaign,
+        campaign_digest=digest,
+        public_context=graph.public_context,
+        created_at=PINNED_TIME,
+    )
+    candidate = build_candidate_manifest(
+        campaign=campaign,
+        campaign_digest=digest,
+        skill=skill_artifact(),
+        public_context=graph.public_context,
+        created_at=PINNED_TIME,
+    )
+
+    baseline_skills = baseline.configuration.agents["subject"].harness.skills
+    candidate_skills = candidate.configuration.agents["subject"].harness.skills
+    assert [reference.digest for reference in baseline_skills] == [
+        prior_skill().root_digest
+    ]
+    assert [reference.digest for reference in candidate_skills] == [
+        skill_artifact().root_digest
+    ]
+
+
+def test_a_replacement_by_the_same_content_is_refused_at_construction(
+    graph: SyntheticGraph,
+) -> None:
+    campaign = replacement_campaign(graph)
+
+    with pytest.raises(ValidationError) as caught:
+        build_candidate_manifest(
+            campaign=campaign,
+            campaign_digest=digest_object(campaign),
+            skill=prior_skill(),
+            public_context=graph.public_context,
+            created_at=PINNED_TIME,
+        )
+
+    assert caught.value.code == "manifest_build_failed"
+    assert "measure nothing" in caught.value.message
+
+
+@pytest.mark.parametrize("count", [0, 2], ids=["none", "two"])
+def test_a_replacement_campaign_without_exactly_one_baseline_skill_is_refused(
+    graph: SyntheticGraph, count: int
+) -> None:
+    campaign = _campaign_carrying(
+        replacement_campaign(graph),
+        [build_skill_reference(prior_skill()), build_skill_reference(skill_artifact())][
+            :count
+        ],
+    )
+
+    with pytest.raises(ValidationError) as caught:
+        build_baseline_manifest(
+            campaign=campaign,
+            campaign_digest=digest_object(campaign),
+            public_context=graph.public_context,
+            created_at=PINNED_TIME,
+        )
+
+    assert caught.value.code == "manifest_build_failed"
+    assert caught.value.details["skill_count"] == count
 
 
 def test_a_manifest_without_a_public_context_is_still_valid(

@@ -35,6 +35,7 @@ from techtree.models.campaign import (
     EvidenceRequirements,
     ExecutionSpec,
     MutationContract,
+    MutationKind,
     ProgramRef,
     PublicContext,
     ScoringSpec,
@@ -94,15 +95,31 @@ class ExperimentManifest(ProtocolModel):
 
     @model_validator(mode="after")
     def _check_variant_skill_count(self) -> Self:
-        """Hold each variant to the skill count its role requires."""
+        """Hold each variant to the skill count its mutation kind requires."""
         subject = self.configuration.agents.get("subject")
         if subject is None:
             raise ValueError("an experiment configuration defines a subject agent")
         skills = len(subject.harness.skills)
-        if self.variant is ExperimentVariant.BASELINE and skills != 0:
-            raise ValueError("the baseline variant carries no candidate skill")
-        if self.variant is ExperimentVariant.CANDIDATE and skills != 1:
-            raise ValueError("the candidate variant carries exactly one skill")
+
+        if self.variant is ExperimentVariant.CANDIDATE:
+            if skills != 1:
+                raise ValueError("the candidate variant carries exactly one skill")
+            return self
+
+        # What the baseline carries is what the candidate is measured against,
+        # and the mutation kind is what says which that is (spec section 3.1):
+        # nothing for an insertion, the skill being revised for a replacement.
+        # The two sides' root digests are a property of the pair rather than of
+        # one manifest, so they are checked where the pair is — the builder when
+        # one is derived, ``manifests.compare`` when two are read back.
+        if self.configuration.mutation_contract.kind is MutationKind.SKILL_INSERTION:
+            if skills != 0:
+                raise ValueError("the baseline variant carries no candidate skill")
+        elif skills != 1:
+            raise ValueError(
+                "the baseline variant of a skill_replacement carries exactly one "
+                "skill to replace"
+            )
         return self
 
 

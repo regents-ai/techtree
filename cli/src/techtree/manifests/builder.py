@@ -1,9 +1,9 @@
 """Deriving the two experiment variants from one Campaign. Spec PR6 §6.4.
 
 The Campaign is the experiment. A manifest is the Campaign with the one open
-choice made — whether the subject harness carries the candidate skill — and
-nothing else decided differently. Everything in this module exists to keep that
-sentence literally true.
+choice made — which skill the subject harness carries — and nothing else decided
+differently. Everything in this module exists to keep that sentence literally
+true.
 
 Four rules make it true rather than merely intended.
 
@@ -49,6 +49,7 @@ from techtree.models.campaign import (
     AgentSpec,
     CampaignSpec,
     HarnessSpec,
+    MutationKind,
     PublicContext,
 )
 from techtree.models.experiment import (
@@ -94,9 +95,11 @@ def build_experiment_configuration(
 ) -> ExperimentConfiguration:
     """Copy the Campaign scientific fields into an ``ExperimentConfiguration``.
 
-    This is the baseline configuration, because a Campaign describes the
-    subject with no candidate skill. :func:`build_candidate_manifest` produces
-    the other variant by replacing exactly one field of exactly one agent.
+    This is the baseline configuration, because a Campaign describes the subject
+    as the candidate is measured against it — with no skill for an insertion,
+    and with the skill being revised for a replacement.
+    :func:`build_candidate_manifest` produces the other variant by replacing
+    exactly one field of exactly one agent.
     """
     return ExperimentConfiguration(
         taskset=campaign.taskset.model_copy(deep=True),
@@ -166,7 +169,7 @@ def build_baseline_manifest(
 ) -> ExperimentManifest:
     """Build the baseline variant."""
     configuration = build_experiment_configuration(campaign)
-    _require_empty_baseline(configuration, campaign)
+    _require_campaign_baseline(configuration, campaign)
     return finalize_manifest(
         campaign=campaign,
         campaign_digest=campaign_digest,
@@ -195,9 +198,23 @@ def build_candidate_manifest(
     drift: a field this function does not name cannot differ from the baseline.
     """
     configuration = build_experiment_configuration(campaign)
-    _require_empty_baseline(configuration, campaign)
+    baseline_subject = _require_campaign_baseline(configuration, campaign)
+    reference = build_skill_reference(skill)
 
     mutation = campaign.mutation_contract
+    if mutation.kind is MutationKind.SKILL_REPLACEMENT:
+        replaced = baseline_subject.harness.skills[0]
+        if replaced.digest == reference.digest:
+            raise ValidationError(
+                "the replacement skill has the same content tree as the skill it "
+                "replaces, so the pair would measure nothing",
+                code=MANIFEST_BUILD_FAILED,
+                details={
+                    "baseline_root_digest": replaced.digest,
+                    "candidate_root_digest": reference.digest,
+                },
+            )
+
     if not mutation.minimum_skills <= 1 <= mutation.maximum_skills:
         raise ValidationError(
             "this Campaign's mutation contract does not permit a single "
@@ -219,7 +236,7 @@ def build_candidate_manifest(
             id=subject.harness.id,
             version=subject.harness.version,
             use_bundled_skill=subject.harness.use_bundled_skill,
-            skills=[build_skill_reference(skill)],
+            skills=[reference],
         ),
         runtime=subject.runtime,
         trainable=subject.trainable,
@@ -371,10 +388,17 @@ def manifest_id_for(configuration_digest: Digest) -> str:
     return f"{MANIFEST_ID_PREFIX}_{hexadecimal[:_ID_HEX_LENGTH]}"
 
 
-def _require_empty_baseline(
+def _require_campaign_baseline(
     configuration: ExperimentConfiguration, campaign: CampaignSpec
-) -> None:
-    """Fail closed when the Campaign's own subject already carries a skill."""
+) -> AgentSpec:
+    """Fail closed when the Campaign's subject is not the baseline its kind needs.
+
+    An insertion measures a skill against no skill, so its Campaign carries
+    none. A replacement measures a revision against the skill it revises, so its
+    Campaign carries exactly that one. Either way the Campaign *is* the baseline,
+    and a Campaign that is not the baseline its own contract describes has no
+    comparison to offer.
+    """
     target = campaign.mutation_contract.target_agent
     subject = configuration.agents.get(target)
     if subject is None:
@@ -388,10 +412,22 @@ def _require_empty_baseline(
             code=MANIFEST_BUILD_FAILED,
             details=missing,
         )
-    if subject.harness.skills:
+
+    skills = subject.harness.skills
+    if campaign.mutation_contract.kind is MutationKind.SKILL_INSERTION:
+        if skills:
+            raise ValidationError(
+                "the Campaign's own subject already carries a skill, so there is "
+                "no baseline to compare a candidate against",
+                code=MANIFEST_BUILD_FAILED,
+                details={"skill_count": len(skills)},
+            )
+    elif len(skills) != 1:
         raise ValidationError(
-            "the Campaign's own subject already carries a skill, so there is no "
-            "baseline to compare a candidate against",
+            "a skill_replacement Campaign's subject carries exactly the one "
+            "skill the candidate replaces, so there is no baseline to compare a "
+            "candidate against",
             code=MANIFEST_BUILD_FAILED,
-            details={"skill_count": len(subject.harness.skills)},
+            details={"skill_count": len(skills)},
         )
+    return subject
