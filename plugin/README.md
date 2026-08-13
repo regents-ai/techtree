@@ -55,6 +55,25 @@ whether the Techtree CLI and `uv` are present on this machine. A missing CLI is
 a warning with a next step, not a failure: the plugin is meant to work on a
 machine where Techtree was never installed.
 
+## How it talks to Techtree
+
+Every scientific thing this plugin can cause happens by running the `techtree`
+command with a fixed list of arguments and reading back one JSON answer. There
+is no second path: no shell, no imported Techtree code, no network of its own.
+The plugin adds the machine-output flags itself, so an answer is never coloured
+or half-interactive, and it accepts exactly one well-formed answer — anything
+else is treated as the two sides disagreeing about the contract rather than
+something to guess at.
+
+The plugin and the installed Techtree also have to belong to the same release.
+Both carry the identical `release-core.json`, published under the SHA-256 of
+the file itself, so agreement can be checked with `shasum` in either
+repository — or by asking the installed CLI what release it belongs to:
+
+```bash
+make release-core-cli
+```
+
 ## Repository layout
 
 ```text
@@ -65,7 +84,8 @@ constants.py         fixed values; no mutable state
 errors.py            plugin-local errors and secret scrubbing
 models.py            local models and strict parsers
 schemas.py           the model-visible tool schemas
-release.py           embedded release loading and digests
+release.py           the pinned release, its digest, and its cross-checks
+bridge.py            the only path from the plugin into Techtree
 doctor.py            the plugin's own doctor
 commands.py          `/techtree` and `hermes techtree ...` registries
 hooks.py             session lifecycle registry

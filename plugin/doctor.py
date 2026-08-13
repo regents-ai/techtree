@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, Literal
 
+from .bridge import resolve_techtree_binary
 from .constants import (
     CLI_COMMAND,
     MANIFEST_FILENAME,
@@ -269,7 +270,7 @@ def run_plugin_doctor(
     )
     _check_executable(
         checks,
-        path_lookup=path_lookup,
+        located=resolve_techtree_binary(path_lookup=path_lookup),
         name=CLI_COMMAND,
         check_id="techtree_cli",
         label="Techtree CLI",
@@ -281,7 +282,7 @@ def run_plugin_doctor(
     )
     _check_executable(
         checks,
-        path_lookup=path_lookup,
+        located=path_lookup(INSTALLER_EXECUTABLE),
         name=INSTALLER_EXECUTABLE,
         check_id="uv",
         label="uv",
@@ -452,9 +453,10 @@ def _check_release_core(root: Path, checks: list[DoctorCheck]) -> str | None:
         return None
 
     digest = release_core_digest(core)
-    # A release the release tooling has not stamped yet is usable for
-    # development and must never be mistaken for a published one.
-    development = core.release_id.startswith("dev-")
+    # The release document says for itself whether a person has chosen every
+    # coordinate yet. A build carrying an unfinished release is usable, and
+    # must never be mistaken for a published one.
+    development = core.placeholder_release
     checks.append(
         DoctorCheck(
             id="release_core",
@@ -464,8 +466,9 @@ def _check_release_core(root: Path, checks: list[DoctorCheck]) -> str | None:
                 f"release {core.release_id} pins CLI {core.cli_version} "
                 f"and carries digest {digest}"
                 + (
-                    "; this is a development release, so its founder-Skill and "
-                    "commit values are not published ones"
+                    "; it is not a published release yet: "
+                    + ", ".join(core.placeholder_fields)
+                    + " have not been chosen"
                     if development
                     else ""
                 )
@@ -626,14 +629,13 @@ def _check_coverage(
 def _check_executable(
     checks: list[DoctorCheck],
     *,
-    path_lookup: Callable[[str], str | None],
+    located: str | None,
     name: str,
     check_id: str,
     label: str,
     absent_detail: str,
     repair: str,
 ) -> None:
-    located = path_lookup(name)
     checks.append(
         DoctorCheck(
             id=check_id,

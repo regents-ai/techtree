@@ -107,6 +107,8 @@ class DemoSessionState:
 
 RELEASE_CORE_FIELDS: Final = (
     "schema_version",
+    "placeholder_release",
+    "placeholder_fields",
     "release_id",
     "cli_version",
     "cli_source_commit",
@@ -120,6 +122,12 @@ RELEASE_CORE_FIELDS: Final = (
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",
     "subject_hermes_version",
+)
+
+_RELEASE_CORE_STRING_FIELDS: Final = tuple(
+    name
+    for name in RELEASE_CORE_FIELDS
+    if name not in {"placeholder_release", "placeholder_fields"}
 )
 
 _RELEASE_CORE_DIGEST_FIELDS: Final = (
@@ -141,9 +149,22 @@ _RELEASE_CORE_VERSION_FIELDS: Final = (
 
 @dataclass(frozen=True)
 class ReleaseCore:
-    """The frozen release the plugin was built against. Section 6.6."""
+    """The frozen release the plugin was built against. Section 6.6.
+
+    These are the same bytes the installed CLI ships. Two fields beyond the
+    specification's list travel with the document — ``placeholder_release``
+    and ``placeholder_fields`` — because a release is generated before a
+    person has chosen every coordinate, and a document with plausible blanks
+    in it must say so out loud rather than read as a finished release.
+
+    The plugin does not re-derive that declaration. Techtree owns verifying
+    its own release document; the plugin reads it, repeats it, and compares
+    digests.
+    """
 
     schema_version: Literal["techtree.release-core.v1"]
+    placeholder_release: bool
+    placeholder_fields: tuple[str, ...]
     release_id: str
     cli_version: str
     cli_source_commit: str
@@ -158,9 +179,13 @@ class ReleaseCore:
     maximum_tested_host_hermes_version: str
     subject_hermes_version: str
 
-    def to_dict(self) -> dict[str, str]:
-        """Return the release as plain strings in declaration order."""
-        return {name: getattr(self, name) for name in RELEASE_CORE_FIELDS}
+    def to_dict(self) -> dict[str, Any]:
+        """Return the release as JSON-ready values in declaration order."""
+        document: dict[str, Any] = {}
+        for name in RELEASE_CORE_FIELDS:
+            value = getattr(self, name)
+            document[name] = list(value) if isinstance(value, tuple) else value
+        return document
 
 
 def parse_release_core(raw: bytes) -> ReleaseCore:
@@ -201,10 +226,20 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
     if missing:
         raise invalid(f"missing fields {missing}")
 
-    for name in RELEASE_CORE_FIELDS:
+    for name in _RELEASE_CORE_STRING_FIELDS:
         value = decoded[name]
         if not isinstance(value, str) or not value:
             raise invalid(f"field {name!r} is not a non-empty string")
+
+    if not isinstance(decoded["placeholder_release"], bool):
+        raise invalid("field 'placeholder_release' is not a boolean")
+
+    unbound = decoded["placeholder_fields"]
+    if isinstance(unbound, str) or not isinstance(unbound, Sequence):
+        raise invalid("field 'placeholder_fields' is not a list")
+    for name in unbound:
+        if not isinstance(name, str) or name not in RELEASE_CORE_FIELDS:
+            raise invalid(f"field 'placeholder_fields' names {name!r}")
 
     for name in _RELEASE_CORE_DIGEST_FIELDS:
         if not DIGEST_PATTERN.match(decoded[name]):
@@ -223,7 +258,7 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
     if not CLIMB_REFERENCE_PATTERN.match(decoded["intro_climb_reference"]):
         raise invalid("field 'intro_climb_reference' is not a pinned slug@version")
 
-    return ReleaseCore(**decoded)
+    return ReleaseCore(**{**decoded, "placeholder_fields": tuple(unbound)})
 
 
 # CLI boundary ---------------------------------------------------------------
@@ -269,13 +304,32 @@ _CLI_ENVELOPE_FIELDS: Final = (
     "next_actions",
 )
 
+_CLI_MESSAGE_FIELDS: Final = ("level", "code", "text")
+_CLI_MESSAGE_LEVELS: Final = ("info", "warning", "error")
+_CLI_ERROR_FIELDS: Final = ("code", "message", "retryable", "details")
+_CLI_NEXT_ACTION_FIELDS: Final = (
+    "id",
+    "label",
+    "reason",
+    "cli",
+    "hermes_tool",
+    "hermes_args",
+    "requires_user_confirmation",
+)
+
 
 def parse_cli_envelope(raw: str) -> dict[str, Any]:
     """Parse exactly one Techtree CLI JSON envelope.
 
     Machine mode promises one JSON object with no colour and no prompting.
-    Anything else — a second record, ANSI, a bare array, a missing field — is
-    a contract failure rather than something to salvage.
+    Anything else — a second record, ANSI, a missing field, a field the
+    contract does not have — is a contract failure rather than something to
+    salvage.
+
+    Unknown fields are rejected on purpose. The published envelope schema is
+    closed, so a field this plugin has never heard of means the CLI and the
+    plugin no longer agree about the contract. That is a decision for a person
+    to record, not something a bridge should quietly pass through.
 
     Raises:
         CliEnvelopeError: when the output is not one valid envelope.
@@ -302,6 +356,12 @@ def parse_cli_envelope(raw: str) -> dict[str, Any]:
     if missing:
         raise CliEnvelopeError(f"CLI envelope is missing fields {missing}")
 
+    unknown = sorted(set(decoded) - set(_CLI_ENVELOPE_FIELDS))
+    if unknown:
+        raise CliEnvelopeError(
+            f"CLI envelope carries fields this plugin release does not know: {unknown}"
+        )
+
     if decoded["schema_version"] != SUPPORTED_CLI_SCHEMA:
         raise CliEnvelopeError(
             f"CLI envelope schema {decoded['schema_version']!r} is not "
@@ -311,12 +371,92 @@ def parse_cli_envelope(raw: str) -> dict[str, Any]:
         raise CliEnvelopeError("CLI envelope field 'ok' is not a boolean")
     if not isinstance(decoded["command"], str) or not decoded["command"]:
         raise CliEnvelopeError("CLI envelope field 'command' is not a command name")
-    for name in ("messages", "warnings", "next_actions"):
-        if not isinstance(decoded[name], list):
-            raise CliEnvelopeError(f"CLI envelope field {name!r} is not a list")
+
+    for name in ("messages", "warnings"):
+        _require_list(decoded, name)
+        for entry in decoded[name]:
+            _check_message(entry, name)
+
+    _require_list(decoded, "next_actions")
+    for entry in decoded["next_actions"]:
+        _check_next_action(entry)
+
+    _check_error(decoded["error"], reported_ok=decoded["ok"])
 
     result: dict[str, Any] = decoded
     return result
+
+
+def _require_list(envelope: Mapping[str, Any], name: str) -> None:
+    if not isinstance(envelope[name], list):
+        raise CliEnvelopeError(f"CLI envelope field {name!r} is not a list")
+
+
+def _check_fields(
+    value: Any, expected: Sequence[str], description: str
+) -> Mapping[str, Any]:
+    if not isinstance(value, dict):
+        raise CliEnvelopeError(f"CLI envelope {description} is not an object")
+    missing = sorted(set(expected) - set(value))
+    unknown = sorted(set(value) - set(expected))
+    if missing:
+        raise CliEnvelopeError(f"CLI envelope {description} is missing {missing}")
+    if unknown:
+        raise CliEnvelopeError(f"CLI envelope {description} carries {unknown}")
+    mapping: Mapping[str, Any] = value
+    return mapping
+
+
+def _check_message(value: Any, name: str) -> None:
+    message = _check_fields(value, _CLI_MESSAGE_FIELDS, f"{name} entry")
+    if message["level"] not in _CLI_MESSAGE_LEVELS:
+        raise CliEnvelopeError(
+            f"CLI envelope {name} entry has level {message['level']!r}"
+        )
+    if not isinstance(message["text"], str) or not message["text"]:
+        raise CliEnvelopeError(f"CLI envelope {name} entry has no text")
+    if message["code"] is not None and not isinstance(message["code"], str):
+        raise CliEnvelopeError(f"CLI envelope {name} entry has a non-string code")
+
+
+def _check_next_action(value: Any) -> None:
+    action = _check_fields(value, _CLI_NEXT_ACTION_FIELDS, "next action")
+    for name in ("id", "label", "reason"):
+        if not isinstance(action[name], str) or not action[name]:
+            raise CliEnvelopeError(f"CLI envelope next action has no {name}")
+    if not isinstance(action["requires_user_confirmation"], bool):
+        raise CliEnvelopeError(
+            "CLI envelope next action does not say whether it needs confirmation"
+        )
+    command = action["cli"]
+    if command is not None:
+        if isinstance(command, str) or not isinstance(command, Sequence):
+            raise CliEnvelopeError("CLI envelope next action 'cli' is not an argv list")
+        for argument in command:
+            if not isinstance(argument, str) or not argument:
+                raise CliEnvelopeError(
+                    "CLI envelope next action 'cli' holds an empty argument"
+                )
+
+
+def _check_error(value: Any, *, reported_ok: bool) -> None:
+    if value is None:
+        if not reported_ok:
+            raise CliEnvelopeError("CLI envelope reports failure with no error")
+        return
+    if reported_ok:
+        raise CliEnvelopeError("CLI envelope reports success and an error")
+
+    error = _check_fields(value, _CLI_ERROR_FIELDS, "error")
+    for name in ("code", "message"):
+        if not isinstance(error[name], str) or not error[name]:
+            raise CliEnvelopeError(f"CLI envelope error has no {name}")
+    if not isinstance(error["retryable"], bool):
+        raise CliEnvelopeError(
+            "CLI envelope error does not say whether it is retryable"
+        )
+    if not isinstance(error["details"], dict):
+        raise CliEnvelopeError("CLI envelope error details are not an object")
 
 
 # Bootstrap -------------------------------------------------------------------

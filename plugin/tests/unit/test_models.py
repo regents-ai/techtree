@@ -26,8 +26,10 @@ from techtree_hermes.release import (
     release_core_digest,
 )
 
-VALID_RELEASE_CORE: dict[str, str] = {
+VALID_RELEASE_CORE: dict[str, Any] = {
     "schema_version": "techtree.release-core.v1",
+    "placeholder_release": False,
+    "placeholder_fields": [],
     "release_id": "test-release",
     "cli_version": "0.1.0",
     "cli_source_commit": "a" * 40,
@@ -42,6 +44,12 @@ VALID_RELEASE_CORE: dict[str, str] = {
     "maximum_tested_host_hermes_version": "0.20.0",
     "subject_hermes_version": "0.20.0",
 }
+
+#: The digest the release above is published under, taken over its one stored
+#: spelling. A change here means the release document contract changed.
+RELEASE_DIGEST_GOLDEN = (
+    "sha256:95c515057d8cc04a00b84ffc938b8162c6c4aaedb02e7817887d5611def7c04f"
+)
 
 VALID_ENVELOPE: dict[str, Any] = {
     "schema_version": "techtree.cli.v1",
@@ -84,7 +92,8 @@ def test_a_complete_release_parses() -> None:
     assert core.cli_version == "0.1.0"
 
 
-def test_the_release_digest_is_stable_and_order_independent() -> None:
+def test_the_release_digest_does_not_depend_on_how_the_file_was_written() -> None:
+    """Two writers of the same release agree, because the spelling is one."""
     shuffled = dict(reversed(list(VALID_RELEASE_CORE.items())))
 
     first = release_core_digest(parse_release_core(_release_bytes()))
@@ -93,9 +102,7 @@ def test_the_release_digest_is_stable_and_order_independent() -> None:
     )
 
     assert first == second
-    assert first == (
-        "sha256:61bc688eb9485da0f0eec78789dfe930b502fa12274dd02bcae96717ad92910a"
-    )
+    assert first == RELEASE_DIGEST_GOLDEN
 
 
 def test_the_embedded_release_is_valid() -> None:
@@ -176,6 +183,101 @@ def test_a_truncated_envelope_is_rejected() -> None:
 
     with pytest.raises(CliEnvelopeError, match="missing fields"):
         parse_cli_envelope(json.dumps(partial))
+
+
+def test_a_field_the_contract_does_not_have_is_rejected() -> None:
+    """A newer CLI is a decision for a person, not a silent pass-through."""
+    envelope = {**VALID_ENVELOPE, "upload_receipt_url": "https://example.test"}
+
+    with pytest.raises(CliEnvelopeError, match="does not know"):
+        parse_cli_envelope(json.dumps(envelope))
+
+
+@pytest.mark.parametrize(
+    ("entry", "expected"),
+    [
+        ({"level": "info", "text": "hello"}, "missing"),
+        ({"level": "shout", "code": None, "text": "hello"}, "level"),
+        ({"level": "info", "code": None, "text": ""}, "no text"),
+        ({"level": "info", "code": 7, "text": "hello"}, "non-string code"),
+    ],
+)
+def test_a_malformed_message_is_rejected(entry: dict[str, Any], expected: str) -> None:
+    with pytest.raises(CliEnvelopeError, match=expected):
+        parse_cli_envelope(json.dumps({**VALID_ENVELOPE, "messages": [entry]}))
+
+
+def _next_action(**overrides: Any) -> dict[str, Any]:
+    action: dict[str, Any] = {
+        "id": "list_climbs",
+        "label": "Browse the available Climbs",
+        "reason": "This host is ready.",
+        "cli": ["techtree", "climb", "list"],
+        "hermes_tool": None,
+        "hermes_args": None,
+        "requires_user_confirmation": False,
+    }
+    action.update(overrides)
+    return action
+
+
+def test_a_complete_next_action_is_accepted() -> None:
+    envelope = parse_cli_envelope(
+        json.dumps({**VALID_ENVELOPE, "next_actions": [_next_action()]})
+    )
+
+    assert envelope["next_actions"][0]["id"] == "list_climbs"
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        ({"label": ""}, "no label"),
+        ({"requires_user_confirmation": "no"}, "needs confirmation"),
+        ({"cli": "techtree climb list"}, "argv list"),
+        ({"cli": ["techtree", ""]}, "empty argument"),
+    ],
+)
+def test_a_malformed_next_action_is_rejected(
+    overrides: dict[str, Any], expected: str
+) -> None:
+    action = _next_action(**overrides)
+
+    with pytest.raises(CliEnvelopeError, match=expected):
+        parse_cli_envelope(json.dumps({**VALID_ENVELOPE, "next_actions": [action]}))
+
+
+def test_a_failure_must_carry_its_error() -> None:
+    with pytest.raises(CliEnvelopeError, match="failure with no error"):
+        parse_cli_envelope(json.dumps({**VALID_ENVELOPE, "ok": False}))
+
+
+def test_a_success_must_not_carry_an_error() -> None:
+    error = {
+        "code": "climb_not_found",
+        "message": "no such Climb",
+        "retryable": False,
+        "details": {},
+    }
+
+    with pytest.raises(CliEnvelopeError, match="success and an error"):
+        parse_cli_envelope(json.dumps({**VALID_ENVELOPE, "error": error}))
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        ({"code": "x", "message": "y", "retryable": False}, "missing"),
+        ({"code": "", "message": "y", "retryable": False, "details": {}}, "no code"),
+        ({"code": "x", "message": "y", "retryable": "no", "details": {}}, "retryable"),
+        ({"code": "x", "message": "y", "retryable": True, "details": []}, "details"),
+    ],
+)
+def test_a_malformed_error_is_rejected(error: dict[str, Any], expected: str) -> None:
+    envelope = {**VALID_ENVELOPE, "ok": False, "error": error}
+
+    with pytest.raises(CliEnvelopeError, match=expected):
+        parse_cli_envelope(json.dumps(envelope))
 
 
 # Install plans ----------------------------------------------------------------

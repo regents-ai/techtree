@@ -10,6 +10,7 @@ RUN := $(UV) run
 .DEFAULT_GOAL := check
 
 .PHONY: install format format-check lint typecheck doctor schemas release-core \
+	release-core-cli \
 	test test-unit test-contract test-cli-contract check
 
 install:
@@ -38,6 +39,10 @@ schemas:
 
 release-core:
 	$(RUN) python scripts/verify_release_core.py
+
+# Asks the installed Techtree CLI which release it belongs to, and compares.
+release-core-cli:
+	$(RUN) python scripts/verify_release_core.py --against-installed-cli
 
 test:
 	$(RUN) pytest

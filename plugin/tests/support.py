@@ -1,16 +1,36 @@
-"""Test doubles for the host.
+"""Test doubles for the host and for the Techtree CLI.
 
 The recording context stands in for Hermes' ``PluginContext``. Its method
 signatures match the host's, so a registration that works here works there,
 and anything a real host would act on — dispatching a tool in particular —
 fails loudly, because registration is not allowed to do it.
+
+The fake CLI is a real executable named ``techtree``, written into a temporary
+directory that a test puts on PATH. Using a real process rather than a patched
+``subprocess`` is deliberate: it is the only way to prove the bridge builds the
+argv it claims to, runs without a shell, and survives whatever the CLI writes.
 """
 
 from __future__ import annotations
 
+import json
+import os
+import stat
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+VALID_ENVELOPE: dict[str, Any] = {
+    "schema_version": "techtree.cli.v1",
+    "command": "doctor",
+    "ok": True,
+    "data": {"checks": []},
+    "error": None,
+    "messages": [],
+    "warnings": [],
+    "next_actions": [],
+}
 
 
 @dataclass(frozen=True)
@@ -94,3 +114,58 @@ class RecordingContext:
 
     def dispatch_tool(self, tool_name: str, args: dict[str, Any], **kwargs: Any) -> str:
         raise AssertionError(f"registration dispatched the tool {tool_name!r}")
+
+
+@dataclass(frozen=True)
+class FakeCli:
+    """A Techtree CLI stand-in installed on a temporary PATH."""
+
+    directory: Path
+    argv_log: Path
+
+    def recorded_argv(self) -> list[list[str]]:
+        """Return the argv of every call the fake CLI received."""
+        if not self.argv_log.is_file():
+            return []
+        return [
+            json.loads(line)
+            for line in self.argv_log.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+
+
+def install_fake_cli(
+    directory: Path,
+    *,
+    body: str,
+    monkeypatch: Any,
+) -> FakeCli:
+    """Write an executable named ``techtree`` and put it first on PATH.
+
+    ``body`` is Python source run with the invocation's argv in ``argv``. It
+    prints whatever the test wants the CLI to answer.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    argv_log = directory / "argv.jsonl"
+    script = directory / "techtree"
+    script.write_text(
+        "#!"
+        + sys.executable
+        + "\n"
+        + "import json, os, sys\n"
+        + "argv = sys.argv[1:]\n"
+        + f"log = {str(argv_log)!r}\n"
+        + "open(log, 'a', encoding='utf-8').write(json.dumps(argv) + '\\n')\n"
+        + body
+        + "\n",
+        encoding="utf-8",
+    )
+    script.chmod(script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    monkeypatch.setenv("PATH", f"{directory}{os.pathsep}{os.environ.get('PATH', '')}")
+    return FakeCli(directory=directory, argv_log=argv_log)
+
+
+def print_envelope(**overrides: Any) -> str:
+    """Return fake-CLI source that prints one valid envelope."""
+    envelope = {**VALID_ENVELOPE, **overrides}
+    return f"print(json.dumps({envelope!r}))"

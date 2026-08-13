@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..bridge import CliBridge
 from ..constants import PLUGIN_ROOT
 from ..models import ReleaseCore
 from ..release import load_embedded_release_core, release_core_digest
@@ -24,6 +25,7 @@ class PluginServices:
     root: Path
     release_core: ReleaseCore
     release_core_digest: str
+    bridge: CliBridge
 
 
 def build_services(ctx: Any, *, root: Path = PLUGIN_ROOT) -> PluginServices:
@@ -39,4 +41,5 @@ def build_services(ctx: Any, *, root: Path = PLUGIN_ROOT) -> PluginServices:
         root=root,
         release_core=release_core,
         release_core_digest=release_core_digest(release_core),
+        bridge=CliBridge(),
     )
