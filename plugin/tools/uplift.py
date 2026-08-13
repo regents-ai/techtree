@@ -15,12 +15,17 @@ from ..approvals import (
     policy_acceptance_args,
     require_displayed_review,
 )
+from ..channels import is_gateway_safe_required
 from ..diff import build_skill_diff
 from ..errors import PluginError
 from ..llm import HermesHostLlm
 from ..services.improvement import ImprovementService
 from ..services.proposal import ProposalService
-from ..services.session import update_after_second_prepare, update_after_second_start
+from ..services.session import (
+    update_after_proposal,
+    update_after_second_prepare,
+    update_after_second_start,
+)
 from ..state import latest_session, save_session, session_payload
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import (
@@ -85,7 +90,11 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         save_session(services, _spend(session))
         raise error
 
-    save_session(services, proposal.session)
+    # One revision now exists. It is not prepared, and nothing has run.
+    session = update_after_proposal(
+        proposal.session, proposal_id=proposal.provenance.host_response_digest
+    )
+    save_session(services, session)
 
     staged = ProposalService(bridge=services.bridge).write_temporary_skill(
         demo_id=proposal.session.demo_id, output=proposal.output
@@ -105,9 +114,7 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         channel=channel,
     )
 
-    session = update_after_second_prepare(
-        proposal.session, {"ok": True, "data": prepared}
-    )
+    session = update_after_second_prepare(session, {"ok": True, "data": prepared})
     save_session(services, session)
 
     services.reviews.save(
@@ -119,12 +126,20 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         )
     )
 
+    written = proposal.output.to_dict()
+    if is_gateway_safe_required(channel):
+        # The whole revised Skill will not fit in a chat message, and the diff
+        # is what an approval actually turns on. The Skill itself is staged in
+        # Techtree and readable in a terminal.
+        written.pop("revised_skill_markdown", None)
+        written["revised_skill_available_in_terminal"] = True
+
     return tool_result(
         {
             "ok": True,
             "command": "uplift propose",
             "demo": session_payload(session),
-            "proposal": proposal.output.to_dict(),
+            "proposal": written,
             "provenance": proposal.provenance.to_dict(),
             "diff": difference.to_dict(),
             "draft_id": prepared["draft_id"],

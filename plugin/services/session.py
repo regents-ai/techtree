@@ -12,9 +12,56 @@ import secrets
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Final
 
+from ..errors import PluginError
 from ..models import DemoSessionState, DemoStage, ReleaseCore
+
+#: Which stage may follow which. Specification section 8.18.
+#:
+#: The table is here rather than in the callers because section 10.4 forbids
+#: particular jumps outright — an install plan never becomes an installation,
+#: a prepared draft never becomes a started run, a first result never becomes
+#: a proposal, a proposal never becomes a second run — and every one of those
+#: is a person's decision. A transition that is not in this table cannot
+#: happen by accident, because it cannot happen at all.
+ALLOWED_TRANSITIONS: Mapping[DemoStage, frozenset[DemoStage]] = {
+    DemoStage.PLUGIN_READY: frozenset(
+        {DemoStage.CLI_INSTALL_REQUIRED, DemoStage.CLI_READY}
+    ),
+    DemoStage.CLI_INSTALL_REQUIRED: frozenset({DemoStage.CLI_READY}),
+    DemoStage.CLI_READY: frozenset({DemoStage.FIRST_DRAFT_PREPARED}),
+    DemoStage.FIRST_DRAFT_PREPARED: frozenset({DemoStage.FIRST_RUN_ACTIVE}),
+    DemoStage.FIRST_RUN_ACTIVE: frozenset(
+        {DemoStage.FIRST_RESULT_READY, DemoStage.FAILED, DemoStage.CANCELLED}
+    ),
+    DemoStage.FIRST_RESULT_READY: frozenset({DemoStage.REVISION_PROPOSAL_READY}),
+    DemoStage.REVISION_PROPOSAL_READY: frozenset({DemoStage.SECOND_DRAFT_PREPARED}),
+    DemoStage.SECOND_DRAFT_PREPARED: frozenset({DemoStage.SECOND_RUN_ACTIVE}),
+    DemoStage.SECOND_RUN_ACTIVE: frozenset(
+        {DemoStage.COMPLETE, DemoStage.FAILED, DemoStage.CANCELLED}
+    ),
+    DemoStage.COMPLETE: frozenset(),
+    DemoStage.FAILED: frozenset(),
+    DemoStage.CANCELLED: frozenset(),
+}
+
+CODE_STAGE_INVALID: Final = "demo_stage_invalid"
+
+
+def require_transition(current: DemoStage, target: DemoStage) -> None:
+    """Refuse a stage change the guided introduction does not allow.
+
+    Raises:
+        PluginError: when nothing in the journey goes from here to there.
+    """
+    if target is current:
+        return
+    if target not in ALLOWED_TRANSITIONS.get(current, frozenset()):
+        raise PluginError(
+            f"a guided comparison does not go from {current.value} to {target.value}",
+            code=CODE_STAGE_INVALID,
+        )
 
 
 def create_demo_session(
@@ -94,6 +141,13 @@ def update_after_second_start(
     )
 
 
+def update_after_proposal(
+    session: DemoSessionState, *, proposal_id: str | None = None
+) -> DemoSessionState:
+    """Record that one revision has been proposed, before it is prepared."""
+    return _advance(session, DemoStage.REVISION_PROPOSAL_READY, proposal_id=proposal_id)
+
+
 def update_after_second_prepare(
     session: DemoSessionState, envelope: Mapping[str, Any]
 ) -> DemoSessionState:
@@ -109,6 +163,7 @@ def update_after_second_prepare(
 def _advance(
     session: DemoSessionState, stage: DemoStage, **changes: Any
 ) -> DemoSessionState:
+    require_transition(session.stage, stage)
     return replace(session, stage=stage, updated_at=_now(), **changes)
 
 

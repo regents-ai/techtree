@@ -339,7 +339,7 @@ def test_a_failed_result_call_does_not_mark_a_result_ready() -> None:
 
 
 def test_the_second_run_counts_the_revision() -> None:
-    session = _session_at(DemoStage.FIRST_RESULT_READY, first_run_id=RUN_ID)
+    session = _session_at(DemoStage.SECOND_DRAFT_PREPARED, first_run_id=RUN_ID)
 
     session = update_after_second_start(
         session, {"ok": True, "data": {"run_id": SECOND_RUN_ID, "draft_id": DRAFT_ID}}
