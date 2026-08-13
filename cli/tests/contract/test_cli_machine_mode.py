@@ -263,7 +263,9 @@ def test_a_registered_command_names_itself_in_one_envelope(
 
 @pytest.mark.parametrize(
     "namespace",
-    ["program", "blueprint", "forge", "verify", "uplift", "trace", "lab"],
+    # ``uplift`` is no longer here: spec section 7.21 gives it real commands,
+    # and a name with commands behind it is not a reserved one.
+    ["program", "blueprint", "forge", "verify", "trace", "lab"],
 )
 def test_a_reserved_namespace_is_not_registered(techtree: Any, namespace: str) -> None:
     result = techtree(namespace, "--json")

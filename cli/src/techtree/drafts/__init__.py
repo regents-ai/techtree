@@ -8,11 +8,17 @@ those variants differ only where permitted, the snapshotted candidate skill,
 and the rights the participant is being asked to accept. Once written it is
 never edited. A change of mind is a new draft.
 
-Two modules divide the work:
+Three modules divide the work:
 
 :mod:`techtree.drafts.confirmation`
     Proof of intent. A single-use token, held only as a SHA-256 hash, bound to
     the digest of one complete draft and valid for fifteen minutes.
+
+:mod:`techtree.drafts.source`
+    What a draft is prepared against: a Campaign, its DataPolicy, its
+    publisher validation receipt, and the public Climb that invited it when
+    there is one. A Skill replacement (spec section 7.19) is derived locally
+    and no Climb wraps it, so the Climb is the one part that may be absent.
 
 :mod:`techtree.drafts.store`
     Placement, verification, and the start claim. Where each file lives under

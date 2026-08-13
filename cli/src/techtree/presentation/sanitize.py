@@ -44,6 +44,7 @@ from techtree.verifiers.models import NormalizedExecutionError
 
 __all__ = [
     "PRESENTATION_REDACTION_FAILED",
+    "ensure_no_control_or_local_path",
     "ensure_no_hidden_task_material",
     "ensure_no_secret_patterns",
     "sanitize_error_summary",
@@ -116,6 +117,28 @@ def ensure_no_secret_patterns(value: str) -> None:
     )
 
 
+def ensure_no_control_or_local_path(value: str, *, field: str) -> None:
+    """Raise when one string would carry a terminal command or a local path.
+
+    Shared by the presentation payload and by spec section 7.18's improvement
+    context, because the two answer the same question about their free text:
+    a payload is read by a terminal and a context is read by a model, and
+    neither may be handed an escape sequence or somebody's home directory.
+    """
+    if _ANSI.search(value) or _CONTROL.search(value):
+        raise ValidationError(
+            "a result rendering may not carry terminal control sequences",
+            code=PRESENTATION_REDACTION_FAILED,
+            details={"field": field},
+        )
+    if _ABSOLUTE_PATH.search(value):
+        raise ValidationError(
+            "a result rendering may not name an absolute local path",
+            code=PRESENTATION_REDACTION_FAILED,
+            details={"field": field},
+        )
+
+
 def ensure_no_hidden_task_material(payload: UpliftPresentationPayload) -> None:
     """Check every string in a payload before anything renders it.
 
@@ -124,18 +147,7 @@ def ensure_no_hidden_task_material(payload: UpliftPresentationPayload) -> None:
     """
     for path, value in _strings(payload, ""):
         ensure_no_secret_patterns(value)
-        if _ANSI.search(value) or _CONTROL.search(value):
-            raise ValidationError(
-                "a result rendering may not carry terminal control sequences",
-                code=PRESENTATION_REDACTION_FAILED,
-                details={"field": path},
-            )
-        if _ABSOLUTE_PATH.search(value):
-            raise ValidationError(
-                "a result rendering may not name an absolute local path",
-                code=PRESENTATION_REDACTION_FAILED,
-                details={"field": path},
-            )
+        ensure_no_control_or_local_path(value, field=path)
 
 
 def _strings(value: object, path: str) -> list[tuple[str, str]]:

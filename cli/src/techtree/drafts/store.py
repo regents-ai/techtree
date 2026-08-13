@@ -1,14 +1,21 @@
 """The draft directory, and the only way anything writes to it. Spec PR6 §6.7.
 
 A draft is a self-contained claim. Everything needed to check it — the public
-Climb, the Campaign, the DataPolicy, the publisher's validation receipt, the
-normalized evidence that receipt was issued from, both experiment variants, the
-controlled comparison, and the candidate skill as both an archive and an
-expanded tree — is copied in at prepare time. Nothing is left as a reference
-into the catalog, because a draft that needed the catalog to be verifiable
-would stop being verifiable the moment the build shipping that catalog changed.
-Decisions document 0003 A4 states the rule; this module is where it is paid
-for.
+Climb when there is one, the Campaign, the DataPolicy, the publisher's
+validation receipt, the normalized evidence that receipt was issued from, both
+experiment variants, the controlled comparison, and every skill the pair
+declares as both an archive and an expanded tree — is copied in at prepare
+time. Nothing is left as a reference into the catalog, because a draft that
+needed the catalog to be verifiable would stop being verifiable the moment the
+build shipping that catalog changed. Decisions document 0003 A4 states the
+rule; this module is where it is paid for.
+
+Two of those are conditional, and what decides them is the Campaign rather than
+a caller's preference. ``public/climb.json`` exists when a public Climb invited
+the submission; a Skill-replacement Campaign is derived locally (spec section
+7.19) and no Climb wraps it. ``baseline-skill/`` exists when the mutation kind
+is ``skill_replacement``, because then the baseline variant carries the Skill
+being revised and the subject has to be handed its files.
 
 Three properties govern the layout.
 
@@ -56,6 +63,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
 from techtree.drafts.confirmation import ConfirmationService, utc_now
+from techtree.drafts.source import CampaignSource, StagedSkill
 from techtree.errors import (
     ConflictError,
     NotFoundError,
@@ -71,8 +79,8 @@ from techtree.fs import (
 )
 from techtree.ids import validate_id
 from techtree.manifests.builder import skill_content_digest
-from techtree.models.base import JsonValue, StateModel, UtcDateTime
-from techtree.models.campaign import CampaignSpec
+from techtree.models.base import ArtifactRef, JsonValue, StateModel, UtcDateTime
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
 from techtree.models.experiment import ExperimentManifest, ManifestComparison
@@ -128,6 +136,7 @@ _BASELINE_FILE: Final = "baseline.json"
 _CANDIDATE_FILE: Final = "candidate.json"
 
 _SKILL_DIR: Final = "skill"
+_BASELINE_SKILL_DIR: Final = "baseline-skill"
 _ARTIFACT_FILE: Final = "artifact.json"
 _BUNDLE_FILE: Final = "bundle.tar"
 _FILES_DIR: Final = "files"
@@ -169,14 +178,13 @@ class DraftSnapshot:
     """Everything one draft holds, loaded and ready to be checked together."""
 
     draft: SubmissionDraft
-    resolved_climb: ResolvedClimb
+    source: CampaignSource
     validation_evidence: ValidationEvidence
     baseline: ExperimentManifest
     candidate: ExperimentManifest
     comparison: ManifestComparison
-    skill: SkillArtifact
-    skill_archive: Path
-    skill_files: Path
+    candidate_skill: StagedSkill
+    baseline_skill: StagedSkill | None
 
 
 class DraftStore:
@@ -204,6 +212,14 @@ class DraftStore:
         """Return the deterministic candidate skill archive."""
         return self.draft_dir(draft_id) / _SKILL_DIR / _BUNDLE_FILE
 
+    def baseline_skill_files_dir(self, draft_id: str) -> Path:
+        """Return the expanded Skill a replacement's baseline carries."""
+        return self.draft_dir(draft_id) / _BASELINE_SKILL_DIR / _FILES_DIR
+
+    def baseline_skill_archive_path(self, draft_id: str) -> Path:
+        """Return the archive of the Skill a replacement's baseline carries."""
+        return self.draft_dir(draft_id) / _BASELINE_SKILL_DIR / _BUNDLE_FILE
+
     # -- Creation ----------------------------------------------------------
 
     def create(
@@ -214,10 +230,10 @@ class DraftStore:
         baseline: ExperimentManifest,
         candidate: ExperimentManifest,
         comparison: ManifestComparison,
-        resolved_climb: ResolvedClimb,
+        source: CampaignSource,
         validation_evidence: ValidationEvidence,
-        staged_skill_dir: Path,
-        staged_skill_archive: Path,
+        staged_candidate_skill: StagedSkill,
+        staged_baseline_skill: StagedSkill | None = None,
     ) -> None:
         """Write a new draft graph, atomically, or write nothing at all."""
         final = self.draft_dir(draft.id)
@@ -239,22 +255,30 @@ class DraftStore:
                 baseline=baseline,
                 candidate=candidate,
                 comparison=comparison,
-                resolved_climb=resolved_climb,
+                source=source,
                 validation_evidence=validation_evidence,
-                staged_skill_dir=staged_skill_dir,
-                staged_skill_archive=staged_skill_archive,
+                staged_candidate_skill=staged_candidate_skill,
+                staged_baseline_skill=staged_baseline_skill,
             )
             self.verify_snapshot(
                 DraftSnapshot(
                     draft=draft,
-                    resolved_climb=resolved_climb,
+                    source=source,
                     validation_evidence=validation_evidence,
                     baseline=baseline,
                     candidate=candidate,
                     comparison=comparison,
-                    skill=draft.skill_artifact,
-                    skill_archive=staging / _SKILL_DIR / _BUNDLE_FILE,
-                    skill_files=staging / _SKILL_DIR / _FILES_DIR,
+                    candidate_skill=_staged_at(
+                        staging / _SKILL_DIR, draft.skill_artifact
+                    ),
+                    baseline_skill=(
+                        None
+                        if staged_baseline_skill is None
+                        else _staged_at(
+                            staging / _BASELINE_SKILL_DIR,
+                            staged_baseline_skill.artifact,
+                        )
+                    ),
                 )
             )
             self._place(staging, final, draft.id)
@@ -271,13 +295,13 @@ class DraftStore:
         baseline: ExperimentManifest,
         candidate: ExperimentManifest,
         comparison: ManifestComparison,
-        resolved_climb: ResolvedClimb,
+        source: CampaignSource,
         validation_evidence: ValidationEvidence,
-        staged_skill_dir: Path,
-        staged_skill_archive: Path,
+        staged_candidate_skill: StagedSkill,
+        staged_baseline_skill: StagedSkill | None,
     ) -> None:
         """Write the complete tree into a staging directory."""
-        reference = resolved_climb.publisher_validation.normalized_evidence
+        reference = source.publisher_validation.normalized_evidence
         if reference is None:
             raise VerificationError(
                 "the publisher's validation receipt names no normalized "
@@ -294,13 +318,12 @@ class DraftStore:
 
             public = staging / _PUBLIC_DIR
             ensure_private_directory(public)
-            self._write_immutable(public / _CLIMB_FILE, resolved_climb.climb)
-            self._write_immutable(public / _CAMPAIGN_FILE, resolved_climb.campaign)
+            if source.climb is not None:
+                self._write_immutable(public / _CLIMB_FILE, source.climb)
+            self._write_immutable(public / _CAMPAIGN_FILE, source.campaign)
+            self._write_immutable(public / _DATA_POLICY_FILE, source.data_policy)
             self._write_immutable(
-                public / _DATA_POLICY_FILE, resolved_climb.data_policy
-            )
-            self._write_immutable(
-                public / _VALIDATION_FILE, resolved_climb.publisher_validation
+                public / _VALIDATION_FILE, source.publisher_validation
             )
             self._write_immutable(public / _EVIDENCE_FILE, validation_evidence)
 
@@ -309,14 +332,16 @@ class DraftStore:
             self._write_immutable(manifests / _BASELINE_FILE, baseline)
             self._write_immutable(manifests / _CANDIDATE_FILE, candidate)
 
-            skill = staging / _SKILL_DIR
-            ensure_private_directory(skill)
-            self._write_immutable(skill / _ARTIFACT_FILE, draft.skill_artifact)
-            shutil.copyfile(staged_skill_archive, skill / _BUNDLE_FILE)
-            os.chmod(skill / _BUNDLE_FILE, _FILE_MODE)
-            self._copy_skill_files(
-                staged_skill_dir, skill / _FILES_DIR, draft.skill_artifact
+            self._copy_skill(
+                staging / _SKILL_DIR,
+                StagedSkill(
+                    artifact=draft.skill_artifact,
+                    archive=staged_candidate_skill.archive,
+                    files=staged_candidate_skill.files,
+                ),
             )
+            if staged_baseline_skill is not None:
+                self._copy_skill(staging / _BASELINE_SKILL_DIR, staged_baseline_skill)
         except OSError as error:
             raise ValidationError(
                 f"the draft could not be written: {error.strerror or error}",
@@ -324,15 +349,24 @@ class DraftStore:
                 details={"draft_id": draft.id},
             ) from error
 
-    def _copy_skill_files(
-        self, source: Path, destination: Path, artifact: SkillArtifact
-    ) -> None:
-        """Copy exactly the files the artifact lists, and nothing else."""
+    def _copy_skill(self, destination: Path, staged: StagedSkill) -> None:
+        """Write one skill's artifact, archive, and exactly the files it lists.
+
+        The artifact document is written from the object the caller committed
+        to rather than copied off disk, so the only artifact a draft can hold
+        is the one its own digest covers.
+        """
         ensure_private_directory(destination)
-        for entry in artifact.files:
-            target = destination / entry.path
+        self._write_immutable(destination / _ARTIFACT_FILE, staged.artifact)
+        shutil.copyfile(staged.archive, destination / _BUNDLE_FILE)
+        os.chmod(destination / _BUNDLE_FILE, _FILE_MODE)
+
+        files = destination / _FILES_DIR
+        ensure_private_directory(files)
+        for entry in staged.artifact.files:
+            target = files / entry.path
             ensure_private_directory(target.parent)
-            shutil.copyfile(source / entry.path, target)
+            shutil.copyfile(staged.files / entry.path, target)
             os.chmod(target, _FILE_MODE)
 
     def _place(self, staging: Path, final: Path, draft_id: str) -> None:
@@ -374,14 +408,16 @@ class DraftStore:
         """Load prepared comparison."""
         return self._load(draft_id, _COMPARISON_FILE, ManifestComparison)
 
-    def get_resolved_climb(self, draft_id: str) -> ResolvedClimb:
-        """Load the snapshotted public graph.
+    def get_source(self, draft_id: str) -> CampaignSource:
+        """Load the snapshotted Campaign graph.
 
         The digests are recomputed from the snapshotted bytes rather than read
         from anywhere, so assembling the graph is itself the check that the
-        four objects still describe each other.
+        objects still describe each other. When a public Climb was snapshotted
+        the graph is assembled as a :class:`ResolvedClimb` first, so that its
+        own validator runs against the bytes on this disk rather than against
+        the ones the catalog once shipped.
         """
-        climb = self._load(draft_id, f"{_PUBLIC_DIR}/{_CLIMB_FILE}", ClimbManifest)
         campaign = self._load(draft_id, f"{_PUBLIC_DIR}/{_CAMPAIGN_FILE}", CampaignSpec)
         data_policy = self._load(
             draft_id, f"{_PUBLIC_DIR}/{_DATA_POLICY_FILE}", DataPolicy
@@ -390,8 +426,16 @@ class DraftStore:
             draft_id, f"{_PUBLIC_DIR}/{_VALIDATION_FILE}", TasksetValidationReceipt
         )
 
+        if not (self.draft_dir(draft_id) / _PUBLIC_DIR / _CLIMB_FILE).exists():
+            return CampaignSource.local(
+                campaign=campaign,
+                data_policy=data_policy,
+                publisher_validation=receipt,
+            )
+
+        climb = self._load(draft_id, f"{_PUBLIC_DIR}/{_CLIMB_FILE}", ClimbManifest)
         try:
-            return ResolvedClimb(
+            resolved = ResolvedClimb(
                 climb=climb,
                 climb_digest=digest_object(climb),
                 campaign=campaign,
@@ -408,6 +452,7 @@ class DraftStore:
                 code=_CATALOG_GRAPH_INVALID,
                 details={"draft_id": draft_id},
             ) from error
+        return CampaignSource.from_climb(resolved)
 
     def get_validation_evidence(self, draft_id: str) -> ValidationEvidence:
         """Load evidence referenced by the publisher receipt."""
@@ -416,72 +461,53 @@ class DraftStore:
         )
 
     def get_skill(self, draft_id: str) -> SkillArtifact:
-        """Load the ``SkillArtifact`` and verify the files and the archive."""
-        artifact = self._load(draft_id, f"{_SKILL_DIR}/{_ARTIFACT_FILE}", SkillArtifact)
-        self._verify_skill(
-            artifact,
-            self.skill_archive_path(draft_id),
-            self.skill_files_dir(draft_id),
-        )
-        return artifact
+        """Load the candidate ``SkillArtifact`` and verify its files and archive."""
+        staged = self._staged_skill(draft_id, _SKILL_DIR)
+        self._verify_skill(staged)
+        return staged.artifact
 
     def load_snapshot(self, draft_id: str) -> DraftSnapshot:
         """Load the complete graph and verify it before returning it."""
         baseline, candidate = self.get_manifests(draft_id)
+        has_baseline_skill = (
+            self.draft_dir(draft_id) / _BASELINE_SKILL_DIR / _ARTIFACT_FILE
+        ).exists()
         snapshot = DraftSnapshot(
             draft=self.get(draft_id),
-            resolved_climb=self.get_resolved_climb(draft_id),
+            source=self.get_source(draft_id),
             validation_evidence=self.get_validation_evidence(draft_id),
             baseline=baseline,
             candidate=candidate,
             comparison=self.get_comparison(draft_id),
-            skill=self._load(draft_id, f"{_SKILL_DIR}/{_ARTIFACT_FILE}", SkillArtifact),
-            skill_archive=self.skill_archive_path(draft_id),
-            skill_files=self.skill_files_dir(draft_id),
+            candidate_skill=self._staged_skill(draft_id, _SKILL_DIR),
+            baseline_skill=(
+                self._staged_skill(draft_id, _BASELINE_SKILL_DIR)
+                if has_baseline_skill
+                else None
+            ),
         )
         self.verify_snapshot(snapshot)
         return snapshot
+
+    def _staged_skill(self, draft_id: str, directory: str) -> StagedSkill:
+        """Load one skill's artifact and name the bytes stored beside it."""
+        return _staged_at(
+            self.draft_dir(draft_id) / directory,
+            self._load(draft_id, f"{directory}/{_ARTIFACT_FILE}", SkillArtifact),
+        )
 
     # -- Verification ------------------------------------------------------
 
     def verify_snapshot(self, snapshot: DraftSnapshot) -> None:
         """Verify every digest and cross-object invariant, offline."""
         draft = snapshot.draft
-        resolved = snapshot.resolved_climb
-        climb = resolved.climb
-        campaign = resolved.campaign
-        receipt = resolved.publisher_validation
+        source = snapshot.source
+        campaign = source.campaign
+        receipt = source.publisher_validation
 
-        public_context = draft.public_context
-        if public_context is None:
-            raise VerificationError(
-                "this draft names no public Climb, and it was prepared under one",
-                code=_CATALOG_GRAPH_INVALID,
-                details={"draft_id": draft.id},
-            )
-
-        climb_digest = digest_object(climb)
-        _require(
-            climb_digest == public_context.climb_digest,
-            "the snapshotted Climb is not the Climb this draft was prepared for",
-            _CATALOG_GRAPH_INVALID,
-            expected=public_context.climb_digest,
-            computed=climb_digest,
-        )
-        _require(
-            climb_digest == resolved.climb_digest,
-            "the snapshotted Climb does not match the digest it was resolved under",
-            _CATALOG_GRAPH_INVALID,
-        )
+        self._verify_public_context(snapshot)
 
         campaign_digest = digest_object(campaign)
-        _require(
-            campaign_digest == climb.campaign_spec_digest,
-            "the snapshotted Campaign is not the one the Climb wraps",
-            _CAMPAIGN_DIGEST_MISMATCH,
-            expected=climb.campaign_spec_digest,
-            computed=campaign_digest,
-        )
         _require(
             campaign_digest == draft.campaign_spec_digest,
             "this draft was prepared against a different Campaign than the one "
@@ -491,7 +517,7 @@ class DraftStore:
             computed=campaign_digest,
         )
 
-        policy_digest = digest_object(resolved.data_policy)
+        policy_digest = digest_object(source.data_policy)
         _require(
             policy_digest == campaign.data_policy_digest,
             "the snapshotted DataPolicy is not the one the Campaign runs under",
@@ -553,17 +579,111 @@ class DraftStore:
         )
 
         self._verify_manifests(snapshot)
-        self._verify_skill(snapshot.skill, snapshot.skill_archive, snapshot.skill_files)
+        self._verify_skill(snapshot.candidate_skill)
+        candidate_artifact = snapshot.candidate_skill.artifact
         _require(
-            list(draft.included_files) == [file.path for file in snapshot.skill.files],
+            list(draft.included_files)
+            == [file.path for file in candidate_artifact.files],
             "this draft lists different files than the candidate skill it snapshotted",
             _SKILL_INVALID,
         )
         _require(
-            digest_object(draft.skill_artifact) == digest_object(snapshot.skill),
+            digest_object(draft.skill_artifact) == digest_object(candidate_artifact),
             "this draft carries a different skill artifact than the one "
             "snapshotted beside it",
             _SKILL_INVALID,
+        )
+        self._verify_baseline_skill(snapshot)
+
+    def _verify_public_context(self, snapshot: DraftSnapshot) -> None:
+        """Require the draft and the snapshot to agree about a public Climb.
+
+        A draft prepared under a Climb names it and snapshots it. A draft
+        prepared against a locally derived Campaign — spec section 7.19's
+        Skill replacement — names no public context and snapshots no Climb.
+        Either is complete; one of each is a draft that cannot be read.
+        """
+        draft = snapshot.draft
+        climb = snapshot.source.climb
+
+        if climb is None:
+            _require(
+                draft.public_context is None,
+                "this draft names a public Climb and did not snapshot one",
+                _CATALOG_GRAPH_INVALID,
+                draft_id=draft.id,
+            )
+            return
+
+        public_context = draft.public_context
+        if public_context is None:
+            raise VerificationError(
+                "this draft names no public Climb, and it was prepared under one",
+                code=_CATALOG_GRAPH_INVALID,
+                details={"draft_id": draft.id},
+            )
+
+        climb_digest = digest_object(climb)
+        _require(
+            climb_digest == public_context.climb_digest,
+            "the snapshotted Climb is not the Climb this draft was prepared for",
+            _CATALOG_GRAPH_INVALID,
+            expected=public_context.climb_digest,
+            computed=climb_digest,
+        )
+        _require(
+            climb_digest == snapshot.source.climb_digest,
+            "the snapshotted Climb does not match the digest it was resolved under",
+            _CATALOG_GRAPH_INVALID,
+        )
+        _require(
+            digest_object(snapshot.source.campaign) == climb.campaign_spec_digest,
+            "the snapshotted Campaign is not the one the Climb wraps",
+            _CAMPAIGN_DIGEST_MISMATCH,
+            expected=climb.campaign_spec_digest,
+            computed=digest_object(snapshot.source.campaign),
+        )
+
+    def _verify_baseline_skill(self, snapshot: DraftSnapshot) -> None:
+        """Require the baseline's Skill to be present exactly when it is declared.
+
+        Which it is follows from the Campaign, not from what happens to be on
+        disk: a ``skill_replacement`` baseline carries the Skill being revised
+        and the subject has to be handed its files, and an insertion baseline
+        carries none, so a stored tree for it would be a file nothing declares.
+        """
+        declared = _declared_baseline_skill(snapshot.baseline)
+        staged = snapshot.baseline_skill
+
+        if declared is None:
+            _require(
+                staged is None,
+                "this draft snapshotted a baseline skill its baseline variant "
+                "does not declare",
+                _SKILL_INVALID,
+                draft_id=snapshot.draft.id,
+            )
+            return
+
+        if staged is None:
+            raise VerificationError(
+                "this draft's baseline variant declares the skill it replaces "
+                "and the draft did not snapshot it",
+                code=_SKILL_INVALID,
+                details={
+                    "draft_id": snapshot.draft.id,
+                    "declared": declared.digest,
+                },
+            )
+
+        self._verify_skill(staged)
+        _require(
+            staged.artifact.root_digest == declared.digest,
+            "the snapshotted baseline skill is not the skill the baseline "
+            "variant declares",
+            _SKILL_INVALID,
+            expected=declared.digest,
+            computed=staged.artifact.root_digest,
         )
 
     def _verify_manifests(self, snapshot: DraftSnapshot) -> None:
@@ -604,10 +724,9 @@ class DraftStore:
             violations=list(comparison.violations),
         )
 
-    def _verify_skill(
-        self, artifact: SkillArtifact, archive: Path, files: Path
-    ) -> None:
-        """Check the artifact against the bytes stored beside it."""
+    def _verify_skill(self, staged: StagedSkill) -> None:
+        """Check one skill's artifact against the bytes stored beside it."""
+        artifact = staged.artifact
         recomputed = skill_content_digest(artifact.files)
         _require(
             recomputed == artifact.root_digest,
@@ -618,7 +737,7 @@ class DraftStore:
         )
 
         for entry in artifact.files:
-            path = files / entry.path
+            path = staged.files / entry.path
             try:
                 data = path.read_bytes()
             except OSError as error:
@@ -636,7 +755,7 @@ class DraftStore:
             )
 
         _require(
-            verify_archive(archive, artifact),
+            verify_archive(staged.archive, artifact),
             "the candidate skill archive does not match the artifact beside it",
             _SKILL_INVALID,
             archive_digest=artifact.archive_digest,
@@ -854,6 +973,29 @@ class DraftStore:
             yield
         finally:
             lock.release()
+
+
+def _staged_at(directory: Path, artifact: SkillArtifact) -> StagedSkill:
+    """Return one skill placed in the layout every skill directory uses."""
+    return StagedSkill(
+        artifact=artifact,
+        archive=directory / _BUNDLE_FILE,
+        files=directory / _FILES_DIR,
+    )
+
+
+def _declared_baseline_skill(baseline: ExperimentManifest) -> ArtifactRef | None:
+    """Return the one skill a baseline variant declares, when it declares one.
+
+    Only the mutation kinds v0.1 defines can occur here: an insertion baseline
+    declares none and a replacement baseline declares exactly the skill being
+    revised. A baseline naming more than one is refused by the manifest
+    builder, the comparison, and the Campaign model before it could reach this.
+    """
+    subject = baseline.configuration.agents.get(SUBJECT_AGENT)
+    if subject is None or not subject.harness.skills:
+        return None
+    return subject.harness.skills[0]
 
 
 def _require(

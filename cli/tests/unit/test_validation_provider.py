@@ -54,7 +54,7 @@ def test_the_publisher_fixture_says_where_its_answer_came_from(
 
     assert outcome.source is TasksetValidationSource.PUBLISHER_FIXTURE
     assert outcome.execution_record is None
-    assert outcome.receipt == bundle.resolved_climb.publisher_validation
+    assert outcome.receipt == bundle.source.publisher_validation
 
 
 def test_the_derived_lock_is_the_one_the_receipt_was_issued_under(
@@ -78,9 +78,7 @@ def test_the_marker_carries_the_source_and_no_invented_execution(
 
     assert marker["source"] == "publisher_fixture"
     assert marker["execution_record"] is None
-    assert marker["receipt_digest"] == digest_object(
-        bundle.resolved_climb.publisher_validation
-    )
+    assert marker["receipt_digest"] == digest_object(bundle.source.publisher_validation)
 
 
 # ---------------------------------------------------------------------------
@@ -92,15 +90,14 @@ def test_a_receipt_the_campaign_does_not_commit_to_is_refused(
     inputs: tuple[RunHarness, str, RunInputBundle],
 ) -> None:
     _, run_id, bundle = inputs
-    resolved = bundle.resolved_climb
-    other = resolved.publisher_validation.model_copy(update={"status": "invalid"})
+    source = bundle.source
+    other = source.publisher_validation.model_copy(update={"status": "invalid"})
     tampered = dataclasses.replace(
         bundle,
-        resolved_climb=resolved.model_copy(
-            update={
-                "publisher_validation": other,
-                "publisher_validation_digest": digest_object(other),
-            }
+        source=dataclasses.replace(
+            source,
+            publisher_validation=other,
+            publisher_validation_digest=digest_object(other),
         ),
     )
 
@@ -115,24 +112,23 @@ def test_a_receipt_that_reports_invalid_stops_the_run(
 ) -> None:
     """The Campaign commits to it, and it still says the taskset is not valid."""
     _, run_id, bundle = inputs
-    resolved = bundle.resolved_climb
-    receipt = resolved.publisher_validation.model_copy(update={"status": "errored"})
-    campaign = resolved.campaign.model_copy(
+    source = bundle.source
+    receipt = source.publisher_validation.model_copy(update={"status": "errored"})
+    campaign = source.campaign.model_copy(
         update={
-            "taskset": resolved.campaign.taskset.model_copy(
+            "taskset": source.campaign.taskset.model_copy(
                 update={"validation_receipt_digest": digest_object(receipt)}
             )
         }
     )
     tampered = dataclasses.replace(
         bundle,
-        resolved_climb=resolved.model_copy(
-            update={
-                "publisher_validation": receipt,
-                "publisher_validation_digest": digest_object(receipt),
-                "campaign": campaign,
-                "campaign_digest": digest_object(campaign),
-            }
+        source=dataclasses.replace(
+            source,
+            publisher_validation=receipt,
+            publisher_validation_digest=digest_object(receipt),
+            campaign=campaign,
+            campaign_digest=digest_object(campaign),
         ),
     )
 
@@ -148,26 +144,25 @@ def test_a_lock_that_does_not_reproduce_the_commitment_is_refused(
 ) -> None:
     """A derivation is only a proof while it reproduces the committed digest."""
     _, run_id, bundle = inputs
-    resolved = bundle.resolved_climb
-    receipt = resolved.publisher_validation.model_copy(
+    source = bundle.source
+    receipt = source.publisher_validation.model_copy(
         update={"engine_digest": f"sha256:{'b' * 64}"}
     )
-    campaign = resolved.campaign.model_copy(
+    campaign = source.campaign.model_copy(
         update={
-            "taskset": resolved.campaign.taskset.model_copy(
+            "taskset": source.campaign.taskset.model_copy(
                 update={"validation_receipt_digest": digest_object(receipt)}
             )
         }
     )
     tampered = dataclasses.replace(
         bundle,
-        resolved_climb=resolved.model_copy(
-            update={
-                "publisher_validation": receipt,
-                "publisher_validation_digest": digest_object(receipt),
-                "campaign": campaign,
-                "campaign_digest": digest_object(campaign),
-            }
+        source=dataclasses.replace(
+            source,
+            publisher_validation=receipt,
+            publisher_validation_digest=digest_object(receipt),
+            campaign=campaign,
+            campaign_digest=digest_object(campaign),
         ),
     )
 

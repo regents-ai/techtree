@@ -84,6 +84,37 @@
       "label": "Verify this run's local proof",
       "reason": "It checks offline, from the bytes the run stored.",
       "requires_user_confirmation": false
+    },
+    {
+      "cli": [
+        "techtree",
+        "uplift",
+        "context",
+        "run_bc6bcf8a52493f173292f667c596bfb7"
+      ],
+      "hermes_args": null,
+      "hermes_tool": null,
+      "id": "improvement_context",
+      "label": "Export what a host agent needs to propose one Skill revision",
+      "reason": "It carries the regressions, the failures and the objective, and no hidden task material.",
+      "requires_user_confirmation": false
+    },
+    {
+      "cli": [
+        "techtree",
+        "uplift",
+        "prepare",
+        "--from-run",
+        "run_bc6bcf8a52493f173292f667c596bfb7",
+        "--candidate-skill",
+        "PATH"
+      ],
+      "hermes_args": null,
+      "hermes_tool": null,
+      "id": "prepare_replacement",
+      "label": "Prepare a comparison of this Skill against a revision of it",
+      "reason": "The baseline is pinned to the Skill this run measured, so the second comparison starts where this one ended.",
+      "requires_user_confirmation": true
     }
   ],
   "proof_grade": "P1",

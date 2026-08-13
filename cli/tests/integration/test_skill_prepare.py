@@ -120,7 +120,7 @@ def test_both_variants_share_the_campaign_policy_and_backend(
 ) -> None:
     store, draft, _ = prepared
     baseline, candidate = store.get_manifests(draft.draft.id)
-    resolved = store.get_resolved_climb(draft.draft.id)
+    resolved = store.get_source(draft.draft.id)
 
     assert baseline.campaign_spec_digest == candidate.campaign_spec_digest
     assert baseline.campaign_spec_digest == resolved.campaign_digest
@@ -157,7 +157,7 @@ def test_the_draft_states_the_rights_that_have_to_be_accepted(
     """Decisions 0003 A5: the draft states the requirement, not the acceptance."""
     store, draft, _ = prepared
     acceptance = draft.draft.policy_acceptance
-    resolved = store.get_resolved_climb(draft.draft.id)
+    resolved = store.get_source(draft.draft.id)
 
     assert acceptance.required is True
     assert acceptance.data_policy_digest == resolved.data_policy_digest
@@ -185,7 +185,7 @@ def test_the_episode_estimate_covers_both_variants(
     prepared: tuple[DraftStore, PreparedDraft, Path],
 ) -> None:
     store, draft, _ = prepared
-    campaign = store.get_resolved_climb(draft.draft.id).campaign
+    campaign = store.get_source(draft.draft.id).campaign
     selection = campaign.taskset.selection
 
     assert draft.draft.estimated_episodes == selection.num_tasks * 2
@@ -201,14 +201,16 @@ def test_editing_the_source_after_preparing_changes_nothing(
 ) -> None:
     source = copy_skill(VALID_SKILL, tmp_path / "skill")
     store, draft, _ = prepare_draft(temp_techtree_home, skill_path=source)
-    before = digest_object(store.load_snapshot(draft.draft.id).skill)
+    before = digest_object(store.load_snapshot(draft.draft.id).candidate_skill.artifact)
 
     (source / "SKILL.md").write_text("# Rewritten\n", encoding="utf-8")
     (source / "glossary.txt").write_text("different\n", encoding="utf-8")
 
     snapshot = store.load_snapshot(draft.draft.id)
-    assert digest_object(snapshot.skill) == before
-    assert "Rewritten" not in (snapshot.skill_files / "SKILL.md").read_text("utf-8")
+    assert digest_object(snapshot.candidate_skill.artifact) == before
+    assert "Rewritten" not in (snapshot.candidate_skill.files / "SKILL.md").read_text(
+        "utf-8"
+    )
 
 
 def test_deleting_the_source_after_preparing_leaves_the_draft_valid(
@@ -223,7 +225,7 @@ def test_deleting_the_source_after_preparing_leaves_the_draft_valid(
 
     snapshot = store.load_snapshot(draft.draft.id)
     assert snapshot.draft.id == draft.draft.id
-    assert (snapshot.skill_files / "SKILL.md").is_file()
+    assert (snapshot.candidate_skill.files / "SKILL.md").is_file()
 
 
 # ---------------------------------------------------------------------------

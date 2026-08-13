@@ -22,8 +22,8 @@ GENERATED_PATHS := \
 .DEFAULT_GOAL := check
 
 .PHONY: install lint format format-check typecheck test test-unit test-contract \
-	test-integration schemas engine-bundle fixture-catalog goldens regenerate \
-	generated-check verifiers-preflight check clean
+	test-integration real-model-run real-model-run-single schemas engine-bundle fixture-catalog goldens \
+	regenerate generated-check verifiers-preflight check clean
 
 install:
 	$(UV) sync
@@ -52,6 +52,18 @@ test-contract:
 
 test-integration:
 	$(RUN) pytest -m integration tests/integration
+
+# Spends real money. Both variants of a local Campaign are executed against a
+# real provider in real Docker containers, so this is never part of `check`,
+# never part of CI, and always started by a person who meant to.
+real-model-run:
+	$(RUN) pytest -m real_model -s \
+		tests/integration/test_real_concurrent_comparison.py
+
+# The WP6b single-variant run, kept runnable on its own. Also spends money, and
+# proves a subset of what the concurrent comparison above proves.
+real-model-run-single:
+	$(RUN) pytest -m real_model -s tests/integration/test_real_variant_run.py
 
 schemas:
 	$(RUN) python $(TOOL_SCHEMAS)

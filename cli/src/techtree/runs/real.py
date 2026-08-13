@@ -435,24 +435,34 @@ class RealVerifiersExecutor:
         The bytes are re-verified against the artifact as they are copied, so
         what the subject reads is provably the tree the run's manifests name
         rather than whatever is sitting in the staged directory by then.
+
+        A Skill insertion places one tree; a Skill replacement places two,
+        because its baseline carries the Skill being revised. Which is which
+        never has to be decided here: a skill is found by the content address
+        the variant declares, among the skills the run owns, so a variant
+        asking for anything the run did not stage stops the run.
         """
+        owned = {
+            staged.artifact.root_digest: staged for staged in inputs.declared_skills
+        }
         for manifest in (inputs.baseline, inputs.candidate):
             subject = manifest.configuration.agents.get(SUBJECT_AGENT)
             if subject is None:
                 continue
             for reference in subject.harness.skills:
-                if reference.digest != inputs.skill.root_digest:
+                staged = owned.get(reference.digest)
+                if staged is None:
                     raise VerificationError(
                         "a variant declares a skill this run does not own",
                         code=VARIANT_NOT_USABLE,
                         details={
                             "declared": reference.digest,
-                            "staged": inputs.skill.root_digest,
+                            "staged": ", ".join(sorted(owned)),
                         },
                     )
                 self._copy_skill_tree(
-                    skill=inputs.skill,
-                    source=inputs.skill_files,
+                    skill=staged.artifact,
+                    source=staged.files,
                     destination=run_paths.skill_files_dir
                     / skill_directory_name(reference.digest),
                 )

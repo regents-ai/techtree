@@ -66,9 +66,22 @@ from techtree.models.experiment import (
     ManifestComparison,
 )
 from techtree.models.run import PolicyAcknowledgement, RunRequest
+from techtree.models.uplift_report import UpliftReport
 from techtree.models.validation import TasksetLock
-from techtree.receipts.compare import ObservedVariant, observe_variant
-from techtree.receipts.episode import build_variant_receipts
+from techtree.receipts.compare import (
+    ObservedVariant,
+    compare_real_variants,
+    observe_variant,
+)
+from techtree.receipts.episode import build_variant_receipts, experiment_variant_of
+from techtree.receipts.set import ReceiptSetManifest, build_receipt_set, seal_receipt
+from techtree.receipts.uplift import (
+    LocalAttestation,
+    aggregate_primary_result,
+    build_uplift_report,
+    pair_task_rewards,
+    summarize_receipts,
+)
 from techtree.tasksets.membership import membership_digest
 from techtree.verifiers.models import VariantExecutionResult, VariantName
 
@@ -76,6 +89,7 @@ __all__ = [
     "RECORDED_SUBJECT_IMAGE",
     "RecordedPair",
     "recorded_pair",
+    "recorded_report",
     "trimmed_campaign",
 ]
 
@@ -142,6 +156,78 @@ class RecordedPair:
             primary_reward=self.primary_reward,
             evidence=self.campaign.evidence,
         )
+
+
+def recorded_report(
+    pair: RecordedPair,
+    *,
+    attestation: LocalAttestation = LocalAttestation.LOCAL_ED25519,
+) -> UpliftReport:
+    """Build the report the recorded comparison produces, through the real code.
+
+    Every step is the production one — the observed comparison, the paired
+    rewards, the aggregate, the report builder — so a test that needs "a report
+    of this run" gets the report of this run rather than an approximation of
+    one.
+    """
+    receipts = {
+        variant: pair.receipts(variant)
+        for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
+    }
+    comparison = compare_real_variants(
+        campaign=pair.campaign,
+        baseline_manifest=pair.baseline_manifest,
+        candidate_manifest=pair.candidate_manifest,
+        prepared_manifest_comparison=pair.prepared_comparison,
+        baseline_receipts=receipts[VariantName.BASELINE],
+        candidate_receipts=receipts[VariantName.CANDIDATE],
+        taskset_lock=pair.taskset_lock,
+        baseline_observed=pair.observed(VariantName.BASELINE),
+        candidate_observed=pair.observed(VariantName.CANDIDATE),
+        schedule=pair.campaign.execution.order,
+    )
+    deltas = pair_task_rewards(
+        baseline_receipts=receipts[VariantName.BASELINE],
+        candidate_receipts=receipts[VariantName.CANDIDATE],
+        ordered_task_hashes=comparison.ordered_task_hashes,
+        reward_name=pair.primary_reward,
+    )
+    score, evidence = summarize_receipts(
+        receipts[VariantName.BASELINE], receipts[VariantName.CANDIDATE]
+    )
+    return build_uplift_report(
+        run_request=pair.request,
+        campaign=pair.campaign,
+        taskset_validation_receipt_digest=(
+            pair.campaign.taskset.validation_receipt_digest
+        ),
+        baseline_manifest=pair.baseline_manifest,
+        candidate_manifest=pair.candidate_manifest,
+        baseline_receipt_set=_receipt_set(pair, receipts, VariantName.BASELINE),
+        candidate_receipt_set=_receipt_set(pair, receipts, VariantName.CANDIDATE),
+        comparison=comparison,
+        task_deltas=deltas,
+        primary=aggregate_primary_result(deltas, pair.primary_reward),
+        score=score,
+        evidence=evidence,
+        attestation=attestation,
+        created_at=pair.request.created_at,
+    )
+
+
+def _receipt_set(
+    pair: RecordedPair,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    variant: VariantName,
+) -> ReceiptSetManifest:
+    """Commit to one side's receipts the way a run does."""
+    return build_receipt_set(
+        run_id=pair.request.run_id,
+        variant=experiment_variant_of(variant),
+        experiment_manifest_digest=digest_object(pair.manifest(variant)),
+        signed_receipts=[seal_receipt(receipt) for receipt in receipts[variant]],
+        ordered_task_hashes=pair.ordered_task_hashes,
+    )
 
 
 def trimmed_campaign(task_hashes: list[Digest] | None = None) -> CampaignSpec:

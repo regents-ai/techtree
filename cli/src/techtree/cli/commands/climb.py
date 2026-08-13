@@ -96,6 +96,7 @@ __all__ = [
     "ClimbShowPayload",
     "ClimbStartPayload",
     "PreparedComparison",
+    "acknowledge_data_policy",
     "build_catalog_service",
     "build_preparation_service",
     "list_climbs_command",
@@ -396,7 +397,7 @@ def start_climb_command(
     def action() -> CommandResult[ClimbStartPayload]:
         service = build_run_service(context)
         draft = DraftStore(context.paths, ConfirmationService()).get(draft_id)
-        acknowledgement = _acknowledge_data_policy(
+        acknowledgement = acknowledge_data_policy(
             context,
             draft=draft,
             accepted_digest=accept_data_policy,
@@ -428,7 +429,7 @@ def start_climb_command(
     invoke_command(context, START_COMMAND, action, render_data=_render_start)
 
 
-def _acknowledge_data_policy(
+def acknowledge_data_policy(
     context: CliContext,
     *,
     draft: SubmissionDraft,
@@ -899,8 +900,11 @@ def _show_payload(resolved: ResolvedClimb, summary: ClimbSummary) -> ClimbShowPa
 def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePayload:
     """Project a prepared draft into the response a caller acts on."""
     draft = prepared.draft
-    resolved = prepared.resolved_climb
-    data_policy = resolved.data_policy
+    source = prepared.source
+    # ``climb prepare`` only ever prepares against a public Climb; the local
+    # Climb-free flow is ``uplift prepare`` and returns its own payload.
+    assert source.climb is not None and source.climb_digest is not None
+    data_policy = source.data_policy
     comparison = prepared.manifest_comparison
 
     return ClimbPreparePayload(
@@ -908,8 +912,8 @@ def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePay
         draft_digest=prepared.draft_digest,
         confirmation_token=prepared.confirmation_token,
         confirmation_expires_at=prepared.confirmation_expires_at,
-        climb_reference=climb_reference(resolved.climb),
-        climb_digest=resolved.climb_digest,
+        climb_reference=climb_reference(source.climb),
+        climb_digest=source.climb_digest,
         campaign_spec_digest=draft.campaign_spec_digest,
         data_policy_digest=draft.data_policy_digest,
         candidate_label=draft.skill_artifact.name,
@@ -922,7 +926,7 @@ def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePay
         candidate_public_release=data_policy.candidate_skill.public_release,
         raw_episode_server_upload=data_policy.raw_episodes.server_upload,
         raw_episode_training_use=data_policy.raw_episodes.training_use,
-        proof_grade=resolved.climb.publication.proof_grade,
+        proof_grade=source.climb.publication.proof_grade,
         policy_acceptance=draft.policy_acceptance,
         comparison=PreparedComparison(
             controlled=comparison.controlled,

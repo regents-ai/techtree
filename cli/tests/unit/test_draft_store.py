@@ -17,6 +17,7 @@ invisible until two runs came out of one draft.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 from typing import Any
@@ -127,9 +128,9 @@ def test_a_draft_verifies_from_its_own_bytes_alone(
 
     assert snapshot.draft == prepared.draft
     assert snapshot.comparison.controlled
-    assert snapshot.resolved_climb.climb_digest == prepared.resolved_climb.climb_digest
+    assert snapshot.source.climb_digest == prepared.source.climb_digest
     assert digest_object(snapshot.validation_evidence) == (
-        snapshot.resolved_climb.publisher_validation.normalized_evidence.digest  # type: ignore[union-attr]
+        snapshot.source.publisher_validation.normalized_evidence.digest  # type: ignore[union-attr]
     )
 
 
@@ -297,14 +298,13 @@ def test_a_draft_whose_file_list_disagrees_with_its_artifact_is_caught(
         store.verify_snapshot(
             type(snapshot)(
                 draft=lying,
-                resolved_climb=snapshot.resolved_climb,
+                source=snapshot.source,
                 validation_evidence=snapshot.validation_evidence,
                 baseline=snapshot.baseline,
                 candidate=snapshot.candidate,
                 comparison=snapshot.comparison,
-                skill=snapshot.skill,
-                skill_archive=snapshot.skill_archive,
-                skill_files=snapshot.skill_files,
+                candidate_skill=snapshot.candidate_skill,
+                baseline_skill=snapshot.baseline_skill,
             )
         )
 
@@ -318,13 +318,12 @@ def test_a_receipt_with_no_evidence_cannot_become_a_draft(
     """A draft referencing evidence it does not hold would not be checkable."""
     store, prepared, _ = draft
     snapshot = store.load_snapshot(prepared.draft.id)
-    resolved = snapshot.resolved_climb
-    dangling = resolved.model_copy(
-        update={
-            "publisher_validation": resolved.publisher_validation.model_copy(
-                update={"normalized_evidence": None}
-            )
-        }
+    source = snapshot.source
+    dangling = dataclasses.replace(
+        source,
+        publisher_validation=source.publisher_validation.model_copy(
+            update={"normalized_evidence": None}
+        ),
     )
     second = snapshot.draft.model_copy(update={"id": new_id("draft")})
 
@@ -335,10 +334,9 @@ def test_a_receipt_with_no_evidence_cannot_become_a_draft(
             baseline=snapshot.baseline,
             candidate=snapshot.candidate,
             comparison=snapshot.comparison,
-            resolved_climb=dangling,
+            source=dangling,
             validation_evidence=snapshot.validation_evidence,
-            staged_skill_dir=snapshot.skill_files,
-            staged_skill_archive=snapshot.skill_archive,
+            staged_candidate_skill=snapshot.candidate_skill,
         )
 
     assert caught.value.code == "publisher_validation_evidence_missing"
@@ -369,10 +367,9 @@ def test_a_second_draft_under_the_same_identifier_is_refused(
             baseline=snapshot.baseline,
             candidate=snapshot.candidate,
             comparison=snapshot.comparison,
-            resolved_climb=snapshot.resolved_climb,
+            source=snapshot.source,
             validation_evidence=snapshot.validation_evidence,
-            staged_skill_dir=snapshot.skill_files,
-            staged_skill_archive=snapshot.skill_archive,
+            staged_candidate_skill=snapshot.candidate_skill,
         )
 
     assert caught.value.code == "draft_already_exists"

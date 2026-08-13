@@ -39,6 +39,7 @@ from techtree.models.skill import SkillArtifact
 from techtree.models.uplift_report import UpliftReport
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
 from techtree.presentation.models import UpliftPresentationPayload
+from techtree.uplift.context import SkillImprovementContext
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 GOLDEN_DIRECTORY = REPOSITORY_ROOT / "tests" / "golden"
@@ -54,6 +55,10 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "experiment-baseline": ExperimentManifest,
     "experiment-candidate": ExperimentManifest,
     "fake-uplift-report": UpliftReport,
+    # Not a protocol object — spec section 7.18's context is local working
+    # material — but spec section 7.4 asks for the golden, because the shape
+    # WP10's plugin builds against should change in a diff and not in silence.
+    "improvement-context": SkillImprovementContext,
     "presentation-payload": UpliftPresentationPayload,
     "real-episode-receipt": ObjectEnvelope[EpisodeReceipt],
     "real-uplift-report": ObjectEnvelope[UpliftReport],
@@ -282,11 +287,42 @@ def test_a_signed_golden_verifies_against_the_fixture_identity(name: str) -> Non
     assert verify_signed_object(identity=identity, envelope=sealed).verified
 
 
+#: Every way a stored document could name the half of a key that never leaves
+#: this machine. The bare word "private" is not one of them: spec section
+#: 7.18's context lists "private environment values" among what it excludes,
+#: and a test that failed on the word would be failing on the promise.
+_PRIVATE_KEY_SPELLINGS = (
+    "private_key",
+    "private key",
+    "privatekey",
+    "secret_key",
+    "begin private",
+)
+
+
 def test_no_golden_carries_private_key_material() -> None:
     """Only the public half of a key ever appears in a stored document."""
     for name in GOLDEN_MODELS:
         text = golden_text(name).lower()
-        assert "private" not in text
+        for spelling in _PRIVATE_KEY_SPELLINGS:
+            assert spelling not in text, (name, spelling)
+
+
+def test_the_improvement_context_carries_no_reply_and_no_hidden_material() -> None:
+    """Spec section 7.18: the exclusions are visible in the committed bytes."""
+    context: SkillImprovementContext = load("improvement-context")
+    report: UpliftReport = load("real-uplift-report").payload
+
+    assert context.source_run_id == report.run_id
+    assert context.current_result == report.primary_result
+    assert all(example.subject_reply is None for example in context.examples)
+    assert "subject final replies" in context.prohibited_material
+    assert "hidden expected answers" in context.prohibited_material
+    # Regressions lead, because a bounded list is read from the top.
+    assert [example.outcome for example in context.examples][:2] == [
+        "regressed",
+        "regressed",
+    ]
 
 
 def test_the_presentation_payload_says_only_what_the_report_says() -> None:

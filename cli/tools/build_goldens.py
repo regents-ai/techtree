@@ -149,6 +149,10 @@ from techtree.presentation.build import build_uplift_presentation
 from techtree.presentation.models import UpliftPresentationPayload
 from techtree.receipts.uplift import aggregate_primary_result
 from techtree.tasksets.membership import membership_digest
+from techtree.uplift.context import SkillImprovementContext
+from techtree.uplift.context import (
+    build_improvement_context as build_improvement_context_for,
+)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
@@ -856,6 +860,68 @@ def build_presentation_payload(
     )
 
 
+def real_variant_receipts(
+    receipt: EpisodeReceipt, *, candidate: bool
+) -> list[EpisodeReceipt]:
+    """Return one receipt per committed task, scored as the deltas record.
+
+    The golden receipt is one episode. A context describes a whole run, so the
+    fixture is widened to the run the report already describes rather than the
+    context being shown a run with nineteen tasks missing.
+    """
+    receipts: list[EpisodeReceipt] = []
+    for position, delta in enumerate(real_task_deltas()):
+        reward = delta.candidate_reward if candidate else delta.baseline_reward
+        traces = [
+            trace.model_copy(
+                update={
+                    "task_hash": delta.task_hash,
+                    "rewards": {"exact_match": reward},
+                    "ok": True,
+                }
+            )
+            for trace in receipt.named_traces[SUBJECT_AGENT]
+        ]
+        receipts.append(
+            receipt.model_copy(
+                update={
+                    "id": fixture_id("receipt", f"episode-receipt-{position}"),
+                    "task_hash": delta.task_hash,
+                    "named_traces": {SUBJECT_AGENT: traces},
+                    "variant": (
+                        ExperimentVariant.CANDIDATE
+                        if candidate
+                        else ExperimentVariant.BASELINE
+                    ),
+                }
+            )
+        )
+    return receipts
+
+
+def build_improvement_context(
+    report: UpliftReport,
+    receipt: EpisodeReceipt,
+    campaign: CampaignSpec,
+    skill: SkillArtifact,
+) -> SkillImprovementContext:
+    """Return the sanitized context a host agent reads. Spec section 7.18.
+
+    It is a golden because the contract WP10 builds against is the *shape* of
+    what a model is handed, and a change to that shape should show up in a
+    diff rather than in a plugin's output. What it proves at a glance is the
+    exclusion: ``prohibited_material`` is spelled out and no example carries a
+    reply.
+    """
+    return build_improvement_context_for(
+        report=report,
+        candidate_receipts=real_variant_receipts(receipt, candidate=True),
+        baseline_receipts=real_variant_receipts(receipt, candidate=False),
+        campaign=campaign,
+        parent_skill=skill,
+    )
+
+
 def build_climb_summary(
     campaign: CampaignSpec,
     campaign_digest: Digest,
@@ -1028,6 +1094,9 @@ def golden_objects() -> dict[str, BaseModel]:
             receipt_digest,
             baseline,
             candidate,
+        ),
+        "improvement-context": build_improvement_context(
+            real_report, real_receipt, campaign, skill
         ),
         "presentation-payload": build_presentation_payload(
             real_report, real_receipt, skill, climb

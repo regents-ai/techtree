@@ -48,9 +48,12 @@ acts performed by whoever built the report. Doing it here keeps
 against the journal is the report that was recorded — identical for both
 executors.
 
-Spec section 7.20's ``UpliftService``, which builds sanitized improvement
-context and prepares Skill-replacement drafts, is WP7d's and is a different
-object; it will live beside this one.
+Spec section 7.20's :class:`UpliftService` lives beside it, at the bottom of
+this module. It is a different object with a different job: the report service
+*closes* a run, and the uplift service is what the operator does with a run
+that has already closed — export a sanitized context for a host agent to read,
+or prepare the Skill-against-Skill comparison that follows from it. Nothing it
+does starts, scores, or signs anything.
 """
 
 from __future__ import annotations
@@ -64,7 +67,7 @@ from typing import Final
 from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import digest_object
-from techtree.errors import ValidationError, VerificationError
+from techtree.errors import PolicyError, ValidationError, VerificationError
 from techtree.identity.models import ExecutorIdentity
 from techtree.identity.service import IdentityService
 from techtree.models.base import ObjectEnvelope
@@ -79,6 +82,7 @@ from techtree.receipts.bundle import (
     LocalProofBundleContents,
     ReferencedObject,
     assess_local_attestation,
+    proof_bundle_dir,
     write_local_bundle,
 )
 from techtree.receipts.compare import (
@@ -107,7 +111,13 @@ from techtree.runs.artifacts import RunArtifactStore, RunInputBundle
 from techtree.runs.events import DETAIL_RESULT_DIGEST, RUN_COMPLETED
 from techtree.runs.executor import raise_if_cancel_requested
 from techtree.runs.real import TASKSET_LOCK_FILENAME
+from techtree.runs.service import RunService
 from techtree.runs.store import RunStore
+from techtree.skills.service import PreparedDraft, SkillPreparationService
+from techtree.uplift.context import (
+    SkillImprovementContext,
+    build_improvement_context,
+)
 from techtree.verifiers.models import (
     RealExecutionResult,
     RunPaths,
@@ -118,7 +128,10 @@ from techtree.verifiers.outputs import CONFIG_FILENAME
 
 __all__ = [
     "REAL_REPORT_STAGE_FAILED",
+    "SOURCE_RUN_NOT_USABLE",
+    "CompletedRun",
     "RealUpliftReportService",
+    "UpliftService",
     "VariantReceipts",
 ]
 
@@ -127,11 +140,23 @@ __all__ = [
 #: that own them.
 REAL_REPORT_STAGE_FAILED: Final = "real_report_stage_failed"
 
+#: A finished run that nothing may be derived from. Spec section 7.20's safety
+#: rules all report through this one code, because they answer one question.
+SOURCE_RUN_NOT_USABLE: Final = "source_run_not_usable"
+
 #: Both sides, always in comparison order.
 _VARIANT_ORDER: Final[tuple[VariantName, ...]] = (
     VariantName.BASELINE,
     VariantName.CANDIDATE,
 )
+
+
+@dataclass(frozen=True)
+class CompletedRun:
+    """One finished run's signed result and the inputs it was executed from."""
+
+    report: UpliftReport
+    inputs: RunInputBundle
 
 
 @dataclass(frozen=True)
@@ -402,9 +427,9 @@ class RealUpliftReportService:
             contents=LocalProofBundleContents(
                 identity=identity,
                 campaign=inputs.campaign,
-                data_policy=inputs.resolved_climb.data_policy,
+                data_policy=inputs.source.data_policy,
                 taskset_lock=lock,
-                validation_receipt=inputs.resolved_climb.publisher_validation,
+                validation_receipt=inputs.source.publisher_validation,
                 experiments={
                     ExperimentVariant.BASELINE: inputs.baseline,
                     ExperimentVariant.CANDIDATE: inputs.candidate,
@@ -447,12 +472,12 @@ class RealUpliftReportService:
         value is ever checked against itself.
         """
         campaign = inputs.campaign
-        publisher_validation = inputs.resolved_climb.publisher_validation
+        publisher_validation = inputs.source.publisher_validation
         return [
             ReferencedObject("campaign", campaign, request.campaign_spec_digest),
             ReferencedObject(
                 "data-policy",
-                inputs.resolved_climb.data_policy,
+                inputs.source.data_policy,
                 campaign.data_policy_digest,
             ),
             ReferencedObject(
@@ -528,3 +553,128 @@ def _side(
 def _utc_now() -> datetime:
     """Return the current instant in UTC."""
     return datetime.now(UTC)
+
+
+# ---------------------------------------------------------------------------
+# Spec section 7.20: what an operator does with a run that has finished
+# ---------------------------------------------------------------------------
+
+
+class UpliftService:
+    """Exports improvement context and prepares Skill-replacement drafts.
+
+    Both operations read a run that already completed and neither changes it.
+    The safety rules in spec section 7.20 are all checked in one place,
+    :meth:`_completed_real_run`, because both operations rest on the same
+    claim: that this run really executed, really finished, and really verifies
+    from its own bytes. A context exported from a development-only run would
+    describe invented numbers, and a replacement prepared from one would
+    declare a baseline nothing measured.
+    """
+
+    def __init__(
+        self,
+        *,
+        paths: TechtreePaths,
+        run_service: RunService,
+        artifact_store: RunArtifactStore,
+        skill_service: SkillPreparationService,
+    ) -> None:
+        self._paths = paths
+        self._runs = run_service
+        self._artifacts = artifact_store
+        self._skills = skill_service
+
+    def improvement_context(self, run_id: str) -> SkillImprovementContext:
+        """Build sanitized local context from a completed real run."""
+        source = self._completed_real_run(run_id)
+        return build_improvement_context(
+            report=source.report,
+            candidate_receipts=self._artifacts.episode_receipts(
+                run_id, ExperimentVariant.CANDIDATE
+            ),
+            baseline_receipts=self._artifacts.episode_receipts(
+                run_id, ExperimentVariant.BASELINE
+            ),
+            campaign=source.inputs.campaign,
+            parent_skill=source.inputs.candidate_skill.artifact,
+        )
+
+    def prepare_replacement(
+        self,
+        *,
+        source_run_id: str,
+        candidate_skill_path: Path,
+        candidate_label: str | None = None,
+    ) -> PreparedDraft:
+        """Prepare the run that compares the source run's Skill against a new one.
+
+        The baseline is the source run's *candidate* Skill, taken from that
+        run's own staged inputs — which the artifact store re-verifies file by
+        file against the artifact before handing them over — rather than
+        rescanned from wherever the participant originally wrote it. That is
+        what makes the second comparison's baseline the Skill the first
+        comparison actually measured, and not a directory that has moved on
+        since.
+        """
+        source = self._completed_real_run(source_run_id)
+        return self._skills.prepare_replacement(
+            source_campaign=source.inputs.campaign,
+            data_policy=source.inputs.source.data_policy,
+            publisher_validation=source.inputs.source.publisher_validation,
+            validation_evidence=source.inputs.validation_evidence,
+            source_report=source.report,
+            baseline_skill=source.inputs.candidate_skill,
+            candidate_skill_path=candidate_skill_path,
+            candidate_label=candidate_label,
+        )
+
+    # -- the one precondition both operations rest on -----------------------
+
+    def _completed_real_run(self, run_id: str) -> CompletedRun:
+        """Load a run that finished, executed for real, and verifies offline."""
+        # Raises with the run's own phase when it has not finished, and
+        # re-derives the report's digest against the journal that announced it.
+        report = self._runs.result(run_id)
+        inputs = self._artifacts.load_inputs(run_id, self._runs.request(run_id))
+
+        if report.proof_grade == "development_only":
+            raise PolicyError(
+                f"run {run_id} was executed by the development executor, so "
+                "its numbers are not evidence and nothing may be derived from "
+                "them",
+                code=SOURCE_RUN_NOT_USABLE,
+                details={"run_id": run_id, "proof_grade": report.proof_grade},
+            )
+
+        backends = {
+            receipt.execution_backend
+            for variant in ExperimentVariant
+            for receipt in self._artifacts.episode_receipts(run_id, variant)
+        }
+        if backends != {"verifiers"}:
+            raise PolicyError(
+                f"run {run_id} did not evaluate every episode for real, so it "
+                "is not a run another comparison can be built on",
+                code=SOURCE_RUN_NOT_USABLE,
+                details={
+                    "run_id": run_id,
+                    "execution_backends": ", ".join(sorted(backends)),
+                },
+            )
+
+        verification = verify_local_bundle(
+            proof_bundle_dir(self._paths.run_dir(run_id))
+        )
+        if not verification.verified:
+            raise VerificationError(
+                f"run {run_id}'s local proof does not verify, so nothing may "
+                "be derived from what it reported",
+                code=PROOF_BUNDLE_INVALID,
+                details={
+                    "run_id": run_id,
+                    "failed_checks": [message.id for message in verification.failures],
+                },
+            )
+
+        return CompletedRun(report=report, inputs=inputs)

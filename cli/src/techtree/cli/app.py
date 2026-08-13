@@ -6,13 +6,15 @@ the command groups, and closes the last gap in the error boundary: a typed
 failure raised while the context is still being built still owes the caller one
 envelope and one documented exit code.
 
-``climb``, ``run``, ``engine``, and ``proof`` are registered with their real names
-even where this build implements only some of them. A name that exists and
-answers ``not_implemented`` is discoverable and scriptable; a name that does not
-exist yet is indistinguishable from a typo. The reserved namespaces — ``program``,
-``blueprint``, ``forge``, ``verify``, ``uplift``, ``trace``, ``lab`` — get no
-group at all, because an empty group in ``--help`` is a promise about a shape
-that has not been decided.
+``climb``, ``run``, ``engine``, ``proof`` and ``uplift`` are registered with
+their real names even where this build implements only some of them. A name
+that exists and answers ``not_implemented`` is discoverable and scriptable; a
+name that does not exist yet is indistinguishable from a typo. The reserved
+namespaces — ``program``, ``blueprint``, ``forge``, ``verify``, ``trace``,
+``lab`` — get no group at all, because an empty group in ``--help`` is a
+promise about a shape that has not been decided. ``uplift`` left that list when
+spec section 7.21's improvement commands landed and it stopped being a shape
+nobody had decided.
 
 Global options are accepted anywhere on the command line. ``techtree --json
 doctor`` and ``techtree doctor --json`` mean the same thing, because a caller
@@ -56,6 +58,11 @@ from techtree.cli.commands.run import (
     status_run_command,
 )
 from techtree.cli.commands.setup import setup_command
+from techtree.cli.commands.uplift import (
+    context_uplift_command,
+    prepare_uplift_command,
+    start_uplift_command,
+)
 from techtree.cli.context import build_cli_context
 from techtree.cli.invoke import emit_boundary_failure, failure_envelope
 from techtree.cli.output import write_envelope
@@ -224,6 +231,7 @@ def create_app() -> typer.Typer:
     app.add_typer(_run_app(), name="run")
     app.add_typer(_engine_app(), name="engine")
     app.add_typer(_proof_app(), name="proof")
+    app.add_typer(_uplift_app(), name="uplift")
     return app
 
 
@@ -279,6 +287,23 @@ def _run_app() -> typer.Typer:
     )
     app.command("result", help="Show the finished report for a run.")(
         result_run_command
+    )
+    return app
+
+
+def _uplift_app() -> typer.Typer:
+    app = typer.Typer(help="Improve a Skill from a finished run.", no_args_is_help=True)
+
+    app.command(
+        "context",
+        help="Export the sanitized improvement context for a finished run.",
+    )(context_uplift_command)
+    app.command(
+        "prepare",
+        help="Prepare a comparison between a run's Skill and a revision of it.",
+    )(prepare_uplift_command)
+    app.command("start", help="Start a prepared Skill-against-Skill comparison.")(
+        start_uplift_command
     )
     return app
 

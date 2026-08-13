@@ -351,7 +351,7 @@ def test_the_report_carries_the_campaign_lineage(
     assert report.program_ref == request.program_ref
     assert report.evaluation_backend == inputs.campaign.evaluation_backend
     assert report.taskset_validation_receipt_digest == digest_object(
-        inputs.resolved_climb.publisher_validation
+        inputs.source.publisher_validation
     )
     assert report.manifest_comparison == inputs.comparison
 

@@ -25,10 +25,11 @@ about that Skill, and framing it as a failure of the run would be both
 discouraging and wrong.
 
 *Nothing is offered that does not exist.* ``next_actions`` names commands this
-build actually has. Section 7.14 also lists asking the host agent for a Skill
-revision and preparing a v1-against-v2 comparison; those belong to the work
-packages that add the commands, and they will be added here by the slice that
-can honestly carry them out.
+build actually has. Section 7.14's four steps are all present for a graded
+result: look at the tasks, export the context a host agent proposes a revision
+from, prepare the v1-against-v2 comparison, and verify the local proof. The
+reasoning turn itself is WP9+'s, so what is offered is the deterministic
+command that produces its input rather than a promise to think.
 """
 
 from __future__ import annotations
@@ -394,9 +395,11 @@ def _caveats(
 def _next_actions(run_id: str, proof_grade: str) -> list[NextAction]:
     """Return the steps this build can actually carry out for this report.
 
-    A development-only report has no proof bundle and never claimed one, so it
-    is not offered a command that would fail: an action a caller cannot carry
-    out is worse than one fewer suggestion.
+    A development-only report is offered only the first of them. It has no
+    proof bundle and never claimed one, and nothing may be derived from
+    invented numbers, so the three commands that would refuse it are not
+    suggested: an action a caller cannot carry out is worse than one fewer
+    suggestion.
     """
     actions = [
         NextAction(
@@ -409,16 +412,58 @@ def _next_actions(run_id: str, proof_grade: str) -> list[NextAction]:
             requires_user_confirmation=False,
         )
     ]
-    if proof_grade != "development_only":
-        actions.append(
-            NextAction(
-                id="verify_proof",
-                label="Verify this run's local proof",
-                reason="It checks offline, from the bytes the run stored.",
-                cli=["techtree", "proof", "verify", run_id],
-                hermes_tool=None,
-                hermes_args=None,
-                requires_user_confirmation=False,
-            )
+    if proof_grade == "development_only":
+        return actions
+
+    # Ordered by usefulness, because the CLI envelope carries at most three and
+    # truncates from the end. Checking that the result is real comes before
+    # acting on it, and the context has to exist before a revision can be
+    # compared against anything.
+    actions.append(
+        NextAction(
+            id="verify_proof",
+            label="Verify this run's local proof",
+            reason="It checks offline, from the bytes the run stored.",
+            cli=["techtree", "proof", "verify", run_id],
+            hermes_tool=None,
+            hermes_args=None,
+            requires_user_confirmation=False,
         )
+    )
+    actions.append(
+        NextAction(
+            id="improvement_context",
+            label="Export what a host agent needs to propose one Skill revision",
+            reason=(
+                "It carries the regressions, the failures and the objective, "
+                "and no hidden task material."
+            ),
+            cli=["techtree", "uplift", "context", run_id],
+            hermes_tool=None,
+            hermes_args=None,
+            requires_user_confirmation=False,
+        )
+    )
+    actions.append(
+        NextAction(
+            id="prepare_replacement",
+            label="Prepare a comparison of this Skill against a revision of it",
+            reason=(
+                "The baseline is pinned to the Skill this run measured, so the "
+                "second comparison starts where this one ended."
+            ),
+            cli=[
+                "techtree",
+                "uplift",
+                "prepare",
+                "--from-run",
+                run_id,
+                "--candidate-skill",
+                "PATH",
+            ],
+            hermes_tool=None,
+            hermes_args=None,
+            requires_user_confirmation=True,
+        )
+    )
     return actions

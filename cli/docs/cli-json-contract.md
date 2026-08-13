@@ -172,6 +172,9 @@ run logs
 run cancel
 run result
 proof verify
+uplift context
+uplift prepare
+uplift start
 engine install
 engine status
 engine verify
@@ -181,8 +184,8 @@ Commands that are registered but not implemented in a given build answer with
 `ok: false` and error code `not_implemented`. A name that exists and says so is
 scriptable; a name that does not exist yet is indistinguishable from a typo.
 
-The namespaces `program`, `blueprint`, `forge`, `verify`, `uplift`, `trace`,
-and `lab` are reserved and are not registered.
+The namespaces `program`, `blueprint`, `forge`, `verify`, `trace`, and `lab`
+are reserved and are not registered.
 
 ## Exit codes
 

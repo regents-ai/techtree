@@ -390,6 +390,8 @@ def test_the_next_actions_only_name_commands_this_build_has(
     assert [action.id for action in payload.next_actions] == [
         "inspect_tasks",
         "verify_proof",
+        "improvement_context",
+        "prepare_replacement",
     ]
     assert all(action.cli is not None for action in payload.next_actions)
 

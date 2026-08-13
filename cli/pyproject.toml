@@ -104,9 +104,10 @@ addopts = [
   "--strict-config",
   "--strict-markers",
   "-m",
-  "not integration and not preflight",
+  "not integration and not preflight and not real_model",
 ]
 markers = [
   "integration: exercises real filesystem and subprocess flows; run with `make test-integration`",
   "preflight: pinned-Verifiers compatibility checks; run with `make verifiers-preflight`",
+  "real_model: calls a paid model endpoint and provisions Docker; never runs unattended, run with `make real-model-run`",
 ]

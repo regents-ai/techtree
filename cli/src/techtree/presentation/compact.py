@@ -108,10 +108,23 @@ def render_uplift_markdown(
         lines.extend(f"- {caveat.text}" for caveat in qualifications)
 
     lines.append("")
-    lines.append(
-        "Next: I can show every task locally, or verify this run's local proof."
-    )
+    lines.append(_next_line(payload))
     return "\n".join(lines)
+
+
+def _next_line(payload: UpliftPresentationPayload) -> str:
+    """Offer, in one line, the steps this result actually has.
+
+    A development-only result has no proof to check and nothing may be derived
+    from it, so it is offered the one thing it can do. Everything else is left
+    unsaid rather than promised on a channel with no room to explain.
+    """
+    if payload.proof_grade == "development_only":
+        return "Next: I can show every task locally."
+    return (
+        "Next: I can show every task locally, set up a comparison against a "
+        "revised Skill, or verify this run's local proof."
+    )
 
 
 def _worst_first(payload: UpliftPresentationPayload) -> list[TaskResultRow]:

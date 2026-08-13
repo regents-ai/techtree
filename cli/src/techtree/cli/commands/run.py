@@ -695,17 +695,19 @@ def _presentation(
 ) -> UpliftPresentationPayload:
     """Build the channel-neutral payload every rendering of this result uses.
 
-    The Skill and the Climb's title come from the run's own staged inputs,
-    which the artifact store verifies against the run's immutable request, so
-    what is shown is what was executed rather than whatever a draft or a
-    catalog holds now.
+    The Skills and the comparison's title come from the run's own staged
+    inputs, which the artifact store verifies against the run's immutable
+    request, so what is shown is what was executed rather than whatever a
+    draft or a catalog holds now.
 
-    ``baseline_skill`` is ``None`` because every comparison this build prepares
-    is a Skill insertion: the baseline declares no Skill. The replacement case
-    belongs to the slice that can prepare one.
+    ``baseline_skill`` is the Skill the baseline variant carried, which is
+    ``None`` for a Skill insertion and the Skill being revised for a Skill
+    replacement. It is read off the run rather than assumed, so the two
+    comparisons cannot be labelled as each other.
     """
     artifacts = RunArtifactStore(context.paths)
     inputs = artifacts.load_inputs(run_id, RunStore(context.paths).get_request(run_id))
+    baseline_skill = inputs.baseline_skill
     return build_uplift_presentation(
         report=report,
         baseline_receipts=artifacts.episode_receipts(
@@ -714,9 +716,9 @@ def _presentation(
         candidate_receipts=artifacts.episode_receipts(
             run_id, ExperimentVariant.CANDIDATE
         ),
-        campaign_title=inputs.resolved_climb.climb.metadata.title,
-        baseline_skill=None,
-        candidate_skill=inputs.skill,
+        campaign_title=inputs.source.title,
+        baseline_skill=None if baseline_skill is None else baseline_skill.artifact,
+        candidate_skill=inputs.candidate_skill.artifact,
         verification=verification,
     )
 

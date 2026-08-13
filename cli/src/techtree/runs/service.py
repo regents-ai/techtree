@@ -254,7 +254,7 @@ class RunService:
                 details={"draft_id": draft.id},
             )
 
-        kind = snapshot.resolved_climb.campaign.evaluation_backend.kind
+        kind = snapshot.source.campaign.evaluation_backend.kind
         if kind not in SUPPORTED_EVALUATION_BACKEND_KINDS:
             raise VerificationError(
                 f"this Campaign is evaluated by {kind.value}, which this build "
@@ -301,9 +301,9 @@ class RunService:
             public_context=draft.public_context,
             data_policy_digest=draft.data_policy_digest,
             outcome_contract_digest=draft.outcome_contract_digest,
-            evaluation_backend=snapshot.resolved_climb.campaign.evaluation_backend,
+            evaluation_backend=snapshot.source.campaign.evaluation_backend,
             taskset_lock_digest=(
-                snapshot.resolved_climb.publisher_validation.taskset_lock_digest
+                snapshot.source.publisher_validation.taskset_lock_digest
             ),
             baseline_manifest_digest=draft.baseline_manifest_digest,
             candidate_manifest_digest=draft.candidate_manifest_digest,

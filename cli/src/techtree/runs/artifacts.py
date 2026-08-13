@@ -45,6 +45,7 @@ from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
+from techtree.drafts.source import CampaignSource, StagedSkill
 from techtree.drafts.store import DraftSnapshot
 from techtree.errors import NotFoundError, ValidationError, VerificationError
 from techtree.fs import (
@@ -55,7 +56,7 @@ from techtree.fs import (
 )
 from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import ArtifactRef, Digest, JsonValue
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EpisodeReceipt
@@ -105,6 +106,7 @@ _BASELINE_FILE: Final = "baseline.json"
 _CANDIDATE_FILE: Final = "candidate.json"
 
 _SKILL_DIR: Final = "skill"
+_BASELINE_SKILL_DIR: Final = "baseline-skill"
 _ARTIFACT_FILE: Final = "artifact.json"
 _BUNDLE_FILE: Final = "bundle.tar"
 _FILES_DIR: Final = "files"
@@ -127,24 +129,30 @@ class RunInputBundle:
 
     request: RunRequest
     draft: SubmissionDraft
-    resolved_climb: ResolvedClimb
+    source: CampaignSource
     validation_evidence: ValidationEvidence
     baseline: ExperimentManifest
     candidate: ExperimentManifest
     comparison: ManifestComparison
-    skill: SkillArtifact
-    skill_archive: Path
-    skill_files: Path
+    candidate_skill: StagedSkill
+    baseline_skill: StagedSkill | None
 
     @property
     def campaign(self) -> CampaignSpec:
         """Return the Campaign this run's science comes from."""
-        return self.resolved_climb.campaign
+        return self.source.campaign
 
     @property
     def ordered_task_hashes(self) -> list[Digest]:
         """Return the Campaign's committed task membership, in order."""
         return list(self.campaign.taskset.membership.ordered_task_hashes)
+
+    @property
+    def declared_skills(self) -> list[StagedSkill]:
+        """Return every Skill this run owns, baseline's first when it has one."""
+        if self.baseline_skill is None:
+            return [self.candidate_skill]
+        return [self.baseline_skill, self.candidate_skill]
 
 
 class RunArtifactStore:
@@ -295,7 +303,7 @@ class RunArtifactStore:
 
     def _assemble(self, staging: Path, snapshot: DraftSnapshot) -> None:
         """Write the complete input tree under a staging name."""
-        resolved = snapshot.resolved_climb
+        source = snapshot.source
         try:
             ensure_private_directory(staging)
             self._write_immutable(staging / _DRAFT_FILE, snapshot.draft)
@@ -303,11 +311,12 @@ class RunArtifactStore:
 
             public = staging / _PUBLIC_DIR
             ensure_private_directory(public)
-            self._write_immutable(public / _CLIMB_FILE, resolved.climb)
-            self._write_immutable(public / _CAMPAIGN_FILE, resolved.campaign)
-            self._write_immutable(public / _DATA_POLICY_FILE, resolved.data_policy)
+            if source.climb is not None:
+                self._write_immutable(public / _CLIMB_FILE, source.climb)
+            self._write_immutable(public / _CAMPAIGN_FILE, source.campaign)
+            self._write_immutable(public / _DATA_POLICY_FILE, source.data_policy)
             self._write_immutable(
-                public / _VALIDATION_RECEIPT_FILE, resolved.publisher_validation
+                public / _VALIDATION_RECEIPT_FILE, source.publisher_validation
             )
             self._write_immutable(public / _EVIDENCE_FILE, snapshot.validation_evidence)
 
@@ -316,21 +325,26 @@ class RunArtifactStore:
             self._write_immutable(manifests / _BASELINE_FILE, snapshot.baseline)
             self._write_immutable(manifests / _CANDIDATE_FILE, snapshot.candidate)
 
-            skill = staging / _SKILL_DIR
-            ensure_private_directory(skill)
-            self._write_immutable(skill / _ARTIFACT_FILE, snapshot.skill)
-            self._copy_bytes(snapshot.skill_archive, skill / _BUNDLE_FILE)
-            files = skill / _FILES_DIR
-            ensure_private_directory(files)
-            for entry in snapshot.skill.files:
-                target = files / entry.path
-                ensure_private_directory(target.parent)
-                self._copy_bytes(snapshot.skill_files / entry.path, target)
+            self._copy_skill(staging / _SKILL_DIR, snapshot.candidate_skill)
+            if snapshot.baseline_skill is not None:
+                self._copy_skill(staging / _BASELINE_SKILL_DIR, snapshot.baseline_skill)
         except OSError as error:
             raise ValidationError(
                 f"this run's inputs could not be staged: {error.strerror or error}",
                 code=RUN_INPUT_STAGING_FAILED,
             ) from error
+
+    def _copy_skill(self, destination: Path, staged: StagedSkill) -> None:
+        """Copy one skill's artifact, archive and files into the run's inputs."""
+        ensure_private_directory(destination)
+        self._write_immutable(destination / _ARTIFACT_FILE, staged.artifact)
+        self._copy_bytes(staged.archive, destination / _BUNDLE_FILE)
+        files = destination / _FILES_DIR
+        ensure_private_directory(files)
+        for entry in staged.artifact.files:
+            target = files / entry.path
+            ensure_private_directory(target.parent)
+            self._copy_bytes(staged.files / entry.path, target)
 
     def _copy_bytes(self, source: Path, destination: Path) -> None:
         """Copy one file's contents into a newly created run-owned file.
@@ -350,13 +364,65 @@ class RunArtifactStore:
         """Load every staged object from one input tree."""
         run_id = request.run_id
         public = root / _PUBLIC_DIR
-        climb = self._parse(public / _CLIMB_FILE, ClimbManifest, run_id)
         campaign = self._parse(public / _CAMPAIGN_FILE, CampaignSpec, run_id)
         data_policy = self._parse(public / _DATA_POLICY_FILE, DataPolicy, run_id)
         receipt = self._parse(
             public / _VALIDATION_RECEIPT_FILE, TasksetValidationReceipt, run_id
         )
 
+        baseline_artifact = root / _BASELINE_SKILL_DIR / _ARTIFACT_FILE
+        return RunInputBundle(
+            request=request,
+            draft=self._parse(root / _DRAFT_FILE, SubmissionDraft, run_id),
+            source=self._read_source(
+                public,
+                run_id=run_id,
+                campaign=campaign,
+                data_policy=data_policy,
+                receipt=receipt,
+            ),
+            validation_evidence=self._parse(
+                public / _EVIDENCE_FILE, ValidationEvidence, run_id
+            ),
+            baseline=self._parse(
+                root / _MANIFESTS_DIR / _BASELINE_FILE, ExperimentManifest, run_id
+            ),
+            candidate=self._parse(
+                root / _MANIFESTS_DIR / _CANDIDATE_FILE, ExperimentManifest, run_id
+            ),
+            comparison=self._parse(root / _COMPARISON_FILE, ManifestComparison, run_id),
+            candidate_skill=self._read_skill(root / _SKILL_DIR, run_id),
+            baseline_skill=(
+                self._read_skill(root / _BASELINE_SKILL_DIR, run_id)
+                if baseline_artifact.exists()
+                else None
+            ),
+        )
+
+    def _read_source(
+        self,
+        public: Path,
+        *,
+        run_id: str,
+        campaign: CampaignSpec,
+        data_policy: DataPolicy,
+        receipt: TasksetValidationReceipt,
+    ) -> CampaignSource:
+        """Assemble the Campaign graph this run owns, Climb included when there is one.
+
+        A run started from a locally derived Campaign — spec section 7.19's
+        Skill replacement — snapshotted no public Climb, because none wraps it.
+        A run started under a Climb reassembles the whole graph as a
+        :class:`ResolvedClimb` so its validator runs against the run's own bytes.
+        """
+        if not (public / _CLIMB_FILE).exists():
+            return CampaignSource.local(
+                campaign=campaign,
+                data_policy=data_policy,
+                publisher_validation=receipt,
+            )
+
+        climb = self._parse(public / _CLIMB_FILE, ClimbManifest, run_id)
         try:
             resolved = ResolvedClimb(
                 climb=climb,
@@ -375,34 +441,22 @@ class RunArtifactStore:
                 code=RUN_INPUT_STAGING_FAILED,
                 details={"run_id": run_id},
             ) from error
+        return CampaignSource.from_climb(resolved)
 
-        return RunInputBundle(
-            request=request,
-            draft=self._parse(root / _DRAFT_FILE, SubmissionDraft, run_id),
-            resolved_climb=resolved,
-            validation_evidence=self._parse(
-                public / _EVIDENCE_FILE, ValidationEvidence, run_id
-            ),
-            baseline=self._parse(
-                root / _MANIFESTS_DIR / _BASELINE_FILE, ExperimentManifest, run_id
-            ),
-            candidate=self._parse(
-                root / _MANIFESTS_DIR / _CANDIDATE_FILE, ExperimentManifest, run_id
-            ),
-            comparison=self._parse(root / _COMPARISON_FILE, ManifestComparison, run_id),
-            skill=self._parse(
-                root / _SKILL_DIR / _ARTIFACT_FILE, SkillArtifact, run_id
-            ),
-            skill_archive=root / _SKILL_DIR / _BUNDLE_FILE,
-            skill_files=root / _SKILL_DIR / _FILES_DIR,
+    def _read_skill(self, directory: Path, run_id: str) -> StagedSkill:
+        """Load one run-owned skill's artifact and name the bytes beside it."""
+        return StagedSkill(
+            artifact=self._parse(directory / _ARTIFACT_FILE, SkillArtifact, run_id),
+            archive=directory / _BUNDLE_FILE,
+            files=directory / _FILES_DIR,
         )
 
     def _verify(self, run_id: str, bundle: RunInputBundle) -> None:
         """Prove the staged bytes are the ones this run's request names."""
         request = bundle.request
         draft = bundle.draft
-        resolved = bundle.resolved_climb
-        campaign = resolved.campaign
+        source = bundle.source
+        campaign = source.campaign
 
         _require(
             digest_object(draft) == request.draft_digest,
@@ -417,27 +471,33 @@ class RunArtifactStore:
             run_id,
         )
         _require(
-            resolved.campaign_digest
+            source.campaign_digest
             == request.campaign_spec_digest
-            == draft.campaign_spec_digest
-            == resolved.climb.campaign_spec_digest,
+            == draft.campaign_spec_digest,
             "the staged Campaign is not the Campaign this run executes",
             run_id,
             expected=request.campaign_spec_digest,
-            computed=resolved.campaign_digest,
+            computed=source.campaign_digest,
         )
         _require(
-            resolved.data_policy_digest
+            source.climb is None
+            or source.campaign_digest == source.climb.campaign_spec_digest,
+            "the staged Campaign is not the one the staged Climb wraps",
+            run_id,
+        )
+        _require(
+            source.data_policy_digest
             == request.data_policy_digest
             == draft.data_policy_digest
             == campaign.data_policy_digest,
             "the staged DataPolicy is not the one this run executes under",
             run_id,
             expected=request.data_policy_digest,
-            computed=resolved.data_policy_digest,
+            computed=source.data_policy_digest,
         )
         _require(
             draft.public_context == request.public_context
+            and draft.public_context == source.public_context
             and draft.program_ref == request.program_ref
             and draft.outcome_contract_digest == request.outcome_contract_digest,
             "the staged draft names a different public context, improvement "
@@ -455,15 +515,15 @@ class RunArtifactStore:
         self._verify_skill(run_id, bundle)
 
     def _verify_validation(self, run_id: str, bundle: RunInputBundle) -> None:
-        resolved = bundle.resolved_climb
-        receipt = resolved.publisher_validation
+        source = bundle.source
+        receipt = source.publisher_validation
         _require(
-            resolved.publisher_validation_digest
-            == resolved.campaign.taskset.validation_receipt_digest,
+            source.publisher_validation_digest
+            == source.campaign.taskset.validation_receipt_digest,
             "the staged publisher validation is not the one the Campaign commits to",
             run_id,
-            expected=resolved.campaign.taskset.validation_receipt_digest,
-            computed=resolved.publisher_validation_digest,
+            expected=source.campaign.taskset.validation_receipt_digest,
+            computed=source.publisher_validation_digest,
         )
         reference = receipt.normalized_evidence
         if reference is None:
@@ -526,12 +586,43 @@ class RunArtifactStore:
         )
 
     def _verify_skill(self, run_id: str, bundle: RunInputBundle) -> None:
-        skill = bundle.skill
+        """Check every Skill this run owns against the bytes staged beside it.
+
+        Which Skills a run owns is decided by the variants rather than by the
+        directory listing: the candidate always, and the Skill the baseline
+        declares when this is a replacement. A staged tree nothing declares,
+        or a declared Skill nothing staged, both fail here.
+        """
         _require(
-            digest_object(skill) == digest_object(bundle.draft.skill_artifact),
+            digest_object(bundle.candidate_skill.artifact)
+            == digest_object(bundle.draft.skill_artifact),
             "the staged skill artifact is not the one the staged draft names",
             run_id,
         )
+        declared = _declared_baseline_skill(bundle.baseline)
+        _require(
+            (declared is None) == (bundle.baseline_skill is None),
+            "this run's baseline variant and its staged skills disagree about "
+            "whether a skill is being replaced",
+            run_id,
+            declared=None if declared is None else declared.digest,
+        )
+        if declared is not None and bundle.baseline_skill is not None:
+            _require(
+                bundle.baseline_skill.artifact.root_digest == declared.digest,
+                "the staged baseline skill is not the skill this run's baseline "
+                "variant declares",
+                run_id,
+                expected=declared.digest,
+                computed=bundle.baseline_skill.artifact.root_digest,
+            )
+
+        for staged in bundle.declared_skills:
+            self._verify_one_skill(run_id, staged)
+
+    def _verify_one_skill(self, run_id: str, staged: StagedSkill) -> None:
+        """Recompute one skill's tree digest, its files, and its archive."""
+        skill = staged.artifact
         recomputed = skill_content_digest(skill.files)
         _require(
             recomputed == skill.root_digest,
@@ -541,7 +632,7 @@ class RunArtifactStore:
             computed=recomputed,
         )
         for entry in skill.files:
-            path = bundle.skill_files / entry.path
+            path = staged.files / entry.path
             try:
                 data = path.read_bytes()
             except OSError as error:
@@ -558,7 +649,7 @@ class RunArtifactStore:
                 path=entry.path,
             )
         _require(
-            verify_archive(bundle.skill_archive, skill),
+            verify_archive(staged.archive, skill),
             "this run's copy of the candidate skill archive does not match "
             "the artifact beside it",
             run_id,
@@ -622,6 +713,14 @@ class RunArtifactStore:
 
     def _inputs_dir(self, run_id: str) -> Path:
         return self._run_dir(run_id) / _INPUTS_DIR
+
+
+def _declared_baseline_skill(baseline: ExperimentManifest) -> ArtifactRef | None:
+    """Return the one Skill a baseline variant declares, when it declares one."""
+    subject = baseline.configuration.agents.get(SUBJECT_AGENT)
+    if subject is None or not subject.harness.skills:
+        return None
+    return subject.harness.skills[0]
 
 
 def _position_file(position: int) -> str:

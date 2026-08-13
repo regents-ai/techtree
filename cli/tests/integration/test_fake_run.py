@@ -161,13 +161,13 @@ def test_the_report_carries_the_whole_lineage(finished_run: dict[str, Any]) -> N
     inputs = RunArtifactStore(paths).load_inputs(run_id, request)
     report = _report(finished_run)
 
-    assert report.campaign_spec_digest == inputs.resolved_climb.campaign_digest
-    assert report.data_policy_digest == inputs.resolved_climb.data_policy_digest
+    assert report.campaign_spec_digest == inputs.source.campaign_digest
+    assert report.data_policy_digest == inputs.source.data_policy_digest
     assert report.public_context is not None
-    assert report.public_context.climb_digest == inputs.resolved_climb.climb_digest
+    assert report.public_context.climb_digest == inputs.source.climb_digest
     assert report.evaluation_backend == inputs.campaign.evaluation_backend
     assert report.taskset_validation_receipt_digest == (
-        inputs.resolved_climb.publisher_validation_digest
+        inputs.source.publisher_validation_digest
     )
 
 

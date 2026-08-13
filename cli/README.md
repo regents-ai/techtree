@@ -72,7 +72,11 @@ techtree climb prepare <climb-slug> --skill <path>
 techtree climb start <draft-id> --confirmation-token <token>
 techtree run status <run-id> --watch
 techtree run logs <run-id> --tail 200
-techtree run result <run-id>
+techtree run result <run-id>                     # the comparison, with its caveats
+techtree proof verify <run-id>                   # check the run's local proof, offline
+techtree uplift context <run-id>                 # what a host agent may read about a run
+techtree uplift prepare --from-run <run-id> --candidate-skill <path>
+techtree uplift start <draft-id> --confirmation-token <token>
 ```
 
 The detached worker is started by the CLI and is not a user-facing command.
@@ -80,6 +84,40 @@ The detached worker is started by the CLI and is not a user-facing command.
 Every command speaks two languages: rendered output for a person and, with
 `--json`, exactly one JSON object on standard output so another program can
 drive the CLI. Logs always go to standard error.
+
+## Local proof
+
+A finished real run signs its receipts and its report with a key this machine
+made and keeps. The signed documents travel together in a proof bundle inside
+the run directory, and `techtree proof verify` checks that bundle from its own
+stored bytes — no network, no account, and no Techtree state of its own, so a
+bundle copied to another machine still checks out.
+
+What a verified proof says is bounded, and the product says so wherever it
+shows one: the participant's own key vouches for bytes that verify against each
+other. Nobody has independently reproduced the comparison, no platform
+witnessed it, and nothing was uploaded.
+
+## Improving a skill
+
+A finished run can be continued. `techtree uplift context` writes a sanitized
+account of what that run showed — the objective, the headline numbers, and the
+tasks worth looking at — for a host agent to read before proposing a revision.
+It carries no hidden expected answer, no grader material, no credential, no
+local path, and no transcript of what the evaluated agent replied; the context
+lists what it withholds, on the artifact itself.
+
+`techtree uplift prepare` then sets up the second comparison: the skill the
+first run measured against the revision, everything else held fixed. The
+baseline is pinned to the skill as it was evaluated rather than to whatever is
+in a directory now, the revision goes through the same scanner and the same
+controlled-comparison check as any first submission, and the data policy is
+shown and accepted again before the second run starts. Nothing about that
+second run is smaller than the first: it produces its own signed report and its
+own local proof.
+
+Techtree does not write the revision. Proposing one is a host agent's job, and
+no command here calls a model.
 
 ## Development-only runs
 

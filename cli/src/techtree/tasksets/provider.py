@@ -94,7 +94,7 @@ class LocalVerifiersValidationProvider:
     ) -> TasksetValidationOutcome:
         """Run the real validation and require it to agree with the publisher."""
         campaign = inputs.campaign
-        publisher = inputs.resolved_climb.publisher_validation
+        publisher = inputs.source.publisher_validation
         committed_receipt_digest = campaign.taskset.validation_receipt_digest
 
         service = TasksetService(

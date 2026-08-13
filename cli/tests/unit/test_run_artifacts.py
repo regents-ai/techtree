@@ -71,8 +71,8 @@ def test_the_staged_graph_is_the_one_the_request_names(
     bundle = harness.inputs(run_id)
 
     assert digest_object(bundle.draft) == request.draft_digest
-    assert bundle.resolved_climb.campaign_digest == request.campaign_spec_digest
-    assert bundle.resolved_climb.data_policy_digest == request.data_policy_digest
+    assert bundle.source.campaign_digest == request.campaign_spec_digest
+    assert bundle.source.data_policy_digest == request.data_policy_digest
     assert digest_object(bundle.baseline) == request.baseline_manifest_digest
     assert digest_object(bundle.candidate) == request.candidate_manifest_digest
     assert bundle.campaign.evaluation_backend == request.evaluation_backend
@@ -99,15 +99,15 @@ def test_the_run_needs_neither_the_draft_nor_the_source_skill(
     remove_tree(harness.paths.drafts_dir)
 
     bundle = harness.inputs(run_id)
-    assert bundle.skill.files
-    assert (bundle.skill_files / "SKILL.md").exists()
+    assert bundle.candidate_skill.artifact.files
+    assert (bundle.candidate_skill.files / "SKILL.md").exists()
 
 
 def test_staged_files_are_copies_and_not_links(
     started: tuple[RunHarness, str],
 ) -> None:
     harness, run_id = started
-    entry = harness.inputs(run_id).skill.files[0]
+    entry = harness.inputs(run_id).candidate_skill.artifact.files[0]
     staged = harness.artifacts.skill_files_dir(run_id) / entry.path
     original = harness.drafts.skill_files_dir(harness.draft_id) / entry.path
 

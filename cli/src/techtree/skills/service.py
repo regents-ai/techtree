@@ -48,6 +48,7 @@ from techtree.canonical import (
 from techtree.catalog.service import CatalogService
 from techtree.constants import SKILL_SCHEMA_VERSION, SUBMISSION_DRAFT_SCHEMA_VERSION
 from techtree.drafts.confirmation import ConfirmationService, utc_now
+from techtree.drafts.source import CampaignSource, StagedSkill
 from techtree.drafts.store import DraftStore
 from techtree.errors import (
     PolicyError,
@@ -74,11 +75,16 @@ from techtree.models.skill import (
     SkillFile,
     SubmissionDraft,
 )
-from techtree.models.validation import ValidationEvidence
+from techtree.models.uplift_report import UpliftReport
+from techtree.models.validation import TasksetValidationReceipt, ValidationEvidence
 from techtree.paths import TechtreePaths
 from techtree.skills.archive import build_deterministic_tar
 from techtree.skills.policy import SkillPolicy, default_instruction_skill_policy
 from techtree.skills.scanner import ScannedFile, SkillScanResult, scan_skill
+from techtree.uplift.derive import (
+    derive_replacement_manifests,
+    derive_skill_replacement_campaign,
+)
 
 __all__ = [
     "PreparedDraft",
@@ -134,7 +140,7 @@ class PreparedDraft:
     confirmation_token: str
     confirmation_expires_at: datetime
     manifest_comparison: ManifestComparison
-    resolved_climb: ResolvedClimb
+    source: CampaignSource
 
 
 class SkillPreparationService:
@@ -177,24 +183,39 @@ class SkillPreparationService:
         ensure_private_directory(self._paths.drafts_dir)
         staging = self._paths.drafts_dir / f"{_STAGING_PREFIX}{uuid.uuid4().hex}"
 
+        source = CampaignSource.from_climb(resolved)
         try:
             ensure_private_directory(staging)
-            skill, archive, files = self._snapshot_skill(
-                draft_dir=staging,
+            staged = self._snapshot_skill(
+                skill_dir=staging / _SKILL_DIR,
                 scan=scan,
                 candidate_label=candidate_label,
             )
-            baseline, candidate, comparison = self._build_manifests(
-                resolved=resolved,
-                skill=skill,
+            public_context = PublicContext(
+                kind="climb", climb_digest=resolved.climb_digest
+            )
+            baseline = build_baseline_manifest(
+                campaign=resolved.campaign,
+                campaign_digest=resolved.campaign_digest,
+                public_context=public_context,
                 created_at=created_at,
             )
+            candidate = build_candidate_manifest(
+                campaign=resolved.campaign,
+                campaign_digest=resolved.campaign_digest,
+                skill=staged.artifact,
+                public_context=public_context,
+                created_at=created_at,
+            )
+            comparison = self._require_controlled(
+                baseline, candidate, resolved.campaign
+            )
             draft = self._build_draft(
-                resolved=resolved,
-                skill=skill,
+                source=source,
+                skill=staged.artifact,
                 baseline=baseline,
                 candidate=candidate,
-                policy=self._build_policy_requirement(resolved),
+                policy=self._build_policy_requirement(resolved.data_policy),
                 created_at=created_at,
                 warnings=self._warnings(resolved, scan),
             )
@@ -207,10 +228,9 @@ class SkillPreparationService:
                 baseline=baseline,
                 candidate=candidate,
                 comparison=comparison,
-                resolved_climb=resolved,
+                source=source,
                 validation_evidence=bundle.validation_evidence,
-                staged_skill_dir=files,
-                staged_skill_archive=archive,
+                staged_candidate_skill=staged,
             )
         finally:
             # The store renames its own staging tree into place; this one is
@@ -223,7 +243,105 @@ class SkillPreparationService:
             confirmation_token=token,
             confirmation_expires_at=record.expires_at,
             manifest_comparison=comparison,
-            resolved_climb=resolved,
+            source=source,
+        )
+
+    def prepare_replacement(
+        self,
+        *,
+        source_campaign: CampaignSpec,
+        data_policy: DataPolicy,
+        publisher_validation: TasksetValidationReceipt,
+        validation_evidence: ValidationEvidence,
+        source_report: UpliftReport,
+        baseline_skill: StagedSkill,
+        candidate_skill_path: Path,
+        candidate_label: str | None = None,
+    ) -> PreparedDraft:
+        """Prepare a Skill v1 against Skill v2 draft. Spec sections 7.19, 7.20.
+
+        Everything a public submission goes through happens here too, in the
+        same order and through the same store: the new Skill is scanned by the
+        same scanner, snapshotted by the same snapshotter, compared by the same
+        comparison, and confirmed by the same one-time token. Only two things
+        differ, and both come from the Campaign rather than from a caller.
+
+        *The Campaign is derived, not resolved.* Spec section 7.19 fixes every
+        scientific field to the source run's and changes exactly the mutation
+        contract and the Skill the baseline carries, so no public Climb wraps
+        it and the draft names no public context.
+
+        *The baseline carries a Skill.* ``baseline_skill`` is Skill v1 exactly
+        as it was evaluated, taken from the source run's own verified inputs
+        rather than rescanned from a directory that may have changed since,
+        and it is snapshotted beside the candidate because the subject has to
+        be handed its files.
+        """
+        created_at = self._clock()
+        scan = self._scan(candidate_skill_path)
+        self._require_candidate_files(scan)
+
+        ensure_private_directory(self._paths.drafts_dir)
+        staging = self._paths.drafts_dir / f"{_STAGING_PREFIX}{uuid.uuid4().hex}"
+
+        try:
+            ensure_private_directory(staging)
+            staged = self._snapshot_skill(
+                skill_dir=staging / _SKILL_DIR,
+                scan=scan,
+                candidate_label=candidate_label,
+                parent_skill_digest=baseline_skill.artifact.root_digest,
+            )
+            campaign = derive_skill_replacement_campaign(
+                source_campaign=source_campaign,
+                source_run=source_report,
+                baseline_skill=baseline_skill.artifact,
+                candidate_skill=staged.artifact,
+            )
+            source = CampaignSource.local(
+                campaign=campaign,
+                data_policy=data_policy,
+                publisher_validation=publisher_validation,
+            )
+            baseline, candidate, comparison = derive_replacement_manifests(
+                campaign=campaign,
+                candidate_skill=staged.artifact,
+                campaign_digest=source.campaign_digest,
+                created_at=created_at,
+            )
+            draft = self._build_draft(
+                source=source,
+                skill=staged.artifact,
+                baseline=baseline,
+                candidate=candidate,
+                policy=self._build_policy_requirement(data_policy),
+                created_at=created_at,
+                warnings=self._replacement_warnings(scan),
+            )
+            draft_digest = digest_object(draft)
+            token, record = self._confirmation.issue(draft_digest)
+
+            self._drafts.create(
+                draft=draft,
+                confirmation=record,
+                baseline=baseline,
+                candidate=candidate,
+                comparison=comparison,
+                source=source,
+                validation_evidence=validation_evidence,
+                staged_candidate_skill=staged,
+                staged_baseline_skill=baseline_skill,
+            )
+        finally:
+            remove_tree(staging)
+
+        return PreparedDraft(
+            draft=draft,
+            draft_digest=draft_digest,
+            confirmation_token=token,
+            confirmation_expires_at=record.expires_at,
+            manifest_comparison=comparison,
+            source=source,
         )
 
     # -- Resolution and eligibility ----------------------------------------
@@ -290,6 +408,16 @@ class SkillPreparationService:
                 details={"candidate_skill_public_release": release},
             )
 
+        self._require_candidate_files(scan)
+
+    def _require_candidate_files(self, scan: SkillScanResult) -> None:
+        """Enforce the file-count ceiling every candidate is held to.
+
+        The Climb's own constraints and its public-release rule are checked
+        beside this one when a Climb is what invited the submission. A locally
+        derived replacement has neither, and inventing a public rule for a
+        private comparison would be inventing a policy nobody stated.
+        """
         if len(scan.files) > self._policy.maximum_files:
             raise PolicyError(
                 f"this candidate has {len(scan.files)} files and the limit is "
@@ -317,10 +445,11 @@ class SkillPreparationService:
     def _snapshot_skill(
         self,
         *,
-        draft_dir: Path,
+        skill_dir: Path,
         scan: SkillScanResult,
         candidate_label: str | None,
-    ) -> tuple[SkillArtifact, Path, Path]:
+        parent_skill_digest: Digest | None = None,
+    ) -> StagedSkill:
         """Create ``artifact.json``, ``bundle.tar``, and ``files/`` in staging.
 
         Each file is read once, checked against what the scan recorded, and
@@ -333,8 +462,11 @@ class SkillPreparationService:
         ``draft.skill_artifact`` rather than moving this one, because the only
         artifact document a draft may hold is the one the draft's own digest
         commits to.
+
+        ``parent_skill_digest`` names the Skill this one revises. It is set
+        for a replacement candidate and absent for an insertion, which is the
+        only lineage a ``SkillArtifact`` records.
         """
-        skill_dir = draft_dir / _SKILL_DIR
         files_dir = skill_dir / _FILES_DIR
         archive_path = skill_dir / _BUNDLE_FILE
         ensure_private_directory(skill_dir)
@@ -359,10 +491,10 @@ class SkillPreparationService:
             archive_digest=archive_digest,
             files=entries,
             source_kind="manual",
-            parent_skill_digest=None,
+            parent_skill_digest=parent_skill_digest,
         )
         atomic_write_bytes(skill_dir / _ARTIFACT_FILE, canonical_json_bytes(artifact))
-        return artifact, archive_path, files_dir
+        return StagedSkill(artifact=artifact, archive=archive_path, files=files_dir)
 
     def _copy_one(self, item: ScannedFile, files_dir: Path) -> ScannedFile:
         """Copy one scanned file into the snapshot, or refuse the snapshot."""
@@ -397,48 +529,31 @@ class SkillPreparationService:
 
     # -- The science -------------------------------------------------------
 
-    def _build_manifests(
+    def _require_controlled(
         self,
-        *,
-        resolved: ResolvedClimb,
-        skill: SkillArtifact,
-        created_at: datetime,
-    ) -> tuple[ExperimentManifest, ExperimentManifest, ManifestComparison]:
-        """Build both variants and require the comparison to be controlled."""
-        public_context = PublicContext(kind="climb", climb_digest=resolved.climb_digest)
-        baseline = build_baseline_manifest(
-            campaign=resolved.campaign,
-            campaign_digest=resolved.campaign_digest,
-            public_context=public_context,
-            created_at=created_at,
-        )
-        candidate = build_candidate_manifest(
-            campaign=resolved.campaign,
-            campaign_digest=resolved.campaign_digest,
-            skill=skill,
-            public_context=public_context,
-            created_at=created_at,
-        )
-        comparison = compare_manifests(
-            baseline, candidate, resolved.campaign.mutation_contract
-        )
+        baseline: ExperimentManifest,
+        candidate: ExperimentManifest,
+        campaign: CampaignSpec,
+    ) -> ManifestComparison:
+        """Compare both variants and refuse a pair that measures more than one thing."""
+        comparison = compare_manifests(baseline, candidate, campaign.mutation_contract)
         assert_controlled_comparison(comparison)
-        return baseline, candidate, comparison
+        return comparison
 
     def _build_policy_requirement(
-        self, resolved: ResolvedClimb
+        self, data_policy: DataPolicy
     ) -> PolicyAcceptanceRequirement:
         """State the rights a participant will be asked to accept."""
         return PolicyAcceptanceRequirement(
-            data_policy_digest=resolved.data_policy_digest,
+            data_policy_digest=digest_object(data_policy),
             required=True,
-            summary=rights_summary(resolved.data_policy),
+            summary=rights_summary(data_policy),
         )
 
     def _build_draft(
         self,
         *,
-        resolved: ResolvedClimb,
+        source: CampaignSource,
         skill: SkillArtifact,
         baseline: ExperimentManifest,
         candidate: ExperimentManifest,
@@ -450,18 +565,16 @@ class SkillPreparationService:
         return SubmissionDraft(
             schema_version=SUBMISSION_DRAFT_SCHEMA_VERSION,
             id=new_id("draft"),
-            campaign_spec_digest=resolved.campaign_digest,
-            program_ref=resolved.campaign.context.program_ref,
-            public_context=PublicContext(
-                kind="climb", climb_digest=resolved.climb_digest
-            ),
-            data_policy_digest=resolved.data_policy_digest,
-            outcome_contract_digest=resolved.campaign.context.outcome_contract_digest,
+            campaign_spec_digest=source.campaign_digest,
+            program_ref=source.campaign.context.program_ref,
+            public_context=source.public_context,
+            data_policy_digest=source.data_policy_digest,
+            outcome_contract_digest=source.campaign.context.outcome_contract_digest,
             skill_artifact=skill,
             baseline_manifest_digest=digest_object(baseline),
             candidate_manifest_digest=digest_object(candidate),
             included_files=[file.path for file in skill.files],
-            estimated_episodes=self._estimate_episodes(resolved.campaign),
+            estimated_episodes=self._estimate_episodes(source.campaign),
             policy_acceptance=policy,
             warnings=warnings,
             created_at=created_at,
@@ -507,6 +620,32 @@ class SkillPreparationService:
 
         warnings.extend(scan.warnings)
         return warnings
+
+    def _replacement_warnings(self, scan: SkillScanResult) -> list[str]:
+        """Say what a local Skill-against-Skill comparison is, and is not.
+
+        None of the public warnings apply: there is no Climb to enter, nothing
+        is released, and no leaderboard is involved. What a reader has to know
+        instead is that the baseline is no longer "no Skill" — a candidate that
+        loses here lost to a Skill that already worked.
+        """
+        return [
+            # First, because the rights summary this draft carries is the
+            # policy of the Climb the first run entered, and read on its own it
+            # would describe a public submission this is not.
+            "The data rights stated for this run are the ones the run it was "
+            "prepared from was carried out under. They still govern what "
+            "happens to this run's material, and they are why acceptance is "
+            "asked for again.",
+            "This comparison is local. No Climb wraps it, nothing is entered "
+            "anywhere, nothing is published, and nothing is uploaded.",
+            "This compares one Skill against another Skill, not against no "
+            "Skill. The baseline is the version measured by the run this was "
+            "prepared from.",
+            "Results are attested by this machine only. Nobody else has "
+            "verified that this run happened as described.",
+            *scan.warnings,
+        ]
 
 
 # ---------------------------------------------------------------------------

@@ -137,11 +137,11 @@ class PublisherFixtureValidationProvider:
     ) -> TasksetValidationOutcome:
         """Verify the publisher's receipt and return it as this run's outcome."""
         campaign = inputs.campaign
-        resolved = inputs.resolved_climb
-        receipt = resolved.publisher_validation
+        source = inputs.source
+        receipt = source.publisher_validation
 
         _require(
-            resolved.publisher_validation_digest
+            source.publisher_validation_digest
             == campaign.taskset.validation_receipt_digest,
             "the publisher validation receipt this run owns is not the one the "
             "Campaign commits to",
@@ -224,7 +224,7 @@ def derive_taskset_lock(run_id: str, inputs: RunInputBundle) -> TasksetLock:
     rather than a guess.
     """
     campaign = inputs.campaign
-    receipt = inputs.resolved_climb.publisher_validation
+    receipt = inputs.source.publisher_validation
     membership = campaign.taskset.membership
 
     try:
