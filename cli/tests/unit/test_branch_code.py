@@ -6,7 +6,11 @@ suite runs with pytest alone.
 
 The reference package is not installed into the main project environment; it
 ships as a standalone Hatchling package inside the managed engine bundle, so
-it is imported from its source directory.
+it is imported from its source directory. Its ``__init__`` re-exports the
+Verifiers Taskset, and the pinned Verifiers build exists only in the managed
+engine environment, so the two pure modules are imported without executing
+that ``__init__``. The Taskset itself is covered by the preflight suite, which
+runs inside an environment that does hold the pin.
 
 Every non-ASCII rejection case is written as an escape sequence on purpose:
 the point of those cases is the exact code point, and an escape keeps this
@@ -17,13 +21,16 @@ the character under test.
 from __future__ import annotations
 
 import doctest
+import importlib.util
 import re
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-_PACKAGE_ROOT = (
+_PACKAGE_NAME = "procedure_transfer_v1"
+_PACKAGE_DIR = (
     Path(__file__).resolve().parents[2]
     / "src"
     / "techtree"
@@ -32,12 +39,43 @@ _PACKAGE_ROOT = (
     / "default"
     / "packages"
     / "procedure-transfer-v1"
+    / _PACKAGE_NAME
 )
 
-if str(_PACKAGE_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PACKAGE_ROOT))
 
-from procedure_transfer_v1 import algorithm, dataset  # noqa: E402
+def _load_pure_module(name: str) -> ModuleType:
+    """Import one pure module of the reference package on its own.
+
+    Binds a bare parent package first, so ``dataset``'s absolute import of
+    ``algorithm`` resolves without running the real ``__init__``, which pulls
+    in Verifiers.
+
+    Args:
+        name: Module name inside the package, such as ``"algorithm"``.
+
+    Returns:
+        The executed module.
+    """
+    if _PACKAGE_NAME not in sys.modules:
+        sys.modules[_PACKAGE_NAME] = ModuleType(_PACKAGE_NAME)
+
+    qualified = f"{_PACKAGE_NAME}.{name}"
+    cached = sys.modules.get(qualified)
+    if cached is not None:
+        return cached
+
+    spec = importlib.util.spec_from_file_location(
+        qualified, _PACKAGE_DIR / f"{name}.py"
+    )
+    assert spec is not None and spec.loader is not None, qualified
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[qualified] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+algorithm = _load_pure_module("algorithm")
+dataset = _load_pure_module("dataset")
 
 BRANCH_TOKEN = re.compile(r"^BRANCH-\d{2}$")
 
@@ -235,7 +273,7 @@ def test_normalize_input_charset_message_mentions_charset(raw: str) -> None:
 )
 def test_normalize_input_rejects_non_strings(raw: object) -> None:
     with pytest.raises(TypeError):
-        algorithm.normalize_input(raw)  # type: ignore[arg-type]
+        algorithm.normalize_input(raw)
 
 
 # ---------------------------------------------------------------------------

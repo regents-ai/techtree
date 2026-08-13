@@ -89,10 +89,13 @@ strict = true
 warn_unreachable = true
 files = ["src", "tests"]
 mypy_path = ["src"]
-# The preflight suite imports the pinned Verifiers build. That build belongs to
-# the managed engine environment, never to the ordinary package environment,
-# so its types are not resolvable here.
-exclude = ["^tests/preflight/"]
+# The preflight suite and the engine bundle packages import the pinned
+# Verifiers build. That build belongs to the managed engine environment, never
+# to the ordinary package environment, so its types are not resolvable here.
+exclude = [
+  "^tests/preflight/",
+  "^src/techtree/resources/engines/",
+]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
