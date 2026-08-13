@@ -1,0 +1,13 @@
+[project]
+name = "procedure-transfer-v1"
+version = "0.1.0"
+description = "Deterministic BranchCode procedure-transfer taskset"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["procedure_transfer_v1"]
