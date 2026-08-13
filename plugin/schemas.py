@@ -248,7 +248,18 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "locally; the result was not independently reproduced by anyone "
             "else, and must never be described as if it were."
         ),
-        properties={"run_id": _run_id("The completed run to read.")},
+        properties={
+            "run_id": _run_id("The completed run to read."),
+            "include_host_explanation": {
+                "type": "boolean",
+                "description": (
+                    "Also have the host model choose how to word the result. "
+                    "It writes only the wording: every number, status, grade, "
+                    "and digest still comes from Techtree, and a result whose "
+                    "proof did not verify is never given encouraging wording."
+                ),
+            },
+        },
         required=["run_id"],
     ),
     "techtree_proof_verify": _schema(

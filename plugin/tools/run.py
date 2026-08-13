@@ -9,6 +9,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..errors import PluginError, scrub_text
+from ..llm import HermesHostLlm
+from ..narrative import REPRODUCTION_STATEMENT
+from ..services.presentation import PresentationService
 from ..services.session import update_after_first_result
 from ..state import (
     latest_session,
@@ -74,13 +78,30 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
         session = update_after_first_result(session, envelope)
         save_session(services, session)
 
-    payload: dict[str, Any] = {
-        **envelope,
-        "reproduction": (
-            "This comparison was run locally by Techtree. It has not been "
-            "independently reproduced."
-        ),
-    }
+    payload: dict[str, Any] = {**envelope, "reproduction": REPRODUCTION_STATEMENT}
+    if envelope.get("ok"):
+        try:
+            payload.update(
+                PresentationService(
+                    llm=_host_model(services), release=services.release_core
+                ).explain_result(
+                    result_envelope=envelope,
+                    channel=channel,
+                    include_host_explanation=bool(
+                        args.get("include_host_explanation", False)
+                    ),
+                )
+            )
+        except PluginError as error:
+            # Techtree answered with something this build cannot compose into a
+            # presentation. Its own words are still the honest answer.
+            payload["presentation_note"] = scrub_text(str(error))
     if session is not None:
         payload["demo"] = session_payload(session)
     return tool_result(payload, channel)
+
+
+def _host_model(services: Any) -> Any:
+    """Return the host's model seam, or None when this host offers none."""
+    ctx = getattr(services, "ctx", None)
+    return HermesHostLlm(ctx) if getattr(ctx, "llm", None) is not None else None

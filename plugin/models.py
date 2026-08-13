@@ -579,6 +579,49 @@ def parse_bootstrap_install_plan(value: Mapping[str, Any]) -> BootstrapInstallPl
     )
 
 
+# Presentation -------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PresentationNarrative:
+    """The words a host model chose about a result. Specification section 6.4.
+
+    Words only. Every number, verdict code, status, grade, and digest in a
+    result comes from Techtree's deterministic payload and is rendered beside
+    this, never through it. What the model contributes is emphasis: what to
+    lead with, what deserves attention, which verified caveat matters most,
+    and what to do next.
+    """
+
+    headline: str
+    verdict: str
+    observations: tuple[str, ...]
+    caveats: tuple[str, ...]
+    next_step: str | None
+    selected_task_refs: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the narrative in the shape a result carries it."""
+        return {
+            "headline": self.headline,
+            "verdict": self.verdict,
+            "observations": list(self.observations),
+            "caveats": list(self.caveats),
+            "next_step": self.next_step,
+            "selected_task_refs": list(self.selected_task_refs),
+        }
+
+    def texts(self) -> tuple[str, ...]:
+        """Return every piece of text the model wrote."""
+        return (
+            self.headline,
+            self.verdict,
+            *self.observations,
+            *self.caveats,
+            *((self.next_step,) if self.next_step else ()),
+        )
+
+
 # Revision provenance ------------------------------------------------------------
 
 
