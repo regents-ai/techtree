@@ -38,15 +38,11 @@ import sys
 from pathlib import Path
 
 import pytest
+from engine_environment import VERIFIERS_PIN, install_fixture_package
 
 pytestmark = pytest.mark.preflight
 
-VERIFIERS_REPO = "https://github.com/PrimeIntellect-ai/verifiers"
-VERIFIERS_PIN = "7e1c47d24d055aae587ee8259f77a3e8e193513a"
-"""Binding (docs/decisions/0001). Never bump this here; a bump is its own ticket."""
-
 TASKSET_ID = "techtree-preflight-taskset"
-ENGINE_PYTHON_ENV = "TECHTREE_PREFLIGHT_ENGINE_PYTHON"
 
 PREFLIGHT_DIR = Path(__file__).parent
 FIXTURE_DIR = PREFLIGHT_DIR / "fixture_taskset"
@@ -81,57 +77,18 @@ def _check(*argv: str | Path, cwd: Path | None = None, env: dict | None = None) 
     return result.stdout
 
 
-def _installed_pin(python: Path) -> dict:
-    """The VCS metadata pip/uv records for a git install, read with `python`."""
-    source = (
-        "import json;"
-        "from importlib.metadata import distribution;"
-        "print(distribution('verifiers').read_text('direct_url.json') or '{}')"
-    )
-    return json.loads(_check(python, "-c", source).strip())
-
-
 @pytest.fixture(scope="session")
-def engine_python(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """An interpreter with the pinned Verifiers commit and the fixture taskset."""
-    supplied = os.environ.get(ENGINE_PYTHON_ENV)
-    if supplied:
-        # Not resolve(): a venv's bin/python is a symlink to the base interpreter,
-        # and following it would drop the venv's site-packages.
-        python = Path(supplied).expanduser().absolute()
-        if not python.exists():
-            pytest.fail(f"{ENGINE_PYTHON_ENV}={supplied} does not exist")
-    else:
-        venv = tmp_path_factory.mktemp("verifiers-engine") / ".venv"
-        _check("uv", "venv", "--python", "3.12", venv)
-        python = venv / "bin" / "python"
-        _check(
-            "uv",
-            "pip",
-            "install",
-            "--python",
-            python,
-            f"verifiers @ git+{VERIFIERS_REPO}@{VERIFIERS_PIN}",
-        )
+def engine_python(pinned_engine_python: Path) -> Path:
+    """The shared pinned interpreter, with this suite's fixture taskset in it.
 
-    # Claim 1: the pinned commit is what is actually installed.
-    recorded = _installed_pin(python)
-    assert recorded.get("vcs_info", {}).get("commit_id") == VERIFIERS_PIN, (
-        f"engine venv does not hold the pin {VERIFIERS_PIN}: {recorded}"
+    The environment itself is built once per session by
+    ``tests/preflight/conftest.py``; installing the fixture package is what
+    makes it this suite's interpreter.
+    """
+    install_fixture_package(
+        pinned_engine_python, "techtree-preflight-taskset", FIXTURE_DIR
     )
-
-    # Always reinstall: a supplied venv may hold a stale build of the fixture.
-    _check(
-        "uv",
-        "pip",
-        "install",
-        "--python",
-        python,
-        "--reinstall-package",
-        "techtree-preflight-taskset",
-        FIXTURE_DIR,
-    )
-    return python
+    return pinned_engine_python
 
 
 @pytest.fixture(scope="session")
