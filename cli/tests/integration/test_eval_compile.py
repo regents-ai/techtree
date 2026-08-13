@@ -13,13 +13,12 @@ The install downloads the pinned Verifiers commit, so the module is marked
     uv run pytest tests/integration/test_eval_compile.py -m integration
 
 The dry-run half is gated on the installed engine actually exposing the
-named-subject environment spec section 6.5 requires. It does not yet: the
-shipped reference package exports a taskset and no environment, so a compiled
-``[env.subject]`` table is rejected at parse time
-(``docs/verifiers-eval.md``, finding E0). That is a frozen-bundle change and a
-STOP-AND-NOTE on the WP6a ticket, not something this module can route around.
-The gate is a probe of the engine rather than a hard-coded skip, so the tests
-start running the moment the bundle carries the environment.
+named-subject environment spec section 6.5 requires. It does, since the bundle
+addendum: without it a compiled ``[env.subject]`` table is rejected at parse
+time (``docs/verifiers-eval.md``, finding E0). The gate stays because it is a
+probe of the installed engine rather than a hard-coded skip — an engine built
+from a package that forgot to export its environment says so here, clearly,
+instead of failing with an upstream parse error nobody can place.
 """
 
 from __future__ import annotations
@@ -41,6 +40,7 @@ from techtree.manifests.builder import (
     build_candidate_manifest,
     skill_content_digest,
 )
+from techtree.models.base import ArtifactRef
 from techtree.models.campaign import CampaignSpec
 from techtree.models.engine import EngineStatus
 from techtree.models.skill import SkillArtifact, SkillFile
@@ -267,9 +267,9 @@ def named_subject_engine(
 ) -> EngineStatus:
     """The engine, once it is known to expose the named-subject environment.
 
-    Probing beats hard-coding: the day the reference package exports the
-    environment, these tests begin running without anyone remembering to
-    remove a skip.
+    Probing beats hard-coding: an engine whose reference package lost its
+    environment export says so in one legible sentence rather than through an
+    upstream parse error.
     """
     registry = EngineRegistry(engine_paths, Settings())
     runner = EngineRunner(registry, installed_engine.digest)
@@ -284,8 +284,8 @@ def named_subject_engine(
     if SUBJECT_SEAT not in seats:
         pytest.skip(
             "the installed engine's reference package exports no named-subject "
-            "environment (spec 6.5); the bundle change is a STOP-AND-NOTE on "
-            f"WP6a. Seats resolved: {seats}"
+            "environment (spec 6.5), so nothing here could be dry-run. "
+            f"Seats resolved: {seats}"
         )
     return installed_engine
 
@@ -322,3 +322,263 @@ def test_each_compiled_variant_dry_runs_against_the_installed_engine(
     assert outcome.resolved_config is not None
     assert outcome.resolved_config["push"] is False
     assert SUBJECT_SEAT in outcome.resolved_config["env"]
+
+
+# ---------------------------------------------------------------------------
+# The engine's normalizer, over a real wire record
+# ---------------------------------------------------------------------------
+
+WIRE_EPISODE_GENERATOR = '''
+"""Write a traces.jsonl the pinned engine itself considers well formed."""
+
+import json
+import sys
+
+from verifiers.v1.cli.output import save_config, write_episode
+from verifiers.v1.configs.agent import WireAgentConfig
+from verifiers.v1.configs.harness import WireHarnessConfig
+from verifiers.v1.episode import Episode, EnvInfo
+from verifiers.v1.runtimes.docker import DockerRuntimeInfo
+from verifiers.v1.task import WireTaskData
+from verifiers.v1.trace import AgentInfo, Reward, Trace, TraceTask
+
+output_dir, image, model, *hashes = sys.argv[1:]
+from pathlib import Path
+
+directory = Path(output_dir)
+directory.mkdir(parents=True, exist_ok=True)
+(directory / "config.toml").write_text("push = false\\n")
+(directory / "traces.jsonl").write_text("")
+(directory / "eval.log").write_text("INFO results\\n")
+
+# Written in reverse membership order on purpose: line order is completion
+# order, and the normalizer is what puts the projection back into the
+# Campaign's committed order.
+for position, task_hash in reversed(list(enumerate(hashes))):
+    trace = Trace(
+        task=TraceTask(
+            type="ProcedureTransferTask",
+            data=WireTaskData(idx=position, name="task-%d" % position),
+            hash=task_hash,
+        ),
+        agent=AgentInfo(
+            config=WireAgentConfig(
+                harness=WireHarnessConfig(
+                    id="hermes-agent", version="0.19.0", use_bundled_skill=False
+                ),
+                runtime={"type": "docker", "image": image},
+                model=model,
+            ),
+            runtime=DockerRuntimeInfo(
+                id="container-%d" % position, image=image, cpu=2.0, memory=4.0
+            ),
+            name="subject",
+            trainable=False,
+        ),
+        rewards={"exact_match": Reward(score=1.0, weight=1.0)},
+        is_completed=True,
+        ok=True,
+    )
+    write_episode(
+        directory,
+        Episode(
+            env=EnvInfo(id="procedure-transfer-v1"), ok=True, traces=[trace]
+        ),
+    )
+print(json.dumps({"written": len(hashes)}))
+'''
+
+
+def test_the_engine_normalizer_orders_episodes_by_committed_membership(
+    campaign: CampaignSpec,
+    candidate_skill: SkillArtifact,
+    named_subject_engine: EngineStatus,
+    engine_paths: TechtreePaths,
+    engine_runner: EngineRunner,
+    tmp_path: Path,
+) -> None:
+    from techtree.engines.bundle import read_engine_descriptor
+    from techtree.models.validation import TasksetLock
+    from techtree.verifiers.models import ChildProcessOutcome
+    from techtree.verifiers.outputs import build_variant_result
+    from techtree.verifiers.verify import verify_variant_execution
+
+    variant = VariantName.CANDIDATE
+    run_paths = RunPaths(root=tmp_path / "runs" / "run_dev")
+    digest = digest_object(campaign)
+    manifest = build_candidate_manifest(
+        campaign=campaign,
+        campaign_digest=digest,
+        skill=candidate_skill,
+        public_context=None,
+        created_at=PINNED_TIME,
+    )
+
+    # The run's own copies of what it executed.
+    lock_path = run_paths.inputs_dir / "taskset-lock.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    committed = list(campaign.taskset.membership.ordered_task_hashes)
+    taskset_lock = TasksetLock(
+        schema_version="techtree.taskset-lock.v1alpha1",
+        taskset_ref=campaign.taskset.ref,
+        engine_digest=named_subject_engine.digest,
+        resolved_package_digest=campaign.taskset.ref.package.digest,
+        ordered_task_hashes=committed,
+        membership_digest=campaign.taskset.membership.membership_digest,
+        task_count=len(committed),
+    )
+    lock_path.write_text(taskset_lock.model_dump_json())
+    manifest_path = run_paths.manifest_path(variant)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(manifest.model_dump_json())
+
+    plan = compile_plans(
+        campaign=campaign,
+        baseline=build_baseline_manifest(
+            campaign=campaign,
+            campaign_digest=digest,
+            public_context=None,
+            created_at=PINNED_TIME,
+        ),
+        candidate=manifest,
+        run_paths=run_paths,
+    )[1]
+
+    # A real wire record, written by the pinned models, in completion order.
+    generator = tmp_path / "write_wire_episodes.py"
+    generator.write_text(WIRE_EPISODE_GENERATOR)
+    image = campaign.subject.runtime.image
+    written = engine_runner.run_python_script(
+        generator,
+        [
+            plan.verifiers_output_dir,
+            image,
+            campaign.subject.model.model_id,
+            *(value.removeprefix("sha256:") for value in committed),
+        ],
+        timeout=120.0,
+    )
+    assert written.exit_code == 0, written.stderr
+
+    outcome = ChildProcessOutcome(
+        variant=variant,
+        argv_digest=f"sha256:{'e' * 64}",
+        exit_code=0,
+        started_at=PINNED_TIME,
+        finished_at=PINNED_TIME,
+        stdout_artifact=ArtifactRef(
+            digest=f"sha256:{'f' * 64}",
+            media_type="text/plain",
+            size=1,
+            relative_path=None,
+        ),
+        stderr_artifact=ArtifactRef(
+            digest=f"sha256:{'0' * 64}",
+            media_type="text/plain",
+            size=1,
+            relative_path=None,
+        ),
+        cancelled=False,
+    )
+
+    result = build_variant_result(
+        plan=plan,
+        outcome=outcome,
+        engine_registry=EngineRegistry(engine_paths, Settings()),
+        engine_digest=named_subject_engine.digest,
+        engine_runner=engine_runner,
+        taskset_lock_path=lock_path,
+    )
+
+    # Written in reverse, projected in membership order.
+    assert [episode.task_hash for episode in result.episodes] == committed
+    assert [episode.task_position for episode in result.episodes] == list(
+        range(len(committed))
+    )
+    assert {trace.agent_role for e in result.episodes for trace in e.traces} == {
+        "subject"
+    }
+    # Raw evidence is retained alongside the projection.
+    assert result.raw_traces.size > 0
+    assert result.eval_log.size > 0
+    assert result.normalized_episodes.size > 0
+
+    descriptor = read_engine_descriptor(
+        EngineRegistry(engine_paths, Settings()).path(named_subject_engine.digest)
+    )
+    checks = verify_variant_execution(
+        result=result,
+        experiment=manifest,
+        taskset_lock=taskset_lock,
+        primary_reward=campaign.scoring.primary_reward,
+        engine=descriptor,
+    )
+    failed = [check for check in checks if check.status == "failed"]
+    assert failed == [], [f"{check.id}: {check.detail}" for check in failed]
+    assert "verifiers_pin_matches_engine" in {check.id for check in checks}
+
+
+def test_normalization_is_deterministic_for_the_same_raw_output(
+    campaign: CampaignSpec,
+    named_subject_engine: EngineStatus,
+    engine_paths: TechtreePaths,
+    engine_runner: EngineRunner,
+    tmp_path: Path,
+) -> None:
+    from techtree.models.validation import TasksetLock
+    from techtree.verifiers.outputs import normalize_eval_output
+
+    committed = list(campaign.taskset.membership.ordered_task_hashes)
+    output_dir = tmp_path / "run"
+    generator = tmp_path / "write_wire_episodes.py"
+    generator.write_text(WIRE_EPISODE_GENERATOR)
+    written = engine_runner.run_python_script(
+        generator,
+        [
+            str(output_dir),
+            campaign.subject.runtime.image,
+            campaign.subject.model.model_id,
+            *(value.removeprefix("sha256:") for value in committed),
+        ],
+        timeout=120.0,
+    )
+    assert written.exit_code == 0, written.stderr
+
+    lock_path = tmp_path / "taskset-lock.json"
+    lock_path.write_text(
+        TasksetLock(
+            schema_version="techtree.taskset-lock.v1alpha1",
+            taskset_ref=campaign.taskset.ref,
+            engine_digest=named_subject_engine.digest,
+            resolved_package_digest=campaign.taskset.ref.package.digest,
+            ordered_task_hashes=committed,
+            membership_digest=campaign.taskset.membership.membership_digest,
+            task_count=len(committed),
+        ).model_dump_json()
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        build_baseline_manifest(
+            campaign=campaign,
+            campaign_digest=digest_object(campaign),
+            public_context=None,
+            created_at=PINNED_TIME,
+        ).model_dump_json()
+    )
+
+    outputs = []
+    for attempt in ("first", "second"):
+        destination = tmp_path / f"{attempt}.jsonl"
+        normalize_eval_output(
+            engine_registry=EngineRegistry(engine_paths, Settings()),
+            engine_digest=named_subject_engine.digest,
+            engine_runner=engine_runner,
+            output_dir=output_dir,
+            taskset_lock_path=lock_path,
+            experiment_manifest_path=manifest_path,
+            destination=destination,
+        )
+        outputs.append(destination.read_bytes())
+
+    assert outputs[0] == outputs[1]
+    assert outputs[0].endswith(b"\n")

@@ -50,7 +50,9 @@ __all__ = [
     "ALLOWED_CLIENT_HEADERS",
     "EVAL_CONFIG_INVALID",
     "IMAGE_DIGEST_PATTERN",
+    "OPEN_BLOCK",
     "OPEN_NETWORK",
+    "RESTRICTED_BLOCK",
     "RESTRICTED_NETWORK",
     "DockerRuntimeToml",
     "EnvToml",
@@ -61,6 +63,7 @@ __all__ = [
     "SubjectAgentToml",
     "TasksetToml",
     "config_to_toml_bytes",
+    "egress_for",
 ]
 
 #: Stable error code. Spec section 6.7.
@@ -73,12 +76,17 @@ EVAL_CONFIG_INVALID: Final = "eval_config_invalid"
 #: (``docs/verifiers-eval.md``); that is upstream's business, not Techtree's.
 ALLOWED_CLIENT_HEADERS: Final[frozenset[str]] = frozenset()
 
-#: Upstream normalizes an empty allow-list to framework-only egress, which is
-#: what a restricted subject runtime means: the interception endpoint and
-#: nothing else.
+#: Framework-only egress: the interception endpoint and nothing else, which is
+#: what a restricted subject runtime means. Upstream normalizes an empty
+#: allow-list to exactly this pair, so Techtree declares the normalized form
+#: rather than the shorthand — otherwise the configuration Techtree compiled
+#: and the configuration the engine resolved would disagree at ``block`` on
+#: every restricted run.
 RESTRICTED_NETWORK: Final[tuple[str, ...]] = ()
+RESTRICTED_BLOCK: Final[tuple[str, ...]] = ("*",)
 #: Unrestricted egress, upstream's own default spelling.
 OPEN_NETWORK: Final[tuple[str, ...]] = ("*",)
+OPEN_BLOCK: Final[tuple[str, ...]] = ()
 
 #: An OCI reference that names content rather than a moving tag.
 IMAGE_DIGEST_PATTERN: Final = r"@sha256:[0-9a-f]{64}$"
@@ -245,6 +253,25 @@ class EvalToml(TomlModel):
                 "product is the number of live subject runs"
             )
         return self
+
+
+def egress_for(network_policy: str) -> tuple[list[str], list[str]]:
+    """Return the ``(allow, block)`` pair one Campaign network policy compiles to.
+
+    The Campaign speaks in intent — restricted or open — and upstream speaks in
+    two lists whose meaning depends on each other. This is the single place the
+    two vocabularies meet, and it emits the already-normalized form so nothing
+    downstream has to know that upstream would have rewritten the shorthand.
+    """
+    if network_policy == "restricted":
+        return list(RESTRICTED_NETWORK), list(RESTRICTED_BLOCK)
+    if network_policy == "open":
+        return list(OPEN_NETWORK), list(OPEN_BLOCK)
+    raise ValidationError(
+        f"{network_policy!r} is not a network policy Techtree can compile",
+        code=EVAL_CONFIG_INVALID,
+        details={"network_policy": network_policy},
+    )
 
 
 def config_to_toml_bytes(config: EvalToml) -> bytes:

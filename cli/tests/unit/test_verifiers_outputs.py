@@ -30,6 +30,8 @@ from techtree.verifiers.outputs import (
 )
 
 TASK_HASH = f"sha256:{'1' * 64}"
+VERIFIERS_VERSION = "0.3.1.dev21"
+VERIFIERS_REVISION = "7e1c47d24d055aae587ee8259f77a3e8e193513a"
 RAW_DIGEST = f"sha256:{'2' * 64}"
 SKILL_DIGEST = f"sha256:{'3' * 64}"
 IMAGE_DIGEST = f"sha256:{'4' * 64}"
@@ -41,6 +43,8 @@ def normalized_trace(task_hash: str = TASK_HASH) -> NormalizedTrace:
         agent_role="subject",
         task_hash=task_hash,
         ok=True,
+        verifiers_version=VERIFIERS_VERSION,
+        verifiers_revision=VERIFIERS_REVISION,
         model_id="vendor/small-instruct",
         harness_id="hermes-agent",
         harness_version="0.19.0",

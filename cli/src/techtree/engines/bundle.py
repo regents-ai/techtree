@@ -71,6 +71,7 @@ TOOLS_DIRECTORY: Final = "tools"
 #: as the library it inspects it with.
 ENGINE_TOOLS: Final[tuple[str, ...]] = (
     "inspect_taskset.py",
+    "normalize_eval_output.py",
     "normalize_validation.py",
 )
 

@@ -25,10 +25,15 @@ argv rather than the one in the file, so the dry run's own redirection is
 folded into the comparison instead of being excused from it. What must hold is
 that nothing Techtree *did* declare came back changed.
 
-Section 6.14's post-execution checks are not here. They read normalized
-episodes, which the engine tool ``normalize_eval_output.py`` produces, and that
-tool lives inside the digested engine bundle this ticket may not change. The
-STOP-AND-NOTE on the ticket carries the details.
+Section 6.14's post-execution half is :func:`verify_variant_execution`. It
+answers one question — is this execution complete and scientifically usable —
+as an ordered list of named verdicts rather than as an exception, so a caller
+reads which rule failed instead of catching something and guessing. It raises
+only on inputs too malformed to check at all.
+
+A zero exit code is never sufficient. The output checks decide validity, and a
+graceful cancellation maps to cancellation rather than to a scientific verdict:
+a run somebody stopped did not produce a wrong answer, it produced no answer.
 """
 
 from __future__ import annotations
@@ -42,17 +47,23 @@ from typing import Any, Final
 from techtree.engines.runner import EngineProcessResult, EngineRunner
 from techtree.errors import ValidationError
 from techtree.fs import ensure_private_directory
-from techtree.models.campaign import ModelSpec
+from techtree.models.campaign import SUBJECT_AGENT, AgentSpec, ModelSpec
+from techtree.models.engine import EngineDescriptor
+from techtree.models.experiment import ExperimentManifest
+from techtree.models.validation import TasksetLock
 from techtree.verifiers.config import EvalToml
 from techtree.verifiers.credentials import credential_status
 from techtree.verifiers.models import (
     VERIFIERS_DIRECTORY,
     ExecutionCheck,
+    NormalizedTrace,
+    VariantExecutionResult,
     VariantName,
 )
 from techtree.verifiers.outputs import CONFIG_FILENAME
 
 __all__ = [
+    "CANCELLATION_EXIT_CODE",
     "CONFIG_ARGUMENT_MARKER",
     "DEFAULT_DRY_RUN_TIMEOUT_SECONDS",
     "DRY_RUN_FLAG",
@@ -60,10 +71,12 @@ __all__ = [
     "OUTPUT_DIR_FLAG",
     "PUSH_DISABLED_FLAG",
     "VARIANT_DRY_RUN_FAILED",
+    "VARIANT_EXECUTION_UNCHECKABLE",
     "DryRunOutcome",
     "dry_run_argv",
     "dry_run_variant_config",
     "verify_compiled_config",
+    "verify_variant_execution",
 ]
 
 #: Stable error code. Spec section 6.14.
@@ -84,6 +97,14 @@ OUTPUT_DIR_FLAG: Final = "--output-dir"
 #: upstream default is to upload (``docs/verifiers-eval.md``, finding E1), and
 #: a flag on the command line overrides whatever the file says.
 PUSH_DISABLED_FLAG: Final = "--no-push"
+
+#: Stable error code for an execution nothing could be concluded about.
+VARIANT_EXECUTION_UNCHECKABLE: Final = "variant_execution_uncheckable"
+
+#: The conventional Ctrl-C code the pinned CLI exits on after it has torn its
+#: containers down (``docs/verifiers-eval.md``). A stopped run is cancelled,
+#: not invalid.
+CANCELLATION_EXIT_CODE: Final = 130
 
 DEFAULT_DRY_RUN_TIMEOUT_SECONDS: Final = 300.0
 
@@ -388,3 +409,347 @@ def _last_meaningful_line(process: EngineProcessResult) -> str:
         if lines:
             return lines[0]
     return "<no output>"
+
+
+# ---------------------------------------------------------------------------
+# After the run: is this execution scientifically usable
+# ---------------------------------------------------------------------------
+
+
+def verify_variant_execution(
+    *,
+    result: VariantExecutionResult,
+    experiment: ExperimentManifest,
+    taskset_lock: TasksetLock,
+    primary_reward: str,
+    engine: EngineDescriptor | None = None,
+) -> list[ExecutionCheck]:
+    """Return ordered checks over one completed variant.
+
+    Raises only when the inputs cannot be checked at all — a manifest with no
+    subject agent leaves nothing to compare an execution against. Everything
+    else is reported as a verdict, because "which rule did this break" is the
+    question a caller actually has.
+    """
+    subject = experiment.configuration.agents.get(SUBJECT_AGENT)
+    if subject is None:
+        raise ValidationError(
+            f"the experiment manifest defines no {SUBJECT_AGENT!r} agent, so "
+            "there is nothing to verify this execution against",
+            code=VARIANT_EXECUTION_UNCHECKABLE,
+            details={"manifest_id": experiment.id, "variant": result.variant.value},
+        )
+
+    checks = [_completion_check(result)]
+    checks.extend(_membership_checks(result, taskset_lock))
+    checks.extend(_trace_checks(result, subject, primary_reward))
+    checks.append(_manifest_check(result, experiment))
+    if engine is not None:
+        checks.append(_pin_check(result, engine))
+    return checks
+
+
+def _completion_check(result: VariantExecutionResult) -> ExecutionCheck:
+    """Whether the child finished rather than being stopped."""
+    outcome = result.child_outcome
+    if outcome.cancelled or outcome.exit_code == CANCELLATION_EXIT_CODE:
+        return ExecutionCheck(
+            id="child_completed",
+            status="failed",
+            detail=(
+                "the evaluation was cancelled, so it produced no answer rather "
+                "than a wrong one."
+            ),
+        )
+    if outcome.exit_code != 0:
+        return ExecutionCheck(
+            id="child_completed",
+            status="failed",
+            detail=f"the evaluation child exited {outcome.exit_code}.",
+        )
+    return ExecutionCheck(
+        id="child_completed",
+        status="passed",
+        detail="the evaluation child ran to completion and was not cancelled.",
+    )
+
+
+def _membership_checks(
+    result: VariantExecutionResult, taskset_lock: TasksetLock
+) -> list[ExecutionCheck]:
+    """Whether exactly the committed tasks were scored, in the committed order."""
+    observed = [episode.task_hash for episode in result.episodes]
+    committed = list(taskset_lock.ordered_task_hashes)
+
+    count = ExecutionCheck(
+        id="episode_count",
+        status="passed" if len(observed) == len(committed) else "failed",
+        detail=(
+            f"{len(observed)} episodes for {len(committed)} committed tasks."
+            if len(observed) == len(committed)
+            else f"{len(observed)} episodes were recorded for {len(committed)} "
+            "committed tasks."
+        ),
+    )
+    ordered = ExecutionCheck(
+        id="ordered_task_membership",
+        status="passed" if observed == committed else "failed",
+        detail=(
+            "the normalized episodes cover exactly the committed tasks, in the "
+            "committed order."
+            if observed == committed
+            else "the normalized episodes do not match the committed membership; "
+            "pairing joins on task hash, never on position."
+        ),
+    )
+    positions = [episode.task_position for episode in result.episodes]
+    numbered = ExecutionCheck(
+        id="task_positions_are_membership_positions",
+        status="passed" if positions == list(range(len(observed))) else "failed",
+        detail=(
+            "every episode carries its membership position."
+            if positions == list(range(len(observed)))
+            else f"episode positions are not 0..{len(observed) - 1} exactly once."
+        ),
+    )
+
+    episode_ids = [episode.episode_id for episode in result.episodes]
+    unique = ExecutionCheck(
+        id="episode_ids_unique",
+        status="passed" if len(set(episode_ids)) == len(episode_ids) else "failed",
+        detail=(
+            "every episode has its own identifier."
+            if len(set(episode_ids)) == len(episode_ids)
+            else "two episodes share an identifier."
+        ),
+    )
+    completed = [episode for episode in result.episodes if not episode.ok]
+    finished = ExecutionCheck(
+        id="all_episodes_completed",
+        status="passed" if not completed else "failed",
+        detail=(
+            "every episode completed."
+            if not completed
+            else f"{len(completed)} episode(s) did not complete."
+        ),
+    )
+    return [count, ordered, numbered, unique, finished]
+
+
+def _trace_checks(
+    result: VariantExecutionResult, subject: AgentSpec, primary_reward: str
+) -> list[ExecutionCheck]:
+    """Whether every trace is the subject the manifest declared, scored."""
+    traces = [trace for episode in result.episodes for trace in episode.traces]
+    per_episode = {len(episode.traces) for episode in result.episodes}
+
+    checks = [
+        ExecutionCheck(
+            id="one_subject_trace_per_episode",
+            status="passed" if per_episode <= {1} else "failed",
+            detail=(
+                "each episode carries exactly one subject trace."
+                if per_episode <= {1}
+                else f"episodes carry {sorted(per_episode)} traces."
+            ),
+        )
+    ]
+    trace_ids = [trace.trace_id for trace in traces]
+    checks.append(
+        ExecutionCheck(
+            id="trace_ids_unique",
+            status="passed" if len(set(trace_ids)) == len(trace_ids) else "failed",
+            detail=(
+                "every trace has its own identifier."
+                if len(set(trace_ids)) == len(trace_ids)
+                else "two traces share an identifier."
+            ),
+        )
+    )
+
+    declared_skills = sorted(artifact.digest for artifact in subject.harness.skills)
+    expectations: list[tuple[str, str, Any, Any]] = [
+        ("model_id_matches", "model", subject.model.model_id, None),
+        ("harness_id_matches", "harness", subject.harness.id, None),
+        ("harness_version_matches", "harness version", subject.harness.version, None),
+        ("runtime_image_matches", "runtime image", subject.runtime.image, None),
+    ]
+    observed: dict[str, set[Any]] = {
+        "model_id_matches": {trace.model_id for trace in traces},
+        "harness_id_matches": {trace.harness_id for trace in traces},
+        "harness_version_matches": {trace.harness_version for trace in traces},
+        "runtime_image_matches": {trace.runtime.image for trace in traces},
+    }
+    for identifier, label, expected, _ in expectations:
+        seen = observed[identifier]
+        checks.append(
+            ExecutionCheck(
+                id=identifier,
+                status="passed" if seen == {expected} else "failed",
+                detail=(
+                    f"every trace ran the declared {label}."
+                    if seen == {expected}
+                    else f"the declared {label} is {expected!r}; traces recorded "
+                    f"{sorted(str(value) for value in seen)}."
+                ),
+            )
+        )
+
+    bundled = {trace.use_bundled_skill for trace in traces}
+    checks.append(
+        ExecutionCheck(
+            id="bundled_skills_disabled",
+            status="passed" if bundled <= {False} else "failed",
+            detail=(
+                "no trace enabled the harness's bundled skill catalogue."
+                if bundled <= {False}
+                else "a trace ran with the bundled skill catalogue enabled."
+            ),
+        )
+    )
+    skills = {tuple(sorted(trace.skill_root_digests)) for trace in traces}
+    checks.append(
+        ExecutionCheck(
+            id="skill_digests_match_variant",
+            status="passed" if skills <= {tuple(declared_skills)} else "failed",
+            detail=(
+                f"every trace carried the {len(declared_skills)} skill(s) this "
+                "variant declares."
+                if skills <= {tuple(declared_skills)}
+                else "a trace carried skills the variant does not declare."
+            ),
+        )
+    )
+    runtimes = {trace.runtime.kind for trace in traces}
+    checks.append(
+        ExecutionCheck(
+            id="runtime_is_docker",
+            status="passed" if runtimes <= {"docker"} else "failed",
+            detail=(
+                "every trace ran in a Docker runtime."
+                if runtimes <= {"docker"}
+                else f"traces ran on {sorted(runtimes)}."
+            ),
+        )
+    )
+    roles = {trace.agent_role for trace in traces}
+    checks.append(
+        ExecutionCheck(
+            id="every_trace_is_the_subject",
+            status="passed" if roles <= {SUBJECT_AGENT} else "failed",
+            detail=(
+                f"every trace records the {SUBJECT_AGENT!r} role."
+                if roles <= {SUBJECT_AGENT}
+                else f"traces recorded the roles {sorted(roles)}."
+            ),
+        )
+    )
+    incomplete = [trace for trace in traces if not trace.ok]
+    checks.append(
+        ExecutionCheck(
+            id="all_traces_completed",
+            status="passed" if not incomplete else "failed",
+            detail=(
+                "every trace completed."
+                if not incomplete
+                else f"{len(incomplete)} trace(s) did not complete."
+            ),
+        )
+    )
+    checks.append(_primary_reward_check(traces, primary_reward))
+    checks.append(_tool_inventory_check(traces))
+    return checks
+
+
+def _primary_reward_check(
+    traces: list[NormalizedTrace], primary_reward: str
+) -> ExecutionCheck:
+    """Whether the reward the comparison turns on was scored everywhere."""
+    unscored = [trace for trace in traces if trace.reward(primary_reward) is None]
+    if unscored:
+        return ExecutionCheck(
+            id="primary_reward_present",
+            status="failed",
+            detail=(
+                f"{len(unscored)} trace(s) carry no {primary_reward!r} reward, "
+                "which is the reward the comparison is decided on."
+            ),
+        )
+    return ExecutionCheck(
+        id="primary_reward_present",
+        status="passed",
+        detail=f"every trace scored {primary_reward!r}.",
+    )
+
+
+def _tool_inventory_check(traces: list[NormalizedTrace]) -> ExecutionCheck:
+    """Whether each trace's recorded tool inventory is internally coherent."""
+    for trace in traces:
+        names = [tool.name for tool in trace.tools]
+        if len(set(names)) != len(names):
+            return ExecutionCheck(
+                id="tool_inventory_valid",
+                status="failed",
+                detail=f"trace {trace.trace_id} advertises a tool name twice.",
+            )
+    return ExecutionCheck(
+        id="tool_inventory_valid",
+        status="passed",
+        detail="every trace's tool inventory names each tool once.",
+    )
+
+
+def _manifest_check(
+    result: VariantExecutionResult, experiment: ExperimentManifest
+) -> ExecutionCheck:
+    """Whether this result belongs to the manifest it is being checked against."""
+    from techtree.canonical import digest_object
+
+    expected = digest_object(experiment)
+    matches = result.experiment_manifest_digest == expected
+    return ExecutionCheck(
+        id="result_matches_experiment",
+        status="passed" if matches else "failed",
+        detail=(
+            "the result was produced from this experiment manifest."
+            if matches
+            else "the result names a different experiment manifest."
+        ),
+    )
+
+
+def _pin_check(
+    result: VariantExecutionResult, engine: EngineDescriptor
+) -> ExecutionCheck:
+    """Whether the build that produced this result is the build we pinned.
+
+    Nothing is inferred here. Every upstream trace records the Verifiers
+    version and commit that wrote it (``docs/verifiers-eval.md``) and the
+    normalizer carries both across, so this compares evidence against the
+    engine descriptor rather than trusting a caller's claim about which engine
+    ran.
+    """
+    observed = {
+        (trace.verifiers_version, trace.verifiers_revision)
+        for episode in result.episodes
+        for trace in episode.traces
+    }
+    expected = (engine.verifiers_version, engine.verifiers_revision)
+    if observed == {expected}:
+        return ExecutionCheck(
+            id="verifiers_pin_matches_engine",
+            status="passed",
+            detail=(
+                f"every trace was produced by Verifiers {expected[0]} at "
+                f"{expected[1]}, which is what the engine descriptor pins."
+            ),
+        )
+    return ExecutionCheck(
+        id="verifiers_pin_matches_engine",
+        status="failed",
+        detail=(
+            f"the engine descriptor pins Verifiers {expected[0]} at "
+            f"{expected[1]}, but the traces record "
+            f"{sorted(f'{version} at {revision}' for version, revision in observed)}."
+        ),
+    )

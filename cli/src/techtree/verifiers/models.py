@@ -285,6 +285,11 @@ class NormalizedTrace(ProtocolModel):
     agent_role: Literal["subject"]
     task_hash: Digest
     ok: bool
+    # Recorded by the run itself rather than inferred: every upstream trace
+    # carries the Verifiers build that wrote it, which is what lets the pin be
+    # checked from the evidence instead of from a caller's claim about it.
+    verifiers_version: NonEmptyString
+    verifiers_revision: NonEmptyString
     model_id: NonEmptyString
     harness_id: NonEmptyString
     harness_version: NonEmptyString

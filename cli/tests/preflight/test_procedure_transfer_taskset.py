@@ -144,8 +144,10 @@ import json
 import re
 
 import verifiers.v1 as vf
-from verifiers.v1 import Taskset
+from verifiers.v1 import Env, Taskset
+from verifiers.v1.configs.agent import AgentConfig
 from verifiers.v1.utils.install import env_module, env_name
+from verifiers.v1.utils.loaders import env_config_type, environment_class
 
 TASKSET_ID = "procedure-transfer-v1"
 RAW_HASH = re.compile(r"^[0-9a-f]{64}$")
@@ -206,6 +208,15 @@ def probe():
             1
             for obj in exported
             if isinstance(obj, type) and issubclass(obj, Taskset)
+        ),
+        "exported_env_count": sum(
+            1 for obj in exported if isinstance(obj, type) and issubclass(obj, Env)
+        ),
+        "resolved_env_class": environment_class(TASKSET_ID).__name__,
+        "resolved_env_seats": sorted(
+            name
+            for name, field in env_config_type(TASKSET_ID).model_fields.items()
+            if isinstance(field.default, AgentConfig)
         ),
         "count": len(tasks),
         "names": [t.data.name for t in tasks],
@@ -378,10 +389,27 @@ def test_taskset_id_normalizes_to_the_package_module(probe: dict) -> None:
     assert probe["env_module"] == "procedure_transfer_v1"
 
 
-def test_package_exports_exactly_one_taskset(probe: dict) -> None:
-    """Spec 22.6. Zero raises TypeError upstream; two or more raises ValueError."""
-    assert probe["all"] == ["ProcedureTransferTaskset"]
+def test_package_exports_exactly_one_taskset_and_one_environment(
+    probe: dict,
+) -> None:
+    """Spec 22.6 and 6.5.
+
+    Upstream resolves plugins by requested base type and refuses ambiguity per
+    type: zero matches raises TypeError, two or more raises ValueError. One
+    ``__all__`` may therefore carry both, and after the named-subject addendum
+    it does.
+    """
+    assert probe["all"] == ["ProcedureTransferEnv", "ProcedureTransferTaskset"]
     assert probe["exported_taskset_count"] == 1
+    assert probe["exported_env_count"] == 1
+
+
+def test_the_environment_resolves_from_this_package_with_a_subject_seat(
+    probe: dict,
+) -> None:
+    """Spec 6.5. The seat's field name is what every trace records as its role."""
+    assert probe["resolved_env_class"] == "ProcedureTransferEnv"
+    assert probe["resolved_env_seats"] == ["subject"]
 
 
 def test_task_generics_resolve(probe: dict) -> None:

@@ -144,7 +144,10 @@ def test_a_restricted_campaign_runtime_compiles_to_framework_only_egress(
         variant_max_concurrent=1,
     )
 
+    # Upstream rewrites an empty allow-list to this pair, so the compiler emits
+    # the rewritten form and the two documents agree at every key.
     assert config.env.subject.runtime.allow == []
+    assert config.env.subject.runtime.block == ["*"]
     assert config.env.subject.runtime.network_is_restricted is True
 
 

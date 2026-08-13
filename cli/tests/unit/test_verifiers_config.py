@@ -14,6 +14,7 @@ import tomllib
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
+from techtree.errors import ValidationError
 from techtree.verifiers.config import (
     OPEN_NETWORK,
     DockerRuntimeToml,
@@ -25,6 +26,7 @@ from techtree.verifiers.config import (
     SubjectAgentToml,
     TasksetToml,
     config_to_toml_bytes,
+    egress_for,
 )
 
 PINNED_IMAGE = f"ghcr.io/techtree/subject@sha256:{'a' * 64}"
@@ -174,9 +176,23 @@ def test_agent_concurrency_cannot_exceed_the_episode_bound() -> None:
 
 
 def test_an_empty_allow_list_is_how_a_restricted_runtime_is_spelled() -> None:
-    restricted = docker_runtime(allow=[], block=[])
+    restricted = docker_runtime(allow=[], block=["*"])
     assert restricted.network_is_restricted is True
     assert docker_runtime(allow=list(OPEN_NETWORK)).network_is_restricted is False
+
+
+def test_a_campaign_network_policy_compiles_to_the_normalized_egress_pair() -> None:
+    # Upstream rewrites an empty allow-list to a wildcard block, so emitting
+    # the shorthand would make every restricted run's resolved configuration
+    # disagree with the one Techtree compiled.
+    assert egress_for("restricted") == ([], ["*"])
+    assert egress_for("open") == (["*"], [])
+
+
+def test_a_network_policy_techtree_cannot_compile_is_refused() -> None:
+    with pytest.raises(ValidationError) as caught:
+        egress_for("partly")
+    assert caught.value.code == "eval_config_invalid"
 
 
 def test_a_concrete_allow_list_and_a_block_list_cannot_be_combined() -> None:

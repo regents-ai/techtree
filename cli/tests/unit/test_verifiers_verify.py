@@ -12,15 +12,24 @@ pinned engine accept this" to the preflight suite, where a real engine answers.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 import tomli_w
+from pydantic import ValidationError as PydanticValidationError
 
+from fixtures.drafts.support import synthetic_graph
+from techtree.canonical import digest_object
 from techtree.engines.runner import EngineProcessResult, EngineRunner
 from techtree.errors import ValidationError
+from techtree.manifests.builder import build_baseline_manifest
+from techtree.models.base import ArtifactRef
 from techtree.models.campaign import ModelSpec
+from techtree.models.engine import EngineDescriptor
+from techtree.models.experiment import ExperimentManifest
+from techtree.models.validation import TasksetLock
 from techtree.verifiers.config import (
     DockerRuntimeToml,
     EnvToml,
@@ -32,7 +41,15 @@ from techtree.verifiers.config import (
     TasksetToml,
     config_to_toml_bytes,
 )
-from techtree.verifiers.models import VariantName
+from techtree.verifiers.models import (
+    ChildProcessOutcome,
+    NormalizedEpisode,
+    NormalizedReward,
+    NormalizedRuntime,
+    NormalizedTrace,
+    VariantExecutionResult,
+    VariantName,
+)
 from techtree.verifiers.verify import (
     CONFIG_ARGUMENT_MARKER,
     DRY_RUN_FLAG,
@@ -41,6 +58,7 @@ from techtree.verifiers.verify import (
     dry_run_argv,
     dry_run_variant_config,
     verify_compiled_config,
+    verify_variant_execution,
 )
 
 PINNED_IMAGE = f"ghcr.io/techtree/subject@sha256:{'a' * 64}"
@@ -409,3 +427,227 @@ def test_the_credential_is_a_separate_verdict_from_the_configuration(
     )
     assert configuration.status == "passed"
     assert credential.status == "failed"
+
+
+# ---------------------------------------------------------------------------
+# After the run: verify_variant_execution
+# ---------------------------------------------------------------------------
+
+
+VERIFIERS_VERSION = "0.3.1.dev21"
+VERIFIERS_REVISION = "7e1c47d24d055aae587ee8259f77a3e8e193513a"
+
+
+def execution_fixture(
+    **trace_overrides: Any,
+) -> tuple[VariantExecutionResult, ExperimentManifest, TasksetLock, EngineDescriptor]:
+    """A complete, valid baseline execution of the synthetic Campaign."""
+    graph = synthetic_graph()
+    campaign = graph.campaign
+    manifest = build_baseline_manifest(
+        campaign=campaign,
+        campaign_digest=graph.campaign_digest,
+        public_context=None,
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    committed = list(campaign.taskset.membership.ordered_task_hashes)
+    subject = campaign.subject
+
+    episodes = []
+    for position, task_hash in enumerate(committed):
+        fields: dict[str, Any] = {
+            "trace_id": f"trace-{position}",
+            "agent_role": "subject",
+            "task_hash": task_hash,
+            "ok": True,
+            "verifiers_version": VERIFIERS_VERSION,
+            "verifiers_revision": VERIFIERS_REVISION,
+            "model_id": subject.model.model_id,
+            "harness_id": subject.harness.id,
+            "harness_version": subject.harness.version,
+            "use_bundled_skill": False,
+            "skill_root_digests": [a.digest for a in subject.harness.skills],
+            "runtime": NormalizedRuntime(
+                kind="docker",
+                runtime_id=f"container-{position}",
+                image=subject.runtime.image,
+                resolved_image_digest=None,
+                image_digest_source="unavailable",
+                cpu=subject.runtime.cpu,
+                memory_gb=subject.runtime.memory_gb,
+            ),
+            "tools": [],
+            "rewards": [
+                NormalizedReward(
+                    name=campaign.scoring.primary_reward,
+                    score=1.0,
+                    weight=1.0,
+                    value=1.0,
+                )
+            ],
+            "metrics": {},
+            "usage": None,
+            "num_turns": 1,
+            "last_reply": "BRANCH-01",
+            "errors": [],
+            "raw_trace_digest": f"sha256:{'2' * 64}",
+        }
+        fields.update(trace_overrides)
+        episodes.append(
+            NormalizedEpisode(
+                episode_id=f"episode-{position}",
+                env_id=campaign.taskset.ref.id,
+                task_hash=fields["task_hash"],
+                task_position=position,
+                ok=True,
+                traces=[NormalizedTrace.model_validate(fields)],
+                errors=[],
+                raw_episode_digest=f"sha256:{'3' * 64}",
+            )
+        )
+
+    artifact = ArtifactRef(
+        digest=f"sha256:{'4' * 64}",
+        media_type="text/plain",
+        size=1,
+        relative_path=None,
+    )
+    result = VariantExecutionResult(
+        variant=VariantName.BASELINE,
+        experiment_manifest_digest=digest_object(manifest),
+        resolved_verifiers_config=artifact,
+        raw_traces=artifact,
+        eval_log=artifact,
+        normalized_episodes=artifact,
+        child_outcome=ChildProcessOutcome(
+            variant=VariantName.BASELINE,
+            argv_digest=f"sha256:{'5' * 64}",
+            exit_code=0,
+            started_at=datetime(2026, 1, 1, tzinfo=UTC),
+            finished_at=datetime(2026, 1, 1, tzinfo=UTC),
+            stdout_artifact=artifact,
+            stderr_artifact=artifact,
+            cancelled=False,
+        ),
+        episodes=episodes,
+    )
+    lock = TasksetLock(
+        schema_version="techtree.taskset-lock.v1alpha1",
+        taskset_ref=campaign.taskset.ref,
+        engine_digest=f"sha256:{'6' * 64}",
+        resolved_package_digest=campaign.taskset.ref.package.digest,
+        ordered_task_hashes=committed,
+        membership_digest=campaign.taskset.membership.membership_digest,
+        task_count=len(committed),
+    )
+    descriptor = EngineDescriptor(
+        schema_version="techtree.engine.v1alpha1",
+        name="default",
+        python_version="3.12",
+        verifiers_version=VERIFIERS_VERSION,
+        verifiers_revision=VERIFIERS_REVISION,
+        supported_hosts=["darwin/arm64"],
+        packages=[],
+    )
+    return result, manifest, lock, descriptor
+
+
+def verdicts(
+    result: VariantExecutionResult,
+    manifest: ExperimentManifest,
+    lock: TasksetLock,
+    descriptor: EngineDescriptor,
+) -> dict[str, str]:
+    checks = verify_variant_execution(
+        result=result,
+        experiment=manifest,
+        taskset_lock=lock,
+        primary_reward="synthetic_reward",
+        engine=descriptor,
+    )
+    return {check.id: check.status for check in checks}
+
+
+def test_a_complete_execution_passes_every_check() -> None:
+    statuses = verdicts(*execution_fixture())
+    assert set(statuses.values()) == {"passed"}
+
+
+def test_a_cancelled_execution_is_reported_as_cancelled_not_invalid() -> None:
+    result, manifest, lock, descriptor = execution_fixture()
+    cancelled = result.model_copy(
+        update={
+            "child_outcome": result.child_outcome.model_copy(
+                update={"cancelled": True, "exit_code": 130}
+            )
+        }
+    )
+
+    statuses = verdicts(cancelled, manifest, lock, descriptor)
+
+    assert statuses["child_completed"] == "failed"
+    # Everything the run did produce is still sound; only completion failed.
+    assert statuses["ordered_task_membership"] == "passed"
+
+
+def test_a_missing_committed_task_fails_the_membership_checks() -> None:
+    result, manifest, lock, descriptor = execution_fixture()
+    short = result.model_copy(update={"episodes": result.episodes[:-1]})
+
+    statuses = verdicts(short, manifest, lock, descriptor)
+
+    assert statuses["episode_count"] == "failed"
+    assert statuses["ordered_task_membership"] == "failed"
+
+
+def test_a_trace_scored_under_another_role_fails() -> None:
+    # Unrepresentable by construction, so the guard is the model itself.
+    with pytest.raises(PydanticValidationError):
+        execution_fixture(agent_role="agent")
+
+
+def test_a_missing_primary_reward_fails() -> None:
+    result, manifest, lock, descriptor = execution_fixture(
+        rewards=[
+            NormalizedReward(name="something_else", score=1.0, weight=1.0, value=1.0)
+        ]
+    )
+
+    statuses = verdicts(result, manifest, lock, descriptor)
+
+    assert statuses["primary_reward_present"] == "failed"
+
+
+def test_a_bundled_skill_catalogue_in_the_evidence_fails() -> None:
+    result, manifest, lock, descriptor = execution_fixture(use_bundled_skill=True)
+    assert verdicts(result, manifest, lock, descriptor)["bundled_skills_disabled"] == (
+        "failed"
+    )
+
+
+def test_a_model_other_than_the_declared_one_fails() -> None:
+    result, manifest, lock, descriptor = execution_fixture(model_id="vendor/something")
+    assert verdicts(result, manifest, lock, descriptor)["model_id_matches"] == "failed"
+
+
+def test_evidence_from_another_verifiers_build_fails_the_pin_check() -> None:
+    result, manifest, lock, descriptor = execution_fixture(verifiers_revision="0" * 40)
+    assert (
+        verdicts(result, manifest, lock, descriptor)["verifiers_pin_matches_engine"]
+        == "failed"
+    )
+
+
+def test_a_manifest_with_no_subject_cannot_be_verified_at_all() -> None:
+    result, manifest, lock, _ = execution_fixture()
+    configuration = manifest.configuration.model_copy(update={"agents": {}})
+    headless = manifest.model_copy(update={"configuration": configuration})
+
+    with pytest.raises(ValidationError) as caught:
+        verify_variant_execution(
+            result=result,
+            experiment=headless,
+            taskset_lock=lock,
+            primary_reward="synthetic_reward",
+        )
+    assert caught.value.code == "variant_execution_uncheckable"

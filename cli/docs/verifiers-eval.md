@@ -28,14 +28,13 @@ ever contains it.
 
 ## CRITICAL — five findings that change WP6
 
-### E0. The compiled `subject` config is rejected by today's engine bundle
+### E0. A `subject` seat needs an environment that declares one — RESOLVED
 
 Spec §6.5 asks for a Verifiers `Env` whose seat is literally named `subject`.
-The shipped reference package
-(`src/techtree/resources/engines/default/packages/procedure-transfer-v1/`)
-exports only `ProcedureTransferTaskset`, so the run resolves to the built-in
-`SingleAgentEnv`, whose only seat is called `agent`. A Techtree-compiled config
-carrying an `[env.subject]` table therefore fails **at config parse**, before
+The seat name is the environment config's *field* name, and the environment
+class comes from the digested bundle, so nothing in `src/techtree/verifiers/`
+can produce one. Against an environment without that seat, a Techtree-compiled
+config carrying an `[env.subject]` table fails **at config parse**, before
 anything runs:
 
 ```text
@@ -46,13 +45,12 @@ EXIT=1
 Extra inputs are not permitted
 ```
 
-Nothing in `src/techtree/verifiers/` can work around this: the seat name is the
-env config's field name, and the env class comes from the digested bundle. The
-named-subject `env.py` plus the amended `__init__.py` export are a **frozen
-bundle change** and are recorded as a STOP-AND-NOTE on the ticket rather than
-made here. Until that lands, the dry-run half of the WP6 acceptance rows can be
-proven only against the preflight fixture package, which does export a
-named-subject Env.
+This was originally raised as a STOP-AND-NOTE because the reference package
+exported only `ProcedureTransferTaskset`. The bundle addendum was approved and
+`procedure_transfer_v1/env.py` now ships `ProcedureTransferEnv`, so the shipped
+Campaign compiles and dry-runs against the real engine. The failure above is
+kept here because it is still the exact symptom a future package that forgets
+to export its environment will produce, and the preflight still asserts it.
 
 ### E1. `push` defaults to **true** and uploads the participant's episodes
 
@@ -301,8 +299,18 @@ allow = []   ->   allow = [], block = ["*"]
 ```
 
 `src/techtree/verifiers/config.py` therefore carries `allow`/`block` on the
-Docker table and the compiler maps the Campaign's `network_policy` onto them
-(`restricted` -> `allow = []`, `open` -> `allow = ["*"]`). Verified by dry run.
+Docker table and `egress_for` maps the Campaign's `network_policy` onto them.
+It emits the **already-normalized** pair rather than the shorthand:
+
+```text
+restricted -> allow = [],    block = ["*"]
+open       -> allow = ["*"], block = []
+```
+
+Emitting `allow = []` with `block = []` also works, but the engine rewrites it,
+and then the configuration Techtree compiled and the configuration the engine
+resolved disagree at `block` on every restricted run. Verified by dry run
+against the real engine.
 
 A digest-pinned image dry-runs without Docker installed and without the image
 existing; provisioning is a WP6b concern.
@@ -352,8 +360,8 @@ containers.
 
 ## What WP6 must do differently from the spec sketch
 
-1. The named-subject Env is a **frozen-bundle change** (E0) and blocks the
-   dry-run acceptance rows against the real Campaign.
+1. The reference package must export a named-subject Env (E0); without one the
+   compiled configuration is rejected before anything runs.
 2. `push = false` in the compiled config **and** `--no-push` on argv (E1).
 3. Never apply `require_output_files` to a dry-run directory (E2).
 4. `verifiers/config.py`, not the dry run, rejects `use_bundled_skill`,

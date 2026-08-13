@@ -40,8 +40,6 @@ from techtree.models.campaign import (
 )
 from techtree.models.experiment import ExperimentManifest, ExperimentVariant
 from techtree.verifiers.config import (
-    OPEN_NETWORK,
-    RESTRICTED_NETWORK,
     DockerRuntimeToml,
     EnvToml,
     EvalClientToml,
@@ -51,6 +49,7 @@ from techtree.verifiers.config import (
     SubjectAgentToml,
     TasksetToml,
     config_to_toml_bytes,
+    egress_for,
 )
 from techtree.verifiers.models import RunPaths, VariantExecutionPlan, VariantName
 
@@ -134,6 +133,7 @@ def compile_variant_config(
 
     output_dir = run_paths.variant_output_dir(variant)
     taskset = experiment.configuration.taskset
+    allow, block = egress_for(subject.runtime.network_policy)
 
     if variant_max_concurrent < 1:
         _refuse(
@@ -158,12 +158,8 @@ def compile_variant_config(
                 ),
                 runtime=DockerRuntimeToml(
                     image=subject.runtime.image,
-                    allow=list(
-                        RESTRICTED_NETWORK
-                        if subject.runtime.network_policy == "restricted"
-                        else OPEN_NETWORK
-                    ),
-                    block=[],
+                    allow=allow,
+                    block=block,
                     cpu=subject.runtime.cpu,
                     memory=subject.runtime.memory_gb,
                 ),

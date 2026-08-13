@@ -12,12 +12,13 @@ A dry-run directory is deliberately not accepted here. Dry run writes only
 requirements to it would report a truncated run where there was never a run at
 all.
 
-``build_variant_result`` is absent. Spec section 6.13 builds it by running the
-engine tool ``normalize_eval_output.py``, and that tool lives inside the
-digested engine bundle, which this ticket is not permitted to change. Writing
-the function now would mean writing a function whose only reachable behaviour
-is to raise ``engine_tool_unknown``. The STOP-AND-NOTE on the ticket carries
-the details.
+``build_variant_result`` does not interpret anything itself. It hands the raw
+directory to the engine tool ``normalize_eval_output.py``, which runs under the
+engine's own interpreter with the pinned Verifiers wire models available to it
+(decisions document 0003 A3). Reading a Trace with the version of Verifiers
+that wrote it is the difference between interpreting the record and guessing at
+it, and it is why the interpretation is pinned exactly as tightly as the
+library.
 """
 
 from __future__ import annotations
@@ -29,17 +30,32 @@ from typing import Final
 from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import sha256_digest_bytes
-from techtree.errors import ValidationError
-from techtree.models.base import ArtifactRef
-from techtree.verifiers.models import NormalizedEpisode
+from techtree.engines.registry import EngineRegistry
+from techtree.engines.runner import EngineRunner
+from techtree.errors import EngineError, ValidationError
+from techtree.models.base import ArtifactRef, Digest
+from techtree.verifiers.models import (
+    ChildProcessOutcome,
+    NormalizedEpisode,
+    VariantExecutionPlan,
+    VariantExecutionResult,
+)
 
 __all__ = [
     "CONFIG_FILENAME",
+    "CONFIG_MEDIA_TYPE",
+    "DEFAULT_NORMALIZE_TIMEOUT_SECONDS",
     "EVAL_LOG_FILENAME",
+    "EVAL_LOG_MEDIA_TYPE",
+    "NORMALIZED_EPISODES_FILENAME",
     "NORMALIZED_EPISODES_MEDIA_TYPE",
+    "NORMALIZE_EVAL_OUTPUT_TOOL",
     "TRACES_FILENAME",
+    "TRACES_MEDIA_TYPE",
     "VARIANT_OUTPUT_INCOMPLETE",
     "artifact_for",
+    "build_variant_result",
+    "normalize_eval_output",
     "read_normalized_episodes",
     "require_output_files",
     "required_output_paths",
@@ -52,7 +68,19 @@ CONFIG_FILENAME: Final = "config.toml"
 TRACES_FILENAME: Final = "traces.jsonl"
 EVAL_LOG_FILENAME: Final = "eval.log"
 
+#: The engine helper that turns raw episodes into the protocol projection. It
+#: lives inside the digested bundle (decisions document 0003 A3).
+NORMALIZE_EVAL_OUTPUT_TOOL: Final = "normalize_eval_output.py"
+
+#: Where the projection lands, beside the raw evidence it was derived from.
+NORMALIZED_EPISODES_FILENAME: Final = "normalized-episodes.jsonl"
+
+CONFIG_MEDIA_TYPE: Final = "application/toml"
+TRACES_MEDIA_TYPE: Final = "application/x-ndjson"
+EVAL_LOG_MEDIA_TYPE: Final = "text/plain"
 NORMALIZED_EPISODES_MEDIA_TYPE: Final = "application/x-ndjson"
+
+DEFAULT_NORMALIZE_TIMEOUT_SECONDS: Final = 300.0
 
 
 def required_output_paths(output_dir: Path) -> dict[str, Path]:
@@ -174,3 +202,128 @@ def _parse_episode(line: str, *, path: Path, number: int) -> NormalizedEpisode:
             code=VARIANT_OUTPUT_INCOMPLETE,
             details={"path": str(path), "line": number},
         ) from error
+
+
+# ---------------------------------------------------------------------------
+# The engine's own interpretation
+# ---------------------------------------------------------------------------
+
+
+def normalize_eval_output(
+    *,
+    engine_registry: EngineRegistry,
+    engine_digest: Digest,
+    engine_runner: EngineRunner,
+    output_dir: Path,
+    taskset_lock_path: Path,
+    experiment_manifest_path: Path,
+    destination: Path,
+    timeout: float = DEFAULT_NORMALIZE_TIMEOUT_SECONDS,
+) -> Path:
+    """Run the engine's normalizer over one variant's raw output.
+
+    Nothing about the upstream record is interpreted on this side of the
+    boundary. The helper runs under the engine's interpreter, refuses anything
+    it cannot join onto the Campaign's committed membership, and writes the
+    projection ordered by that membership rather than by completion order.
+    """
+    script = engine_registry.tool_path(engine_digest, NORMALIZE_EVAL_OUTPUT_TOOL)
+    result = engine_runner.run_python_script(
+        script,
+        [
+            "--output-dir",
+            str(output_dir),
+            "--membership",
+            str(taskset_lock_path),
+            "--experiment-manifest",
+            str(experiment_manifest_path),
+            "--output",
+            str(destination),
+        ],
+        timeout=timeout,
+    )
+    if result.exit_code != 0:
+        raise EngineError(
+            "the engine could not normalize the evaluation output: "
+            f"{_last_line(result.stderr) or _last_line(result.stdout)}",
+            code="eval_normalization_failed",
+            details={
+                "engine_digest": engine_digest,
+                "output_dir": str(output_dir),
+                "exit_code": result.exit_code,
+            },
+        )
+    return destination
+
+
+def build_variant_result(
+    *,
+    plan: VariantExecutionPlan,
+    outcome: ChildProcessOutcome,
+    engine_registry: EngineRegistry,
+    engine_digest: Digest,
+    engine_runner: EngineRunner,
+    taskset_lock_path: Path,
+    timeout: float = DEFAULT_NORMALIZE_TIMEOUT_SECONDS,
+) -> VariantExecutionResult:
+    """Assemble one variant's complete result from what the child left behind.
+
+    Raw evidence and its projection are both retained and both hashed. The
+    projection is what later stages read; the raw files are what makes the
+    projection checkable, and a receipt that cited only the tidy document would
+    be asking to be trusted rather than verified.
+    """
+    if outcome.variant is not plan.variant:
+        raise ValidationError(
+            f"a {plan.variant.value} plan cannot be completed by a "
+            f"{outcome.variant.value} child process",
+            code=VARIANT_OUTPUT_INCOMPLETE,
+            details={"plan": plan.variant.value, "outcome": outcome.variant.value},
+        )
+
+    output_dir = Path(plan.verifiers_output_dir)
+    paths = require_output_files(output_dir)
+    destination = output_dir.parent / NORMALIZED_EPISODES_FILENAME
+
+    normalize_eval_output(
+        engine_registry=engine_registry,
+        engine_digest=engine_digest,
+        engine_runner=engine_runner,
+        output_dir=output_dir,
+        taskset_lock_path=taskset_lock_path,
+        experiment_manifest_path=Path(plan.experiment_manifest_path),
+        destination=destination,
+        timeout=timeout,
+    )
+    episodes = read_normalized_episodes(destination)
+
+    if len(episodes) != plan.task_count:
+        raise ValidationError(
+            f"the {plan.variant.value} variant normalized {len(episodes)} "
+            f"episodes for {plan.task_count} committed tasks",
+            code=VARIANT_OUTPUT_INCOMPLETE,
+            details={
+                "variant": plan.variant.value,
+                "normalized": len(episodes),
+                "expected": plan.task_count,
+            },
+        )
+
+    return VariantExecutionResult(
+        variant=plan.variant,
+        experiment_manifest_digest=plan.experiment_manifest_digest,
+        resolved_verifiers_config=artifact_for(paths["config"], CONFIG_MEDIA_TYPE),
+        raw_traces=artifact_for(paths["traces"], TRACES_MEDIA_TYPE),
+        eval_log=artifact_for(paths["eval_log"], EVAL_LOG_MEDIA_TYPE),
+        normalized_episodes=artifact_for(destination, NORMALIZED_EPISODES_MEDIA_TYPE),
+        child_outcome=outcome,
+        episodes=episodes,
+    )
+
+
+def _last_line(stream: str) -> str:
+    """Return the last line that says something."""
+    for line in reversed(stream.splitlines()):
+        if line.strip():
+            return line.strip()
+    return ""
