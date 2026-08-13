@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 from support import install_fake_cli
-from techtree_hermes.approvals import InstallPlanStore
+from techtree_hermes.approvals import InstallPlanStore, ReviewStore
 from techtree_hermes.bridge import CliBridge
 from techtree_hermes.commands import build_cli_commands
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
@@ -45,6 +45,7 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         release_core_digest=release_core_digest(CORE),
         bridge=CliBridge(),
         plans=InstallPlanStore(),
+        reviews=ReviewStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )

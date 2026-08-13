@@ -178,6 +178,7 @@ from .run import (  # noqa: E402
 from .uplift import (  # noqa: E402
     techtree_uplift_context,
     techtree_uplift_prepare,
+    techtree_uplift_propose,
     techtree_uplift_start,
 )
 
@@ -196,6 +197,7 @@ TOOL_HANDLERS: Mapping[str, ServiceHandler] = MappingProxyType(
         "techtree_run_result": techtree_run_result,
         "techtree_proof_verify": techtree_proof_verify,
         "techtree_uplift_context": techtree_uplift_context,
+        "techtree_uplift_propose": techtree_uplift_propose,
         "techtree_uplift_prepare": techtree_uplift_prepare,
         "techtree_uplift_start": techtree_uplift_start,
     }

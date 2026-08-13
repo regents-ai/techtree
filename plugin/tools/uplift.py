@@ -7,12 +7,22 @@ belongs to WP10 and is not exposed here.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
-from ..approvals import policy_acceptance_args
-from ..services.session import update_after_second_start
-from ..state import latest_session, save_session
-from . import channel_of, passthrough, require_argument, safe_tool
+from ..approvals import (
+    DisplayedReview,
+    policy_acceptance_args,
+    require_displayed_review,
+)
+from ..diff import build_skill_diff
+from ..errors import PluginError
+from ..llm import HermesHostLlm
+from ..services.improvement import ImprovementService
+from ..services.proposal import ProposalService
+from ..services.session import update_after_second_prepare, update_after_second_start
+from ..state import latest_session, save_session, session_payload
+from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import (
     require_confirmation_token,
     require_digest,
@@ -29,6 +39,133 @@ def techtree_uplift_context(services: Any, args: dict[str, Any], **kwargs: Any) 
     channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
     return passthrough(services.bridge.invoke(["uplift", "context", run_id]), channel)
+
+
+@safe_tool
+def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
+    """Propose one revision, have Techtree prepare it, and stop for review.
+
+    This is where the guided introduction pauses on purpose. Everything up to
+    the approval happens here — one host completion, Techtree's own scan and
+    preparation, and the deterministic difference between the two Skills — and
+    then nothing else happens until a person says yes.
+    """
+    channel = channel_of(args, kwargs)
+    source_run_id = require_run_id(require_argument(args, "source_run_id"))
+
+    session = latest_session(services)
+    if session is None:
+        raise PluginError(
+            "there is no guided comparison in this conversation to improve on",
+            code="demo_session_not_found",
+        )
+
+    host = _host_model(services)
+    if host is None:
+        raise PluginError(
+            "this host offers no model, so it cannot propose a revision",
+            code="host_llm_unavailable",
+        )
+    improvement = ImprovementService(
+        llm=host, release=services.release_core, bridge=services.bridge
+    )
+
+    source_skill = improvement.load_source_skill(improvement.get_context(source_run_id))
+
+    try:
+        proposal = improvement.propose_once(
+            source_run_id=source_run_id,
+            demo_session=session,
+            skill_improver_digest=services.release_core.skill_improver_digest,
+        )
+    except PluginError as error:
+        # The turn is spent even when the answer was unusable, so the session
+        # has to be saved before the failure is reported. Otherwise a refused
+        # proposal would quietly hand back the attempt it just used.
+        save_session(services, _spend(session))
+        raise error
+
+    save_session(services, proposal.session)
+
+    staged = ProposalService(bridge=services.bridge).write_temporary_skill(
+        demo_id=proposal.session.demo_id, output=proposal.output
+    )
+    try:
+        prepared = ProposalService(bridge=services.bridge).prepare_replacement_draft(
+            source_run_id=source_run_id, skill_path=staged.entrypoint
+        )
+    finally:
+        # Techtree has its own snapshot, or it refused; either way the
+        # plugin's copy has done its job.
+        ProposalService(bridge=services.bridge).remove_temporary_skill(staged)
+
+    difference = build_skill_diff(
+        v1_text=source_skill.text,
+        v2_text=proposal.output.revised_skill_markdown,
+        channel=channel,
+    )
+
+    session = update_after_second_prepare(
+        proposal.session, {"ok": True, "data": prepared}
+    )
+    save_session(services, session)
+
+    services.reviews.save(
+        DisplayedReview(
+            draft_id=str(prepared["draft_id"]),
+            diff_digest=difference.diff_digest,
+            data_policy_digest=str(prepared["data_policy_digest"]),
+            displayed_at=datetime.now(UTC).isoformat(),
+        )
+    )
+
+    return tool_result(
+        {
+            "ok": True,
+            "command": "uplift propose",
+            "demo": session_payload(session),
+            "proposal": proposal.output.to_dict(),
+            "provenance": proposal.provenance.to_dict(),
+            "diff": difference.to_dict(),
+            "draft_id": prepared["draft_id"],
+            "confirmation_token": prepared["confirmation_token"],
+            "data_policy_digest": prepared["data_policy_digest"],
+            "estimated_episodes": prepared.get("estimated_episodes"),
+            "scanner": prepared.get("scanner_findings"),
+            "baseline_skill_digest": prepared.get("baseline_skill_digest"),
+            "candidate_skill_digest": prepared.get("candidate_skill_digest"),
+            "started": False,
+            "next_action": {
+                "id": "start_second_comparison",
+                "label": "Start the second comparison",
+                "reason": (
+                    "Nothing has run. Show the difference above and the data "
+                    "policy, and start only if the user agrees to this exact "
+                    "comparison."
+                ),
+                "tool": "techtree_uplift_start",
+                "requires_user_confirmation": True,
+            },
+        },
+        channel,
+    )
+
+
+def _spend(session: Any) -> Any:
+    """Return the session with the improvement turn counted as used."""
+    from dataclasses import replace
+
+    return replace(
+        session,
+        revision_attempts=session.revision_attempts + 1,
+        updated_at=datetime.now(UTC).isoformat(),
+    )
+
+
+def _host_model(services: Any) -> Any:
+    """Return the host's model seam, or None when this host offers none."""
+    ctx = getattr(services, "ctx", None)
+    return HermesHostLlm(ctx) if getattr(ctx, "llm", None) is not None else None
 
 
 @safe_tool
@@ -62,6 +199,9 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
     policy = require_digest(
         require_argument(args, "data_policy_digest"), "a data policy digest"
     )
+    # Specification section 16: no second run starts without the difference
+    # and the policy having been shown. The plugin remembers what it showed.
+    require_displayed_review(services.reviews, draft_id, data_policy_digest=policy)
 
     envelope = services.bridge.invoke(
         [
@@ -76,7 +216,9 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
     )
 
     session = latest_session(services)
-    if session is not None and envelope.get("ok"):
-        save_session(services, update_after_second_start(session, envelope))
+    if envelope.get("ok"):
+        services.reviews.discard(draft_id)
+        if session is not None:
+            save_session(services, update_after_second_start(session, envelope))
 
     return passthrough(envelope, channel)

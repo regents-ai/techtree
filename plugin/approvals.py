@@ -200,3 +200,79 @@ def _expiry(plan: BootstrapInstallPlan) -> datetime:
         raise BootstrapPlanError(
             "that installation plan has no readable expiry"
         ) from error
+
+
+# Second-run review ----------------------------------------------------------------
+#
+# Specification section 16's binding rule: no second run starts without the
+# diff and the policy having been displayed. That is enforced the same way
+# installation is — the plugin remembers what it actually showed, and starting
+# requires quoting it back.
+
+
+CODE_SECOND_RUN_NOT_REVIEWED: Final = "second_run_not_reviewed"
+
+
+@dataclass(frozen=True)
+class DisplayedReview:
+    """What was put in front of a person before a second comparison."""
+
+    draft_id: str
+    diff_digest: str
+    data_policy_digest: str
+    displayed_at: str
+
+
+@dataclass
+class ReviewStore:
+    """The reviews this conversation has actually shown.
+
+    In memory, for the life of the session, for the same reason install offers
+    are: a diff shown in a conversation last week is not a diff this
+    conversation showed, and starting a run that spends money on the strength
+    of it would be a lie about what the person agreed to.
+    """
+
+    _reviews: dict[str, DisplayedReview] = field(default_factory=dict)
+
+    def save(self, review: DisplayedReview) -> None:
+        """Record that this draft's diff and policy were displayed."""
+        self._reviews[review.draft_id] = review
+
+    def get(self, draft_id: str) -> DisplayedReview | None:
+        """Return what was displayed for this draft, if anything was."""
+        return self._reviews.get(draft_id)
+
+    def discard(self, draft_id: str) -> None:
+        """Forget a review once it has been acted on."""
+        self._reviews.pop(draft_id, None)
+
+    def count(self) -> int:
+        """How many reviews are currently held."""
+        return len(self._reviews)
+
+
+def require_displayed_review(
+    store: ReviewStore, draft_id: str, *, data_policy_digest: str
+) -> DisplayedReview:
+    """Return the review that was shown for this draft, or refuse the start.
+
+    Raises:
+        ApprovalRequiredError: when nothing was displayed for this draft, or
+            when the policy being accepted is not the policy that was shown.
+    """
+    review = store.get(draft_id)
+    if review is None:
+        raise ApprovalRequiredError(
+            "nobody has been shown the difference between the two Skills and "
+            "the data policy for this comparison yet",
+            code=CODE_SECOND_RUN_NOT_REVIEWED,
+            repair="Run techtree_uplift_propose and show its diff first.",
+        )
+    if review.data_policy_digest != data_policy_digest:
+        raise ApprovalRequiredError(
+            "the data policy being accepted is not the one that was shown",
+            code=CODE_SECOND_RUN_NOT_REVIEWED,
+            repair="Show the policy from the proposal, and accept that digest.",
+        )
+    return review

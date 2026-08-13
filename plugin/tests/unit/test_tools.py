@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import pytest
-from techtree_hermes.approvals import InstallPlanStore
+from techtree_hermes.approvals import InstallPlanStore, ReviewStore
 from techtree_hermes.models import DemoStage
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.schemas import all_tool_schemas
@@ -106,6 +106,7 @@ def _services(
         release_core_digest=DIGEST,
         bridge=bridge or FakeBridge(),
         plans=InstallPlanStore(),
+        reviews=ReviewStore(),
         sessions=SessionStore(),
         assets=assets or StarterSkillDouble(),
     )
@@ -438,7 +439,13 @@ def test_the_uplift_trio_bridges_the_committed_commands() -> None:
         "/tmp/skill-v2",
     ]
 
-    _call(
+
+def test_a_second_run_never_starts_without_the_diff_being_shown() -> None:
+    """Specification section 16: the binding rule, enforced at the tool."""
+    bridge = FakeBridge()
+    services = _services(bridge=bridge)
+
+    result = _call(
         "techtree_uplift_start",
         services,
         {
@@ -447,15 +454,10 @@ def test_the_uplift_trio_bridges_the_committed_commands() -> None:
             "data_policy_digest": POLICY,
         },
     )
-    assert bridge.last_argv() == [
-        "uplift",
-        "start",
-        DRAFT_ID,
-        "--confirmation-token",
-        TOKEN,
-        "--accept-data-policy",
-        POLICY,
-    ]
+
+    assert result["ok"] is False
+    assert result["code"] == "second_run_not_reviewed"
+    assert bridge.calls == []
 
 
 # The guided introduction --------------------------------------------------------------

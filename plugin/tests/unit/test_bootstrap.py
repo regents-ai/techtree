@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 from support import FakeCli, envelope, install_fake_cli, print_envelope
-from techtree_hermes.approvals import InstallPlanStore
+from techtree_hermes.approvals import InstallPlanStore, ReviewStore
 from techtree_hermes.bootstrap import (
     DEVELOPER_OVERRIDE_VARIABLE,
     TERMINAL_TOOL,
@@ -78,6 +78,7 @@ def _services(
         release_core_digest=DIGEST,
         bridge=CliBridge(),
         plans=InstallPlanStore(),
+        reviews=ReviewStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.approvals import InstallPlanStore
+from techtree_hermes.approvals import InstallPlanStore, ReviewStore
 from techtree_hermes.bridge import CliBridge
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.services.assets import ReleaseSkillProvider
@@ -43,6 +43,7 @@ def services() -> PluginServices:
         release_core_digest=release_core_digest(core),
         bridge=CliBridge(),
         plans=InstallPlanStore(),
+        reviews=ReviewStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )

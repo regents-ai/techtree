@@ -294,6 +294,21 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         properties={"run_id": _run_id("The finished run to build context from.")},
         required=["run_id"],
     ),
+    "techtree_uplift_propose": _schema(
+        description=(
+            "Propose one revision of the Skill a finished run measured, and "
+            "show what changed. Reads the sanitized improvement context, asks "
+            "the host model exactly once, hands the proposal to Techtree to "
+            "scan and prepare, and stops. It spends no model budget on an "
+            "evaluation and starts nothing. The guided introduction allows one "
+            "proposal; a failed attempt still uses it up. Show the user the "
+            "diff, the data policy, and the estimate before starting anything."
+        ),
+        properties={
+            "source_run_id": _run_id("The finished run whose Skill should be revised."),
+        },
+        required=["source_run_id"],
+    ),
     "techtree_uplift_prepare": _schema(
         description=(
             "Prepare a comparison between a finished run's Skill and a revised "

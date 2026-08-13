@@ -326,8 +326,11 @@ class ImprovementService:
                 turn is spent either way: the returned session records the
                 attempt whether the answer was usable or not.
         """
-        require_first_result(demo_session, source_run_id)
+        # The turn limit is checked first, so a second attempt is told the
+        # true reason — the turn is spent — rather than something about the
+        # stage the first proposal moved the session into.
         require_unused_turn(demo_session)
+        require_first_result(demo_session, source_run_id)
 
         context = self.get_context(source_run_id)
         skill = self.load_source_skill(context)
@@ -491,6 +494,7 @@ def require_first_result(session: DemoSessionState, source_run_id: str) -> None:
     if session.stage not in (
         DemoStage.FIRST_RESULT_READY,
         DemoStage.REVISION_PROPOSAL_READY,
+        DemoStage.SECOND_DRAFT_PREPARED,
     ):
         raise PluginError(
             "there is no finished first comparison to improve on yet",
