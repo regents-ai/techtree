@@ -342,10 +342,14 @@ def test_validation_creates_exactly_the_four_expected_files(validated: Path) -> 
 
 
 def test_results_jsonl_joins_on_the_raw_task_hash(validated: Path, probe: dict) -> None:
+    # Rows land in COMPLETION order, which is not deterministic across runs.
+    # Consumers must join on task_key/task_position, never on line position.
     lines = (validated / "results.jsonl").read_text().splitlines()
     rows = [json.loads(line) for line in lines if line.strip()]
-    assert [row["task_key"] for row in rows] == probe["hashes"][:2]
-    assert [row["task_position"] for row in rows] == [0, 1]
+    assert {row["task_key"] for row in rows} == set(probe["hashes"][:2])
+    assert {row["task_position"] for row in rows} == {0, 1}
+    by_position = {row["task_position"]: row["task_key"] for row in rows}
+    assert [by_position[i] for i in (0, 1)] == probe["hashes"][:2]
     assert all(row["mode"] == "all" for row in rows)
 
 

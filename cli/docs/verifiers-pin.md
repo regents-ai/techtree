@@ -17,9 +17,19 @@ Reproduce with `make verifiers-preflight`
 
 ---
 
-## CRITICAL — three deviations from the spec's assumptions
+## CRITICAL — four deviations from the spec's assumptions
 
 These reshape PR9–PR12. Read them before writing `tasksets/verifiers_cli.py`.
+
+### C0. `results.jsonl` row order is completion order, not task order
+
+Rows are appended as each isolated validation check finishes, so the line
+order varies between otherwise identical runs (observed directly: two runs of
+the same 2-task fixture produced the two rows in opposite orders). Every row
+carries `task_key` (the raw 64-char hash) and `task_position`; consumers must
+join on those fields and must never rely on line position. This also means
+the raw bytes of `results.jsonl` are NOT reproducible across runs — relevant
+to any byte-level artifact digesting or regeneration check.
 
 ### C1. `summary.json` is nested, not flat
 
