@@ -43,3 +43,14 @@ memory:
 - The credential is read only from the environment at eval-child launch
   (spec §6.9); never stored, logged, echoed, or passed through chat or
   tool arguments.
+
+## Amendment (2026-08-13, WP6c): selected model
+
+The §"Model selection procedure" executed twice and converged on
+**qwen/qwen3.7-flash** (Prime inference). Qwen3.5-0.8B was refuted
+empirically: it cannot open a mounted Skill (probes: wrong-name search,
+tool-call misfire; 0/4 with the Skill) and runs away on hard tasks.
+qwen3.7-flash: 2/2 with the Skill, 0/3 clean baseline, then 0/36 vs 36/36
+on the real concurrent run at USD 0.20 (estimate 0.19); reports no cached
+tokens, so costs are exact. Spend to date (worst case): ~USD 1.30 of 5.00.
+Still provisional until WP11h founder ratification.

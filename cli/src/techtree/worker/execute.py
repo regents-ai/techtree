@@ -38,6 +38,7 @@ from typing import Final
 
 from techtree.canonical import digest_object, to_json_value
 from techtree.constants import DEFAULT_WORKER_HEARTBEAT_SECONDS
+from techtree.engines.registry import EngineRegistry
 from techtree.errors import (
     CancellationError,
     RunError,
@@ -48,8 +49,10 @@ from techtree.errors import (
     sanitize_text,
 )
 from techtree.models.run import RunPhase, RunRequest
+from techtree.models.uplift_report import UpliftReport
 from techtree.paths import TechtreePaths, default_paths, paths_from_root
 from techtree.runs.artifacts import RunArtifactStore
+from techtree.runs.child_registry import ChildRegistry
 from techtree.runs.events import DETAIL_ERROR, RUN_CANCELLED, RUN_FAILED
 from techtree.runs.executor import (
     ExecutionContext,
@@ -58,13 +61,20 @@ from techtree.runs.executor import (
 )
 from techtree.runs.fake import FakeRunExecutor
 from techtree.runs.machine import is_terminal
+from techtree.runs.real import (
+    RealVerifiersExecutor,
+    campaign_is_executable,
+    real_execution_result_path,
+)
 from techtree.runs.store import RunStore
 from techtree.runs.validation import TasksetValidationProvider
+from techtree.settings import load_settings
 from techtree.tasksets.provider import worker_validation_provider
 
 __all__ = [
     "EXIT_CANCELLED",
     "EXIT_UNEXPECTED",
+    "REPORT_STAGE_UNAVAILABLE",
     "TECHTREE_HOME_VARIABLE",
     "ExecutorFactory",
     "ValidationProviderFactory",
@@ -79,7 +89,8 @@ __all__ = [
     "worker_paths",
 ]
 
-type ExecutorFactory = Callable[[RunRequest], RunExecutor]
+type AnyExecutor = RunExecutor | RealVerifiersExecutor
+type ExecutorFactory = Callable[[RunRequest], AnyExecutor]
 type ValidationProviderFactory = Callable[[RunRequest], TasksetValidationProvider]
 
 #: The shell's convention for "terminated by an interrupt", which is what a
@@ -92,6 +103,13 @@ EXIT_UNEXPECTED: Final = 5
 #: How the launcher tells the worker where Techtree keeps its state. The
 #: worker inherits nothing else that could point at a run directory.
 TECHTREE_HOME_VARIABLE: Final = "TECHTREE_HOME"
+
+#: What a real execution that reached the end of WP6 reports. The evaluation
+#: itself succeeded and its evidence is complete on disk; turning that evidence
+#: into signed receipts and a comparison is WP7's work, and until it exists a
+#: real run has no report to finish with. Spec section 6.22 fixes the boundary:
+#: WP6 returns a ``RealExecutionResult`` and does not invent final uplift.
+REPORT_STAGE_UNAVAILABLE: Final = "run_report_stage_unavailable"
 
 _HEARTBEAT_SECONDS: Final = float(DEFAULT_WORKER_HEARTBEAT_SECONDS)
 
@@ -121,8 +139,30 @@ def worker_paths() -> TechtreePaths:
     return default_paths()
 
 
-def executor_for(request: RunRequest) -> RunExecutor:
-    """Return the executor this run asked for."""
+def executor_for(
+    request: RunRequest,
+    *,
+    paths: TechtreePaths | None = None,
+) -> RunExecutor | RealVerifiersExecutor:
+    """Return the executor this run's Campaign is entitled to.
+
+    The Campaign decides, not the request. Spec section 16 requires that the
+    development executor stop being what a real Campaign gets, and a request
+    cannot express the difference: it names the Climb it entered, and whether
+    that Climb's subject is a real model on a real image or the placeholder
+    pair this build ships is a fact about the Campaign. So the run's own staged
+    Campaign is read and :func:`~techtree.runs.real.campaign_is_executable`
+    answers it — the same predicate ``techtree doctor --for-evaluation`` uses,
+    so an operator's pre-flight and the worker's choice can never disagree.
+    """
+    resolved = worker_paths() if paths is None else paths
+    inputs = RunArtifactStore(resolved).load_inputs(request.run_id, request)
+    if campaign_is_executable(inputs.campaign):
+        return RealVerifiersExecutor(
+            paths=resolved,
+            engine_registry=EngineRegistry(resolved, load_settings(resolved)),
+            child_registry=ChildRegistry(),
+        )
     if request.executor_kind == "fake":
         return FakeRunExecutor()
     raise RunError(
@@ -240,7 +280,7 @@ def execute_run(
 
     try:
         executor = (
-            executor_for(request)
+            executor_for(request, paths=resolved)
             if executor_factory is None
             else executor_factory(request)
         )
@@ -249,7 +289,7 @@ def execute_run(
             if validation_provider_factory is None
             else validation_provider_factory(request)
         )
-        report = executor.execute(
+        produced = executor.execute(
             ExecutionContext(
                 request=request,
                 run_store=run_store,
@@ -258,6 +298,7 @@ def execute_run(
                 clock=_utc_now,
             )
         )
+        report = _require_report(produced, run_id=run_id, paths=resolved)
         _verify_recorded_result(run_store, run_id, digest_object(report))
     except CancellationError:
         worker_log(f"run {run_id} stopped because it was asked to")
@@ -280,6 +321,34 @@ def execute_run(
 
     worker_log(f"run {run_id} completed and its report was recorded")
     return 0
+
+
+def _require_report(
+    produced: object,
+    *,
+    run_id: str,
+    paths: TechtreePaths,
+) -> UpliftReport:
+    """Return the report the run finishes with, or say why there is none.
+
+    A real evaluation produces complete evidence and no report: building
+    receipts, checking the observed configurations against the declared ones
+    and aggregating a result are WP7's, and WP6 deliberately stops short of
+    inventing any of them (spec section 6.22). The evidence is written and
+    named here rather than discarded, because it is exactly what the next
+    stage reads and it is the expensive part of the run.
+    """
+    if isinstance(produced, UpliftReport):
+        return produced
+    raise RunError(
+        "the evaluation finished and its results were recorded, but this "
+        "build cannot yet turn them into a comparison report",
+        code=REPORT_STAGE_UNAVAILABLE,
+        details={
+            "run_id": run_id,
+            "results": str(real_execution_result_path(paths.run_dir(run_id))),
+        },
+    )
 
 
 def handle_worker_failure(

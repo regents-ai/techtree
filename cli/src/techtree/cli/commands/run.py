@@ -83,6 +83,7 @@ __all__ = [
     "logs_run_command",
     "result_run_command",
     "status_run_command",
+    "watch_line",
 ]
 
 STATUS_COMMAND: Final = "run status"
@@ -295,7 +296,7 @@ def _watch_until_terminal(
     payload = _status_payload(service, run_id)
     try:
         while not payload.terminal:
-            console.print(_watch_line(payload))
+            console.print(watch_line(payload))
             time.sleep(_WATCH_INTERVAL_SECONDS)
             payload = _status_payload(service, run_id)
     except KeyboardInterrupt:
@@ -303,11 +304,34 @@ def _watch_until_terminal(
     return payload
 
 
-def _watch_line(payload: RunStatusPayload) -> str:
+def watch_line(payload: RunStatusPayload) -> str:
+    """Return one line describing where the run is right now.
+
+    While both variants are in flight the line carries both, because a single
+    number would have to be either one side's or a sum, and a watcher reading
+    "18/72" cannot tell a comparison that is running evenly from one whose
+    candidate has not started. No score appears: spec section 6.20 forbids a
+    delta before both sides have finished, and a watch line is the easiest
+    place for a partial one to be mistaken for the answer.
+    """
+    if payload.variant_progress:
+        return "  ".join(
+            [payload.phase.value, *_variant_watch_cells(payload.variant_progress)]
+        )
     progress = payload.progress
     if progress is None:
         return payload.phase.value
     return f"{payload.phase.value}  {progress.current}/{progress.total}"
+
+
+def _variant_watch_cells(progress: dict[str, VariantProgress]) -> list[str]:
+    """Return one cell per side of the comparison, in comparison order."""
+    cells: list[str] = []
+    for variant in (VariantName.BASELINE, VariantName.CANDIDATE):
+        side = progress.get(variant.value)
+        counts = "not started" if side is None else f"{side.completed}/{side.total}"
+        cells.append(f"{variant.value} {counts}")
+    return cells
 
 
 def _status_next_actions(payload: RunStatusPayload) -> list[NextAction]:

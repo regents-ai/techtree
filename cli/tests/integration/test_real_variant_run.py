@@ -28,7 +28,12 @@ from typing import Final
 
 import pytest
 
-from fixtures.verifiers.support import LocalCampaign, local_campaign
+from fixtures.verifiers.support import (
+    SUBJECT_INPUT_USD_PER_MTOK,
+    SUBJECT_OUTPUT_USD_PER_MTOK,
+    LocalCampaign,
+    local_campaign,
+)
 from techtree.canonical import digest_object
 from techtree.engines.bundle import default_engine_digest, read_engine_descriptor
 from techtree.engines.registry import EngineRegistry
@@ -70,11 +75,11 @@ _POLL_INTERVAL_SECONDS: Final = 5.0
 
 _TASKSET_LOCK_SCHEMA: Final = "techtree.taskset-lock.v1alpha1"
 
-#: Prices for the selected subject model, read from the Prime models endpoint
-#: on 2026-08-13 and recorded on ticket techtree-python-85a.1.3. Used only to
-#: report what the run cost; nothing here bills anything.
-_INPUT_USD_PER_MTOK: Final = 0.04
-_OUTPUT_USD_PER_MTOK: Final = 0.08
+#: Prices for whichever subject model the local Campaign currently names, read
+#: from the same fixture that names it so the two can never drift apart. Used
+#: only to report what the run cost; nothing here bills anything.
+_INPUT_USD_PER_MTOK: Final = SUBJECT_INPUT_USD_PER_MTOK
+_OUTPUT_USD_PER_MTOK: Final = SUBJECT_OUTPUT_USD_PER_MTOK
 
 #: Decisions document 0006. The run is abandoned rather than allowed to exceed
 #: this, and the assertion is on the observed spend after the fact.

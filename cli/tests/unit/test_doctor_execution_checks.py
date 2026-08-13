@@ -14,7 +14,11 @@ from pathlib import Path
 
 import pytest
 
-from fixtures.verifiers.support import local_campaign, shipped_campaign
+from fixtures.verifiers.support import (
+    SUBJECT_MODEL_ID,
+    local_campaign,
+    shipped_campaign,
+)
 from techtree.doctor.execution_checks import (
     check_engine_eval,
     check_live_campaign,
@@ -64,7 +68,7 @@ def test_a_campaign_with_real_coordinates_is_executable() -> None:
 
     assert check.status is CheckStatus.PASS
     assert not check.blocking
-    assert "Qwen/Qwen3.5-0.8B" in check.detail
+    assert SUBJECT_MODEL_ID in check.detail
 
 
 # ---------------------------------------------------------------------------
