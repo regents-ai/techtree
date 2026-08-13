@@ -51,6 +51,8 @@ packages = ["src/techtree"]
 artifacts = [
   "src/techtree/resources/catalog/**/*",
   "src/techtree/resources/engines/**/*",
+  # Spec section 9.6: the wheel contains the exact ReleaseCore.
+  "src/techtree/resources/release/**/*",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -58,6 +60,7 @@ include = [
   "src/techtree",
   "tools",
   "schemas",
+  "release",
   "tests",
   "docs",
   "Makefile",

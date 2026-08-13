@@ -1,0 +1,12 @@
+{
+  "schema_version": "techtree.release-inputs.v1",
+  "release_id": "0.0.0-placeholder",
+  "cli_version": "0.0.0-placeholder",
+  "cli_source_commit": "0000000000000000000000000000000000000000",
+  "intro_climb_reference": "procedure-transfer-dev@1",
+  "starter_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "rich_output_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "skill_improver_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "minimum_host_hermes_version": "0.19.0",
+  "maximum_tested_host_hermes_version": "0.0.0-placeholder"
+}

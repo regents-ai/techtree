@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "Commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/release/release-core.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The frozen coordinates of one Climb release. Spec section 6.6.\n\nThe field list is the specification's, with one addition: the release says\nout loud whether it is a placeholder and which of its coordinates are still\nblank. Downstream repositories copy these bytes verbatim, so a reader that\nnever learns to decode anything else still learns that much.",
+  "properties": {
+    "catalog_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "cli_source_commit": {
+      "$ref": "#/$defs/Commit"
+    },
+    "cli_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "engine_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "intro_climb_reference": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "maximum_tested_host_hermes_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "minimum_host_hermes_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "placeholder_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Placeholder Fields",
+      "type": "array"
+    },
+    "placeholder_release": {
+      "title": "Placeholder Release",
+      "type": "boolean"
+    },
+    "protocol_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "release_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "rich_output_skill_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "schema_version": {
+      "const": "techtree.release-core.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "skill_improver_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "starter_skill_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "subject_hermes_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    }
+  },
+  "required": [
+    "schema_version",
+    "placeholder_release",
+    "placeholder_fields",
+    "release_id",
+    "cli_version",
+    "cli_source_commit",
+    "protocol_version",
+    "engine_digest",
+    "catalog_digest",
+    "intro_climb_reference",
+    "starter_skill_digest",
+    "rich_output_skill_digest",
+    "skill_improver_digest",
+    "minimum_host_hermes_version",
+    "maximum_tested_host_hermes_version",
+    "subject_hermes_version"
+  ],
+  "title": "ReleaseCore",
+  "type": "object"
+}
