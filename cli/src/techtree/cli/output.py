@@ -148,7 +148,12 @@ def render_next_actions(actions: list[NextAction], console: Console) -> None:
     console.print("Next steps:")
     table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 1))
     table.add_column("index", justify="right", no_wrap=True)
-    table.add_column("step")
+    # Folded rather than truncated. A next step is meant to be typed, and a
+    # command with an ellipsis in the middle of a path cannot be: a
+    # materialized Skill's cache directory alone is seventy-one characters
+    # (decisions document 0010 item 5), so the one place a reader most needs
+    # the whole line is the place a narrow terminal would cut it.
+    table.add_column("step", overflow="fold")
 
     for position, action in enumerate(actions, start=1):
         lines = [action.label]

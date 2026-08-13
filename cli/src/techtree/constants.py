@@ -78,6 +78,15 @@ SUBJECT_IMAGE_PLATFORM_DIGESTS: Final[dict[str, str]] = {
     ),
 }
 
+#: What the starter Skill is called in front of a person, and what the guided
+#: first run files it under. Decisions document 0009 fixes the name and 0010
+#: item 5 fixes the label; the two are deliberately different values, and
+#: neither is ever derived from a path. A materialized Skill lives in a
+#: directory named by the digest it was verified against, and a digest is
+#: neither a name anybody would choose nor a label a candidate may carry.
+STARTER_SKILL_NAME: Final = "hello-world-starter-v1"
+STARTER_SKILL_CANDIDATE_LABEL: Final = "hello-world-v1"
+
 DEFAULT_CONFIRMATION_TTL_SECONDS: Final = 900
 DEFAULT_WORKER_HEARTBEAT_SECONDS: Final = 2
 DEFAULT_STALE_HEARTBEAT_SECONDS: Final = 15

@@ -5,16 +5,24 @@ on this machine, and say where it is. The guided first run needs a Skill
 before it can prepare anything, and until this command existed the only way
 to get one was for a person to already have the file.
 
-What it returns is a path, and that path goes through ``climb prepare`` like
-anybody else's Skill: the same scanner, the same policy, the same draft, the
-same confirmation. There is no privileged route for a Skill because a release
-named it — the release's authority is over *which* Skill, not over what
-Techtree will accept.
+What it returns goes through ``climb prepare`` like anybody else's Skill: the
+same scanner, the same policy, the same draft, the same confirmation. There is
+no privileged route for a Skill because a release named it — the release's
+authority is over *which* Skill, not over what Techtree will accept.
 
 The command writes only into the Techtree home. A materialized Skill is
 cached under the home's own cache directory, in a directory named by the
 digest it was verified against, so a second guided run reuses it and a cached
 directory somebody edited is re-verified rather than trusted.
+
+Decisions document 0010 item 5 governs what comes back. Where the Skill *is*,
+what it is *called*, and what a candidate carrying it is *labelled* are three
+separate values, and the answer states all three separately. They are not
+interchangeable and none of them is computed from another: a path is a fact
+about this machine, a name is the Skill's own, and a label is a short public
+string a comparison is filed under. Deriving any of the latter two from the
+first is how a cache directory's digest, a temporary directory, or a download
+URL ends up printed as the name of somebody's work.
 """
 
 from __future__ import annotations
@@ -28,6 +36,7 @@ from rich.table import Table
 
 from techtree.cli.context import cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.release.document import packaged_release_core_bytes, parse_release_core
@@ -43,12 +52,20 @@ STARTER_COMMAND: Final = "skill starter"
 
 
 class StarterSkillPayload(ProtocolModel):
-    """Where the pinned starter Skill is, and what it was verified against."""
+    """Where the pinned starter Skill is, what it is called, and what it proved.
+
+    ``skill_path`` is where the Skill's entry file sits on this machine.
+    ``skill_name`` is what the Skill calls itself. ``candidate_label`` is what
+    a comparison carrying it is filed under. Decisions document 0010 item 5
+    keeps the three apart: a reader and a host agent both need to be able to
+    take the label without ever looking at the path.
+    """
 
     release_id: NonEmptyString
     skill_root_digest: Digest
-    path: NonEmptyString
-    entrypoint_path: NonEmptyString
+    skill_path: NonEmptyString
+    skill_name: NonEmptyString
+    candidate_label: NonEmptyString
     file_count: int
     total_bytes: int
     origin: Literal["cache", "local_file", "download"]
@@ -85,8 +102,9 @@ def starter_skill_command(
         payload = StarterSkillPayload(
             release_id=release.release_id,
             skill_root_digest=materialized.root_digest,
-            path=str(materialized.root),
-            entrypoint_path=str(materialized.entrypoint),
+            skill_path=str(materialized.entrypoint),
+            skill_name=STARTER_SKILL_NAME,
+            candidate_label=STARTER_SKILL_CANDIDATE_LABEL,
             file_count=materialized.file_count,
             total_bytes=materialized.total_bytes,
             origin=materialized.origin,
@@ -121,10 +139,19 @@ def _summary(materialized: MaterializedStarterSkill) -> str:
 
 
 def _prepare_action(payload: StarterSkillPayload) -> NextAction:
-    """Point at the ordinary preparation path, because that is the only one."""
+    """Point at the ordinary preparation path, because that is the only one.
+
+    The label is stated rather than left to default. ``climb prepare`` falls
+    back to the skill directory's own name, and this Skill lives in a directory
+    named by the digest it was verified against: seventy-one characters, longer
+    than a label may be, and meaningless to a reader. Decisions document 0010
+    item 5 rules that out for good — the label here is the release's own short
+    name for the candidate, never anything read off the path beside it — and
+    naming it is also what makes these arguments runnable exactly as printed.
+    """
     return NextAction(
         id="prepare_starter_skill",
-        label="Prepare the introductory Climb with the starter Skill",
+        label="Prepare Techtree Hello World with the starter Skill",
         reason=(
             "The starter Skill is scanned, checked against the Climb's policy, "
             "and shown to you before anything runs."
@@ -135,7 +162,9 @@ def _prepare_action(payload: StarterSkillPayload) -> NextAction:
             "prepare",
             payload.intro_climb_reference,
             "--skill",
-            payload.path,
+            payload.skill_path,
+            "--label",
+            payload.candidate_label,
         ],
         hermes_tool=None,
         hermes_args=None,
@@ -152,8 +181,10 @@ def _render(data: object, console: Console) -> None:
     table.add_column("value", overflow="fold")
     for label, value in [
         ("Release", data.release_id),
+        ("Skill", data.skill_name),
+        ("Candidate label", data.candidate_label),
         ("Skill content digest", data.skill_root_digest),
-        ("Skill directory", data.path),
+        ("Skill file", data.skill_path),
         ("Files", str(data.file_count)),
         ("Size", f"{data.total_bytes} bytes"),
         ("Obtained", data.origin.replace("_", " ")),
