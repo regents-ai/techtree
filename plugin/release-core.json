@@ -1,0 +1,16 @@
+{
+  "catalog_digest": "sha256:bf901ffd5a5665af56629c9b18c17f3b87d9e3e3d04ed9330277a40169584ad0",
+  "cli_source_commit": "0000000000000000000000000000000000000000",
+  "cli_version": "0.1.0",
+  "engine_digest": "sha256:9e898679c5ea75fb8e0c6d1d4403b31b862eff6cb34a3f6bfeda04e834458245",
+  "intro_climb_reference": "procedure-transfer-dev@1",
+  "maximum_tested_host_hermes_version": "0.20.0",
+  "minimum_host_hermes_version": "0.20.0",
+  "protocol_version": "v1alpha1",
+  "release_id": "dev-unpublished",
+  "rich_output_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "schema_version": "techtree.release-core.v1",
+  "skill_improver_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "starter_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "subject_hermes_version": "0.20.0"
+}

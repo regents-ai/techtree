@@ -1,0 +1,72 @@
+# Techtree Hermes operator plugin. Specification sections 7.3 and 7.4.
+#
+# Hermes loads this repository directory as a plugin package, so the runtime
+# code is standard library only and this project is never built or installed
+# as a distribution. Everything declared below is repository tooling: the
+# formatter, linter, type checker, and test runner that make up the gate.
+
+[project]
+name = "techtree-hermes"
+version = "0.1.0"
+description = "Controlled local agent Skill evaluation and uplift through Techtree"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license-files = ["LICENSE"]
+authors = [{ name = "Techtree" }]
+# Specification section 9.6: the plugin runtime carries no third-party
+# dependency beyond the documented Hermes environment.
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "mypy>=1.17,<2",
+  "pytest>=8,<9",
+  "ruff>=0.12,<1",
+]
+
+# The plugin is a loaded directory, not a wheel. Nothing here is packaged.
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP", "W"]
+# The repository directory is the plugin package, and both the checkout name
+# and the published repository name contain a hyphen. Hermes loads the plugin
+# by path, so the directory name is not ours to make into an identifier.
+ignore = ["N999"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+# The plugin package is checked through `scripts/typecheck.py`, which gives the
+# hyphenated checkout directory an importable name. Running mypy directly on
+# this directory cannot work: `techtree-hermes` is not a Python identifier.
+# Tests and repository tooling are checked in their own passes, from their own
+# directories, so they are not crawled as part of the package.
+exclude = ["/tests/", "/scripts/"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests/unit", "tests/contract", "tests/integration"]
+addopts = [
+  "-ra",
+  "--strict-config",
+  "--strict-markers",
+  # The repository root is the plugin package itself, and its directory name
+  # is not a Python identifier. `pytest_plugin_root` keeps pytest from trying
+  # to import the root as a test package; the tests load the plugin the same
+  # way the host tooling does.
+  "--import-mode=importlib",
+  "-p",
+  "pytest_plugin_root",
+]
+pythonpath = ["scripts", "tests"]
+markers = [
+  "real_cli: exercises the installed Techtree CLI; skipped when it is absent",
+]

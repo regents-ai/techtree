@@ -1,0 +1,30 @@
+# Techtree Hermes plugin manifest. Specification section 7.4.
+#
+# Loading this plugin installs nothing and reaches no network. Provider
+# credentials are deliberately absent: evaluation-provider authentication is
+# checked by Techtree's own Doctor, never by plugin loading, so this manifest
+# declares no `requires_env`.
+name: techtree
+version: 0.1.0
+description: Controlled local agent Skill evaluation and uplift through Techtree
+author: Techtree
+kind: standalone
+provides_tools:
+  - techtree_bootstrap_check
+  - techtree_bootstrap_install
+  - techtree_system_check
+  - techtree_climbs_list
+  - techtree_climb_inspect
+  - techtree_climb_prepare
+  - techtree_demo_prepare
+  - techtree_climb_start
+  - techtree_run_status
+  - techtree_run_cancel
+  - techtree_run_result
+  - techtree_proof_verify
+  - techtree_uplift_context
+  - techtree_uplift_prepare
+  - techtree_uplift_start
+provides_hooks:
+  - on_session_start
+  - on_session_end
