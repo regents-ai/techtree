@@ -219,20 +219,20 @@ def test_version_prints_the_package_version_and_nothing_else(techtree: Any) -> N
 # ---------------------------------------------------------------------------
 
 
+# Only the commands this build has not implemented yet. `climb list` and
+# `climb show` are implemented and are exercised in
+# ``tests/contract/test_catalog_object_graph.py``; the `engine` commands are
+# implemented and are exercised in
+# ``tests/integration/test_engine_install.py``.
 @pytest.mark.parametrize(
     ("arguments", "command"),
     [
-        (("climb", "list"), "climb list"),
-        (("climb", "show"), "climb show"),
         (("climb", "prepare"), "climb prepare"),
         (("climb", "start"), "climb start"),
         (("run", "status"), "run status"),
         (("run", "logs"), "run logs"),
         (("run", "cancel"), "run cancel"),
         (("run", "result"), "run result"),
-        (("engine", "install"), "engine install"),
-        (("engine", "status"), "engine status"),
-        (("engine", "verify"), "engine verify"),
     ],
 )
 def test_a_registered_command_names_itself_and_reports_not_implemented(

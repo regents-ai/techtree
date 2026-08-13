@@ -1,0 +1,42 @@
+{
+  "climbs": [
+    {
+      "digest": "sha256:fae1f4c0bdcfe1c928d5401097bd89e5f3dead1ad86a11d9444b30d605a5387a",
+      "path": "climbs/synthetic-open.json",
+      "reference": "synthetic-open@1"
+    },
+    {
+      "digest": "sha256:31e0caaa7dfcd458b112a6aeae71c35183286be526d65539f1ce925ad1e15746",
+      "path": "climbs/synthetic-development.json",
+      "reference": "synthetic-development@1"
+    },
+    {
+      "digest": "sha256:db326c9e4a6d40dc1189965c9264823d84da7ae4a22b90de29470597ceb51fcf",
+      "path": "climbs/synthetic-closed.json",
+      "reference": "synthetic-closed@1"
+    }
+  ],
+  "objects": {
+    "sha256:2b7567c5bc0936b4f200d198c1d1f68dc35b9698a961fe6dfd62ec2eae2632ab": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/synthetic.json"
+    },
+    "sha256:81bafb1d8e1db861ea7480ea3efcf7ba4f2c7877da2ed33674c103ebeb400830": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/synthetic.json"
+    },
+    "sha256:88ad47c15e31ace586490770e2266e40c80f7c7be37099a49e37a12052094822": {
+      "kind": "data_policy",
+      "media_type": "application/json",
+      "path": "data-policies/synthetic.json"
+    },
+    "sha256:8b31f069e43705b335f0127315cf50541c03c0324698deb483cf6218a8251add": {
+      "kind": "validation_evidence",
+      "media_type": "application/json",
+      "path": "validation-evidence/synthetic.json"
+    }
+  },
+  "schema_version": "techtree.catalog.v1alpha1"
+}

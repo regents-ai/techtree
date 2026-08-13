@@ -7,9 +7,9 @@ failure raised while the context is still being built still owes the caller one
 envelope and one documented exit code.
 
 ``climb``, ``run``, and ``engine`` are registered with their real command names
-even though this build implements none of them. A name that exists and answers
-``not_implemented`` is discoverable and scriptable; a name that does not exist
-yet is indistinguishable from a typo. The reserved namespaces — ``program``,
+even where this build implements only some of them. A name that exists and
+answers ``not_implemented`` is discoverable and scriptable; a name that does not
+exist yet is indistinguishable from a typo. The reserved namespaces — ``program``,
 ``blueprint``, ``forge``, ``verify``, ``uplift``, ``trace``, ``lab`` — get no
 group at all, because an empty group in ``--help`` is a promise about a shape
 that has not been decided.
@@ -36,7 +36,14 @@ from typing import Annotated, Any, NoReturn
 import typer
 from typer.core import TyperGroup
 
+from techtree.cli.commands.climb import list_climbs_command, show_climb_command
 from techtree.cli.commands.doctor import doctor_command
+from techtree.cli.commands.engine import (
+    install_engine_command,
+    status_engine_command,
+    verify_engine_command,
+)
+from techtree.cli.commands.setup import setup_command
 from techtree.cli.context import build_cli_context, cli_context
 from techtree.cli.invoke import (
     CommandResult,
@@ -205,6 +212,7 @@ def create_app() -> typer.Typer:
     app.command("doctor", help="Check that this machine is ready to run a Climb.")(
         doctor_command
     )
+    app.command("setup", help="Prepare this machine to run a Climb.")(setup_command)
 
     app.add_typer(_climb_app(), name="climb")
     app.add_typer(_run_app(), name="run")
@@ -246,19 +254,14 @@ def _not_implemented(ctx: typer.Context, command: str) -> NoReturn:
 def _climb_app() -> typer.Typer:
     app = typer.Typer(help="Browse and enter Climbs.", no_args_is_help=True)
 
-    @app.command("list", help="Show the Climbs available in this build.")
-    def list_climbs_command(ctx: typer.Context) -> None:
-        """List public wrappers with resolved Campaign compatibility."""
-        _not_implemented(ctx, "climb list")
-
-    @app.command(
+    app.command("list", help="Show the Climbs available in this build.")(
+        list_climbs_command
+    )
+    app.command(
         "show",
         help="Show what a Climb measures, the data rights it carries, and "
         "whether this machine can run it.",
-    )
-    def show_climb_command(ctx: typer.Context) -> None:
-        """Show public policy, Campaign summary, data rights, and compatibility."""
-        _not_implemented(ctx, "climb show")
+    )(show_climb_command)
 
     @app.command("prepare", help="Prepare a skill for submission to a Climb.")
     def prepare_climb_command(ctx: typer.Context) -> None:
@@ -303,22 +306,15 @@ def _engine_app() -> typer.Typer:
     app = typer.Typer(
         help="Install and check the evaluation engine.", no_args_is_help=True
     )
-
-    @app.command("install", help="Install the evaluation engine on this machine.")
-    def install_engine_command(ctx: typer.Context) -> None:
-        """Install the selected or default embedded engine."""
-        _not_implemented(ctx, "engine install")
-
-    @app.command("status", help="Show which evaluation engine is installed and in use.")
-    def status_engine_command(ctx: typer.Context) -> None:
-        """Return installation and activation status."""
-        _not_implemented(ctx, "engine status")
-
-    @app.command("verify", help="Confirm the installed evaluation engine is intact.")
-    def verify_engine_command(ctx: typer.Context) -> None:
-        """Recompute bundle and live-environment checks."""
-        _not_implemented(ctx, "engine verify")
-
+    app.command("install", help="Install the evaluation engine on this machine.")(
+        install_engine_command
+    )
+    app.command("status", help="Show which evaluation engine is installed and in use.")(
+        status_engine_command
+    )
+    app.command("verify", help="Confirm the installed evaluation engine is intact.")(
+        verify_engine_command
+    )
     return app
 
 
