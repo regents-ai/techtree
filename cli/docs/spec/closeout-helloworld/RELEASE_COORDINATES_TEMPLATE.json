@@ -1,0 +1,116 @@
+{
+  "founder_approval_packet_schema": "techtree.founder-release-approval.v1",
+  "placeholder_release": true,
+  "release_id": "climb-v0.1.0",
+  "public_naming": {
+    "display_title": "Techtree Hello World",
+    "subtitle": "A toy Skill-uplift Climb",
+    "climb_slug": "hello-world-climb",
+    "climb_reference": "hello-world-climb@1",
+    "campaign_title": "Hello World Skill Uplift",
+    "task_family": "BranchCode v1",
+    "starter_skill_name": "hello-world-starter-v1",
+    "first_result_label": "Hello World Uplift Receipt",
+    "second_result_label": "Hello World \u2014 Iteration 2"
+  },
+  "presentation": {
+    "mode": "deterministic_cli",
+    "terminal_renderer": "rich",
+    "gateway_renderer": "compact",
+    "host_model_presentation_completion": false,
+    "rich_terminal_output_skill_shipped": false
+  },
+  "release_core": {
+    "schema_version": "techtree.release-core.v1",
+    "digest": "sha256:<generated>",
+    "cli_version": "0.1.0",
+    "cli_source_commit": "<40-character-commit>",
+    "protocol_version": "<exact-protocol-version>",
+    "engine_digest": "sha256:<generated>",
+    "catalog_digest": "sha256:<generated>",
+    "intro_climb_reference": "hello-world-climb@1",
+    "intro_climb_digest": "sha256:<generated>",
+    "campaign_spec_digest": "sha256:<generated>",
+    "data_policy_digest": "sha256:<generated>",
+    "starter_skill_digest": "sha256:<generated>",
+    "skill_improver_digest": "sha256:<generated>",
+    "minimum_host_hermes_version": "<tested-minimum>",
+    "maximum_tested_host_hermes_version": "<tested-maximum>",
+    "subject_hermes_version": "0.19.0"
+  },
+  "evaluation_profile": {
+    "model_id": "qwen/qwen3.7-flash",
+    "provider_profile": "<exact-tested-provider-profile>",
+    "model_revision": null,
+    "accepted_warning": "model_revision_unavailable",
+    "verifiers_commit": "7e1c47d24d055aae587ee8259f77a3e8e193513a",
+    "runtime_image_index_digest": "sha256:<generated>",
+    "runtime_platform": "<linux/arm64-or-linux/amd64>",
+    "runtime_platform_manifest_digest": "sha256:<generated>",
+    "maximum_first_run_usd": "<approved-number>",
+    "maximum_second_run_usd": "<approved-number>"
+  },
+  "bootstrap_release": {
+    "schema_version": "<exact-bootstrap-schema>",
+    "digest": "sha256:<generated>",
+    "cli_distribution_name": "techtree",
+    "cli_version": "0.1.0",
+    "cli_wheel_filename": "<exact-wheel-filename>",
+    "cli_wheel_sha256": "sha256:<generated>",
+    "cli_origin": "<immutable-or-hash-verified-origin>",
+    "plugin_repository": "<exact-repository-url>",
+    "plugin_commit": "<40-character-commit>",
+    "plugin_version": "0.1.0",
+    "minimum_hermes_version": "<tested-minimum>",
+    "plugin_install_argv": [
+      "hermes",
+      "plugins",
+      "install",
+      "<repo>",
+      "--ref",
+      "<commit>",
+      "--enable"
+    ],
+    "cli_install_argv": [
+      "uv",
+      "tool",
+      "install",
+      "<exact-pinned-wheel-or-package-coordinate>"
+    ],
+    "plugin_doctor_argv": [
+      "hermes",
+      "plugins",
+      "doctor",
+      "techtree",
+      "--ci"
+    ],
+    "website_origin": "https://techtree.sh",
+    "intro_climb_reference": "hello-world-climb@1",
+    "starter_skill_name": "hello-world-starter-v1",
+    "starter_skill_object_url": "<exact-url>",
+    "starter_skill_digest": "sha256:<generated>",
+    "starter_prompt": "Set up Techtree and run the Hello World Climb.",
+    "release_documentation_urls": {
+      "start": "https://techtree.sh/start",
+      "privacy": "https://techtree.sh/protocol",
+      "troubleshooting": "<exact-url>"
+    }
+  },
+  "skill_calibration": {
+    "baseline_score_band": "0-2/36",
+    "starter_v1_required_band": "20-27/36",
+    "starter_v1_preferred": "24/36",
+    "revised_v2_minimum_release_signal": "32/36",
+    "minimum_v2_task_uplift": 6,
+    "maximum_v2_regressions": 1,
+    "certification_runs": []
+  },
+  "approvals": {
+    "founder_skill_count": 2,
+    "skills_approved": false,
+    "coordinates_approved": false,
+    "publication_authorized": false,
+    "web_deploy_authorized": false,
+    "artifact_upload_authorized": false
+  }
+}
