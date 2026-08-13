@@ -90,12 +90,12 @@ def test_the_real_executor_refuses_a_placeholder_campaign_outright(
 def test_evidence_without_a_report_fails_the_run_and_names_the_evidence(
     tmp_path: Path,
 ) -> None:
-    """WP6 produces results, not a comparison, and says so rather than inventing one.
+    """An executor that produces neither shape fails, rather than inventing one.
 
-    A real execution ends with complete evidence and no ``UpliftReport``,
-    because building receipts and aggregating a comparison is WP7's work. The
-    worker records that honestly: the run fails, and the failure points at the
-    file the next stage will read.
+    The worker finishes a run from one of exactly two things: a report, or the
+    complete evaluation evidence the report stage turns into one. Anything else
+    is a build defect, and it is recorded as a failure that points at the file
+    the report stage would have read rather than as a report nobody measured.
     """
     home = tmp_path / "home"
     harness = run_harness(home)

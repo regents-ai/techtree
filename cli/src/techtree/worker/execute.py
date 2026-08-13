@@ -34,7 +34,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from types import FrameType
-from typing import Final
+from typing import Final, Protocol
 
 from techtree.canonical import digest_object, to_json_value
 from techtree.constants import DEFAULT_WORKER_HEARTBEAT_SECONDS
@@ -56,7 +56,6 @@ from techtree.runs.child_registry import ChildRegistry
 from techtree.runs.events import DETAIL_ERROR, RUN_CANCELLED, RUN_FAILED
 from techtree.runs.executor import (
     ExecutionContext,
-    RunExecutor,
     request_local_cancellation,
 )
 from techtree.runs.fake import FakeRunExecutor
@@ -70,12 +69,15 @@ from techtree.runs.store import RunStore
 from techtree.runs.validation import TasksetValidationProvider
 from techtree.settings import load_settings
 from techtree.tasksets.provider import worker_validation_provider
+from techtree.uplift.service import RealUpliftReportService
+from techtree.verifiers.models import RealExecutionResult
 
 __all__ = [
     "EXIT_CANCELLED",
     "EXIT_UNEXPECTED",
     "REPORT_STAGE_UNAVAILABLE",
     "TECHTREE_HOME_VARIABLE",
+    "AnyExecutor",
     "ExecutorFactory",
     "ValidationProviderFactory",
     "execute_run",
@@ -89,7 +91,25 @@ __all__ = [
     "worker_paths",
 ]
 
-type AnyExecutor = RunExecutor | RealVerifiersExecutor
+
+class AnyExecutor(Protocol):
+    """Anything the worker knows how to run to the end of a run.
+
+    Two shapes qualify and the difference is what each one is entitled to
+    produce. A development executor invents a whole
+    :class:`~techtree.models.uplift_report.UpliftReport`. A real executor
+    produces a :class:`~techtree.verifiers.models.RealExecutionResult` and stops
+    there, because deciding what a measurement means is the report stage's
+    (spec section 6.22). Stating the union as a protocol rather than as two
+    class names is what lets a test drive the worker's own sequence with an
+    executor that replays recorded evidence.
+    """
+
+    def execute(self, context: ExecutionContext) -> UpliftReport | RealExecutionResult:
+        """Execute one run and return what it produced."""
+        ...
+
+
 type ExecutorFactory = Callable[[RunRequest], AnyExecutor]
 type ValidationProviderFactory = Callable[[RunRequest], TasksetValidationProvider]
 
@@ -104,11 +124,11 @@ EXIT_UNEXPECTED: Final = 5
 #: worker inherits nothing else that could point at a run directory.
 TECHTREE_HOME_VARIABLE: Final = "TECHTREE_HOME"
 
-#: What a real execution that reached the end of WP6 reports. The evaluation
-#: itself succeeded and its evidence is complete on disk; turning that evidence
-#: into signed receipts and a comparison is WP7's work, and until it exists a
-#: real run has no report to finish with. Spec section 6.22 fixes the boundary:
-#: WP6 returns a ``RealExecutionResult`` and does not invent final uplift.
+#: What a run whose executor produced neither a report nor complete evaluation
+#: evidence reports. Both executors this build has are handled explicitly, so
+#: this is now a build defect rather than a missing stage; it keeps its code and
+#: its message so that an operator who hits it still learns where the expensive
+#: part of the run was written.
 REPORT_STAGE_UNAVAILABLE: Final = "run_report_stage_unavailable"
 
 _HEARTBEAT_SECONDS: Final = float(DEFAULT_WORKER_HEARTBEAT_SECONDS)
@@ -143,7 +163,7 @@ def executor_for(
     request: RunRequest,
     *,
     paths: TechtreePaths | None = None,
-) -> RunExecutor | RealVerifiersExecutor:
+) -> AnyExecutor:
     """Return the executor this run's Campaign is entitled to.
 
     The Campaign decides, not the request. Spec section 16 requires that the
@@ -298,7 +318,13 @@ def execute_run(
                 clock=_utc_now,
             )
         )
-        report = _require_report(produced, run_id=run_id, paths=resolved)
+        report = _require_report(
+            produced,
+            request=request,
+            run_store=run_store,
+            artifact_store=artifact_store,
+            paths=resolved,
+        )
         _verify_recorded_result(run_store, run_id, digest_object(report))
     except CancellationError:
         worker_log(f"run {run_id} stopped because it was asked to")
@@ -326,20 +352,36 @@ def execute_run(
 def _require_report(
     produced: object,
     *,
-    run_id: str,
+    request: RunRequest,
+    run_store: RunStore,
+    artifact_store: RunArtifactStore,
     paths: TechtreePaths,
 ) -> UpliftReport:
     """Return the report the run finishes with, or say why there is none.
 
-    A real evaluation produces complete evidence and no report: building
-    receipts, checking the observed configurations against the declared ones
-    and aggregating a result are WP7's, and WP6 deliberately stops short of
-    inventing any of them (spec section 6.22). The evidence is written and
-    named here rather than discarded, because it is exactly what the next
-    stage reads and it is the expensive part of the run.
+    Two executors reach here and they hand back different things. The
+    development executor invents a whole report and records it itself. The real
+    executor stops the moment the evidence is complete and returns a
+    :class:`~techtree.verifiers.models.RealExecutionResult`, because spec
+    section 6.22 keeps WP6 out of the business of deciding what a measurement
+    means; turning that evidence into receipts, a controlled comparison and a
+    report is :class:`~techtree.uplift.service.RealUpliftReportService`'s, and
+    this is where the two paths meet again.
+
+    Neither branch invents a report from nothing, so an executor that produced
+    something else is a build defect and is reported as one, with the evidence
+    named rather than discarded.
     """
+    run_id = request.run_id
     if isinstance(produced, UpliftReport):
         return produced
+    if isinstance(produced, RealExecutionResult):
+        return RealUpliftReportService(
+            paths=paths,
+            run_store=run_store,
+            artifact_store=artifact_store,
+            clock=_utc_now,
+        ).complete(request=request, execution=produced)
     raise RunError(
         "the evaluation finished and its results were recorded, but this "
         "build cannot yet turn them into a comparison report",

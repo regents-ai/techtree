@@ -1,0 +1,410 @@
+"""One controlled comparison, assembled from the two recorded probes.
+
+``fixtures.receipts.support`` loads each paid probe on its own: one baseline of
+three tasks with no Skill, one candidate of two tasks with the ``branch-code-v1``
+Skill mounted, both of ``qwen/qwen3.7-flash`` in real Docker containers on
+2026-08-13. They were separate probe runs, so each carries its own run request
+and its own experiment manifest, and nothing joins them into a comparison.
+
+This module joins them, and is explicit about which half is recorded and which
+half is re-derived.
+
+RECORDED, UNTOUCHED
+    Every episode, every reward, every tool digest, every runtime record and
+    both resolved ``config.toml`` files. The evidence a report is built from is
+    exactly the evidence the paid probes produced; the baseline's episodes are
+    restricted to the two tasks the candidate also scored, which is a selection
+    of recorded measurements rather than a change to any of them.
+
+RE-DERIVED, AND WHY
+    The declared documents. Both probes were run under the same Campaign — the
+    locally derived one in ``fixtures.verifiers.support``, whose digest is
+    byte-identical to the one the probes recorded — but that Campaign commits to
+    thirty-six tasks and only two of them were ever scored on both sides. So the
+    Campaign's committed membership, and with it the two manifests, the run
+    request and the taskset lock, are re-issued over exactly those two tasks.
+    Every scientific coordinate in them — model, sampling, harness, runtime
+    image, mutation contract, scoring rule, DataPolicy, the candidate Skill's
+    root digest — is the recorded one, unchanged.
+
+What that buys is a comparison that is real where it matters: two variants of
+one Campaign, differing only in a mounted Skill, with a measured 0/2 against
+2/2 on ``exact_match`` and a tool surface that differs in exactly the one
+description Hermes renders its Skill index into.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any, Final
+
+from fixtures.receipts.support import RecordedVariant, recorded_variant
+from techtree.canonical import digest_object
+from techtree.constants import TASKSET_LOCK_SCHEMA_VERSION
+from techtree.engines.bundle import default_engine_digest
+from techtree.manifests.builder import (
+    build_experiment_configuration,
+    finalize_manifest,
+)
+from techtree.manifests.compare import compare_manifests
+from techtree.models.base import ArtifactRef, Digest
+from techtree.models.campaign import (
+    SUBJECT_AGENT,
+    AgentSpec,
+    CampaignSpec,
+    CampaignTaskset,
+    HarnessSpec,
+    TaskMembershipCommitment,
+    TaskSelection,
+)
+from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.experiment import (
+    ExperimentConfiguration,
+    ExperimentManifest,
+    ExperimentVariant,
+    ManifestComparison,
+)
+from techtree.models.run import PolicyAcknowledgement, RunRequest
+from techtree.models.validation import TasksetLock
+from techtree.receipts.compare import ObservedVariant, observe_variant
+from techtree.receipts.episode import build_variant_receipts
+from techtree.tasksets.membership import membership_digest
+from techtree.verifiers.models import VariantExecutionResult, VariantName
+
+__all__ = [
+    "RECORDED_SUBJECT_IMAGE",
+    "RecordedPair",
+    "recorded_pair",
+    "trimmed_campaign",
+]
+
+#: The subject image both probes ran on, pinned by digest in their own resolved
+#: configurations. Passed to the local Campaign derivation so that deriving it
+#: needs no Docker daemon.
+RECORDED_SUBJECT_IMAGE: Final = (
+    "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff"
+)
+
+#: A moment inside the window the probes ran in. Fixed rather than current so
+#: that two loads of this fixture produce the same documents.
+_FIXTURE_INSTANT: Final = datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+
+
+@dataclass(frozen=True)
+class RecordedPair:
+    """Both sides of one controlled comparison, declared and observed."""
+
+    campaign: CampaignSpec
+    campaign_digest: Digest
+    baseline_manifest: ExperimentManifest
+    candidate_manifest: ExperimentManifest
+    prepared_comparison: ManifestComparison
+    request: RunRequest
+    taskset_lock: TasksetLock
+    results: dict[VariantName, VariantExecutionResult]
+    resolved_configs: dict[VariantName, dict[str, Any]]
+
+    @property
+    def primary_reward(self) -> str:
+        """The reward this Campaign's comparison is decided on."""
+        return self.campaign.scoring.primary_reward
+
+    @property
+    def ordered_task_hashes(self) -> list[Digest]:
+        """The tasks both probes scored, in committed order."""
+        return list(self.campaign.taskset.membership.ordered_task_hashes)
+
+    def manifest(self, variant: VariantName) -> ExperimentManifest:
+        """Return one side's declared manifest."""
+        return (
+            self.baseline_manifest
+            if variant is VariantName.BASELINE
+            else self.candidate_manifest
+        )
+
+    def observed(self, variant: VariantName) -> ObservedVariant:
+        """Fingerprint one side from its own recorded evidence."""
+        return observe_variant(
+            result=self.results[variant],
+            resolved_config=self.resolved_configs[variant],
+        )
+
+    def receipts(self, variant: VariantName) -> list[EpisodeReceipt]:
+        """Build one side's receipts from its recorded evidence."""
+        return build_variant_receipts(
+            run_request=self.request,
+            variant=variant,
+            experiment=self.manifest(variant),
+            result=self.results[variant],
+            evaluation_backend=self.campaign.evaluation_backend,
+            ordered_task_hashes=self.ordered_task_hashes,
+            primary_reward=self.primary_reward,
+            evidence=self.campaign.evidence,
+        )
+
+
+def trimmed_campaign(task_hashes: list[Digest] | None = None) -> CampaignSpec:
+    """Return the probes' own Campaign, committed to the tasks both scored.
+
+    The derivation in ``fixtures.verifiers.support`` reproduces the recorded
+    Campaign byte for byte when it is given the image the probes ran on, which
+    is checked by :func:`recorded_pair`. Only the committed membership is
+    narrowed, and it is narrowed to tasks the recorded evidence actually
+    covers.
+    """
+    from fixtures.verifiers.support import local_campaign
+
+    full = local_campaign(image=RECORDED_SUBJECT_IMAGE).campaign
+    committed = task_hashes or _shared_task_hashes()
+    return CampaignSpec(
+        **{
+            **dict(full),
+            "taskset": CampaignTaskset(
+                ref=full.taskset.ref,
+                selection=TaskSelection(
+                    num_tasks=len(committed), num_rollouts=1, shuffle=False
+                ),
+                membership=TaskMembershipCommitment(
+                    mode="committed",
+                    ordered_task_hashes=list(committed),
+                    membership_digest=membership_digest(committed),
+                ),
+                validation_receipt_digest=full.taskset.validation_receipt_digest,
+            ),
+        }
+    )
+
+
+def recorded_pair(
+    *,
+    campaign: CampaignSpec | None = None,
+    baseline_manifest: ExperimentManifest | None = None,
+    candidate_manifest: ExperimentManifest | None = None,
+    request: RunRequest | None = None,
+) -> RecordedPair:
+    """Assemble one controlled comparison over the recorded probe evidence.
+
+    The declared documents may be supplied by a caller that staged a real run
+    and therefore already owns them; otherwise they are built here from the
+    same Campaign through the same manifest builder the run service uses.
+    """
+    probes = {
+        variant: recorded_variant(variant)
+        for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
+    }
+    _require_recorded_campaign(probes[VariantName.CANDIDATE])
+
+    resolved_campaign = campaign or trimmed_campaign()
+    campaign_digest = digest_object(resolved_campaign)
+    committed = list(resolved_campaign.taskset.membership.ordered_task_hashes)
+
+    baseline = baseline_manifest or _manifest(
+        resolved_campaign, campaign_digest, ExperimentVariant.BASELINE, skill=None
+    )
+    candidate = candidate_manifest or _manifest(
+        resolved_campaign,
+        campaign_digest,
+        ExperimentVariant.CANDIDATE,
+        skill=_recorded_skill_reference(probes[VariantName.CANDIDATE]),
+    )
+
+    return RecordedPair(
+        campaign=resolved_campaign,
+        campaign_digest=campaign_digest,
+        baseline_manifest=baseline,
+        candidate_manifest=candidate,
+        prepared_comparison=compare_manifests(
+            baseline, candidate, resolved_campaign.mutation_contract
+        ),
+        request=request
+        or _request(
+            campaign=resolved_campaign,
+            campaign_digest=campaign_digest,
+            baseline=baseline,
+            candidate=candidate,
+        ),
+        taskset_lock=_taskset_lock(resolved_campaign),
+        results={
+            variant: restrict_to_tasks(
+                probes[variant].result,
+                committed,
+                experiment_manifest_digest=digest_object(
+                    baseline if variant is VariantName.BASELINE else candidate
+                ),
+            )
+            for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
+        },
+        resolved_configs={
+            variant: probes[variant].resolved_config
+            for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
+        },
+    )
+
+
+def restrict_to_tasks(
+    result: VariantExecutionResult,
+    task_hashes: list[Digest],
+    *,
+    experiment_manifest_digest: Digest,
+) -> VariantExecutionResult:
+    """Keep the recorded episodes for one set of tasks, in committed order.
+
+    Each episode is one task's independent measurement, so selecting a subset
+    of them selects measurements rather than altering any. The manifest digest
+    is restated because the comparison's manifests are re-issued over the two
+    shared tasks and a receipt is required to name the manifest it was built
+    against.
+    """
+    by_task = {episode.task_hash: episode for episode in result.episodes}
+    return result.model_copy(
+        update={
+            "episodes": [by_task[task_hash] for task_hash in task_hashes],
+            "experiment_manifest_digest": experiment_manifest_digest,
+        }
+    )
+
+
+# ---------------------------------------------------------------------------
+# The declared half
+# ---------------------------------------------------------------------------
+
+
+def _manifest(
+    campaign: CampaignSpec,
+    campaign_digest: Digest,
+    variant: ExperimentVariant,
+    *,
+    skill: ArtifactRef | None,
+) -> ExperimentManifest:
+    """Build one variant through the same finalizer the run service uses."""
+    configuration = build_experiment_configuration(campaign)
+    if skill is not None:
+        configuration = _with_skill(configuration, skill)
+    return finalize_manifest(
+        campaign=campaign,
+        campaign_digest=campaign_digest,
+        public_context=None,
+        variant=variant,
+        configuration=configuration,
+        created_at=_FIXTURE_INSTANT,
+        manifest_id=None,
+    )
+
+
+def _with_skill(
+    configuration: ExperimentConfiguration, skill: ArtifactRef
+) -> ExperimentConfiguration:
+    """Return the configuration with the subject's Skill list replaced."""
+    subject = configuration.agents[SUBJECT_AGENT]
+    return ExperimentConfiguration(
+        **{
+            **dict(configuration),
+            "agents": {
+                SUBJECT_AGENT: AgentSpec(
+                    **{
+                        **dict(subject),
+                        "harness": HarnessSpec(
+                            **{**dict(subject.harness), "skills": [skill]}
+                        ),
+                    }
+                )
+            },
+        }
+    )
+
+
+def _recorded_skill_reference(candidate: RecordedVariant) -> ArtifactRef:
+    """Return the Skill reference the recorded candidate manifest declares."""
+    subject = candidate.experiment.configuration.agents[SUBJECT_AGENT]
+    return subject.harness.skills[0]
+
+
+def _request(
+    *,
+    campaign: CampaignSpec,
+    campaign_digest: Digest,
+    baseline: ExperimentManifest,
+    candidate: ExperimentManifest,
+) -> RunRequest:
+    """Build the request one run of this pair would have been created from.
+
+    Derived, not recorded: the probes were two runs and this comparison is one.
+    Every digest in it is a digest of an object above.
+    """
+    return RunRequest(
+        run_id="run_recordedpair00000000000000000",
+        draft_id="draft_recordedpair0000000000000000",
+        draft_digest=digest_object({"fixture": "recorded-pair-draft"}),
+        campaign_spec_digest=campaign_digest,
+        program_ref=None,
+        public_context=None,
+        data_policy_digest=campaign.data_policy_digest,
+        outcome_contract_digest=None,
+        evaluation_backend=campaign.evaluation_backend,
+        taskset_lock_digest=None,
+        baseline_manifest_digest=digest_object(baseline),
+        candidate_manifest_digest=digest_object(candidate),
+        policy_acknowledgement=PolicyAcknowledgement(
+            data_policy_digest=campaign.data_policy_digest,
+            method="explicit_cli_digest",
+            acknowledged_at=_FIXTURE_INSTANT,
+        ),
+        executor_kind="fake",
+        created_at=_FIXTURE_INSTANT,
+    )
+
+
+def _taskset_lock(campaign: CampaignSpec) -> TasksetLock:
+    """Return the lock this comparison's episodes were joined on.
+
+    The engine is the pinned bundle this build resolves, which is the engine
+    that inspected the taskset the probes were scored on.
+    """
+    committed = list(campaign.taskset.membership.ordered_task_hashes)
+    return TasksetLock(
+        schema_version=TASKSET_LOCK_SCHEMA_VERSION,
+        taskset_ref=campaign.taskset.ref,
+        engine_digest=default_engine_digest(),
+        resolved_package_digest=campaign.taskset.ref.package.digest,
+        ordered_task_hashes=committed,
+        membership_digest=membership_digest(committed),
+        task_count=len(committed),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Guards
+# ---------------------------------------------------------------------------
+
+
+def _shared_task_hashes() -> list[Digest]:
+    """Return the tasks both probes scored, in the baseline's committed order."""
+    baseline = recorded_variant(VariantName.BASELINE)
+    candidate = recorded_variant(VariantName.CANDIDATE)
+    scored = set(candidate.ordered_task_hashes)
+    shared = [value for value in baseline.ordered_task_hashes if value in scored]
+    if shared != candidate.ordered_task_hashes:
+        raise AssertionError(
+            "the recorded candidate scored tasks the recorded baseline did not, "
+            "so the two probes cannot be paired"
+        )
+    return shared
+
+
+def _require_recorded_campaign(probe: RecordedVariant) -> None:
+    """Prove the locally derived Campaign is the one the probes recorded.
+
+    Everything re-derived here rests on that equality. If the shipped Campaign
+    or the derivation ever changes, this fixture would quietly start describing
+    an experiment the recorded evidence did not come from.
+    """
+    from fixtures.verifiers.support import local_campaign
+
+    derived = digest_object(local_campaign(image=RECORDED_SUBJECT_IMAGE).campaign)
+    recorded = digest_object(probe.campaign)
+    if derived != recorded:
+        raise AssertionError(
+            "the locally derived Campaign is no longer the Campaign the probes "
+            f"were run under: {derived} != {recorded}"
+        )

@@ -33,6 +33,12 @@ The division of labour:
 ``observed``
     What the engine actually resolved, fingerprinted for comparison against
     what the manifest declared.
+``compare``
+    Whether the two variants' executions were one experiment: declared against
+    declared, observed against observed, and observed against declared.
+``uplift``
+    The paired rewards, the aggregate over them, and the report — which is the
+    only place in this package where two variants meet.
 """
 
 from __future__ import annotations
