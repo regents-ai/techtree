@@ -1,4 +1,4 @@
-"""The run state machine and its projection. Spec section 18.2.
+"""The run state machine and its projection. Spec sections 18.2, 7.6.
 
 Everything in this module is a pure function of the event log. Nothing here
 touches the filesystem, the clock, or the process table, which is what makes
@@ -17,12 +17,14 @@ asked to stop then reaches ``cancelled`` when the worker winds down, or
 ``cancelled`` have no outgoing edges at all: once a run has ended, its log is
 closed.
 
-Every non-terminal phase also permits an event that does not change the phase.
-That is not a loop in the state machine so much as the recognition that a run
-has things to report while it stays where it is — the worker's process id, its
-progress through a phase, the digest of the report it just wrote. Recording
-those as events is what keeps the projection derivable from the log; recording
-them anywhere else would make ``state.json`` hold facts the log cannot rebuild.
+No phase has an edge to itself. A run does still have things to report while it
+stays where it is — the worker's process id, its progress through a phase, the
+digest of the report it just wrote — but those are exactly three events, named
+in :data:`techtree.runs.events.SAME_PHASE_EVENT_KINDS`, and
+:func:`validate_same_phase_event` rather than the transition table is what
+admits them. Recording them as events is what keeps the projection derivable
+from the log; recording them anywhere else would make ``state.json`` hold facts
+the log cannot rebuild.
 
 One fact deliberately does not come from events: ``heartbeat_at``. A liveness
 signal refreshed every couple of seconds would bury a run's actual history under
@@ -33,7 +35,6 @@ single overwritten file and :func:`reduce_events` always leaves the field unset.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Final
 
 from pydantic import ValidationError as PydanticValidationError
@@ -43,38 +44,36 @@ from techtree.errors import RunError, ValidationError
 from techtree.models.base import Digest, JsonValue
 from techtree.models.cli import CliError
 from techtree.models.run import RunEvent, RunPhase, RunProgress, RunState
+from techtree.runs.events import (
+    CANCEL_REQUESTED,
+    DETAIL_CURRENT,
+    DETAIL_ERROR,
+    DETAIL_LABEL,
+    DETAIL_RESULT_DIGEST,
+    DETAIL_TOTAL,
+    DETAIL_WORKER_PID,
+    PROGRESS_UPDATED,
+    RESULT_WRITTEN,
+    RUN_COMPLETED,
+    RUN_CREATED,
+    RUN_FAILED,
+    SAME_PHASE_EVENT_KINDS,
+    WORKER_STARTED,
+    validate_event_kind,
+)
 
 __all__ = [
     "ALLOWED_TRANSITIONS",
-    "DETAIL_ERROR",
-    "DETAIL_PROGRESS",
-    "DETAIL_RESULT_DIGEST",
-    "DETAIL_WORKER_PID",
     "NORMAL_PATH",
     "apply_event",
     "can_cancel",
+    "initial_state",
     "is_terminal",
+    "phase_progress_allowed",
     "reduce_events",
+    "validate_same_phase_event",
     "validate_transition",
 ]
-
-
-# ---------------------------------------------------------------------------
-# Event detail keys
-#
-# ``RunEvent.details`` is free-form JSON so that a worker can record whatever a
-# human will want to read later. These four keys are the exception: the
-# projection interprets them, so they are named here and nowhere else.
-# ---------------------------------------------------------------------------
-
-#: A ``CliError`` object. Required on every event entering ``failed``.
-DETAIL_ERROR: Final = "error"
-#: A ``RunProgress`` object describing position within the current phase.
-DETAIL_PROGRESS: Final = "progress"
-#: The digest of the ``UpliftReport`` this run produced.
-DETAIL_RESULT_DIGEST: Final = "result_digest"
-#: The process id of the detached worker executing this run.
-DETAIL_WORKER_PID: Final = "worker_pid"
 
 
 # ---------------------------------------------------------------------------
@@ -106,8 +105,6 @@ def _build_allowed_transitions() -> dict[RunPhase, frozenset[RunPhase]]:
     for position, phase in enumerate(working):
         allowed[phase] = frozenset(
             {
-                # An event that reports something without moving the run on.
-                phase,
                 NORMAL_PATH[position + 1],
                 RunPhase.FAILED,
                 RunPhase.CANCEL_REQUESTED,
@@ -116,7 +113,6 @@ def _build_allowed_transitions() -> dict[RunPhase, frozenset[RunPhase]]:
 
     allowed[RunPhase.CANCEL_REQUESTED] = frozenset(
         {
-            RunPhase.CANCEL_REQUESTED,
             RunPhase.CANCELLED,
             RunPhase.FAILED,
         }
@@ -129,8 +125,8 @@ def _build_allowed_transitions() -> dict[RunPhase, frozenset[RunPhase]]:
 
 
 #: Every phase a run may move to from each phase it can be in. A phase mapped to
-#: the empty set is terminal. A phase that includes itself accepts events that
-#: report progress without advancing the run.
+#: the empty set is terminal. No phase maps to itself: an event that leaves the
+#: run where it is passes :func:`validate_same_phase_event` instead.
 ALLOWED_TRANSITIONS: Final[dict[RunPhase, frozenset[RunPhase]]] = (
     _build_allowed_transitions()
 )
@@ -145,6 +141,15 @@ def validate_transition(current: RunPhase, target: RunPhase) -> None:
         raise RunError(
             f"run has already ended in {current.value}; it records no further "
             f"events, so it cannot move to {target.value}",
+            code="run_transition_invalid",
+            details={"phase": current.value, "target_phase": target.value},
+        )
+
+    if current is target:
+        raise RunError(
+            f"a run in {current.value} does not move to itself; only "
+            f"{_named(SAME_PHASE_EVENT_KINDS)} report without leaving a phase",
+            code="run_transition_invalid",
             details={"phase": current.value, "target_phase": target.value},
         )
 
@@ -153,12 +158,41 @@ def validate_transition(current: RunPhase, target: RunPhase) -> None:
     ]
     raise RunError(
         f"a run in {current.value} cannot move to {target.value}",
+        code="run_transition_invalid",
         details={
             "phase": current.value,
             "target_phase": target.value,
             "allowed": allowed,
         },
     )
+
+
+def validate_same_phase_event(state: RunState, event: RunEvent) -> None:
+    """Raise unless this event may leave the run in the phase it is in."""
+    if is_terminal(state.phase):
+        raise RunError(
+            f"run has already ended in {state.phase.value}; it records no "
+            "further events",
+            code="run_transition_invalid",
+            details={"run_id": state.run_id, "phase": state.phase.value},
+        )
+    if event.kind not in SAME_PHASE_EVENT_KINDS:
+        raise RunError(
+            f"a run records nothing without leaving {state.phase.value} except "
+            f"{_named(SAME_PHASE_EVENT_KINDS)}",
+            code="run_transition_invalid",
+            details={
+                "run_id": state.run_id,
+                "phase": state.phase.value,
+                "kind": event.kind,
+            },
+        )
+    if event.kind == PROGRESS_UPDATED and not phase_progress_allowed(state.phase):
+        raise RunError(
+            f"a run in {state.phase.value} has no progress to report",
+            code="run_transition_invalid",
+            details={"run_id": state.run_id, "phase": state.phase.value},
+        )
 
 
 def is_terminal(phase: RunPhase) -> bool:
@@ -173,9 +207,21 @@ def can_cancel(phase: RunPhase) -> bool:
     asked to stop is not asked twice — the second request would change nothing
     and the caller deserves to be told so rather than given a second receipt.
     """
-    if phase is RunPhase.CANCEL_REQUESTED:
-        return False
     return RunPhase.CANCEL_REQUESTED in ALLOWED_TRANSITIONS[phase]
+
+
+def phase_progress_allowed(phase: RunPhase) -> bool:
+    """Return whether a phase measures work a run can be part-way through.
+
+    A run that has ended is not part-way through anything, and ``created`` is a
+    run that exists rather than a run doing something.
+    """
+    return not is_terminal(phase) and phase is not RunPhase.CREATED
+
+
+def _named(kinds: frozenset[str]) -> str:
+    """Return a list of event kinds as English, for a message a human reads."""
+    return ", ".join(sorted(kinds))
 
 
 # ---------------------------------------------------------------------------
@@ -188,12 +234,25 @@ def reduce_events(events: list[RunEvent]) -> RunState:
     if not events:
         raise ValidationError(
             "a run event log cannot be empty; every run opens with its created event",
+            code="run_event_log_corrupt",
         )
 
-    state = _project(None, events[0])
+    state = initial_state(events[0])
     for event in events[1:]:
         state = apply_event(state, event)
     return state
+
+
+def initial_state(created_event: RunEvent) -> RunState:
+    """Project the event every run opens with."""
+    if created_event.kind != RUN_CREATED:
+        raise ValidationError(
+            f"a run event log opens with {RUN_CREATED}, not {created_event.kind}",
+            code="run_event_kind_invalid",
+            details={"run_id": created_event.run_id, "kind": created_event.kind},
+        )
+    validate_event_kind(created_event)
+    return _project(_opening_state(created_event), created_event)
 
 
 def apply_event(state: RunState, event: RunEvent) -> RunState:
@@ -201,11 +260,13 @@ def apply_event(state: RunState, event: RunEvent) -> RunState:
     if event.run_id != state.run_id:
         raise ValidationError(
             f"run event belongs to {event.run_id}, not to {state.run_id}",
+            code="run_event_log_corrupt",
             details={"run_id": state.run_id, "event_run_id": event.run_id},
         )
     if event.sequence != state.sequence + 1:
         raise ValidationError(
             f"run event {event.sequence} does not follow {state.sequence}",
+            code="run_event_sequence_invalid",
             details={
                 "run_id": state.run_id,
                 "sequence": event.sequence,
@@ -217,6 +278,7 @@ def apply_event(state: RunState, event: RunEvent) -> RunState:
         raise ValidationError(
             f"run event claims to leave {recorded}, but the run is in "
             f"{state.phase.value}",
+            code="run_event_log_corrupt",
             details={
                 "run_id": state.run_id,
                 "phase": state.phase.value,
@@ -224,23 +286,24 @@ def apply_event(state: RunState, event: RunEvent) -> RunState:
             },
         )
 
-    validate_transition(state.phase, event.phase)
+    validate_event_kind(event)
+    if event.phase is state.phase:
+        validate_same_phase_event(state, event)
+    else:
+        validate_transition(state.phase, event.phase)
     return _project(state, event)
 
 
-def _project(previous: RunState | None, event: RunEvent) -> RunState:
+def _project(previous: RunState, event: RunEvent) -> RunState:
     """Return the state that results from applying one validated event.
 
-    ``previous`` is ``None`` only for a run's created event, which has nothing
-    behind it to carry forward.
+    Which fields an event touches follows from its kind, which is why the kind
+    is a closed set: a reader never has to guess whether a detail was meant to
+    be interpreted.
     """
-    if previous is None:
-        _check_created_event(event)
-        previous = _opening_state(event)
-
-    worker_pid = _worker_pid(event)
-    progress = _progress(event)
-    result_digest = _result_digest(event)
+    worker_pid = _worker_pid(event) if event.kind == WORKER_STARTED else None
+    progress = _progress(event) if event.kind == PROGRESS_UPDATED else None
+    carries_result = event.kind in (RESULT_WRITTEN, RUN_COMPLETED)
     entered_new_phase = previous.phase is not event.phase
 
     return RunState(
@@ -255,19 +318,21 @@ def _project(previous: RunState | None, event: RunEvent) -> RunState:
         ),
         # Liveness is not an event-sourced fact. See the module docstring.
         heartbeat_at=None,
-        cancel_requested_at=_cancel_requested_at(previous, event),
-        error=(
-            _required_error(event) if event.phase is RunPhase.FAILED else previous.error
+        cancel_requested_at=(
+            event.timestamp
+            if event.kind == CANCEL_REQUESTED
+            else previous.cancel_requested_at
         ),
+        error=(_error(event) if event.kind == RUN_FAILED else previous.error),
         # Progress measures a position inside one phase, so entering a new phase
-        # discards it unless the event that moved the run supplies a new one.
+        # discards it.
         progress=(
             progress
             if progress is not None
             else (None if entered_new_phase else previous.progress)
         ),
         result_digest=(
-            result_digest if result_digest is not None else previous.result_digest
+            _result_digest(event) if carries_result else previous.result_digest
         ),
     )
 
@@ -293,97 +358,67 @@ def _opening_state(event: RunEvent) -> RunState:
     )
 
 
-def _check_created_event(event: RunEvent) -> None:
-    if event.sequence != 0:
-        raise ValidationError(
-            f"a run event log opens at sequence 0, not {event.sequence}",
-            details={"sequence": event.sequence},
-        )
-    if event.phase is not RunPhase.CREATED:
-        raise ValidationError(
-            f"a run event log opens in {RunPhase.CREATED.value}, not "
-            f"{event.phase.value}",
-            details={"phase": event.phase.value},
-        )
-    if event.previous_phase is not None:
-        raise ValidationError(
-            "a run's first event comes from no earlier phase, but this one "
-            f"claims to leave {event.previous_phase.value}",
-            details={"event_previous_phase": event.previous_phase.value},
-        )
-
-
-def _cancel_requested_at(previous: RunState, event: RunEvent) -> datetime | None:
-    """Return when cancellation was first asked for.
-
-    The first request is the one that counts. A second cancel event, or the
-    later move to ``cancelled``, does not move the timestamp.
-    """
-    if (
-        event.phase is RunPhase.CANCEL_REQUESTED
-        and previous.cancel_requested_at is None
-    ):
-        return event.timestamp
-    return previous.cancel_requested_at
-
-
-def _worker_pid(event: RunEvent) -> int | None:
-    """Return the worker process id this event announces, if any."""
-    raw = event.details.get(DETAIL_WORKER_PID)
-    if raw is None:
-        return None
+def _worker_pid(event: RunEvent) -> int:
+    """Return the worker process id this event announces."""
+    raw = event.details[DETAIL_WORKER_PID]
     if not isinstance(raw, int) or isinstance(raw, bool) or raw <= 0:
-        raise ValidationError(
-            f"run event {DETAIL_WORKER_PID} must be a positive integer",
-            details={"run_id": event.run_id, "sequence": event.sequence},
-        )
+        raise _detail_invalid(event, f"{DETAIL_WORKER_PID} must be a positive integer")
     return raw
 
 
-def _progress(event: RunEvent) -> RunProgress | None:
-    """Return the progress this event reports, if any."""
-    raw = event.details.get(DETAIL_PROGRESS)
-    if raw is None:
-        return None
+def _progress(event: RunEvent) -> RunProgress:
+    """Return the progress this event reports."""
     try:
-        return RunProgress.model_validate(raw)
+        return RunProgress.model_validate(
+            {
+                "current": event.details[DETAIL_CURRENT],
+                "total": event.details[DETAIL_TOTAL],
+                "label": event.details[DETAIL_LABEL],
+            }
+        )
     except PydanticValidationError as error:
-        raise ValidationError(
-            f"run event {DETAIL_PROGRESS} is not run progress "
-            f"({error.errors()[0]['msg']})",
-            details={"run_id": event.run_id, "sequence": event.sequence},
+        raise _detail_invalid(
+            event,
+            f"progress is not valid ({error.errors()[0]['msg']})",
         ) from error
 
 
-def _result_digest(event: RunEvent) -> Digest | None:
-    """Return the report digest this event records, if any."""
-    raw = event.details.get(DETAIL_RESULT_DIGEST)
-    if raw is None:
-        return None
+def _result_digest(event: RunEvent) -> Digest:
+    """Return the report digest this event records."""
+    raw = event.details[DETAIL_RESULT_DIGEST]
     if not isinstance(raw, str):
-        raise ValidationError(
-            f"run event {DETAIL_RESULT_DIGEST} must be a digest string",
-            details={"run_id": event.run_id, "sequence": event.sequence},
-        )
-    return validate_digest(raw)
+        raise _detail_invalid(event, f"{DETAIL_RESULT_DIGEST} must be a digest string")
+    try:
+        return validate_digest(raw)
+    except ValidationError as error:
+        raise _detail_invalid(
+            event, f"{DETAIL_RESULT_DIGEST} is not a digest"
+        ) from error
 
 
-def _required_error(event: RunEvent) -> CliError:
+def _error(event: RunEvent) -> CliError:
     """Return the failure this event carries.
 
     A run that failed without saying why leaves the caller nothing to act on, so
     the error is part of the transition rather than an optional annotation.
     """
-    raw: JsonValue | None = event.details.get(DETAIL_ERROR)
-    if raw is None:
-        raise ValidationError(
-            f"a failed run event carries the failure in details.{DETAIL_ERROR}",
-            details={"run_id": event.run_id, "sequence": event.sequence},
-        )
     try:
-        return CliError.model_validate(raw)
+        return CliError.model_validate(event.details[DETAIL_ERROR])
     except PydanticValidationError as error:
-        raise ValidationError(
-            f"run event {DETAIL_ERROR} is not a CLI error ({error.errors()[0]['msg']})",
-            details={"run_id": event.run_id, "sequence": event.sequence},
+        raise _detail_invalid(
+            event,
+            f"{DETAIL_ERROR} is not a CLI error ({error.errors()[0]['msg']})",
         ) from error
+
+
+def _detail_invalid(event: RunEvent, reason: str) -> ValidationError:
+    """Return the failure a detail that its kind cannot interpret raises."""
+    return ValidationError(
+        f"run event {reason}",
+        code="run_event_kind_invalid",
+        details={
+            "run_id": event.run_id,
+            "sequence": event.sequence,
+            "kind": event.kind,
+        },
+    )

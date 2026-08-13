@@ -64,26 +64,39 @@ The complete table is `ALLOWED_TRANSITIONS` in `runs/machine.py`, derived from
 `NORMAL_PATH` and those two escapes and checked edge by edge — every ordered
 pair of phases — in `tests/unit/test_run_machine.py`.
 
+**No phase has an edge to itself.** A run that reports without moving is not
+making a transition, and the table does not pretend otherwise.
+
 ### Events that do not change the phase
 
-Every non-terminal phase also accepts an event whose `phase` equals the phase
-the run is already in. That is not a loop in the state machine; it is how a run
-records something true of it while it stays where it is — the worker's process
-id, progress through a long phase, the digest of the report just written.
+A run does have things to say while it stays where it is, and there are exactly
+three of them:
 
-Recording those as events is what keeps the projection derivable from the log.
+| Kind | Where | What it reports |
+| --- | --- | --- |
+| `worker.started` | `created` | The process id of the worker that took the run on. |
+| `progress.updated` | any phase doing work | Position within the current phase. |
+| `result.written` | `building_report` | The digest of the report just persisted. |
+
+`validate_same_phase_event` (`runs/machine.py`) admits those three and refuses
+everything else, including a second cancellation request and any event at all
+once the run has ended. `phase_progress_allowed` is the narrower rule inside it:
+`created` is a run that exists rather than a run doing something, so it has no
+progress to report.
+
+Recording these as events is what keeps the projection derivable from the log.
 A fact written only into `state.json` would be a fact the log could not rebuild.
 
 ### Terminal states
 
 `completed`, `failed`, and `cancelled` have no outgoing edges at all. A
-terminal run's log is closed: `validate_transition` refuses every further
-event, including same-phase ones. `is_terminal` reads this straight off the
-table.
+terminal run's log is closed: `validate_transition` refuses every further phase
+change and `validate_same_phase_event` refuses everything else. `is_terminal`
+reads this straight off the table.
 
-`can_cancel` is narrower than "has an edge to `cancel_requested`": a run that
-has already been asked to stop returns `false`, because a second request would
-change nothing and the caller is better told so.
+`can_cancel` is "has an edge to `cancel_requested`", which is now exactly the
+right answer: a run that has already been asked to stop has no such edge, so it
+is not asked twice.
 
 ## 3. Event format
 
@@ -97,25 +110,39 @@ One event is one line of RFC 8785 canonical JSON in
 | `run_id` | The run this event belongs to. |
 | `previous_phase` | The phase left. `null` only on the created event. |
 | `phase` | The phase entered, or the phase retained. |
-| `kind` | A short name for what happened, chosen by the writer. |
-| `details` | Free-form JSON. |
+| `kind` | What happened. One of nine names; see below. |
+| `details` | JSON, free-form except for the keys the kind is defined to carry. |
 
 Both `previous_phase` and `phase` are recorded so that a reader reconstructing
 a run never has to infer where it came from — which matters most for
 `cancel_requested`, where the phase the run was interrupted in is otherwise
 lost.
 
-`details` is free-form except for four keys the projection interprets
-(`runs/machine.py`):
+### The nine kinds
 
-| Key | Value | Effect |
-| --- | --- | --- |
-| `error` | A `CliError` object | Sets `RunState.error`. **Required** on every event entering `failed`. |
-| `progress` | A `RunProgress` object | Sets `RunState.progress`. |
-| `result_digest` | A Techtree digest | Sets `RunState.result_digest`. |
-| `worker_pid` | A positive integer | Sets `RunState.worker_pid`, and `worker_started_at` to the event's timestamp. |
+`kind` is a string in the frozen model and a closed set in the local store
+(`runs/events.py`). Each name fixes the phases it may sit between and the
+details it carries:
 
-A malformed value under any of those keys is a typed `ValidationError`, not a
+| Kind | From | To | Details |
+| --- | --- | --- | --- |
+| `run.created` | — (sequence 0) | `created` | `request_digest` |
+| `worker.started` | `created` | `created` | `worker_pid` |
+| `phase.entered` | any phase | a different phase | optional `label` |
+| `progress.updated` | current phase | the same phase | `current`, `total`, `label` |
+| `cancel.requested` | any working phase | `cancel_requested` | `requested_by` |
+| `run.failed` | any non-terminal phase | `failed` | `error` |
+| `run.cancelled` | `cancel_requested` | `cancelled` | — |
+| `result.written` | `building_report` | `building_report` | `result_digest` |
+| `run.completed` | `building_report` | `completed` | `result_digest` |
+
+`validate_event_kind` enforces the whole table and refuses an unknown name, a
+kind whose phases contradict it, or a kind missing a detail it is defined to
+carry. The four phases that end a run or begin ending it — `cancel_requested`,
+`failed`, `cancelled`, `completed` — each belong to exactly one kind in both
+directions, so no generic `phase.entered` can quietly end a run.
+
+A malformed value under an interpreted key is a typed `ValidationError`, not a
 silently ignored annotation. A run that failed without saying why leaves the
 caller nothing to act on, so the error is part of the transition.
 
@@ -139,14 +166,18 @@ filesystem, no clock, no process table. `apply_event` applies a single event and
 refuses one that names another run, arrives out of sequence, disagrees about the
 phase it is leaving, or asks for a transition the table forbids.
 
+Which fields an event touches follows from its kind, which is the point of the
+kind being a closed set: a reader never has to guess whether a detail was meant
+to be interpreted.
+
 | `RunState` field | Where it comes from |
 | --- | --- |
 | `run_id`, `phase`, `sequence`, `updated_at` | The most recent event. |
-| `worker_pid`, `worker_started_at` | The event carrying `worker_pid`; carried forward after that. |
-| `cancel_requested_at` | The timestamp of the **first** event entering `cancel_requested`. |
-| `error` | The `error` detail of the event entering `failed`. |
-| `progress` | The most recent `progress` detail **within the current phase**. Entering a new phase clears it. |
-| `result_digest` | The `result_digest` detail; carried forward. |
+| `worker_pid`, `worker_started_at` | `worker.started`; carried forward after that. |
+| `cancel_requested_at` | The timestamp of `cancel.requested`, which a run records at most once. |
+| `error` | The `error` detail of `run.failed`. |
+| `progress` | The most recent `progress.updated` **within the current phase**. Entering a new phase clears it. |
+| `result_digest` | The `result_digest` detail of `result.written` or `run.completed`; carried forward. |
 | `heartbeat_at` | Not from events. See below. |
 
 The projection is written to `runs/<run-id>/state.json` and always recomputed
@@ -206,9 +237,10 @@ event.
 
 `RunStore.write_pid` does two things under the lock: it writes the process id
 to `pid`, which is what a signal-sender reads, and it appends a
-`worker_started` event carrying `worker_pid`, which is what makes the worker's
+`worker.started` event carrying `worker_pid`, which is what makes the worker's
 start part of the rebuildable history. `worker_started_at` is that event's
-timestamp.
+timestamp. A worker announces itself before the run starts working, so this is
+a `created`-phase event and nothing else.
 
 A recorded pid is not proof of life. `WorkerLauncher.is_alive` checks the
 process, and pid reuse means the check is a strong hint rather than a
@@ -216,19 +248,28 @@ guarantee; the heartbeat is the corroborating signal.
 
 ## 8. Cancellation semantics
 
-1. `techtree run cancel <run-id>` appends an event entering `cancel_requested`
-   and signals the worker's process group (`WorkerLauncher.request_termination`,
-   SIGTERM; SIGKILL only after a timeout).
+1. `techtree run cancel <run-id>` calls `RunStore.request_cancel`, which appends
+   a `cancel.requested` event, and signals the worker's process group
+   (`WorkerLauncher.request_termination`, SIGTERM; SIGKILL only after a
+   timeout).
 2. The worker notices at its next safe boundary. `raise_if_cancel_requested`
    reads the run's phase and raises `CancellationError` rather than starting
    more work.
-3. The worker appends `cancelled` and exits. If it breaks while winding down it
-   appends `failed` instead.
+3. The worker appends `run.cancelled` and exits. If it breaks while winding down
+   it appends `run.failed` instead.
 
 Cancellation is cooperative and phase-boundary-driven, which is why
 `cancel_requested` is a phase of its own rather than a flag: the request is
 durable, survives the CLI process exiting, and is visible to any later reader.
-`cancel_requested_at` records the first request only.
+
+**Asking twice is free and changes nothing.** `request_cancel` is idempotent in
+the store, not in the log: a run already in `cancel_requested` gets its current
+state back and no second event, so `cancel_requested_at` is the moment the run
+was first asked. That is what makes the operation safe to retry, which matters
+because the process that asked may not survive long enough to learn whether it
+succeeded. Asking a run that has already ended is a typed `RunError`
+(`run_not_cancellable`) rather than a silent no-op, because the caller's belief
+about the run is wrong and worth saying so.
 
 The exit code for a cancelled run is 130, the shell convention for "terminated
 by SIGINT" (`errors.EXIT_CANCELLED`).
@@ -252,6 +293,22 @@ by SIGINT" (`errors.EXIT_CANCELLED`).
 - **Worker died without a terminal event.** The run stays in its last phase
   with a stale heartbeat. Nothing invents a terminal event on the worker's
   behalf; the CLI reports the run as not alive and the operator decides.
+
+### Error codes
+
+Every failure the subsystem raises carries one of these machine-stable codes:
+
+| Code | Raised when |
+| --- | --- |
+| `run_not_found` | The run directory has no `request.json`. |
+| `run_already_exists` | `create` was called for a run that already has one. |
+| `run_request_corrupt` | `request.json` will not validate. |
+| `run_event_log_corrupt` | A line will not parse, a line is blank, or the log mixes run identifiers. |
+| `run_event_sequence_invalid` | The sequence numbers gap, repeat, or arrive out of order. |
+| `run_event_kind_invalid` | Unknown kind, kind and phase disagree, or a detail the kind carries is missing or malformed. |
+| `run_transition_invalid` | The phase change is not an edge, or the event may not leave the run where it is. |
+| `run_not_cancellable` | Cancellation was asked of a run that has already ended. |
+| `run_lock_timeout` | The per-run lock was held for longer than `LOCK_TIMEOUT_SECONDS`. |
 
 ## 10. Fake execution semantics (WP3)
 
