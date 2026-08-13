@@ -1,105 +1,540 @@
-/* See the Tailwind configuration guide for advanced usage
-   https://tailwindcss.com/docs/configuration */
+/* The Techtree Climb stylesheet.
+ *
+ * Plain CSS, no framework, no remote fonts. The pages are documents: they are
+ * meant to be read, quoted, printed, and read again on a phone. That rules out
+ * most of what a stylesheet can do, and what is left is typography, contrast,
+ * and space.
+ *
+ * Sections: reset, colour, type, layout, components, print. */
 
-@import "tailwindcss" source(none);
-@source "../css";
-@source "../js";
-@source "../../lib/techtree_web";
+/* --- Reset ------------------------------------------------------------- */
 
-/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
-   The heroicons installation itself is managed by your mix.exs */
-@plugin "../vendor/heroicons";
-
-/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
-   curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
-   Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
-@plugin "../vendor/daisyui" {
-  themes: false;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-/* daisyUI theme plugin. You can update this file by fetching the latest version with:
-  curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
-@plugin "../vendor/daisyui-theme" {
-  name: "dark";
-  default: false;
-  prefersdark: true;
-  color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
-@plugin "../vendor/daisyui-theme" {
-  name: "light";
-  default: true;
-  prefersdark: false;
-  color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
+body,
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+ul,
+ol,
+figure,
+blockquote {
+  margin: 0;
 }
 
-/* Add variants based on LiveView classes */
-@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
-@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
-@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
 
-/* Use the data attribute for dark mode  */
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
 
-/* Make LiveView wrapper divs transparent for layout */
-[data-phx-session], [data-phx-teleported-src] { display: contents }
+/* --- Colour ------------------------------------------------------------ */
 
-/* This file is for your main application CSS */
+:root {
+  --ink: #1a1a17;
+  --ink-quiet: #55524a;
+  --page: #fbfaf7;
+  --panel: #f3f1eb;
+  --rule: #d9d5ca;
+  --rule-strong: #b3ad9c;
+  --link: #1f4b8f;
+  --link-visited: #4a3a7a;
+  --caution: #7a4a10;
+  --caution-panel: #f6eddc;
+
+  --font-prose: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+    "Times New Roman", serif;
+  --font-plain: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+
+  --measure: 40rem;
+  --measure-wide: 54rem;
+  --step: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #ece7dc;
+    --ink-quiet: #a8a294;
+    --page: #16161a;
+    --panel: #1f1f24;
+    --rule: #35353c;
+    --rule-strong: #55555f;
+    --link: #9db8e8;
+    --link-visited: #bda9e0;
+    --caution: #e8bd7f;
+    --caution-panel: #2a2118;
+  }
+}
+
+/* --- Type -------------------------------------------------------------- */
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-plain);
+  font-weight: 620;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 1.15rem + 1.6vw, 2rem);
+}
+
+h2 {
+  font-size: 1.1875rem;
+  margin-top: calc(var(--step) * 1.6);
+}
+
+h3 {
+  font-size: 1rem;
+  margin-top: var(--step);
+}
+
+p,
+dd,
+li {
+  overflow-wrap: break-word;
+}
+
+p + p,
+h1 + p,
+h2 + p,
+h3 + p,
+.entry__head + p,
+dl + p,
+ol + p {
+  margin-top: 0.75rem;
+}
+
+a {
+  color: var(--link);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+a:visited {
+  color: var(--link-visited);
+}
+
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.9375em;
+}
+
+strong {
+  font-weight: 650;
+}
+
+.lede {
+  font-size: 1.125rem;
+  color: var(--ink-quiet);
+}
+
+.quiet {
+  color: var(--ink-quiet);
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+.plain {
+  font-family: var(--font-plain);
+}
+
+/* --- Layout ------------------------------------------------------------ */
+
+.page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 4rem;
+}
+
+.page--wide {
+  max-width: var(--measure-wide);
+}
+
+.masthead {
+  border-bottom: 1px solid var(--rule);
+}
+
+.masthead__inner {
+  max-width: var(--measure-wide);
+  margin: 0 auto;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.masthead__name {
+  font-family: var(--font-plain);
+  font-weight: 640;
+  font-size: 1rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.masthead__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  font-family: var(--font-plain);
+  font-size: 0.9375rem;
+}
+
+.masthead__nav a {
+  display: inline-block;
+  padding: 0.35rem 0;
+}
+
+.colophon {
+  max-width: var(--measure-wide);
+  margin: 0 auto;
+  padding: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-plain);
+  font-size: 0.875rem;
+  color: var(--ink-quiet);
+}
+
+.section {
+  margin-top: calc(var(--step) * 1.5);
+}
+
+.stack > * + * {
+  margin-top: 0.75rem;
+}
+
+.stack--loose > * + * {
+  margin-top: var(--step);
+}
+
+/* --- Components -------------------------------------------------------- */
+
+.questions {
+  font-family: var(--font-plain);
+  font-size: 1.0625rem;
+  border-left: 2px solid var(--rule-strong);
+  padding-left: 1rem;
+}
+
+.questions li + li {
+  margin-top: 0.35rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-family: var(--font-plain);
+}
+
+.action {
+  display: inline-block;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+
+.action:visited {
+  color: var(--ink);
+}
+
+.action:hover {
+  border-color: var(--ink);
+}
+
+.action--primary {
+  border-color: var(--ink);
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-plain);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-quiet);
+  white-space: nowrap;
+}
+
+/* A name the protocol spells a particular way is shown that way, not shouted. */
+.badge--exact {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.badge--attention {
+  color: var(--caution);
+  border-color: var(--caution);
+}
+
+.digest {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.command {
+  margin-top: 0.5rem;
+}
+
+.command__label {
+  font-family: var(--font-plain);
+  font-size: 0.8125rem;
+  color: var(--ink-quiet);
+}
+
+.command__block {
+  margin-top: 0.25rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  overflow-x: auto;
+  white-space: pre;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem 1.5rem;
+  margin-top: 0.75rem;
+}
+
+.facts__term {
+  font-family: var(--font-plain);
+  font-size: 0.8125rem;
+  color: var(--ink-quiet);
+}
+
+.facts__value {
+  margin-bottom: 0.6rem;
+}
+
+@media (min-width: 34rem) {
+  .facts {
+    grid-template-columns: minmax(9rem, 14rem) 1fr;
+  }
+
+  .facts__term {
+    padding-top: 0.15rem;
+  }
+
+  .facts__value {
+    margin-bottom: 0.35rem;
+  }
+}
+
+.boundary {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 40rem) {
+  .boundary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.boundary__side {
+  border: 1px solid var(--rule);
+  padding: 0.9rem 1rem;
+}
+
+.boundary__title {
+  font-family: var(--font-plain);
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+.callout {
+  margin-top: var(--step);
+  border: 1px solid var(--rule);
+  border-left-width: 3px;
+  padding: 0.9rem 1rem;
+  background: var(--panel);
+}
+
+.callout--attention {
+  border-color: var(--caution);
+  background: var(--caution-panel);
+}
+
+.callout__title {
+  font-family: var(--font-plain);
+  font-weight: 620;
+  font-size: 0.9375rem;
+}
+
+.steps {
+  counter-reset: step;
+  margin-top: 0.75rem;
+}
+
+.steps > li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 2rem;
+}
+
+.steps > li + li {
+  margin-top: 1rem;
+}
+
+.steps > li::before {
+  content: counter(step) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-plain);
+  font-size: 0.9375rem;
+  color: var(--ink-quiet);
+}
+
+.entries {
+  margin-top: var(--step);
+}
+
+.entry {
+  border-top: 1px solid var(--rule);
+  padding: 1.1rem 0;
+}
+
+.entry__head {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.entry__title {
+  font-size: 1.125rem;
+}
+
+.entry__title a {
+  color: var(--ink);
+}
+
+.notice {
+  display: none;
+  margin-top: 0.75rem;
+  border: 1px solid var(--rule-strong);
+  padding: 0.6rem 0.85rem;
+  font-family: var(--font-plain);
+  font-size: 0.875rem;
+}
+
+.phx-error .notice,
+.phx-client-error .notice,
+.phx-server-error .notice {
+  display: block;
+}
+
+/* --- Motion and print --------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  :root {
+    --ink: #000;
+    --ink-quiet: #333;
+    --page: #fff;
+    --panel: #fff;
+    --rule: #999;
+    --rule-strong: #666;
+    --link: #000;
+    --link-visited: #000;
+  }
+
+  .masthead__nav,
+  .actions,
+  .notice {
+    display: none;
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .command__block {
+    white-space: pre-wrap;
+    border-color: #999;
+  }
+
+  .entry,
+  .boundary__side,
+  .callout {
+    break-inside: avoid;
+  }
+
+  a[href^="/"]::after {
+    content: " (techtree.sh" attr(href) ")";
+    font-size: 0.8em;
+  }
+}

@@ -26,8 +26,7 @@ config :techtree, TechtreeWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "h8QJUu2AsKe3DzYp3lPfyFrgJcqCR3hazhabhHfQ+favnElm3TgdnqPWVSS4h59M",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:techtree, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:techtree, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:techtree, ~w(--sourcemap=inline --watch)]}
   ]
 
 # ## SSL Support

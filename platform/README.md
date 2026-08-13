@@ -11,7 +11,7 @@ the site is discovery and onboarding, never a runtime dependency.
 
 ## What is implemented so far
 
-The catalog kernel and the public API over it. The pages come next.
+All of it: the catalog kernel, the public API over it, and the pages.
 
 ```text
 lib/techtree/catalog/
@@ -29,6 +29,13 @@ lib/techtree/catalog/
 ## The published surface
 
 ```text
+GET /                           what Techtree Climb is
+GET /start                      the two supported ways to run a Climb
+GET /climbs                     the Climbs this release offers
+GET /climbs/:slug               one Climb in full
+GET /proofs/local               what a locally produced result claims
+GET /protocol                   the documents a trial is made of
+
 GET /healthz                    is a catalog being served, and which one
 GET /api/v1/bootstrap           the installation contract, exact bytes
 GET /api/v1/catalog             the generated catalog index, exact bytes
@@ -106,6 +113,20 @@ mix catalog.import --path priv/catalog
 
 Both exit nonzero on failure. A failed import leaves the previously active
 release serving exactly what it was serving.
+
+## The pages
+
+Plain documents: a serif measure of about 40 characters wide, three type sizes,
+high contrast in both light and dark, no animation, and a print stylesheet. The
+markup is semantic and the stylesheet is hand-written CSS with no framework and
+no remote fonts, so a page is readable on a phone, in a reader, and on paper.
+
+Every page renders completely on the first response; the live connection only
+keeps it current. Nothing on the site collects anything about a reader.
+
+Copy follows one rule: say what something means for the person reading it. The
+protocol page is written for a technical reader and names documents the way the
+protocol names them; everywhere else, a fingerprint is a fingerprint.
 
 ## Development
 

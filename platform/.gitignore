@@ -39,3 +39,8 @@ npm-debug.log
 # release syncs the export here with `scripts/sync_catalog.exs`, so the bytes
 # are never a second copy under version control in this repository.
 /priv/catalog/
+
+# Digested and compressed copies of the static files, written by
+# `mix assets.deploy` at release time.
+/priv/static/**/*.gz
+/priv/static/**/*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]*.*

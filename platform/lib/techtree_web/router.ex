@@ -15,18 +15,37 @@ defmodule TechtreeWeb.Router do
 
   use TechtreeWeb, :router
 
+  @content_security_policy "default-src 'none'; script-src 'self'; style-src 'self'; " <>
+                             "img-src 'self' data:; font-src 'self'; connect-src 'self'; " <>
+                             "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {TechtreeWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => @content_security_policy,
+      "referrer-policy" => "no-referrer"
+    }
   end
 
   pipeline :api do
     plug :accepts, ["json"]
     plug :put_public_api_headers
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through :browser
+
+    live "/", HomeLive
+    live "/start", StartLive
+    live "/climbs", ClimbsLive.Index
+    live "/climbs/:slug", ClimbsLive.Show
+    live "/proofs/local", LocalProofLive
+    live "/protocol", ProtocolLive
   end
 
   scope "/", TechtreeWeb do
@@ -43,9 +62,6 @@ defmodule TechtreeWeb.Router do
     get "/climbs/:slug", ClimbController, :show
     get "/objects/:digest", ObjectController, :show
   end
-
-  # The public pages are added by the work package that owns them; they will use
-  # the `:browser` pipeline above.
 
   # An API response is data, never a document: nothing in it may be sniffed into
   # a content type it did not declare, loaded as a page resource, framed, or

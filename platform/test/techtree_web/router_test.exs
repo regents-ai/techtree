@@ -20,11 +20,17 @@ defmodule TechtreeWeb.RouterTest do
     paths = @routes |> Enum.map(&"#{&1.verb} #{&1.path}") |> Enum.sort()
 
     assert paths == [
+             "get /",
              "get /api/v1/bootstrap",
              "get /api/v1/catalog",
              "get /api/v1/climbs/:slug",
              "get /api/v1/objects/:digest",
-             "get /healthz"
+             "get /climbs",
+             "get /climbs/:slug",
+             "get /healthz",
+             "get /proofs/local",
+             "get /protocol",
+             "get /start"
            ]
   end
 

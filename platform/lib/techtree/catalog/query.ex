@@ -131,6 +131,36 @@ defmodule Techtree.Catalog.Query do
   end
 
   @doc """
+  The published installation contract, read for display.
+
+  The pages need the argument lists inside the payload, so the verified bytes
+  are decoded here — for reading only. What the API serves is still the bytes,
+  never this map, and no page ever runs any of it.
+  """
+  @spec bootstrap_instructions() :: {:ok, map()} | {:error, Error.t()}
+  def bootstrap_instructions do
+    with {:ok, payload, _digest} <- bootstrap_payload() do
+      case Jason.decode(payload) do
+        {:ok, instructions} when is_map(instructions) ->
+          {:ok, instructions}
+
+        _other ->
+          {:error, Error.bundle_invalid("the published installation contract could not be read")}
+      end
+    end
+  end
+
+  @doc """
+  Every object the active release ships, in a stable order.
+  """
+  @spec list_objects() :: [CatalogEntry.t()]
+  def list_objects do
+    Catalog.list_catalog_entries!(%{},
+      query: [filter: [active: true], sort: [kind: :asc, reference: :asc]]
+    )
+  end
+
+  @doc """
   What `/healthz` may say: whether a release is being served, and which one.
 
   It names no host path, no database, and no environment.

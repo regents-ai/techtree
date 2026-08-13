@@ -56,14 +56,6 @@ defmodule Techtree.MixProject do
       {:phoenix_live_view, "~> 1.1.0"},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
-      {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
-      {:heroicons,
-       github: "tailwindlabs/heroicons",
-       tag: "v2.2.0",
-       sparse: "optimized",
-       app: false,
-       compile: false,
-       depth: 1},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
@@ -85,13 +77,9 @@ defmodule Techtree.MixProject do
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
       check: ["format --check-formatted", "compile --warnings-as-errors", "test"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind techtree", "esbuild techtree"],
-      "assets.deploy": [
-        "tailwind techtree --minify",
-        "esbuild techtree --minify",
-        "phx.digest"
-      ]
+      "assets.setup": ["esbuild.install --if-missing"],
+      "assets.build": ["compile", "esbuild techtree"],
+      "assets.deploy": ["esbuild techtree --minify", "phx.digest"]
     ]
   end
 end
