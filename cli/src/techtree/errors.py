@@ -49,6 +49,7 @@ __all__ = [
     "error_to_cli_error",
     "exit_code_for",
     "sanitize_exception_message",
+    "sanitize_text",
 ]
 
 
@@ -259,18 +260,27 @@ def _redact_opaque_run(match: re.Match[str]) -> str:
     return REDACTED
 
 
+def sanitize_text(text: str) -> str:
+    """Remove secret-looking values from one piece of arbitrary text.
+
+    Whitespace and line structure are left alone, because the other caller of
+    this is the worker log, where a line is a record and indentation is
+    meaning. :func:`sanitize_exception_message` flattens first and then calls
+    this.
+    """
+    text = _SECRET_ASSIGNMENT.sub(_redact_assignment, text)
+    text = _BEARER_VALUE.sub(rf"\1 {REDACTED}", text)
+    text = _PREFIXED_TOKEN.sub(REDACTED, text)
+    text = _OPAQUE_RUN.sub(_redact_opaque_run, text)
+    return _MEMORY_ADDRESS.sub("0x<address>", text)
+
+
 def sanitize_exception_message(error: Exception) -> str:
     """Remove secret-looking values and unstable traceback detail."""
     text = _WHITESPACE_RUN.sub(" ", str(error)).strip()
     if not text:
         return type(error).__name__
-
-    text = _SECRET_ASSIGNMENT.sub(_redact_assignment, text)
-    text = _BEARER_VALUE.sub(rf"\1 {REDACTED}", text)
-    text = _PREFIXED_TOKEN.sub(REDACTED, text)
-    text = _OPAQUE_RUN.sub(_redact_opaque_run, text)
-    text = _MEMORY_ADDRESS.sub("0x<address>", text)
-    return text
+    return sanitize_text(text)
 
 
 # ---------------------------------------------------------------------------

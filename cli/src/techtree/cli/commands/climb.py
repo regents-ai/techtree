@@ -28,7 +28,19 @@ the token, and the DataPolicy digest that will have to be accepted, and is
 marked as requiring a person's confirmation, because starting a run commits to
 both rights and work.
 
-``start`` is not part of this build and remains a registered stub.
+``start`` is where those two commitments are collected, and it keeps them
+apart. The confirmation token proves that the thing being started is the thing
+that was prepared. It proves nothing about consent, so acceptance of the data
+policy is asked for separately: a person is shown the rights summary and has to
+answer ``y``, and a program has to name the exact policy digest with
+``--accept-data-policy``. Decisions document 0003 A5 is explicit that
+possession of a token may never be read as agreement, and the two methods are
+recorded distinguishably — ``interactive_cli`` and ``explicit_cli_digest`` — so
+that a later reader of a run can tell how the acceptance was made.
+
+The command returns as soon as the worker is launched. The run continues after
+this process exits, which is the whole point, and the response says where to
+look rather than waiting to find out.
 """
 
 from __future__ import annotations
@@ -46,11 +58,13 @@ from techtree.catalog.service import (
     InstalledEngineStatus,
     current_host_info,
 )
+from techtree.cli.commands.run import build_run_service
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
-from techtree.drafts.confirmation import ConfirmationService
+from techtree.cli.output import human_console
+from techtree.drafts.confirmation import ConfirmationService, utc_now
 from techtree.drafts.store import DraftStore
-from techtree.errors import NotFoundError, PrerequisiteError
+from techtree.errors import NotFoundError, PolicyError, PrerequisiteError
 from techtree.models.base import (
     Digest,
     NonEmptyString,
@@ -65,26 +79,35 @@ from techtree.models.catalog import (
 )
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.climb import ResolvedClimb
-from techtree.models.skill import PolicyAcceptanceRequirement
+from techtree.models.run import PolicyAcknowledgement, RunPhase, RunStatus
+from techtree.models.skill import PolicyAcceptanceRequirement, SubmissionDraft
+from techtree.runs.service import (
+    POLICY_ACCEPTANCE_DIGEST_MISMATCH,
+    POLICY_ACCEPTANCE_REQUIRED,
+)
 from techtree.skills.service import PreparedDraft, SkillPreparationService
 
 __all__ = [
     "LIST_COMMAND",
     "PREPARE_COMMAND",
     "SHOW_COMMAND",
+    "START_COMMAND",
     "ClimbPreparePayload",
     "ClimbShowPayload",
+    "ClimbStartPayload",
     "PreparedComparison",
     "build_catalog_service",
     "build_preparation_service",
     "list_climbs_command",
     "prepare_climb_command",
     "show_climb_command",
+    "start_climb_command",
 ]
 
 LIST_COMMAND: Final = "climb list"
 SHOW_COMMAND: Final = "climb show"
 PREPARE_COMMAND: Final = "climb prepare"
+START_COMMAND: Final = "climb start"
 
 #: What a reader is told when the build ships no Climbs at all. This is the
 #: normal state of a development build: the packaged catalog is valid and
@@ -143,6 +166,23 @@ class ClimbPreparePayload(ProtocolModel):
     policy_acceptance: PolicyAcceptanceRequirement
     comparison: PreparedComparison
     warnings: list[NonEmptyString]
+
+
+class ClimbStartPayload(ProtocolModel):
+    """What ``climb start`` returns, as soon as the worker is running."""
+
+    run_id: NonEmptyString
+    draft_id: NonEmptyString
+    phase: RunPhase
+    worker_pid: int | None
+    campaign_spec_digest: Digest
+    data_policy_digest: Digest
+    policy_acknowledgement_method: Literal[
+        "interactive_cli",
+        "explicit_cli_digest",
+        "host_agent_confirmation",
+    ]
+    development_only: bool
 
 
 def build_catalog_service(context: CliContext) -> CatalogService:
@@ -321,6 +361,156 @@ def prepare_climb_command(
     invoke_command(context, PREPARE_COMMAND, action, render_data=_render_prepare)
 
 
+def start_climb_command(
+    ctx: typer.Context,
+    draft_id: Annotated[
+        str,
+        typer.Argument(
+            metavar="DRAFT_ID",
+            help="The prepared draft to start.",
+        ),
+    ],
+    confirmation_token: Annotated[
+        str,
+        typer.Option(
+            "--confirmation-token",
+            metavar="TOKEN",
+            help="The token `techtree climb prepare` returned.",
+        ),
+    ],
+    accept_data_policy: Annotated[
+        str | None,
+        typer.Option(
+            "--accept-data-policy",
+            metavar="DIGEST",
+            help=(
+                "Accept the draft's DataPolicy by naming its exact digest. "
+                "Required when nothing can be asked."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Consume a confirmation and start a detached run."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ClimbStartPayload]:
+        service = build_run_service(context)
+        draft = DraftStore(context.paths, ConfirmationService()).get(draft_id)
+        acknowledgement = _acknowledge_data_policy(
+            context,
+            draft=draft,
+            accepted_digest=accept_data_policy,
+        )
+
+        status = service.start(
+            draft_id=draft_id,
+            confirmation_token=confirmation_token,
+            policy_acknowledgement=acknowledgement,
+        )
+        payload = _start_payload(draft, status, acknowledgement)
+
+        return CommandResult(
+            data=payload,
+            messages=[
+                CliMessage(
+                    level=MessageLevel.INFO,
+                    code="run_started",
+                    text=(
+                        f"Run {payload.run_id} is going. It continues whether "
+                        "or not this command is still open."
+                    ),
+                )
+            ],
+            warnings=_start_warnings(payload),
+            next_actions=[_watch_run(payload.run_id)],
+        )
+
+    invoke_command(context, START_COMMAND, action, render_data=_render_start)
+
+
+def _acknowledge_data_policy(
+    context: CliContext,
+    *,
+    draft: SubmissionDraft,
+    accepted_digest: str | None,
+) -> PolicyAcknowledgement:
+    """Collect acceptance of this draft's rights policy, or refuse to start.
+
+    A named digest is the machine spelling and is checked exactly: an
+    acceptance of some other policy is not an acceptance of this one. When
+    nothing was named and nobody can be asked, the command stops and says
+    which digest would have to be named, because inferring consent from a
+    confirmation token is the one thing decisions document 0003 A5 forbids.
+    """
+    required = draft.policy_acceptance
+    if accepted_digest is not None:
+        if accepted_digest != required.data_policy_digest:
+            raise PolicyError(
+                "that is not the DataPolicy this draft runs under, so it "
+                "cannot be the one being accepted",
+                code=POLICY_ACCEPTANCE_DIGEST_MISMATCH,
+                details={
+                    "draft_id": draft.id,
+                    "expected_digest": required.data_policy_digest,
+                    "accepted_digest": accepted_digest,
+                },
+            )
+        return _acknowledgement(required.data_policy_digest, "explicit_cli_digest")
+
+    if context.no_input:
+        raise PolicyError(
+            "starting this draft accepts its data policy, and acceptance is "
+            "stated explicitly: pass --accept-data-policy "
+            f"{required.data_policy_digest}",
+            code=POLICY_ACCEPTANCE_REQUIRED,
+            details={
+                "draft_id": draft.id,
+                "data_policy_digest": required.data_policy_digest,
+            },
+        )
+
+    console = human_console(no_color=context.no_color)
+    console.print(required.summary)
+    console.print()
+    if not typer.confirm(
+        f"Accept DataPolicy {required.data_policy_digest}?", default=False
+    ):
+        raise PolicyError(
+            "the data policy was not accepted, so nothing was started",
+            code=POLICY_ACCEPTANCE_REQUIRED,
+            details={"draft_id": draft.id},
+        )
+    return _acknowledgement(required.data_policy_digest, "interactive_cli")
+
+
+def _acknowledgement(
+    digest: Digest,
+    method: Literal["interactive_cli", "explicit_cli_digest"],
+) -> PolicyAcknowledgement:
+    return PolicyAcknowledgement(
+        data_policy_digest=digest,
+        method=method,
+        acknowledged_at=utc_now(),
+    )
+
+
+def _start_payload(
+    draft: SubmissionDraft,
+    status: RunStatus,
+    acknowledgement: PolicyAcknowledgement,
+) -> ClimbStartPayload:
+    return ClimbStartPayload(
+        run_id=status.state.run_id,
+        draft_id=draft.id,
+        phase=status.state.phase,
+        worker_pid=status.state.worker_pid,
+        campaign_spec_digest=draft.campaign_spec_digest,
+        data_policy_digest=draft.data_policy_digest,
+        policy_acknowledgement_method=acknowledgement.method,
+        development_only=True,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Messages, warnings, and next actions
 # ---------------------------------------------------------------------------
@@ -445,6 +635,35 @@ def _start_draft(payload: ClimbPreparePayload) -> NextAction:
         hermes_tool=None,
         hermes_args=None,
         requires_user_confirmation=True,
+    )
+
+
+def _start_warnings(payload: ClimbStartPayload) -> list[CliMessage]:
+    """Say plainly, in both output modes, what this run is going to produce."""
+    if not payload.development_only:
+        return []
+    return [
+        CliMessage(
+            level=MessageLevel.WARNING,
+            code="development_only_run",
+            text=(
+                "This run is executed by the development fake executor. No "
+                "agent will be evaluated and no model will be called; the "
+                "report it produces is not publication eligible."
+            ),
+        )
+    ]
+
+
+def _watch_run(run_id: str) -> NextAction:
+    return NextAction(
+        id="run_status",
+        label="Check how the run is going",
+        reason="The run continues after this command returns.",
+        cli=["techtree", "run", "status", run_id],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=False,
     )
 
 
@@ -619,6 +838,25 @@ def _render_prepare(data: object, console: Console) -> None:
     console.print(
         "Confirmation expires "
         f"{data.confirmation_expires_at.isoformat().replace('+00:00', 'Z')}."
+    )
+
+
+def _render_start(data: object, console: Console) -> None:
+    """Print what was started and where it can be followed."""
+    if not isinstance(data, ClimbStartPayload):
+        return
+
+    _print_pairs(
+        console,
+        [
+            ("Run", data.run_id),
+            ("Draft", data.draft_id),
+            ("Phase", data.phase.value),
+            ("Worker", "not started" if data.worker_pid is None else "running"),
+            ("Campaign digest", data.campaign_spec_digest),
+            ("DataPolicy digest", data.data_policy_digest),
+            ("Accepted by", _phrase(data.policy_acknowledgement_method)),
+        ],
     )
 
 

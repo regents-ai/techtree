@@ -31,7 +31,6 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from techtree.canonical import digest_object, sha256_digest_bytes, to_json_value
-from techtree.tasksets.membership import membership_digest
 from techtree.constants import (
     CAMPAIGN_SCHEMA_VERSION,
     CLI_SCHEMA_VERSION,
@@ -123,6 +122,7 @@ from techtree.models.validation import (
     ValidationCheck,
     ValidationMethod,
 )
+from techtree.tasksets.membership import membership_digest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 

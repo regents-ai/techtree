@@ -1,18 +1,25 @@
-"""Detached worker entry point. Spec section 19.1.
+"""Detached worker entry point. Spec sections 19.1 and PR8 §8.9.
 
-The command surface is final: ``techtree-worker execute --run-id <id>``.
-``execute_run`` itself is delivered by the run/worker work package, so parsing
-succeeds and execution reports that it is unavailable. No Rich output.
+The command surface is one line: ``techtree-worker execute --run-id <id>``.
+It is not a user-facing program — the CLI launches it, and a person reading
+``techtree --help`` will never see it — so it has none of the CLI's apparatus.
+No Rich console, no envelope, no next actions. Its stdout and stderr are the
+run's ``worker.log``, and its exit code is the only thing a caller reads.
+
+Everything the worker actually does is in :mod:`techtree.worker.execute`. This
+module parses one argument and gets out of the way.
 """
 
 from __future__ import annotations
 
 import argparse
+import sys
 from collections.abc import Sequence
 
 from techtree.version import package_version
+from techtree.worker.execute import execute_run
 
-EXIT_UNAVAILABLE = 70
+__all__ = ["build_parser", "main"]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -41,16 +48,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    """Parse and call execute_run."""
-    parser = build_parser()
-    arguments = parser.parse_args(argv)
-    parser.exit(
-        status=EXIT_UNAVAILABLE,
-        message=(
-            f"techtree-worker: cannot execute run {arguments.run_id}; "
-            "the run executor is not part of this build.\n"
-        ),
-    )
+    """Parse and execute one run, then exit with the code it reports."""
+    arguments = build_parser().parse_args(argv)
+    sys.exit(execute_run(arguments.run_id))
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ from typing import Any
 
 import pytest
 
-from techtree.errors import EXIT_ERROR, EXIT_OK, EXIT_PREREQUISITE, EXIT_USAGE
+from techtree.errors import EXIT_OK, EXIT_PREREQUISITE, EXIT_USAGE
 from techtree.version import package_version
 
 #: A generous ceiling. Doctor probes Docker, which can be slow; anything past
@@ -219,23 +219,37 @@ def test_version_prints_the_package_version_and_nothing_else(techtree: Any) -> N
 # ---------------------------------------------------------------------------
 
 
-# Only the commands this build has not implemented yet. `climb list`,
-# `climb show`, and `climb prepare` are implemented and are exercised in
-# ``tests/contract/test_catalog_object_graph.py`` and
-# ``tests/integration/test_skill_prepare.py``; the `engine` commands are
-# implemented and are exercised in
-# ``tests/integration/test_engine_install.py``.
+# Every command this build registers is implemented. What is asserted here is
+# the part of the contract that holds however a command fails: it names itself,
+# it emits exactly one envelope, and its exit code agrees with that envelope.
+# The commands are given an identifier nothing on this machine has, which is
+# the one failure every one of them can be provoked into from outside.
+_ABSENT_RUN = "run_00000000000000000000000000000000"
+_ABSENT_DRAFT = "draft_00000000000000000000000000000000"
+
+
 @pytest.mark.parametrize(
     ("arguments", "command"),
     [
-        (("climb", "start"), "climb start"),
-        (("run", "status"), "run status"),
-        (("run", "logs"), "run logs"),
-        (("run", "cancel"), "run cancel"),
-        (("run", "result"), "run result"),
+        (
+            (
+                "climb",
+                "start",
+                _ABSENT_DRAFT,
+                "--confirmation-token",
+                "not-a-token",
+                "--accept-data-policy",
+                f"sha256:{'0' * 64}",
+            ),
+            "climb start",
+        ),
+        (("run", "status", _ABSENT_RUN), "run status"),
+        (("run", "logs", _ABSENT_RUN), "run logs"),
+        (("run", "cancel", _ABSENT_RUN, "--confirm"), "run cancel"),
+        (("run", "result", _ABSENT_RUN), "run result"),
     ],
 )
-def test_a_registered_command_names_itself_and_reports_not_implemented(
+def test_a_registered_command_names_itself_in_one_envelope(
     techtree: Any, arguments: tuple[str, ...], command: str
 ) -> None:
     result = techtree(*arguments, "--json")
@@ -243,9 +257,8 @@ def test_a_registered_command_names_itself_and_reports_not_implemented(
     envelope = result.envelope()
     assert envelope["command"] == command
     assert envelope["ok"] is False
-    assert envelope["error"]["code"] == "not_implemented"
-    assert envelope["error"]["details"]["command"] == command
-    assert result.exit_code == EXIT_ERROR
+    assert envelope["error"]["code"] != ""
+    assert result.exit_code != EXIT_OK
 
 
 @pytest.mark.parametrize(

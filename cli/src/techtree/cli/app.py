@@ -40,6 +40,7 @@ from techtree.cli.commands.climb import (
     list_climbs_command,
     prepare_climb_command,
     show_climb_command,
+    start_climb_command,
 )
 from techtree.cli.commands.doctor import doctor_command
 from techtree.cli.commands.engine import (
@@ -47,15 +48,15 @@ from techtree.cli.commands.engine import (
     status_engine_command,
     verify_engine_command,
 )
-from techtree.cli.commands.setup import setup_command
-from techtree.cli.context import build_cli_context, cli_context
-from techtree.cli.invoke import (
-    CommandResult,
-    emit_boundary_failure,
-    failure_envelope,
-    invoke_command,
-    not_implemented_error,
+from techtree.cli.commands.run import (
+    cancel_run_command,
+    logs_run_command,
+    result_run_command,
+    status_run_command,
 )
+from techtree.cli.commands.setup import setup_command
+from techtree.cli.context import build_cli_context
+from techtree.cli.invoke import emit_boundary_failure, failure_envelope
 from techtree.cli.output import write_envelope
 from techtree.errors import (
     TechtreeError,
@@ -241,18 +242,8 @@ def main() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Registered but unimplemented command groups
+# Command groups
 # ---------------------------------------------------------------------------
-
-
-def _not_implemented(ctx: typer.Context, command: str) -> NoReturn:
-    """Answer a registered command that this build does not implement."""
-    context = cli_context(ctx)
-
-    def action() -> CommandResult[None]:
-        raise not_implemented_error(command)
-
-    invoke_command(context, command, action)
 
 
 def _climb_app() -> typer.Typer:
@@ -270,38 +261,23 @@ def _climb_app() -> typer.Typer:
     app.command("prepare", help="Prepare a skill for submission to a Climb.")(
         prepare_climb_command
     )
-
-    @app.command("start", help="Start a prepared submission running.")
-    def start_climb_command(ctx: typer.Context) -> None:
-        """Consume a confirmation and start a detached run."""
-        _not_implemented(ctx, "climb start")
-
+    app.command("start", help="Start a prepared submission running.")(
+        start_climb_command
+    )
     return app
 
 
 def _run_app() -> typer.Typer:
     app = typer.Typer(help="Follow and control your runs.", no_args_is_help=True)
 
-    @app.command("status", help="Show how a run is progressing.")
-    def status_command(ctx: typer.Context) -> None:
-        """Return one status snapshot."""
-        _not_implemented(ctx, "run status")
-
-    @app.command("logs", help="Show the log output of a run.")
-    def logs_command(ctx: typer.Context) -> None:
-        """Return sanitized worker logs."""
-        _not_implemented(ctx, "run logs")
-
-    @app.command("cancel", help="Stop a run that is still in progress.")
-    def cancel_command(ctx: typer.Context) -> None:
-        """Request cancellation and signal the worker."""
-        _not_implemented(ctx, "run cancel")
-
-    @app.command("result", help="Show the finished report for a run.")
-    def result_command(ctx: typer.Context) -> None:
-        """Return the final UpliftReport."""
-        _not_implemented(ctx, "run result")
-
+    app.command("status", help="Show how a run is progressing.")(status_run_command)
+    app.command("logs", help="Show the log output of a run.")(logs_run_command)
+    app.command("cancel", help="Stop a run that is still in progress.")(
+        cancel_run_command
+    )
+    app.command("result", help="Show the finished report for a run.")(
+        result_run_command
+    )
     return app
 
 

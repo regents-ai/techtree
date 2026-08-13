@@ -35,7 +35,6 @@ from typing import Final, Literal
 from pydantic import BaseModel
 
 from techtree.canonical import canonical_json_bytes, digest_object
-from techtree.tasksets.membership import membership_digest
 from techtree.constants import (
     CAMPAIGN_SCHEMA_VERSION,
     CATALOG_SCHEMA_VERSION,
@@ -108,6 +107,7 @@ from techtree.models.validation import (
     ValidationMethod,
     ValidationTaskOutcome,
 )
+from techtree.tasksets.membership import membership_digest
 
 #: Where the committed fixture lives.
 FIXTURE_DIRECTORY: Final[Path] = Path(__file__).resolve().parent / "complete"
