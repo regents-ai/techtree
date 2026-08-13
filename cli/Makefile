@@ -9,21 +9,29 @@ RUN := $(UV) run
 TOOL_ENGINE_BUNDLE := tools/build_engine_bundle.py
 TOOL_FIXTURE_CATALOG := tools/build_fixture_catalog.py
 TOOL_GOLDENS := tools/build_goldens.py
+TOOL_RELEASE_CORE := tools/build_release_core.py
 TOOL_SCHEMAS := tools/export_schemas.py
 
 # Everything the generators own. `generated-check` compares these paths
 # between the working tree and a freshly regenerated temporary tree.
+#
+# `release` also holds two files nobody generates — the founder-owned inputs
+# and this directory's README — and comparing them costs nothing: they are
+# copied into the temporary tree unchanged, so they can only ever differ if the
+# copy itself went wrong.
 GENERATED_PATHS := \
 	schemas \
 	tests/golden \
+	release \
 	src/techtree/resources/catalog \
-	src/techtree/resources/engines
+	src/techtree/resources/engines \
+	src/techtree/resources/release
 
 .DEFAULT_GOAL := check
 
 .PHONY: install lint format format-check typecheck test test-unit test-contract \
 	test-integration real-model-run real-model-run-single schemas engine-bundle fixture-catalog goldens \
-	regenerate generated-check verifiers-preflight check clean
+	release-core regenerate generated-check verifiers-preflight check clean
 
 install:
 	$(UV) sync
@@ -83,8 +91,13 @@ fixture-catalog:
 goldens:
 	$(RUN) python $(TOOL_GOLDENS)
 
-# Binding order, spec section 25.
-regenerate: engine-bundle fixture-catalog goldens schemas
+# Binds the founder-owned release inputs to the engine and catalog the other
+# generators just produced, so it runs after them and never before.
+release-core:
+	$(RUN) python $(TOOL_RELEASE_CORE)
+
+# Binding order, spec section 25, then the release document over the result.
+regenerate: engine-bundle fixture-catalog goldens schemas release-core
 
 # Regenerates into a throwaway copy of the repository and fails on drift.
 # It never writes to the working tree.

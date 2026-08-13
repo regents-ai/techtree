@@ -51,6 +51,10 @@ from techtree.cli.commands.engine import (
     verify_engine_command,
 )
 from techtree.cli.commands.proof import verify_proof_command
+from techtree.cli.commands.release import (
+    info_release_command,
+    verify_release_command,
+)
 from techtree.cli.commands.run import (
     cancel_run_command,
     logs_run_command,
@@ -231,6 +235,7 @@ def create_app() -> typer.Typer:
     app.add_typer(_run_app(), name="run")
     app.add_typer(_engine_app(), name="engine")
     app.add_typer(_proof_app(), name="proof")
+    app.add_typer(_release_app(), name="release")
     app.add_typer(_uplift_app(), name="uplift")
     return app
 
@@ -315,6 +320,22 @@ def _proof_app() -> typer.Typer:
         "verify",
         help="Check a local proof offline, from the bytes the run stored.",
     )(verify_proof_command)
+    return app
+
+
+def _release_app() -> typer.Typer:
+    app = typer.Typer(
+        help="Show and check the release this build belongs to.",
+        no_args_is_help=True,
+    )
+
+    app.command("info", help="Show the release coordinates this build carries.")(
+        info_release_command
+    )
+    app.command(
+        "verify",
+        help="Check that every release coordinate still names what it claims.",
+    )(verify_release_command)
     return app
 
 

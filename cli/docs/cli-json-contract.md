@@ -172,6 +172,8 @@ run logs
 run cancel
 run result
 proof verify
+release info
+release verify
 uplift context
 uplift prepare
 uplift start
