@@ -67,7 +67,6 @@ def release_pinning(starter: Digest) -> ReleaseCore:
         "maximum_tested_host_hermes_version": PLACEHOLDER_VERSION,
         "minimum_host_hermes_version": "0.19.0",
         "release_id": PLACEHOLDER_VERSION,
-        "rich_output_skill_digest": PLACEHOLDER_DIGEST,
         "skill_improver_digest": PLACEHOLDER_DIGEST,
         "starter_skill_digest": starter,
     }
@@ -79,7 +78,7 @@ def release_pinning(starter: Digest) -> ReleaseCore:
         protocol_version="v1alpha1",
         engine_digest=f"sha256:{'e' * 64}",
         catalog_digest=f"sha256:{'c' * 64}",
-        intro_climb_reference="procedure-transfer-dev@1",
+        intro_climb_reference="hello-world-climb@1",
         subject_hermes_version="0.19.0",
         **values,
     )

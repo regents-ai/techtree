@@ -27,8 +27,7 @@ document says so in its own data:
 placeholder_release   true
 placeholder_fields    cli_source_commit, cli_version,
                       maximum_tested_host_hermes_version, release_id,
-                      rich_output_skill_digest, skill_improver_digest,
-                      starter_skill_digest
+                      skill_improver_digest, starter_skill_digest
 ```
 
 There are three spellings of "not chosen yet", one per kind of coordinate, and
@@ -47,7 +46,7 @@ read out of this source tree, so they are never blank at all.
 
 1. Edit `release-inputs.json`. Every value in it is a decision, not a
    derivation: the release identifier, the published CLI version, the tagged
-   source commit, the introductory Climb, the three Skill artifacts, and the
+   source commit, the introductory Climb, the two Skill artifacts, and the
    host Hermes range that has actually been tested.
 2. Run `make release-core`. It rewrites the four generated files from the
    inputs and from this source tree, and prints the ReleaseCore digest.

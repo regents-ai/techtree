@@ -3,7 +3,7 @@
   "data": {
     "campaign_spec_digest": "sha256:9680cd12222341f2f288f8c8a57578a070db20e786e1613ceac03d2301e4b35b",
     "candidate_skill_visibility": "public",
-    "climb_digest": "sha256:b51ed16c5cdbb5bc75d4e86215db06adae02277e466b4d684bca97ed3202a56c",
+    "climb_digest": "sha256:0d79a320264d69ce71881026b742c4678def349eaff5127c89f41da7b1090f43",
     "compatibility": {
       "compatible": false,
       "engine_status": "not_installed",
@@ -31,14 +31,14 @@
     "mutation_kind": "skill_insertion",
     "proof_grade": "development_only",
     "purpose": "component_uplift",
-    "reference": "procedure-transfer-dev@1",
+    "reference": "hello-world-climb@1",
     "status": "development",
     "subject_harness": "hermes-agent",
     "subject_harness_version": "0.19.0",
-    "summary": "A development Climb used to exercise the Techtree protocol end to end. It produces no publishable evidence.",
+    "summary": "A toy Skill-uplift Climb, used here to exercise the Techtree protocol end to end. It produces no publishable evidence.",
     "task_count": 20,
     "taskset_id": "procedure-transfer-v1",
-    "title": "Procedure Transfer Development Climb"
+    "title": "Techtree Hello World"
   },
   "error": null,
   "messages": [

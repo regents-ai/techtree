@@ -84,7 +84,7 @@ def payload(
     return UpliftPresentationPayload(
         schema_version=PRESENTATION_SCHEMA_VERSION,
         run_id="run_" + "0" * 32,
-        campaign_title="Procedure Transfer Development Climb",
+        campaign_title="Techtree Hello World",
         comparison_label="No tested Skill → Skill v1",
         baseline_skill=SkillSummary(
             label="No tested Skill", root_digest=None, file_count=0, total_bytes=0
@@ -169,7 +169,7 @@ def test_the_header_says_what_was_compared_and_how_much_it_is_worth() -> None:
     text = rendered(payload())
     lines = text.splitlines()
 
-    assert lines[0] == "Procedure Transfer Development Climb"
+    assert lines[0] == "Techtree Hello World"
     assert lines[1] == "No tested Skill → Skill v1"
     assert lines[2] == "[P1 · local proof verified offline]"
 

@@ -1,31 +1,31 @@
 {
   "climbs": [
     {
-      "digest": "sha256:e6cb884f76e00eee3edfd24f23d75d64502437b7f216f3c33643e31f649c6e7e",
-      "path": "climbs/procedure-transfer-dev.json",
-      "reference": "procedure-transfer-dev@1"
+      "digest": "sha256:aa1d33e299f642bb4ff7716dbea233520845f2981afa107fb6180546254c10eb",
+      "path": "climbs/hello-world-climb.json",
+      "reference": "hello-world-climb@1"
     }
   ],
   "objects": {
     "sha256:5875f31fe28251c70b2d40e19b7579578dce6a4b70717583510044392118837c": {
       "kind": "validation_evidence",
       "media_type": "application/json",
-      "path": "validation-evidence/procedure-transfer-dev.json"
+      "path": "validation-evidence/hello-world-climb.json"
     },
     "sha256:a0a1875e831f4604851c2ed927f898a52f70b28655af35cc6926dd8e8a347810": {
       "kind": "taskset_validation",
       "media_type": "application/json",
-      "path": "taskset-validations/procedure-transfer-dev.json"
+      "path": "taskset-validations/hello-world-climb.json"
     },
     "sha256:b257724db5dcc4a6392c56bfc403cb4b7c5221675cefed9970258c42512b4fbe": {
       "kind": "data_policy",
       "media_type": "application/json",
-      "path": "data-policies/procedure-transfer-dev.json"
+      "path": "data-policies/hello-world-climb.json"
     },
     "sha256:b65c1b0204dd2ceb1ec4c72a58c9888e6216c75d0eb40b7a11b18c85215a6b8b": {
       "kind": "campaign",
       "media_type": "application/json",
-      "path": "campaigns/procedure-transfer-dev.json"
+      "path": "campaigns/hello-world-climb.json"
     }
   },
   "schema_version": "techtree.catalog.v1alpha1"

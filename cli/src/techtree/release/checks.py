@@ -1,7 +1,7 @@
 """Whether one release still agrees with itself. Spec sections 9.5 and 9.7.
 
 A ReleaseCore is a set of claims about things that live elsewhere: an engine
-bundle, a catalog index, an installed package, a Climb, three Skills. Each
+bundle, a catalog index, an installed package, a Climb, two Skills. Each
 claim is checked here against the thing it names, one check per claim, so that
 a failure says which coordinate drifted rather than that "the release is
 broken".
@@ -319,16 +319,12 @@ def _founder_skill_checks(core: ReleaseCore) -> list[ReleaseCheck]:
     """Report each founder Skill digest, which this package cannot resolve.
 
     The CLI ships no Skill bytes — the starter Skill is served by the website
-    and the two operator Skills are bundled by the plugin — so a bound digest
-    is checked where those bytes are, not here (spec section 9.6). What can be
+    and the operator Skill is bundled by the plugin — so a bound digest is
+    checked where those bytes are, not here (spec section 9.6). What can be
     settled here is that an unbound one says so.
     """
     checks: list[ReleaseCheck] = []
-    for field in (
-        "starter_skill_digest",
-        "rich_output_skill_digest",
-        "skill_improver_digest",
-    ):
+    for field in ("starter_skill_digest", "skill_improver_digest"):
         value = getattr(core, field)
         if field in core.placeholder_fields:
             checks.append(_passed(field, "this Skill artifact is declared unbound."))

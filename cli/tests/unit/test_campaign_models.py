@@ -409,7 +409,7 @@ def test_reparsing_the_same_document_gives_the_same_digest() -> None:
 def test_development_climb_is_valid() -> None:
     manifest = climb(golden("climb"))
 
-    assert manifest.metadata.slug == "procedure-transfer-dev"
+    assert manifest.metadata.slug == "hello-world-climb"
     assert manifest.metadata.status == "development"
     assert manifest.publication.proof_grade == "development_only"
     assert manifest.leaderboard.enabled is False

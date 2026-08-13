@@ -25,7 +25,9 @@ from techtree.models.skill import SkillArtifact, SkillFile
 from techtree.models.uplift_report import UpliftReport
 from techtree.presentation.build import (
     BASELINE_SKILL_LABEL,
+    FIRST_RESULT_LABEL,
     P1_MEANING,
+    SECOND_RESULT_LABEL,
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
@@ -53,7 +55,7 @@ from techtree.receipts.uplift import (
 )
 from techtree.verifiers.models import VariantName
 
-CAMPAIGN_TITLE = "Procedure Transfer Development Climb"
+CAMPAIGN_TITLE = "Techtree Hello World"
 
 
 def verified() -> VerificationResult:
@@ -268,7 +270,8 @@ def test_an_insertion_comparison_says_what_it_compared(
 ) -> None:
     payload = build(report, receipts, verified())
 
-    assert payload.comparison_label == f"{BASELINE_SKILL_LABEL} → Skill v1"
+    assert payload.comparison_label == FIRST_RESULT_LABEL
+    assert payload.baseline_skill.label == BASELINE_SKILL_LABEL
     assert payload.baseline_skill.root_digest is None
     assert payload.candidate_skill.label == "branch-code-v1"
     assert payload.candidate_skill.file_count == 1
@@ -287,7 +290,7 @@ def test_a_replacement_comparison_says_what_it_compared(
         verification=verified(),
     )
 
-    assert payload.comparison_label == "Skill v1 → Skill v2"
+    assert payload.comparison_label == SECOND_RESULT_LABEL
     assert payload.baseline_skill.root_digest is not None
 
 

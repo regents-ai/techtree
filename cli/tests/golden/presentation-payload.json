@@ -9,7 +9,7 @@
     "total_bytes": 0
   },
   "baseline_tokens": 1211350,
-  "campaign_title": "Procedure Transfer Development Climb",
+  "campaign_title": "Techtree Hello World",
   "candidate_score": 0.6,
   "candidate_seconds": 598.0,
   "candidate_skill": {
@@ -36,6 +36,11 @@
       "text": "Nobody has independently reproduced this comparison, and no platform witnessed it."
     },
     {
+      "code": "introductory_task_family",
+      "severity": "warning",
+      "text": "This is a toy introductory Climb. Its task family is synthetic and demonstrates the mechanism; it measures no broad capability."
+    },
+    {
       "code": "no_server_upload",
       "severity": "info",
       "text": "Nothing was uploaded. The raw episodes stay on this machine, and publication was never requested."
@@ -51,7 +56,7 @@
       "text": "Timing and token counts come from this run's signed execution record. No cost was reported for it and this build pins no price to compute one from, so the cost is unavailable. What the comparison measured is unaffected."
     }
   ],
-  "comparison_label": "No tested Skill → Skill v1",
+  "comparison_label": "Hello World Uplift Receipt",
   "cost_provenance": "unavailable",
   "cost_usd": null,
   "decision": "accepted",

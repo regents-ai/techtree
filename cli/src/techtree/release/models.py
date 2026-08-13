@@ -9,7 +9,7 @@ them.
 
 The hard problem this module solves is not the field list. It is that a release
 document is written *before* the founder has chosen half of what it names — the
-public CLI version, the tagged source commit, the three Skill artifacts — and a
+public CLI version, the tagged source commit, the two Skill artifacts — and a
 document with plausible-looking blanks in it is worse than no document at all,
 because it reads as a real release to everything downstream.
 
@@ -89,7 +89,6 @@ PLACEHOLDER_SPELLINGS: Final[Mapping[str, str]] = {
     "maximum_tested_host_hermes_version": PLACEHOLDER_VERSION,
     "minimum_host_hermes_version": PLACEHOLDER_VERSION,
     "release_id": PLACEHOLDER_VERSION,
-    "rich_output_skill_digest": PLACEHOLDER_DIGEST,
     "skill_improver_digest": PLACEHOLDER_DIGEST,
     "starter_skill_digest": PLACEHOLDER_DIGEST,
 }
@@ -137,7 +136,6 @@ class ReleaseCore(ProtocolModel):
     catalog_digest: Digest
     intro_climb_reference: NonEmptyString
     starter_skill_digest: Digest
-    rich_output_skill_digest: Digest
     skill_improver_digest: Digest
     minimum_host_hermes_version: NonEmptyString
     maximum_tested_host_hermes_version: NonEmptyString
@@ -209,7 +207,6 @@ class ReleaseInputs(ProtocolModel):
     cli_source_commit: Commit
     intro_climb_reference: NonEmptyString
     starter_skill_digest: Digest
-    rich_output_skill_digest: Digest
     skill_improver_digest: Digest
     minimum_host_hermes_version: NonEmptyString
     maximum_tested_host_hermes_version: NonEmptyString

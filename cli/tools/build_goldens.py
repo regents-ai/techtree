@@ -172,9 +172,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 #: differ from itself on the next regeneration.
 FIXED_TIME = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
 
-#: The development fixtures named by decisions document 0001.
-CAMPAIGN_REFERENCE = "procedure-transfer-dev-campaign@1"
-CLIMB_SLUG = "procedure-transfer-dev"
+#: The development fixtures, under the public names decisions document 0009
+#: fixes. The taskset id is the pinned package's own name and is not renamed
+#: for presentation.
+CAMPAIGN_REFERENCE = "hello-world-skill-uplift-campaign@1"
+CLIMB_SLUG = "hello-world-climb"
 TASKSET_ID = "procedure-transfer-v1"
 TASK_COUNT = 20
 
@@ -459,10 +461,10 @@ def build_climb(campaign_digest: Digest) -> ClimbManifest:
             id=fixture_id("climb", "climb"),
             slug=CLIMB_SLUG,
             version=1,
-            title="Procedure Transfer Development Climb",
+            title="Techtree Hello World",
             summary=(
-                "A development Climb used to exercise the Techtree protocol "
-                "end to end. It produces no publishable evidence."
+                "A toy Skill-uplift Climb, used here to exercise the Techtree "
+                "protocol end to end. It produces no publishable evidence."
             ),
             status="development",
             opens_at=None,

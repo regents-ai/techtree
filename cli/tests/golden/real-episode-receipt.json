@@ -40,7 +40,7 @@
     },
     "evidence_status": "complete",
     "execution_backend": "verifiers",
-    "experiment_manifest_digest": "sha256:7109d09475d3545d58ea8df73ed0c0848cf2600a0535f4d14a3e1d40d84a13cf",
+    "experiment_manifest_digest": "sha256:92b1470737783b88cbb23cc692e7d819d669203794f2e2708b3ae91aa953050f",
     "id": "receipt_47bd13e7cf2e823779c833f246d644af",
     "named_traces": {
       "subject": [
@@ -60,7 +60,7 @@
     "outcome_contract_digest": null,
     "program_ref": null,
     "public_context": {
-      "climb_digest": "sha256:b51ed16c5cdbb5bc75d4e86215db06adae02277e466b4d684bca97ed3202a56c",
+      "climb_digest": "sha256:0d79a320264d69ce71881026b742c4678def349eaff5127c89f41da7b1090f43",
       "kind": "climb"
     },
     "run_id": "run_bc6bcf8a52493f173292f667c596bfb7",
@@ -74,10 +74,10 @@
     "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
     "variant": "candidate"
   },
-  "payload_digest": "sha256:3a2436390c514eed523857ffdfd954e113fc097742f9a6d23cef8553e745c901",
+  "payload_digest": "sha256:2c4bb320a710c6fae602c22f99789b2ea8caf8db3eea09cd3d2ffb5f8cddad36",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "sha256:cb1636de7059dc2a939fb3e53590a8373911d5613540d1c00eeaf7d37a10d38f",
-    "signature": "JoECVi3ARYk6aqZk8M7Rl6E/w+z94Y4XGV9D/D9Zplu3T9A+pR50dTY0ZT8HdwwbpIUQk9mX9HlTlYYmzOTeBQ=="
+    "signature": "Evz9oSZQ9I+LZsiUX2QOa+DUzMTm6MdiWUO2sz6fShVVCYK3iqIbWzNEjFxSRepnLezGxjvxVF6Max6hGw+xBg=="
   }
 }

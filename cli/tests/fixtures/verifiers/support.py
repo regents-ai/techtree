@@ -147,7 +147,7 @@ LOCAL_MAXIMUM_OUTPUT_TOKENS: Final = 8000
 LOCAL_MAX_CONCURRENT: Final = 4
 
 #: The public reference the shipped catalog carries.
-DEVELOPMENT_CLIMB: Final = "procedure-transfer-dev"
+DEVELOPMENT_CLIMB: Final = "hello-world-climb"
 
 #: The candidate Skill the concurrent comparison inserts.
 #:
@@ -164,17 +164,17 @@ CANDIDATE_SKILL: Final = (
     Path(__file__).resolve().parents[1] / "skills" / "branch-code-v1"
 )
 
-_CAMPAIGN_PATH: Final = "campaigns/procedure-transfer-dev.json"
-_CLIMB_PATH: Final = "climbs/procedure-transfer-dev.json"
+_CAMPAIGN_PATH: Final = "campaigns/hello-world-climb.json"
+_CLIMB_PATH: Final = "climbs/hello-world-climb.json"
 _CATALOG_INDEX: Final = "catalog.json"
 _JSON_MEDIA_TYPE: Final = "application/json"
 
 #: The catalog objects a locally derived Campaign reuses byte for byte. None of
 #: them changes when the subject's model, image, budget or schedule does.
 _UNCHANGED_OBJECTS: Final[tuple[tuple[str, str], ...]] = (
-    ("data-policies/procedure-transfer-dev.json", "data_policy"),
-    ("taskset-validations/procedure-transfer-dev.json", "taskset_validation"),
-    ("validation-evidence/procedure-transfer-dev.json", "validation_evidence"),
+    ("data-policies/hello-world-climb.json", "data_policy"),
+    ("taskset-validations/hello-world-climb.json", "taskset_validation"),
+    ("validation-evidence/hello-world-climb.json", "validation_evidence"),
 )
 
 

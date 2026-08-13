@@ -81,13 +81,13 @@ __all__ = [
 
 #: The public reference the shipped catalog carries, reused so that the draft
 #: is prepared through the same Climb the probes were run under.
-_CLIMB_REFERENCE: Final = "procedure-transfer-dev"
+_CLIMB_REFERENCE: Final = "hello-world-climb"
 
-_CAMPAIGN_PATH: Final = "campaigns/procedure-transfer-dev.json"
-_CLIMB_PATH: Final = "climbs/procedure-transfer-dev.json"
-_DATA_POLICY_PATH: Final = "data-policies/procedure-transfer-dev.json"
-_RECEIPT_PATH: Final = "taskset-validations/procedure-transfer-dev.json"
-_EVIDENCE_PATH: Final = "validation-evidence/procedure-transfer-dev.json"
+_CAMPAIGN_PATH: Final = "campaigns/hello-world-climb.json"
+_CLIMB_PATH: Final = "climbs/hello-world-climb.json"
+_DATA_POLICY_PATH: Final = "data-policies/hello-world-climb.json"
+_RECEIPT_PATH: Final = "taskset-validations/hello-world-climb.json"
+_EVIDENCE_PATH: Final = "validation-evidence/hello-world-climb.json"
 _CATALOG_INDEX: Final = "catalog.json"
 _JSON_MEDIA_TYPE: Final = "application/json"
 

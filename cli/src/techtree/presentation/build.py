@@ -70,8 +70,10 @@ from techtree.receipts.execution import (
 
 __all__ = [
     "BASELINE_SKILL_LABEL",
+    "FIRST_RESULT_LABEL",
     "P1_MEANING",
     "SCORE_BAR_WIDTH",
+    "SECOND_RESULT_LABEL",
     "VERIFICATION_FAILED",
     "VERIFICATION_NOT_VERIFIED",
     "VERIFICATION_VERIFIED",
@@ -81,6 +83,12 @@ __all__ = [
 
 #: What a Skill-insertion comparison measures against. Not an absent value.
 BASELINE_SKILL_LABEL: Final = "No tested Skill"
+
+#: What each of the two results is called. Decisions document 0009 fixes both
+#: spellings: the first result is the receipt for adding a Skill, the second is
+#: the same comparison run again with a revised one.
+FIRST_RESULT_LABEL: Final = "Hello World Uplift Receipt"
+SECOND_RESULT_LABEL: Final = "Hello World — Iteration 2"
 
 #: Decisions document 0005 section 3.4, verbatim. The only words this build is
 #: permitted to explain ``P1`` with.
@@ -195,10 +203,17 @@ def _bar(value: float, maximum: float) -> str:
 
 
 def _comparison_label(baseline_skill: SkillArtifact | None) -> str:
-    """Return what this comparison compares, in the reader's terms."""
+    """Return which of the two results a reader is looking at.
+
+    Decisions document 0009 names both. The first comparison adds a Skill to a
+    run that had none; the second replaces that Skill with a revised one, and
+    calling it an iteration is what stops the two receipts being mistaken for
+    each other. Which Skill sat on each side is spelled out under "what
+    changed" rather than compressed into this line.
+    """
     if baseline_skill is None:
-        return f"{BASELINE_SKILL_LABEL} → Skill v1"
-    return "Skill v1 → Skill v2"
+        return FIRST_RESULT_LABEL
+    return SECOND_RESULT_LABEL
 
 
 def _skill_summary(skill: SkillArtifact | None, label: str) -> SkillSummary:
@@ -408,6 +423,17 @@ def _caveats(
             text=(
                 "Nobody has independently reproduced this comparison, and no "
                 "platform witnessed it."
+            ),
+        )
+    )
+    caveats.append(
+        PresentationCaveat(
+            code="introductory_task_family",
+            severity="warning",
+            text=(
+                "This is a toy introductory Climb. Its task family is "
+                "synthetic and demonstrates the mechanism; it measures no "
+                "broad capability."
             ),
         )
     )

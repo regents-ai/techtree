@@ -32,7 +32,7 @@ from techtree.release.models import (
     ReleaseCore,
 )
 
-INTRO_CLIMB = "procedure-transfer-dev@1"
+INTRO_CLIMB = "hello-world-climb@1"
 PLUGIN_COMMIT = "e" * 40
 
 
@@ -46,7 +46,6 @@ def core(**overrides: Any) -> ReleaseCore:
             "cli_version",
             "maximum_tested_host_hermes_version",
             "release_id",
-            "rich_output_skill_digest",
             "skill_improver_digest",
             "starter_skill_digest",
         ],
@@ -58,7 +57,6 @@ def core(**overrides: Any) -> ReleaseCore:
         "catalog_digest": "sha256:" + "2b" * 32,
         "intro_climb_reference": INTRO_CLIMB,
         "starter_skill_digest": PLACEHOLDER_DIGEST,
-        "rich_output_skill_digest": PLACEHOLDER_DIGEST,
         "skill_improver_digest": PLACEHOLDER_DIGEST,
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": PLACEHOLDER_VERSION,
@@ -269,7 +267,6 @@ def test_a_placeholder_wrapper_over_a_real_release_is_refused() -> None:
         cli_version="0.1.0",
         cli_source_commit="f" * 40,
         maximum_tested_host_hermes_version="0.19.3",
-        rich_output_skill_digest="sha256:" + "4d" * 32,
         skill_improver_digest="sha256:" + "5e" * 32,
         starter_skill_digest="sha256:" + "6f" * 32,
     )

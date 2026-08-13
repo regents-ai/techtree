@@ -1,11 +1,10 @@
 """The channel-neutral shape of a result. Spec section 7.13.
 
-Every renderer in this build, and the founder-supplied ``rich-terminal-output``
-Skill that WP9 may use instead of them, consumes exactly this payload. Its
-contents were not supplied with the request that specified WP7, so the payload
-is a contract about *what a result is*, never an assumption about how anyone
-draws it: numbers, labels, outcomes, caveats and next steps, with no markup,
-no colour and no channel anywhere in it.
+Both renderers in this build — the terminal one and the compact one a gateway
+relays — consume exactly this payload, and nothing else draws a result. The
+payload is a contract about *what a result is*, never an assumption about how
+anyone draws it: numbers, labels, outcomes, caveats and next steps, with no
+markup, no colour and no channel anywhere in it.
 
 Three properties are load-bearing.
 

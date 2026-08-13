@@ -18,10 +18,10 @@
     "closes_at": null,
     "id": "climb_ef5d8a4bf1657d764cb7ac378ea9ed91",
     "opens_at": null,
-    "slug": "procedure-transfer-dev",
+    "slug": "hello-world-climb",
     "status": "development",
-    "summary": "A development Climb used to exercise the Techtree protocol end to end. It produces no publishable evidence.",
-    "title": "Procedure Transfer Development Climb",
+    "summary": "A toy Skill-uplift Climb, used here to exercise the Techtree protocol end to end. It produces no publishable evidence.",
+    "title": "Techtree Hello World",
     "version": 1
   },
   "publication": {

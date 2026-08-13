@@ -144,7 +144,7 @@ def test_host_agent_arguments_need_a_tool_to_call() -> None:
             reason=None,
             cli=["techtree", "climb", "list"],
             hermes_tool=None,
-            hermes_args={"slug": "procedure-transfer-dev"},
+            hermes_args={"slug": "hello-world-climb"},
             requires_user_confirmation=False,
         )
 

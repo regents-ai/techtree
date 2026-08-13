@@ -1,9 +1,9 @@
 """The terminal rendering. Spec section 7.15.
 
-This is the CLI's own renderer. WP9's Hermes operator may hand the same neutral
-payload to the founder-supplied ``rich-terminal-output`` Skill instead; both
-draw the same result because both are given the same object, and neither can
-change a number by drawing it.
+This is the CLI's own renderer, and in the released product it is the whole
+terminal result path: a signed report becomes a neutral payload, and this draws
+it. No model is asked to explain a result, so nothing between the numbers and
+the reader can change one by drawing it.
 
 Four rules, and each one is about a reader rather than about a terminal.
 

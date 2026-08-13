@@ -119,7 +119,7 @@ def test_a_label_is_bounded() -> None:
 
 
 def test_a_label_keeps_ordinary_text_unchanged() -> None:
-    assert sanitize_label("Procedure Transfer Climb") == "Procedure Transfer Climb"
+    assert sanitize_label("Techtree Hello World") == "Techtree Hello World"
 
 
 def test_a_label_redacts_something_that_looks_like_a_key() -> None:

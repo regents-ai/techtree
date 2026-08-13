@@ -134,7 +134,7 @@
   "id": "receipt_cb5af344e0b2011f02e6008bffddc955",
   "program_ref": null,
   "public_context": {
-    "climb_digest": "sha256:b51ed16c5cdbb5bc75d4e86215db06adae02277e466b4d684bca97ed3202a56c",
+    "climb_digest": "sha256:0d79a320264d69ce71881026b742c4678def349eaff5127c89f41da7b1090f43",
     "kind": "climb"
   },
   "schema_version": "techtree.experiment.v1alpha1",

@@ -62,7 +62,7 @@ from techtree.verifiers.verify import dry_run_variant_config
 
 pytestmark = pytest.mark.integration
 
-DEV_CLIMB = "procedure-transfer-dev"
+DEV_CLIMB = "hello-world-climb"
 PINNED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 SUBJECT_SEAT = "subject"
 

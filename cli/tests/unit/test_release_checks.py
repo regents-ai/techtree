@@ -36,7 +36,7 @@ ENGINE_DIGEST = "sha256:" + "1a" * 32
 CATALOG_DIGEST = "sha256:" + "2b" * 32
 SKILL_DIGEST = "sha256:" + "3c" * 32
 SOURCE_COMMIT = "d" * 40
-INTRO_CLIMB = "procedure-transfer-dev@1"
+INTRO_CLIMB = "hello-world-climb@1"
 
 
 def bound_core(**overrides: Any) -> ReleaseCore:
@@ -53,7 +53,6 @@ def bound_core(**overrides: Any) -> ReleaseCore:
         "catalog_digest": CATALOG_DIGEST,
         "intro_climb_reference": INTRO_CLIMB,
         "starter_skill_digest": SKILL_DIGEST,
-        "rich_output_skill_digest": SKILL_DIGEST,
         "skill_improver_digest": SKILL_DIGEST,
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": "0.19.3",
@@ -71,7 +70,6 @@ def placeholder_core(**overrides: Any) -> ReleaseCore:
             "cli_version",
             "maximum_tested_host_hermes_version",
             "release_id",
-            "rich_output_skill_digest",
             "skill_improver_digest",
             "starter_skill_digest",
         ],
@@ -79,7 +77,6 @@ def placeholder_core(**overrides: Any) -> ReleaseCore:
         cli_version=PLACEHOLDER_VERSION,
         maximum_tested_host_hermes_version=PLACEHOLDER_VERSION,
         release_id=PLACEHOLDER_VERSION,
-        rich_output_skill_digest=PLACEHOLDER_DIGEST,
         skill_improver_digest=PLACEHOLDER_DIGEST,
         starter_skill_digest=PLACEHOLDER_DIGEST,
         **overrides,
@@ -144,7 +141,6 @@ def test_every_coordinate_is_checked_by_a_named_check() -> None:
         "intro_climb_reference",
         "subject_hermes_version",
         "starter_skill_digest",
-        "rich_output_skill_digest",
         "skill_improver_digest",
     }
 
@@ -275,7 +271,6 @@ def test_a_check_that_could_not_run_is_never_reported_as_a_pass() -> None:
     assert {check.id for check in result.skipped} == {
         "release_core_digest",
         "starter_skill_digest",
-        "rich_output_skill_digest",
         "skill_improver_digest",
     }
     assert all(check.status != "passed" for check in result.skipped)

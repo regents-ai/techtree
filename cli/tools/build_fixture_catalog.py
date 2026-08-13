@@ -1,8 +1,8 @@
 """Generate the packaged development catalog. Spec section 24.3, decisions 0003.
 
 This is the publisher. It produces the one Climb this build ships —
-``procedure-transfer-dev@1`` — and every object underneath it, and none of that
-is written by hand.
+``hello-world-climb@1``, Techtree Hello World — and every object underneath it,
+and none of that is written by hand.
 
 The pipeline is the binding order from spec section 25, executed literally:
 install the engine this build ships into a throwaway Techtree home, load the
@@ -124,16 +124,25 @@ from techtree.tasksets.service import TasksetService, TasksetValidationRun
 REPOSITORY_ROOT: Final = Path(__file__).resolve().parent.parent
 CATALOG_ROOT: Final = REPOSITORY_ROOT / "src" / "techtree" / "resources" / "catalog"
 
-#: Decisions document 0001 fixes both public names. ``procedure-transfer-v1``
-#: is reserved for the first real WP6 subject evaluation and is never what a
-#: development fixture is called.
-CLIMB_SLUG: Final = "procedure-transfer-dev"
+#: Decisions document 0009 fixes the public names: this build ships one Climb
+#: and it is called Techtree Hello World.
+CLIMB_SLUG: Final = "hello-world-climb"
 CLIMB_VERSION: Final = 1
+
+#: The fixed strings the Campaign and DataPolicy identifiers are derived from.
+#: They are not public names — nothing shows them to anybody — and they are
+#: deliberately left at their original spelling. Changing one changes the
+#: identifier it derives, which changes the object's digest, which would part
+#: the shipped Campaign from the recorded evidence of the paid runs already
+#: made against it. An identity a measurement is bound to is not renamed for
+#: presentation.
 CAMPAIGN_LABEL: Final = "procedure-transfer-dev-campaign@1"
 DATA_POLICY_LABEL: Final = "procedure-transfer-dev-policy@1"
 
 #: The reference taskset, spec section 22. Its distribution name is also its
-#: Verifiers taskset id.
+#: Verifiers taskset id. Decisions document 0009 leaves it alone: the task
+#: family is BranchCode v1 and the package that carries it is pinned by
+#: content, so it is not renamed for presentation.
 REFERENCE_PACKAGE: Final = "procedure-transfer-v1"
 TASKSET_ID: Final = "procedure-transfer-v1"
 
@@ -286,7 +295,7 @@ def build_development_data_policy() -> DataPolicy:
     )
 
 
-def build_procedure_transfer_campaign(
+def build_hello_world_campaign(
     *,
     taskset_lock: TasksetLock,
     validation_receipt_digest: Digest,
@@ -393,7 +402,7 @@ def build_procedure_transfer_campaign(
     )
 
 
-def build_procedure_transfer_climb(*, campaign_digest: Digest) -> ClimbManifest:
+def build_hello_world_climb(*, campaign_digest: Digest) -> ClimbManifest:
     """Return the public wrapper. Spec section 23.4.
 
     No schedule. A development Climb is open for as long as this build exists,
@@ -407,13 +416,14 @@ def build_procedure_transfer_climb(*, campaign_digest: Digest) -> ClimbManifest:
             id=derived_id("climb", f"{CLIMB_SLUG}@{CLIMB_VERSION}"),
             slug=CLIMB_SLUG,
             version=CLIMB_VERSION,
-            title="Procedure Transfer Development Climb",
+            title="Techtree Hello World",
             summary=(
-                "Does writing down a procedure as a skill let an agent apply it "
-                "to inputs it has never seen? This development Climb exercises "
-                "the whole Techtree loop against a real, model-free validated "
-                "taskset; its results are produced by the fake executor and are "
-                "not evidence."
+                "A toy Skill-uplift Climb. It runs the synthetic BranchCode v1 "
+                "task family twice — once without a Skill, once with one — so "
+                "you can see what writing a procedure down changes. This is an "
+                "introductory demonstration of the mechanism, not a measure of "
+                "broad capability. This development build has not yet chosen "
+                "the model that answers, so its numbers are not evidence."
             ),
             status="development",
             opens_at=None,
@@ -516,12 +526,12 @@ def build(destination: Path = CATALOG_ROOT) -> TasksetValidationReceipt:
         validation = publish_validation(Path(directory))
 
     data_policy = build_development_data_policy()
-    campaign = build_procedure_transfer_campaign(
+    campaign = build_hello_world_campaign(
         taskset_lock=validation.lock,
         validation_receipt_digest=validation.receipt_digest,
         data_policy_digest=digest_object(data_policy),
     )
-    climb = build_procedure_transfer_climb(campaign_digest=digest_object(campaign))
+    climb = build_hello_world_climb(campaign_digest=digest_object(campaign))
 
     objects = [
         CatalogFile(kind="campaign", path=CAMPAIGN_PATH, model=campaign),

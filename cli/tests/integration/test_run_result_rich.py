@@ -80,8 +80,9 @@ def test_the_result_shows_the_comparison_and_the_measurement(
 ) -> None:
     text = human(finished, "--format", "rich")
 
-    assert "Procedure Transfer Development Climb" in text
-    assert "No tested Skill → Skill v1" in text
+    assert "Techtree Hello World" in text
+    assert "Hello World Uplift Receipt" in text
+    assert "No tested Skill" in text
     assert "Baseline" in text
     assert "Candidate" in text
     assert "2 WIN / 0 LOSS / 0 TIE" in text

@@ -16,8 +16,8 @@ Two modules divide the work:
 
 The packaged catalog of this build is valid and empty. Decisions document 0003
 A2 forbids shipping hand-authored placeholder science, so the real
-``procedure-transfer-dev@1`` graph arrives with the generation chain and the
-graph logic is exercised against a complete synthetic fixture instead.
+``hello-world-climb@1`` graph arrives with the generation chain and the graph
+logic is exercised against a complete synthetic fixture instead.
 """
 
 from __future__ import annotations

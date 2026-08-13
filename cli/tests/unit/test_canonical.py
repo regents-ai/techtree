@@ -78,7 +78,7 @@ class Sample(ProtocolModel):
 def make_sample(**overrides: Any) -> Sample:
     """Build the reference sample, optionally changing one field."""
     fields: dict[str, Any] = {
-        "name": "procedure-transfer-dev",
+        "name": "hello-world-climb",
         "count": 24,
         "ratio": 0.5,
         "enabled": True,
@@ -171,7 +171,7 @@ def test_nested_key_order_does_not_change_the_digest() -> None:
 @pytest.mark.parametrize(
     ("field", "value"),
     [
-        ("name", "procedure-transfer-devv"),
+        ("name", "hello-world-climbv"),
         ("count", 25),
         ("ratio", 0.5000000001),
         ("enabled", False),

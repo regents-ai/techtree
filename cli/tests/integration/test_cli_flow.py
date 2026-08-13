@@ -27,15 +27,20 @@ from pathlib import Path
 from typing import Any, Final
 
 import pytest
+from typer.testing import CliRunner
 
 from fixtures.drafts.support import VALID_SKILL
 from fixtures.runs.support import CliRun, run_cli, wait_for_terminal
+from fixtures.starter import STARTER_FIXTURE, release_pinning, tree_digest
+from techtree.cli.app import create_app
 from techtree.cli.commands.climb import abbreviated_digest
 from techtree.cli.commands.run import development_only_result_notice
+from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
 from techtree.errors import EXIT_OK
 from techtree.identity.store import IdentityStore
 from techtree.models.uplift_report import UpliftReport
 from techtree.paths import paths_from_root
+from techtree.release.document import render_release_core
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.events import read_events
 from techtree.runs.store import RunStore
@@ -49,8 +54,8 @@ from techtree.tasksets.service import (
 
 pytestmark = pytest.mark.integration
 
-CLIMB_REFERENCE: Final = "procedure-transfer-dev"
-CLIMB_LISTING_REFERENCE: Final = "procedure-transfer-dev@1"
+CLIMB_REFERENCE: Final = "hello-world-climb"
+CLIMB_LISTING_REFERENCE: Final = "hello-world-climb@1"
 EXPECTED_TASK_COUNT: Final = 36
 
 
@@ -369,3 +374,81 @@ def test_the_flow_left_the_home_it_was_given(flow: dict[str, Any]) -> None:
     assert paths.engines_dir.is_dir()
     assert paths.runs_dir.is_dir()
     assert paths.config_file.is_file()
+
+
+# ---------------------------------------------------------------------------
+# The guided first run, followed exactly as printed
+# ---------------------------------------------------------------------------
+
+
+def test_the_starter_skills_printed_next_step_runs_verbatim(
+    flow: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Decisions 0010 item 5, against the engine and catalog this build ships.
+
+    ``skill starter`` prints the command to prepare what it just obtained. A
+    person following the guided first run types that command, so it either
+    works exactly as printed or the journey stops there. Here it is taken from
+    the machine envelope and executed as a real subprocess, argument for
+    argument, with nothing rewritten.
+
+    Only the release document is substituted, because this build has not yet
+    pinned a starter Skill and the command's only reachable answer without one
+    is the refusal.
+    """
+    home: Path = flow["home"]
+    document = render_release_core(release_pinning(tree_digest(STARTER_FIXTURE)))
+    monkeypatch.setattr(
+        "techtree.cli.commands.skill.packaged_release_core_bytes", lambda: document
+    )
+
+    obtained = CliRunner().invoke(
+        create_app(),
+        [
+            "--home",
+            str(home),
+            "--json",
+            "skill",
+            "starter",
+            "--from-file",
+            str(STARTER_FIXTURE),
+        ],
+    )
+    assert obtained.exit_code == EXIT_OK, obtained.stdout
+    envelope = json.loads(obtained.stdout.splitlines()[-1])
+    argv: list[str] = envelope["next_actions"][0]["cli"]
+
+    assert argv[0] == "techtree"
+    assert CLIMB_LISTING_REFERENCE in argv
+
+    prepared = run_cli(home, *argv[1:])
+
+    assert prepared.exit_code == EXIT_OK, prepared.stdout + prepared.stderr
+    draft = prepared.data()
+    assert draft["candidate_label"] == STARTER_SKILL_CANDIDATE_LABEL
+    assert draft["climb_reference"] == CLIMB_LISTING_REFERENCE
+    assert draft["skill_root_digest"] == envelope["data"]["skill_root_digest"]
+
+
+def test_the_starter_skills_own_name_is_still_a_label_a_candidate_may_carry(
+    flow: dict[str, Any],
+) -> None:
+    """The frontmatter name stays valid even though it is not the label used.
+
+    Decisions 0010 item 5 files the starter candidate under a shorter label
+    than the Skill's own name. That is a choice, not a workaround for a name
+    the product would refuse, and this is the difference.
+    """
+    prepared = run_cli(
+        flow["home"],
+        "climb",
+        "prepare",
+        CLIMB_LISTING_REFERENCE,
+        "--skill",
+        str(STARTER_FIXTURE),
+        "--label",
+        STARTER_SKILL_NAME,
+    )
+
+    assert prepared.exit_code == EXIT_OK, prepared.stdout + prepared.stderr
+    assert prepared.data()["candidate_label"] == STARTER_SKILL_NAME

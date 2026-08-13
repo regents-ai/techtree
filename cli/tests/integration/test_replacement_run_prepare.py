@@ -60,7 +60,10 @@ from techtree.models.experiment import ExperimentVariant
 from techtree.models.run import PolicyAcknowledgement, RunPhase
 from techtree.models.skill import SubmissionDraft
 from techtree.models.uplift_report import UpliftDecision, UpliftReport
-from techtree.presentation.build import build_uplift_presentation
+from techtree.presentation.build import (
+    SECOND_RESULT_LABEL,
+    build_uplift_presentation,
+)
 from techtree.receipts.bundle import proof_bundle_dir
 from techtree.receipts.verify import verify_local_bundle
 from techtree.runs.artifacts import RUN_INPUT_STAGING_FAILED, RunArtifactStore
@@ -246,7 +249,7 @@ def test_the_second_report_is_presented_as_a_replacement(tmp_path: Path) -> None
         ),
     )
 
-    assert payload.comparison_label == "Skill v1 → Skill v2"
+    assert payload.comparison_label == SECOND_RESULT_LABEL
     assert payload.baseline_skill.root_digest == (
         inputs.baseline_skill.artifact.root_digest
     )

@@ -104,7 +104,6 @@ def build_release_core(inputs: ReleaseInputs, sources: ReleaseSources) -> Releas
         ),
         "minimum_host_hermes_version": inputs.minimum_host_hermes_version,
         "release_id": inputs.release_id,
-        "rich_output_skill_digest": inputs.rich_output_skill_digest,
         "skill_improver_digest": inputs.skill_improver_digest,
         "starter_skill_digest": inputs.starter_skill_digest,
     }

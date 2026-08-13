@@ -182,7 +182,6 @@ def test_this_build_carries_a_self_declaring_placeholder_release() -> None:
         "cli_version",
         "maximum_tested_host_hermes_version",
         "release_id",
-        "rich_output_skill_digest",
         "skill_improver_digest",
         "starter_skill_digest",
     ]
@@ -190,7 +189,7 @@ def test_this_build_carries_a_self_declaring_placeholder_release() -> None:
 
 def test_the_release_names_the_climb_and_harness_this_build_ships() -> None:
     core = parse_release_core(packaged_release_core_bytes())
-    assert core.intro_climb_reference == "procedure-transfer-dev@1"
+    assert core.intro_climb_reference == "hello-world-climb@1"
     assert core.subject_hermes_version == "0.19.0"
     assert core.protocol_version == "v1alpha1"
 

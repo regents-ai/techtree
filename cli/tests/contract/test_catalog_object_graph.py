@@ -17,7 +17,7 @@ typed failure that link is protected by.
 The CLI is exercised from both ends: against the complete fixture, so that a
 populated listing and a full ``show`` are rendered and validated, and against
 the real packaged catalog, which since PR4B holds the generated
-``procedure-transfer-dev@1`` graph and must resolve end to end.
+``hello-world-climb@1`` graph and must resolve end to end.
 """
 
 from __future__ import annotations
@@ -560,7 +560,7 @@ def test_the_packaged_catalog_ships_the_generated_development_climb() -> None:
     """Decisions 0003 A2: PR4B replaced the empty catalog with the real graph."""
     packaged = EmbeddedCatalogRepository.packaged()
 
-    assert packaged.list_climb_references() == ["procedure-transfer-dev@1"]
+    assert packaged.list_climb_references() == ["hello-world-climb@1"]
     assert packaged.catalog_metadata()["object_count"] == 4
 
 
@@ -575,7 +575,7 @@ def test_the_packaged_graph_resolves_and_agrees_with_itself(
         InstalledEngineStatus(paths),
     )
 
-    resolved = service.get_climb("procedure-transfer-dev")
+    resolved = service.get_climb("hello-world-climb")
     service.validate_public_policy(resolved)
     evidence = service.validation_evidence(resolved)
 
@@ -592,9 +592,7 @@ def test_list_offers_the_climb_this_build_ships(
     envelope = _invoke(temp_techtree_home, "climb", "list", "--json")
 
     assert envelope["ok"] is True
-    assert [entry["reference"] for entry in envelope["data"]] == [
-        "procedure-transfer-dev@1"
-    ]
+    assert [entry["reference"] for entry in envelope["data"]] == ["hello-world-climb@1"]
     assert envelope["messages"][0]["code"] == "climbs_available"
 
 

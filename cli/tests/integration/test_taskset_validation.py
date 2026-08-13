@@ -67,7 +67,7 @@ pytestmark = pytest.mark.integration
 
 REPOSITORY_ROOT: Final = Path(__file__).resolve().parents[2]
 
-CLIMB_REFERENCE: Final = "procedure-transfer-dev"
+CLIMB_REFERENCE: Final = "hello-world-climb"
 
 #: Spec section 22: one task per frozen proving input. Written here rather than
 #: derived, so that changing the dataset has to be a deliberate change to what
@@ -398,12 +398,12 @@ def tampered_catalog(destination: Path, validated: TasksetValidationRun) -> Path
     )
 
     data_policy: DataPolicy = builder.build_development_data_policy()
-    campaign = builder.build_procedure_transfer_campaign(
+    campaign = builder.build_hello_world_campaign(
         taskset_lock=lock,
         validation_receipt_digest=digest_object(receipt),
         data_policy_digest=digest_object(data_policy),
     )
-    climb: ClimbManifest = builder.build_procedure_transfer_climb(
+    climb: ClimbManifest = builder.build_hello_world_climb(
         campaign_digest=digest_object(campaign)
     )
 

@@ -47,15 +47,15 @@ def index(**overrides: Any) -> CatalogIndex:
         "schema_version": CATALOG_SCHEMA_VERSION,
         "climbs": [
             CatalogClimbEntry(
-                reference="procedure-transfer-dev@1",
+                reference="hello-world-climb@1",
                 digest=CLIMB_DIGEST,
-                path="climbs/procedure-transfer-dev.json",
+                path="climbs/hello-world-climb.json",
             )
         ],
         "objects": {
             CAMPAIGN_DIGEST: CatalogObjectLocation(
                 kind="campaign",
-                path="campaigns/procedure-transfer-dev.json",
+                path="campaigns/hello-world-climb.json",
                 media_type="application/json",
             )
         },
@@ -72,7 +72,7 @@ def index(**overrides: Any) -> CatalogIndex:
 def test_an_index_maps_climbs_and_objects_to_files() -> None:
     catalog = index()
 
-    assert catalog.climbs[0].reference == "procedure-transfer-dev@1"
+    assert catalog.climbs[0].reference == "hello-world-climb@1"
     assert catalog.objects[CAMPAIGN_DIGEST].kind == "campaign"
 
 
@@ -94,7 +94,7 @@ def test_the_empty_packaged_catalog_is_valid() -> None:
 
 def test_index_rejects_a_repeated_climb_reference() -> None:
     entry = CatalogClimbEntry(
-        reference="procedure-transfer-dev@1",
+        reference="hello-world-climb@1",
         digest=sha256_digest_bytes(b"other climb"),
         path="climbs/other.json",
     )
@@ -118,7 +118,7 @@ def test_index_rejects_two_digests_claiming_the_same_file() -> None:
     objects = dict(index().objects)
     objects[POLICY_DIGEST] = CatalogObjectLocation(
         kind="data_policy",
-        path="campaigns/procedure-transfer-dev.json",
+        path="campaigns/hello-world-climb.json",
         media_type="application/json",
     )
 
@@ -279,7 +279,7 @@ def summary_from_golden() -> ClimbSummary:
 def test_the_climb_summary_shows_identity_science_and_rights() -> None:
     summary = summary_from_golden()
 
-    assert summary.reference == "procedure-transfer-dev@1"
+    assert summary.reference == "hello-world-climb@1"
     assert summary.taskset_id == "procedure-transfer-v1"
     assert summary.task_count == 20
     assert summary.subject_harness == "hermes-agent"

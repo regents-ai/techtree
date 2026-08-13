@@ -56,9 +56,6 @@
     "release_id": {
       "$ref": "#/$defs/NonEmptyString"
     },
-    "rich_output_skill_digest": {
-      "$ref": "#/$defs/Digest"
-    },
     "schema_version": {
       "const": "techtree.release-core.v1",
       "title": "Schema Version",
@@ -86,7 +83,6 @@
     "catalog_digest",
     "intro_climb_reference",
     "starter_skill_digest",
-    "rich_output_skill_digest",
     "skill_improver_digest",
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",

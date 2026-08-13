@@ -116,12 +116,15 @@ def test_the_compact_result_is_short_enough_to_send(
 ) -> None:
     """A phone message, not a terminal dump.
 
-    The budget moved by exactly one line when decisions document 0007 R6 added
-    the cost and its provenance to this channel, and by nothing else.
+    The budget has moved exactly twice. Decisions document 0007 R6 added the
+    cost and its provenance, and decisions document 0009 added the sentence
+    saying the task family is a toy introductory one. Both are qualifications
+    the reader is owed in the channel a number is most likely to be quoted out
+    of, so both are paid for out of the budget rather than out of honesty.
     """
     text = compact(finished)
 
-    assert len(text.splitlines()) < 42
+    assert len(text.splitlines()) < 44
 
 
 def test_the_compact_result_offers_one_next_step_in_words(

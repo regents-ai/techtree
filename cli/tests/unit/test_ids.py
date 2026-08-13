@@ -158,6 +158,6 @@ def test_id_prefix_rejects_invalid_identifiers(value: str) -> None:
 def test_identical_content_gets_different_identifiers() -> None:
     # Two drafts of the same thing are two drafts. Sameness of content is a
     # question only a digest answers.
-    content = {"climb": "procedure-transfer-dev", "version": 1}
+    content = {"climb": "hello-world-climb", "version": 1}
     assert digest_object(content) == digest_object(dict(content))
     assert new_id("draft") != new_id("draft")
