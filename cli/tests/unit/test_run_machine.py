@@ -1899,6 +1899,32 @@ def test_state_rebuilds_when_the_projection_is_damaged(
     assert created_run.state(RUN_ID) == expected
 
 
+def test_progress_with_no_named_phase_lands_in_the_phase_the_run_is_in(
+    created_run: RunStore,
+) -> None:
+    """The techtree-python-igy race: cancellation may land between a worker's
+    last look at the run and its progress append, so a progress event that
+    names no phase must be placed by the store — including when the run has
+    just moved to cancel_requested."""
+    advance(
+        created_run,
+        RUN_ID,
+        [RunPhase.VALIDATING_TASKSET, RunPhase.RUNNING_BASELINE],
+    )
+    created_run.request_cancel(RUN_ID, requested_by="test")
+
+    state = created_run.append(
+        RUN_ID,
+        phase=None,
+        kind=PROGRESS_UPDATED,
+        details={"current": 3, "total": 36, "label": "baseline episodes"},
+    )
+
+    assert state.phase is RunPhase.CANCEL_REQUESTED
+    assert state.progress is not None
+    assert state.progress.current == 3
+
+
 def test_state_rebuilds_when_the_projection_lags_the_journal(
     created_run: RunStore,
     paths: TechtreePaths,

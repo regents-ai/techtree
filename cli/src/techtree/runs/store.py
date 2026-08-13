@@ -168,11 +168,18 @@ class RunStore:
         self,
         run_id: str,
         *,
-        phase: RunPhase,
+        phase: RunPhase | None,
         kind: str = PHASE_ENTERED,
         details: dict[str, JsonValue] | None = None,
     ) -> RunState:
-        """Validate event, append, and project."""
+        """Validate event, append, and project.
+
+        ``phase=None`` records the event against whatever phase the run is in
+        at append time, under the lock. A caller reporting on work in progress
+        must use it rather than naming a phase, because between its last look
+        and this append the run may have been asked to cancel — and an event
+        that claims a phase the run has left is corruption, not progress.
+        """
         self._require_run(run_id)
         with self._lock(run_id):
             return self._append_locked(run_id, phase=phase, kind=kind, details=details)

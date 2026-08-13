@@ -271,8 +271,12 @@ def _check_phases(event: RunEvent) -> None:
             f"only {RUN_CREATED} comes from no earlier phase",
         )
 
+    # The exclusive kinds own the *transition into* their phase. An event that
+    # stays where it is (a progress report landing just after cancellation was
+    # requested, for instance) is governed by the same-phase whitelist instead.
+    entering = event.previous_phase is not event.phase
     for phase, kind in _EXCLUSIVE_PHASE_KINDS.items():
-        if event.phase is phase and event.kind != kind:
+        if entering and event.phase is phase and event.kind != kind:
             raise _kind_mismatch(event, f"only {kind} enters {phase.value}")
         if event.kind == kind and event.phase is not phase:
             raise _kind_mismatch(event, f"{kind} enters {phase.value}")

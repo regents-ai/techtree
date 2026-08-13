@@ -625,13 +625,11 @@ class FakeRunExecutor:
                     trace_artifact=trace,
                 ),
             )
+            # phase=None: cancellation may land between the receipt write and
+            # this append, so the store, not this executor, names the phase.
             context.run_store.append(
                 run_id,
-                phase=(
-                    RunPhase.RUNNING_BASELINE
-                    if variant is ExperimentVariant.BASELINE
-                    else RunPhase.RUNNING_CANDIDATE
-                ),
+                phase=None,
                 kind=PROGRESS_UPDATED,
                 details={
                     DETAIL_CURRENT: position + 1,
