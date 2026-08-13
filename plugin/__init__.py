@@ -26,7 +26,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from .commands import CLI_COMMANDS, SLASH_COMMANDS
+from .commands import (
+    SLASH_ARGS_HINT,
+    SLASH_COMMANDS,
+    register_cli_subcommands,
+    slash_handler,
+)
 from .constants import (
     PLUGIN_ROOT,
     SKILL_ENTRY_FILENAME,
@@ -34,7 +39,7 @@ from .constants import (
     TOOLSET_NAME,
 )
 from .errors import PluginError
-from .hooks import SESSION_HOOKS
+from .hooks import SESSION_HOOKS, build_session_hooks
 from .schemas import all_tool_schemas
 from .services.container import PluginServices, build_services
 from .tools import TOOL_HANDLERS, bind
@@ -76,15 +81,15 @@ def _register_tools(ctx: Any, services: PluginServices) -> None:
 
 def _register_commands(ctx: Any, services: PluginServices) -> None:
     """Register the `/techtree` and `hermes techtree ...` command surfaces."""
-    for name, handler in sorted(SLASH_COMMANDS.items()):
-        ctx.register_command(name=name, handler=handler)
-    for name, command in sorted(CLI_COMMANDS.items()):
-        ctx.register_cli_command(
+    handler = slash_handler(services)
+    for name, description in sorted(SLASH_COMMANDS.items()):
+        ctx.register_command(
             name=name,
-            help=command.help,
-            setup_fn=command.setup,
-            handler_fn=command.handler,
+            handler=handler,
+            description=description,
+            args_hint=SLASH_ARGS_HINT,
         )
+    register_cli_subcommands(ctx, services)
 
 
 def _register_skills(ctx: Any) -> None:
@@ -104,5 +109,6 @@ def _register_skills(ctx: Any) -> None:
 
 def _register_hooks(ctx: Any, services: PluginServices) -> None:
     """Register the additive-signature session hooks."""
-    for name, callback in sorted(SESSION_HOOKS.items()):
-        ctx.register_hook(name, callback)
+    callbacks = build_session_hooks(services)
+    for name in sorted(SESSION_HOOKS):
+        ctx.register_hook(name, callbacks[name])

@@ -9,13 +9,14 @@ from __future__ import annotations
 from typing import Any
 
 from ..errors import PluginError
-from . import passthrough, safe_tool
+from . import channel_of, passthrough, safe_tool
 from .arguments import require_local_path, require_run_id
 
 
 @safe_tool
 def techtree_proof_verify(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Verify a run's stored proof, or one the user pointed at."""
+    channel = channel_of(args, kwargs)
     run_id = args.get("run_id")
     proof_path = args.get("proof_path")
 
@@ -31,4 +32,4 @@ def techtree_proof_verify(services: Any, args: dict[str, Any], **kwargs: Any) ->
         if run_id
         else require_local_path(str(proof_path), "proof_path")
     )
-    return passthrough(services.bridge.invoke(["proof", "verify", target]))
+    return passthrough(services.bridge.invoke(["proof", "verify", target]), channel)

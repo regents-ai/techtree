@@ -558,6 +558,24 @@ def test_the_demo_records_the_run_it_started() -> None:
     assert session.first_run_id == RUN_ID
 
 
+def test_no_operator_skill_ever_reaches_the_subject() -> None:
+    """The plugin's own Skills are for the host agent, never for the container."""
+    bridge = _demo_bridge()
+    services = _services(bridge=bridge)
+
+    _call("techtree_demo_prepare", services, {})
+    _call(
+        "techtree_climb_prepare",
+        services,
+        {"reference": "demo@1", "skill_path": "/home/me/candidate"},
+    )
+
+    for call in bridge.calls:
+        for argument in call:
+            assert "skills/operator" not in argument
+            assert "techtree:operator" not in argument
+
+
 def test_no_handler_ever_returns_a_confirmation_token_it_stored() -> None:
     """The token is shown once, by the CLI, and never kept in state."""
     services = _services(bridge=_demo_bridge())

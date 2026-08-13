@@ -12,7 +12,7 @@ from typing import Any
 from ..approvals import policy_acceptance_args
 from ..services.session import update_after_second_start
 from ..state import latest_session, save_session
-from . import passthrough, require_argument, safe_tool
+from . import channel_of, passthrough, require_argument, safe_tool
 from .arguments import (
     require_confirmation_token,
     require_digest,
@@ -26,13 +26,15 @@ from .arguments import (
 @safe_tool
 def techtree_uplift_context(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Export the sanitized improvement context for a finished run."""
+    channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
-    return passthrough(services.bridge.invoke(["uplift", "context", run_id]))
+    return passthrough(services.bridge.invoke(["uplift", "context", run_id]), channel)
 
 
 @safe_tool
 def techtree_uplift_prepare(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Prepare a run's Skill against a revision of it. Starts nothing."""
+    channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
     skill_path = require_local_path(
         require_argument(args, "revised_skill_path"), "revised_skill_path"
@@ -48,12 +50,13 @@ def techtree_uplift_prepare(services: Any, args: dict[str, Any], **kwargs: Any) 
     label = args.get("label")
     if isinstance(label, str) and label:
         arguments += ["--label", require_label(label)]
-    return passthrough(services.bridge.invoke(arguments))
+    return passthrough(services.bridge.invoke(arguments), channel)
 
 
 @safe_tool
 def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Start a prepared Skill-against-Skill comparison. Spends model budget."""
+    channel = channel_of(args, kwargs)
     draft_id = require_draft_id(require_argument(args, "draft_id"))
     token = require_confirmation_token(require_argument(args, "confirmation_token"))
     policy = require_digest(
@@ -76,4 +79,4 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
     if session is not None and envelope.get("ok"):
         save_session(services, update_after_second_start(session, envelope))
 
-    return passthrough(envelope)
+    return passthrough(envelope, channel)

@@ -175,6 +175,35 @@ def test_a_manifest_that_asks_for_credentials_is_rejected(checkout: Path) -> Non
     assert "requires_env" in _check(report, "plugin_manifest").detail
 
 
+def test_the_runtime_cannot_open_a_connection(checkout: Path) -> None:
+    """No handler can upload a result, because none of them can reach a socket."""
+    check = _check(
+        run_plugin_doctor(checkout, path_lookup=_all_executables), "no_network"
+    )
+
+    assert check.status == "pass"
+    assert check.blocking is True
+
+
+def test_a_networking_import_blocks(checkout: Path) -> None:
+    (checkout / "uploader.py").write_text("import urllib.request\n", encoding="utf-8")
+
+    report = run_plugin_doctor(checkout, path_lookup=_all_executables)
+
+    assert not report.ok
+    assert "urllib" in _check(report, "no_network").detail
+
+
+def test_no_relay_dependency_exists(checkout: Path) -> None:
+    """Relay is deferred, and nothing here quietly reaches for it."""
+    from techtree_hermes.doctor import iter_runtime_modules
+
+    for path in iter_runtime_modules(checkout):
+        text = path.read_text(encoding="utf-8").lower()
+        assert "nemo" not in text
+        assert "import relay" not in text
+
+
 def test_a_runtime_third_party_import_blocks(checkout: Path) -> None:
     (checkout / "bridge.py").write_text("import requests\n", encoding="utf-8")
 
@@ -197,13 +226,25 @@ def test_a_runtime_techtree_import_blocks(checkout: Path) -> None:
 
 
 def test_bundled_skills_are_reported_when_present(checkout: Path) -> None:
-    operator = checkout / "skills" / "operator"
-    operator.mkdir(parents=True)
-    (operator / "SKILL.md").write_text("# Operator\n", encoding="utf-8")
+    """This build bundles the operator Skill, namespaced to the plugin."""
+    assert (checkout / "skills" / "operator" / "SKILL.md").is_file()
 
     report = run_plugin_doctor(checkout, path_lookup=_all_executables)
 
-    assert _check(report, "bundled_skills").detail.endswith("techtree:operator")
+    check = _check(report, "bundled_skills")
+    assert check.status == "pass"
+    assert check.detail.endswith("techtree:operator")
+
+
+def test_a_build_without_bundled_skills_is_only_warned(checkout: Path) -> None:
+    shutil.rmtree(checkout / "skills")
+
+    report = run_plugin_doctor(checkout, path_lookup=_all_executables)
+
+    check = _check(report, "bundled_skills")
+    assert report.ok
+    assert check.status == "warn"
+    assert check.blocking is False
 
 
 # Manifest grammar ---------------------------------------------------------------

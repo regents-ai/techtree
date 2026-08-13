@@ -43,13 +43,13 @@ def test_registration_registers_every_implemented_tool(ctx: RecordingContext) ->
 def test_registration_registers_implemented_commands_and_hooks(
     ctx: RecordingContext,
 ) -> None:
-    from techtree_hermes.commands import CLI_COMMANDS, SLASH_COMMANDS
+    from techtree_hermes.commands import CLI_COMMAND_NAMES, SLASH_COMMANDS
     from techtree_hermes.hooks import SESSION_HOOKS
 
     techtree_hermes.register(ctx)
 
     assert set(ctx.commands) == set(SLASH_COMMANDS)
-    assert set(ctx.cli_commands) == set(CLI_COMMANDS)
+    assert set(ctx.cli_commands) == set(CLI_COMMAND_NAMES)
     assert set(ctx.hooks) == set(SESSION_HOOKS)
 
 

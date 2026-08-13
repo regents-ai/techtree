@@ -251,6 +251,7 @@ def run_plugin_doctor(
     _check_tool_schemas(manifest, checks)
     digest = _check_release_core(root, checks)
     _check_runtime_imports(root, checks)
+    _check_no_network(root, checks)
     _check_bundled_skills(root, checks)
     _check_coverage(
         checks,
@@ -484,6 +485,61 @@ def _check_release_core(root: Path, checks: list[DoctorCheck]) -> str | None:
         )
     )
     return digest
+
+
+#: Standard-library modules that open a connection. The plugin uploads
+#: nothing and fetches nothing: Techtree is reached by running a command, and
+#: anything the release needs from the network is Techtree's own business.
+NETWORKING_MODULES: Final = frozenset(
+    {
+        "asyncio",
+        "ftplib",
+        "http",
+        "imaplib",
+        "poplib",
+        "smtplib",
+        "socket",
+        "socketserver",
+        "ssl",
+        "telnetlib",
+        "urllib",
+        "webbrowser",
+        "xmlrpc",
+    }
+)
+
+
+def _check_no_network(root: Path, checks: list[DoctorCheck]) -> None:
+    """Prove the runtime cannot open a connection, rather than promising it."""
+    offenders: list[str] = []
+    for path in sorted(iter_runtime_modules(root)):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except (OSError, SyntaxError):
+            continue
+        for module in _imported_top_level_modules(tree):
+            if module in NETWORKING_MODULES:
+                offenders.append(f"{path.relative_to(root)} imports {module!r}")
+
+    checks.append(
+        DoctorCheck(
+            id="no_network",
+            label="No network access",
+            status="fail" if offenders else "pass",
+            detail=(
+                "; ".join(offenders)
+                if offenders
+                else (
+                    "no runtime module can open a connection, so nothing here "
+                    "can upload a result or fetch one"
+                )
+            ),
+            blocking=True,
+            repair="Remove the networking import; the CLI is the only boundary."
+            if offenders
+            else None,
+        )
+    )
 
 
 def _check_runtime_imports(root: Path, checks: list[DoctorCheck]) -> None:

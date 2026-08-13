@@ -43,6 +43,31 @@ by a test that seals off every way of starting a process, opening a socket, or
 writing a file, and then requires the plugin to load anyway
 (`tests/contract/test_no_registration_side_effects.py`).
 
+## Commands
+
+In any session, including a phone:
+
+```text
+/techtree setup      is Techtree installed, and is this machine ready?
+/techtree climbs     what this build offers
+/techtree demo       prepare the introduction, stopping before it spends
+/techtree status     how a run is going
+/techtree cancel     stop a run
+/techtree result     the finished result
+/techtree verify     check a local proof, offline
+/techtree improve    what a finished run says about itself
+```
+
+In a terminal, where Techtree's own rendered output belongs:
+
+```text
+hermes techtree doctor | demo | status <run> | watch <run> | result <run> | verify <path>
+```
+
+`watch` follows a run live in your terminal. Nothing the model can call ever
+holds an open watch — a conversation that is waiting is a conversation that
+has stopped.
+
 ## Check the plugin
 
 ```bash
@@ -89,6 +114,9 @@ bridge.py            the only path from the plugin into Techtree
 doctor.py            the plugin's own doctor
 commands.py          `/techtree` and `hermes techtree ...` registries
 hooks.py             session lifecycle registry
+channels.py          terminal or phone, and what changes
+commands.py          /techtree and hermes techtree …
+hooks.py             session start and end
 state.py             the identifiers a conversation keeps
 tools/               the tools the agent calls
 services/            the container assembled during registration
@@ -124,11 +152,18 @@ the conversation, and nothing is lost when it ends, because Techtree holds the
 run itself: ask about a run by its identifier and the answer comes back from
 Techtree, not from anything the plugin was keeping.
 
+## On a phone
+
+Everything except `watch` works from a messaging gateway. Answers are compact,
+carry no terminal control codes, and are bounded — and when an answer is cut,
+it says so and names the command that shows all of it. When nothing tells the
+plugin which kind of session it is in, it assumes a phone, because output that
+is safe on a phone is also fine in a terminal.
+
 ## Not here yet
 
-This is an early build. The `/techtree` commands, the session hooks, and the
-bundled operator Skills land in the following work packages; `make doctor`
-reports exactly what a build implements. The guided introduction stops short
-of preparing a comparison until a published release names its starter Skill.
-The operator walkthroughs, privacy notes, and removal instructions arrive with
-the release documentation.
+This is an early build. The guided introduction stops short of preparing a
+comparison until a published release names its starter Skill, and proposing a
+revised Skill is not part of it. `make doctor` reports exactly what a build
+implements. The operator walkthroughs, privacy notes, and removal instructions
+arrive with the release documentation.

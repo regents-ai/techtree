@@ -6,13 +6,14 @@ from typing import Any
 
 from ..bootstrap import doctor_summary
 from ..errors import PluginError
-from . import passthrough, require_argument, safe_tool, tool_result
+from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import require_climb_reference
 
 
 @safe_tool
 def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Run Techtree's Doctor, and report the release check beside it."""
+    channel = channel_of(args, kwargs)
     doctor = doctor_summary(services)
     try:
         release = services.bridge.verify_release(services.release_core)
@@ -50,18 +51,21 @@ def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "can_prepare_demo": not blocking,
             "messages": doctor.get("messages", []),
             "warnings": doctor.get("warnings", []),
-        }
+        },
+        channel,
     )
 
 
 @safe_tool
 def techtree_climbs_list(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """List the Climbs this Techtree build offers."""
-    return passthrough(services.bridge.invoke(["climb", "list"]))
+    channel = channel_of(args, kwargs)
+    return passthrough(services.bridge.invoke(["climb", "list"]), channel)
 
 
 @safe_tool
 def techtree_climb_inspect(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Show what one Climb measures, and whether this host can run it."""
+    channel = channel_of(args, kwargs)
     reference = require_climb_reference(require_argument(args, "reference"))
-    return passthrough(services.bridge.invoke(["climb", "show", reference]))
+    return passthrough(services.bridge.invoke(["climb", "show", reference]), channel)

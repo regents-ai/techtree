@@ -19,7 +19,7 @@ from ..services.session import (
     update_after_first_start,
 )
 from ..state import save_session, session_payload
-from . import passthrough, require_argument, safe_tool, tool_result
+from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import (
     require_climb_reference,
     require_confirmation_token,
@@ -39,6 +39,7 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
     is inspected, and a draft is prepared. Nothing is started, and no model is
     called.
     """
+    channel = channel_of(args, kwargs)
     release = services.bridge.verify_release(services.release_core)
     if not release["compatible"]:
         return tool_result(
@@ -51,7 +52,8 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                     + ", ".join(release["mismatches"])
                 ),
                 "release": release,
-            }
+            },
+            channel,
         )
 
     doctor = doctor_summary(services)
@@ -63,7 +65,8 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                 "blocked": "doctor_blocking_failure",
                 "message": "This machine is not ready to run a Climb yet.",
                 "doctor": doctor,
-            }
+            },
+            channel,
         )
 
     try:
@@ -77,7 +80,8 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                 "message": str(error),
                 "code": error.code,
                 "repair": error.repair,
-            }
+            },
+            channel,
         )
 
     reference = services.release_core.intro_climb_reference
@@ -86,7 +90,7 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
         ["climb", "prepare", reference, "--skill", skill["path"]]
     )
     if not prepared.get("ok"):
-        return passthrough(prepared)
+        return passthrough(prepared, channel)
 
     session = create_demo_session(
         release=services.release_core,
@@ -121,25 +125,28 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                 "tool": "techtree_climb_start",
                 "requires_user_confirmation": True,
             },
-        }
+        },
+        channel,
     )
 
 
 @safe_tool
 def techtree_climb_prepare(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Prepare any candidate Skill for a Climb. Free, and starts nothing."""
+    channel = channel_of(args, kwargs)
     reference = require_climb_reference(require_argument(args, "reference"))
     skill_path = require_local_path(require_argument(args, "skill_path"), "skill_path")
     arguments = ["climb", "prepare", reference, "--skill", skill_path]
     label = args.get("label")
     if isinstance(label, str) and label:
         arguments += ["--label", require_label(label)]
-    return passthrough(services.bridge.invoke(arguments))
+    return passthrough(services.bridge.invoke(arguments), channel)
 
 
 @safe_tool
 def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Start a prepared draft. Spends model budget; returns a run identifier."""
+    channel = channel_of(args, kwargs)
     draft_id = require_draft_id(require_argument(args, "draft_id"))
     token = require_confirmation_token(require_argument(args, "confirmation_token"))
     policy = require_digest(
@@ -162,7 +169,7 @@ def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> 
     if session is not None and envelope.get("ok"):
         save_session(services, update_after_first_start(session, envelope))
 
-    return passthrough(envelope)
+    return passthrough(envelope, channel)
 
 
 def _session_for_draft(services: Any, draft_id: str) -> Any:

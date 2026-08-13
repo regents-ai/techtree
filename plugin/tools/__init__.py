@@ -25,8 +25,15 @@ from functools import wraps
 from types import MappingProxyType
 from typing import Any, Protocol
 
+from ..channels import (
+    GATEWAY_TEXT_LIMIT,
+    bounded_gateway_text,
+    is_gateway_safe_required,
+    resolve_channel,
+)
 from ..constants import MAX_TOOL_RESULT_BYTES
 from ..errors import PluginError, safe_error_payload, scrub_text
+from ..models import ChannelKind
 
 #: Stable code for a result that will not fit in a model-visible answer.
 CODE_TOOL_RESULT_TOO_LARGE = "tool_result_too_large"
@@ -56,15 +63,27 @@ def bind(services: Any, handler: ServiceHandler) -> ToolHandler:
     return call
 
 
-def tool_result(payload: Mapping[str, Any]) -> str:
-    """Return one bounded, gateway-safe JSON string.
+def channel_of(args: Mapping[str, Any], kwargs: Mapping[str, Any]) -> ChannelKind:
+    """Return the channel this call should be answered for."""
+    return resolve_channel(args.get("channel"), kwargs)
+
+
+def tool_result(
+    payload: Mapping[str, Any], channel: ChannelKind = ChannelKind.UNKNOWN
+) -> str:
+    """Return one bounded JSON string, safe for the channel reading it.
 
     A payload too large to carry is replaced by an honest account of that,
     naming the command that shows the whole thing, rather than by a truncated
     document that would parse as if it were complete.
+
+    A phone gets a much smaller budget than a terminal, because a chat app
+    will split or drop a long message and a split result reads as a whole one.
     """
+    compact = is_gateway_safe_required(channel)
+    limit = GATEWAY_TEXT_LIMIT if compact else MAX_TOOL_RESULT_BYTES
     text = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
-    if len(text.encode("utf-8")) <= MAX_TOOL_RESULT_BYTES:
+    if len(text.encode("utf-8")) <= limit:
         return text
 
     reduced: dict[str, Any] = {
@@ -77,7 +96,8 @@ def tool_result(payload: Mapping[str, Any]) -> str:
             "run the Techtree command yourself to see all of it."
         ),
         "bytes": len(text.encode("utf-8")),
-        "limit_bytes": MAX_TOOL_RESULT_BYTES,
+        "limit_bytes": limit,
+        "channel": channel.value,
     }
     for key in ("run_id", "draft_id", "next_action", "next_actions", "error"):
         if key in payload:
@@ -85,19 +105,26 @@ def tool_result(payload: Mapping[str, Any]) -> str:
     return json.dumps(reduced, ensure_ascii=False, sort_keys=True, default=str)
 
 
-def passthrough(envelope: Mapping[str, Any]) -> str:
+def passthrough(
+    envelope: Mapping[str, Any], channel: ChannelKind = ChannelKind.UNKNOWN
+) -> str:
     """Return the CLI's own envelope as the answer, bounded and unchanged.
 
     Techtree's words about a Techtree result are the honest ones, so a
     read-only tool repeats them rather than paraphrasing.
     """
-    return tool_result(dict(envelope))
+    return tool_result(dict(envelope), channel)
 
 
 def failed(error: Exception, **extra: Any) -> str:
     """Return the safe JSON answer for a failure."""
     payload: dict[str, Any] = {"ok": False, **safe_error_payload(error), **extra}
     return tool_result(payload)
+
+
+def gateway_text(value: str, channel: ChannelKind = ChannelKind.UNKNOWN) -> str:
+    """Return text shaped for the channel that will read it."""
+    return bounded_gateway_text(value) if is_gateway_safe_required(channel) else value
 
 
 def safe_tool(handler: Any) -> Any:

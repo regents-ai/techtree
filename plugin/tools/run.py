@@ -16,13 +16,14 @@ from ..state import (
     save_session,
     session_payload,
 )
-from . import passthrough, require_argument, safe_tool, tool_result
+from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import require_run_id
 
 
 @safe_tool
 def techtree_run_status(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Report how a run is progressing, and return straight away."""
+    channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
     envelope = services.bridge.invoke(["run", "status", run_id])
 
@@ -41,15 +42,19 @@ def techtree_run_status(services: Any, args: dict[str, Any], **kwargs: Any) -> s
                 "result_available": bool(data.get("result_available")),
                 "worker_alive": data.get("worker_alive"),
             },
-        }
+        },
+        channel,
     )
 
 
 @safe_tool
 def techtree_run_cancel(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Stop a run. Only ever called because the user asked for it."""
+    channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
-    return passthrough(services.bridge.invoke(["run", "cancel", run_id, "--confirm"]))
+    return passthrough(
+        services.bridge.invoke(["run", "cancel", run_id, "--confirm"]), channel
+    )
 
 
 @safe_tool
@@ -60,6 +65,7 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
     not independently reproduced by anyone else, and must never be described
     as if it were.
     """
+    channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
     envelope = services.bridge.invoke(["run", "result", run_id])
 
@@ -77,4 +83,4 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
     }
     if session is not None:
         payload["demo"] = session_payload(session)
-    return tool_result(payload)
+    return tool_result(payload, channel)
