@@ -144,14 +144,6 @@ def presentation_output_schema() -> dict[str, Any]:
                 "maxLength": _MAXIMUM_HEADLINE_CHARACTERS,
                 "description": "One plain sentence about what happened.",
             },
-            "verdict": {
-                "type": "string",
-                "maxLength": _MAXIMUM_TEXT_CHARACTERS,
-                "description": (
-                    "What this means in plain words. Not a status code, and "
-                    "never more certain than the result is."
-                ),
-            },
             "observations": {
                 "type": "array",
                 "maxItems": _MAXIMUM_ITEMS,
@@ -178,7 +170,7 @@ def presentation_output_schema() -> dict[str, Any]:
                 "description": "Task labels worth naming, from the allowed list.",
             },
         },
-        "required": ["headline", "verdict", "observations", "caveats"],
+        "required": ["headline", "observations", "caveats"],
         "additionalProperties": False,
     }
 
@@ -205,11 +197,8 @@ def parse_presentation_narrative(value: Mapping[str, Any]) -> PresentationNarrat
             code=CODE_NARRATIVE_INVALID,
         )
 
-    for name in ("headline", "verdict"):
-        if not isinstance(value.get(name), str) or not value[name].strip():
-            raise PluginError(
-                f"the narrative has no {name}", code=CODE_NARRATIVE_INVALID
-            )
+    if not isinstance(value.get("headline"), str) or not value["headline"].strip():
+        raise PluginError("the narrative has no headline", code=CODE_NARRATIVE_INVALID)
 
     next_step = value.get("next_step")
     if next_step is not None and not isinstance(next_step, str):
@@ -219,7 +208,6 @@ def parse_presentation_narrative(value: Mapping[str, Any]) -> PresentationNarrat
 
     return PresentationNarrative(
         headline=value["headline"].strip(),
-        verdict=value["verdict"].strip(),
         observations=_strings(value.get("observations"), "observations"),
         caveats=_strings(value.get("caveats"), "caveats"),
         next_step=next_step.strip()

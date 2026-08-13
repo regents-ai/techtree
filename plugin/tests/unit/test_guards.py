@@ -20,6 +20,7 @@ from techtree_hermes.guards import (
     forbid_secret_patterns,
     forbid_unapproved_claims,
     validate_narrative,
+    validate_revised_skill,
 )
 from techtree_hermes.models import ChannelKind, PresentationNarrative
 
@@ -29,7 +30,6 @@ TASK_REFS = {"task-01", "task-02", "task-03"}
 def _narrative(**overrides: object) -> PresentationNarrative:
     values: dict[str, object] = {
         "headline": "The Skill helped on the tasks it was measured on.",
-        "verdict": "A clear improvement, on this task set only.",
         "observations": ("Most of the change came from repeated-character inputs.",),
         "caveats": ("The model provider does not expose an immutable revision.",),
         "next_step": "Check the proof, then decide whether to keep the Skill.",
@@ -87,7 +87,7 @@ def test_a_narrative_claiming_a_different_score_is_refused() -> None:
     with pytest.raises(NarrativeRejectedError):
         _check(
             _narrative(
-                verdict="Techtree measured 30/36 for the candidate.",
+                observations=("Techtree measured 30/36 for the candidate.",),
             )
         )
 
@@ -96,7 +96,7 @@ def test_ordinary_words_about_amounts_are_still_allowed() -> None:
     _check(
         _narrative(
             headline="Most tasks improved, and one got worse.",
-            verdict="A small, consistent gain rather than a dramatic one.",
+            observations=("A small, consistent gain rather than a dramatic one.",),
         )
     )
 
@@ -244,3 +244,102 @@ def test_trimming_never_introduces_control_characters() -> None:
     )
 
     assert "\x1b" not in "".join(trimmed.texts())
+
+
+# A revised Skill --------------------------------------------------------------
+
+GOOD_SKILL = """---
+name: branchcode
+description: How to work a BranchCode procedure.
+---
+
+# BranchCode
+
+## Step 5
+
+Add seven times the number of distinct characters in the identifier.
+
+## Step 6
+
+Report the total as a single integer.
+"""
+
+
+def test_a_whole_revised_skill_passes() -> None:
+    validate_revised_skill(GOOD_SKILL)
+
+
+@pytest.mark.parametrize(
+    "markdown",
+    [
+        "--- a/SKILL.md\n+++ b/SKILL.md\n@@ -1 +1 @@\n-old\n+new\n",
+        "```diff\n- old rule\n+ new rule\n```",
+        "# Skill\n\nApply this patch to step 5.",
+        "# Skill\n\n## Step 5\n\nUse distinct characters.\n\n... rest unchanged\n",
+        "# Skill\n\n[unchanged]\n",
+    ],
+)
+def test_a_patch_is_not_a_revision(markdown: str) -> None:
+    """A revision is the whole file, or it is not a revision."""
+    with pytest.raises(NarrativeRejectedError, match=r"complete SKILL\.md"):
+        validate_revised_skill(markdown)
+
+
+@pytest.mark.parametrize(
+    "markdown",
+    [
+        "# Skill\n\n| input | expected |\n| --- | --- |\n| ab | 14 |\n| abc | 21 |\n",
+        "# Skill\n\n## Answer key\n\nUse it for the known cases.\n",
+        "# Skill\n\nExpected answers are listed below.\n",
+        '# Skill\n\n- "aabb" -> 14\n- "abcd" -> 28\n- "xyzz" -> 21\n',
+    ],
+)
+def test_a_table_of_answers_is_not_a_skill(markdown: str) -> None:
+    """The failure the improver contract exists to prevent."""
+    with pytest.raises(NarrativeRejectedError, match="rule, not the"):
+        validate_revised_skill(markdown)
+
+
+def test_a_couple_of_illustrative_arrows_are_still_allowed() -> None:
+    validate_revised_skill(
+        GOOD_SKILL + "\nFor example, distinct -> count, then multiply.\n"
+    )
+
+
+def test_a_revision_that_copies_a_task_it_was_shown_is_refused() -> None:
+    """Exact, not heuristic: this is a prompt the context actually carried."""
+    prompt = "Compute the BranchCode total for the identifier aabbccddeeff."
+
+    with pytest.raises(NarrativeRejectedError, match="copies a task"):
+        validate_revised_skill(
+            GOOD_SKILL + f"\nWorked example: {prompt}\n", task_inputs=[prompt]
+        )
+
+
+def test_a_short_shared_phrase_is_not_a_copied_task() -> None:
+    validate_revised_skill(GOOD_SKILL, task_inputs=["ab", "the identifier"])
+
+
+def test_a_revision_may_not_ship_commands() -> None:
+    with pytest.raises(NarrativeRejectedError, match="commands to run"):
+        validate_revised_skill(GOOD_SKILL + "\n```bash\nrm -rf /\n```\n")
+
+
+@pytest.mark.parametrize(
+    ("markdown", "expected"),
+    [
+        ("", "empty"),
+        ("   \n", "empty"),
+        ("# Skill\x00\n", "NUL"),
+        ("# Skill\nOPENAI_API_KEY=sk-live-abcdefghijklmnop\n", "credential"),
+        ("# Skill\n\x1b[31mred\x1b[0m\n", "control codes"),
+    ],
+)
+def test_an_unusable_revision_is_refused(markdown: str, expected: str) -> None:
+    with pytest.raises(NarrativeRejectedError, match=expected):
+        validate_revised_skill(markdown)
+
+
+def test_a_revision_larger_than_a_skill_may_be_is_refused() -> None:
+    with pytest.raises(NarrativeRejectedError, match="larger than"):
+        validate_revised_skill("# Skill\n" + "x" * 300_000)

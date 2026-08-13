@@ -21,7 +21,6 @@ CORE = load_embedded_release_core()
 
 GOOD_NARRATIVE: dict[str, Any] = {
     "headline": "The Skill helped on the tasks it was measured on.",
-    "verdict": "A clear improvement, on this task set only.",
     "observations": ["Most of the change came from one rule."],
     "caveats": ["The provider does not expose an immutable model revision."],
     "next_step": "Verify the proof before relying on it.",
@@ -176,7 +175,6 @@ def test_an_invalid_narrative_falls_back_to_the_deterministic_result() -> None:
     host = StubHost(
         parsed={
             "headline": "It scored 30/36.",
-            "verdict": "Great.",
             "observations": [],
             "caveats": [],
         }

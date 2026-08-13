@@ -22,6 +22,7 @@ from collections.abc import Iterable
 from typing import Final
 
 from .channels import bounded_gateway_text, is_gateway_safe_required
+from .constants import MAX_STARTER_SKILL_BYTES
 from .errors import PluginError, contains_secret_material
 from .models import ChannelKind, PresentationNarrative
 
@@ -233,11 +234,10 @@ def bounded_narrative(
         else TERMINAL_NARRATIVE_CHARACTERS
     )
     headline = bounded_gateway_text(narrative.headline, min(budget, 160))
-    verdict = bounded_gateway_text(narrative.verdict, budget // 2)
     caveats = tuple(
         bounded_gateway_text(text, budget // 2) for text in narrative.caveats[:2]
     )
-    remaining = max(0, budget - len(headline) - len(verdict) - sum(map(len, caveats)))
+    remaining = max(0, budget - len(headline) - sum(map(len, caveats)))
     observations = tuple(_fit(narrative.observations, remaining))
     next_step = (
         bounded_gateway_text(narrative.next_step, budget // 3)
@@ -246,7 +246,6 @@ def bounded_narrative(
     )
     return PresentationNarrative(
         headline=headline,
-        verdict=verdict,
         observations=observations,
         caveats=caveats,
         next_step=next_step,
@@ -263,3 +262,164 @@ def _fit(texts: Iterable[str], budget: int) -> list[str]:
         kept.append(text)
         left -= len(text)
     return kept
+
+
+# A revised Skill ------------------------------------------------------------------
+#
+# Decision 0007's skill-improver contract: one general rule, the smallest
+# correction, no task-specific exceptions, and never copied input/output pairs.
+# The last one is what these guards can actually check, and it matters most: a
+# Skill that lists the answers is not a Skill, it is a lookup table that would
+# score well once and teach nothing.
+
+CODE_SKILL_REVISION_INVALID: Final = "skill_revision_output_invalid"
+CODE_SKILL_REVISION_SECRET: Final = "skill_revision_secret_detected"
+
+#: A revision is a whole file. These say "here is a change to apply" instead.
+_PATCH_MARKERS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    # A unified diff names files and hunks. A bare "---" is front matter, and
+    # every Skill starts with some.
+    ("a diff", re.compile(r"(?m)^(\+\+\+|---) \S|^@@ [-+]\d")),
+    ("a diff block", re.compile(r"```\s*diff", re.I)),
+    (
+        "an instruction to patch",
+        re.compile(r"\b(apply (this|the) (patch|diff))\b", re.I),
+    ),
+    (
+        "an elision",
+        re.compile(r"(\.\.\.|…)\s*(rest|remainder|unchanged|as before)", re.I),
+    ),
+    (
+        "an elision",
+        re.compile(r"\[\s*(unchanged|no changes?|same as before)\s*\]", re.I),
+    ),
+)
+
+#: Shapes that pair a case with its answer, whatever they are called.
+_ANSWER_TABLE_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (
+        "a table of expected answers",
+        re.compile(
+            r"(?im)^\|[^|\n]*\b(input|case|task|example)\b[^|\n]*\|[^|\n]*"
+            r"\b(output|answer|expected|result|value)\b"
+        ),
+    ),
+    (
+        "an answer key",
+        re.compile(r"\b(answer key|expected answers?|solution table)\b", re.I),
+    ),
+    (
+        "a lookup of cases to answers",
+        re.compile(r"(?m)^\s*[-*]?\s*[\"'`][^\"'`\n]{1,80}[\"'`]\s*(->|=>|→|:|=)\s*\S"),
+    ),
+)
+
+#: How many mapping lines make a list of examples into a lookup table.
+_MAXIMUM_MAPPING_LINES: Final = 2
+
+#: A Skill teaches a procedure. It does not ship commands to run.
+_SKILL_COMMAND_PATTERN: Final = re.compile(
+    r"```\s*(bash|sh|zsh|shell|console|powershell)\b", re.I
+)
+
+
+def forbid_patch_instructions(markdown: str) -> None:
+    """Refuse a revision that describes a change instead of being the file."""
+    for described, pattern in _PATCH_MARKERS:
+        if pattern.search(markdown):
+            raise NarrativeRejectedError(
+                f"the revision is {described} rather than a complete SKILL.md",
+                code=CODE_SKILL_REVISION_INVALID,
+            )
+
+
+def forbid_answer_table(markdown: str) -> None:
+    """Refuse a revision that lists cases with their answers.
+
+    This is the failure the improver contract exists to prevent. A revision
+    that memorizes the cases it was shown would score well on exactly those
+    cases and teach the subject nothing, which is the opposite of what a Skill
+    comparison is for.
+    """
+    for described, pattern in _ANSWER_TABLE_PATTERNS:
+        if pattern.search(markdown):
+            raise NarrativeRejectedError(
+                f"the revision contains {described}; a Skill states a rule, not "
+                "the answers",
+                code=CODE_SKILL_REVISION_INVALID,
+            )
+
+    mappings = re.findall(
+        r"(?m)^\s*[-*]?\s*\S[^\n]{0,80}?\s(?:->|=>|→)\s\S[^\n]{0,80}$", markdown
+    )
+    if len(mappings) > _MAXIMUM_MAPPING_LINES:
+        raise NarrativeRejectedError(
+            f"the revision maps {len(mappings)} cases to results; a Skill states "
+            "a rule, not the answers",
+            code=CODE_SKILL_REVISION_INVALID,
+        )
+
+
+def forbid_copied_examples(markdown: str, task_inputs: Iterable[str]) -> None:
+    """Refuse a revision that quotes the cases it was shown.
+
+    Exact rather than heuristic: these are the public prompts the improvement
+    context actually carried, so finding one verbatim in the revision is proof
+    that the model wrote down a case instead of a rule.
+    """
+    for prompt in task_inputs:
+        candidate = prompt.strip()
+        if len(candidate) >= 24 and candidate in markdown:
+            raise NarrativeRejectedError(
+                "the revision copies a task it was shown; a Skill states a rule, "
+                "not the cases",
+                code=CODE_SKILL_REVISION_INVALID,
+            )
+
+
+def forbid_command_attachment(markdown: str) -> None:
+    """Refuse a revision that ships something to run."""
+    if _SKILL_COMMAND_PATTERN.search(markdown):
+        raise NarrativeRejectedError(
+            "the revision attaches commands to run; a Skill teaches a procedure",
+            code=CODE_SKILL_REVISION_INVALID,
+        )
+
+
+def validate_revised_skill(
+    markdown: str,
+    *,
+    task_inputs: Iterable[str] = (),
+    maximum_bytes: int = MAX_STARTER_SKILL_BYTES,
+) -> None:
+    """Check a proposed SKILL.md before anyone stages or reads it.
+
+    Preliminary only. Techtree's own scanner is the authority on whether a
+    Skill may be prepared; these checks exist so that an obviously unusable
+    proposal is refused here, with a reason, rather than deep inside a
+    preparation.
+    """
+    if not markdown.strip():
+        raise NarrativeRejectedError(
+            "the revision is empty", code=CODE_SKILL_REVISION_INVALID
+        )
+    if "\x00" in markdown:
+        raise NarrativeRejectedError(
+            "the revision contains a NUL byte", code=CODE_SKILL_REVISION_INVALID
+        )
+    if len(markdown.encode("utf-8")) > maximum_bytes:
+        raise NarrativeRejectedError(
+            f"the revision is larger than the {maximum_bytes} bytes a Skill may be",
+            code=CODE_SKILL_REVISION_INVALID,
+        )
+    if contains_secret_material(markdown):
+        raise NarrativeRejectedError(
+            "the revision carries something that looks like a credential",
+            code=CODE_SKILL_REVISION_SECRET,
+        )
+
+    forbid_ansi(markdown)
+    forbid_patch_instructions(markdown)
+    forbid_answer_table(markdown)
+    forbid_copied_examples(markdown, task_inputs)
+    forbid_command_attachment(markdown)

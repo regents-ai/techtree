@@ -586,15 +586,14 @@ def parse_bootstrap_install_plan(value: Mapping[str, Any]) -> BootstrapInstallPl
 class PresentationNarrative:
     """The words a host model chose about a result. Specification section 6.4.
 
-    Words only. Every number, verdict code, status, grade, and digest in a
-    result comes from Techtree's deterministic payload and is rendered beside
-    this, never through it. What the model contributes is emphasis: what to
-    lead with, what deserves attention, which verified caveat matters most,
-    and what to do next.
+    Four choices, and only those four: a headline, the observations worth
+    emphasizing, the one verified caveat to foreground, and what to do next.
+    Every number, verdict code, status, grade, and digest in a result comes
+    from Techtree's deterministic payload and is rendered beside this, never
+    through it.
     """
 
     headline: str
-    verdict: str
     observations: tuple[str, ...]
     caveats: tuple[str, ...]
     next_step: str | None
@@ -604,7 +603,6 @@ class PresentationNarrative:
         """Return the narrative in the shape a result carries it."""
         return {
             "headline": self.headline,
-            "verdict": self.verdict,
             "observations": list(self.observations),
             "caveats": list(self.caveats),
             "next_step": self.next_step,
@@ -615,11 +613,41 @@ class PresentationNarrative:
         """Return every piece of text the model wrote."""
         return (
             self.headline,
-            self.verdict,
             *self.observations,
             *self.caveats,
             *((self.next_step,) if self.next_step else ()),
         )
+
+
+@dataclass(frozen=True)
+class SkillRevisionOutput:
+    """One proposed revision of a Skill. Specification section 6.5.
+
+    A proposal, not an evaluated artifact. Nothing here has been measured
+    against anything: it is what one model thought, once, and it becomes worth
+    something only after Techtree runs it as the candidate in a controlled
+    comparison.
+    """
+
+    analysis_summary: str
+    change_rationale: tuple[str, ...]
+    revised_skill_markdown: str
+    expected_tradeoffs: tuple[str, ...]
+    confidence: Literal["low", "medium", "high"]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the proposal in the shape a tool result carries it."""
+        return {
+            "analysis_summary": self.analysis_summary,
+            "change_rationale": list(self.change_rationale),
+            "revised_skill_markdown": self.revised_skill_markdown,
+            "expected_tradeoffs": list(self.expected_tradeoffs),
+            "confidence": self.confidence,
+        }
+
+    def prose(self) -> tuple[str, ...]:
+        """Return the parts a person reads, apart from the Skill itself."""
+        return (self.analysis_summary, *self.change_rationale, *self.expected_tradeoffs)
 
 
 # Revision provenance ------------------------------------------------------------

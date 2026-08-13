@@ -26,7 +26,6 @@ RUN_ID = "run_" + "0" * 32
 
 NARRATIVE = {
     "headline": "The Skill helped on the tasks it was measured on.",
-    "verdict": "A clear improvement, on this task set only.",
     "observations": ["Most of the change came from one rule."],
     "caveats": ["The provider does not expose an immutable model revision."],
     "next_step": "Verify the proof before relying on it.",

@@ -159,7 +159,6 @@ def test_the_schema_asks_only_for_the_four_narrative_choices() -> None:
 
     assert properties == {
         "headline",
-        "verdict",
         "observations",
         "caveats",
         "next_step",
@@ -181,7 +180,6 @@ def test_a_well_formed_answer_parses() -> None:
     narrative = parse_presentation_narrative(
         {
             "headline": "The Skill helped.",
-            "verdict": "A clear improvement on this task set.",
             "observations": ["Most gains came from one rule."],
             "caveats": ["The provider revision is not pinned."],
             "next_step": "Verify the proof.",
@@ -199,7 +197,6 @@ def test_an_answer_carrying_a_score_field_is_refused() -> None:
         parse_presentation_narrative(
             {
                 "headline": "It improved.",
-                "verdict": "Better.",
                 "observations": [],
                 "caveats": [],
                 "baseline_score": 2.0,
@@ -210,24 +207,21 @@ def test_an_answer_carrying_a_score_field_is_refused() -> None:
 @pytest.mark.parametrize(
     "answer",
     [
-        {"verdict": "Better.", "observations": [], "caveats": []},
-        {"headline": "  ", "verdict": "Better.", "observations": [], "caveats": []},
-        {"headline": "It improved.", "verdict": "", "observations": [], "caveats": []},
+        {"observations": [], "caveats": []},
+        {"headline": "  ", "observations": [], "caveats": []},
+        {"observations": [], "caveats": []},
         {
             "headline": "It improved.",
-            "verdict": "Better.",
             "observations": "not a list",
             "caveats": [],
         },
         {
             "headline": "It improved.",
-            "verdict": "Better.",
             "observations": [1, 2],
             "caveats": [],
         },
         {
             "headline": "It improved.",
-            "verdict": "Better.",
             "observations": [],
             "caveats": [],
             "next_step": 7,
@@ -243,7 +237,6 @@ def test_empty_items_are_dropped_rather_than_kept() -> None:
     narrative = parse_presentation_narrative(
         {
             "headline": "It improved.",
-            "verdict": "Better.",
             "observations": ["A point.", "   ", ""],
             "caveats": [],
         }
