@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "CompatibilityIssue": {
+      "additionalProperties": false,
+      "description": "One reason a Climb might not run here.",
+      "properties": {
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "code": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "message": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "severity": {
+          "enum": [
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "blocking"
+      ],
+      "title": "CompatibilityIssue",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EngineCompatibilityStatus": {
+      "description": "What is known about the required engine on this host.",
+      "enum": [
+        "unknown",
+        "not_installed",
+        "installed_unverified",
+        "verified"
+      ],
+      "title": "EngineCompatibilityStatus",
+      "type": "string"
+    },
+    "EvaluationBackendKind": {
+      "description": "Which system orchestrated the evaluation.",
+      "enum": [
+        "local_techtree",
+        "prime_lab",
+        "independent_reproducer"
+      ],
+      "title": "EvaluationBackendKind",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/compatibility-result.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Whether this host can run this Climb, and what stands in the way.",
+  "properties": {
+    "compatible": {
+      "title": "Compatible",
+      "type": "boolean"
+    },
+    "engine_status": {
+      "$ref": "#/$defs/EngineCompatibilityStatus"
+    },
+    "evaluation_backend_kind": {
+      "$ref": "#/$defs/EvaluationBackendKind"
+    },
+    "evaluation_backend_supported": {
+      "title": "Evaluation Backend Supported",
+      "type": "boolean"
+    },
+    "host_platform": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "host_supported": {
+      "title": "Host Supported",
+      "type": "boolean"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/CompatibilityIssue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "required_engine_digest": {
+      "$ref": "#/$defs/Digest"
+    }
+  },
+  "required": [
+    "compatible",
+    "host_platform",
+    "host_supported",
+    "required_engine_digest",
+    "engine_status",
+    "evaluation_backend_kind",
+    "evaluation_backend_supported",
+    "issues"
+  ],
+  "title": "CompatibilityResult",
+  "type": "object"
+}

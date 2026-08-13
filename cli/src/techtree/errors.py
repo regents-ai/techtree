@@ -13,18 +13,24 @@ Two rules shape this module:
   not part of the contract, which is why
   :func:`sanitize_exception_message` exists for the unexpected-exception path.
 
-The CLI projection of these errors (``NextAction`` attachment and the
-``error_to_cli_error`` converter) lives with ``techtree.models.cli``, which
-defines the ``CliError`` and ``NextAction`` shapes those functions speak in.
+An error can also carry the ``NextAction`` list the CLI should offer, so that
+the code which knows *why* something failed is the code that says what to do
+about it. The shapes those actions and the projected ``CliError`` are spelled
+in belong to :mod:`techtree.models.cli`. That module is imported only for
+typing, and inside :func:`error_to_cli_error`, because the model package
+imports this one: errors sit underneath models, and speaking a model's
+vocabulary must not invert that.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
-from typing import ClassVar, Final
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, ClassVar, Final
 
-from techtree.models.base import JsonValue
+if TYPE_CHECKING:
+    from techtree.models.base import JsonValue
+    from techtree.models.cli import CliError, NextAction
 
 __all__ = [
     "REDACTED",
@@ -40,6 +46,7 @@ __all__ = [
     "UsageError",
     "ValidationError",
     "VerificationError",
+    "error_to_cli_error",
     "exit_code_for",
     "sanitize_exception_message",
 ]
@@ -89,6 +96,7 @@ class TechtreeError(Exception):
         exit_code: int | None = None,
         retryable: bool | None = None,
         details: Mapping[str, JsonValue] | None = None,
+        next_actions: Sequence[NextAction] | None = None,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -96,6 +104,9 @@ class TechtreeError(Exception):
         self.exit_code = self.default_exit_code if exit_code is None else exit_code
         self.retryable = self.default_retryable if retryable is None else retryable
         self.details: dict[str, JsonValue] = dict(details or {})
+        #: What the caller could do about this, in the CLI's own vocabulary.
+        #: Raising code fills this in when it knows; the CLI never invents it.
+        self.next_actions: list[NextAction] = list(next_actions or ())
 
     def __str__(self) -> str:
         return self.message
@@ -260,6 +271,32 @@ def sanitize_exception_message(error: Exception) -> str:
     text = _OPAQUE_RUN.sub(_redact_opaque_run, text)
     text = _MEMORY_ADDRESS.sub("0x<address>", text)
     return text
+
+
+# ---------------------------------------------------------------------------
+# CLI projection
+# ---------------------------------------------------------------------------
+
+
+def error_to_cli_error(error: TechtreeError) -> CliError:
+    """Convert an internal typed error to machine-safe CLI error data.
+
+    The message is passed through :func:`sanitize_exception_message` on the way
+    out. Authored messages are not supposed to contain secrets, but this is the
+    one place every failure funnels through before it becomes output, and a
+    scrubber that only runs on the paths someone remembered is not a scrubber.
+
+    ``next_actions`` is not part of ``CliError``; it belongs to the envelope,
+    and the CLI reads it from the error directly.
+    """
+    from techtree.models.cli import CliError
+
+    return CliError(
+        code=error.code,
+        message=sanitize_exception_message(error),
+        retryable=error.retryable,
+        details=dict(error.details),
+    )
 
 
 # ---------------------------------------------------------------------------

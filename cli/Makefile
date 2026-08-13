@@ -57,10 +57,18 @@ schemas:
 	$(RUN) python $(TOOL_SCHEMAS)
 
 engine-bundle:
-	$(RUN) python $(TOOL_ENGINE_BUNDLE)
+	@if [ -f "$(TOOL_ENGINE_BUNDLE)" ]; then \
+		$(RUN) python $(TOOL_ENGINE_BUNDLE); \
+	else \
+		echo "engine-bundle: pass-through, $(TOOL_ENGINE_BUNDLE) is not part of this build yet"; \
+	fi
 
 fixture-catalog:
-	$(RUN) python $(TOOL_FIXTURE_CATALOG)
+	@if [ -f "$(TOOL_FIXTURE_CATALOG)" ]; then \
+		$(RUN) python $(TOOL_FIXTURE_CATALOG); \
+	else \
+		echo "fixture-catalog: pass-through, $(TOOL_FIXTURE_CATALOG) is not part of this build yet"; \
+	fi
 
 goldens:
 	$(RUN) python $(TOOL_GOLDENS)
@@ -87,7 +95,11 @@ generated-check:
 		. | tar -xf - -C "$$work"; \
 	$(MAKE) -C "$$work" regenerate; \
 	for path in $(GENERATED_PATHS); do \
-		diff -ru "$$path" "$$work/$$path"; \
+		if [ ! -e "$$path" ] && [ ! -e "$$work/$$path" ]; then \
+			echo "generated-check: skipping $$path, no generator owns it yet"; \
+			continue; \
+		fi; \
+		diff -ru -x __pycache__ "$$path" "$$work/$$path"; \
 	done; \
 	echo "generated-check: generated artifacts match the working tree"
 

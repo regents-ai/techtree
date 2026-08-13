@@ -19,11 +19,30 @@ CLIMB_SCHEMA_VERSION: Final = "techtree.climb.v1alpha1"
 DATA_POLICY_SCHEMA_VERSION: Final = "techtree.data-policy.v1alpha1"
 EVALUATION_BACKEND_SCHEMA_VERSION: Final = "techtree.evaluation-backend.v1alpha1"
 SKILL_SCHEMA_VERSION: Final = "techtree.skill.v1alpha1"
+SUBMISSION_DRAFT_SCHEMA_VERSION: Final = "techtree.submission-draft.v1alpha1"
 EXPERIMENT_SCHEMA_VERSION: Final = "techtree.experiment.v1alpha1"
 TASKSET_LOCK_SCHEMA_VERSION: Final = "techtree.taskset-lock.v1alpha1"
 TASKSET_VALIDATION_SCHEMA_VERSION: Final = "techtree.taskset-validation.v1alpha1"
+#: Decisions document 0003 A1. The deterministic, normalized form of the raw
+#: upstream validation output that a receipt points at.
+VALIDATION_EVIDENCE_SCHEMA_VERSION: Final = "techtree.validation-evidence.v1alpha1"
+#: Decisions document 0003 A1. Local operational provenance for one validation
+#: execution. Never part of the Campaign graph.
+VALIDATION_EXECUTION_SCHEMA_VERSION: Final = "techtree.validation-execution.v1alpha1"
 EPISODE_RECEIPT_SCHEMA_VERSION: Final = "techtree.episode-receipt.v1alpha1"
 UPLIFT_SCHEMA_VERSION: Final = "techtree.uplift-report.v1alpha1"
+ENGINE_SCHEMA_VERSION: Final = "techtree.engine.v1alpha1"
+
+#: Decisions document 0003 A9. Go/OCI-style ``<os>/<arch>`` strings are the
+#: only host-platform spelling in the protocol. The tuple is ordered so that
+#: generated descriptors and schemas list the vocabulary the same way every
+#: time.
+SUPPORTED_HOST_PLATFORMS: Final[tuple[str, ...]] = (
+    "darwin/amd64",
+    "darwin/arm64",
+    "linux/amd64",
+    "linux/arm64",
+)
 
 DEFAULT_CONFIRMATION_TTL_SECONDS: Final = 900
 DEFAULT_WORKER_HEARTBEAT_SECONDS: Final = 2

@@ -1,0 +1,262 @@
+{
+  "$defs": {
+    "CliError": {
+      "additionalProperties": false,
+      "description": "The machine-safe projection of a failure.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "details": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Details",
+          "type": "object"
+        },
+        "message": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "details"
+      ],
+      "title": "CliError",
+      "type": "object"
+    },
+    "CliMessage": {
+      "additionalProperties": false,
+      "description": "One thing the CLI has to say.",
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "level": {
+          "$ref": "#/$defs/MessageLevel"
+        },
+        "text": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "level",
+        "code",
+        "text"
+      ],
+      "title": "CliMessage",
+      "type": "object"
+    },
+    "JsonScalar": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JsonScalar"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "MessageLevel": {
+      "description": "How much attention a message deserves.",
+      "enum": [
+        "info",
+        "warning",
+        "error"
+      ],
+      "title": "MessageLevel",
+      "type": "string"
+    },
+    "NextAction": {
+      "additionalProperties": false,
+      "description": "A concrete next step, addressed to a person or to a host agent.",
+      "properties": {
+        "cli": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/NonEmptyString"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cli"
+        },
+        "hermes_args": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hermes Args"
+        },
+        "hermes_tool": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "label": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requires_user_confirmation": {
+          "title": "Requires User Confirmation",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "reason",
+        "cli",
+        "hermes_tool",
+        "hermes_args",
+        "requires_user_confirmation"
+      ],
+      "title": "NextAction",
+      "type": "object"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/cli-envelope.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The single response shape every command returns.\n\n``data`` is command-specific, which is why the type is a parameter. The\npublished schema describes the envelope; each command documents its own\npayload.",
+  "properties": {
+    "command": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "data": {
+      "anyOf": [
+        {},
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Data"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CliError"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/CliMessage"
+      },
+      "title": "Messages",
+      "type": "array"
+    },
+    "next_actions": {
+      "items": {
+        "$ref": "#/$defs/NextAction"
+      },
+      "maxItems": 3,
+      "title": "Next Actions",
+      "type": "array"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "techtree.cli.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/CliMessage"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "ok",
+    "command",
+    "data",
+    "messages",
+    "warnings",
+    "next_actions",
+    "error"
+  ],
+  "title": "CliEnvelope",
+  "type": "object"
+}

@@ -1,0 +1,75 @@
+{
+  "command": "climb show",
+  "data": {
+    "campaign_spec_digest": "sha256:c547e51773c78daf8f697a9424e218d2f6f8e4e95f5bd0d042c828cbb9be00b5",
+    "candidate_skill_visibility": "public",
+    "climb_digest": "sha256:91b24bbaf35d6c8df304b2421c1577b66c32a7c6ecb3ccfbea6e03321b0e304c",
+    "compatibility": {
+      "compatible": false,
+      "engine_status": "not_installed",
+      "evaluation_backend_kind": "local_techtree",
+      "evaluation_backend_supported": true,
+      "host_platform": "darwin/arm64",
+      "host_supported": true,
+      "issues": [
+        {
+          "blocking": true,
+          "code": "engine_not_installed",
+          "message": "The managed evaluation engine this Climb requires is not installed yet.",
+          "severity": "error"
+        }
+      ],
+      "required_engine_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92"
+    },
+    "data_policy": {
+      "candidate_skill_public_release": "required_for_climb",
+      "raw_episode_server_upload": "prohibited",
+      "raw_episode_training_use": "prohibited",
+      "uplift_report_visibility": "public"
+    },
+    "evaluation_backend": "local_techtree",
+    "mutation_kind": "skill_insertion",
+    "proof_grade": "development_only",
+    "purpose": "component_uplift",
+    "reference": "procedure-transfer-dev@1",
+    "status": "development",
+    "subject_harness": "hermes-agent",
+    "subject_harness_version": "0.19.0",
+    "summary": "A development Climb used to exercise the Techtree protocol end to end. It produces no publishable evidence.",
+    "task_count": 20,
+    "taskset_id": "procedure-transfer-v1",
+    "title": "Procedure Transfer Development Climb"
+  },
+  "error": null,
+  "messages": [
+    {
+      "code": "development_climb",
+      "level": "info",
+      "text": "This is a development Climb. Its results are not publishable evidence."
+    }
+  ],
+  "next_actions": [
+    {
+      "cli": [
+        "techtree",
+        "engine",
+        "install"
+      ],
+      "hermes_args": null,
+      "hermes_tool": null,
+      "id": "install_engine",
+      "label": "Install the evaluation engine",
+      "reason": "The engine this Climb requires is not installed.",
+      "requires_user_confirmation": false
+    }
+  ],
+  "ok": true,
+  "schema_version": "techtree.cli.v1",
+  "warnings": [
+    {
+      "code": "engine_not_installed",
+      "level": "warning",
+      "text": "The evaluation engine is not installed, so this Climb cannot be prepared yet."
+    }
+  ]
+}

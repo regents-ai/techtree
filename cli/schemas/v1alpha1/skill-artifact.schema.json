@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "SkillFile": {
+      "additionalProperties": false,
+      "description": "One file inside a skill, addressed by content.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "path": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "media_type",
+        "size",
+        "digest"
+      ],
+      "title": "SkillFile",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/skill-artifact.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A complete candidate skill, addressed by content.",
+  "properties": {
+    "archive_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/SkillFile"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "name": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "parent_skill_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "root_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "schema_version": {
+      "const": "techtree.skill.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_kind": {
+      "const": "manual",
+      "title": "Source Kind",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "root_digest",
+    "archive_digest",
+    "files",
+    "source_kind",
+    "parent_skill_digest"
+  ],
+  "title": "SkillArtifact",
+  "type": "object"
+}

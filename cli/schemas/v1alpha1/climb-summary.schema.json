@@ -1,0 +1,263 @@
+{
+  "$defs": {
+    "CompatibilityIssue": {
+      "additionalProperties": false,
+      "description": "One reason a Climb might not run here.",
+      "properties": {
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "code": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "message": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "severity": {
+          "enum": [
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "blocking"
+      ],
+      "title": "CompatibilityIssue",
+      "type": "object"
+    },
+    "CompatibilityResult": {
+      "additionalProperties": false,
+      "description": "Whether this host can run this Climb, and what stands in the way.",
+      "properties": {
+        "compatible": {
+          "title": "Compatible",
+          "type": "boolean"
+        },
+        "engine_status": {
+          "$ref": "#/$defs/EngineCompatibilityStatus"
+        },
+        "evaluation_backend_kind": {
+          "$ref": "#/$defs/EvaluationBackendKind"
+        },
+        "evaluation_backend_supported": {
+          "title": "Evaluation Backend Supported",
+          "type": "boolean"
+        },
+        "host_platform": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "host_supported": {
+          "title": "Host Supported",
+          "type": "boolean"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/CompatibilityIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "required_engine_digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "compatible",
+        "host_platform",
+        "host_supported",
+        "required_engine_digest",
+        "engine_status",
+        "evaluation_backend_kind",
+        "evaluation_backend_supported",
+        "issues"
+      ],
+      "title": "CompatibilityResult",
+      "type": "object"
+    },
+    "DataPolicySummary": {
+      "additionalProperties": false,
+      "description": "The four rights a participant most needs to see before starting.",
+      "properties": {
+        "candidate_skill_public_release": {
+          "enum": [
+            "required_for_climb",
+            "allowed",
+            "prohibited",
+            "consent_required"
+          ],
+          "title": "Candidate Skill Public Release",
+          "type": "string"
+        },
+        "raw_episode_server_upload": {
+          "enum": [
+            "allowed",
+            "prohibited",
+            "consent_required"
+          ],
+          "title": "Raw Episode Server Upload",
+          "type": "string"
+        },
+        "raw_episode_training_use": {
+          "enum": [
+            "allowed",
+            "prohibited",
+            "consent_required"
+          ],
+          "title": "Raw Episode Training Use",
+          "type": "string"
+        },
+        "uplift_report_visibility": {
+          "enum": [
+            "public",
+            "private",
+            "prohibited"
+          ],
+          "title": "Uplift Report Visibility",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw_episode_server_upload",
+        "raw_episode_training_use",
+        "candidate_skill_public_release",
+        "uplift_report_visibility"
+      ],
+      "title": "DataPolicySummary",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EngineCompatibilityStatus": {
+      "description": "What is known about the required engine on this host.",
+      "enum": [
+        "unknown",
+        "not_installed",
+        "installed_unverified",
+        "verified"
+      ],
+      "title": "EngineCompatibilityStatus",
+      "type": "string"
+    },
+    "EvaluationBackendKind": {
+      "description": "Which system orchestrated the evaluation.",
+      "enum": [
+        "local_techtree",
+        "prime_lab",
+        "independent_reproducer"
+      ],
+      "title": "EvaluationBackendKind",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/climb-summary.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Everything ``climb list`` and ``climb show`` display, in one object.",
+  "properties": {
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "candidate_skill_visibility": {
+      "enum": [
+        "public",
+        "private"
+      ],
+      "title": "Candidate Skill Visibility",
+      "type": "string"
+    },
+    "climb_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/CompatibilityResult"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicySummary"
+    },
+    "evaluation_backend": {
+      "$ref": "#/$defs/EvaluationBackendKind"
+    },
+    "mutation_kind": {
+      "const": "skill_insertion",
+      "title": "Mutation Kind",
+      "type": "string"
+    },
+    "proof_grade": {
+      "enum": [
+        "development_only",
+        "P1"
+      ],
+      "title": "Proof Grade",
+      "type": "string"
+    },
+    "purpose": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "reference": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "status": {
+      "enum": [
+        "open",
+        "closed",
+        "development"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "subject_harness": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "subject_harness_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "summary": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "task_count": {
+      "minimum": 1,
+      "title": "Task Count",
+      "type": "integer"
+    },
+    "taskset_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "title": {
+      "$ref": "#/$defs/NonEmptyString"
+    }
+  },
+  "required": [
+    "reference",
+    "climb_digest",
+    "campaign_spec_digest",
+    "title",
+    "summary",
+    "status",
+    "purpose",
+    "taskset_id",
+    "task_count",
+    "subject_harness",
+    "subject_harness_version",
+    "mutation_kind",
+    "candidate_skill_visibility",
+    "evaluation_backend",
+    "proof_grade",
+    "data_policy",
+    "compatibility"
+  ],
+  "title": "ClimbSummary",
+  "type": "object"
+}
