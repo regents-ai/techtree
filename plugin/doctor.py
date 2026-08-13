@@ -466,7 +466,8 @@ def _check_release_core(root: Path, checks: list[DoctorCheck]) -> str | None:
                 f"release {core.release_id} pins CLI {core.cli_version} "
                 f"and carries digest {digest}"
                 + (
-                    "; it is not a published release yet: "
+                    "; it is not a published release yet, so installing "
+                    "Techtree from it is refused: "
                     + ", ".join(core.placeholder_fields)
                     + " have not been chosen"
                     if development

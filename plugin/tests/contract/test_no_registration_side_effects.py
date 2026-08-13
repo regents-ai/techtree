@@ -138,6 +138,18 @@ def test_registration_dispatches_no_tool(
     assert all(callable(tool.handler) for tool in ctx.tools.values())
 
 
+def test_registration_offers_no_installation(
+    sealed_host: None, ctx: RecordingContext
+) -> None:
+    """Loading the plugin never prepares, let alone performs, an install."""
+    from techtree_hermes.services.container import build_services
+
+    techtree_hermes.register(ctx)
+    services = build_services(ctx)
+
+    assert services.plans.count() == 0
+
+
 def test_the_tripwires_would_notice(sealed_host: None) -> None:
     """The seal is real: the same calls fail when made deliberately."""
     with pytest.raises(SideEffectError):

@@ -165,7 +165,11 @@ def install_fake_cli(
     return FakeCli(directory=directory, argv_log=argv_log)
 
 
+def envelope(**overrides: Any) -> dict[str, Any]:
+    """Return one valid envelope with the given fields replaced."""
+    return {**VALID_ENVELOPE, **overrides}
+
+
 def print_envelope(**overrides: Any) -> str:
     """Return fake-CLI source that prints one valid envelope."""
-    envelope = {**VALID_ENVELOPE, **overrides}
-    return f"print(json.dumps({envelope!r}))"
+    return f"print(json.dumps({envelope(**overrides)!r}))"

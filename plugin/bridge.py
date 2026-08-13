@@ -194,6 +194,45 @@ def call_cli(
     )
 
 
+def read_cli_version(
+    *,
+    timeout_seconds: float = DEFAULT_CLI_TIMEOUT_SECONDS,
+    path_lookup: PathLookup = which,
+) -> str:
+    """Return the installed CLI's version string.
+
+    ``techtree --version`` answers with a bare version even in machine mode,
+    so this is the one call that must not be parsed as an envelope. It exists
+    to prove an installed CLI runs at all; every release fact comes from
+    ``release info``.
+
+    Raises:
+        CliNotInstalledError: when Techtree is not installed.
+        CliInvocationError: when it could not be run, or did not answer with
+            one plain version line.
+    """
+    argv = [require_techtree_binary(path_lookup=path_lookup), "--version"]
+    try:
+        completed = subprocess.run(
+            argv,
+            shell=False,
+            capture_output=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, OSError) as error:
+        raise CliInvocationError(
+            f"the Techtree CLI could not report its version: {scrub_text(str(error))}"
+        ) from error
+
+    version = completed.stdout.decode("utf-8", errors="replace").strip()
+    if completed.returncode != 0 or not version or "\n" in version:
+        raise CliInvocationError(
+            "the Techtree CLI did not answer with one plain version line"
+        )
+    return version
+
+
 def invoke_cli_human(
     arguments: Sequence[str], *, path_lookup: PathLookup = which
 ) -> int:
@@ -311,6 +350,10 @@ class CliBridge:
             maximum_stdout_bytes=self.maximum_stdout_bytes,
             maximum_stderr_bytes=self.maximum_stderr_bytes,
         )
+
+    def version(self) -> str:
+        """Return the installed CLI's plain version string."""
+        return read_cli_version(timeout_seconds=self.timeout_seconds)
 
     def invoke_human(self, arguments: Sequence[str]) -> int:
         """Run one terminal-only command against the user's own streams."""

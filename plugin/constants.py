@@ -33,6 +33,11 @@ CLI_COMMAND: Final = "techtree"
 # Machine-mode flags appended to every bridged CLI invocation, exactly once.
 CLI_JSON_FLAGS: Final = ("--json", "--no-color", "--no-input")
 
+# The distribution an installation plan may name, and the only one. It is a
+# release coordinate, not a setting: no tool argument or model output can
+# change what gets installed.
+CLI_DISTRIBUTION_NAME: Final = "techtree"
+
 DEFAULT_CLI_TIMEOUT_SECONDS: Final = 120.0
 
 # Bound for CLI work that reaches the public release origin, such as catalog
