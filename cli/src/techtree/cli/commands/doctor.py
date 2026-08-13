@@ -17,10 +17,12 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from techtree.cli.context import cli_context
+from techtree.cli.commands.climb import build_catalog_service
+from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.doctor.service import DoctorReport, DoctorService
 from techtree.errors import PrerequisiteError
+from techtree.models.campaign import CampaignSpec
 from techtree.models.cli import CheckStatus, CliMessage, DoctorCheck, MessageLevel
 
 __all__ = ["doctor_command", "render_doctor_report"]
@@ -37,13 +39,35 @@ _STATUS_STYLE: dict[CheckStatus, str] = {
 }
 
 
-def doctor_command(ctx: typer.Context) -> None:
+def doctor_command(
+    ctx: typer.Context,
+    for_evaluation: bool = typer.Option(
+        False,
+        "--for-evaluation",
+        help=(
+            "Also check what running a Climb for real needs, and treat anything "
+            "missing as a reason to stop rather than a note."
+        ),
+    ),
+    climb: str | None = typer.Option(
+        None,
+        "--climb",
+        metavar="REFERENCE",
+        help=(
+            "Check the subject a particular Climb would run: its model "
+            "credential and its container image. Implies --for-evaluation."
+        ),
+    ),
+) -> None:
     """Run DoctorService and emit checks plus repair actions."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[DoctorReport]:
         service = DoctorService(context.paths, context.settings)
-        checks = service.run()
+        checks = service.run(
+            for_evaluation=for_evaluation or climb is not None,
+            campaign=_campaign_for(context, climb),
+        )
         blocking = service.blocking_failures(checks)
 
         return CommandResult(
@@ -64,6 +88,18 @@ def doctor_command(ctx: typer.Context) -> None:
         )
 
     invoke_command(context, COMMAND, action, render_data=_render)
+
+
+def _campaign_for(context: CliContext, reference: str | None) -> CampaignSpec | None:
+    """Resolve the Campaign a named Climb would execute, if one was named.
+
+    Without a Climb, Doctor can only ask the machine-level questions. Which
+    model a subject would authenticate as, and which image it would run in, are
+    properties of a particular experiment rather than of the host.
+    """
+    if reference is None:
+        return None
+    return build_catalog_service(context).get_climb(reference).campaign
 
 
 def render_doctor_report(report: DoctorReport, console: Console) -> None:

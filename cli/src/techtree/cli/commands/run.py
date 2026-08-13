@@ -43,7 +43,7 @@ from techtree.drafts.store import DraftStore
 from techtree.errors import TechtreeError, UsageError
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
 from techtree.models.cli import CliError, CliMessage, MessageLevel, NextAction
-from techtree.models.run import RunPhase, RunProgress
+from techtree.models.run import RunPhase, RunProgress, VariantProgress
 from techtree.models.uplift_report import UpliftReport
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.launcher import (
@@ -59,6 +59,7 @@ from techtree.runs.service import (
     RunService,
 )
 from techtree.runs.store import RunStore
+from techtree.verifiers.models import VariantName
 
 __all__ = [
     "CANCEL_COMMAND",
@@ -66,9 +67,12 @@ __all__ = [
     "DEVELOPMENT_ONLY_BANNER",
     "DEVELOPMENT_ONLY_RESULT_NOTICE",
     "LOGS_COMMAND",
+    "PROVISIONAL_SCORE",
     "RESULT_COMMAND",
+    "RUN_FOLLOW_NOT_SUPPORTED_FOR_VARIANT",
     "RUN_FOLLOW_NOT_SUPPORTED_IN_JSON",
     "RUN_WATCH_NOT_SUPPORTED_IN_JSON",
+    "SCORE_PROVISIONAL_NOTICE",
     "STATUS_COMMAND",
     "RunCancelPayload",
     "RunLogsPayload",
@@ -89,6 +93,7 @@ RESULT_COMMAND: Final = "run result"
 #: Stable error codes this module reports. Spec PR8 §8.16 names the first;
 #: the other two are the machine-mode rules the same section asks for.
 RUN_FOLLOW_NOT_SUPPORTED_IN_JSON: Final = "run_follow_not_supported_in_json"
+RUN_FOLLOW_NOT_SUPPORTED_FOR_VARIANT: Final = "run_follow_not_supported_for_variant"
 RUN_WATCH_NOT_SUPPORTED_IN_JSON: Final = "run_watch_not_supported_in_json"
 CANCEL_CONFIRMATION_REQUIRED: Final = "run_cancel_confirmation_required"
 
@@ -129,6 +134,18 @@ def development_only_result_notice(data_policy_digest: str) -> str:
     return DEVELOPMENT_ONLY_RESULT_NOTICE.format(data_policy_digest=data_policy_digest)
 
 
+#: What a variant's score column says while the comparison is still running.
+#: Spec section 6.20 forbids showing a delta before both sides have finished
+#: every task, and a blank cell would read as "nothing scored" rather than
+#: "not yet answerable".
+PROVISIONAL_SCORE: Final = "provisional only"
+
+#: Spec section 6.20, the sentence under a progress table.
+SCORE_PROVISIONAL_NOTICE: Final = (
+    "The score remains provisional until every task completes and Techtree "
+    "verifies that the observed configurations match."
+)
+
 #: How often human watch mode looks again.
 _WATCH_INTERVAL_SECONDS: Final = 1.0
 
@@ -144,6 +161,10 @@ class RunStatusPayload(ProtocolModel):
     sequence: int
     updated_at: UtcDateTime
     progress: RunProgress | None
+    #: One entry per variant once a concurrent comparison is under way, keyed by
+    #: variant name. Spec section 6.20 exposes it here so a machine caller reads
+    #: both sides' episode counts without parsing anything meant for a person.
+    variant_progress: dict[str, VariantProgress]
     worker_pid: int | None
     worker_alive: bool
     heartbeat_at: UtcDateTime | None
@@ -247,6 +268,7 @@ def _status_payload(service: RunService, run_id: str) -> RunStatusPayload:
         sequence=state.sequence,
         updated_at=state.updated_at,
         progress=state.progress,
+        variant_progress=dict(state.variant_progress),
         worker_pid=state.worker_pid,
         worker_alive=status.worker_alive,
         heartbeat_at=state.heartbeat_at,
@@ -325,11 +347,28 @@ def logs_run_command(
             help="Keep printing new lines as they arrive. Human output only.",
         ),
     ] = False,
+    variant: Annotated[
+        VariantName | None,
+        typer.Option(
+            "--variant",
+            help="Read one side of the comparison's evaluation log.",
+        ),
+    ] = None,
 ) -> None:
     """Show the log output of a run."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[RunLogsPayload]:
+        # The narrower incompatibility is reported first. Following one side of
+        # a comparison is not supported in any output mode, so saying "not in
+        # machine mode" would send a caller off to try it in human mode.
+        if follow and variant is not None:
+            raise UsageError(
+                "--follow reads the worker's own log; a variant's evaluation "
+                "log is read a window at a time with --tail",
+                code=RUN_FOLLOW_NOT_SUPPORTED_FOR_VARIANT,
+                details={"run_id": run_id, "variant": variant.value},
+            )
         if follow and context.json_output:
             raise UsageError(
                 "--follow never ends and machine mode returns one envelope; "
@@ -339,6 +378,17 @@ def logs_run_command(
             )
 
         service = build_run_service(context)
+        if variant is not None:
+            logs = service.variant_logs(run_id, variant, tail=tail)
+            return CommandResult(
+                data=RunLogsPayload(
+                    run_id=logs.run_id,
+                    lines=list(logs.lines),
+                    truncated=logs.truncated,
+                ),
+                next_actions=[_check_status(run_id)],
+            )
+
         logs = service.logs(run_id, tail=tail)
         if follow:
             _follow_log(service, run_id, context, shown=logs.lines)
@@ -634,6 +684,44 @@ def _render_status(data: object, console: Console) -> None:
     if data.error is not None:
         rows.append(("Error", data.error.message))
     _print_pairs(console, rows)
+
+    if data.variant_progress:
+        console.print()
+        _print_variant_progress(console, data.variant_progress)
+
+
+def _print_variant_progress(
+    console: Console, progress: dict[str, VariantProgress]
+) -> None:
+    """Show both sides of a comparison side by side. Spec section 6.20.
+
+    No score appears here, and no delta. Until both variants have finished
+    every task, any number would be a partial mean of a partial run, and a
+    reader who saw one would reasonably take it for the answer.
+    """
+    baseline = progress.get(VariantName.BASELINE.value)
+    candidate = progress.get(VariantName.CANDIDATE.value)
+
+    table = Table(box=None, pad_edge=False, padding=(0, 2))
+    table.add_column("", no_wrap=True)
+    table.add_column("Baseline", no_wrap=True)
+    table.add_column("Skill candidate", no_wrap=True)
+    table.add_row("Episodes", _episode_text(baseline), _episode_text(candidate))
+    table.add_row("State", _variant_state(baseline), _variant_state(candidate))
+    table.add_row("Current score", PROVISIONAL_SCORE, PROVISIONAL_SCORE)
+    console.print(table)
+    console.print()
+    console.print(SCORE_PROVISIONAL_NOTICE)
+
+
+def _episode_text(variant: VariantProgress | None) -> str:
+    if variant is None:
+        return "not started"
+    return f"{variant.completed} / {variant.total}"
+
+
+def _variant_state(variant: VariantProgress | None) -> str:
+    return "pending" if variant is None else variant.state
 
 
 def _progress_text(progress: RunProgress | None) -> str:

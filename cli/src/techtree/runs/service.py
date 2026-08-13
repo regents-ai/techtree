@@ -76,6 +76,8 @@ from techtree.runs.events import DETAIL_ERROR, RUN_FAILED
 from techtree.runs.launcher import WorkerLauncher
 from techtree.runs.machine import is_terminal
 from techtree.runs.store import RunStore
+from techtree.verifiers.models import RunPaths, VariantName
+from techtree.verifiers.outputs import EVAL_LOG_FILENAME
 
 __all__ = [
     "ACKNOWLEDGEMENT_METHODS",
@@ -452,6 +454,38 @@ class RunService:
 
     def logs(self, run_id: str, *, tail: int = DEFAULT_LOG_TAIL) -> RunLogs:
         """Return the last ``tail`` lines of the worker log, scrubbed."""
+        return self._read_log(
+            run_id,
+            path=self._runs.worker_log_path(run_id),
+            tail=tail,
+            missing=f"run {run_id} has written no log yet",
+        )
+
+    def variant_logs(
+        self, run_id: str, variant: VariantName, *, tail: int = DEFAULT_LOG_TAIL
+    ) -> RunLogs:
+        """Return one variant's evaluation log, scrubbed. Spec section 6.20.
+
+        The engine's own ``eval.log`` is the answer, never the child's captured
+        stdout. With rich output disabled the pinned CLI dumps every trace to
+        stdout as indented JSON when the run ends
+        (``docs/verifiers-eval.md``), and those are the subject's transcripts.
+        They are retained for diagnosis on disk and are not something a log
+        command hands back to whoever asked.
+        """
+        paths = RunPaths.for_run(self._paths, run_id)
+        return self._read_log(
+            run_id,
+            path=paths.variant_output_dir(variant) / EVAL_LOG_FILENAME,
+            tail=tail,
+            missing=(
+                f"the {variant.value} variant of run {run_id} has not started "
+                "evaluating yet"
+            ),
+        )
+
+    def _read_log(self, run_id: str, *, path: Path, tail: int, missing: str) -> RunLogs:
+        """Read the tail of one log file, scrubbing every line."""
         if tail < MINIMUM_LOG_TAIL or tail > MAXIMUM_LOG_TAIL:
             raise UsageError(
                 f"--tail is between {MINIMUM_LOG_TAIL} and {MAXIMUM_LOG_TAIL} "
@@ -464,12 +498,11 @@ class RunService:
                 },
             )
 
-        path = self._runs.worker_log_path(run_id)
         try:
             raw = path.read_text(encoding="utf-8", errors="replace")
         except FileNotFoundError as error:
             raise NotFoundError(
-                f"run {run_id} has written no log yet",
+                missing,
                 code=RUN_LOGS_UNAVAILABLE,
                 retryable=True,
                 details={"run_id": run_id},

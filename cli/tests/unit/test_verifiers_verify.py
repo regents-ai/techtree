@@ -30,6 +30,13 @@ from techtree.models.campaign import ModelSpec
 from techtree.models.engine import EngineDescriptor
 from techtree.models.experiment import ExperimentManifest
 from techtree.models.validation import TasksetLock
+from techtree.verifiers.child import (
+    CONFIG_ARGUMENT_MARKER,
+    DRY_RUN_FLAG,
+    EVAL_EXECUTABLE,
+    PUSH_DISABLED_FLAG,
+    dry_run_argv,
+)
 from techtree.verifiers.config import (
     DockerRuntimeToml,
     EnvToml,
@@ -51,11 +58,6 @@ from techtree.verifiers.models import (
     VariantName,
 )
 from techtree.verifiers.verify import (
-    CONFIG_ARGUMENT_MARKER,
-    DRY_RUN_FLAG,
-    EVAL_EXECUTABLE,
-    PUSH_DISABLED_FLAG,
-    dry_run_argv,
     dry_run_variant_config,
     verify_compiled_config,
     verify_variant_execution,
@@ -199,6 +201,47 @@ def test_the_engines_own_eval_script_is_the_one_asked_for(
     )
 
     assert engine.calls[0][0] == EVAL_EXECUTABLE
+
+
+def test_the_validation_leaves_a_record_beside_what_it_validated(
+    written_config: tuple[EvalToml, Path, Path],
+) -> None:
+    # Spec section 6.19. A reviewer should be able to read what was asked and
+    # what came back, rather than infer it from the resolved document.
+    config, input_path, dry_run_dir = written_config
+    engine = RecordingEngine(document=resolved_document(config))
+
+    dry_run_variant_config(
+        engine_runner=engine,
+        variant=VariantName.BASELINE,
+        compiled=config,
+        input_config_path=input_path,
+        dry_run_dir=dry_run_dir,
+    )
+
+    written = (dry_run_dir / "command.log").read_text()
+    assert "variant: baseline" in written
+    assert "--dry-run" in written
+    assert "exit-code: 0" in written
+
+
+def test_a_failed_validation_still_leaves_its_record(
+    written_config: tuple[EvalToml, Path, Path],
+) -> None:
+    config, input_path, dry_run_dir = written_config
+    engine = RecordingEngine(document=None, exit_code=1, stderr="unknown key")
+
+    dry_run_variant_config(
+        engine_runner=engine,
+        variant=VariantName.BASELINE,
+        compiled=config,
+        input_config_path=input_path,
+        dry_run_dir=dry_run_dir,
+    )
+
+    written = (dry_run_dir / "command.log").read_text()
+    assert "exit-code: 1" in written
+    assert "unknown key" in written
 
 
 def test_a_config_that_was_never_written_is_refused_before_the_engine_runs(

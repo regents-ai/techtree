@@ -35,6 +35,7 @@ from techtree.engines.runner import EngineRunner
 from techtree.errors import EngineError, ValidationError
 from techtree.models.base import ArtifactRef, Digest
 from techtree.verifiers.models import (
+    NORMALIZED_EPISODES_FILENAME,
     ChildProcessOutcome,
     NormalizedEpisode,
     VariantExecutionPlan,
@@ -71,9 +72,6 @@ EVAL_LOG_FILENAME: Final = "eval.log"
 #: The engine helper that turns raw episodes into the protocol projection. It
 #: lives inside the digested bundle (decisions document 0003 A3).
 NORMALIZE_EVAL_OUTPUT_TOOL: Final = "normalize_eval_output.py"
-
-#: Where the projection lands, beside the raw evidence it was derived from.
-NORMALIZED_EPISODES_FILENAME: Final = "normalized-episodes.jsonl"
 
 CONFIG_MEDIA_TYPE: Final = "application/toml"
 TRACES_MEDIA_TYPE: Final = "application/x-ndjson"
@@ -283,7 +281,7 @@ def build_variant_result(
 
     output_dir = Path(plan.verifiers_output_dir)
     paths = require_output_files(output_dir)
-    destination = output_dir.parent / NORMALIZED_EPISODES_FILENAME
+    destination = output_dir / NORMALIZED_EPISODES_FILENAME
 
     normalize_eval_output(
         engine_registry=engine_registry,

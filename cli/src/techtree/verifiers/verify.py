@@ -51,9 +51,16 @@ from techtree.models.campaign import SUBJECT_AGENT, AgentSpec, ModelSpec
 from techtree.models.engine import EngineDescriptor
 from techtree.models.experiment import ExperimentManifest
 from techtree.models.validation import TasksetLock
+from techtree.verifiers.child import (
+    CANCELLATION_EXIT_CODE,
+    EVAL_EXECUTABLE,
+    dry_run_argv,
+    write_command_log,
+)
 from techtree.verifiers.config import EvalToml
 from techtree.verifiers.credentials import credential_status
 from techtree.verifiers.models import (
+    COMMAND_LOG_FILENAME,
     VERIFIERS_DIRECTORY,
     ExecutionCheck,
     NormalizedTrace,
@@ -63,17 +70,10 @@ from techtree.verifiers.models import (
 from techtree.verifiers.outputs import CONFIG_FILENAME
 
 __all__ = [
-    "CANCELLATION_EXIT_CODE",
-    "CONFIG_ARGUMENT_MARKER",
     "DEFAULT_DRY_RUN_TIMEOUT_SECONDS",
-    "DRY_RUN_FLAG",
-    "EVAL_EXECUTABLE",
-    "OUTPUT_DIR_FLAG",
-    "PUSH_DISABLED_FLAG",
     "VARIANT_DRY_RUN_FAILED",
     "VARIANT_EXECUTION_UNCHECKABLE",
     "DryRunOutcome",
-    "dry_run_argv",
     "dry_run_variant_config",
     "verify_compiled_config",
     "verify_variant_execution",
@@ -82,29 +82,8 @@ __all__ = [
 #: Stable error code. Spec section 6.14.
 VARIANT_DRY_RUN_FAILED: Final = "variant_dry_run_failed"
 
-#: The pinned engine's evaluation console script. A bare, generic name
-#: (``docs/verifiers-pin.md``, finding C3), so it is always addressed through
-#: :class:`~techtree.engines.runner.EngineRunner`, which resolves it to an
-#: absolute path inside the engine's own virtual environment.
-EVAL_EXECUTABLE: Final = "eval"
-
-#: ``eval`` takes a configuration file as ``@`` followed by the path, as two
-#: separate argv entries.
-CONFIG_ARGUMENT_MARKER: Final = "@"
-DRY_RUN_FLAG: Final = "--dry-run"
-OUTPUT_DIR_FLAG: Final = "--output-dir"
-#: Belt and braces alongside ``push = false`` in the compiled document. The
-#: upstream default is to upload (``docs/verifiers-eval.md``, finding E1), and
-#: a flag on the command line overrides whatever the file says.
-PUSH_DISABLED_FLAG: Final = "--no-push"
-
 #: Stable error code for an execution nothing could be concluded about.
 VARIANT_EXECUTION_UNCHECKABLE: Final = "variant_execution_uncheckable"
-
-#: The conventional Ctrl-C code the pinned CLI exits on after it has torn its
-#: containers down (``docs/verifiers-eval.md``). A stopped run is cancelled,
-#: not invalid.
-CANCELLATION_EXIT_CODE: Final = 130
 
 DEFAULT_DRY_RUN_TIMEOUT_SECONDS: Final = 300.0
 
@@ -136,22 +115,6 @@ class DryRunOutcome:
         return tuple(check for check in self.checks if check.status == "failed")
 
 
-def dry_run_argv(*, input_config_path: Path, dry_run_dir: Path) -> list[str]:
-    """Return the arguments the engine's ``eval`` script is given.
-
-    No credential appears here, and none can: the configuration names an
-    environment variable and the engine reads it from the child's environment.
-    """
-    return [
-        CONFIG_ARGUMENT_MARKER,
-        str(input_config_path),
-        DRY_RUN_FLAG,
-        PUSH_DISABLED_FLAG,
-        OUTPUT_DIR_FLAG,
-        str(dry_run_dir),
-    ]
-
-
 def dry_run_variant_config(
     *,
     engine_runner: EngineRunner,
@@ -179,10 +142,18 @@ def dry_run_variant_config(
         )
     ensure_private_directory(dry_run_dir)
 
-    process = engine_runner.run(
-        EVAL_EXECUTABLE,
-        dry_run_argv(input_config_path=input_config_path, dry_run_dir=dry_run_dir),
-        timeout=timeout,
+    argv = dry_run_argv(input_config_path=input_config_path, dry_run_dir=dry_run_dir)
+    process = engine_runner.run(EVAL_EXECUTABLE, argv, timeout=timeout)
+    # Spec section 6.19 keeps a record of the validation beside what it
+    # validated, so a reviewer can see exactly what was asked and answered
+    # before the run rather than inferring it from the resolved document.
+    write_command_log(
+        dry_run_dir / COMMAND_LOG_FILENAME,
+        variant=variant,
+        argv=process.argv,
+        exit_code=process.exit_code,
+        stdout=process.stdout,
+        stderr=process.stderr,
     )
 
     checks: list[ExecutionCheck] = [_invocation_check(process)]

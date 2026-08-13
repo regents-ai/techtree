@@ -33,7 +33,10 @@ from techtree.doctor.checks import (
     check_uv_cli,
     detect_host_platform,
 )
+from techtree.doctor.execution_checks import execution_checks
+from techtree.engines.registry import EngineRegistry
 from techtree.models.base import NonEmptyString, ProtocolModel
+from techtree.models.campaign import CampaignSpec
 from techtree.models.cli import MAX_NEXT_ACTIONS, CheckStatus, DoctorCheck, NextAction
 from techtree.paths import TechtreePaths
 from techtree.settings import Settings
@@ -71,10 +74,26 @@ class DoctorService:
         self._paths = paths
         self._settings = settings
 
-    def run(self) -> list[DoctorCheck]:
-        """Run checks in deterministic order."""
+    def run(
+        self,
+        *,
+        for_evaluation: bool = False,
+        campaign: CampaignSpec | None = None,
+    ) -> list[DoctorCheck]:
+        """Run checks in deterministic order.
+
+        ``for_evaluation`` adds the execution checks of spec section 6.18 and
+        makes them blocking. An ordinary Doctor is a question about the machine
+        and answers it with warnings; the evaluation Doctor is the gate in front
+        of a run that provisions containers and spends money on model calls, so
+        the same facts stop it rather than merely being noted.
+
+        A ``campaign`` narrows the question from "could anything run here" to
+        "could this run here", which is the only form in which the subject's
+        credential and image can be checked at all.
+        """
         host_platform = detect_host_platform()
-        return [
+        checks = [
             check_python_version(),
             check_host_platform(host_platform),
             check_techtree_home(self._paths),
@@ -84,6 +103,11 @@ class DoctorService:
             check_hermes_cli(),
             check_active_engine(self._paths, self._settings),
         ]
+        if not for_evaluation:
+            return checks
+        registry = EngineRegistry(self._paths, self._settings)
+        checks.extend(execution_checks(engine_registry=registry, campaign=campaign))
+        return checks
 
     def report(self, checks: list[DoctorCheck]) -> DoctorReport:
         """Project the checks into the command's response payload."""
@@ -132,7 +156,11 @@ class DoctorService:
 
         if actions:
             return actions
-        return [_browse_climbs()]
+        # Nothing offered a repair. That means either the host is fine, or the
+        # only things wrong with it are things Techtree cannot fix — a Campaign
+        # that is not meant to be executed yet, for instance. Saying "this host
+        # is ready" in the second case would be a lie told cheerfully.
+        return [_browse_climbs(ready=not any(check.blocking for check in checks))]
 
 
 def _metadata_string(
@@ -215,11 +243,55 @@ def _unsupported_host(_: TechtreePaths) -> None:
     return None
 
 
-def _browse_climbs() -> NextAction:
+def _export_evaluation_credential(_: TechtreePaths) -> NextAction:
+    return NextAction(
+        id="export_evaluation_credential",
+        label="Set the evaluation credential, then re-run this check",
+        reason=(
+            "The evaluated subject's model calls are paid for by a credential "
+            "read from the shell that starts the run. It is separate from "
+            "whatever your own agent is signed in with."
+        ),
+        cli=["techtree", "doctor", "--for-evaluation"],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=False,
+    )
+
+
+def _pull_subject_image(_: TechtreePaths) -> NextAction:
+    return NextAction(
+        id="pull_subject_image",
+        label="Pull the subject's container image, then re-run this check",
+        reason=(
+            "The evaluated subject runs in the image the Campaign pins. "
+            "Downloading it is a deliberate setup step, so Techtree reports it "
+            "rather than doing it during a check."
+        ),
+        cli=["techtree", "doctor", "--for-evaluation"],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=False,
+    )
+
+
+def _not_runnable_yet(_: TechtreePaths) -> None:
+    """A Campaign that is not meant to be executed has no repair."""
+    return None
+
+
+def _browse_climbs(*, ready: bool) -> NextAction:
     return NextAction(
         id="list_climbs",
         label="Browse the available Climbs",
-        reason="This host is ready.",
+        reason=(
+            "This host is ready."
+            if ready
+            else (
+                "Nothing left to fix automatically; each failed check says what "
+                "it needs."
+            )
+        ),
         cli=["techtree", "climb", "list"],
         hermes_tool=None,
         hermes_args=None,
@@ -239,4 +311,12 @@ _REPAIRS: Final[tuple[tuple[str, _Repair], ...]] = (
     ("active_engine", _install_engine),
     ("docker_cli", _recheck_after_starting_docker),
     ("docker_daemon", _recheck_after_starting_docker),
+    # Spec section 6.18. These only appear under --for-evaluation, and they sit
+    # last because a host that fails an ordinary check fails these too, and the
+    # ordinary repair is the one worth offering first.
+    ("execution_docker_platform", _recheck_after_starting_docker),
+    ("execution_engine_eval", _install_engine),
+    ("execution_model_credential", _export_evaluation_credential),
+    ("execution_subject_image", _pull_subject_image),
+    ("execution_live_campaign", _not_runnable_yet),
 )

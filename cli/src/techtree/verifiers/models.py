@@ -33,7 +33,11 @@ from techtree.models.campaign import VariantSchedule
 from techtree.paths import TechtreePaths
 
 __all__ = [
+    "COMMAND_LOG_FILENAME",
     "INPUT_CONFIG_FILENAME",
+    "NORMALIZED_EPISODES_FILENAME",
+    "STDERR_LOG_FILENAME",
+    "STDOUT_LOG_FILENAME",
     "VERIFIERS_DIRECTORY",
     "ChildProcessOutcome",
     "ExecutionCheck",
@@ -56,6 +60,20 @@ VERIFIERS_DIRECTORY: Final = "verifiers"
 #: The configuration Techtree compiles, as opposed to the one the engine
 #: resolves and writes back out under its own name.
 INPUT_CONFIG_FILENAME: Final = "input.toml"
+
+#: What the engine writes when it normalizes one variant's raw episodes. It sits
+#: beside the raw evidence inside ``run/`` (spec section 6.19) rather than above
+#: it, so that one directory holds everything one execution produced.
+NORMALIZED_EPISODES_FILENAME: Final = "normalized-episodes.jsonl"
+
+#: Where a live child's captured streams land. Spec section 6.10 redirects both
+#: to run-owned files; section 6.19 names them.
+STDOUT_LOG_FILENAME: Final = "stdout.log"
+STDERR_LOG_FILENAME: Final = "stderr.log"
+
+#: The dry run is short and captured whole, so it is recorded in one file rather
+#: than as a pair of streams. Spec section 6.19.
+COMMAND_LOG_FILENAME: Final = "command.log"
 
 _DRY_RUN_DIRECTORY: Final = "dry-run"
 _RUN_DIRECTORY: Final = "run"
@@ -130,9 +148,30 @@ class RunPaths:
         """
         return self.variant_dir(variant) / _DRY_RUN_DIRECTORY
 
+    def variant_dry_run_command_log(self, variant: VariantName) -> Path:
+        """What the dry-run invocation was, and what it said back."""
+        return self.variant_dry_run_dir(variant) / COMMAND_LOG_FILENAME
+
     def variant_output_dir(self, variant: VariantName) -> Path:
         """Where the engine writes one variant's real evaluation output."""
         return self.variant_dir(variant) / _RUN_DIRECTORY
+
+    def variant_stdout_log(self, variant: VariantName) -> Path:
+        """Where one variant's child sends everything it prints.
+
+        Never a console. With ``rich`` disabled the pinned CLI dumps every
+        trace as indented JSON when the run ends, and those are the subject's
+        transcripts (``docs/verifiers-eval.md``).
+        """
+        return self.variant_output_dir(variant) / STDOUT_LOG_FILENAME
+
+    def variant_stderr_log(self, variant: VariantName) -> Path:
+        """Where one variant's child sends its diagnostics."""
+        return self.variant_output_dir(variant) / STDERR_LOG_FILENAME
+
+    def variant_normalized_episodes(self, variant: VariantName) -> Path:
+        """One variant's normalized projection, beside the evidence it projects."""
+        return self.variant_output_dir(variant) / NORMALIZED_EPISODES_FILENAME
 
     def relative(self, path: Path) -> str:
         """Return ``path`` as a POSIX path relative to the run directory."""
