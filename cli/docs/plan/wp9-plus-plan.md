@@ -1,7 +1,12 @@
 # Plan: Work Packages 9+ (the operator-experience push)
 
-Status: chief-of-staff proposal for Sean's review. Nothing here is
-dispatched. Grounded in `docs/spec/climb-v0.1-wp6-wp8.md` §9–§11 (the
+Status: SUPERSEDED as implementation guidance by the author's exhaustive
+`docs/spec/climb-v0.1-wp9-wp11.md` (2026-08-13), which is now the binding
+specification; beads epics WP9/WP10/WP11 and their 18 tickets follow its
+§14 split. This document remains useful only for the founder-inputs
+checklist below. Original framing:
+
+Grounded in `docs/spec/climb-v0.1-wp6-wp8.md` §9–§11 (the
 author's WP9/WP10 compatibility contracts) and the target narrative:
 
 > A person talks to their Hermes agent from a phone or terminal gateway,
