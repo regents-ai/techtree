@@ -1,0 +1,12 @@
+{
+  "examples": [
+    {
+      "task": "rename a function and update its callers",
+      "expected": "one commit, no unrelated edits"
+    },
+    {
+      "task": "add a guard clause",
+      "expected": "the guard, and a test that fails without it"
+    }
+  ]
+}
