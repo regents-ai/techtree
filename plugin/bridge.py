@@ -32,7 +32,7 @@ import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from shutil import which
-from typing import Any, Final
+from typing import Any, Final, Protocol
 
 from .constants import (
     CLI_COMMAND,
@@ -308,6 +308,29 @@ def _safe_stderr(raw: bytes, maximum_bytes: int) -> str:
     if len(scrubbed) <= STDERR_EXCERPT_CHARS:
         return scrubbed
     return scrubbed[:STDERR_EXCERPT_CHARS] + "… (truncated)"
+
+
+class Bridge(Protocol):
+    """What the rest of the plugin needs from the CLI boundary.
+
+    The container depends on this rather than on one class, so a caller — or a
+    test — can supply anything that speaks the same four sentences.
+    """
+
+    def invoke(self, arguments: Sequence[str]) -> dict[str, Any]:
+        """Run one machine-mode command and return its envelope."""
+
+    def call(self, arguments: Sequence[str], *, purpose: str = "") -> CliResponse:
+        """Run one machine-mode command and return envelope and exit code."""
+
+    def invoke_human(self, arguments: Sequence[str]) -> int:
+        """Run one terminal-only command against the user's own streams."""
+
+    def version(self) -> str:
+        """Return the installed CLI's plain version string."""
+
+    def verify_release(self, expected: ReleaseCore) -> dict[str, Any]:
+        """Compare the installed CLI's release against this plugin build."""
 
 
 @dataclass(frozen=True)

@@ -31,7 +31,9 @@ from techtree_hermes.bridge import CliBridge
 from techtree_hermes.errors import BootstrapPlanError
 from techtree_hermes.models import parse_bootstrap_install_plan
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.services.assets import ReleaseSkillProvider
 from techtree_hermes.services.container import PluginServices
+from techtree_hermes.state import SessionStore
 
 CORE = load_embedded_release_core()
 DIGEST = release_core_digest(CORE)
@@ -76,6 +78,8 @@ def _services(
         release_core_digest=DIGEST,
         bridge=CliBridge(),
         plans=InstallPlanStore(),
+        sessions=SessionStore(),
+        assets=ReleaseSkillProvider(),
     )
 
 

@@ -89,7 +89,8 @@ bridge.py            the only path from the plugin into Techtree
 doctor.py            the plugin's own doctor
 commands.py          `/techtree` and `hermes techtree ...` registries
 hooks.py             session lifecycle registry
-tools/               tool handlers
+state.py             the identifiers a conversation keeps
+tools/               the tools the agent calls
 services/            the container assembled during registration
 skills/              bundled read-only operator Skills
 scripts/             repository tooling
@@ -115,10 +116,19 @@ make test-cli-contract TECHTREE_CLI_ARGV="uv run --project ../techtree-python te
 
 Only read-only commands are used there.
 
+## What it remembers
+
+Only identifiers: which draft, which run, which proof — never a key, never a
+Skill's text, never anything from inside a run. They live for the length of
+the conversation, and nothing is lost when it ends, because Techtree holds the
+run itself: ask about a run by its identifier and the answer comes back from
+Techtree, not from anything the plugin was keeping.
+
 ## Not here yet
 
-This is an early build. The tool handlers, command surfaces, session hooks,
-and bundled Skills land in the following work packages; `make doctor` reports
-exactly which declared tools and hooks a build implements. The operator
-walkthroughs, privacy notes, and removal instructions arrive with the release
-documentation.
+This is an early build. The `/techtree` commands, the session hooks, and the
+bundled operator Skills land in the following work packages; `make doctor`
+reports exactly what a build implements. The guided introduction stops short
+of preparing a comparison until a published release names its starter Skill.
+The operator walkthroughs, privacy notes, and removal instructions arrive with
+the release documentation.

@@ -37,7 +37,7 @@ from .errors import PluginError
 from .hooks import SESSION_HOOKS
 from .schemas import all_tool_schemas
 from .services.container import PluginServices, build_services
-from .tools import TOOL_HANDLERS
+from .tools import TOOL_HANDLERS, bind
 
 __all__ = ["register"]
 
@@ -69,7 +69,7 @@ def _register_tools(ctx: Any, services: PluginServices) -> None:
             name=name,
             toolset=TOOLSET_NAME,
             schema=schema,
-            handler=handler,
+            handler=bind(services, handler),
             description=schema["description"],
         )
 

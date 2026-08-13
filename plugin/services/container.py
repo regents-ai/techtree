@@ -7,10 +7,12 @@ from pathlib import Path
 from typing import Any
 
 from ..approvals import InstallPlanStore
-from ..bridge import CliBridge
+from ..bridge import Bridge, CliBridge
 from ..constants import PLUGIN_ROOT
 from ..models import ReleaseCore
 from ..release import load_embedded_release_core, release_core_digest
+from ..state import SessionStore
+from .assets import ReleaseSkillProvider, SkillProvider
 
 
 @dataclass(frozen=True)
@@ -26,8 +28,10 @@ class PluginServices:
     root: Path
     release_core: ReleaseCore
     release_core_digest: str
-    bridge: CliBridge
+    bridge: Bridge
     plans: InstallPlanStore
+    sessions: SessionStore
+    assets: SkillProvider
 
 
 def build_services(ctx: Any, *, root: Path = PLUGIN_ROOT) -> PluginServices:
@@ -45,4 +49,6 @@ def build_services(ctx: Any, *, root: Path = PLUGIN_ROOT) -> PluginServices:
         release_core_digest=release_core_digest(release_core),
         bridge=CliBridge(),
         plans=InstallPlanStore(),
+        sessions=SessionStore(),
+        assets=ReleaseSkillProvider(),
     )

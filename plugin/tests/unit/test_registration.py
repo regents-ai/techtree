@@ -33,9 +33,11 @@ def test_registration_registers_every_implemented_tool(ctx: RecordingContext) ->
     schemas = all_tool_schemas()
     for name, registered in ctx.tools.items():
         assert registered.toolset == TOOLSET_NAME
-        assert registered.handler is TOOL_HANDLERS[name]
         assert registered.schema == schemas[name]
         assert registered.description == schemas[name]["description"]
+        # The host calls handler(args, **kwargs); the services it works
+        # through were supplied at registration, not by the caller.
+        assert registered.handler.__wrapped__ is TOOL_HANDLERS[name]
 
 
 def test_registration_registers_implemented_commands_and_hooks(
