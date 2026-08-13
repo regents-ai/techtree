@@ -64,12 +64,13 @@ lands; WP9c/d need WP8b's manifest shape frozen.
 
 ## WP10 — guided refinement + result experience
 
-- **WP10a — presentation wiring.** The deterministic
-  `ComparisonPresentation` payload (built in WP7c) is handed to the
-  founder-supplied `techtree:rich-terminal-output` operator Skill; the
-  Skill may narrate but cannot alter scores, statuses, digests, or proof
-  claims, and the deterministic CLI panel remains the authoritative
-  fallback. Compact bounded ANSI-free rendering for phone/gateway.
+- **WP10a — presentation wiring.** *(Superseded by decisions 0009: the
+  `rich-terminal-output` Skill was removed from the product release, and
+  the released result path is the deterministic Rich and compact
+  renderers only — no host-model narration turn exists in v0.1.)* The
+  deterministic `ComparisonPresentation` payload (built in WP7c) renders
+  through the deterministic CLI panel and the compact bounded ANSI-free
+  phone/gateway renderer.
 - **WP10b — one-turn improvement flow.** First report → sanitized
   `SkillImprovementContext` (no hidden answers, grader material, secrets,
   or unredacted paths) → host Hermes + founder-supplied
@@ -100,10 +101,14 @@ typed boundaries with fixture Skills only.
 
 1. Real subject model/provider + Prime evaluation credential (gates the
    first real WP6 run; already flagged).
-2. Starter subject Skill v1 (content-addressed release artifact).
-3. `techtree:rich-terminal-output` operator Skill.
-4. `techtree:skill-improver` operator Skill.
-5. LICENSE choice for techtree-python (placeholder committed).
+2. Starter subject Skill v1 (content-addressed release artifact) —
+   *supplied 2026-08-13 as `hello-world-starter-v1` (decisions 0009/0010).*
+3. `techtree:rich-terminal-output` operator Skill — *removed from the
+   release by decisions 0009; no longer a founder input.*
+4. `techtree:skill-improver` operator Skill — *supplied 2026-08-13
+   (decisions 0009/0010).*
+5. LICENSE choice for techtree-python (placeholder committed) —
+   *decided: MIT everywhere (decisions 0011).*
 6. Release versions: first public `techtree` version string and the
    plugin repo/commit the bootstrap manifest pins.
 7. techtree.sh hosting decision (WP8 deploy target — Fly.io per your
