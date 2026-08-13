@@ -34,6 +34,7 @@ import tempfile
 from dataclasses import dataclass
 from typing import Final
 
+from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError
 from techtree.models.base import JsonValue
 from techtree.models.catalog import EngineCompatibilityStatus
@@ -433,13 +434,27 @@ def check_active_engine(paths: TechtreePaths, settings: Settings) -> DoctorCheck
             },
         )
 
+    engine_status = EngineRegistry(paths, settings).status(digest)
+    if engine_status.verified:
+        return DoctorCheck(
+            id="active_engine",
+            label="Active engine",
+            status=CheckStatus.PASS,
+            detail=f"engine {digest} is installed and verified",
+            blocking=False,
+            metadata={
+                "engine_status": EngineCompatibilityStatus.VERIFIED.value,
+                "engine_digest": digest,
+            },
+        )
+
     return DoctorCheck(
         id="active_engine",
         label="Active engine",
         status=CheckStatus.WARN,
         detail=(
-            f"engine {digest} is installed; verifying it needs the managed "
-            "engine subsystem, which this build does not contain"
+            f"engine {digest} is installed but not verified; "
+            "run techtree setup to verify and activate it"
         ),
         blocking=False,
         metadata={

@@ -9,7 +9,8 @@ This document is that contract. Everything described here is stable within the
 `techtree.cli.v1` envelope version. It describes the boundary as specified, not
 as far as any one build has got: a command listed here that a build has not
 implemented answers with the error code `not_implemented` rather than being
-absent. `techtree doctor` is implemented today.
+absent. Every command listed in this document is implemented today; the
+`not_implemented` mechanism remains for reserved future commands.
 
 ## One JSON object on stdout
 
@@ -104,10 +105,10 @@ ran, because the diagnosis is the useful part of the answer.
 
 ```json
 {
-  "code": "not_implemented",
-  "message": "`techtree climb list` is not implemented in this build",
-  "retryable": false,
-  "details": {"command": "climb list"}
+  "code": "run_result_not_ready",
+  "message": "run run_... has not completed; its result is not available yet",
+  "retryable": true,
+  "details": {"run_id": "run_...", "phase": "running_baseline"}
 }
 ```
 

@@ -23,6 +23,7 @@ from pydantic import ValidationError as PydanticValidationError
 from techtree.errors import ValidationError
 from techtree.fs import atomic_write_text
 from techtree.models.base import Digest, StateModel
+from techtree.models.cli import NextAction
 from techtree.paths import TechtreePaths
 
 __all__ = [
@@ -69,6 +70,7 @@ def load_settings(paths: TechtreePaths) -> Settings:
         raise ValidationError(
             f"settings file is not valid TOML: {paths.config_file}",
             details={"path": str(paths.config_file)},
+            next_actions=[_repair_settings_action(str(paths.config_file))],
         ) from error
 
     return _validate(document, source=str(paths.config_file))
@@ -112,4 +114,21 @@ def _validate(document: object, *, source: str) -> Settings:
         raise ValidationError(
             f"invalid Techtree settings from {source}: {error.errors()[0]['msg']}",
             details={"source": source},
+            next_actions=[_repair_settings_action(source)],
         ) from error
+
+
+def _repair_settings_action(source: str) -> NextAction:
+    """Point at the file to fix; deleting it restores working defaults."""
+    return NextAction(
+        id="repair_settings",
+        label="Fix or remove the settings file",
+        reason=(
+            f"the settings file at {source} cannot be read; deleting it "
+            "restores the defaults and techtree recreates it on demand"
+        ),
+        cli=["rm", source],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=True,
+    )
