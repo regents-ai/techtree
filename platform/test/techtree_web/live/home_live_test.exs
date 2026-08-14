@@ -3,39 +3,66 @@ defmodule TechtreeWeb.HomeLiveTest do
 
   import Phoenix.LiveViewTest
 
-  test "the landing page says what this is and what it asks", %{conn: conn} do
-    {:ok, _live, html} = live(conn, ~p"/")
+  alias Techtree.Catalog.Importer
+  alias Techtree.CatalogFixture
 
-    assert html =~ "Techtree Climb"
-    assert html =~ "Controlled trials for agent skills and harnesses."
-    assert html =~ "What changed?"
-    assert html =~ "What stayed fixed?"
-    assert html =~ "Did the score move?"
-    assert html =~ "Start on your machine"
-    assert html =~ "Browse Climbs"
-    assert html =~ "Read the protocol"
-  end
-
-  test "the landing page invents no activity and claims no independent checking", %{conn: conn} do
-    {:ok, _live, html} = live(conn, ~p"/")
-
-    for fabrication <- [
-          "participants",
-          "runs completed",
-          "leaderboard",
-          "trending",
-          "join thousands",
-          "independently verified",
-          "verified by techtree"
-        ] do
-      refute String.downcase(html) =~ fabrication
+  describe "with a release published" do
+    setup do
+      CatalogFixture.use_bundle(CatalogFixture.root())
+      Importer.import!(CatalogFixture.root())
+      :ok
     end
 
-    refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)/i
+    test "the landing page says what this is and then how to install it", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      assert text =~ "Techtree Climb"
+      assert text =~ "Test one change to an agent on your own machine"
+      assert text =~ "My agent is installing"
+      assert text =~ "I’m installing"
+      assert text =~ "Set up Techtree and run the Hello World Climb."
+    end
+
+    test "the landing page opens on the agent path", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+
+      assert html =~ "hermes plugins install"
+      refute html =~ "uv tool install"
+    end
+
+    test "the landing page keeps the deeper pages one link away", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/")
+
+      for path <- ["/climbs", "/protocol", "/proofs/local"] do
+        assert live |> element(~s|a[href="#{path}"]|) |> has_element?()
+      end
+    end
+
+    test "the landing page invents no activity and claims no independent checking",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+
+      for fabrication <- [
+            "participants",
+            "runs completed",
+            "leaderboard",
+            "trending",
+            "join thousands",
+            "independently verified",
+            "verified by techtree"
+          ] do
+        refute String.downcase(html) =~ fabrication
+      end
+
+      refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)/i
+    end
   end
 
   test "the landing page needs no catalog to render", %{conn: conn} do
-    assert {:ok, _live, _html} = live(conn, ~p"/")
+    {:ok, _live, html} = live(conn, ~p"/")
+
+    assert visible_text(html) =~ "Installation details are not published on this site yet."
   end
 
   test "every page is reachable from every page", %{conn: conn} do
