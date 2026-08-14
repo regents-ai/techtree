@@ -2,12 +2,13 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @moduledoc """
   The claims this site is not allowed to make.
 
-  Five sentences are easy to write and wrong to publish: that a trial happens
+  Six sentences are easy to write and wrong to publish: that a trial happens
   entirely on the reader's own machine, that entering needs no account at all,
   that anyone but the participant witnessed the run, that the reader picked the
-  model the agent under test answers with, and that the introductory Skill
-  scores a particular number. Each of them is close enough to the truth that it
-  survives a careful edit, which is why it is checked here instead.
+  model the agent under test answers with, that the guided revision will make
+  the Skill better, and that the introductory Skill scores a particular number.
+  Each of them is close enough to the truth that it survives a careful edit,
+  which is why it is checked here instead.
 
   Every source of published words is scanned: each page as a reader sees it,
   with a release being served and with none, the installation contract this
@@ -59,6 +60,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # participant does bring their own provider account and key.
   @blurred_model ~r/\byour own models?\b/i
 
+  # The guided revision is one proposal from a model, tested honestly. Any
+  # sentence that promises it lands is a promise about somebody else's model.
+  @promised_revision [
+    ~r/will fix (the|your) skill/i,
+    ~r/learns? from (its|their|your) mistakes/i,
+    ~r/(will|to) close the gap/i
+  ]
+
   @dishonest_attestation [
     ~r/techtree\s+verified/i,
     ~r/verified\s+by\s+techtree/i,
@@ -102,6 +111,19 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_blurred_model(rendered(conn, @pages))
     end
 
+    test "no page promises the guided revision will work", %{conn: conn} do
+      refute_promised_revision(rendered(conn, @pages))
+    end
+
+    test "the Climb page says a proposal may be unusable or may not help", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
+      text = visible_text(html)
+
+      assert text =~ "Your own agent proposes one revision."
+      assert text =~ "Techtree tests it"
+      assert text =~ "A proposal may be unusable, or may run and fail to improve the score"
+    end
+
     test "no page promises the starter Skill a score", %{conn: conn} do
       refute_exact_score_claim(rendered(conn, @pages))
     end
@@ -143,6 +165,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_unscoped_account(sources)
       refute_dishonest_attestation(sources)
       refute_blurred_model(sources)
+      refute_promised_revision(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
     end
@@ -158,6 +181,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_unscoped_account(sources)
       refute_dishonest_attestation(sources)
       refute_blurred_model(sources)
+      refute_promised_revision(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
     end
@@ -171,6 +195,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_unscoped_account(sources)
       refute_dishonest_attestation(sources)
       refute_blurred_model(sources)
+      refute_promised_revision(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
     end
@@ -194,6 +219,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     for {label, text} <- sources do
       refute text =~ @unscoped_account,
              "#{label} says an account is not required without saying it is the Techtree one"
+    end
+  end
+
+  defp refute_promised_revision(sources) do
+    for {label, text} <- sources, pattern <- @promised_revision do
+      refute text =~ pattern,
+             "#{label} matches #{inspect(pattern)}: the guided revision is one proposal, " <>
+               "tested honestly, not an outcome this site can promise"
     end
   end
 

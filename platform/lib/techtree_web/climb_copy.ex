@@ -21,7 +21,8 @@ defmodule TechtreeWeb.ClimbCopy do
           starter_skill: String.t(),
           starter_note: String.t(),
           first_result_label: String.t(),
-          second_result_label: String.t()
+          second_result_label: String.t(),
+          revision_note: String.t()
         }
 
   @copy %{
@@ -38,7 +39,12 @@ defmodule TechtreeWeb.ClimbCopy do
           "The gap is deliberate, so that the guided one-turn revision has " <>
           "measurable headroom.",
       first_result_label: "Hello World Uplift Receipt",
-      second_result_label: "Hello World — Iteration 2"
+      second_result_label: "Hello World — Iteration 2",
+      revision_note:
+        "Your own agent proposes one revision. Techtree tests it exactly the way it " <>
+          "tested the first attempt. A proposal may be unusable, or may run and fail to " <>
+          "improve the score — both of those are results, and both are reported as they " <>
+          "happened."
     }
   }
 

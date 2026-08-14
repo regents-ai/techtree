@@ -144,6 +144,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
             {@copy.second_result_label}
           </:fact>
         </.definition_list>
+        <p :if={@copy}>{@copy.revision_note}</p>
         <p>
           A trial runs on your machine, and this site does not watch it happen. What
           can be checked is that the documents are the ones named here, that only the

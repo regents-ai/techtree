@@ -61,12 +61,40 @@ defmodule TechtreeWeb.RouterTest do
     end
   end
 
-  test "the published routes refuse every verb but GET", %{conn: conn} do
-    for path <- ["/api/v1/catalog", "/api/v1/bootstrap", "/healthz"] do
+  test "a published address answers a mutating method with 405, not 404", %{conn: conn} do
+    for path <- [
+          "/",
+          "/start",
+          "/climbs",
+          "/climbs/hello-world-climb",
+          "/proofs/local",
+          "/protocol",
+          "/healthz",
+          "/api/v1/catalog",
+          "/api/v1/bootstrap",
+          "/api/v1/climbs/hello-world-climb",
+          "/api/v1/objects/sha256:#{String.duplicate("a", 64)}"
+        ] do
+      for refused <- [
+            post(conn, path, %{}),
+            put(conn, path, %{}),
+            patch(conn, path, %{}),
+            delete(conn, path)
+          ] do
+        assert refused.status == 405, "#{refused.method} #{path} answered #{refused.status}"
+        assert get_resp_header(refused, "allow") == ["GET, HEAD"]
+
+        assert %{"error" => %{"code" => "method_not_allowed", "retryable" => false}} =
+                 json_response(refused, 405)
+      end
+    end
+  end
+
+  test "an address this release does not publish stays a 404", %{conn: conn} do
+    for path <- ["/api/v1/nope", "/climbs/no-such-climb/edit", "/upload"] do
       assert post(conn, path, %{}).status == 404
-      assert put(conn, path, %{}).status == 404
-      assert patch(conn, path, %{}).status == 404
       assert delete(conn, path).status == 404
+      assert get_resp_header(post(conn, path, %{}), "allow") == []
     end
   end
 

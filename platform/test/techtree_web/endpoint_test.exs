@@ -36,7 +36,7 @@ defmodule TechtreeWeb.EndpointTest do
         )
         |> post("/api/v1/catalog", multipart_file("skill", "SKILL.md", "an uploaded skill"))
 
-      assert conn.status == 404
+      assert conn.status == 405
       refute Map.has_key?(conn.params, "skill")
     end
 
@@ -55,6 +55,47 @@ defmodule TechtreeWeb.EndpointTest do
     end
   end
 
+  describe "a body larger than anything a read could need" do
+    @over_the_limit 9_000_000
+
+    test "is refused at the parser in a type that would be parsed", %{conn: conn} do
+      for type <- ["application/json", "application/x-www-form-urlencoded"] do
+        refused =
+          assert_raise Plug.Parsers.RequestTooLargeError, fn ->
+            conn
+            |> put_req_header("content-type", type)
+            |> post("/api/v1/catalog", String.duplicate("a", @over_the_limit))
+          end
+
+        # Plug's own default, pinned here so a change to it is a decision
+        # somebody made rather than one that arrived with a dependency.
+        assert Plug.Exception.status(refused) == 413
+      end
+    end
+
+    test "costs nothing in a type nothing parses", %{conn: conn} do
+      refused =
+        conn
+        |> put_req_header("content-type", "application/octet-stream")
+        |> post("/api/v1/catalog", String.duplicate("a", @over_the_limit))
+
+      assert refused.status == 405
+      assert get_resp_header(refused, "allow") == ["GET, HEAD"]
+      assert refused.body_params == %Plug.Conn.Unfetched{aspect: :body_params}
+    end
+
+    test "a malformed body under the limit is a refusal, not a crash", %{conn: conn} do
+      refused =
+        assert_raise Plug.Parsers.ParseError, fn ->
+          conn
+          |> put_req_header("content-type", "application/json")
+          |> post("/api/v1/catalog", "{not json")
+        end
+
+      assert Plug.Exception.status(refused) == 400
+    end
+  end
+
   describe "the verb a request is judged by" do
     test "a hidden parameter cannot rewrite it", %{conn: conn} do
       conn =
@@ -63,7 +104,7 @@ defmodule TechtreeWeb.EndpointTest do
         |> post("/api/v1/catalog", "_method=DELETE")
 
       assert conn.method == "POST"
-      assert conn.status == 404
+      assert conn.status == 405
     end
 
     test "a query parameter cannot rewrite it either", %{conn: conn} do
@@ -73,7 +114,7 @@ defmodule TechtreeWeb.EndpointTest do
         |> post("/api/v1/catalog?_method=DELETE", "")
 
       assert conn.method == "POST"
-      assert conn.status == 404
+      assert conn.status == 405
     end
   end
 
