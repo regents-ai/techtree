@@ -1,0 +1,853 @@
+{
+  "schema": "techtree.product-claim-evidence-matrix.v1",
+  "ticket": "techtree-python-y8s",
+  "contract": "docs/release/contracts/wp11-claims.md",
+  "binding_decisions": [
+    "docs/decisions/0013-release-copy-and-certification-protocol.md",
+    "docs/decisions/0023-release-execution-contracts.md"
+  ],
+  "gate1_packet": {
+    "file": "release/founder-skill-approval-draft.md",
+    "digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
+    "approval_record": "release/founder-approvals/gate1-founder-skills.md",
+    "digest_recomputed_by_this_ticket": true
+  },
+  "evidence_locality_note": "Run trees are not committed: runs/ is empty by design and raw subject traces stay local because they carry the taskset's expected answers (spec 6.19). Live evidence is cited from the Gate-1 packet and from committed artifacts re-hashed by this ticket.",
+  "copy_boundaries": {
+    "score": "public copy states the calibrated 20-27/36 band, never an exact score",
+    "account": "'no Techtree account is required', never 'no account required'",
+    "attestation": "participant-attested; not independently reproduced; never 'independently verified'",
+    "privacy": "model calls go to the selected provider under that provider's policies",
+    "guided_revision": "flow certified; no measured-uplift claim; single-SKILL.md in v0.1"
+  },
+  "verification": {
+    "implementation_paths_checked": 102,
+    "test_citations_checked": 255,
+    "executed": [
+      "techtree-python `uv run pytest tests/unit` — 2376 passed, 1 skipped (tests/unit/test_skill_scanner.py::test_the_case_collision_rule_holds_on_a_case_folding_filesystem skips on this machine's case-folding filesystem).",
+      "techtree-python `uv run pytest tests/contract` plus every cited integration file in the default selection — 418 passed.",
+      "techtree-python full integration-marked suite (`-m \"integration and not real_model\"`) — 284 passed.",
+      "The five cited preflight tests — all passed.",
+      "techtree-plugin cited suites (test_approvals, test_guards, test_bootstrap, test_release, test_one_generation_request, test_plugin_doctor, test_one_turn_revision) — 194 passed."
+    ],
+    "not_executed": [
+      "The four techtree-ash citations (`test/techtree_web/router_test.exs`, `test/techtree_web/endpoint_test.exs`). The Ash test setup requires a PostgreSQL database that is not available in this environment, so those four test names were verified by reading the files, not by running them.",
+      "No `real_model` test is cited anywhere in this matrix, and none was run — those calls cost money and provision Docker."
+    ],
+    "observations": [
+      "The preflight citations (`tests/preflight/…`) are marked `preflight` and are excluded from the default pytest selection; they run via `make verifiers-preflight` and need a pinned Verifiers install.",
+      "Two preflight tests that this matrix does not cite fail in this environment: `tests/preflight/test_subject_image_pin.py::test_the_tag_still_resolves_to_the_pinned_index` (needs registry network access) and `tests/preflight/test_verifiers_eval_contract.py::test_a_subject_seat_is_refused_by_an_environment_without_one` (the preflight fixture taskset is not installed here). Both look environment-dependent rather than product defects. Recorded here because it was seen, not diagnosed and not fixed."
+    ]
+  },
+  "canonical_runs": [
+    {
+      "label": "starter #1 (insertion)",
+      "run_id": "run_d94094506aec482aa7ed35bad011486f",
+      "score": "0/36 -> 23/36",
+      "report_digest": "sha256:47253518...",
+      "bundle_digest": "sha256:19493177...",
+      "cost_usd": 0.178
+    },
+    {
+      "label": "starter #2 (insertion, stability pair)",
+      "run_id": "run_a6c608b910324d6ca84062dc0c4960c2",
+      "score": "0/36 -> 23/36",
+      "report_digest": "sha256:784614a1...",
+      "bundle_digest": "sha256:faa8260e...",
+      "cost_usd": 0.1709
+    },
+    {
+      "label": "engine reference",
+      "run_id": "run_6ff833ca941745bcae620df4c6c0dc27",
+      "score": "0/36 -> 36/36",
+      "report_digest": "sha256:c1a88d20...",
+      "bundle_digest": "sha256:d32c7dca...",
+      "cost_usd": 0.1827
+    },
+    {
+      "label": "rehearsal source",
+      "run_id": "run_9f2a5025bba849e5b8e8e0b15db855c6",
+      "score": "0/36 -> 24/36",
+      "report_digest": "sha256:5668a0f1...",
+      "bundle_digest": "sha256:c7b76024...",
+      "cost_usd": 0.1702
+    },
+    {
+      "label": "v1 vs v2 (replacement)",
+      "run_id": "run_e29f178181bb4a65b0c518d34f72cd50",
+      "score": "23/36 -> 24/36 (1 win / 0 losses / 35 ties)",
+      "report_digest": "sha256:421f1a0b...",
+      "bundle_digest": "sha256:4db83924...",
+      "cost_usd": 0.0551
+    }
+  ],
+  "verified_coordinates": {
+    "note": "Recomputed from the working tree by this ticket with shasum -a 256; each value matches the Gate-1 packet.",
+    "campaign": {
+      "digest": "sha256:5aef3fb7c16c39b9...",
+      "file": "src/techtree/resources/catalog/campaigns/hello-world-climb.json"
+    },
+    "climb": {
+      "digest": "sha256:61a7dd46cba4d8ba...",
+      "file": "src/techtree/resources/catalog/climbs/hello-world-climb.json"
+    },
+    "data_policy": {
+      "digest": "sha256:6c532a43d595286a...",
+      "file": "src/techtree/resources/catalog/data-policies/hello-world-climb.json"
+    },
+    "validation_receipt": {
+      "digest": "sha256:080895d53a967d63...",
+      "file": "src/techtree/resources/catalog/taskset-validations/hello-world-climb.json"
+    },
+    "validation_evidence": {
+      "digest": "sha256:9c4959d3b9217ab8...",
+      "file": "src/techtree/resources/catalog/validation-evidence/hello-world-climb.json"
+    },
+    "engine": {
+      "digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
+      "source": "release/release-core.json engine_digest"
+    },
+    "catalog": {
+      "digest": "sha256:468e8ab16dc872cd2cef3f1b7409b2a113ca9fd27362234c9a6ea5008dfbd814",
+      "source": "release/release-core.json catalog_digest"
+    },
+    "starter_skill_file": {
+      "digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+      "bytes": 1496,
+      "file": "release/skills/hello-world-starter-v1/SKILL.md"
+    },
+    "starter_skill_tree": {
+      "digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+      "source": "release/release-core.json starter_skill_digest (the pin, decision 0008)"
+    },
+    "skill_improver_file": {
+      "digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+      "file": "techtree-plugin/skills/skill-improver/SKILL.md"
+    },
+    "release_core": {
+      "digest": "sha256:80807821d3d5b8bcf0a5223c96684b04546b250ff677b3e3bb65f768bde18687",
+      "note": "byte-identical in techtree-python/release/release-core.json and techtree-plugin/release-core.json; both recomputed here"
+    },
+    "gate1_packet": {
+      "digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
+      "file": "release/founder-skill-approval-draft.md",
+      "note": "matches the digest in the founder's approval phrase recorded at release/founder-approvals/gate1-founder-skills.md"
+    }
+  },
+  "rows": [
+    {
+      "id": "claim-01",
+      "group": "required",
+      "claim": "Campaign immutable",
+      "public_wording": "The Climb the two subjects run is fixed before either of them starts, and cannot be changed afterwards without the change being visible.",
+      "implementation": [
+        "src/techtree/models/base.py — ProtocolModel (frozen=True, strict=True, extra='forbid'); ObjectEnvelope",
+        "src/techtree/canonical.py — canonical_json_bytes / digest_object / verify_object_digest",
+        "src/techtree/models/campaign.py — CampaignSpec and its committed sub-objects",
+        "src/techtree/catalog/repository.py, src/techtree/catalog/service.py — digest-addressed object reads"
+      ],
+      "automated_test": [
+        "tests/unit/test_canonical.py::test_protocol_models_are_frozen",
+        "tests/unit/test_canonical.py::test_one_field_mutation_changes_the_digest",
+        "tests/unit/test_canonical.py::test_key_insertion_order_does_not_change_the_digest",
+        "tests/unit/test_campaign_models.py::test_one_field_change_changes_the_campaign_digest",
+        "tests/unit/test_campaign_models.py::test_reparsing_the_same_document_gives_the_same_digest",
+        "tests/unit/test_campaign_models.py::test_execution_artifacts_anchor_on_the_campaign_digest",
+        "tests/unit/test_manifest_builder.py::test_building_does_not_mutate_the_campaign",
+        "tests/unit/test_local_bundle_verify.py::test_an_edited_campaign_breaks_the_proof",
+        "tests/contract/test_catalog_object_graph.py::test_a_file_that_drifted_from_its_digest_fails_verification"
+      ],
+      "live_evidence": [
+        "Campaign hello-world-climb sha256:5aef3fb7c16c39b9... — recomputed in this ticket from src/techtree/resources/catalog/campaigns/hello-world-climb.json and equal to the Gate-1 §1/§8 value.",
+        "All five canonical runs anchor on it (Gate-1 §4): the four insertion runs through derived campaign b9e3f00c..., the replacement run through derived campaign f2f04ae5....",
+        "Gate-1 §3: no run-owned or proof-owned file of any completed run was modified after that run finished (method: last journal event vs every file mtime, re-run over the full final run set)."
+      ],
+      "limitation": "'Campaign' is an internal protocol concept; a participant never names one. Immutability is enforced by recomputing digests over frozen canonical bytes — there is no external registry, notary or timestamping authority, so the guarantee is 'this object is not the object it claims to be if a byte moved', not 'this object existed before that moment'.",
+      "gaps": []
+    },
+    {
+      "id": "claim-02",
+      "group": "required",
+      "claim": "Same tasks on both sides",
+      "public_wording": "Both subjects are scored on exactly the same tasks, in the same order.",
+      "implementation": [
+        "src/techtree/models/validation.py — TasksetLock",
+        "src/techtree/models/campaign.py — TaskMembershipCommitment, CampaignTaskset, TaskSelection",
+        "src/techtree/tasksets/membership.py — membership_digest, assert_unique_task_hashes, compare_membership",
+        "src/techtree/tasksets/resolver.py, src/techtree/tasksets/service.py — lock derivation from the engine inspection",
+        "src/techtree/receipts/set.py — the per-variant receipt set commits to the locked membership"
+      ],
+      "automated_test": [
+        "tests/unit/test_taskset_membership_logic.py::test_the_membership_digest_is_the_digest_of_the_named_ordered_object",
+        "tests/unit/test_taskset_membership_logic.py::test_the_membership_digest_depends_on_order",
+        "tests/unit/test_taskset_membership_logic.py::test_a_repeated_task_is_refused_with_both_positions",
+        "tests/unit/test_taskset_membership_logic.py::test_identical_memberships_pass_as_the_commitment_check",
+        "tests/unit/test_taskset_membership_logic.py::test_a_shorter_membership_reports_both_counts_and_the_missing_task",
+        "tests/integration/test_taskset_membership.py::test_the_locked_membership_satisfies_a_campaign_commitment",
+        "tests/integration/test_taskset_membership.py::test_no_task_is_locked_twice",
+        "tests/integration/test_taskset_membership.py::test_the_reference_taskset_locks_to_its_whole_frozen_dataset",
+        "tests/unit/test_receipt_set.py::test_the_set_commits_to_the_membership_the_lock_commits_to",
+        "tests/unit/test_observed_comparison.py::test_a_lock_over_other_tasks_is_invalid",
+        "tests/contract/test_protocol_golden_files.py::test_the_lock_and_the_campaign_commit_to_the_same_tasks"
+      ],
+      "live_evidence": [
+        "Membership digest sha256:56f697fb... (Gate-1 §2 and §8), unchanged by the 512->4096 output-cap change and by re-freeze v3.",
+        "Validation receipt sha256:080895d53a967d63... recomputed here; it commits to the same lock.",
+        "All five canonical runs (Gate-1 §4) carry 36 committed tasks per variant, scored in committed order; the v1-vs-v2 run reports 1 win / 0 losses / 35 ties over exactly those 36."
+      ],
+      "limitation": "Fixed membership: v0.1 ships one 36-task selection taken from the head of the frozen dataset order. There is no sampling, no task selection, no held-out split and no rotation. What is proved is that both arms saw identical tasks — not that those tasks are representative of anything.",
+      "gaps": []
+    },
+    {
+      "id": "claim-03",
+      "group": "required",
+      "claim": "Taskset validated before it is used",
+      "public_wording": "The tasks are checked before any paid run: every task's own answer scores, and a known-wrong answer does not.",
+      "implementation": [
+        "src/techtree/models/validation.py — ValidationReceipt, TasksetLock, validation evidence models",
+        "src/techtree/tasksets/provider.py — the run-layer validation gate",
+        "src/techtree/tasksets/verifiers_cli.py, src/techtree/tasksets/service.py — the pinned validator invocation",
+        "src/techtree/runs/validation.py — refusal path before any episode runs"
+      ],
+      "automated_test": [
+        "tests/integration/test_taskset_validation.py::test_every_task_passes_gold_and_setup",
+        "tests/integration/test_taskset_validation.py::test_the_taskset_rejects_a_known_wrong_answer",
+        "tests/integration/test_taskset_validation.py::test_the_receipt_reports_every_required_check_as_passed",
+        "tests/integration/test_taskset_validation.py::test_nothing_errored_timed_out_or_went_missing",
+        "tests/integration/test_taskset_validation.py::test_a_tampered_membership_makes_the_receipt_invalid",
+        "tests/integration/test_taskset_validation.py::test_the_method_names_the_pinned_validator",
+        "tests/integration/test_taskset_validation.py::test_validation_failure_blocks_the_fake_phases",
+        "tests/unit/test_validation_provider.py::test_a_receipt_that_reports_invalid_stops_the_run",
+        "tests/unit/test_validation_provider.py::test_a_receipt_the_campaign_does_not_commit_to_is_refused",
+        "tests/unit/test_validation_provider.py::test_evidence_that_is_not_what_the_receipt_names_is_refused",
+        "tests/unit/test_fake_executor.py::test_a_refused_validation_stops_before_any_episode"
+      ],
+      "live_evidence": [
+        "Validation receipt sha256:080895d53a967d63... and validation evidence sha256:9c4959d3b9217ab8... — both recomputed in this ticket from the shipped catalog and equal to the Gate-1 §1 coordinates.",
+        "Campaign sha256:5aef3fb7c16c39b9... commits to that receipt; tests/integration/test_taskset_validation.py::test_the_local_receipt_is_the_published_receipt binds the shipped bytes to the published ones."
+      ],
+      "limitation": "Mechanical only. The receipt says each task's gold answer scores and a planted wrong answer does not. It says nothing about whether a task is well-posed, unambiguous, non-trivial, or free of leakage into the subject model's training data.",
+      "gaps": []
+    },
+    {
+      "id": "claim-04",
+      "group": "required",
+      "claim": "Neutral baseline",
+      "public_wording": "The baseline subject carries no Skill at all — it is the same machine with nothing added.",
+      "implementation": [
+        "src/techtree/manifests/builder.py — baseline/candidate manifest construction and its postconditions",
+        "src/techtree/manifests/compare.py — assert_controlled_comparison, _skill_count_violations",
+        "src/techtree/verifiers/compiler.py — what each variant actually mounts",
+        "src/techtree/receipts/observed.py — _mounted_skill_digests, read back from the resolved engine config"
+      ],
+      "automated_test": [
+        "tests/unit/test_manifest_builder.py::test_the_baseline_preserves_the_campaign_and_carries_no_skill",
+        "tests/unit/test_manifest_builder.py::test_the_candidate_preserves_the_campaign_and_carries_exactly_one_skill",
+        "tests/unit/test_manifest_builder.py::test_a_campaign_whose_subject_already_carries_a_skill_is_refused",
+        "tests/unit/test_verifiers_compiler.py::test_the_baseline_mounts_no_skill_and_the_candidate_mounts_exactly_one",
+        "tests/unit/test_manifest_compare.py::test_a_baseline_that_already_carries_a_skill_is_rejected",
+        "tests/unit/test_observed_comparison.py::test_a_baseline_that_mounted_a_skill_is_invalid",
+        "tests/unit/test_observed_comparison.py::test_an_insertion_whose_baseline_declares_a_skill_is_invalid",
+        "tests/unit/test_observed_comparison.py::test_a_recorded_skill_insertion_is_controlled",
+        "tests/unit/test_campaign_models.py::test_the_development_campaign_is_a_skill_insertion"
+      ],
+      "live_evidence": [
+        "Every insertion run scored the baseline 0/36: run_d94094506aec482aa7ed35bad011486f, run_a6c608b910324d6ca84062dc0c4960c2, run_6ff833ca941745bcae620df4c6c0dc27, run_9f2a5025bba849e5b8e8e0b15db855c6 (Gate-1 §4).",
+        "The committed recorded-evidence fixture tests/fixtures/receipts/recorded/ (baseline and candidate directories, 36 episodes each) is real evidence from run_6ce5e56a7dd341bca8bc6de1d6a60027 and is the input to tests/unit/test_observed_configuration.py."
+      ],
+      "limitation": "Toy task. The baseline floor of 0/36 is on one synthetic 36-task BranchCode taskset built for this demo. A zero floor shows the Skill is doing the work in this Climb; it does not show that the measurement generalises to real tasks.",
+      "gaps": []
+    },
+    {
+      "id": "claim-05",
+      "group": "required",
+      "claim": "Clean subjects",
+      "public_wording": "Each subject runs in a pinned container, with the same image, harness and sampling on both sides.",
+      "implementation": [
+        "src/techtree/verifiers/config.py — runtime and network-policy compilation; digest-pinned image recognition",
+        "src/techtree/verifiers/compiler.py — the per-variant execution plan handed to the engine",
+        "src/techtree/verifiers/image.py, src/techtree/verifiers/child.py — image resolution and child-process execution",
+        "src/techtree/receipts/observed.py — ObservedSubjectConfiguration, built from what the engine resolved and ran",
+        "src/techtree/models/episode_receipt.py — the runtime block that records resolved_image_digest and platform"
+      ],
+      "automated_test": [
+        "tests/unit/test_verifiers_config.py::test_a_runtime_other_than_docker_cannot_be_named",
+        "tests/unit/test_verifiers_config.py::test_a_digest_pinned_image_is_recognised_and_a_tagged_one_is_not",
+        "tests/unit/test_verifiers_config.py::test_a_campaign_network_policy_compiles_to_the_normalized_egress_pair",
+        "tests/unit/test_verifiers_compiler.py::test_a_restricted_campaign_runtime_compiles_to_framework_only_egress",
+        "tests/unit/test_observed_configuration.py::test_an_image_the_daemon_was_not_asked_about_is_refused",
+        "tests/unit/test_observed_configuration.py::test_rollouts_that_ran_different_images_are_refused",
+        "tests/unit/test_observed_configuration.py::test_a_platform_the_campaign_pins_no_manifest_for_is_refused",
+        "tests/unit/test_episode_receipt_builder.py::test_a_receipt_names_the_container_the_subject_ran_in",
+        "tests/unit/test_manifest_compare.py::test_a_changed_runtime_image_is_rejected",
+        "tests/preflight/test_subject_image_pin.py::test_every_pinned_platform_digest_is_the_one_the_index_lists",
+        "tests/preflight/test_subject_image_pin.py::test_the_pin_names_an_oci_image_index"
+      ],
+      "live_evidence": [
+        "tests/fixtures/receipts/recorded/provenance.json — real recorded evidence from run_6ce5e56a7dd341bca8bc6de1d6a60027: qwen/qwen3.7-flash, subject_platform linux/arm64, real Docker runtimes, 36 episodes per variant, per-variant raw-trace digests (baseline sha256:6f1e54fe..., candidate sha256:24d7b774...), engine sha256:874cbae0....",
+        "Gate-1 §4: all five canonical runs are graded controlled_with_warnings with zero cap-killed episodes; both variants of each run resolved to the same platform-specific image digest (decision 0007 R5 made that release-blocking)."
+      ],
+      "limitation": "Local executor. The containers run on the participant's own Docker daemon; Techtree records what that daemon reported and verifies the two sides agree, but nothing attests that the daemon, the image or the host were unmodified. Raw subject traces stay on the participant's machine and are deliberately not committed (spec §6.19) because they carry the taskset's expected answers.",
+      "gaps": [
+        "No trace-level artifact from any of the five canonical runs is committed to this repository. The only committed trace-level evidence is the sanitized recorded-evidence fixture from run_6ce5e56a7dd341bca8bc6de1d6a60027, which Gate-1 §4 classifies as DIAGNOSTIC, not canonical."
+      ]
+    },
+    {
+      "id": "claim-06",
+      "group": "required",
+      "claim": "Only the Skill changed",
+      "public_wording": "Techtree proves that the Skill was the only difference between the two sides.",
+      "implementation": [
+        "src/techtree/manifests/compare.py — compare_manifests, assert_controlled_comparison, pointer/variant/skill-count violations",
+        "src/techtree/receipts/compare.py — the observed tool-surface comparison, including the single named SKILL_INDEX_TOOL exception",
+        "src/techtree/receipts/observed.py — observed_from_episodes, _require_no_drift, _require_config_agrees_with_traces",
+        "src/techtree/models/uplift_report.py — ComparisonStatus (controlled / controlled_with_warnings / invalid)"
+      ],
+      "automated_test": [
+        "tests/unit/test_observed_comparison.py::test_an_unauthorized_observed_difference_is_invalid",
+        "tests/unit/test_observed_comparison.py::test_a_subject_sampled_differently_than_declared_is_invalid",
+        "tests/unit/test_observed_comparison.py::test_an_undeclared_sampling_parameter_is_invalid",
+        "tests/unit/test_observed_comparison.py::test_an_extra_tool_is_not_permitted",
+        "tests/unit/test_observed_comparison.py::test_a_differing_parameter_schema_is_not_permitted",
+        "tests/unit/test_observed_comparison.py::test_a_differing_description_on_another_tool_is_not_permitted",
+        "tests/unit/test_observed_comparison.py::test_a_second_differing_description_is_not_permitted",
+        "tests/unit/test_observed_comparison.py::test_only_the_skill_index_tool_may_describe_itself_differently",
+        "tests/unit/test_observed_comparison.py::test_a_different_reward_weight_is_invalid",
+        "tests/unit/test_observed_comparison.py::test_a_declared_skill_the_subject_never_read_is_invalid",
+        "tests/unit/test_observed_comparison.py::test_a_recorded_skill_insertion_is_controlled",
+        "tests/unit/test_observed_comparison.py::test_a_skill_replacement_is_controlled",
+        "tests/unit/test_observed_comparison.py::test_the_one_honest_warning_is_the_only_one",
+        "tests/unit/test_observed_configuration.py::test_inserting_a_skill_changes_exactly_one_tool_description",
+        "tests/unit/test_manifest_compare.py::test_a_changed_campaign_digest_is_rejected",
+        "tests/unit/test_manifest_compare.py::test_the_insertion_contract_still_refuses_a_replacement_shaped_pair"
+      ],
+      "live_evidence": [
+        "UpliftReport digests, one per canonical run (Gate-1 §4): sha256:47253518..., sha256:784614a1..., sha256:c1a88d20..., sha256:5668a0f1..., sha256:421f1a0b....",
+        "All five are graded controlled_with_warnings, score valid, evidence complete, accepted, P1."
+      ],
+      "limitation": "Known derived description delta, plus one accepted warning. Mounting a Skill necessarily changes one tool description, because the harness renders the index of visible Skills into its own skill_manage tool description; that one difference is permitted by name in src/techtree/receipts/compare.py (SKILL_INDEX_TOOL) and a second differing description is refused. Separately, the provider exposes no immutable revision for the selected model alias, so every release comparison is controlled_with_warnings rather than controlled (decision 0007 R5). The comparison is over what the engine recorded, not over independent observation of the containers.",
+      "gaps": []
+    },
+    {
+      "id": "claim-07",
+      "group": "required",
+      "claim": "Per-task receipts",
+      "public_wording": "Every task produces its own receipt, and the set of receipts cannot be edited without the edit showing.",
+      "implementation": [
+        "src/techtree/receipts/episode.py — the per-episode receipt builder",
+        "src/techtree/models/episode_receipt.py — EpisodeReceipt and its evidence status",
+        "src/techtree/receipts/set.py — the receipt-set manifest and its commitment",
+        "src/techtree/runs/artifacts.py — how receipts are written to and read back from the run tree"
+      ],
+      "automated_test": [
+        "tests/unit/test_episode_receipt_builder.py::test_every_committed_task_gets_exactly_one_receipt",
+        "tests/unit/test_episode_receipt_builder.py::test_receipts_follow_membership_order_not_completion_order",
+        "tests/unit/test_episode_receipt_builder.py::test_rebuilding_from_the_same_evidence_produces_the_same_receipts",
+        "tests/unit/test_episode_receipt_builder.py::test_recorded_evidence_carries_no_secret",
+        "tests/unit/test_receipt_set.py::test_editing_one_receipts_reward_breaks_the_set",
+        "tests/unit/test_receipt_set.py::test_resealing_an_edited_receipt_still_breaks_the_set",
+        "tests/unit/test_receipt_set.py::test_reordering_the_manifest_breaks_the_set",
+        "tests/unit/test_receipt_set.py::test_a_receipt_from_another_run_cannot_join_the_set",
+        "tests/unit/test_receipt_set.py::test_a_receipt_for_the_other_variant_cannot_join_the_set",
+        "tests/unit/test_receipt_set.py::test_the_written_set_is_owner_readable_only",
+        "tests/integration/test_receipts_from_recorded_evidence.py::test_receipts_are_built_from_a_run_directory_without_executing_anything",
+        "tests/integration/test_receipts_from_recorded_evidence.py::test_both_recorded_variants_produce_independent_receipt_sets",
+        "tests/integration/test_receipts_from_recorded_evidence.py::test_the_manifest_does_not_disturb_the_runs_own_receipt_directory",
+        "tests/integration/test_fake_run.py::test_one_receipt_per_campaign_task_and_variant"
+      ],
+      "live_evidence": [
+        "Proof bundles, one per canonical run (Gate-1 §4): sha256:19493177..., sha256:faa8260e..., sha256:d32c7dca..., sha256:c7b76024..., sha256:4db83924... — each carries 72 signed episode receipts (36 per variant).",
+        "tests/fixtures/receipts/recorded/ — 36 baseline and 36 candidate episodes from run_6ce5e56a7dd341bca8bc6de1d6a60027, committed as the real input the receipt pipeline runs over."
+      ],
+      "limitation": "Internal evidence. A receipt attests to what the local executor and Verifiers recorded for that episode. It is integrity evidence about the recorded bytes, not independent observation of the subject, and the subject's raw transcript is not part of it.",
+      "gaps": []
+    },
+    {
+      "id": "claim-08",
+      "group": "required",
+      "claim": "Signed report",
+      "public_wording": "The result is a locally signed Uplift receipt whose integrity a third party can check offline. The execution is participant-attested and has not been independently reproduced.",
+      "implementation": [
+        "src/techtree/crypto.py — Ed25519 sign/verify over the ASCII digest string; no key storage",
+        "src/techtree/identity/service.py, src/techtree/identity/store.py, src/techtree/identity/models.py — the local executor identity",
+        "src/techtree/models/base.py — ObjectEnvelope (payload + digest + signature)",
+        "src/techtree/receipts/uplift.py — build_uplift_report, proof_grade_for",
+        "src/techtree/receipts/bundle.py — the signed bundle and its P1 conditions"
+      ],
+      "automated_test": [
+        "tests/unit/test_crypto.py::test_sign_and_verify_round_trip",
+        "tests/unit/test_crypto.py::test_corrupt_signature_fails",
+        "tests/unit/test_crypto.py::test_wrong_key_fails",
+        "tests/unit/test_crypto.py::test_swapping_the_key_id_does_not_make_a_signature_valid",
+        "tests/unit/test_crypto.py::test_signing_is_deterministic",
+        "tests/unit/test_crypto.py::test_the_signed_message_is_the_ascii_digest_string",
+        "tests/unit/test_crypto.py::test_no_module_outside_the_identity_layer_touches_private_key_material",
+        "tests/unit/test_local_bundle_verify.py::test_a_removed_signature_breaks_the_proof",
+        "tests/unit/test_local_bundle_verify.py::test_a_foreign_public_key_breaks_the_proof",
+        "tests/unit/test_local_bundle_verify.py::test_a_bundle_whose_report_claims_p1_without_a_signature_fails",
+        "tests/unit/test_local_bundle_verify.py::test_unsigned_receipts_withhold_the_grade",
+        "tests/integration/test_local_sign_and_verify.py::test_every_receipt_travels_signed",
+        "tests/integration/test_local_sign_and_verify.py::test_a_signed_run_reaches_p1_and_states_a_verdict",
+        "tests/integration/test_local_sign_and_verify.py::test_the_private_key_is_nowhere_in_the_run_directory",
+        "tests/unit/test_uplift_aggregation.py::test_a_signed_report_carries_the_verdict_and_p1"
+      ],
+      "live_evidence": [
+        "Report digests per canonical run (Gate-1 §4) and the executor public key inside each bundle.",
+        "Gate-1 §8: proof verification result verified for all five canonical runs and independently re-confirmed by the chief from the stored bytes at packet-finalization time.",
+        "Gate-1 packet digest sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35 — recomputed here and equal to the digest in the founder's Gate-1 approval phrase (release/founder-approvals/gate1-founder-skills.md)."
+      ],
+      "limitation": "Participant-attested. The signing key is generated and held on the participant's own machine. A valid signature proves the bytes were not altered after the run; it never proves the run happened as described, and the execution has not been independently reproduced.",
+      "gaps": []
+    },
+    {
+      "id": "claim-09",
+      "group": "required",
+      "claim": "Cost and timing are recorded honestly",
+      "public_wording": "Every result carries what the comparison cost and how long it took, with where each figure came from.",
+      "implementation": [
+        "src/techtree/receipts/execution.py — ComparisonExecutionRecord and the cost-provenance seam",
+        "src/techtree/verifiers/outputs.py — normalized traces the token counts are summed from",
+        "src/techtree/presentation/build.py — every cost figure reaches the payload with its own caveat"
+      ],
+      "automated_test": [
+        "tests/unit/test_comparison_execution_record.py::test_a_cost_figure_cannot_be_carried_without_a_provenance",
+        "tests/unit/test_comparison_execution_record.py::test_the_weakest_provenance_is_the_one_that_claims_least",
+        "tests/unit/test_comparison_execution_record.py::test_a_total_never_claims_more_than_its_weakest_half",
+        "tests/unit/test_comparison_execution_record.py::test_a_run_with_no_price_feed_reports_an_unavailable_cost",
+        "tests/unit/test_comparison_execution_record.py::test_a_variant_whose_traces_report_no_usage_says_unavailable",
+        "tests/unit/test_comparison_execution_record.py::test_tokens_are_summed_from_the_normalized_traces",
+        "tests/unit/test_comparison_execution_record.py::test_the_timings_are_the_ones_the_children_recorded",
+        "tests/unit/test_comparison_execution_record.py::test_two_builds_of_one_execution_are_byte_identical",
+        "tests/unit/test_comparison_execution_record.py::test_every_provenance_is_reachable_through_the_cost_seam",
+        "tests/unit/test_local_bundle_verify.py::test_the_execution_record_travels_signed_and_committed_to",
+        "tests/unit/test_local_bundle_verify.py::test_an_edited_execution_record_is_caught_by_its_digest",
+        "tests/integration/test_local_sign_and_verify.py::test_a_real_runs_record_reports_no_cost_and_says_why",
+        "tests/unit/test_presentation_build.py::test_every_cost_provenance_reaches_the_payload_with_its_own_caveat"
+      ],
+      "live_evidence": [
+        "Per-run costs (Gate-1 §4): USD 0.1780, 0.1709, 0.1827, 0.1702, 0.0551 for the five canonical runs; each run carries a signed ComparisonExecutionRecord inside its bundle.",
+        "Gate-1 §10 spend ledger: total USD 1.9717 of the 3.00 programme cap, provider-reported where available.",
+        "tests/fixtures/receipts/recorded/{baseline,candidate}/execution.json — real per-variant execution records from run_6ce5e56a7dd341bca8bc6de1d6a60027."
+      ],
+      "limitation": "Provider revision unavailable. Cost and timing are attributed to a model alias, not to a pinned immutable provider revision, because the provider does not expose one (accepted v0.1 warning model_revision_unavailable, decision 0007 R5). Cost provenance is explicit and may be 'unavailable'; Gate-1 §10 discloses one estimated ledger entry (rehearsal attempt 3, ~USD 0.0010, bounded 0.0023) rather than smoothing it.",
+      "gaps": []
+    },
+    {
+      "id": "claim-10",
+      "group": "required",
+      "claim": "Data policy is committed and enforced",
+      "public_wording": "One data policy is committed with the Climb and is acknowledged before anything runs. Techtree does not upload the participant's Episodes, Traces, receipts, proof bundles or Skill proposals. Model inference is still sent to the selected model provider under that provider's policies.",
+      "implementation": [
+        "src/techtree/models/data_policy.py — DataPolicy, DataOwner, RawEpisodePolicy, DerivedArtifactPolicy, CandidateSkillPolicy, RevocationPolicy",
+        "src/techtree/models/campaign.py — the campaign's required data_policy_digest",
+        "src/techtree/manifests/builder.py — the policy digest is copied into both variants",
+        "src/techtree/runs/service.py — the acknowledgement recorded at approval time"
+      ],
+      "automated_test": [
+        "tests/unit/test_data_policy.py::test_public_report_against_a_private_policy_is_rejected",
+        "tests/unit/test_data_policy.py::test_published_trace_projection_against_a_private_policy_is_rejected",
+        "tests/unit/test_data_policy.py::test_private_candidate_skill_against_a_requiring_policy_is_rejected",
+        "tests/unit/test_data_policy.py::test_policy_cannot_permit_a_use_it_makes_impossible",
+        "tests/unit/test_data_policy.py::test_acknowledgement_records_who_accepted_and_how",
+        "tests/unit/test_data_policy.py::test_acknowledgement_rejects_an_invented_method",
+        "tests/unit/test_data_policy.py::test_participant_owned_policy_rejects_an_account_reference",
+        "tests/unit/test_campaign_models.py::test_campaign_requires_a_data_policy_digest",
+        "tests/unit/test_campaign_models.py::test_a_campaign_pointing_at_another_data_policy_is_rejected",
+        "tests/unit/test_manifest_builder.py::test_the_data_policy_digest_is_the_campaigns",
+        "tests/contract/test_json_schemas.py::test_the_campaign_schema_requires_a_data_policy_digest",
+        "tests/contract/test_protocol_golden_files.py::test_the_campaign_points_at_the_committed_data_policy"
+      ],
+      "live_evidence": [
+        "Data policy sha256:6c532a43d595286a... — recomputed here from src/techtree/resources/catalog/data-policies/hello-world-climb.json and equal to the Gate-1 §1 value; campaign sha256:5aef3fb7c16c39b9... commits to it.",
+        "Gate-1 §9: no upload path observed (push=false in every resolved config); the committed evidence fixture passes all nine sanitization checks."
+      ],
+      "limitation": "Fixed v0.1 policy. Exactly one participant-owned policy ships; it cannot be edited, negotiated or revoked through the product. push=false prevents the additional Verifiers-platform upload — it does not make inference local, and model calls still go to the selected provider under that provider's policies.",
+      "gaps": []
+    },
+    {
+      "id": "claim-11",
+      "group": "required",
+      "claim": "Offline verification",
+      "public_wording": "A third party can verify the integrity of the participant-attested proof bundle offline, without trusting a Techtree-hosted execution claim.",
+      "implementation": [
+        "src/techtree/receipts/verify.py — LocalProofVerifier, verify_local_bundle, verify_report_envelope",
+        "src/techtree/receipts/bundle.py — build_local_bundle, write_local_bundle, the P1 conditions",
+        "src/techtree/cli/commands/proof.py — the `techtree proof verify` command (VERIFY_COMMAND = 'proof verify')"
+      ],
+      "automated_test": [
+        "tests/unit/test_local_bundle_verify.py::test_a_complete_proof_verifies_offline",
+        "tests/unit/test_local_bundle_verify.py::test_an_edited_receipt_breaks_the_proof",
+        "tests/unit/test_local_bundle_verify.py::test_an_edited_receipt_with_a_repaired_manifest_still_breaks_the_proof",
+        "tests/unit/test_local_bundle_verify.py::test_an_edited_report_breaks_the_proof",
+        "tests/unit/test_local_bundle_verify.py::test_an_edited_campaign_breaks_the_proof",
+        "tests/unit/test_local_bundle_verify.py::test_an_edited_execution_record_is_caught_by_its_digest",
+        "tests/unit/test_local_bundle_verify.py::test_a_missing_receipt_breaks_the_proof",
+        "tests/unit/test_local_bundle_verify.py::test_an_execution_record_resigned_for_another_run_is_refused",
+        "tests/unit/test_local_bundle_verify.py::test_verification_recomputes_the_aggregate_from_the_receipts",
+        "tests/unit/test_local_bundle_verify.py::test_verification_reports_every_check_it_ran",
+        "tests/unit/test_local_bundle_verify.py::test_a_verified_proof_still_says_what_it_does_not_prove",
+        "tests/unit/test_local_bundle_verify.py::test_the_explanation_never_claims_independent_reproduction",
+        "tests/integration/test_local_sign_and_verify.py::test_the_bundle_verifies_after_being_copied_somewhere_else",
+        "tests/integration/test_local_sign_and_verify.py::test_the_bundle_verifies_from_the_bytes_the_run_wrote",
+        "tests/integration/test_local_sign_and_verify.py::test_every_section_3_4_condition_is_established_by_the_stored_bytes"
+      ],
+      "live_evidence": [
+        "Gate-1 §4: 'proof verifies offline' for all five canonical runs; Gate-1 §8: independently re-confirmed by the chief from the stored bytes at packet-finalization time.",
+        "Bundle digests per run (Gate-1 §4): sha256:19493177..., sha256:faa8260e..., sha256:d32c7dca..., sha256:c7b76024..., sha256:4db83924...."
+      ],
+      "limitation": "No honest-compute proof. Verification establishes internal consistency, signature validity and that nothing was altered after the run. It cannot establish that the computation was performed honestly, and the execution has not been independently reproduced.",
+      "gaps": [
+        "The contract asks for a command transcript as live evidence. No `techtree proof verify` transcript is committed in this repository: the run trees the five canonical bundles live in are outside the repo (runs/ is empty by design) and the terminal-journey transcript is an output of WP11e (docs/release/contracts/wp11e.md), which has not run. Current evidence is the Gate-1 §4/§8 attestation, not a citable transcript artifact."
+      ]
+    },
+    {
+      "id": "claim-12",
+      "group": "required",
+      "claim": "Explicit approval before anything is spent",
+      "public_wording": "Nothing runs and nothing is sent until a person explicitly approves it, on a named surface.",
+      "implementation": [
+        "src/techtree/runs/service.py — the acceptance-surface table, _require_agreeing_approval, one run one approval",
+        "src/techtree/cli/commands/run.py, src/techtree/cli/commands/uplift.py — the CLI review-and-approve surface",
+        "techtree-plugin/approvals.py — the host-agent approval surface (read-only evidence)",
+        "techtree-plugin/tools/run.py, techtree-plugin/services/proposal.py — tools declared as human-confirmed"
+      ],
+      "automated_test": [
+        "techtree-plugin/tests/unit/test_approvals.py::test_the_plugin_issues_no_approval_of_its_own",
+        "techtree-plugin/tests/unit/test_approvals.py::test_a_forged_confirmation_field_is_simply_ignored",
+        "techtree-plugin/tests/unit/test_approvals.py::test_no_confirmation_indicator_is_invented",
+        "techtree-plugin/tests/unit/test_approvals.py::test_a_documented_indicator_that_says_no_stops_the_call",
+        "techtree-plugin/tests/unit/test_approvals.py::test_the_run_records_the_surface_the_person_actually_answered_on",
+        "techtree-plugin/tests/unit/test_approvals.py::test_the_disclosure_says_every_thing_it_has_to_say",
+        "techtree-plugin/tests/unit/test_approvals.py::test_the_disclosure_never_promises_a_result",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_the_plugin_mints_no_approval_of_its_own",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_a_proposal_prepares_a_comparison_and_starts_nothing",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_the_tool_declares_itself_as_one_a_human_must_confirm",
+        "tests/integration/test_run_start_idempotency.py::test_declaring_a_surface_without_approving_starts_nothing",
+        "tests/integration/test_run_start_idempotency.py::test_a_person_approves_by_answering_yes",
+        "tests/integration/test_replacement_run_prepare.py::test_the_cli_refuses_to_start_a_replacement_without_approval",
+        "tests/unit/test_run_service.py::test_a_second_start_does_not_record_a_second_approval",
+        "tests/unit/test_run_service.py::test_the_run_records_who_approved_it",
+        "tests/integration/test_cli_flow.py::test_start_records_the_approval_and_who_gave_it"
+      ],
+      "live_evidence": [
+        "Gate-1 §9: the native approval boundary sends nothing before consent — the approval surface is rendered from the plugin's own tool schema and, before dispatch, there were 0 host calls, 0 outbound requests and 0 CLI reads; re-verified at the 32,768-token reattempt.",
+        "Gate-1 §7c: before dispatch of the canonical rehearsal, 0 host calls / 0 outbound / 0 CLI reads, and the request digest sha256:12e1aa49... computed BEFORE the call matched the request actually sent, exactly.",
+        "Each canonical run records the approving actor and the surface the answer was given on in its own run journal."
+      ],
+      "limitation": "Surface attestation. The run records which surface the answer was given on and which actor gave it, as attested by that surface. Nothing cryptographically binds a human being to the approval, and Techtree cannot tell an operator typing 'yes' from anything else that reaches that surface.",
+      "gaps": [
+        "The approval audit events of the five canonical runs are in run journals under the participant's TECHTREE_HOME, not committed to this repository (runs/ is empty by design). The citable live evidence is the Gate-1 §7c/§9 attestation rather than the journal bytes."
+      ]
+    },
+    {
+      "id": "claim-13",
+      "group": "required",
+      "claim": "An incomplete comparison fails closed",
+      "public_wording": "If any part of the comparison did not complete, there is no result — the run fails and says why.",
+      "implementation": [
+        "src/techtree/runs/real.py — RealVerifiersExecutor and its completion requirements",
+        "src/techtree/worker/execute.py, src/techtree/runs/executor.py — the run-level execution path",
+        "src/techtree/receipts/uplift.py — _require_reportable, aggregate_primary_result, build_uplift_report",
+        "src/techtree/receipts/set.py, src/techtree/receipts/episode.py — episode-count and membership checks"
+      ],
+      "automated_test": [
+        "tests/unit/test_episode_receipt_builder.py::test_a_missing_task_is_an_episode_count_mismatch",
+        "tests/unit/test_receipt_set.py::test_a_set_missing_a_committed_task_is_refused",
+        "tests/unit/test_receipt_set.py::test_a_short_set_is_an_episode_count_mismatch",
+        "tests/unit/test_uplift_aggregation.py::test_a_missing_receipt_is_refused",
+        "tests/unit/test_uplift_aggregation.py::test_one_errored_rollout_makes_the_whole_score_invalid",
+        "tests/unit/test_uplift_aggregation.py::test_an_invalid_score_produces_no_report",
+        "tests/unit/test_uplift_aggregation.py::test_an_uncontrolled_comparison_produces_no_report",
+        "tests/unit/test_uplift_aggregation.py::test_an_empty_comparison_is_refused",
+        "tests/integration/test_executor_selection.py::test_evidence_without_a_report_fails_the_run_and_names_the_evidence",
+        "tests/unit/test_run_service.py::test_a_report_that_is_not_what_the_journal_named_is_refused"
+      ],
+      "live_evidence": [
+        "Four failed runs preserved as failed with no Uplift receipt (Gate-1 §4 DIAGNOSTIC): run_a8da75d4... (output-cap), run_af675e08... (closed stream + upstream 429), run_8f46f6c9... (output-cap x2), run_28261de5... (infrastructure_failure_no_measurement, USD 0.0000).",
+        "Gate-1 §3: the failed launcher run is preserved exactly as written — failed state, honest error, no rewriting and no relabeling.",
+        "Gate-1 §6: USD 0.5037 of pre-change spend bought no comparison; that is recorded rather than hidden."
+      ],
+      "limitation": "No Uplift receipt. A failed run yields no report and no proof bundle. The participant gets an honest failure and a preserved run record, but the provider spend already incurred is not recovered.",
+      "gaps": [
+        "The four failed run records are preserved on the certification machine, not committed here. The citable evidence is the Gate-1 §4 DIAGNOSTIC listing and §3 immutability method, not the run bytes."
+      ]
+    },
+    {
+      "id": "scope-01",
+      "group": "scope (decision 0023 §4)",
+      "claim": "Skill-bundle v1-vs-v2 comparison is supported when both bundles are supplied explicitly",
+      "public_wording": "Explicit Skill-bundle v1-vs-v2 comparisons are supported when both bundles are supplied.",
+      "implementation": [
+        "src/techtree/skills/scanner.py — whole-tree enumeration and per-file digests",
+        "src/techtree/skills/archive.py — the deterministic, uncompressed Skill archive and its verification",
+        "src/techtree/skills/service.py — preparing a Skill from a directory tree",
+        "src/techtree/uplift/derive.py — deriving the replacement campaign and both replacement manifests",
+        "src/techtree/manifests/builder.py, src/techtree/verifiers/compiler.py — per-file mounting of both bundles"
+      ],
+      "automated_test": [
+        "tests/integration/test_multi_file_skill.py::test_the_draft_holds_the_whole_tree",
+        "tests/integration/test_multi_file_skill.py::test_the_run_stages_the_whole_tree",
+        "tests/integration/test_multi_file_skill.py::test_the_mount_the_subject_reads_holds_the_whole_tree",
+        "tests/integration/test_multi_file_skill.py::test_moving_a_file_out_of_its_directory_changes_the_skill",
+        "tests/integration/test_multi_file_skill.py::test_the_scanner_reports_both_nested_files",
+        "tests/unit/test_manifest_builder.py::test_a_replacement_campaign_builds_both_variants",
+        "tests/unit/test_manifest_builder.py::test_a_skill_whose_root_digest_does_not_describe_its_files_is_refused",
+        "tests/unit/test_manifest_builder.py::test_a_replacement_by_the_same_content_is_refused_at_construction",
+        "tests/unit/test_skill_replacement_derivation.py::test_the_mutation_becomes_a_replacement_of_exactly_one_skill",
+        "tests/unit/test_skill_replacement_derivation.py::test_the_baseline_carries_the_skill_that_was_evaluated",
+        "tests/unit/test_observed_comparison.py::test_a_skill_replacement_is_controlled",
+        "tests/unit/test_skill_archive.py::test_the_same_skill_produces_the_same_bytes_twice",
+        "tests/unit/test_skill_archive.py::test_a_changed_member_digest_does_not_verify"
+      ],
+      "live_evidence": [
+        "run_e29f178181bb4a65b0c518d34f72cd50 — the replacement run on derived campaign f2f04ae5..., report sha256:421f1a0b..., bundle sha256:4db83924..., 23/36 -> 24/36, 1 win / 0 losses / 35 ties, USD 0.0551 (Gate-1 §4).",
+        "Parent Skill v1 tree sha256:596d1368... versus candidate Skill v2 root sha256:b143866e62bae51a140c5d7374a3a75562489c93d5df7144b6ba65b22b622986 (Gate-1 §8); the v1-vs-v2 records carry per-file digests (Gate-1 §7f)."
+      ],
+      "limitation": "The certified replacement run compared two single-file bundles. No paid certification run has compared a multi-file bundle pair; full-tree hashing, per-file mounting, root-digest comparison and the exactly-one-component-changed check are covered by automated tests only. Also note this is the explicitly-supplied path, which is separate from what the guided improver can produce (see scope-02).",
+      "gaps": [
+        "No live-evidence artifact exists for a multi-file bundle pair. Coverage for that case is tests/integration/test_multi_file_skill.py alone."
+      ]
+    },
+    {
+      "id": "scope-02",
+      "group": "scope (decision 0023 §4)",
+      "claim": "Guided revision is single-SKILL.md in v0.1; the flow is certified and no measured uplift is claimed",
+      "public_wording": "The guided Hello World revision revises the single SKILL.md. The flow is certified end to end: proposed, scanned, diffed, explicitly approved, evaluated and reported honestly. No copy states or implies that guided revision produced measured uplift.",
+      "implementation": [
+        "src/techtree/uplift/source.py — VerifiedSourceSkill verifies every file of the tree but exposes only entrypoint_text to the host",
+        "src/techtree/skills/starter.py — _stage_document stages a single SKILL.md",
+        "src/techtree/uplift/context.py, src/techtree/uplift/service.py — the improvement context handed to the host model",
+        "techtree-plugin/services/proposal.py, techtree-plugin/llm.py — exactly one host completion, no retry",
+        "techtree-plugin/guards.py, techtree-plugin/diff.py — the structure, copied-case and narrative guards, and the diff shown before approval"
+      ],
+      "automated_test": [
+        "tests/unit/test_verified_source_skill.py::test_the_entrypoint_text_comes_back_with_what_it_was_verified_against",
+        "tests/unit/test_verified_source_skill.py::test_the_entrypoint_is_the_entry_file_and_not_the_first_one",
+        "tests/unit/test_verified_source_skill.py::test_an_edited_sibling_file_is_refused_too",
+        "tests/unit/test_verified_source_skill.py::test_a_missing_entrypoint_is_refused",
+        "tests/unit/test_improvement_context.py::test_the_context_pins_the_run_the_campaign_and_the_skill",
+        "tests/unit/test_improvement_context.py::test_a_context_cannot_be_built_from_another_campaigns_report",
+        "techtree-plugin/tests/contract/test_one_generation_request.py::test_the_guided_proposal_makes_exactly_one_request",
+        "techtree-plugin/tests/contract/test_one_generation_request.py::test_a_second_ask_is_refused_before_it_reaches_the_provider",
+        "techtree-plugin/tests/contract/test_one_generation_request.py::test_an_unusable_answer_is_not_repaired_by_a_second_request",
+        "techtree-plugin/tests/contract/test_one_generation_request.py::test_a_transport_failure_is_counted_and_not_retried",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_a_second_proposal_is_refused",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_an_unusable_proposal_still_uses_the_turn",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_the_diff_is_shown_with_the_policy_and_the_estimate",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_the_second_run_starts_once_the_diff_and_policy_were_shown",
+        "techtree-plugin/tests/unit/test_guards.py::test_a_whole_revised_skill_passes",
+        "techtree-plugin/tests/unit/test_guards.py::test_a_patch_is_not_a_revision",
+        "techtree-plugin/tests/unit/test_guards.py::test_a_revised_skill_quoting_one_member_is_refused",
+        "techtree-plugin/tests/unit/test_guards.py::test_prose_listing_three_distinct_members_is_refused",
+        "tests/contract/test_release_copy.py::test_no_copy_claims_an_exact_score",
+        "tests/contract/test_release_copy.py::test_the_band_wording_is_still_allowed"
+      ],
+      "live_evidence": [
+        "Gate-1 §7c: the single authorized reattempt at the predeclared 32,768 ceiling — response_id a2b2c61f2a1fb1b4-SJC, request sha256:12e1aa49... (computed before the call and matching the request actually sent), response sha256:69d0657e..., finish stop, 5,139 in / 7,400 out, USD 0.0417.",
+        "It produced Skill v2 hello-world-v2, root sha256:b143866e62bae51a140c5d7374a3a75562489c93d5df7144b6ba65b22b622986, SKILL.md sha256:7cc03c89..., 1,907 bytes, 47 lines, parent 596d1368... (Gate-1 §8).",
+        "Evaluated exactly once, in run_e29f178181bb4a65b0c518d34f72cd50: 23/36 -> 24/36, 1 win / 0 losses / 35 ties (Gate-1 §4, §7c).",
+        "Gate-1 §7f: ndq.3.42 keeps the two multi-file items deferred — skills/starter.py _stage_document fetches only a single SKILL.md, and uplift/source.py exposes only entrypoint_text to the host."
+      ],
+      "limitation": "The flow is certified; the improvement is not. The +1 is inside v1's own run-to-run noise — v1 measured 23 and 24 across six legs — so no measured-uplift claim is made or permitted. The 0013 §4 demo target (>=32/36, >=6 task uplift) was not met; 0013 already designates that a calibrated aim rather than a guarantee. Release copy states the calibrated 20-27/36 band, never an exact score. In v0.1 the improver can only edit the entrypoint, so auxiliary files are always inherited byte-identical from the parent Skill; no copy may claim the guided improver revises multi-file bundles.",
+      "gaps": []
+    },
+    {
+      "id": "ext-01",
+      "group": "extension (public copy beyond the 13)",
+      "claim": "One pinned plugin installs and verifies Techtree",
+      "public_wording": "A person installs one pinned Hermes plugin; with explicit approval it installs and verifies Techtree. No Techtree account is required.",
+      "implementation": [
+        "techtree-plugin/bootstrap.py — the single-use install plan and its refusals",
+        "techtree-plugin/release.py, techtree-plugin/release-core.json — the embedded ReleaseCore",
+        "src/techtree/release/bootstrap.py, src/techtree/release/checks.py, src/techtree/release/document.py",
+        "src/techtree/cli/commands/setup.py, src/techtree/doctor/checks.py"
+      ],
+      "automated_test": [
+        "techtree-plugin/tests/unit/test_bootstrap.py::test_a_missing_cli_produces_one_exact_plan",
+        "techtree-plugin/tests/unit/test_bootstrap.py::test_a_plan_is_single_use",
+        "techtree-plugin/tests/unit/test_bootstrap.py::test_installation_goes_through_the_hosts_own_terminal_approval",
+        "techtree-plugin/tests/unit/test_bootstrap.py::test_an_installed_release_that_matches_verifies",
+        "techtree-plugin/tests/unit/test_bootstrap.py::test_an_installed_release_that_differs_is_rejected",
+        "techtree-plugin/tests/unit/test_bootstrap.py::test_a_placeholder_release_refuses_the_public_install_flow",
+        "techtree-plugin/tests/unit/test_release.py::test_a_rewritten_release_file_is_refused",
+        "techtree-plugin/tests/contract/test_plugin_doctor.py::test_this_build_passes_its_own_doctor",
+        "techtree-plugin/tests/contract/test_plugin_doctor.py::test_the_runtime_imports_only_the_standard_library",
+        "tests/unit/test_release_bootstrap.py::test_a_wrapper_that_names_this_release_verifies",
+        "tests/unit/test_release_bootstrap.py::test_a_wrapper_naming_another_starter_skill_fails_alone",
+        "tests/unit/test_release_bootstrap.py::test_a_real_wrapper_over_a_placeholder_release_is_refused",
+        "tests/unit/test_release_checks.py::test_a_recut_campaign_fails_only_the_harness_check",
+        "tests/contract/test_release_artifacts.py::test_the_committed_artifacts_are_the_ones_this_tree_produces",
+        "tests/contract/test_release_artifacts.py::test_this_build_carries_a_self_declaring_placeholder_release",
+        "tests/contract/test_release_copy.py::test_no_copy_says_no_account_is_required",
+        "tests/contract/test_release_copy.py::test_the_techtree_scoped_account_claim_is_still_allowed"
+      ],
+      "live_evidence": [
+        "ReleaseCore sha256:80807821d3d5b8bcf0a5223c96684b04546b250ff677b3e3bb65f768bde18687 — recomputed in this ticket and byte-identical in techtree-python/release/release-core.json and techtree-plugin/release-core.json.",
+        "Frozen lineage (Gate-1 header): plugin 1ce5d4e12910d569a5d968eaac1742a0ed0cb40f, techtree-python 1ad6ecf."
+      ],
+      "limitation": "placeholder_release is still true. cli_source_commit, cli_version, maximum_tested_host_hermes_version, release_id and starter_skill_object_url are placeholders (release/release-core.json placeholder_fields), and the plugin refuses the public install flow while they are. The public install path is certified by WP11b/c/d/e, none of which has run. A Prime or provider account, an API credential and network access are still needed for inference, installation and image retrieval — only a Techtree account is not.",
+      "gaps": [
+        "No fresh-install transcript is committed; that artifact is a WP11b/WP11e output, and neither ticket has run. Nothing here demonstrates the public install path end to end on a clean machine."
+      ]
+    },
+    {
+      "id": "ext-02",
+      "group": "extension (public copy beyond the 13)",
+      "claim": "The result is shown deterministically and the explanation is guarded",
+      "public_wording": "The result is shown through deterministic Rich or compact output and a guarded founder-supplied explanation Skill. It states the band, never an exact score, and it always states its own limits.",
+      "implementation": [
+        "src/techtree/presentation/build.py — the payload built from the verified report; the proof grade is read, never hardcoded",
+        "src/techtree/presentation/rich.py, src/techtree/presentation/compact.py — the two renderings",
+        "src/techtree/presentation/sanitize.py — the recursive scrubber",
+        "techtree-plugin/narrative.py, techtree-plugin/guards.py, techtree-plugin/services/presentation.py"
+      ],
+      "automated_test": [
+        "tests/unit/test_presentation_build.py::test_the_same_report_builds_the_same_bytes",
+        "tests/unit/test_presentation_build.py::test_every_result_states_its_standing_limits",
+        "tests/unit/test_presentation_build.py::test_the_payload_copies_the_verdict_rather_than_deciding_one",
+        "tests/unit/test_presentation_build.py::test_a_verified_proof_says_it_was_checked_offline",
+        "tests/unit/test_presentation_build.py::test_an_unchecked_proof_is_not_a_verified_one",
+        "tests/unit/test_presentation_build.py::test_a_controlled_comparison_with_warnings_says_so_plainly",
+        "tests/unit/test_presentation_build.py::test_both_channels_say_what_the_receipt_is_worth_and_how_to_check_it",
+        "tests/unit/test_presentation_render.py::test_the_same_payload_renders_the_same_bytes",
+        "tests/unit/test_presentation_render.py::test_the_compact_rendering_keeps_every_qualification",
+        "tests/unit/test_presentation_render.py::test_a_result_whose_proof_failed_says_so_before_the_numbers",
+        "tests/unit/test_presentation_sanitize.py::test_a_payload_carrying_a_credential_is_refused",
+        "tests/unit/test_presentation_sanitize.py::test_a_payload_naming_a_private_path_is_refused",
+        "techtree-plugin/tests/unit/test_guards.py::test_a_narrative_may_not_state_a_number",
+        "techtree-plugin/tests/unit/test_guards.py::test_a_narrative_claiming_a_different_score_is_refused",
+        "techtree-plugin/tests/unit/test_guards.py::test_a_narrative_may_not_claim_what_is_not_true_of_a_local_run",
+        "techtree-plugin/tests/unit/test_guards.py::test_saying_it_was_not_reproduced_is_fine",
+        "tests/contract/test_release_copy.py::test_no_copy_claims_somebody_else_verified_the_run",
+        "tests/contract/test_release_copy.py::test_no_copy_calls_the_subject_the_readers_own_model"
+      ],
+      "live_evidence": [
+        "Gate-1 §7h: verified in the frozen build that the proof grade is read from the verified report (presentation/build.py) and never hardcoded into comparison labels; the result display attaches the attestation caveat ('integrity-bound, participant-attested local execution') and a weaker-attestation warning when verification is absent.",
+        "Gate-1 §4 closing rule: release language is 'calibrated to the 20-27/36 band' — never an exact score."
+      ],
+      "limitation": "The explanation Skill is guarded, not verified. The guards refuse numbers, digests, commands, escape codes, credentials and any claim untrue of a local run; they cannot establish that the remaining prose is a good explanation. The subject model is a pinned model the Campaign chooses (qwen/qwen3.7-flash), not the reader's own model, and it is distinct from the host operator model that writes the narrative.",
+      "gaps": []
+    },
+    {
+      "id": "ext-03",
+      "group": "extension (public copy beyond the 13)",
+      "claim": "The proposed Skill v2 is shown and scanned before approval",
+      "public_wording": "Techtree shows the proposed Skill v2 and scans it before the participant is asked to approve it.",
+      "implementation": [
+        "src/techtree/skills/scanner.py — whole-tree enumeration, media types, findings",
+        "src/techtree/skills/policy.py — the frozen v0.1 instruction-Skill policy",
+        "techtree-plugin/diff.py — the deterministic diff shown to the participant",
+        "techtree-plugin/services/proposal.py — scan, snapshot, diff, then approval"
+      ],
+      "automated_test": [
+        "tests/unit/test_skill_scanner.py::test_default_policy_matches_the_v01_instruction_skill_rules",
+        "tests/unit/test_skill_scanner.py::test_policy_is_frozen",
+        "tests/unit/test_skill_scanner.py::test_credential_shapes_are_blocking",
+        "tests/unit/test_skill_scanner.py::test_a_blocking_finding_stops_the_scan",
+        "tests/unit/test_skill_scanner.py::test_a_finding_carries_no_matched_text",
+        "tests/unit/test_skill_scanner.py::test_findings_report_the_relative_path_not_the_participants_directory",
+        "tests/unit/test_skill_scanner.py::test_scanning_the_same_content_twice_gives_the_same_answer",
+        "tests/unit/test_skill_scanner.py::test_binary_content_under_a_text_suffix_is_refused",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_the_diff_is_shown_with_the_policy_and_the_estimate",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_the_plugin_keeps_no_copy_of_the_proposed_skill",
+        "techtree-plugin/tests/integration/test_one_turn_revision.py::test_the_approved_call_does_exactly_what_was_described"
+      ],
+      "live_evidence": [
+        "Gate-1 §7c: the proposal passed every guard and produced valid Skill v2 hello-world-v2; the sequence was scan -> snapshot -> deterministic diff -> reviewed approval -> one v1-vs-v2 comparison -> second signed receipt.",
+        "Gate-1 §9: the copied-case guard passes with all task inputs supplied, and the structure guard refuses a newline-free file truthfully."
+      ],
+      "limitation": "Mechanical scan only. The scanner checks structure, media types, size, hidden and symlinked paths, credential shapes and copied task material. It does not judge meaning: Gate-1 §7c records that the certified proposal inverted the causal direction of the defect and the scan correctly did not object, because that is a measurement question, not a policy one. Decision 0023 §5 rules out an LLM-based semantic Skill scanner in v0.1, and WP11g records the Skill-conflict-scan limitation.",
+      "gaps": []
+    },
+    {
+      "id": "ext-04",
+      "group": "extension (public copy beyond the 13)",
+      "claim": "Nothing is uploaded to the website",
+      "public_wording": "Techtree does not upload the participant's Episodes, Traces, receipts, proof bundles or Skill proposals. Model inference is still sent to the selected model provider under that provider's policies.",
+      "implementation": [
+        "src/techtree/verifiers/config.py, src/techtree/verifiers/child.py — push disabled at both the file and command-line layers",
+        "src/techtree/verifiers/verify.py — the push check over the resolved configuration",
+        "src/techtree/presentation/sanitize.py, src/techtree/errors.py — recursive scrubbing of anything rendered",
+        "techtree-ash/lib/techtree_web/method_surface.ex — the website's read-only method surface (read-only evidence)"
+      ],
+      "automated_test": [
+        "tests/unit/test_verifiers_verify.py::test_a_resolved_config_that_would_upload_fails_the_push_check",
+        "tests/unit/test_verifiers_verify.py::test_the_upload_is_also_disabled_on_the_command_line",
+        "tests/unit/test_verifiers_child.py::test_the_upload_is_disabled_on_the_command_line",
+        "tests/preflight/test_verifiers_eval_contract.py::test_the_upload_path_is_never_reached_when_push_is_off",
+        "tests/preflight/test_verifiers_eval_contract.py::test_the_upload_probe_sees_the_path_when_push_is_on",
+        "tests/preflight/test_verifiers_eval_contract.py::test_the_command_line_flag_overrides_an_upload_in_the_file",
+        "tests/contract/test_release_copy.py::test_a_claim_that_nothing_is_sent_is_qualified_where_it_is_made",
+        "tests/contract/test_release_copy.py::test_no_copy_claims_the_work_is_local",
+        "techtree-ash/test/techtree_web/router_test.exs::\"every route is a read\"",
+        "techtree-ash/test/techtree_web/router_test.exs::\"no submission, artifact, proof, run, or login route exists\"",
+        "techtree-ash/test/techtree_web/router_test.exs::\"a published address answers a mutating method with 405, not 404\"",
+        "techtree-ash/test/techtree_web/endpoint_test.exs::\"a file in a multipart body is never read into a parameter\"",
+        "techtree-plugin/tests/contract/test_plugin_doctor.py::test_the_runtime_cannot_open_a_connection",
+        "techtree-plugin/tests/contract/test_plugin_doctor.py::test_no_relay_dependency_exists"
+      ],
+      "live_evidence": [
+        "Gate-1 §9: no upload path observed — push=false in every resolved configuration across the certification programme; the committed evidence fixture passes all nine sanitization checks; the detached launcher's environment scrubbing refuses to inherit shell credentials.",
+        "tests/fixtures/receipts/recorded/provenance.json records that raw traces stay local by design (spec §6.19) and are not committed."
+      ],
+      "limitation": "The claim is about the Techtree website and the Verifiers platform, not about the network. Model inference goes to the selected provider under that provider's policies, and installation and container image retrieval need network access. The three-method no-upload proof (static route audit, instrumented application-level HTTP method logging, E2E destination capture) is WP11g and has not been executed.",
+      "gaps": [
+        "WP11g (docs/release/contracts/wp11g.md) has not run, so the no-upload evidence today is the Gate-1 §9 observational attestation plus the tests above — not the three-method proof the release requires."
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "row_id": "claim-05",
+      "claim": "Clean subjects",
+      "gap": "No trace-level artifact from any of the five canonical runs is committed to this repository. The only committed trace-level evidence is the sanitized recorded-evidence fixture from run_6ce5e56a7dd341bca8bc6de1d6a60027, which Gate-1 §4 classifies as DIAGNOSTIC, not canonical."
+    },
+    {
+      "row_id": "claim-11",
+      "claim": "Offline verification",
+      "gap": "The contract asks for a command transcript as live evidence. No `techtree proof verify` transcript is committed in this repository: the run trees the five canonical bundles live in are outside the repo (runs/ is empty by design) and the terminal-journey transcript is an output of WP11e (docs/release/contracts/wp11e.md), which has not run. Current evidence is the Gate-1 §4/§8 attestation, not a citable transcript artifact."
+    },
+    {
+      "row_id": "claim-12",
+      "claim": "Explicit approval before anything is spent",
+      "gap": "The approval audit events of the five canonical runs are in run journals under the participant's TECHTREE_HOME, not committed to this repository (runs/ is empty by design). The citable live evidence is the Gate-1 §7c/§9 attestation rather than the journal bytes."
+    },
+    {
+      "row_id": "claim-13",
+      "claim": "An incomplete comparison fails closed",
+      "gap": "The four failed run records are preserved on the certification machine, not committed here. The citable evidence is the Gate-1 §4 DIAGNOSTIC listing and §3 immutability method, not the run bytes."
+    },
+    {
+      "row_id": "scope-01",
+      "claim": "Skill-bundle v1-vs-v2 comparison is supported when both bundles are supplied explicitly",
+      "gap": "No live-evidence artifact exists for a multi-file bundle pair. Coverage for that case is tests/integration/test_multi_file_skill.py alone."
+    },
+    {
+      "row_id": "ext-01",
+      "claim": "One pinned plugin installs and verifies Techtree",
+      "gap": "No fresh-install transcript is committed; that artifact is a WP11b/WP11e output, and neither ticket has run. Nothing here demonstrates the public install path end to end on a clean machine."
+    },
+    {
+      "row_id": "ext-04",
+      "claim": "Nothing is uploaded to the website",
+      "gap": "WP11g (docs/release/contracts/wp11g.md) has not run, so the no-upload evidence today is the Gate-1 §9 observational attestation plus the tests above — not the three-method proof the release requires."
+    }
+  ],
+  "stop_conditions": {
+    "public_claim_with_no_implementation_row": {
+      "triggered": false,
+      "method": "the authoritative v0.1 product statement (spec section 18, adopted by decision 0013 section 1) was walked clause by clause; four clauses not covered by the thirteen required rows became ext-01..ext-04"
+    },
+    "limitation_contradicts_public_copy": {
+      "triggered": false,
+      "method": "every limitation is already in public copy, in a binding decision (0007 R5, 0013 section 1, 0022, 0023 section 4), or recorded as a deferral against a ticket (ndq.3.42, ndq.3.43)"
+    }
+  },
+  "discrepancies_reported_not_fixed": [
+    {
+      "file": "release/founder-skill-approval-draft.md",
+      "issue": "the packet header still reads 'awaiting the founder's Gate-1 approval phrase', but release/founder-approvals/gate1-founder-skills.md records the approval was received on 2026-08-14 against this packet's exact digest",
+      "action": "not amended; changing the bytes would change the approved digest"
+    }
+  ]
+}
