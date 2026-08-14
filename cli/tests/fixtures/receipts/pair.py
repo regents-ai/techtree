@@ -223,17 +223,21 @@ def _receipt_set(
 
 
 def trimmed_campaign(task_hashes: list[Digest] | None = None) -> CampaignSpec:
-    """Return the probes' own Campaign, committed to the tasks both scored.
+    """Return the recorded run's own Campaign, committed to the tasks it scored.
 
-    The derivation in ``fixtures.verifiers.support`` reproduces the recorded
-    Campaign byte for byte when it is given the image the probes ran on, which
-    is checked by :func:`recorded_pair`. Only the committed membership is
-    narrowed, and it is narrowed to tasks the recorded evidence actually
-    covers.
+    Read from the evidence rather than re-derived from the source tree. The
+    Campaign a run executed is a fact about that run, and asking the current
+    tree to reproduce it means the fixture stops working every time a release
+    coordinate moves — which it did, on the membership change and again on the
+    sampling cap. Worse, it made the re-derivation correct by assertion where
+    it can simply be correct by construction: the manifests, the request and
+    the lock below are now built from the Campaign the evidence names, so they
+    cannot describe a different experiment than the episodes beside them.
+
+    Only the committed membership is narrowed, and only to tasks the recorded
+    evidence actually covers.
     """
-    from fixtures.verifiers.support import local_campaign
-
-    full = local_campaign().campaign
+    full = recorded_variant(VariantName.CANDIDATE).campaign
     committed = task_hashes or _shared_task_hashes()
     return CampaignSpec(
         **{
@@ -471,18 +475,22 @@ def _shared_task_hashes() -> list[Digest]:
 
 
 def _require_recorded_campaign(probe: RecordedVariant) -> None:
-    """Prove the locally derived Campaign is the one the probes recorded.
+    """Prove both variants of the recorded evidence name one Campaign.
 
-    Everything re-derived here rests on that equality. If the shipped Campaign
-    or the derivation ever changes, this fixture would quietly start describing
-    an experiment the recorded evidence did not come from.
+    What has to hold is that the two sides are two variants of ONE experiment.
+    That used to be checked against the source tree, which coupled the fixture
+    to whatever the current release coordinates happened to be; it is checked
+    between the two recorded variants instead, which is where the claim
+    actually lives. A pair whose sides ran under different Campaigns is not a
+    comparison, and that is true whatever the tree says today.
     """
-    from fixtures.verifiers.support import local_campaign
-
-    derived = digest_object(local_campaign().campaign)
-    recorded = digest_object(probe.campaign)
-    if derived != recorded:
+    other = recorded_variant(
+        VariantName.BASELINE
+        if probe.variant is VariantName.CANDIDATE
+        else VariantName.CANDIDATE
+    )
+    if digest_object(probe.campaign) != digest_object(other.campaign):
         raise AssertionError(
-            "the locally derived Campaign is no longer the Campaign the probes "
-            f"were run under: {derived} != {recorded}"
+            "the two recorded variants name different Campaigns, so they are "
+            "not two sides of one comparison"
         )

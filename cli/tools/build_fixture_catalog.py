@@ -156,6 +156,29 @@ TASK_COUNT: Final = 36
 #: The reward the reference taskset defines, spec section 22.5.
 PRIMARY_REWARD: Final = "exact_match"
 
+#: How much the subject may say in one model call. Decisions document 0016.
+#:
+#: This was 512, and 512 was too small in a way that only showed up under
+#: measurement. The subject model bills its private reasoning against the same
+#: completion budget as its visible answer — a median of 59 reasoning tokens
+#: per call, but 512 at the ninety-ninth percentile, which is the entire old
+#: budget spent before a single character reaches the transcript. Across 2,861
+#: measured calls, 69 were cut off mid-generation.
+#:
+#: The damage was not evenly spread. Per call the risk was the same on both
+#: sides (2.41% against 2.42%), but an episode with no Skill takes about 10.9
+#: calls where an episode with one takes 2.3, so the cap fell about five times
+#: harder on the *baseline* — the control arm. Three of six paid comparisons
+#: died that way, each on a truncated baseline episode.
+#:
+#: 4,096 is eight times the observed ceiling of an uninterrupted call (501
+#: tokens) and eight times the worst observed reasoning burst (512). It stays
+#: half of the harness's own ``max_output_tokens`` of 8,000, so that outer
+#: bound is still a separate guard rather than the same number written twice.
+#: It costs almost nothing: the median call is 143 tokens and is unaffected;
+#: only the 2.4% that were being truncated get longer.
+SUBJECT_MAX_OUTPUT_TOKENS: Final = 4096
+
 
 MEDIA_TYPE: Final = "application/json"
 
@@ -344,7 +367,9 @@ def build_hello_world_campaign(
                     revision=None,
                     credential_env="TECHTREE_MODEL_API_KEY",
                 ),
-                sampling=SamplingSpec(temperature=0.0, max_tokens=512),
+                sampling=SamplingSpec(
+                    temperature=0.0, max_tokens=SUBJECT_MAX_OUTPUT_TOKENS
+                ),
                 harness=HarnessSpec(
                     id="hermes-agent",
                     version="0.19.0",
