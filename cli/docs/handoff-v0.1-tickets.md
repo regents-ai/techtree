@@ -6,16 +6,20 @@ text). Two questions per ticket: what is it for, and is its written
 description enough for a coding agent to complete it without this
 session's context?
 
-**Context a fresh agent MUST have** (the single biggest
-underspecification risk is not any one ticket — it is that most WP
-tickets cite spec sections by number):
+**Context a fresh agent MUST have:**
 
-- The three spec files live OUTSIDE this repo, in the parent directory
-  `techtree-climb/`: `revised-climb-spec.md` (WP0–WP5),
-  `techtree-climb-wp6-wp8-implementation-spec.md`,
-  `techtree-climb-v0.1-wp9-wp11-implementation-spec.md`. A ticket
-  saying "Spec §9.5" means the WP9–WP11 file.
-- `docs/decisions/0001–0022` in this repo are binding; 0022
+- All four binding spec files are VENDORED in `docs/spec/`
+  (climb-v0.1-wp0-wp5.md, -pr6-pr8.md, -wp6-wp8.md, -wp9-wp11.md),
+  verified byte-identical to their sources; `docs/spec/CHECKSUMS.json`
+  records digests (tested by tests/unit/test_spec_index.py) and
+  `docs/spec/INDEX.md` maps every ticket to its spec sections,
+  decisions, and amendments. A ticket saying "Spec §9.5" means the
+  WP9–WP11 file. No ticket requires a parent-directory file.
+- Every remaining release ticket has a self-contained execution
+  contract in `docs/release/contracts/` (decision 0023): purpose,
+  immutable inputs, forbidden actions, steps, outputs, acceptance,
+  stop conditions.
+- `docs/decisions/0001–0023` in this repo are binding; 0022
   (post-rehearsal change discipline) constrains every remaining v0.1
   ticket: no behavior changes to runs, approvals, proposals, receipts,
   proof, host requests, Skill mounting, guards, or Campaign config
@@ -73,7 +77,7 @@ which digest keys it (file `2aff2707…` vs tree `596d1368…`) must match
 what the CLI's `_stage_document` fetch verifies. Pin this explicitly
 and put the chosen URL in the Gate-2 packet.
 
-### techtree-python-ndq.3.5 — WP11e: clean-machine terminal E2E + failure injection (P1, blocked by 3.2/3.3)
+### techtree-python-ndq.3.5 — WP11e: clean-machine terminal E2E + failure injection (P1, blocked by 3.2/3.3/wdc)
 Install-from-zero terminal journey on a clean home, plus the §9.11
 failure matrix (no Docker, no uv, no credential, dead network mid-run)
 — every failure must land on a typed error with a working repair.
@@ -115,34 +119,47 @@ since certification marked scientific/non-scientific) required by
 decision 0022 item 4 / Gate-1 packet §7g. That requirement postdates
 the ticket text.
 
-### techtree-python-ndq.3.11 — WP11-cal: starter Skill authoring + calibration gate (P1, in progress)
-The certification campaign ticket: starter authoring, calibration band,
-rehearsals. All work is COMPLETE (Gate-1 packet is the record; the
-final note on the ticket is the guided-rehearsal report).
-**Action: close it** referencing the Gate-1 approval; nothing left to
-build. Not underspecified — just awaiting closure.
+### techtree-python-wdc — Doctor credential truthfulness (P1, PROMOTED, blocks WP11e)
+Promoted into v0.1 by decision 0023: `doctor --for-evaluation`
+currently passes on an exported credential no detached run can use — a
+readiness command that lies is a release bug. The fix makes doctor use
+the same credential resolution the detached worker uses; the worker's
+scrubbed environment is not loosened. Classified non-scientific
+onboarding behavior for the Gate-2 packet, with the full battery.
+**Spec status: fully specified** — six-row behavior table in
+docs/release/contracts/wp11-doctor.md.
 
-### techtree-python-ndq.3.41 — 0022-1: verify five-state public projection (P2, BLOCKED on a founder ruling)
-Verification found the premise false: no five-state projection exists;
-all twelve internal phase names are user-visible and frozen into the
-v1alpha1 CLI JSON schema the plugin consumes. Chief's recommendation
-to the founder: ship v0.1 with the detailed phase names (certified
-as-is) and fold the five-state view into the v0.2 collapse.
-**Spec status: fully specified** — the worker's evidence note on the
-ticket lists every file:line. Blocked purely on the founder's choice;
-whoever picks this up must NOT add a projection without that ruling
-plus re-certification (0022 item 4).
+### techtree-python-iy0 — WP11-budget: Campaign budget-contract audit (P1, blocks WP11h)
+Audit-only proof that every budget/limit field binds both variants
+identically, resolved runtime matches the manifest, violations fail
+closed, and public copy states the actual limits; records the
+512→4096 lineage. **Fully specified** (contracts/wp11-budget.md).
+
+### techtree-python-y8s — WP11-claims: claim-to-evidence matrix (P1, blocks WP11h)
+One row per public product claim → implementation → test → live
+evidence → limitation, with real paths/IDs/digests in every cell.
+**Fully specified** (contracts/wp11-claims.md).
+
+### techtree-python-5ig — WP11-gateway-profile: FOUNDER decision (P1, blocks WP11f)
+Names and pins the reference gateway (spec §4.4 leaves it open). A
+one-page decision, not a coding task. **Fully specified**
+(contracts/wp11-gateway-profile.md); waiting on the founder's
+selection.
+
+### techtree-python-rlf — WP11-postpublish: public-coordinate smoke + rollback (P2, post-Gate-2 only)
+After release approval only: verify the public wheel/plugin/bootstrap/
+starter bytes equal the approved digests, fresh public install, and a
+rollback pointer rehearsal. Alters no approved bytes. **Fully
+specified** (contracts/wp11-postpublish.md).
 
 ## Open — explicitly NOT v0.1
 
-- **techtree-python-wdc (P1)** — `doctor --for-evaluation` false-green:
-  an exported PRIME_API_KEY passes the doctor check but no detached run
-  can use it. Behavior fix deferred by 0022 discipline; README copy
-  mitigates. **Well specified** (file:line, cause, constraint, options).
 - **techtree-python-999 (P2)** — v0.2 run-state schema collapse
-  (twelve→five). **Intentionally high-level**; needs its own design +
-  certification plan at v0.2 kickoff. Not executable as written — by
-  design.
+  (twelve→five), now ALSO owning the five-state public projection
+  design (absorbed from closed ndq.3.41 per decision 0023; v0.1 ships
+  the certified twelve-phase vocabulary). **Intentionally
+  high-level**; needs its own design + certification plan at v0.2
+  kickoff. Not executable as written — by design.
 - **techtree-python-cwa (P2)** — v0.2 versioned historical run readers,
   strictly read-only (founder-approved exception to the
   no-compatibility-branch rule; decision 0022 item 3). **Adequate as a
@@ -247,6 +264,11 @@ One line each; `bd show <id>` has full close reasons.
   DisclosureStore machinery removed.
 - **ndq.3.43** — honest `run_request_unreadable` message replaces the
   lying "corrupt" error for pre-version runs.
+- **ndq.3.11 / WP11-cal** — starter authoring + calibration +
+  certification, closed against the Gate-1 founder approval.
+- **ndq.3.41** — five-state projection verification: premise false
+  (twelve phases are the certified public vocabulary); deferred to
+  v0.2 by decision 0023, absorbed into ticket 999.
 
 ### Standalone
 - **6gs** — golden/publisher membership digests unified on

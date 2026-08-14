@@ -1,0 +1,39 @@
+{
+  "schema_version": "techtree.spec-checksums.v1",
+  "imported": "2026-08-14",
+  "note": "Binding specification sources vendored into the repository so every open ticket is executable from a fresh checkout alone. Decision documents (docs/decisions/) supersede contradictory spec passages; INDEX.md maps tickets to sections and amendments. Verified by tests/unit/test_spec_index.py.",
+  "files": [
+    {
+      "path": "docs/spec/climb-v0.1-wp0-wp5.md",
+      "bytes": 136114,
+      "sha256": "0a2d5100b96924320db8a043341ea14eb46d03aa4030c4bbda1818a9b8a59f7e",
+      "source_filename": "revised-climb-spec.md",
+      "scope": "WP0-WP5 local substrate (Campaign-kernel revision)",
+      "superseded_by_decisions": ["0003", "0004", "0019"]
+    },
+    {
+      "path": "docs/spec/climb-v0.1-pr6-pr8.md",
+      "bytes": 81079,
+      "sha256": "e3e71073b3c42f6230669ff41a76eb9ad0bb4da206ef07fda3a3132f205e619d",
+      "source_filename": "climb-v0.1-pr6-pr8.md",
+      "scope": "PR6-PR8 supplement (drafts, run lifecycle detail)",
+      "superseded_by_decisions": ["0019", "0022"]
+    },
+    {
+      "path": "docs/spec/climb-v0.1-wp6-wp8.md",
+      "bytes": 126197,
+      "sha256": "4b7e3c213fadcdfcef6c81427db918816d35987e5799b6bb5e9dfc1dee7bef80",
+      "source_filename": "techtree-climb-wp6-wp8-implementation-spec.md",
+      "scope": "WP6-WP8 real evaluation, receipts/proof, read-only web",
+      "superseded_by_decisions": ["0013", "0015", "0016", "0019"]
+    },
+    {
+      "path": "docs/spec/climb-v0.1-wp9-wp11.md",
+      "bytes": 96875,
+      "sha256": "9c88270707f18970585b2ffe5d21ada6e1de23a4bd042a35a74c6751481bb535",
+      "source_filename": "techtree-climb-v0.1-wp9-wp11-implementation-spec.md",
+      "scope": "WP9-WP11 plugin, guided revision, release hardening",
+      "superseded_by_decisions": ["0009", "0010", "0011", "0013", "0017", "0018", "0019", "0020", "0021", "0022", "0023"]
+    }
+  ]
+}
