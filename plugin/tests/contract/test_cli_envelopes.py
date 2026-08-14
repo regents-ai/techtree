@@ -33,13 +33,42 @@ RECORDED = sorted(FIXTURES.glob("*.json"))
 
 #: Every read-only command whose recorded output is checked here, and the
 #: command name its envelope reports.
+#:
+#: Whether a host can run a Climb changes the shape of the answer, so both
+#: shapes are on record, each captured from a Techtree home in a stated state:
+#:
+#: * ``climb-list.json`` and ``climb-show.json`` come from a home whose engine
+#:   is not the one this release names. Compatibility is false, and the issue
+#:   is a blocking ``engine_not_installed`` error.
+#: * ``climb-list-compatible.json`` and ``climb-show-compatible.json`` come
+#:   from a throwaway home with the release's own engine unpacked into it.
+#:   Compatibility is true, and the issue is a non-blocking
+#:   ``engine_not_verified`` warning. The engine reads as installed but
+#:   unverified because installing it and vouching for it are separate steps.
+#:
+#: Everything else about the two captures — the Climb, the Campaign, the
+#: policy, the digests — is identical, which is the point: the plugin must
+#: read both without either being a special case.
 RECORDED_COMMANDS = {
     "doctor.json": "doctor",
     "climb-list.json": "climb list",
+    "climb-list-compatible.json": "climb list",
     "climb-show.json": "climb show",
+    "climb-show-compatible.json": "climb show",
     "climb-show-not-found.json": "climb show",
     "release-info.json": "release info",
     "release-verify.json": "release verify",
+}
+
+#: The two recorded ``climb show`` shapes, and what each one says about a host.
+RECORDED_COMPATIBILITY = {
+    "climb-show.json": (False, "not_installed", "engine_not_installed", True),
+    "climb-show-compatible.json": (
+        True,
+        "installed_unverified",
+        "engine_not_verified",
+        False,
+    ),
 }
 
 
@@ -82,6 +111,41 @@ def test_a_recorded_envelope_parses(path: Path) -> None:
 
     assert envelope["command"] == RECORDED_COMMANDS[path.name]
     assert isinstance(envelope["ok"], bool)
+
+
+@pytest.mark.parametrize("name", sorted(RECORDED_COMPATIBILITY))
+def test_a_recorded_climb_reports_its_hosts_readiness(name: str) -> None:
+    """Both readiness answers are one envelope shape, differing only in verdict."""
+    compatible, status, code, blocking = RECORDED_COMPATIBILITY[name]
+    envelope = parse_cli_envelope((FIXTURES / name).read_text(encoding="utf-8"))
+
+    readiness = envelope["data"]["climb"]["compatibility"]
+    assert envelope["ok"] is True
+    assert readiness["compatible"] is compatible
+    assert readiness["engine_status"] == status
+    assert readiness["issues"][0]["code"] == code
+    assert readiness["issues"][0]["blocking"] is blocking
+
+
+def test_the_two_recorded_climbs_differ_only_in_host_readiness() -> None:
+    """A Climb is the same Climb whether or not this machine can run it."""
+    blocked = parse_cli_envelope(
+        (FIXTURES / "climb-show.json").read_text(encoding="utf-8")
+    )["data"]["climb"]
+    ready = parse_cli_envelope(
+        (FIXTURES / "climb-show-compatible.json").read_text(encoding="utf-8")
+    )["data"]["climb"]
+
+    assert blocked["reference"] == ready["reference"] == "hello-world-climb@1"
+    assert blocked["title"] == ready["title"] == "Techtree Hello World"
+    for pinned in ("campaign_spec_digest", "climb_digest", "task_count"):
+        assert blocked[pinned] == ready[pinned]
+    assert (
+        blocked["compatibility"]["required_engine_digest"]
+        == ready["compatibility"]["required_engine_digest"]
+    )
+    del blocked["compatibility"], ready["compatibility"]
+    assert blocked == ready
 
 
 def test_a_recorded_failure_carries_a_typed_error() -> None:
