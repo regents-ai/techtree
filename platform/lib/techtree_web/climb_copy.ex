@@ -33,8 +33,10 @@ defmodule TechtreeWeb.ClimbCopy do
       task_family: "BranchCode v1",
       starter_skill: "hello-world-starter-v1",
       starter_note:
-        "The Hello World starter Skill is intentionally incomplete so the guided " <>
-          "one-turn revision has measurable headroom.",
+        "The Hello World starter Skill is intentionally incomplete and calibrated " <>
+          "to solve roughly two-thirds of the toy tasks. Individual runs may vary. " <>
+          "The gap is deliberate, so that the guided one-turn revision has " <>
+          "measurable headroom.",
       first_result_label: "Hello World Uplift Receipt",
       second_result_label: "Hello World — Iteration 2"
     }

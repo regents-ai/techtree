@@ -75,6 +75,12 @@ defmodule TechtreeWeb.LocalProofLive do
           </p>
         </.warning_callout>
         <p class="section">
+          Nor did the trial run offline. The agent under test makes real model calls,
+          and those go to the model provider you chose, under that provider's
+          policies. What never reaches this site is the recordings, the result
+          bundle, and the work you submitted.
+        </p>
+        <p class="section">
           Nothing has been reproduced by a third party. No claim is made that the same
           result would appear on other hardware, with another model, or on another day.
           A result carries the grade the Climb offers, and that grade says which of

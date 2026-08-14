@@ -60,7 +60,7 @@ defmodule TechtreeWeb.ClimbsLive.Index do
               {fact(card.climb, "subject_harness")} {fact(card.climb, "subject_harness_version")}
             </:fact>
             <:fact term="On your machine">
-              Docker, macOS or Linux, and your own model provider key.
+              Docker, macOS or Linux, and a key from your model provider.
             </:fact>
             <:fact term="What a result may be called">
               {proof_grade_words(fact(card.climb, "proof_grade"))}

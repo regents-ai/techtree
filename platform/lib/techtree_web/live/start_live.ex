@@ -115,7 +115,8 @@ defmodule TechtreeWeb.StartLive do
             </:fact>
             <:fact term="A model provider">
               Your own account and key. The agent under test makes real model calls,
-              and you pay for them. Techtree never asks for the key.
+              and they go to that provider under its policies. You pay for them, and
+              Techtree never asks for the key.
             </:fact>
             <:fact term="Hermes">
               Version {minimum_hermes(@instructions)} or newer, for the agent path.

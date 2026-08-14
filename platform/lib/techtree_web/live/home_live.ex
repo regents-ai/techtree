@@ -53,6 +53,12 @@ defmodule TechtreeWeb.HomeLive do
           run trials, does not receive results, and has nothing to sign in to.
         </p>
         <p>
+          A trial is not an offline exercise. The agent under test makes real model
+          calls, and those go to the model provider you chose, under that provider's
+          policies. What stays with you is everything else: the recordings, the
+          result, and the work you submitted.
+        </p>
+        <p>
           What it publishes is the other half — the Climbs on offer and the exact
           documents that define them, each one served as the file it was generated
           from and checked against its fingerprint before it is handed over.

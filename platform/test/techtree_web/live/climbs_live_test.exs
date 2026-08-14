@@ -140,8 +140,10 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
 
       assert visible_text(html) =~
-               "The Hello World starter Skill is intentionally incomplete so the guided " <>
-                 "one-turn revision has measurable headroom."
+               "The Hello World starter Skill is intentionally incomplete and calibrated " <>
+                 "to solve roughly two-thirds of the toy tasks. Individual runs may vary. " <>
+                 "The gap is deliberate, so that the guided one-turn revision has " <>
+                 "measurable headroom."
     end
 
     test "says this is a toy demonstration rather than a benchmark", %{conn: conn} do

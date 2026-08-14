@@ -147,7 +147,7 @@ defmodule TechtreeWeb.ProtocolLive do
         </.definition_list>
         <p class="small quiet">
           Every one of these is a read. There is nothing here to post to, and no
-          account to hold.
+          Techtree account to hold.
         </p>
       </section>
 
