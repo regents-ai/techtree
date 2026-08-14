@@ -37,10 +37,10 @@ defmodule Techtree.Catalog.BundleTest do
 
       assert Enum.map(entries, & &1.kind) == [
                :climb,
-               :validation_evidence,
                :taskset_validation,
+               :campaign,
                :data_policy,
-               :campaign
+               :validation_evidence
              ]
 
       climb = hd(entries)

@@ -13,8 +13,8 @@ defmodule Techtree.CatalogFixture do
 
   @climb_reference "hello-world-climb@1"
   @climb_path "climbs/hello-world-climb.json"
-  @campaign_digest "sha256:b65c1b0204dd2ceb1ec4c72a58c9888e6216c75d0eb40b7a11b18c85215a6b8b"
-  @catalog_digest "sha256:91f7ba524194884bfd0556d4d47db1fc9c809e43081913cb15d4fd5b93abe0c8"
+  @campaign_digest "sha256:449940f184a59e6b7fc3541326bccebb655eefee22160bb904094de1867098eb"
+  @catalog_digest "sha256:8545308414ceee87151a83c9197f879104ff5e012390a84bed3eda5f209ef2d9"
 
   @doc """
   The fixture bundle, as generated. Never write to this directory.

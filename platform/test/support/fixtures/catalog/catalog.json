@@ -1,31 +1,31 @@
 {
   "climbs": [
     {
-      "digest": "sha256:aa1d33e299f642bb4ff7716dbea233520845f2981afa107fb6180546254c10eb",
+      "digest": "sha256:056ef2139aa523f8618d5980d9b429f87ca7c341e5f4d29f12f9aa4cb6ec500c",
       "path": "climbs/hello-world-climb.json",
       "reference": "hello-world-climb@1"
     }
   ],
   "objects": {
-    "sha256:5875f31fe28251c70b2d40e19b7579578dce6a4b70717583510044392118837c": {
-      "kind": "validation_evidence",
-      "media_type": "application/json",
-      "path": "validation-evidence/hello-world-climb.json"
-    },
-    "sha256:a0a1875e831f4604851c2ed927f898a52f70b28655af35cc6926dd8e8a347810": {
+    "sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948": {
       "kind": "taskset_validation",
       "media_type": "application/json",
       "path": "taskset-validations/hello-world-climb.json"
     },
-    "sha256:b257724db5dcc4a6392c56bfc403cb4b7c5221675cefed9970258c42512b4fbe": {
+    "sha256:449940f184a59e6b7fc3541326bccebb655eefee22160bb904094de1867098eb": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/hello-world-climb.json"
+    },
+    "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9": {
       "kind": "data_policy",
       "media_type": "application/json",
       "path": "data-policies/hello-world-climb.json"
     },
-    "sha256:b65c1b0204dd2ceb1ec4c72a58c9888e6216c75d0eb40b7a11b18c85215a6b8b": {
-      "kind": "campaign",
+    "sha256:9c4959d3b9217ab83c506ceb4219143aff74341be59b15c1de15d35c0cbdbed5": {
+      "kind": "validation_evidence",
       "media_type": "application/json",
-      "path": "campaigns/hello-world-climb.json"
+      "path": "validation-evidence/hello-world-climb.json"
     }
   },
   "schema_version": "techtree.catalog.v1alpha1"
