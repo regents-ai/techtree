@@ -25,7 +25,7 @@ from typing import Any, Final
 
 from ..constants import PLUGIN_ROOT
 from ..errors import PluginError, contains_secret_material
-from ..guards import validate_revised_skill
+from ..guards import validate_revised_skill, validate_revision_prose
 from ..llm import (
     REQUEST_COMMITMENT_FIELDS,
     HostLlmRequest,
@@ -399,6 +399,9 @@ class ImprovementService:
         once = OneShotHostLlm(self._llm)
         result = once.complete(request)
         output = parse_revision_output(result.parsed)
+        # The Skill and the sentences about it are both model-authored, and
+        # both are relayed. Neither is checked by the other's guard.
+        validate_revision_prose(output.prose())
         validate_revised_skill(
             output.revised_skill_markdown, task_inputs=public_prompts(context)
         )

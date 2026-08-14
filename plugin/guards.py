@@ -396,21 +396,62 @@ def forbid_answer_table(markdown: str) -> None:
         )
 
 
+#: A long input quoted once is already proof. Nothing else is 24 characters
+#: long by coincidence.
+_LONG_INPUT_CHARACTERS: Final = 24
+
+#: Below that length a single match proves nothing — this release's inputs are
+#: four-to-twelve-character words, and a Skill about trees will say "oak"
+#: sooner or later. Shorter than this and even counting them is noise.
+_SHORT_INPUT_CHARACTERS: Final = 3
+
+#: How many distinct short inputs a revision may quote before it is a list of
+#: cases rather than a rule that happens to use a word. Two is reachable by
+#: accident in ordinary prose; three of the exact members is a pattern.
+_MAXIMUM_QUOTED_SHORT_INPUTS: Final = 3
+
+
 def forbid_copied_examples(markdown: str, task_inputs: Iterable[str]) -> None:
     """Refuse a revision that quotes the cases it was shown.
 
     Exact rather than heuristic: these are the public prompts the improvement
     context actually carried, so finding one verbatim in the revision is proof
     that the model wrote down a case instead of a rule.
+
+    Length decides how much proof one match is. A long prompt appearing
+    verbatim is conclusive on its own. A short one is not: this release's
+    inputs are short words, and a revision is allowed to use a word. So short
+    inputs are matched on word boundaries and counted, and it is the count of
+    *distinct* members quoted that fails — a revision naming three of them has
+    stopped describing a procedure and started listing the cases.
     """
+    quoted_short: set[str] = set()
+
     for prompt in task_inputs:
         candidate = prompt.strip()
-        if len(candidate) >= 24 and candidate in markdown:
-            raise NarrativeRejectedError(
-                "the revision copies a task it was shown; a Skill states a rule, "
-                "not the cases",
-                code=CODE_SKILL_REVISION_INVALID,
-            )
+        if not candidate:
+            continue
+
+        if len(candidate) >= _LONG_INPUT_CHARACTERS:
+            if candidate in markdown:
+                raise NarrativeRejectedError(
+                    "the revision copies a task it was shown; a Skill states a "
+                    "rule, not the cases",
+                    code=CODE_SKILL_REVISION_INVALID,
+                )
+            continue
+
+        if len(candidate) >= _SHORT_INPUT_CHARACTERS and re.search(
+            rf"(?<!\w){re.escape(candidate)}(?!\w)", markdown, re.I
+        ):
+            quoted_short.add(candidate.casefold())
+
+    if len(quoted_short) >= _MAXIMUM_QUOTED_SHORT_INPUTS:
+        raise NarrativeRejectedError(
+            f"the revision quotes {len(quoted_short)} of the cases it was shown; "
+            "a Skill states a rule, not the cases",
+            code=CODE_SKILL_REVISION_INVALID,
+        )
 
 
 def forbid_command_attachment(markdown: str) -> None:
@@ -420,6 +461,32 @@ def forbid_command_attachment(markdown: str) -> None:
             "the revision attaches commands to run; a Skill teaches a procedure",
             code=CODE_SKILL_REVISION_INVALID,
         )
+
+
+def validate_revision_prose(prose: Iterable[str]) -> None:
+    """Check the sentences a proposal asks a person to read. WP11g S4.
+
+    A proposal is not only a Skill. It comes with an analysis, a rationale,
+    and a list of tradeoffs, and those go straight into the conversation. They
+    are model-authored text about a measured result, which is exactly the
+    thing the claim and number guards were written for — they were simply
+    never pointed at this path.
+
+    Numbers are the sharp end. Every figure about a comparison is Techtree's,
+    rendered from its own payload; a rationale that states one has invented a
+    measurement, whether or not it happens to be right. So a proposal whose
+    prose states a value is refused rather than trimmed, and the turn it
+    spent is spent. That is the one-turn rule working, not a bug in it.
+
+    Raises:
+        NarrativeRejected: naming what was written that could not be relayed.
+    """
+    for text in prose:
+        forbid_unapproved_claims(text)
+        forbid_numeric_claims(text)
+        forbid_canonical_values(text)
+        forbid_ansi(text)
+        forbid_secret_patterns(text)
 
 
 def validate_revised_skill(

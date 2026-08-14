@@ -755,3 +755,95 @@ def test_a_skill_that_instructs_past_the_envelope_is_a_conflict(
 
     assert raised.value.code == "improver_skill_conflicts_envelope"
     assert host.calls == [], "a conflicting Skill is never sent"
+
+
+# The sentences a proposal is read through -------------------------------------------
+#
+# WP11g S4. The analysis, the rationale and the tradeoffs are model-authored
+# text about a measured result, and they are relayed into the conversation.
+# The claim and number guards existed for exactly this and were pointed at
+# nothing.
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    [
+        (
+            "analysis_summary",
+            "The Skill was independently reproduced on held-out tasks.",
+            "independent reproduc",
+        ),
+        (
+            "analysis_summary",
+            "The rule fixes 22 tasks out of the set.",
+            "states a counted outcome",
+        ),
+        (
+            "change_rationale",
+            ["This should take the score to 32/36."],
+            "score fraction",
+        ),
+        (
+            "change_rationale",
+            ["Accuracy rises to 0.89 with the corrected rule."],
+            "decimal value",
+        ),
+        (
+            "expected_tradeoffs",
+            ["A guaranteed improvement on repeated-character identifiers."],
+            "guarantee",
+        ),
+        (
+            "expected_tradeoffs",
+            ["Verified against proof sha256:abcdef0123456789."],
+            "digest",
+        ),
+    ],
+)
+def test_a_proposal_whose_prose_states_a_claim_or_a_number_is_refused(
+    field: str, value: Any, expected: str
+) -> None:
+    host = StubHost(parsed={**GOOD_PROPOSAL, field: value})
+
+    with pytest.raises(PluginError, match=expected) as raised:
+        _propose(_service(FakeBridge(), host))
+
+    assert raised.value.code == "presentation_claim_forbidden"
+
+
+def test_refusing_the_prose_still_spends_the_one_turn() -> None:
+    """Decision 0015: a refused proposal consumes the attempt. That is correct."""
+    host = StubHost(
+        parsed={**GOOD_PROPOSAL, "analysis_summary": "It now scores 32/36 overall."}
+    )
+    service = _service(FakeBridge(), host)
+    session = _session()
+
+    with pytest.raises(PluginError, match="score fraction"):
+        _propose(service, session)
+
+    with pytest.raises(PluginError, match="already had its one revision"):
+        _propose(service, dataclasses.replace(session, revision_attempts=1))
+    assert len(host.calls) == 1
+
+
+def test_ordinary_reasoning_prose_is_relayed_untouched() -> None:
+    """The guard refuses invented measurements, not ordinary explanation."""
+    proposal = _propose(_service()).output
+
+    assert proposal.analysis_summary == GOOD_PROPOSAL["analysis_summary"]
+    assert list(proposal.change_rationale) == GOOD_PROPOSAL["change_rationale"]
+    assert list(proposal.expected_tradeoffs) == GOOD_PROPOSAL["expected_tradeoffs"]
+
+
+def test_the_prose_the_guard_reads_is_the_prose_that_is_relayed() -> None:
+    """`prose()` is the one definition of "the parts a person reads"."""
+    proposal = _propose(_service()).output
+    relayed = proposal.to_dict()
+
+    assert set(proposal.prose()) == {
+        relayed["analysis_summary"],
+        *relayed["change_rationale"],
+        *relayed["expected_tradeoffs"],
+    }
+    assert relayed["revised_skill_markdown"] not in proposal.prose()
