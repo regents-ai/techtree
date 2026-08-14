@@ -30,6 +30,7 @@ from ..llm import (
     REQUEST_COMMITMENT_FIELDS,
     HostLlmRequest,
     OneShotHostLlm,
+    RequestAccounting,
     build_revision_provenance,
     digest_document,
 )
@@ -118,17 +119,25 @@ class SourceSkill:
 
 @dataclass(frozen=True)
 class RevisionProposal:
-    """One proposal, and the record of exactly what it was made from."""
+    """One proposal, what it was made from, and what the attempt cost.
+
+    ``accounting`` is the decision 0015 s4 record of the provider boundary:
+    how many generation requests this attempt actually issued. It sits beside
+    the provenance rather than inside it, because decision 0010 fixed that
+    record at nine fields describing derivation, not traffic.
+    """
 
     output: SkillRevisionOutput
     provenance: SkillRevisionProvenance
     session: DemoSessionState
+    accounting: RequestAccounting
 
     def to_dict(self) -> dict[str, Any]:
         """Return the proposal in the shape a tool result carries it."""
         return {
             "proposal": self.output.to_dict(),
             "provenance": self.provenance.to_dict(),
+            "request_accounting": self.accounting.to_dict(),
         }
 
 
@@ -385,7 +394,10 @@ class ImprovementService:
         )
 
         spent = _spend_attempt(demo_session)
-        result = OneShotHostLlm(self._llm).complete(request)
+        # Held for the length of the turn, so the count of what left this
+        # machine can be read back off the same object that made the call.
+        once = OneShotHostLlm(self._llm)
+        result = once.complete(request)
         output = parse_revision_output(result.parsed)
         validate_revised_skill(
             output.revised_skill_markdown, task_inputs=public_prompts(context)
@@ -399,6 +411,7 @@ class ImprovementService:
                 revision_attempt=spent.revision_attempts,
             ),
             session=spent,
+            accounting=once.accounting(),
         )
 
 

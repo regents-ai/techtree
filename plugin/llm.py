@@ -5,6 +5,34 @@ revision of a Skill might be. It is one-shot, bounded by a schema, and may not
 touch a number. Results are rendered by Techtree and relayed unchanged — no
 model is asked to word one (decision 0009).
 
+Where the one-turn promise binds
+--------------------------------
+
+Decision 0015 s4: one completion means one outbound model generation request,
+at the provider boundary rather than at this method's signature. The boundary
+runs through ``HermesHostLlm.complete_structured``, and the two sides of it
+are not the same kind of promise:
+
+* **Inside the plugin, and proved by test.** ``OneShotHostLlm`` calls the port
+  once and then refuses, whatever happened — success, refusal, malformed
+  answer, transport failure. There is no retry loop, no repair completion, no
+  fallback model, and no exception handler that calls again. The plugin owns
+  no HTTP client at all: the runtime is standard library only and cannot open
+  a socket, which is checked separately, so there is no transport-level retry
+  setting for this repository to disable. ``max_retries`` does not exist here
+  because no client does.
+* **Beyond the boundary, and Hermes's to answer for.** What ``ctx.llm`` does
+  with the one call it is given — which provider SDK it holds, whether that
+  SDK retries a 429 or a timeout, whether it repairs a structured answer — is
+  the host's sampling stack, not this plugin's. The plugin cannot observe it
+  and does not claim to. What it can do is make exactly one call, count it,
+  and record the count beside the digests, so a run's own record says how many
+  requests this side of the boundary issued.
+
+Every attempt therefore carries a ``RequestAccounting``: how many times the
+one-shot wrapper was invoked, how many outbound requests it actually made, and
+the provider's request and response identifiers when the host exposes them.
+
 One completion means one. There is no retry here, no fallback model, no
 "try again with a stricter prompt". A hidden second completion would quietly
 turn one revision attempt into a search over attempts, and a search that keeps
@@ -138,6 +166,8 @@ class HostLlmResult:
     provider: str
     purpose: str
     usage: Mapping[str, Any] = field(default_factory=dict)
+    provider_request_id: str | None = None
+    provider_response_id: str | None = None
 
     def to_provenance(self) -> dict[str, Any]:
         """Return the operational metadata a proposal records about this call."""
@@ -147,6 +177,41 @@ class HostLlmResult:
             "host_model_id": self.model,
             "host_provider": self.provider,
             "purpose": self.purpose,
+        }
+
+
+@dataclass(frozen=True)
+class RequestAccounting:
+    """How many outbound generation requests one attempt actually made.
+
+    Decision 0015 s4 asks for this per attempt. It is deliberately separate
+    from ``SkillRevisionProvenance``, whose nine fields decision 0010 fixed:
+    this is the operational record of the call, not a claim about what the
+    candidate Skill was derived from.
+
+    ``invocation_count`` counts every time the one-shot wrapper was asked for
+    a completion, including a refused second ask. ``outbound_request_count``
+    counts only the requests that actually reached the host port. The two
+    differing is the evidence that a second request was refused rather than
+    merely not attempted.
+    """
+
+    invocation_count: int
+    outbound_request_count: int
+    provider_request_id: str | None
+    provider_response_id: str | None
+    complete_request_digest: str | None
+    host_response_digest: str | None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the accounting in the shape a tool result carries it."""
+        return {
+            "invocation_count": self.invocation_count,
+            "outbound_request_count": self.outbound_request_count,
+            "provider_request_id": self.provider_request_id,
+            "provider_response_id": self.provider_response_id,
+            "complete_request_digest": self.complete_request_digest,
+            "host_response_digest": self.host_response_digest,
         }
 
 
@@ -161,14 +226,47 @@ class OneShotHostLlm:
     def __init__(self, port: HostLlmPort) -> None:
         self._port = port
         self._used_for: str | None = None
+        self._invocations = 0
+        self._outbound_requests = 0
+        self._last: HostLlmResult | None = None
 
     @property
     def used(self) -> bool:
         """Whether the one completion has been spent."""
         return self._used_for is not None
 
+    @property
+    def invocations(self) -> int:
+        """How many times a completion was asked of this wrapper."""
+        return self._invocations
+
+    @property
+    def outbound_requests(self) -> int:
+        """How many generation requests actually reached the host port."""
+        return self._outbound_requests
+
+    def accounting(self) -> RequestAccounting:
+        """Return what this attempt did at the provider boundary."""
+        return RequestAccounting(
+            invocation_count=self._invocations,
+            outbound_request_count=self._outbound_requests,
+            provider_request_id=(
+                self._last.provider_request_id if self._last else None
+            ),
+            provider_response_id=(
+                self._last.provider_response_id if self._last else None
+            ),
+            complete_request_digest=self._last.request_digest if self._last else None,
+            host_response_digest=self._last.response_digest if self._last else None,
+        )
+
     def complete(self, request: HostLlmRequest) -> HostLlmResult:
         """Run the one completion this turn is allowed.
+
+        Exactly one outbound request leaves here, and the counter is raised
+        before the call rather than after it: a request that failed in
+        transport still happened, and a record that forgot it would be a
+        record that under-counts the very thing it exists to count.
 
         Raises:
             HostLlmError: when a completion has already been made, when the
@@ -176,6 +274,7 @@ class OneShotHostLlm:
                 answer, or when what came back was not the shape that was
                 asked for.
         """
+        self._invocations += 1
         if self._used_for is not None:
             raise HostLlmError(
                 "this turn has already had its one completion, for "
@@ -185,6 +284,7 @@ class OneShotHostLlm:
             )
         _check_request(request)
         self._used_for = request.purpose
+        self._outbound_requests += 1
 
         try:
             answer = self._port.complete_structured(
@@ -202,7 +302,8 @@ class OneShotHostLlm:
                 retryable=False,
             ) from error
 
-        return _result_from(answer, request)
+        self._last = _result_from(answer, request)
+        return self._last
 
 
 def _check_request(request: HostLlmRequest) -> None:
@@ -244,7 +345,14 @@ def _result_from(answer: Any, request: HostLlmRequest) -> HostLlmResult:
         provider=str(answer.get("provider") or "unknown"),
         purpose=request.purpose,
         usage=dict(answer["usage"]) if isinstance(answer.get("usage"), Mapping) else {},
+        provider_request_id=_identifier(answer.get("request_id")),
+        provider_response_id=_identifier(answer.get("response_id")),
     )
+
+
+def _identifier(value: Any) -> str | None:
+    """Return a provider identifier, or None when the host reports none."""
+    return str(value) if isinstance(value, str) and value.strip() else None
 
 
 class HermesHostLlm:
@@ -266,7 +374,13 @@ class HermesHostLlm:
         schema: dict[str, Any],
         purpose: str,
     ) -> dict[str, Any]:
-        """Call the host's structured completion exactly once."""
+        """Call the host's structured completion exactly once.
+
+        This is the provider boundary. One call goes out, its answer is
+        returned whatever it says, and nothing here inspects it and calls
+        again: there is no retry, no repair pass, and no second model. What
+        the host does inside this one call is the host's to account for.
+        """
         llm = getattr(self._ctx, "llm", None)
         if llm is None:
             raise HostLlmError(
@@ -287,7 +401,22 @@ class HermesHostLlm:
             "model": getattr(answer, "model", ""),
             "provider": getattr(answer, "provider", ""),
             "usage": _usage_of(answer),
+            "request_id": _first_identifier(answer, ("request_id", "id")),
+            "response_id": _first_identifier(answer, ("response_id", "completion_id")),
         }
+
+
+def _first_identifier(answer: Any, names: tuple[str, ...]) -> str | None:
+    """Return the first identifier this host happens to expose, if any.
+
+    Hosts name these differently and some name them not at all. An absent
+    identifier is recorded as absent rather than invented.
+    """
+    for name in names:
+        value = getattr(answer, name, None)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
 
 
 def _usage_of(answer: Any) -> dict[str, Any]:

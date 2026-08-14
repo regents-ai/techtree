@@ -34,5 +34,9 @@ An actual mismatch is different: it makes a comparison invalid, not warned.
 
 `techtree_proof_verify` re-checks a stored proof offline, from the bytes the
 run wrote. It reports integrity, scientific, and attestation checks
-separately, so a failure tells you which kind of trust broke. Nothing is
-fetched and nothing is uploaded to do it.
+separately, so a failure tells you which kind of trust broke. The check itself
+reads stored bytes and reaches no network.
+
+That is a statement about checking a proof, not about producing one. The run
+the proof describes sent its model inference to the model provider the user
+configured, under that provider's policies.

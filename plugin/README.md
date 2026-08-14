@@ -8,7 +8,12 @@ pinned task set twice — once without the Skill, once with it — inside Docker
 records what happened, and produces a locally signed result you can check
 offline. This plugin is the operator surface for that: it lets Hermes inspect
 what a Climb measures, prepare a run, start it, follow it, and read the
-result. Nothing is uploaded, and nothing is published.
+result.
+
+Techtree uploads none of your Episodes, Traces, receipts, proof bundles, or
+Skill proposals, and publishes nothing. Model inference is still sent to the
+model provider you configured, under that provider's policies — a comparison
+that runs locally is not a comparison that runs without the network.
 
 The evaluated agent is never the Hermes you are talking to. It is a separate,
 pinned agent in a container that receives only what the Climb declares.

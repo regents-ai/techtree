@@ -137,12 +137,20 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
     )
 
     written = proposal.output.to_dict()
+    # The request accounting is the record of what this attempt did at the
+    # provider boundary (decision 0015 s4). A phone has no room for it and no
+    # use for it: the one-request promise is kept by the code that made the
+    # call, not by the answer that reports it, and a terminal shows the whole
+    # record. So it travels where it fits, and is simply absent where it does
+    # not — never trimmed into a half-record that reads like a full one.
+    accounting: dict[str, Any] | None = proposal.accounting.to_dict()
     if is_gateway_safe_required(channel):
         # The whole revised Skill will not fit in a chat message, and the diff
         # is what an approval actually turns on. The Skill itself is staged in
         # Techtree and readable in a terminal.
         written.pop("revised_skill_markdown", None)
         written["revised_skill_available_in_terminal"] = True
+        accounting = None
 
     return tool_result(
         {
@@ -151,6 +159,7 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             "demo": session_payload(session),
             "proposal": written,
             "provenance": proposal.provenance.to_dict(),
+            "request_accounting": accounting,
             "diff": difference.to_dict(),
             "draft_id": prepared["draft_id"],
             "confirmation_token": prepared["confirmation_token"],

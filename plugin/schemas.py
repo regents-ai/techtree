@@ -194,9 +194,11 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         description=(
             "Start a prepared draft running. This spends model budget and "
             "provisions Docker, so call it only after the user has seen the "
-            "cost, the data policy, and the Skill, and has said yes. The run "
-            "is detached: this returns a run identifier immediately and never "
-            "waits for the result."
+            "cost, the data policy, and the Skill, and has said yes. Model "
+            "inference goes to the model provider the user configured, under "
+            "that provider's policies; Techtree uploads nothing of its own. "
+            "The run is detached: this returns a run identifier immediately "
+            "and never waits for the result."
         ),
         properties={
             "draft_id": {
@@ -257,9 +259,9 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     "techtree_proof_verify": _schema(
         description=(
             "Check a local proof bundle offline and report its integrity, "
-            "scientific, and attestation checks separately. Read-only, free, "
-            "and entirely local: nothing is uploaded or fetched. Give either a "
-            "run identifier or a proof path, not both."
+            "scientific, and attestation checks separately. Read-only and "
+            "free: the check itself reads stored bytes and reaches no "
+            "network. Give either a run identifier or a proof path, not both."
         ),
         properties={
             "run_id": _run_id("The run whose stored proof should be checked."),

@@ -94,7 +94,12 @@ CONTEXT: dict[str, Any] = {
 
 
 class StubLlm:
-    """Stands in for ctx.llm, counting completions."""
+    """Stands in for ctx.llm, and refuses to be asked twice.
+
+    Decision 0015 s4: one completion means one outbound generation request.
+    Raising on the second ask means a retry anywhere in the tool path fails
+    here loudly, instead of passing a count nobody looked at.
+    """
 
     def __init__(self, parsed: Any = None) -> None:
         self.calls: list[dict[str, Any]] = []
@@ -102,12 +107,19 @@ class StubLlm:
 
     def complete_structured(self, **kwargs: Any) -> Any:
         self.calls.append(kwargs)
+        if len(self.calls) > 1:
+            raise AssertionError(
+                "the guided flow made a second outbound generation request; "
+                f"one turn allows one ({len(self.calls)} seen)"
+            )
         return SimpleNamespace(
             parsed=self.parsed,
             text="{}",
             model="host-model-1",
             provider="host",
             usage=None,
+            request_id="req_0123456789",
+            response_id="resp_9876543210",
         )
 
 
@@ -427,3 +439,57 @@ def test_a_build_whose_release_named_no_improver_keeps_its_turn(
     assert unspent is not None
     assert unspent.revision_attempts == 0
     assert placeholder.ctx.llm.calls == []
+
+
+# One outbound generation request -----------------------------------------------------
+
+
+def test_the_tool_makes_exactly_one_outbound_request(
+    services: PluginServices,
+) -> None:
+    """Decision 0015 s4, through `techtree_uplift_propose` itself."""
+    answer = _propose(services, channel="terminal")
+
+    assert len(services.ctx.llm.calls) == 1
+    accounting = answer["request_accounting"]
+    assert accounting["invocation_count"] == 1
+    assert accounting["outbound_request_count"] == 1
+    assert accounting["provider_request_id"] == "req_0123456789"
+    assert accounting["provider_response_id"] == "resp_9876543210"
+    assert (
+        accounting["complete_request_digest"]
+        == answer["provenance"]["complete_request_digest"]
+    )
+    assert (
+        accounting["host_response_digest"]
+        == answer["provenance"]["host_response_digest"]
+    )
+
+
+def test_a_spent_turn_issues_no_further_request(services: PluginServices) -> None:
+    """The second call is refused by the session, before any provider call."""
+    _propose(services, channel="terminal")
+
+    answer = json.loads(
+        TOOL_HANDLERS["techtree_uplift_propose"](services, {"source_run_id": RUN_ID})
+    )
+
+    assert answer["ok"] is False
+    assert answer["code"] == "improvement_attempt_already_used"
+    assert len(services.ctx.llm.calls) == 1
+
+
+def test_a_phone_gets_the_proposal_without_the_request_accounting(
+    services: PluginServices,
+) -> None:
+    """A bounded channel drops the record whole rather than trimming it."""
+    answer = json.loads(
+        TOOL_HANDLERS["techtree_uplift_propose"](
+            services, {"source_run_id": RUN_ID, "channel": "gateway"}
+        )
+    )
+
+    assert answer["ok"] is True
+    assert answer["request_accounting"] is None
+    assert answer["provenance"]["complete_request_digest"].startswith("sha256:")
+    assert len(services.ctx.llm.calls) == 1

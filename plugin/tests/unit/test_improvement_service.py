@@ -587,7 +587,10 @@ def test_a_proposal_that_is_a_patch_is_refused() -> None:
     host = StubHost(
         parsed={
             **GOOD_PROPOSAL,
-            "revised_skill_markdown": "Apply this patch to step 5: use distinct.",
+            "revised_skill_markdown": (
+                "---\nname: branchcode\ndescription: A procedure.\n---\n\n"
+                "# BranchCode\n\nApply this patch to step 5: use distinct.\n"
+            ),
         }
     )
 

@@ -83,8 +83,13 @@ Say what a local result is: a controlled comparison run on this machine, with
 a proof anyone can check offline. Say what it is not:
 
 - it is **not independently reproduced** — nobody else has run it;
-- it is **not a leaderboard placement**, and nothing was uploaded anywhere;
+- it is **not a leaderboard placement** — Techtree published nothing and
+  uploaded no Episode, Trace, receipt, proof bundle, or Skill proposal;
 - it is **not a claim about tasks outside the set that was run**.
+
+Do not turn any of that into "nothing left the machine". Model inference goes
+to the model provider the user configured, under that provider's policies.
+What Techtree withholds is its own upload, not the run's inference.
 
 If the result is a tie, or the Skill made things worse, say so first and
 plainly. A comparison that shows no improvement is a successful comparison; it
@@ -124,7 +129,7 @@ Do not work around it.
 - Long work returns an identifier; poll gently.
 - Use Techtree's numbers, unchanged.
 - Never claim independent reproduction.
-- Nothing is uploaded, ever.
+- Techtree uploads nothing; model inference still goes to the provider.
 - One revision proposal, after a valid finished run, with the diff shown.
 
 ## References
