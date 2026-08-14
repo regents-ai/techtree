@@ -21,6 +21,7 @@ from techtree_hermes.guards import (
     forbid_unapproved_claims,
     validate_narrative,
     validate_revised_skill,
+    validate_revision_prose,
 )
 from techtree_hermes.models import ChannelKind, PresentationNarrative
 
@@ -364,20 +365,6 @@ def test_a_couple_of_illustrative_arrows_are_still_allowed() -> None:
     )
 
 
-def test_a_revision_that_copies_a_task_it_was_shown_is_refused() -> None:
-    """Exact, not heuristic: this is a prompt the context actually carried."""
-    prompt = "Compute the BranchCode total for the identifier aabbccddeeff."
-
-    with pytest.raises(NarrativeRejectedError, match="copies a task"):
-        validate_revised_skill(
-            GOOD_SKILL + f"\nWorked example: {prompt}\n", task_inputs=[prompt]
-        )
-
-
-def test_a_short_shared_phrase_is_not_a_copied_task() -> None:
-    validate_revised_skill(GOOD_SKILL, task_inputs=["ab", "the identifier"])
-
-
 def test_a_revision_may_not_ship_commands() -> None:
     with pytest.raises(NarrativeRejectedError, match="commands to run"):
         validate_revised_skill(GOOD_SKILL + "\n```bash\nrm -rf /\n```\n")
@@ -403,49 +390,50 @@ def test_a_revision_larger_than_a_skill_may_be_is_refused() -> None:
         validate_revised_skill("# Skill\n" + "x" * 300_000)
 
 
-# Short inputs: this release's entire taskset ----------------------------------------
+# Copied cases: two rules, deliberately different ------------------------------------
 #
-# WP11g S3. Every BranchCode input is a four-to-twelve-character tree name, so
-# the long-input rule could never fire on the shipped Climb. Counting distinct
-# members is what makes the guard reach them without refusing a Skill for
-# using an ordinary word.
+# WP11g S3 reached the short inputs this release actually ships — every
+# BranchCode input is a four-to-twelve-character tree name. Decision 0018 s5
+# then split the rule in two: the revised Skill fails on a single quoted
+# member, prose keeps a count threshold.
+#
+# The asymmetry is the point. Prose is someone explaining their reasoning and
+# may reasonably use a word that happens to be a member input. The Skill is
+# the artifact that gets mounted and run, so one member input in it is the
+# memorization failure itself.
 
 MEMBER_INPUTS = ["oak", "elm", "birch", "willow", "hazel", "rowan", "alder"]
+LONG_PROMPT = "Compute the BranchCode total for the identifier aabbccddeeff."
 
 
-def test_a_revision_listing_several_member_inputs_is_refused() -> None:
-    """The failure the guard exists for, on inputs it previously could not see."""
-    listed = (
-        GOOD_SKILL + "\nApply the rule to oak, then to elm, then to birch and willow.\n"
-    )
+# The revised Skill: one is enough --------------------------------------------------
 
-    with pytest.raises(NarrativeRejectedError, match="quotes 4 of the cases"):
+
+def test_a_revised_skill_quoting_one_member_is_refused() -> None:
+    """Decision 0018 s5: any exact evaluation input fails the revised Skill."""
+    one = GOOD_SKILL + "\nCount each distinct character, as in an oak leaf.\n"
+
+    with pytest.raises(NarrativeRejectedError, match="quotes a case it was shown"):
+        validate_revised_skill(one, task_inputs=MEMBER_INPUTS)
+
+
+def test_a_revised_skill_listing_several_members_is_refused() -> None:
+    listed = GOOD_SKILL + "\nApply the rule to oak, then elm, then birch.\n"
+
+    with pytest.raises(NarrativeRejectedError, match="quotes a case it was shown"):
         validate_revised_skill(listed, task_inputs=MEMBER_INPUTS)
 
 
-def test_the_threshold_is_three_distinct_members() -> None:
-    at_threshold = GOOD_SKILL + "\nSee oak, elm and birch.\n"
+def test_the_strict_rule_has_no_minimum_length_skip() -> None:
+    """0018 s5 names this explicitly: no length below which a match is ignored."""
+    two_characters = GOOD_SKILL + "\nThe ab case is the one to watch.\n"
 
-    with pytest.raises(NarrativeRejectedError, match="quotes 3 of the cases"):
-        validate_revised_skill(at_threshold, task_inputs=MEMBER_INPUTS)
-
-
-def test_prose_using_one_member_word_is_not_a_copied_task() -> None:
-    """A Skill about trees is allowed to say "oak" without being a lookup list."""
-    ordinary = GOOD_SKILL + "\nCount each distinct character, as in an oak leaf.\n"
-
-    validate_revised_skill(ordinary, task_inputs=MEMBER_INPUTS)
+    with pytest.raises(NarrativeRejectedError, match="quotes a case it was shown"):
+        validate_revised_skill(two_characters, task_inputs=["ab"])
 
 
-def test_two_incidental_member_words_still_pass() -> None:
-    """Two is reachable by accident; the guard is not a word blacklist."""
-    ordinary = GOOD_SKILL + "\nWhether the name is oak or elm, count distinctly.\n"
-
-    validate_revised_skill(ordinary, task_inputs=MEMBER_INPUTS)
-
-
-def test_a_member_word_inside_a_longer_word_does_not_count() -> None:
-    """Word boundaries: "oak" in "cloaked" is not a quoted case."""
+def test_a_revised_skill_still_matches_on_word_boundaries() -> None:
+    """ "oak" inside "cloaked" is not a quoted case, however strict the rule."""
     embedded = (
         GOOD_SKILL
         + "\nA cloaked, elmore, birchwood spelling is still one identifier.\n"
@@ -454,25 +442,66 @@ def test_a_member_word_inside_a_longer_word_does_not_count() -> None:
     validate_revised_skill(embedded, task_inputs=MEMBER_INPUTS)
 
 
-def test_repeating_one_member_word_is_not_three_cases() -> None:
-    """Distinct members, not occurrences: saying "oak" thrice quotes one case."""
-    repeated = GOOD_SKILL + "\nTake oak, then oak again, and oak once more.\n"
+def test_a_revised_skill_matches_a_member_whatever_its_case() -> None:
+    shouted = GOOD_SKILL + "\nThe OAK identifier is handled by the same rule.\n"
 
-    validate_revised_skill(repeated, task_inputs=MEMBER_INPUTS)
+    with pytest.raises(NarrativeRejectedError, match="quotes a case it was shown"):
+        validate_revised_skill(shouted, task_inputs=MEMBER_INPUTS)
 
 
-def test_inputs_too_short_to_mean_anything_are_not_counted() -> None:
-    """Two-character inputs would match constantly and prove nothing."""
-    noisy = GOOD_SKILL + "\nab cd ef gh are all fine to write.\n"
-
-    validate_revised_skill(noisy, task_inputs=["ab", "cd", "ef", "gh"])
+def test_a_revised_skill_that_quotes_nothing_passes() -> None:
+    validate_revised_skill(GOOD_SKILL, task_inputs=MEMBER_INPUTS)
 
 
 def test_the_long_input_path_still_fires_on_a_single_quote() -> None:
-    """The strong rule is unchanged: one long prompt verbatim is conclusive."""
-    prompt = "Compute the BranchCode total for the identifier aabbccddeeff."
-
-    with pytest.raises(NarrativeRejectedError, match="copies a task"):
+    """The pre-existing strong rule is unchanged: one long prompt is conclusive."""
+    with pytest.raises(NarrativeRejectedError, match="quotes a case it was shown"):
         validate_revised_skill(
-            GOOD_SKILL + f"\n{prompt}\n", task_inputs=[prompt, *MEMBER_INPUTS]
+            GOOD_SKILL + f"\n{LONG_PROMPT}\n",
+            task_inputs=[LONG_PROMPT, *MEMBER_INPUTS],
         )
+
+
+# The prose: a count, because an explanation may use a word --------------------------
+
+
+def test_prose_using_one_member_word_is_not_a_copied_case() -> None:
+    validate_revision_prose(
+        ("The failures all repeat a character, as an oak name does.",),
+        task_inputs=MEMBER_INPUTS,
+    )
+
+
+def test_two_incidental_member_words_in_prose_still_pass() -> None:
+    """Two is reachable by accident; the guard is not a word blacklist."""
+    validate_revision_prose(
+        ("Whether the name is oak or elm, the rule counts distinctly.",),
+        task_inputs=MEMBER_INPUTS,
+    )
+
+
+def test_prose_listing_three_distinct_members_is_refused() -> None:
+    with pytest.raises(NarrativeRejectedError, match="prose quotes 3 of the cases"):
+        validate_revision_prose(
+            ("It fails on oak, elm and birch.",), task_inputs=MEMBER_INPUTS
+        )
+
+
+def test_repeating_one_member_word_in_prose_is_not_three_cases() -> None:
+    """Distinct members, not occurrences."""
+    validate_revision_prose(
+        ("Take oak, then oak again, and oak once more.",),
+        task_inputs=MEMBER_INPUTS,
+    )
+
+
+def test_the_count_is_taken_per_prose_field() -> None:
+    """Three members spread across three fields is three explanations, not a list."""
+    validate_revision_prose(
+        ("An oak name repeats.", "An elm name repeats.", "A birch name repeats."),
+        task_inputs=MEMBER_INPUTS,
+    )
+
+
+def test_prose_with_no_task_inputs_is_not_scanned_for_cases() -> None:
+    validate_revision_prose(("Any words at all: oak, elm, birch, willow.",))

@@ -13,6 +13,7 @@ from typing import Any
 from ..approvals import (
     DisplayedReview,
     policy_acceptance_args,
+    require_confirmed_disclosure,
     require_displayed_review,
 )
 from ..channels import is_gateway_safe_required
@@ -83,6 +84,49 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             code=CODE_FOUNDER_SKILL_MISSING,
             repair="Use a published release of the plugin.",
         )
+
+    # Decision 0018 section 5. Nothing is composed, read, or sent until the
+    # person has been told what leaves this machine and has said yes to it.
+    # Showing the disclosure spends nothing: no context is fetched, no Skill
+    # is read out, no request is built, and the session's one revision is
+    # still there afterwards, because nothing was sent.
+    token = args.get("confirmation_token")
+    if not isinstance(token, str) or not token:
+        offer = services.disclosures.offer(source_run_id)
+        return tool_result(
+            {
+                "ok": True,
+                "command": "uplift propose",
+                # Said explicitly here, because this is the answer where
+                # "nothing happened yet" is the whole content. The confirmed
+                # answer says it by carrying a proposal, a provenance and a
+                # diff — restating it there would cost a bounded channel bytes
+                # to repeat what its own structure already shows.
+                "awaiting_confirmation": True,
+                "proposed": False,
+                "revision_spent": False,
+                **offer.to_dict(),
+                "next_action": {
+                    "id": "confirm_guided_revision",
+                    "label": "Send the one revision request",
+                    "reason": (
+                        "Read the disclosure above out to the user in full and "
+                        "call this tool again with the confirmation token only "
+                        "if they agree to it. Nothing has been sent."
+                    ),
+                    "tool": "techtree_uplift_propose",
+                    "requires_user_confirmation": True,
+                },
+            },
+            channel,
+        )
+
+    require_confirmed_disclosure(
+        services.disclosures,
+        source_run_id,
+        token=require_confirmation_token(token),
+    )
+
     improvement = ImprovementService(
         llm=host, release=services.release_core, bridge=services.bridge
     )

@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 from support import envelope, install_fake_cli
-from techtree_hermes.approvals import InstallPlanStore, ReviewStore
+from techtree_hermes.approvals import DisclosureStore, InstallPlanStore, ReviewStore
 from techtree_hermes.bridge import CliBridge
 from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.errors import PluginError
@@ -241,6 +241,7 @@ def journey(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         bridge=CliBridge(),
         plans=InstallPlanStore(),
         reviews=ReviewStore(),
+        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )
@@ -274,6 +275,21 @@ def _call(services: PluginServices, name: str, **args: Any) -> dict[str, Any]:
     return parsed
 
 
+def _propose(services: PluginServices, **args: Any) -> dict[str, Any]:
+    """Accept the guided-revision disclosure, then propose. Decision 0018 s5."""
+    offered = _call(
+        services, "techtree_uplift_propose", source_run_id=FIRST_RUN, **args
+    )
+    assert offered["awaiting_confirmation"] is True
+    return _call(
+        services,
+        "techtree_uplift_propose",
+        source_run_id=FIRST_RUN,
+        confirmation_token=offered["confirmation_token"],
+        **args,
+    )
+
+
 def _stage(services: PluginServices) -> DemoStage:
     session = latest_session(services)
     assert session is not None
@@ -304,9 +320,7 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
     assert "narrative" not in first
     assert "receipt" not in first
 
-    proposal = _call(
-        journey, "techtree_uplift_propose", source_run_id=FIRST_RUN, channel=channel
-    )
+    proposal = _propose(journey, channel=channel)
     assert proposal["started"] is False
     assert "DISTINCT" in proposal["diff"]["unified"]
     assert proposal["data_policy_digest"] == POLICY
@@ -345,7 +359,7 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
 def test_the_second_receipt_never_oversells_itself(journey: PluginServices) -> None:
     """Decision 0007: no sealed, held-out, generalization, or independent wording."""
     _call(journey, "techtree_run_status", run_id=FIRST_RUN)
-    _call(journey, "techtree_uplift_propose", source_run_id=FIRST_RUN)
+    _propose(journey)
     _call(
         journey,
         "techtree_uplift_start",
@@ -403,12 +417,7 @@ def test_the_phone_gets_a_bounded_diff_that_says_it_was_cut(
         ),
     )
 
-    proposal = _call(
-        journey,
-        "techtree_uplift_propose",
-        source_run_id=FIRST_RUN,
-        channel=ChannelKind.GATEWAY.value,
-    )
+    proposal = _propose(journey, channel=ChannelKind.GATEWAY.value)
 
     assert proposal["diff"]["truncated"] is True
     assert "not shown here" in proposal["diff"]["unified"]
@@ -433,7 +442,7 @@ class _ScriptedLlm:
 
 def test_a_run_identifier_always_comes_back(journey: PluginServices) -> None:
     _call(journey, "techtree_run_status", run_id=FIRST_RUN)
-    _call(journey, "techtree_uplift_propose", source_run_id=FIRST_RUN)
+    _propose(journey)
 
     started = _call(
         journey,
@@ -517,6 +526,7 @@ def test_a_result_that_did_not_verify_is_never_called_an_improvement(
         bridge=CliBridge(),
         plans=InstallPlanStore(),
         reviews=ReviewStore(),
+        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )

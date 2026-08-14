@@ -276,3 +276,119 @@ def require_displayed_review(
             repair="Show the policy from the proposal, and accept that digest.",
         )
     return review
+
+
+# The guided revision's disclosure ---------------------------------------------------
+#
+# Decision 0018 section 5. Every other approval in this file gates something
+# that changes the machine or spends money. This one gates something quieter
+# and easier to miss: text leaving for a model provider. The Skill being
+# revised and a summary of how it did go to whatever provider Host Hermes is
+# configured with — a different provider from the one the evaluated run uses,
+# and one the person may not have thought about at all.
+#
+# So it is gated the way the second run is: the plugin composes the
+# disclosure, hands it back, remembers that it did, and refuses to compose or
+# send anything until that offer is quoted back to it. The offer is single-use
+# and dies with the session.
+#
+# What this cannot prove is that a human read it. No plugin can. What it does
+# prove is that the disclosure reached the conversation before the request
+# did, and that a second revision cannot ride in on the first one's consent.
+
+CODE_REVISION_NOT_CONFIRMED: Final = "guided_revision_not_confirmed"
+
+#: What the person is told before the one request is composed. Decision 0018
+#: fixes the elements; the wording is ours, and it never promises a result.
+GUIDED_REVISION_DISCLOSURE: Final[tuple[str, ...]] = (
+    "This step sends the verified starter Skill and a sanitized summary of how "
+    "it did to the model provider configured for Host Hermes — the agent you "
+    "are talking to, not the one the evaluated run uses.",
+    "It does not send raw Episodes, Traces, hidden answers, proof bundles, "
+    "private keys, or provider credentials.",
+    "It makes one model-generation request. There is no second attempt.",
+    "Your Hermes model will propose one revision. Techtree will test it. A "
+    "proposal may be unusable or may fail to improve the score.",
+)
+
+
+@dataclass(frozen=True)
+class OfferedDisclosure:
+    """A guided-revision disclosure this conversation actually showed."""
+
+    source_run_id: str
+    token: str
+    offered_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the offer in the shape a tool result carries it."""
+        return {
+            "source_run_id": self.source_run_id,
+            "confirmation_token": self.token,
+            "offered_at": self.offered_at,
+            "disclosure": list(GUIDED_REVISION_DISCLOSURE),
+        }
+
+
+@dataclass
+class DisclosureStore:
+    """The guided-revision disclosures this session has put in front of a person.
+
+    In memory and single-use, for the same reason the other two stores are: an
+    acceptance given in an earlier conversation is not an acceptance in this
+    one, and an acceptance already spent is not an acceptance again.
+    """
+
+    _offers: dict[str, OfferedDisclosure] = field(default_factory=dict)
+
+    def offer(self, source_run_id: str) -> OfferedDisclosure:
+        """Record that the disclosure was shown for this run, and return it."""
+        offer = OfferedDisclosure(
+            source_run_id=source_run_id,
+            token=secrets.token_urlsafe(24),
+            offered_at=datetime.now(UTC).isoformat(),
+        )
+        self._offers[source_run_id] = offer
+        return offer
+
+    def get(self, source_run_id: str) -> OfferedDisclosure | None:
+        """Return the offer standing for this run, if one is."""
+        return self._offers.get(source_run_id)
+
+    def discard(self, source_run_id: str) -> None:
+        """Forget an offer, whether it was accepted or abandoned."""
+        self._offers.pop(source_run_id, None)
+
+    def count(self) -> int:
+        """How many offers are currently held."""
+        return len(self._offers)
+
+
+def require_confirmed_disclosure(
+    store: DisclosureStore, source_run_id: str, *, token: str
+) -> OfferedDisclosure:
+    """Consume the acceptance for this run, or refuse to compose a request.
+
+    The offer is spent whether or not what follows succeeds, so a token cannot
+    confirm two requests.
+
+    Raises:
+        ApprovalRequiredError: when nothing was offered for this run, or when
+            the token quoted back is not the one that was offered.
+    """
+    offer = store.get(source_run_id)
+    if offer is None:
+        raise ApprovalRequiredError(
+            "nobody has been shown what this step sends to the model provider "
+            "for this run yet",
+            code=CODE_REVISION_NOT_CONFIRMED,
+            repair="Call techtree_uplift_propose without a token to see it.",
+        )
+    if not secrets.compare_digest(offer.token, token):
+        raise ApprovalRequiredError(
+            "that is not the confirmation this session offered for this run",
+            code=CODE_REVISION_NOT_CONFIRMED,
+            repair="Call techtree_uplift_propose without a token to see it.",
+        )
+    store.discard(source_run_id)
+    return offer

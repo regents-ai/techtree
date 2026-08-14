@@ -8,9 +8,12 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from techtree_hermes.approvals import (
     DOCUMENTED_CONFIRMATION_KEYS,
+    GUIDED_REVISION_DISCLOSURE,
+    DisclosureStore,
     InstallPlanStore,
     issue_local_plan_id,
     policy_acceptance_args,
+    require_confirmed_disclosure,
     require_install_plan,
     require_user_confirmed_tool_context,
 )
@@ -18,6 +21,7 @@ from techtree_hermes.errors import ApprovalRequiredError, BootstrapPlanError
 from techtree_hermes.models import PLAN_ID_PATTERN, BootstrapInstallPlan
 
 DIGEST = "sha256:" + "a" * 64
+RUN_ID = "run_" + "0" * 32
 POLICY_DIGEST = "sha256:" + "b" * 64
 
 
@@ -188,3 +192,114 @@ def test_a_policy_must_be_named_by_its_exact_digest() -> None:
             confirmation_token="token-the-cli-issued",
             data_policy_digest="the one it showed me",
         )
+
+
+# The guided revision's disclosure ---------------------------------------------------
+#
+# Decision 0018 section 5. Every other approval here gates something that
+# changes the machine or spends money. This one gates text leaving for a model
+# provider, which is quieter and easier to miss.
+
+
+def test_the_disclosure_says_every_thing_it_has_to_say() -> None:
+    """Decision 0018 fixes the elements; the wording is ours."""
+    said = " ".join(GUIDED_REVISION_DISCLOSURE).lower()
+
+    assert "verified starter skill" in said
+    assert "model provider configured for host hermes" in said
+    for withheld in (
+        "raw episodes",
+        "traces",
+        "hidden answers",
+        "proof bundles",
+        "private keys",
+        "provider credentials",
+    ):
+        assert withheld in said, withheld
+    assert "one model-generation request" in said
+    assert "may be unusable or may fail to improve the score" in said
+
+
+def test_the_disclosure_never_promises_a_result() -> None:
+    """The approved framing is may-fail. Never "will fix", never "closes"."""
+    said = " ".join(GUIDED_REVISION_DISCLOSURE).lower()
+
+    for promise in (
+        "your agent will fix",
+        "learns from its mistakes",
+        "close the gap",
+        "will improve",
+        "guarantee",
+    ):
+        assert promise not in said, promise
+
+
+def test_an_offer_carries_the_disclosure_and_a_token() -> None:
+    store = DisclosureStore()
+
+    offer = store.offer(RUN_ID).to_dict()
+
+    assert offer["source_run_id"] == RUN_ID
+    assert offer["disclosure"] == list(GUIDED_REVISION_DISCLOSURE)
+    assert len(offer["confirmation_token"]) >= 16
+    assert store.count() == 1
+
+
+def test_nothing_is_confirmed_that_was_never_offered() -> None:
+    """The first half of the gate: no offer, no request."""
+    with pytest.raises(ApprovalRequiredError, match="nobody has been shown") as raised:
+        require_confirmed_disclosure(DisclosureStore(), RUN_ID, token="x" * 32)
+
+    assert raised.value.code == "guided_revision_not_confirmed"
+
+
+def test_a_token_from_another_run_confirms_nothing() -> None:
+    """An acceptance is for the run it was shown against, and no other."""
+    store = DisclosureStore()
+    offer = store.offer(RUN_ID)
+    other = "run_" + "9" * 32
+
+    with pytest.raises(ApprovalRequiredError, match="nobody has been shown"):
+        require_confirmed_disclosure(store, other, token=offer.token)
+
+
+def test_a_wrong_token_confirms_nothing() -> None:
+    store = DisclosureStore()
+    store.offer(RUN_ID)
+
+    with pytest.raises(ApprovalRequiredError, match="not the confirmation"):
+        require_confirmed_disclosure(store, RUN_ID, token="z" * 32)
+
+    assert store.count() == 1, "a wrong guess must not consume the offer"
+
+
+def test_the_acceptance_is_single_use() -> None:
+    """A token cannot confirm two requests. Section 7.7's rule, applied here."""
+    store = DisclosureStore()
+    offer = store.offer(RUN_ID)
+
+    assert require_confirmed_disclosure(store, RUN_ID, token=offer.token) == offer
+    assert store.count() == 0
+
+    with pytest.raises(ApprovalRequiredError, match="nobody has been shown"):
+        require_confirmed_disclosure(store, RUN_ID, token=offer.token)
+
+
+def test_a_fresh_offer_replaces_a_stale_one() -> None:
+    """Showing it again invalidates the token nobody acted on."""
+    store = DisclosureStore()
+    stale = store.offer(RUN_ID)
+    fresh = store.offer(RUN_ID)
+
+    assert stale.token != fresh.token
+    with pytest.raises(ApprovalRequiredError, match="not the confirmation"):
+        require_confirmed_disclosure(store, RUN_ID, token=stale.token)
+
+
+def test_offers_live_only_in_memory() -> None:
+    """Two sessions do not share an acceptance."""
+    first, second = DisclosureStore(), DisclosureStore()
+    offer = first.offer(RUN_ID)
+
+    with pytest.raises(ApprovalRequiredError, match="nobody has been shown"):
+        require_confirmed_disclosure(second, RUN_ID, token=offer.token)

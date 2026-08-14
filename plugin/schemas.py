@@ -304,6 +304,17 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         ),
         properties={
             "source_run_id": _run_id("The finished run whose Skill should be revised."),
+            "confirmation_token": {
+                "type": "string",
+                "pattern": _TOKEN_PATTERN,
+                "description": (
+                    "Omit it the first time. The tool then sends nothing and "
+                    "returns the disclosure of exactly what would leave this "
+                    "machine, with a one-time token. Read that disclosure out "
+                    "in full, and pass the token back only if the user agrees "
+                    "to it. The token works once."
+                ),
+            },
         },
         required=["source_run_id"],
     ),

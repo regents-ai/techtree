@@ -579,7 +579,7 @@ def test_a_proposal_that_copies_the_task_it_was_shown_is_refused() -> None:
     )
     host = StubHost(parsed={**GOOD_PROPOSAL, "revised_skill_markdown": copied})
 
-    with pytest.raises(PluginError, match="copies a task"):
+    with pytest.raises(PluginError, match="quotes a case it was shown"):
         _propose(_service(FakeBridge(), host))
 
 

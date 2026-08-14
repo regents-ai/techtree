@@ -8,7 +8,11 @@ trying to be reassuring rather than by a person trying to be exact.
 
 So the copy is scanned rather than reviewed. Every surface a user or the host
 agent actually reads is here: the model-visible tool schemas, the `/techtree`
-command surface, the README, and the operator Skill with its references.
+command surface, the guided-revision disclosure, the README, and the operator
+Skill with its references.
+
+Decision 0018 added a fourth boundary to the three above: the guided revision
+may produce nothing useful, and copy may not promise otherwise.
 
 `skills/skill-improver/SKILL.md` is deliberately absent. It is founder-written
 and frozen by digest, it is never shown to a user, and a test that could
@@ -46,6 +50,9 @@ def _public_copy() -> dict[str, str]:
     copy = {
         "schemas.py": _string_literals(PLUGIN_ROOT / "schemas.py"),
         "commands.py": _string_literals(PLUGIN_ROOT / "commands.py"),
+        # The guided-revision disclosure is read out to a person verbatim, so
+        # it is public copy and is held to the same boundaries.
+        "approvals.py": _string_literals(PLUGIN_ROOT / "approvals.py"),
         "README.md": (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8"),
     }
     operator = PLUGIN_ROOT / "skills" / "operator"
@@ -140,6 +147,27 @@ FORBIDDEN_NAME: re.Pattern[str] = re.compile(r"HelloWorldBench", re.I)
 #: play at once, so a possessive is exactly the wrong word. Only the literal
 #: phrase is banned — "your model provider" is a true and useful thing to say.
 FORBIDDEN_OWNERSHIP: re.Pattern[str] = re.compile(r"\byour\s+own\s+models?\b", re.I)
+
+#: Decision 0018 s5. The guided revision may produce nothing useful, and the
+#: approved framing says so. These say the opposite — that the agent is an
+#: improving thing which will get there — and each one is a promise about an
+#: outcome no one has measured yet.
+FORBIDDEN_AGENCY: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "your agent will fix the Skill",
+        re.compile(r"\byour\s+agent\s+will\b|\bwill\s+fix\s+the\s+skill\b", re.I),
+    ),
+    (
+        "it learns from its mistakes",
+        re.compile(r"\blearns?\s+from\s+(its|their|your)\s+(mistakes|errors)\b", re.I),
+    ),
+    ("it will close the gap", re.compile(r"\bclos(e|es|ing)\s+the\s+gap\b", re.I)),
+)
+
+#: The framing that has to be there instead, wherever the revision is offered.
+MAY_FAIL_FRAMING: re.Pattern[str] = re.compile(
+    r"may\s+be\s+unusable\s+or\s+may\s+fail\s+to\s+improve", re.I
+)
 
 #: An exact score is not what was calibrated. Decision 0015 s6: the claim is
 #: the 20-27/36 band, or "roughly two-thirds of the toy tasks". Either dash
@@ -299,6 +327,39 @@ def test_the_guided_revision_says_where_the_skill_text_goes() -> None:
         assert "sanitized improvement context" in collapsed, name
         assert "model provider behind" in collapsed, name
         assert "different provider" in collapsed, name
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    FORBIDDEN_AGENCY,
+    ids=lambda value: getattr(value, "pattern", value),
+)
+def test_no_copy_promises_the_agent_will_improve_itself(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    """Decision 0018 s5. The revision may produce nothing, and copy must allow it."""
+    offenders = _offenders(pattern)
+
+    assert not offenders, f"copy promises {described!r}: {offenders}"
+
+
+def test_the_may_fail_framing_is_the_one_that_is_used() -> None:
+    """Forbidding the overclaim is only half of it; the honest line has to be there."""
+    from techtree_hermes.approvals import GUIDED_REVISION_DISCLOSURE
+
+    assert MAY_FAIL_FRAMING.search(" ".join(GUIDED_REVISION_DISCLOSURE))
+
+
+def test_the_agency_ban_leaves_ordinary_description_alone() -> None:
+    """It must stay possible to say what the step does."""
+    for allowed in (
+        "Your Hermes model will propose one revision.",
+        "Techtree will test it.",
+        "the agent this person is talking to",
+        "a proposal may be unusable or may fail to improve the score",
+    ):
+        for _, pattern in FORBIDDEN_AGENCY:
+            assert not pattern.search(allowed), allowed
 
 
 def test_no_copy_claims_an_exact_score() -> None:

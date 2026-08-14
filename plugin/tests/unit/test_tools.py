@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import pytest
-from techtree_hermes.approvals import InstallPlanStore, ReviewStore
+from techtree_hermes.approvals import DisclosureStore, InstallPlanStore, ReviewStore
 from techtree_hermes.models import DemoStage
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.schemas import all_tool_schemas
@@ -107,6 +107,7 @@ def _services(
         bridge=bridge or FakeBridge(),
         plans=InstallPlanStore(),
         reviews=ReviewStore(),
+        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=assets or StarterSkillDouble(),
     )

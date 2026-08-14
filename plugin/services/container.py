@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..approvals import InstallPlanStore, ReviewStore
+from ..approvals import DisclosureStore, InstallPlanStore, ReviewStore
 from ..bridge import Bridge, CliBridge
 from ..constants import PLUGIN_ROOT
 from ..models import ReleaseCore
@@ -31,6 +31,7 @@ class PluginServices:
     bridge: Bridge
     plans: InstallPlanStore
     reviews: ReviewStore
+    disclosures: DisclosureStore
     sessions: SessionStore
     assets: SkillProvider
 
@@ -51,6 +52,7 @@ def build_services(ctx: Any, *, root: Path = PLUGIN_ROOT) -> PluginServices:
         bridge=CliBridge(),
         plans=InstallPlanStore(),
         reviews=ReviewStore(),
+        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )

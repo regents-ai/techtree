@@ -14,7 +14,12 @@ from typing import Any
 
 import pytest
 from support import envelope, install_fake_cli
-from techtree_hermes.approvals import InstallPlanStore, ReviewStore
+from techtree_hermes.approvals import (
+    GUIDED_REVISION_DISCLOSURE,
+    DisclosureStore,
+    InstallPlanStore,
+    ReviewStore,
+)
 from techtree_hermes.bridge import CliBridge
 from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.models import DemoSessionState, DemoStage
@@ -189,6 +194,7 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         bridge=CliBridge(),
         plans=InstallPlanStore(),
         reviews=ReviewStore(),
+        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )
@@ -220,8 +226,21 @@ def _call(services: PluginServices, name: str, **args: Any) -> dict[str, Any]:
     return parsed
 
 
-def _propose(services: PluginServices, **args: Any) -> dict[str, Any]:
+def _show_disclosure(services: PluginServices, **args: Any) -> dict[str, Any]:
+    """The first call: shows what would be sent, and sends nothing."""
     return _call(services, "techtree_uplift_propose", source_run_id=RUN_ID, **args)
+
+
+def _propose(services: PluginServices, **args: Any) -> dict[str, Any]:
+    """Accept the disclosure, then propose. Decision 0018 section 5."""
+    offered = _show_disclosure(services, **args)
+    return _call(
+        services,
+        "techtree_uplift_propose",
+        source_run_id=RUN_ID,
+        confirmation_token=offered["confirmation_token"],
+        **args,
+    )
 
 
 # The proposal stops for review ------------------------------------------------
@@ -470,9 +489,8 @@ def test_a_spent_turn_issues_no_further_request(services: PluginServices) -> Non
     """The second call is refused by the session, before any provider call."""
     _propose(services, channel="terminal")
 
-    answer = json.loads(
-        TOOL_HANDLERS["techtree_uplift_propose"](services, {"source_run_id": RUN_ID})
-    )
+    # Confirmed again, so the refusal is the spent turn and not the gate.
+    answer = _propose(services, channel="terminal")
 
     assert answer["ok"] is False
     assert answer["code"] == "improvement_attempt_already_used"
@@ -483,13 +501,109 @@ def test_a_phone_gets_the_proposal_without_the_request_accounting(
     services: PluginServices,
 ) -> None:
     """A bounded channel drops the record whole rather than trimming it."""
-    answer = json.loads(
-        TOOL_HANDLERS["techtree_uplift_propose"](
-            services, {"source_run_id": RUN_ID, "channel": "gateway"}
-        )
-    )
+    answer = _propose(services, channel="gateway")
 
     assert answer["ok"] is True
     assert answer["request_accounting"] is None
     assert answer["provenance"]["complete_request_digest"].startswith("sha256:")
     assert len(services.ctx.llm.calls) == 1
+
+
+# The disclosure gate ------------------------------------------------------------------
+#
+# Decision 0018 section 5. Nothing is composed, read, or sent until the person
+# has been told what leaves this machine and has said yes to it.
+
+
+def test_an_unconfirmed_call_sends_nothing_and_spends_nothing(
+    services: PluginServices,
+) -> None:
+    """The whole point: a refusal here must cost the session nothing."""
+    answer = _show_disclosure(services, channel="terminal")
+
+    assert answer["awaiting_confirmation"] is True
+    assert answer["proposed"] is False
+    assert answer["revision_spent"] is False
+    assert "proposal" not in answer
+    assert answer["next_action"]["requires_user_confirmation"] is True
+
+    # Nothing was sent, and nothing was even read to build a request.
+    assert services.ctx.llm.calls == []
+    session = latest_session(services)
+    assert session is not None
+    assert session.revision_attempts == 0
+
+
+def test_the_unconfirmed_answer_carries_the_whole_disclosure(
+    services: PluginServices,
+) -> None:
+    answer = _show_disclosure(services, channel="terminal")
+
+    assert answer["disclosure"] == list(GUIDED_REVISION_DISCLOSURE)
+    said = " ".join(answer["disclosure"]).lower()
+    assert "model provider configured for host hermes" in said
+    assert "may be unusable or may fail to improve the score" in said
+
+
+def test_a_confirmed_call_proceeds(services: PluginServices) -> None:
+    offered = _show_disclosure(services, channel="terminal")
+
+    answer = _call(
+        services,
+        "techtree_uplift_propose",
+        source_run_id=RUN_ID,
+        confirmation_token=offered["confirmation_token"],
+        channel="terminal",
+    )
+
+    assert answer["ok"] is True
+    assert "awaiting_confirmation" not in answer
+    assert answer["proposal"]["confidence"] == "medium"
+    assert len(services.ctx.llm.calls) == 1
+
+
+def test_the_tools_acceptance_is_single_use(services: PluginServices) -> None:
+    """One acceptance, one request. A second call must show the offer again."""
+    offered = _show_disclosure(services, channel="terminal")
+    token = offered["confirmation_token"]
+
+    first = _call(
+        services,
+        "techtree_uplift_propose",
+        source_run_id=RUN_ID,
+        confirmation_token=token,
+        channel="terminal",
+    )
+    assert first["ok"] is True
+
+    replayed = _call(
+        services,
+        "techtree_uplift_propose",
+        source_run_id=RUN_ID,
+        confirmation_token=token,
+        channel="terminal",
+    )
+
+    assert replayed["ok"] is False
+    assert replayed["code"] == "guided_revision_not_confirmed"
+    assert len(services.ctx.llm.calls) == 1, "the replay reached no provider"
+
+
+def test_a_forged_token_reaches_no_provider(services: PluginServices) -> None:
+    """A model inventing a token is not a person agreeing to anything."""
+    _show_disclosure(services, channel="terminal")
+
+    answer = _call(
+        services,
+        "techtree_uplift_propose",
+        source_run_id=RUN_ID,
+        confirmation_token="f" * 32,
+        channel="terminal",
+    )
+
+    assert answer["ok"] is False
+    assert answer["code"] == "guided_revision_not_confirmed"
+    assert services.ctx.llm.calls == []
+    session = latest_session(services)
+    assert session is not None
+    assert session.revision_attempts == 0

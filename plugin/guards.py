@@ -400,56 +400,68 @@ def forbid_answer_table(markdown: str) -> None:
 #: long by coincidence.
 _LONG_INPUT_CHARACTERS: Final = 24
 
-#: Below that length a single match proves nothing — this release's inputs are
-#: four-to-twelve-character words, and a Skill about trees will say "oak"
-#: sooner or later. Shorter than this and even counting them is noise.
-_SHORT_INPUT_CHARACTERS: Final = 3
-
-#: How many distinct short inputs a revision may quote before it is a list of
-#: cases rather than a rule that happens to use a word. Two is reachable by
-#: accident in ordinary prose; three of the exact members is a pattern.
+#: How many distinct members prose may quote before it is a list of cases
+#: rather than an explanation that happens to use a word. Two is reachable by
+#: accident; three of the exact members is a pattern.
 _MAXIMUM_QUOTED_SHORT_INPUTS: Final = 3
 
 
-def forbid_copied_examples(markdown: str, task_inputs: Iterable[str]) -> None:
-    """Refuse a revision that quotes the cases it was shown.
+def _quoted_members(text: str, task_inputs: Iterable[str]) -> set[str]:
+    """Return the distinct member inputs this text quotes exactly.
 
-    Exact rather than heuristic: these are the public prompts the improvement
-    context actually carried, so finding one verbatim in the revision is proof
-    that the model wrote down a case instead of a rule.
-
-    Length decides how much proof one match is. A long prompt appearing
-    verbatim is conclusive on its own. A short one is not: this release's
-    inputs are short words, and a revision is allowed to use a word. So short
-    inputs are matched on word boundaries and counted, and it is the count of
-    *distinct* members quoted that fails — a revision naming three of them has
-    stopped describing a procedure and started listing the cases.
+    Exact rather than heuristic, and normalized on both sides: the comparison
+    is case-insensitive and bounded by word edges, so `oak` matches `Oak` and
+    not `cloaked`. A long prompt is additionally matched as a substring,
+    because a sentence quoted mid-line has no word edge to sit on.
     """
-    quoted_short: set[str] = set()
-
+    quoted: set[str] = set()
     for prompt in task_inputs:
-        candidate = prompt.strip()
+        candidate = " ".join(prompt.split())
         if not candidate:
             continue
+        if (
+            len(candidate) >= _LONG_INPUT_CHARACTERS and candidate in text
+        ) or re.search(rf"(?<!\w){re.escape(candidate)}(?!\w)", text, re.I):
+            quoted.add(candidate.casefold())
+    return quoted
 
-        if len(candidate) >= _LONG_INPUT_CHARACTERS:
-            if candidate in markdown:
-                raise NarrativeRejectedError(
-                    "the revision copies a task it was shown; a Skill states a "
-                    "rule, not the cases",
-                    code=CODE_SKILL_REVISION_INVALID,
-                )
-            continue
 
-        if len(candidate) >= _SHORT_INPUT_CHARACTERS and re.search(
-            rf"(?<!\w){re.escape(candidate)}(?!\w)", markdown, re.I
-        ):
-            quoted_short.add(candidate.casefold())
+def forbid_any_copied_case(markdown: str, task_inputs: Iterable[str]) -> None:
+    """Refuse a revised Skill that quotes even one case it was shown.
 
-    if len(quoted_short) >= _MAXIMUM_QUOTED_SHORT_INPUTS:
+    Decision 0018 section 5 makes this strict, and deliberately stricter than
+    the rule for prose: any exact evaluation input in the revised Skill fails
+    it, at any length, with no minimum-length skip.
+
+    The asymmetry is the point. Prose is someone explaining their reasoning,
+    and an explanation may reasonably use a word that happens to be a member
+    input. The Skill is the artifact that gets mounted and run, so a member
+    input appearing in it is the memorization failure itself — one is enough,
+    and waiting for a third would be waiting to catch a thing already done.
+    """
+    quoted = _quoted_members(markdown, task_inputs)
+    if quoted:
+        shown = ", ".join(sorted(quoted)[:3])
         raise NarrativeRejectedError(
-            f"the revision quotes {len(quoted_short)} of the cases it was shown; "
-            "a Skill states a rule, not the cases",
+            f"the revised Skill quotes a case it was shown ({shown}); a Skill "
+            "states a rule, not the cases",
+            code=CODE_SKILL_REVISION_INVALID,
+        )
+
+
+def forbid_quoted_cases(text: str, task_inputs: Iterable[str]) -> None:
+    """Refuse prose that has stopped explaining and started listing cases.
+
+    A count rather than a single match, because this is the reasoning a person
+    reads and a member input may legitimately appear in it once. Three
+    distinct members is no longer incidental: two is reachable by accident in
+    ordinary prose, and the third is a list.
+    """
+    quoted = _quoted_members(text, task_inputs)
+    if len(quoted) >= _MAXIMUM_QUOTED_SHORT_INPUTS:
+        raise NarrativeRejectedError(
+            f"the proposal's prose quotes {len(quoted)} of the cases it was "
+            "shown; a Skill states a rule, not the cases",
             code=CODE_SKILL_REVISION_INVALID,
         )
 
@@ -463,7 +475,9 @@ def forbid_command_attachment(markdown: str) -> None:
         )
 
 
-def validate_revision_prose(prose: Iterable[str]) -> None:
+def validate_revision_prose(
+    prose: Iterable[str], *, task_inputs: Iterable[str] = ()
+) -> None:
     """Check the sentences a proposal asks a person to read. WP11g S4.
 
     A proposal is not only a Skill. It comes with an analysis, a rationale,
@@ -481,12 +495,14 @@ def validate_revision_prose(prose: Iterable[str]) -> None:
     Raises:
         NarrativeRejected: naming what was written that could not be relayed.
     """
+    members = list(task_inputs)
     for text in prose:
         forbid_unapproved_claims(text)
         forbid_numeric_claims(text)
         forbid_canonical_values(text)
         forbid_ansi(text)
         forbid_secret_patterns(text)
+        forbid_quoted_cases(text, members)
 
 
 def validate_revised_skill(
@@ -528,5 +544,5 @@ def validate_revised_skill(
     require_file_structure(markdown)
     forbid_patch_instructions(markdown)
     forbid_answer_table(markdown)
-    forbid_copied_examples(markdown, task_inputs)
+    forbid_any_copied_case(markdown, task_inputs)
     forbid_command_attachment(markdown)

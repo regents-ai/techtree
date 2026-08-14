@@ -401,7 +401,7 @@ class ImprovementService:
         output = parse_revision_output(result.parsed)
         # The Skill and the sentences about it are both model-authored, and
         # both are relayed. Neither is checked by the other's guard.
-        validate_revision_prose(output.prose())
+        validate_revision_prose(output.prose(), task_inputs=public_prompts(context))
         validate_revised_skill(
             output.revised_skill_markdown, task_inputs=public_prompts(context)
         )
