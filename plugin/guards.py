@@ -278,6 +278,14 @@ def _fit(texts: Iterable[str], budget: int) -> list[str]:
 CODE_SKILL_REVISION_INVALID: Final = "skill_revision_output_invalid"
 CODE_SKILL_REVISION_SECRET: Final = "skill_revision_secret_detected"
 
+#: A Skill is a Markdown file, and a Markdown file has lines. A model that
+#: answers with the whole file but no line breaks has produced something no
+#: reader and no frontmatter parser can use — and, before this was checked, the
+#: run-together frontmatter opener ("--- name: …") looked exactly like a diff
+#: header, so the refusal named the wrong fault. Structure is settled first now,
+#: and the diff patterns run against real lines.
+_MINIMUM_SKILL_LINES: Final = 2
+
 #: A revision is a whole file. These say "here is a change to apply" instead.
 _PATCH_MARKERS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     # A unified diff names files and hunks. A bare "---" is front matter, and
@@ -324,6 +332,31 @@ _MAXIMUM_MAPPING_LINES: Final = 2
 _SKILL_COMMAND_PATTERN: Final = re.compile(
     r"```\s*(bash|sh|zsh|shell|console|powershell)\b", re.I
 )
+
+
+def require_file_structure(markdown: str) -> None:
+    """Refuse a revision that is not shaped like a file at all.
+
+    A SKILL.md opens with YAML front matter and is written in lines. A single
+    run-together blob fails both counts, and it fails them for a reason worth
+    saying out loud rather than dressing up as something else: a model that
+    answered without line breaks did not propose a patch, it produced a file
+    nobody can read. Saying "this is a diff" to that would send its author
+    looking for a diff that is not there.
+    """
+    if len(markdown.splitlines()) < _MINIMUM_SKILL_LINES:
+        raise NarrativeRejectedError(
+            "the revision has no line structure: a SKILL.md is a Markdown file "
+            "written in lines, and this is a single run-together block",
+            code=CODE_SKILL_REVISION_INVALID,
+        )
+    opening, _, remainder = markdown.partition("\n")
+    if opening.strip() != "---" or "\n---" not in f"\n{remainder}":
+        raise NarrativeRejectedError(
+            "the revision has no closed YAML front matter: a SKILL.md opens "
+            "with a --- line and closes the block with another",
+            code=CODE_SKILL_REVISION_INVALID,
+        )
 
 
 def forbid_patch_instructions(markdown: str) -> None:
@@ -422,6 +455,10 @@ def validate_revised_skill(
         )
 
     forbid_ansi(markdown)
+    # Structure before content. A blob with no lines cannot be judged for
+    # diff-ness, and judging it anyway is how it came to be refused for the
+    # wrong reason.
+    require_file_structure(markdown)
     forbid_patch_instructions(markdown)
     forbid_answer_table(markdown)
     forbid_copied_examples(markdown, task_inputs)

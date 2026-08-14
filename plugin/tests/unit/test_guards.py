@@ -265,39 +265,97 @@ Report the total as a single integer.
 """
 
 
+#: Front matter and a heading, so a case below is refused for what it *says*
+#: rather than for the shape of the fixture. Structure is checked before
+#: content now, and a fixture with no front matter would never reach the
+#: content guard it was written to exercise.
+def skill_body(body: str) -> str:
+    """Return one structurally valid SKILL.md wrapped around ``body``."""
+    return (
+        "---\n"
+        "name: branchcode\n"
+        "description: How to work a BranchCode procedure.\n"
+        "---\n"
+        "\n"
+        "# BranchCode\n"
+        "\n"
+        f"{body}"
+    )
+
+
 def test_a_whole_revised_skill_passes() -> None:
     validate_revised_skill(GOOD_SKILL)
 
 
 @pytest.mark.parametrize(
-    "markdown",
+    "body",
     [
         "--- a/SKILL.md\n+++ b/SKILL.md\n@@ -1 +1 @@\n-old\n+new\n",
         "```diff\n- old rule\n+ new rule\n```",
-        "# Skill\n\nApply this patch to step 5.",
-        "# Skill\n\n## Step 5\n\nUse distinct characters.\n\n... rest unchanged\n",
-        "# Skill\n\n[unchanged]\n",
+        "Apply this patch to step 5.\n",
+        "## Step 5\n\nUse distinct characters.\n\n... rest unchanged\n",
+        "[unchanged]\n",
     ],
 )
-def test_a_patch_is_not_a_revision(markdown: str) -> None:
+def test_a_patch_is_not_a_revision(body: str) -> None:
     """A revision is the whole file, or it is not a revision."""
     with pytest.raises(NarrativeRejectedError, match=r"complete SKILL\.md"):
-        validate_revised_skill(markdown)
+        validate_revised_skill(skill_body(body))
 
 
 @pytest.mark.parametrize(
-    "markdown",
+    ("described", "markdown"),
     [
-        "# Skill\n\n| input | expected |\n| --- | --- |\n| ab | 14 |\n| abc | 21 |\n",
-        "# Skill\n\n## Answer key\n\nUse it for the known cases.\n",
-        "# Skill\n\nExpected answers are listed below.\n",
-        '# Skill\n\n- "aabb" -> 14\n- "abcd" -> 28\n- "xyzz" -> 21\n',
+        (
+            "no line structure",
+            GOOD_SKILL.replace("\n", " "),
+        ),
+        (
+            "no closed YAML front matter",
+            "# BranchCode\n\nAdd seven times the distinct characters.\n",
+        ),
+        (
+            "no closed YAML front matter",
+            "---\nname: branchcode\n\n# BranchCode\n\nNo closing delimiter.\n",
+        ),
     ],
 )
-def test_a_table_of_answers_is_not_a_skill(markdown: str) -> None:
+def test_a_file_that_is_not_shaped_like_one_is_refused_for_that(
+    described: str, markdown: str
+) -> None:
+    """Decision 0014: the refusal names the real fault.
+
+    The first case is the exact shape rehearsal attempt 2 produced — a
+    complete Skill emitted with every newline collapsed. Before structure was
+    checked first, its run-together front-matter opener matched the diff-header
+    pattern and it was refused as "a diff", sending its author looking for a
+    diff that was never there. It is still refused; it is refused truthfully.
+    """
+    with pytest.raises(NarrativeRejectedError, match=described):
+        validate_revised_skill(markdown)
+
+
+def test_the_newline_free_shape_is_never_called_a_diff() -> None:
+    """The wrong reason is gone, not merely outranked."""
+    with pytest.raises(NarrativeRejectedError) as raised:
+        validate_revised_skill(GOOD_SKILL.replace("\n", " "))
+
+    assert "diff" not in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "| input | expected |\n| --- | --- |\n| ab | 14 |\n| abc | 21 |\n",
+        "## Answer key\n\nUse it for the known cases.\n",
+        "Expected answers are listed below.\n",
+        '- "aabb" -> 14\n- "abcd" -> 28\n- "xyzz" -> 21\n',
+    ],
+)
+def test_a_table_of_answers_is_not_a_skill(body: str) -> None:
     """The failure the improver contract exists to prevent."""
     with pytest.raises(NarrativeRejectedError, match="rule, not the"):
-        validate_revised_skill(markdown)
+        validate_revised_skill(skill_body(body))
 
 
 def test_a_couple_of_illustrative_arrows_are_still_allowed() -> None:
