@@ -92,7 +92,14 @@ defmodule Techtree.Catalog.Verifier do
 
   @doc """
   The bootstrap release names an exact CLI version, an immutable plugin commit,
-  argument arrays rather than shell strings, and a Climb this catalog ships.
+  argument arrays rather than shell strings, a Climb this catalog ships, and
+  where the starter Skill may be fetched from along with the digest it must
+  hash to.
+
+  The address and the digest are two halves of one coordinate and are checked
+  separately, because they are decided separately: which bytes the starter
+  Skill is made of can be settled long before anyone has chosen where to host
+  them.
   """
   @spec verify_bootstrap(Bundle.t()) :: :ok | {:error, Error.t()}
   def verify_bootstrap(%Bundle{bootstrap: bootstrap} = bundle) do
@@ -109,7 +116,13 @@ defmodule Techtree.Catalog.Verifier do
          :ok <- check_argv(bootstrap, ["hermes_plugin", "install_argv"]),
          :ok <- check_argv(bootstrap, ["hermes_plugin", "doctor_argv"]),
          :ok <- check_string(bootstrap, ["introductory_climb", "host_prompt"]),
-         :ok <- check_string(bootstrap, ["introductory_climb", "reference"]) do
+         :ok <- check_string(bootstrap, ["introductory_climb", "reference"]),
+         :ok <- check_object_url(bootstrap, ["starter_skill", "object_url"]),
+         :ok <-
+           check_digest_value(
+             get_in(bootstrap, ["starter_skill", "digest"]),
+             "the starter Skill"
+           ) do
       check_introductory_climb(bundle)
     end
   end
@@ -345,6 +358,21 @@ defmodule Techtree.Catalog.Verifier do
          Error.bundle_invalid("an install instruction is not an array of arguments", %{
            "field" => Enum.join(path, ".")
          })}
+    end
+  end
+
+  # An address a machine will fetch from without a person watching: it is
+  # always `https`, always names a host, and never carries a credential.
+  defp check_object_url(document, path) do
+    value = get_in(document, path)
+
+    if is_binary(value) and String.match?(value, ~r|\Ahttps://[^\s/@]+/[^\s]*\z|) do
+      :ok
+    else
+      {:error,
+       Error.bundle_invalid("a published address is not a credential-free https URL", %{
+         "field" => Enum.join(path, ".")
+       })}
     end
   end
 

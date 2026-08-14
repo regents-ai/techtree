@@ -156,6 +156,68 @@ defmodule Techtree.Catalog.VerifierTest do
       assert error.code == :catalog_object_missing
       assert error.details["reference"] == "something-else@1"
     end
+
+    @tag :tmp_dir
+    test "a bundle that names no starter Skill at all is rejected", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_bootstrap!(bundle, &Map.delete(&1, "starter_skill"))
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_bundle_invalid
+      assert error.details["field"] == "starter_skill.object_url"
+    end
+
+    @tag :tmp_dir
+    test "a starter Skill address a machine cannot fetch from is rejected",
+         %{tmp_dir: tmp_dir} do
+      for address <- [
+            "http://example.com/skill.md",
+            "https://token@example.com/skill.md",
+            "https://example.com",
+            "not a url",
+            ""
+          ] do
+        bundle = CatalogFixture.copy!(Path.join(tmp_dir, Base.url_encode64(address)))
+
+        CatalogFixture.rewrite_bootstrap!(bundle, fn bootstrap ->
+          put_in(bootstrap, ["starter_skill", "object_url"], address)
+        end)
+
+        assert {:error, error} = verify(bundle), "#{inspect(address)} was accepted"
+        assert error.details["field"] == "starter_skill.object_url"
+      end
+    end
+
+    @tag :tmp_dir
+    test "a starter Skill digest that is not a sha256 digest is rejected", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_bootstrap!(bundle, fn bootstrap ->
+        put_in(bootstrap, ["starter_skill", "digest"], "596d1368")
+      end)
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_bundle_invalid
+      assert error.details["digest"] == inspect("596d1368")
+    end
+
+    @tag :tmp_dir
+    test "a chosen digest beside an address nobody has chosen yet is accepted",
+         %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      assert verify(bundle) == :ok
+
+      bootstrap = bundle |> CatalogFixture.read!("bootstrap.json") |> Jason.decode!()
+
+      assert bootstrap["starter_skill"]["object_url"] == "https://placeholder.invalid/unchosen"
+
+      assert bootstrap["starter_skill"]["digest"] ==
+               "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+
+      assert bootstrap["placeholder_release"] == true
+    end
   end
 
   defp verify(bundle) do

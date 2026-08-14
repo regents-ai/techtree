@@ -33,5 +33,9 @@
   "introductory_climb": {
     "reference": "hello-world-climb@1",
     "host_prompt": "Set up Techtree and run the Hello World Climb."
+  },
+  "starter_skill": {
+    "object_url": "https://placeholder.invalid/unchosen",
+    "digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
   }
 }
