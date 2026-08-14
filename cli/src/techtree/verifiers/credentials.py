@@ -145,29 +145,30 @@ def require_credentials(model: ModelSpec) -> CredentialStatus:
         },
         next_actions=[
             NextAction(
-                id="export_evaluation_credential",
-                label=(f"Set {model.credential_env} in the shell that starts the run"),
-                reason=(
-                    "The evaluated subject's model calls are paid for by this "
-                    "credential. It is read from the environment when the "
-                    "evaluation starts and is never stored."
-                ),
-                cli=["techtree", "doctor"],
-                hermes_tool=None,
-                hermes_args=None,
-                requires_user_confirmation=False,
-            ),
-            NextAction(
                 id="sign_in_to_prime",
-                label="Or sign in to Prime so the evaluation client resolves a key",
+                label="Sign in to Prime, then start the run again",
                 reason=(
-                    "A PRIME_API_KEY-named credential also resolves from the "
-                    "active Prime CLI configuration."
+                    "A PRIME_API_KEY-named credential resolves from the active "
+                    "Prime CLI configuration, which a run can read for itself."
                 ),
                 cli=["prime", "login"],
                 hermes_tool=None,
                 hermes_args=None,
                 requires_user_confirmation=True,
+            ),
+            NextAction(
+                id="export_evaluation_credential",
+                label=(f"Check how {model.credential_env} reaches a run"),
+                reason=(
+                    "Setting this credential in your own terminal is not "
+                    "enough: a run works in a separate background process that "
+                    "is not given your terminal's variables. It pays for the "
+                    "evaluated subject's model calls and is never stored."
+                ),
+                cli=["techtree", "doctor", "--for-evaluation"],
+                hermes_tool=None,
+                hermes_args=None,
+                requires_user_confirmation=False,
             ),
         ],
     )

@@ -46,6 +46,33 @@ That creates the project environment and installs the `techtree` and
 uv run techtree --version
 ```
 
+## The evaluation credential
+
+Running a comparison pays for the evaluated agent's model calls, and that
+credential is yours. Techtree never stores it, never logs it, and never puts it
+in a run's files. It is also separate from whatever your own agent is signed in
+with.
+
+**Exporting it in your terminal is not enough.** A comparison does not run
+inside the command you typed: `techtree climb start` and `techtree uplift start`
+hand the work to a separate background process, and that process is given a
+deliberately small environment so that nothing else on your machine can lean
+into an experiment. Variables you export in your shell are not passed to it. A
+run that cannot find the credential stops before it spends anything and says so.
+
+The supported way is to sign in with the Prime CLI. That leaves an active
+configuration the run reads for itself:
+
+```bash
+prime login
+techtree doctor --for-evaluation
+```
+
+`techtree doctor --for-evaluation` also checks the container image a run needs.
+Read its credential line carefully: it looks in the terminal you ran it from as
+well, so a variable exported there can make the check pass while a real run
+still stops. The Prime CLI sign-in is the one a run can read.
+
 ## Local development
 
 ```bash

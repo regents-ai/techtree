@@ -249,8 +249,9 @@ def _export_evaluation_credential(_: TechtreePaths) -> NextAction:
         label="Set the evaluation credential, then re-run this check",
         reason=(
             "The evaluated subject's model calls are paid for by a credential "
-            "read from the shell that starts the run. It is separate from "
-            "whatever your own agent is signed in with."
+            "a run reads for itself, which is why signing in to Prime works "
+            "and exporting the credential in a terminal does not. It is "
+            "separate from whatever your own agent is signed in with."
         ),
         cli=["techtree", "doctor", "--for-evaluation"],
         hermes_tool=None,

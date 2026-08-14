@@ -127,6 +127,25 @@ def test_a_missing_credential_refuses_with_actions_that_name_the_variable(
     )
 
 
+def test_the_refusal_does_not_promise_that_a_terminal_export_is_enough(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # A run works in a process that is given nothing the allow-list below does
+    # not name, so telling someone to set the variable in their own terminal
+    # sends them round the loop again. The actions must say so and must offer
+    # the sign-in a run can actually read.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("TECHTREE_MODEL_API_KEY", raising=False)
+
+    with pytest.raises(AuthenticationError) as caught:
+        require_credentials(model())
+
+    actions = caught.value.next_actions
+    reasons = " ".join(action.reason or "" for action in actions)
+    assert "not enough" in reasons
+    assert actions[0].cli == ["prime", "login"]
+
+
 def test_the_refusal_says_this_is_not_the_operators_own_sign_in(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
