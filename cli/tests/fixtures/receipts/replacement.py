@@ -62,6 +62,8 @@ from techtree.verifiers.models import (
 )
 
 __all__ = [
+    "REVISED_SKILL_REFERENCE_PATH",
+    "REVISED_SKILL_REFERENCE_TEXT",
     "REVISED_SKILL_TEXT",
     "ReplacementEvidenceExecutor",
     "write_revised_skill",
@@ -83,14 +85,35 @@ Work the procedure one branch at a time.
 If two branches appear to apply, the earlier one in the rule set wins.
 """
 
+#: The supporting file a revision may carry beside its entry file. Decisions
+#: document 0019 section 1: a Skill version is a tree, so a revision is allowed
+#: to be one, and the replacement flow has to carry the whole of it.
+REVISED_SKILL_REFERENCE_TEXT: Final = """# Worked branches
+
+Each line is one rule set and the branch it selects. Nothing here names a
+task, an input, or an expected answer.
+"""
+
+#: Where a revision's supporting file sits when it carries one.
+REVISED_SKILL_REFERENCE_PATH: Final = "references/branches.md"
+
 #: The recorded probe both sides of a replacement run are laid out from.
 _RECORDED = VariantName.CANDIDATE
 
 
-def write_revised_skill(destination: Path) -> Path:
-    """Write the Skill v2 directory a replacement is prepared from."""
+def write_revised_skill(destination: Path, *, supporting: bool = False) -> Path:
+    """Write the Skill v2 directory a replacement is prepared from.
+
+    ``supporting`` adds the one nested file that makes the revision a tree
+    rather than a document, which is what the replacement flow has to be able
+    to carry from a participant's directory through to the subject's mount.
+    """
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "SKILL.md").write_text(REVISED_SKILL_TEXT, encoding="utf-8")
+    if supporting:
+        reference = destination / REVISED_SKILL_REFERENCE_PATH
+        reference.parent.mkdir(parents=True, exist_ok=True)
+        reference.write_text(REVISED_SKILL_REFERENCE_TEXT, encoding="utf-8")
     return destination
 
 

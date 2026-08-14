@@ -429,7 +429,7 @@ def _request(
         candidate_manifest_digest=digest_object(candidate),
         policy_acknowledgement=PolicyAcknowledgement(
             data_policy_digest=campaign.data_policy_digest,
-            method="explicit_cli_digest",
+            method="explicit_cli_review",
             acknowledged_at=_FIXTURE_INSTANT,
         ),
         executor_kind=executor_kind_for(campaign),

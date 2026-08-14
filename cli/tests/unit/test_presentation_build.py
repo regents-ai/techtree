@@ -12,7 +12,10 @@ occasion.
 
 from __future__ import annotations
 
+import io
+
 import pytest
+from rich.console import Console
 
 from fixtures.receipts.pair import RecordedPair, recorded_pair
 from fixtures.receipts.proof import execution_record as fixture_execution_record
@@ -25,8 +28,12 @@ from techtree.models.skill import SkillArtifact, SkillFile
 from techtree.models.uplift_report import UpliftReport
 from techtree.presentation.build import (
     BASELINE_SKILL_LABEL,
+    FIRST_CHANGE_LABEL,
     FIRST_RESULT_LABEL,
+    HELD_FIXED_LINE,
+    LATER_RESULT_LABEL,
     P1_MEANING,
+    SECOND_CHANGE_LABEL,
     SECOND_RESULT_LABEL,
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
@@ -34,9 +41,15 @@ from techtree.presentation.build import (
     build_uplift_presentation,
     score_bars,
 )
+from techtree.presentation.compact import render_uplift_markdown
 from techtree.presentation.models import (
     PresentationCaveat,
     UpliftPresentationPayload,
+)
+from techtree.presentation.rich import (
+    TaskDisplay,
+    render_uplift_console,
+    verdict_line,
 )
 from techtree.receipts.compare import compare_real_variants
 from techtree.receipts.episode import experiment_variant_of
@@ -86,11 +99,16 @@ def unverified() -> VerificationResult:
     )
 
 
-def candidate_skill() -> SkillArtifact:
+def candidate_skill(
+    *,
+    name: str = "branch-code-v1",
+    root: str = "a",
+    parent_skill_digest: str | None = None,
+) -> SkillArtifact:
     return SkillArtifact(
         schema_version="techtree.skill.v1alpha1",
-        name="branch-code-v1",
-        root_digest=f"sha256:{'a' * 64}",
+        name=name,
+        root_digest=f"sha256:{root * 64}",
         archive_digest=f"sha256:{'b' * 64}",
         files=[
             SkillFile(
@@ -101,7 +119,7 @@ def candidate_skill() -> SkillArtifact:
             )
         ],
         source_kind="manual",
-        parent_skill_digest=None,
+        parent_skill_digest=parent_skill_digest,
     )
 
 
@@ -271,27 +289,76 @@ def test_an_insertion_comparison_says_what_it_compared(
     payload = build(report, receipts, verified())
 
     assert payload.comparison_label == FIRST_RESULT_LABEL
+    assert payload.change_label == FIRST_CHANGE_LABEL
     assert payload.baseline_skill.label == BASELINE_SKILL_LABEL
     assert payload.baseline_skill.root_digest is None
     assert payload.candidate_skill.label == "branch-code-v1"
     assert payload.candidate_skill.file_count == 1
 
 
-def test_a_replacement_comparison_says_what_it_compared(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
-) -> None:
-    payload = build_uplift_presentation(
+def _compare(
+    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    *,
+    baseline: SkillArtifact | None,
+    candidate: SkillArtifact,
+) -> UpliftPresentationPayload:
+    """Build one payload over an arbitrary pair of Skills."""
+    return build_uplift_presentation(
         report=report,
         baseline_receipts=receipts[VariantName.BASELINE],
         candidate_receipts=receipts[VariantName.CANDIDATE],
         campaign_title=CAMPAIGN_TITLE,
-        baseline_skill=candidate_skill(),
-        candidate_skill=candidate_skill(),
+        baseline_skill=baseline,
+        candidate_skill=candidate,
         verification=verified(),
     )
 
+
+def test_a_replacement_comparison_says_what_it_compared(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """Decisions 0019 s1: the baseline is a Skill here, and is named as one."""
+    payload = _compare(
+        report,
+        receipts,
+        baseline=candidate_skill(name="branch-code-v1"),
+        candidate=candidate_skill(
+            name="branch-code-v2", root="d", parent_skill_digest=f"sha256:{'a' * 64}"
+        ),
+    )
+
     assert payload.comparison_label == SECOND_RESULT_LABEL
+    assert payload.change_label == SECOND_CHANGE_LABEL
+    assert payload.baseline_skill.label == "branch-code-v1"
+    assert payload.baseline_skill.label != BASELINE_SKILL_LABEL
     assert payload.baseline_skill.root_digest is not None
+    assert payload.candidate_skill.label == "branch-code-v2"
+
+
+def test_a_third_comparison_is_not_labelled_as_the_second(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """The ordinal comes from the chain, so it stops where the chain does.
+
+    A baseline that is itself a revision means this comparison is at least the
+    third, and the run's own two Skills cannot say which. Naming the Skills is
+    what a reader can act on; claiming "Iteration 2" would be a receipt for
+    work nobody did.
+    """
+    payload = _compare(
+        report,
+        receipts,
+        baseline=candidate_skill(
+            name="branch-code-v2", root="d", parent_skill_digest=f"sha256:{'a' * 64}"
+        ),
+        candidate=candidate_skill(
+            name="branch-code-v3", root="e", parent_skill_digest=f"sha256:{'d' * 64}"
+        ),
+    )
+
+    assert payload.comparison_label == LATER_RESULT_LABEL
+    assert payload.change_label == "branch-code-v2 → branch-code-v3"
 
 
 def test_the_task_rows_name_tasks_by_position_and_hash(
@@ -521,3 +588,121 @@ def test_the_score_bars_are_drawn_on_one_scale(
 
 def _caveat(payload: UpliftPresentationPayload, code: str) -> PresentationCaveat:
     return next(caveat for caveat in payload.caveats if caveat.code == code)
+
+
+# ---------------------------------------------------------------------------
+# The four statements
+#
+# Decisions document 0019 section 3 fixes what the public experience says, and
+# it says it through both channels or through neither. These read a real
+# payload — the one the recorded probes produce — through both renderers and
+# require all four statements out of each.
+# ---------------------------------------------------------------------------
+
+
+def _flat(text: str) -> str:
+    """Return one rendering with its line wrapping undone.
+
+    The terminal wraps to its width, so a sentence a reader meets as one
+    sentence is several lines of bytes. Comparing the sentence rather than the
+    lines is what keeps a wording assertion from being a layout assertion.
+    """
+    return " ".join(text.split())
+
+
+def _terminal(payload: UpliftPresentationPayload) -> str:
+    """Render one payload the way a terminal shows it."""
+    output = io.StringIO()
+    console = Console(
+        file=output,
+        width=100,
+        no_color=True,
+        highlight=False,
+        emoji=False,
+        markup=False,
+    )
+    render_uplift_console(payload, console, show_tasks=TaskDisplay.ALL)
+    return output.getvalue()
+
+
+@pytest.fixture
+def channels(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> tuple[UpliftPresentationPayload, str, str]:
+    """Return one real payload and both renderings of it."""
+    payload = build(report, receipts, verified(), execution_record(report))
+    return payload, _terminal(payload), render_uplift_markdown(payload)
+
+
+def test_both_channels_say_the_system_was_the_same_on_both_sides(
+    channels: tuple[UpliftPresentationPayload, str, str],
+) -> None:
+    """Statement 1: same agent and same tasks."""
+    _, terminal, gateway = channels
+
+    for text in (terminal, gateway):
+        assert HELD_FIXED_LINE in _flat(text)
+    assert "checked against what the run actually did" in _flat(terminal)
+
+
+def test_both_channels_say_the_skill_was_the_only_change(
+    channels: tuple[UpliftPresentationPayload, str, str],
+) -> None:
+    """Statement 2: the one changed component, named on both sides."""
+    payload, terminal, gateway = channels
+
+    assert payload.change_label == FIRST_CHANGE_LABEL
+    for text in (terminal, gateway):
+        assert payload.change_label in text
+    # The complete bundle is content-addressed, and the terminal has room to
+    # print the address a reader would check it by.
+    assert payload.candidate_skill.root_digest is not None
+    assert payload.candidate_skill.root_digest in terminal
+
+
+def test_both_channels_say_what_the_measured_difference_was(
+    channels: tuple[UpliftPresentationPayload, str, str],
+) -> None:
+    """Statement 3: scores, uplift, outcomes, cost, timing, regressions, validity."""
+    payload, terminal, gateway = channels
+
+    assert f"{payload.baseline_score:.3f}" in terminal
+    assert f"{payload.candidate_score:.3f}" in terminal
+    assert f"{payload.absolute_delta:+.3f}" in terminal
+    outcomes = f"{payload.wins} WIN / {payload.losses} LOSS / {payload.ties} TIE"
+    assert outcomes in terminal
+    assert verdict_line(payload) in terminal
+    assert "Cost" in terminal
+    assert "Time" in terminal
+
+    assert f"{payload.baseline_score:.3f} → {payload.candidate_score:.3f}" in gateway
+    assert f"{payload.absolute_delta:+.3f}" in gateway
+    assert f"- Wins: {payload.wins}" in gateway
+    assert f"- Losses: {payload.losses}" in gateway
+    assert f"- Ties: {payload.ties}" in gateway
+    assert "- Cost:" in gateway
+    assert "- Time:" in gateway
+
+
+def test_both_channels_say_what_the_receipt_is_worth_and_how_to_check_it(
+    channels: tuple[UpliftPresentationPayload, str, str],
+) -> None:
+    """Statement 4: the local receipt, in the four words it may be described in.
+
+    The terminal does not print the command itself. Every Techtree command ends
+    with one next-steps block, rendered by the CLI from the envelope, and the
+    payload carries the action that block prints; a result that drew a second
+    one would answer the same question twice.
+    """
+    payload, terminal, gateway = channels
+
+    for text in (terminal, gateway):
+        assert P1_MEANING in text
+        assert "offline" in text
+        assert "independently reproduced" in text
+
+    assert "techtree proof verify" in gateway
+    verify = next(
+        action for action in payload.next_actions if action.id == "verify_proof"
+    )
+    assert verify.cli == ["techtree", "proof", "verify", payload.run_id]

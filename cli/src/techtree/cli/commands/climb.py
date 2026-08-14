@@ -22,21 +22,20 @@ reward decides the comparison, and who owns a submitted skill — have no field
 on :class:`~techtree.models.catalog.ClimbSummary`, and a host agent should not
 have to read them out of a rendered table.
 
-``prepare`` returns its confirmation token exactly once, in the response, and
-nothing writes it anywhere else. The start action it offers carries the draft,
-the token, and the DataPolicy digest that will have to be accepted, and is
-marked as requiring a person's confirmation, because starting a run commits to
-both rights and work.
+``prepare`` writes the draft and stops. The start action it offers names the
+draft and nothing else, and is marked as requiring a person's confirmation,
+because starting a run commits to both rights and work.
 
-``start`` is where those two commitments are collected, and it keeps them
-apart. The confirmation token proves that the thing being started is the thing
-that was prepared. It proves nothing about consent, so acceptance of the data
-policy is asked for separately: a person is shown the rights summary and has to
-answer ``y``, and a program has to name the exact policy digest with
-``--accept-data-policy``. Decisions document 0003 A5 is explicit that
-possession of a token may never be read as agreement, and the two methods are
-recorded distinguishably — ``interactive_cli`` and ``explicit_cli_digest`` — so
-that a later reader of a run can tell how the acceptance was made.
+``start`` is where that commitment is collected. Decisions document 0019
+section 2 makes it one gesture rather than two handles: the five things a
+person has to weigh — how much work this is, the most it may cost, that the
+Skill is the only scientific change, where the model calls go, and what is
+never uploaded — are printed, the rights summary is printed under them, and the
+answer is a plain ``y``. An operator who cannot be asked passes ``--yes``
+instead, which is an explicit act by a person configuring a machine and never a
+shortcut a model may take on somebody's behalf. Either way the run records that
+the review was shown and accepted, and its ``run.approved`` event records which
+of the two gave the answer.
 
 The command returns as soon as the worker is launched. The run continues after
 this process exits, which is the whole point, and the response says where to
@@ -45,6 +44,7 @@ look rather than waiting to find out.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Final, Literal
 
@@ -62,16 +62,14 @@ from techtree.cli.commands.run import build_run_service
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import human_console
-from techtree.drafts.confirmation import ConfirmationService, utc_now
-from techtree.drafts.store import DraftStore
+from techtree.drafts.store import DraftStore, utc_now
 from techtree.errors import NotFoundError, PolicyError, PrerequisiteError
 from techtree.models.base import (
     Digest,
     NonEmptyString,
     ProtocolModel,
-    UtcDateTime,
 )
-from techtree.models.campaign import ModelSpec, RuntimeSpec
+from techtree.models.campaign import CampaignSpec, ModelSpec, RuntimeSpec
 from techtree.models.catalog import (
     ClimbSummary,
     CompatibilityResult,
@@ -81,10 +79,7 @@ from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.climb import ResolvedClimb
 from techtree.models.run import PolicyAcknowledgement, RunPhase, RunStatus
 from techtree.models.skill import PolicyAcceptanceRequirement, SubmissionDraft
-from techtree.runs.service import (
-    POLICY_ACCEPTANCE_DIGEST_MISMATCH,
-    POLICY_ACCEPTANCE_REQUIRED,
-)
+from techtree.runs.service import POLICY_ACCEPTANCE_REQUIRED, ApprovalActor
 from techtree.skills.service import PreparedDraft, SkillPreparationService
 
 __all__ = [
@@ -96,12 +91,15 @@ __all__ = [
     "ClimbShowPayload",
     "ClimbStartPayload",
     "PreparedComparison",
+    "RunApproval",
     "abbreviated_digest",
-    "acknowledge_data_policy",
+    "approve_run",
     "build_catalog_service",
     "build_preparation_service",
     "list_climbs_command",
+    "phrase",
     "prepare_climb_command",
+    "review_lines",
     "show_climb_command",
     "start_climb_command",
 ]
@@ -151,12 +149,10 @@ class PreparedComparison(ProtocolModel):
 
 
 class ClimbPreparePayload(ProtocolModel):
-    """What ``climb prepare`` returns, including the token, once."""
+    """What ``climb prepare`` returns: the draft, and what it commits to."""
 
     draft_id: NonEmptyString
     draft_digest: Digest
-    confirmation_token: NonEmptyString
-    confirmation_expires_at: UtcDateTime
     climb_reference: NonEmptyString
     climb_digest: Digest
     campaign_spec_digest: Digest
@@ -189,10 +185,10 @@ class ClimbStartPayload(ProtocolModel):
     campaign_spec_digest: Digest
     data_policy_digest: Digest
     policy_acknowledgement_method: Literal[
-        "interactive_cli",
-        "explicit_cli_digest",
+        "explicit_cli_review",
         "host_agent_confirmation",
     ]
+    approved_by: ApprovalActor
     development_only: bool
 
 
@@ -207,12 +203,10 @@ def build_catalog_service(context: CliContext) -> CatalogService:
 
 def build_preparation_service(context: CliContext) -> SkillPreparationService:
     """Construct the service ``prepare`` builds a draft through."""
-    confirmation = ConfirmationService()
     return SkillPreparationService(
         paths=context.paths,
         catalog=build_catalog_service(context),
-        draft_store=DraftStore(context.paths, confirmation),
-        confirmation_service=confirmation,
+        draft_store=DraftStore(context.paths),
     )
 
 
@@ -381,44 +375,38 @@ def start_climb_command(
             help="The prepared draft to start.",
         ),
     ],
-    confirmation_token: Annotated[
-        str,
+    yes: Annotated[
+        bool,
         typer.Option(
-            "--confirmation-token",
-            metavar="TOKEN",
-            help="The token `techtree climb prepare` returned.",
-        ),
-    ],
-    accept_data_policy: Annotated[
-        str | None,
-        typer.Option(
-            "--accept-data-policy",
-            metavar="DIGEST",
+            "--yes",
             help=(
-                "Accept the draft's DataPolicy by naming its exact digest. "
-                "Required when nothing can be asked."
+                "Approve this run without being asked. For an operator running "
+                "Techtree where nobody can answer a prompt; it is never a "
+                "shortcut for an agent to take on a person's behalf."
             ),
         ),
-    ] = None,
+    ] = False,
 ) -> None:
-    """Consume a confirmation and start a detached run."""
+    """Review a prepared draft, approve it, and start a detached run."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[ClimbStartPayload]:
         service = build_run_service(context)
-        draft = DraftStore(context.paths, ConfirmationService()).get(draft_id)
-        acknowledgement = acknowledge_data_policy(
+        store = DraftStore(context.paths)
+        draft = store.get(draft_id)
+        approval = approve_run(
             context,
             draft=draft,
-            accepted_digest=accept_data_policy,
+            campaign=store.get_source(draft_id).campaign,
+            assume_yes=yes,
         )
 
         status = service.start(
             draft_id=draft_id,
-            confirmation_token=confirmation_token,
-            policy_acknowledgement=acknowledgement,
+            policy_acknowledgement=approval.acknowledgement,
+            approved_by=approval.actor,
         )
-        payload = _start_payload(draft, status, acknowledgement)
+        payload = _start_payload(draft, status, approval)
 
         return CommandResult(
             data=payload,
@@ -439,76 +427,119 @@ def start_climb_command(
     invoke_command(context, START_COMMAND, action, render_data=_render_start)
 
 
-def acknowledge_data_policy(
+@dataclass(frozen=True)
+class RunApproval:
+    """The answer a start was given, and who gave it."""
+
+    acknowledgement: PolicyAcknowledgement
+    actor: ApprovalActor
+
+
+#: The one scientific claim the whole comparison rests on, said in the words a
+#: reader can check it in. Decisions document 0019 section 3, statement 2.
+ONLY_CHANGE_LINE: Final = "The Skill is the only scientific change."
+
+#: What Techtree keeps to itself, and what it cannot. Decision 0013 section 1.4
+#: fixes both halves; they are two lines because a reader meets them as two
+#: facts, and the second is what stops the first from being read as "nothing
+#: leaves this machine".
+NO_UPLOAD_LINE: Final = (
+    "Techtree does not upload your episodes, traces, receipts, proof bundles, "
+    "or Skill proposals."
+)
+
+
+def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]:
+    """Return the five things a person weighs before a run starts.
+
+    Decisions document 0019 section 2 fixes the list and the order: how much
+    work this is, the most it is allowed to cost, what is being changed, where
+    the model calls go, and what is never uploaded. Every value is read off the
+    draft or the Campaign it was prepared against, so the review describes this
+    run and cannot describe a different one.
+    """
+    return [
+        f"This runs {draft.estimated_episodes} episodes: the same tasks once "
+        "for each side of the comparison.",
+        _cost_line(campaign),
+        ONLY_CHANGE_LINE,
+        f"Model calls go to {campaign.subject.model.provider}, under that "
+        "provider's policies.",
+        NO_UPLOAD_LINE,
+    ]
+
+
+def _cost_line(campaign: CampaignSpec) -> str:
+    """Say the most this comparison is authorized to spend."""
+    ceiling = campaign.budgets.maximum_usd
+    if ceiling is None:
+        return (
+            "This comparison sets no spending ceiling, so what it costs is "
+            "whatever your model provider charges for the episodes above."
+        )
+    return f"The most it is authorized to spend is ${ceiling:.2f}."
+
+
+def approve_run(
     context: CliContext,
     *,
     draft: SubmissionDraft,
-    accepted_digest: str | None,
-) -> PolicyAcknowledgement:
-    """Collect acceptance of this draft's rights policy, or refuse to start.
+    campaign: CampaignSpec,
+    assume_yes: bool,
+) -> RunApproval:
+    """Show the review, collect the answer, or refuse to start.
 
-    A named digest is the machine spelling and is checked exactly: an
-    acceptance of some other policy is not an acceptance of this one. When
-    nothing was named and nobody can be asked, the command stops and says
-    which digest would have to be named, because inferring consent from a
-    confirmation token is the one thing decisions document 0003 A5 forbids.
+    An operator who passed ``--yes`` has answered already. Otherwise a person
+    is shown the review and the rights summary and answers; where nobody can be
+    asked, the command stops and names the flag rather than inventing an
+    approval nobody gave.
     """
-    required = draft.policy_acceptance
-    if accepted_digest is not None:
-        if accepted_digest != required.data_policy_digest:
-            raise PolicyError(
-                "that is not the DataPolicy this draft runs under, so it "
-                "cannot be the one being accepted",
-                code=POLICY_ACCEPTANCE_DIGEST_MISMATCH,
-                details={
-                    "draft_id": draft.id,
-                    "expected_digest": required.data_policy_digest,
-                    "accepted_digest": accepted_digest,
-                },
-            )
-        return _acknowledgement(required.data_policy_digest, "explicit_cli_digest")
+    if assume_yes:
+        return _approved(draft, "operator_via_flag")
 
     if context.no_input:
         raise PolicyError(
-            "starting this draft accepts its data policy, and acceptance is "
-            "stated explicitly: pass --accept-data-policy "
-            f"{required.data_policy_digest}",
+            "starting this draft accepts its data policy and spends the run it "
+            "describes, so somebody has to approve it. Nothing here can be "
+            "asked, so say so with --yes",
             code=POLICY_ACCEPTANCE_REQUIRED,
             details={
                 "draft_id": draft.id,
-                "data_policy_digest": required.data_policy_digest,
+                "data_policy_digest": draft.policy_acceptance.data_policy_digest,
             },
         )
 
     console = human_console(no_color=context.no_color)
-    console.print(required.summary)
+    for line in review_lines(draft=draft, campaign=campaign):
+        console.print(line)
     console.print()
-    if not typer.confirm(
-        f"Accept DataPolicy {required.data_policy_digest}?", default=False
-    ):
+    console.print(draft.policy_acceptance.summary)
+    console.print()
+    if not typer.confirm("Start this run?", default=False):
         raise PolicyError(
-            "the data policy was not accepted, so nothing was started",
+            "the run was not approved, so nothing was started",
             code=POLICY_ACCEPTANCE_REQUIRED,
             details={"draft_id": draft.id},
         )
-    return _acknowledgement(required.data_policy_digest, "interactive_cli")
+    return _approved(draft, "human_via_cli")
 
 
-def _acknowledgement(
-    digest: Digest,
-    method: Literal["interactive_cli", "explicit_cli_digest"],
-) -> PolicyAcknowledgement:
-    return PolicyAcknowledgement(
-        data_policy_digest=digest,
-        method=method,
-        acknowledged_at=utc_now(),
+def _approved(draft: SubmissionDraft, actor: ApprovalActor) -> RunApproval:
+    """Return the acknowledgement and the actor one approval produced."""
+    return RunApproval(
+        acknowledgement=PolicyAcknowledgement(
+            data_policy_digest=draft.policy_acceptance.data_policy_digest,
+            method="explicit_cli_review",
+            acknowledged_at=utc_now(),
+        ),
+        actor=actor,
     )
 
 
 def _start_payload(
     draft: SubmissionDraft,
     status: RunStatus,
-    acknowledgement: PolicyAcknowledgement,
+    approval: RunApproval,
 ) -> ClimbStartPayload:
     return ClimbStartPayload(
         run_id=status.state.run_id,
@@ -517,7 +548,8 @@ def _start_payload(
         worker_pid=status.state.worker_pid,
         campaign_spec_digest=draft.campaign_spec_digest,
         data_policy_digest=draft.data_policy_digest,
-        policy_acknowledgement_method=acknowledgement.method,
+        policy_acknowledgement_method=approval.acknowledgement.method,
+        approved_by=approval.actor,
         development_only=True,
     )
 
@@ -620,29 +652,22 @@ def _verify_engine() -> NextAction:
 
 
 def _start_draft(payload: ClimbPreparePayload) -> NextAction:
-    """Offer the start, carrying everything a start has to be given.
+    """Offer the start, and say what answering it commits to.
 
-    The DataPolicy digest is spelled out because possessing the confirmation
-    token has never implied accepting the rights policy — decisions document
-    0003 A5 — and a machine caller has to state the acceptance explicitly.
+    The action names the draft and nothing else. What the run would do is shown
+    when the start is run, and answering it is what accepts the rights policy,
+    so this is marked as needing a person rather than carrying anything a
+    caller could pass instead of one.
     """
     return NextAction(
         id="start_climb",
         label=f"Start {payload.candidate_label} on {payload.climb_reference}",
         reason=(
-            f"Runs {payload.estimated_episodes} episodes, baseline first. "
-            "Accepting the data policy is part of starting."
+            f"Runs {payload.estimated_episodes} episodes, baseline first. It "
+            "shows you what this costs and what it changes, and starts only "
+            "if you say yes."
         ),
-        cli=[
-            "techtree",
-            "climb",
-            "start",
-            payload.draft_id,
-            "--confirmation-token",
-            payload.confirmation_token,
-            "--accept-data-policy",
-            payload.data_policy_digest,
-        ],
+        cli=["techtree", "climb", "start", payload.draft_id],
         hermes_tool=None,
         hermes_args=None,
         requires_user_confirmation=True,
@@ -737,7 +762,7 @@ def _render_show(data: object, console: Console) -> None:
         [
             ("Climb", summary.reference),
             ("Status", summary.status),
-            ("Purpose", _phrase(summary.purpose)),
+            ("Purpose", phrase(summary.purpose)),
             ("Taskset", f"{summary.taskset_id} ({summary.task_count} tasks)"),
             (
                 "Subject harness",
@@ -751,8 +776,8 @@ def _render_show(data: object, console: Console) -> None:
             ("Primary reward", data.primary_reward),
             ("Candidate ownership", data.candidate_skill_ownership),
             ("Evaluated by", summary.evaluation_backend.value),
-            ("Allowed change", _phrase(summary.mutation_kind)),
-            ("Proof grade", _phrase(summary.proof_grade)),
+            ("Allowed change", phrase(summary.mutation_kind)),
+            ("Proof grade", phrase(summary.proof_grade)),
         ],
     )
 
@@ -764,14 +789,14 @@ def _render_show(data: object, console: Console) -> None:
             ("Candidate skills", summary.candidate_skill_visibility),
             (
                 "Public release",
-                _phrase(summary.data_policy.candidate_skill_public_release),
+                phrase(summary.data_policy.candidate_skill_public_release),
             ),
             (
                 "Raw episode upload",
-                _phrase(summary.data_policy.raw_episode_server_upload),
+                phrase(summary.data_policy.raw_episode_server_upload),
             ),
-            ("Training use", _phrase(summary.data_policy.raw_episode_training_use)),
-            ("Uplift report", _phrase(summary.data_policy.uplift_report_visibility)),
+            ("Training use", phrase(summary.data_policy.raw_episode_training_use)),
+            ("Uplift report", phrase(summary.data_policy.uplift_report_visibility)),
         ],
     )
 
@@ -781,7 +806,7 @@ def _render_show(data: object, console: Console) -> None:
         console,
         [
             ("Host platform", summary.compatibility.host_platform),
-            ("Engine", _phrase(summary.compatibility.engine_status.value)),
+            ("Engine", phrase(summary.compatibility.engine_status.value)),
             ("Runs here", "yes" if summary.compatibility.compatible else "no"),
         ],
     )
@@ -812,7 +837,7 @@ def _render_prepare(data: object, console: Console) -> None:
             ("Climb", data.climb_reference),
             ("Climb digest", data.climb_digest),
             ("Campaign digest", data.campaign_spec_digest),
-            ("DataPolicy digest", data.data_policy_digest),
+            ("Data policy digest", data.data_policy_digest),
             ("Candidate", data.candidate_label),
             ("Skill content digest", data.skill_root_digest),
         ],
@@ -834,7 +859,7 @@ def _render_prepare(data: object, console: Console) -> None:
             ("Candidate skills", str(data.candidate_skill_count)),
             ("Controlled", "yes" if data.comparison.controlled else "no"),
             ("Estimated episodes", str(data.estimated_episodes)),
-            ("Proof grade", _phrase(data.proof_grade)),
+            ("Proof grade", phrase(data.proof_grade)),
         ],
     )
 
@@ -844,9 +869,9 @@ def _render_prepare(data: object, console: Console) -> None:
         console,
         [
             ("Candidate ownership", data.candidate_ownership),
-            ("Public release", _phrase(data.candidate_public_release)),
-            ("Raw episode upload", _phrase(data.raw_episode_server_upload)),
-            ("Training use", _phrase(data.raw_episode_training_use)),
+            ("Public release", phrase(data.candidate_public_release)),
+            ("Raw episode upload", phrase(data.raw_episode_server_upload)),
+            ("Training use", phrase(data.raw_episode_training_use)),
             (
                 "Acceptance",
                 "required before starting"
@@ -856,12 +881,6 @@ def _render_prepare(data: object, console: Console) -> None:
         ],
     )
     console.print(data.policy_acceptance.summary)
-
-    console.print()
-    console.print(
-        "Confirmation expires "
-        f"{data.confirmation_expires_at.isoformat().replace('+00:00', 'Z')}."
-    )
 
 
 def _render_start(data: object, console: Console) -> None:
@@ -877,8 +896,9 @@ def _render_start(data: object, console: Console) -> None:
             ("Phase", data.phase.value),
             ("Worker", "not started" if data.worker_pid is None else "running"),
             ("Campaign digest", data.campaign_spec_digest),
-            ("DataPolicy digest", data.data_policy_digest),
-            ("Accepted by", _phrase(data.policy_acknowledgement_method)),
+            ("Data policy digest", data.data_policy_digest),
+            ("Approved", phrase(data.policy_acknowledgement_method)),
+            ("Approved by", phrase(data.approved_by)),
         ],
     )
 
@@ -901,7 +921,7 @@ def abbreviated_digest(digest: str) -> str:
     return f"{algorithm}:{hexadecimal[:ABBREVIATED_DIGEST_CHARACTERS]}…"
 
 
-def _phrase(value: str) -> str:
+def phrase(value: str) -> str:
     """Render a protocol value as words rather than as an identifier.
 
     The machine payload keeps the exact spelling; a person reading a terminal
@@ -951,8 +971,6 @@ def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePay
     return ClimbPreparePayload(
         draft_id=draft.id,
         draft_digest=prepared.draft_digest,
-        confirmation_token=prepared.confirmation_token,
-        confirmation_expires_at=prepared.confirmation_expires_at,
         climb_reference=climb_reference(source.climb),
         climb_digest=source.climb_digest,
         campaign_spec_digest=draft.campaign_spec_digest,
@@ -960,7 +978,11 @@ def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePay
         candidate_label=draft.skill_artifact.name,
         skill_root_digest=draft.skill_artifact.root_digest,
         included_files=list(draft.included_files),
-        baseline_skill_count=0,
+        # Read off the Campaign rather than assumed. Decisions document 0019
+        # section 1: a baseline is a role, and how many Skills it carries is
+        # something the Campaign says, not something the count of a public
+        # submission happens to be today.
+        baseline_skill_count=len(source.campaign.subject.harness.skills),
         candidate_skill_count=1,
         estimated_episodes=draft.estimated_episodes,
         candidate_ownership=data_policy.candidate_skill.ownership,

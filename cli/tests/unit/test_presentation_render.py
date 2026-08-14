@@ -70,7 +70,8 @@ def rows(count: int) -> list[TaskResultRow]:
 def payload(
     *,
     task_count: int = 20,
-    comparison_label: str = "No tested Skill → Skill v1",
+    comparison_label: str = "Hello World Uplift Receipt",
+    change_label: str = "No tested Skill → Skill v1",
     decision: str = "accepted",
     proof_grade: str = "P1",
     verification_status: str = "verified_offline",
@@ -88,6 +89,7 @@ def payload(
         run_id="run_" + "0" * 32,
         campaign_title="Techtree Hello World",
         comparison_label=comparison_label,
+        change_label=change_label,
         baseline_skill=SkillSummary(
             label="No tested Skill", root_digest=None, file_count=0, total_bytes=0
         ),
@@ -172,7 +174,7 @@ def test_the_header_says_what_was_compared_and_how_much_it_is_worth() -> None:
     lines = text.splitlines()
 
     assert lines[0] == "Techtree Hello World"
-    assert lines[1] == "No tested Skill → Skill v1"
+    assert lines[1] == "Hello World Uplift Receipt"
     assert lines[2] == "[P1 · local proof verified offline]"
 
 
@@ -241,7 +243,8 @@ def test_what_changed_names_both_sides_and_says_the_rest_was_held_fixed() -> Non
 
     assert "What changed" in text
     assert "branch-code-v1" in text
-    assert "held fixed" in text
+    assert "No tested Skill → Skill v1" in text
+    assert "Everything else was the same on both sides" in text
 
 
 def test_the_caveats_are_introduced_by_severity_in_words() -> None:

@@ -22,7 +22,7 @@ also what catches a truncated final line, because a partly written event fails
 to parse before its sequence is ever considered.
 
 The kinds a run may record are a closed set. ``RunEvent.kind`` is a string in
-the frozen protocol model, but twelve names exhaust what a local run can say
+the frozen protocol model, but thirteen names exhaust what a local run can say
 about itself, and each name fixes the phases it may appear between and the
 details it carries. :func:`validate_event_kind` holds every reader to that, so a
 log cannot contain an event whose name and position disagree.
@@ -44,8 +44,11 @@ from techtree.models.run import RunEvent, RunPhase
 
 __all__ = [
     "CANCEL_REQUESTED",
+    "DETAIL_ACTOR",
+    "DETAIL_APPROVED_AT",
     "DETAIL_COMPLETED",
     "DETAIL_CURRENT",
+    "DETAIL_DRAFT_DIGEST",
     "DETAIL_ERROR",
     "DETAIL_ERRORED",
     "DETAIL_LABEL",
@@ -61,6 +64,7 @@ __all__ = [
     "PHASE_ENTERED",
     "PROGRESS_UPDATED",
     "RESULT_WRITTEN",
+    "RUN_APPROVED",
     "RUN_CANCELLED",
     "RUN_COMPLETED",
     "RUN_CREATED",
@@ -93,6 +97,10 @@ _FILE_MODE: Final = 0o600
 
 #: The run exists and its request is fixed. Always sequence zero.
 RUN_CREATED: Final = "run.created"
+#: A person read the review of what this run would do and approved it. Decisions
+#: document 0019 section 2: an audit fact recorded beside everything else that
+#: happened to the run, not a cryptographic acceptance artifact.
+RUN_APPROVED: Final = "run.approved"
 #: A detached worker took the run on and announced its process id.
 WORKER_STARTED: Final = "worker.started"
 #: The run moved from one phase to another.
@@ -127,6 +135,7 @@ VARIANT_EVENT_KINDS: Final[frozenset[str]] = frozenset(
 EVENT_KINDS: Final[frozenset[str]] = frozenset(
     {
         RUN_CREATED,
+        RUN_APPROVED,
         WORKER_STARTED,
         PHASE_ENTERED,
         PROGRESS_UPDATED,
@@ -142,7 +151,13 @@ EVENT_KINDS: Final[frozenset[str]] = frozenset(
 #: The kinds that report something true of a run without moving it on. Every
 #: other kind changes the phase. Spec section 7.6, extended by section 3.3.
 SAME_PHASE_EVENT_KINDS: Final[frozenset[str]] = frozenset(
-    {WORKER_STARTED, PROGRESS_UPDATED, RESULT_WRITTEN, *VARIANT_EVENT_KINDS}
+    {
+        RUN_APPROVED,
+        WORKER_STARTED,
+        PROGRESS_UPDATED,
+        RESULT_WRITTEN,
+        *VARIANT_EVENT_KINDS,
+    }
 )
 
 
@@ -156,6 +171,13 @@ SAME_PHASE_EVENT_KINDS: Final[frozenset[str]] = frozenset(
 
 #: The digest of the ``RunRequest`` this run executes.
 DETAIL_REQUEST_DIGEST: Final = "request_digest"
+#: The digest of the draft that was reviewed and approved.
+DETAIL_DRAFT_DIGEST: Final = "draft_digest"
+#: Who approved it: a person answering the prompt, or an operator who passed
+#: the flag that stands in for the answer.
+DETAIL_ACTOR: Final = "actor"
+#: When the approval was given.
+DETAIL_APPROVED_AT: Final = "approved_at"
 #: The process id of the detached worker executing this run.
 DETAIL_WORKER_PID: Final = "worker_pid"
 #: Position within the work the current phase describes.
@@ -197,6 +219,7 @@ _VARIANT_DETAILS: Final[tuple[str, ...]] = (
 #: cannot be interpreted, so it is refused rather than projected as a blank.
 _REQUIRED_DETAILS: Final[dict[str, tuple[str, ...]]] = {
     RUN_CREATED: (DETAIL_REQUEST_DIGEST,),
+    RUN_APPROVED: (DETAIL_DRAFT_DIGEST, DETAIL_ACTOR, DETAIL_APPROVED_AT),
     WORKER_STARTED: (DETAIL_WORKER_PID,),
     PROGRESS_UPDATED: (DETAIL_CURRENT, DETAIL_TOTAL, DETAIL_LABEL),
     CANCEL_REQUESTED: (DETAIL_REQUESTED_BY,),
@@ -227,6 +250,9 @@ _EXCLUSIVE_PHASE_KINDS: Final[dict[RunPhase, str]] = {
 #: before the run starts working; a result exists only while the report is
 #: being built.
 _ONLY_IN_PHASE: Final[dict[str, RunPhase]] = {
+    # Approval is given before anything is launched, so it can only ever be
+    # recorded against the phase a run exists in and has not yet left.
+    RUN_APPROVED: RunPhase.CREATED,
     WORKER_STARTED: RunPhase.CREATED,
     RESULT_WRITTEN: RunPhase.BUILDING_REPORT,
     # A variant is a side of a concurrent comparison, and nothing is running

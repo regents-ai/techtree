@@ -66,8 +66,11 @@ from techtree.paths import TechtreePaths, paths_from_root
 from techtree.runs import store as store_module
 from techtree.runs.events import (
     CANCEL_REQUESTED,
+    DETAIL_ACTOR,
+    DETAIL_APPROVED_AT,
     DETAIL_COMPLETED,
     DETAIL_CURRENT,
+    DETAIL_DRAFT_DIGEST,
     DETAIL_ERROR,
     DETAIL_ERRORED,
     DETAIL_LABEL,
@@ -83,6 +86,7 @@ from techtree.runs.events import (
     PHASE_ENTERED,
     PROGRESS_UPDATED,
     RESULT_WRITTEN,
+    RUN_APPROVED,
     RUN_CANCELLED,
     RUN_COMPLETED,
     RUN_CREATED,
@@ -169,10 +173,11 @@ EXPECTED_TRANSITIONS: dict[RunPhase, set[RunPhase]] = {
 
 TERMINAL_PHASES = {RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.CANCELLED}
 
-#: The twelve canonical kinds, spelled out rather than imported, for the same
+#: The thirteen canonical kinds, spelled out rather than imported, for the same
 #: reason the transition table is: they are a published contract.
 SPECIFIED_EVENT_KINDS = {
     "run.created",
+    "run.approved",
     "worker.started",
     "phase.entered",
     "progress.updated",
@@ -242,7 +247,7 @@ def build_request(run_id: str = RUN_ID) -> RunRequest:
         candidate_manifest_digest=digest_of("candidate"),
         policy_acknowledgement=PolicyAcknowledgement(
             data_policy_digest=data_policy_digest,
-            method="explicit_cli_digest",
+            method="explicit_cli_review",
             acknowledged_at=FIXED_TIME,
         ),
         executor_kind="fake",
@@ -536,12 +541,13 @@ def test_the_two_variant_routes_do_not_join_in_the_middle(target: RunPhase) -> N
 # ---------------------------------------------------------------------------
 
 
-def test_the_event_vocabulary_is_the_twelve_specified_kinds() -> None:
+def test_the_event_vocabulary_is_the_thirteen_specified_kinds() -> None:
     assert set(EVENT_KINDS) == SPECIFIED_EVENT_KINDS
 
 
 def test_the_same_phase_kinds_are_the_specified_ones() -> None:
     assert set(SAME_PHASE_EVENT_KINDS) == {
+        "run.approved",
         "worker.started",
         "progress.updated",
         "result.written",
@@ -558,6 +564,16 @@ CANONICAL_PLACEMENTS: list[tuple[str, RunPhase | None, RunPhase, dict[str, Any]]
         None,
         RunPhase.CREATED,
         {DETAIL_REQUEST_DIGEST: digest_of("request")},
+    ),
+    (
+        RUN_APPROVED,
+        RunPhase.CREATED,
+        RunPhase.CREATED,
+        {
+            DETAIL_DRAFT_DIGEST: digest_of("draft"),
+            DETAIL_ACTOR: "human_via_cli",
+            DETAIL_APPROVED_AT: "2026-08-14T00:00:00Z",
+        },
     ),
     (WORKER_STARTED, RunPhase.CREATED, RunPhase.CREATED, {DETAIL_WORKER_PID: 4321}),
     (PHASE_ENTERED, RunPhase.CREATED, RunPhase.VALIDATING_TASKSET, {}),

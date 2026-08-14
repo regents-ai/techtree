@@ -144,7 +144,9 @@ def test_the_result_says_which_skill_changed_and_that_nothing_else_did(
     text = human(finished, "--format", "rich")
 
     assert "hello-world-v1" in text
-    assert "held fixed and checked against what the run actually did" in flat(text)
+    assert "No tested Skill → Skill v1" in flat(text)
+    assert "Everything else was the same on both sides" in flat(text)
+    assert "checked against what the run actually did" in flat(text)
 
 
 def test_the_task_table_can_be_asked_for_in_full(finished: dict[str, Any]) -> None:

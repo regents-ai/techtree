@@ -32,7 +32,13 @@ from techtree.models.experiment import ExperimentVariant
 from techtree.models.uplift_report import UpliftReport
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunArtifactStore
-from techtree.runs.events import read_events
+from techtree.runs.events import (
+    DETAIL_ACTOR,
+    DETAIL_APPROVED_AT,
+    DETAIL_DRAFT_DIGEST,
+    RUN_APPROVED,
+    read_events,
+)
 from techtree.runs.machine import reduce_events
 from techtree.runs.store import RunStore
 
@@ -61,7 +67,6 @@ def finished_run(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
         "home": home,
         "paths": paths,
         "draft": prepared.draft,
-        "token": prepared.confirmation_token,
         "run_id": run_id,
         "started": started,
         "status": final,
@@ -98,7 +103,8 @@ def test_starting_returns_promptly_with_a_run_to_watch(
     assert payload["run_id"].startswith("run_")
     assert payload["phase"] == "created"
     assert payload["worker_pid"] is not None
-    assert payload["policy_acknowledgement_method"] == "explicit_cli_digest"
+    assert payload["policy_acknowledgement_method"] == "explicit_cli_review"
+    assert payload["approved_by"] == "operator_via_flag"
     assert payload["campaign_spec_digest"] == finished_run["draft"].campaign_spec_digest
     assert payload["data_policy_digest"] == finished_run["draft"].data_policy_digest
 
@@ -232,25 +238,20 @@ def test_no_subject_ran_anywhere(finished_run: dict[str, Any]) -> None:
     assert request.executor_kind == "fake"
 
 
-def test_the_confirmation_token_is_never_written_down(
+def test_the_run_records_that_it_was_approved(
     finished_run: dict[str, Any],
 ) -> None:
-    """Spec §10.2: the token lives in the response, the invocation, and memory."""
+    """Decisions 0019 s2: one ordinary event, naming the draft and the actor."""
     paths = _paths(finished_run)
-    token = finished_run["token"]
-    searched = [
-        *paths.run_dir(finished_run["run_id"]).rglob("*"),
-        *paths.drafts_dir.rglob("*"),
-    ]
+    events = read_events(paths.run_dir(finished_run["run_id"]) / "events.jsonl")
 
-    holding = [
-        path
-        for path in searched
-        if path.is_file()
-        and token in path.read_text(encoding="utf-8", errors="replace")
-    ]
+    approvals = [event for event in events if event.kind == RUN_APPROVED]
 
-    assert holding == []
+    assert len(approvals) == 1
+    details = approvals[0].details
+    assert details[DETAIL_ACTOR] == "operator_via_flag"
+    assert details[DETAIL_DRAFT_DIGEST] == digest_object(finished_run["draft"])
+    assert details[DETAIL_APPROVED_AT]
 
 
 # ---------------------------------------------------------------------------

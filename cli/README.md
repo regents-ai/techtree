@@ -69,14 +69,14 @@ techtree setup                                   # install the managed engine
 techtree climb list
 techtree climb show <climb-slug>                 # includes campaign and policy digests
 techtree climb prepare <climb-slug> --skill <path>
-techtree climb start <draft-id> --confirmation-token <token>
+techtree climb start <draft-id>                   # shows the review, then asks
 techtree run status <run-id> --watch
 techtree run logs <run-id> --tail 200
 techtree run result <run-id>                     # the comparison, with its caveats
 techtree proof verify <run-id>                   # check the run's local proof, offline
 techtree uplift context <run-id>                 # what a host agent may read about a run
 techtree uplift prepare --from-run <run-id> --candidate-skill <path>
-techtree uplift start <draft-id> --confirmation-token <token>
+techtree uplift start <draft-id>
 ```
 
 The detached worker is started by the CLI and is not a user-facing command.

@@ -28,7 +28,6 @@ from typing import Any, Final
 from techtree.canonical import digest_object
 from techtree.catalog.repository import EmbeddedCatalogRepository
 from techtree.catalog.service import CatalogService, HostInfo
-from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
 from techtree.models.base import Digest
 from techtree.models.campaign import CampaignSpec, PublicContext
@@ -169,16 +168,13 @@ def preparation_service(
     *,
     catalog_root: Path = COMPLETE_CATALOG,
     engine: EngineCompatibilityStatus = EngineCompatibilityStatus.VERIFIED,
-    confirmation: ConfirmationService | None = None,
 ) -> tuple[SkillPreparationService, DraftStore]:
     """Return a preparation service and the store it writes through."""
-    confirmations = confirmation or ConfirmationService()
-    store = DraftStore(paths, confirmations)
+    store = DraftStore(paths)
     service = SkillPreparationService(
         paths=paths,
         catalog=catalog_service(paths, catalog_root=catalog_root, engine=engine),
         draft_store=store,
-        confirmation_service=confirmations,
     )
     return service, store
 

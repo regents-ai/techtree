@@ -1,11 +1,11 @@
 """Run control, and the transaction that makes starting safe. Spec PR8 §8.8.
 
-Starting a run spends something that cannot be un-spent: a one-time
-confirmation, and with it a participant's acceptance of a rights policy. It
-also crosses four separate pieces of state — the draft's start claim, the run
-directory, the staged inputs, and a detached process — with a crash possible
-between any two of them. The whole of :meth:`RunService.start` exists to make
-that sequence survivable.
+Starting a run spends something that cannot be un-spent: a draft, and with it
+a participant's approval of exactly what that draft would do. It also crosses
+four separate pieces of state — the draft's start claim, the run directory, the
+staged inputs, and a detached process — with a crash possible between any two of
+them. The whole of :meth:`RunService.start` exists to make that sequence
+survivable.
 
 The rule it is built on is that the *draft* decides which run identifier a
 draft becomes. :meth:`~techtree.drafts.store.DraftStore.claim_start` writes
@@ -18,8 +18,8 @@ Spec §9.2 through §9.5 are each a line in that algorithm, and each is tested.
 
 Two things are deliberately not automatic.
 
-*A failed launch does not produce a second run.* The run is marked failed, the
-draft's claim is marked ``launch_failed``, and the confirmation stays consumed.
+*A failed launch does not produce a second run.* The run is marked failed and
+the draft's claim is marked ``launch_failed``.
 Retrying returns the same failed run rather than quietly allocating another,
 because the participant asked to start one run and the honest answer is that
 that run failed. A future explicit retry operation may say otherwise.
@@ -72,7 +72,14 @@ from techtree.models.run import (
 from techtree.models.uplift_report import UpliftReport
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunArtifactStore
-from techtree.runs.events import DETAIL_ERROR, RUN_FAILED
+from techtree.runs.events import (
+    DETAIL_ACTOR,
+    DETAIL_APPROVED_AT,
+    DETAIL_DRAFT_DIGEST,
+    DETAIL_ERROR,
+    RUN_APPROVED,
+    RUN_FAILED,
+)
 from techtree.runs.launcher import WorkerLauncher
 from techtree.runs.machine import is_terminal
 from techtree.runs.real import executor_kind_for
@@ -82,7 +89,7 @@ from techtree.verifiers.outputs import EVAL_LOG_FILENAME
 
 __all__ = [
     "ACKNOWLEDGEMENT_METHODS",
-    "CONFIRMATION_TOKEN_REQUIRED",
+    "APPROVAL_ACTORS",
     "DEFAULT_LOG_TAIL",
     "DRAFT_ALREADY_STARTED",
     "MAXIMUM_LOG_TAIL",
@@ -93,6 +100,7 @@ __all__ = [
     "RUN_LOGS_UNAVAILABLE",
     "RUN_RESULT_DIGEST_MISMATCH",
     "RUN_RESULT_NOT_READY",
+    "ApprovalActor",
     "CancellationOutcome",
     "ProcessHealth",
     "RunCancellation",
@@ -101,7 +109,6 @@ __all__ = [
 ]
 
 #: Stable error codes. Spec PR8 §8.16.
-CONFIRMATION_TOKEN_REQUIRED: Final = "confirmation_token_required"
 DRAFT_ALREADY_STARTED: Final = "draft_already_started"
 POLICY_ACCEPTANCE_REQUIRED: Final = "policy_acceptance_required"
 POLICY_ACCEPTANCE_DIGEST_MISMATCH: Final = "policy_acceptance_digest_mismatch"
@@ -110,12 +117,28 @@ RUN_RESULT_NOT_READY: Final = "run_result_not_ready"
 RUN_RESULT_DIGEST_MISMATCH: Final = "run_result_digest_mismatch"
 RUN_LOGS_UNAVAILABLE: Final = "run_logs_unavailable"
 
-#: How a person or a machine may state that a rights policy was accepted in
-#: this build. ``host_agent_confirmation`` is reserved for the future plugin
-#: and there is no channel that could produce it, so accepting it would be
-#: accepting an acknowledgement nobody made.
-ACKNOWLEDGEMENT_METHODS: Final[frozenset[str]] = frozenset(
-    {"interactive_cli", "explicit_cli_digest"}
+#: How acceptance of a rights policy may be stated in this build. Decisions
+#: document 0019 section 2 leaves one way at the command line: the review was
+#: shown and it was explicitly accepted. ``host_agent_confirmation`` belongs to
+#: the plugin's own approval surface and there is no channel here that could
+#: produce it, so accepting it would be accepting an acknowledgement nobody made.
+ACKNOWLEDGEMENT_METHODS: Final[frozenset[str]] = frozenset({"explicit_cli_review"})
+
+type ApprovalActor = Literal["human_via_cli", "operator_via_flag"]
+"""Who gave the approval this run records.
+
+``human_via_cli`` is a person who read the review and answered the prompt.
+``operator_via_flag`` is an operator who passed the flag that stands in for
+that answer where nobody can be asked. The distinction is the whole point of
+recording an actor at all, so it is kept out of the acceptance method — which
+says only that the review was shown and accepted — and carried on the run's
+``run.approved`` event, where an auditor reads it.
+"""
+
+#: Every actor this build can record. A name outside it is a name nothing here
+#: could have produced.
+APPROVAL_ACTORS: Final[frozenset[str]] = frozenset(
+    {"human_via_cli", "operator_via_flag"}
 )
 
 #: Log tail bounds. Spec PR8 §8.13.
@@ -187,35 +210,23 @@ class RunService:
         self,
         *,
         draft_id: str,
-        confirmation_token: str,
         policy_acknowledgement: PolicyAcknowledgement,
+        approved_by: ApprovalActor,
     ) -> RunStatus:
         """Claim the draft, create the run, stage inputs, and launch."""
-        if not confirmation_token.strip():
-            raise UsageError(
-                "starting a prepared draft needs the confirmation token that "
-                "`techtree climb prepare` returned",
-                code=CONFIRMATION_TOKEN_REQUIRED,
-                details={"draft_id": draft_id},
-            )
-
         snapshot = self._drafts.load_snapshot(draft_id)
         self._require_startable(snapshot, policy_acknowledgement)
 
         existing = self._drafts.start_record(draft_id)
         proposed = existing.run_id if existing is not None else new_id("run")
-        record = self._drafts.claim_start(
-            draft_id=draft_id,
-            token=confirmation_token,
-            run_id=proposed,
-        )
+        record = self._drafts.claim_start(draft_id=draft_id, run_id=proposed)
 
         request = self._request_for(
             record=record,
             snapshot=snapshot,
             policy_acknowledgement=policy_acknowledgement,
         )
-        self._ensure_run_exists(record, request)
+        self._ensure_run_exists(record, request, approved_by)
         self._artifacts.stage_inputs(
             run_id=record.run_id, request=request, snapshot=snapshot
         )
@@ -313,12 +324,35 @@ class RunService:
             created_at=self._clock(),
         )
 
-    def _ensure_run_exists(self, record: DraftStartRecord, request: RunRequest) -> None:
-        """Create the run directory unless a previous attempt already did."""
+    def _ensure_run_exists(
+        self,
+        record: DraftStartRecord,
+        request: RunRequest,
+        approved_by: ApprovalActor,
+    ) -> None:
+        """Create the run directory unless a previous attempt already did.
+
+        The approval is recorded here, in the same branch that creates the run,
+        so a retried start finds the run already present and does not write a
+        second approval. One run, one approval, however many times a start is
+        attempted.
+        """
         try:
             self._runs.get_request(record.run_id)
         except NotFoundError:
             self._runs.create(request)
+            self._runs.append(
+                record.run_id,
+                phase=RunPhase.CREATED,
+                kind=RUN_APPROVED,
+                details={
+                    DETAIL_DRAFT_DIGEST: request.draft_digest,
+                    DETAIL_ACTOR: approved_by,
+                    DETAIL_APPROVED_AT: to_json_value(
+                        request.policy_acknowledgement.acknowledged_at
+                    ),
+                },
+            )
 
     def _ensure_launched(self, record: DraftStartRecord) -> RunStatus:
         """Launch the worker if, and only if, none has ever been launched."""

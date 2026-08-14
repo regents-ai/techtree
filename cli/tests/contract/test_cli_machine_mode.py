@@ -231,18 +231,7 @@ _ABSENT_DRAFT = "draft_00000000000000000000000000000000"
 @pytest.mark.parametrize(
     ("arguments", "command"),
     [
-        (
-            (
-                "climb",
-                "start",
-                _ABSENT_DRAFT,
-                "--confirmation-token",
-                "not-a-token",
-                "--accept-data-policy",
-                f"sha256:{'0' * 64}",
-            ),
-            "climb start",
-        ),
+        (("climb", "start", _ABSENT_DRAFT, "--yes"), "climb start"),
         (("run", "status", _ABSENT_RUN), "run status"),
         (("run", "logs", _ABSENT_RUN), "run logs"),
         (("run", "cancel", _ABSENT_RUN, "--confirm"), "run cancel"),

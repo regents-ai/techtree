@@ -137,7 +137,6 @@ from techtree.models.run import (
     RunStatus,
 )
 from techtree.models.skill import (
-    ConfirmationRecord,
     PolicyAcceptanceRequirement,
     SecretFinding,
     SkillArtifact,
@@ -195,7 +194,6 @@ __all__ = [
     "ComparisonStatus",
     "CompatibilityIssue",
     "CompatibilityResult",
-    "ConfirmationRecord",
     "DataOwner",
     "DataPolicy",
     "DataPolicySummary",

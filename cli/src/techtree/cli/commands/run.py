@@ -40,7 +40,6 @@ from rich.table import Table
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import human_console
-from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
 from techtree.errors import TechtreeError, UsageError, VerificationError
 from techtree.identity.models import VerificationResult
@@ -254,7 +253,7 @@ def build_run_service(context: CliContext) -> RunService:
     run_store = RunStore(context.paths)
     return RunService(
         paths=context.paths,
-        draft_store=DraftStore(context.paths, ConfirmationService()),
+        draft_store=DraftStore(context.paths),
         run_store=run_store,
         artifact_store=RunArtifactStore(context.paths),
         launcher=WorkerLauncher(

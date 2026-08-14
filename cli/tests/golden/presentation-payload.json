@@ -56,6 +56,7 @@
       "text": "Timing and token counts come from this run's signed execution record. No cost was reported for it and this build pins no price to compute one from, so the cost is unavailable. What the comparison measured is unaffected."
     }
   ],
+  "change_label": "No tested Skill → Skill v1",
   "comparison_label": "Hello World Uplift Receipt",
   "cost_provenance": "unavailable",
   "cost_usd": null,

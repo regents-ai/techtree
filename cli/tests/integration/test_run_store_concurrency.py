@@ -142,7 +142,7 @@ def build_request() -> RunRequest:
         candidate_manifest_digest=digest_of("candidate"),
         policy_acknowledgement=PolicyAcknowledgement(
             data_policy_digest=data_policy_digest,
-            method="explicit_cli_digest",
+            method="explicit_cli_review",
             acknowledged_at=FIXED_TIME,
         ),
         executor_kind="fake",

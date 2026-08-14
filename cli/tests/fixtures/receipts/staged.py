@@ -179,7 +179,7 @@ def staged_recorded_run(home: Path) -> StagedRecordedRun:
 
     Everything a run normally goes through happens: the catalog is read, a
     draft is prepared from the real Skill directory through the real
-    preparation service, the draft is confirmed, the DataPolicy is
+    preparation service, the run is approved, the DataPolicy is
     acknowledged, and the run's inputs are staged and verified against its own
     request. No worker is launched; the caller drives the worker entry point in
     this process.
@@ -187,17 +187,13 @@ def staged_recorded_run(home: Path) -> StagedRecordedRun:
     from fixtures.drafts.support import preparation_service
     from fixtures.runs.support import RecordingLauncher, utc_now
     from fixtures.verifiers.support import RECORDED_SKILL
-    from techtree.drafts.confirmation import ConfirmationService
     from techtree.models.run import PolicyAcknowledgement
     from techtree.runs.service import RunService
 
     paths = paths_from_root(home)
     catalog, campaign = recorded_catalog(home / "recorded-catalog")
 
-    confirmations = ConfirmationService()
-    preparation, drafts = preparation_service(
-        paths, catalog_root=catalog, confirmation=confirmations
-    )
+    preparation, drafts = preparation_service(paths, catalog_root=catalog)
     prepared = preparation.prepare(
         climb_reference=_CLIMB_REFERENCE,
         skill_path=RECORDED_SKILL,
@@ -215,12 +211,12 @@ def staged_recorded_run(home: Path) -> StagedRecordedRun:
         clock=utc_now,
     ).start(
         draft_id=prepared.draft.id,
-        confirmation_token=prepared.confirmation_token,
         policy_acknowledgement=PolicyAcknowledgement(
             data_policy_digest=prepared.draft.data_policy_digest,
-            method="explicit_cli_digest",
+            method="explicit_cli_review",
             acknowledged_at=utc_now(),
         ),
+        approved_by="human_via_cli",
     )
 
     run_id = status.state.run_id

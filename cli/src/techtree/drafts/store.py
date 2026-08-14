@@ -28,14 +28,13 @@ command would have to guess about.
 *Written once, or replaced atomically, never edited.* ``draft.json``,
 ``comparison.json``, the manifests, the public snapshot, and the skill artifact
 are created with ``O_EXCL`` in canonical bytes: their digests are their
-identities and a second write is a conflict, not an update. ``confirmation.json``
-and ``start.json`` are mutable state and are replaced whole.
+identities and a second write is a conflict, not an update. ``start.json`` is
+mutable state and is replaced whole.
 
 *The start is claimed exactly once.* :meth:`DraftStore.claim_start` verifies
-the graph, verifies and consumes the confirmation, and creates the start record
-under one lock hold. A second call returns the record the first one wrote — the
-same run identifier, no second consumption — so a retried or duplicated start
-cannot produce two runs from one draft.
+the graph and creates the start record under one lock hold. A second call
+returns the record the first one wrote — the same run identifier — so a
+retried or duplicated start cannot produce two runs from one draft.
 
 Verification is offline and total. :meth:`DraftStore.verify_snapshot` recomputes
 every digest in the graph and checks every edge between the objects, including
@@ -52,7 +51,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Final
@@ -62,7 +61,6 @@ from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
-from techtree.drafts.confirmation import ConfirmationService, utc_now
 from techtree.drafts.source import CampaignSource, StagedSkill
 from techtree.errors import (
     ConflictError,
@@ -84,7 +82,7 @@ from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
 from techtree.models.experiment import ExperimentManifest, ManifestComparison
-from techtree.models.skill import ConfirmationRecord, SkillArtifact, SubmissionDraft
+from techtree.models.skill import SkillArtifact, SubmissionDraft
 from techtree.models.validation import TasksetValidationReceipt, ValidationEvidence
 from techtree.paths import TechtreePaths
 from techtree.skills.archive import verify_archive
@@ -97,6 +95,7 @@ __all__ = [
     "DraftStartRecord",
     "DraftStartStatus",
     "DraftStore",
+    "utc_now",
 ]
 
 #: Stable error codes this module reports. Spec PR6 §6.10.
@@ -120,7 +119,6 @@ LOCK_TIMEOUT_SECONDS: Final = 30.0
 
 _LOCK_FILE: Final = ".lock"
 _DRAFT_FILE: Final = "draft.json"
-_CONFIRMATION_FILE: Final = "confirmation.json"
 _COMPARISON_FILE: Final = "comparison.json"
 _START_FILE: Final = "start.json"
 
@@ -148,6 +146,11 @@ _STAGING_PREFIX: Final = ".staging-"
 _FILE_MODE: Final = 0o600
 
 
+def utc_now() -> datetime:
+    """Return the current instant in UTC."""
+    return datetime.now(UTC)
+
+
 class DraftStartStatus(StrEnum):
     """How far the one-time handover from a draft to a run has got."""
 
@@ -161,8 +164,8 @@ class DraftStartRecord(StateModel):
 
     Local operational state, not a protocol artifact. It exists so that a
     retried start returns the run that already exists rather than creating a
-    second one, and so that a launch that failed after the confirmation was
-    consumed is visible instead of silently lost.
+    second one, and so that a launch that failed after the draft was spent is
+    visible instead of silently lost.
     """
 
     draft_id: str
@@ -190,13 +193,8 @@ class DraftSnapshot:
 class DraftStore:
     """Persists and independently verifies complete draft graphs."""
 
-    def __init__(
-        self,
-        paths: TechtreePaths,
-        confirmation_service: ConfirmationService,
-    ) -> None:
+    def __init__(self, paths: TechtreePaths) -> None:
         self._paths = paths
-        self._confirmation = confirmation_service
 
     # -- Placement ---------------------------------------------------------
 
@@ -226,7 +224,6 @@ class DraftStore:
         self,
         *,
         draft: SubmissionDraft,
-        confirmation: ConfirmationRecord,
         baseline: ExperimentManifest,
         candidate: ExperimentManifest,
         comparison: ManifestComparison,
@@ -251,7 +248,6 @@ class DraftStore:
             self._assemble(
                 staging,
                 draft=draft,
-                confirmation=confirmation,
                 baseline=baseline,
                 candidate=candidate,
                 comparison=comparison,
@@ -291,7 +287,6 @@ class DraftStore:
         staging: Path,
         *,
         draft: SubmissionDraft,
-        confirmation: ConfirmationRecord,
         baseline: ExperimentManifest,
         candidate: ExperimentManifest,
         comparison: ManifestComparison,
@@ -313,7 +308,6 @@ class DraftStore:
         try:
             ensure_private_directory(staging)
             self._write_immutable(staging / _DRAFT_FILE, draft)
-            self._write_state(staging / _CONFIRMATION_FILE, confirmation)
             self._write_immutable(staging / _COMPARISON_FILE, comparison)
 
             public = staging / _PUBLIC_DIR
@@ -386,10 +380,6 @@ class DraftStore:
     def get(self, draft_id: str) -> SubmissionDraft:
         """Load and validate ``draft.json``."""
         return self._load(draft_id, _DRAFT_FILE, SubmissionDraft)
-
-    def get_confirmation(self, draft_id: str) -> ConfirmationRecord:
-        """Load mutable confirmation state."""
-        return self._load(draft_id, _CONFIRMATION_FILE, ConfirmationRecord)
 
     def get_manifests(
         self, draft_id: str
@@ -761,35 +751,12 @@ class DraftStore:
             archive_digest=artifact.archive_digest,
         )
 
-    # -- Confirmation and the start claim ----------------------------------
-
-    def consume_confirmation(
-        self,
-        *,
-        draft_id: str,
-        token: str,
-    ) -> ConfirmationRecord:
-        """Verify a token and write back the consumed record.
-
-        The caller holds the draft lock. This method does not take it, because
-        the only caller that needs it — :meth:`claim_start` — must consume and
-        record the claim inside one uninterrupted hold.
-        """
-        record = self.get_confirmation(draft_id)
-        self._confirmation.verify(
-            token=token,
-            record=record,
-            expected_draft_digest=digest_object(self.get(draft_id)),
-        )
-        consumed = self._confirmation.consume(record)
-        self._write_state(self.draft_dir(draft_id) / _CONFIRMATION_FILE, consumed)
-        return consumed
+    # -- The start claim ---------------------------------------------------
 
     def claim_start(
         self,
         *,
         draft_id: str,
-        token: str,
         run_id: str,
     ) -> DraftStartRecord:
         """Spend this draft on exactly one run, or return the run it was spent on."""
@@ -799,14 +766,12 @@ class DraftStore:
         with self._lock(draft_id):
             existing = self._read_start_record(draft_id)
             if existing is not None:
-                # A retried start is not a second start. The confirmation was
-                # already consumed by the first one, and consuming it again
-                # would fail; returning the claim is what makes the operation
-                # idempotent rather than merely safe.
+                # A retried start is not a second start. Returning the claim
+                # the first one wrote is what makes the operation idempotent
+                # rather than merely safe.
                 return existing
 
             self.load_snapshot(draft_id)
-            self.consume_confirmation(draft_id=draft_id, token=token)
 
             record = DraftStartRecord(
                 draft_id=draft_id,

@@ -378,16 +378,13 @@ def test_an_absent_engine_blocks_preparing_but_not_resolving(
 def cli_home(temp_techtree_home: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Point the CLI at the complete fixture, with the engine present."""
     from techtree.cli.context import CliContext
-    from techtree.drafts.confirmation import ConfirmationService
     from techtree.skills.service import SkillPreparationService
 
     def service_over_the_fixture(context: CliContext) -> Any:
-        confirmation = ConfirmationService()
         return SkillPreparationService(
             paths=context.paths,
             catalog=catalog_service(context.paths, catalog_root=COMPLETE_CATALOG),
-            draft_store=DraftStore(context.paths, confirmation),
-            confirmation_service=confirmation,
+            draft_store=DraftStore(context.paths),
         )
 
     monkeypatch.setattr(
@@ -425,8 +422,6 @@ def test_the_machine_response_carries_everything_a_host_agent_needs(
     assert envelope["command"] == "climb prepare"
     assert payload["draft_id"].startswith("draft_")
     assert payload["draft_digest"].startswith("sha256:")
-    assert payload["confirmation_token"]
-    assert payload["confirmation_expires_at"].endswith("Z")
     assert payload["climb_reference"] == "synthetic-development@1"
     assert payload["campaign_spec_digest"].startswith("sha256:")
     assert payload["data_policy_digest"].startswith("sha256:")
@@ -449,31 +444,7 @@ def test_the_machine_response_carries_everything_a_host_agent_needs(
     start = envelope["next_actions"][0]
     assert start["id"] == "start_climb"
     assert start["requires_user_confirmation"] is True
-    assert payload["draft_id"] in start["cli"]
-    assert payload["confirmation_token"] in start["cli"]
-    assert payload["data_policy_digest"] in start["cli"]
-
-
-def test_the_token_never_reaches_stderr(cli_home: Path) -> None:
-    runner = CliRunner()
-    result = runner.invoke(
-        create_app(),
-        [
-            "--home",
-            str(cli_home),
-            "--debug",
-            "--json",
-            "climb",
-            "prepare",
-            "synthetic-development",
-            "--skill",
-            str(VALID_SKILL),
-        ],
-    )
-
-    assert result.exit_code == EXIT_OK
-    token = json.loads(result.stdout.splitlines()[-1])["data"]["confirmation_token"]
-    assert token not in result.stderr
+    assert start["cli"] == ["techtree", "climb", "start", payload["draft_id"]]
 
 
 def test_the_human_rendering_shows_the_whole_display_list(cli_home: Path) -> None:
@@ -500,7 +471,7 @@ def test_the_human_rendering_shows_the_whole_display_list(cli_home: Path) -> Non
         "synthetic-development@1",
         "Climb digest",
         "Campaign digest",
-        "DataPolicy digest",
+        "Data policy digest",
         "worked-examples",
         "Skill content digest",
         "SKILL.md",
@@ -515,7 +486,6 @@ def test_the_human_rendering_shows_the_whole_display_list(cli_home: Path) -> Non
         "Acceptance required before starting",
         "You own the candidate skill",
         "development Climb",
-        "Confirmation expires",
         "techtree climb start",
     ):
         assert expected in output, f"{expected!r} is missing from climb prepare"

@@ -2,9 +2,9 @@
 
 A start can be retried by a person who did not see the first response, by a
 host agent that timed out, or by a process that crashed halfway through its
-own transaction. None of those may produce a second run: the confirmation is
-one-time, the acceptance of the data policy is a deliberate act, and two runs
-from one draft would mean two answers to a question that was asked once.
+own transaction. None of those may produce a second run: the draft is spent
+once, the approval is a deliberate act, and two runs from one draft would mean
+two answers to a question that was asked once.
 
 Every test here goes through real ``techtree`` processes, because the
 duplicate-start problem is a problem *between* processes. The crash windows of
@@ -25,7 +25,6 @@ from fixtures.runs.support import (
     start_through_the_cli,
     wait_for_terminal,
 )
-from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
 from techtree.errors import EXIT_OK
 from techtree.fs import remove_tree
@@ -108,24 +107,15 @@ def test_a_finished_run_is_returned_rather_than_restarted(
 # ---------------------------------------------------------------------------
 
 
-def test_a_crash_before_the_claim_leaves_the_token_usable(
+def test_a_crash_before_the_claim_leaves_the_draft_startable(
     prepared: tuple[Path, TechtreePaths, PreparedDraft],
 ) -> None:
-    """Spec §9.2: nothing changed, so the same token still starts the run."""
+    """Spec §9.2: nothing changed, so the same draft still starts the run."""
     home, paths, draft = prepared
-    refused = run_cli(
-        home,
-        "climb",
-        "start",
-        draft.draft.id,
-        "--confirmation-token",
-        draft.confirmation_token,
-        "--accept-data-policy",
-        f"sha256:{'0' * 64}",
-    )
+    refused = run_cli(home, "climb", "start", draft.draft.id)
 
     assert refused.exit_code != EXIT_OK
-    assert refused.envelope()["error"]["code"] == "policy_acceptance_digest_mismatch"
+    assert refused.envelope()["error"]["code"] == "policy_acceptance_required"
     assert not paths.runs_dir.exists() or _runs(paths) == []
 
     started = start_through_the_cli(home, draft)
@@ -138,9 +128,8 @@ def test_a_crash_after_the_claim_repairs_the_same_run(
 ) -> None:
     """Spec §9.3: start.json holds the canonical run identifier."""
     home, paths, draft = prepared
-    claimed = DraftStore(paths, ConfirmationService()).claim_start(
+    claimed = DraftStore(paths).claim_start(
         draft_id=draft.draft.id,
-        token=draft.confirmation_token,
         run_id=new_id("run"),
     )
     assert _runs(paths) == [] if paths.runs_dir.exists() else True
@@ -175,50 +164,23 @@ def test_a_crash_after_the_run_was_created_finishes_the_start(
 # ---------------------------------------------------------------------------
 
 
-def test_a_wrong_token_starts_nothing(
-    prepared: tuple[Path, TechtreePaths, PreparedDraft],
-) -> None:
-    home, paths, draft = prepared
-
-    refused = run_cli(
-        home,
-        "climb",
-        "start",
-        draft.draft.id,
-        "--confirmation-token",
-        "not-the-token-that-was-issued",
-        "--accept-data-policy",
-        draft.draft.data_policy_digest,
-    )
-
-    assert refused.exit_code != EXIT_OK
-    assert refused.envelope()["error"]["code"] == "confirmation_token_invalid"
-    assert not paths.runs_dir.exists() or _runs(paths) == []
-
-
 def test_a_machine_caller_must_name_the_policy_digest(
     prepared: tuple[Path, TechtreePaths, PreparedDraft],
 ) -> None:
-    """Spec §10.3: holding the token has never implied accepting the policy."""
+    """Decisions 0019 s2: nobody can be asked, so the flag has to say so."""
     home, paths, draft = prepared
 
-    refused = run_cli(
-        home,
-        "climb",
-        "start",
-        draft.draft.id,
-        "--confirmation-token",
-        draft.confirmation_token,
-    )
+    refused = run_cli(home, "climb", "start", draft.draft.id)
 
     assert refused.exit_code != EXIT_OK
     error = refused.envelope()["error"]
     assert error["code"] == "policy_acceptance_required"
+    assert "--yes" in error["message"]
     assert error["details"]["data_policy_digest"] == draft.draft.data_policy_digest
     assert not paths.runs_dir.exists() or _runs(paths) == []
 
 
-def test_a_person_accepts_by_answering_yes(
+def test_a_person_approves_by_answering_yes(
     prepared: tuple[Path, TechtreePaths, PreparedDraft],
 ) -> None:
     home, _, draft = prepared
@@ -228,25 +190,15 @@ def test_a_person_accepts_by_answering_yes(
         "climb",
         "start",
         draft.draft.id,
-        "--confirmation-token",
-        draft.confirmation_token,
         machine=False,
         stdin="y\n",
     )
 
     assert started.exit_code == EXIT_OK, started.stdout + started.stderr
-    assert draft.draft.data_policy_digest in started.stdout
-    assert "interactive cli" in started.stdout
-    run_id = run_cli(
-        home,
-        "climb",
-        "start",
-        draft.draft.id,
-        "--confirmation-token",
-        draft.confirmation_token,
-        "--accept-data-policy",
-        draft.draft.data_policy_digest,
-    ).data()["run_id"]
+    assert f"{draft.draft.estimated_episodes} episodes" in started.stdout
+    assert "The Skill is the only scientific change." in started.stdout
+    assert "human via cli" in started.stdout
+    run_id = start_through_the_cli(home, draft).data()["run_id"]
     assert wait_for_terminal(home, run_id)["phase"] == "completed"
 
 
@@ -260,12 +212,10 @@ def test_a_person_who_declines_starts_nothing(
         "climb",
         "start",
         draft.draft.id,
-        "--confirmation-token",
-        draft.confirmation_token,
         machine=False,
         stdin="n\n",
     )
 
     assert refused.exit_code != EXIT_OK
     assert not paths.runs_dir.exists() or _runs(paths) == []
-    assert DraftStore(paths, ConfirmationService()).start_record(draft.draft.id) is None
+    assert DraftStore(paths).start_record(draft.draft.id) is None

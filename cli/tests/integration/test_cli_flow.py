@@ -86,10 +86,7 @@ def flow(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
         "climb",
         "start",
         draft["draft_id"],
-        "--confirmation-token",
-        draft["confirmation_token"],
-        "--accept-data-policy",
-        draft["data_policy_digest"],
+        "--yes",
     )
     assert started.exit_code == EXIT_OK, started.stdout + started.stderr
     run_id = started.data()["run_id"]
@@ -205,11 +202,12 @@ def test_prepare_builds_a_draft_from_a_real_skill(flow: dict[str, Any]) -> None:
     assert draft["estimated_episodes"] == EXPECTED_TASK_COUNT * 2
 
 
-def test_start_acknowledges_the_policy_by_digest(flow: dict[str, Any]) -> None:
-    """Decisions 0003 A5: a token is not consent, an exact digest is."""
+def test_start_records_the_approval_and_who_gave_it(flow: dict[str, Any]) -> None:
+    """Decisions 0019 s2: the review was accepted, and by an operator here."""
     payload = flow["started"].data()
 
-    assert payload["policy_acknowledgement_method"] == "explicit_cli_digest"
+    assert payload["policy_acknowledgement_method"] == "explicit_cli_review"
+    assert payload["approved_by"] == "operator_via_flag"
     assert payload["data_policy_digest"] == flow["draft"]["data_policy_digest"]
 
 
@@ -351,19 +349,6 @@ def test_the_result_offers_the_tasks_first_and_the_log_after(
     assert ["techtree", "run", "logs", flow["run_id"]] in [
         action["cli"] for action in actions
     ]
-
-
-def test_no_secret_reaches_the_run_directory(flow: dict[str, Any]) -> None:
-    """The confirmation token lives in a response and in memory, nowhere else."""
-    paths = paths_from_root(flow["home"])
-    token: str = flow["draft"]["confirmation_token"]
-
-    for path in [
-        *paths.run_dir(flow["run_id"]).rglob("*"),
-        *paths.drafts_dir.rglob("*"),
-    ]:
-        if path.is_file():
-            assert token not in path.read_bytes().decode("utf-8", "replace")
 
 
 def test_the_flow_left_the_home_it_was_given(flow: dict[str, Any]) -> None:

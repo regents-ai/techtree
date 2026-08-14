@@ -21,9 +21,10 @@ Two things are kept as they are for public submissions, because the second run
 is a real run and nothing about it is smaller.
 
 *The rights policy is accepted again.* A second evaluation is a second use of
-the participant's material, so ``uplift start`` collects acceptance the same
-way ``climb start`` does: a person is shown the summary and answers, or a
-program names the exact digest. Spec section 7.20 requires it explicitly.
+the participant's material, so ``uplift start`` collects approval the same way
+``climb start`` does: the review of what the run would do is shown, the rights
+summary is shown under it, and a person answers — or an operator who cannot be
+asked passes ``--yes``. Spec section 7.20 requires it explicitly.
 
 *The comparison is stated before it runs.* ``uplift prepare`` returns both
 Skill digests, the derived Campaign digest, the estimated episodes, and the
@@ -42,21 +43,22 @@ from rich.table import Table
 
 from techtree.canonical import canonical_json_bytes
 from techtree.cli.commands.climb import (
-    acknowledge_data_policy,
+    approve_run,
     build_preparation_service,
+    phrase,
 )
 from techtree.cli.commands.run import build_run_service
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
-from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
 from techtree.fs import atomic_write_bytes, ensure_private_directory
-from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
+from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.run import RunPhase
 from techtree.models.skill import PolicyAcceptanceRequirement
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunArtifactStore
+from techtree.runs.service import ApprovalActor
 from techtree.skills.service import PreparedDraft
 from techtree.uplift.context import SkillImprovementContext
 from techtree.uplift.service import UpliftService
@@ -115,12 +117,18 @@ class UpliftSkillSourcePayload(ProtocolModel):
 
 
 class UpliftPreparePayload(ProtocolModel):
-    """What ``uplift prepare`` returns, including the token, once."""
+    """What ``uplift prepare`` returns: the draft, and what it commits to.
+
+    It discloses what ``climb prepare`` discloses. Decisions document 0019
+    section 1 makes the two comparisons the same kind of thing — one Skill
+    replaced by another, one Skill added where there was none — so the screen a
+    person approves the second run from states the same facts as the screen
+    they approved the first from: how many Skills each side carries, and which
+    data rights govern what this run produces.
+    """
 
     draft_id: NonEmptyString
     draft_digest: Digest
-    confirmation_token: NonEmptyString
-    confirmation_expires_at: UtcDateTime
     source_run_id: NonEmptyString
     campaign_spec_digest: Digest
     data_policy_digest: Digest
@@ -128,7 +136,15 @@ class UpliftPreparePayload(ProtocolModel):
     candidate_skill_digest: Digest
     candidate_label: NonEmptyString
     included_files: list[NonEmptyString]
+    baseline_skill_count: int
+    candidate_skill_count: int
     estimated_episodes: int
+    candidate_ownership: Literal["participant", "account", "shared"]
+    candidate_public_release: Literal[
+        "required_for_climb", "allowed", "prohibited", "consent_required"
+    ]
+    raw_episode_server_upload: Literal["allowed", "prohibited", "consent_required"]
+    raw_episode_training_use: Literal["allowed", "prohibited", "consent_required"]
     controlled: bool
     allowed_differences: list[NonEmptyString]
     differences: list[NonEmptyString]
@@ -146,10 +162,10 @@ class UpliftStartPayload(ProtocolModel):
     campaign_spec_digest: Digest
     data_policy_digest: Digest
     policy_acknowledgement_method: Literal[
-        "interactive_cli",
-        "explicit_cli_digest",
+        "explicit_cli_review",
         "host_agent_confirmation",
     ]
+    approved_by: ApprovalActor
 
 
 def build_uplift_service(context: CliContext) -> UpliftService:
@@ -357,11 +373,10 @@ def _prepare_payload(
     draft = prepared.draft
     comparison = prepared.manifest_comparison
     subject = prepared.source.campaign.subject
+    data_policy = prepared.source.data_policy
     return UpliftPreparePayload(
         draft_id=draft.id,
         draft_digest=prepared.draft_digest,
-        confirmation_token=prepared.confirmation_token,
-        confirmation_expires_at=prepared.confirmation_expires_at,
         source_run_id=source_run_id,
         campaign_spec_digest=draft.campaign_spec_digest,
         data_policy_digest=draft.data_policy_digest,
@@ -369,7 +384,13 @@ def _prepare_payload(
         candidate_skill_digest=draft.skill_artifact.root_digest,
         candidate_label=draft.skill_artifact.name,
         included_files=list(draft.included_files),
+        baseline_skill_count=len(subject.harness.skills),
+        candidate_skill_count=1,
         estimated_episodes=draft.estimated_episodes,
+        candidate_ownership=data_policy.candidate_skill.ownership,
+        candidate_public_release=data_policy.candidate_skill.public_release,
+        raw_episode_server_upload=data_policy.raw_episodes.server_upload,
+        raw_episode_training_use=data_policy.raw_episodes.training_use,
         controlled=comparison.controlled,
         allowed_differences=list(comparison.allowed_differences),
         differences=[difference.pointer for difference in comparison.differences],
@@ -389,39 +410,35 @@ def start_uplift_command(
         str,
         typer.Argument(metavar="DRAFT_ID", help="The prepared replacement to start."),
     ],
-    confirmation_token: Annotated[
-        str,
+    yes: Annotated[
+        bool,
         typer.Option(
-            "--confirmation-token",
-            metavar="TOKEN",
-            help="The token `techtree uplift prepare` returned.",
-        ),
-    ],
-    accept_data_policy: Annotated[
-        str | None,
-        typer.Option(
-            "--accept-data-policy",
-            metavar="DIGEST",
+            "--yes",
             help=(
-                "Accept the draft's DataPolicy by naming its exact digest. "
-                "Required when nothing can be asked."
+                "Approve this run without being asked. For an operator running "
+                "Techtree where nobody can answer a prompt; it is never a "
+                "shortcut for an agent to take on a person's behalf."
             ),
         ),
-    ] = None,
+    ] = False,
 ) -> None:
-    """Consume a confirmation and start the Skill v1 against Skill v2 run."""
+    """Review the prepared revision, approve it, and start the second run."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[UpliftStartPayload]:
         service = build_run_service(context)
-        draft = DraftStore(context.paths, ConfirmationService()).get(draft_id)
-        acknowledgement = acknowledge_data_policy(
-            context, draft=draft, accepted_digest=accept_data_policy
+        store = DraftStore(context.paths)
+        draft = store.get(draft_id)
+        approval = approve_run(
+            context,
+            draft=draft,
+            campaign=store.get_source(draft_id).campaign,
+            assume_yes=yes,
         )
         status = service.start(
             draft_id=draft_id,
-            confirmation_token=confirmation_token,
-            policy_acknowledgement=acknowledgement,
+            policy_acknowledgement=approval.acknowledgement,
+            approved_by=approval.actor,
         )
         payload = UpliftStartPayload(
             run_id=status.state.run_id,
@@ -430,7 +447,8 @@ def start_uplift_command(
             worker_pid=status.state.worker_pid,
             campaign_spec_digest=draft.campaign_spec_digest,
             data_policy_digest=draft.data_policy_digest,
-            policy_acknowledgement_method=acknowledgement.method,
+            policy_acknowledgement_method=approval.acknowledgement.method,
+            approved_by=approval.actor,
         )
         return CommandResult(
             data=payload,
@@ -483,19 +501,10 @@ def _start_replacement(payload: UpliftPreparePayload) -> NextAction:
         id="start_replacement",
         label=f"Start {payload.candidate_label} against the previous Skill",
         reason=(
-            f"Runs {payload.estimated_episodes} episodes. Accepting the data "
-            "policy is part of starting."
+            f"Runs {payload.estimated_episodes} episodes. It shows you what "
+            "this costs and what it changes, and starts only if you say yes."
         ),
-        cli=[
-            "techtree",
-            "uplift",
-            "start",
-            payload.draft_id,
-            "--confirmation-token",
-            payload.confirmation_token,
-            "--accept-data-policy",
-            payload.data_policy_digest,
-        ],
+        cli=["techtree", "uplift", "start", payload.draft_id],
         hermes_tool=None,
         hermes_args=None,
         requires_user_confirmation=True,
@@ -591,7 +600,7 @@ def _render_prepare(data: object, console: Console) -> None:
             ("Draft", data.draft_id),
             ("From run", data.source_run_id),
             ("Campaign digest", data.campaign_spec_digest),
-            ("DataPolicy digest", data.data_policy_digest),
+            ("Data policy digest", data.data_policy_digest),
             ("Baseline skill", data.baseline_skill_digest),
             ("Candidate skill", data.candidate_skill_digest),
             ("Candidate", data.candidate_label),
@@ -610,18 +619,31 @@ def _render_prepare(data: object, console: Console) -> None:
         [
             ("Allowed difference", ", ".join(data.allowed_differences)),
             ("Found difference", ", ".join(data.differences)),
+            ("Baseline skills", str(data.baseline_skill_count)),
+            ("Candidate skills", str(data.candidate_skill_count)),
             ("Controlled", "yes" if data.controlled else "no"),
             ("Estimated episodes", str(data.estimated_episodes)),
         ],
     )
 
     console.print()
-    console.print(data.policy_acceptance.summary)
-    console.print()
-    console.print(
-        "Confirmation expires "
-        f"{data.confirmation_expires_at.isoformat().replace('+00:00', 'Z')}."
+    console.print("Data rights")
+    _print_pairs(
+        console,
+        [
+            ("Candidate ownership", data.candidate_ownership),
+            ("Public release", phrase(data.candidate_public_release)),
+            ("Raw episode upload", phrase(data.raw_episode_server_upload)),
+            ("Training use", phrase(data.raw_episode_training_use)),
+            (
+                "Acceptance",
+                "required before starting"
+                if data.policy_acceptance.required
+                else "not required",
+            ),
+        ],
     )
+    console.print(data.policy_acceptance.summary)
 
 
 def _render_start(data: object, console: Console) -> None:
@@ -636,8 +658,9 @@ def _render_start(data: object, console: Console) -> None:
             ("Phase", data.phase.value),
             ("Worker", "not started" if data.worker_pid is None else "running"),
             ("Campaign digest", data.campaign_spec_digest),
-            ("DataPolicy digest", data.data_policy_digest),
-            ("Accepted by", data.policy_acknowledgement_method.replace("_", " ")),
+            ("Data policy digest", data.data_policy_digest),
+            ("Approved", phrase(data.policy_acknowledgement_method)),
+            ("Approved by", phrase(data.approved_by)),
         ],
     )
 

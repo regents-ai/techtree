@@ -1,8 +1,8 @@
 """Run control, and the transaction that makes starting safe.
 Spec PR8 §8.8, §8.13, §8.15, §8.17, §9.
 
-Starting is the interesting half. It spends a one-time confirmation and a
-participant's acceptance of a rights policy, and it has to survive a crash
+Starting is the interesting half. It spends a draft and a participant's
+approval of exactly what that draft would do, and it has to survive a crash
 between any two of the four things it touches. Every crash window in spec §9
 is a test here, and each of them asserts the same thing: one draft becomes one
 run, whatever happens.
@@ -22,7 +22,7 @@ same function survives in a *detached* process is established by
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -34,12 +34,10 @@ from fixtures.runs.support import (
     utc_now,
 )
 from techtree.canonical import canonical_json_bytes, digest_object
-from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStartRecord, DraftStartStatus
 from techtree.errors import (
     EXIT_CANCELLED,
     EXIT_VERIFICATION,
-    AuthenticationError,
     CancellationError,
     ConflictError,
     PolicyError,
@@ -50,9 +48,17 @@ from techtree.errors import (
 )
 from techtree.fs import atomic_write_bytes, remove_tree
 from techtree.models.base import JsonValue
-from techtree.models.run import RunPhase, RunState
+from techtree.models.run import RunEvent, RunPhase, RunState
 from techtree.models.uplift_report import UpliftReport
-from techtree.runs.events import PHASE_ENTERED, RUN_COMPLETED
+from techtree.runs.events import (
+    DETAIL_ACTOR,
+    DETAIL_APPROVED_AT,
+    DETAIL_DRAFT_DIGEST,
+    PHASE_ENTERED,
+    RUN_APPROVED,
+    RUN_COMPLETED,
+    read_events,
+)
 from techtree.runs.executor import ExecutionContext, clear_local_cancellation
 from techtree.runs.fake import FakeRunExecutor
 from techtree.runs.service import DEFAULT_LOG_TAIL
@@ -71,7 +77,7 @@ def harness(temp_techtree_home: Path) -> RunHarness:
 # ---------------------------------------------------------------------------
 
 
-def test_a_correct_token_and_acceptance_start_one_run(harness: RunHarness) -> None:
+def test_an_approved_draft_starts_one_run(harness: RunHarness) -> None:
     status = harness.start()
 
     assert status.state.phase is RunPhase.CREATED
@@ -85,11 +91,38 @@ def test_a_correct_token_and_acceptance_start_one_run(harness: RunHarness) -> No
 def test_the_request_records_how_the_policy_was_accepted(
     harness: RunHarness,
 ) -> None:
-    status = harness.start(method="interactive_cli")
+    status = harness.start()
 
     acknowledgement = harness.request(status.state.run_id).policy_acknowledgement
-    assert acknowledgement.method == "interactive_cli"
+    assert acknowledgement.method == "explicit_cli_review"
     assert acknowledgement.data_policy_digest == harness.draft.data_policy_digest
+
+
+def test_the_run_records_who_approved_it(harness: RunHarness) -> None:
+    """Decisions 0019 s2: one ordinary run event, and it names the actor."""
+    status = harness.start(approved_by="operator_via_flag")
+
+    request = harness.request(status.state.run_id)
+    approved = _only_approval(harness, status.state.run_id)
+    assert approved.details[DETAIL_ACTOR] == "operator_via_flag"
+    assert approved.details[DETAIL_DRAFT_DIGEST] == request.draft_digest
+    assert approved.details[DETAIL_APPROVED_AT] == (
+        request.policy_acknowledgement.acknowledged_at.isoformat().replace(
+            "+00:00", "Z"
+        )
+    )
+    assert approved.phase is RunPhase.CREATED
+
+
+def _only_approval(harness: RunHarness, run_id: str) -> RunEvent:
+    """Return the one approval event this run recorded, refusing a second."""
+    approvals = [
+        event
+        for event in read_events(harness.paths.run_dir(run_id) / "events.jsonl")
+        if event.kind == RUN_APPROVED
+    ]
+    assert len(approvals) == 1
+    return approvals[0]
 
 
 def test_the_request_names_the_draft_it_was_built_from(harness: RunHarness) -> None:
@@ -99,37 +132,6 @@ def test_the_request_names_the_draft_it_was_built_from(harness: RunHarness) -> N
     assert request.draft_id == harness.draft_id
     assert request.draft_digest == digest_object(harness.draft)
     assert request.executor_kind == "fake"
-
-
-def test_a_wrong_token_starts_nothing(harness: RunHarness) -> None:
-    with pytest.raises(AuthenticationError) as raised:
-        harness.start(token="not-the-token")
-
-    assert raised.value.code == "confirmation_token_invalid"
-    assert harness.drafts.start_record(harness.draft_id) is None
-    assert not harness.paths.runs_dir.exists() or (
-        list(harness.paths.runs_dir.iterdir()) == []
-    )
-
-
-def test_an_empty_token_is_a_usage_error(harness: RunHarness) -> None:
-    with pytest.raises(UsageError) as raised:
-        harness.start(token="   ")
-
-    assert raised.value.code == "confirmation_token_required"
-
-
-def test_an_expired_token_starts_nothing(temp_techtree_home: Path) -> None:
-    moment = [datetime(2026, 1, 1, tzinfo=UTC)]
-    confirmation = ConfirmationService(clock=lambda: moment[0])
-    expiring = run_harness(temp_techtree_home, confirmation=confirmation)
-    moment[0] = moment[0] + timedelta(days=1)
-
-    with pytest.raises(AuthenticationError) as raised:
-        expiring.start()
-
-    assert raised.value.code == "confirmation_token_expired"
-    assert expiring.drafts.start_record(expiring.draft_id) is None
 
 
 def test_accepting_a_different_policy_starts_nothing(harness: RunHarness) -> None:
@@ -163,27 +165,27 @@ def test_starting_twice_returns_the_same_run(harness: RunHarness) -> None:
     assert len(list(harness.paths.runs_dir.iterdir())) == 1
 
 
-def test_a_second_start_does_not_consume_a_second_confirmation(
+def test_a_second_start_does_not_record_a_second_approval(
     harness: RunHarness,
 ) -> None:
-    harness.start()
-    consumed_at = harness.drafts.get_confirmation(harness.draft_id).consumed_at
+    """One run, one approval, however many times a start is attempted."""
+    run_id = harness.start().state.run_id
+    first = _only_approval(harness, run_id)
 
     harness.start()
 
-    assert harness.drafts.get_confirmation(harness.draft_id).consumed_at == consumed_at
+    assert _only_approval(harness, run_id) == first
 
 
 def test_a_crash_after_the_claim_repairs_the_same_run(harness: RunHarness) -> None:
     """Spec §9.3: start.json holds the canonical run identifier."""
     claimed = harness.drafts.claim_start(
         draft_id=harness.draft_id,
-        token=harness.token,
         run_id="run_" + "1" * 32,
     )
     assert claimed.status is DraftStartStatus.CLAIMED
 
-    status = harness.start(token="the-token-was-already-consumed")
+    status = harness.start()
 
     assert status.state.run_id == claimed.run_id
     assert harness.launcher.launched == [claimed.run_id]
@@ -292,19 +294,6 @@ def test_a_failed_launch_leaves_an_addressable_failed_run(
     assert state.phase is RunPhase.FAILED
     assert state.error is not None
     assert state.error.code == "worker_launch_failed"
-
-
-def test_a_failed_launch_still_consumed_the_confirmation(
-    temp_techtree_home: Path,
-) -> None:
-    failing = run_harness(
-        temp_techtree_home,
-        launcher_failure=RunError("no worker today", code="worker_launch_failed"),
-    )
-    with pytest.raises(RunError):
-        failing.start()
-
-    assert failing.drafts.get_confirmation(failing.draft_id).consumed_at is not None
 
 
 def test_retrying_a_failed_launch_returns_the_same_failed_run(

@@ -96,7 +96,6 @@ STARTER_SKILL_CANDIDATE_LABEL: Final = "hello-world-v1"
 #: carry. It is release metadata about the artifact, never Skill content.
 STARTER_SKILL_PURPOSE: Final = "intentionally incomplete introductory Skill"
 
-DEFAULT_CONFIRMATION_TTL_SECONDS: Final = 900
 DEFAULT_WORKER_HEARTBEAT_SECONDS: Final = 2
 DEFAULT_STALE_HEARTBEAT_SECONDS: Final = 15
 

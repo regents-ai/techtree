@@ -41,6 +41,7 @@ from rich.console import Console
 from rich.table import Table
 
 from techtree.presentation.build import (
+    HELD_FIXED_LINE,
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
@@ -263,6 +264,7 @@ def _cost(payload: UpliftPresentationPayload) -> str:
 def _what_changed(payload: UpliftPresentationPayload, console: Console) -> None:
     """The one declared difference, and the statement that it is the only one."""
     console.print("What changed")
+    console.print(f"  {payload.change_label}")
     for side, skill in (
         ("Baseline ", payload.baseline_skill),
         ("Candidate", payload.candidate_skill),
@@ -270,11 +272,8 @@ def _what_changed(payload: UpliftPresentationPayload, console: Console) -> None:
         digest = "none" if skill.root_digest is None else skill.root_digest
         console.print(f"  {side}  {skill.label}")
         console.print(f"             {digest}")
-    console.print(
-        "  Every other declared field — model, sampling, harness, runtime "
-        "image, taskset — was held fixed and checked against what the run "
-        "actually did."
-    )
+    console.print(f"  {HELD_FIXED_LINE}")
+    console.print("  Each of those was checked against what the run actually did.")
     console.print()
 
 

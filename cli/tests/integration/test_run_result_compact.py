@@ -116,20 +116,23 @@ def test_the_compact_result_is_short_enough_to_send(
 ) -> None:
     """A phone message, not a terminal dump.
 
-    The budget has moved three times. Decisions document 0007 R6 added the
+    The budget has moved four times. Decisions document 0007 R6 added the
     cost and its provenance, decisions document 0009 added the sentence saying
-    the task family is a toy introductory one, and the recorded evidence became
-    a thirty-six task comparison, which spends a few more lines on the task
-    table the renderer caps at five rows. All of them are qualifications the
-    reader is owed in the channel a number is most likely to be quoted out of,
-    so they are paid for out of the budget rather than out of honesty.
+    the task family is a toy introductory one, the recorded evidence became a
+    thirty-six task comparison, which spends a few more lines on the task table
+    the renderer caps at five rows, and decisions document 0019 section 3 added
+    the two statements this channel was missing: that everything except the
+    Skill was the same on both sides, and how long each side took. All of them
+    are things the reader is owed in the channel a number is most likely to be
+    quoted out of, so they are paid for out of the budget rather than out of
+    honesty.
 
     What the bound is really protecting is that the table cannot grow with the
     membership: thirty-six tasks render in the same handful of rows two did.
     """
     text = compact(finished)
 
-    assert len(text.splitlines()) < 50
+    assert len(text.splitlines()) < 56
 
 
 def test_the_compact_result_offers_one_next_step_in_words(

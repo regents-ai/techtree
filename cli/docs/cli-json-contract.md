@@ -60,9 +60,10 @@ Machine mode implies `--no-input`. A prompt written to a host agent is a hang,
 not a question, so `--json` and interactivity cannot be requested together.
 
 Anything a person would confirm interactively has an explicit non-interactive
-form. Accepting a DataPolicy, for example, requires
-`--accept-data-policy sha256:<exact-policy-digest>`: possession of a
-confirmation token never implies acceptance.
+form. Starting a prepared draft, for example, prints the review of what the run
+would do and asks; in machine mode the caller has to pass `--yes` instead, and
+the refusal names the flag. `--yes` is an operator's deliberate act, never a
+shortcut a model may take on a person's behalf.
 
 ## The envelope
 

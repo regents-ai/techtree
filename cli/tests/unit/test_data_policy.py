@@ -7,8 +7,8 @@ makes impossible is refused.
 The second is decisions document 0003 A5 — the split between
 ``PolicyAcceptanceRequirement`` (what a draft says must be accepted) and
 ``PolicyAcknowledgement`` (what a run records was accepted). Keeping them apart
-is what stops possession of a confirmation token from standing in for reading a
-rights policy.
+is what stops having prepared a draft from standing in for having read a rights
+policy.
 """
 
 from __future__ import annotations
@@ -192,17 +192,17 @@ def test_acceptance_requirement_states_what_must_be_accepted() -> None:
 def test_acknowledgement_records_who_accepted_and_how() -> None:
     acknowledgement = PolicyAcknowledgement(
         data_policy_digest=OTHER_DIGEST,
-        method="explicit_cli_digest",
+        method="explicit_cli_review",
         acknowledged_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
-    assert acknowledgement.method == "explicit_cli_digest"
+    assert acknowledgement.method == "explicit_cli_review"
     assert not hasattr(acknowledgement, "required")
 
 
 @pytest.mark.parametrize(
     "method",
-    ["interactive_cli", "explicit_cli_digest", "host_agent_confirmation"],
+    ["explicit_cli_review", "host_agent_confirmation"],
 )
 def test_acknowledgement_accepts_every_documented_method(method: str) -> None:
     acknowledgement = PolicyAcknowledgement(
@@ -218,7 +218,7 @@ def test_acknowledgement_rejects_an_invented_method() -> None:
     with pytest.raises(PydanticValidationError):
         PolicyAcknowledgement(
             data_policy_digest=OTHER_DIGEST,
-            method="implied_by_confirmation_token",  # type: ignore[arg-type]
+            method="implied_by_preparing_a_draft",  # type: ignore[arg-type]
             acknowledged_at=datetime(2026, 1, 1, tzinfo=UTC),
         )
 
@@ -227,6 +227,6 @@ def test_acknowledgement_requires_an_aware_timestamp() -> None:
     with pytest.raises(PydanticValidationError, match="timezone-aware"):
         PolicyAcknowledgement(
             data_policy_digest=OTHER_DIGEST,
-            method="interactive_cli",
+            method="explicit_cli_review",
             acknowledged_at=datetime(2026, 1, 1),
         )

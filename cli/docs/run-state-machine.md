@@ -87,10 +87,11 @@ making a transition, and the table does not pretend otherwise.
 ### Events that do not change the phase
 
 A run does have things to say while it stays where it is, and there are exactly
-six of them:
+seven of them:
 
 | Kind | Where | What it reports |
 | --- | --- | --- |
+| `run.approved` | `created` | That a person read the review and approved this run. |
 | `worker.started` | `created` | The process id of the worker that took the run on. |
 | `progress.updated` | any phase doing work | Position within the current phase. |
 | `result.written` | `building_report` | The digest of the report just persisted. |
@@ -130,7 +131,7 @@ One event is one line of RFC 8785 canonical JSON in
 | `run_id` | The run this event belongs to. |
 | `previous_phase` | The phase left. `null` only on the created event. |
 | `phase` | The phase entered, or the phase retained. |
-| `kind` | What happened. One of twelve names; see below. |
+| `kind` | What happened. One of thirteen names; see below. |
 | `details` | JSON, free-form except for the keys the kind is defined to carry. |
 
 Both `previous_phase` and `phase` are recorded so that a reader reconstructing
@@ -138,7 +139,7 @@ a run never has to infer where it came from — which matters most for
 `cancel_requested`, where the phase the run was interrupted in is otherwise
 lost.
 
-### The twelve kinds
+### The thirteen kinds
 
 `kind` is a string in the frozen model and a closed set in the local store
 (`runs/events.py`). Each name fixes the phases it may sit between and the
@@ -147,6 +148,7 @@ details it carries:
 | Kind | From | To | Details |
 | --- | --- | --- | --- |
 | `run.created` | — (sequence 0) | `created` | `request_digest` |
+| `run.approved` | `created` | `created` | `draft_digest`, `actor`, `approved_at` |
 | `worker.started` | `created` | `created` | `worker_pid` |
 | `phase.entered` | any phase | a different phase | optional `label` |
 | `progress.updated` | current phase | the same phase | `current`, `total`, `label` |
@@ -401,8 +403,7 @@ accepted, by which method, and when:
 ```python
 class PolicyAcknowledgement(ProtocolModel):
     data_policy_digest: Digest
-    method: Literal["interactive_cli", "explicit_cli_digest",
-                    "host_agent_confirmation"]
+    method: Literal["explicit_cli_review", "host_agent_confirmation"]
     acknowledged_at: datetime
 ```
 
@@ -413,7 +414,11 @@ policy *must* be accepted (`policy_acceptance`); the run records that it *was*.
 `data_policy_digest`, so a run cannot acknowledge one policy and execute under
 another.
 
-Possession of a valid confirmation token never implies acceptance. In machine
-mode (`--no-input`) the caller must pass
-`--accept-data-policy sha256:<exact-policy-digest>`, which yields method
-`explicit_cli_digest`; automation cannot accept a policy it never read.
+Decisions 0019 section 2 leaves one method at the command line:
+`explicit_cli_review` says the review of what the run would do was shown and
+explicitly accepted. It covers both the typed `y` and the `--yes` an operator
+passes where nobody can be asked; which of the two answered is recorded on the
+run's `run.approved` event as its `actor`, so an auditor can tell them apart
+without the acceptance itself pretending to two meanings. In machine mode
+(`--no-input`) the prompt cannot run, so a start without `--yes` is refused and
+the refusal names the flag.

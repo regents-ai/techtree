@@ -11,9 +11,9 @@ be run, including the rights the participant is being asked to accept.
 Decisions document 0003 A5 splits that from the moment of accepting: the draft
 carries a ``PolicyAcceptanceRequirement`` — the digest, whether acceptance is
 required, and a stable human-readable summary — while the acknowledgement
-itself is recorded on the ``RunRequest``. Possessing a confirmation token has
-never implied accepting a rights policy, and the two objects now make that
-impossible to blur.
+itself is recorded on the ``RunRequest``. Stating what will have to be accepted
+and recording that it was accepted are two different facts, and the two objects
+keep them from being blurred.
 """
 
 from __future__ import annotations
@@ -26,14 +26,12 @@ from techtree.models.base import (
     Digest,
     NonEmptyString,
     ProtocolModel,
-    StateModel,
     UtcDateTime,
 )
 from techtree.models.campaign import ProgramRef, PublicContext
 
 __all__ = [
     "SKILL_ENTRY_FILE",
-    "ConfirmationRecord",
     "PolicyAcceptanceRequirement",
     "SecretFinding",
     "SkillArtifact",
@@ -120,15 +118,6 @@ class PolicyAcceptanceRequirement(ProtocolModel):
     data_policy_digest: Digest
     required: bool
     summary: NonEmptyString
-
-
-class ConfirmationRecord(StateModel):
-    """Local proof that a specific draft was confirmed, and when it expires."""
-
-    token_hash: Digest
-    draft_digest: Digest
-    expires_at: UtcDateTime
-    consumed_at: UtcDateTime | None
 
 
 class SubmissionDraft(ProtocolModel):

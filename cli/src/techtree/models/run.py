@@ -12,8 +12,10 @@ update from being able to alter the request it is executing.
 
 Decisions document 0003 A5 puts ``policy_acknowledgement`` here. A draft states
 which rights policy must be accepted; the run records that it *was* accepted,
-by which method, and when. Holding a valid confirmation token never implied
-acceptance, and in machine mode the caller must name the exact policy digest.
+by which method, and when. Decisions document 0019 section 2 makes that one
+answer to one review rather than a handle that had to be presented: nothing is
+started without the review having been shown and explicitly accepted, and a
+caller that cannot be asked has to say so with a flag.
 """
 
 from __future__ import annotations
@@ -85,15 +87,22 @@ class RunPhase(StrEnum):
 class PolicyAcknowledgement(ProtocolModel):
     """That a specific rights policy was accepted, how, and when.
 
-    Decisions document 0003 A5. ``explicit_cli_digest`` is the machine-mode
-    method and requires the caller to have named the exact policy digest, so
-    that automation cannot accept a policy it never read.
+    Decisions document 0003 A5, as amended by 0019 section 2.
+    ``explicit_cli_review`` says the review of what the run would do — its
+    size, its cost ceiling, the one change being measured, where model calls
+    go, and what is never uploaded — was put in front of whoever started it and
+    explicitly accepted. It covers both spellings of that answer at the command
+    line, the typed ``y`` and the flag an operator passes instead, because the
+    fact being recorded is the same one; who gave the answer is recorded
+    separately on the run's ``run.approved`` event.
+
+    ``host_agent_confirmation`` is reserved for the approval surface the plugin
+    presents in a conversation, and nothing in this build produces it.
     """
 
     data_policy_digest: Digest
     method: Literal[
-        "interactive_cli",
-        "explicit_cli_digest",
+        "explicit_cli_review",
         "host_agent_confirmation",
     ]
     acknowledged_at: UtcDateTime

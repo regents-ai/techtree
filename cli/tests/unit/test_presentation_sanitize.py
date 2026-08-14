@@ -40,7 +40,8 @@ def payload(**overrides: object) -> UpliftPresentationPayload:
         "schema_version": PRESENTATION_SCHEMA_VERSION,
         "run_id": "run_" + "0" * 32,
         "campaign_title": "A Climb",
-        "comparison_label": "No tested Skill → Skill v1",
+        "comparison_label": "Hello World Uplift Receipt",
+        "change_label": "No tested Skill → Skill v1",
         "baseline_skill": SkillSummary(
             label="No tested Skill", root_digest=None, file_count=0, total_bytes=0
         ),

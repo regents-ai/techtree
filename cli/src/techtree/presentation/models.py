@@ -121,12 +121,21 @@ class PresentationCaveat(ProtocolModel):
 
 
 class UpliftPresentationPayload(ProtocolModel):
-    """One comparison, ready to be shown anywhere."""
+    """One comparison, ready to be shown anywhere.
+
+    ``comparison_label`` names which result in the chain this is;
+    ``change_label`` names the one thing that differed between the two sides,
+    in the arrow form decisions document 0019 section 1 fixes. They are two
+    fields because they answer two questions — which receipt am I holding, and
+    what did it measure — and a channel with room for only one should not have
+    to guess which.
+    """
 
     schema_version: Literal["techtree.presentation.uplift.v1"]
     run_id: NonEmptyString
     campaign_title: NonEmptyString
     comparison_label: NonEmptyString
+    change_label: NonEmptyString
     baseline_skill: SkillSummary
     candidate_skill: SkillSummary
     baseline_score: float

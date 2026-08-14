@@ -42,7 +42,6 @@ import pytest
 
 from fixtures.drafts.support import COMPLETE_CATALOG, VALID_SKILL, preparation_service
 from techtree.canonical import digest_object
-from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
 from techtree.errors import TechtreeError
 from techtree.models.run import PolicyAcknowledgement, RunRequest, RunStatus
@@ -53,7 +52,7 @@ from techtree.runs.artifacts import RunArtifactStore, RunInputBundle
 from techtree.runs.executor import ExecutionContext, clear_local_cancellation
 from techtree.runs.fake import FakeRunExecutor
 from techtree.runs.launcher import WorkerLauncher
-from techtree.runs.service import RunService
+from techtree.runs.service import ApprovalActor, RunService
 from techtree.runs.store import RunStore
 from techtree.runs.validation import (
     PublisherFixtureValidationProvider,
@@ -145,16 +144,11 @@ class RunHarness:
         """Return the prepared draft's identifier."""
         return self.prepared.draft.id
 
-    @property
-    def token(self) -> str:
-        """Return the confirmation token preparation issued once."""
-        return self.prepared.confirmation_token
-
     def acknowledgement(
         self,
         *,
         digest: str | None = None,
-        method: str = "explicit_cli_digest",
+        method: str = "explicit_cli_review",
         at: datetime | None = None,
     ) -> PolicyAcknowledgement:
         """Return an acceptance of this draft's data policy."""
@@ -164,12 +158,17 @@ class RunHarness:
             acknowledged_at=at or utc_now(),
         )
 
-    def start(self, *, token: str | None = None, **acknowledgement: Any) -> RunStatus:
+    def start(
+        self,
+        *,
+        approved_by: ApprovalActor = "human_via_cli",
+        **acknowledgement: Any,
+    ) -> RunStatus:
         """Start this draft the way the CLI would."""
         return self.service.start(
             draft_id=self.draft_id,
-            confirmation_token=self.token if token is None else token,
             policy_acknowledgement=self.acknowledgement(**acknowledgement),
+            approved_by=approved_by,
         )
 
     def request(self, run_id: str) -> RunRequest:
@@ -186,16 +185,12 @@ def run_harness(
     *,
     catalog_root: Path = COMPLETE_CATALOG,
     skill_path: Path = VALID_SKILL,
-    confirmation: ConfirmationService | None = None,
     launcher_failure: TechtreeError | None = None,
     clock: Callable[[], datetime] = utc_now,
 ) -> RunHarness:
     """Prepare one real draft and wire the run stack over it."""
     paths = paths_from_root(home)
-    confirmations = confirmation or ConfirmationService()
-    preparation, drafts = preparation_service(
-        paths, catalog_root=catalog_root, confirmation=confirmations
-    )
+    preparation, drafts = preparation_service(paths, catalog_root=catalog_root)
     prepared = preparation.prepare(
         climb_reference=DEVELOPMENT_CLIMB,
         skill_path=skill_path,
@@ -324,10 +319,7 @@ def start_through_the_cli(home: Path, prepared: PreparedDraft) -> CliRun:
         "climb",
         "start",
         prepared.draft.id,
-        "--confirmation-token",
-        prepared.confirmation_token,
-        "--accept-data-policy",
-        prepared.draft.data_policy_digest,
+        "--yes",
     )
 
 

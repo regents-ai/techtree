@@ -10,9 +10,9 @@ synthetic catalog fixture. A store test that hand-assembled its own draft would
 be asserting that the store agrees with the test, which is not the question.
 
 Two behaviours here belong to PR8 but are owned by this store: the exactly-once
-start claim, and what happens when a launch fails after the confirmation has
-been spent. They are tested now because getting them wrong later would be
-invisible until two runs came out of one draft.
+start claim, and what happens when a launch fails after the draft has been
+spent. They are tested now because getting them wrong later would be invisible
+until two runs came out of one draft.
 """
 
 from __future__ import annotations
@@ -33,7 +33,6 @@ from fixtures.drafts.support import (
 from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.drafts.store import DraftStartStatus, DraftStore
 from techtree.errors import (
-    AuthenticationError,
     ConflictError,
     NotFoundError,
     VerificationError,
@@ -71,7 +70,6 @@ def test_a_created_draft_holds_the_whole_documented_layout(
 
     for relative in (
         "draft.json",
-        "confirmation.json",
         "comparison.json",
         "public/climb.json",
         "public/campaign.json",
@@ -99,18 +97,6 @@ def test_no_staging_directory_survives_a_successful_prepare(
     ]
     assert leftovers == []
     assert store.draft_dir(prepared.draft.id).is_dir()
-
-
-def test_the_raw_token_is_nowhere_on_disk(
-    draft: tuple[DraftStore, PreparedDraft, Path],
-) -> None:
-    _, prepared, directory = draft
-
-    for path in directory.rglob("*"):
-        if path.is_file():
-            assert prepared.confirmation_token not in path.read_bytes().decode(
-                "utf-8", errors="replace"
-            )
 
 
 # ---------------------------------------------------------------------------
@@ -330,7 +316,6 @@ def test_a_receipt_with_no_evidence_cannot_become_a_draft(
     with pytest.raises(VerificationError) as caught:
         store.create(
             draft=second,
-            confirmation=store.get_confirmation(prepared.draft.id),
             baseline=snapshot.baseline,
             candidate=snapshot.candidate,
             comparison=snapshot.comparison,
@@ -363,7 +348,6 @@ def test_a_second_draft_under_the_same_identifier_is_refused(
     with pytest.raises(ConflictError) as caught:
         store.create(
             draft=snapshot.draft,
-            confirmation=store.get_confirmation(prepared.draft.id),
             baseline=snapshot.baseline,
             candidate=snapshot.candidate,
             comparison=snapshot.comparison,
@@ -380,20 +364,17 @@ def test_a_second_draft_under_the_same_identifier_is_refused(
 # ---------------------------------------------------------------------------
 
 
-def test_claiming_a_start_consumes_the_confirmation_once(
+def test_claiming_a_start_writes_the_claim_once(
     draft: tuple[DraftStore, PreparedDraft, Path],
 ) -> None:
     store, prepared, directory = draft
     run_id = new_id("run")
 
-    claim = store.claim_start(
-        draft_id=prepared.draft.id, token=prepared.confirmation_token, run_id=run_id
-    )
+    claim = store.claim_start(draft_id=prepared.draft.id, run_id=run_id)
 
     assert claim.status is DraftStartStatus.CLAIMED
     assert claim.run_id == run_id
     assert (directory / "start.json").is_file()
-    assert store.get_confirmation(prepared.draft.id).consumed_at is not None
 
 
 def test_claiming_twice_returns_the_first_run_rather_than_a_second(
@@ -403,33 +384,16 @@ def test_claiming_twice_returns_the_first_run_rather_than_a_second(
     store, prepared, _ = draft
     first = store.claim_start(
         draft_id=prepared.draft.id,
-        token=prepared.confirmation_token,
         run_id=new_id("run"),
     )
 
     second = store.claim_start(
         draft_id=prepared.draft.id,
-        token=prepared.confirmation_token,
         run_id=new_id("run"),
     )
 
     assert second.run_id == first.run_id
     assert second.claimed_at == first.claimed_at
-
-
-def test_a_wrong_token_claims_nothing(
-    draft: tuple[DraftStore, PreparedDraft, Path],
-) -> None:
-    store, prepared, directory = draft
-
-    with pytest.raises(AuthenticationError):
-        store.claim_start(
-            draft_id=prepared.draft.id, token="not-the-token", run_id=new_id("run")
-        )
-
-    assert not (directory / "start.json").exists()
-    assert store.get_confirmation(prepared.draft.id).consumed_at is None
-    assert store.start_record(prepared.draft.id) is None
 
 
 def test_a_launch_is_recorded_against_the_claimed_run(
@@ -438,7 +402,6 @@ def test_a_launch_is_recorded_against_the_claimed_run(
     store, prepared, _ = draft
     claim = store.claim_start(
         draft_id=prepared.draft.id,
-        token=prepared.confirmation_token,
         run_id=new_id("run"),
     )
 
@@ -456,11 +419,10 @@ def test_a_launch_is_recorded_against_the_claimed_run(
 def test_a_failed_launch_stays_visible(
     draft: tuple[DraftStore, PreparedDraft, Path],
 ) -> None:
-    """The confirmation is already spent, so the failure must not vanish."""
+    """The draft is already spent, so the failure must not vanish."""
     store, prepared, _ = draft
     claim = store.claim_start(
         draft_id=prepared.draft.id,
-        token=prepared.confirmation_token,
         run_id=new_id("run"),
     )
 
@@ -480,7 +442,6 @@ def test_another_run_cannot_take_over_a_claim(
     store, prepared, _ = draft
     store.claim_start(
         draft_id=prepared.draft.id,
-        token=prepared.confirmation_token,
         run_id=new_id("run"),
     )
 
@@ -488,7 +449,7 @@ def test_another_run_cannot_take_over_a_claim(
         store.mark_launched(
             draft_id=prepared.draft.id,
             run_id=new_id("run"),
-            launched_at=prepared.confirmation_expires_at,
+            launched_at=prepared.draft.created_at,
         )
 
     assert caught.value.code == "draft_start_conflict"
@@ -503,7 +464,7 @@ def test_marking_a_launch_before_a_claim_is_refused(
         store.mark_launched(
             draft_id=prepared.draft.id,
             run_id=new_id("run"),
-            launched_at=prepared.confirmation_expires_at,
+            launched_at=prepared.draft.created_at,
         )
 
     assert caught.value.code == "draft_not_started"
@@ -515,7 +476,6 @@ def test_a_start_record_round_trips_through_canonical_bytes(
     store, prepared, directory = draft
     claim = store.claim_start(
         draft_id=prepared.draft.id,
-        token=prepared.confirmation_token,
         run_id=new_id("run"),
     )
 

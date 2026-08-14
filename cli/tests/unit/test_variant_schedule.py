@@ -254,7 +254,7 @@ def request_model() -> RunRequest:
         candidate_manifest_digest=sha256_digest_bytes(b"candidate"),
         policy_acknowledgement=PolicyAcknowledgement(
             data_policy_digest=policy,
-            method="explicit_cli_digest",
+            method="explicit_cli_review",
             acknowledged_at=_MOMENT,
         ),
         executor_kind="fake",

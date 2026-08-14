@@ -26,6 +26,7 @@ from __future__ import annotations
 from typing import Final
 
 from techtree.presentation.build import (
+    HELD_FIXED_LINE,
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
@@ -91,12 +92,14 @@ def render_uplift_markdown(
         lines = [UNVERIFIED_HEADLINE, "", *lines]
     lines += [
         f"- {payload.campaign_title} — {payload.comparison_label}",
+        f"- Changed: {payload.change_label}. {HELD_FIXED_LINE}",
         f"- Wins: {payload.wins}",
         f"- Losses: {payload.losses}",
         f"- Ties: {payload.ties}",
         f"- Proof: local {payload.proof_grade}, "
         f"{_VERIFICATION_PHRASE[payload.verification_status]}",
         f"- Cost: {_cost(payload)}",
+        f"- Time: {_time(payload)}",
         "- Raw episodes: retained locally; not uploaded",
     ]
 
@@ -134,6 +137,28 @@ def _cost(payload: UpliftPresentationPayload) -> str:
     return f"${payload.cost_usd:.2f}, {_COST_PROVENANCE[payload.cost_provenance]}"
 
 
+def _time(payload: UpliftPresentationPayload) -> str:
+    """Return how long each side took, or say it was not recorded.
+
+    Decisions document 0019 section 3 puts timing in the measured difference,
+    so the channel with the least room still carries it: a comparison whose
+    two sides took very different amounts of time is a comparison a reader
+    should be able to ask about.
+    """
+    baseline = payload.baseline_seconds
+    candidate = payload.candidate_seconds
+    if baseline is None and candidate is None:
+        return "not recorded for this run"
+    return f"baseline {_seconds(baseline)}, candidate {_seconds(candidate)}"
+
+
+def _seconds(value: float | None) -> str:
+    """Return one side's elapsed time, or the word for an absent one."""
+    if value is None:
+        return "unavailable"
+    return f"{value:.1f}s"
+
+
 def _next_line(payload: UpliftPresentationPayload) -> str:
     """Offer, in one line, the steps this result actually has.
 
@@ -145,7 +170,8 @@ def _next_line(payload: UpliftPresentationPayload) -> str:
         return "Next: I can show every task locally."
     return (
         "Next: I can show every task locally, set up a comparison against a "
-        "revised Skill, or verify this run's local proof."
+        "revised Skill, or check this run's local receipt offline with "
+        "`techtree proof verify`."
     )
 
 

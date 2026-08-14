@@ -36,6 +36,8 @@ import pytest
 
 from fixtures.drafts.support import preparation_service
 from fixtures.receipts.replacement import (
+    REVISED_SKILL_REFERENCE_PATH,
+    REVISED_SKILL_REFERENCE_TEXT,
     ReplacementEvidenceExecutor,
     write_revised_skill,
 )
@@ -52,7 +54,6 @@ from fixtures.runs.support import (
     utc_now,
 )
 from techtree.canonical import digest_object, sha256_digest_bytes
-from techtree.drafts.confirmation import ConfirmationService
 from techtree.drafts.store import DraftStore
 from techtree.errors import PolicyError, VerificationError
 from techtree.models.campaign import MutationKind
@@ -61,6 +62,8 @@ from techtree.models.run import PolicyAcknowledgement, RunPhase
 from techtree.models.skill import SubmissionDraft
 from techtree.models.uplift_report import UpliftDecision, UpliftReport
 from techtree.presentation.build import (
+    BASELINE_SKILL_LABEL,
+    SECOND_CHANGE_LABEL,
     SECOND_RESULT_LABEL,
     build_uplift_presentation,
 )
@@ -90,7 +93,7 @@ def _uplift_service(run: StagedRecordedRun) -> UpliftService:
         paths=run.paths,
         run_service=RunService(
             paths=run.paths,
-            draft_store=DraftStore(run.paths, ConfirmationService()),
+            draft_store=DraftStore(run.paths),
             run_store=run.run_store,
             artifact_store=run.artifacts,
             launcher=RecordingLauncher(run.run_store),
@@ -120,23 +123,23 @@ def _first_run(home: Path) -> StagedRecordedRun:
 
 
 def _start(run: StagedRecordedRun, prepared: PreparedDraft) -> str:
-    """Accept the rights policy again and start the prepared replacement."""
+    """Approve the second run and start the prepared replacement."""
     draft: SubmissionDraft = prepared.draft
     status = RunService(
         paths=run.paths,
-        draft_store=DraftStore(run.paths, ConfirmationService()),
+        draft_store=DraftStore(run.paths),
         run_store=run.run_store,
         artifact_store=run.artifacts,
         launcher=RecordingLauncher(run.run_store),
         clock=utc_now,
     ).start(
         draft_id=draft.id,
-        confirmation_token=prepared.confirmation_token,
         policy_acknowledgement=PolicyAcknowledgement(
             data_policy_digest=draft.data_policy_digest,
-            method="explicit_cli_digest",
+            method="explicit_cli_review",
             acknowledged_at=utc_now(),
         ),
+        approved_by="human_via_cli",
     )
     return status.state.run_id
 
@@ -250,10 +253,58 @@ def test_the_second_report_is_presented_as_a_replacement(tmp_path: Path) -> None
     )
 
     assert payload.comparison_label == SECOND_RESULT_LABEL
+    assert payload.change_label == SECOND_CHANGE_LABEL
+    # Decisions 0019 s1: this baseline carries a Skill, so it is named as the
+    # Skill it carries and never as the absence of one.
+    assert payload.baseline_skill.label == inputs.baseline_skill.artifact.name
+    assert payload.baseline_skill.label != BASELINE_SKILL_LABEL
     assert payload.baseline_skill.root_digest == (
         inputs.baseline_skill.artifact.root_digest
     )
     assert payload.candidate_skill.root_digest != payload.baseline_skill.root_digest
+
+
+def test_a_revision_may_be_a_tree_and_the_whole_tree_is_carried(
+    tmp_path: Path,
+) -> None:
+    """Decisions 0019 s1: a Skill version is a tree on both sides of the arrow.
+
+    The revision here carries a supporting file under ``references/``. It has
+    to survive the scanner, the draft, and the second run's staged inputs, and
+    the Skill being revised has to be staged beside it, because the subject is
+    handed both trees rather than both digests.
+    """
+    first = _first_run(tmp_path / "home")
+    service = _uplift_service(first)
+
+    prepared = service.prepare_replacement(
+        source_run_id=first.run_id,
+        candidate_skill_path=write_revised_skill(
+            tmp_path / "skill-v2", supporting=True
+        ),
+        candidate_label="branch-code-v2",
+    )
+
+    assert list(prepared.draft.included_files) == [
+        "SKILL.md",
+        REVISED_SKILL_REFERENCE_PATH,
+    ]
+    second_run_id = _start(first, prepared)
+    staged = first.artifacts.skill_files_dir(second_run_id)
+    assert (staged / REVISED_SKILL_REFERENCE_PATH).is_file()
+    assert (staged / REVISED_SKILL_REFERENCE_PATH).read_text(encoding="utf-8") == (
+        REVISED_SKILL_REFERENCE_TEXT
+    )
+
+    inputs = first.artifacts.load_inputs(
+        second_run_id, RunStore(first.paths).get_request(second_run_id)
+    )
+    assert inputs.baseline_skill is not None
+    assert (inputs.baseline_skill.files / "SKILL.md").is_file()
+    assert [entry.path for entry in inputs.candidate_skill.artifact.files] == [
+        "SKILL.md",
+        REVISED_SKILL_REFERENCE_PATH,
+    ]
 
 
 def test_the_same_measurements_on_both_sides_are_reported_as_a_tie(
@@ -412,18 +463,10 @@ def test_the_cli_exports_a_context_and_prepares_a_replacement(
     assert payload["baseline_skill_digest"] != payload["candidate_skill_digest"]
     assert payload["source_run_id"] == first.run_id
 
-    started = run_cli(
-        home,
-        "uplift",
-        "start",
-        payload["draft_id"],
-        "--confirmation-token",
-        payload["confirmation_token"],
-        "--accept-data-policy",
-        payload["data_policy_digest"],
-    )
+    started = run_cli(home, "uplift", "start", payload["draft_id"], "--yes")
     assert started.exit_code == 0, started.stderr
-    assert started.data()["policy_acknowledgement_method"] == "explicit_cli_digest"
+    assert started.data()["policy_acknowledgement_method"] == "explicit_cli_review"
+    assert started.data()["approved_by"] == "operator_via_flag"
 
 
 def test_the_cli_hands_over_the_runs_own_verified_skill_text(
@@ -515,10 +558,10 @@ def test_a_development_only_run_hands_over_no_skill_text(tmp_path: Path) -> None
     assert raised.value.code == SOURCE_RUN_NOT_USABLE
 
 
-def test_the_cli_refuses_to_start_a_replacement_without_acceptance(
+def test_the_cli_refuses_to_start_a_replacement_without_approval(
     tmp_path: Path,
 ) -> None:
-    """Spec section 7.20: the DataPolicy is accepted again for the second run."""
+    """Spec section 7.20: the second run is approved the same way the first was."""
     first = _first_run(tmp_path / "home")
     home = first.paths.root
     prepared = run_cli(
@@ -531,15 +574,8 @@ def test_the_cli_refuses_to_start_a_replacement_without_acceptance(
         str(write_revised_skill(tmp_path / "skill-v2")),
     ).data()
 
-    refused = run_cli(
-        home,
-        "uplift",
-        "start",
-        prepared["draft_id"],
-        "--confirmation-token",
-        prepared["confirmation_token"],
-    )
+    refused = run_cli(home, "uplift", "start", prepared["draft_id"])
 
     assert refused.exit_code != 0
     assert refused.envelope()["error"]["code"] == "policy_acceptance_required"
-    assert prepared["data_policy_digest"] in refused.envelope()["error"]["message"]
+    assert "--yes" in refused.envelope()["error"]["message"]

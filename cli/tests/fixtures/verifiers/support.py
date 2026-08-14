@@ -412,14 +412,13 @@ def local_run(
 
     Everything a run normally goes through happens here: a catalog is written,
     a draft is prepared from a real skill directory through the real
-    preparation service, the draft is confirmed, the policy is acknowledged,
+    preparation service, the run is approved, the policy is acknowledged,
     and the run's inputs are staged and verified. No worker is launched — the
     caller executes in this process, which is what lets an executor's own
     sequence be observed instead of inferred from a run directory afterwards.
     """
     from fixtures.drafts.support import preparation_service
     from fixtures.runs.support import RecordingLauncher, utc_now
-    from techtree.drafts.confirmation import ConfirmationService
     from techtree.models.run import PolicyAcknowledgement
     from techtree.runs.service import RunService
 
@@ -428,10 +427,7 @@ def local_run(
     link_installed_engine(home)
     catalog = local_catalog(home / "local-catalog", resolved)
 
-    confirmations = ConfirmationService()
-    preparation, drafts = preparation_service(
-        paths, catalog_root=catalog, confirmation=confirmations
-    )
+    preparation, drafts = preparation_service(paths, catalog_root=catalog)
     prepared = preparation.prepare(
         climb_reference=DEVELOPMENT_CLIMB,
         skill_path=skill_path,
@@ -450,12 +446,12 @@ def local_run(
     )
     status = service.start(
         draft_id=prepared.draft.id,
-        confirmation_token=prepared.confirmation_token,
         policy_acknowledgement=PolicyAcknowledgement(
             data_policy_digest=prepared.draft.data_policy_digest,
-            method="explicit_cli_digest",
+            method="explicit_cli_review",
             acknowledged_at=utc_now(),
         ),
+        approved_by="human_via_cli",
     )
     return LocalRun(
         paths=paths,

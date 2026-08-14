@@ -9,10 +9,9 @@ later command could find it until every check has passed: the Climb is
 resolved, its status and this machine's compatibility are confirmed, the skill
 is scanned, the files are copied into a staging directory and re-verified
 against what was scanned, both manifests are derived from the Campaign, the
-comparison is required to be controlled, the draft is built and digested, a
-confirmation is issued over that digest, and only then is the whole tree
-renamed into place by the draft store. A failure anywhere leaves the drafts
-directory exactly as it was.
+comparison is required to be controlled, the draft is built and digested, and
+only then is the whole tree renamed into place by the draft store. A failure
+anywhere leaves the drafts directory exactly as it was.
 
 Three things this module deliberately does not do.
 
@@ -26,8 +25,8 @@ pure local computation, and the integration test asserts it.
 It does not ask anyone to accept anything. The draft states the rights that
 will have to be accepted — decisions document 0003 A5's
 ``PolicyAcceptanceRequirement`` — and the acceptance itself happens at start,
-recorded as a deliberate act. A confirmation token proves that the thing being
-started is the thing that was prepared, and proves nothing about consent.
+after the review of what the run would do has been shown, recorded as a
+deliberate act.
 """
 
 from __future__ import annotations
@@ -47,9 +46,8 @@ from techtree.canonical import (
 )
 from techtree.catalog.service import CatalogService
 from techtree.constants import SKILL_SCHEMA_VERSION, SUBMISSION_DRAFT_SCHEMA_VERSION
-from techtree.drafts.confirmation import ConfirmationService, utc_now
 from techtree.drafts.source import CampaignSource, StagedSkill
-from techtree.drafts.store import DraftStore
+from techtree.drafts.store import DraftStore, utc_now
 from techtree.errors import (
     PolicyError,
     PrerequisiteError,
@@ -133,12 +131,10 @@ class ResolvedClimbBundle:
 
 @dataclass(frozen=True)
 class PreparedDraft:
-    """What preparation produced, including the one thing never persisted."""
+    """What preparation produced, and what it was prepared against."""
 
     draft: SubmissionDraft
     draft_digest: Digest
-    confirmation_token: str
-    confirmation_expires_at: datetime
     manifest_comparison: ManifestComparison
     source: CampaignSource
 
@@ -152,14 +148,12 @@ class SkillPreparationService:
         paths: TechtreePaths,
         catalog: CatalogService,
         draft_store: DraftStore,
-        confirmation_service: ConfirmationService,
         skill_policy: SkillPolicy | None = None,
         clock: Callable[[], datetime] = utc_now,
     ) -> None:
         self._paths = paths
         self._catalog = catalog
         self._drafts = draft_store
-        self._confirmation = confirmation_service
         self._policy = skill_policy or default_instruction_skill_policy()
         self._clock = clock
 
@@ -220,11 +214,9 @@ class SkillPreparationService:
                 warnings=self._warnings(resolved, scan),
             )
             draft_digest = digest_object(draft)
-            token, record = self._confirmation.issue(draft_digest)
 
             self._drafts.create(
                 draft=draft,
-                confirmation=record,
                 baseline=baseline,
                 candidate=candidate,
                 comparison=comparison,
@@ -240,8 +232,6 @@ class SkillPreparationService:
         return PreparedDraft(
             draft=draft,
             draft_digest=draft_digest,
-            confirmation_token=token,
-            confirmation_expires_at=record.expires_at,
             manifest_comparison=comparison,
             source=source,
         )
@@ -262,9 +252,9 @@ class SkillPreparationService:
 
         Everything a public submission goes through happens here too, in the
         same order and through the same store: the new Skill is scanned by the
-        same scanner, snapshotted by the same snapshotter, compared by the same
-        comparison, and confirmed by the same one-time token. Only two things
-        differ, and both come from the Campaign rather than from a caller.
+        same scanner, snapshotted by the same snapshotter, and compared by the
+        same comparison. Only two things differ, and both come from the
+        Campaign rather than from a caller.
 
         *The Campaign is derived, not resolved.* Spec section 7.19 fixes every
         scientific field to the source run's and changes exactly the mutation
@@ -319,11 +309,9 @@ class SkillPreparationService:
                 warnings=self._replacement_warnings(scan),
             )
             draft_digest = digest_object(draft)
-            token, record = self._confirmation.issue(draft_digest)
 
             self._drafts.create(
                 draft=draft,
-                confirmation=record,
                 baseline=baseline,
                 candidate=candidate,
                 comparison=comparison,
@@ -338,8 +326,6 @@ class SkillPreparationService:
         return PreparedDraft(
             draft=draft,
             draft_digest=draft_digest,
-            confirmation_token=token,
-            confirmation_expires_at=record.expires_at,
             manifest_comparison=comparison,
             source=source,
         )

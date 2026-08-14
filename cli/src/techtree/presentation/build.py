@@ -70,9 +70,13 @@ from techtree.receipts.execution import (
 
 __all__ = [
     "BASELINE_SKILL_LABEL",
+    "FIRST_CHANGE_LABEL",
     "FIRST_RESULT_LABEL",
+    "HELD_FIXED_LINE",
+    "LATER_RESULT_LABEL",
     "P1_MEANING",
     "SCORE_BAR_WIDTH",
+    "SECOND_CHANGE_LABEL",
     "SECOND_RESULT_LABEL",
     "VERIFICATION_FAILED",
     "VERIFICATION_NOT_VERIFIED",
@@ -81,14 +85,37 @@ __all__ = [
     "score_bars",
 ]
 
-#: What a Skill-insertion comparison measures against. Not an absent value.
+#: What a Skill-insertion comparison measures against. Not an absent value,
+#: and not what a replacement measures against: a replacement's baseline is a
+#: Skill, and it is called by its own name.
 BASELINE_SKILL_LABEL: Final = "No tested Skill"
 
-#: What each of the two results is called. Decisions document 0009 fixes both
-#: spellings: the first result is the receipt for adding a Skill, the second is
-#: the same comparison run again with a revised one.
+#: What each result is called. Decisions document 0009 fixes the spellings: the
+#: first result is the receipt for adding a Skill, and a later one is the same
+#: comparison run again with a revised Skill. Which of them a reader is holding
+#: is worked out from the Skills the run itself carries, never assumed — a
+#: third comparison labelled as the second would be a receipt for work nobody
+#: did.
 FIRST_RESULT_LABEL: Final = "Hello World Uplift Receipt"
 SECOND_RESULT_LABEL: Final = "Hello World — Iteration 2"
+LATER_RESULT_LABEL: Final = "Hello World — A Later Iteration"
+
+#: The other half of decisions document 0019 section 3's second statement, and
+#: the whole of its first: one changed Skill, and everything else the same. It
+#: is a constant rather than a sentence each renderer writes, because a channel
+#: that made a weaker version of this claim than another channel would be the
+#: one somebody quoted.
+HELD_FIXED_LINE: Final = (
+    "Everything else was the same on both sides: the same model sampled the "
+    "same way, the same harness and tools, the same runtime image, the same "
+    "tasks in the same order, the same reward, and the same spending ceiling."
+)
+
+#: What changed, in the words decisions document 0019 section 1 fixes. The two
+#: sides are named as roles rather than by digest, because the digests are
+#: printed underneath and a reader needs the shape of the comparison first.
+FIRST_CHANGE_LABEL: Final = "No tested Skill → Skill v1"
+SECOND_CHANGE_LABEL: Final = "Skill v1 → Skill v2"
 
 #: Decisions document 0005 section 3.4, verbatim. The only words this build is
 #: permitted to explain ``P1`` with.
@@ -132,13 +159,15 @@ def build_uplift_presentation(
     caveat rather than a number nobody signed.
     """
     economics = _economics(execution_record, baseline_receipts, candidate_receipts)
+    generation = _generation(baseline_skill)
     primary = report.primary_result
     payload = UpliftPresentationPayload(
         schema_version=PRESENTATION_SCHEMA_VERSION,
         run_id=report.run_id,
         campaign_title=sanitize_label(campaign_title),
-        comparison_label=_comparison_label(baseline_skill),
-        baseline_skill=_skill_summary(baseline_skill, BASELINE_SKILL_LABEL),
+        comparison_label=_comparison_label(generation),
+        change_label=_change_label(generation, baseline_skill, candidate_skill),
+        baseline_skill=_skill_summary(baseline_skill, _baseline_label(baseline_skill)),
         candidate_skill=_skill_summary(candidate_skill, candidate_skill.name),
         baseline_score=primary.baseline_mean,
         candidate_score=primary.candidate_mean,
@@ -202,18 +231,74 @@ def _bar(value: float, maximum: float) -> str:
     return f"{_FILLED * filled}{_EMPTY * (SCORE_BAR_WIDTH - filled)}  {value:.3f}"
 
 
-def _comparison_label(baseline_skill: SkillArtifact | None) -> str:
-    """Return which of the two results a reader is looking at.
+def _generation(baseline_skill: SkillArtifact | None) -> int | None:
+    """Return which comparison in the chain this is, or ``None`` when unknown.
 
-    Decisions document 0009 names both. The first comparison adds a Skill to a
-    run that had none; the second replaces that Skill with a revised one, and
-    calling it an iteration is what stops the two receipts being mistaken for
-    each other. Which Skill sat on each side is spelled out under "what
-    changed" rather than compressed into this line.
+    A :class:`~techtree.models.skill.SkillArtifact` names the Skill it revises
+    and nothing further back, so the chain a run can see is the chain its own
+    two Skills record. That is enough to tell the first two apart, which is the
+    distinction that matters: a baseline carrying no Skill is the first
+    comparison, and a baseline carrying a Skill that revised nothing is the
+    second. A baseline that is itself a revision means the chain runs deeper
+    than this run can count, and the honest answer there is that the number is
+    not known rather than a number that happens to be two.
     """
     if baseline_skill is None:
+        return 1
+    if baseline_skill.parent_skill_digest is None:
+        return 2
+    return None
+
+
+def _comparison_label(generation: int | None) -> str:
+    """Return which result in the chain a reader is looking at.
+
+    Decisions document 0009 names the first two. Anything further along is
+    named as what it is — a later iteration — because a receipt that claimed
+    an ordinal the run cannot prove would be worse than one that does not
+    claim an ordinal at all. Which Skill sat on each side is spelled out under
+    "what changed" rather than compressed into this line.
+    """
+    if generation == 1:
         return FIRST_RESULT_LABEL
-    return SECOND_RESULT_LABEL
+    if generation == 2:
+        return SECOND_RESULT_LABEL
+    return LATER_RESULT_LABEL
+
+
+def _change_label(
+    generation: int | None,
+    baseline_skill: SkillArtifact | None,
+    candidate_skill: SkillArtifact,
+) -> str:
+    """Return the one change this comparison measured, as an arrow.
+
+    Decisions document 0019 section 1 fixes the wording of the first two. Once
+    the chain runs deeper than the run can number, the two Skills are named by
+    their own names instead, which is always true of them.
+    """
+    if generation == 1:
+        return FIRST_CHANGE_LABEL
+    if generation == 2:
+        return SECOND_CHANGE_LABEL
+    assert baseline_skill is not None
+    return (
+        f"{sanitize_label(baseline_skill.name)} → "
+        f"{sanitize_label(candidate_skill.name)}"
+    )
+
+
+def _baseline_label(baseline_skill: SkillArtifact | None) -> str:
+    """Return what the baseline side is called.
+
+    Decisions document 0019 section 1: a baseline is a role, not the absence of
+    a Skill. A replacement's baseline carries the Skill being revised, and
+    naming it "No tested Skill" beside that Skill's own digest would print a
+    contradiction.
+    """
+    if baseline_skill is None:
+        return BASELINE_SKILL_LABEL
+    return baseline_skill.name
 
 
 def _skill_summary(skill: SkillArtifact | None, label: str) -> SkillSummary:
