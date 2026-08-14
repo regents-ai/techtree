@@ -49,6 +49,7 @@ from techtree.canonical import sha256_digest_bytes
 from techtree.engines.registry import EngineRegistry
 from techtree.engines.runner import EngineProcessResult, EngineRunner
 from techtree.errors import EngineError, ValidationError
+from techtree.fs import ensure_private_directory
 from techtree.models.base import ArtifactRef, Digest
 from techtree.models.validation import (
     UpstreamValidationSummary,
@@ -220,7 +221,7 @@ class VerifiersValidationRunner:
         the taskset is valid (``docs/verifiers-pin.md``, finding C2), so the
         only failure this raises is one where no summary could exist at all.
         """
-        output_dir.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(output_dir)
         result = self._runner.run(
             VALIDATE_EXECUTABLE,
             validate_argv(

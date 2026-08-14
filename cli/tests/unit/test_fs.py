@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import json
 import os
+import stat
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -265,3 +267,131 @@ def test_written_files_are_flushed_to_disk(tmp_path: Path) -> None:
         assert os.read(descriptor, 16) == b"durable"
     finally:
         os.close(descriptor)
+
+
+# ---------------------------------------------------------------------------
+# Nobody but the owner. WP11g S6.
+# ---------------------------------------------------------------------------
+#
+# Techtree state is single-user, and it was single-user at the leaf only: the
+# helpers chmod the directory the caller named and left every parent they had
+# to invent at the process umask. Inside a Techtree home that was invisible,
+# because `ensure_path_layout` had already made the ancestors 0700. It stopped
+# being invisible the moment a caller passed a deeper path first.
+
+
+def _modes_below(root: Path) -> dict[str, int]:
+    """Return every path under a root and the permission bits it carries."""
+    return {
+        str(path.relative_to(root)): stat.S_IMODE(path.stat().st_mode)
+        for path in sorted(root.rglob("*"))
+    }
+
+
+def _group_or_other_readable(root: Path) -> list[str]:
+    """Return every path under a root that somebody else can see into."""
+    return [
+        name
+        for name, mode in _modes_below(root).items()
+        if mode & (stat.S_IRWXG | stat.S_IRWXO)
+    ]
+
+
+@pytest.fixture
+def permissive_umask() -> Iterator[None]:
+    """Run with the umask of somebody who has never thought about umasks.
+
+    0o000 grants everything the mode asks for, which is what makes this a test
+    of the modes Techtree chooses rather than a test of the umask that happened
+    to be set when the suite ran.
+    """
+    previous = os.umask(0o000)
+    try:
+        yield
+    finally:
+        os.umask(previous)
+
+
+@pytest.mark.usefixtures("permissive_umask")
+def test_every_directory_a_private_tree_needs_is_private(tmp_path: Path) -> None:
+    """Not just the leaf. The whole path to it."""
+    root = tmp_path / "home"
+
+    ensure_private_directory(root / "runs" / "run_x" / "taskset" / "validation")
+
+    assert _modes_below(root) == {
+        "runs": 0o700,
+        "runs/run_x": 0o700,
+        "runs/run_x/taskset": 0o700,
+        "runs/run_x/taskset/validation": 0o700,
+    }
+    assert stat.S_IMODE(root.stat().st_mode) == 0o700
+
+
+@pytest.mark.usefixtures("permissive_umask")
+def test_an_atomic_write_does_not_leave_a_readable_path_behind_it(
+    tmp_path: Path,
+) -> None:
+    """The write helper invents directories too, and they are nobody else's."""
+    root = tmp_path / "home"
+
+    atomic_write_bytes(root / "runs" / "run_x" / "proof" / "bundle.json", b"{}\n")
+
+    assert _group_or_other_readable(root) == []
+    assert _modes_below(root)["runs/run_x/proof/bundle.json"] == 0o600
+
+
+@pytest.mark.usefixtures("permissive_umask")
+def test_a_whole_created_tree_is_closed_to_everyone_else(tmp_path: Path) -> None:
+    """The walking assertion: one tree, every node, no group or other bits."""
+    root = tmp_path / "home"
+    ensure_private_directory(root / "drafts" / "draft_x" / "skill" / "files")
+    atomic_write_json(root / "config.toml", {"output_mode": "rich"})
+    atomic_write_text(root / "runs" / "run_x" / "worker.log", "started\n")
+    atomic_write_bytes(root / "identities" / "executor-private-key.bin", b"\x00" * 32)
+
+    assert _group_or_other_readable(root) == []
+
+
+@pytest.mark.usefixtures("permissive_umask")
+def test_an_existing_directory_is_re_hardened_rather_than_accepted(
+    tmp_path: Path,
+) -> None:
+    """A home somebody loosened by hand is tightened the next time it is used."""
+    loosened = tmp_path / "home" / "runs"
+    loosened.mkdir(parents=True)
+    loosened.chmod(0o755)
+
+    ensure_private_directory(loosened)
+
+    assert stat.S_IMODE(loosened.stat().st_mode) == 0o700
+
+
+def test_a_directory_that_already_exists_outside_is_left_at_its_own_mode(
+    tmp_path: Path,
+) -> None:
+    """Only what the helper creates is hardened.
+
+    The alternative — walking up and tightening whatever is above — would mean
+    that writing one file into a directory somebody handed us could take away
+    their own access to the directory containing it.
+    """
+    outer = tmp_path / "shared"
+    outer.mkdir()
+    outer.chmod(0o755)
+
+    atomic_write_bytes(outer / "inner" / "file.bin", b"data")
+
+    assert stat.S_IMODE(outer.stat().st_mode) == 0o755
+    assert stat.S_IMODE((outer / "inner").stat().st_mode) == 0o700
+
+
+def test_a_file_where_a_directory_should_be_is_still_an_error(
+    tmp_path: Path,
+) -> None:
+    """The creation walk must not swallow the collision it used to report."""
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory", encoding="utf-8")
+
+    with pytest.raises((FileExistsError, NotADirectoryError, ValidationError)):
+        ensure_private_directory(blocker / "below")

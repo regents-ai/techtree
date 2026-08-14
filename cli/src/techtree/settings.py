@@ -41,16 +41,14 @@ OutputMode = Literal["human", "json"]
 class Settings(StateModel):
     """Local preferences and the active engine pointer."""
 
-    api_url: str | None = None
     active_engine_digest: Digest | None = None
     log_level: str = "INFO"
     output_mode: OutputMode = "human"
 
 
-#: Environment variable to settings field. Only these four are supported; an
+#: Environment variable to settings field. Only these three are supported; an
 #: unrecognized ``TECHTREE_*`` variable is ignored rather than guessed at.
 ENVIRONMENT_OVERRIDES: Final[dict[str, str]] = {
-    "TECHTREE_API_URL": "api_url",
     "TECHTREE_ACTIVE_ENGINE_DIGEST": "active_engine_digest",
     "TECHTREE_LOG_LEVEL": "log_level",
     "TECHTREE_OUTPUT_MODE": "output_mode",

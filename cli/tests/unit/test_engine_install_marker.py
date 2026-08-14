@@ -24,7 +24,11 @@ from pathlib import Path
 import pytest
 
 from techtree.canonical import validate_digest
-from techtree.engines.installer import INSTALLING_MARKER_PREFIX, EngineInstaller
+from techtree.engines.installer import (
+    INSTALLING_MARKER_PREFIX,
+    EngineInstaller,
+)
+from techtree.engines.installer import _excerpt as installer_excerpt
 from techtree.engines.registry import EngineRegistry
 from techtree.fs import atomic_write_json
 from techtree.models.base import Digest
@@ -242,3 +246,36 @@ def test_the_marker_says_which_engine_it_is_about(paths: TechtreePaths) -> None:
 
     assert document["digest"] == DIGEST
     assert marker_path(paths, DIGEST).name.endswith(paths.engine_dir(DIGEST).name)
+
+
+# ---------------------------------------------------------------------------
+# What a failed uv step is allowed to quote back. WP11g S1.
+# ---------------------------------------------------------------------------
+#
+# Installation is the one step that runs a subprocess with the caller's own
+# environment, because uv needs their proxy, certificate and index settings to
+# reach a network they can reach. That makes uv's output the one text in this
+# package written by somebody else, and a private index URL carries its
+# credential inline. The excerpt is where that output becomes Techtree's, so
+# it is where the scrubbing has to happen.
+
+#: A private index, spelled the way uv reports one back.
+_INDEX_URL_WITH_TOKEN = "https://deploy:s3cr3t-p4ss@pypi.corp.example/simple"
+
+
+def test_a_uv_excerpt_is_scrubbed_before_it_becomes_techtree_text() -> None:
+    excerpt = installer_excerpt(
+        f"  error: failed to fetch from {_INDEX_URL_WITH_TOKEN}\n"
+    )
+
+    assert "s3cr3t-p4ss" not in excerpt
+    assert "deploy" not in excerpt
+    # The host survives, because which index refused them is the diagnosis.
+    assert "pypi.corp.example/simple" in excerpt
+
+
+def test_a_uv_excerpt_keeps_the_tail_where_the_reason_is() -> None:
+    excerpt = installer_excerpt("noise\n" * 4000 + "error: the actual reason\n")
+
+    assert excerpt.startswith("...")
+    assert excerpt.endswith("error: the actual reason")

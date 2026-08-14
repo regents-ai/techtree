@@ -48,6 +48,7 @@ from techtree.errors import (
     error_to_cli_error,
     exit_code_for,
     sanitize_exception_message,
+    sanitize_text,
 )
 from techtree.models.cli import CliEnvelope, CliError, NextAction
 
@@ -180,6 +181,105 @@ def test_error_to_cli_error_scrubs_the_message() -> None:
 
     assert "sk-live-abcdef123456" not in projected.message
     assert REDACTED in projected.message
+
+
+#: A private package index, spelled the way uv reports one back. The
+#: credential sits in the URL's userinfo, where no assignment rule and no
+#: token-prefix rule would find it, which is what made this the vector worth
+#: naming: WP11g S1.
+INDEX_URL_WITH_TOKEN = "https://deploy:s3cr3t-p4ss@pypi.corp.example/simple"
+
+
+def test_error_to_cli_error_scrubs_the_details_too() -> None:
+    """WP11g S1: the message was scrubbed and the details rode out beside it."""
+    error = EngineError(
+        "building the engine environment failed",
+        details={"detail": f"error: no index found at {INDEX_URL_WITH_TOKEN}"},
+    )
+
+    projected = error_to_cli_error(error)
+
+    assert "s3cr3t-p4ss" not in str(projected.details)
+    assert REDACTED in str(projected.details)
+
+
+def test_the_details_walk_reaches_nested_strings() -> None:
+    """A leak one level down is still a leak."""
+    error = EngineError(
+        "the engine could not be installed",
+        details={
+            "attempts": [
+                {"index": INDEX_URL_WITH_TOKEN, "exit_code": 1},
+                {"index": "https://pypi.org/simple", "exit_code": 2},
+            ],
+            "environment": {"UV_INDEX_URL": INDEX_URL_WITH_TOKEN},
+        },
+    )
+
+    projected = error_to_cli_error(error)
+
+    assert "s3cr3t-p4ss" not in str(projected.details)
+
+
+def test_the_details_walk_leaves_everything_that_is_not_a_string_alone() -> None:
+    """Details are counts and identifiers; scrubbing must not retype them."""
+    error = EngineError(
+        "the engine could not be installed",
+        details={
+            "exit_code": 9,
+            "timeout_seconds": 1.5,
+            "retryable": True,
+            "digest": DIGEST,
+            "available": ["hello-world-climb@1"],
+            "cause": None,
+        },
+    )
+
+    projected = error_to_cli_error(error)
+
+    assert projected.details == {
+        "exit_code": 9,
+        "timeout_seconds": 1.5,
+        "retryable": True,
+        "digest": DIGEST,
+        "available": ["hello-world-climb@1"],
+        "cause": None,
+    }
+
+
+def test_a_url_credential_is_redacted_and_the_host_survives() -> None:
+    """The operator still needs to know which index refused them."""
+    scrubbed = sanitize_text(f"could not reach {INDEX_URL_WITH_TOKEN}")
+
+    assert "deploy" not in scrubbed
+    assert "s3cr3t-p4ss" not in scrubbed
+    assert "pypi.corp.example/simple" in scrubbed
+    assert f"https://{REDACTED}@pypi.corp.example/simple" in scrubbed
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://__token__:AbCdEf1234567890@pypi.corp.example/simple",
+        "https://ghp_abcdefghijklmnopqrst@pypi.corp.example/simple",
+        "http://user:pw@localhost:8080/simple",
+        "git+ssh://git:key123@github.com/org/repo.git",
+    ],
+)
+def test_every_shape_of_url_credential_is_redacted(url: str) -> None:
+    scrubbed = sanitize_text(f"uv sync failed: --index-url {url}")
+
+    assert REDACTED in scrubbed
+    for secret in ("AbCdEf1234567890", "ghp_abcdefghijklmnopqrst", "pw", "key123"):
+        if secret in url:
+            assert secret not in scrubbed
+
+
+def test_an_ordinary_url_is_left_alone() -> None:
+    """No userinfo, nothing to redact. The coordinate must survive verbatim."""
+    published = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
+
+    assert sanitize_text(published) == published
 
 
 def test_error_to_cli_error_does_not_carry_next_actions() -> None:

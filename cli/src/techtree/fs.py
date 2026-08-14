@@ -13,6 +13,12 @@ artifacts are written exactly once. :func:`open_exclusive` creates them with
 ``O_EXCL``, so a second attempt to write one is reported as a conflict instead
 of quietly replacing evidence.
 
+*Privacy.* Techtree state is single-user: files are ``0600`` and directories
+``0700``. Both helpers that create a directory create *every* directory they
+need at that mode, because a private leaf at the end of a world-readable path
+is not private — a run directory nobody can list is still a run directory
+whose parent tells you it exists.
+
 Nothing here follows symlinks into a location the caller did not name.
 """
 
@@ -48,10 +54,56 @@ _FILE_MODE = 0o600
 _DIRECTORY_MODE = 0o700
 
 
+def _make_private_directory(path: Path) -> None:
+    """Create a directory and every missing parent, each one private.
+
+    ``mkdir(parents=True)`` creates the intermediate directories under the
+    process umask and leaves them there, so hardening only the leaf hardens
+    the room and not the corridor. Inside a Techtree home every ancestor
+    happens to be ``0700`` already, which made this a latent defect rather
+    than a live leak — and the distance between those two is one caller
+    passing a path whose parent does not exist yet.
+
+    The mode is applied at creation rather than after it, so there is no
+    instant in which the directory exists and anyone else can read it. A
+    umask can only take bits away from that mode, never add them, and the
+    ``chmod`` afterwards makes the result exact on a machine whose umask is
+    unusual.
+
+    Only directories this call creates are touched. A directory that was
+    already there belongs to whoever made it, and quietly tightening
+    somebody's home directory to ``0700`` would be a worse bug than the one
+    being fixed here.
+    """
+    missing: list[Path] = []
+    current = path
+    while not current.is_dir():
+        missing.append(current)
+        if current.parent == current:
+            break
+        current = current.parent
+
+    for directory in reversed(missing):
+        try:
+            directory.mkdir(mode=_DIRECTORY_MODE)
+        except FileExistsError:
+            if directory.is_dir():
+                # Another process created it between the walk and here. It is
+                # a Techtree directory either way, made by this same code.
+                continue
+            # The path exists and is not a directory, which is what the
+            # caller needs to hear about.
+            raise
+        # Windows and some network filesystems have no POSIX mode bits. The
+        # directory still exists, which is what the caller asked for.
+        with suppress(NotImplementedError, OSError):
+            os.chmod(directory, _DIRECTORY_MODE)
+
+
 def atomic_write_bytes(path: Path, data: bytes, *, mode: int = _FILE_MODE) -> None:
     """Write, fsync, chmod, and atomically replace."""
     directory = path.parent
-    directory.mkdir(parents=True, exist_ok=True)
+    _make_private_directory(directory)
 
     handle, temporary_name = tempfile.mkstemp(
         dir=directory, prefix=f".{path.name}.", suffix=".tmp"
@@ -119,15 +171,16 @@ def read_json(path: Path) -> JsonValue:
 
 
 def ensure_private_directory(path: Path) -> None:
-    """Create a directory and apply 0700 where supported."""
+    """Create a directory, and every parent it needs, 0700 where supported."""
     if path.is_symlink():
         raise ValidationError(
             f"refusing to use a symlinked directory: {path}",
             details={"path": str(path)},
         )
-    path.mkdir(parents=True, exist_ok=True)
-    # Windows and some network filesystems have no POSIX mode bits. The
-    # directory still exists, which is what the caller asked for.
+    _make_private_directory(path)
+    # An existing directory is re-hardened, because this function's promise to
+    # its caller is about the directory it returns, not only about the case
+    # where it had to make one.
     with suppress(NotImplementedError, OSError):
         os.chmod(path, _DIRECTORY_MODE)
 

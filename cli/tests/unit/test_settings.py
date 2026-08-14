@@ -70,7 +70,8 @@ def test_saving_omits_unset_values(paths: TechtreePaths) -> None:
 
     document = tomllib.loads(paths.config_file.read_text(encoding="utf-8"))
 
-    assert "api_url" not in document
+    # The one optional field left. A settings file states what was chosen, so
+    # a value nobody chose is absent rather than written as null.
     assert "active_engine_digest" not in document
 
 
@@ -120,14 +121,12 @@ def test_no_environment_variables_leaves_settings_untouched() -> None:
 def test_each_supported_variable_overrides_its_field(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("TECHTREE_API_URL", "https://example.invalid")
     monkeypatch.setenv("TECHTREE_ACTIVE_ENGINE_DIGEST", DIGEST)
     monkeypatch.setenv("TECHTREE_LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("TECHTREE_OUTPUT_MODE", "json")
 
     settings = settings_from_environment(Settings())
 
-    assert settings.api_url == "https://example.invalid"
     assert settings.active_engine_digest == DIGEST
     assert settings.log_level == "DEBUG"
     assert settings.output_mode == "json"

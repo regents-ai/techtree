@@ -79,6 +79,7 @@ from techtree.runs.variants import (
     VariantScheduler,
     require_concurrency_budget,
 )
+from techtree.tasksets.service import TASKSET_DIRECTORY
 from techtree.verifiers.child import (
     DEFAULT_GRACE_SECONDS,
     VerifiersChild,
@@ -141,6 +142,9 @@ REAL_EXECUTION_RESULT_FILENAME: Final = "real-execution-result.json"
 
 #: Owner read and write only, matching every other file Techtree writes.
 _PRIVATE_FILE_MODE: Final = 0o600
+
+#: Owner traversal only, matching every directory Techtree creates.
+_PRIVATE_DIRECTORY_MODE: Final = 0o700
 
 #: Both sides, always in comparison order.
 _VARIANT_ORDER: Final[tuple[VariantName, ...]] = (
@@ -235,27 +239,50 @@ def real_execution_result_path(run_root: Path) -> Path:
 
 
 def keep_evaluation_private(run_paths: RunPaths) -> Path:
-    """Make every file one run's evaluation produced readable by its owner only.
+    """Make everything one run's engine produced readable by its owner only.
 
     Spec section 6.19: raw Verifiers artifacts are mode ``0600`` and remain
     local. Techtree writes its own capture files that way, but the engine
-    writes ``traces.jsonl``, ``eval.log`` and the resolved configuration under
-    the operator's ordinary umask, and ``traces.jsonl`` is the participant's
-    complete subject transcripts. Tightening them afterwards is the only
-    moment available — the files belong to the child while it is running, and
-    a run that never reached them has nothing to tighten.
+    writes ``traces.jsonl``, ``eval.log``, the resolved configuration and the
+    taskset validator's output under the operator's ordinary umask — and
+    ``traces.jsonl`` is the participant's complete subject transcripts.
+    Tightening them afterwards is the only moment available: the files belong
+    to the child while it is running, and a run that never reached them has
+    nothing to tighten.
+
+    Both trees the engine writes into are swept, not just the evaluation one.
+    ``taskset/validation/`` is the validator's output and was left at the
+    operator's umask until WP11g S6 noticed; a task hash is not a transcript,
+    but "which of these two directories a stranger may read" is not a
+    distinction worth maintaining.
+
+    Directories are swept as well as files, because a directory the engine
+    created inside one of these trees carries the umask exactly as its
+    contents do.
 
     Applied whether the run succeeded, failed or was cancelled: a partial
     transcript is exactly as private as a complete one.
     """
     root = run_paths.verifiers_dir
-    if not root.is_dir():
-        return root
-    for path in root.rglob("*"):
-        if path.is_file() and not path.is_symlink():
-            with contextlib.suppress(OSError):
-                path.chmod(_PRIVATE_FILE_MODE)
+    for tree in (root, run_paths.root / TASKSET_DIRECTORY):
+        if not tree.is_dir():
+            continue
+        _make_private(tree)
+        for path in tree.rglob("*"):
+            _make_private(path)
     return root
+
+
+def _make_private(path: Path) -> None:
+    """Tighten one path the engine left behind, whatever kind it is."""
+    if path.is_symlink():
+        # Never chmod through a link: the target may not be the run's.
+        return
+    with contextlib.suppress(OSError):
+        if path.is_dir():
+            path.chmod(_PRIVATE_DIRECTORY_MODE)
+        elif path.is_file():
+            path.chmod(_PRIVATE_FILE_MODE)
 
 
 # ---------------------------------------------------------------------------

@@ -225,6 +225,57 @@ def test_making_an_evaluation_private_tolerates_a_run_that_never_started(
     keep_evaluation_private(RunPaths(root=tmp_path / "runs" / "run_x"))
 
 
+def test_the_validator_output_is_tightened_with_everything_else(
+    tmp_path: Path,
+) -> None:
+    """WP11g S6: ``taskset/validation`` was left at the operator's umask.
+
+    The engine writes the validator's summary there the same way it writes
+    transcripts under ``verifiers/``, and only the second tree was being swept.
+    Directories are swept too, because one the engine created carries the
+    umask exactly as its contents do.
+    """
+    from techtree.runs.real import keep_evaluation_private
+    from techtree.verifiers.models import RunPaths
+
+    paths = RunPaths(root=tmp_path / "runs" / "run_x")
+    validation = paths.root / "taskset" / "validation"
+    engine_made = validation / "artifacts"
+    engine_made.mkdir(parents=True)
+    for directory in (paths.root / "taskset", validation, engine_made):
+        directory.chmod(0o755)
+    for name in ("summary.json", "artifacts/tasks.jsonl"):
+        written = validation / name
+        written.write_text("{}\n")
+        written.chmod(0o644)
+
+    keep_evaluation_private(paths)
+
+    for path in (paths.root / "taskset").rglob("*"):
+        expected = 0o700 if path.is_dir() else 0o600
+        assert stat.S_IMODE(path.stat().st_mode) == expected, path
+
+
+def test_the_privacy_sweep_does_not_follow_a_link_out_of_the_run(
+    tmp_path: Path,
+) -> None:
+    """Chmod through a symlink would tighten a file that is not the run's."""
+    from techtree.runs.real import keep_evaluation_private
+    from techtree.verifiers.models import RunPaths
+
+    outsider = tmp_path / "somebody-elses.txt"
+    outsider.write_text("theirs\n")
+    outsider.chmod(0o644)
+
+    paths = RunPaths(root=tmp_path / "runs" / "run_x")
+    paths.verifiers_dir.mkdir(parents=True)
+    (paths.verifiers_dir / "link.txt").symlink_to(outsider)
+
+    keep_evaluation_private(paths)
+
+    assert stat.S_IMODE(outsider.stat().st_mode) == 0o644
+
+
 def test_a_run_with_no_staged_inputs_cannot_be_routed(tmp_path: Path) -> None:
     """The Campaign is read from the run's own copy, so it has to be there."""
     from techtree.errors import NotFoundError

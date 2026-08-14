@@ -18,8 +18,17 @@ runs/<run-id>/proof/
 ├── baseline-receipt-set.json
 ├── candidate-receipt-set.json
 ├── receipts/{baseline,candidate}/NNNN.json    signed EpisodeReceipt envelopes
+├── comparison-execution.json          the signed ComparisonExecutionRecord,
+│                                      present only when the run recorded one
 └── uplift-report.json                 the signed UpliftReport envelope
 ```
+
+``comparison-execution.json`` is the one optional member. Decisions document
+0007 R6 makes it the operational record of what the comparison *consumed* —
+cost, timing, the provider's own figures — rather than of what it measured, so
+a run whose economics could not be recorded still has a complete proof of its
+result. It is listed here because it is written, verified and covered by the
+signed manifest exactly like the others when it is there.
 
 Raw ``traces.jsonl``, the upstream log and the worker log stay behind. The
 receipts cite their digests, so a reader holding the run directory can check

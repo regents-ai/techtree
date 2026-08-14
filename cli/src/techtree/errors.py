@@ -8,7 +8,10 @@ only when they have something more specific to say.
 Two rules shape this module:
 
 * ``details`` is machine-facing and travels into JSON output, so it carries
-  identifiers, counts, and paths — never secret values.
+  identifiers, counts, and paths — never secret values. Call sites keep to
+  that, and :func:`sanitize_details` enforces it at the boundary anyway,
+  because some of what reaches ``details`` was authored by a subprocess
+  rather than by anyone here.
 * Human-facing text is actionable. Tracebacks are debugging aids for stderr,
   not part of the contract, which is why
   :func:`sanitize_exception_message` exists for the unexpected-exception path.
@@ -48,6 +51,7 @@ __all__ = [
     "VerificationError",
     "error_to_cli_error",
     "exit_code_for",
+    "sanitize_details",
     "sanitize_exception_message",
     "sanitize_text",
 ]
@@ -236,6 +240,17 @@ _SAFE_NAMES: Final[frozenset[str]] = frozenset(
         "total_tokens",
     }
 )
+#: The userinfo of a URL — ``https://user:token@host/path``. The whole of it
+#: goes, both halves, because which half holds the credential depends on the
+#: index: a private package index is as likely to be
+#: ``https://<token>@host`` as ``https://__token__:<token>@host``, and a
+#: username is not worth a leaked password. The host and path survive, which
+#: is the part an operator needs in order to see which index refused them.
+#:
+#: This one runs before the assignment rule so that the host stays readable:
+#: the assignment rule's value pattern is greedy and would take the rest of
+#: the URL with it.
+_URL_USERINFO = re.compile(r"(?i)\b([a-z][a-z0-9+.\-]*://)[^/?#\s@]+@")
 _BEARER_VALUE = re.compile(r"(?i)\b(bearer|basic)\s+\S+")
 _PREFIXED_TOKEN = re.compile(
     r"\b(?:sk|pk|rk|ghp|gho|ghu|ghs|github_pat|xox[abprs])[-_][A-Za-z0-9_-]{8,}"
@@ -283,6 +298,7 @@ def sanitize_text(text: str) -> str:
     meaning. :func:`sanitize_exception_message` flattens first and then calls
     this.
     """
+    text = _URL_USERINFO.sub(rf"\g<1>{REDACTED}@", text)
     text = _SECRET_ASSIGNMENT.sub(_redact_assignment, text)
     text = _BEARER_VALUE.sub(rf"\1 {REDACTED}", text)
     text = _PREFIXED_TOKEN.sub(REDACTED, text)
@@ -303,13 +319,39 @@ def sanitize_exception_message(error: Exception) -> str:
 # ---------------------------------------------------------------------------
 
 
+def sanitize_details(value: JsonValue) -> JsonValue:
+    """Scrub every string inside an error's ``details``, however deep it sits.
+
+    ``details`` is documented as machine-facing identifiers, counts and paths,
+    and authored call sites keep to that. The trouble is the call sites that
+    forward something they did not author: a subprocess's output, a parser's
+    complaint, a value read out of the environment. Those arrive as strings
+    and travel to the same envelope the message does, so they go through the
+    same scrubber the message does.
+
+    The walk is over values rather than keys. A key in ``details`` is always
+    an authored field name — that is what makes ``details`` machine-facing —
+    and scrubbing keys could collapse two of them into one, which would lose
+    information without protecting anything.
+    """
+    if isinstance(value, str):
+        return sanitize_text(value)
+    if isinstance(value, dict):
+        return {key: sanitize_details(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize_details(item) for item in value]
+    return value
+
+
 def error_to_cli_error(error: TechtreeError) -> CliError:
     """Convert an internal typed error to machine-safe CLI error data.
 
-    The message is passed through :func:`sanitize_exception_message` on the way
-    out. Authored messages are not supposed to contain secrets, but this is the
-    one place every failure funnels through before it becomes output, and a
-    scrubber that only runs on the paths someone remembered is not a scrubber.
+    Both halves are scrubbed on the way out — the message through
+    :func:`sanitize_exception_message`, the details through
+    :func:`sanitize_details`. Authored text is not supposed to contain
+    secrets, but this is the one place every failure funnels through before it
+    becomes output, and a scrubber that only runs on the paths someone
+    remembered is not a scrubber.
 
     ``next_actions`` is not part of ``CliError``; it belongs to the envelope,
     and the CLI reads it from the error directly.
@@ -320,7 +362,7 @@ def error_to_cli_error(error: TechtreeError) -> CliError:
         code=error.code,
         message=sanitize_exception_message(error),
         retryable=error.retryable,
-        details=dict(error.details),
+        details={key: sanitize_details(item) for key, item in error.details.items()},
     )
 
 

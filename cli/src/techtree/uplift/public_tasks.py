@@ -21,9 +21,19 @@ not privacy, it is an absence of evidence, and decision 0014 records what it
 cost: two rehearsal attempts in which the model diagnosed a defect the
 membership does not contain.
 
-The answer never travels. What is read here is the frozen input list the
-reference taskset ships; the oracle that turns an input into an answer sits in
-the same package and is not imported, called, or reproduced.
+The answer never travels, and it is worth being exact about how. What is read
+here is ``PROVING_INPUTS``, the frozen input list the reference taskset ships.
+The oracle that turns an input into an answer — ``branch_code`` and
+``branch_code_number`` — lives in ``algorithm.py`` in the same package, and
+that module *is* loaded into ``sys.modules``: ``dataset.py`` imports
+``normalize_input`` from it, so the input list cannot be read without it. What
+does not happen is the part that matters. Neither answer function is called,
+no answer is computed, nothing derived from one is stored, and nothing but the
+inputs leaves this module.
+
+Saying "the oracle is not imported" would have been the more comfortable
+sentence and it would have been false, which is the worse of the two
+properties a self-declaration can have.
 """
 
 from __future__ import annotations

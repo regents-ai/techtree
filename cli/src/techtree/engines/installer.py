@@ -74,7 +74,12 @@ from techtree.engines.bundle import (
     read_engine_descriptor,
 )
 from techtree.engines.registry import EngineRegistry, digest_from_directory_name
-from techtree.errors import EngineError, PrerequisiteError, VerificationError
+from techtree.errors import (
+    EngineError,
+    PrerequisiteError,
+    VerificationError,
+    sanitize_text,
+)
 from techtree.fs import (
     atomic_write_json,
     ensure_private_directory,
@@ -661,8 +666,16 @@ def _require(condition: bool, message: str, digest: Digest) -> None:
 
 
 def _excerpt(output: str) -> str:
-    """Return the tail of a command's output, which is where the reason is."""
-    text = output.strip()
+    """Return the tail of a command's output, scrubbed, which is where the reason is.
+
+    Installation is the one step that runs a subprocess with the caller's own
+    environment (see :meth:`_EngineInstaller._run`), so uv's output can quote
+    the caller's index configuration back — and a private index URL carries
+    its credential inline. The excerpt is therefore scrubbed here, at the
+    point where somebody else's output becomes Techtree's text, rather than
+    only where it becomes an envelope.
+    """
+    text = sanitize_text(output.strip())
     if len(text) <= _OUTPUT_EXCERPT:
         return text
     return f"...{text[-_OUTPUT_EXCERPT:]}"
