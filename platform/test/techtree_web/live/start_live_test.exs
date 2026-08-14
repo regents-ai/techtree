@@ -16,7 +16,7 @@ defmodule TechtreeWeb.StartLiveTest do
     test "the agent path is the one open by default", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start")
 
-      assert html =~ "hermes plugins install regents-labs/techtree-hermes --ref"
+      assert html =~ "hermes plugins install regents-ai/techtree-hermes --ref"
       assert html =~ "hermes plugins doctor techtree --ci"
       assert html =~ "Set up Techtree and run the Hello World Climb."
 

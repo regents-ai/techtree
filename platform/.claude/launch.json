@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "techtree-ash",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PGUSER=sean", "mix", "phx.server"],
+      "port": 4000
+    }
+  ]
+}
