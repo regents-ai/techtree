@@ -35,18 +35,23 @@ RECORDED = sorted(FIXTURES.glob("*.json"))
 #: command name its envelope reports.
 #:
 #: Whether a host can run a Climb changes the shape of the answer, so both
-#: shapes are on record, each captured from a Techtree home in a stated state:
+#: shapes are on record. Each comes from a throwaway Techtree home created for
+#: the capture, so both stay reproducible instead of depending on what any one
+#: machine happens to have installed on the day:
 #:
-#: * ``climb-list.json`` and ``climb-show.json`` come from a home whose engine
-#:   is not the one this release names. Compatibility is false, and the issue
+#: * ``climb-list.json`` and ``climb-show.json`` come from an empty home, with
+#:   no evaluation engine in it at all. Compatibility is false, and the issue
 #:   is a blocking ``engine_not_installed`` error.
 #: * ``climb-list-compatible.json`` and ``climb-show-compatible.json`` come
-#:   from a throwaway home with the release's own engine unpacked into it.
+#:   from a home with the release's own engine unpacked into it.
 #:   Compatibility is true, and the issue is a non-blocking
 #:   ``engine_not_verified`` warning. The engine reads as installed but
 #:   unverified because installing it and vouching for it are separate steps.
 #:
-#: Everything else about the two captures — the Climb, the Campaign, the
+#: The remaining envelopes are read-only answers that do not depend on which
+#: engine a home holds, and are captured from the ordinary one.
+#:
+#: Everything else about the two Climb captures — the Climb, the Campaign, the
 #: policy, the digests — is identical, which is the point: the plugin must
 #: read both without either being a special case.
 RECORDED_COMMANDS = {
