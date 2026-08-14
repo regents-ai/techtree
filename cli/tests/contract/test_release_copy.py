@@ -138,12 +138,15 @@ def _copy_modules() -> list[Path]:
     return sorted(path for path in surfaces if "__pycache__" not in path.parts)
 
 
-#: The prose a reader meets outside the CLI: this repository's front page and
-#: the release directory's own README, which is what a release owner and every
-#: downstream repository read before touching the coordinates.
+#: The prose a reader meets outside the CLI: this repository's front page, the
+#: release directory's own README — what a release owner and every downstream
+#: repository read before touching the coordinates — and the uninstall runbook,
+#: which is the one document whose whole subject is what Techtree keeps and
+#: what it cannot reach.
 MARKDOWN_SURFACES: Final[tuple[Path, ...]] = (
     REPOSITORY_ROOT / "README.md",
     REPOSITORY_ROOT / "release" / "README.md",
+    REPOSITORY_ROOT / "docs" / "uninstall-and-data-retention.md",
 )
 
 
@@ -320,6 +323,7 @@ def test_the_scan_reads_every_surface_a_person_meets() -> None:
         "src/techtree/presentation/rich.py",
         "src/techtree/presentation/compact.py",
         "src/techtree/skills/service.py",
+        "docs/uninstall-and-data-retention.md",
     }
     assert all(text.strip() for text in PUBLIC_COPY.values())
 
