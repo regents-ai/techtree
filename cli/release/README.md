@@ -38,16 +38,28 @@ copies and `make generated-check` fails if they ever differ.
 
 ## This release is a placeholder
 
-Every coordinate that only the release owner can choose is still blank, and the
-document says so in its own data:
+The coordinates that can only be chosen at deploy time are still blank, and
+the document says so in its own data:
 
 ```text
 placeholder_release   true
 placeholder_fields    cli_source_commit, cli_version,
                       maximum_tested_host_hermes_version, release_id,
-                      skill_improver_digest, starter_skill_digest,
                       starter_skill_object_url
 ```
+
+Both founder Skills are now bound. `starter_skill_digest` is the ordered
+content-tree digest of `skills/hello-world-starter-v1/SKILL.md` in this
+directory, and `skill_improver_digest` is the SHA-256 of the exact bytes of the
+plugin's `skills/skill-improver/SKILL.md` — two different digest semantics for
+two different kinds of consumption, fixed by decisions document 0008 and stated
+here because a reader cannot tell which is which by looking.
+
+`starter_skill_object_url` is the one starter coordinate still open, and it is
+open for a reason rather than by oversight: the release knows exactly which
+Skill it measured, and where that Skill will be served from is not decided
+until the object is published. So this build can name the Skill and cannot
+fetch it, which is what `techtree skill starter` says when it refuses.
 
 There are four spellings of "not chosen yet", one per kind of coordinate, and
 none of them can collide with a real value: the version `0.0.0-placeholder`,

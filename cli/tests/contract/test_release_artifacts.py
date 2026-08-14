@@ -184,8 +184,6 @@ def test_this_build_carries_a_self_declaring_placeholder_release() -> None:
         "cli_version",
         "maximum_tested_host_hermes_version",
         "release_id",
-        "skill_improver_digest",
-        "starter_skill_digest",
         "starter_skill_object_url",
     ]
 
@@ -280,23 +278,59 @@ STARTER_SKILL_TREE_DIGEST = (
     "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
 )
 
+#: The improver Skill's digest, under the other half of decisions 0008: it is a
+#: single file the plugin loads and never evaluates, so it is pinned by the
+#: SHA-256 of its exact bytes. Those bytes live in the plugin repository, which
+#: this one cannot read, so the value is recorded rather than recomputed — and
+#: the release document is where the two repositories agree on it.
+SKILL_IMPROVER_FILE_DIGEST = (
+    "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097"
+)
+
 
 def test_the_starter_skill_still_hashes_to_the_digest_the_release_will_pin() -> None:
     """The Skill and the coordinate that names it cannot drift apart silently."""
     assert tree_digest(STARTER_SKILL.parent) == STARTER_SKILL_TREE_DIGEST
 
 
-def test_the_starter_skill_coordinates_are_both_still_unchosen() -> None:
-    """A digest with no address names bytes nobody can fetch, and vice versa.
+def test_the_release_pins_which_starter_skill_and_not_yet_where() -> None:
+    """The two halves of the starter coordinate are bound at different moments.
 
-    Both halves are founder decisions taken at the same moment, so this build
-    carries both placeholders or neither. The pair is asserted rather than
-    assumed because binding one alone would produce a release that verifies and
-    still cannot hand anybody a Skill.
+    *Which* Skill is settled: these bytes exist, they are in this repository,
+    and their tree digest is above. *Where* it is served from cannot be settled
+    until the release is deployed and the object has an address, so that half
+    stays a placeholder and the document says so in its own data.
+
+    The asymmetry is the point. A build in this state knows exactly which Skill
+    it measured and has nowhere to send a machine that does not already hold
+    it — which is why :mod:`techtree.skills.starter` refuses rather than
+    guessing, and why the refusal is about the address and not about the Skill.
     """
     core = parse_release_core(packaged_release_core_bytes())
-    assert core.starter_skill_digest == PLACEHOLDER_DIGEST
+
+    assert core.starter_skill_digest == STARTER_SKILL_TREE_DIGEST
+    assert core.starter_skill_digest != PLACEHOLDER_DIGEST
+    assert "starter_skill_digest" not in core.placeholder_fields
+
     assert core.starter_skill_object_url == PLACEHOLDER_OBJECT_URL
+    assert "starter_skill_object_url" in core.placeholder_fields
+
+
+def test_both_founder_skill_digests_are_bound_under_their_own_semantics() -> None:
+    """Decisions 0008: a tree digest for one Skill, a file digest for the other.
+
+    The starter Skill is evaluated through the kernel, so it is pinned by the
+    ordered content-tree digest the scanner computes. The improver Skill is a
+    single document the plugin loads and never evaluates, so it is pinned by
+    the SHA-256 of its exact bytes — the number a one-line ``shasum``
+    reproduces. Recording both here keeps the release from quietly acquiring
+    one digest under the other's rules.
+    """
+    core = parse_release_core(packaged_release_core_bytes())
+
+    assert core.starter_skill_digest == STARTER_SKILL_TREE_DIGEST
+    assert core.skill_improver_digest == SKILL_IMPROVER_FILE_DIGEST
+    assert core.placeholder_release is True
 
 
 def _committed_paths() -> list[Path]:
@@ -306,3 +340,99 @@ def _committed_paths() -> list[Path]:
         RELEASE_DIRECTORY / "release-core.schema.json",
         PACKAGED_COPY,
     ]
+
+
+def test_a_wrapper_carrying_the_bound_starter_digest_verifies() -> None:
+    """The published wrapper and this release agree, now that the Skill is pinned.
+
+    Built against the *packaged* ReleaseCore rather than a synthetic one, so
+    this is the real cross-repository comparison the website will make at
+    import: a bootstrap document that names ``596d1368...`` as the starter
+    Skill has to pass, and the placeholder address has to be repeated rather
+    than filled in, because this release has not published the object yet.
+    """
+    import json
+
+    from techtree.release.bootstrap import verify_bootstrap_document
+
+    core = parse_release_core(packaged_release_core_bytes())
+    document = {
+        "schema_version": "techtree.bootstrap.v1alpha1",
+        "channel": "development",
+        "placeholder_release": True,
+        "published_at": "2026-08-14T00:00:00Z",
+        "minimums": {"hermes_version": core.minimum_host_hermes_version},
+        "cli": {
+            "distribution": "techtree",
+            "version": core.cli_version,
+            "source_revision": core.cli_source_commit,
+            "install_argv": ["uv", "tool", "install", f"techtree=={core.cli_version}"],
+        },
+        "hermes_plugin": {
+            "plugin_id": "techtree",
+            "revision": "e" * 40,
+            "install_argv": ["hermes", "plugins", "install", "--ref", "e" * 40],
+            "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"],
+        },
+        "introductory_climb": {
+            "reference": core.intro_climb_reference,
+            "host_prompt": "Set up Techtree and run the Hello World Climb.",
+        },
+        "starter_skill": {
+            "name": "hello-world-starter-v1",
+            "object_url": core.starter_skill_object_url,
+            "digest": STARTER_SKILL_TREE_DIGEST,
+        },
+    }
+
+    result = verify_bootstrap_document(core, json.dumps(document).encode("utf-8"))
+
+    assert result.verified is True, [check.detail for check in result.failures]
+    by_id = {check.id: check for check in result.checks}
+    assert by_id["bootstrap_starter_skill_digest"].status == "passed"
+    assert STARTER_SKILL_TREE_DIGEST in by_id["bootstrap_starter_skill_digest"].detail
+
+
+def test_a_wrapper_naming_the_old_placeholder_digest_is_now_refused() -> None:
+    """Binding the Skill means a stale wrapper stops verifying, which is the point."""
+    import json
+
+    from techtree.release.bootstrap import (
+        BOOTSTRAP_RELEASE_MISMATCH,
+        verify_bootstrap_document,
+    )
+
+    core = parse_release_core(packaged_release_core_bytes())
+    document = {
+        "schema_version": "techtree.bootstrap.v1alpha1",
+        "channel": "development",
+        "placeholder_release": True,
+        "published_at": "2026-08-14T00:00:00Z",
+        "minimums": {"hermes_version": core.minimum_host_hermes_version},
+        "cli": {
+            "distribution": "techtree",
+            "version": core.cli_version,
+            "source_revision": core.cli_source_commit,
+            "install_argv": ["uv", "tool", "install", f"techtree=={core.cli_version}"],
+        },
+        "hermes_plugin": {
+            "plugin_id": "techtree",
+            "revision": "e" * 40,
+            "install_argv": ["hermes", "plugins", "install", "--ref", "e" * 40],
+            "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"],
+        },
+        "introductory_climb": {
+            "reference": core.intro_climb_reference,
+            "host_prompt": "Set up Techtree and run the Hello World Climb.",
+        },
+        "starter_skill": {
+            "name": "hello-world-starter-v1",
+            "object_url": core.starter_skill_object_url,
+            "digest": PLACEHOLDER_DIGEST,
+        },
+    }
+
+    result = verify_bootstrap_document(core, json.dumps(document).encode("utf-8"))
+
+    assert [check.id for check in result.failures] == ["bootstrap_starter_skill_digest"]
+    assert result.failures[0].code == BOOTSTRAP_RELEASE_MISMATCH

@@ -29,7 +29,7 @@ from fixtures.starter import STARTER_FIXTURE, tree_digest
 from fixtures.starter import release_pinning as release
 from techtree.constants import MAX_SKILL_TOTAL_BYTES
 from techtree.errors import (
-    EXIT_PREREQUISITE,
+    EXIT_NOT_FOUND,
     PrerequisiteError,
     ValidationError,
     VerificationError,
@@ -38,12 +38,23 @@ from techtree.models.base import Digest
 from techtree.paths import paths_from_root
 from techtree.skills.starter import (
     STARTER_SKILL_DIGEST_MISMATCH,
-    STARTER_SKILL_NOT_PINNED,
     STARTER_SKILL_SOURCE_REFUSED,
+    STARTER_SKILL_UNAVAILABLE,
     StarterSkillService,
 )
 
 pytestmark = pytest.mark.integration
+
+#: The founder's own starter Skill, which this release now pins by tree digest.
+#: Distinct from ``STARTER_FIXTURE``: that one stands in for "a Skill", this one
+#: is the artifact the packaged ReleaseCore names.
+RELEASE_STARTER_SKILL = (
+    Path(__file__).resolve().parents[2]
+    / "release"
+    / "skills"
+    / "hello-world-starter-v1"
+)
+STARTER_SKILL_TREE_DIGEST = tree_digest(RELEASE_STARTER_SKILL)
 
 STARTER_BYTES = (STARTER_FIXTURE / "SKILL.md").read_bytes()
 WRONG_BYTES = b"# Not the starter Skill\n\nSomething else entirely.\n"
@@ -157,16 +168,48 @@ def test_a_source_that_is_not_there_is_refused(
     assert raised.value.retryable is True
 
 
-def test_the_cli_refuses_honestly_on_a_build_that_pins_no_starter_skill(
+def test_the_cli_refuses_honestly_on_a_build_that_publishes_no_starter_skill(
     tmp_path: Path,
 ) -> None:
-    """What an operator meets today: a typed refusal with the next step."""
+    """What an operator meets today, now that the Skill itself is pinned.
+
+    This build names which Skill counts and has nowhere to fetch it from: the
+    digest is bound and ``starter_skill_object_url`` is still the placeholder,
+    because where the object will be served from is decided at deploy. So the
+    refusal is about the address rather than about the Skill, and it offers the
+    step that still works — naming a copy, which is checked against the pinned
+    digest exactly as a download would be.
+    """
     home = tmp_path / "home"
     home.mkdir()
 
     refused = run_cli(home, "skill", "starter")
 
-    assert refused.exit_code == EXIT_PREREQUISITE
+    assert refused.exit_code == EXIT_NOT_FOUND
     envelope = refused.envelope()
-    assert envelope["error"]["code"] == STARTER_SKILL_NOT_PINNED
-    assert [action["id"] for action in envelope["next_actions"]] == ["inspect_release"]
+    assert envelope["error"]["code"] == STARTER_SKILL_UNAVAILABLE
+    assert envelope["error"]["details"]["expected"] == STARTER_SKILL_TREE_DIGEST
+    assert [action["id"] for action in envelope["next_actions"]] == [
+        "name_a_starter_skill_source"
+    ]
+
+
+def test_naming_a_local_copy_still_works_on_a_build_that_publishes_nothing(
+    tmp_path: Path,
+) -> None:
+    """The next action the refusal offers has to be one that actually works."""
+    home = tmp_path / "home"
+    home.mkdir()
+
+    obtained = run_cli(
+        home,
+        "skill",
+        "starter",
+        "--from-file",
+        str(RELEASE_STARTER_SKILL),
+    )
+
+    assert obtained.exit_code == 0
+    payload = obtained.envelope()["data"]
+    assert payload["skill_root_digest"] == STARTER_SKILL_TREE_DIGEST
+    assert payload["origin"] == "local_file"

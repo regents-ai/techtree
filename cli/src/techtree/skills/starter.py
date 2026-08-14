@@ -284,6 +284,24 @@ def _published_source(release: ReleaseCore, cache: Path) -> str:
                 "cache": str(cache),
                 "release_id": release.release_id,
             },
+            next_actions=[
+                NextAction(
+                    id="name_a_starter_skill_source",
+                    # The release names the Skill, so a copy can still be
+                    # proved against it. What is missing is only the address.
+                    label="Name a local copy of the starter Skill",
+                    reason=(
+                        "This release pins which Skill counts, so a copy you "
+                        "already have is checked against that digest and "
+                        "refused unless it matches. Only the address it will "
+                        "be published at is still unchosen."
+                    ),
+                    cli=["techtree", "skill", "starter", "--from-file", "PATH"],
+                    hermes_tool=None,
+                    hermes_args=None,
+                    requires_user_confirmation=False,
+                )
+            ],
         )
     return release.starter_skill_object_url
 

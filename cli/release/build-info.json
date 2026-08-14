@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "release/release-core.json": "sha256:69fca2f78f2cb6dafabc704783aed3f51a146278f4266bca99f62d667e69977b",
+    "release/release-core.json": "sha256:80807821d3d5b8bcf0a5223c96684b04546b250ff677b3e3bb65f768bde18687",
     "release/release-core.schema.json": "sha256:034f002407058b2f00a796b4ea3adcbbc5857421874f0bc4f48b62bdd04c3b56",
-    "src/techtree/resources/release/release-core.json": "sha256:69fca2f78f2cb6dafabc704783aed3f51a146278f4266bca99f62d667e69977b"
+    "src/techtree/resources/release/release-core.json": "sha256:80807821d3d5b8bcf0a5223c96684b04546b250ff677b3e3bb65f768bde18687"
   },
   "generator": "tools/build_release_core.py",
   "generator_version": "0.1.0",
@@ -12,15 +12,13 @@
     "intro_climb_reference": "hello-world-climb@1",
     "protocol_version": "v1alpha1",
     "pyproject_version": "0.1.0",
-    "release_inputs_digest": "sha256:858100e92c28ba3275aa36ed9f552c3e84255435d93f24d0f531944c1162d063"
+    "release_inputs_digest": "sha256:10ce07d57d0b858f89012c813887738ca1c710993fab7c5ed0e176c5d45d3cad"
   },
   "placeholder_fields": [
     "cli_source_commit",
     "cli_version",
     "maximum_tested_host_hermes_version",
     "release_id",
-    "skill_improver_digest",
-    "starter_skill_digest",
     "starter_skill_object_url"
   ],
   "placeholder_release": true,
