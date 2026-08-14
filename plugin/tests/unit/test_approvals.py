@@ -9,19 +9,19 @@ import pytest
 from techtree_hermes.approvals import (
     DOCUMENTED_CONFIRMATION_KEYS,
     GUIDED_REVISION_DISCLOSURE,
-    DisclosureStore,
     InstallPlanStore,
     issue_local_plan_id,
     policy_acceptance_args,
-    require_confirmed_disclosure,
     require_install_plan,
     require_user_confirmed_tool_context,
+    run_approved_event,
 )
 from techtree_hermes.errors import ApprovalRequiredError, BootstrapPlanError
 from techtree_hermes.models import PLAN_ID_PATTERN, BootstrapInstallPlan
 
 DIGEST = "sha256:" + "a" * 64
 RUN_ID = "run_" + "0" * 32
+DRAFT_ID = "draft_" + "0" * 32
 POLICY_DIGEST = "sha256:" + "b" * 64
 
 
@@ -196,9 +196,9 @@ def test_a_policy_must_be_named_by_its_exact_digest() -> None:
 
 # The guided revision's disclosure ---------------------------------------------------
 #
-# Decision 0018 section 5. Every other approval here gates something that
-# changes the machine or spends money. This one gates text leaving for a model
-# provider, which is quieter and easier to miss.
+# Decision 0019 s2 replaced the token machinery with Hermes's native approval
+# surface. The disclosure content survives verbatim, because what a person is
+# told before the request is composed was never the part that was wrong.
 
 
 def test_the_disclosure_says_every_thing_it_has_to_say() -> None:
@@ -234,72 +234,51 @@ def test_the_disclosure_never_promises_a_result() -> None:
         assert promise not in said, promise
 
 
-def test_an_offer_carries_the_disclosure_and_a_token() -> None:
-    store = DisclosureStore()
+def test_the_plugin_issues_no_approval_of_its_own() -> None:
+    """Hard cutover: the token machinery is gone, not merely unused.
 
-    offer = store.offer(RUN_ID).to_dict()
+    A store the plugin can consult to decide whether a person agreed is a
+    store a model can talk the plugin into consulting. Its absence is the
+    property, so its absence is what is checked.
+    """
+    import techtree_hermes.approvals as approvals
 
-    assert offer["source_run_id"] == RUN_ID
-    assert offer["disclosure"] == list(GUIDED_REVISION_DISCLOSURE)
-    assert len(offer["confirmation_token"]) >= 16
-    assert store.count() == 1
-
-
-def test_nothing_is_confirmed_that_was_never_offered() -> None:
-    """The first half of the gate: no offer, no request."""
-    with pytest.raises(ApprovalRequiredError, match="nobody has been shown") as raised:
-        require_confirmed_disclosure(DisclosureStore(), RUN_ID, token="x" * 32)
-
-    assert raised.value.code == "guided_revision_not_confirmed"
-
-
-def test_a_token_from_another_run_confirms_nothing() -> None:
-    """An acceptance is for the run it was shown against, and no other."""
-    store = DisclosureStore()
-    offer = store.offer(RUN_ID)
-    other = "run_" + "9" * 32
-
-    with pytest.raises(ApprovalRequiredError, match="nobody has been shown"):
-        require_confirmed_disclosure(store, other, token=offer.token)
+    for removed in (
+        "DisclosureStore",
+        "OfferedDisclosure",
+        "require_confirmed_disclosure",
+        "ReviewStore",
+        "DisplayedReview",
+        "require_displayed_review",
+    ):
+        assert not hasattr(approvals, removed), removed
 
 
-def test_a_wrong_token_confirms_nothing() -> None:
-    store = DisclosureStore()
-    store.offer(RUN_ID)
-
-    with pytest.raises(ApprovalRequiredError, match="not the confirmation"):
-        require_confirmed_disclosure(store, RUN_ID, token="z" * 32)
-
-    assert store.count() == 1, "a wrong guess must not consume the offer"
+# The audit fact ----------------------------------------------------------------------
 
 
-def test_the_acceptance_is_single_use() -> None:
-    """A token cannot confirm two requests. Section 7.7's rule, applied here."""
-    store = DisclosureStore()
-    offer = store.offer(RUN_ID)
+def test_the_approval_event_is_an_ordinary_run_event() -> None:
+    """Decision 0019 s2: a fact about what happened, not an artifact to verify."""
+    event = run_approved_event(draft_id=DRAFT_ID, draft_digest=DIGEST)
 
-    assert require_confirmed_disclosure(store, RUN_ID, token=offer.token) == offer
-    assert store.count() == 0
+    assert event["kind"] == "run.approved"
+    assert event["draft_id"] == DRAFT_ID
+    assert event["draft_digest"] == DIGEST
+    assert event["actor"] == "human_via_hermes"
+    datetime.fromisoformat(event["approved_at"])
 
-    with pytest.raises(ApprovalRequiredError, match="nobody has been shown"):
-        require_confirmed_disclosure(store, RUN_ID, token=offer.token)
-
-
-def test_a_fresh_offer_replaces_a_stale_one() -> None:
-    """Showing it again invalidates the token nobody acted on."""
-    store = DisclosureStore()
-    stale = store.offer(RUN_ID)
-    fresh = store.offer(RUN_ID)
-
-    assert stale.token != fresh.token
-    with pytest.raises(ApprovalRequiredError, match="not the confirmation"):
-        require_confirmed_disclosure(store, RUN_ID, token=stale.token)
+    # Nothing in it is a secret, a signature, or a token.
+    assert set(event) == {
+        "kind",
+        "draft_id",
+        "draft_digest",
+        "actor",
+        "approved_at",
+    }
 
 
-def test_offers_live_only_in_memory() -> None:
-    """Two sessions do not share an acceptance."""
-    first, second = DisclosureStore(), DisclosureStore()
-    offer = first.offer(RUN_ID)
+def test_an_unnamed_draft_digest_is_recorded_absent_not_invented() -> None:
+    event = run_approved_event(draft_id=DRAFT_ID, draft_digest=None)
 
-    with pytest.raises(ApprovalRequiredError, match="nobody has been shown"):
-        require_confirmed_disclosure(second, RUN_ID, token=offer.token)
+    assert event["draft_digest"] is None
+    assert event["draft_id"] == DRAFT_ID

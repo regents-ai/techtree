@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..approvals import policy_acceptance_args
+from ..approvals import policy_acceptance_args, run_approved_event
 from ..bootstrap import doctor_summary
 from ..errors import PluginError
 from ..services.assets import materialize_starter_skill
@@ -166,10 +166,30 @@ def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> 
     )
 
     session = _session_for_draft(services, draft_id)
-    if session is not None and envelope.get("ok"):
-        save_session(services, update_after_first_start(session, envelope))
+    if envelope.get("ok"):
+        if session is not None:
+            save_session(services, update_after_first_start(session, envelope))
+        # Decision 0019 s2: one ordinary run event recording that a person
+        # approved starting this exact draft. A fact about what happened, not
+        # an acceptance artifact anybody has to verify.
+        return tool_result(
+            {
+                **envelope,
+                "approval": run_approved_event(
+                    draft_id=draft_id, draft_digest=_draft_digest(envelope)
+                ),
+            },
+            channel,
+        )
 
     return passthrough(envelope, channel)
+
+
+def _draft_digest(envelope: Any) -> str | None:
+    """Return the digest Techtree named for this draft, or None if it named none."""
+    data = envelope.get("data") if isinstance(envelope, dict) else None
+    digest = data.get("draft_digest") if isinstance(data, dict) else None
+    return digest if isinstance(digest, str) and digest else None
 
 
 def _session_for_draft(services: Any, draft_id: str) -> Any:

@@ -10,12 +10,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from ..approvals import (
-    DisplayedReview,
-    policy_acceptance_args,
-    require_confirmed_disclosure,
-    require_displayed_review,
-)
+from ..approvals import policy_acceptance_args, run_approved_event
 from ..channels import is_gateway_safe_required
 from ..diff import build_skill_diff
 from ..errors import CODE_FOUNDER_SKILL_MISSING, PluginError
@@ -85,48 +80,12 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             repair="Use a published release of the plugin.",
         )
 
-    # Decision 0018 section 5. Nothing is composed, read, or sent until the
-    # person has been told what leaves this machine and has said yes to it.
-    # Showing the disclosure spends nothing: no context is fetched, no Skill
-    # is read out, no request is built, and the session's one revision is
-    # still there afterwards, because nothing was sent.
-    token = args.get("confirmation_token")
-    if not isinstance(token, str) or not token:
-        offer = services.disclosures.offer(source_run_id)
-        return tool_result(
-            {
-                "ok": True,
-                "command": "uplift propose",
-                # Said explicitly here, because this is the answer where
-                # "nothing happened yet" is the whole content. The confirmed
-                # answer says it by carrying a proposal, a provenance and a
-                # diff — restating it there would cost a bounded channel bytes
-                # to repeat what its own structure already shows.
-                "awaiting_confirmation": True,
-                "proposed": False,
-                "revision_spent": False,
-                **offer.to_dict(),
-                "next_action": {
-                    "id": "confirm_guided_revision",
-                    "label": "Send the one revision request",
-                    "reason": (
-                        "Read the disclosure above out to the user in full and "
-                        "call this tool again with the confirmation token only "
-                        "if they agree to it. Nothing has been sent."
-                    ),
-                    "tool": "techtree_uplift_propose",
-                    "requires_user_confirmation": True,
-                },
-            },
-            channel,
-        )
-
-    require_confirmed_disclosure(
-        services.disclosures,
-        source_run_id,
-        token=require_confirmation_token(token),
-    )
-
+    # Decisions 0018 s5 and 0019 s2. The boundary is Hermes's, not the
+    # plugin's: this tool is declared as one a human must confirm, so the call
+    # only arrives after a person answered the host's own approval surface.
+    # The plugin's job is to make that decision an informed one — the
+    # disclosure is in this tool's description, where Hermes shows it — and
+    # then to do exactly what was approved and nothing else.
     improvement = ImprovementService(
         llm=host, release=services.release_core, bridge=services.bridge
     )
@@ -173,15 +132,6 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
 
     session = update_after_second_prepare(session, {"ok": True, "data": prepared})
     save_session(services, session)
-
-    services.reviews.save(
-        DisplayedReview(
-            draft_id=str(prepared["draft_id"]),
-            diff_digest=difference.diff_digest,
-            data_policy_digest=str(prepared["data_policy_digest"]),
-            displayed_at=datetime.now(UTC).isoformat(),
-        )
-    )
 
     written = proposal.output.to_dict()
     # The request accounting is the record of what this attempt did at the
@@ -288,9 +238,13 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
     policy = require_digest(
         require_argument(args, "data_policy_digest"), "a data policy digest"
     )
-    # Specification section 16: no second run starts without the difference
-    # and the policy having been shown. The plugin remembers what it showed.
-    require_displayed_review(services.reviews, draft_id, data_policy_digest=policy)
+    # Specification section 16 asks that no second run start without the
+    # difference and the policy having been shown. Decision 0019 puts that
+    # boundary where it belongs: this tool is one Hermes confirms with a
+    # person, naming this exact draft, and the plugin starts that draft and
+    # no other. It no longer keeps a record of what it displayed, because a
+    # record the plugin checks against itself was never the thing standing
+    # between a model and a paid run.
 
     envelope = services.bridge.invoke(
         [
@@ -306,8 +260,24 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
 
     session = latest_session(services)
     if envelope.get("ok"):
-        services.reviews.discard(draft_id)
         if session is not None:
             save_session(services, update_after_second_start(session, envelope))
+        return tool_result(
+            {
+                **envelope,
+                "approval": run_approved_event(
+                    draft_id=draft_id,
+                    draft_digest=_draft_digest(envelope),
+                ),
+            },
+            channel,
+        )
 
     return passthrough(envelope, channel)
+
+
+def _draft_digest(envelope: Any) -> str | None:
+    """Return the digest Techtree named for this draft, or None if it named none."""
+    data = envelope.get("data") if isinstance(envelope, dict) else None
+    digest = data.get("draft_digest") if isinstance(data, dict) else None
+    return digest if isinstance(digest, str) and digest else None

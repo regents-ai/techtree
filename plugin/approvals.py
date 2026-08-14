@@ -202,104 +202,29 @@ def _expiry(plan: BootstrapInstallPlan) -> datetime:
         ) from error
 
 
-# Second-run review ----------------------------------------------------------------
+# The approvals the plugin surfaces --------------------------------------------------
 #
-# Specification section 16's binding rule: no second run starts without the
-# diff and the policy having been displayed. That is enforced the same way
-# installation is — the plugin remembers what it actually showed, and starting
-# requires quoting it back.
-
-
-CODE_SECOND_RUN_NOT_REVIEWED: Final = "second_run_not_reviewed"
-
-
-@dataclass(frozen=True)
-class DisplayedReview:
-    """What was put in front of a person before a second comparison."""
-
-    draft_id: str
-    diff_digest: str
-    data_policy_digest: str
-    displayed_at: str
-
-
-@dataclass
-class ReviewStore:
-    """The reviews this conversation has actually shown.
-
-    In memory, for the life of the session, for the same reason install offers
-    are: a diff shown in a conversation last week is not a diff this
-    conversation showed, and starting a run that spends money on the strength
-    of it would be a lie about what the person agreed to.
-    """
-
-    _reviews: dict[str, DisplayedReview] = field(default_factory=dict)
-
-    def save(self, review: DisplayedReview) -> None:
-        """Record that this draft's diff and policy were displayed."""
-        self._reviews[review.draft_id] = review
-
-    def get(self, draft_id: str) -> DisplayedReview | None:
-        """Return what was displayed for this draft, if anything was."""
-        return self._reviews.get(draft_id)
-
-    def discard(self, draft_id: str) -> None:
-        """Forget a review once it has been acted on."""
-        self._reviews.pop(draft_id, None)
-
-    def count(self) -> int:
-        """How many reviews are currently held."""
-        return len(self._reviews)
-
-
-def require_displayed_review(
-    store: ReviewStore, draft_id: str, *, data_policy_digest: str
-) -> DisplayedReview:
-    """Return the review that was shown for this draft, or refuse the start.
-
-    Raises:
-        ApprovalRequiredError: when nothing was displayed for this draft, or
-            when the policy being accepted is not the policy that was shown.
-    """
-    review = store.get(draft_id)
-    if review is None:
-        raise ApprovalRequiredError(
-            "nobody has been shown the difference between the two Skills and "
-            "the data policy for this comparison yet",
-            code=CODE_SECOND_RUN_NOT_REVIEWED,
-            repair="Run techtree_uplift_propose and show its diff first.",
-        )
-    if review.data_policy_digest != data_policy_digest:
-        raise ApprovalRequiredError(
-            "the data policy being accepted is not the one that was shown",
-            code=CODE_SECOND_RUN_NOT_REVIEWED,
-            repair="Show the policy from the proposal, and accept that digest.",
-        )
-    return review
-
-
-# The guided revision's disclosure ---------------------------------------------------
+# Decision 0019 section 2. The boundaries stay and the token machinery goes.
 #
-# Decision 0018 section 5. Every other approval in this file gates something
-# that changes the machine or spends money. This one gates something quieter
-# and easier to miss: text leaving for a model provider. The Skill being
-# revised and a summary of how it did go to whatever provider Host Hermes is
-# configured with — a different provider from the one the evaluated run uses,
-# and one the person may not have thought about at all.
+# What used to happen here: the plugin minted a one-time token, remembered it,
+# and refused to act until the token came back. That put the plugin in the
+# position of deciding whether a person had agreed — and a token that arrives
+# in a tool call is just an argument, which a model can supply as easily as a
+# human can. It was ceremony around a question the plugin cannot answer.
 #
-# So it is gated the way the second run is: the plugin composes the
-# disclosure, hands it back, remembers that it did, and refuses to compose or
-# send anything until that offer is quoted back to it. The offer is single-use
-# and dies with the session.
+# What happens now: the plugin prepares the immutable thing, shows exactly
+# what would change, what it costs, and where anything goes; and it marks the
+# next step as one a human must confirm. Hermes owns that boundary, asks the
+# person, and only then dispatches the call. The model cannot approve its own
+# action because approving is not something a tool call can do.
 #
-# What this cannot prove is that a human read it. No plugin can. What it does
-# prove is that the disclosure reached the conversation before the request
-# did, and that a second revision cannot ride in on the first one's consent.
+# The plugin's remaining job is to make the decision an informed one — say
+# what the step does before it is taken — and to record that it was taken.
 
-CODE_REVISION_NOT_CONFIRMED: Final = "guided_revision_not_confirmed"
-
-#: What the person is told before the one request is composed. Decision 0018
-#: fixes the elements; the wording is ours, and it never promises a result.
+#: What the person is told before the one revision request is composed.
+#: Decision 0018 fixes the elements; the wording is ours, and it never
+#: promises a result. Decision 0019 kept this content verbatim and replaced
+#: only the mechanism that gated it.
 GUIDED_REVISION_DISCLOSURE: Final[tuple[str, ...]] = (
     "This step sends the verified starter Skill and a sanitized summary of how "
     "it did to the model provider configured for Host Hermes — the agent you "
@@ -311,84 +236,29 @@ GUIDED_REVISION_DISCLOSURE: Final[tuple[str, ...]] = (
     "proposal may be unusable or may fail to improve the score.",
 )
 
+#: Who approved, in the one form this plugin can honestly report. The person
+#: answered Hermes's own approval surface; the plugin saw the call arrive
+#: after it, and says exactly that rather than implying it checked a signature.
+APPROVAL_ACTOR: Final = "human_via_hermes"
 
-@dataclass(frozen=True)
-class OfferedDisclosure:
-    """A guided-revision disclosure this conversation actually showed."""
-
-    source_run_id: str
-    token: str
-    offered_at: str
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return the offer in the shape a tool result carries it."""
-        return {
-            "source_run_id": self.source_run_id,
-            "confirmation_token": self.token,
-            "offered_at": self.offered_at,
-            "disclosure": list(GUIDED_REVISION_DISCLOSURE),
-        }
+#: The audit event kind. An ordinary run event — a fact about what happened,
+#: not a cryptographic acceptance artifact (decision 0019 section 2).
+RUN_APPROVED_EVENT: Final = "run.approved"
 
 
-@dataclass
-class DisclosureStore:
-    """The guided-revision disclosures this session has put in front of a person.
+def run_approved_event(
+    *, draft_id: str, draft_digest: str | None, now: datetime | None = None
+) -> dict[str, Any]:
+    """Return the audit fact that a human approved starting this exact draft.
 
-    In memory and single-use, for the same reason the other two stores are: an
-    acceptance given in an earlier conversation is not an acceptance in this
-    one, and an acceptance already spent is not an acceptance again.
+    Recorded because it happened, at the moment the approved call arrives.
+    ``draft_digest`` is None when Techtree named no digest for the draft: an
+    absent value is reported absent rather than invented.
     """
-
-    _offers: dict[str, OfferedDisclosure] = field(default_factory=dict)
-
-    def offer(self, source_run_id: str) -> OfferedDisclosure:
-        """Record that the disclosure was shown for this run, and return it."""
-        offer = OfferedDisclosure(
-            source_run_id=source_run_id,
-            token=secrets.token_urlsafe(24),
-            offered_at=datetime.now(UTC).isoformat(),
-        )
-        self._offers[source_run_id] = offer
-        return offer
-
-    def get(self, source_run_id: str) -> OfferedDisclosure | None:
-        """Return the offer standing for this run, if one is."""
-        return self._offers.get(source_run_id)
-
-    def discard(self, source_run_id: str) -> None:
-        """Forget an offer, whether it was accepted or abandoned."""
-        self._offers.pop(source_run_id, None)
-
-    def count(self) -> int:
-        """How many offers are currently held."""
-        return len(self._offers)
-
-
-def require_confirmed_disclosure(
-    store: DisclosureStore, source_run_id: str, *, token: str
-) -> OfferedDisclosure:
-    """Consume the acceptance for this run, or refuse to compose a request.
-
-    The offer is spent whether or not what follows succeeds, so a token cannot
-    confirm two requests.
-
-    Raises:
-        ApprovalRequiredError: when nothing was offered for this run, or when
-            the token quoted back is not the one that was offered.
-    """
-    offer = store.get(source_run_id)
-    if offer is None:
-        raise ApprovalRequiredError(
-            "nobody has been shown what this step sends to the model provider "
-            "for this run yet",
-            code=CODE_REVISION_NOT_CONFIRMED,
-            repair="Call techtree_uplift_propose without a token to see it.",
-        )
-    if not secrets.compare_digest(offer.token, token):
-        raise ApprovalRequiredError(
-            "that is not the confirmation this session offered for this run",
-            code=CODE_REVISION_NOT_CONFIRMED,
-            repair="Call techtree_uplift_propose without a token to see it.",
-        )
-    store.discard(source_run_id)
-    return offer
+    return {
+        "kind": RUN_APPROVED_EVENT,
+        "draft_id": draft_id,
+        "draft_digest": draft_digest,
+        "actor": APPROVAL_ACTOR,
+        "approved_at": (now or datetime.now(UTC)).isoformat(),
+    }

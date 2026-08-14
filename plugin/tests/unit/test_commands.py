@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.approvals import DisclosureStore, InstallPlanStore, ReviewStore
+from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bootstrap import create_install_plan
 from techtree_hermes.channels import TRUNCATION_NOTE
 from techtree_hermes.commands import (
@@ -104,8 +104,6 @@ def _services(*, release: Any = PUBLISHED, bridge: Any = None) -> PluginServices
         release_core_digest=DIGEST,
         bridge=bridge or FakeBridge(),
         plans=InstallPlanStore(),
-        reviews=ReviewStore(),
-        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=SkillDouble(),
     )

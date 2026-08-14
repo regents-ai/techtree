@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 from support import envelope, install_fake_cli
-from techtree_hermes.approvals import DisclosureStore, InstallPlanStore, ReviewStore
+from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.models import DemoStage
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.services.container import PluginServices
@@ -129,8 +129,6 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         release_core_digest=release_core_digest(PUBLISHED),
         bridge=CliBridge(),
         plans=InstallPlanStore(),
-        reviews=ReviewStore(),
-        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=StarterSkillDouble(),
     )

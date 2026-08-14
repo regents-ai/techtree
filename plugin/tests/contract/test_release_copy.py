@@ -324,9 +324,8 @@ def test_the_guided_revision_says_where_the_skill_text_goes() -> None:
 
     for name, text in surfaces.items():
         collapsed = " ".join(text.split()).lower()
-        assert "sanitized improvement context" in collapsed, name
-        assert "model provider behind" in collapsed, name
-        assert "different provider" in collapsed, name
+        assert "model provider" in collapsed, name
+        assert "not the one the evaluated run uses" in collapsed, name
 
 
 @pytest.mark.parametrize(

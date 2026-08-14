@@ -8,22 +8,19 @@ from __future__ import annotations
 
 import dataclasses
 import json
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from support import envelope, install_fake_cli
-from techtree_hermes.approvals import (
-    GUIDED_REVISION_DISCLOSURE,
-    DisclosureStore,
-    InstallPlanStore,
-    ReviewStore,
-)
+from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bridge import CliBridge
 from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.models import DemoSessionState, DemoStage
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.schemas import all_tool_schemas
 from techtree_hermes.services.assets import ReleaseSkillProvider, file_digest
 from techtree_hermes.services.container import PluginServices
 from techtree_hermes.state import SessionStore, latest_session, save_session
@@ -193,8 +190,6 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         release_core_digest=release_core_digest(CORE),
         bridge=CliBridge(),
         plans=InstallPlanStore(),
-        reviews=ReviewStore(),
-        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )
@@ -226,21 +221,9 @@ def _call(services: PluginServices, name: str, **args: Any) -> dict[str, Any]:
     return parsed
 
 
-def _show_disclosure(services: PluginServices, **args: Any) -> dict[str, Any]:
-    """The first call: shows what would be sent, and sends nothing."""
-    return _call(services, "techtree_uplift_propose", source_run_id=RUN_ID, **args)
-
-
 def _propose(services: PluginServices, **args: Any) -> dict[str, Any]:
-    """Accept the disclosure, then propose. Decision 0018 section 5."""
-    offered = _show_disclosure(services, **args)
-    return _call(
-        services,
-        "techtree_uplift_propose",
-        source_run_id=RUN_ID,
-        confirmation_token=offered["confirmation_token"],
-        **args,
-    )
+    """Call the tool Hermes only dispatches after a person confirmed it."""
+    return _call(services, "techtree_uplift_propose", source_run_id=RUN_ID, **args)
 
 
 # The proposal stops for review ------------------------------------------------
@@ -305,12 +288,9 @@ def test_what_survives_a_restart_is_techtrees_draft_not_plugin_memory(
     """The plugin remembers nothing durable; the draft identifier is the thread."""
     result = _propose(services)
 
-    restarted = dataclasses.replace(
-        services, sessions=SessionStore(), reviews=ReviewStore()
-    )
+    restarted = dataclasses.replace(services, sessions=SessionStore())
 
     assert latest_session(restarted) is None
-    assert restarted.reviews.count() == 0
     # And the draft is still Techtree's to start, by identifier.
     assert result["draft_id"] == DRAFT_ID
 
@@ -354,22 +334,6 @@ def test_an_unusable_proposal_still_uses_the_turn(
 # The second run ---------------------------------------------------------------------
 
 
-def test_the_second_run_never_starts_without_the_diff_being_shown(
-    services: PluginServices,
-) -> None:
-    """Specification section 16, at the tool that would spend the money."""
-    result = _call(
-        services,
-        "techtree_uplift_start",
-        draft_id=DRAFT_ID,
-        confirmation_token=TOKEN,
-        data_policy_digest=POLICY,
-    )
-
-    assert result["ok"] is False
-    assert result["code"] == "second_run_not_reviewed"
-
-
 def test_the_second_run_starts_once_the_diff_and_policy_were_shown(
     services: PluginServices,
 ) -> None:
@@ -388,46 +352,6 @@ def test_the_second_run_starts_once_the_diff_and_policy_were_shown(
     session = latest_session(services)
     assert session is not None
     assert session.stage is DemoStage.SECOND_RUN_ACTIVE
-
-
-def test_accepting_a_policy_that_was_never_shown_is_refused(
-    services: PluginServices,
-) -> None:
-    _propose(services)
-
-    result = _call(
-        services,
-        "techtree_uplift_start",
-        draft_id=DRAFT_ID,
-        confirmation_token=TOKEN,
-        data_policy_digest="sha256:" + "9" * 64,
-    )
-
-    assert result["ok"] is False
-    assert result["code"] == "second_run_not_reviewed"
-
-
-def test_the_approval_is_single_use(services: PluginServices) -> None:
-    _propose(services)
-    first = _call(
-        services,
-        "techtree_uplift_start",
-        draft_id=DRAFT_ID,
-        confirmation_token=TOKEN,
-        data_policy_digest=POLICY,
-    )
-    assert first["ok"] is True
-
-    again = _call(
-        services,
-        "techtree_uplift_start",
-        draft_id=DRAFT_ID,
-        confirmation_token=TOKEN,
-        data_policy_digest=POLICY,
-    )
-
-    assert again["ok"] is False
-    assert again["code"] == "second_run_not_reviewed"
 
 
 def test_a_build_whose_release_named_no_improver_keeps_its_turn(
@@ -518,101 +442,91 @@ def test_a_phone_gets_the_proposal_without_the_request_accounting(
     assert len(services.ctx.llm.calls) == 1
 
 
-# The disclosure gate ------------------------------------------------------------------
+# The approval boundary ----------------------------------------------------------------
 #
-# Decision 0018 section 5. Nothing is composed, read, or sent until the person
-# has been told what leaves this machine and has said yes to it.
+# Decision 0019 s2. The boundary is Hermes's: this tool is declared as one a
+# human confirms, so the call only arrives after a person answered the host's
+# own approval surface. What the plugin owes is that the decision was
+# informed, and that the approved call does exactly what was described.
 
 
-def test_an_unconfirmed_call_sends_nothing_and_spends_nothing(
+def test_the_tool_declares_itself_as_one_a_human_must_confirm() -> None:
+    """The whole mechanism now: Hermes reads this and asks before dispatching."""
+    described = all_tool_schemas()["techtree_uplift_propose"]["description"]
+
+    assert "REQUIRES USER CONFIRMATION" in described
+
+
+def test_the_declaration_carries_the_disclosure_it_has_to_carry() -> None:
+    """Decision 0018's four elements, in the place Hermes shows before asking."""
+    described = " ".join(
+        all_tool_schemas()["techtree_uplift_propose"]["description"].split()
+    ).lower()
+
+    assert "model provider configured for host hermes" in described
+    for withheld in (
+        "raw episodes",
+        "traces",
+        "hidden answers",
+        "proof bundles",
+        "private keys",
+        "provider credentials",
+    ):
+        assert withheld in described, withheld
+    assert "one model-generation request" in described
+    assert "may be unusable or may fail to improve the score" in described
+
+
+def test_the_plugin_mints_no_approval_of_its_own(services: PluginServices) -> None:
+    """A model cannot approve its own action, because approving is not an argument.
+
+    There is no token to supply, no store to satisfy, and no argument whose
+    presence makes the plugin proceed. The tool takes the run to revise and
+    nothing else, so the only thing standing between a model and this call is
+    the host's approval surface — which the model does not answer.
+    """
+    schema = all_tool_schemas()["techtree_uplift_propose"]
+
+    assert set(schema["properties"]) == {"source_run_id", "channel"}
+    assert schema["required"] == ["source_run_id"]
+    assert not hasattr(services, "disclosures")
+    assert not hasattr(services, "reviews")
+
+
+def test_the_approved_call_does_exactly_what_was_described(
     services: PluginServices,
 ) -> None:
-    """The whole point: a refusal here must cost the session nothing."""
-    answer = _show_disclosure(services, channel="terminal")
-
-    assert answer["awaiting_confirmation"] is True
-    assert answer["proposed"] is False
-    assert answer["revision_spent"] is False
-    assert "proposal" not in answer
-    assert answer["next_action"]["requires_user_confirmation"] is True
-
-    # Nothing was sent, and nothing was even read to build a request.
-    assert services.ctx.llm.calls == []
-    session = latest_session(services)
-    assert session is not None
-    assert session.revision_attempts == 0
-
-
-def test_the_unconfirmed_answer_carries_the_whole_disclosure(
-    services: PluginServices,
-) -> None:
-    answer = _show_disclosure(services, channel="terminal")
-
-    assert answer["disclosure"] == list(GUIDED_REVISION_DISCLOSURE)
-    said = " ".join(answer["disclosure"]).lower()
-    assert "model provider configured for host hermes" in said
-    assert "may be unusable or may fail to improve the score" in said
-
-
-def test_a_confirmed_call_proceeds(services: PluginServices) -> None:
-    offered = _show_disclosure(services, channel="terminal")
-
-    answer = _call(
-        services,
-        "techtree_uplift_propose",
-        source_run_id=RUN_ID,
-        confirmation_token=offered["confirmation_token"],
-        channel="terminal",
-    )
+    """One request, one proposal, nothing started."""
+    answer = _propose(services, channel="terminal")
 
     assert answer["ok"] is True
-    assert "awaiting_confirmation" not in answer
-    assert answer["proposal"]["confidence"] == "medium"
+    assert answer["started"] is False
     assert len(services.ctx.llm.calls) == 1
+    assert answer["request_accounting"]["outbound_request_count"] == 1
 
 
-def test_the_tools_acceptance_is_single_use(services: PluginServices) -> None:
-    """One acceptance, one request. A second call must show the offer again."""
-    offered = _show_disclosure(services, channel="terminal")
-    token = offered["confirmation_token"]
+def test_the_second_run_approval_names_the_exact_draft(
+    services: PluginServices,
+) -> None:
+    """Decision 0019 s2: the human approves a draft, and that draft is started."""
+    proposal = _propose(services, channel="terminal")
+    draft_id = proposal["draft_id"]
 
-    first = _call(
+    assert proposal["next_action"]["tool"] == "techtree_uplift_start"
+    assert proposal["next_action"]["requires_user_confirmation"] is True
+
+    started = _call(
         services,
-        "techtree_uplift_propose",
-        source_run_id=RUN_ID,
-        confirmation_token=token,
-        channel="terminal",
-    )
-    assert first["ok"] is True
-
-    replayed = _call(
-        services,
-        "techtree_uplift_propose",
-        source_run_id=RUN_ID,
-        confirmation_token=token,
-        channel="terminal",
-    )
-
-    assert replayed["ok"] is False
-    assert replayed["code"] == "guided_revision_not_confirmed"
-    assert len(services.ctx.llm.calls) == 1, "the replay reached no provider"
-
-
-def test_a_forged_token_reaches_no_provider(services: PluginServices) -> None:
-    """A model inventing a token is not a person agreeing to anything."""
-    _show_disclosure(services, channel="terminal")
-
-    answer = _call(
-        services,
-        "techtree_uplift_propose",
-        source_run_id=RUN_ID,
-        confirmation_token="f" * 32,
+        "techtree_uplift_start",
+        draft_id=draft_id,
+        confirmation_token=proposal["confirmation_token"],
+        data_policy_digest=proposal["data_policy_digest"],
         channel="terminal",
     )
 
-    assert answer["ok"] is False
-    assert answer["code"] == "guided_revision_not_confirmed"
-    assert services.ctx.llm.calls == []
-    session = latest_session(services)
-    assert session is not None
-    assert session.revision_attempts == 0
+    assert started["ok"] is True
+    approval = started["approval"]
+    assert approval["kind"] == "run.approved"
+    assert approval["draft_id"] == draft_id
+    assert approval["actor"] == "human_via_hermes"
+    datetime.fromisoformat(approval["approved_at"])

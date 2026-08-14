@@ -295,26 +295,20 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "the host model exactly once, hands the proposal to Techtree to "
             "scan and prepare, and stops. It spends no model budget on an "
             "evaluation and starts nothing. The guided introduction allows one "
-            "proposal; a failed attempt still uses it up. Tell the user before "
-            "calling it: this one request sends the Skill being revised and "
-            "the sanitized improvement context to the model provider behind "
-            "the agent they are talking to, which is a different provider "
-            "from the one the evaluated run uses. Show the user the diff, the "
-            "data policy, and the estimate before starting anything."
+            "proposal; a failed attempt still uses it up. REQUIRES USER "
+            "CONFIRMATION before it is called: this one request sends the "
+            "verified starter Skill and a sanitized summary of how it did to "
+            "the model provider configured for Host Hermes — the agent the "
+            "user is talking to, not the one the evaluated run uses. It does "
+            "not send raw Episodes, Traces, hidden answers, proof bundles, "
+            "private keys, or provider credentials. It makes one "
+            "model-generation request. The model will propose one revision "
+            "which Techtree will test; a proposal may be unusable or may fail "
+            "to improve the score. Show the user the diff, the data policy, "
+            "and the estimate before starting anything."
         ),
         properties={
             "source_run_id": _run_id("The finished run whose Skill should be revised."),
-            "confirmation_token": {
-                "type": "string",
-                "pattern": _TOKEN_PATTERN,
-                "description": (
-                    "Omit it the first time. The tool then sends nothing and "
-                    "returns the disclosure of exactly what would leave this "
-                    "machine, with a one-time token. Read that disclosure out "
-                    "in full, and pass the token back only if the user agrees "
-                    "to it. The token works once."
-                ),
-            },
         },
         required=["source_run_id"],
     ),

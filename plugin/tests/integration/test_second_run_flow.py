@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 from support import envelope, install_fake_cli
-from techtree_hermes.approvals import DisclosureStore, InstallPlanStore, ReviewStore
+from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bridge import CliBridge
 from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.errors import PluginError
@@ -240,8 +240,6 @@ def journey(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         release_core_digest=release_core_digest(CORE),
         bridge=CliBridge(),
         plans=InstallPlanStore(),
-        reviews=ReviewStore(),
-        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )
@@ -276,18 +274,8 @@ def _call(services: PluginServices, name: str, **args: Any) -> dict[str, Any]:
 
 
 def _propose(services: PluginServices, **args: Any) -> dict[str, Any]:
-    """Accept the guided-revision disclosure, then propose. Decision 0018 s5."""
-    offered = _call(
-        services, "techtree_uplift_propose", source_run_id=FIRST_RUN, **args
-    )
-    assert offered["awaiting_confirmation"] is True
-    return _call(
-        services,
-        "techtree_uplift_propose",
-        source_run_id=FIRST_RUN,
-        confirmation_token=offered["confirmation_token"],
-        **args,
-    )
+    """Call the tool Hermes only dispatches after a person confirmed it."""
+    return _call(services, "techtree_uplift_propose", source_run_id=FIRST_RUN, **args)
 
 
 def _stage(services: PluginServices) -> DemoStage:
@@ -525,8 +513,6 @@ def test_a_result_that_did_not_verify_is_never_called_an_improvement(
         release_core_digest=release_core_digest(CORE),
         bridge=CliBridge(),
         plans=InstallPlanStore(),
-        reviews=ReviewStore(),
-        disclosures=DisclosureStore(),
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )
