@@ -26,6 +26,7 @@ from .errors import (
     BootstrapPlanError,
     CliEnvelopeError,
     PluginError,
+    scrub_borrowed,
 )
 
 # Value patterns --------------------------------------------------------------
@@ -379,6 +380,7 @@ def parse_cli_envelope(raw: str) -> dict[str, Any]:
         _check_next_action(entry)
 
     _check_error(decoded["error"], reported_ok=decoded["ok"])
+    _scrub_error(decoded)
 
     result: dict[str, Any] = decoded
     return result
@@ -454,6 +456,23 @@ def _check_error(value: Any, *, reported_ok: bool) -> None:
         )
     if not isinstance(error["details"], dict):
         raise CliEnvelopeError("CLI envelope error details are not an object")
+
+
+def _scrub_error(decoded: dict[str, Any]) -> None:
+    """Scrub the borrowed text in an envelope's error, in place.
+
+    Techtree sanitizes the error message it writes. This does not rely on
+    that, and it covers the part that has historically been missed: an
+    error's ``details`` is free-shaped, built from whatever went wrong, and
+    what went wrong is often a subprocess quoting its own command line back —
+    a private index URL with a token in it, an environment assignment, a
+    Bearer header. That text is relayed straight into a conversation, so the
+    plugin scrubs it on the way in rather than hoping nobody put a credential
+    in a field named `detail`.
+    """
+    error = decoded.get("error")
+    if isinstance(error, dict):
+        decoded["error"] = scrub_borrowed(error)
 
 
 # Bootstrap -------------------------------------------------------------------

@@ -8,7 +8,8 @@ bootstrap, release, and state layers that live on this side of the boundary.
 from __future__ import annotations
 
 import re
-from typing import Final
+from collections.abc import Mapping
+from typing import Any, Final
 
 # Error codes -----------------------------------------------------------------
 # Stable strings from specification section 12. Callers compare against these
@@ -149,6 +150,11 @@ _PROVIDER_TOKEN = re.compile(
     r"|\bgh[pousr]_[A-Za-z0-9]{16,}"
     r"|\bxox[abprs]-[A-Za-z0-9-]{10,}"
 )
+#: Credentials written into a URL. A private package index is the way this
+#: actually reaches a log: `https://user:token@index.example/simple` appears
+#: verbatim in an installer's own output, and the token in it is a real one
+#: however ordinary the line around it looks.
+_URL_CREDENTIALS = re.compile(r"(?i)(\b[a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@")
 
 REDACTED: Final = "[redacted]"
 
@@ -157,15 +163,33 @@ def scrub_text(value: str) -> str:
     """Remove Bearer tokens, quoted secret keys, provider tokens, private keys.
 
     Scrubbing is applied to every piece of borrowed text the plugin repeats:
-    CLI stderr, exception messages, and diagnostics. It replaces the value and
-    keeps the surrounding shape, so an operator can still see which credential
-    was involved without seeing the credential.
+    CLI stderr, exception messages, error detail, and diagnostics. It replaces
+    the value and keeps the surrounding shape, so an operator can still see
+    which credential was involved without seeing the credential.
     """
     scrubbed = _PRIVATE_KEY_BLOCK.sub("[redacted private key]", value)
     scrubbed = _BEARER.sub(f"Bearer {REDACTED}", scrubbed)
     scrubbed = _QUOTED_SECRET.sub(rf'\1"{REDACTED}"', scrubbed)
     scrubbed = _ENV_SECRET.sub(rf"\1={REDACTED}", scrubbed)
+    scrubbed = _URL_CREDENTIALS.sub(rf"\1{REDACTED}@", scrubbed)
     return _PROVIDER_TOKEN.sub(REDACTED, scrubbed)
+
+
+def scrub_borrowed(value: Any) -> Any:
+    """Return a document with every string in it scrubbed, structure intact.
+
+    Used on text the plugin did not write and is about to repeat. Techtree
+    sanitizes its own error messages, and this does not assume it: an error's
+    ``details`` is a free-shaped object built from whatever failed, and the
+    thing that failed is often an installer quoting a command line back.
+    """
+    if isinstance(value, str):
+        return scrub_text(value)
+    if isinstance(value, Mapping):
+        return {key: scrub_borrowed(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [scrub_borrowed(item) for item in value]
+    return value
 
 
 def contains_secret_material(value: str) -> bool:
