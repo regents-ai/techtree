@@ -14,10 +14,14 @@ sha256:80807821d3d5b8bcf0a5223c96684b04546b250ff677b3e3bb65f768bde18687
 USD 1.9717 of the 3.00 programme cap (decision 0016 s4) within the
 founder's 5.00 pool; 1.0283 remains.
 
-Governing decisions: 0009–0021. New since the draft: 0019 (comparison
+Governing decisions: 0009–0022. New since the draft: 0019 (comparison
 symmetry, native approvals, four-statement UX), 0020 (Case-D ruling:
 one rehearsal reattempt at a predeclared 32,768 ceiling), 0021
-(rehearsal v1-vs-v2 execution after the launcher credential failure).
+(rehearsal v1-vs-v2 execution after the launcher credential failure),
+0022 (post-rehearsal author rulings, founder-confirmed: no run-state
+schema collapse in v0.1, deferred multi-file items named and bounded,
+versioned readers as a v0.2 read-only exception, post-rehearsal
+change discipline, proof-grade display verified).
 
 ## §0 Deviation-with-cause (disclosed for the author)
 
@@ -218,6 +222,49 @@ in-process — the same path as every canonical run above. Release
 findings ticketed: onboarding docs must state an exported variable is
 not enough (techtree-python-3ym); misleading corrupt-message for
 pre-upgrade runs (ndq.3.43).
+
+## §7f Deferred multi-file Skill items (0022 item 2)
+
+Two items are deferred past v0.1 (ticket ndq.3.42), named precisely:
+(a) skills/starter.py _stage_document fetches only a single SKILL.md
+— a multi-file starter needs an archive-format decision at
+starter_skill_object_url; (b) uplift/source.py VerifiedSourceSkill
+verifies every file of a Skill tree but exposes only entrypoint_text
+to the host, so a guided revision cannot touch references/ or
+templates/ content. Both are capability gaps, not integrity gaps:
+full-tree hashing, per-file mounting, root-digest comparison, and the
+exactly-one-component-changed check exist and are tested
+(tests/integration/test_multi_file_skill.py exercises nested
+auxiliary files through all four copy stages including run
+materialization; the §4 v1-vs-v2 records carry per-file digests).
+Because the improver can only edit the entrypoint in v0.1, auxiliary
+files are always inherited byte-identical from the parent Skill —
+nothing the deferral omits can silently change under this release.
+
+## §7g Post-rehearsal change discipline (0022 item 4)
+
+No behavior-changing edits to runs, approvals, proposals, receipts,
+proof, host request composition, Skill mounting, guards, or Campaign
+configuration land after the canonical rehearsal without repeating
+that certification. Copy/documentation-only changes (including the
+sanctioned ndq.3.43 error-wording fix) require every scientific
+digest and all guided-flow code byte-identical, followed by the full
+acceptance battery (test suites, drift checks, fresh wheel install,
+plugin doctor, both clean journeys, proof re-verification against
+the canonical bundles). The Gate-2 packet will carry a
+post-rehearsal change classification: every change since this
+certification, each marked scientific or non-scientific. The v0.1
+run-state machine ships exactly as certified; the five durable
+states are the public projection (0022 item 1).
+
+## §7h Proof-grade display attestation (0022 item 5)
+
+Verified in the frozen build: the proof grade is read from the
+verified report (presentation/build.py), never hardcoded into
+comparison labels; the result display attaches the attestation
+caveat ("integrity-bound, participant-attested local execution") and
+a weaker-attestation warning when verification is absent. The
+receipt's limits are part of the four-statement UX's final statement.
 
 ## §8 Proof roots (0015 s7 E)
 
