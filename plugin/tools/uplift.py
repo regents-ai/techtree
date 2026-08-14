@@ -106,17 +106,20 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
     )
     save_session(services, session)
 
-    staged = ProposalService(bridge=services.bridge).write_temporary_skill(
+    proposals = ProposalService(bridge=services.bridge)
+    staged = proposals.write_temporary_skill(
         demo_id=proposal.session.demo_id, output=proposal.output
     )
+    cleanup_failure: str | None = None
     try:
-        prepared = ProposalService(bridge=services.bridge).prepare_replacement_draft(
+        prepared = proposals.prepare_replacement_draft(
             source_run_id=source_run_id, skill_path=staged.entrypoint
         )
     finally:
         # Techtree has its own snapshot, or it refused; either way the
-        # plugin's copy has done its job.
-        ProposalService(bridge=services.bridge).remove_temporary_skill(staged)
+        # plugin's copy has done its job. If it will not delete, the answer
+        # says where it still is rather than leaving it there quietly.
+        cleanup_failure = proposals.remove_temporary_skill(staged)
 
     difference = build_skill_diff(
         v1_text=source_skill.text,
@@ -152,10 +155,18 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         written["revised_skill_available_in_terminal"] = True
         accounting = None
 
+    # Reported only when there is something to report, on every channel: a
+    # file of the participant's content left on disk is worth its bytes on a
+    # phone, and the ordinary run says nothing because nothing was left.
+    staging: dict[str, Any] = (
+        {} if cleanup_failure is None else {"staging_cleanup_failed": cleanup_failure}
+    )
+
     return tool_result(
         {
             "ok": True,
             "command": "uplift propose",
+            **staging,
             "demo": session_payload(session),
             "proposal": written,
             "provenance": proposal.provenance.to_dict(),

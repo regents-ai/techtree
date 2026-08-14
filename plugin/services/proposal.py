@@ -14,6 +14,14 @@ clean up.
 Nothing about the proposal survives in the plugin. The draft Techtree returns
 is what a later turn refers to, and that draft is on disk in Techtree's own
 store, not in this process.
+
+Where "a file only it can read" is matters. It is not the shared OS temporary
+directory: a proposed Skill is the participant's content, a cleanup can fail,
+and a file orphaned in /tmp is one nobody was ever told to look for. It goes
+under the plugin's own state directory, at a path the README's removal
+section names, so that the worst case is a file at a documented address
+rather than a file at an unknowable one. When cleanup does fail, the answer
+says so instead of the failure being swallowed.
 """
 
 from __future__ import annotations
@@ -26,7 +34,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
-from ..errors import PluginError
+from ..constants import proposal_staging_home
+from ..errors import PluginError, scrub_text
 from ..models import SkillRevisionOutput
 
 CODE_PROPOSAL_PREPARE_FAILED: Final = "skill_revision_prepare_failed"
@@ -57,15 +66,23 @@ class StagedSkill:
     directory: Path
     entrypoint: Path
 
-    def remove(self) -> None:
-        """Delete the staged copy and the directory that held it."""
+    def remove(self) -> str | None:
+        """Delete the staged copy, and say so if it could not be deleted.
+
+        Returns None when nothing is left behind, and otherwise a sentence
+        naming the path that still exists. A swallowed cleanup failure leaves
+        participant content on disk with nobody aware of it, which is the
+        thing this file is careful about; the caller relays what comes back.
+        """
         try:
             self.entrypoint.unlink(missing_ok=True)
             self.directory.rmdir()
-        except OSError:
-            # A cleanup that fails is worth nothing to shout about: the file
-            # is in a private temporary directory and carries no secret.
-            return
+        except OSError as error:
+            return (
+                f"the staged copy of the proposed Skill could not be removed "
+                f"from {self.directory}: {scrub_text(str(error))}"
+            )
+        return None
 
 
 class ProposalService:
@@ -75,12 +92,18 @@ class ProposalService:
         self._root = plugin_data_root
         self._bridge = bridge
 
+    @property
+    def staging_root(self) -> Path:
+        """Return the directory this service stages proposals in."""
+        return self._root or proposal_staging_home()
+
     def write_temporary_skill(
         self, *, demo_id: str, output: SkillRevisionOutput
     ) -> StagedSkill:
         """Write the proposed SKILL.md where only this user can read it."""
-        parent = self._root or Path(tempfile.gettempdir())
+        parent = self.staging_root
         parent.mkdir(parents=True, exist_ok=True)
+        os.chmod(parent, _DIRECTORY_MODE)
         directory = Path(
             tempfile.mkdtemp(prefix=f"techtree-proposal-{demo_id[:12]}-", dir=parent)
         )
@@ -128,9 +151,13 @@ class ProposalService:
         validate_replacement_response(data, source_run_id)
         return dict(data)
 
-    def remove_temporary_skill(self, staged: StagedSkill) -> None:
-        """Delete the plugin's copy once Techtree has its own snapshot."""
-        staged.remove()
+    def remove_temporary_skill(self, staged: StagedSkill) -> str | None:
+        """Delete the plugin's copy once Techtree has its own snapshot.
+
+        Returns None when the copy is gone, and otherwise the reason it is
+        not, for the caller to put in front of a person.
+        """
+        return staged.remove()
 
 
 def validate_replacement_response(

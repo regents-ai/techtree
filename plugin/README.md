@@ -171,11 +171,64 @@ it says so and names the command that shows all of it. When nothing tells the
 plugin which kind of session it is in, it assumes a phone, because output that
 is safe on a phone is also fine in a terminal.
 
+## What it writes, and turning it off
+
+The plugin writes to exactly one place, for one reason, and only during a
+guided revision. Everything else it remembers lives in the conversation and
+is gone when the conversation is.
+
+```text
+${XDG_STATE_HOME:-~/.local/state}/techtree-hermes/proposals/
+```
+
+When you ask for a revision, the proposed Skill is written there so Techtree
+can be handed a path to scan. Techtree takes its own snapshot immediately, and
+the plugin deletes its copy in the same call. The directory is created
+`0700` and the file `0600`, so nothing there is readable by other users of the
+machine. If a deletion ever fails, the answer says so and names the directory
+that still exists — the plugin does not fail that quietly, because what is
+left behind is your own Skill text.
+
+Nothing else persists. The plugin keeps draft identifiers, run identifiers and
+proof paths in memory for the length of a session; it writes no configuration
+file, no cache, no log, and no credential anywhere.
+
+### Disabling
+
+```bash
+hermes plugins disable techtree
+```
+
+The tools, the `/techtree` command and the session hooks stop being offered.
+Nothing on disk changes.
+
+### Removing
+
+```bash
+hermes plugins remove techtree
+rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/techtree-hermes"
+```
+
+The first command removes the plugin. The second removes the staging directory
+described above, which is the only thing the plugin can leave behind — you can
+look inside it first; on a healthy machine it is empty.
+
+Two things are deliberately **not** removed by either command, because they are
+not the plugin's to delete:
+
+- **Techtree's own home** — your runs, drafts, proof bundles and the evaluation
+  engine. It belongs to the Techtree CLI, not to this plugin. Remove the CLI
+  with `uv tool uninstall techtree` and delete its home if you want it gone.
+- **Anything held by your model provider.** A guided revision sends the Skill
+  text and the sanitized improvement context to the provider behind the agent
+  you are talking to, and an evaluated run sends its tasks to the provider the
+  run is configured with. What those providers retain is governed by their
+  policies, and no command here reaches it.
+
 ## Not here yet
 
 This is an early build. Techtree Hello World stops short of preparing a
 comparison until a published release names its starter Skill, and the guided
 revision stops until the same release names its `skill-improver` Skill.
 `make doctor` reports exactly what a build implements. The operator
-walkthroughs, privacy notes, and removal instructions arrive with the release
-documentation.
+walkthroughs and privacy notes arrive with the release documentation.

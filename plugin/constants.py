@@ -7,6 +7,7 @@ bound, a timeout, or the command the plugin is allowed to run.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Final
 
@@ -51,6 +52,41 @@ MAX_CLI_STDERR_BYTES: Final = 200_000
 MAX_TOOL_RESULT_BYTES: Final = 200_000
 MAX_BOOTSTRAP_MANIFEST_BYTES: Final = 256_000
 MAX_STARTER_SKILL_BYTES: Final = 256_000
+
+# Where the plugin writes -----------------------------------------------------
+#
+# One location, named here, documented in the README's removal section, and
+# used for exactly one thing: holding a proposed Skill for the seconds between
+# the plugin writing it down and Techtree taking its own snapshot.
+#
+# It is deliberately not the shared OS temporary directory. A proposed Skill
+# is participant content, a cleanup can fail, and a file left behind in
+# /tmp is a file nobody can be told about in advance. This one has an address
+# a person can be given, check, and delete.
+
+#: The directory the plugin owns under the user's state home.
+PLUGIN_STATE_DIRNAME: Final = "techtree-hermes"
+
+#: The only subdirectory of it the plugin ever writes to.
+PROPOSAL_STAGING_DIRNAME: Final = "proposals"
+
+
+def plugin_state_home() -> Path:
+    """Return the one directory this plugin may write to.
+
+    Resolved at call time, never at import: registration must touch no
+    filesystem, and a constant computed at import would make that promise
+    depend on nobody ever adding a `mkdir` beside it.
+    """
+    configured = os.environ.get("XDG_STATE_HOME")
+    base = Path(configured) if configured else Path.home() / ".local" / "state"
+    return base / PLUGIN_STATE_DIRNAME
+
+
+def proposal_staging_home() -> Path:
+    """Return where a proposed Skill is written while Techtree takes it over."""
+    return plugin_state_home() / PROPOSAL_STAGING_DIRNAME
+
 
 # Lifetimes -----------------------------------------------------------------
 
