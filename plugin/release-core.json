@@ -12,7 +12,8 @@
     "maximum_tested_host_hermes_version",
     "release_id",
     "skill_improver_digest",
-    "starter_skill_digest"
+    "starter_skill_digest",
+    "starter_skill_object_url"
   ],
   "placeholder_release": true,
   "protocol_version": "v1alpha1",
@@ -20,5 +21,6 @@
   "schema_version": "techtree.release-core.v1",
   "skill_improver_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
   "starter_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "starter_skill_object_url": "https://placeholder.invalid/unchosen",
   "subject_hermes_version": "0.19.0"
 }

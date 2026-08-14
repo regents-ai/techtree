@@ -17,6 +17,8 @@ from techtree_hermes.errors import (
     scrub_text,
 )
 from techtree_hermes.models import (
+    _RELEASE_CORE_DIGEST_FIELDS,
+    RELEASE_CORE_FIELDS,
     parse_bootstrap_install_plan,
     parse_cli_envelope,
     parse_release_core,
@@ -24,6 +26,7 @@ from techtree_hermes.models import (
 from techtree_hermes.release import (
     load_embedded_release_core,
     release_core_digest,
+    render_release_core,
 )
 
 VALID_RELEASE_CORE: dict[str, Any] = {
@@ -38,6 +41,7 @@ VALID_RELEASE_CORE: dict[str, Any] = {
     "catalog_digest": "sha256:" + "2" * 64,
     "intro_climb_reference": "hello-world-climb@1",
     "starter_skill_digest": "sha256:" + "3" * 64,
+    "starter_skill_object_url": "https://objects.example/skills/starter.tar.zst",
     "skill_improver_digest": "sha256:" + "5" * 64,
     "minimum_host_hermes_version": "0.20.0",
     "maximum_tested_host_hermes_version": "0.20.0",
@@ -47,7 +51,7 @@ VALID_RELEASE_CORE: dict[str, Any] = {
 #: The digest the release above is published under, taken over its one stored
 #: spelling. A change here means the release document contract changed.
 RELEASE_DIGEST_GOLDEN = (
-    "sha256:42325d452e435b7324b5c4a1952c38b5d4e2a9e0eaa3b6df087b9dea94d24bfb"
+    "sha256:cb658d2d00a1f1b5869a38bf1f4b4f6dfef2a0361753717dbacded9e66861702"
 )
 
 VALID_ENVELOPE: dict[str, Any] = {
@@ -121,6 +125,17 @@ def test_the_embedded_release_is_valid() -> None:
         ({"cli_version": ""}, "non-empty string"),
         ({"cli_version": None}, "missing fields"),
         ({"upload_endpoint": "https://example.test"}, "unknown fields"),
+        # The starter Skill's address: https only, and never with a
+        # credential in the authority. Mirrors techtree-python's
+        # OBJECT_URL_PATTERN, because the plugin copies these bytes verbatim.
+        ({"starter_skill_object_url": "sha256:" + "3" * 64}, "https address"),
+        ({"starter_skill_object_url": "http://objects.example/s.tar"}, "https address"),
+        ({"starter_skill_object_url": "https://objects.example"}, "https address"),
+        (
+            {"starter_skill_object_url": "https://u:tok@objects.example/s.tar"},
+            "https address",
+        ),
+        ({"starter_skill_object_url": None}, "missing fields"),
     ],
 )
 def test_a_release_that_breaks_the_contract_is_rejected(
@@ -408,3 +423,28 @@ def test_a_clean_error_is_relayed_unchanged() -> None:
     raw = json.dumps({**VALID_ENVELOPE, "ok": False, "data": None, "error": error})
 
     assert parse_cli_envelope(raw)["error"] == error
+
+
+# The starter Skill's two halves ------------------------------------------------------
+
+
+def test_the_starter_url_is_carried_but_is_not_a_digest() -> None:
+    """It is one half of a coordinate, and it is not hashed like the other."""
+    core = parse_release_core(_release_bytes())
+
+    assert (
+        core.starter_skill_object_url == VALID_RELEASE_CORE["starter_skill_object_url"]
+    )
+    assert "starter_skill_object_url" in RELEASE_CORE_FIELDS
+    assert "starter_skill_object_url" not in _RELEASE_CORE_DIGEST_FIELDS
+
+
+def test_the_release_round_trips_through_its_one_spelling() -> None:
+    """A field added to the roster must survive to_dict and back."""
+    core = parse_release_core(_release_bytes())
+
+    assert parse_release_core(render_release_core(core)) == core
+    assert (
+        core.to_dict()["starter_skill_object_url"]
+        == (VALID_RELEASE_CORE["starter_skill_object_url"])
+    )

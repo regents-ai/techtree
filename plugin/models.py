@@ -32,6 +32,12 @@ from .errors import (
 # Value patterns --------------------------------------------------------------
 
 DIGEST_PATTERN: Final = re.compile(r"^sha256:[0-9a-f]{64}$")
+#: Where a machine that does not hold the starter Skill's bytes may obtain
+#: them. HTTPS only, and no userinfo in the authority: this coordinate is
+#: copied verbatim into the plugin, the website, approval packets and support
+#: transcripts, and `https://user:token@host/...` would carry a credential
+#: through every one of them. Mirrors techtree-python's OBJECT_URL_PATTERN.
+OBJECT_URL_PATTERN: Final = re.compile(r"^https://[^\s/@]+/[^\s]*$")
 COMMIT_PATTERN: Final = re.compile(r"^[0-9a-f]{40}$")
 VERSION_PATTERN: Final = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$")
 IDENTIFIER_PATTERN: Final = re.compile(r"^[0-9A-Za-z][0-9A-Za-z._/-]{0,127}$")
@@ -118,6 +124,7 @@ RELEASE_CORE_FIELDS: Final = (
     "catalog_digest",
     "intro_climb_reference",
     "starter_skill_digest",
+    "starter_skill_object_url",
     "skill_improver_digest",
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",
@@ -172,6 +179,7 @@ class ReleaseCore:
     catalog_digest: str
     intro_climb_reference: str
     starter_skill_digest: str
+    starter_skill_object_url: str
     skill_improver_digest: str
     minimum_host_hermes_version: str
     maximum_tested_host_hermes_version: str
@@ -242,6 +250,12 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
     for name in _RELEASE_CORE_DIGEST_FIELDS:
         if not DIGEST_PATTERN.match(decoded[name]):
             raise invalid(f"field {name!r} is not a sha256 digest")
+
+    if not OBJECT_URL_PATTERN.match(decoded["starter_skill_object_url"]):
+        raise invalid(
+            "field 'starter_skill_object_url' is not an https address without "
+            "credentials in it"
+        )
 
     for name in _RELEASE_CORE_VERSION_FIELDS:
         if not VERSION_PATTERN.match(decoded[name]):

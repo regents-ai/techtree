@@ -36,6 +36,11 @@ from ..models import ReleaseCore
 #: The digest a release carries where a Skill has not been chosen yet.
 PLACEHOLDER_DIGEST: Final = "sha256:" + "0" * 64
 
+#: The address a release carries where nobody has published the starter Skill
+#: yet. `.invalid` is reserved by RFC 2606 so it can never resolve: the value
+#: is well formed, obviously unchosen, and unfetchable by design.
+PLACEHOLDER_OBJECT_URL: Final = "https://placeholder.invalid/unchosen"
+
 CODE_STARTER_SKILL_MISSING: Final = "starter_skill_missing"
 CODE_STARTER_SKILL_DIGEST_MISMATCH: Final = "starter_skill_digest_mismatch"
 
@@ -81,11 +86,20 @@ class ReleaseSkillProvider:
 
 
 def names_a_starter_skill(release: ReleaseCore) -> bool:
-    """Whether this release has chosen its starter Skill."""
+    """Whether this release has chosen its starter Skill.
+
+    Both halves of the coordinate have to be bound. The digest says which
+    Skill the release measured; the URL says where a machine that does not
+    already hold those bytes obtains them. A digest with no address names a
+    Skill nobody can fetch, and an address with no digest is an invitation to
+    run whatever is served — so neither on its own is a chosen starter Skill.
+    """
     return (
         not release.placeholder_release
         and release.starter_skill_digest != PLACEHOLDER_DIGEST
         and "starter_skill_digest" not in release.placeholder_fields
+        and release.starter_skill_object_url != PLACEHOLDER_OBJECT_URL
+        and "starter_skill_object_url" not in release.placeholder_fields
     )
 
 

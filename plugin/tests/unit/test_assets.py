@@ -16,12 +16,14 @@ from techtree_hermes.models import ReleaseCore
 from techtree_hermes.release import load_embedded_release_core
 from techtree_hermes.services.assets import (
     PLACEHOLDER_DIGEST,
+    PLACEHOLDER_OBJECT_URL,
     bundled_skill_digest,
     expected_founder_skill_digest,
     file_digest,
     load_bundled_skill_text,
     load_verified_founder_skill,
     names_a_founder_skill,
+    names_a_starter_skill,
     read_verified_skill,
     resolve_source_skill,
     source_skill_reference,
@@ -298,3 +300,85 @@ def test_a_context_techtree_refused_reports_techtrees_own_reason() -> None:
 
     with pytest.raises(PluginError, match="no run called"):
         source_skill_reference(envelope)
+
+
+# The starter Skill's two halves ------------------------------------------------------
+#
+# The digest says which Skill the release measured; the URL says where a
+# machine that does not hold those bytes obtains them. A digest with no
+# address names a Skill nobody can fetch, and an address with no digest is an
+# invitation to run whatever is served. Neither alone is a chosen coordinate.
+
+
+def _starter(*, digest: str, url: str, declared: bool = True) -> ReleaseCore:
+    """Return a release naming these two halves of the starter coordinate.
+
+    ``declared`` is what makes this useful. A release normally declares its
+    own unbound fields, and the declaration alone is enough to answer the
+    question. Setting it False produces a release that claims to be finished
+    while a half is still a placeholder — which is the case the value checks
+    exist for, and the only case that can tell whether they are wired.
+    """
+    unbound = tuple(
+        name
+        for name, value, placeholder in (
+            ("starter_skill_digest", digest, PLACEHOLDER_DIGEST),
+            ("starter_skill_object_url", url, PLACEHOLDER_OBJECT_URL),
+        )
+        if value == placeholder
+    )
+    if not declared:
+        unbound = ()
+    return dataclasses.replace(
+        CORE,
+        placeholder_release=bool(unbound),
+        placeholder_fields=unbound,
+        starter_skill_digest=digest,
+        starter_skill_object_url=url,
+    )
+
+
+REAL_DIGEST = "sha256:" + "7" * 64
+REAL_URL = "https://objects.example/skills/hello-world-starter-v1.tar.zst"
+
+
+def test_a_release_with_both_halves_names_a_starter_skill() -> None:
+    assert names_a_starter_skill(_starter(digest=REAL_DIGEST, url=REAL_URL)) is True
+
+
+@pytest.mark.parametrize(
+    ("digest", "url"),
+    [
+        (PLACEHOLDER_DIGEST, REAL_URL),
+        (REAL_DIGEST, PLACEHOLDER_OBJECT_URL),
+        (PLACEHOLDER_DIGEST, PLACEHOLDER_OBJECT_URL),
+    ],
+)
+def test_half_a_coordinate_is_not_a_starter_skill(digest: str, url: str) -> None:
+    assert names_a_starter_skill(_starter(digest=digest, url=url)) is False
+
+
+@pytest.mark.parametrize(
+    ("digest", "url"),
+    [
+        (PLACEHOLDER_DIGEST, REAL_URL),
+        (REAL_DIGEST, PLACEHOLDER_OBJECT_URL),
+    ],
+)
+def test_a_release_that_misdeclares_a_bound_half_is_still_refused(
+    digest: str, url: str
+) -> None:
+    """The values are checked, not only the declaration that describes them."""
+    misdeclared = _starter(digest=digest, url=url, declared=False)
+
+    assert misdeclared.placeholder_release is False
+    assert misdeclared.placeholder_fields == ()
+    assert names_a_starter_skill(misdeclared) is False
+
+
+def test_this_build_has_neither_half_bound() -> None:
+    """The committed release leaves both unchosen, and says so."""
+    assert CORE.starter_skill_digest == PLACEHOLDER_DIGEST
+    assert CORE.starter_skill_object_url == PLACEHOLDER_OBJECT_URL
+    assert "starter_skill_object_url" in CORE.placeholder_fields
+    assert names_a_starter_skill(CORE) is False

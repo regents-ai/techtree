@@ -97,6 +97,7 @@ def test_the_release_says_whether_it_is_finished() -> None:
             "release_id",
             "skill_improver_digest",
             "starter_skill_digest",
+            "starter_skill_object_url",
         }
 
 
