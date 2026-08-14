@@ -13,6 +13,13 @@ build/
 .vscode/
 tmp/
 
+# A Techtree home created in the repo root (e.g. --home .) must never be staged
+/runs/
+/cache/
+/drafts/
+/engines/
+/config.toml
+
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
