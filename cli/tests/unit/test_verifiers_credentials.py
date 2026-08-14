@@ -110,6 +110,58 @@ def test_only_a_prime_named_credential_falls_back_to_the_prime_configuration(
     assert other.available is False
 
 
+def test_the_status_answers_for_the_environment_it_is_given(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # The question a readiness check has to ask is about the environment a
+    # detached run gets, not about the terminal the check was typed into. That
+    # is why the environment is an argument rather than an assumption.
+    monkeypatch.setenv(PRIME_CREDENTIAL_ENV, SECRET)
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    here = credential_status(model(PRIME_CREDENTIAL_ENV))
+    elsewhere = credential_status(
+        model(PRIME_CREDENTIAL_ENV), environ={"HOME": str(tmp_path)}
+    )
+
+    assert here.available is True
+    assert elsewhere.available is False
+    assert SECRET not in elsewhere.model_dump_json()
+
+
+def test_a_prime_configuration_without_a_key_reads_as_signed_out(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    prime_config = tmp_path / ".prime" / "config.json"
+    prime_config.parent.mkdir(parents=True)
+    prime_config.write_text(json.dumps({"api_key": ""}))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv(PRIME_CREDENTIAL_ENV, raising=False)
+
+    status = credential_status(model(PRIME_CREDENTIAL_ENV))
+
+    assert status.available is False
+    assert status.source == "missing"
+    assert "signed out" in status.detail
+
+
+def test_a_prime_configuration_that_will_not_parse_is_its_own_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Reporting a broken store as "not signed in" would send somebody who is
+    # signed in round the loop again.
+    prime_config = tmp_path / ".prime" / "config.json"
+    prime_config.parent.mkdir(parents=True)
+    prime_config.write_text("{not json at all")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv(PRIME_CREDENTIAL_ENV, raising=False)
+
+    status = credential_status(model(PRIME_CREDENTIAL_ENV))
+
+    assert status.available is False
+    assert status.source == "malformed_prime_config"
+
+
 def test_a_missing_credential_refuses_with_actions_that_name_the_variable(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

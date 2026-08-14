@@ -10,6 +10,7 @@ into "is the host set up".
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -29,7 +30,7 @@ from techtree.doctor.execution_checks import (
 from techtree.doctor.service import DoctorService
 from techtree.engines.registry import EngineRegistry
 from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec, RuntimeSpec
-from techtree.models.cli import CheckStatus
+from techtree.models.cli import CheckStatus, DoctorCheck
 from techtree.paths import paths_from_root
 from techtree.settings import Settings
 
@@ -78,53 +79,152 @@ def test_a_campaign_with_real_coordinates_is_executable() -> None:
 
 # ---------------------------------------------------------------------------
 # The credential
+#
+# Six states, one table. The check must answer for the environment a detached
+# run would be given, so a credential exported in this terminal is never one of
+# the things that makes it ready — and the terminal it was typed into is the
+# one place an operator will have put it.
 # ---------------------------------------------------------------------------
 
+SECRET = "sk-doctor-unit-test-never-a-real-key"
 
-def test_a_present_credential_passes(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PRIME_API_KEY", "sk-doctor-unit-test-secret")
-    subject = executable_campaign().agents[SUBJECT_AGENT]
 
-    check = check_prime_auth(subject.model)
+def prime_login(home: Path, *, api_key: str | None = SECRET) -> None:
+    """Write the configuration a Prime CLI sign-in leaves behind."""
+    config = home / ".prime" / "config.json"
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text(json.dumps({} if api_key is None else {"api_key": api_key}))
+
+
+def credential_check() -> DoctorCheck:
+    """Run the credential check against the shipped subject's model."""
+    return check_prime_auth(executable_campaign().agents[SUBJECT_AGENT].model)
+
+
+def test_a_valid_prime_login_is_ready(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("PRIME_API_KEY", raising=False)
+    prime_login(tmp_path)
+
+    check = credential_check()
 
     assert check.status is CheckStatus.PASS
+    assert not check.blocking
+    assert check.metadata["source"] == "prime_config"
 
 
-def test_an_absent_credential_blocks(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("PRIME_API_KEY", raising=False)
-    monkeypatch.setenv("HOME", "/nonexistent-home-for-this-check")
-    subject = executable_campaign().agents[SUBJECT_AGENT]
+def test_an_exported_variable_alone_is_not_ready(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # The whole point of the check. A run is a separate background process that
+    # is not given this terminal's variables, so an export is not readiness.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PRIME_API_KEY", SECRET)
 
-    check = check_prime_auth(subject.model)
+    check = credential_check()
 
     assert check.status is CheckStatus.FAIL
     assert check.blocking
+    assert check.metadata["exported_in_this_terminal"] is True
+    assert "set in this terminal" in check.detail
+    assert "nothing exported here can reach it" in check.detail
+    assert SECRET not in check.model_dump_json()
 
 
-def test_the_credential_check_says_it_is_not_the_operators_own_sign_in(
-    monkeypatch: pytest.MonkeyPatch,
+def test_a_prime_login_is_ready_even_when_a_variable_is_also_exported(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    # Confusing evaluation auth with host auth is the failure that costs the
-    # most: everything looks configured until the first model call.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PRIME_API_KEY", SECRET)
+    prime_login(tmp_path)
+
+    check = credential_check()
+
+    assert check.status is CheckStatus.PASS
+    # Ready through the sign-in, which is the only one of the two a run reads.
+    assert check.metadata["source"] == "prime_config"
+    assert SECRET not in check.model_dump_json()
+
+
+def test_neither_a_prime_login_nor_a_variable_is_not_ready(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.delenv("PRIME_API_KEY", raising=False)
-    monkeypatch.setenv("HOME", "/nonexistent-home-for-this-check")
-    subject = executable_campaign().agents[SUBJECT_AGENT]
 
-    check = check_prime_auth(subject.model)
+    check = credential_check()
 
+    assert check.status is CheckStatus.FAIL
+    assert check.blocking
+    assert check.metadata["source"] == "missing"
+    assert check.metadata["exported_in_this_terminal"] is False
+    # Evaluation auth is not host auth, and this is where a person meets that.
     assert "your own agent" in check.detail
 
 
-def test_no_credential_value_reaches_the_check(
-    monkeypatch: pytest.MonkeyPatch,
+def test_a_prime_configuration_that_holds_no_key_is_not_ready(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    secret = "sk-doctor-unit-test-secret"
-    monkeypatch.setenv("PRIME_API_KEY", secret)
-    subject = executable_campaign().agents[SUBJECT_AGENT]
+    # What a cleared or expired sign-in leaves behind: the configuration is
+    # there, and it supplies nothing.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("PRIME_API_KEY", raising=False)
+    prime_login(tmp_path, api_key="")
 
-    check = check_prime_auth(subject.model)
+    check = credential_check()
 
-    assert secret not in check.model_dump_json()
+    assert check.status is CheckStatus.FAIL
+    assert check.blocking
+    assert check.metadata["source"] == "missing"
+    assert "signed out" in check.detail
+
+
+def test_a_malformed_prime_configuration_is_a_typed_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # A broken store is its own answer. Telling somebody who has signed in that
+    # they have not sends them round the loop again.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("PRIME_API_KEY", raising=False)
+    config = tmp_path / ".prime" / "config.json"
+    config.parent.mkdir(parents=True)
+    config.write_text("{not json at all")
+
+    check = credential_check()
+
+    assert check.status is CheckStatus.FAIL
+    assert check.blocking
+    assert check.metadata["source"] == "malformed_prime_config"
+    assert "could not be read" in check.detail
+
+
+def test_no_credential_value_reaches_the_check(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PRIME_API_KEY", SECRET)
+    prime_login(tmp_path)
+
+    check = credential_check()
+
+    assert SECRET not in check.model_dump_json()
+
+
+def test_the_repair_for_a_missing_credential_leads_with_signing_in(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Exporting the variable is the repair a person reaches for by themselves,
+    # and it does not work; the offered one has to be the one that does.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PRIME_API_KEY", SECRET)
+    service = DoctorService(paths_from_root(tmp_path / "techtree"), Settings())
+
+    actions = service.next_actions([credential_check()])
+
+    assert actions[0].cli == ["prime", "login"]
+    assert "doctor --for-evaluation" in (actions[0].reason or "")
 
 
 # ---------------------------------------------------------------------------

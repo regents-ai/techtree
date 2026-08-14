@@ -69,9 +69,10 @@ techtree doctor --for-evaluation
 ```
 
 `techtree doctor --for-evaluation` also checks the container image a run needs.
-Read its credential line carefully: it looks in the terminal you ran it from as
-well, so a variable exported there can make the check pass while a real run
-still stops. The Prime CLI sign-in is the one a run can read.
+Its credential line answers for the run, not for the terminal you typed it in:
+it passes only when a real comparison would find the credential for itself, and
+if you have exported the credential in that terminal it says plainly that the
+export cannot reach a run. It never prints the credential itself.
 
 ## Local development
 

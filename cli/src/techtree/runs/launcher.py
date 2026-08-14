@@ -55,6 +55,7 @@ __all__ = [
     "WorkerLauncher",
     "default_worker_executable",
     "scrubbed_worker_environment",
+    "worker_visible_environment",
 ]
 
 #: Stable error codes. Spec PR8 §8.16.
@@ -102,6 +103,26 @@ def default_worker_executable() -> Path:
     return beside_interpreter if on_path is None else Path(on_path)
 
 
+def worker_visible_environment(
+    environ: Mapping[str, str] | None = None,
+) -> dict[str, str]:
+    """Return the part of an environment a worker would actually be given.
+
+    Variables are copied in by name from a fixed list. Nothing that is not on
+    that list reaches the worker, so a model-provider credential in the
+    operator's shell cannot be inherited by a run that has no business seeing
+    one.
+
+    This is separate from :func:`scrubbed_worker_environment` because a
+    readiness check has to answer "what would a run be able to see" without
+    inventing a run to ask about. Both go through this one function so that the
+    answer a check gives and the environment a launch builds cannot drift
+    apart.
+    """
+    source = os.environ if environ is None else environ
+    return {name: source[name] for name in _INHERITED_VARIABLES if name in source}
+
+
 def scrubbed_worker_environment(
     paths: TechtreePaths,
     *,
@@ -109,17 +130,13 @@ def scrubbed_worker_environment(
 ) -> Callable[[str], Mapping[str, str]]:
     """Return the builder that constructs a worker's whole environment.
 
-    Variables are copied in by name from a fixed list. Nothing that is not on
-    that list reaches the worker, so a model-provider credential in the
-    operator's shell cannot be inherited by a run that has no business seeing
-    one.
+    What the worker inherits is :func:`worker_visible_environment`; what it is
+    told on top of that is where this installation lives and that its output
+    must not be buffered.
     """
-    source = os.environ if environ is None else environ
 
     def build(run_id: str) -> Mapping[str, str]:
-        environment = {
-            name: source[name] for name in _INHERITED_VARIABLES if name in source
-        }
+        environment = worker_visible_environment(environ)
         environment[_TECHTREE_HOME] = str(paths.root)
         environment["PYTHONUNBUFFERED"] = "1"
         return environment

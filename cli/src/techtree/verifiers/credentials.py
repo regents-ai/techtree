@@ -75,45 +75,95 @@ _BASE_ENVIRONMENT: Final[tuple[str, ...]] = ("PATH", "HOME", "TMPDIR")
 
 _PRIME_CONFIG_KEY: Final = "api_key"
 
+#: What the Prime CLI configuration under one ``HOME`` supplies.
+type _PrimeConfigState = Literal["usable", "signed_out", "malformed", "absent"]
+
 
 class CredentialStatus(ProtocolModel):
     """Whether one model endpoint can authenticate, and from where.
 
     ``detail`` is operator-facing prose. It names the variable and the place it
     was looked for, never a value or a fragment of one.
+
+    ``malformed_prime_config`` is its own answer rather than another way of
+    saying "missing": a configuration file that cannot be read is a broken
+    store, and telling somebody who has signed in that they have not is the
+    kind of advice that sends them round the loop again.
     """
 
     provider: NonEmptyString
     credential_env: NonEmptyString
     available: bool
-    source: Literal["environment", "prime_config", "missing"]
+    source: Literal["environment", "prime_config", "missing", "malformed_prime_config"]
     detail: NonEmptyString
 
 
-def credential_status(model: ModelSpec) -> CredentialStatus:
+def credential_status(
+    model: ModelSpec, *, environ: Mapping[str, str] | None = None
+) -> CredentialStatus:
     """Report whether the declared credential can be resolved.
 
     Presence only. The value is never read into a return, a log, or an error.
+
+    ``environ`` is the environment the question is asked *about*, which is not
+    always the one this process happens to have. A readiness check runs in an
+    operator's terminal but has to answer for the environment a detached run
+    would get, and a check that answered for its own terminal instead would be
+    able to say "ready" about a run that cannot authenticate.
     """
+    source = os.environ if environ is None else environ
     name = model.credential_env
-    if os.environ.get(name):
+    if source.get(name):
         return CredentialStatus(
             provider=model.provider,
             credential_env=name,
             available=True,
             source="environment",
-            detail=f"{name} is set in this process's environment.",
+            detail=f"{name} is set in this environment.",
         )
 
-    if name == PRIME_CREDENTIAL_ENV and _prime_config_has_key():
+    state = (
+        _prime_config_state(source.get("HOME"))
+        if name == PRIME_CREDENTIAL_ENV
+        else "absent"
+    )
+
+    if state == "usable":
         return CredentialStatus(
             provider=model.provider,
             credential_env=name,
             available=True,
             source="prime_config",
             detail=(
-                f"{name} is not set, but the active Prime CLI configuration "
-                "holds a key the pinned evaluation client can use."
+                "the active Prime CLI configuration holds a key the pinned "
+                "evaluation client can use."
+            ),
+        )
+
+    if state == "malformed":
+        return CredentialStatus(
+            provider=model.provider,
+            credential_env=name,
+            available=False,
+            source="malformed_prime_config",
+            detail=(
+                "the Prime CLI configuration on this machine could not be read "
+                "as a configuration, so no key can be resolved from it. Signing "
+                "in again writes a fresh one."
+            ),
+        )
+
+    if state == "signed_out":
+        return CredentialStatus(
+            provider=model.provider,
+            credential_env=name,
+            available=False,
+            source="missing",
+            detail=(
+                "the Prime CLI configuration on this machine holds no key: this "
+                "machine is signed out, or the sign-in has been cleared. This "
+                "credential pays for the evaluated subject's model calls; it is "
+                "separate from whatever your own agent is signed in with."
             ),
         )
 
@@ -123,9 +173,9 @@ def credential_status(model: ModelSpec) -> CredentialStatus:
         available=False,
         source="missing",
         detail=(
-            f"{name} is not set and no active Prime CLI configuration supplies "
-            "it. This credential pays for the evaluated subject's model calls; "
-            "it is separate from whatever your own agent is signed in with."
+            f"no active Prime CLI configuration supplies {name}. This credential "
+            "pays for the evaluated subject's model calls; it is separate from "
+            "whatever your own agent is signed in with."
         ),
     )
 
@@ -174,21 +224,35 @@ def require_credentials(model: ModelSpec) -> CredentialStatus:
     )
 
 
-def _prime_config_has_key() -> bool:
-    """Whether the Prime CLI configuration holds a non-empty key.
+def _prime_config_state(home: str | None) -> _PrimeConfigState:
+    """Report what the Prime CLI configuration under ``home`` supplies.
 
     The file is opened, one key is tested for emptiness, and the value is
     discarded. Nothing read here reaches a caller.
+
+    Three not-usable answers are distinguished because they need three
+    different sentences. No file is somebody who has not signed in; a file with
+    no key is somebody whose sign-in has gone away; a file that will not parse
+    is a broken store, and no amount of signing in explains itself if it is
+    described as either of the other two.
     """
-    home = os.environ.get("HOME")
     if not home:
-        return False
+        return "absent"
     path = Path(home).joinpath(*PRIME_CONFIG_RELATIVE_PATH)
     try:
-        document = json.loads(path.read_bytes())
-    except (OSError, ValueError):
-        return False
-    return isinstance(document, dict) and bool(document.get(_PRIME_CONFIG_KEY))
+        raw = path.read_bytes()
+    except OSError:
+        return "absent"
+    try:
+        document = json.loads(raw)
+    except ValueError:
+        return "malformed"
+    if not isinstance(document, dict):
+        return "malformed"
+    value = document.get(_PRIME_CONFIG_KEY)
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return "signed_out"
+    return "usable" if isinstance(value, str) else "malformed"
 
 
 def scrubbed_child_environment(

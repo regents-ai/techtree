@@ -243,20 +243,21 @@ def _unsupported_host(_: TechtreePaths) -> None:
     return None
 
 
-def _export_evaluation_credential(_: TechtreePaths) -> NextAction:
+def _sign_in_to_prime(_: TechtreePaths) -> NextAction:
     return NextAction(
-        id="export_evaluation_credential",
-        label="Set the evaluation credential, then re-run this check",
+        id="sign_in_to_prime",
+        label="Sign in to Prime, then re-run this check",
         reason=(
             "The evaluated subject's model calls are paid for by a credential "
             "a run reads for itself, which is why signing in to Prime works "
             "and exporting the credential in a terminal does not. It is "
-            "separate from whatever your own agent is signed in with."
+            "separate from whatever your own agent is signed in with. After "
+            "signing in, run techtree doctor --for-evaluation again."
         ),
-        cli=["techtree", "doctor", "--for-evaluation"],
+        cli=["prime", "login"],
         hermes_tool=None,
         hermes_args=None,
-        requires_user_confirmation=False,
+        requires_user_confirmation=True,
     )
 
 
@@ -317,7 +318,7 @@ _REPAIRS: Final[tuple[tuple[str, _Repair], ...]] = (
     # ordinary repair is the one worth offering first.
     ("execution_docker_platform", _recheck_after_starting_docker),
     ("execution_engine_eval", _install_engine),
-    ("execution_model_credential", _export_evaluation_credential),
+    ("execution_model_credential", _sign_in_to_prime),
     ("execution_subject_image", _pull_subject_image),
     ("execution_live_campaign", _not_runnable_yet),
 )

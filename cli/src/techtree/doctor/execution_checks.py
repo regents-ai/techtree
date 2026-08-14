@@ -20,7 +20,10 @@ here buys tokens for the evaluated subject. It has nothing to do with whatever
 the operator's own Hermes is signed in with, and it fails late and expensively
 if it is missing: the pinned client resolves an absent key to the literal string
 ``"EMPTY"`` and only discovers the problem at the first model call, after Docker
-is up (``docs/verifiers-eval.md``).
+is up (``docs/verifiers-eval.md``). It is also diagnosed for the environment a
+detached run would be given rather than for the terminal these checks were
+typed into, because those differ in the one way that matters and a readiness
+answer that cannot survive the difference is worse than no answer at all.
 
 *Pulling an image is a setup operation, not a check.* A check that silently
 downloaded gigabytes would be a check that lied about being read-only.
@@ -34,6 +37,7 @@ than a habit.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from typing import Final
@@ -54,6 +58,7 @@ from techtree.models.campaign import (
     RuntimeSpec,
 )
 from techtree.models.cli import CheckStatus, DoctorCheck
+from techtree.runs.launcher import worker_visible_environment
 from techtree.verifiers.child import EVAL_EXECUTABLE
 from techtree.verifiers.credentials import credential_status
 from techtree.verifiers.image import resolve_subject_image
@@ -227,19 +232,37 @@ def check_engine_eval(
 
 
 def check_prime_auth(model: ModelSpec) -> DoctorCheck:
-    """Confirm the declared evaluation credential resolves, without reading it."""
-    status = credential_status(model)
+    """Confirm a run could authenticate, without reading anything.
+
+    The question is asked about the environment a detached run would be given,
+    not about the terminal this check was typed into. Those differ in exactly
+    one way that matters: a credential exported in a terminal is not among the
+    variables a run inherits, so a check that consulted its own environment
+    could report "ready" about a run that stops at its first model call. When
+    the export is there and unusable the check says so, because a person who
+    exported it has every reason to expect it to count.
+    """
+    status = credential_status(model, environ=worker_visible_environment())
+    exported = bool(os.environ.get(model.credential_env))
+    detail = status.detail
+    if not status.available and exported:
+        detail = (
+            f"{model.credential_env} is set in this terminal, but a run works in "
+            "a separate background process that is not given this terminal's "
+            f"variables, so nothing exported here can reach it: {detail}"
+        )
     return DoctorCheck(
         id="execution_model_credential",
         label="Evaluation model credential",
         status=CheckStatus.PASS if status.available else CheckStatus.FAIL,
-        detail=status.detail,
+        detail=detail,
         blocking=not status.available,
         metadata={
             "provider": status.provider,
             "model_id": model.model_id,
             "credential_env": status.credential_env,
             "source": status.source,
+            "exported_in_this_terminal": exported,
         },
     )
 
