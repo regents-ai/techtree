@@ -65,7 +65,7 @@ from techtree.models.cli import CheckStatus
 from techtree.models.engine import EngineDescriptor, EngineInstallation
 from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
 from techtree.models.experiment import ExperimentManifest
-from techtree.models.run import RunPhase, RunRequest
+from techtree.models.run import ExecutorKind, RunPhase, RunRequest
 from techtree.models.skill import SkillArtifact
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunInputBundle
@@ -122,6 +122,7 @@ __all__ = [
     "ChildFactory",
     "RealVerifiersExecutor",
     "campaign_is_executable",
+    "executor_kind_for",
     "keep_evaluation_private",
     "real_execution_result_path",
     "require_live_campaign",
@@ -196,6 +197,24 @@ def campaign_is_executable(campaign: CampaignSpec) -> bool:
     Campaign is a thing to compile and dry-run, never a thing to run.
     """
     return check_live_campaign(campaign).status is CheckStatus.PASS
+
+
+def executor_kind_for(campaign: CampaignSpec) -> ExecutorKind:
+    """Return the name of the executor this Campaign will be run by.
+
+    The same predicate that routes the worker, answered early enough to be
+    written down. A run records this when it is created, which is the moment a
+    person is shown what is about to happen, so the request says whether real
+    containers and a real provider are about to be used or whether this is the
+    development executor inventing numbers.
+
+    Recording it does not make it true — the worker re-reads the run's own
+    staged Campaign and asks this same question again, and the fake executor
+    refuses a request that names anything but itself. What recording it buys
+    is that nobody has to run a Campaign through a predicate to find out what a
+    finished run was.
+    """
+    return "verifiers" if campaign_is_executable(campaign) else "fake"
 
 
 def require_live_campaign(campaign: CampaignSpec) -> None:

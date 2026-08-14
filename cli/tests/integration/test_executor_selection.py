@@ -1,12 +1,17 @@
 """Which executor a run gets, and why. Spec section 16, WP6 row 12.
 
 "The fake executor is no longer the default for a real Campaign" is a rule
-about a decision the worker makes before it does anything, and the decision
-cannot be read off the run's request: a request names the Climb that was
-entered, and whether that Climb's subject is a real model on a real image or
-the placeholder pair this build ships is a fact about the Campaign. So the
-worker reads the run's own staged Campaign, and the same predicate that
-``techtree doctor --for-evaluation`` uses answers it.
+about a decision the worker makes before it does anything, and the Campaign is
+what decides it: whether a Climb's subject is a real model on a real image or
+the placeholder pair this build ships is a fact about the Campaign, not about
+who entered it. So the worker reads the run's own staged Campaign, and the same
+predicate that ``techtree doctor --for-evaluation`` uses answers it.
+
+The run's request records that answer as ``executor_kind``, decided from the
+Campaign when the run is created — which is the moment a person is told what is
+about to happen. Recording it is not the same as being believed: the worker
+asks the Campaign again and refuses a request that disagrees, so a hand-edited
+request cannot talk the real executor into running, or out of it.
 
 Nothing here executes anything. Both runs are staged for real and then only
 asked which executor they would be handed, because constructing the answer is
@@ -31,6 +36,7 @@ from techtree.runs.real import (
     REAL_EXECUTION_UNSUPPORTED,
     RealVerifiersExecutor,
     campaign_is_executable,
+    executor_kind_for,
     real_execution_result_path,
     require_live_campaign,
 )
@@ -121,16 +127,17 @@ def test_evidence_without_a_report_fails_the_run_and_names_the_evidence(
     )
 
 
-def test_the_selection_reads_the_campaign_rather_than_the_request(
+def test_each_run_records_the_executor_its_campaign_will_get(
     tmp_path: Path,
 ) -> None:
-    """Two runs with identical request shapes route differently by Campaign."""
+    """The request says which of the two it is, and says it truthfully."""
     placeholder = run_harness(tmp_path / "fake-home")
     placeholder_id = placeholder.start().state.run_id
     real = local_run(tmp_path / "real-home", campaign=local_campaign().campaign)
 
     fake_request: RunRequest = placeholder.request(placeholder_id)
-    assert fake_request.executor_kind == real.request.executor_kind == "fake"
+    assert fake_request.executor_kind == "fake"
+    assert real.request.executor_kind == "verifiers"
     assert isinstance(
         executor_for(fake_request, paths=placeholder.paths), FakeRunExecutor
     )
@@ -138,6 +145,44 @@ def test_the_selection_reads_the_campaign_rather_than_the_request(
         executor_for(real.request, paths=paths_from_root(tmp_path / "real-home")),
         RealVerifiersExecutor,
     )
+
+
+def test_a_request_that_disagrees_with_its_campaign_is_refused(
+    tmp_path: Path,
+) -> None:
+    """Recording the answer does not make the record the authority.
+
+    A request that claims the development executor over a Campaign the real one
+    runs is the shape that would quietly turn a paid comparison into invented
+    numbers, and the shape that would let a placeholder Campaign be presented as
+    a real result. Neither direction is routed; both are refused by name.
+    """
+    real = local_run(tmp_path / "real-home", campaign=local_campaign().campaign)
+    paths = paths_from_root(tmp_path / "real-home")
+    lying = real.request.model_copy(update={"executor_kind": "fake"})
+
+    with pytest.raises(RunError) as raised:
+        executor_for(lying, paths=paths)
+
+    assert raised.value.code == "run_executor_mismatch"
+    assert raised.value.details["requested"] == "fake"
+    assert raised.value.details["campaign"] == "verifiers"
+
+
+def test_the_recorded_kind_is_the_one_the_campaign_predicate_gives(
+    tmp_path: Path,
+) -> None:
+    """One question, one answer, wherever it is asked from."""
+    placeholder = run_harness(tmp_path / "fake-home")
+    placeholder_id = placeholder.start().state.run_id
+    real = local_run(tmp_path / "real-home", campaign=local_campaign().campaign)
+
+    assert executor_kind_for(placeholder.inputs(placeholder_id).campaign) == "fake"
+    assert executor_kind_for(real.campaign) == "verifiers"
+    assert placeholder.request(placeholder_id).executor_kind == executor_kind_for(
+        placeholder.inputs(placeholder_id).campaign
+    )
+    assert real.request.executor_kind == executor_kind_for(real.campaign)
 
 
 def test_the_engines_own_output_is_made_private_after_it_is_written(

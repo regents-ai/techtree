@@ -36,6 +36,7 @@ from techtree.models.cli import CliError
 from techtree.models.evaluation_backend import EvaluationBackendSpec
 
 __all__ = [
+    "ExecutorKind",
     "PolicyAcknowledgement",
     "RunEvent",
     "RunPhase",
@@ -45,6 +46,21 @@ __all__ = [
     "RunStatus",
     "VariantProgress",
 ]
+
+type ExecutorKind = Literal["fake", "verifiers"]
+"""Which executor a run was created to be executed by.
+
+The two names are the two that exist, and they are the same two an
+:class:`~techtree.models.episode_receipt.EpisodeReceipt` records under
+``execution_backend`` — a run and the receipts it produces should not need a
+translation table to agree on what ran.
+
+The value is decided when the run is created, from the Campaign, because that
+is when a person is told what is about to happen and what it will cost. It is
+a record of the answer, not the place the answer is worked out: the worker
+re-reads the run's own staged Campaign and refuses a request that disagrees
+with it, so a hand-edited request buys nothing.
+"""
 
 
 class RunPhase(StrEnum):
@@ -99,7 +115,7 @@ class RunRequest(ProtocolModel):
     baseline_manifest_digest: Digest
     candidate_manifest_digest: Digest
     policy_acknowledgement: PolicyAcknowledgement
-    executor_kind: Literal["fake"]
+    executor_kind: ExecutorKind
     created_at: UtcDateTime
 
     @model_validator(mode="after")

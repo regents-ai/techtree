@@ -394,6 +394,7 @@ def local_run(
     *,
     skill_path: Path = CANDIDATE_SKILL,
     campaign: CampaignSpec | None = None,
+    candidate_label: str = "branch-code-v1",
 ) -> LocalRun:
     """Prepare and start one real run of the locally derived Campaign.
 
@@ -422,7 +423,7 @@ def local_run(
     prepared = preparation.prepare(
         climb_reference=DEVELOPMENT_CLIMB,
         skill_path=skill_path,
-        candidate_label="branch-code-v1",
+        candidate_label=candidate_label,
     )
 
     run_store = RunStore(paths)

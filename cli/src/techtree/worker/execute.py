@@ -64,7 +64,7 @@ from techtree.runs.fake import FakeRunExecutor
 from techtree.runs.machine import is_terminal
 from techtree.runs.real import (
     RealVerifiersExecutor,
-    campaign_is_executable,
+    executor_kind_for,
     real_execution_result_path,
 )
 from techtree.runs.store import RunStore
@@ -179,19 +179,25 @@ def executor_for(
     """
     resolved = worker_paths() if paths is None else paths
     inputs = RunArtifactStore(resolved).load_inputs(request.run_id, request)
-    if campaign_is_executable(inputs.campaign):
+    kind = executor_kind_for(inputs.campaign)
+    if kind != request.executor_kind:
+        raise RunError(
+            f"this run was created to be executed by the {request.executor_kind} "
+            f"executor and its Campaign is one the {kind} executor runs",
+            code="run_executor_mismatch",
+            details={
+                "run_id": request.run_id,
+                "requested": request.executor_kind,
+                "campaign": kind,
+            },
+        )
+    if kind == "verifiers":
         return RealVerifiersExecutor(
             paths=resolved,
             engine_registry=EngineRegistry(resolved, load_settings(resolved)),
             child_registry=ChildRegistry(),
         )
-    if request.executor_kind == "fake":
-        return FakeRunExecutor()
-    raise RunError(
-        f"this build has no {request.executor_kind} executor",
-        code="run_executor_unavailable",
-        details={"run_id": request.run_id, "executor_kind": request.executor_kind},
-    )
+    return FakeRunExecutor()
 
 
 def validation_provider_for(
@@ -208,16 +214,11 @@ def validation_provider_for(
     because it produces nothing that could be mistaken for evidence. The
     routing reads the run's own inputs, so it lives in the provider rather
     than here; what happens is recorded in the run's validation marker either
-    way.
+    way. Which executor the run gets therefore does not change the answer, and
+    both kinds are handed the same provider.
     """
-    if request.executor_kind == "fake":
-        return worker_validation_provider(worker_paths() if paths is None else paths)
-    raise RunError(
-        "this build has no taskset validation source for a "
-        f"{request.executor_kind} run",
-        code="taskset_validation_provider_unavailable",
-        details={"run_id": request.run_id},
-    )
+    del request
+    return worker_validation_provider(worker_paths() if paths is None else paths)
 
 
 def install_signal_handlers(cancellation_event: threading.Event) -> None:

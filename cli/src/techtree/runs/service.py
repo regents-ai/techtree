@@ -75,6 +75,7 @@ from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.events import DETAIL_ERROR, RUN_FAILED
 from techtree.runs.launcher import WorkerLauncher
 from techtree.runs.machine import is_terminal
+from techtree.runs.real import executor_kind_for
 from techtree.runs.store import RunStore
 from techtree.verifiers.models import RunPaths, VariantName
 from techtree.verifiers.outputs import EVAL_LOG_FILENAME
@@ -308,7 +309,7 @@ class RunService:
             baseline_manifest_digest=draft.baseline_manifest_digest,
             candidate_manifest_digest=draft.candidate_manifest_digest,
             policy_acknowledgement=policy_acknowledgement,
-            executor_kind="fake",
+            executor_kind=executor_kind_for(snapshot.source.campaign),
             created_at=self._clock(),
         )
 

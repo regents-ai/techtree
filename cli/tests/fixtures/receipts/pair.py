@@ -80,6 +80,7 @@ from techtree.receipts.uplift import (
     pair_task_rewards,
     summarize_receipts,
 )
+from techtree.runs.real import executor_kind_for
 from techtree.tasksets.membership import membership_digest
 from techtree.verifiers.models import VariantExecutionResult, VariantName
 
@@ -427,7 +428,7 @@ def _request(
             method="explicit_cli_digest",
             acknowledged_at=_FIXTURE_INSTANT,
         ),
-        executor_kind="fake",
+        executor_kind=executor_kind_for(campaign),
         created_at=_FIXTURE_INSTANT,
     )
 
