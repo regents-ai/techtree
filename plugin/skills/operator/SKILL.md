@@ -111,6 +111,17 @@ A revision is one proposal, not a search. Prepare it, show the person the
 difference between the two Skills and the data policy again, and start the
 second comparison only if they approve it specifically.
 
+Say this before you propose, every time. Writing the revision means sending
+the Skill being revised and the sanitized improvement context to the model
+provider behind **you** — the agent this person is talking to — and that is a
+different provider from the one the evaluated run uses. Two providers see
+different things here, and the person deciding whether to go ahead is entitled
+to know which sees what:
+
+- the **evaluated run's** provider sees the tasks and the subject's attempts;
+- **your** provider sees the Skill text and the sanitized context, for the one
+  revision request.
+
 ## What this build cannot do yet
 
 This is an early build. Techtree Hello World stops before preparing a

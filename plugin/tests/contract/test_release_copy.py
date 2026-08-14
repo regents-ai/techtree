@@ -135,6 +135,12 @@ FORBIDDEN_ATTESTATION: tuple[tuple[str, re.Pattern[str]], ...] = (
 #: The forbidden public name for the introductory Climb. Decision 0009.
 FORBIDDEN_NAME: re.Pattern[str] = re.compile(r"HelloWorldBench", re.I)
 
+#: Decision 0013 s3, sharpened by WP11g S8. The Campaign pins the subject
+#: model, so it is never the reader's own; and two different providers are in
+#: play at once, so a possessive is exactly the wrong word. Only the literal
+#: phrase is banned — "your model provider" is a true and useful thing to say.
+FORBIDDEN_OWNERSHIP: re.Pattern[str] = re.compile(r"\byour\s+own\s+models?\b", re.I)
+
 #: An exact score is not what was calibrated. Decision 0015 s6: the claim is
 #: the 20-27/36 band, or "roughly two-thirds of the toy tasks". Either dash
 #: spelling of the band counts, which is why the pattern names both.
@@ -264,6 +270,35 @@ def test_the_honest_attestation_wording_is_still_allowed() -> None:
 def test_no_copy_uses_the_forbidden_climb_name() -> None:
     """Decision 0009: the public name is Techtree Hello World."""
     assert not _offenders(FORBIDDEN_NAME)
+
+
+def test_no_copy_calls_the_subject_model_the_readers_own() -> None:
+    """Decision 0013 s3 / WP11g S8: the Campaign pins the model, not the user."""
+    offenders = _offenders(FORBIDDEN_OWNERSHIP)
+
+    assert not offenders, f"copy says the model is the reader's own: {offenders}"
+
+
+def test_the_ban_is_the_exact_phrase_and_not_the_useful_one() -> None:
+    """ "your model provider" has to stay sayable; "your own model" does not."""
+    assert FORBIDDEN_OWNERSHIP.search("it runs your own model twice")
+    assert FORBIDDEN_OWNERSHIP.search("bring your own models")
+    assert not FORBIDDEN_OWNERSHIP.search("sent to your model provider")
+    assert not FORBIDDEN_OWNERSHIP.search("under your provider's policies")
+
+
+def test_the_guided_revision_says_where_the_skill_text_goes() -> None:
+    """WP11g S2: the host agent's provider sees the Skill and the context."""
+    surfaces = {
+        "schemas.py": PUBLIC_COPY["schemas.py"],
+        "skills/operator/SKILL.md": PUBLIC_COPY["skills/operator/SKILL.md"],
+    }
+
+    for name, text in surfaces.items():
+        collapsed = " ".join(text.split()).lower()
+        assert "sanitized improvement context" in collapsed, name
+        assert "model provider behind" in collapsed, name
+        assert "different provider" in collapsed, name
 
 
 def test_no_copy_claims_an_exact_score() -> None:
