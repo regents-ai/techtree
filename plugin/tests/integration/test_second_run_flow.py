@@ -18,22 +18,35 @@ import pytest
 from support import envelope, install_fake_cli
 from techtree_hermes.approvals import InstallPlanStore, ReviewStore
 from techtree_hermes.bridge import CliBridge
+from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.errors import PluginError
 from techtree_hermes.models import ChannelKind, DemoStage
 from techtree_hermes.narrative import (
+    FIRST_RESULT_LABEL,
     SAME_MEMBERSHIP_DISCLOSURE,
     SECOND_RESULT_ITERATION_LABEL,
     SECOND_RESULT_LABEL,
 )
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
-from techtree_hermes.services.assets import ReleaseSkillProvider
+from techtree_hermes.services.assets import ReleaseSkillProvider, file_digest
 from techtree_hermes.services.container import PluginServices
 from techtree_hermes.services.presentation import forbidden_second_result_words
 from techtree_hermes.services.session import ALLOWED_TRANSITIONS, require_transition
 from techtree_hermes.state import SessionStore, latest_session, save_session
 from techtree_hermes.tools import TOOL_HANDLERS
 
-CORE = load_embedded_release_core()
+#: The committed release leaves its skill-improver coordinate unchosen, and the
+#: guided revision refuses to run without one. These journeys are about the
+#: flow, so they use a release that names the Skill this build bundles.
+IMPROVER_TEXT = (PLUGIN_ROOT / "skills" / "skill-improver" / "SKILL.md").read_text(
+    encoding="utf-8"
+)
+CORE = dataclasses.replace(
+    load_embedded_release_core(),
+    placeholder_release=False,
+    placeholder_fields=(),
+    skill_improver_digest=file_digest(IMPROVER_TEXT.encode("utf-8")),
+)
 FIRST_RUN = "run_" + "1" * 32
 SECOND_RUN = "run_" + "2" * 32
 FIRST_DRAFT = "draft_" + "1" * 32
@@ -56,14 +69,6 @@ PROPOSAL: dict[str, Any] = {
     "revised_skill_markdown": V2,
     "expected_tradeoffs": ["Identifiers with no repeats are unchanged."],
     "confidence": "medium",
-}
-
-NARRATIVE: dict[str, Any] = {
-    "headline": "The revision helped on the tasks it was measured on.",
-    "observations": ["The change came from one rule."],
-    "caveats": ["The provider does not expose an immutable model revision."],
-    "next_step": "Verify the proof before relying on it.",
-    "selected_task_refs": ["task-01"],
 }
 
 
@@ -126,9 +131,11 @@ class StubLlm:
 
     def complete_structured(self, **kwargs: Any) -> Any:
         self.calls.append(kwargs)
-        parsed = PROPOSAL if kwargs.get("purpose") == "skill_revision" else NARRATIVE
+        assert kwargs.get("purpose") == "skill_revision", (
+            "the revision proposal is the only host completion in the release"
+        )
         return SimpleNamespace(
-            parsed=parsed,
+            parsed=PROPOSAL,
             text="{}",
             model="host-model-1",
             provider="host",
@@ -290,11 +297,11 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
         "techtree_run_result",
         run_id=FIRST_RUN,
         channel=channel,
-        include_host_explanation=True,
     )
     assert first["order"][0] == "scores"
     assert first["presentation"]["candidate_score"] == 32.0
-    assert first["narrative"]["headline"] == NARRATIVE["headline"]
+    assert first["result_label"] == FIRST_RESULT_LABEL
+    assert "narrative" not in first
     assert "receipt" not in first
 
     proposal = _call(
@@ -330,7 +337,9 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
     proof = _call(journey, "techtree_proof_verify", run_id=SECOND_RUN, channel=channel)
     assert proof["data"]["verified"] is True
 
-    assert len(journey.ctx.llm.calls) == 2
+    # The revision proposal is the only host completion the journey makes.
+    assert len(journey.ctx.llm.calls) == 1
+    assert journey.ctx.llm.calls[0]["purpose"] == "skill_revision"
 
 
 def test_the_second_receipt_never_oversells_itself(journey: PluginServices) -> None:
@@ -531,15 +540,10 @@ def test_a_result_that_did_not_verify_is_never_called_an_improvement(
         ),
     )
 
-    result = _call(
-        services,
-        "techtree_run_result",
-        run_id=SECOND_RUN,
-        include_host_explanation=True,
-    )
+    result = _call(services, "techtree_run_result", run_id=SECOND_RUN)
 
     assert result["outcome"]["candidate_improved"] is None
     assert "did not verify" in result["outcome"]["summary"]
     assert result["leads_with"] == "verification_failure"
-    assert result["narrative"] is None
+    assert "narrative" not in result
     assert services.ctx.llm.calls == []

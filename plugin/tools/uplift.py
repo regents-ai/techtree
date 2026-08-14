@@ -17,8 +17,9 @@ from ..approvals import (
 )
 from ..channels import is_gateway_safe_required
 from ..diff import build_skill_diff
-from ..errors import PluginError
+from ..errors import CODE_FOUNDER_SKILL_MISSING, PluginError
 from ..llm import HermesHostLlm
+from ..services.assets import names_a_founder_skill
 from ..services.improvement import ImprovementService
 from ..services.proposal import ProposalService
 from ..services.session import (
@@ -71,6 +72,17 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             "this host offers no model, so it cannot propose a revision",
             code="host_llm_unavailable",
         )
+    # Asked before anything is read or spent. The verified skill-improver text
+    # is what steers the one turn (decision 0010), so a build whose release
+    # never named that Skill has no turn to offer — and must not consume the
+    # session's one attempt saying so.
+    if not names_a_founder_skill(services.release_core, "skill-improver"):
+        raise PluginError(
+            "this plugin build's release has not chosen its skill-improver "
+            "Skill yet, so no revision can be proposed",
+            code=CODE_FOUNDER_SKILL_MISSING,
+            repair="Use a published release of the plugin.",
+        )
     improvement = ImprovementService(
         llm=host, release=services.release_core, bridge=services.bridge
     )
@@ -79,9 +91,7 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
 
     try:
         proposal = improvement.propose_once(
-            source_run_id=source_run_id,
-            demo_session=session,
-            skill_improver_digest=services.release_core.skill_improver_digest,
+            source_run_id=source_run_id, demo_session=session
         )
     except PluginError as error:
         # The turn is spent even when the answer was unusable, so the session

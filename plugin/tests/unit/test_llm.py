@@ -223,7 +223,7 @@ def test_the_result_records_the_host_model_as_operational_metadata() -> None:
 
     provenance = result.to_provenance()
     assert provenance["host_model_id"] == "host-model-1"
-    assert provenance["host_request_digest"] == _request().digest()
+    assert provenance["complete_request_digest"] == _request().digest()
     assert provenance["purpose"] == "result_narrative"
     assert "subject" not in provenance
 
@@ -299,23 +299,45 @@ def test_a_proposal_records_everything_it_was_made_from() -> None:
     context_digest = digest_document({"schema_version": "x", "source_run_id": "run_1"})
 
     provenance = build_revision_provenance(
-        parent_skill_root_digest="sha256:" + "c" * 64,
-        parent_skill_entrypoint_digest="sha256:" + "d" * 64,
-        improvement_context_digest=context_digest,
-        skill_improver_digest="sha256:" + "e" * 64,
+        commitments={
+            "skill_improver_digest": "sha256:" + "e" * 64,
+            "improvement_context_digest": context_digest,
+            "source_skill_root_digest": "sha256:" + "c" * 64,
+            "source_skill_entrypoint_digest": "sha256:" + "d" * 64,
+            "output_schema_digest": "sha256:" + "b" * 64,
+        },
         result=result,
     )
 
     assert provenance.to_dict() == {
-        "parent_skill_root_digest": "sha256:" + "c" * 64,
-        "parent_skill_entrypoint_digest": "sha256:" + "d" * 64,
-        "improvement_context_digest": context_digest,
-        "host_request_digest": result.request_digest,
-        "host_response_digest": result.response_digest,
         "skill_improver_digest": "sha256:" + "e" * 64,
+        "improvement_context_digest": context_digest,
+        "source_skill_root_digest": "sha256:" + "c" * 64,
+        "source_skill_entrypoint_digest": "sha256:" + "d" * 64,
+        "output_schema_digest": "sha256:" + "b" * 64,
+        "complete_request_digest": result.request_digest,
         "host_model_id": "host-model-1",
+        "host_response_digest": result.response_digest,
         "revision_attempt": 1,
     }
+
+
+def test_a_proposal_cannot_record_a_commitment_the_request_never_made() -> None:
+    """Decision 0010 fixes nine values; eight is a defect, not a variation."""
+    from techtree_hermes.llm import build_revision_provenance
+
+    result = OneShotHostLlm(StubPort()).complete(_request(purpose="skill_revision"))
+
+    with pytest.raises(HostLlmError, match="output_schema_digest"):
+        build_revision_provenance(
+            commitments={
+                "skill_improver_digest": "sha256:" + "e" * 64,
+                "improvement_context_digest": "sha256:" + "f" * 64,
+                "source_skill_root_digest": "sha256:" + "c" * 64,
+                "source_skill_entrypoint_digest": "sha256:" + "d" * 64,
+            },
+            result=result,
+        )
 
 
 def test_a_context_digest_is_deterministic_and_specific() -> None:
@@ -336,10 +358,13 @@ def test_a_revision_attempt_is_counted_from_one() -> None:
 
     with pytest.raises(HostLlmError, match="counted from one"):
         build_revision_provenance(
-            parent_skill_root_digest="sha256:" + "c" * 64,
-            parent_skill_entrypoint_digest="sha256:" + "d" * 64,
-            improvement_context_digest="sha256:" + "f" * 64,
-            skill_improver_digest="sha256:" + "e" * 64,
+            commitments={
+                "skill_improver_digest": "sha256:" + "e" * 64,
+                "improvement_context_digest": "sha256:" + "f" * 64,
+                "source_skill_root_digest": "sha256:" + "c" * 64,
+                "source_skill_entrypoint_digest": "sha256:" + "d" * 64,
+                "output_schema_digest": "sha256:" + "b" * 64,
+            },
             result=result,
             revision_attempt=0,
         )

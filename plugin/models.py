@@ -117,7 +117,6 @@ RELEASE_CORE_FIELDS: Final = (
     "catalog_digest",
     "intro_climb_reference",
     "starter_skill_digest",
-    "rich_output_skill_digest",
     "skill_improver_digest",
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",
@@ -134,7 +133,6 @@ _RELEASE_CORE_DIGEST_FIELDS: Final = (
     "engine_digest",
     "catalog_digest",
     "starter_skill_digest",
-    "rich_output_skill_digest",
     "skill_improver_digest",
 )
 
@@ -173,7 +171,6 @@ class ReleaseCore:
     catalog_digest: str
     intro_climb_reference: str
     starter_skill_digest: str
-    rich_output_skill_digest: str
     skill_improver_digest: str
     minimum_host_hermes_version: str
     maximum_tested_host_hermes_version: str
@@ -655,35 +652,41 @@ class SkillRevisionOutput:
 
 @dataclass(frozen=True)
 class SkillRevisionProvenance:
-    """What one proposed Skill revision was made from. Decision 0007 R2.
+    """What one proposed Skill revision was made from. Decisions 0007 R2, 0010.
 
     Every field is a digest or an identifier, and together they answer the only
     question that matters about a proposal: exactly what was this made from?
-    The parent Skill it revises, the sanitized context it was allowed to see,
-    the complete request that was sent, the answer that came back, the Skill
-    that did the proposing, and which attempt this was — which, for the
-    introductory demo, is always the first and only one.
+    The Skill it revises, the sanitized context it was allowed to see, the
+    verified skill-improver Skill whose text steered the turn, the schema the
+    answer had to fit, the complete request that was sent, the answer that came
+    back, and which attempt this was — which, for the introductory demo, is
+    always the first and only one.
+
+    Decision 0010 fixes these nine values as exactly what the single-turn
+    request commits to, and requires all nine on the candidate Skill v2.
     """
 
-    parent_skill_root_digest: str
-    parent_skill_entrypoint_digest: str
-    improvement_context_digest: str
-    host_request_digest: str
-    host_response_digest: str
     skill_improver_digest: str
+    improvement_context_digest: str
+    source_skill_root_digest: str
+    source_skill_entrypoint_digest: str
+    output_schema_digest: str
+    complete_request_digest: str
     host_model_id: str
+    host_response_digest: str
     revision_attempt: int
 
     def to_dict(self) -> dict[str, Any]:
         """Return the provenance in the shape a proposal records it."""
         return {
-            "parent_skill_root_digest": self.parent_skill_root_digest,
-            "parent_skill_entrypoint_digest": self.parent_skill_entrypoint_digest,
-            "improvement_context_digest": self.improvement_context_digest,
-            "host_request_digest": self.host_request_digest,
-            "host_response_digest": self.host_response_digest,
             "skill_improver_digest": self.skill_improver_digest,
+            "improvement_context_digest": self.improvement_context_digest,
+            "source_skill_root_digest": self.source_skill_root_digest,
+            "source_skill_entrypoint_digest": self.source_skill_entrypoint_digest,
+            "output_schema_digest": self.output_schema_digest,
+            "complete_request_digest": self.complete_request_digest,
             "host_model_id": self.host_model_id,
+            "host_response_digest": self.host_response_digest,
             "revision_attempt": self.revision_attempt,
         }
 

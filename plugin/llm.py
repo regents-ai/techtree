@@ -1,8 +1,9 @@
 """The host model seam. Specification section 8.4, decision 0007 R2.
 
-The plugin asks the host's own model exactly two things, ever: how to word a
-result it has already computed, and what one revision of a Skill might be.
-Both are one-shot. Both are bounded by a schema. Neither may touch a number.
+The plugin asks the host's own model exactly one thing, ever: what one
+revision of a Skill might be. It is one-shot, bounded by a schema, and may not
+touch a number. Results are rendered by Techtree and relayed unchanged — no
+model is asked to word one (decision 0009).
 
 One completion means one. There is no retry here, no fallback model, no
 "try again with a stricter prompt". A hidden second completion would quietly
@@ -42,6 +43,17 @@ from .models import SkillRevisionProvenance
 #: How much text one request may carry. A request larger than this is a defect
 #: in whoever built it, not something to send and hope.
 MAX_REQUEST_CHARACTERS: Final = 200_000
+
+#: What decision 0010 requires the single improvement request to commit to
+#: about its own inputs. The request carries them, and the proposal's
+#: provenance repeats them beside the digests of the call itself.
+REQUEST_COMMITMENT_FIELDS: Final[tuple[str, ...]] = (
+    "skill_improver_digest",
+    "improvement_context_digest",
+    "source_skill_root_digest",
+    "source_skill_entrypoint_digest",
+    "output_schema_digest",
+)
 
 
 class HostLlmError(PluginError):
@@ -130,7 +142,7 @@ class HostLlmResult:
     def to_provenance(self) -> dict[str, Any]:
         """Return the operational metadata a proposal records about this call."""
         return {
-            "host_request_digest": self.request_digest,
+            "complete_request_digest": self.request_digest,
             "host_response_digest": self.response_digest,
             "host_model_id": self.model,
             "host_provider": self.provider,
@@ -306,28 +318,32 @@ def digest_document(document: Mapping[str, Any]) -> str:
 
 def build_revision_provenance(
     *,
-    parent_skill_root_digest: str,
-    parent_skill_entrypoint_digest: str,
-    improvement_context_digest: str,
-    skill_improver_digest: str,
+    commitments: Mapping[str, str],
     result: HostLlmResult,
     revision_attempt: int = 1,
 ) -> SkillRevisionProvenance:
-    """Record what one proposed revision was made from. Decision 0007 R2.
+    """Record what one proposed revision was made from. Decisions 0007 R2, 0010.
 
-    Every digest here was computed from something the plugin actually read or
-    sent, so the record cannot describe a proposal that was made differently.
+    ``commitments`` are the input digests the request itself carried, so the
+    record and the request cannot disagree: every value here was computed from
+    something the plugin actually read or sent.
     """
     if revision_attempt < 1:
         raise HostLlmError("a revision attempt is counted from one")
+
+    missing = sorted(set(REQUEST_COMMITMENT_FIELDS) - set(commitments))
+    if missing:
+        raise HostLlmError(f"this request commits to nothing about {missing}")
+
     return SkillRevisionProvenance(
-        parent_skill_root_digest=parent_skill_root_digest,
-        parent_skill_entrypoint_digest=parent_skill_entrypoint_digest,
-        improvement_context_digest=improvement_context_digest,
-        host_request_digest=result.request_digest,
-        host_response_digest=result.response_digest,
-        skill_improver_digest=skill_improver_digest,
+        skill_improver_digest=commitments["skill_improver_digest"],
+        improvement_context_digest=commitments["improvement_context_digest"],
+        source_skill_root_digest=commitments["source_skill_root_digest"],
+        source_skill_entrypoint_digest=commitments["source_skill_entrypoint_digest"],
+        output_schema_digest=commitments["output_schema_digest"],
+        complete_request_digest=result.request_digest,
         host_model_id=result.model,
+        host_response_digest=result.response_digest,
         revision_attempt=revision_attempt,
     )
 

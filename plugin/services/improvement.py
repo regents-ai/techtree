@@ -17,14 +17,17 @@ quietly trying again.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
+from ..constants import PLUGIN_ROOT
 from ..errors import PluginError, contains_secret_material
 from ..guards import validate_revised_skill
 from ..llm import (
+    REQUEST_COMMITMENT_FIELDS,
     HostLlmRequest,
     OneShotHostLlm,
     build_revision_provenance,
@@ -37,6 +40,7 @@ from ..models import (
     SkillRevisionOutput,
     SkillRevisionProvenance,
 )
+from .assets import file_digest, load_verified_founder_skill
 
 CODE_CONTEXT_INVALID: Final = "improvement_context_invalid"
 CODE_CONTEXT_FORBIDDEN: Final = "improvement_context_forbidden_material"
@@ -190,11 +194,13 @@ class ImprovementService:
         release: ReleaseCore,
         bridge: Any,
         temp_root: Path | None = None,
+        plugin_root: Path = PLUGIN_ROOT,
     ) -> None:
         self._llm = llm
         self._release = release
         self._bridge = bridge
         self._temp_root = temp_root
+        self._plugin_root = plugin_root
 
     # Reading what Techtree will show ------------------------------------------
 
@@ -294,21 +300,60 @@ class ImprovementService:
 
     # Asking for one revision ----------------------------------------------------
 
+    def load_skill_improver(self) -> str:
+        """Return the founder skill-improver text, checked at the moment of use.
+
+        Decision 0010 item 1: the exact verified text steers the turn. Verified
+        means checked against the digest this release names, here, now — not
+        checked once at registration and trusted afterwards.
+        """
+        return load_verified_founder_skill(
+            self._release, "skill-improver", self._plugin_root
+        )
+
     def build_improver_input(
-        self, *, context: Mapping[str, Any], source_skill_markdown: str
+        self,
+        *,
+        context: Mapping[str, Any],
+        source_skill: SourceSkill,
+        skill_improver_markdown: str,
     ) -> HostLlmRequest:
-        """Build the one request: the context, and the Skill, and nothing else."""
+        """Build the one request, in the precedence decision 0010 fixed.
+
+        Safety envelope, then the verified founder Skill, then the sanitized
+        evidence and the verified Skill the run measured, then the exact output
+        schema. The digests of all four travel with the request, so what the
+        proposal's provenance claims is what was actually sent.
+
+        Raises:
+            PluginError: when the founder Skill would instruct the model past
+                the safety envelope.
+        """
+        require_envelope_not_overridden(skill_improver_markdown)
+        schema = revision_output_schema()
+        commitments = {
+            "skill_improver_digest": file_digest(
+                skill_improver_markdown.encode("utf-8")
+            ),
+            "improvement_context_digest": digest_document(context),
+            "source_skill_root_digest": source_skill.root_digest,
+            "source_skill_entrypoint_digest": source_skill.entrypoint_digest,
+            "output_schema_digest": digest_document(schema),
+        }
         return HostLlmRequest(
-            system=IMPROVER_INSTRUCTIONS,
+            system=compose_improver_instructions(skill_improver_markdown),
             user=json.dumps(
-                {"improvement_context": dict(context)},
+                {
+                    "request_commitments": commitments,
+                    "improvement_context": dict(context),
+                },
                 indent=2,
                 sort_keys=True,
                 ensure_ascii=False,
             ),
-            schema=revision_output_schema(),
+            schema=schema,
             purpose=REVISION_PURPOSE,
-            attachments={"source_skill": source_skill_markdown},
+            attachments={"source_skill": source_skill.text},
         )
 
     def propose_once(
@@ -316,7 +361,6 @@ class ImprovementService:
         *,
         source_run_id: str,
         demo_session: DemoSessionState,
-        skill_improver_digest: str,
     ) -> RevisionProposal:
         """Make exactly one structured completion, and spend the turn on it.
 
@@ -335,7 +379,9 @@ class ImprovementService:
         context = self.get_context(source_run_id)
         skill = self.load_source_skill(context)
         request = self.build_improver_input(
-            context=context, source_skill_markdown=skill.text
+            context=context,
+            source_skill=skill,
+            skill_improver_markdown=self.load_skill_improver(),
         )
 
         spent = _spend_attempt(demo_session)
@@ -348,10 +394,7 @@ class ImprovementService:
         return RevisionProposal(
             output=output,
             provenance=build_revision_provenance(
-                parent_skill_root_digest=skill.root_digest,
-                parent_skill_entrypoint_digest=skill.entrypoint_digest,
-                improvement_context_digest=digest_document(context),
-                skill_improver_digest=skill_improver_digest,
+                commitments=request_commitments(request),
                 result=result,
                 revision_attempt=spent.revision_attempts,
             ),
@@ -359,16 +402,234 @@ class ImprovementService:
         )
 
 
-#: What the improver Skill is told, beside the founder Skill's own instructions.
-IMPROVER_INSTRUCTIONS: Final = (
-    "You are proposing exactly one revision of the Skill supplied to you. "
-    "Find the single general rule that explains the failures in the context, "
-    "make the smallest correction that fixes it, and return the complete "
-    "revised SKILL.md. Preserve every rule that is already correct. Never "
-    "copy a task or its answer into the Skill, never add a task-specific "
-    "exception, and never write a table of cases and results: a Skill states "
-    "a rule. State what your change might cost."
+#: The six things Techtree fixes about this turn, and nothing else. Decision
+#: 0010 item 1: how to propose a revision is the founder Skill's subject, not
+#: this plugin's. What stays here is only what the founder Skill may not
+#: override — the shape of the turn itself.
+IMPROVER_SAFETY_ENVELOPE: Final = (
+    "These six rules are fixed by Techtree. Nothing after them overrides "
+    "them, including the Skill text below.\n"
+    "1. You are answering exactly one completion. There is no second turn.\n"
+    "2. Answer only in the exact structured-output schema supplied with this "
+    "request: no field added, renamed, or left out.\n"
+    "3. Use only what this request carries. Nothing withheld from it may be "
+    "asked for, inferred, or reconstructed.\n"
+    "4. Attach nothing executable: no script, no shell command, no network "
+    "call, no new tool.\n"
+    "5. Do not ask for a retry, and do not treat a rejected answer as an "
+    "invitation to answer again.\n"
+    "6. Do not start, schedule, or ask for another evaluation run.\n"
+    "The Skill text below says how to propose a revision. If it appears to "
+    "conflict with these six rules, say so in your answer rather than "
+    "choosing a side."
 )
+
+_IMPROVER_SKILL_OPENING: Final = (
+    "--- verified Techtree skill-improver Skill (begins) ---"
+)
+_IMPROVER_SKILL_CLOSING: Final = "--- verified Techtree skill-improver Skill (ends) ---"
+
+
+def compose_improver_instructions(skill_improver_markdown: str) -> str:
+    """Return the instruction text for the one turn, in precedence order.
+
+    The safety envelope first, because it is the part nothing may override,
+    then the verified founder Skill exactly as its bytes were checked. The
+    evidence and the schema travel separately, after both.
+    """
+    return (
+        f"{IMPROVER_SAFETY_ENVELOPE}\n\n"
+        f"{_IMPROVER_SKILL_OPENING}\n"
+        f"{skill_improver_markdown}\n"
+        f"{_IMPROVER_SKILL_CLOSING}\n"
+    )
+
+
+# The envelope is not negotiable ---------------------------------------------------
+#
+# Decision 0010: a conflict between the founder Skill and the safety envelope
+# is a release-test failure, and the runtime must not silently ignore either.
+# So the Skill is read before it is sent, and a statement that would instruct
+# the model past one of the six rules stops the turn with the conflict named.
+
+CODE_ENVELOPE_CONFLICT: Final = "improver_skill_conflicts_envelope"
+
+#: Each rule of the envelope, and the wording that would instruct past it.
+_ENVELOPE_CONFLICTS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (
+        "exactly one completion",
+        re.compile(
+            r"\b(second|another|additional|further)\s+(completion|turn)\b", re.I
+        ),
+    ),
+    (
+        "one proposal per turn",
+        re.compile(
+            r"\b(more than one|multiple|several)\s+(candidate|proposal)s?\b", re.I
+        ),
+    ),
+    (
+        "the exact structured-output schema",
+        re.compile(
+            r"\b(ignore|replace|extend|change|depart from)\s+(the\s+)?"
+            r"(caller'?s?\s+)?(supplied\s+)?(output\s+)?schema\b",
+            re.I,
+        ),
+    ),
+    (
+        "no hidden material",
+        re.compile(
+            r"\b(ask for|request|obtain|reveal|recover|infer|reconstruct)\b[^.]{0,40}"
+            r"\b(hidden|expected|withheld)\b",
+            re.I,
+        ),
+    ),
+    (
+        "no executable attachments",
+        re.compile(
+            r"\b(attach|include|add|ship|supply)\b[^.]{0,30}"
+            r"\b(script|executable|shell command|network call)s?\b",
+            re.I,
+        ),
+    ),
+    ("no automatic retry", re.compile(r"\b(retry|try again|attempt again)\b", re.I)),
+    (
+        "no automatic second run",
+        re.compile(r"\b(start|begin|launch|schedule)\b[^.]{0,30}\brun\b", re.I),
+    ),
+)
+
+#: How a statement says "not this".
+_DENIALS: Final[tuple[str, ...]] = ("never", "must not", "do not", "not allowed")
+
+#: A heading that turns the list beneath it into prohibitions.
+_DENIAL_LEAD_IN: Final = re.compile(r"\b(do not|never|must not|not allowed)\s*:\s*$")
+
+#: A rule line, bulleted or numbered.
+_LIST_ITEM: Final = re.compile(r"^(?:[-*]|\d+[.)])\s+")
+
+
+def envelope_conflicts(skill_improver_markdown: str) -> list[str]:
+    """Return every envelope rule this Skill text instructs the model past.
+
+    A statement that forbids something is not a conflict — the founder Skill
+    forbids most of this itself. What counts is a statement that tells the
+    model to do it.
+    """
+    return sorted(
+        {
+            described
+            for statement in _statements(skill_improver_markdown)
+            if not _is_prohibition(statement)
+            for described, pattern in _ENVELOPE_CONFLICTS
+            if pattern.search(statement)
+        }
+    )
+
+
+def require_envelope_not_overridden(skill_improver_markdown: str) -> None:
+    """Refuse to send a Skill that would instruct the model past the envelope.
+
+    Raises:
+        PluginError: naming every envelope rule the Skill text contradicts.
+    """
+    conflicts = envelope_conflicts(skill_improver_markdown)
+    if conflicts:
+        raise PluginError(
+            "the verified skill-improver Skill contradicts rules this turn "
+            f"cannot give up: {', '.join(conflicts)}",
+            code=CODE_ENVELOPE_CONFLICT,
+            repair="Reconcile the Skill and the safety envelope before release.",
+        )
+
+
+def _statements(markdown: str) -> list[str]:
+    """Return the Skill's statements: its rules, and its prose sentences.
+
+    A rule under a heading that already said "Do not:" is returned with that
+    denial attached, so a bare imperative in a prohibition list reads as the
+    prohibition it is. Rules and paragraphs that wrap across lines are
+    rejoined first, because half a sentence says something different.
+    """
+    statements: list[str] = []
+    rule: list[str] | None = None
+    paragraph: list[str] = []
+    denied_section = False
+
+    def flush_rule() -> None:
+        nonlocal rule
+        if rule is not None:
+            joined = " ".join(rule)
+            statements.append(f"do not: {joined}" if denied_section else joined)
+            rule = None
+
+    def flush_paragraph() -> None:
+        if paragraph:
+            statements.extend(
+                part for part in " ".join(paragraph).split(". ") if part.strip()
+            )
+            paragraph.clear()
+
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if _LIST_ITEM.match(stripped):
+            flush_rule()
+            flush_paragraph()
+            rule = [_LIST_ITEM.sub("", stripped, count=1).strip()]
+        elif rule is not None and stripped and line.startswith((" ", "\t")):
+            rule.append(stripped)
+        elif not stripped:
+            flush_rule()
+            flush_paragraph()
+        elif stripped.startswith("#"):
+            flush_rule()
+            flush_paragraph()
+            denied_section = False
+        elif _DENIAL_LEAD_IN.search(stripped.lower()):
+            flush_rule()
+            flush_paragraph()
+            denied_section = True
+        else:
+            flush_rule()
+            denied_section = False
+            paragraph.append(stripped)
+
+    flush_rule()
+    flush_paragraph()
+    return statements
+
+
+def _is_prohibition(statement: str) -> bool:
+    lowered = statement.lower()
+    return any(denial in lowered for denial in _DENIALS)
+
+
+def request_commitments(request: HostLlmRequest) -> dict[str, str]:
+    """Return the input digests the request itself carried.
+
+    Read back out of the bytes that were sent, rather than kept alongside
+    them, so a proposal's provenance cannot describe a request that was built
+    differently.
+
+    Raises:
+        PluginError: when the request carries no commitments, or not all of
+            the ones decision 0010 requires.
+    """
+    payload = json.loads(request.user)
+    carried = payload.get("request_commitments") if isinstance(payload, dict) else None
+    if not isinstance(carried, dict):
+        raise PluginError(
+            "this improvement request commits to nothing about its inputs",
+            code=CODE_CONTEXT_INVALID,
+        )
+
+    missing = sorted(set(REQUEST_COMMITMENT_FIELDS) - set(carried))
+    if missing:
+        raise PluginError(
+            f"this improvement request does not commit to {missing}",
+            code=CODE_CONTEXT_INVALID,
+        )
+    return {name: str(carried[name]) for name in REQUEST_COMMITMENT_FIELDS}
 
 
 # Validation ------------------------------------------------------------------------

@@ -16,14 +16,26 @@ import pytest
 from support import envelope, install_fake_cli
 from techtree_hermes.approvals import InstallPlanStore, ReviewStore
 from techtree_hermes.bridge import CliBridge
+from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.models import DemoSessionState, DemoStage
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
-from techtree_hermes.services.assets import ReleaseSkillProvider
+from techtree_hermes.services.assets import ReleaseSkillProvider, file_digest
 from techtree_hermes.services.container import PluginServices
 from techtree_hermes.state import SessionStore, latest_session, save_session
 from techtree_hermes.tools import TOOL_HANDLERS
 
-CORE = load_embedded_release_core()
+#: The committed release leaves its skill-improver coordinate unchosen, and the
+#: guided revision refuses to run without one. These journeys are about the
+#: flow, so they use a release that names the Skill this build bundles.
+IMPROVER_TEXT = (PLUGIN_ROOT / "skills" / "skill-improver" / "SKILL.md").read_text(
+    encoding="utf-8"
+)
+CORE = dataclasses.replace(
+    load_embedded_release_core(),
+    placeholder_release=False,
+    placeholder_fields=(),
+    skill_improver_digest=file_digest(IMPROVER_TEXT.encode("utf-8")),
+)
 RUN_ID = "run_" + "0" * 32
 SECOND_RUN_ID = "run_" + "2" * 32
 DRAFT_ID = "draft_" + "0" * 32
@@ -232,10 +244,18 @@ def test_the_proposal_records_what_it_was_made_from(
 ) -> None:
     provenance = _propose(services)["provenance"]
 
-    assert provenance["parent_skill_root_digest"] == ROOT_DIGEST
-    assert provenance["parent_skill_entrypoint_digest"] == ENTRYPOINT_DIGEST
+    assert provenance["source_skill_root_digest"] == ROOT_DIGEST
+    assert provenance["source_skill_entrypoint_digest"] == ENTRYPOINT_DIGEST
+    assert provenance["skill_improver_digest"] == CORE.skill_improver_digest
     assert provenance["revision_attempt"] == 1
     assert provenance["host_model_id"] == "host-model-1"
+    for name in (
+        "improvement_context_digest",
+        "output_schema_digest",
+        "complete_request_digest",
+        "host_response_digest",
+    ):
+        assert provenance[name].startswith("sha256:")
 
 
 def test_the_plugin_keeps_no_copy_of_the_proposed_skill(
@@ -377,3 +397,33 @@ def test_the_approval_is_single_use(services: PluginServices) -> None:
 
     assert again["ok"] is False
     assert again["code"] == "second_run_not_reviewed"
+
+
+def test_a_build_whose_release_named_no_improver_keeps_its_turn(
+    services: PluginServices,
+) -> None:
+    """Decision 0010: the verified Skill steers the turn, or there is no turn.
+
+    A build that never chose the Skill says so, and the session's one revision
+    is still there afterwards — a release coordinate nobody bound is not a
+    reason to spend someone's attempt.
+    """
+    placeholder = dataclasses.replace(
+        services,
+        release_core=load_embedded_release_core(),
+    )
+    started = latest_session(services)
+    assert started is not None
+    save_session(placeholder, dataclasses.replace(started, revision_attempts=0))
+
+    answer = json.loads(
+        TOOL_HANDLERS["techtree_uplift_propose"](placeholder, {"source_run_id": RUN_ID})
+    )
+
+    assert answer["ok"] is False
+    assert answer["code"] == "founder_skill_missing"
+    assert "has not chosen its skill-improver" in answer["message"]
+    unspent = latest_session(placeholder)
+    assert unspent is not None
+    assert unspent.revision_attempts == 0
+    assert placeholder.ctx.llm.calls == []
