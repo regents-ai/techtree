@@ -43,6 +43,7 @@ from rich.table import Table
 
 from techtree.canonical import canonical_json_bytes
 from techtree.cli.commands.climb import (
+    ReviewSurface,
     approve_run,
     build_preparation_service,
     phrase,
@@ -421,6 +422,20 @@ def start_uplift_command(
             ),
         ),
     ] = False,
+    reviewed_on: Annotated[
+        ReviewSurface,
+        typer.Option(
+            "--reviewed-on",
+            help=(
+                "Where the person who approved this run answered. Pass "
+                "host-agent when the review was shown in a conversation and "
+                "confirmed there before the run was dispatched, so the run "
+                "records the surface the answer was actually given on. Like "
+                "--yes, and for the same reason, it states what a person "
+                "already did and is never a shortcut a model may take."
+            ),
+        ),
+    ] = ReviewSurface.CLI,
 ) -> None:
     """Review the prepared revision, approve it, and start the second run."""
     context = cli_context(ctx)
@@ -434,6 +449,7 @@ def start_uplift_command(
             draft=draft,
             campaign=store.get_source(draft_id).campaign,
             assume_yes=yes,
+            reviewed_on=reviewed_on,
         )
         status = service.start(
             draft_id=draft_id,

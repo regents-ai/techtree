@@ -142,10 +142,40 @@ def test_accepting_a_different_policy_starts_nothing(harness: RunHarness) -> Non
     assert harness.drafts.start_record(harness.draft_id) is None
 
 
-def test_a_method_this_build_cannot_produce_is_refused(harness: RunHarness) -> None:
-    """No host-agent confirmation channel exists, so none may be claimed."""
+def test_the_host_agent_surface_is_recorded_when_it_is_the_one_that_asked(
+    harness: RunHarness,
+) -> None:
+    """Decisions 0019 s2: the plugin's approval surface is a real surface."""
+    status = harness.start(
+        method="host_agent_confirmation", approved_by="human_via_hermes"
+    )
+
+    request = harness.request(status.state.run_id)
+    assert request.policy_acknowledgement.method == "host_agent_confirmation"
+    assert _only_approval(harness, status.state.run_id).details[DETAIL_ACTOR] == (
+        "human_via_hermes"
+    )
+
+
+@pytest.mark.parametrize(
+    ("method", "actor"),
+    [
+        ("explicit_cli_review", "human_via_hermes"),
+        ("host_agent_confirmation", "operator_via_flag"),
+        ("host_agent_confirmation", "human_via_cli"),
+    ],
+)
+def test_an_actor_from_another_surface_starts_nothing(
+    harness: RunHarness, method: str, actor: str
+) -> None:
+    """The acceptance and the actor are two halves of one approval.
+
+    A run whose method says one surface and whose actor belongs to the other
+    would be a record of an approval nobody gave, which is the whole reason the
+    surface is declared rather than inferred.
+    """
     with pytest.raises(PolicyError) as raised:
-        harness.start(method="host_agent_confirmation")
+        harness.start(method=method, approved_by=actor)  # type: ignore[arg-type]
 
     assert raised.value.code == "policy_acceptance_method_invalid"
     assert harness.drafts.start_record(harness.draft_id) is None

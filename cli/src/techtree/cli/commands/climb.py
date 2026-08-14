@@ -33,9 +33,15 @@ Skill is the only scientific change, where the model calls go, and what is
 never uploaded — are printed, the rights summary is printed under them, and the
 answer is a plain ``y``. An operator who cannot be asked passes ``--yes``
 instead, which is an explicit act by a person configuring a machine and never a
-shortcut a model may take on somebody's behalf. Either way the run records that
-the review was shown and accepted, and its ``run.approved`` event records which
-of the two gave the answer.
+shortcut a model may take on somebody's behalf.
+
+The same review can also be answered somewhere else. When the plugin starts a
+draft, Hermes has already shown the review and taken the person's confirmation
+through its own dispatch gate, and this command is only the thing that writes
+the record; ``--reviewed-on host-agent`` is how that is said, so the run
+records the surface the answer was really given on rather than the surface the
+writing happened on. Either way the run records that the review was shown and
+accepted, and its ``run.approved`` event records who gave the answer.
 
 The command returns as soon as the worker is launched. The run continues after
 this process exits, which is the whole point, and the response says where to
@@ -45,6 +51,7 @@ look rather than waiting to find out.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final, Literal
 
@@ -63,7 +70,12 @@ from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import human_console
 from techtree.drafts.store import DraftStore, utc_now
-from techtree.errors import NotFoundError, PolicyError, PrerequisiteError
+from techtree.errors import (
+    NotFoundError,
+    PolicyError,
+    PrerequisiteError,
+    UsageError,
+)
 from techtree.models.base import (
     Digest,
     NonEmptyString,
@@ -85,12 +97,14 @@ from techtree.skills.service import PreparedDraft, SkillPreparationService
 __all__ = [
     "LIST_COMMAND",
     "PREPARE_COMMAND",
+    "REVIEW_SURFACE_NOT_APPROVED",
     "SHOW_COMMAND",
     "START_COMMAND",
     "ClimbPreparePayload",
     "ClimbShowPayload",
     "ClimbStartPayload",
     "PreparedComparison",
+    "ReviewSurface",
     "RunApproval",
     "abbreviated_digest",
     "approve_run",
@@ -113,6 +127,24 @@ START_COMMAND: Final = "climb start"
 #: catalog is generated, so an empty one means this build was assembled without
 #: running the generator rather than that there is nothing to run.
 _NO_CLIMBS = "This build does not include any Climbs yet."
+
+
+#: What a start says when a surface was declared but nothing was approved.
+REVIEW_SURFACE_NOT_APPROVED: Final = "review_surface_not_approved"
+
+
+class ReviewSurface(StrEnum):
+    """Where the person who approved this run answered.
+
+    Decisions document 0019 section 2 keeps two approval surfaces: this command
+    line, and the host agent's own confirmation UI. The process that writes the
+    run's record is not always the process that asked the question — when the
+    plugin starts a draft, Hermes asked and the CLI writes — so which surface
+    it was is declared rather than inferred from the fact that a flag was used.
+    """
+
+    CLI = "cli"
+    HOST_AGENT = "host-agent"
 
 
 class ClimbShowPayload(ProtocolModel):
@@ -386,6 +418,20 @@ def start_climb_command(
             ),
         ),
     ] = False,
+    reviewed_on: Annotated[
+        ReviewSurface,
+        typer.Option(
+            "--reviewed-on",
+            help=(
+                "Where the person who approved this run answered. Pass "
+                "host-agent when the review was shown in a conversation and "
+                "confirmed there before the run was dispatched, so the run "
+                "records the surface the answer was actually given on. Like "
+                "--yes, and for the same reason, it states what a person "
+                "already did and is never a shortcut a model may take."
+            ),
+        ),
+    ] = ReviewSurface.CLI,
 ) -> None:
     """Review a prepared draft, approve it, and start a detached run."""
     context = cli_context(ctx)
@@ -399,6 +445,7 @@ def start_climb_command(
             draft=draft,
             campaign=store.get_source(draft_id).campaign,
             assume_yes=yes,
+            reviewed_on=reviewed_on,
         )
 
         status = service.start(
@@ -486,16 +533,30 @@ def approve_run(
     draft: SubmissionDraft,
     campaign: CampaignSpec,
     assume_yes: bool,
+    reviewed_on: ReviewSurface = ReviewSurface.CLI,
 ) -> RunApproval:
     """Show the review, collect the answer, or refuse to start.
 
-    An operator who passed ``--yes`` has answered already. Otherwise a person
-    is shown the review and the rights summary and answers; where nobody can be
-    asked, the command stops and names the flag rather than inventing an
-    approval nobody gave.
+    Somebody who passed ``--yes`` has answered already, and ``--reviewed-on``
+    says where. Otherwise a person is shown the review and the rights summary
+    and answers here; where nobody can be asked, the command stops and names
+    the flag rather than inventing an approval nobody gave.
     """
     if assume_yes:
-        return _approved(draft, "operator_via_flag")
+        if reviewed_on is ReviewSurface.HOST_AGENT:
+            return _approved(draft, "host_agent_confirmation", "human_via_hermes")
+        return _approved(draft, "explicit_cli_review", "operator_via_flag")
+
+    if reviewed_on is not ReviewSurface.CLI:
+        # The answer is about to be given here, so a run that recorded it as
+        # given somewhere else would name a surface nobody used.
+        raise UsageError(
+            "--reviewed-on says where an approval was already given, so it "
+            "goes with --yes; without it the review is shown here and answered "
+            "here",
+            code=REVIEW_SURFACE_NOT_APPROVED,
+            details={"draft_id": draft.id, "reviewed_on": reviewed_on.value},
+        )
 
     if context.no_input:
         raise PolicyError(
@@ -521,15 +582,19 @@ def approve_run(
             code=POLICY_ACCEPTANCE_REQUIRED,
             details={"draft_id": draft.id},
         )
-    return _approved(draft, "human_via_cli")
+    return _approved(draft, "explicit_cli_review", "human_via_cli")
 
 
-def _approved(draft: SubmissionDraft, actor: ApprovalActor) -> RunApproval:
+def _approved(
+    draft: SubmissionDraft,
+    method: Literal["explicit_cli_review", "host_agent_confirmation"],
+    actor: ApprovalActor,
+) -> RunApproval:
     """Return the acknowledgement and the actor one approval produced."""
     return RunApproval(
         acknowledgement=PolicyAcknowledgement(
             data_policy_digest=draft.policy_acceptance.data_policy_digest,
-            method="explicit_cli_review",
+            method=method,
             acknowledged_at=utc_now(),
         ),
         actor=actor,

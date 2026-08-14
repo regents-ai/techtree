@@ -30,6 +30,8 @@ from techtree.errors import EXIT_OK
 from techtree.fs import remove_tree
 from techtree.ids import new_id
 from techtree.paths import TechtreePaths
+from techtree.runs.events import DETAIL_ACTOR, RUN_APPROVED, read_events
+from techtree.runs.store import RunStore
 from techtree.skills.service import PreparedDraft
 
 pytestmark = pytest.mark.integration
@@ -200,6 +202,84 @@ def test_a_person_approves_by_answering_yes(
     assert "human via cli" in started.stdout
     run_id = start_through_the_cli(home, draft).data()["run_id"]
     assert wait_for_terminal(home, run_id)["phase"] == "completed"
+
+
+def test_the_surface_defaults_to_the_command_line_the_approval_was_given_on(
+    prepared: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """An operator at a terminal answered here, and the run says so."""
+    home, paths, draft = prepared
+
+    started = start_through_the_cli(home, draft)
+
+    run_id = started.data()["run_id"]
+    assert started.data()["policy_acknowledgement_method"] == "explicit_cli_review"
+    assert started.data()["approved_by"] == "operator_via_flag"
+    request = RunStore(paths).get_request(run_id)
+    assert request.policy_acknowledgement.method == "explicit_cli_review"
+    assert _approval_actor(paths, run_id) == "operator_via_flag"
+    wait_for_terminal(home, run_id)
+
+
+def test_a_declared_host_agent_review_is_what_the_run_records(
+    prepared: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """Decisions 0019 s2: the plugin's surface is where the person answered.
+
+    Hermes shows the review and takes the confirmation through its own
+    dispatch gate; this command only writes the record. A run that described
+    that as a command-line acceptance would misdescribe who was asked and
+    where.
+    """
+    home, paths, draft = prepared
+
+    started = run_cli(
+        home,
+        "climb",
+        "start",
+        draft.draft.id,
+        "--yes",
+        "--reviewed-on",
+        "host-agent",
+    )
+
+    assert started.exit_code == EXIT_OK, started.stdout + started.stderr
+    run_id = started.data()["run_id"]
+    assert started.data()["policy_acknowledgement_method"] == "host_agent_confirmation"
+    assert started.data()["approved_by"] == "human_via_hermes"
+    request = RunStore(paths).get_request(run_id)
+    assert request.policy_acknowledgement.method == "host_agent_confirmation"
+    assert request.policy_acknowledgement.data_policy_digest == (
+        draft.draft.data_policy_digest
+    )
+    assert _approval_actor(paths, run_id) == "human_via_hermes"
+    wait_for_terminal(home, run_id)
+
+
+def test_declaring_a_surface_without_approving_starts_nothing(
+    prepared: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """The answer is about to be given here, so it was not given elsewhere."""
+    home, paths, draft = prepared
+
+    refused = run_cli(
+        home, "climb", "start", draft.draft.id, "--reviewed-on", "host-agent"
+    )
+
+    assert refused.exit_code != EXIT_OK
+    assert refused.envelope()["error"]["code"] == "review_surface_not_approved"
+    assert not paths.runs_dir.exists() or _runs(paths) == []
+
+
+def _approval_actor(paths: TechtreePaths, run_id: str) -> str:
+    """Return the one actor this run's approval event names."""
+    approvals = [
+        event
+        for event in read_events(paths.run_dir(run_id) / "events.jsonl")
+        if event.kind == RUN_APPROVED
+    ]
+    assert len(approvals) == 1
+    return str(approvals[0].details[DETAIL_ACTOR])
 
 
 def test_a_person_who_declines_starts_nothing(

@@ -117,29 +117,48 @@ RUN_RESULT_NOT_READY: Final = "run_result_not_ready"
 RUN_RESULT_DIGEST_MISMATCH: Final = "run_result_digest_mismatch"
 RUN_LOGS_UNAVAILABLE: Final = "run_logs_unavailable"
 
-#: How acceptance of a rights policy may be stated in this build. Decisions
-#: document 0019 section 2 leaves one way at the command line: the review was
-#: shown and it was explicitly accepted. ``host_agent_confirmation`` belongs to
-#: the plugin's own approval surface and there is no channel here that could
-#: produce it, so accepting it would be accepting an acknowledgement nobody made.
-ACKNOWLEDGEMENT_METHODS: Final[frozenset[str]] = frozenset({"explicit_cli_review"})
-
-type ApprovalActor = Literal["human_via_cli", "operator_via_flag"]
+type ApprovalActor = Literal["human_via_cli", "operator_via_flag", "human_via_hermes"]
 """Who gave the approval this run records.
 
 ``human_via_cli`` is a person who read the review and answered the prompt.
 ``operator_via_flag`` is an operator who passed the flag that stands in for
-that answer where nobody can be asked. The distinction is the whole point of
-recording an actor at all, so it is kept out of the acceptance method — which
-says only that the review was shown and accepted — and carried on the run's
-``run.approved`` event, where an auditor reads it.
+that answer where nobody can be asked. ``human_via_hermes`` is a person who
+answered on the host agent's approval surface, after which the plugin started
+the draft they approved.
+
+The actor and the acceptance method say two halves of one fact and must agree:
+a run whose method is ``host_agent_confirmation`` was approved by a person on
+that surface, and a run whose method is ``explicit_cli_review`` was approved at
+the command line by one of the two who can be there. The method is on the run's
+immutable request; the actor is on its ``run.approved`` event, where an auditor
+reads it.
 """
 
 #: Every actor this build can record. A name outside it is a name nothing here
 #: could have produced.
 APPROVAL_ACTORS: Final[frozenset[str]] = frozenset(
-    {"human_via_cli", "operator_via_flag"}
+    {"human_via_cli", "operator_via_flag", "human_via_hermes"}
 )
+
+#: Which actors belong to which acceptance surface. Decisions document 0019
+#: section 2 names two surfaces and this build reaches both:
+#: ``explicit_cli_review`` when the review was shown and accepted at the command
+#: line, and ``host_agent_confirmation`` when it was shown and accepted on the
+#: host agent's own approval surface and the plugin then started that exact
+#: draft. Which one a run records is declared by whoever starts it, because the
+#: process that writes the record is not the one that asked the question.
+#:
+#: A run that recorded a command-line acceptance and a host-agent actor would
+#: describe two different approvals, and only one of them happened.
+ACTORS_BY_METHOD: Final[dict[str, frozenset[str]]] = {
+    "explicit_cli_review": frozenset({"human_via_cli", "operator_via_flag"}),
+    "host_agent_confirmation": frozenset({"human_via_hermes"}),
+}
+
+#: How acceptance of a rights policy may be stated in this build, derived from
+#: the surfaces above so that a method can never exist without the actors that
+#: belong to it.
+ACKNOWLEDGEMENT_METHODS: Final[frozenset[str]] = frozenset(ACTORS_BY_METHOD)
 
 #: Log tail bounds. Spec PR8 §8.13.
 DEFAULT_LOG_TAIL: Final = 200
@@ -216,6 +235,7 @@ class RunService:
         """Claim the draft, create the run, stage inputs, and launch."""
         snapshot = self._drafts.load_snapshot(draft_id)
         self._require_startable(snapshot, policy_acknowledgement)
+        self._require_agreeing_approval(snapshot, policy_acknowledgement, approved_by)
 
         existing = self._drafts.start_record(draft_id)
         proposed = existing.run_id if existing is not None else new_id("run")
@@ -273,6 +293,25 @@ class RunService:
                 "does not run",
                 code="evaluation_backend_unsupported",
                 details={"draft_id": draft.id, "evaluation_backend": kind.value},
+            )
+
+    def _require_agreeing_approval(
+        self,
+        snapshot: DraftSnapshot,
+        acknowledgement: PolicyAcknowledgement,
+        approved_by: ApprovalActor,
+    ) -> None:
+        """Refuse a run whose acceptance and whose actor describe two approvals."""
+        if approved_by not in ACTORS_BY_METHOD[acknowledgement.method]:
+            raise PolicyError(
+                f"{approved_by} did not give a {acknowledgement.method} "
+                "acceptance, so the run would record an approval nobody made",
+                code=POLICY_ACCEPTANCE_METHOD_INVALID,
+                details={
+                    "draft_id": snapshot.draft.id,
+                    "method": acknowledgement.method,
+                    "actor": approved_by,
+                },
             )
 
     def _request_for(

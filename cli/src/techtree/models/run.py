@@ -96,8 +96,12 @@ class PolicyAcknowledgement(ProtocolModel):
     fact being recorded is the same one; who gave the answer is recorded
     separately on the run's ``run.approved`` event.
 
-    ``host_agent_confirmation`` is reserved for the approval surface the plugin
-    presents in a conversation, and nothing in this build produces it.
+    ``host_agent_confirmation`` is the approval surface the plugin presents in
+    a conversation: the review is shown there, the person confirms there, and
+    the plugin then starts that exact draft. The process that writes this
+    record is not the one that asked the question, so which surface it was is
+    declared by whoever starts the run rather than guessed at from the fact
+    that nobody was prompted here.
     """
 
     data_policy_digest: Digest

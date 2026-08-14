@@ -414,11 +414,19 @@ policy *must* be accepted (`policy_acceptance`); the run records that it *was*.
 `data_policy_digest`, so a run cannot acknowledge one policy and execute under
 another.
 
-Decisions 0019 section 2 leaves one method at the command line:
+Decisions 0019 section 2 keeps two approval surfaces, and both are reachable.
 `explicit_cli_review` says the review of what the run would do was shown and
-explicitly accepted. It covers both the typed `y` and the `--yes` an operator
-passes where nobody can be asked; which of the two answered is recorded on the
-run's `run.approved` event as its `actor`, so an auditor can tell them apart
-without the acceptance itself pretending to two meanings. In machine mode
-(`--no-input`) the prompt cannot run, so a start without `--yes` is refused and
-the refusal names the flag.
+explicitly accepted at the command line — the typed `y`, or the `--yes` an
+operator passes where nobody can be asked. `host_agent_confirmation` says it
+was shown and accepted on the host agent's own approval surface, after which
+the plugin started that exact draft.
+
+Which surface it was is declared with `--reviewed-on`, because the process
+that writes the record is not always the one that asked the question. Which
+person or operator answered is recorded on the run's `run.approved` event as
+its `actor`, and the two must agree: `human_via_cli` and `operator_via_flag`
+belong to a command-line acceptance, `human_via_hermes` to a host-agent one.
+A start whose method and actor describe two different approvals is refused.
+
+In machine mode (`--no-input`) the prompt cannot run, so a start without
+`--yes` is refused and the refusal names the flag.
