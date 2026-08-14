@@ -40,7 +40,7 @@ defmodule TechtreeWeb.ExactResponse do
 
     conn =
       conn
-      |> put_resp_content_type(media_type, nil)
+      |> put_resp_content_type(media_type, charset(media_type))
       |> put_resp_header("etag", etag)
       |> put_resp_header("cache-control", cache_control(caching))
 
@@ -98,6 +98,12 @@ defmodule TechtreeWeb.ExactResponse do
 
   defp cache_control(:immutable), do: @immutable
   defp cache_control(:revalidated), do: @revalidated
+
+  # A text media type has to say how its bytes spell characters, or a reader is
+  # left guessing at one. `application/json` is UTF-8 by definition and takes no
+  # charset parameter.
+  defp charset("text/" <> _subtype), do: "utf-8"
+  defp charset(_media_type), do: nil
 
   defp holds?(conn, etag) do
     conn

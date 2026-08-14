@@ -8,6 +8,12 @@ defmodule TechtreeWeb.ObjectController do
   single byte is sent. A digest this application cannot resolve that way is a
   `404`, never a guess.
 
+  One published object is not in the catalog bundle: the starter Skill, which is
+  a release artifact this application ships rather than part of the protocol
+  graph `techtree-python` generates. It is addressed here by the digest of its
+  exact file bytes, and it is hashed again before it is sent for the same
+  reason everything else is.
+
   Two fixed policies:
 
     * a digest that is not spelled `sha256:` followed by 64 lowercase
@@ -21,6 +27,7 @@ defmodule TechtreeWeb.ObjectController do
 
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Query
+  alias Techtree.Release.StarterSkill
   alias TechtreeWeb.ExactResponse
 
   @doc """
@@ -41,18 +48,24 @@ defmodule TechtreeWeb.ObjectController do
   end
 
   defp send_object(conn, digest) do
-    case Query.object_bytes(digest) do
-      {:ok, bytes, entry} ->
-        ExactResponse.send_exact(
-          conn,
-          bytes,
-          entry.media_type,
-          entry.protocol_digest,
-          :immutable
-        )
+    case published_bytes(digest) do
+      {:ok, bytes, media_type} ->
+        ExactResponse.send_exact(conn, bytes, media_type, digest, :immutable)
 
       {:error, error} ->
         ExactResponse.send_error(conn, error)
+    end
+  end
+
+  # The two things this site publishes under a content address: the starter
+  # Skill it ships, and the objects of the catalog bundle it imported.
+  defp published_bytes(digest) do
+    if StarterSkill.addressed_by?(digest) do
+      StarterSkill.bytes()
+    else
+      with {:ok, bytes, entry} <- Query.object_bytes(digest) do
+        {:ok, bytes, entry.media_type}
+      end
     end
   end
 end

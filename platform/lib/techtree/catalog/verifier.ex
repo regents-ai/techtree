@@ -16,6 +16,7 @@ defmodule Techtree.Catalog.Verifier do
   """
 
   alias Techtree.Catalog.Bundle
+  alias Techtree.Catalog.ConcreteCoordinates
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Error
 
@@ -100,6 +101,10 @@ defmodule Techtree.Catalog.Verifier do
   separately, because they are decided separately: which bytes the starter
   Skill is made of can be settled long before anyone has chosen where to host
   them.
+
+  A release that declares `placeholder_release: false` is held to more than
+  shape: every coordinate in it must also be concrete and immutable, which is
+  `Techtree.Catalog.ConcreteCoordinates`.
   """
   @spec verify_bootstrap(Bundle.t()) :: :ok | {:error, Error.t()}
   def verify_bootstrap(%Bundle{bootstrap: bootstrap} = bundle) do
@@ -122,7 +127,8 @@ defmodule Techtree.Catalog.Verifier do
            check_digest_value(
              get_in(bootstrap, ["starter_skill", "digest"]),
              "the starter Skill"
-           ) do
+           ),
+         :ok <- check_concrete_coordinates(bootstrap) do
       check_introductory_climb(bundle)
     end
   end
@@ -273,6 +279,15 @@ defmodule Techtree.Catalog.Verifier do
   end
 
   # -- Bootstrap checks -----------------------------------------------------
+
+  # A release that says its coordinates are placeholders is believed, and the
+  # site refuses the public install flow on the strength of it. A release that
+  # says they are real has to prove it (decision 0007 R10).
+  defp check_concrete_coordinates(%{"placeholder_release" => false} = bootstrap) do
+    ConcreteCoordinates.verify(bootstrap)
+  end
+
+  defp check_concrete_coordinates(_bootstrap), do: :ok
 
   defp check_introductory_climb(%Bundle{bootstrap: bootstrap} = bundle) do
     reference = get_in(bootstrap, ["introductory_climb", "reference"])

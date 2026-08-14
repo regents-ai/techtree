@@ -220,6 +220,127 @@ defmodule Techtree.Catalog.VerifierTest do
     end
   end
 
+  describe "a release that states it is not a placeholder" do
+    @tag :tmp_dir
+    test "is accepted when every coordinate is concrete", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_bootstrap!(bundle, &CatalogFixture.concrete_release/1)
+
+      assert verify(bundle) == :ok
+    end
+
+    @tag :tmp_dir
+    test "cannot be made by flipping the flag on the placeholder release", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_bootstrap!(bundle, &Map.put(&1, "placeholder_release", false))
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_bundle_invalid
+      assert error.details["field"] == "cli.version"
+      assert error.message =~ "states it is not a placeholder"
+    end
+
+    @tag :tmp_dir
+    test "is refused for every placeholder-shaped value", %{tmp_dir: tmp_dir} do
+      rejections = [
+        {["cli", "version"], "0.0.0-placeholder", "cli.version"},
+        {["cli", "version"], "latest", "cli.version"},
+        {["cli", "version"], "0.0.0", "cli.version"},
+        {["cli", "version"], "", "cli.version"},
+        {["cli", "distribution"], "", "cli.distribution"},
+        {["cli", "source_revision"], "a1b2c3d", "cli.source_revision"},
+        {["cli", "source_revision"], String.duplicate("0", 40), "cli.source_revision"},
+        {["hermes_plugin", "revision"], "main", "hermes_plugin.revision"},
+        {["hermes_plugin", "revision"], String.upcase(String.duplicate("a", 40)),
+         "hermes_plugin.revision"},
+        {["hermes_plugin", "repository"], "techtree-hermes", "hermes_plugin.repository"},
+        {["minimums", "hermes_version"], "latest", "minimums.hermes_version"},
+        {["starter_skill", "object_url"], "https://placeholder.invalid/unchosen",
+         "starter_skill.object_url"},
+        {["starter_skill", "digest"], "sha256:" <> String.duplicate("0", 64),
+         "starter_skill.digest"}
+      ]
+
+      for {path, value, field} <- rejections do
+        bundle = spoiled_bundle(tmp_dir, field <> inspect(value), &put_in(&1, path, value))
+
+        assert {:error, error} = verify(bundle), "#{field} = #{inspect(value)} was accepted"
+        assert error.code == :catalog_bundle_invalid
+        assert error.details["field"] == field
+      end
+    end
+
+    @tag :tmp_dir
+    test "is refused when an install instruction names a moving target", %{tmp_dir: tmp_dir} do
+      bundle =
+        spoiled_bundle(tmp_dir, "argv", fn bootstrap ->
+          put_in(bootstrap, ["hermes_plugin", "install_argv"], [
+            "hermes",
+            "plugins",
+            "install",
+            "regents-ai/techtree-hermes",
+            "--ref",
+            "main",
+            "--enable"
+          ])
+        end)
+
+      assert {:error, error} = verify(bundle)
+      assert error.details["field"] == "hermes_plugin.install_argv.5"
+    end
+
+    @tag :tmp_dir
+    test "is refused when an image is named by tag rather than by digest", %{tmp_dir: tmp_dir} do
+      bundle =
+        spoiled_bundle(tmp_dir, "image", fn bootstrap ->
+          Map.put(bootstrap, "runtime", %{"image" => "ghcr.io/regents-ai/techtree:0.1.0"})
+        end)
+
+      assert {:error, error} = verify(bundle)
+      assert error.details["field"] == "runtime.image"
+      assert error.message =~ "by digest"
+    end
+
+    @tag :tmp_dir
+    test "is refused when something fetchable has no hash beside it", %{tmp_dir: tmp_dir} do
+      bundle =
+        spoiled_bundle(tmp_dir, "unhashed", fn bootstrap ->
+          Map.put(bootstrap, "engine", %{
+            "object_url" => "https://techtree.test/api/v1/objects/engine"
+          })
+        end)
+
+      assert {:error, error} = verify(bundle)
+      assert error.details["field"] == "engine.object_url"
+      assert error.message =~ "no hash beside it"
+    end
+
+    @tag :tmp_dir
+    test "keeps accepting the placeholder release it is not", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      assert verify(bundle) == :ok
+
+      bootstrap = bundle |> CatalogFixture.read!("bootstrap.json") |> Jason.decode!()
+
+      assert bootstrap["placeholder_release"] == true
+      assert bootstrap["cli"]["version"] == "0.0.0-placeholder"
+      assert bootstrap["starter_skill"]["object_url"] == "https://placeholder.invalid/unchosen"
+    end
+  end
+
+  defp spoiled_bundle(tmp_dir, label, spoil) do
+    bundle = CatalogFixture.copy!(Path.join(tmp_dir, Base.url_encode64(label, padding: false)))
+
+    CatalogFixture.rewrite_bootstrap!(bundle, fn bootstrap ->
+      bootstrap |> CatalogFixture.concrete_release() |> spoil.()
+    end)
+
+    bundle
+  end
+
   defp verify(bundle) do
     case Verifier.verify_bundle(Bundle.load!(bundle)) do
       :ok -> :ok

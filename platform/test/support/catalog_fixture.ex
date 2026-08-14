@@ -10,11 +10,16 @@ defmodule Techtree.CatalogFixture do
   """
 
   alias Techtree.Catalog.Digest
+  alias Techtree.Release.StarterSkill
 
   @climb_reference "hello-world-climb@1"
   @climb_path "climbs/hello-world-climb.json"
   @campaign_digest "sha256:5aef3fb7c16c39b96f570f675ed3721737ea3ca19c955a9242c73aa24b3d5f9e"
   @catalog_digest "sha256:468e8ab16dc872cd2cef3f1b7409b2a113ca9fd27362234c9a6ea5008dfbd814"
+
+  # Stand-ins with the shape of a real coordinate and none of its meaning.
+  @commit String.duplicate("a", 40)
+  @object_url "https://techtree.test/api/v1/objects/" <> StarterSkill.digest()
 
   @doc """
   The fixture bundle, as generated. Never write to this directory.
@@ -107,6 +112,35 @@ defmodule Techtree.CatalogFixture do
       |> Jason.encode!()
 
     write!(bundle, "bootstrap.json", bootstrap)
+  end
+
+  @doc """
+  The fixture bootstrap release, rewritten as a release that claims every
+  coordinate is real.
+
+  These are test values, not release coordinates: what they are for is to make
+  a document that passes decision 0007 R10, so that a test can spoil exactly one
+  field of it and watch the import refuse.
+  """
+  @spec concrete_release(map()) :: map()
+  def concrete_release(bootstrap) do
+    bootstrap
+    |> Map.put("placeholder_release", false)
+    |> put_in(["cli", "version"], "0.1.0")
+    |> put_in(["cli", "source_revision"], @commit)
+    |> put_in(["cli", "install_argv"], ["uv", "tool", "install", "techtree==0.1.0"])
+    |> put_in(["hermes_plugin", "revision"], @commit)
+    |> put_in(["hermes_plugin", "install_argv"], [
+      "hermes",
+      "plugins",
+      "install",
+      "regents-ai/techtree-hermes",
+      "--ref",
+      @commit,
+      "--enable"
+    ])
+    |> put_in(["starter_skill", "object_url"], @object_url)
+    |> put_in(["starter_skill", "digest"], StarterSkill.digest())
   end
 
   @doc """

@@ -65,6 +65,10 @@ config :techtree, Techtree.Catalog,
   catalog_root: {:priv, "catalog"},
   channel: "development"
 
+# The release artifacts this build publishes beside the bundle. Today that is
+# the starter Skill: one `SKILL.md`, served at the digest of its exact bytes.
+config :techtree, Techtree.Release, starter_skill_root: {:priv, "release"}
+
 # Configure the endpoint
 config :techtree, TechtreeWeb.Endpoint,
   url: [host: "localhost"],

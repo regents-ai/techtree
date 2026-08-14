@@ -5,6 +5,8 @@ defmodule TechtreeWeb.ObjectControllerTest do
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
+  alias Techtree.Release.StarterSkill
+  alias Techtree.ReleaseFixture
 
   @unknown_digest "sha256:" <> String.duplicate("c", 64)
 
@@ -90,6 +92,74 @@ defmodule TechtreeWeb.ObjectControllerTest do
 
       refute body =~ CatalogFixture.root()
       refute body =~ "/Users"
+    end
+  end
+
+  describe "the starter Skill" do
+    test "is served as the exact file bytes, addressed by the file digest", %{conn: conn} do
+      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.digest()}")
+
+      assert conn.status == 200
+      assert conn.resp_body == ReleaseFixture.starter_skill_bytes()
+      assert Digest.hash_bytes(conn.resp_body) == StarterSkill.digest()
+    end
+
+    test "declares markdown and the encoding its bytes are in", %{conn: conn} do
+      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.digest()}")
+
+      assert get_resp_header(conn, "content-type") == ["text/markdown; charset=utf-8"]
+      assert get_resp_header(conn, "x-content-type-options") == ["nosniff"]
+    end
+
+    test "may be cached forever, and is tagged with its digest", %{conn: conn} do
+      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.digest()}")
+
+      assert get_resp_header(conn, "cache-control") == ["public, max-age=31536000, immutable"]
+      assert get_resp_header(conn, "etag") == [~s("#{StarterSkill.digest()}")]
+    end
+
+    test "tells a caller holding the digest that nothing changed", %{conn: conn} do
+      conn =
+        conn
+        |> put_req_header("if-none-match", ~s("#{StarterSkill.digest()}"))
+        |> get(~p"/api/v1/objects/#{StarterSkill.digest()}")
+
+      assert conn.status == 304
+      assert conn.resp_body == ""
+    end
+
+    test "is published whether or not a catalog release is being served", %{conn: conn} do
+      CatalogFixture.use_bundle(CatalogFixture.root())
+
+      before_import = get(conn, ~p"/api/v1/objects/#{StarterSkill.digest()}")
+
+      Importer.import!(CatalogFixture.root())
+      after_import = get(conn, ~p"/api/v1/objects/#{StarterSkill.digest()}")
+
+      assert before_import.status == 200
+      assert after_import.status == 200
+      assert before_import.resp_body == after_import.resp_body
+    end
+
+    @tag :tmp_dir
+    test "is refused rather than served when its bytes drifted", %{conn: conn, tmp_dir: tmp_dir} do
+      release = ReleaseFixture.copy!(tmp_dir)
+      ReleaseFixture.use_release(release)
+      ReleaseFixture.write_starter_skill!(release, "# not the approved Skill\n")
+
+      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.digest()}")
+
+      assert conn.status == 503
+      assert json_response(conn, 503)["error"]["code"] == "catalog_object_digest_mismatch"
+    end
+
+    test "is not reachable by the digest of the Skill tree the CLI builds", %{conn: conn} do
+      CatalogFixture.use_bundle(CatalogFixture.root())
+      Importer.import!(CatalogFixture.root())
+
+      tree_digest = "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+
+      assert get(conn, ~p"/api/v1/objects/#{tree_digest}").status == 404
     end
   end
 
