@@ -1,8 +1,8 @@
 {
-  "catalog_digest": "sha256:91f7ba524194884bfd0556d4d47db1fc9c809e43081913cb15d4fd5b93abe0c8",
+  "catalog_digest": "sha256:8545308414ceee87151a83c9197f879104ff5e012390a84bed3eda5f209ef2d9",
   "cli_source_commit": "0000000000000000000000000000000000000000",
   "cli_version": "0.0.0-placeholder",
-  "engine_digest": "sha256:dbc82a92f1a0d3f6a66d8592692ee7b8366aecb6464b6411d0605bcff52c9d0e",
+  "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
   "intro_climb_reference": "hello-world-climb@1",
   "maximum_tested_host_hermes_version": "0.0.0-placeholder",
   "minimum_host_hermes_version": "0.19.0",

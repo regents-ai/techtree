@@ -1,10 +1,10 @@
 """One controlled comparison, assembled from the two recorded probes.
 
-``fixtures.receipts.support`` loads each paid probe on its own: one baseline of
-three tasks with no Skill, one candidate of two tasks with the ``branch-code-v1``
-Skill mounted, both of ``qwen/qwen3.7-flash`` in real Docker containers on
-2026-08-13. They were separate probe runs, so each carries its own run request
-and its own experiment manifest, and nothing joins them into a comparison.
+``fixtures.receipts.support`` loads each paid probe on its own: one baseline and
+one candidate, two tasks each, the candidate with the ``branch-code-v1`` Skill
+mounted, both of ``qwen/qwen3.7-flash`` in real Docker containers on 2026-08-13.
+They were separate probe runs, so each carries its own run request and its own
+experiment manifest, and nothing joins them into a comparison.
 
 This module joins them, and is explicit about which half is recorded and which
 half is re-derived.
@@ -12,20 +12,18 @@ half is re-derived.
 RECORDED, UNTOUCHED
     Every episode, every reward, every tool digest, every runtime record and
     both resolved ``config.toml`` files. The evidence a report is built from is
-    exactly the evidence the paid probes produced; the baseline's episodes are
-    restricted to the two tasks the candidate also scored, which is a selection
-    of recorded measurements rather than a change to any of them.
+    exactly the evidence the paid probes produced.
 
 RE-DERIVED, AND WHY
-    The declared documents. Both probes were run under the same Campaign — the
-    locally derived one in ``fixtures.verifiers.support``, whose digest is
-    byte-identical to the one the probes recorded — but that Campaign commits to
-    thirty-six tasks and only two of them were ever scored on both sides. So the
-    Campaign's committed membership, and with it the two manifests, the run
-    request and the taskset lock, are re-issued over exactly those two tasks.
-    Every scientific coordinate in them — model, sampling, harness, runtime
-    image, mutation contract, scoring rule, DataPolicy, the candidate Skill's
-    root digest — is the recorded one, unchanged.
+    The declared documents. Both probes were run under the Campaign
+    ``fixtures.verifiers.support`` derives, which :func:`recorded_pair` checks
+    rather than assumes — but that Campaign commits to thirty-six tasks and only
+    two of them were ever scored on both sides. So the Campaign's committed
+    membership, and with it the two manifests, the run request and the taskset
+    lock, are re-issued over exactly those two tasks. Every scientific
+    coordinate in them — model, sampling, harness, runtime image, mutation
+    contract, scoring rule, DataPolicy, the candidate Skill's root digest — is
+    the recorded one, unchanged.
 
 What that buys is a comparison that is real where it matters: two variants of
 one Campaign, differing only in a mounted Skill, with a measured 0/2 against

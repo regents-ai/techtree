@@ -220,8 +220,13 @@ def test_both_recorded_variants_produce_independent_receipt_sets(
         )
 
     baseline, candidate = manifests["baseline"], manifests["candidate"]
-    assert baseline.receipt_count == 3
+    assert baseline.receipt_count == 2
     assert candidate.receipt_count == 2
+    # Both probes now cover the same two tasks, which makes the disjointness
+    # below the whole of the claim: same tasks, same Campaign, and still not
+    # one receipt in common, because a receipt belongs to one side of one
+    # comparison and to nothing else.
+    assert baseline.task_membership_digest == candidate.task_membership_digest
     assert set(baseline.ordered_receipt_digests).isdisjoint(
         candidate.ordered_receipt_digests
     )

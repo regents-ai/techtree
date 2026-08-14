@@ -302,7 +302,7 @@ def test_a_set_missing_a_committed_task_is_refused() -> None:
     """The count is right and one task is scored twice, which is worse."""
     recorded = recorded_variant(VariantName.BASELINE)
     envelopes = envelopes_of(recorded)
-    doubled = [envelopes[0], envelopes[0], envelopes[2]]
+    doubled = [envelopes[0]] * len(envelopes)
 
     with pytest.raises(TechtreeError) as failure:
         set_of(recorded, doubled)

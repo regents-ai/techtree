@@ -8,6 +8,18 @@ contents *or* the order is a breaking change to every existing commitment.
 Ordering rule (stable and auditable): by length ascending, then
 alphabetically within each length.
 
+Composition rule, and the reason the tuple looks the way it does: exactly
+twenty-four of the thirty-six inputs use each character only once, and the
+other twelve repeat at least one. That split is load-bearing. Step 7 adds
+seven times the *distinct*-character count, so an input whose characters are
+all different is the one case where counting characters the naive way — every
+character, repeats included — still lands on the right answer. The
+introductory Climb's starter Skill counts the naive way on purpose, and the
+twenty-four-to-twelve split is what puts its score in the calibrated band with
+headroom left to improve. Decisions document 0012 fixes the split; changing
+which inputs are here moves it, so the count is checked by the repository's
+own tests rather than left to whoever edits next.
+
 None of these strings ever appears in a documentation example, a docstring,
 or a candidate skill; the worked examples are reserved separately in
 ``DOCUMENTATION_EXAMPLES`` so the proving inputs stay unseen.
@@ -43,28 +55,27 @@ PROVING_INPUTS: tuple[str, ...] = (
     # length 5
     "alder",
     "aspen",
-    "beech",
+    "carob",
     "cedar",
     "hazel",
     "larch",
     "rowan",
     # length 6
-    "pinyon",
-    "poplar",
+    "almond",
+    "cashew",
     "spruce",
     "willow",
     # length 7
-    "cypress",
+    "apricot",
     "dogwood",
     "hemlock",
     "juniper",
     "sequoia",
     # length 8
-    "chestnut",
+    "blackgum",
+    "hazelnut",
     "hornbeam",
     "ironwood",
-    "laburnum",
-    "magnolia",
     "mangrove",
     "mulberry",
     "sycamore",
@@ -72,9 +83,10 @@ PROVING_INPUTS: tuple[str, ...] = (
     # length 9
     "buckthorn",
     "jacaranda",
-    "persimmon",
+    "jackfruit",
+    "mockernut",
     "sassafras",
-    "whitebeam",
+    "waxmyrtle",
     # length 10
     "blackthorn",
     "cottonwood",

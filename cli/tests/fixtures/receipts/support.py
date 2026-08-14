@@ -15,15 +15,21 @@ the same day, the same subject model (``qwen/qwen3.7-flash``), the same pinned
 engine and the same pipeline that produced the full run:
 
 ``baseline``
-    three tasks, no Skill, ``exact_match`` 0/3.
+    two tasks, no Skill, ``exact_match`` 0/2.
 ``candidate``
     two tasks, the ``branch-code-v1`` Skill mounted, ``exact_match`` 2/2.
 
 They are two separate probe runs rather than two variants of one run, so each
 carries its own run request, its own experiment manifest and its own committed
-membership, and they are used that way. The tasks the candidate scored are the
-first two the baseline scored, and the only difference between the two recorded
-configurations is the mounted Skill — which is what the Climb measures.
+membership, and they are used that way. Both cover the same two tasks, and the
+only difference between the two recorded configurations is the mounted Skill —
+which is what the Climb measures.
+
+The baseline probe recorded a third episode and no longer carries it. Decisions
+document 0012 replaced nine inputs in the introductory membership, and one of
+them was the task that episode scored, so it became evidence about a task that
+does not exist. ``recorded/provenance.json`` records the removal beside every
+other thing about this evidence that is not a raw measurement.
 
 WHAT IS RECORDED AND WHAT IS DERIVED
 

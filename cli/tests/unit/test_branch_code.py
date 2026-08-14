@@ -143,34 +143,34 @@ HAND_COMPUTED_CASES: tuple[tuple[str, int, str], ...] = (
 DATASET_EXPECTED: tuple[tuple[str, str], ...] = (
     ("alder", "BRANCH-85"),
     ("aspen", "BRANCH-18"),
-    ("beech", "BRANCH-10"),
+    ("carob", "BRANCH-67"),
     ("cedar", "BRANCH-57"),
     ("hazel", "BRANCH-09"),
     ("larch", "BRANCH-58"),
     ("rowan", "BRANCH-32"),
-    ("pinyon", "BRANCH-79"),
-    ("poplar", "BRANCH-96"),
+    ("almond", "BRANCH-66"),
+    ("cashew", "BRANCH-08"),
     ("spruce", "BRANCH-82"),
     ("willow", "BRANCH-75"),
-    ("cypress", "BRANCH-02"),
+    ("apricot", "BRANCH-29"),
     ("dogwood", "BRANCH-77"),
     ("hemlock", "BRANCH-33"),
     ("juniper", "BRANCH-27"),
     ("sequoia", "BRANCH-58"),
-    ("chestnut", "BRANCH-68"),
+    ("blackgum", "BRANCH-57"),
+    ("hazelnut", "BRANCH-33"),
     ("hornbeam", "BRANCH-64"),
     ("ironwood", "BRANCH-45"),
-    ("laburnum", "BRANCH-93"),
-    ("magnolia", "BRANCH-68"),
     ("mangrove", "BRANCH-30"),
     ("mulberry", "BRANCH-25"),
     ("sycamore", "BRANCH-71"),
     ("tamarack", "BRANCH-21"),
     ("buckthorn", "BRANCH-04"),
     ("jacaranda", "BRANCH-11"),
-    ("persimmon", "BRANCH-90"),
+    ("jackfruit", "BRANCH-83"),
+    ("mockernut", "BRANCH-59"),
     ("sassafras", "BRANCH-43"),
-    ("whitebeam", "BRANCH-11"),
+    ("waxmyrtle", "BRANCH-47"),
     ("blackthorn", "BRANCH-85"),
     ("cottonwood", "BRANCH-54"),
     ("elderberry", "BRANCH-20"),
@@ -443,6 +443,71 @@ def test_proving_inputs_order_is_length_then_alphabetical() -> None:
 @pytest.mark.parametrize(("entry", "expected"), DATASET_EXPECTED)
 def test_dataset_entry_branch_code(entry: str, expected: str) -> None:
     assert algorithm.branch_code(entry) == expected
+
+
+# ---------------------------------------------------------------------------
+# The calibrated composition
+# ---------------------------------------------------------------------------
+#
+# Decisions document 0012. The introductory Climb's starter Skill counts every
+# character where the real procedure counts distinct ones, and that mistake is
+# invisible on an input whose characters are all different. So the split
+# between those two kinds of input decides what a subject following the
+# starter Skill can score, and the split is a calibration decision rather than
+# an accident of which trees came to mind.
+#
+# These live here, beside the dataset, rather than inside ``validate_dataset``:
+# the shipped package's job is that the taskset is well formed, and how well a
+# particular Skill does on it is the repository's business, not the engine's.
+
+
+def _repeats(entry: str) -> int:
+    """Return how many characters an entry repeats."""
+    return len(entry) - len(set(entry))
+
+
+def test_exactly_twenty_four_inputs_use_each_character_once() -> None:
+    """The calibrated split: 24 where the naive count works, 12 where it does not."""
+    forgiving = [entry for entry in dataset.PROVING_INPUTS if _repeats(entry) == 0]
+
+    assert len(forgiving) == 24
+    assert len(dataset.PROVING_INPUTS) - len(forgiving) == 12
+
+
+def test_counting_every_character_is_wrong_exactly_where_a_character_repeats() -> None:
+    """No input forgives the mistake by coincidence, and none punishes it unfairly."""
+    for entry in dataset.PROVING_INPUTS:
+        naive = _naive_branch_code(entry)
+        correct = algorithm.branch_code(entry)
+        assert (naive == correct) is (_repeats(entry) == 0), entry
+
+
+def test_the_two_counting_rules_never_agree_on_an_input_that_repeats() -> None:
+    """What makes an improvement legible: a wrong answer is never a right one.
+
+    The two rules differ by seven times the number of repeated characters,
+    reduced modulo ninety-seven. Ninety-seven is prime and the products stay
+    well under it, so the difference can only vanish when there is nothing to
+    repeat.
+    """
+    for entry in dataset.PROVING_INPUTS:
+        if _repeats(entry):
+            assert _naive_branch_code(entry) != algorithm.branch_code(entry), entry
+            assert (7 * _repeats(entry)) % algorithm.MODULUS != 0, entry
+
+
+def _naive_branch_code(entry: str) -> str:
+    """Return what counting every character, repeats included, produces."""
+    normalized = algorithm.normalize_input(entry)
+    values = {letter: index for index, letter in enumerate(algorithm.ALPHABET, start=1)}
+    weighted = sum(
+        values[character] * position
+        for position, character in enumerate(normalized, start=1)
+    )
+    number = (
+        weighted + algorithm.DISTINCT_WEIGHT * len(normalized)
+    ) % algorithm.MODULUS
+    return f"BRANCH-{number:02d}"
 
 
 # ---------------------------------------------------------------------------

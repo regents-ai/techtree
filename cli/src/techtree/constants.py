@@ -87,6 +87,15 @@ SUBJECT_IMAGE_PLATFORM_DIGESTS: Final[dict[str, str]] = {
 STARTER_SKILL_NAME: Final = "hello-world-starter-v1"
 STARTER_SKILL_CANDIDATE_LABEL: Final = "hello-world-v1"
 
+#: Why the starter Skill is the shape it is. Decisions document 0010 item 2
+#: amends 0007 R4: the Skill's own text stays silent about its gap, because a
+#: Skill that announced one would be measuring something other than what it
+#: says, and the release metadata discloses instead. This is that disclosure
+#: on the command line, printed beside the Skill's name wherever it is handed
+#: over — the same sentence the public Climb page and the calibration record
+#: carry. It is release metadata about the artifact, never Skill content.
+STARTER_SKILL_PURPOSE: Final = "intentionally incomplete introductory Skill"
+
 DEFAULT_CONFIRMATION_TTL_SECONDS: Final = 900
 DEFAULT_WORKER_HEARTBEAT_SECONDS: Final = 2
 DEFAULT_STALE_HEARTBEAT_SECONDS: Final = 15

@@ -20,6 +20,13 @@ the digest-named cache directory itself, which is present in all of them
 because it is where materialization always puts the Skill. The verbatim
 end-to-end run of the printed arguments lives in ``test_cli_flow``, where a
 real engine and the shipped catalog exist for it to run against.
+
+Decisions document 0010 item 2 adds a fourth value to the same answer, and it
+is proved here for the same reason: the starter Skill is deliberately
+incomplete, its own text says nothing about that, and the disclosure has to
+reach whoever is handed it. So the command that hands it over names the
+purpose beside the Skill, in the human output and in the machine envelope
+alike.
 """
 
 from __future__ import annotations
@@ -35,7 +42,11 @@ from typer.testing import CliRunner
 from fixtures.starter import STARTER_FIXTURE, tree_digest
 from fixtures.starter import release_pinning as release
 from techtree.cli.app import create_app
-from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
+from techtree.constants import (
+    STARTER_SKILL_CANDIDATE_LABEL,
+    STARTER_SKILL_NAME,
+    STARTER_SKILL_PURPOSE,
+)
 from techtree.errors import EXIT_OK
 from techtree.paths import paths_from_root
 from techtree.release.document import render_release_core
@@ -198,3 +209,37 @@ def test_no_argument_of_the_printed_command_is_a_label_read_off_a_path(
     assert "/" not in label
     assert "\\" not in label
     assert not label.startswith("sha256")
+
+
+def test_the_answer_says_what_the_starter_skill_is_for(
+    obtained: dict[str, Any],
+) -> None:
+    """Decisions 0010 item 2: the disclosure travels with the artifact."""
+    payload = obtained["data"]
+
+    assert payload["skill_purpose"] == STARTER_SKILL_PURPOSE
+    assert payload["skill_purpose"] == "intentionally incomplete introductory Skill"
+
+
+def test_the_human_output_names_the_skill_and_its_purpose_together(
+    tmp_path: Path, temp_techtree_home: Path, pinned_release: None
+) -> None:
+    """A person reading the terminal is told the same thing a host agent is."""
+    source = source_under(tmp_path / "sources", "downloads", "starter")
+    result = CliRunner().invoke(
+        create_app(),
+        [
+            "--home",
+            str(temp_techtree_home),
+            "--no-color",
+            "skill",
+            "starter",
+            "--from-file",
+            str(source),
+        ],
+    )
+
+    assert result.exit_code == EXIT_OK, result.stdout
+    printed = " ".join(result.stdout.split())
+    assert f"Skill {STARTER_SKILL_NAME}" in printed
+    assert f"Purpose {STARTER_SKILL_PURPOSE}" in printed

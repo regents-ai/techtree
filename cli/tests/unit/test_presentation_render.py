@@ -25,6 +25,7 @@ import pytest
 from rich.console import Console
 
 from techtree.models.cli import NextAction
+from techtree.presentation.build import FIRST_RESULT_LABEL, SECOND_RESULT_LABEL
 from techtree.presentation.compact import (
     UNVERIFIED_HEADLINE,
     render_uplift_markdown,
@@ -69,6 +70,7 @@ def rows(count: int) -> list[TaskResultRow]:
 def payload(
     *,
     task_count: int = 20,
+    comparison_label: str = "No tested Skill → Skill v1",
     decision: str = "accepted",
     proof_grade: str = "P1",
     verification_status: str = "verified_offline",
@@ -85,7 +87,7 @@ def payload(
         schema_version=PRESENTATION_SCHEMA_VERSION,
         run_id="run_" + "0" * 32,
         campaign_title="Techtree Hello World",
-        comparison_label="No tested Skill → Skill v1",
+        comparison_label=comparison_label,
         baseline_skill=SkillSummary(
             label="No tested Skill", root_digest=None, file_count=0, total_bytes=0
         ),
@@ -379,3 +381,27 @@ def test_a_development_only_result_is_not_dressed_up_as_a_verdict() -> None:
 
 def test_the_same_payload_renders_the_same_markdown() -> None:
     assert render_uplift_markdown(payload()) == render_uplift_markdown(payload())
+
+
+@pytest.mark.parametrize(
+    "label",
+    [FIRST_RESULT_LABEL, SECOND_RESULT_LABEL],
+    ids=["first_result", "second_result"],
+)
+def test_both_channels_name_the_climb_and_which_result_this_is(label: str) -> None:
+    """Decisions 0009: the same two names reach a terminal and a gateway.
+
+    A reader who sees only one of the two channels still has to be able to say
+    which Climb produced the numbers and whether this is the first receipt or
+    the second iteration. The rich renderer leads with both; the compact one
+    carries them on one line because it has only a handful to spend.
+    """
+    subject = payload(comparison_label=label)
+
+    terminal = rendered(subject).splitlines()
+    assert terminal[0] == "Techtree Hello World"
+    assert terminal[1] == label
+
+    gateway = render_uplift_markdown(subject)
+    assert f"- Techtree Hello World — {label}" in gateway
+    assert ANSI.search(gateway) is None

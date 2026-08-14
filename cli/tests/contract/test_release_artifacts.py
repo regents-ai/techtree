@@ -194,6 +194,80 @@ def test_the_release_names_the_climb_and_harness_this_build_ships() -> None:
     assert core.protocol_version == "v1alpha1"
 
 
+# ---------------------------------------------------------------------------
+# The founder-supplied starter Skill
+# ---------------------------------------------------------------------------
+#
+# The wheel carries no Skill bytes, so the starter Skill is not a generated
+# artifact and not package data. It is a founder decision, like the inputs
+# beside it, and `starter_skill_digest` is the coordinate it answers to. These
+# tests hold the two things about it that a careless edit could break: that it
+# is the pack's own text with exactly the one change the founder directed, and
+# that it never tells the model what it is.
+
+
+STARTER_SKILL = RELEASE_DIRECTORY / "skills" / "hello-world-starter-v1" / "SKILL.md"
+PACK_STARTER_SKILL = (
+    REPOSITORY_ROOT
+    / "docs"
+    / "spec"
+    / "closeout-helloworld"
+    / "skills"
+    / "hello-world-starter-v1"
+    / "SKILL.md"
+)
+
+#: Decisions 0010 item 3, verbatim. The procedure must never move into the
+#: frontmatter: discovery metadata that carried it would hand the subject the
+#: intervention without the Skill ever being opened.
+STARTER_DESCRIPTION = "Apply BranchCode v1 and return a BRANCH-XX token."
+
+
+def test_the_installed_starter_skill_is_the_pack_text_with_one_change() -> None:
+    """Decisions 0010 item 3: the description, and nothing else."""
+    installed = STARTER_SKILL.read_text().splitlines(keepends=True)
+    supplied = PACK_STARTER_SKILL.read_text().splitlines(keepends=True)
+    differing = [
+        (before, after)
+        for before, after in zip(supplied, installed, strict=True)
+        if before != after
+    ]
+
+    assert len(differing) == 1
+    before, after = differing[0]
+    assert before.startswith("description:")
+    assert after == f"description: {STARTER_DESCRIPTION}\n"
+
+
+def test_the_starter_skill_keeps_the_procedure_out_of_its_frontmatter() -> None:
+    """A description that taught the procedure would bypass the Skill itself."""
+    frontmatter = STARTER_SKILL.read_text().split("---", 2)[1]
+
+    assert f"description: {STARTER_DESCRIPTION}" in frontmatter
+    assert "modulo" not in frontmatter
+    assert "position" not in frontmatter
+    assert "distinct" not in frontmatter
+    assert "character" not in frontmatter
+
+
+def test_the_starter_skill_says_nothing_about_being_incomplete() -> None:
+    """Decisions 0010 item 2: the release metadata discloses, the Skill does not.
+
+    Mounting the disclosure would change what the evaluation measures — the
+    subject would be reading a warning rather than a procedure. Every place
+    the disclosure does belong is outside these bytes.
+    """
+    mounted = STARTER_SKILL.read_text().lower()
+
+    for phrase in ("incomplete", "intentional", "deliberate", "defect", "calibrat"):
+        assert phrase not in mounted, phrase
+
+
+def test_the_starter_skill_is_licensed_the_way_the_founder_chose() -> None:
+    """Decisions 0011: MIT everywhere, and no edit needed before hashing."""
+    assert "license: MIT" in STARTER_SKILL.read_text().split("---", 2)[1]
+
+
 def _committed_paths() -> list[Path]:
     return [
         RELEASE_DIRECTORY / "build-info.json",

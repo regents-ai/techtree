@@ -130,14 +130,16 @@ CLIMB_SLUG: Final = "hello-world-climb"
 CLIMB_VERSION: Final = 1
 
 #: The fixed strings the Campaign and DataPolicy identifiers are derived from.
-#: They are not public names — nothing shows them to anybody — and they are
-#: deliberately left at their original spelling. Changing one changes the
-#: identifier it derives, which changes the object's digest, which would part
-#: the shipped Campaign from the recorded evidence of the paid runs already
-#: made against it. An identity a measurement is bound to is not renamed for
-#: presentation.
-CAMPAIGN_LABEL: Final = "procedure-transfer-dev-campaign@1"
-DATA_POLICY_LABEL: Final = "procedure-transfer-dev-policy@1"
+#: They are not public names — nothing shows them to anybody — but they are
+#: now spelled after the Climb they belong to. They kept their original
+#: spelling for one reason only: renaming them changes the identifiers they
+#: derive, which changes the objects' digests, which would have parted the
+#: shipped Campaign from the recorded evidence of the paid runs already made
+#: against it. Decisions document 0012 changes the introductory membership,
+#: which parts them anyway and schedules the re-record, so the reason is
+#: spent and the names come into line in the same opening.
+CAMPAIGN_LABEL: Final = "hello-world-campaign@1"
+DATA_POLICY_LABEL: Final = "hello-world-policy@1"
 
 #: The reference taskset, spec section 22. Its distribution name is also its
 #: Verifiers taskset id. Decisions document 0009 leaves it alone: the task

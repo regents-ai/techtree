@@ -23,6 +23,14 @@ about this machine, a name is the Skill's own, and a label is a short public
 string a comparison is filed under. Deriving any of the latter two from the
 first is how a cache directory's digest, a temporary directory, or a download
 URL ends up printed as the name of somebody's work.
+
+The answer also says what the Skill is *for*. Decisions document 0010 item 2
+rules that the starter Skill's own text stays silent about the gap it was
+written with, and that the release metadata discloses instead — the public
+Climb page, this command, and the calibration record all carry the same
+sentence. So the purpose is printed beside the name here: nobody is handed the
+starter Skill without being told it is an introductory one that is incomplete
+on purpose.
 """
 
 from __future__ import annotations
@@ -36,7 +44,11 @@ from rich.table import Table
 
 from techtree.cli.context import cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
-from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
+from techtree.constants import (
+    STARTER_SKILL_CANDIDATE_LABEL,
+    STARTER_SKILL_NAME,
+    STARTER_SKILL_PURPOSE,
+)
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.release.document import packaged_release_core_bytes, parse_release_core
@@ -59,12 +71,18 @@ class StarterSkillPayload(ProtocolModel):
     a comparison carrying it is filed under. Decisions document 0010 item 5
     keeps the three apart: a reader and a host agent both need to be able to
     take the label without ever looking at the path.
+
+    ``skill_purpose`` is the fourth, and it is about the artifact rather than
+    about this machine: decisions document 0010 item 2 puts the starter
+    Skill's disclosure in the release metadata, so whoever is handed the Skill
+    is told what it is for before they run it.
     """
 
     release_id: NonEmptyString
     skill_root_digest: Digest
     skill_path: NonEmptyString
     skill_name: NonEmptyString
+    skill_purpose: NonEmptyString
     candidate_label: NonEmptyString
     file_count: int
     total_bytes: int
@@ -104,6 +122,7 @@ def starter_skill_command(
             skill_root_digest=materialized.root_digest,
             skill_path=str(materialized.entrypoint),
             skill_name=STARTER_SKILL_NAME,
+            skill_purpose=STARTER_SKILL_PURPOSE,
             candidate_label=STARTER_SKILL_CANDIDATE_LABEL,
             file_count=materialized.file_count,
             total_bytes=materialized.total_bytes,
@@ -182,6 +201,7 @@ def _render(data: object, console: Console) -> None:
     for label, value in [
         ("Release", data.release_id),
         ("Skill", data.skill_name),
+        ("Purpose", data.skill_purpose),
         ("Candidate label", data.candidate_label),
         ("Skill content digest", data.skill_root_digest),
         ("Skill file", data.skill_path),

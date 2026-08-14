@@ -12,6 +12,21 @@ sections 6.6, 9.3–9.5 and 9.7.
 | `release-core.json` | the generator | The release document other repositories copy. |
 | `release-core.schema.json` | the generator | What a non-Python consumer validates it against. |
 | `build-info.json` | the generator | Which inputs produced which bytes. |
+| `skills/hello-world-starter-v1/SKILL.md` | the founder | The starter Skill the release names. |
+
+The starter Skill sits here rather than inside the package because the wheel
+carries no Skill bytes: what a machine runs is fetched and checked against
+`starter_skill_digest`, and this is the copy that digest is taken from. It is
+the founder's own text with one change the founder directed, so nothing
+generates it and nothing may edit it without a new approval.
+
+Two things about it are deliberate and easy to undo by accident. Its
+frontmatter description names the task family and the answer shape and stops
+there, because a description that taught the procedure would hand a subject
+the whole intervention without the Skill ever being opened. And the Skill says
+nothing about being an introductory one that is incomplete on purpose — that
+disclosure belongs to the Climb page, to `techtree skill starter`, and to the
+calibration record, never to the text a subject reads while being measured.
 
 `src/techtree/resources/release/release-core.json` holds the same bytes as
 `release-core.json` here. The wheel has to contain the release document, and a
