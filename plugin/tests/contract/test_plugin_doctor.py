@@ -226,14 +226,24 @@ def test_a_runtime_techtree_import_blocks(checkout: Path) -> None:
 
 
 def test_bundled_skills_are_reported_when_present(checkout: Path) -> None:
-    """This build bundles the operator Skill, namespaced to the plugin."""
+    """This build bundles the operator and skill-improver Skills, namespaced."""
     assert (checkout / "skills" / "operator" / "SKILL.md").is_file()
+    assert (checkout / "skills" / "skill-improver" / "SKILL.md").is_file()
 
     report = run_plugin_doctor(checkout, path_lookup=_all_executables)
 
     check = _check(report, "bundled_skills")
     assert check.status == "pass"
-    assert check.detail.endswith("techtree:operator")
+    assert check.detail.endswith("techtree:operator, techtree:skill-improver")
+
+
+def test_no_removed_skill_is_bundled(checkout: Path) -> None:
+    """Decision 0009: rich-terminal-output is not a Techtree product Skill."""
+    assert not (checkout / "skills" / "rich-terminal-output").exists()
+
+    report = run_plugin_doctor(checkout, path_lookup=_all_executables)
+
+    assert "rich-terminal-output" not in _check(report, "bundled_skills").detail
 
 
 def test_a_build_without_bundled_skills_is_only_warned(checkout: Path) -> None:

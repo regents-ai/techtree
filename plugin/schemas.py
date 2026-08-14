@@ -178,13 +178,15 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     ),
     "techtree_demo_prepare": _schema(
         description=(
-            "Prepare the introductory Climb with the founder-supplied starter "
-            "Skill: check the CLI, run Doctor, materialize the starter Skill "
-            "by its pinned digest, and prepare a draft. Free and starts "
-            "nothing. It returns the exact field that changes between the two "
-            "runs, the data-policy summary, the episode and budget estimate, "
-            "and the confirmation token the user must approve before any "
-            "model spending happens."
+            "Prepare Techtree Hello World, the toy Skill-uplift Climb, with "
+            "the founder-supplied hello-world-starter-v1 Skill: check the "
+            "CLI, run Doctor, materialize the starter Skill by its pinned "
+            "digest, and prepare a draft. Free and starts nothing. It returns "
+            "the exact field that changes between the two runs, the "
+            "data-policy summary, the episode and budget estimate, and the "
+            "confirmation token the user must approve before any model "
+            "spending happens. Hello World demonstrates how the mechanism "
+            "works; it is not a measure of broad capability."
         ),
         properties={},
     ),
@@ -244,22 +246,12 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         description=(
             "Return the finished report for a completed run: the comparison "
             "outcome, the uplift report, and the local proof path. Read-only "
-            "and free. Every number it returns is Techtree's, computed "
-            "locally; the result was not independently reproduced by anyone "
-            "else, and must never be described as if it were."
+            "and free. Everything it returns is Techtree's own output, "
+            "relayed unchanged and with no model asked to describe it; the "
+            "result was not independently reproduced by anyone else, and must "
+            "never be described as if it were."
         ),
-        properties={
-            "run_id": _run_id("The completed run to read."),
-            "include_host_explanation": {
-                "type": "boolean",
-                "description": (
-                    "Also have the host model choose how to word the result. "
-                    "It writes only the wording: every number, status, grade, "
-                    "and digest still comes from Techtree, and a result whose "
-                    "proof did not verify is never given encouraging wording."
-                ),
-            },
-        },
+        properties={"run_id": _run_id("The completed run to read.")},
         required=["run_id"],
     ),
     "techtree_proof_verify": _schema(

@@ -5,7 +5,7 @@ Techtree from the pinned public release and checked against the digest the
 release names. The plugin never downloads it, never accepts a URL for it, and
 never treats a Skill it cannot verify as the starter Skill.
 
-Today no release names one. The three founder Skills are the last unchosen
+Today no release names one. The two founder Skills are the last unchosen
 release coordinates, so this build's release carries placeholder digests for
 them, and the installed Techtree ships no command that would hand one over.
 Rather than guess at either, this says so exactly: the guided introduction
@@ -124,21 +124,19 @@ def materialize_starter_skill(services: Any) -> dict[str, Any]:
 
 # Founder Skills ---------------------------------------------------------------
 #
-# Two Skills the founder writes and the release pins: one that words a result,
-# one that proposes a revision. They are read-only, namespaced, and used only
-# after their bytes have been checked against the digest the release names.
+# One Skill the founder writes and the release pins: the one that proposes a
+# revision. It is read-only, namespaced, and used only after its bytes have
+# been checked against the digest the release names.
 #
-# Neither exists yet. This build's release carries placeholder digests for both
-# (decision 0007 R10), so every function here refuses rather than reading
-# whatever happens to be on disk under those names. Test fixtures follow the
-# same contract and live under tests/, where they cannot be mistaken for the
-# real thing.
+# This build's release carries a placeholder digest for it (decision 0007 R10),
+# so every function here refuses rather than reading whatever happens to be on
+# disk under that name. Test fixtures follow the same contract and live under
+# tests/, where they cannot be mistaken for the real thing.
 
-FounderSkillName = Literal["rich-terminal-output", "skill-improver"]
+FounderSkillName = Literal["skill-improver"]
 
 #: Which release coordinate names each founder Skill's digest.
 FOUNDER_SKILL_DIGEST_FIELDS: Final[dict[str, str]] = {
-    "rich-terminal-output": "rich_output_skill_digest",
     "skill-improver": "skill_improver_digest",
 }
 
@@ -253,7 +251,7 @@ def load_verified_founder_skill(
 def verify_founder_skill_digests(
     release: ReleaseCore, root: Path = PLUGIN_ROOT
 ) -> None:
-    """Check both founder Skills before a release may be used.
+    """Check every founder Skill before a release may be used.
 
     Raises:
         PluginError: naming the first Skill that is missing, altered, empty,

@@ -40,37 +40,30 @@ def _bundle(root: Path, name: str, text: str) -> str:
     return file_digest(text.encode("utf-8"))
 
 
-def _release_naming(
-    *, rich: str = PLACEHOLDER_DIGEST, improver: str = PLACEHOLDER_DIGEST
-) -> ReleaseCore:
-    """Return a finished release that names these two Skills."""
+def _release_naming(*, improver: str = PLACEHOLDER_DIGEST) -> ReleaseCore:
+    """Return a finished release that names the founder Skill."""
     return dataclasses.replace(
         CORE,
         placeholder_release=False,
         placeholder_fields=(),
-        rich_output_skill_digest=rich,
         skill_improver_digest=improver,
     )
 
 
-FIXTURE_RICH = (FIXTURES / "rich-terminal-output" / "SKILL.md").read_text("utf-8")
 FIXTURE_IMPROVER = (FIXTURES / "skill-improver" / "SKILL.md").read_text("utf-8")
 
 
 # What this build actually has -------------------------------------------------
 
 
-def test_this_build_bundles_no_founder_skill() -> None:
-    """The two founder Skills are the last unchosen release coordinates."""
-    for name in ("rich-terminal-output", "skill-improver"):
-        with pytest.raises(PluginError, match="does not bundle"):
-            load_bundled_skill_text(name)
+def test_this_build_bundles_the_founder_skill() -> None:
+    """The Skill ships with the plugin; only its release coordinate is unchosen."""
+    assert load_bundled_skill_text("skill-improver").startswith("---\n")
 
 
 def test_this_release_names_no_founder_skill() -> None:
-    for name in ("rich-terminal-output", "skill-improver"):
-        assert names_a_founder_skill(CORE, name) is False
-        assert expected_founder_skill_digest(CORE, name) == PLACEHOLDER_DIGEST
+    assert names_a_founder_skill(CORE, "skill-improver") is False
+    assert expected_founder_skill_digest(CORE, "skill-improver") == PLACEHOLDER_DIGEST
 
 
 def test_a_placeholder_release_cannot_verify_a_skill(tmp_path: Path) -> None:
@@ -107,20 +100,16 @@ def test_one_altered_character_refuses_the_skill(tmp_path: Path) -> None:
     assert raised.value.code == "founder_skill_digest_mismatch"
 
 
-def test_both_skills_are_verified_together(tmp_path: Path) -> None:
+def test_every_founder_skill_is_verified_together(tmp_path: Path) -> None:
     release = _release_naming(
-        rich=_bundle(tmp_path, "rich-terminal-output", FIXTURE_RICH),
-        improver=_bundle(tmp_path, "skill-improver", FIXTURE_IMPROVER),
+        improver=_bundle(tmp_path, "skill-improver", FIXTURE_IMPROVER)
     )
 
     verify_founder_skill_digests(release, tmp_path)
 
 
-def test_a_release_missing_one_skill_is_blocked(tmp_path: Path) -> None:
-    release = _release_naming(
-        rich=_bundle(tmp_path, "rich-terminal-output", FIXTURE_RICH),
-        improver="sha256:" + "9" * 64,
-    )
+def test_a_release_missing_its_skill_is_blocked(tmp_path: Path) -> None:
+    release = _release_naming(improver="sha256:" + "9" * 64)
 
     with pytest.raises(PluginError, match="does not bundle"):
         verify_founder_skill_digests(release, tmp_path)
@@ -151,7 +140,7 @@ def test_a_skill_larger_than_was_reviewed_is_refused(tmp_path: Path) -> None:
         load_bundled_skill_text("skill-improver", tmp_path)
 
 
-def test_only_the_two_founder_skills_have_this_contract(tmp_path: Path) -> None:
+def test_only_a_founder_skill_has_this_contract(tmp_path: Path) -> None:
     _bundle(tmp_path, "operator", "# Operator\n")
 
     with pytest.raises(PluginError, match="not a founder Skill"):

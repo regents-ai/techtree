@@ -1,13 +1,12 @@
 """Putting a result in front of a person. Specification section 8.8.
 
-The deterministic part is always there and always first. The model-authored
-part is optional, checked, and second — and when anything about it is wrong,
-it simply is not there, and the result is complete without it.
+Everything here is deterministic. Techtree computes the result, renders it,
+and the plugin relays exactly what it said: no model is asked to word a
+result, and there is nothing to check afterwards because nothing was written.
 
-The two orderings below are not styling. They exist so that nobody ever reads
-a sentence about a comparison before reading the comparison, and so that a
-proof that did not verify is the first thing said rather than a footnote under
-an encouraging headline.
+The two orderings below are not styling. They exist so that a proof that did
+not verify is the first thing said rather than a footnote under a friendlier
+number.
 """
 
 from __future__ import annotations
@@ -16,30 +15,22 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
 from ..channels import is_gateway_safe_required
-from ..errors import PluginError, scrub_text
-from ..guards import bounded_narrative, validate_narrative
-from ..llm import HostLlmRequest, HostLlmResult, OneShotHostLlm
-from ..models import ChannelKind, PresentationNarrative, ReleaseCore
+from ..errors import PluginError
+from ..models import ChannelKind, ReleaseCore
 from ..narrative import (
+    FIRST_RESULT_LABEL,
     REPRODUCTION_STATEMENT,
     SAME_MEMBERSHIP_DISCLOSURE,
     SECOND_RESULT_FORBIDDEN_WORDS,
-    allowed_task_refs,
-    build_presentation_input,
-    parse_presentation_narrative,
-    presentation_output_schema,
+    SECOND_RESULT_LABEL,
     second_result_receipt,
 )
-
-#: What the one host completion here is for.
-NARRATIVE_PURPOSE: Final = "result_narrative"
 
 #: The order a terminal reads a result in. Specification section 8.8.
 TERMINAL_ORDER: Final[tuple[str, ...]] = (
     "scores",
     "controlled_change",
     "proof",
-    "narrative",
     "next_actions",
 )
 
@@ -48,70 +39,16 @@ GATEWAY_ORDER: Final[tuple[str, ...]] = (
     "scores",
     "outcomes",
     "caveat",
-    "narrative",
     "next_action",
     "proof_path",
 )
 
 
 class PresentationService:
-    """Composes one result out of Techtree's numbers and, sometimes, words."""
+    """Composes one result out of Techtree's numbers, and only those."""
 
-    def __init__(self, *, llm: Any, release: ReleaseCore) -> None:
-        self._llm = llm
+    def __init__(self, *, release: ReleaseCore) -> None:
         self._release = release
-
-    def explain_result(
-        self,
-        *,
-        result_envelope: Mapping[str, Any],
-        channel: ChannelKind,
-        include_host_explanation: bool = False,
-        comparison: str = "first",
-        source_feedback_report_digest: str | None = None,
-    ) -> dict[str, Any]:
-        """Return the deterministic result, and a narrative when one is allowed.
-
-        Exactly one host completion is made, and only when one was asked for,
-        the host offers a model, and the result is one a narrative may be
-        written about at all.
-        """
-        presentation = self.deterministic_only(
-            result_envelope=result_envelope,
-            channel=channel,
-            comparison=comparison,
-            source_feedback_report_digest=source_feedback_report_digest,
-        )
-        if not include_host_explanation:
-            return presentation
-        if self._llm is None:
-            return _with_note(presentation, "this host offers no model to explain with")
-        if not presentation["narration_allowed"]:
-            return _with_note(
-                presentation,
-                "this result is not one to write encouraging words about; the "
-                "verification status leads instead",
-            )
-
-        payload = _payload_of(result_envelope)
-        request = HostLlmRequest(
-            system=str(
-                build_presentation_input(
-                    deterministic_payload=payload, channel=channel
-                )["instructions"]
-            ),
-            user=_input_text(payload, channel),
-            schema=presentation_output_schema(),
-            purpose=NARRATIVE_PURPOSE,
-        )
-
-        try:
-            result = OneShotHostLlm(self._llm).complete(request)
-            narrative = self._checked_narrative(result, payload, channel)
-        except PluginError as error:
-            return _with_note(presentation, scrub_text(str(error)), code=error.code)
-
-        return self.merge_presentation(presentation, narrative, channel)
 
     def deterministic_only(
         self,
@@ -134,15 +71,15 @@ class PresentationService:
             "report": None if compact else _report_of(result_envelope),
             "verification_status": payload.get("verification_status"),
             "proof_grade": payload.get("proof_grade"),
-            "narration_allowed": verified,
             "leads_with": "result" if verified else "verification_failure",
             "reproduction": REPRODUCTION_STATEMENT,
             "outcome": describe_outcome(payload),
             "usage": usage_summary(payload),
-            "narrative": None,
+            "result_label": FIRST_RESULT_LABEL,
         }
 
         if comparison == "second":
+            result["result_label"] = SECOND_RESULT_LABEL
             result["receipt"] = second_result_receipt(
                 source_feedback_report_digest=source_feedback_report_digest,
                 decision=payload.get("decision"),
@@ -153,44 +90,6 @@ class PresentationService:
                 "candidate": "Skill v2",
             }
         return result
-
-    def merge_presentation(
-        self,
-        deterministic: Mapping[str, Any],
-        narrative: PresentationNarrative | None,
-        channel: ChannelKind,
-    ) -> dict[str, Any]:
-        """Return the deterministic result with a checked narrative beside it."""
-        merged = dict(deterministic)
-        merged["narrative"] = narrative.to_dict() if narrative is not None else None
-        merged["channel"] = channel.value
-        return merged
-
-    def _checked_narrative(
-        self,
-        result: HostLlmResult,
-        payload: Mapping[str, Any],
-        channel: ChannelKind,
-    ) -> PresentationNarrative:
-        narrative = parse_presentation_narrative(result.parsed)
-        validate_narrative(
-            narrative,
-            allowed_task_refs=allowed_task_refs(payload),
-            channel=channel,
-        )
-        return bounded_narrative(narrative, channel)
-
-
-def _with_note(
-    presentation: Mapping[str, Any], note: str, code: str | None = None
-) -> dict[str, Any]:
-    """Return the deterministic result, saying why no narrative came with it."""
-    without = dict(presentation)
-    without["narrative"] = None
-    without["narrative_note"] = note
-    if code is not None:
-        without["narrative_code"] = code
-    return without
 
 
 def _payload_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -211,12 +110,11 @@ def _report_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any] | None:
 
 
 def _verification_ok(payload: Mapping[str, Any]) -> bool:
-    """Whether this result is one a narrative may be written about.
+    """Whether this result's proof verified.
 
     A result whose proof did not verify is still worth inspecting, and the
-    plugin still shows it. What it does not get is a paragraph of encouraging
-    wording on top: the failure leads, and words that would soften it are not
-    written at all.
+    plugin still shows it. What changes is the order: the failure is read
+    first, rather than after the numbers it calls into question.
     """
     status = str(payload.get("verification_status") or "").lower()
     if not status:
@@ -224,15 +122,6 @@ def _verification_ok(payload: Mapping[str, Any]) -> bool:
     return not any(
         bad in status for bad in ("fail", "invalid", "unverified", "error", "mismatch")
     )
-
-
-def _input_text(payload: Mapping[str, Any], channel: ChannelKind) -> str:
-    """Return the facts as the one text block the host model is given."""
-    import json
-
-    document = build_presentation_input(deterministic_payload=payload, channel=channel)
-    document.pop("instructions", None)
-    return json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False)
 
 
 # What the result actually says -------------------------------------------------

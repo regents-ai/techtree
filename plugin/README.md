@@ -13,6 +13,12 @@ result. Nothing is uploaded, and nothing is published.
 The evaluated agent is never the Hermes you are talking to. It is a separate,
 pinned agent in a container that receives only what the Climb declares.
 
+The guided introduction is **Techtree Hello World** (`hello-world-climb@1`), a
+toy Skill-uplift Climb: it runs the synthetic BranchCode v1 task family with
+and without the `hello-world-starter-v1` Skill, then offers one guided
+revision. It shows how the mechanism works. It is not a measure of broad
+capability.
+
 ## Install
 
 The plugin is installed at an exact commit, and Hermes must be restarted
@@ -50,7 +56,7 @@ In any session, including a phone:
 ```text
 /techtree setup      is Techtree installed, and is this machine ready?
 /techtree climbs     what this build offers
-/techtree demo       prepare the introduction, stopping before it spends
+/techtree demo       prepare Techtree Hello World, stopping before it spends
 /techtree status     how a run is going
 /techtree cancel     stop a run
 /techtree result     the finished result
@@ -162,8 +168,9 @@ is safe on a phone is also fine in a terminal.
 
 ## Not here yet
 
-This is an early build. The guided introduction stops short of preparing a
-comparison until a published release names its starter Skill, and proposing a
-revised Skill is not part of it. `make doctor` reports exactly what a build
-implements. The operator walkthroughs, privacy notes, and removal instructions
-arrive with the release documentation.
+This is an early build. Techtree Hello World stops short of preparing a
+comparison until a published release names its starter Skill, and the guided
+revision stops until the same release names its `skill-improver` Skill.
+`make doctor` reports exactly what a build implements. The operator
+walkthroughs, privacy notes, and removal instructions arrive with the release
+documentation.

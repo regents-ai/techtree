@@ -1,61 +1,72 @@
 """What a founder Skill has to say before a release may pin it.
 
-Decision 0007's final section fixes the behaviour of the two founder Skills.
-Neither exists yet, so this states the contract in checkable form: it runs
-against test fixtures today and against the real files the day they arrive,
-and the release gate refuses a Skill that does not carry its contract.
+Decision 0007's final section fixes the behaviour of the founder Skills, and
+decision 0009 reduced the set to one the plugin bundles: `skill-improver`.
+This states that Skill's contract in checkable form, so the release gate
+refuses a Skill that does not carry it.
 
 The checks are about instructions, not prose style. Each one looks for a
 promise the contract requires the Skill to make in its own text, because a
-Skill that never says "never output a score" is a Skill nobody can hold to it.
+Skill that never says "make only one proposal" is a Skill nobody can hold to
+it.
 
-Promises must be stated as rules — bullet lines — rather than mentioned in
+Promises must be stated as rules — list items — rather than mentioned in
 passing. Prose that happens to use the same words is not a promise, and a
-check that accepted it would pass a Skill that promised nothing.
+check that accepted it would pass a Skill that promised nothing. Bulleted and
+numbered lists both count: a numbered step is as much a rule as a dashed one.
+
+A prohibition may be written two ways, and both count: inside the rule
+("never write X"), or as a list under a heading that already said "Do not:".
+
+Decision 0010 rewrote the founder Skill's prohibitions in semantic language so
+the prompt never teaches a model the literal phrases the deterministic guard
+looks for. The vocabulary below therefore accepts either wording for the same
+promise; what is required is unchanged.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
 from typing import Final
 
-#: The rich-terminal-output Skill produces narrative choices and nothing else.
-RICH_REQUIRED_OUTPUTS: Final[tuple[str, ...]] = (
-    "headline",
-    "observation",
-    "caveat",
-    "next step",
-)
-
-#: Nothing it is ever allowed to output or change.
-RICH_FORBIDDEN_SUBJECTS: Final[tuple[str, ...]] = (
-    "score",
-    "delta",
-    "wins, losses, or ties",
-    "cost",
-    "timing",
-    "proof grade",
-    "status",
-    "digest",
-    "command",
-)
-
-#: What the skill-improver Skill must tell the model to do.
+#: What the skill-improver Skill must tell the model to do. Each entry is a
+#: promise and the phrasings that count as stating it.
 IMPROVER_REQUIRED_RULES: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
     ("find one general rule", ("one general rule",)),
-    ("make the smallest correction", ("smallest",)),
-    ("return one complete revised SKILL.md", ("complete revised skill.md",)),
+    ("make the smallest correction", ("smallest", "minimal edits")),
+    (
+        "return one complete revised SKILL.md",
+        ("complete revised skill.md", "complete replacement `skill.md`"),
+    ),
     ("preserve the rules that are correct", ("preserve",)),
     ("state the tradeoffs", ("tradeoff",)),
-    ("make exactly one proposal", ("exactly one proposal",)),
+    ("make exactly one proposal", ("exactly one proposal", "more than one candidate")),
 )
 
-#: What it must tell the model never to do.
-IMPROVER_FORBIDDEN_SUBJECTS: Final[tuple[str, ...]] = (
-    "task-specific exception",
-    "input and output pairs",
-    "answer table",
+#: What it must tell the model never to do, and the phrasings that count.
+IMPROVER_FORBIDDEN_SUBJECTS: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
+    (
+        "case-specific exception",
+        (
+            "task-specific exception",
+            "case-specific exception",
+            "exceptions tied to particular observed cases",
+        ),
+    ),
+    (
+        "copied evaluation case",
+        ("input and output pairs", "evaluation case or its result"),
+    ),
+    (
+        "mapping of evaluation cases to results",
+        (
+            "answer table",
+            "evaluation-case mapping",
+            "mappings or exceptions tied to particular observed cases",
+        ),
+    ),
 )
 
 #: Every Skill file must name itself and say what it is for.
@@ -83,85 +94,84 @@ def check_common(text: str) -> Iterator[str]:
         yield "the front matter does not say what the Skill is for"
 
 
-def check_rich_terminal_output(text: str) -> list[str]:
-    """Return every way this Skill fails the rich-output contract."""
-    problems = list(check_common(text))
-    lowered = text.lower()
-
-    for output in RICH_REQUIRED_OUTPUTS:
-        if not _states(lowered, output):
-            problems.append(f"it never mentions the {output} it is meant to produce")
-
-    for subject in RICH_FORBIDDEN_SUBJECTS:
-        if not _forbids(lowered, subject):
-            problems.append(f"it does not promise never to output a {subject}")
-
-    if not _forbids(lowered, "alter"):
-        problems.append("it does not promise never to alter a number it was given")
-
-    return problems
-
-
 def check_skill_improver(text: str) -> list[str]:
     """Return every way this Skill fails the improver contract."""
     problems = list(check_common(text))
-    lowered = text.lower()
+    rules = _rules(text.lower())
 
     for description, phrases in IMPROVER_REQUIRED_RULES:
-        if not any(_states(lowered, phrase) for phrase in phrases):
+        if not any(_states(rules, phrase) for phrase in phrases):
             problems.append(f"it does not say to {description}")
 
-    for subject in IMPROVER_FORBIDDEN_SUBJECTS:
-        if not _forbids(lowered, subject):
-            problems.append(f"it does not forbid writing a {subject}")
+    for description, phrases in IMPROVER_FORBIDDEN_SUBJECTS:
+        if not any(_forbids(rules, phrase) for phrase in phrases):
+            problems.append(f"it does not forbid writing a {description}")
 
     return problems
 
 
-CHECKS: Final = {
-    "rich-terminal-output": check_rich_terminal_output,
-    "skill-improver": check_skill_improver,
-}
+CHECKS: Final = {"skill-improver": check_skill_improver}
 
 
-#: How a Skill says "not this".
+#: How a rule says "not this" in its own words.
 DENIALS: Final[tuple[str, ...]] = ("never", "must not", "do not", "not allowed")
 
+#: A heading that turns the list beneath it into prohibitions.
+_DENIAL_LEAD_IN: Final = re.compile(r"\b(do not|never|must not|not allowed)\s*:\s*$")
 
-def _rules(lowered: str) -> list[str]:
-    """Return the Skill's rules: its bullets, each rejoined into one line.
+#: A rule line: bulleted or numbered.
+_LIST_ITEM: Final = re.compile(r"^(?:[-*]|\d+[.)])\s+")
 
-    A bullet that wraps over several lines is still one rule, so the lines are
+
+@dataclass(frozen=True)
+class _Rule:
+    """One rule line, and whether the section it sits in already denied it."""
+
+    text: str
+    denied_by_section: bool
+
+
+def _rules(lowered: str) -> list[_Rule]:
+    """Return the Skill's rules: its list items, each rejoined into one line.
+
+    An item that wraps over several lines is still one rule, so the lines are
     rejoined before anything is looked for in them.
     """
-    rules: list[str] = []
+    rules: list[_Rule] = []
     current: list[str] | None = None
+    denied_section = False
+
     for line in lowered.splitlines():
         stripped = line.strip()
-        if stripped.startswith(("-", "*")):
+        if _LIST_ITEM.match(stripped):
             if current is not None:
-                rules.append(" ".join(current))
-            current = [stripped.lstrip("-*").strip()]
+                rules.append(_Rule(" ".join(current), denied_section))
+            current = [_LIST_ITEM.sub("", stripped, count=1).strip()]
         elif current is not None and stripped and line.startswith((" ", "\t")):
             current.append(stripped)
-        elif current is not None:
-            rules.append(" ".join(current))
-            current = None
+        else:
+            if current is not None:
+                rules.append(_Rule(" ".join(current), denied_section))
+                current = None
+            if stripped:
+                denied_section = _DENIAL_LEAD_IN.search(stripped) is not None
+
     if current is not None:
-        rules.append(" ".join(current))
+        rules.append(_Rule(" ".join(current), denied_section))
     return rules
 
 
-def _states(lowered: str, phrase: str) -> bool:
-    """Whether some rule line states this phrase."""
-    return any(phrase in rule for rule in _rules(lowered))
+def _states(rules: Sequence[_Rule], phrase: str) -> bool:
+    """Whether some rule states this phrase."""
+    return any(phrase in rule.text for rule in rules)
 
 
-def _forbids(lowered: str, subject: str) -> bool:
-    """Whether some rule line denies this subject."""
+def _forbids(rules: Sequence[_Rule], subject: str) -> bool:
+    """Whether some rule denies this subject, in its words or its section's."""
     return any(
-        subject in rule and any(denial in rule for denial in DENIALS)
-        for rule in _rules(lowered)
+        subject in rule.text
+        and (rule.denied_by_section or any(denial in rule.text for denial in DENIALS))
+        for rule in rules
     )
 
 

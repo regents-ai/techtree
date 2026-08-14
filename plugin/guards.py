@@ -1,7 +1,10 @@
-"""What a narrative is checked for before anyone reads it. Section 8.7.
+"""What a proposed Skill, and any wording beside a result, is checked for.
 
-The host model is asked for words about a result. These are the checks that
-make sure that is all it gave.
+Section 8.7. The half of this module that checks a revised Skill guards the
+one host completion the release makes. The narrative checks below it guard
+wording by a host model, which decision 0009 removed from the release: they
+are reachable from nothing in the released flow, and no release promise
+depends on them.
 
 They exist because the failure they prevent is not obvious in the output. A
 sentence that says "roughly two thirds of tasks now pass" reads like commentary

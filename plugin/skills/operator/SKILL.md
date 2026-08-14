@@ -23,6 +23,18 @@ This matters when you are asked to help. You cannot solve the tasks. You
 cannot look inside the container. You cannot adjust anything mid-run to make a
 result come out better. If you could, the result would mean nothing.
 
+## Techtree Hello World
+
+The guided introduction is **Techtree Hello World**, a toy Skill-uplift Climb
+(`hello-world-climb@1`). It runs the synthetic BranchCode v1 task family twice
+— once without a Skill, once with `hello-world-starter-v1` — so someone can
+watch what writing a procedure down changes.
+
+Say what it is every time you describe it: a toy introductory demonstration of
+the mechanism, not a measure of broad capability. The first result is the
+**Hello World Uplift Receipt**; the second, after one revision, is
+**Hello World — Iteration 2**.
+
 ## Three different Skills, easy to confuse
 
 - **The starter subject Skill** — the Skill being measured in the first
@@ -62,8 +74,10 @@ Only stop a run with `techtree_run_cancel` when the person asks you to.
 
 ## Reading a result
 
-Use the numbers Techtree gives you. Do not compute your own, round them into
-a better story, or describe a tie as a win.
+Techtree renders the result and the plugin relays it unchanged. Nothing asks a
+model to word it, so what you receive is what Techtree said. Use those numbers.
+Do not compute your own, round them into a better story, or describe a tie as
+a win.
 
 Say what a local result is: a controlled comparison run on this machine, with
 a proof anyone can check offline. Say what it is not:
@@ -94,10 +108,11 @@ second comparison only if they approve it specifically.
 
 ## What this build cannot do yet
 
-This is an early build. The guided introduction stops before preparing a
+This is an early build. Techtree Hello World stops before preparing a
 comparison, because the starter Skill has not been chosen for this release
 yet, and the plugin says so rather than substituting something else. Proposing
-a revised Skill is not part of this build either.
+a revised Skill needs the same release to have chosen its `skill-improver`
+Skill, so it stops for the same reason.
 
 When a tool tells you it is blocked, relay the reason and the repair it gives.
 Do not work around it.

@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 from ..errors import PluginError, scrub_text
-from ..llm import HermesHostLlm
 from ..narrative import REPRODUCTION_STATEMENT
 from ..services.presentation import PresentationService
 from ..services.session import update_after_first_result
@@ -63,11 +62,12 @@ def techtree_run_cancel(services: Any, args: dict[str, Any], **kwargs: Any) -> s
 
 @safe_tool
 def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
-    """Return the finished report for a completed run.
+    """Relay the finished report for a completed run, exactly as Techtree said it.
 
-    Every number here is Techtree's, computed on this machine. The result was
-    not independently reproduced by anyone else, and must never be described
-    as if it were.
+    Every number here is Techtree's, computed on this machine, and the wording
+    around it is Techtree's too: no model is asked to describe a result. The
+    result was not independently reproduced by anyone else, and must never be
+    described as if it were.
     """
     channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
@@ -83,14 +83,9 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
         second = session is not None and session.second_run_id == run_id
         try:
             payload.update(
-                PresentationService(
-                    llm=_host_model(services), release=services.release_core
-                ).explain_result(
+                PresentationService(release=services.release_core).deterministic_only(
                     result_envelope=envelope,
                     channel=channel,
-                    include_host_explanation=bool(
-                        args.get("include_host_explanation", False)
-                    ),
                     comparison="second" if second else "first",
                     source_feedback_report_digest=(
                         _source_feedback_digest(services, session) if second else None
@@ -123,9 +118,3 @@ def _source_feedback_digest(services: Any, session: Any) -> str | None:
     context = data.get("context") if isinstance(data, dict) else None
     digest = context.get("source_report_digest") if isinstance(context, dict) else None
     return digest if isinstance(digest, str) else None
-
-
-def _host_model(services: Any) -> Any:
-    """Return the host's model seam, or None when this host offers none."""
-    ctx = getattr(services, "ctx", None)
-    return HermesHostLlm(ctx) if getattr(ctx, "llm", None) is not None else None

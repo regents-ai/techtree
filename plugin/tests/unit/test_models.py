@@ -36,9 +36,8 @@ VALID_RELEASE_CORE: dict[str, Any] = {
     "protocol_version": "v1alpha1",
     "engine_digest": "sha256:" + "1" * 64,
     "catalog_digest": "sha256:" + "2" * 64,
-    "intro_climb_reference": "procedure-transfer-dev@1",
+    "intro_climb_reference": "hello-world-climb@1",
     "starter_skill_digest": "sha256:" + "3" * 64,
-    "rich_output_skill_digest": "sha256:" + "4" * 64,
     "skill_improver_digest": "sha256:" + "5" * 64,
     "minimum_host_hermes_version": "0.20.0",
     "maximum_tested_host_hermes_version": "0.20.0",
@@ -48,7 +47,7 @@ VALID_RELEASE_CORE: dict[str, Any] = {
 #: The digest the release above is published under, taken over its one stored
 #: spelling. A change here means the release document contract changed.
 RELEASE_DIGEST_GOLDEN = (
-    "sha256:95c515057d8cc04a00b84ffc938b8162c6c4aaedb02e7817887d5611def7c04f"
+    "sha256:42325d452e435b7324b5c4a1952c38b5d4e2a9e0eaa3b6df087b9dea94d24bfb"
 )
 
 VALID_ENVELOPE: dict[str, Any] = {
@@ -118,7 +117,7 @@ def test_the_embedded_release_is_valid() -> None:
         ({"schema_version": "techtree.release-core.v2"}, "schema version"),
         ({"engine_digest": "not-a-digest"}, "sha256 digest"),
         ({"cli_source_commit": "abc"}, "40-character commit"),
-        ({"intro_climb_reference": "procedure-transfer-dev"}, "slug@version"),
+        ({"intro_climb_reference": "hello-world-climb"}, "slug@version"),
         ({"cli_version": ""}, "non-empty string"),
         ({"cli_version": None}, "missing fields"),
         ({"upload_endpoint": "https://example.test"}, "unknown fields"),

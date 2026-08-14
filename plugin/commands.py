@@ -35,7 +35,7 @@ SLASH_COMMAND = "techtree"
 SLASH_USAGE: Mapping[str, str] = {
     "setup": "check whether Techtree is installed and this machine is ready",
     "climbs": "list the Climbs this build offers",
-    "demo": "prepare the introductory comparison, stopping before it spends",
+    "demo": "prepare Techtree Hello World, stopping before it spends",
     "status": "how a run is going — /techtree status [run-id]",
     "cancel": "stop a run — /techtree cancel <run-id>",
     "result": "the finished result — /techtree result [run-id]",
@@ -145,12 +145,13 @@ def _slash_demo(services: Any, arguments: Sequence[str]) -> str:
     answer = _tool(services, "techtree_demo_prepare", {})
     if not answer.get("ok"):
         return (
-            f"The introduction cannot start yet: "
+            f"Techtree Hello World cannot start yet: "
             f"{answer.get('message') or _error_line(answer)}"
         )
     return "\n".join(
         [
-            "Prepared the introductory comparison. Nothing has run yet.",
+            "Prepared Techtree Hello World, a toy Skill-uplift Climb. "
+            "Nothing has run yet.",
             f"Draft: {answer.get('draft_id')}",
             f"Episodes estimated: {answer.get('estimated_episodes')}",
             f"Data policy: {answer.get('data_policy_digest')}",
@@ -324,7 +325,7 @@ def build_cli_commands(services: Any) -> Mapping[str, CliCommand]:
             handler=_cli_doctor(services),
         ),
         "demo": CliCommand(
-            help="prepare the introductory comparison",
+            help="prepare Techtree Hello World, the toy Skill-uplift Climb",
             setup=_no_arguments,
             handler=_cli_demo(services),
         ),

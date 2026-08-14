@@ -1,9 +1,9 @@
 {
-  "catalog_digest": "sha256:bf901ffd5a5665af56629c9b18c17f3b87d9e3e3d04ed9330277a40169584ad0",
+  "catalog_digest": "sha256:91f7ba524194884bfd0556d4d47db1fc9c809e43081913cb15d4fd5b93abe0c8",
   "cli_source_commit": "0000000000000000000000000000000000000000",
   "cli_version": "0.0.0-placeholder",
-  "engine_digest": "sha256:9e898679c5ea75fb8e0c6d1d4403b31b862eff6cb34a3f6bfeda04e834458245",
-  "intro_climb_reference": "procedure-transfer-dev@1",
+  "engine_digest": "sha256:dbc82a92f1a0d3f6a66d8592692ee7b8366aecb6464b6411d0605bcff52c9d0e",
+  "intro_climb_reference": "hello-world-climb@1",
   "maximum_tested_host_hermes_version": "0.0.0-placeholder",
   "minimum_host_hermes_version": "0.19.0",
   "placeholder_fields": [
@@ -11,14 +11,12 @@
     "cli_version",
     "maximum_tested_host_hermes_version",
     "release_id",
-    "rich_output_skill_digest",
     "skill_improver_digest",
     "starter_skill_digest"
   ],
   "placeholder_release": true,
   "protocol_version": "v1alpha1",
   "release_id": "0.0.0-placeholder",
-  "rich_output_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
   "schema_version": "techtree.release-core.v1",
   "skill_improver_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
   "starter_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",

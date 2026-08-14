@@ -95,7 +95,6 @@ def test_the_release_says_whether_it_is_finished() -> None:
             "maximum_tested_host_hermes_version",
             "minimum_host_hermes_version",
             "release_id",
-            "rich_output_skill_digest",
             "skill_improver_digest",
             "starter_skill_digest",
         }

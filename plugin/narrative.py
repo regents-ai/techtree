@@ -1,17 +1,15 @@
-"""What the host model is shown, and what it is allowed to say back.
+"""The fixed words a result carries. Specification section 8.6.
 
-Specification section 8.6, and decision 0007's rich-terminal-output contract.
+Techtree computed the result, so Techtree's deterministic payload is the only
+source of every number, verdict, status, grade, and digest. What this module
+adds is fixed text that never varies: the reproduction statement, the two
+result labels, and the same-membership disclosure that travels with a second
+comparison.
 
-One rule decides this whole module: Techtree computed the result, so Techtree's
-deterministic payload is the only source of every number, verdict, status,
-grade, and digest. The host model is shown those facts and asked for words —
-a headline, which observations to emphasize, which verified caveat to
-foreground, what to do next. It is never asked for a value, and its answer has
-nowhere to put one: the schema it must fit has no numeric field at all.
-
-That is not a matter of trusting the model less than necessary. A number that
-came from a sentence rather than from a receipt cannot be checked against
-anything, and this product's entire claim is that its numbers can be.
+Decision 0009 removed presentation wording by a host model from the release.
+The wording builders and answer schema below are kept for reference and are
+reachable from nothing in the released flow: no released path asks a model to
+word a result, and the release promises none.
 """
 
 from __future__ import annotations
@@ -248,10 +246,14 @@ def _caveats(deterministic_payload: Mapping[str, Any]) -> list[Mapping[str, Any]
 # Decision 0007 fixes the words for this one, because it is the result most
 # easily oversold. A revision proposed from a run's own feedback, measured
 # again on that same task set, is a development iteration — useful, honest,
-# and not evidence that anything generalizes.
+# and not evidence that anything generalizes. Decision 0009 fixes the two
+# public labels these results are shown under.
+
+#: What the first comparison's result is called.
+FIRST_RESULT_LABEL: Final = "Hello World Uplift Receipt"
 
 #: What the second comparison's result is called.
-SECOND_RESULT_LABEL: Final = "guided Skill-replacement Uplift receipt"
+SECOND_RESULT_LABEL: Final = "Hello World — Iteration 2"
 
 #: What kind of exercise it is.
 SECOND_RESULT_ITERATION_LABEL: Final = "same-benchmark development iteration"
