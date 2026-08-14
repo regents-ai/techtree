@@ -1,4 +1,17 @@
 defmodule TechtreeWeb.Endpoint do
+  @moduledoc """
+  Everything a request passes through before the routing table sees it.
+
+  This application publishes and does nothing else, and the pipeline is built
+  so that this stays true by construction rather than by nobody having added a
+  route yet. There is no multipart parser, so a body of files is never read,
+  never spooled to disk, and never held in memory on its way to a refusal.
+  There is no method override, so a hidden parameter cannot turn a request into
+  a verb the routing table does not answer. And a static file is served with
+  the same refusals a page is, because a file opened directly in a browser is a
+  document like any other.
+  """
+
   use Phoenix.Endpoint, otp_app: :techtree
 
   # The session will be stored in the cookie and signed,
@@ -10,6 +23,16 @@ defmodule TechtreeWeb.Endpoint do
     signing_salt: "ESr0k/Zc",
     same_site: "Lax"
   ]
+
+  # A stylesheet, an icon, or an image may be navigated to directly, and then
+  # the browser is reading it as a document. These say what a document from
+  # this host may do, which is nothing.
+  @static_headers %{
+    "content-security-policy" => "default-src 'none'; frame-ancestors 'none'",
+    "x-content-type-options" => "nosniff",
+    "x-frame-options" => "DENY",
+    "referrer-policy" => "no-referrer"
+  }
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [session: @session_options]],
@@ -25,7 +48,8 @@ defmodule TechtreeWeb.Endpoint do
     from: :techtree,
     gzip: not code_reloading?,
     only: TechtreeWeb.static_paths(),
-    raise_on_missing_only: code_reloading?
+    raise_on_missing_only: code_reloading?,
+    headers: @static_headers
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
@@ -40,12 +64,14 @@ defmodule TechtreeWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # No route reads a request body, so nothing here needs to accept a file. A
+  # body in a content type this does not parse is passed along untouched and
+  # meets the same refusal it would have met anyway.
   plug Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
+    parsers: [:urlencoded, :json],
     pass: ["*/*"],
     json_decoder: Phoenix.json_library()
 
-  plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
   plug TechtreeWeb.Router

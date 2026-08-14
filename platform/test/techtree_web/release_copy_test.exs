@@ -2,11 +2,12 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @moduledoc """
   The claims this site is not allowed to make.
 
-  Four sentences are easy to write and wrong to publish: that a trial happens
+  Five sentences are easy to write and wrong to publish: that a trial happens
   entirely on the reader's own machine, that entering needs no account at all,
-  that anyone but the participant witnessed the run, and that the introductory
-  Skill scores a particular number. Each of them is close enough to the truth
-  that it survives a careful edit, which is why it is checked here instead.
+  that anyone but the participant witnessed the run, that the reader picked the
+  model the agent under test answers with, and that the introductory Skill
+  scores a particular number. Each of them is close enough to the truth that it
+  survives a careful edit, which is why it is checked here instead.
 
   Every source of published words is scanned: each page as a reader sees it,
   with a release being served and with none, the installation contract this
@@ -52,6 +53,12 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # it false: a provider account, a credential, and a network are all needed.
   @unscoped_account ~r/\bno\s+accounts?\s+(is\s+|are\s+)?(required|needed|to hold)\b/i
 
+  # The Campaign pins the model the agent under test answers with. "Your own
+  # model" tells a reader they picked it, and blurs that subject with the
+  # ordinary model their own agent runs on. Naming the provider is fine — a
+  # participant does bring their own provider account and key.
+  @blurred_model ~r/\byour own models?\b/i
+
   @dishonest_attestation [
     ~r/techtree\s+verified/i,
     ~r/verified\s+by\s+techtree/i,
@@ -89,6 +96,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
     test "no page claims anyone but the participant witnessed a run", %{conn: conn} do
       refute_dishonest_attestation(rendered(conn, @pages))
+    end
+
+    test "no page calls the pinned subject model the reader's own", %{conn: conn} do
+      refute_blurred_model(rendered(conn, @pages))
     end
 
     test "no page promises the starter Skill a score", %{conn: conn} do
@@ -131,6 +142,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_unqualified_privacy(sources)
       refute_unscoped_account(sources)
       refute_dishonest_attestation(sources)
+      refute_blurred_model(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
     end
@@ -145,6 +157,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_unqualified_privacy(sources)
       refute_unscoped_account(sources)
       refute_dishonest_attestation(sources)
+      refute_blurred_model(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
     end
@@ -157,6 +170,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_unqualified_privacy(sources)
       refute_unscoped_account(sources)
       refute_dishonest_attestation(sources)
+      refute_blurred_model(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
     end
@@ -180,6 +194,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     for {label, text} <- sources do
       refute text =~ @unscoped_account,
              "#{label} says an account is not required without saying it is the Techtree one"
+    end
+  end
+
+  defp refute_blurred_model(sources) do
+    for {label, text} <- sources do
+      refute text =~ @blurred_model,
+             "#{label} says \"your own model\": the model the agent under test answers " <>
+               "with is pinned by the Campaign, not chosen by the reader"
     end
   end
 

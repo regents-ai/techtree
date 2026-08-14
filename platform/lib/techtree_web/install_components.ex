@@ -108,7 +108,9 @@ defmodule TechtreeWeb.InstallComponents do
         You need Docker running, macOS or Linux, Hermes {minimum_hermes(@instructions)} or newer,
         and a key from your model provider. The agent under test makes real model calls, and
         those go to that provider under its policies; you pay for them, and Techtree never asks
-        for the key.
+        for the key. If you later take the guided revision of your Skill, that one request
+        carries your Skill text and a sanitized summary of the run to the provider your own
+        agent uses.
       </p>
     </div>
     """
