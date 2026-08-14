@@ -1,51 +1,58 @@
-# Execution contract — WP11f (ndq.3.6): reference gateway E2E
+# Execution contract — WP11f (ndq.3.6): agent-first Hermes community onboarding E2E
 
-Binding: decision 0023; spec wp9-wp11 §4.4, §9.9.
-Blocked by: WP11e AND the wp11-gateway-profile founder decision.
+Binding: decision 0024 (replaces the phone/gateway framing); decision
+0023; spec wp9-wp11 §9.9 (channel behavior, bounded output — the
+channel-generic requirements survive; the phone-client framing does
+not). Blocked by: WP11e (candidate artifacts exist and the terminal
+journey passed).
 
 ## Purpose
-Certify one named mobile/gateway journey, or honestly scope the claim
-to contract replay — never an unnamed "phone journey works".
+Certify the reference onboarding path: a Hermes community user pastes
+ONE prompt to their existing Hermes agent, and everything from reading
+the pinned instructions through the Hello World result happens with
+explicit approvals at every boundary. No iOS, no named phone client,
+no live-phone claim anywhere.
 
-## Precondition — the gateway profile
-No work starts until the founder decision (ticket
-wp11-gateway-profile) records: gateway name · gateway version/commit ·
-Host Hermes version · approval mechanism · message-size limits ·
-tool-call capabilities · session-reconnect behavior · supported phone
-client. Spec §4.4: the selected gateway is a release-test target, not
-a protocol field; other gateways are not called certified until
-tested.
+## The path under test
+User prompt → Hermes reads the pinned Techtree plugin instructions
+(techtree.sh/start and/or the pinned GitHub commit) → shows the exact
+install plan → explicit approval → installs/enables the plugin → one
+Hermes restart → plugin installs/verifies techtree-python → doctor →
+Hello World Climb.
 
-## Live vs replay — declare which
-- LIVE full gateway journey (preferred for any public "phone journey"
-  claim), or
-- CONTRACT REPLAY against canonical run fixtures, in which case
-  release copy says "Gateway rendering and approvals are
-  contract-tested against canonical runs" and never claims a certified
-  live path.
+## Acceptance (all twelve, from 0024 §3)
+1. A user with Hermes already installed can paste one instruction.
+2. Hermes reads the exact pinned GitHub release instructions.
+3. It explains prerequisites, commands, cost, provider disclosure,
+   and local-data policy.
+4. It asks before installing anything.
+5. It installs/enables the exact plugin release.
+6. It tells the user to restart/reset Hermes once.
+7. After restart, the plugin offers the pinned CLI installation.
+8. It asks before installing the CLI.
+9. It runs release verification and doctor.
+10. It starts Hello World only after the paid-run approval.
+11. Every CLI/plugin response includes the useful next step.
+12. No command uses `main`, `latest`, or an unpinned package
+    coordinate.
 
-## Journey requirements (live mode)
-1. User initiates from the phone gateway. 2. Plugin detects/validates
-CLI. 3. Long work returns a run ID immediately. 4. Status is
-pull-based and bounded. 5. No ANSI. 6. No large tables. 7. No raw
-logs. 8. The approval prompt cannot be approved by the model itself.
-9. Duplicate/replayed approval messages do not start duplicate runs.
-10. Session loss does not kill the worker. 11. A later session
-recovers status by run ID. 12. First result compact and honest.
-13. Guided proposal explicitly requested. 14. Provider disclosure
-before the host-model request. 15. Diff bounded but sufficient to
-approve. 16. Full local diff path provided. 17. Second approval
-explicit. 18. Second result + proof path returned.
-
-Paid note: a live journey re-runs paid comparisons — same budget rule
-as WP11e (estimate first; STOP if the remainder does not cover it).
+## Notes
+- Pre-Gate-2, the "pinned GitHub release" is the local candidate
+  commit served/read locally; the journey must not pretend the public
+  repo exists yet. The public-path repeat is WP11-postpublish.
+- Paid runs inside the journey follow the same budget rule as WP11e
+  (estimate first; STOP on shortfall).
+- Channel hygiene from the old contract still applies where output
+  flows through a conversation: bounded pull-based status, no ANSI,
+  no raw logs, the model can never approve its own action,
+  duplicate/replayed approvals never start duplicate runs, session
+  loss never kills the worker, a later session recovers by run ID.
 
 ## Outputs
-release/acceptance/gateway-profile.json · gateway-e2e.json ·
-gateway-e2e.md · bounded screenshots or message transcript · run/proof
-IDs when live.
+release/acceptance/onboarding-e2e.json · onboarding-e2e.md · the
+scrubbed conversation transcript · run/proof IDs for any paid legs.
 
 ## Stop conditions
-No pinned gateway profile · model-approvable approval prompt observed
-· duplicate-run on replayed approval · any ANSI/unbounded output on
-the gateway channel · budget shortfall.
+Any auto-install without approval · any unpinned coordinate in any
+surfaced command · any claim of a certified phone path · budget
+shortfall.

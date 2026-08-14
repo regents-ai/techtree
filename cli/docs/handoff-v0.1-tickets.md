@@ -91,12 +91,13 @@ repair text was just rewritten); (b) `techtree doctor
 journey runs a real comparison; budget rules (estimate first, ceiling,
 ~1.03 remaining of 3.00) apply.
 
-### techtree-python-ndq.3.6 — WP11f: reference gateway E2E + channel hardening (P1, blocked by 3.5)
-The same journey driven through the phone/gateway surface after plugin
-bootstrap: bounded pull-based status, no ANSI, compact renderer only.
-**Spec status: thin on its own — adequate WITH spec §4.4/§9.9.** The
-deterministic compact renderer and its tests exist; this is a journey
-verification, not new construction.
+### techtree-python-ndq.3.6 — WP11f: agent-first Hermes community onboarding E2E (P1, blocked by 3.5)
+Replaced by decision 0024 (iOS and phone clients are out of v0.1). One
+pasted prompt to an existing Hermes agent drives the whole path —
+pinned instructions → explicit approvals → plugin install → one
+restart → CLI install/verify → doctor → Hello World — with twelve
+acceptance points including the next-step rule and no unpinned
+coordinates. **Fully specified** (contracts/wp11f.md).
 
 ### techtree-python-ndq.3.7 — WP11g: security, privacy, no-upload review (P1, in progress, blocked by 3.5)
 Final pass of the review that already produced and closed the ten SEC
@@ -139,12 +140,6 @@ closed, and public copy states the actual limits; records the
 One row per public product claim → implementation → test → live
 evidence → limitation, with real paths/IDs/digests in every cell.
 **Fully specified** (contracts/wp11-claims.md).
-
-### techtree-python-5ig — WP11-gateway-profile: FOUNDER decision (P1, blocks WP11f)
-Names and pins the reference gateway (spec §4.4 leaves it open). A
-one-page decision, not a coding task. **Fully specified**
-(contracts/wp11-gateway-profile.md); waiting on the founder's
-selection.
 
 ### techtree-python-rlf — WP11-postpublish: public-coordinate smoke + rollback (P2, post-Gate-2 only)
 After release approval only: verify the public wheel/plugin/bootstrap/

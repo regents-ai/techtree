@@ -45,7 +45,7 @@ claim for the guided revision (Gate-1 packet §7c).
 ## Attach evidence
 all three repo quality gates · generated-file drift checks · fresh
 wheel installation · plugin doctor · clean terminal journey ·
-reference gateway journey (or its declared replay scope) · first and
+agent-first Hermes onboarding journey (0024) · first and
 second proof verification · no-upload network assertion · plugin
 disable/remove test · CLI uninstall/data-retention test ·
 privacy/security review · budget-contract audit ·
