@@ -31,6 +31,37 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute html =~ "uv tool install"
     end
 
+    test "either path calls the introductory Climb a toy demonstration", %{conn: conn} do
+      for address <- [~p"/", ~p"/?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+
+        assert visible_text(html) =~
+                 "A toy introductory demonstration of the mechanism, " <>
+                   "not a measure of broad capability.",
+               "#{address} drops the qualification"
+      end
+    end
+
+    test "either path says what is not uploaded and where model calls go", %{conn: conn} do
+      for address <- [~p"/", ~p"/?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+        text = visible_text(html)
+
+        assert text =~
+                 "Techtree does not upload your recordings, your results, or the work you submit."
+
+        assert text =~ "sent to the model provider you selected"
+      end
+    end
+
+    test "the landing page keeps the participant-attested wording", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      assert text =~ "signed on the machine that produced it and can be checked there, offline"
+      assert text =~ "has not been independently reproduced"
+    end
+
     test "the landing page keeps the deeper pages one link away", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
 

@@ -73,13 +73,20 @@ defmodule TechtreeWeb.InstallComponents do
       <ol class="steps">
         <%= if @focus == :agent do %>
           <.next_step title="Add the Techtree plugin to Hermes.">
+            <p>
+              Hermes has to be installed already, and this first step is one you run
+              yourself at a terminal. Installing a plugin takes your explicit approval,
+              so an agent cannot put itself in a position to run trials.
+            </p>
             <.command_block argv={plugin_install(@instructions)} />
             <.command_block argv={plugin_doctor(@instructions)} label="Check it worked" />
           </.next_step>
           <.next_step title="Ask your agent, in your own words or these.">
             <p class="digest">{host_prompt(@instructions)}</p>
             <p>
-              It asks before it installs anything, runs anything, or spends anything.
+              It asks before it installs anything, runs anything, or spends anything. A
+              trial takes a while, so it hands back a run identifier instead of making
+              you wait, and you ask it for the result when you want it.
             </p>
           </.next_step>
         <% else %>
@@ -105,12 +112,16 @@ defmodule TechtreeWeb.InstallComponents do
       </p>
 
       <p class="small quiet">
-        You need Docker running, macOS or Linux, Hermes {minimum_hermes(@instructions)} or newer,
-        and a key from your model provider. The agent under test makes real model calls, and
-        those go to that provider under its policies; you pay for them, and Techtree never asks
-        for the key. If you later take the guided revision of your Skill, that one request
-        carries your Skill text and a sanitized summary of the run to the provider your own
-        agent uses.
+        Before either path: Docker running, macOS or Linux, Hermes {minimum_hermes(@instructions)} or newer, and a key from your model provider. Techtree never asks for the key, and you
+        pay for the model calls a trial makes.
+      </p>
+
+      <p class="small quiet">
+        Techtree does not upload your recordings, your results, or the work you submit. The
+        agent under test makes real model calls, and those are sent to the model provider you
+        selected, under that provider’s policies. If you later take the guided revision of your
+        Skill, that one request carries your Skill text and a sanitized summary of the run to
+        the provider your own agent uses.
       </p>
     </div>
     """

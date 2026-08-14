@@ -76,7 +76,7 @@ defmodule TechtreeWeb.LocalProofLive do
         </.warning_callout>
         <p class="section">
           Nor did the trial run offline. The agent under test makes real model calls,
-          and those go to the model provider you chose, under that provider's
+          and those go to the model provider you chose, under that provider’s
           policies. If you take the guided revision of your Skill, that one request
           carries your Skill text and a sanitized summary of the run to the provider
           your own agent uses, which may be a different one. What never reaches this

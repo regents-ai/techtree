@@ -24,6 +24,58 @@ defmodule TechtreeWeb.StartLiveTest do
       refute html =~ "techtree setup"
     end
 
+    test "the rendered install command is the pinned coordinate, argument for argument",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+
+      assert ("hermes plugins install regents-ai/techtree-hermes --ref " <>
+                String.duplicate("0", 40) <> " --enable") in commands(html)
+    end
+
+    test "the agent path says Hermes comes first and the plugin needs your approval",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+      text = visible_text(html)
+
+      assert text =~ "Hermes has to be installed already"
+      assert text =~ "you run yourself at a terminal"
+      assert text =~ "Installing a plugin takes your explicit approval"
+    end
+
+    test "the agent path says long work comes back as a run identifier", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+
+      assert visible_text(html) =~
+               "hands back a run identifier instead of making you wait"
+    end
+
+    test "neither path suggests a first installation without a terminal", %{conn: conn} do
+      for address <- [~p"/start", ~p"/start?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+        text = html |> visible_text() |> String.downcase()
+
+        for elsewhere <- ["phone", "mobile", "tablet", "no terminal", "without a terminal"] do
+          refute text =~ elsewhere, "#{address} points the first installation at a #{elsewhere}"
+        end
+      end
+    end
+
+    test "every command shown is one a reader can copy as it stands", %{conn: conn} do
+      for address <- [~p"/start", ~p"/start?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+
+        for command <- commands(html) do
+          refute command =~ ~r/\bmain\b/, "#{command} pins a moving branch"
+          refute command =~ ~r/\blatest\b/, "#{command} pins a moving version"
+
+          for interpolation <- ["$", "`", "|", "&&", ";", ">", "<", "$(", "*"] do
+            refute String.contains?(command, interpolation),
+                   "#{command} needs a shell to mean what it says"
+          end
+        end
+      end
+    end
+
     test "the terminal path is the one the address can ask for", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start?install=me")
 
@@ -96,7 +148,25 @@ defmodule TechtreeWeb.StartLiveTest do
         assert text =~ "macOS or Linux"
         assert text =~ "Hermes 0.19.0 or newer"
         assert text =~ "a key from your model provider"
-        assert text =~ "The agent under test makes real model calls"
+
+        assert text =~
+                 "Techtree does not upload your recordings, your results, or the work you submit."
+
+        assert text =~
+                 "The agent under test makes real model calls, and those are sent to the " <>
+                   "model provider you selected, under that provider’s policies."
+
+        assert text =~ "carries your Skill text and a sanitized summary of the run"
+      end
+    end
+
+    test "neither path puts a number on what a run costs", %{conn: conn} do
+      for address <- [~p"/start", ~p"/start?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+        text = visible_text(html)
+
+        refute text =~ ~r/\$\s*\d/
+        refute text =~ ~r/\b\d+(\.\d+)?\s*(usd|dollars?|cents?)\b/i
       end
     end
 
@@ -134,5 +204,26 @@ defmodule TechtreeWeb.StartLiveTest do
         refute html =~ "hermes plugins install"
       end
     end
+  end
+
+  # The commands as a reader sees them, taken out of the blocks they are shown
+  # in rather than off the payload they were built from: what is checked here
+  # has to be the line someone would copy.
+  defp commands(html) do
+    ~r|<pre class="command__block"><code>(.*?)</code></pre>|s
+    |> Regex.scan(html, capture: :all_but_first)
+    |> List.flatten()
+    |> Enum.map(&as_copied/1)
+  end
+
+  # The characters a reader's clipboard would receive, not the ones the markup
+  # spells them with: a redirection escaped as an entity is still a redirection.
+  defp as_copied(command) do
+    command
+    |> String.replace("&lt;", "<")
+    |> String.replace("&gt;", ">")
+    |> String.replace("&quot;", "\"")
+    |> String.replace("&#39;", "'")
+    |> String.replace("&amp;", "&")
   end
 end

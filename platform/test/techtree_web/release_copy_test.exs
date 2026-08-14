@@ -47,7 +47,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # Near a privacy claim the same passage has to name where the model calls go.
   @privacy_qualification_window 400
   @privacy_names_the_calls ~r/model (calls?|inference|requests?)/i
-  @privacy_names_the_recipient ~r/(model|inference) provider|provider's policies/i
+  @privacy_names_the_recipient ~r/(model|inference) provider|provider[’']s policies/i
 
   # "No Techtree account is required" is true. Dropping the word Techtree makes
   # it false: a provider account, a credential, and a network are all needed.
