@@ -638,7 +638,9 @@ class SkillPreparationService:
             "happens to this run's material, and they are why acceptance is "
             "asked for again.",
             "This comparison is local. No Climb wraps it, nothing is entered "
-            "anywhere, nothing is published, and nothing is uploaded.",
+            "anywhere, nothing is published, and nothing is uploaded. Model "
+            "inference still goes to the model provider you configured, under "
+            "that provider's policies.",
             "This compares one Skill against another Skill, not against no "
             "Skill. The baseline is the version measured by the run this was "
             "prepared from.",

@@ -443,7 +443,9 @@ def _caveats(
             severity="info",
             text=(
                 "Nothing was uploaded. The raw episodes stay on this machine, "
-                "and publication was never requested."
+                "and publication was never requested. Model inference was "
+                "still sent to the model provider this run used, under that "
+                "provider's policies."
             ),
         )
     )

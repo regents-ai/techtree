@@ -90,13 +90,15 @@ drive the CLI. Logs always go to standard error.
 A finished real run signs its receipts and its report with a key this machine
 made and keeps. The signed documents travel together in a proof bundle inside
 the run directory, and `techtree proof verify` checks that bundle from its own
-stored bytes — no network, no account, and no Techtree state of its own, so a
-bundle copied to another machine still checks out.
+stored bytes — no network, no Techtree account, and no Techtree state of its
+own, so a bundle copied to another machine still checks out.
 
 What a verified proof says is bounded, and the product says so wherever it
 shows one: the participant's own key vouches for bytes that verify against each
 other. Nobody has independently reproduced the comparison, no platform
-witnessed it, and nothing was uploaded.
+witnessed it, and nothing was uploaded. Running the comparison is a different
+matter from checking its proof: model inference is sent to the model provider
+whose credentials the run uses, under that provider's policies.
 
 ## Improving a skill
 

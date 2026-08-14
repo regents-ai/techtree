@@ -43,7 +43,7 @@
     {
       "code": "no_server_upload",
       "severity": "info",
-      "text": "Nothing was uploaded. The raw episodes stay on this machine, and publication was never requested."
+      "text": "Nothing was uploaded. The raw episodes stay on this machine, and publication was never requested. Model inference was still sent to the model provider this run used, under that provider's policies."
     },
     {
       "code": "no_external_evidence_service",
