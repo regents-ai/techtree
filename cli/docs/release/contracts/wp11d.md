@@ -11,8 +11,11 @@ rollback — WITHOUT activating the new release or deploying.
 ## Binding design decisions (0023)
 
 ### Starter URL is keyed by the SKILL.md FILE digest
-The URL serves exact file bytes, so:
-`starter_skill_object_url = https://techtree.sh/objects/sha256:<SKILL.md-file-digest>`
+The URL serves exact file bytes, at the app's existing object route:
+`starter_skill_object_url = https://techtree.sh/api/v1/objects/sha256:<SKILL.md-file-digest>`
+(chief decision on ndq.3.4: use the real existing route rather than
+adding a duplicate `/objects/` surface; the bootstrap carries the full
+URL, so the path shape is release metadata).
 
 The bootstrap starter_skill object carries BOTH digests:
 ```json
