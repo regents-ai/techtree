@@ -182,12 +182,19 @@ def start_arguments(draft_id: str) -> list[str]:
     the question, because the question was already asked somewhere a model
     cannot answer it.
 
+    ``--reviewed-on host-agent`` says *where* it was asked. Without it the run
+    would record `explicit_cli_review` — true of the flag the command line
+    saw, and false about the person, who answered in a conversation. With it
+    the run's own request and this plugin's `run.approved` event say the same
+    thing in the same words: one fact, two records, no disagreement for
+    anybody to have to reconcile later.
+
     Raises:
         ApprovalRequiredError: when there is no draft to start.
     """
     if not draft_id:
         raise ApprovalRequiredError("a run cannot start without a draft to start")
-    return [draft_id, "--yes"]
+    return [draft_id, "--yes", "--reviewed-on", REVIEWED_ON_HOST_AGENT]
 
 
 def _expiry(plan: BootstrapInstallPlan) -> datetime:
@@ -242,11 +249,12 @@ APPROVAL_ACTOR: Final = "human_via_hermes"
 #: not a cryptographic acceptance artifact (decision 0019 section 2).
 RUN_APPROVED_EVENT: Final = "run.approved"
 
-#: How the policy was acknowledged on *this* surface. Techtree records
-#: `explicit_cli_review` for the flag it receives, which is the honest name for
-#: what the command line saw; `host_agent_confirmation` is the honest name for
-#: what actually happened here, and the plugin records its own.
+#: How the policy was acknowledged on this surface, and the value that tells
+#: Techtree to record the same thing. The plugin declares the surface the
+#: answer was actually given on, so the run's own PolicyAcknowledgement and
+#: this plugin's audit event agree by construction rather than by luck.
 POLICY_ACKNOWLEDGEMENT_METHOD: Final = "host_agent_confirmation"
+REVIEWED_ON_HOST_AGENT: Final = "host-agent"
 
 
 def run_approved_event(

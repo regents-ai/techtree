@@ -244,7 +244,14 @@ def test_starting_a_run_returns_a_run_identifier_and_does_not_wait() -> None:
     result = _call("techtree_climb_start", services, {"draft_id": DRAFT_ID})
 
     assert result["data"]["run_id"] == RUN_ID
-    assert bridge.last_argv() == ["climb", "start", DRAFT_ID, "--yes"]
+    assert bridge.last_argv() == [
+        "climb",
+        "start",
+        DRAFT_ID,
+        "--yes",
+        "--reviewed-on",
+        "host-agent",
+    ]
 
 
 def test_a_start_without_a_draft_is_refused() -> None:

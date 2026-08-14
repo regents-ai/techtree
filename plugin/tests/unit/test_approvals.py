@@ -9,6 +9,8 @@ import pytest
 from techtree_hermes.approvals import (
     DOCUMENTED_CONFIRMATION_KEYS,
     GUIDED_REVISION_DISCLOSURE,
+    POLICY_ACKNOWLEDGEMENT_METHOD,
+    REVIEWED_ON_HOST_AGENT,
     InstallPlanStore,
     issue_local_plan_id,
     require_install_plan,
@@ -155,8 +157,32 @@ def test_a_documented_indicator_that_says_no_stops_the_call(
 # answer it".
 
 
-def test_start_arguments_are_the_draft_and_the_explicit_flag() -> None:
-    assert start_arguments(DRAFT_ID) == [DRAFT_ID, "--yes"]
+def test_start_arguments_are_the_draft_the_flag_and_the_surface() -> None:
+    assert start_arguments(DRAFT_ID) == [
+        DRAFT_ID,
+        "--yes",
+        "--reviewed-on",
+        "host-agent",
+    ]
+
+
+def test_the_run_records_the_surface_the_person_actually_answered_on() -> None:
+    """One fact, two records, same meaning.
+
+    Techtree writes the run's own PolicyAcknowledgement from the surface the
+    plugin declares, and the plugin writes its own audit event from the same
+    constant. Without the declaration the run would say `explicit_cli_review`
+    — true of the flag the command line saw, false about the person.
+    """
+    assert "--reviewed-on" in start_arguments(DRAFT_ID)
+    assert REVIEWED_ON_HOST_AGENT == "host-agent"
+    assert POLICY_ACKNOWLEDGEMENT_METHOD == "host_agent_confirmation"
+
+    event = run_approved_event(draft_id=DRAFT_ID, draft_digest=DIGEST)
+    assert event["policy_acknowledgement_method"] == POLICY_ACKNOWLEDGEMENT_METHOD
+    # The two spellings are the same fact in the two vocabularies: the flag
+    # value Techtree takes, and the method name it records for it.
+    assert REVIEWED_ON_HOST_AGENT.replace("-", "_") in POLICY_ACKNOWLEDGEMENT_METHOD
 
 
 def test_a_run_cannot_start_without_a_draft() -> None:
