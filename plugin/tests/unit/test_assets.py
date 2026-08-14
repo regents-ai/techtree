@@ -63,17 +63,44 @@ def test_this_build_bundles_the_founder_skill() -> None:
     assert load_bundled_skill_text("skill-improver").startswith("---\n")
 
 
-def test_this_release_names_no_founder_skill() -> None:
-    assert names_a_founder_skill(CORE, "skill-improver") is False
-    assert expected_founder_skill_digest(CORE, "skill-improver") == PLACEHOLDER_DIGEST
+def test_this_release_names_its_improver_skill() -> None:
+    """The release binds the improver by digest, so the guided turn can run."""
+    assert names_a_founder_skill(CORE, "skill-improver") is True
+    assert expected_founder_skill_digest(CORE, "skill-improver") != PLACEHOLDER_DIGEST
+    assert "skill_improver_digest" not in CORE.placeholder_fields
 
 
-def test_a_placeholder_release_cannot_verify_a_skill(tmp_path: Path) -> None:
-    """Even with a file present, an unchosen Skill is not a founder Skill."""
+def test_the_bundled_improver_is_the_one_this_release_names() -> None:
+    """The property the canonical rehearsal depends on, checked against real bytes.
+
+    Not a fixture and not a temporary directory: the release this build ships
+    and the Skill file this build ships, verified against each other exactly
+    as the guided revision verifies them at the moment of use.
+    """
+    text = load_verified_founder_skill(CORE, "skill-improver")
+
+    assert text.startswith("---\n")
+    assert bundled_skill_digest("skill-improver") == CORE.skill_improver_digest
+    verify_founder_skill_digests(CORE)
+
+
+def test_a_release_that_chose_no_improver_cannot_verify_one(tmp_path: Path) -> None:
+    """Even with a file present, an unchosen Skill is not a founder Skill.
+
+    The release is built unchosen here rather than borrowed from this build,
+    so that binding a coordinate upstream cannot quietly turn this test into a
+    test of something else.
+    """
     _bundle(tmp_path, "skill-improver", FIXTURE_IMPROVER)
+    unchosen = dataclasses.replace(
+        CORE,
+        placeholder_release=True,
+        placeholder_fields=(*CORE.placeholder_fields, "skill_improver_digest"),
+        skill_improver_digest=PLACEHOLDER_DIGEST,
+    )
 
     with pytest.raises(PluginError, match="has not chosen") as raised:
-        load_verified_founder_skill(CORE, "skill-improver", tmp_path)
+        load_verified_founder_skill(unchosen, "skill-improver", tmp_path)
 
     assert raised.value.code == "founder_skill_missing"
 
@@ -376,9 +403,17 @@ def test_a_release_that_misdeclares_a_bound_half_is_still_refused(
     assert names_a_starter_skill(misdeclared) is False
 
 
-def test_this_build_has_neither_half_bound() -> None:
-    """The committed release leaves both unchosen, and says so."""
-    assert CORE.starter_skill_digest == PLACEHOLDER_DIGEST
+def test_this_build_has_the_starter_half_bound() -> None:
+    """Real digest, placeholder address — and the rule says so rather than rounding.
+
+    This is the honest state of the frozen build: the release knows which
+    starter Skill it measured and does not yet know where anyone else can get
+    it. Half a coordinate is not a chosen starter Skill.
+    """
+    assert CORE.starter_skill_digest != PLACEHOLDER_DIGEST
+    assert "starter_skill_digest" not in CORE.placeholder_fields
+
     assert CORE.starter_skill_object_url == PLACEHOLDER_OBJECT_URL
     assert "starter_skill_object_url" in CORE.placeholder_fields
+
     assert names_a_starter_skill(CORE) is False

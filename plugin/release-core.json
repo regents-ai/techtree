@@ -11,16 +11,14 @@
     "cli_version",
     "maximum_tested_host_hermes_version",
     "release_id",
-    "skill_improver_digest",
-    "starter_skill_digest",
     "starter_skill_object_url"
   ],
   "placeholder_release": true,
   "protocol_version": "v1alpha1",
   "release_id": "0.0.0-placeholder",
   "schema_version": "techtree.release-core.v1",
-  "skill_improver_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-  "starter_skill_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+  "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
   "starter_skill_object_url": "https://placeholder.invalid/unchosen",
   "subject_hermes_version": "0.19.0"
 }

@@ -691,13 +691,36 @@ def test_the_request_commits_to_the_digests_it_was_built_from() -> None:
 
 
 def test_a_release_that_has_not_chosen_its_improver_proposes_nothing() -> None:
-    """The committed build carries a placeholder, and says so rather than guessing."""
+    """A build with no improver coordinate says so rather than guessing.
+
+    Built unchosen here rather than borrowed from this build's own release,
+    which now binds the improver for real: a test that depended on a
+    coordinate being unbound would quietly stop testing anything the day it
+    was bound.
+    """
     host = StubHost()
+    unchosen = dataclasses.replace(
+        CORE,
+        placeholder_release=True,
+        placeholder_fields=(*CORE.placeholder_fields, "skill_improver_digest"),
+        skill_improver_digest="sha256:" + "0" * 64,
+    )
 
     with pytest.raises(PluginError, match="has not chosen its skill-improver"):
-        _propose(_service(FakeBridge(), host, release=CORE))
+        _propose(_service(FakeBridge(), host, release=unchosen))
 
     assert host.calls == []
+
+
+def test_this_builds_own_release_proposes_with_its_bundled_improver() -> None:
+    """The frozen build, end to end: release names the Skill, Skill steers the turn."""
+    host = StubHost()
+
+    proposal = _propose(_service(FakeBridge(), host, release=CORE))
+
+    assert len(host.calls) == 1
+    assert IMPROVER_TEXT in host.calls[0]["system"]
+    assert proposal.provenance.skill_improver_digest == CORE.skill_improver_digest
 
 
 def test_a_bundled_skill_that_is_not_the_pinned_one_proposes_nothing(

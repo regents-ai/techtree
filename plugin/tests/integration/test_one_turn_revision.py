@@ -439,9 +439,18 @@ def test_a_build_whose_release_named_no_improver_keeps_its_turn(
     is still there afterwards — a release coordinate nobody bound is not a
     reason to spend someone's attempt.
     """
+    embedded = load_embedded_release_core()
     placeholder = dataclasses.replace(
         services,
-        release_core=load_embedded_release_core(),
+        release_core=dataclasses.replace(
+            embedded,
+            placeholder_release=True,
+            placeholder_fields=(
+                *embedded.placeholder_fields,
+                "skill_improver_digest",
+            ),
+            skill_improver_digest="sha256:" + "0" * 64,
+        ),
     )
     started = latest_session(services)
     assert started is not None
