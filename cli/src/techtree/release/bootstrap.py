@@ -12,11 +12,19 @@ This module checks the same document from the producing end, and it does that
 for two different reasons that are worth keeping apart.
 
 *Does the wrapper still name this release?* The bootstrap and the ReleaseCore
-repeat four coordinates — the CLI version, the CLI source commit, the minimum
-host Hermes version, and the introductory Climb. Repeated values drift, and
-when they do the website tells operators to install one thing while the CLI
-believes another. Each repeat is compared individually here so a failure names
-the coordinate.
+repeat six coordinates — the CLI version, the CLI source commit, the minimum
+host Hermes version, the introductory Climb, and the starter Skill's digest and
+object URL. Repeated values drift, and when they do the website tells operators
+to install one thing while the CLI believes another. Each repeat is compared
+individually here so a failure names the coordinate.
+
+The starter Skill is the newest of those repeats and the one with the most to
+lose. Spec sections 4.1 and 10.5 make the wrapper the thing that says where the
+public Skill object is served from, and the release document the thing that
+says which bytes count. A wrapper that pointed at a different object, or named
+a different digest, would send an operator to fetch a Skill this release never
+measured — so both halves are compared, and a placeholder release is expected
+to repeat the placeholder rather than quietly fill it in.
 
 *Would the website accept these bytes at all?* The shape rules are the
 website's, not this repository's, and they stay the website's: it re-checks
@@ -34,15 +42,16 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Final
 
-from techtree.models.base import JsonValue
+from techtree.models.base import DIGEST_PATTERN, JsonValue
 from techtree.release.checks import (
     ReleaseCheck,
     ReleaseVerification,
 )
-from techtree.release.models import COMMIT_PATTERN, ReleaseCore
+from techtree.release.models import COMMIT_PATTERN, OBJECT_URL_PATTERN, ReleaseCore
 
 __all__ = [
     "BOOTSTRAP_RELEASE_INVALID",
@@ -58,6 +67,8 @@ BOOTSTRAP_RELEASE_INVALID: Final = "bootstrap_release_invalid"
 BOOTSTRAP_RELEASE_MISMATCH: Final = "bootstrap_release_mismatch"
 
 _COMMIT_RE = re.compile(COMMIT_PATTERN)
+_OBJECT_URL_RE = re.compile(OBJECT_URL_PATTERN)
+_DIGEST_RE = re.compile(DIGEST_PATTERN)
 
 #: Every field the website importer requires, and the kind it requires. Listed
 #: as paths so a failure can name the field the way the document spells it.
@@ -76,7 +87,16 @@ _REQUIRED_FIELDS: Final[tuple[tuple[tuple[str, ...], str], ...]] = (
     (("hermes_plugin", "doctor_argv"), "argv"),
     (("introductory_climb", "reference"), "string"),
     (("introductory_climb", "host_prompt"), "string"),
+    (("starter_skill", "object_url"), "object URL"),
+    (("starter_skill", "digest"), "digest"),
 )
+
+#: The kinds whose name does not take "a". Spelled out rather than derived,
+#: because the list is short and a vowel rule would be wrong for "URL".
+_IRREGULAR_ARTICLES: Final[Mapping[str, str]] = {
+    "argv": "an argument array",
+    "object URL": "an object URL",
+}
 
 
 def verify_bootstrap_document(core: ReleaseCore, raw: bytes) -> ReleaseVerification:
@@ -141,6 +161,20 @@ def verify_bootstrap_document(core: ReleaseCore, raw: bytes) -> ReleaseVerificat
                 ("introductory_climb", "reference"),
                 core.intro_climb_reference,
                 "the introductory Climb",
+            ),
+            _coordinate_check(
+                "bootstrap_starter_skill_object_url",
+                document,
+                ("starter_skill", "object_url"),
+                core.starter_skill_object_url,
+                "the starter Skill object URL",
+            ),
+            _coordinate_check(
+                "bootstrap_starter_skill_digest",
+                document,
+                ("starter_skill", "digest"),
+                core.starter_skill_digest,
+                "the starter Skill digest",
             ),
             _cli_install_argv_check(core, document),
             _plugin_install_argv_check(document),
@@ -291,6 +325,12 @@ def _holds(value: JsonValue, kind: str) -> bool:
             return isinstance(value, str) and _is_instant(value)
         case "commit":
             return isinstance(value, str) and _COMMIT_RE.fullmatch(value) is not None
+        case "digest":
+            return isinstance(value, str) and _DIGEST_RE.fullmatch(value) is not None
+        case "object URL":
+            return (
+                isinstance(value, str) and _OBJECT_URL_RE.fullmatch(value) is not None
+            )
         case "argv":
             return _is_argv(value)
     raise AssertionError(f"unknown field kind {kind!r}")
@@ -324,7 +364,7 @@ def _string_list(value: JsonValue) -> list[str]:
 
 
 def _article(kind: str) -> str:
-    return "an argument array" if kind == "argv" else f"a {kind}"
+    return _IRREGULAR_ARTICLES.get(kind, f"a {kind}")
 
 
 def _passed(identifier: str, detail: str) -> ReleaseCheck:

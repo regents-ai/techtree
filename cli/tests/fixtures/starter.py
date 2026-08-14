@@ -25,6 +25,7 @@ from techtree.models.skill import SkillFile
 from techtree.release.models import (
     PLACEHOLDER_COMMIT,
     PLACEHOLDER_DIGEST,
+    PLACEHOLDER_OBJECT_URL,
     PLACEHOLDER_VALUES,
     PLACEHOLDER_VERSION,
     ReleaseCore,
@@ -54,12 +55,16 @@ def tree_digest(root: Path) -> Digest:
     return skill_content_digest(entries)
 
 
-def release_pinning(starter: Digest) -> ReleaseCore:
+def release_pinning(starter: Digest, object_url: str | None = None) -> ReleaseCore:
     """Return a ReleaseCore that pins one starter Skill and invents nothing.
 
     Every other unchosen coordinate keeps its placeholder spelling, so the
     document declares exactly what it has decided — which is what makes it a
     legitimate stand-in for the release that will pin a real Skill.
+
+    ``object_url`` is the address the release publishes that Skill at. It
+    defaults to unchosen, because pinning which bytes count and publishing them
+    are two separate decisions and most tests only need the first.
     """
     values = {
         "cli_source_commit": PLACEHOLDER_COMMIT,
@@ -69,6 +74,7 @@ def release_pinning(starter: Digest) -> ReleaseCore:
         "release_id": PLACEHOLDER_VERSION,
         "skill_improver_digest": PLACEHOLDER_DIGEST,
         "starter_skill_digest": starter,
+        "starter_skill_object_url": object_url or PLACEHOLDER_OBJECT_URL,
     }
     placeholders = declared_placeholder_fields(values)
     return ReleaseCore(
@@ -85,5 +91,5 @@ def release_pinning(starter: Digest) -> ReleaseCore:
 
 
 def is_placeholder(value: str) -> bool:
-    """Return whether a value is one of the three placeholder spellings."""
+    """Return whether a value is one of the four placeholder spellings."""
     return value in PLACEHOLDER_VALUES

@@ -12,6 +12,13 @@ looked at. So a check is ``passed``, ``failed``, or ``skipped``, and a
 verification is verified when nothing failed — with every skip still visible in
 the output, named and explained.
 
+Two coordinates cannot be settled from inside an installed CLI at all: the two
+founder Skill digests, whose bytes live with the plugin and the website, and
+the address the starter Skill is published at, which a verification that
+contacts nothing must not go and fetch. Those are reported as skips with their
+values in the detail, so a reader sees the coordinate and sees that nobody
+here checked it.
+
 Placeholders are checked, not excused. A coordinate the release declares as
 still unbound is verified to be *visibly* unbound: it must carry the canonical
 placeholder spelling, and — for the CLI version, the one placeholder that has a
@@ -164,6 +171,7 @@ def verify_release_core(
             _intro_climb_check(core, facts),
             _subject_hermes_check(core, facts),
             *_founder_skill_checks(core),
+            _starter_skill_source_check(core),
         ]
     )
     return _verification(checks)
@@ -338,6 +346,28 @@ def _founder_skill_checks(core: ReleaseCore) -> list[ReleaseCheck]:
             )
         )
     return checks
+
+
+def _starter_skill_source_check(core: ReleaseCore) -> ReleaseCheck:
+    """Report where the starter Skill is published, without going to look.
+
+    ``release verify`` contacts nothing, which is the property that lets a host
+    agent run it on a machine that has just been installed and may not be
+    online. So a bound address is reported rather than resolved: what the bytes
+    at the other end have to be is already settled by the digest beside it, and
+    that comparison happens where the fetch does (spec section 10.5).
+    """
+    if "starter_skill_object_url" in core.placeholder_fields:
+        return _passed(
+            "starter_skill_object_url",
+            "the starter Skill has not been published anywhere yet.",
+        )
+    return _skipped(
+        "starter_skill_object_url",
+        f"this release publishes the starter Skill at "
+        f"{core.starter_skill_object_url}; nothing is fetched here, and what "
+        "is served is checked against the digest when it is obtained.",
+    )
 
 
 # ---------------------------------------------------------------------------

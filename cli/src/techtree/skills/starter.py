@@ -15,6 +15,14 @@ is made against the release document, never against anything a caller passed
 in. So a wrong URL, a stale download, or a helpful mirror serving something
 else all end the same way: refused.
 
+*A release that published its Skill needs nobody to name a source.* Spec
+sections 4.1 and 10.5 make the starter Skill a public object at an exact URL,
+and the release carries that URL as ``starter_skill_object_url``. So a caller
+who names nothing gets the published object, and the identity check over what
+arrives is the same one a hand-typed URL goes through — the release's address
+buys the bytes no trust at all. A build whose URL is still the placeholder has
+published nothing, and says that instead of guessing.
+
 *The digest is the Skill's root digest, not a file hash.* Decisions document
 0008 fixes this: the starter Skill is evaluated through the kernel, so it is
 pinned by its ``SkillArtifact.root_digest`` — the ordered content-tree digest
@@ -69,7 +77,11 @@ from techtree.models.base import Digest
 from techtree.models.cli import NextAction
 from techtree.models.skill import SKILL_ENTRY_FILE, SkillFile
 from techtree.paths import TechtreePaths
-from techtree.release.models import PLACEHOLDER_DIGEST, ReleaseCore
+from techtree.release.models import (
+    PLACEHOLDER_DIGEST,
+    PLACEHOLDER_OBJECT_URL,
+    ReleaseCore,
+)
 from techtree.skills.policy import default_instruction_skill_policy
 from techtree.skills.scanner import SkillScanResult, resolve_skill_root, scan_skill
 
@@ -122,7 +134,7 @@ class MaterializedStarterSkill:
     root_digest: Digest
     file_count: int
     total_bytes: int
-    origin: Literal["cache", "local_file", "download"]
+    origin: Literal["cache", "local_file", "download", "release"]
 
 
 class StarterSkillService:
@@ -157,23 +169,16 @@ class StarterSkillService:
         destination = self._paths.skill_cache_dir(pinned)
 
         with self._cache_lock():
-            if local_file is None and url is None:
-                cached = _verified_cache_entry(destination, pinned)
-                if cached is None:
-                    raise NotFoundError(
-                        "this machine does not hold the starter Skill this "
-                        "release pins, and no source was named to get it from",
-                        code=STARTER_SKILL_UNAVAILABLE,
-                        details={"expected": pinned, "cache": str(destination)},
-                    )
-                return _describe(cached, origin="cache")
-
-            origin: Literal["local_file", "download"]
+            origin: Literal["local_file", "download", "release"]
             if local_file is not None:
                 origin, source = "local_file", str(local_file)
-            else:
-                assert url is not None
+            elif url is not None:
                 origin, source = "download", url
+            else:
+                cached = _verified_cache_entry(destination, pinned)
+                if cached is not None:
+                    return _describe(cached, origin="cache")
+                origin, source = "release", _published_source(release, destination)
 
             staging = destination.parent / f"{_STAGING_PREFIX}{destination.name}"
             remove_tree(staging)
@@ -258,6 +263,29 @@ def _pinned_digest(release: ReleaseCore) -> Digest:
             ],
         )
     return release.starter_skill_digest
+
+
+def _published_source(release: ReleaseCore, cache: Path) -> str:
+    """Return the address this release publishes its starter Skill at.
+
+    Reached only when nothing is cached and nobody named a source, so the
+    refusal here is the one a person sees when there is genuinely nowhere to
+    look: this machine does not hold the Skill and this build's release never
+    said where it lives.
+    """
+    if release.starter_skill_object_url == PLACEHOLDER_OBJECT_URL:
+        raise NotFoundError(
+            "this machine does not hold the starter Skill this release pins, "
+            "and the release does not say where it is published yet, so there "
+            "is nowhere to get it from",
+            code=STARTER_SKILL_UNAVAILABLE,
+            details={
+                "expected": release.starter_skill_digest,
+                "cache": str(cache),
+                "release_id": release.release_id,
+            },
+        )
+    return release.starter_skill_object_url
 
 
 def _stage_local(source: Path, staging: Path) -> None:
@@ -349,7 +377,7 @@ def _root_digest(scan: SkillScanResult) -> Digest:
 def _describe(
     scan: SkillScanResult,
     *,
-    origin: Literal["cache", "local_file", "download"],
+    origin: Literal["cache", "local_file", "download", "release"],
 ) -> MaterializedStarterSkill:
     """Say where the verified Skill is and how it got there."""
     return MaterializedStarterSkill(

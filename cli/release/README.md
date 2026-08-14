@@ -15,8 +15,11 @@ sections 6.6, 9.3–9.5 and 9.7.
 | `skills/hello-world-starter-v1/SKILL.md` | the founder | The starter Skill the release names. |
 
 The starter Skill sits here rather than inside the package because the wheel
-carries no Skill bytes: what a machine runs is fetched and checked against
-`starter_skill_digest`, and this is the copy that digest is taken from. It is
+carries no Skill bytes: what a machine runs is fetched from
+`starter_skill_object_url` and checked against `starter_skill_digest`, and this
+is the copy that digest is taken from. The two coordinates are one decision in
+two halves — an address with no digest invites running whatever is served, and
+a digest with no address names bytes nobody can obtain. It is
 the founder's own text with one change the founder directed, so nothing
 generates it and nothing may edit it without a new approval.
 
@@ -42,14 +45,16 @@ document says so in its own data:
 placeholder_release   true
 placeholder_fields    cli_source_commit, cli_version,
                       maximum_tested_host_hermes_version, release_id,
-                      skill_improver_digest, starter_skill_digest
+                      skill_improver_digest, starter_skill_digest,
+                      starter_skill_object_url
 ```
 
-There are three spellings of "not chosen yet", one per kind of coordinate, and
+There are four spellings of "not chosen yet", one per kind of coordinate, and
 none of them can collide with a real value: the version `0.0.0-placeholder`,
-the commit of forty zeros, and the digest of sixty-four zeros. A blank is never
-an empty string and never an omitted field, because both of those read as an
-oversight.
+the commit of forty zeros, the digest of sixty-four zeros, and the address
+`https://placeholder.invalid/unchosen`, under the top-level domain RFC 2606
+reserves so that it can never resolve. A blank is never an empty string and
+never an omitted field, because both of those read as an oversight.
 
 The declaration is checked in both directions. A document cannot claim to be a
 real release while it still holds a blank, and cannot be marked provisional
@@ -61,8 +66,9 @@ read out of this source tree, so they are never blank at all.
 
 1. Edit `release-inputs.json`. Every value in it is a decision, not a
    derivation: the release identifier, the published CLI version, the tagged
-   source commit, the introductory Climb, the two Skill artifacts, and the
-   host Hermes range that has actually been tested.
+   source commit, the introductory Climb, the two Skill artifacts, the address
+   the starter Skill is published at, and the host Hermes range that has
+   actually been tested.
 2. Run `make release-core`. It rewrites the four generated files from the
    inputs and from this source tree, and prints the ReleaseCore digest.
 3. Run `make check`. The drift check regenerates everything in a throwaway copy

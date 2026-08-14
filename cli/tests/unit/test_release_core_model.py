@@ -23,6 +23,7 @@ from techtree.release.document import (
 from techtree.release.models import (
     PLACEHOLDER_COMMIT,
     PLACEHOLDER_DIGEST,
+    PLACEHOLDER_OBJECT_URL,
     PLACEHOLDER_VERSION,
     ReleaseCore,
     ReleaseInputs,
@@ -32,6 +33,7 @@ from techtree.release.models import (
 REAL_DIGEST = "sha256:" + "a1" * 32
 OTHER_DIGEST = "sha256:" + "b2" * 32
 REAL_COMMIT = "c" * 40
+REAL_OBJECT_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
 
 
 def bound_fields() -> dict[str, Any]:
@@ -48,6 +50,7 @@ def bound_fields() -> dict[str, Any]:
         "catalog_digest": OTHER_DIGEST,
         "intro_climb_reference": "hello-world-climb@1",
         "starter_skill_digest": REAL_DIGEST,
+        "starter_skill_object_url": REAL_OBJECT_URL,
         "skill_improver_digest": REAL_DIGEST,
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": "0.19.3",
@@ -137,23 +140,60 @@ def test_every_placeholder_kind_has_exactly_one_spelling() -> None:
             "cli_version",
             "release_id",
             "starter_skill_digest",
+            "starter_skill_object_url",
         ],
         cli_source_commit=PLACEHOLDER_COMMIT,
         cli_version=PLACEHOLDER_VERSION,
         release_id=PLACEHOLDER_VERSION,
         starter_skill_digest=PLACEHOLDER_DIGEST,
+        starter_skill_object_url=PLACEHOLDER_OBJECT_URL,
     )
     assert declared_placeholder_fields(document.model_dump(mode="json")) == [
         "cli_source_commit",
         "cli_version",
         "release_id",
         "starter_skill_digest",
+        "starter_skill_object_url",
     ]
 
 
 def test_an_abbreviated_commit_is_not_a_commit() -> None:
     with pytest.raises(PydanticValidationError):
         core(cli_source_commit="c" * 12)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("http://techtree.sh/objects/SKILL.md", id="plaintext"),
+        pytest.param("techtree.sh/objects/SKILL.md", id="no scheme"),
+        pytest.param("/objects/SKILL.md", id="relative"),
+        pytest.param("https://techtree.sh", id="bare host"),
+        pytest.param("https://techtree.sh/a b", id="whitespace"),
+        pytest.param("https://techtree.sh/objects/SKILL.md\n", id="trailing newline"),
+        pytest.param("", id="empty"),
+        pytest.param("https://user:token@techtree.sh/SKILL.md", id="userinfo"),
+        pytest.param("https://token@techtree.sh/SKILL.md", id="bare userinfo"),
+    ],
+)
+def test_a_starter_skill_address_that_is_not_one_exact_object_is_refused(
+    value: str,
+) -> None:
+    """Spec section 4.1: an exact read-only object URL, or no coordinate.
+
+    Userinfo is refused for a reason of its own: the coordinate is copied into
+    the plugin, the website and an approval packet, so an address that can
+    carry a credential is an address that can leak one.
+    """
+    with pytest.raises(PydanticValidationError):
+        core(starter_skill_object_url=value)
+
+
+def test_a_path_may_still_contain_an_at_sign() -> None:
+    """Only the authority is constrained; a versioned path is an ordinary one."""
+    assert core(
+        starter_skill_object_url="https://techtree.sh/objects/starter@1/SKILL.md"
+    ).starter_skill_object_url.endswith("starter@1/SKILL.md")
 
 
 def test_an_unknown_field_is_refused() -> None:
@@ -217,6 +257,7 @@ def founder_inputs() -> dict[str, Any]:
         "cli_source_commit": REAL_COMMIT,
         "intro_climb_reference": "hello-world-climb@1",
         "starter_skill_digest": REAL_DIGEST,
+        "starter_skill_object_url": REAL_OBJECT_URL,
         "skill_improver_digest": REAL_DIGEST,
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": "0.19.3",

@@ -11,12 +11,16 @@
     "NonEmptyString": {
       "minLength": 1,
       "type": "string"
+    },
+    "ObjectUrl": {
+      "pattern": "^https://[^\\s/@]+/[^\\s]*$",
+      "type": "string"
     }
   },
   "$id": "https://schemas.techtree.dev/release/release-core.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "The frozen coordinates of one Climb release. Spec section 6.6.\n\nThe field list is the specification's, with one addition: the release says\nout loud whether it is a placeholder and which of its coordinates are still\nblank. Downstream repositories copy these bytes verbatim, so a reader that\nnever learns to decode anything else still learns that much.",
+  "description": "The frozen coordinates of one Climb release. Spec section 6.6.\n\nThe field list is the specification's, with one addition: the release says\nout loud whether it is a placeholder and which of its coordinates are still\nblank. Downstream repositories copy these bytes verbatim, so a reader that\nnever learns to decode anything else still learns that much.\n\n``starter_skill_digest`` and ``starter_skill_object_url`` are two halves of\none coordinate and neither substitutes for the other. The digest says\n*which* Skill the release measured — spec section 4.1 and decisions 0008\nmake it the ordered content-tree digest, not a file hash — and the URL says\nwhere a machine that does not already hold those bytes can obtain them.\nWithout the URL the digest names a Skill nobody can fetch; without the\ndigest the URL is an invitation to run whatever is served.",
   "properties": {
     "catalog_digest": {
       "$ref": "#/$defs/Digest"
@@ -67,6 +71,9 @@
     "starter_skill_digest": {
       "$ref": "#/$defs/Digest"
     },
+    "starter_skill_object_url": {
+      "$ref": "#/$defs/ObjectUrl"
+    },
     "subject_hermes_version": {
       "$ref": "#/$defs/NonEmptyString"
     }
@@ -83,6 +90,7 @@
     "catalog_digest",
     "intro_climb_reference",
     "starter_skill_digest",
+    "starter_skill_object_url",
     "skill_improver_digest",
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",

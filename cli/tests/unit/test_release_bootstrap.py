@@ -28,12 +28,14 @@ from techtree.release.checks import ReleaseCheck, ReleaseVerification
 from techtree.release.models import (
     PLACEHOLDER_COMMIT,
     PLACEHOLDER_DIGEST,
+    PLACEHOLDER_OBJECT_URL,
     PLACEHOLDER_VERSION,
     ReleaseCore,
 )
 
 INTRO_CLIMB = "hello-world-climb@1"
 PLUGIN_COMMIT = "e" * 40
+STARTER_OBJECT_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
 
 
 def core(**overrides: Any) -> ReleaseCore:
@@ -48,6 +50,7 @@ def core(**overrides: Any) -> ReleaseCore:
             "release_id",
             "skill_improver_digest",
             "starter_skill_digest",
+            "starter_skill_object_url",
         ],
         "release_id": PLACEHOLDER_VERSION,
         "cli_version": PLACEHOLDER_VERSION,
@@ -57,6 +60,7 @@ def core(**overrides: Any) -> ReleaseCore:
         "catalog_digest": "sha256:" + "2b" * 32,
         "intro_climb_reference": INTRO_CLIMB,
         "starter_skill_digest": PLACEHOLDER_DIGEST,
+        "starter_skill_object_url": PLACEHOLDER_OBJECT_URL,
         "skill_improver_digest": PLACEHOLDER_DIGEST,
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": PLACEHOLDER_VERSION,
@@ -113,6 +117,11 @@ def bootstrap(**overrides: Any) -> dict[str, Any]:
             "reference": INTRO_CLIMB,
             "host_prompt": "Set up Techtree and run the introductory Climb.",
         },
+        "starter_skill": {
+            "name": "hello-world-starter-v1",
+            "object_url": PLACEHOLDER_OBJECT_URL,
+            "digest": PLACEHOLDER_DIGEST,
+        },
     }
     return {**document, **overrides}
 
@@ -162,6 +171,8 @@ def test_a_wrapper_that_names_this_release_verifies() -> None:
         "bootstrap_cli_source_revision",
         "bootstrap_hermes_minimum",
         "bootstrap_intro_climb",
+        "bootstrap_starter_skill_object_url",
+        "bootstrap_starter_skill_digest",
         "bootstrap_cli_install_argv",
         "bootstrap_plugin_install_argv",
     }
@@ -198,6 +209,56 @@ def test_a_wrapper_naming_another_hermes_minimum_fails_alone() -> None:
 def test_a_wrapper_naming_another_climb_fails_alone() -> None:
     result = check(replacing("introductory_climb", reference="something-else@1"))
     assert_only_failure(result, "bootstrap_intro_climb", BOOTSTRAP_RELEASE_MISMATCH)
+
+
+def test_a_wrapper_serving_the_starter_skill_elsewhere_fails_alone() -> None:
+    """Spec section 10.5: the wrapper says where the public Skill object is."""
+    result = check(replacing("starter_skill", object_url=STARTER_OBJECT_URL))
+    assert_only_failure(
+        result, "bootstrap_starter_skill_object_url", BOOTSTRAP_RELEASE_MISMATCH
+    )
+
+
+def test_a_wrapper_naming_another_starter_skill_fails_alone() -> None:
+    """An address the release agrees with, over bytes it never measured."""
+    result = check(replacing("starter_skill", digest="sha256:" + "7a" * 32))
+    assert_only_failure(
+        result, "bootstrap_starter_skill_digest", BOOTSTRAP_RELEASE_MISMATCH
+    )
+
+
+def test_a_wrapper_that_publishes_no_starter_skill_at_all_is_refused() -> None:
+    """The coordinate is required, so an omitted section is a shape failure."""
+    document = bootstrap()
+    del document["starter_skill"]
+    result = check(document)
+    assert_only_failure(
+        result, "bootstrap_importer_contract", BOOTSTRAP_RELEASE_INVALID
+    )
+    assert "starter_skill.object_url must be an object URL" in result.failures[0].detail
+    assert "starter_skill.digest must be a digest" in result.failures[0].detail
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "techtree.sh/SKILL.md",
+        "http://techtree.sh/SKILL.md",
+        "https://techtree.sh",
+        "",
+        "https://user:token@techtree.sh/SKILL.md",
+    ],
+)
+def test_an_address_that_is_not_one_exact_object_is_refused(value: str) -> None:
+    """Decision 0007 R10: concrete and immutable, or the release is not real.
+
+    A credential in the authority is refused on both sides of the boundary: the
+    website would be publishing it to everyone who reads the wrapper.
+    """
+    result = check(replacing("starter_skill", object_url=value))
+    assert_only_failure(
+        result, "bootstrap_importer_contract", BOOTSTRAP_RELEASE_INVALID
+    )
 
 
 def test_an_install_command_that_does_not_pin_the_version_fails_alone() -> None:
@@ -269,6 +330,7 @@ def test_a_placeholder_wrapper_over_a_real_release_is_refused() -> None:
         maximum_tested_host_hermes_version="0.19.3",
         skill_improver_digest="sha256:" + "5e" * 32,
         starter_skill_digest="sha256:" + "6f" * 32,
+        starter_skill_object_url=STARTER_OBJECT_URL,
     )
     document = replacing(
         "cli",
@@ -276,6 +338,11 @@ def test_a_placeholder_wrapper_over_a_real_release_is_refused() -> None:
         source_revision="f" * 40,
         install_argv=["uv", "tool", "install", "techtree==0.1.0"],
     )
+    document["starter_skill"] = {
+        **document["starter_skill"],
+        "object_url": STARTER_OBJECT_URL,
+        "digest": "sha256:" + "6f" * 32,
+    }
     result = check(document, real)
     assert_only_failure(
         result, "bootstrap_placeholder_declaration", BOOTSTRAP_RELEASE_MISMATCH

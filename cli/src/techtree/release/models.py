@@ -31,10 +31,12 @@ introductory Climb, the subject harness — by refusing any placeholder spelling
 in them at all. Those are never unknown at generation time, so a placeholder
 there is a defect in the generator, not a pending decision.
 
-There are exactly three placeholder spellings, one per kind of coordinate: a
-version string, a 40-character commit, and a digest. Each is unmistakable and
-none can ever collide with a real value — no release is version
-``0.0.0-placeholder``, no commit is forty zeros, and no bytes hash to zero.
+There are exactly four placeholder spellings, one per kind of coordinate: a
+version string, a 40-character commit, a digest, and an object URL. Each is
+unmistakable and none can ever collide with a real value — no release is
+version ``0.0.0-placeholder``, no commit is forty zeros, no bytes hash to zero,
+and nothing is ever served from a host under ``.invalid``, the top-level domain
+RFC 2606 reserves for names guaranteed never to resolve.
 """
 
 from __future__ import annotations
@@ -51,14 +53,17 @@ __all__ = [
     "ALWAYS_BOUND_FIELDS",
     "BUILD_INFO_SCHEMA_VERSION",
     "COMMIT_PATTERN",
+    "OBJECT_URL_PATTERN",
     "PLACEHOLDER_COMMIT",
     "PLACEHOLDER_DIGEST",
+    "PLACEHOLDER_OBJECT_URL",
     "PLACEHOLDER_SPELLINGS",
     "PLACEHOLDER_VALUES",
     "PLACEHOLDER_VERSION",
     "RELEASE_CORE_SCHEMA_VERSION",
     "RELEASE_INPUTS_SCHEMA_VERSION",
     "Commit",
+    "ObjectUrl",
     "ReleaseCore",
     "ReleaseInputs",
     "declared_placeholder_fields",
@@ -74,12 +79,32 @@ COMMIT_PATTERN: Final = r"^[0-9a-f]{40}$"
 
 type Commit = Annotated[str, StringConstraints(pattern=COMMIT_PATTERN)]
 
+#: Where a published artifact is served from. Spec section 4.1 requires the
+#: starter Skill to be an exact read-only object URL, and decision 0007 R10
+#: requires every coordinate of a real release to be concrete and immutable, so
+#: only an absolute ``https`` address is a coordinate at all: a relative path,
+#: a bare host, or a plaintext URL are each a different kind of "somewhere".
+#:
+#: The authority may not carry userinfo. A published coordinate is copied into
+#: the plugin, into the website, into an approval packet and into support
+#: transcripts, and ``https://user:token@host/…`` would carry a credential
+#: through every one of them — while also making the address mean different
+#: things to different readers. A public read-only object needs no credential,
+#: so an address that offers one is not the coordinate this field is for.
+OBJECT_URL_PATTERN: Final = r"^https://[^\s/@]+/[^\s]*$"
+
+type ObjectUrl = Annotated[str, StringConstraints(pattern=OBJECT_URL_PATTERN)]
+
 #: The one spelling of "a version nobody has chosen yet".
 PLACEHOLDER_VERSION: Final = "0.0.0-placeholder"
 #: The one spelling of "a commit that does not exist yet".
 PLACEHOLDER_COMMIT: Final = "0" * 40
 #: The one spelling of "bytes that do not exist yet". Nothing hashes to this.
 PLACEHOLDER_DIGEST: Final = f"{DIGEST_PREFIX}{'0' * 64}"
+#: The one spelling of "an address nobody has published yet". ``.invalid`` is
+#: reserved by RFC 2606 precisely so that it can never resolve, so this is a
+#: URL that is well formed, obviously unchosen, and unfetchable by design.
+PLACEHOLDER_OBJECT_URL: Final = "https://placeholder.invalid/unchosen"
 
 #: Which ReleaseCore fields may stand unbound, and what each one looks like
 #: while it does. A field that is not in here must always carry a real value.
@@ -91,6 +116,7 @@ PLACEHOLDER_SPELLINGS: Final[Mapping[str, str]] = {
     "release_id": PLACEHOLDER_VERSION,
     "skill_improver_digest": PLACEHOLDER_DIGEST,
     "starter_skill_digest": PLACEHOLDER_DIGEST,
+    "starter_skill_object_url": PLACEHOLDER_OBJECT_URL,
 }
 
 #: Every placeholder spelling, whatever field it belongs to.
@@ -123,6 +149,14 @@ class ReleaseCore(ProtocolModel):
     out loud whether it is a placeholder and which of its coordinates are still
     blank. Downstream repositories copy these bytes verbatim, so a reader that
     never learns to decode anything else still learns that much.
+
+    ``starter_skill_digest`` and ``starter_skill_object_url`` are two halves of
+    one coordinate and neither substitutes for the other. The digest says
+    *which* Skill the release measured — spec section 4.1 and decisions 0008
+    make it the ordered content-tree digest, not a file hash — and the URL says
+    where a machine that does not already hold those bytes can obtain them.
+    Without the URL the digest names a Skill nobody can fetch; without the
+    digest the URL is an invitation to run whatever is served.
     """
 
     schema_version: Literal["techtree.release-core.v1"]
@@ -136,6 +170,7 @@ class ReleaseCore(ProtocolModel):
     catalog_digest: Digest
     intro_climb_reference: NonEmptyString
     starter_skill_digest: Digest
+    starter_skill_object_url: ObjectUrl
     skill_improver_digest: Digest
     minimum_host_hermes_version: NonEmptyString
     maximum_tested_host_hermes_version: NonEmptyString
@@ -207,6 +242,7 @@ class ReleaseInputs(ProtocolModel):
     cli_source_commit: Commit
     intro_climb_reference: NonEmptyString
     starter_skill_digest: Digest
+    starter_skill_object_url: ObjectUrl
     skill_improver_digest: Digest
     minimum_host_hermes_version: NonEmptyString
     maximum_tested_host_hermes_version: NonEmptyString

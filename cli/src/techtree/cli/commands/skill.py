@@ -5,6 +5,12 @@ on this machine, and say where it is. The guided first run needs a Skill
 before it can prepare anything, and until this command existed the only way
 to get one was for a person to already have the file.
 
+Run with no options it needs nothing from the caller at all: the release names
+both which Skill it measured and the address that Skill is published at, so
+``--from-file`` and ``--from-url`` are for the cases where somebody has a copy
+of their own. Whichever route the bytes take, they are proved against the
+release's digest before they are kept.
+
 What it returns goes through ``climb prepare`` like anybody else's Skill: the
 same scanner, the same policy, the same draft, the same confirmation. There is
 no privileged route for a Skill because a release named it — the release's
@@ -86,7 +92,7 @@ class StarterSkillPayload(ProtocolModel):
     candidate_label: NonEmptyString
     file_count: int
     total_bytes: int
-    origin: Literal["cache", "local_file", "download"]
+    origin: Literal["cache", "local_file", "download", "release"]
     intro_climb_reference: NonEmptyString
 
 
@@ -105,7 +111,10 @@ def starter_skill_command(
         typer.Option(
             "--from-url",
             metavar="URL",
-            help="Where to fetch the starter Skill from, if it is not here yet.",
+            help=(
+                "Where to fetch the starter Skill from, instead of the address "
+                "this release publishes it at."
+            ),
         ),
     ] = None,
 ) -> None:
@@ -150,6 +159,7 @@ def _summary(materialized: MaterializedStarterSkill) -> str:
         "cache": "was already on this machine",
         "local_file": "was read from the file you named",
         "download": "was fetched from the source you named",
+        "release": "was fetched from the address this release publishes it at",
     }[materialized.origin]
     return (
         f"The starter Skill {how} and matches the digest this release pins. "

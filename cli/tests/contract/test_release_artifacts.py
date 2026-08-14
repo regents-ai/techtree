@@ -18,12 +18,14 @@ from typing import Any
 
 import pytest
 
+from fixtures.starter import tree_digest
 from techtree.release.document import (
     document_digest,
     is_canonical_document,
     packaged_release_core_bytes,
     parse_release_core,
 )
+from techtree.release.models import PLACEHOLDER_DIGEST, PLACEHOLDER_OBJECT_URL
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_DIRECTORY = REPOSITORY_ROOT / "release"
@@ -184,6 +186,7 @@ def test_this_build_carries_a_self_declaring_placeholder_release() -> None:
         "release_id",
         "skill_improver_digest",
         "starter_skill_digest",
+        "starter_skill_object_url",
     ]
 
 
@@ -266,6 +269,34 @@ def test_the_starter_skill_says_nothing_about_being_incomplete() -> None:
 def test_the_starter_skill_is_licensed_the_way_the_founder_chose() -> None:
     """Decisions 0011: MIT everywhere, and no edit needed before hashing."""
     assert "license: MIT" in STARTER_SKILL.read_text().split("---", 2)[1]
+
+
+#: The digest the release will bind ``starter_skill_digest`` to. Decisions 0008
+#: item 1 makes it the ordered content-tree digest the scanner computes, not the
+#: SHA-256 of the file, and decision 0012 ratified these bytes at this path. The
+#: value is written out rather than recomputed so that an edit to the Skill has
+#: to be an edit to the coordinate as well.
+STARTER_SKILL_TREE_DIGEST = (
+    "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+)
+
+
+def test_the_starter_skill_still_hashes_to_the_digest_the_release_will_pin() -> None:
+    """The Skill and the coordinate that names it cannot drift apart silently."""
+    assert tree_digest(STARTER_SKILL.parent) == STARTER_SKILL_TREE_DIGEST
+
+
+def test_the_starter_skill_coordinates_are_both_still_unchosen() -> None:
+    """A digest with no address names bytes nobody can fetch, and vice versa.
+
+    Both halves are founder decisions taken at the same moment, so this build
+    carries both placeholders or neither. The pair is asserted rather than
+    assumed because binding one alone would produce a release that verifies and
+    still cannot hand anybody a Skill.
+    """
+    core = parse_release_core(packaged_release_core_bytes())
+    assert core.starter_skill_digest == PLACEHOLDER_DIGEST
+    assert core.starter_skill_object_url == PLACEHOLDER_OBJECT_URL
 
 
 def _committed_paths() -> list[Path]:

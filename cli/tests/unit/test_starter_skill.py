@@ -52,6 +52,9 @@ from techtree.skills.starter import (
 #: Any digest that is not the fixture's, spelled so a failure is readable.
 OTHER_DIGEST: Digest = f"sha256:{'1' * 64}"
 
+#: The address a release that has published its starter Skill would carry.
+PUBLISHED_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
+
 
 @pytest.fixture
 def pinned() -> Digest:
@@ -99,6 +102,64 @@ def test_naming_the_entry_file_and_naming_its_directory_agree(
     )
 
     assert from_directory.root_digest == from_entrypoint.root_digest == pinned
+
+
+def test_a_published_release_needs_nobody_to_name_a_source(
+    temp_techtree_home: Path, pinned: Digest
+) -> None:
+    """Spec section 10.5: the release carries the address, so the caller need not.
+
+    The fetcher is substituted rather than a socket opened — what is under test
+    is which address the service decides to read, and that decision is made
+    before any transport is involved.
+    """
+    asked: list[str] = []
+
+    def download(url: str) -> bytes:
+        asked.append(url)
+        return (STARTER_FIXTURE / "SKILL.md").read_bytes()
+
+    service = StarterSkillService(
+        paths_from_root(temp_techtree_home), download=download
+    )
+    materialized = service.materialize(
+        release=release(pinned, object_url=PUBLISHED_URL)
+    )
+
+    assert asked == [PUBLISHED_URL]
+    assert materialized.origin == "release"
+    assert materialized.root_digest == pinned
+
+
+def test_the_published_address_buys_the_bytes_it_serves_no_trust(
+    temp_techtree_home: Path, pinned: Digest
+) -> None:
+    """The release's own URL goes through the same identity check as any other."""
+    service = StarterSkillService(
+        paths_from_root(temp_techtree_home),
+        download=lambda url: b"---\nname: other\n---\n\nSomething else.\n",
+    )
+
+    with pytest.raises(VerificationError) as raised:
+        service.materialize(release=release(pinned, object_url=PUBLISHED_URL))
+
+    assert raised.value.code == STARTER_SKILL_DIGEST_MISMATCH
+    assert raised.value.details["source"] == PUBLISHED_URL
+
+
+def test_a_cache_hit_never_reaches_for_the_published_address(
+    temp_techtree_home: Path, pinned: Digest
+) -> None:
+    """What is already proved on this machine is not re-fetched."""
+
+    def refuse(url: str) -> bytes:
+        raise AssertionError(f"nothing should be fetched, but {url} was")
+
+    service = StarterSkillService(paths_from_root(temp_techtree_home), download=refuse)
+    published = release(pinned, object_url=PUBLISHED_URL)
+    service.materialize(release=published, local_file=STARTER_FIXTURE)
+
+    assert service.materialize(release=published).origin == "cache"
 
 
 def test_a_second_call_reuses_what_this_machine_already_has(

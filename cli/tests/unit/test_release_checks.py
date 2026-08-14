@@ -28,6 +28,7 @@ from techtree.release.document import document_digest, render_release_core
 from techtree.release.models import (
     PLACEHOLDER_COMMIT,
     PLACEHOLDER_DIGEST,
+    PLACEHOLDER_OBJECT_URL,
     PLACEHOLDER_VERSION,
     ReleaseCore,
 )
@@ -37,6 +38,7 @@ CATALOG_DIGEST = "sha256:" + "2b" * 32
 SKILL_DIGEST = "sha256:" + "3c" * 32
 SOURCE_COMMIT = "d" * 40
 INTRO_CLIMB = "hello-world-climb@1"
+SKILL_OBJECT_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
 
 
 def bound_core(**overrides: Any) -> ReleaseCore:
@@ -53,6 +55,7 @@ def bound_core(**overrides: Any) -> ReleaseCore:
         "catalog_digest": CATALOG_DIGEST,
         "intro_climb_reference": INTRO_CLIMB,
         "starter_skill_digest": SKILL_DIGEST,
+        "starter_skill_object_url": SKILL_OBJECT_URL,
         "skill_improver_digest": SKILL_DIGEST,
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": "0.19.3",
@@ -72,6 +75,7 @@ def placeholder_core(**overrides: Any) -> ReleaseCore:
             "release_id",
             "skill_improver_digest",
             "starter_skill_digest",
+            "starter_skill_object_url",
         ],
         cli_source_commit=PLACEHOLDER_COMMIT,
         cli_version=PLACEHOLDER_VERSION,
@@ -79,6 +83,7 @@ def placeholder_core(**overrides: Any) -> ReleaseCore:
         release_id=PLACEHOLDER_VERSION,
         skill_improver_digest=PLACEHOLDER_DIGEST,
         starter_skill_digest=PLACEHOLDER_DIGEST,
+        starter_skill_object_url=PLACEHOLDER_OBJECT_URL,
         **overrides,
     )
 
@@ -141,6 +146,7 @@ def test_every_coordinate_is_checked_by_a_named_check() -> None:
         "intro_climb_reference",
         "subject_hermes_version",
         "starter_skill_digest",
+        "starter_skill_object_url",
         "skill_improver_digest",
     }
 
@@ -266,11 +272,23 @@ def test_unbound_skill_digests_pass_and_bound_ones_are_left_to_the_plugin() -> N
     assert "carries no Skill bytes" in bound["starter_skill_digest"].detail
 
 
+def test_an_unpublished_starter_skill_passes_and_a_published_one_is_reported() -> None:
+    """Verification never fetches, so a bound address is reported, not resolved."""
+    unbound = by_id(run(placeholder_core(), agreeing_facts()))
+    assert unbound["starter_skill_object_url"].status == "passed"
+    assert "not been published" in unbound["starter_skill_object_url"].detail
+
+    bound = by_id(run(bound_core(), agreeing_facts()))
+    assert bound["starter_skill_object_url"].status == "skipped"
+    assert SKILL_OBJECT_URL in bound["starter_skill_object_url"].detail
+
+
 def test_a_check_that_could_not_run_is_never_reported_as_a_pass() -> None:
     result = run(bound_core(), agreeing_facts())
     assert {check.id for check in result.skipped} == {
         "release_core_digest",
         "starter_skill_digest",
+        "starter_skill_object_url",
         "skill_improver_digest",
     }
     assert all(check.status != "passed" for check in result.skipped)
