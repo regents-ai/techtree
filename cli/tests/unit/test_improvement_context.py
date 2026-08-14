@@ -14,9 +14,16 @@ subject got right *is* the expected answer, so it stays out and
 and a derived artifact that varied between two builds of one run would make the
 loop it feeds unreproducible.
 
-The evidence is the recorded probes of 2026-08-13 — real ``exact_match``
-measurements of 0/2 against 2/2 — so the context under test describes something
-that was measured.
+*What is in it, and has to be.* Decision 0014 added the third question after
+two rehearsal attempts failed on its absence. Ratified decision R1 always
+allowed a task's public input, and without one a reader is told which tasks
+failed and nothing about them, which is not enough to find a pattern in the
+inputs. The taskset disclosure policy is a lookup, never an inference, so a
+taskset nobody wrote a policy for still gets a hash and a position.
+
+The evidence is the recorded calibration comparison — a real ``exact_match``
+measurement of 0/36 against 24/36 — so the context under test describes
+something that was measured.
 """
 
 from __future__ import annotations
@@ -40,6 +47,7 @@ from techtree.uplift.context import (
     TaskPublicProjection,
     build_improvement_context,
 )
+from techtree.uplift.public_tasks import public_projection_for
 from techtree.verifiers.models import NormalizedEpisode, VariantName
 
 #: A hidden expected answer, spelled distinctively so a leak of it anywhere in
@@ -94,13 +102,18 @@ def build(
     report: UpliftReport,
     **overrides: object,
 ) -> SkillImprovementContext:
-    """Build a context from the recorded evidence, with test overrides."""
+    """Build a context from the recorded evidence, with test overrides.
+
+    The projection is the one the service chooses for this Campaign's taskset,
+    so what is asserted here is what a caller is actually handed.
+    """
     arguments: dict[str, object] = {
         "report": report,
         "candidate_receipts": receipts[VariantName.CANDIDATE],
         "baseline_receipts": receipts[VariantName.BASELINE],
         "campaign": pair.campaign,
         "parent_skill": parent_skill(),
+        "task_public_projection": public_projection_for(pair.campaign),
     }
     arguments.update(overrides)
     return build_improvement_context(**arguments)  # type: ignore[arg-type]
@@ -234,23 +247,37 @@ def test_no_hidden_expected_answer_reaches_the_context(
     receipts: dict[VariantName, list[EpisodeReceipt]],
     report: UpliftReport,
 ) -> None:
-    """The evidence holds the answers; the shape gives them nowhere to go."""
-    context = build(pair, receipts, report)
-    evidence = json.dumps(
-        [episode.model_dump(mode="json") for episode in _episodes(pair)]
-    )
+    """The shape gives an answer nowhere to go, even when one is put in its way.
 
-    # The recorded evidence really does carry the subject's own answers, so
-    # this is a check against material that is present rather than absent.
-    assert any(
-        trace.last_reply for episode in _episodes(pair) for trace in episode.traces
-    ), "the recorded evidence should carry replies for this test to mean anything"
-    assert HIDDEN_ANSWER not in evidence  # the fixture answer, not the real one
+    The replies are supplied here rather than read from the committed evidence.
+    Decision 0015 section 5 keeps subject replies out of a committed fixture,
+    and for a taskset scored by exact match that is not fussiness: a correct
+    reply *is* the expected answer. So the material this test needs is built in
+    memory, which also lets it be the most incriminating possible reply rather
+    than whatever the subject happened to say.
+    """
+    answered = [
+        episode.model_copy(
+            update={
+                "traces": [
+                    trace.model_copy(update={"last_reply": HIDDEN_ANSWER})
+                    for trace in episode.traces
+                ]
+            }
+        )
+        for episode in _episodes(pair)
+    ]
+    evidence = json.dumps([episode.model_dump(mode="json") for episode in answered])
+
+    # The evidence this is checked against really does carry an answer, so this
+    # is a check against material that is present rather than absent.
+    assert any(trace.last_reply for episode in answered for trace in episode.traces)
+    assert HIDDEN_ANSWER in evidence
+
+    context = build(pair, receipts, report)
+
+    assert HIDDEN_ANSWER not in _rendered(context)
     assert all(example.subject_reply is None for example in context.examples)
-    for episode in _episodes(pair):
-        for trace in episode.traces:
-            if trace.last_reply:
-                assert trace.last_reply not in _rendered(context)
 
 
 def test_a_reply_offered_through_the_projection_seat_is_still_excluded(
@@ -293,14 +320,21 @@ def test_no_sealed_task_content_reaches_the_context(
     receipts: dict[VariantName, list[EpisodeReceipt]],
     report: UpliftReport,
 ) -> None:
-    """A task is named by its committed hash, which the TasksetLock publishes."""
+    """A task is named by its committed hash and its public input, and no more.
+
+    The sealed part of a task is its answer, not the text the subject was
+    given: the prompt is what a participant reads on screen and what decision
+    R1 always allowed to travel. What must never appear is the oracle result,
+    and for this taskset that is a ``BRANCH-XX`` token.
+    """
     context = build(pair, receipts, report)
+    rendered = _rendered(context)
 
     for example in context.examples:
         task_hash = example.task_hash
         assert task_hash in pair.ordered_task_hashes
-        assert example.public_prompt is None
         assert task_hash.partition(":")[2][:8] in example.task_label
+    assert "BRANCH-" not in rendered
 
 
 def test_no_provider_secret_reaches_the_context(
@@ -353,6 +387,76 @@ def test_no_unredacted_local_path_reaches_the_context(
         )
 
     assert raised.value.code == "improvement_context_forbidden_material"
+
+
+def test_every_example_carries_the_public_task_input(
+    pair: RecordedPair,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReport,
+) -> None:
+    """Decisions R1 and 0014: the input is public and the reader is shown it."""
+    context = build(pair, receipts, report)
+
+    assert context.examples
+    assert all(example.public_prompt for example in context.examples)
+    # The reference taskset's inputs are single lowercase words, so an example
+    # carrying a whole prompt template, a reply, or an answer would stand out.
+    for example in context.examples:
+        assert example.public_prompt is not None
+        assert example.public_prompt.isalpha()
+        assert example.public_prompt.islower()
+        assert "BRANCH-" not in example.public_prompt
+
+
+def test_showing_the_input_leaves_every_exclusion_standing(
+    pair: RecordedPair,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReport,
+) -> None:
+    """The one thing that was added did not bring anything else with it."""
+    context = build(pair, receipts, report)
+    rendered = canonical_json_bytes(context).decode()
+
+    assert all(example.subject_reply is None for example in context.examples)
+    # An answer for this taskset is a BRANCH-XX token, and none may appear
+    # anywhere in the document — not in an example, not in the objective.
+    assert "BRANCH-" not in rendered
+    assert "expected" not in rendered.lower().replace("expected answers", "")
+    for example in context.examples:
+        assert set(example.public_metrics) <= {"baseline_reward", "delta"}
+
+
+def test_a_taskset_with_no_disclosure_policy_still_shows_only_a_hash(
+    pair: RecordedPair,
+    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReport,
+) -> None:
+    """R1: taskset-specific, never inferred. An unknown taskset shows nothing."""
+    from techtree.models.campaign import CampaignTaskset
+    from techtree.uplift.public_tasks import public_projection_for
+
+    reference = pair.campaign.taskset.ref
+    stranger = pair.campaign.model_copy(
+        update={
+            "taskset": CampaignTaskset(
+                **{
+                    **dict(pair.campaign.taskset),
+                    "ref": reference.model_copy(update={"id": "some-other-taskset"}),
+                }
+            )
+        }
+    )
+
+    projection = public_projection_for(stranger)
+    task_hash = pair.campaign.taskset.membership.ordered_task_hashes[0]
+
+    assert projection(task_hash=task_hash, position=0).public_prompt is None
+    assert (
+        public_projection_for(pair.campaign)(
+            task_hash=task_hash, position=0
+        ).public_prompt
+        is not None
+    )
 
 
 def test_the_context_states_what_it_withholds(

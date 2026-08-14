@@ -7,7 +7,7 @@ verbose = false
 rich = false
 server = false
 push = false
-output_dir = "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/calA/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/verifiers/candidate/run"
+output_dir = "/techtree-home/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/verifiers/candidate/run"
 
 [env]
 id = ""
@@ -44,7 +44,7 @@ id = "hermes-agent"
 forward_env = []
 tool_timeout = 600.0
 skills = [
-    "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/calA/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/inputs/skill/files/sha256-596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+    "/techtree-home/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/inputs/skill/files/sha256-596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
 ]
 version = "0.19.0"
 use_bundled_skill = false

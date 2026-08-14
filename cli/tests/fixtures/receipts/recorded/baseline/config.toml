@@ -7,7 +7,7 @@ verbose = false
 rich = false
 server = false
 push = false
-output_dir = "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/calA/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/verifiers/baseline/run"
+output_dir = "/techtree-home/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/verifiers/baseline/run"
 
 [env]
 id = ""

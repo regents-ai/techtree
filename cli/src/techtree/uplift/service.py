@@ -123,6 +123,7 @@ from techtree.uplift.context import (
     SkillImprovementContext,
     build_improvement_context,
 )
+from techtree.uplift.public_tasks import public_projection_for
 from techtree.uplift.source import VerifiedSourceSkill, read_verified_source_skill
 from techtree.verifiers.models import (
     RealExecutionResult,
@@ -620,6 +621,7 @@ class UpliftService:
             ),
             campaign=source.inputs.campaign,
             parent_skill=source.inputs.candidate_skill.artifact,
+            task_public_projection=public_projection_for(source.inputs.campaign),
         )
 
     def verified_source_skill(self, run_id: str) -> VerifiedSourceSkill:
