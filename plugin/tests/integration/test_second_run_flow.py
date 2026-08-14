@@ -51,7 +51,7 @@ FIRST_RUN = "run_" + "1" * 32
 SECOND_RUN = "run_" + "2" * 32
 FIRST_DRAFT = "draft_" + "1" * 32
 SECOND_DRAFT = "draft_" + "2" * 32
-TOKEN = "confirmation-token-value"
+DRAFT_DIGEST = "sha256:" + "d" * 64
 POLICY = "sha256:" + "3" * 64
 ROOT_DIGEST = "sha256:" + "c" * 64
 ENTRYPOINT_DIGEST = "sha256:" + "d" * 64
@@ -185,8 +185,7 @@ def _answers(**overrides: dict[str, Any]) -> dict[str, dict[str, Any]]:
             command="uplift prepare",
             data={
                 "draft_id": SECOND_DRAFT,
-                "draft_digest": "sha256:" + "7" * 64,
-                "confirmation_token": TOKEN,
+                "draft_digest": DRAFT_DIGEST,
                 "confirmation_expires_at": "2026-08-13T12:00:00Z",
                 "source_run_id": FIRST_RUN,
                 "campaign_spec_digest": "sha256:" + "1" * 64,
@@ -318,8 +317,6 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
         journey,
         "techtree_uplift_start",
         draft_id=SECOND_DRAFT,
-        confirmation_token=TOKEN,
-        data_policy_digest=POLICY,
         channel=channel,
     )
     assert started["data"]["run_id"] == SECOND_RUN
@@ -352,8 +349,6 @@ def test_the_second_receipt_never_oversells_itself(journey: PluginServices) -> N
         journey,
         "techtree_uplift_start",
         draft_id=SECOND_DRAFT,
-        confirmation_token=TOKEN,
-        data_policy_digest=POLICY,
     )
 
     second = _call(journey, "techtree_run_result", run_id=SECOND_RUN)
@@ -436,8 +431,6 @@ def test_a_run_identifier_always_comes_back(journey: PluginServices) -> None:
         journey,
         "techtree_uplift_start",
         draft_id=SECOND_DRAFT,
-        confirmation_token=TOKEN,
-        data_policy_digest=POLICY,
         channel=ChannelKind.GATEWAY.value,
     )
 

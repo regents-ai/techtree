@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..approvals import policy_acceptance_args, run_approved_event
+from ..approvals import run_approved_event, start_arguments
 from ..bootstrap import doctor_summary
 from ..errors import PluginError
 from ..services.assets import materialize_starter_skill
@@ -22,8 +22,6 @@ from ..state import save_session, session_payload
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import (
     require_climb_reference,
-    require_confirmation_token,
-    require_digest,
     require_draft_id,
     require_label,
     require_local_path,
@@ -108,7 +106,7 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "demo": session_payload(session),
             "climb": inspection.get("data"),
             "draft_id": data.get("draft_id"),
-            "confirmation_token": data.get("confirmation_token"),
+            "draft_digest": data.get("draft_digest"),
             "data_policy_digest": data.get("data_policy_digest"),
             "campaign_spec_digest": data.get("campaign_spec_digest"),
             "skill_root_digest": data.get("skill_root_digest"),
@@ -148,20 +146,12 @@ def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> 
     """Start a prepared draft. Spends model budget; returns a run identifier."""
     channel = channel_of(args, kwargs)
     draft_id = require_draft_id(require_argument(args, "draft_id"))
-    token = require_confirmation_token(require_argument(args, "confirmation_token"))
-    policy = require_digest(
-        require_argument(args, "data_policy_digest"), "a data policy digest"
-    )
 
     envelope = services.bridge.invoke(
         [
             "climb",
             "start",
-            *policy_acceptance_args(
-                draft_id=draft_id,
-                confirmation_token=token,
-                data_policy_digest=policy,
-            ),
+            *start_arguments(draft_id),
         ]
     )
 

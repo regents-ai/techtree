@@ -36,7 +36,7 @@ PUBLISHED = dataclasses.replace(
 )
 RUN_ID = "run_" + "0" * 32
 DRAFT_ID = "draft_" + "0" * 32
-TOKEN = "confirmation-token-value"
+DRAFT_DIGEST = "sha256:" + "d" * 64
 POLICY = "sha256:" + "b" * 64
 
 
@@ -78,7 +78,7 @@ def _answers() -> dict[str, dict[str, Any]]:
             command="climb prepare",
             data={
                 "draft_id": DRAFT_ID,
-                "confirmation_token": TOKEN,
+                "draft_digest": DRAFT_DIGEST,
                 "data_policy_digest": POLICY,
                 "skill_root_digest": PUBLISHED.starter_skill_digest,
                 "estimated_episodes": 72,
@@ -156,7 +156,7 @@ def test_the_whole_first_run_sequence(services: PluginServices) -> None:
 
     prepared = _call("techtree_demo_prepare", services, {})
     assert prepared["draft_id"] == DRAFT_ID
-    assert prepared["confirmation_token"] == TOKEN
+    assert prepared["draft_digest"] == DRAFT_DIGEST
     assert _current(services).stage is DemoStage.FIRST_DRAFT_PREPARED
 
     started = _call(
@@ -164,7 +164,7 @@ def test_the_whole_first_run_sequence(services: PluginServices) -> None:
         services,
         {
             "draft_id": DRAFT_ID,
-            "confirmation_token": TOKEN,
+            "draft_digest": DRAFT_DIGEST,
             "data_policy_digest": POLICY,
         },
     )
@@ -203,7 +203,7 @@ def test_a_session_that_lost_its_memory_recovers_from_the_run(
         services,
         {
             "draft_id": DRAFT_ID,
-            "confirmation_token": TOKEN,
+            "draft_digest": DRAFT_DIGEST,
             "data_policy_digest": POLICY,
         },
     )

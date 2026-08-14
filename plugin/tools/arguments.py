@@ -53,11 +53,6 @@ def require_label(value: str) -> str:
     return _require(value, LABEL, "a label")
 
 
-def require_confirmation_token(value: str) -> str:
-    """Return a token shaped like the one the CLI issues."""
-    return _require(value, TOKEN, "a confirmation token")
-
-
 def require_digest(value: str, description: str = "a sha256 digest") -> str:
     """Return a well-formed digest."""
     return _require(value, DIGEST, description)

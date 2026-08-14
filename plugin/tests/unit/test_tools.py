@@ -34,7 +34,7 @@ PUBLISHED = dataclasses.replace(
 DIGEST = release_core_digest(CORE)
 RUN_ID = "run_" + "0" * 32
 DRAFT_ID = "draft_" + "0" * 32
-TOKEN = "confirmation-token-value"
+DRAFT_DIGEST = "sha256:" + "d" * 64
 POLICY = "sha256:" + "b" * 64
 
 
@@ -241,61 +241,28 @@ def test_starting_a_run_returns_a_run_identifier_and_does_not_wait() -> None:
     bridge = FakeBridge({"climb start": started})
     services = _services(bridge=bridge)
 
-    result = _call(
-        "techtree_climb_start",
-        services,
-        {
-            "draft_id": DRAFT_ID,
-            "confirmation_token": TOKEN,
-            "data_policy_digest": POLICY,
-        },
-    )
+    result = _call("techtree_climb_start", services, {"draft_id": DRAFT_ID})
 
     assert result["data"]["run_id"] == RUN_ID
-    assert bridge.last_argv() == [
-        "climb",
-        "start",
-        DRAFT_ID,
-        "--confirmation-token",
-        TOKEN,
-        "--accept-data-policy",
-        POLICY,
-    ]
+    assert bridge.last_argv() == ["climb", "start", DRAFT_ID, "--yes"]
 
 
-@pytest.mark.parametrize(
-    "missing", ["draft_id", "confirmation_token", "data_policy_digest"]
-)
-def test_a_start_without_the_whole_approval_is_refused(missing: str) -> None:
-    args = {
-        "draft_id": DRAFT_ID,
-        "confirmation_token": TOKEN,
-        "data_policy_digest": POLICY,
-    }
-    del args[missing]
+def test_a_start_without_a_draft_is_refused() -> None:
+    """The draft is the whole argument now; without it nothing runs."""
     bridge = FakeBridge()
 
-    result = _call("techtree_climb_start", _services(bridge=bridge), args)
+    result = _call("techtree_climb_start", _services(bridge=bridge), {})
 
     assert result["ok"] is False
     assert bridge.calls == []
 
 
-def test_a_policy_digest_must_be_a_digest() -> None:
-    bridge = FakeBridge()
+def test_a_start_names_a_draft_and_nothing_a_model_could_widen() -> None:
+    """Decision 0019 s2: no token, no policy digest, no argument but the draft."""
+    schema = all_tool_schemas()["techtree_climb_start"]
 
-    result = _call(
-        "techtree_climb_start",
-        _services(bridge=bridge),
-        {
-            "draft_id": DRAFT_ID,
-            "confirmation_token": TOKEN,
-            "data_policy_digest": "the policy it showed me",
-        },
-    )
-
-    assert result["ok"] is False
-    assert bridge.calls == []
+    assert set(schema["properties"]) == {"draft_id", "channel"}
+    assert schema["required"] == ["draft_id"]
 
 
 def test_status_returns_immediately_with_a_summary() -> None:
@@ -444,7 +411,7 @@ def _demo_bridge() -> FakeBridge:
         "climb prepare",
         {
             "draft_id": DRAFT_ID,
-            "confirmation_token": TOKEN,
+            "draft_digest": DRAFT_DIGEST,
             "data_policy_digest": POLICY,
             "campaign_spec_digest": "sha256:" + "c" * 64,
             "skill_root_digest": PUBLISHED.starter_skill_digest,
@@ -526,7 +493,7 @@ def test_the_demo_records_the_run_it_started() -> None:
         services,
         {
             "draft_id": DRAFT_ID,
-            "confirmation_token": TOKEN,
+            "draft_digest": DRAFT_DIGEST,
             "data_policy_digest": POLICY,
         },
     )
@@ -554,16 +521,12 @@ def test_no_operator_skill_ever_reaches_the_subject() -> None:
             assert "techtree:operator" not in argument
 
 
-def test_no_handler_ever_returns_a_confirmation_token_it_stored() -> None:
-    """The token is shown once, by the CLI, and never kept in state."""
+def test_no_handler_ever_returns_a_confirmation_token() -> None:
+    """Decision 0019 s2 removed them; nothing may reintroduce one in a result."""
     services = _services(bridge=_demo_bridge())
 
-    _call("techtree_demo_prepare", services, {})
+    prepared = _call("techtree_demo_prepare", services, {})
 
+    assert "confirmation_token" not in json.dumps(prepared)
     session = _current(services)
-    assert TOKEN not in json.dumps(
-        {
-            "first_draft_id": session.first_draft_id,
-            "source_skill_v1_digest": session.source_skill_v1_digest,
-        }
-    )
+    assert session.first_draft_id == DRAFT_ID

@@ -45,7 +45,7 @@ CODE_PROPOSAL_UNCHANGED: Final = "skill_revision_unchanged"
 #: asked to approve running it. Specification section 8.13.
 REQUIRED_REPLACEMENT_FIELDS: Final[tuple[str, ...]] = (
     "draft_id",
-    "confirmation_token",
+    "draft_digest",
     "data_policy_digest",
     "campaign_spec_digest",
     "baseline_skill_digest",

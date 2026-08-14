@@ -41,7 +41,7 @@ CORE = dataclasses.replace(
 RUN_ID = "run_" + "0" * 32
 SECOND_RUN_ID = "run_" + "2" * 32
 DRAFT_ID = "draft_" + "0" * 32
-TOKEN = "confirmation-token-value"
+DRAFT_DIGEST = "sha256:" + "d" * 64
 POLICY = "sha256:" + "3" * 64
 ROOT_DIGEST = "sha256:" + "c" * 64
 ENTRYPOINT_DIGEST = "sha256:" + "d" * 64
@@ -148,8 +148,7 @@ def _answers() -> dict[str, dict[str, Any]]:
             command="uplift prepare",
             data={
                 "draft_id": DRAFT_ID,
-                "draft_digest": "sha256:" + "1" * 64,
-                "confirmation_token": TOKEN,
+                "draft_digest": DRAFT_DIGEST,
                 "confirmation_expires_at": "2026-08-13T12:00:00Z",
                 "source_run_id": RUN_ID,
                 "campaign_spec_digest": "sha256:" + "2" * 64,
@@ -343,8 +342,6 @@ def test_the_second_run_starts_once_the_diff_and_policy_were_shown(
         services,
         "techtree_uplift_start",
         draft_id=DRAFT_ID,
-        confirmation_token=TOKEN,
-        data_policy_digest=POLICY,
     )
 
     assert started["ok"] is True
@@ -519,8 +516,6 @@ def test_the_second_run_approval_names_the_exact_draft(
         services,
         "techtree_uplift_start",
         draft_id=draft_id,
-        confirmation_token=proposal["confirmation_token"],
-        data_policy_digest=proposal["data_policy_digest"],
         channel="terminal",
     )
 

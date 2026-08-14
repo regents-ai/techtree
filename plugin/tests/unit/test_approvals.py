@@ -11,10 +11,10 @@ from techtree_hermes.approvals import (
     GUIDED_REVISION_DISCLOSURE,
     InstallPlanStore,
     issue_local_plan_id,
-    policy_acceptance_args,
     require_install_plan,
     require_user_confirmed_tool_context,
     run_approved_event,
+    start_arguments,
 )
 from techtree_hermes.errors import ApprovalRequiredError, BootstrapPlanError
 from techtree_hermes.models import PLAN_ID_PATTERN, BootstrapInstallPlan
@@ -147,51 +147,31 @@ def test_a_documented_indicator_that_says_no_stops_the_call(
         approvals.require_user_confirmed_tool_context({"confirmed": False})
 
 
-# Run acceptance -----------------------------------------------------------------------
+# Starting a run a person already approved --------------------------------------------
+#
+# Decision 0019 s2 took the confirmation token and the policy digest off the
+# command line. What the plugin passes now is the draft and an explicit flag,
+# and the flag means "the review already happened, somewhere a model could not
+# answer it".
 
 
-def test_start_arguments_carry_the_token_and_the_exact_policy() -> None:
-    arguments = policy_acceptance_args(
-        draft_id="draft_" + "0" * 32,
-        confirmation_token="token-the-cli-issued",
-        data_policy_digest=POLICY_DIGEST,
-    )
-
-    assert arguments == [
-        "draft_" + "0" * 32,
-        "--confirmation-token",
-        "token-the-cli-issued",
-        "--accept-data-policy",
-        POLICY_DIGEST,
-    ]
+def test_start_arguments_are_the_draft_and_the_explicit_flag() -> None:
+    assert start_arguments(DRAFT_ID) == [DRAFT_ID, "--yes"]
 
 
-@pytest.mark.parametrize(
-    "missing",
-    ["draft_id", "confirmation_token", "data_policy_digest"],
-)
-def test_a_run_cannot_start_with_a_piece_of_the_approval_missing(
-    missing: str,
-) -> None:
-    arguments = {
-        "draft_id": "draft_" + "0" * 32,
-        "confirmation_token": "token-the-cli-issued",
-        "data_policy_digest": POLICY_DIGEST,
-    }
-    arguments[missing] = ""
-
-    with pytest.raises(ApprovalRequiredError):
-        policy_acceptance_args(**arguments)
+def test_a_run_cannot_start_without_a_draft() -> None:
+    with pytest.raises(ApprovalRequiredError, match="without a draft"):
+        start_arguments("")
 
 
-def test_a_policy_must_be_named_by_its_exact_digest() -> None:
-    """Never infer acceptance, and never accept a description of a policy."""
-    with pytest.raises(ApprovalRequiredError, match="exact digest"):
-        policy_acceptance_args(
-            draft_id="draft_" + "0" * 32,
-            confirmation_token="token-the-cli-issued",
-            data_policy_digest="the one it showed me",
-        )
+def test_no_token_or_policy_digest_reaches_the_command_line() -> None:
+    """The arguments that carried them are gone, not merely unused."""
+    import techtree_hermes.approvals as approvals
+
+    assert not hasattr(approvals, "policy_acceptance_args")
+    for argument in start_arguments(DRAFT_ID):
+        assert "--confirmation-token" not in argument
+        assert "--accept-data-policy" not in argument
 
 
 # The guided revision's disclosure ---------------------------------------------------
@@ -265,6 +245,7 @@ def test_the_approval_event_is_an_ordinary_run_event() -> None:
     assert event["draft_id"] == DRAFT_ID
     assert event["draft_digest"] == DIGEST
     assert event["actor"] == "human_via_hermes"
+    assert event["policy_acknowledgement_method"] == "host_agent_confirmation"
     datetime.fromisoformat(event["approved_at"])
 
     # Nothing in it is a secret, a signature, or a token.
@@ -273,6 +254,7 @@ def test_the_approval_event_is_an_ordinary_run_event() -> None:
         "draft_id",
         "draft_digest",
         "actor",
+        "policy_acknowledgement_method",
         "approved_at",
     }
 

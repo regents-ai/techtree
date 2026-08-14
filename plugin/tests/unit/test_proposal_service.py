@@ -162,7 +162,7 @@ def test_a_complete_preparation_passes() -> None:
     "missing",
     [
         "draft_id",
-        "confirmation_token",
+        "draft_digest",
         "data_policy_digest",
         "baseline_skill_digest",
         "candidate_skill_digest",

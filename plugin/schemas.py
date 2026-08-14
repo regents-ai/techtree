@@ -206,25 +206,8 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
                 "pattern": _DRAFT_ID_PATTERN,
                 "description": "The prepared draft to start.",
             },
-            "confirmation_token": {
-                "type": "string",
-                "pattern": _TOKEN_PATTERN,
-                "description": (
-                    "The one-time token the preparation step returned. It is "
-                    "not a credential and is never reused."
-                ),
-            },
-            "data_policy_digest": {
-                "type": "string",
-                "pattern": _DIGEST_PATTERN,
-                "description": (
-                    "The exact data-policy digest the user accepted. Never "
-                    "infer acceptance; the digest must come from the "
-                    "preparation result the user was shown."
-                ),
-            },
         },
-        required=["draft_id", "confirmation_token", "data_policy_digest"],
+        required=["draft_id"],
     ),
     "techtree_run_status": _schema(
         description=(
@@ -350,21 +333,8 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
                 "pattern": _DRAFT_ID_PATTERN,
                 "description": "The prepared replacement to start.",
             },
-            "confirmation_token": {
-                "type": "string",
-                "pattern": _TOKEN_PATTERN,
-                "description": "The one-time token the preparation step returned.",
-            },
-            "data_policy_digest": {
-                "type": "string",
-                "pattern": _DIGEST_PATTERN,
-                "description": (
-                    "The exact data-policy digest the user accepted for this "
-                    "second run."
-                ),
-            },
         },
-        required=["draft_id", "confirmation_token", "data_policy_digest"],
+        required=["draft_id"],
     ),
 }
 

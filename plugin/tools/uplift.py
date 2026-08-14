@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from ..approvals import policy_acceptance_args, run_approved_event
+from ..approvals import run_approved_event, start_arguments
 from ..channels import is_gateway_safe_required
 from ..diff import build_skill_diff
 from ..errors import CODE_FOUNDER_SKILL_MISSING, PluginError
@@ -26,8 +26,6 @@ from ..services.session import (
 from ..state import latest_session, save_session, session_payload
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import (
-    require_confirmation_token,
-    require_digest,
     require_draft_id,
     require_label,
     require_local_path,
@@ -141,6 +139,11 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
     # record. So it travels where it fits, and is simply absent where it does
     # not — never trimmed into a half-record that reads like a full one.
     accounting: dict[str, Any] | None = proposal.accounting.to_dict()
+    # The draft's digest is what makes "a person approved this exact draft"
+    # checkable, and it is 71 characters. A phone starts the draft by its
+    # identifier and reads the digest in a terminal; the record it belongs to
+    # is the approval event, which is not bounded.
+    reviewed: dict[str, Any] = {"draft_digest": prepared["draft_digest"]}
     if is_gateway_safe_required(channel):
         # The whole revised Skill will not fit in a chat message, and the diff
         # is what an approval actually turns on. The Skill itself is staged in
@@ -148,6 +151,7 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         written.pop("revised_skill_markdown", None)
         written["revised_skill_available_in_terminal"] = True
         accounting = None
+        reviewed = {}
 
     # Reported only when there is something to report, on every channel: a
     # file of the participant's content left on disk is worth its bytes on a
@@ -167,7 +171,7 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             "request_accounting": accounting,
             "diff": difference.to_dict(),
             "draft_id": prepared["draft_id"],
-            "confirmation_token": prepared["confirmation_token"],
+            **reviewed,
             "data_policy_digest": prepared["data_policy_digest"],
             "estimated_episodes": prepared.get("estimated_episodes"),
             "scanner": prepared.get("scanner_findings"),
@@ -234,10 +238,6 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
     """Start a prepared Skill-against-Skill comparison. Spends model budget."""
     channel = channel_of(args, kwargs)
     draft_id = require_draft_id(require_argument(args, "draft_id"))
-    token = require_confirmation_token(require_argument(args, "confirmation_token"))
-    policy = require_digest(
-        require_argument(args, "data_policy_digest"), "a data policy digest"
-    )
     # Specification section 16 asks that no second run start without the
     # difference and the policy having been shown. Decision 0019 puts that
     # boundary where it belongs: this tool is one Hermes confirms with a
@@ -250,11 +250,7 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
         [
             "uplift",
             "start",
-            *policy_acceptance_args(
-                draft_id=draft_id,
-                confirmation_token=token,
-                data_policy_digest=policy,
-            ),
+            *start_arguments(draft_id),
         ]
     )
 

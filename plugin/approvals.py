@@ -163,34 +163,31 @@ def require_user_confirmed_tool_context(kwargs: Mapping[str, Any]) -> None:
             )
 
 
-def policy_acceptance_args(
-    *,
-    draft_id: str,
-    confirmation_token: str,
-    data_policy_digest: str,
-) -> list[str]:
-    """Build the exact start arguments for explicit machine-mode acceptance.
+def start_arguments(draft_id: str) -> list[str]:
+    """Build the exact start arguments for a run a person already approved.
 
-    Techtree enforces this, not the plugin: a start without the one-time token
-    and the exact DataPolicy digest is refused by the CLI. These arguments
-    carry what the user was shown and agreed to, and nothing else.
+    Decision 0019 section 2 removed the confirmation token and the policy
+    digest from the command line. What is left is the draft and an explicit
+    flag, and the chain behind that flag is worth stating plainly:
+
+    1. The plugin prepares the immutable draft and shows the exact change,
+       the policy summary, and the budget.
+    2. Hermes asks the person, on its own approval surface, because the tool
+       that starts a run is declared as one a human must confirm.
+    3. Only then does Hermes dispatch the call, and the plugin passes ``--yes``
+       to say the review already happened.
+
+    ``--yes`` is the non-interactive operator case, and this is that case: no
+    one can answer a prompt inside a tool call. It is not a shortcut around
+    the question, because the question was already asked somewhere a model
+    cannot answer it.
+
+    Raises:
+        ApprovalRequiredError: when there is no draft to start.
     """
-    if not draft_id or not confirmation_token or not data_policy_digest:
-        raise ApprovalRequiredError(
-            "a run cannot start without a draft, its confirmation token, and "
-            "the exact data policy the user accepted"
-        )
-    if not DIGEST_PATTERN.match(data_policy_digest):
-        raise ApprovalRequiredError(
-            "the accepted data policy must be named by its exact digest"
-        )
-    return [
-        draft_id,
-        "--confirmation-token",
-        confirmation_token,
-        "--accept-data-policy",
-        data_policy_digest,
-    ]
+    if not draft_id:
+        raise ApprovalRequiredError("a run cannot start without a draft to start")
+    return [draft_id, "--yes"]
 
 
 def _expiry(plan: BootstrapInstallPlan) -> datetime:
@@ -245,6 +242,12 @@ APPROVAL_ACTOR: Final = "human_via_hermes"
 #: not a cryptographic acceptance artifact (decision 0019 section 2).
 RUN_APPROVED_EVENT: Final = "run.approved"
 
+#: How the policy was acknowledged on *this* surface. Techtree records
+#: `explicit_cli_review` for the flag it receives, which is the honest name for
+#: what the command line saw; `host_agent_confirmation` is the honest name for
+#: what actually happened here, and the plugin records its own.
+POLICY_ACKNOWLEDGEMENT_METHOD: Final = "host_agent_confirmation"
+
 
 def run_approved_event(
     *, draft_id: str, draft_digest: str | None, now: datetime | None = None
@@ -260,5 +263,6 @@ def run_approved_event(
         "draft_id": draft_id,
         "draft_digest": draft_digest,
         "actor": APPROVAL_ACTOR,
+        "policy_acknowledgement_method": POLICY_ACKNOWLEDGEMENT_METHOD,
         "approved_at": (now or datetime.now(UTC)).isoformat(),
     }
