@@ -1,7 +1,7 @@
 {
   "climbs": [
     {
-      "digest": "sha256:056ef2139aa523f8618d5980d9b429f87ca7c341e5f4d29f12f9aa4cb6ec500c",
+      "digest": "sha256:61a7dd46cba4d8ba0c0146555f7ffa6cb4feb6d6bd4d6731e95a5f6b169ca9de",
       "path": "climbs/hello-world-climb.json",
       "reference": "hello-world-climb@1"
     }
@@ -12,7 +12,7 @@
       "media_type": "application/json",
       "path": "taskset-validations/hello-world-climb.json"
     },
-    "sha256:449940f184a59e6b7fc3541326bccebb655eefee22160bb904094de1867098eb": {
+    "sha256:5aef3fb7c16c39b96f570f675ed3721737ea3ca19c955a9242c73aa24b3d5f9e": {
       "kind": "campaign",
       "media_type": "application/json",
       "path": "campaigns/hello-world-climb.json"
