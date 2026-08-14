@@ -85,7 +85,7 @@ def test_the_result_shows_the_comparison_and_the_measurement(
     assert "No tested Skill" in text
     assert "Baseline" in text
     assert "Candidate" in text
-    assert "2 WIN / 0 LOSS / 0 TIE" in text
+    assert "24 WIN / 0 LOSS / 12 TIE" in text
 
 
 def test_the_result_states_the_verdict_as_a_sentence(
@@ -143,7 +143,7 @@ def test_the_result_says_which_skill_changed_and_that_nothing_else_did(
 ) -> None:
     text = human(finished, "--format", "rich")
 
-    assert "branch-code-v1" in text
+    assert "hello-world-v1" in text
     assert "held fixed and checked against what the run actually did" in flat(text)
 
 

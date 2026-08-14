@@ -164,6 +164,18 @@ CANDIDATE_SKILL: Final = (
     Path(__file__).resolve().parents[1] / "skills" / "branch-code-v1"
 )
 
+#: The Skill the committed recorded evidence was produced with. The evidence
+#: under ``fixtures/receipts/recorded`` is one real calibration comparison, and
+#: its candidate variant mounted the release's starter Skill, so anything that
+#: stages a run over that evidence has to declare the same Skill or the
+#: comparison is correctly refused as uncontrolled.
+RECORDED_SKILL: Final = (
+    Path(__file__).resolve().parents[3]
+    / "release"
+    / "skills"
+    / "hello-world-starter-v1"
+)
+
 _CAMPAIGN_PATH: Final = "campaigns/hello-world-climb.json"
 _CLIMB_PATH: Final = "climbs/hello-world-climb.json"
 _CATALOG_INDEX: Final = "catalog.json"

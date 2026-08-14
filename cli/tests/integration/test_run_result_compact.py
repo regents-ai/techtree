@@ -83,7 +83,7 @@ def test_the_compact_result_leads_with_the_measurement(
 ) -> None:
     text = compact(finished)
 
-    assert text.startswith("**The Skill met the Campaign's threshold: 0.000 → 1.000")
+    assert text.startswith("**The Skill met the Campaign's threshold: 0.000 → 0.667")
     assert "- Wins: 2" in text
     assert "- Losses: 0" in text
 
@@ -116,15 +116,20 @@ def test_the_compact_result_is_short_enough_to_send(
 ) -> None:
     """A phone message, not a terminal dump.
 
-    The budget has moved exactly twice. Decisions document 0007 R6 added the
-    cost and its provenance, and decisions document 0009 added the sentence
-    saying the task family is a toy introductory one. Both are qualifications
-    the reader is owed in the channel a number is most likely to be quoted out
-    of, so both are paid for out of the budget rather than out of honesty.
+    The budget has moved three times. Decisions document 0007 R6 added the
+    cost and its provenance, decisions document 0009 added the sentence saying
+    the task family is a toy introductory one, and the recorded evidence became
+    a thirty-six task comparison, which spends a few more lines on the task
+    table the renderer caps at five rows. All of them are qualifications the
+    reader is owed in the channel a number is most likely to be quoted out of,
+    so they are paid for out of the budget rather than out of honesty.
+
+    What the bound is really protecting is that the table cannot grow with the
+    membership: thirty-six tasks render in the same handful of rows two did.
     """
     text = compact(finished)
 
-    assert len(text.splitlines()) < 44
+    assert len(text.splitlines()) < 50
 
 
 def test_the_compact_result_offers_one_next_step_in_words(

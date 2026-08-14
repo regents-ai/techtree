@@ -1,5 +1,5 @@
 model = "qwen/qwen3.7-flash"
-num_tasks = 3
+num_tasks = 36
 num_rollouts = 1
 shuffle = false
 max_concurrent = 2
@@ -7,7 +7,7 @@ verbose = false
 rich = false
 server = false
 push = false
-output_dir = "/var/folders/r2/dyvhtvrs1wj_j0crbq99gc4r0000gn/T/techtree-smoke-238_zqmg/runs/run_6d8decb890c342cebfdbc35a4d2953a0/verifiers/baseline/run"
+output_dir = "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/calA/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/verifiers/baseline/run"
 
 [env]
 id = ""

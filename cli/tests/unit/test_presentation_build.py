@@ -248,12 +248,12 @@ def test_the_payload_states_what_the_report_measured(
 
     assert payload.run_id == report.run_id
     assert payload.baseline_score == 0.0
-    assert payload.candidate_score == 1.0
-    assert payload.absolute_delta == 1.0
+    assert payload.candidate_score == pytest.approx(24 / 36)
+    assert payload.absolute_delta == pytest.approx(24 / 36)
     # A zero baseline has no relative change; reporting one would invent it.
     assert payload.relative_delta is None
-    assert (payload.wins, payload.losses, payload.ties) == (2, 0, 0)
-    assert [row.outcome for row in payload.task_rows] == ["win", "win"]
+    assert (payload.wins, payload.losses, payload.ties) == (24, 0, 12)
+    assert sorted(set(row.outcome for row in payload.task_rows)) == ["tie", "win"]
 
 
 def test_the_payload_copies_the_verdict_rather_than_deciding_one(

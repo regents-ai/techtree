@@ -183,7 +183,7 @@ def test_the_recorded_run_scored_what_the_evidence_file_says(
 
 
 def test_the_candidate_outscored_the_baseline_on_the_shared_tasks() -> None:
-    """The recorded probes are a real result, and the receipts carry it."""
+    """The recorded comparison is a real result, and the receipts carry it."""
     baseline = recorded_variant(VariantName.BASELINE)
     candidate = recorded_variant(VariantName.CANDIDATE)
     reward = candidate.primary_reward
@@ -198,9 +198,9 @@ def test_the_candidate_outscored_the_baseline_on_the_shared_tasks() -> None:
     with_skill = scored(candidate)
     shared = sorted(set(without_skill) & set(with_skill))
 
-    assert len(shared) == 2
-    assert [without_skill[task] for task in shared] == [0.0, 0.0]
-    assert [with_skill[task] for task in shared] == [1.0, 1.0]
+    assert len(shared) == 36
+    assert {without_skill[task] for task in shared} == {0.0}
+    assert sum(with_skill[task] for task in shared) == 24.0
 
 
 # ---------------------------------------------------------------------------

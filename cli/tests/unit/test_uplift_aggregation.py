@@ -98,18 +98,19 @@ def _compare(
 def test_the_recorded_probes_aggregate_to_a_measured_uplift(
     pair: RecordedPair,
 ) -> None:
-    """0/2 without the Skill against 2/2 with it, as recorded."""
+    """0/36 without the starter Skill against 24/36 with it, as recorded."""
     deltas = _deltas(pair)
     primary = aggregate_primary_result(deltas, _PRIMARY)
 
-    assert [delta.baseline_reward for delta in deltas] == [0.0, 0.0]
-    assert [delta.candidate_reward for delta in deltas] == [1.0, 1.0]
+    assert len(deltas) == 36
+    assert {delta.baseline_reward for delta in deltas} == {0.0}
+    assert sum(delta.candidate_reward for delta in deltas) == 24.0
     assert primary.baseline_mean == 0.0
-    assert primary.candidate_mean == 1.0
-    assert primary.absolute_delta == 1.0
+    assert primary.candidate_mean == pytest.approx(24 / 36)
+    assert primary.absolute_delta == pytest.approx(24 / 36)
     # Spec section 7.10: a relative improvement over nothing is not a number.
     assert primary.relative_delta is None
-    assert (primary.wins, primary.losses, primary.ties) == (2, 0, 0)
+    assert (primary.wins, primary.losses, primary.ties) == (24, 0, 12)
 
 
 def test_rows_come_back_in_committed_order_however_they_arrived(
@@ -407,8 +408,8 @@ def test_an_unsigned_real_report_states_what_it_measured(
     assert report.statuses.evidence is EvidenceStatus.COMPLETE
     assert report.statuses.comparison is ComparisonStatus.CONTROLLED_WITH_WARNINGS
     assert report.statuses.publication is PublicationStatus.NOT_REQUESTED
-    assert report.primary_result.candidate_mean == 1.0
-    assert [delta.delta for delta in report.task_deltas] == [1.0, 1.0]
+    assert report.primary_result.candidate_mean == pytest.approx(24 / 36)
+    assert sum(delta.delta for delta in report.task_deltas) == 24.0
     # No local identity signs anything yet, so no P1 and therefore no verdict.
     assert report.proof_grade == "development_only"
     assert report.decision is UpliftDecision.DEVELOPMENT_ONLY

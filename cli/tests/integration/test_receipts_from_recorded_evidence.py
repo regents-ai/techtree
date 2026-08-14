@@ -105,10 +105,15 @@ def test_receipts_are_built_from_a_run_directory_without_executing_anything(
         receipt.evidence_status is EvidenceStatus.COMPLETE for receipt in receipts
     )
     assert all(receipt.execution_backend == "verifiers" for receipt in receipts)
-    assert [
+    rewards = [
         receipt.named_traces["subject"][0].rewards[recorded.primary_reward]
         for receipt in receipts
-    ] == [1.0, 1.0]
+    ]
+    assert len(rewards) == 36
+    assert set(rewards) <= {0.0, 1.0}
+    # The candidate mounted the starter Skill and the baseline mounted nothing,
+    # so one side scores the calibrated twenty-four and the other scores none.
+    assert sum(rewards) == (24.0 if recorded.variant is VariantName.CANDIDATE else 0.0)
 
     # 3. The ordered commitment, written into the run's own tree.
     envelopes: list[ObjectEnvelope[EpisodeReceipt]] = [
@@ -220,12 +225,12 @@ def test_both_recorded_variants_produce_independent_receipt_sets(
         )
 
     baseline, candidate = manifests["baseline"], manifests["candidate"]
-    assert baseline.receipt_count == 2
-    assert candidate.receipt_count == 2
-    # Both probes now cover the same two tasks, which makes the disjointness
-    # below the whole of the claim: same tasks, same Campaign, and still not
-    # one receipt in common, because a receipt belongs to one side of one
-    # comparison and to nothing else.
+    assert baseline.receipt_count == 36
+    assert candidate.receipt_count == 36
+    # Both variants are two sides of one comparison over one committed
+    # membership, which makes the disjointness below the whole of the claim:
+    # same tasks, same Campaign, and still not one receipt in common, because a
+    # receipt belongs to one side of one comparison and to nothing else.
     assert baseline.task_membership_digest == candidate.task_membership_digest
     assert set(baseline.ordered_receipt_digests).isdisjoint(
         candidate.ordered_receipt_digests

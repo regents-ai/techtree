@@ -81,14 +81,15 @@ def test_the_recorded_probes_produce_a_complete_report() -> None:
     }
 
     # 1. The receipts carry the rewards Verifiers recorded, and nothing else.
-    assert [
-        receipt.named_traces["subject"][0].rewards["exact_match"]
-        for receipt in receipts[VariantName.BASELINE]
-    ] == [0.0, 0.0]
-    assert [
-        receipt.named_traces["subject"][0].rewards["exact_match"]
-        for receipt in receipts[VariantName.CANDIDATE]
-    ] == [1.0, 1.0]
+    def rewards(variant: VariantName) -> list[float]:
+        return [
+            receipt.named_traces["subject"][0].rewards["exact_match"]
+            for receipt in receipts[variant]
+        ]
+
+    assert rewards(VariantName.BASELINE) == [0.0] * 36
+    assert sum(rewards(VariantName.CANDIDATE)) == 24.0
+    assert set(rewards(VariantName.CANDIDATE)) == {0.0, 1.0}
 
     # 2. The two executions were one experiment, tool surface included.
     comparison = compare_real_variants(
@@ -123,9 +124,10 @@ def test_the_recorded_probes_produce_a_complete_report() -> None:
         reward_name=pair.primary_reward,
     )
     primary = aggregate_primary_result(deltas, pair.primary_reward)
-    assert (primary.baseline_mean, primary.candidate_mean) == (0.0, 1.0)
+    assert primary.baseline_mean == 0.0
+    assert primary.candidate_mean == pytest.approx(24 / 36)
     assert primary.relative_delta is None
-    assert (primary.wins, primary.losses, primary.ties) == (2, 0, 0)
+    assert (primary.wins, primary.losses, primary.ties) == (24, 0, 12)
 
     # 4. The report says what was measured and grades itself honestly.
     score, evidence = summarize_receipts(
@@ -185,8 +187,8 @@ def test_a_real_run_completes_end_to_end(tmp_path: Path) -> None:
     assert report.statuses.comparison is ComparisonStatus.CONTROLLED_WITH_WARNINGS
     assert report.statuses.publication is PublicationStatus.NOT_REQUESTED
     assert report.primary_result.baseline_mean == 0.0
-    assert report.primary_result.candidate_mean == 1.0
-    assert report.primary_result.wins == 2
+    assert report.primary_result.candidate_mean == pytest.approx(24 / 36)
+    assert report.primary_result.wins == 24
     assert report.publication_eligible is False
 
 

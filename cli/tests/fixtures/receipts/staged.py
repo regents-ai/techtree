@@ -186,7 +186,7 @@ def staged_recorded_run(home: Path) -> StagedRecordedRun:
     """
     from fixtures.drafts.support import preparation_service
     from fixtures.runs.support import RecordingLauncher, utc_now
-    from fixtures.verifiers.support import CANDIDATE_SKILL
+    from fixtures.verifiers.support import RECORDED_SKILL
     from techtree.drafts.confirmation import ConfirmationService
     from techtree.models.run import PolicyAcknowledgement
     from techtree.runs.service import RunService
@@ -200,8 +200,8 @@ def staged_recorded_run(home: Path) -> StagedRecordedRun:
     )
     prepared = preparation.prepare(
         climb_reference=_CLIMB_REFERENCE,
-        skill_path=CANDIDATE_SKILL,
-        candidate_label="branch-code-v1",
+        skill_path=RECORDED_SKILL,
+        candidate_label="hello-world-v1",
     )
 
     run_store = RunStore(paths)
