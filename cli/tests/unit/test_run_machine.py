@@ -1723,6 +1723,34 @@ def test_creating_the_same_run_twice_is_a_conflict(created_run: RunStore) -> Non
     assert raised.value.code == "run_already_exists"
 
 
+def test_a_request_this_build_cannot_read_is_not_reported_as_damage(
+    created_run: RunStore,
+    paths: TechtreePaths,
+) -> None:
+    """A stored request that will not validate is a boundary, not corruption.
+
+    The store cannot tell why a request fails to validate and does not try. It
+    says one true thing — this version cannot operate on the run — and it must
+    not say the untrue thing, which is that the participant's evidence is
+    damaged. Their bytes are still there, and their proof still checks.
+    """
+    request_path = paths.run_dir(RUN_ID) / "request.json"
+    stored = json.dumps({"run_id": RUN_ID}).encode("utf-8")
+    request_path.write_bytes(stored)
+
+    with pytest.raises(ValidationError) as raised:
+        created_run.get_request(RUN_ID)
+
+    error = raised.value
+    assert error.code == "run_request_unreadable"
+    assert "corrupt" not in error.message.lower()
+    assert f"techtree proof verify {RUN_ID}" in error.message
+    assert error.details["run_id"] == RUN_ID
+    # The claim the message makes about the run's files, checked rather than
+    # trusted: reading a request this build cannot use changes nothing on disk.
+    assert request_path.read_bytes() == stored
+
+
 def test_an_unknown_run_is_not_found(store: RunStore) -> None:
     for call in (
         lambda: store.get_request(RUN_ID),

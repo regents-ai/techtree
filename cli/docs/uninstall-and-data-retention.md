@@ -29,6 +29,28 @@ them, not us.
 Removing local data does not invalidate anything you have already shared. A
 proof bundle you copied elsewhere still verifies from its own bytes.
 
+## Upgrading, and runs made by an older version
+
+Upgrading the package does not touch anything a run has already written. It
+also does not go back and rewrite those files to suit the new version, and that
+is on purpose: a finished run is a record of what actually happened, and
+editing it afterwards would make it a record of something else.
+
+One consequence is worth stating plainly. A run recorded by an earlier version
+of Techtree may be one a newer version cannot open. `techtree run status`,
+`techtree run result`, and `techtree uplift context` will tell you so and stop
+there. Nothing has been lost and nothing is damaged — the run's files are
+exactly the bytes that were written — and the part that matters most still
+works from those same bytes:
+
+```bash
+techtree proof verify <run-id>
+```
+
+That check is self-contained. It reads the run's own proof bundle, needs no
+network and no Techtree account, and is unaffected by which version of Techtree
+is installed now.
+
 ## What `uv tool uninstall techtree` removes
 
 ```bash

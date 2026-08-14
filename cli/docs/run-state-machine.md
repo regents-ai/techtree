@@ -334,7 +334,7 @@ Every failure the subsystem raises carries one of these machine-stable codes:
 | --- | --- |
 | `run_not_found` | The run directory has no `request.json`. |
 | `run_already_exists` | `create` was called for a run that already has one. |
-| `run_request_corrupt` | `request.json` will not validate. |
+| `run_request_unreadable` | `request.json` does not validate against the request this version writes. One message covers every cause; nothing inspects which field failed, and no older shape is read. |
 | `run_event_log_corrupt` | A line will not parse, a line is blank, or the log mixes run identifiers. |
 | `run_event_sequence_invalid` | The sequence numbers gap, repeat, or arrive out of order. |
 | `run_event_kind_invalid` | Unknown kind, kind and phase disagree, or a detail the kind carries is missing or malformed. |

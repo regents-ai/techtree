@@ -156,9 +156,21 @@ class RunStore:
         try:
             return RunRequest.model_validate_json(raw)
         except PydanticValidationError as error:
+            # Nothing here inspects *why* validation failed, and nothing here
+            # tries to read the document another way. A stored request that
+            # this build cannot read is a run this build cannot operate on,
+            # and that is the whole of what the message says: it does not
+            # accuse the participant's files of being damaged, because they
+            # are not — they are exactly the bytes that were written, and the
+            # run's signed proof still checks against them.
             raise ValidationError(
-                f"run request is not valid: {path} ({error.errors()[0]['msg']})",
-                code="run_request_corrupt",
+                f"this run's records do not match what this version of techtree "
+                f"writes, so this build cannot operate on the run: {path}. Runs "
+                f"recorded by an earlier version of techtree read this way. "
+                f"Techtree has not changed the run's files — it never rewrites a "
+                f"run's records — and `techtree proof verify {run_id}` still "
+                f"checks the run's proof.",
+                code="run_request_unreadable",
                 details={"run_id": run_id, "path": str(path)},
             ) from error
 
