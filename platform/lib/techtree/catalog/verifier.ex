@@ -94,13 +94,13 @@ defmodule Techtree.Catalog.Verifier do
   @doc """
   The bootstrap release names an exact CLI version, an immutable plugin commit,
   argument arrays rather than shell strings, a Climb this catalog ships, and
-  where the starter Skill may be fetched from along with the digest it must
+  where the starter Skill may be fetched from along with the two digests it must
   hash to.
 
-  The address and the digest are two halves of one coordinate and are checked
-  separately, because they are decided separately: which bytes the starter
-  Skill is made of can be settled long before anyone has chosen where to host
-  them.
+  The address and the digests are separate halves of one coordinate and are
+  checked separately, because they are decided separately: which bytes the
+  starter Skill is made of can be settled long before anyone has chosen where to
+  host them.
 
   A release that declares `placeholder_release: false` is held to more than
   shape: every coordinate in it must also be concrete and immutable, which is
@@ -122,12 +122,7 @@ defmodule Techtree.Catalog.Verifier do
          :ok <- check_argv(bootstrap, ["hermes_plugin", "doctor_argv"]),
          :ok <- check_string(bootstrap, ["introductory_climb", "host_prompt"]),
          :ok <- check_string(bootstrap, ["introductory_climb", "reference"]),
-         :ok <- check_object_url(bootstrap, ["starter_skill", "object_url"]),
-         :ok <-
-           check_digest_value(
-             get_in(bootstrap, ["starter_skill", "digest"]),
-             "the starter Skill"
-           ),
+         :ok <- check_starter_skill(bootstrap),
          :ok <- check_concrete_coordinates(bootstrap) do
       check_introductory_climb(bundle)
     end
@@ -280,6 +275,29 @@ defmodule Techtree.Catalog.Verifier do
 
   # -- Bootstrap checks -----------------------------------------------------
 
+  # The starter Skill is published as a file and mounted as a tree, and the two
+  # are measured differently (decisions 0008 and 0023). `file_digest` names the
+  # exact bytes the address returns; `tree_digest` names the one-file Skill the
+  # CLI builds out of them and checks before it will run anything. A contract
+  # that carried only one of them would either address bytes nobody can verify
+  # or name a Skill nobody can fetch.
+  defp check_starter_skill(bootstrap) do
+    with :ok <- check_object_url(bootstrap, ["starter_skill", "object_url"]),
+         :ok <- check_string(bootstrap, ["starter_skill", "name"]),
+         :ok <- check_string(bootstrap, ["starter_skill", "media_type"]),
+         :ok <- check_byte_size(bootstrap, ["starter_skill", "size"]),
+         :ok <-
+           check_digest_value(
+             get_in(bootstrap, ["starter_skill", "file_digest"]),
+             "the starter Skill file"
+           ) do
+      check_digest_value(
+        get_in(bootstrap, ["starter_skill", "tree_digest"]),
+        "the starter Skill tree"
+      )
+    end
+  end
+
   # A release that says its coordinates are placeholders is believed, and the
   # site refuses the public install flow on the strength of it. A release that
   # says they are real has to prove it (decision 0007 R10).
@@ -402,6 +420,20 @@ defmodule Techtree.Catalog.Verifier do
        Error.bundle_invalid("a pinned revision is not a full lowercase commit", %{
          "field" => Enum.join(path, ".")
        })}
+    end
+  end
+
+  defp check_byte_size(document, path) do
+    case get_in(document, path) do
+      value when is_integer(value) and value > 0 ->
+        :ok
+
+      other ->
+        {:error,
+         Error.bundle_invalid("a published object declares no byte count", %{
+           "field" => Enum.join(path, "."),
+           "found" => inspect(other)
+         })}
     end
   end
 

@@ -1,8 +1,8 @@
 {
   "schema_version": "techtree.bootstrap.v1alpha1",
   "channel": "development",
-  "placeholder_release": true,
-  "published_at": "2026-08-13T00:00:00Z",
+  "placeholder_release": false,
+  "published_at": "2026-08-15T00:00:00Z",
   "minimums": {
     "hermes_version": "0.20.1",
     "python": "3.12",
@@ -11,21 +11,22 @@
   },
   "cli": {
     "distribution": "techtree",
-    "version": "0.0.0-placeholder",
-    "source_revision": "0000000000000000000000000000000000000000",
-    "install_argv": ["uv", "tool", "install", "techtree==0.0.0-placeholder"]
+    "version": "0.1.0",
+    "source_revision": "38e242b633ec031d39c3e407054cd153c0c98326",
+    "wheel_sha256": "sha256:dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f",
+    "install_argv": ["uv", "tool", "install", "techtree==0.1.0"]
   },
   "hermes_plugin": {
     "plugin_id": "techtree",
     "repository": "regents-ai/techtree-hermes",
-    "revision": "0000000000000000000000000000000000000000",
+    "revision": "7f812ca5251ddb8f4db305d4d94f78bcc47e91ab",
     "install_argv": [
       "hermes",
       "plugins",
       "install",
       "regents-ai/techtree-hermes",
       "--ref",
-      "0000000000000000000000000000000000000000",
+      "7f812ca5251ddb8f4db305d4d94f78bcc47e91ab",
       "--enable"
     ],
     "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]
@@ -36,7 +37,7 @@
   },
   "starter_skill": {
     "name": "hello-world-starter-v1",
-    "object_url": "https://placeholder.invalid/unchosen",
+    "object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
     "file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
     "tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
     "media_type": "text/markdown",

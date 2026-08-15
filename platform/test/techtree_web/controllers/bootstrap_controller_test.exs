@@ -57,7 +57,7 @@ defmodule TechtreeWeb.BootstrapControllerTest do
 
       assert payload["schema_version"] == "techtree.bootstrap.v1alpha1"
       assert payload["channel"] == "development"
-      assert payload["minimums"]["hermes_version"] == "0.19.0"
+      assert payload["minimums"]["hermes_version"] == "0.20.1"
       assert payload["minimums"]["docker_required"] == true
       assert payload["cli"]["distribution"] == "techtree"
       assert payload["cli"]["version"] =~ "placeholder"

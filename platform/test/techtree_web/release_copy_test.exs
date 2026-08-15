@@ -423,9 +423,12 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     |> Enum.map(&{&1, File.read!(&1)})
   end
 
+  # The installation contract this site publishes, and the one it is being
+  # asked to publish next: a release candidate's words are read here before
+  # approval, not after it becomes the served document.
   defp bootstrap_sources do
-    "priv/bootstrap/*.json"
-    |> Path.wildcard()
+    ["priv/bootstrap/*.json", "priv/releases/*/bootstrap.json"]
+    |> Enum.flat_map(&Path.wildcard/1)
     |> Enum.map(&{&1, File.read!(&1)})
   end
 

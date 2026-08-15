@@ -10,12 +10,13 @@ defmodule Techtree.Release.StarterSkill do
   it.
 
   It is addressed by the digest of the **file**, because the address returns the
-  file: the bytes this endpoint hands back hash to `digest/0` and to nothing
-  else. The digest of the one-file Skill *tree* the CLI builds after fetching is
-  a different number, and it belongs to the installation contract, never to a
-  URL that serves a single file.
+  file: the bytes this endpoint hands back hash to `file_digest/0` and to
+  nothing else. `tree_digest/0` is a different number — the ordered content
+  digest of the one-file Skill *tree* the CLI builds after fetching, and the one
+  the CLI checks what it obtained against. Both belong in the installation
+  contract, and only the file digest may ever key a URL that serves a file.
 
-  The digest is written here rather than computed from whatever is on disk. A
+  The digests are written here rather than computed from whatever is on disk. A
   constant is what makes drift detectable: if the file and the constant ever
   disagree, `bytes/0` refuses instead of publishing a Skill nobody approved.
   """
@@ -28,8 +29,14 @@ defmodule Techtree.Release.StarterSkill do
   @media_type "text/markdown"
 
   # The sha256 of the exact bytes of
-  # `techtree-python/release/skills/hello-world-starter-v1/SKILL.md`.
-  @digest "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
+  # `techtree-python/release/skills/hello-world-starter-v1/SKILL.md`, and their
+  # count.
+  @file_digest "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
+  @size 1496
+
+  # The ordered content-tree digest of the one-file Skill built from those
+  # bytes: `starter_skill_digest` in the ReleaseCore every repository copies.
+  @tree_digest "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
 
   @doc """
   The name the installation contract publishes this Skill under.
@@ -40,8 +47,21 @@ defmodule Techtree.Release.StarterSkill do
   @doc """
   The digest of the exact file bytes, which is also the address it is served at.
   """
-  @spec digest() :: String.t()
-  def digest, do: @digest
+  @spec file_digest() :: String.t()
+  def file_digest, do: @file_digest
+
+  @doc """
+  The digest of the Skill tree those bytes are mounted as, which addresses
+  nothing.
+  """
+  @spec tree_digest() :: String.t()
+  def tree_digest, do: @tree_digest
+
+  @doc """
+  How many bytes the address returns.
+  """
+  @spec size() :: pos_integer()
+  def size, do: @size
 
   @doc """
   The media type a `SKILL.md` is served as.
@@ -59,7 +79,7 @@ defmodule Techtree.Release.StarterSkill do
   Whether one digest is the address of the starter Skill.
   """
   @spec addressed_by?(String.t()) :: boolean()
-  def addressed_by?(digest), do: digest == @digest
+  def addressed_by?(digest), do: digest == @file_digest
 
   @doc """
   The exact file bytes, hashed again before they are returned.
@@ -73,7 +93,7 @@ defmodule Techtree.Release.StarterSkill do
     path = Path.join(Techtree.Release.starter_skill_root(), @relative_path)
 
     with {:ok, bytes} <- read(path) do
-      case Digest.verify_bytes(bytes, @digest) do
+      case Digest.verify_bytes(bytes, @file_digest) do
         :ok ->
           {:ok, bytes, @media_type}
 
@@ -83,7 +103,7 @@ defmodule Techtree.Release.StarterSkill do
              "the served bytes do not match the digest they are filed under",
              %{
                "path" => @relative_path,
-               "expected_digest" => @digest,
+               "expected_digest" => @file_digest,
                "computed_digest" => computed
              }
            )}

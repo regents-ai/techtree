@@ -20,7 +20,7 @@ defmodule Techtree.Release.StarterSkillTest do
   @file_digest "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
 
   test "the shipped file is the one the release pinned" do
-    assert StarterSkill.digest() == @file_digest
+    assert StarterSkill.file_digest() == @file_digest
     assert Digest.hash_bytes(ReleaseFixture.starter_skill_bytes()) == @file_digest
   end
 

@@ -19,7 +19,7 @@ defmodule Techtree.CatalogFixture do
 
   # Stand-ins with the shape of a real coordinate and none of its meaning.
   @commit String.duplicate("a", 40)
-  @object_url "https://techtree.test/api/v1/objects/" <> StarterSkill.digest()
+  @object_url "https://techtree.test/api/v1/objects/" <> StarterSkill.file_digest()
 
   @doc """
   The fixture bundle, as generated. Never write to this directory.
@@ -140,7 +140,8 @@ defmodule Techtree.CatalogFixture do
       "--enable"
     ])
     |> put_in(["starter_skill", "object_url"], @object_url)
-    |> put_in(["starter_skill", "digest"], StarterSkill.digest())
+    |> put_in(["starter_skill", "file_digest"], StarterSkill.file_digest())
+    |> put_in(["starter_skill", "tree_digest"], StarterSkill.tree_digest())
   end
 
   @doc """

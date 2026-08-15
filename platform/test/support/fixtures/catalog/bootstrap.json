@@ -4,7 +4,7 @@
   "placeholder_release": true,
   "published_at": "2026-08-13T00:00:00Z",
   "minimums": {
-    "hermes_version": "0.19.0",
+    "hermes_version": "0.20.1",
     "python": "3.12",
     "uv": "0.11.1",
     "docker_required": true
@@ -35,7 +35,11 @@
     "host_prompt": "Set up Techtree and run the Hello World Climb."
   },
   "starter_skill": {
+    "name": "hello-world-starter-v1",
     "object_url": "https://placeholder.invalid/unchosen",
-    "digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+    "file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+    "tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+    "media_type": "text/markdown",
+    "size": 1496
   }
 }

@@ -101,7 +101,7 @@ defmodule Techtree.Catalog.ImporterTest do
       assert bootstrap.payload_digest == Digest.hash_bytes(expected)
       assert bootstrap.cli_version == "0.0.0-placeholder"
       assert bootstrap.plugin_revision == String.duplicate("0", 40)
-      assert bootstrap.minimum_hermes_version == "0.19.0"
+      assert bootstrap.minimum_hermes_version == "0.20.1"
       assert bootstrap.schema_version == "techtree.bootstrap.v1alpha1"
       assert bootstrap.placeholder_release
     end

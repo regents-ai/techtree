@@ -71,16 +71,16 @@ catalog is being served.
 
 ## Rehearsal record
 
-Rehearsed 2026-08-14 against the local development database with the site
+Rehearsed 2026-08-15 against the local development database with the site
 running, on channel `development`.
 
 | Step | Command | Result |
 | --- | --- | --- |
-| Before | `mix techtree.bootstrap.list` | `*` on `sha256:be2e965a…`, three others staged |
-| Serve | `GET /api/v1/bootstrap` | ETag and body digest `sha256:be2e965a…` |
-| Roll back | `mix techtree.bootstrap.publish --digest sha256:d95a0c3a…` | published `d95a0c3a…`, previously `be2e965a…` |
-| Serve | `GET /api/v1/bootstrap` | ETag and body digest `sha256:d95a0c3a…`; pages still render |
-| Roll forward | `mix techtree.bootstrap.publish --digest sha256:be2e965a…` | published `be2e965a…`, previously `d95a0c3a…` |
+| Before | `mix techtree.bootstrap.list` | `*` on `sha256:9e5afcb3…`, four others staged |
+| Serve | `GET /api/v1/bootstrap` | ETag and body digest `sha256:9e5afcb3…` |
+| Roll back | `mix techtree.bootstrap.publish --digest sha256:be2e965a…` | published `be2e965a…`, previously `9e5afcb3…` |
+| Serve | `GET /api/v1/bootstrap` | ETag and body digest `sha256:be2e965a…`; pages still render |
+| Roll forward | `mix techtree.bootstrap.publish --digest sha256:9e5afcb3…` | published `9e5afcb3…`, previously `be2e965a…` |
 | Serve | `GET /api/v1/bootstrap` | byte-identical to the first response |
-| After | `mix techtree.bootstrap.list` | all four releases still staged, one active |
-| Refusal | `mix techtree.bootstrap.publish --digest sha256:cccc…` | `bootstrap_release_missing`, pointer unmoved |
+| After | `mix techtree.bootstrap.list` | all five releases still staged, one active |
+| Refusal | `mix techtree.bootstrap.publish --digest sha256:2ef4a475…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |

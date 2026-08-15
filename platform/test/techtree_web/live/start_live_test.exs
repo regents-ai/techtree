@@ -61,7 +61,7 @@ defmodule TechtreeWeb.StartLiveTest do
       {:ok, _live, html} = live(conn, ~p"/start")
       text = visible_text(html)
 
-      assert text =~ "Hermes 0.19.0 or newer, already installed and working."
+      assert text =~ "Hermes 0.20.1 or newer, already installed and working."
       assert text =~ "Techtree installs and runs on the machine in front of you, at a terminal."
     end
 
@@ -164,7 +164,7 @@ defmodule TechtreeWeb.StartLiveTest do
         text = visible_text(html)
 
         assert text =~ "macOS or Linux"
-        assert text =~ "Hermes 0.19.0 or newer"
+        assert text =~ "Hermes 0.20.1 or newer"
         assert text =~ "Python 3.12 or newer"
         assert text =~ "uv 0.11.1 or newer"
         assert text =~ "Docker Installed, and running before a trial starts."

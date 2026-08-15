@@ -14,7 +14,9 @@ defmodule Techtree.Catalog.ConcreteCoordinates do
   something nobody chose. So it is refused at import.
 
   The checks are two kinds. A handful are named coordinates whose shape is
-  fixed: the CLI version, the two revisions, the plugin repository. The rest is
+  fixed: the CLI version, the two revisions, the plugin repository, and the
+  starter Skill's address, which is keyed by the digest of the file it returns
+  and never by the digest of the tree that file is mounted as. The rest is
   a sweep of every string in the document, because a placeholder is a placeholder
   wherever a future schema puts it, and a rule that only looks where today's
   fields are would quietly stop covering tomorrow's.
@@ -64,8 +66,9 @@ defmodule Techtree.Catalog.ConcreteCoordinates do
          :ok <- check_version(bootstrap, ["minimums", "hermes_version"]),
          :ok <- check_commit(bootstrap, ["cli", "source_revision"]),
          :ok <- check_commit(bootstrap, ["hermes_plugin", "revision"]),
-         :ok <- check_repository(bootstrap, ["hermes_plugin", "repository"]) do
-      sweep(bootstrap, [])
+         :ok <- check_repository(bootstrap, ["hermes_plugin", "repository"]),
+         :ok <- sweep(bootstrap, []) do
+      check_starter_skill_address(bootstrap)
     end
   end
 
@@ -99,6 +102,27 @@ defmodule Techtree.Catalog.ConcreteCoordinates do
       :ok
     else
       {:error, refuse("is not an owner/name repository", path, value)}
+    end
+  end
+
+  # The starter Skill is served as a file, so its address is keyed by the digest
+  # of that file and by nothing else (decision 0023). Keying it by the digest of
+  # the Skill *tree* would publish an address whose bytes never hash to the
+  # number naming them, and a fetcher checking the wrong half would either
+  # refuse a good Skill or accept whatever answered.
+  #
+  # Checked after the sweep, so that a spoiled digest is reported as the spoiled
+  # digest rather than as the address that stopped matching it.
+  defp check_starter_skill_address(bootstrap) do
+    path = ["starter_skill", "object_url"]
+    address = get_in(bootstrap, path)
+    file_digest = get_in(bootstrap, ["starter_skill", "file_digest"])
+
+    if is_binary(address) and is_binary(file_digest) and
+         String.ends_with?(address, "/" <> file_digest) do
+      :ok
+    else
+      {:error, refuse("is not keyed by the digest of the file it returns", path, address)}
     end
   end
 
