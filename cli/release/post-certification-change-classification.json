@@ -7,11 +7,11 @@
   "scientific \u2014 re-certified (0025, addendum A1.4)": "A change to the scientific configuration, sanctioned by decision 0025 and certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 22,
+ "commit_count": 25,
  "counts_by_class": {
-  "documentation": 38,
+  "documentation": 41,
   "non_scientific_copy": 23,
-  "release_packaging": 43,
+  "release_packaging": 46,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
   "test_only": 29
  },
@@ -1073,9 +1073,39 @@
    "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
    "path": "uv.lock",
    "rationale": "Packaging metadata and the tracker log. No product byte the science depends on."
+  },
+  {
+   "class": "release_packaging",
+   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
+   "path": "release/plugin-release-candidate.json"
+  },
+  {
+   "class": "release_packaging",
+   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
+   "path": "release/certified-scientific-fingerprint.json"
+  },
+  {
+   "class": "release_packaging",
+   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
+   "path": "release/post-certification-change-classification.json"
+  },
+  {
+   "class": "documentation",
+   "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
+   "path": "docs/agent-handoff.md"
+  },
+  {
+   "class": "documentation",
+   "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
+   "path": "docs/v0.1-remaining-tickets.md"
+  },
+  {
+   "class": "documentation",
+   "commit": "d54a8be64eb4764c7e7db1f2b63307ae9c6a9262",
+   "path": "docs/decisions/0026-contract-provenance-split.md"
   }
  ],
- "file_change_count": 139,
+ "file_change_count": 145,
  "release_source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {

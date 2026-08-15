@@ -1,6 +1,5 @@
 {
- "commit": "7f812ca5251ddb8f4db305d4d94f78bcc47e91ab",
- "commit_note": "The commit above is the plugin revision from before decision 0026. The plugin working tree carries the contract/provenance changes (embedded ReleaseCore sha256:90cd8ad6\u2026, the deleted placeholder install refusal, and CLI fixtures re-recorded from the candidate wheel) and has not been committed. The chief pins the new plugin commit here after committing that tree; it is not guessed.",
+ "commit": "5943148a7bef07b80e8baa4bdb27adf4636fbb40",
  "plugin_doctor": "passed",
  "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
  "repository": "github.com/regents-ai/techtree-hermes",
