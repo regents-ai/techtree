@@ -35,12 +35,15 @@ defmodule Techtree.Catalog.BundleTest do
     test "lists every Climb and every content-addressed object" do
       entries = Bundle.list_entries(Bundle.load!(CatalogFixture.root()))
 
+      # The Climb comes first and the content-addressed objects follow in
+      # digest order, which is the index's own order and not a meaning anybody
+      # assigned. It changes whenever an object's bytes change.
       assert Enum.map(entries, & &1.kind) == [
                :climb,
                :taskset_validation,
-               :campaign,
                :data_policy,
-               :validation_evidence
+               :validation_evidence,
+               :campaign
              ]
 
       climb = hd(entries)

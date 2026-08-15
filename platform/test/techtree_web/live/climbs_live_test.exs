@@ -116,7 +116,7 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       assert text =~ "Task family BranchCode v1"
       assert text =~ "One skill is added. Nothing else may differ."
       assert text =~ "exact match"
-      assert text =~ "One after the other, on the same machine."
+      assert text =~ "Side by side, started together on one machine."
       assert text =~ "docker container with 2 cores and 4 GB of memory"
       assert text =~ "network restricted"
     end

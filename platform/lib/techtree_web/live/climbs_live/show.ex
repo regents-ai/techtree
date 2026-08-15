@@ -88,12 +88,13 @@ defmodule TechtreeWeb.ClimbsLive.Show do
             {plain(get_in(@facts, ["scoring", "primary_reward"]))}, averaged across tasks.
             The change counts only if the new run scores above the old one.
           </:fact>
-          <:fact term="Runs">
-            {schedule_words(get_in(@facts, ["execution", "order"]))} Each run may take up to {get_in(
-              @facts,
-              ["execution", "timeout_seconds"]
-            )} seconds.
-          </:fact>
+          <%!-- The Campaign declares a per-episode timeout and this page used
+          to quote it. Nothing enforces it in v0.1, so quoting it told a reader
+          runs are time-bounded when they are not. Decision 0025 settles it for
+          this release: the declared value stays in the document, and no public
+          surface states it. Enforcement is a v0.2 candidate and gets the
+          sentence back when it is true. --%>
+          <:fact term="Runs">{schedule_words(get_in(@facts, ["execution", "order"]))}</:fact>
         </.definition_list>
       </section>
 
