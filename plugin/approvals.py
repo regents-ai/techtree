@@ -7,10 +7,10 @@ happens by handing the host a fixed command and letting the host's own
 approval surface ask the human. The plugin's part is an install plan: an
 opaque identifier, a short life, and one argv nobody can edit.
 
-Starting a run spends money, so Techtree itself demands a one-time
-confirmation token and an exact DataPolicy digest. The plugin passes both
-through unchanged. It never invents them, never remembers them after use, and
-never treats a model's say-so as acceptance.
+Starting a run spends money, so it happens on the host's own approval surface,
+where a person answers for themselves. The plugin prepares the immutable draft,
+says what starting it commits to, and marks the start as a step a human has to
+confirm. It never treats a model's say-so as acceptance.
 """
 
 from __future__ import annotations
@@ -171,7 +171,7 @@ def start_arguments(draft_id: str) -> list[str]:
     flag, and the chain behind that flag is worth stating plainly:
 
     1. The plugin prepares the immutable draft and shows the exact change,
-       the policy summary, and the budget.
+       the policy summary, and how many episodes it commits to paying for.
     2. Hermes asks the person, on its own approval surface, because the tool
        that starts a run is declared as one a human must confirm.
     3. Only then does Hermes dispatch the call, and the plugin passes ``--yes``
@@ -217,7 +217,8 @@ def _expiry(plan: BootstrapInstallPlan) -> datetime:
 # human can. It was ceremony around a question the plugin cannot answer.
 #
 # What happens now: the plugin prepares the immutable thing, shows exactly
-# what would change, what it costs, and where anything goes; and it marks the
+# what would change, what it commits to paying for, and where anything goes;
+# and it marks the
 # next step as one a human must confirm. Hermes owns that boundary, asks the
 # person, and only then dispatches the call. The model cannot approve its own
 # action because approving is not something a tool call can do.

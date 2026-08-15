@@ -1,8 +1,7 @@
 """Preparing a comparison, and starting it. Specification section 7.11.
 
 Preparation is free and starts nothing. Starting spends money, so it happens
-only with a draft the user was shown, the one-time token that draft issued,
-and the exact data policy they accepted.
+only with a draft the user was shown and the exact data policy they accepted.
 """
 
 from __future__ import annotations
@@ -117,7 +116,8 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                 "id": "start_first_comparison",
                 "label": "Start the first comparison",
                 "reason": (
-                    "This spends model budget. Show the policy, the estimate, "
+                    "This spends real money on model calls, and no price is "
+                    "worked out first. Show the policy, the episode count, "
                     "and the Skill, and start only if the user agrees."
                 ),
                 "tool": "techtree_climb_start",
@@ -143,7 +143,7 @@ def techtree_climb_prepare(services: Any, args: dict[str, Any], **kwargs: Any) -
 
 @safe_tool
 def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
-    """Start a prepared draft. Spends model budget; returns a run identifier."""
+    """Start a prepared draft. Spends real money; returns a run identifier."""
     channel = channel_of(args, kwargs)
     draft_id = require_draft_id(require_argument(args, "draft_id"))
 

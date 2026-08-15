@@ -27,9 +27,11 @@ the one the preparation step returned, never one you assembled.
 
 ## Starting a run
 
-Preparation issues a one-time confirmation token. It is not a credential and
-not a secret worth keeping: it exists so that the thing being started is
-provably the thing that was shown. It works once, for that draft.
+Preparation freezes a draft and names it by identifier. Starting means
+naming that exact draft, and the human approves the start themselves at
+the approval surface — there is no value you can supply that stands in
+for their approval. What was shown is what starts, because the draft is
+frozen and nothing else is startable.
 
 A second comparison needs its own approval. Show the difference between the
 two Skills, show the policy again, and ask again.

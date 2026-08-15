@@ -164,11 +164,14 @@ def _slash_demo(services: Any, arguments: Sequence[str]) -> str:
             "Prepared Techtree Hello World, a toy Skill-uplift Climb. "
             "Nothing has run yet.",
             f"Draft: {answer.get('draft_id')}",
-            f"Episodes estimated: {answer.get('estimated_episodes')}",
+            f"Episodes to run: {answer.get('estimated_episodes')}",
             f"Data policy: {answer.get('data_policy_digest')}",
-            "Starting it spends model budget, and needs your explicit approval.",
-            "Next: review the Skill-only change and the estimated cost, then "
-            "approve the start.",
+            "Starting it spends real money on model calls, and needs your "
+            "explicit approval.",
+            "What it comes to is settled by the model provider you configured. "
+            "Techtree works out no figure first and keeps no running total as "
+            "it goes.",
+            "Next: review the Skill-only change, then approve the start.",
         ]
     )
 

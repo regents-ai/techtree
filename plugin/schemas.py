@@ -2,8 +2,8 @@
 
 One schema per declared tool. The descriptions are written for the host agent
 that has to choose between them, so each says when the tool applies and what
-it costs: which tools are read-only, which change the host, and which spend
-model budget on an evaluated run.
+it takes: which tools are read-only, which change the host, and which spend
+real money on an evaluated run.
 
 Four things never appear in a schema here: an API key, an executable path, an
 installation command, and an unbounded identifier. Anything the plugin runs is
@@ -24,7 +24,6 @@ _DRAFT_ID_PATTERN: Final = r"^draft_[0-9a-f]{32}$"
 _PLAN_ID_PATTERN: Final = r"^install_[0-9a-f]{32}$"
 _DIGEST_PATTERN: Final = r"^sha256:[0-9a-f]{64}$"
 _CLIMB_REFERENCE_PATTERN: Final = r"^[a-z0-9][a-z0-9-]{0,63}(@[0-9A-Za-z.-]{1,16})?$"
-_TOKEN_PATTERN: Final = r"^[A-Za-z0-9_-]{16,128}$"
 _LABEL_PATTERN: Final = r"^[0-9A-Za-z][0-9A-Za-z ._-]{0,63}$"
 
 _CHANNEL: Final = {
@@ -133,9 +132,11 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         description=(
             "Show what one Climb measures: its Campaign summary, its data "
             "rights, the model and provider it requires, how many tasks it "
-            "runs, its cost bound, its proof grade, and whether this host can "
-            "run it. Read-only and free. Always inspect and show these facts "
-            "before asking the user to approve a run."
+            "runs, its proof grade, and whether this host can run it. It "
+            "names no price: what a run costs is settled by the model provider "
+            "the user configured, and Techtree works out no figure in advance. "
+            "Read-only and free. Always inspect and show these facts before "
+            "asking the user to approve a run."
         ),
         properties={
             "reference": {
@@ -150,9 +151,10 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         description=(
             "Prepare a candidate Skill for one Climb. Preparation is free and "
             "starts nothing: it scans the Skill, freezes a draft, and returns "
-            "the draft identifier, the data-policy digest, and a one-time "
-            "confirmation token that techtree_climb_start will need. For the "
-            "guided introduction use techtree_demo_prepare instead."
+            "the draft identifier and the data-policy digest that "
+            "techtree_climb_start will need. Starting that draft REQUIRES "
+            "USER CONFIRMATION at the approval surface. For the guided "
+            "introduction use techtree_demo_prepare instead."
         ),
         properties={
             "reference": {
@@ -183,22 +185,28 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "CLI, run Doctor, materialize the starter Skill by its pinned "
             "digest, and prepare a draft. Free and starts nothing. It returns "
             "the exact field that changes between the two runs, the "
-            "data-policy summary, the episode and budget estimate, and the "
-            "confirmation token the user must approve before any model "
-            "spending happens. Hello World demonstrates how the mechanism "
-            "works; it is not a measure of broad capability."
+            "data-policy summary, and how many episodes the comparison will "
+            "run. It names no price, and nothing here spends money: that "
+            "begins only when the user approves the start. Hello World "
+            "demonstrates how the mechanism works; it is not a measure of "
+            "broad capability."
         ),
         properties={},
     ),
     "techtree_climb_start": _schema(
         description=(
-            "Start a prepared draft running. This spends model budget and "
-            "provisions Docker, so call it only after the user has seen the "
-            "cost, the data policy, and the Skill, and has said yes. Model "
-            "inference goes to the model provider the user configured, under "
-            "that provider's policies; Techtree uploads nothing of its own. "
-            "The run is detached: this returns a run identifier immediately "
-            "and never waits for the result."
+            "Start a prepared draft running. This spends real money on model "
+            "calls and provisions Docker, so call it only after the user has "
+            "seen how many episodes will run, the data policy, and the Skill, "
+            "and has said yes. Nobody can tell them the price first: Techtree "
+            "works out no figure before a run and keeps no running total while "
+            "one is under way, so what they agree to is whatever those "
+            "episodes come to at the provider they configured. Model inference "
+            "goes to "
+            "the model provider the user configured, under that provider's "
+            "policies; Techtree uploads nothing of its own. The run is "
+            "detached: this returns a run identifier immediately and never "
+            "waits for the result."
         ),
         properties={
             "draft_id": {
@@ -212,8 +220,9 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     "techtree_run_status": _schema(
         description=(
             "Report how a detached run is progressing. Read-only, free, and "
-            "returns immediately. Poll it occasionally rather than waiting; "
-            "a Climb takes minutes, not seconds."
+            "returns immediately. Poll it occasionally rather than waiting: a "
+            "Climb is slow work, and nothing ends one at a set time, so never "
+            "tell the user how long theirs will take."
         ),
         properties={"run_id": _run_id("The run to report on.")},
         required=["run_id"],
@@ -276,8 +285,8 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "Propose one revision of the Skill a finished run measured, and "
             "show what changed. Reads the sanitized improvement context, asks "
             "the host model exactly once, hands the proposal to Techtree to "
-            "scan and prepare, and stops. It spends no model budget on an "
-            "evaluation and starts nothing. The guided introduction allows one "
+            "scan and prepare, and stops. It pays for no evaluated run and "
+            "starts nothing. The guided introduction allows one "
             "proposal; a failed attempt still uses it up. REQUIRES USER "
             "CONFIRMATION before it is called: this one request sends the "
             "verified starter Skill and a sanitized summary of how it did to "
@@ -288,7 +297,8 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "model-generation request. The model will propose one revision "
             "which Techtree will test; a proposal may be unusable or may fail "
             "to improve the score. Show the user the diff, the data policy, "
-            "and the estimate before starting anything."
+            "and how many episodes the comparison runs before starting "
+            "anything."
         ),
         properties={
             "source_run_id": _run_id("The finished run whose Skill should be revised."),
@@ -322,10 +332,12 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     ),
     "techtree_uplift_start": _schema(
         description=(
-            "Start a prepared Skill-against-Skill comparison. This spends "
-            "model budget, so call it only after the user has seen the Skill "
-            "diff, the data policy, and the budget, and has approved this "
-            "second run specifically. Returns a run identifier immediately."
+            "Start a prepared Skill-against-Skill comparison. This spends real "
+            "money on model calls, so call it only after the user has seen the "
+            "Skill diff, the data policy, and how many episodes will run, and "
+            "has approved this second run specifically. As with the first run, "
+            "no price is worked out in advance and no running total is kept "
+            "while the run goes. Returns a run identifier immediately."
         ),
         properties={
             "draft_id": {

@@ -50,12 +50,12 @@ Skill, and say which comparison it improved on.
 ## Before anything runs
 
 Inspect first, always. `techtree_climb_inspect` tells you what a Climb
-measures, what data rights it carries, which model it needs, how many tasks it
-runs, and its cost bound. Read it out before asking anyone to approve anything.
+measures, what data rights it carries, which model it needs, and how many
+tasks it runs. Read it out before asking anyone to approve anything.
 
 Then show, in your own words but without changing any of the facts:
 
-- what will run, and roughly how long and how much it will cost;
+- what will run, and how many episodes that is;
 - what the data policy says — and never accept it on someone's behalf, or
   infer acceptance from enthusiasm;
 - which single thing differs between the two sides of the comparison.
@@ -64,13 +64,23 @@ Starting a run spends real money on model calls. It happens only after the
 person has seen those facts and said yes to *this* run. "Go ahead" from an
 earlier conversation is not consent for a second one.
 
+Two things you cannot tell them, so do not try. **How much it will come to:**
+Techtree works out no figure before a run and keeps no running total while one
+is under way, so the bill is whatever those episodes come to at the model
+provider they configured. **How long it will take:** nothing ends a run at a
+set time.
+Say both plainly rather than offering a guess; a number you invented is the
+one they will hold you to.
+
 ## While it runs
 
-A comparison takes minutes. Start it, take the run identifier, and let the
+A comparison is slow work. Start it, take the run identifier, and let the
 conversation continue. Check on it with `techtree_run_status` when it is worth
-checking — a few times, not in a loop. Nothing you do makes it finish faster.
+checking — a few times, not in a loop. Nothing you do makes it finish faster,
+and nothing ends it at a set time.
 
-Only stop a run with `techtree_run_cancel` when the person asks you to.
+`techtree_run_cancel` is the way a run ends early, and you use it only when
+the person asks you to.
 
 ## Reading a result
 
@@ -136,7 +146,8 @@ Do not work around it.
 ## The short version
 
 - Inspect before preparing; prepare before starting.
-- Show cost, policy, and what changes — then ask.
+- Show the episode count, the policy, and what changes — then ask.
+- Never quote a price or a finishing time; neither one exists.
 - Long work returns an identifier; poll gently.
 - Use Techtree's numbers, unchanged.
 - Never claim independent reproduction.

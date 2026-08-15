@@ -14,6 +14,15 @@ Skill with its references.
 Decision 0018 added a fourth boundary to the three above: the guided revision
 may produce nothing useful, and copy may not promise otherwise.
 
+Decision 0025 adds two more, and they are the same mistake twice. The Campaign
+declares a maximum spend and a per-episode timeout; nothing works out what a
+run will come to before it starts, nothing watches the spending while it runs,
+and nothing ends a run when the declared time is up. A declared figure is a
+contract value, and copy that phrases one as a meter or a cut-off is telling
+the reader a protection exists. So the copy may not promise a price in advance,
+may not promise that spending stops a run, and may not promise that a run is
+over by any particular time.
+
 `skills/skill-improver/SKILL.md` is deliberately absent. It is founder-written
 and frozen by digest, it is never shown to a user, and a test that could
 demand an edit to it would be a test that could break a release coordinate.
@@ -27,6 +36,7 @@ from pathlib import Path
 
 import pytest
 from techtree_hermes.constants import PLUGIN_ROOT
+from techtree_hermes.schemas import all_tool_schemas
 
 # What counts as public copy -------------------------------------------------------
 
@@ -183,6 +193,98 @@ FORBIDDEN_EXACT_SCORE: re.Pattern[str] = re.compile(
 #: presentation guard uses: a check that flagged the honest phrasing for
 #: containing the dishonest one would be a check that punishes candour.
 PERMITTED_BAND: re.Pattern[str] = re.compile("\\b20\\s*[-\\u2013]\\s*27\\s*/\\s*36\\b")
+
+#: Decision 0025. Nothing works out a price before a run and nothing ends a run
+#: for spending too much, so every one of these is a protection the reader
+#: would be told about and would not get. Each pattern bans the claim in the
+#: affirmative only: saying that none of it happens is the whole point of the
+#: honest copy, and a guard that could not tell the two apart would forbid the
+#: sentences it exists to require.
+FORBIDDEN_COST_PROMISE: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("a cost bound", re.compile(r"\bcost\s+(bound|ceiling|cap|limit)s?\b", re.I)),
+    (
+        "a budget estimate",
+        re.compile(r"\b(budget|cost|spending|spend|price)\s+estimates?\b", re.I),
+    ),
+    (
+        "a price worked out in advance",
+        re.compile(
+            r"\b(estimates?|calculates?|computes?|predicts?|projects?|forecasts?"
+            r"|works?\s+out|tells?\s+you)\s+(the\s+|your\s+)?"
+            r"(cost|price|spend|spending|bill|total)\b"
+            r"|\b(shows?|tells?)\s+you\s+what\s+(this|it|the\s+run)\s+"
+            r"(costs?|will\s+cost|comes?\s+to)\b",
+            re.I,
+        ),
+    ),
+    (
+        "an estimated cost",
+        re.compile(r"\bestimated\s+(cost|spend|spending|price|bill|budget)\b", re.I),
+    ),
+    (
+        "a run that stops itself over money",
+        re.compile(
+            r"\b(abort|aborts|aborted|halt|halts|halted|kill|kills|stop|stops"
+            r"|stopped|cut\s+off|cuts\s+off)\b[^.]{0,50}"
+            r"\b(budget|ceiling|spending\s+limit|cost\s+limit|spending\s+cap"
+            r"|overspend|over\s+budget)\b",
+            re.I,
+        ),
+    ),
+    (
+        "a promise about the bill",
+        re.compile(
+            r"\b(won'?t|will\s+not|never)\s+(cost|spend|exceed|charge)\b"
+            r"|\b(at\s+most|no\s+more\s+than|up\s+to)\s+\$\s?\d",
+            re.I,
+        ),
+    ),
+)
+
+#: Decision 0025 again, for the clock. The Campaign's declared timeout is
+#: enforced by nothing, so a run has no finishing time anybody can state.
+FORBIDDEN_TIME_PROMISE: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("the declared 600 seconds", re.compile(r"\b600[\s-]*seconds?\b", re.I)),
+    (
+        "a stated run duration",
+        re.compile(
+            r"\b(up\s+to|no\s+more\s+than|at\s+most|within|under|less\s+than)\s+"
+            r"\d+\s*(seconds?|minutes?|hours?|s|m)\b",
+            re.I,
+        ),
+    ),
+    (
+        "a time-bounded run",
+        re.compile(r"\btime[-\s](bound|bounded|limited|capped|boxed)\b", re.I),
+    ),
+    ("a run time limit", re.compile(r"\b(time|run|episode)\s+limits?\b", re.I)),
+    (
+        "a timeout",
+        re.compile(r"\btimeouts?\b|\btimes?\s+out\b|\btimed\s+out\b", re.I),
+    ),
+    ("a deadline", re.compile(r"\bdeadlines?\b", re.I)),
+    (
+        "a promised finish",
+        re.compile(
+            r"\b(finish|finishes|complete|completes|end|ends|done)\s+"
+            r"(in|within|after)\s+\d+\s*(seconds?|minutes?|hours?)\b",
+            re.I,
+        ),
+    ),
+)
+
+#: The other half of each ban. Forbidding the overclaim leaves a surface free
+#: to say nothing at all, which is how a promise gets deleted and the reader
+#: still walks away expecting one. Wherever the plugin tells a host agent to
+#: spend somebody's money, it also has to say that no price is worked out and
+#: nothing is watching the spending.
+NO_PRICE_FRAMING: re.Pattern[str] = re.compile(
+    r"works?\s+out\s+no\s+figure|no\s+price\s+is\s+worked\s+out|names\s+no\s+price",
+    re.I,
+)
+NO_METER_FRAMING: re.Pattern[str] = re.compile(
+    r"keeps\s+no\s+running\s+total|no\s+running\s+total\s+is\s+kept", re.I
+)
 
 
 def _offenders(
@@ -366,6 +468,99 @@ def test_no_copy_claims_an_exact_score() -> None:
     offenders = _offenders(FORBIDDEN_EXACT_SCORE, scrub=PERMITTED_BAND)
 
     assert not offenders, f"copy claims an exact score: {offenders}"
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    FORBIDDEN_COST_PROMISE,
+    ids=[described for described, _ in FORBIDDEN_COST_PROMISE],
+)
+def test_no_copy_promises_a_price_or_a_spending_cut_off(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    """Decision 0025. Neither the figure nor the cut-off exists."""
+    offenders = _offenders(pattern)
+
+    assert not offenders, f"copy promises {described!r}: {offenders}"
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    FORBIDDEN_TIME_PROMISE,
+    ids=[described for described, _ in FORBIDDEN_TIME_PROMISE],
+)
+def test_no_copy_promises_a_run_is_over_by_a_certain_time(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    """Decision 0025. The declared timeout is enforced by nothing."""
+    offenders = _offenders(pattern)
+
+    assert not offenders, f"copy promises {described!r}: {offenders}"
+
+
+def test_the_surfaces_that_spend_money_say_no_price_is_worked_out() -> None:
+    """Deleting the overclaim is half of it; the honest line has to be there.
+
+    The two tools that spend somebody's money and the command surface that
+    offers the first one are the places a person decides, so each of them says
+    what does not happen rather than leaving the reader to assume it does.
+    """
+    schemas = all_tool_schemas()
+
+    for name in ("techtree_climb_start", "techtree_uplift_start"):
+        description = schemas[name]["description"]
+        assert NO_PRICE_FRAMING.search(description), name
+        assert NO_METER_FRAMING.search(description), name
+
+    assert NO_PRICE_FRAMING.search(PUBLIC_COPY["commands.py"])
+    assert NO_METER_FRAMING.search(PUBLIC_COPY["commands.py"])
+    assert NO_PRICE_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
+    assert NO_METER_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
+
+
+def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
+    """The guards must not forbid the sentences they exist to require."""
+    permitted = (
+        "Techtree works out no figure before a run and keeps no running "
+        "total while one is under way.",
+        "It names no price: what a run costs is settled by the user's own "
+        "model provider.",
+        "no price is worked out in advance and no running total is kept "
+        "while the run goes",
+        "nothing stops it if it goes past",
+        "This spends real money on model calls.",
+        "A Climb is slow work, and nothing ends one at a set time.",
+        "Never quote a price or a finishing time; neither one exists.",
+        "The offer expires after a few minutes, and works once.",
+        "Only stop a run with techtree_run_cancel when the person asks you to.",
+    )
+
+    for sentence in permitted:
+        for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
+            assert not pattern.search(sentence), (described, sentence)
+
+
+def test_the_money_and_clock_guards_catch_what_they_are_for() -> None:
+    """The claims decision 0025 removed, in the words they were written in."""
+    refused = (
+        "how many tasks it runs, its cost bound, its proof grade",
+        "the episode and budget estimate",
+        "review the Skill-only change and the estimated cost",
+        "It estimates the cost before anything starts.",
+        "The run aborts when it goes over budget.",
+        "It will never cost more than the ceiling.",
+        "Each run may take up to 600 seconds.",
+        "Every run is time-bounded.",
+        "There is a run limit of ten minutes.",
+        "The comparison times out and stops itself.",
+        "Each episode has a deadline.",
+    )
+
+    for sentence in refused:
+        assert any(
+            pattern.search(sentence)
+            for _, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE
+        ), sentence
 
 
 def test_the_band_wording_is_still_allowed() -> None:

@@ -119,8 +119,8 @@ def test_path_taking_tools_require_an_explicitly_identified_path() -> None:
 def test_spending_tools_say_so_in_their_description() -> None:
     """A tool that costs money or changes the host says it in its first lines."""
     spending = {
-        "techtree_climb_start": "spends model budget",
-        "techtree_uplift_start": "spends model budget",
+        "techtree_climb_start": "spends real money",
+        "techtree_uplift_start": "spends real money",
         "techtree_bootstrap_install": "changes software",
     }
 

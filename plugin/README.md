@@ -5,11 +5,11 @@
 Paste this into Hermes:
 
 > Read this repository's pinned Hello World installation instructions.
-> Explain the exact commands, prerequisites, expected model cost, and
-> privacy terms. Ask before installing the plugin, installing the
-> Techtree CLI, or starting a paid run. After the plugin is enabled,
-> tell me when to restart Hermes, then continue with Techtree Doctor
-> and the Hello World Climb.
+> Explain the exact commands, the prerequisites, what spends money,
+> and the privacy terms. Ask before installing the plugin, installing
+> the Techtree CLI, or starting a paid run. After the plugin is
+> enabled, tell me when to restart Hermes, then continue with Techtree
+> Doctor and the Hello World Climb.
 
 Techtree runs a neutral agent and a Skill-enabled agent against the
 same toy tasks, shows the measured difference, and creates a signed
