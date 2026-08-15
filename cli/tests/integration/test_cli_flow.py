@@ -9,13 +9,20 @@ provider is substituted: what is exercised is the installed program.
 That makes it the one place where every work package is loaded at once. Setup
 installs the pinned engine (WP4). List and show read the generated catalog
 (WP1, PR4B). Prepare scans a real skill and builds the two manifests (WP2).
-Start launches a detached worker (WP3), which resolves the reference taskset
-against the engine and runs the real model-free Verifiers validation before it
-scores anything (WP5). Status, logs, and result read the answer back.
+Start launches a detached worker (WP3). Status and logs read the answer back.
 
-The run costs one engine install, four engine processes, and 72 invented
-episodes, so the sequence runs once per module and each test below inspects the
-same finished flow.
+The sequence stops where it now costs money. Decisions document 0025 put the
+release subject into the shipped Campaign, so starting the Hello World Climb
+asks for a real evaluation: real containers, a real provider, a real bill. This
+module therefore hands ``start`` an environment with no evaluation credential
+in it — which is also the first-run environment of everybody who has not signed
+in yet — and requires the product to stop there with a stated reason instead of
+provisioning anything. The complete journey past that point is a paid run and
+is certification evidence, not a test.
+
+The development loop that used to be observed here, all the way to a report,
+is observed in full by ``test_fake_run.py`` against the synthetic development
+catalog, which is where a fake executor belongs.
 
     uv run pytest tests/integration/test_cli_flow.py -m integration
 """
@@ -30,27 +37,20 @@ import pytest
 from typer.testing import CliRunner
 
 from fixtures.drafts.support import VALID_SKILL
-from fixtures.runs.support import CliRun, run_cli, wait_for_terminal
+from fixtures.runs.support import run_cli, wait_for_terminal
 from fixtures.starter import STARTER_FIXTURE, release_pinning, tree_digest
 from techtree.cli.app import create_app
 from techtree.cli.commands.climb import abbreviated_digest
-from techtree.cli.commands.run import development_only_result_notice
 from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
 from techtree.errors import EXIT_OK
 from techtree.identity.store import IdentityStore
-from techtree.models.uplift_report import UpliftReport
 from techtree.paths import paths_from_root
 from techtree.release.document import render_release_core
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.events import read_events
 from techtree.runs.store import RunStore
-from techtree.tasksets.service import (
-    EVIDENCE_FILENAME,
-    LOCK_FILENAME,
-    RECEIPT_FILENAME,
-    TASKSET_DIRECTORY,
-    VALIDATION_DIRECTORY,
-)
+from techtree.tasksets.service import LOCK_FILENAME, TASKSET_DIRECTORY
+from techtree.verifiers.credentials import PRIME_CREDENTIAL_ENV
 
 pytestmark = pytest.mark.integration
 
@@ -81,20 +81,24 @@ def flow(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     )
     draft = prepared.data()
 
+    # The detached worker inherits this environment, and the Campaign it is
+    # about to run names a real subject. A machine that happens to be signed in
+    # to the provider would spend money here, so the worker is given a HOME
+    # with no provider configuration under it; ``run_cli`` drops the credential
+    # variable on every call already.
     started = run_cli(
         home,
         "climb",
         "start",
         draft["draft_id"],
         "--yes",
+        environment={"HOME": str(tmp_path_factory.mktemp("signed-out"))},
     )
     assert started.exit_code == EXIT_OK, started.stdout + started.stderr
     run_id = started.data()["run_id"]
 
     final = wait_for_terminal(home, run_id, timeout=900.0)
     logs = run_cli(home, "run", "logs", run_id, "--tail", "200")
-    result = run_cli(home, "run", "result", run_id)
-    human_result = run_cli(home, "run", "result", run_id, machine=False)
 
     return {
         "home": home,
@@ -106,19 +110,7 @@ def flow(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
         "run_id": run_id,
         "status": final,
         "logs": logs,
-        "result": result,
-        "human_result": human_result,
     }
-
-
-def _report(flow: dict[str, Any]) -> UpliftReport:
-    # Loaded from bytes, never from a decoded dict: JSON is the spelling the
-    # strict protocol models accept, and it is what a real reader would have.
-    # ``run result`` answers with the report and the neutral presentation
-    # payload every channel draws from (spec section 7.21), so the report is
-    # one field of the response rather than the whole of it.
-    result: CliRun = flow["result"]
-    return UpliftReport.model_validate_json(json.dumps(result.data()["report"]))
 
 
 # ---------------------------------------------------------------------------
@@ -211,144 +203,71 @@ def test_start_records_the_approval_and_who_gave_it(flow: dict[str, Any]) -> Non
     assert payload["data_policy_digest"] == flow["draft"]["data_policy_digest"]
 
 
-def test_status_reports_a_finished_run(flow: dict[str, Any]) -> None:
-    assert flow["status"]["phase"] == "completed"
-    assert flow["status"]["result_available"] is True
-    assert flow["status"]["development_only"] is True
-
-
-def test_logs_show_the_worker_doing_the_work(flow: dict[str, Any]) -> None:
-    lines = flow["logs"].data()["lines"]
-
-    assert any(flow["run_id"] in line for line in lines)
-    assert any("completed" in line for line in lines)
-
-
-# ---------------------------------------------------------------------------
-# The taskset really was validated
-# ---------------------------------------------------------------------------
-
-
-def test_the_run_validated_its_taskset_with_the_real_engine(
+def test_start_says_a_real_evaluation_is_what_was_approved(
     flow: dict[str, Any],
 ) -> None:
-    """Spec section 28: a run keeps the lock and the validation it ran under."""
-    paths = paths_from_root(flow["home"])
-    taskset = paths.run_dir(flow["run_id"]) / TASKSET_DIRECTORY
-    validation = taskset / VALIDATION_DIRECTORY
+    """Decisions document 0025: the shipped Climb runs the release subject.
 
-    assert (taskset / LOCK_FILENAME).is_file()
-    assert (validation / RECEIPT_FILENAME).is_file()
-    assert (validation / EVIDENCE_FILENAME).is_file()
-    assert (validation / "summary.json").is_file()
-    assert (validation / "results.jsonl").is_file()
-
-
-def test_the_validation_was_local_and_reproduced_the_publisher_receipt(
-    flow: dict[str, Any],
-) -> None:
-    """Decisions 0003 A1: the local receipt is the published one, byte for byte."""
+    The request written at approval time is where a person is told what is
+    about to happen, and since the Campaign carries real release coordinates
+    what is about to happen is a real evaluation. The old answer here was the
+    development executor, and that was only ever true because the Campaign
+    named a placeholder.
+    """
     paths = paths_from_root(flow["home"])
     run_id = flow["run_id"]
-    inputs = RunArtifactStore(paths).load_inputs(
-        run_id, RunStore(paths).get_request(run_id)
-    )
-    recorded = json.loads(
-        (paths.run_dir(run_id) / "validation" / "development.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    request = RunStore(paths).get_request(run_id)
+    inputs = RunArtifactStore(paths).load_inputs(run_id, request)
 
-    assert recorded["source"] == "local_verifiers"
-    assert recorded["execution_record"] is not None
-    assert (
-        recorded["receipt_digest"] == inputs.campaign.taskset.validation_receipt_digest
-    )
-    assert recorded["receipt"]["status"] == "valid"
+    assert request.executor_kind == "verifiers"
+    assert inputs.campaign.subject.model.provider == "prime"
+    assert inputs.campaign.budgets.maximum_usd is not None
 
 
-def test_the_run_walked_every_phase(flow: dict[str, Any]) -> None:
+def test_the_run_stops_because_nothing_can_pay_for_it(flow: dict[str, Any]) -> None:
+    """Spec section 6.9: no credential, no run — and said before anything starts.
+
+    The credential is checked before the taskset is validated, before an image
+    is looked for, and before a container exists, because every one of those is
+    slower and none of them can succeed without it.
+    """
+    assert flow["status"]["phase"] == "failed"
+    assert flow["status"]["error"]["code"] == "model_credentials_missing"
+    assert flow["status"]["result_available"] is False
+
+
+def test_the_refusal_is_a_stated_reason_rather_than_a_crash(
+    flow: dict[str, Any],
+) -> None:
+    """The person is told which variable, where it is looked for, and what to do."""
+    status = flow["status"]
+    lines = flow["logs"].data()["lines"]
+
+    assert PRIME_CREDENTIAL_ENV in status["error"]["message"]
+    assert any(flow["run_id"] in line for line in lines)
+    assert any("model_credentials_missing" in line for line in lines)
+
+
+def test_nothing_was_provisioned_and_nothing_was_scored(
+    flow: dict[str, Any],
+) -> None:
+    """A refused run leaves no taskset lock, no receipts, and no report."""
+    paths = paths_from_root(flow["home"])
+    run_dir = paths.run_dir(flow["run_id"])
+
+    assert not (run_dir / TASKSET_DIRECTORY / LOCK_FILENAME).exists()
+    assert not (run_dir / "receipts").exists()
+    assert not (run_dir / "result").exists()
+
+
+def test_the_run_walked_the_phases_it_got_to(flow: dict[str, Any]) -> None:
     paths = paths_from_root(flow["home"])
     events = read_events(paths.run_dir(flow["run_id"]) / "events.jsonl")
 
     phases = [event.phase.value for event in events]
-    for expected in (
-        "validating_taskset",
-        "running_baseline",
-        "running_candidate",
-        "building_receipts",
-        "verifying_comparison",
-        "building_report",
-        "completed",
-    ):
-        assert expected in phases
-
-
-# ---------------------------------------------------------------------------
-# The result, and what it is allowed to claim
-# ---------------------------------------------------------------------------
-
-
-def test_the_report_is_development_only(flow: dict[str, Any]) -> None:
-    report = _report(flow)
-
-    assert report.proof_grade == "development_only"
-    assert report.publication_eligible is False
-    assert len(report.task_deltas) == EXPECTED_TASK_COUNT
-
-
-def test_the_result_carries_the_required_warning(flow: dict[str, Any]) -> None:
-    """Spec section 29 fixes this text, including the DataPolicy digest line."""
-    report = _report(flow)
-    warnings = flow["result"].envelope()["warnings"]
-    notice = development_only_result_notice(report.data_policy_digest)
-
-    assert any(warning["text"] == notice for warning in warnings)
-
-
-def test_the_human_result_says_it_in_full(flow: dict[str, Any]) -> None:
-    stdout: str = flow["human_result"].stdout
-    report = _report(flow)
-
-    for line in (
-        "This is a development-only report.",
-        "The taskset was validated through Prime Intellect Verifiers.",
-        "The baseline and candidate results were generated by the fake executor.",
-        "No agent was evaluated. The report is not publication eligible.",
-        "The candidate and generated artifacts remain governed by DataPolicy:",
-        report.data_policy_digest,
-    ):
-        assert line in stdout, stdout
-
-
-def test_nothing_was_evaluated(flow: dict[str, Any]) -> None:
-    """The taskset validation was real; everything scored on it was not."""
-    paths = paths_from_root(flow["home"])
-    run_id = flow["run_id"]
-    artifacts = RunArtifactStore(paths)
-
-    for variant in ("baseline", "candidate"):
-        directory = paths.run_dir(run_id) / "receipts" / variant
-        receipts = sorted(directory.iterdir())
-        assert len(receipts) == EXPECTED_TASK_COUNT
-
-    request = RunStore(paths).get_request(run_id)
-    assert request.executor_kind == "fake"
-    assert artifacts.load_inputs(run_id, request).campaign.subject.model.provider == (
-        "development"
-    )
-
-
-def test_the_result_offers_the_tasks_first_and_the_log_after(
-    flow: dict[str, Any],
-) -> None:
-    """What to do about the result comes before how to debug the run."""
-    actions = flow["result"].envelope()["next_actions"]
-
-    assert actions[0]["cli"][:3] == ["techtree", "run", "result"]
-    assert ["techtree", "run", "logs", flow["run_id"]] in [
-        action["cli"] for action in actions
-    ]
+    assert phases[-1] == "failed"
+    for never_reached in ("running_baseline", "running_candidate", "completed"):
+        assert never_reached not in phases
 
 
 def test_the_flow_left_the_home_it_was_given(flow: dict[str, Any]) -> None:

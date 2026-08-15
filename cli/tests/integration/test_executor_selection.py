@@ -27,7 +27,7 @@ from pathlib import Path
 import pytest
 
 from fixtures.runs.support import run_harness
-from fixtures.verifiers.support import local_campaign, local_run
+from fixtures.verifiers.support import local_run
 from techtree.errors import PrerequisiteError, RunError
 from techtree.models.run import RunRequest
 from techtree.paths import paths_from_root
@@ -72,7 +72,7 @@ def test_a_campaign_with_real_subject_coordinates_gets_the_real_executor(
 ) -> None:
     """A Campaign that names a real model on a real image is evaluated for real."""
     home = tmp_path / "home"
-    run = local_run(home, campaign=local_campaign().campaign)
+    run = local_run(home)
 
     executor = executor_for(run.request, paths=paths_from_root(home))
     assert isinstance(executor, RealVerifiersExecutor)
@@ -133,7 +133,7 @@ def test_each_run_records_the_executor_its_campaign_will_get(
     """The request says which of the two it is, and says it truthfully."""
     placeholder = run_harness(tmp_path / "fake-home")
     placeholder_id = placeholder.start().state.run_id
-    real = local_run(tmp_path / "real-home", campaign=local_campaign().campaign)
+    real = local_run(tmp_path / "real-home")
 
     fake_request: RunRequest = placeholder.request(placeholder_id)
     assert fake_request.executor_kind == "fake"
@@ -157,7 +157,7 @@ def test_a_request_that_disagrees_with_its_campaign_is_refused(
     numbers, and the shape that would let a placeholder Campaign be presented as
     a real result. Neither direction is routed; both are refused by name.
     """
-    real = local_run(tmp_path / "real-home", campaign=local_campaign().campaign)
+    real = local_run(tmp_path / "real-home")
     paths = paths_from_root(tmp_path / "real-home")
     lying = real.request.model_copy(update={"executor_kind": "fake"})
 
@@ -175,7 +175,7 @@ def test_the_recorded_kind_is_the_one_the_campaign_predicate_gives(
     """One question, one answer, wherever it is asked from."""
     placeholder = run_harness(tmp_path / "fake-home")
     placeholder_id = placeholder.start().state.run_id
-    real = local_run(tmp_path / "real-home", campaign=local_campaign().campaign)
+    real = local_run(tmp_path / "real-home")
 
     assert executor_kind_for(placeholder.inputs(placeholder_id).campaign) == "fake"
     assert executor_kind_for(real.campaign) == "verifiers"

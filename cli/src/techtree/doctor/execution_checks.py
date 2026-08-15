@@ -80,12 +80,11 @@ __all__ = [
 IMAGE_INSPECT_TIMEOUT_SECONDS: Final = DAEMON_TIMEOUT_SECONDS
 
 #: Substrings that mark a Campaign as a development fixture rather than
-#: something that may be executed for real. The shipped Campaign's subject model
-#: is still one of these, so a real run must not start from it until the founder
-#: ratifies the release coordinates. Its container is not: decisions document
-#: 0007 R5 pins the image by content, which is a fact about a registry rather
-#: than a coordinate anybody ratifies. Every field is still scanned, because
-#: which fields happen to carry a placeholder today is not what the check is
+#: something that may be executed for real. The shipped Campaign carries none
+#: of them any more — decisions document 0007 R5 pinned its container by
+#: content and decisions document 0025 named its subject model — but a
+#: Campaign is not always the shipped one, and every field is still scanned,
+#: because which fields happen to carry a placeholder is not what the check is
 #: about.
 DEVELOPMENT_PLACEHOLDER_MARKERS: Final[tuple[str, ...]] = (
     "development-placeholder",
@@ -317,7 +316,7 @@ def check_subject_image(runtime: RuntimeSpec) -> DoctorCheck:
 def check_live_campaign(campaign: CampaignSpec) -> DoctorCheck:
     """Refuse a Campaign whose coordinates are development placeholders.
 
-    The shipped Campaign names a model that exists to be compiled and dry-run,
+    A development fixture names a model that exists to be compiled and dry-run,
     never to be executed. Catching that here is the difference between a clear
     refusal and a container that starts, authenticates against nothing, and
     fails at the first model call.

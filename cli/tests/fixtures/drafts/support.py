@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from dataclasses import dataclass
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Final
@@ -152,7 +153,7 @@ def synthetic_graph(
 def catalog_service(
     paths: TechtreePaths,
     *,
-    catalog_root: Path = COMPLETE_CATALOG,
+    catalog_root: Traversable = COMPLETE_CATALOG,
     engine: EngineCompatibilityStatus = EngineCompatibilityStatus.VERIFIED,
 ) -> CatalogService:
     """Return a catalog service over the complete fixture on a supported host."""
@@ -166,7 +167,7 @@ def catalog_service(
 def preparation_service(
     paths: TechtreePaths,
     *,
-    catalog_root: Path = COMPLETE_CATALOG,
+    catalog_root: Traversable = COMPLETE_CATALOG,
     engine: EngineCompatibilityStatus = EngineCompatibilityStatus.VERIFIED,
 ) -> tuple[SkillPreparationService, DraftStore]:
     """Return a preparation service and the store it writes through."""

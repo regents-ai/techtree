@@ -179,6 +179,57 @@ PRIMARY_REWARD: Final = "exact_match"
 #: only the 2.4% that were being truncated get longer.
 SUBJECT_MAX_OUTPUT_TOKENS: Final = 4096
 
+#: Who answers. Decisions document 0006 selected the model empirically and
+#: decisions document 0025 rules that the released Campaign carries it.
+#:
+#: The Campaign used to name a ``development-placeholder`` here while every
+#: certified comparison executed a Campaign a test fixture derived from it,
+#: which meant the object this build ships was not the object the science was
+#: done on (release/budget-contract-audit.json). The regeneration closes that
+#: gap in the only direction that keeps the certified values: the product now
+#: carries what the fixture carried.
+#:
+#: ``revision`` is ``None`` because the provider exposes no immutable revision
+#: for this alias. That is a fact, not an omission, and it is what makes a
+#: release result ``controlled_with_warnings`` with the accepted v0.1
+#: ``model_revision_unavailable`` warning (decisions document 0007 R5). It is
+#: never filled in with a guess to buy the word "controlled".
+SUBJECT_MODEL_PROVIDER: Final = "prime"
+SUBJECT_MODEL_ID: Final = "qwen/qwen3.7-flash"
+SUBJECT_CREDENTIAL_ENV: Final = "PRIME_API_KEY"
+
+#: What one comparison may spend, in USD. A hard ceiling, not an estimate, and
+#: never presented as the expected price (decisions documents 0006, 0017).
+CAMPAIGN_BUDGET_USD: Final = 1.00
+
+#: A per-rollout output-token ceiling, and the reason a Campaign needs one.
+#:
+#: BranchCode cannot be recovered from its prompt, so a subject that will not
+#: give up keeps taking turns: an early unbudgeted run watched five of thirty-
+#: six rollouts reach ninety-one turns and one grow its conversation past the
+#: provider's limit, producing no reward at all — and one rewardless rollout
+#: fails the whole variant. The cap is on *output* tokens because output is
+#: counted once and grows with exactly the thing that runs away. It applies
+#: identically to both variants, so it constrains the experiment without
+#: favouring either side of it. It stays twice ``SUBJECT_MAX_OUTPUT_TOKENS``,
+#: so the per-call and per-rollout bounds remain two separate guards.
+CAMPAIGN_MAXIMUM_OUTPUT_TOKENS: Final = 8000
+
+#: The Campaign-wide episode allowance a comparison is given. The executor
+#: halves it between the two variants, so each runs two rollouts at a time and
+#: four subject containers exist at once. A parallel schedule cannot divide an
+#: allowance of one: a variant would be starved to zero.
+CAMPAIGN_MAX_CONCURRENT: Final = 4
+
+#: How long one episode may take, declared. Decisions document 0025 records the
+#: disposition plainly: this value is declared and nothing enforces it in v0.1,
+#: so no public surface may state that runs are time-bounded. Declaring it is
+#: faithful to what was certified; claiming enforcement would not be.
+CAMPAIGN_TIMEOUT_SECONDS: Final = 600
+
+#: No retries. A failed comparison is no result, never a poor one.
+CAMPAIGN_RETRY_LIMIT: Final = 0
+
 
 MEDIA_TYPE: Final = "application/json"
 
@@ -328,16 +379,13 @@ def build_hello_world_campaign(
 ) -> CampaignSpec:
     """Return the scientific contract. Spec section 23.3, decisions 0001.
 
-    The subject *model* is the frozen development placeholder: which model
-    answers is a founder-ratified release coordinate (decisions document 0006),
-    and ``check_live_campaign`` refuses to execute a Campaign that still names
-    the placeholder.
-
-    The subject *runtime* is not a placeholder any more. Decisions document
-    0007 R5 makes image pinning release-blocking, and an image pin is not a
-    coordinate anybody ratifies — it is a fact about a registry, read from one.
-    So the container this Campaign will run is named here by content, for every
-    platform it supports, from the day WP11 pinned it.
+    Nothing here is a placeholder any more. The subject *model* is the
+    founder-ratified release coordinate (decisions documents 0006 and 0025),
+    the subject *runtime* is the container pinned by content for every platform
+    it supports (decisions document 0007 R5), and the budget contract is the
+    one every certified comparison ran under. The Campaign this build ships is
+    therefore the Campaign the certification measured, which is the whole point
+    of decisions document 0025.
     """
     return CampaignSpec(
         schema_version=CAMPAIGN_SCHEMA_VERSION,
@@ -362,10 +410,10 @@ def build_hello_world_campaign(
         agents={
             SUBJECT_AGENT: AgentSpec(
                 model=ModelSpec(
-                    provider="development",
-                    model_id="development-placeholder",
+                    provider=SUBJECT_MODEL_PROVIDER,
+                    model_id=SUBJECT_MODEL_ID,
                     revision=None,
-                    credential_env="TECHTREE_MODEL_API_KEY",
+                    credential_env=SUBJECT_CREDENTIAL_ENV,
                 ),
                 sampling=SamplingSpec(
                     temperature=0.0, max_tokens=SUBJECT_MAX_OUTPUT_TOKENS
@@ -404,10 +452,10 @@ def build_hello_world_campaign(
             executor_identity=None,
         ),
         execution=ExecutionSpec(
-            order=VariantSchedule.SEQUENTIAL,
-            max_concurrent=1,
-            timeout_seconds=600,
-            retry_limit=0,
+            order=VariantSchedule.PARALLEL,
+            max_concurrent=CAMPAIGN_MAX_CONCURRENT,
+            timeout_seconds=CAMPAIGN_TIMEOUT_SECONDS,
+            retry_limit=CAMPAIGN_RETRY_LIMIT,
         ),
         scoring=ScoringSpec(
             primary_reward=PRIMARY_REWARD,
@@ -421,9 +469,9 @@ def build_hello_world_campaign(
         ),
         budgets=BudgetSpec(
             maximum_input_tokens=None,
-            maximum_output_tokens=None,
+            maximum_output_tokens=CAMPAIGN_MAXIMUM_OUTPUT_TOKENS,
             maximum_model_calls=None,
-            maximum_usd=None,
+            maximum_usd=CAMPAIGN_BUDGET_USD,
         ),
         data_policy_digest=data_policy_digest,
     )
@@ -444,13 +492,19 @@ def build_hello_world_climb(*, campaign_digest: Digest) -> ClimbManifest:
             slug=CLIMB_SLUG,
             version=CLIMB_VERSION,
             title="Techtree Hello World",
+            # The summary used to close with "this development build has not
+            # yet chosen the model that answers, so its numbers are not
+            # evidence". Decisions document 0025 chose it, and the Campaign
+            # underneath this Climb now names it, so the sentence became
+            # untrue and is gone. The caution it carried is still carried, by
+            # the sentence before it and by this Climb's development status
+            # and development_only proof grade.
             summary=(
                 "A toy Skill-uplift Climb. It runs the synthetic BranchCode v1 "
                 "task family twice — once without a Skill, once with one — so "
                 "you can see what writing a procedure down changes. This is an "
                 "introductory demonstration of the mechanism, not a measure of "
-                "broad capability. This development build has not yet chosen "
-                "the model that answers, so its numbers are not evidence."
+                "broad capability."
             ),
             status="development",
             opens_at=None,

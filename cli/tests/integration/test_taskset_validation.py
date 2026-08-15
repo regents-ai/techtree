@@ -33,6 +33,7 @@ import pytest
 
 from fixtures.drafts.support import VALID_SKILL, preparation_service
 from fixtures.runs.support import run_cli, start_through_the_cli, wait_for_terminal
+from fixtures.verifiers.support import with_placeholder_subject
 from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.catalog.repository import EmbeddedCatalogRepository
 from techtree.engines.installer import EngineInstaller, find_uv
@@ -398,10 +399,19 @@ def tampered_catalog(destination: Path, validated: TasksetValidationRun) -> Path
     )
 
     data_policy: DataPolicy = builder.build_development_data_policy()
-    campaign = builder.build_hello_world_campaign(
-        taskset_lock=lock,
-        validation_receipt_digest=digest_object(receipt),
-        data_policy_digest=digest_object(data_policy),
+    # The subject is put back to a development placeholder, and that is the
+    # third deliberate difference from the shipped catalog. Decisions document
+    # 0025 named a real subject in the product, so a Campaign straight from the
+    # generator routes to a real evaluation — which asks for a credential
+    # before it validates anything, and would answer this test with the wrong
+    # refusal. What is under test here is the *fake* executor being stopped, so
+    # the Campaign has to be one the fake executor would run.
+    campaign = with_placeholder_subject(
+        builder.build_hello_world_campaign(
+            taskset_lock=lock,
+            validation_receipt_digest=digest_object(receipt),
+            data_policy_digest=digest_object(data_policy),
+        )
     )
     climb: ClimbManifest = builder.build_hello_world_climb(
         campaign_digest=digest_object(campaign)

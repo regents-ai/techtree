@@ -31,8 +31,8 @@ import pytest
 from fixtures.verifiers.support import (
     SUBJECT_INPUT_USD_PER_MTOK,
     SUBJECT_OUTPUT_USD_PER_MTOK,
-    LocalCampaign,
-    local_campaign,
+    ExecutableCampaign,
+    executable_campaign,
 )
 from techtree.canonical import digest_object
 from techtree.engines.bundle import default_engine_digest, read_engine_descriptor
@@ -104,12 +104,12 @@ def engine() -> tuple[EngineRegistry, EngineRunner, str]:
 
 
 @pytest.fixture(scope="module")
-def campaign() -> LocalCampaign:
+def campaign() -> ExecutableCampaign:
     """A locally derived Campaign carrying real subject coordinates."""
-    return local_campaign()
+    return executable_campaign()
 
 
-def stage(paths: RunPaths, campaign: LocalCampaign) -> Path:
+def stage(paths: RunPaths, campaign: ExecutableCampaign) -> Path:
     """Write the run's own copies of what it executes, and return the lock path."""
     ensure_private_directory(paths.inputs_dir)
     manifest_path = paths.manifest_path(VariantName.BASELINE)
@@ -134,7 +134,7 @@ def stage(paths: RunPaths, campaign: LocalCampaign) -> Path:
 def test_one_real_baseline_variant_runs_end_to_end(
     tmp_path_factory: pytest.TempPathFactory,
     engine: tuple[EngineRegistry, EngineRunner, str],
-    campaign: LocalCampaign,
+    campaign: ExecutableCampaign,
 ) -> None:
     """Execute the baseline variant for real and check every WP6 claim on it."""
     registry, runner, engine_digest = engine
@@ -307,7 +307,7 @@ def _installation(registry: EngineRegistry, digest: str) -> EngineInstallation:
 
 
 def _plan(
-    paths: RunPaths, campaign: LocalCampaign, variant: VariantName, permits: int
+    paths: RunPaths, campaign: ExecutableCampaign, variant: VariantName, permits: int
 ) -> VariantExecutionPlan:
     """Build the execution plan the normalizer and result assembler read."""
     return VariantExecutionPlan(

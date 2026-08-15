@@ -59,6 +59,7 @@ from techtree.runs.validation import (
     TasksetValidationProvider,
 )
 from techtree.skills.service import PreparedDraft
+from techtree.verifiers.credentials import PRIME_CREDENTIAL_ENV
 
 #: The Climb every run test enters. Development status, development-only proof
 #: grade: exactly what a fake executor is entitled to run.
@@ -279,23 +280,33 @@ def run_cli(
     machine: bool = True,
     timeout: float = 120.0,
     stdin: str | None = None,
+    environment: Mapping[str, str] | None = None,
 ) -> CliRun:
     """Invoke the real CLI in a separate process.
 
     A separate process is the point: the boundary these tests are about is a
     program that exits, and none of that can be observed from inside the
     interpreter that would be answering the questions.
+
+    The child never receives an evaluation credential. Since decisions document
+    0025 the shipped Campaign names a real subject, so a ``climb start`` typed
+    on a machine that is signed in to the provider would launch containers and
+    spend money — which no unattended test may ever do. Dropping the variable
+    is not the whole of that guard, because the pinned client also reads the
+    Prime CLI configuration under ``HOME``; a test that starts a run passes a
+    ``HOME`` with none through ``environment``.
     """
     command = [sys.executable, "-m", "techtree", "--home", str(home)]
     if machine:
         command += ["--json", "--no-input"]
     command += list(arguments)
 
-    environment = {
+    inherited = {
         name: value
         for name, value in os.environ.items()
-        if not name.startswith("TECHTREE_")
+        if not name.startswith("TECHTREE_") and name != PRIME_CREDENTIAL_ENV
     }
+    environment = {**inherited, **(environment or {})}
     completed = subprocess.run(
         command,
         capture_output=True,

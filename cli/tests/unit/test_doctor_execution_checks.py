@@ -17,8 +17,8 @@ import pytest
 
 from fixtures.verifiers.support import (
     SUBJECT_MODEL_ID,
-    local_campaign,
     shipped_campaign,
+    with_placeholder_subject,
 )
 from techtree.doctor.execution_checks import (
     check_engine_eval,
@@ -35,9 +35,15 @@ from techtree.paths import paths_from_root
 from techtree.settings import Settings
 
 
-def executable_campaign() -> CampaignSpec:
-    """Return the same Campaign with real subject coordinates."""
-    return local_campaign().campaign
+def placeholder_campaign() -> CampaignSpec:
+    """Return the shipped Campaign with a development placeholder put back in.
+
+    Decisions document 0025 took the last placeholder out of the shipped
+    Campaign, so the object this check has to refuse no longer exists in the
+    catalog and is built here instead. The refusal still matters: a Campaign is
+    not always the shipped one.
+    """
+    return with_placeholder_subject(shipped_campaign())
 
 
 def registry(home: Path) -> EngineRegistry:
@@ -50,27 +56,28 @@ def registry(home: Path) -> EngineRegistry:
 # ---------------------------------------------------------------------------
 
 
-def test_the_shipped_campaign_is_refused_for_a_real_run() -> None:
-    check = check_live_campaign(shipped_campaign())
+def test_a_placeholder_campaign_is_refused_for_a_real_run() -> None:
+    check = check_live_campaign(placeholder_campaign())
 
     assert check.status is CheckStatus.FAIL
     assert check.blocking
 
 
 def test_the_refusal_names_which_coordinates_are_placeholders() -> None:
-    """The subject model is still a placeholder; the container is not.
+    """The subject model is the placeholder; the container is not.
 
-    Decisions document 0007 R5 pins the shipped Campaign's image by content,
-    so the only coordinate left waiting on the founder is which model answers.
+    Decisions document 0007 R5 pins the image by content, so a placeholder
+    Campaign built on the shipped one still names a real container and the
+    refusal must say so rather than sweeping the whole subject up in it.
     """
-    check = check_live_campaign(shipped_campaign())
+    check = check_live_campaign(placeholder_campaign())
 
     assert "model_id=development-placeholder" in check.detail
     assert "image=" not in check.detail
 
 
-def test_a_campaign_with_real_coordinates_is_executable() -> None:
-    check = check_live_campaign(executable_campaign())
+def test_the_shipped_campaign_is_executable() -> None:
+    check = check_live_campaign(shipped_campaign())
 
     assert check.status is CheckStatus.PASS
     assert not check.blocking
@@ -98,7 +105,7 @@ def prime_login(home: Path, *, api_key: str | None = SECRET) -> None:
 
 def credential_check() -> DoctorCheck:
     """Run the credential check against the shipped subject's model."""
-    return check_prime_auth(executable_campaign().agents[SUBJECT_AGENT].model)
+    return check_prime_auth(shipped_campaign().agents[SUBJECT_AGENT].model)
 
 
 def test_a_valid_prime_login_is_ready(
@@ -295,7 +302,7 @@ def test_with_a_campaign_the_subject_questions_are_asked_too(
 ) -> None:
     checks = execution_checks(
         engine_registry=registry(temp_techtree_home),
-        campaign=executable_campaign(),
+        campaign=shipped_campaign(),
     )
 
     assert [check.id for check in checks] == [

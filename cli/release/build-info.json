@@ -1,13 +1,13 @@
 {
   "artifacts": {
-    "release/release-core.json": "sha256:80807821d3d5b8bcf0a5223c96684b04546b250ff677b3e3bb65f768bde18687",
+    "release/release-core.json": "sha256:c0783963e03eee21bc0650a649bca0f716f15bf538a2300d2c388f1bd5e2c730",
     "release/release-core.schema.json": "sha256:034f002407058b2f00a796b4ea3adcbbc5857421874f0bc4f48b62bdd04c3b56",
-    "src/techtree/resources/release/release-core.json": "sha256:80807821d3d5b8bcf0a5223c96684b04546b250ff677b3e3bb65f768bde18687"
+    "src/techtree/resources/release/release-core.json": "sha256:c0783963e03eee21bc0650a649bca0f716f15bf538a2300d2c388f1bd5e2c730"
   },
   "generator": "tools/build_release_core.py",
   "generator_version": "0.1.0",
   "inputs": {
-    "catalog_digest": "sha256:468e8ab16dc872cd2cef3f1b7409b2a113ca9fd27362234c9a6ea5008dfbd814",
+    "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
     "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
     "intro_climb_reference": "hello-world-climb@1",
     "protocol_version": "v1alpha1",

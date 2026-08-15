@@ -20,9 +20,10 @@ What it proves that nothing cheaper can:
 
 It is marked ``real_model``, excluded from the default selection and from every
 ``make`` target that runs unattended, and started only by somebody who meant to.
-The Campaign it executes is derived locally by ``fixtures.verifiers.support``,
-because the shipped one names development placeholders on purpose and the real
-release coordinates are the founder's to ratify at WP11h.
+The Campaign it executes is the one this build ships, read from the packaged
+catalog: decisions document 0025 put the release coordinates and the budget
+contract into the product, so there is no locally derived Campaign left to
+execute instead.
 """
 
 from __future__ import annotations
@@ -38,7 +39,6 @@ from typing import Final
 import pytest
 
 from fixtures.verifiers.support import (
-    LOCAL_BUDGET_USD,
     SUBJECT_INPUT_USD_PER_MTOK,
     SUBJECT_MODEL_ID,
     SUBJECT_OUTPUT_USD_PER_MTOK,
@@ -204,6 +204,8 @@ def test_both_variants_of_a_real_campaign_run_at_once(
     assert run.run_store.state(run.run_id).phase is RunPhase.RUNNING_VARIANTS
 
     # -- the science, and the bill -----------------------------------------
+    ceiling = campaign.budgets.maximum_usd
+    assert ceiling is not None, "the shipped Campaign declares a spend ceiling"
     baseline_spend = _spend(VariantName.BASELINE, result.baseline)
     candidate_spend = _spend(VariantName.CANDIDATE, result.candidate)
     total = baseline_spend.usd + candidate_spend.usd
@@ -216,11 +218,11 @@ def test_both_variants_of_a_real_campaign_run_at_once(
         f"  tokens    baseline {baseline_spend.input_tokens} in / "
         f"{baseline_spend.output_tokens} out; candidate "
         f"{candidate_spend.input_tokens} in / {candidate_spend.output_tokens} out\n"
-        f"  total     USD {total:.4f} against a per-run cap of "
-        f"{LOCAL_BUDGET_USD:.2f}"
+        f"  total     USD {total:.4f} against the Campaign's declared "
+        f"ceiling of USD {ceiling:.2f}"
     )
 
-    assert total <= LOCAL_BUDGET_USD
+    assert total <= ceiling
     # A candidate that does not outscore a zero baseline would mean the Skill
     # taught nothing, and the comparison would have measured nothing.
     assert candidate_spend.scored > baseline_spend.scored
