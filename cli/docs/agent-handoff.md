@@ -131,30 +131,65 @@ Guided revision is single-SKILL.md in v0.1 (decision 0023 §4).
 - Python: always uv. Ash: ash-vibez skill, idiomatic functional
   Elixir. Postgres: PGUSER=sean.
 
-## Release state (as of 2026-08-14)
+## Release state (as of 2026-08-15)
 
 Gate 1 (founder Skill approval) is APPROVED — record in
 release/founder-approvals/, packet + append-only addendum in
 release/. The certified lineage was regenerated (decision 0025) so
 the shipped Campaign is digest-identical to what certification ran,
-re-certified by three fresh product-path runs. Wheel built
-reproducibly and inspected; plugin release candidate recorded
-(release/plugin-release-candidate.json); website release
-infrastructure (content-addressed starter serving, placeholder
-rejection, pointer rollback) built and rehearsed. Hermes ≥0.20.1
-supplies `plugins install --ref <40-char SHA>` — the pinned install.
+re-certified by three fresh product-path runs.
+
+Current release coordinates (verify from artifacts, never from here):
+- ReleaseCore sha256:73d1be82… — byte-identical in techtree-python
+  (release/ + src resources), the plugin, and the ash candidate;
+  placeholder_release still true with 4 designed placeholders
+  (cli_source_commit, cli_version, release_id, starter URL).
+- Publishable wheel techtree-0.1.0 sha256:dfed8ad8…, reproducibly
+  rebuilt from techtree-python commit 38e242b6; inspection 14/14;
+  do-not-upload marker removed; fresh isolated installs verified.
+- Plugin release candidate: regents-ai/techtree-hermes commit
+  7f812ca5 (release/plugin-release-candidate.json).
+- Final BootstrapRelease candidate climb-v0.1.0, digest
+  sha256:2ef4a475…, staged INACTIVE at
+  techtree-ash/priv/releases/climb-v0.1.0/ with every coordinate
+  concrete (placeholder_release false); the active site release is
+  still the placeholder. Starter served at
+  /api/v1/objects/sha256:<file-digest> with both file and tree
+  digests in the contract.
+- Host Hermes floor/ceiling 0.20.1 (`plugins install --ref <40-char
+  SHA>` verified); the evaluated subject stays Hermes 0.19.0.
+- All three repos have PRIVATE remotes: regents-ai/techtree-python,
+  regents-ai/techtree-hermes, regents-ai/techtree-ash.
+- Programme spend: USD 2.4957 of the 10.00 cap.
+
+THE OPEN STRUCTURAL RULING (ticket cxb, P0 — blocks the journeys and
+the Gate-2 packet): the wheel and plugin embed the placeholder
+ReleaseCore, and the runtime gates read the EMBEDDED core, not the
+site — so the plugin refuses the CLI install and the CLI cannot fetch
+the starter while their own core says placeholder. The staged site
+candidate is concrete but cannot open the shipped flow. Recommended
+resolution (option A in the ticket): a two-commit finalization —
+freeze commit F, generate the concrete ReleaseCore with
+cli_source_commit=F, commit as F+1, build the publishable wheel from
+F+1, re-verify, new plugin commit, regenerated bootstrap candidate.
+Founder/author decision pending; also pending: which channel the
+release publishes on (candidate staged on `development`).
 
 Remaining v0.1 work: docs/v0.1-remaining-tickets.md (the open tickets
 verbatim plus their contracts). Nothing publishes, tags, deploys, or
-flips placeholder_release before the founder's exact
-`APPROVE CLIMB V0.1 RELEASE` phrase — and after approval, any changed
-byte invalidates it.
+activates before the founder's exact `APPROVE CLIMB V0.1 RELEASE`
+phrase — and after approval, any changed byte invalidates it.
 
 ## Known sharp edges
 
-- The wheel intentionally carries the certified placeholder
-  ReleaseCore; concrete coordinates live in the BootstrapRelease
-  (packet explains the split).
+- The wheel currently carries the placeholder ReleaseCore while the
+  concrete coordinates live in the BootstrapRelease candidate — and
+  the runtime install gates read the EMBEDDED core, which is the open
+  cxb ruling above. Do not "fix" this locally; it is a structural
+  decision with a pending founder/author call.
+- The python-side bootstrap checker still expects the old
+  single-digest starter shape (ticket 3bp) — update it to the
+  canonical file_digest/tree_digest pair, no legacy branch.
 - uv will happily install onto an unsupported Python (observed
   3.14.3 vs declared <3.14) — pin 3.12 for supported journeys.
 - `doctor --for-evaluation` is truthful about credentials now, but a
