@@ -24,11 +24,6 @@ from techtree_hermes.tools import TOOL_HANDLERS
 CORE = load_embedded_release_core()
 PUBLISHED = dataclasses.replace(
     CORE,
-    placeholder_release=False,
-    placeholder_fields=(),
-    release_id="0.1.0",
-    cli_version="0.1.0",
-    cli_source_commit="a" * 40,
     starter_skill_digest="sha256:" + "7" * 64,
 )
 DIGEST = release_core_digest(CORE)
@@ -69,8 +64,7 @@ class FakeBridge:
         return {
             "compatible": True,
             "mismatches": [],
-            "installed": {"placeholder_release": False},
-            "placeholder_release": False,
+            "installed": {"release_id": PUBLISHED.release_id},
             "expected_release_core_digest": DIGEST,
         }
 

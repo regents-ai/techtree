@@ -472,8 +472,6 @@ def improvement_case() -> _Case:
     )
     release = dataclasses.replace(
         load_embedded_release_core(),
-        placeholder_release=False,
-        placeholder_fields=(),
         skill_improver_digest=file_digest(improver.encode("utf-8")),
     )
     session = DemoSessionState(

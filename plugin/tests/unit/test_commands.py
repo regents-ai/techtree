@@ -30,8 +30,6 @@ from techtree_hermes.state import SessionStore, save_session
 CORE = load_embedded_release_core()
 PUBLISHED = dataclasses.replace(
     CORE,
-    placeholder_release=False,
-    placeholder_fields=(),
     release_id="0.1.0",
     cli_version="0.1.0",
     starter_skill_digest="sha256:" + "7" * 64,
@@ -83,7 +81,6 @@ class FakeBridge:
             "compatible": True,
             "mismatches": [],
             "installed": {},
-            "placeholder_release": False,
             "expected_release_core_digest": DIGEST,
         }
 
@@ -151,12 +148,6 @@ def test_setup_reports_the_build_and_the_next_step() -> None:
 
     assert "Plugin 0.1.0" in answer
     assert "Techtree CLI" in answer
-
-
-def test_setup_says_when_the_build_is_a_development_one() -> None:
-    answer = handle_slash_command("setup", _services(release=CORE))
-
-    assert "development build" in answer
 
 
 def test_climbs_lists_what_the_build_offers() -> None:

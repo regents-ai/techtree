@@ -43,8 +43,6 @@ IMPROVER_TEXT = (PLUGIN_ROOT / "skills" / "skill-improver" / "SKILL.md").read_te
 )
 CORE = dataclasses.replace(
     load_embedded_release_core(),
-    placeholder_release=False,
-    placeholder_fields=(),
     skill_improver_digest=file_digest(IMPROVER_TEXT.encode("utf-8")),
 )
 FIRST_RUN = "run_" + "1" * 32

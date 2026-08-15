@@ -14,10 +14,11 @@ Four rules hold the whole flow up:
   ordinary terminal tool, which asks. When that path is unavailable the
   plugin prints the command for the user to run — it never falls back to
   running the command itself.
-* A release that has not chosen its coordinates yet cannot be installed at
-  all through the public flow (decision 0007, R10). A developer can override
-  that with an environment variable on their own machine; there is no tool
-  argument for it, so a model or a phone conversation can never ask for it.
+* What may be installed is settled by the release document being a valid one.
+  Every coordinate in it is concrete (Techtree decisions document 0026), so
+  there is no state in which the plugin holds a release it must refuse to
+  install; the website's own bootstrap validation is what decides whether a
+  release is published.
 * Missing ``uv`` is a prerequisite the user resolves. The plugin does not pipe
   a remote script into a shell, and does not pick a package manager for them.
 
@@ -28,9 +29,8 @@ is ready.
 
 from __future__ import annotations
 
-import os
 import shlex
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from shutil import which
 from typing import Any, Final
@@ -48,7 +48,6 @@ from .constants import (
 )
 from .errors import (
     CODE_BOOTSTRAP_POST_INSTALL_VERIFY_FAILED,
-    CODE_BOOTSTRAP_RELEASE_PLACEHOLDER,
     CODE_BOOTSTRAP_TERMINAL_TOOL_UNAVAILABLE,
     CODE_TECHTREE_CLI_NOT_FOUND,
     CODE_UV_NOT_FOUND,
@@ -81,15 +80,6 @@ UV_INSTALL_OPTIONS: Final = (
     f"Any other platform: follow {UV_DOCUMENTATION_URL}",
 )
 
-#: A developer's own machine can install a placeholder release by setting this
-#: in their shell. It is deliberately not a tool argument: nothing a model
-#: writes, and nothing that arrives through a phone gateway, can set it.
-DEVELOPER_OVERRIDE_VARIABLE: Final = "TECHTREE_PLUGIN_ALLOW_PLACEHOLDER_INSTALL"
-DEVELOPER_OVERRIDE_VALUE: Final = "1"
-
-EnvironmentLookup = Callable[[str], str | None]
-
-
 # What is on this machine ------------------------------------------------------
 
 
@@ -113,56 +103,6 @@ def uv_prerequisite() -> dict[str, Any]:
         "options": list(UV_INSTALL_OPTIONS),
         "documentation_url": UV_DOCUMENTATION_URL,
     }
-
-
-# Whether this release may be installed at all ------------------------------------
-
-
-def developer_override_enabled(
-    *, environment: EnvironmentLookup = os.environ.get
-) -> bool:
-    """Whether this machine's owner asked for placeholder releases to install."""
-    return environment(DEVELOPER_OVERRIDE_VARIABLE) == DEVELOPER_OVERRIDE_VALUE
-
-
-def release_install_refusal(
-    release: ReleaseCore, *, environment: EnvironmentLookup = os.environ.get
-) -> dict[str, Any] | None:
-    """Return why this release cannot be installed, or None if it can.
-
-    Decision 0007 R10: a release that still carries placeholder coordinates is
-    a development build. The public bootstrap flow refuses it and says so
-    plainly, rather than installing something whose version, commit, and Skill
-    fingerprints nobody has chosen yet.
-    """
-    if not release.placeholder_release:
-        return None
-    if developer_override_enabled(environment=environment):
-        return None
-    return {
-        "code": CODE_BOOTSTRAP_RELEASE_PLACEHOLDER,
-        "message": (
-            "This plugin build carries a development placeholder release, not "
-            "a published one, so it will not install Techtree. "
-            + ", ".join(release.placeholder_fields)
-            + " have not been chosen yet."
-        ),
-        "placeholder_fields": list(release.placeholder_fields),
-        "repair": "Install a published release of the plugin.",
-    }
-
-
-def require_installable_release(
-    release: ReleaseCore, *, environment: EnvironmentLookup = os.environ.get
-) -> None:
-    """Raise unless this release may be installed on this machine."""
-    refusal = release_install_refusal(release, environment=environment)
-    if refusal is not None:
-        raise BootstrapPlanError(
-            str(refusal["message"]),
-            code=CODE_BOOTSTRAP_RELEASE_PLACEHOLDER,
-            repair=str(refusal["repair"]),
-        )
 
 
 # The plan -----------------------------------------------------------------------
@@ -245,15 +185,13 @@ def bootstrap_check(
     *,
     include_doctor: bool = True,
     path_lookup: PathLookup = which,
-    environment: EnvironmentLookup = os.environ.get,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Report what this host has, and what the one next step is.
 
     Installs nothing, calls no model, runs no Docker. When Techtree is already
     installed it reads the installed release and, when asked, runs Techtree's
-    own Doctor. When Techtree is missing it offers one pinned plan — unless
-    the release is a placeholder, in which case it explains the refusal.
+    own Doctor. When Techtree is missing it offers one pinned plan.
     """
     release: ReleaseCore = services.release_core
     digest: str = services.release_core_digest
@@ -266,8 +204,6 @@ def bootstrap_check(
         "release": {
             "release_id": release.release_id,
             "cli_version": release.cli_version,
-            "placeholder_release": release.placeholder_release,
-            "placeholder_fields": list(release.placeholder_fields),
         },
         "uv": {"installed": uv_path is not None, "path": uv_path},
         "cli": {"installed": cli_path is not None, "path": cli_path, "version": None},
@@ -278,7 +214,6 @@ def bootstrap_check(
         },
         "doctor": None,
         "install_plan": None,
-        "refusal": None,
     }
     if uv_path is None:
         result["uv"]["prerequisite"] = uv_prerequisite()
@@ -290,16 +225,6 @@ def bootstrap_check(
             )
         )
         result["next_action"] = _next_action_for_installed(result)
-        return result
-
-    refusal = release_install_refusal(release, environment=environment)
-    if refusal is not None:
-        result["refusal"] = refusal
-        result["next_action"] = PluginAction(
-            id="install_refused",
-            label="Install a published release of this plugin",
-            reason=str(refusal["message"]),
-        ).to_dict()
         return result
 
     if uv_path is None:
@@ -336,7 +261,6 @@ def install_cli_with_approval(
     services: Any,
     *,
     plan_id: str,
-    environment: EnvironmentLookup = os.environ.get,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Run the stored plan through the host's own approval, then verify.
@@ -344,7 +268,6 @@ def install_cli_with_approval(
     The plan is looked up, not received: the caller supplies an identifier and
     nothing else, so the command that runs is the command that was offered.
     """
-    require_installable_release(services.release_core, environment=environment)
     plan = require_install_plan(
         services.plans,
         plan_id,

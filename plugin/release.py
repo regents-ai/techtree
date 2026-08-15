@@ -38,7 +38,6 @@ from .models import ReleaseCore, parse_release_core
 MISMATCH_RELEASE_CORE_DIGEST: Final = "release_core_digest"
 MISMATCH_RELEASE_ID: Final = "release_id"
 MISMATCH_CLI_VERSION: Final = "cli_version"
-MISMATCH_CLI_SOURCE_COMMIT: Final = "cli_source_commit"
 MISMATCH_PROTOCOL_VERSION: Final = "protocol_version"
 MISMATCH_ENGINE_DIGEST: Final = "engine_digest"
 MISMATCH_CATALOG_DIGEST: Final = "catalog_digest"
@@ -48,12 +47,12 @@ MISMATCH_PLUGIN_REPOSITORY: Final = "plugin_repository"
 MISMATCH_INSTALLED_FACTS_MISSING: Final = "installed_release_facts_missing"
 
 #: The coordinates `techtree release info` reports that the plugin also holds.
-#: The command reports a subset of the release document, so the comparison is
-#: over exactly this overlap.
+#: The command reports a subset of the release document plus one coordinate
+#: that is not in it at all — the commit stamped into the installed wheel — so
+#: the comparison is over exactly this overlap and no more.
 _SHARED_COORDINATES: Final = (
     (MISMATCH_RELEASE_ID, "release_id"),
     (MISMATCH_CLI_VERSION, "cli_version"),
-    (MISMATCH_CLI_SOURCE_COMMIT, "cli_source_commit"),
     (MISMATCH_PROTOCOL_VERSION, "protocol_version"),
     (MISMATCH_ENGINE_DIGEST, "engine_digest"),
     (MISMATCH_CATALOG_DIGEST, "catalog_digest"),

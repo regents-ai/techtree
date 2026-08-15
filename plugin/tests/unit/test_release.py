@@ -35,14 +35,12 @@ def _installed_facts(**overrides: Any) -> dict[str, Any]:
         "release_id": CORE.release_id,
         "cli_version": CORE.cli_version,
         "package_version": "0.1.0",
-        "cli_source_commit": CORE.cli_source_commit,
         "protocol_version": CORE.protocol_version,
         "release_core_digest": release_core_digest(CORE),
         "engine_digest": CORE.engine_digest,
         "catalog_digest": CORE.catalog_digest,
         "intro_climb_reference": CORE.intro_climb_reference,
-        "placeholder_release": CORE.placeholder_release,
-        "placeholder_fields": list(CORE.placeholder_fields),
+        "source_commit": "a" * 40,
     }
     facts.update(overrides)
     return facts
@@ -85,20 +83,28 @@ def test_a_rewritten_release_file_is_refused(tmp_path: Path) -> None:
         load_embedded_release_core(tmp_path)
 
 
-def test_the_release_says_whether_it_is_finished() -> None:
-    """A release generated before every coordinate is chosen declares itself."""
-    assert CORE.placeholder_release is (len(CORE.placeholder_fields) > 0)
-    for name in CORE.placeholder_fields:
-        assert name in {
-            "cli_source_commit",
-            "cli_version",
-            "maximum_tested_host_hermes_version",
-            "minimum_host_hermes_version",
-            "release_id",
-            "skill_improver_digest",
-            "starter_skill_digest",
-            "starter_skill_object_url",
-        }
+def test_the_release_names_no_artifact_of_its_own() -> None:
+    """Techtree decisions 0026: a contract, not a description of a build.
+
+    Which commit a CLI wheel was built from is stamped into that wheel and
+    reported by ``techtree release info``. The plugin compares the coordinates
+    both documents hold, and this is the roster of them.
+    """
+    assert set(json.loads(EMBEDDED_PATH.read_bytes())) == {
+        "schema_version",
+        "release_id",
+        "cli_version",
+        "protocol_version",
+        "engine_digest",
+        "catalog_digest",
+        "intro_climb_reference",
+        "starter_skill_digest",
+        "starter_skill_object_url",
+        "skill_improver_digest",
+        "minimum_host_hermes_version",
+        "maximum_tested_host_hermes_version",
+        "subject_hermes_version",
+    }
 
 
 # Comparison against an installed CLI ----------------------------------------------
@@ -119,7 +125,6 @@ def test_a_different_release_digest_is_reported() -> None:
     [
         ("release_id", "9.9.9"),
         ("cli_version", "9.9.9"),
-        ("cli_source_commit", "f" * 40),
         ("protocol_version", "v2"),
         ("engine_digest", "sha256:" + "1" * 64),
         ("catalog_digest", "sha256:" + "2" * 64),

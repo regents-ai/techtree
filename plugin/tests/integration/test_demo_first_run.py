@@ -27,11 +27,6 @@ from techtree_hermes.tools import TOOL_HANDLERS
 CORE = load_embedded_release_core()
 PUBLISHED = dataclasses.replace(
     CORE,
-    placeholder_release=False,
-    placeholder_fields=(),
-    release_id="0.1.0",
-    cli_version="0.1.0",
-    cli_source_commit="a" * 40,
     starter_skill_digest="sha256:" + "7" * 64,
 )
 RUN_ID = "run_" + "0" * 32
@@ -55,14 +50,12 @@ def _answers() -> dict[str, dict[str, Any]]:
                 "release_id": PUBLISHED.release_id,
                 "cli_version": PUBLISHED.cli_version,
                 "package_version": PUBLISHED.cli_version,
-                "cli_source_commit": PUBLISHED.cli_source_commit,
                 "protocol_version": PUBLISHED.protocol_version,
                 "release_core_digest": release_core_digest(PUBLISHED),
                 "engine_digest": PUBLISHED.engine_digest,
                 "catalog_digest": PUBLISHED.catalog_digest,
                 "intro_climb_reference": PUBLISHED.intro_climb_reference,
-                "placeholder_release": False,
-                "placeholder_fields": [],
+                "source_commit": "a" * 40,
             },
         ),
         "doctor": envelope(command="doctor", data={"checks": []}),

@@ -1,8 +1,9 @@
 """Installation only ever happens because a person said yes.
 
-Specification sections 7.6 and 7.15 (bootstrap rows), amended by decision
-0007 R10: a release that has not chosen its coordinates yet is refused by the
-public flow, and the developer override is not something a model can ask for.
+Specification sections 7.6 and 7.15 (bootstrap rows). What may be installed is
+settled by the release document itself: every coordinate in it is concrete
+(Techtree decisions document 0026), so the plan is built from real values or
+the document would not have parsed.
 """
 
 from __future__ import annotations
@@ -16,7 +17,6 @@ import pytest
 from support import FakeCli, envelope, install_fake_cli, print_envelope
 from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bootstrap import (
-    DEVELOPER_OVERRIDE_VARIABLE,
     TERMINAL_TOOL,
     UV_DOCUMENTATION_URL,
     bootstrap_check,
@@ -24,7 +24,6 @@ from techtree_hermes.bootstrap import (
     display_command,
     install_cli_with_approval,
     manual_install_response,
-    release_install_refusal,
     uv_prerequisite,
 )
 from techtree_hermes.bridge import CliBridge
@@ -38,16 +37,8 @@ from techtree_hermes.state import SessionStore
 CORE = load_embedded_release_core()
 DIGEST = release_core_digest(CORE)
 
-#: The embedded release is a development placeholder, so most of these tests
-#: describe a published one.
-PUBLISHED = dataclasses.replace(
-    CORE,
-    placeholder_release=False,
-    placeholder_fields=(),
-    release_id="0.1.0",
-    cli_version="0.1.0",
-    cli_source_commit="a" * 40,
-)
+#: The release this plugin build embeds, which is the one it installs.
+PUBLISHED = CORE
 
 
 class RecordingHost:
@@ -83,14 +74,6 @@ def _services(
     )
 
 
-def _no_environment(name: str) -> str | None:
-    return None
-
-
-def _override_environment(name: str) -> str | None:
-    return "1" if name == DEVELOPER_OVERRIDE_VARIABLE else None
-
-
 def _only_uv(name: str) -> str | None:
     return "/usr/local/bin/uv" if name == "uv" else None
 
@@ -119,7 +102,6 @@ def test_a_host_without_uv_is_told_what_to_do_and_offered_no_plan() -> None:
         _services(),
         include_doctor=False,
         path_lookup=_nothing_installed,
-        environment=_no_environment,
     )
 
     assert result["uv"]["installed"] is False
@@ -138,7 +120,6 @@ def test_a_missing_cli_produces_one_exact_plan() -> None:
         services,
         include_doctor=False,
         path_lookup=_only_uv,
-        environment=_no_environment,
     )
 
     plan = result["install_plan"]
@@ -193,7 +174,6 @@ def test_a_plan_expires() -> None:
             RecordingHost(),
             services,
             plan_id=plan.plan_id,
-            environment=_no_environment,
         )
 
 
@@ -205,7 +185,6 @@ def test_a_plan_identifier_that_was_never_offered_is_refused() -> None:
             RecordingHost(),
             services,
             plan_id="install_" + "0" * 32,
-            environment=_no_environment,
         )
 
 
@@ -223,7 +202,6 @@ def test_a_plan_from_another_release_is_refused() -> None:
             RecordingHost(),
             services,
             plan_id=plan.plan_id,
-            environment=_no_environment,
         )
 
 
@@ -259,9 +237,7 @@ def test_installation_goes_through_the_hosts_own_terminal_approval(
     services.plans.save(plan)
     host = RecordingHost()
 
-    result = install_cli_with_approval(
-        host, services, plan_id=plan.plan_id, environment=_no_environment
-    )
+    result = install_cli_with_approval(host, services, plan_id=plan.plan_id)
 
     assert host.dispatched == [
         (TERMINAL_TOOL, {"command": "uv tool install techtree==0.1.0"})
@@ -284,9 +260,7 @@ def test_the_dispatched_command_carries_nothing_but_the_command(
     services.plans.save(plan)
     host = RecordingHost()
 
-    install_cli_with_approval(
-        host, services, plan_id=plan.plan_id, environment=_no_environment
-    )
+    install_cli_with_approval(host, services, plan_id=plan.plan_id)
 
     _, args = host.dispatched[0]
     assert set(args) == {"command"}
@@ -303,7 +277,6 @@ def test_a_host_without_a_terminal_gets_manual_instructions() -> None:
         HostWithoutTerminal(),
         services,
         plan_id=plan.plan_id,
-        environment=_no_environment,
     )
 
     assert result["installed"] is False
@@ -320,9 +293,7 @@ def test_a_refused_dispatch_never_becomes_a_direct_install() -> None:
     services.plans.save(plan)
     host = RecordingHost(raises=PermissionError("the user declined"))
 
-    result = install_cli_with_approval(
-        host, services, plan_id=plan.plan_id, environment=_no_environment
-    )
+    result = install_cli_with_approval(host, services, plan_id=plan.plan_id)
 
     assert result["installed"] is False
     assert result["approval"] == "manual"
@@ -340,7 +311,6 @@ def test_a_plan_is_single_use() -> None:
         HostWithoutTerminal(),
         services,
         plan_id=plan.plan_id,
-        environment=_no_environment,
     )
 
     assert services.plans.get(plan.plan_id) is None
@@ -357,58 +327,11 @@ def test_the_manual_response_shows_the_exact_command() -> None:
     assert response["plan"]["command"] == display_command(plan)
 
 
-# A release nobody has finished --------------------------------------------------------
+# What no caller may ask for -----------------------------------------------------
 
 
-def test_a_placeholder_release_refuses_the_public_install_flow() -> None:
-    """Decision 0007 R10."""
-    refusal = release_install_refusal(CORE, environment=_no_environment)
-
-    assert refusal is not None
-    assert refusal["code"] == "bootstrap_release_placeholder"
-    assert "development placeholder" in refusal["message"]
-    assert refusal["placeholder_fields"] == list(CORE.placeholder_fields)
-
-
-def test_a_placeholder_release_is_never_offered_a_plan() -> None:
-    services = _services(release=CORE)
-
-    result = bootstrap_check(
-        services,
-        include_doctor=False,
-        path_lookup=_only_uv,
-        environment=_no_environment,
-    )
-
-    assert result["install_plan"] is None
-    assert result["refusal"]["code"] == "bootstrap_release_placeholder"
-    assert result["next_action"]["id"] == "install_refused"
-    assert services.plans.count() == 0
-
-
-def test_a_placeholder_release_refuses_installation_even_with_a_plan() -> None:
-    """The refusal is not only an absence of a plan; the install refuses too."""
-    services = _services(release=CORE)
-    plan = create_install_plan(
-        CORE, uv_path="/usr/local/bin/uv", release_core_digest=DIGEST
-    )
-    services.plans.save(plan)
-    host = RecordingHost()
-
-    with pytest.raises(BootstrapPlanError, match="development placeholder"):
-        install_cli_with_approval(
-            host, services, plan_id=plan.plan_id, environment=_no_environment
-        )
-
-    assert host.dispatched == []
-
-
-def test_a_developer_can_override_the_refusal_on_their_own_machine() -> None:
-    assert release_install_refusal(CORE, environment=_override_environment) is None
-
-
-def test_the_override_is_not_something_a_caller_can_pass() -> None:
-    """It is an environment variable, so no tool argument can reach it."""
+def test_no_tool_argument_can_loosen_what_is_installed() -> None:
+    """The installed coordinate comes from the release, never from a caller."""
     from techtree_hermes.schemas import all_tool_schemas
 
     for name, schema in all_tool_schemas().items():
@@ -429,14 +352,12 @@ def _installed_cli(
         "release_id": release.release_id,
         "cli_version": release.cli_version,
         "package_version": release.cli_version,
-        "cli_source_commit": release.cli_source_commit,
         "protocol_version": release.protocol_version,
         "release_core_digest": release_core_digest(release),
         "engine_digest": release.engine_digest,
         "catalog_digest": release.catalog_digest,
         "intro_climb_reference": release.intro_climb_reference,
-        "placeholder_release": release.placeholder_release,
-        "placeholder_fields": list(release.placeholder_fields),
+        "source_commit": "a" * 40,
     }
     doctor = {
         "checks": [
@@ -473,9 +394,7 @@ def test_an_installed_release_that_matches_verifies(
     )
     services.plans.save(plan)
 
-    result = install_cli_with_approval(
-        RecordingHost(), services, plan_id=plan.plan_id, environment=_no_environment
-    )
+    result = install_cli_with_approval(RecordingHost(), services, plan_id=plan.plan_id)
 
     assert result["installed"] is True
     assert result["verification"]["version"] == PUBLISHED.cli_version
@@ -494,9 +413,7 @@ def test_an_installed_release_that_differs_is_rejected(
     )
     services.plans.save(plan)
 
-    result = install_cli_with_approval(
-        RecordingHost(), services, plan_id=plan.plan_id, environment=_no_environment
-    )
+    result = install_cli_with_approval(RecordingHost(), services, plan_id=plan.plan_id)
 
     assert result["installed"] is False
     verification = result["verification"]
@@ -551,7 +468,7 @@ def test_an_installed_host_is_checked_end_to_end(
     cli = _installed_cli(tmp_path, monkeypatch)
     services = _services()
 
-    result = bootstrap_check(services, environment=_no_environment)
+    result = bootstrap_check(services)
 
     assert result["cli"]["installed"] is True
     assert result["cli"]["version"] == PUBLISHED.cli_version

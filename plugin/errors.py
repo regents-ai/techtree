@@ -29,9 +29,6 @@ CODE_BOOTSTRAP_TERMINAL_TOOL_UNAVAILABLE: Final = "bootstrap_terminal_tool_unava
 CODE_BOOTSTRAP_POST_INSTALL_VERIFY_FAILED: Final = (
     "bootstrap_post_install_verify_failed"
 )
-#: A release that has not chosen every coordinate yet cannot be installed by
-#: the public flow. Decision 0007 R10.
-CODE_BOOTSTRAP_RELEASE_PLACEHOLDER: Final = "bootstrap_release_placeholder"
 CODE_UV_NOT_FOUND: Final = "uv_not_found"
 CODE_CHANNEL_INVALID: Final = "channel_invalid"
 CODE_HOST_LLM_UNAVAILABLE: Final = "host_llm_unavailable"

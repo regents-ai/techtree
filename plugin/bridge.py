@@ -284,7 +284,6 @@ def verify_cli_release(
         "mismatches": mismatches,
         "expected_release_core_digest": release_core_digest(expected),
         "installed": dict(installed),
-        "placeholder_release": bool(installed.get("placeholder_release")),
     }
 
 

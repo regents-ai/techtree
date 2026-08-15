@@ -13,9 +13,8 @@ from typing import Any
 from ..approvals import run_approved_event, start_arguments
 from ..channels import is_gateway_safe_required
 from ..diff import build_skill_diff
-from ..errors import CODE_FOUNDER_SKILL_MISSING, PluginError
+from ..errors import PluginError
 from ..llm import HermesHostLlm
-from ..services.assets import names_a_founder_skill
 from ..services.improvement import ImprovementService
 from ..services.proposal import ProposalService
 from ..services.session import (
@@ -66,18 +65,6 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             "this host offers no model, so it cannot propose a revision",
             code="host_llm_unavailable",
         )
-    # Asked before anything is read or spent. The verified skill-improver text
-    # is what steers the one turn (decision 0010), so a build whose release
-    # never named that Skill has no turn to offer — and must not consume the
-    # session's one attempt saying so.
-    if not names_a_founder_skill(services.release_core, "skill-improver"):
-        raise PluginError(
-            "this plugin build's release has not chosen its skill-improver "
-            "Skill yet, so no revision can be proposed",
-            code=CODE_FOUNDER_SKILL_MISSING,
-            repair="Use a published release of the plugin.",
-        )
-
     # Decisions 0018 s5 and 0019 s2. The boundary is Hermes's, not the
     # plugin's: this tool is declared as one a human must confirm, so the call
     # only arrives after a person answered the host's own approval surface.
@@ -89,6 +76,11 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
     )
 
     source_skill = improvement.load_source_skill(improvement.get_context(source_run_id))
+    # The Skill that steers the turn is verified before the turn is spent. A
+    # build whose bundled improver is not the one its release names has no
+    # turn to offer (decision 0010), and must not consume the session's one
+    # attempt saying so.
+    improvement.load_skill_improver()
 
     try:
         proposal = improvement.propose_once(

@@ -34,9 +34,9 @@ RUN_ID = "run_" + "0" * 32
 ROOT_DIGEST = "sha256:" + "c" * 64
 ENTRYPOINT_DIGEST = "sha256:" + "d" * 64
 
-#: The founder Skill this build bundles, and a release that names it. The
-#: committed release still carries a placeholder, so every test that reaches
-#: the one turn has to say which Skill the release chose.
+#: The founder Skill this build bundles, and a release that names it. Tests
+#: that bundle their own Skill into a temporary build name it in their own
+#: release, so what is exercised is the verification and not these bytes.
 IMPROVER_TEXT = (PLUGIN_ROOT / "skills" / "skill-improver" / "SKILL.md").read_text(
     encoding="utf-8"
 )
@@ -46,8 +46,6 @@ IMPROVER_DIGEST = file_digest(IMPROVER_TEXT.encode("utf-8"))
 def _release_naming(digest: str) -> ReleaseCore:
     return dataclasses.replace(
         CORE,
-        placeholder_release=False,
-        placeholder_fields=(),
         skill_improver_digest=digest,
     )
 
@@ -690,24 +688,18 @@ def test_the_request_commits_to_the_digests_it_was_built_from() -> None:
     }
 
 
-def test_a_release_that_has_not_chosen_its_improver_proposes_nothing() -> None:
-    """A build with no improver coordinate says so rather than guessing.
+def test_a_build_whose_improver_is_not_the_one_named_proposes_nothing() -> None:
+    """The Skill that steers the turn is verified before the turn is spent.
 
-    Built unchosen here rather than borrowed from this build's own release,
-    which now binds the improver for real: a test that depended on a
-    coordinate being unbound would quietly stop testing anything the day it
-    was bound.
+    The release names one improver Skill by digest. A build whose bundled
+    bytes are not those bytes has no verified Skill to steer with, so nothing
+    is sent to the host model at all.
     """
     host = StubHost()
-    unchosen = dataclasses.replace(
-        CORE,
-        placeholder_release=True,
-        placeholder_fields=(*CORE.placeholder_fields, "skill_improver_digest"),
-        skill_improver_digest="sha256:" + "0" * 64,
-    )
+    altered = dataclasses.replace(CORE, skill_improver_digest="sha256:" + "9" * 64)
 
-    with pytest.raises(PluginError, match="has not chosen its skill-improver"):
-        _propose(_service(FakeBridge(), host, release=unchosen))
+    with pytest.raises(PluginError, match="not the one this release names"):
+        _propose(_service(FakeBridge(), host, release=altered))
 
     assert host.calls == []
 

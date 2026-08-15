@@ -37,8 +37,9 @@ DIGEST_PATTERN: Final = re.compile(r"^sha256:[0-9a-f]{64}$")
 #: copied verbatim into the plugin, the website, approval packets and support
 #: transcripts, and `https://user:token@host/...` would carry a credential
 #: through every one of them. Mirrors techtree-python's OBJECT_URL_PATTERN.
-OBJECT_URL_PATTERN: Final = re.compile(r"^https://[^\s/@]+/[^\s]*$")
-COMMIT_PATTERN: Final = re.compile(r"^[0-9a-f]{40}$")
+#: The address is also a content address: it ends in the digest of the file it
+#: returns, which is what a fetcher checks a response against.
+OBJECT_URL_PATTERN: Final = re.compile(r"^https://[^\s/@]+/[^\s]*sha256:[0-9a-f]{64}$")
 VERSION_PATTERN: Final = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$")
 IDENTIFIER_PATTERN: Final = re.compile(r"^[0-9A-Za-z][0-9A-Za-z._/-]{0,127}$")
 # A released Climb reference always pins a version: slug@version.
@@ -114,11 +115,8 @@ class DemoSessionState:
 
 RELEASE_CORE_FIELDS: Final = (
     "schema_version",
-    "placeholder_release",
-    "placeholder_fields",
     "release_id",
     "cli_version",
-    "cli_source_commit",
     "protocol_version",
     "engine_digest",
     "catalog_digest",
@@ -131,11 +129,7 @@ RELEASE_CORE_FIELDS: Final = (
     "subject_hermes_version",
 )
 
-_RELEASE_CORE_STRING_FIELDS: Final = tuple(
-    name
-    for name in RELEASE_CORE_FIELDS
-    if name not in {"placeholder_release", "placeholder_fields"}
-)
+_RELEASE_CORE_STRING_FIELDS: Final = RELEASE_CORE_FIELDS
 
 _RELEASE_CORE_DIGEST_FIELDS: Final = (
     "engine_digest",
@@ -157,23 +151,19 @@ _RELEASE_CORE_VERSION_FIELDS: Final = (
 class ReleaseCore:
     """The frozen release the plugin was built against. Section 6.6.
 
-    These are the same bytes the installed CLI ships. Two fields beyond the
-    specification's list travel with the document — ``placeholder_release``
-    and ``placeholder_fields`` — because a release is generated before a
-    person has chosen every coordinate, and a document with plausible blanks
-    in it must say so out loud rather than read as a finished release.
+    These are the same bytes the installed CLI ships: a contract of coordinates
+    a person chose, and nothing about any artifact built from it (Techtree
+    decisions document 0026). Which commit a CLI wheel came from is stamped
+    into that wheel and reported by ``techtree release info``; it is not in
+    here, and the plugin never asks this document for it.
 
-    The plugin does not re-derive that declaration. Techtree owns verifying
-    its own release document; the plugin reads it, repeats it, and compares
-    digests.
+    Techtree owns verifying its own release document; the plugin reads it,
+    repeats it, and compares digests.
     """
 
     schema_version: Literal["techtree.release-core.v1"]
-    placeholder_release: bool
-    placeholder_fields: tuple[str, ...]
     release_id: str
     cli_version: str
-    cli_source_commit: str
     protocol_version: str
     engine_digest: str
     catalog_digest: str
@@ -187,11 +177,7 @@ class ReleaseCore:
 
     def to_dict(self) -> dict[str, Any]:
         """Return the release as JSON-ready values in declaration order."""
-        document: dict[str, Any] = {}
-        for name in RELEASE_CORE_FIELDS:
-            value = getattr(self, name)
-            document[name] = list(value) if isinstance(value, tuple) else value
-        return document
+        return {name: getattr(self, name) for name in RELEASE_CORE_FIELDS}
 
 
 def parse_release_core(raw: bytes) -> ReleaseCore:
@@ -237,32 +223,19 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
         if not isinstance(value, str) or not value:
             raise invalid(f"field {name!r} is not a non-empty string")
 
-    if not isinstance(decoded["placeholder_release"], bool):
-        raise invalid("field 'placeholder_release' is not a boolean")
-
-    unbound = decoded["placeholder_fields"]
-    if isinstance(unbound, str) or not isinstance(unbound, Sequence):
-        raise invalid("field 'placeholder_fields' is not a list")
-    for name in unbound:
-        if not isinstance(name, str) or name not in RELEASE_CORE_FIELDS:
-            raise invalid(f"field 'placeholder_fields' names {name!r}")
-
     for name in _RELEASE_CORE_DIGEST_FIELDS:
         if not DIGEST_PATTERN.match(decoded[name]):
             raise invalid(f"field {name!r} is not a sha256 digest")
 
     if not OBJECT_URL_PATTERN.match(decoded["starter_skill_object_url"]):
         raise invalid(
-            "field 'starter_skill_object_url' is not an https address without "
-            "credentials in it"
+            "field 'starter_skill_object_url' is not an https content address "
+            "without credentials in it"
         )
 
     for name in _RELEASE_CORE_VERSION_FIELDS:
         if not VERSION_PATTERN.match(decoded[name]):
             raise invalid(f"field {name!r} is not a version string")
-
-    if not COMMIT_PATTERN.match(decoded["cli_source_commit"]):
-        raise invalid("field 'cli_source_commit' is not a full 40-character commit")
 
     if not IDENTIFIER_PATTERN.match(decoded["release_id"]):
         raise invalid("field 'release_id' is not a bounded identifier")
@@ -270,7 +243,7 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
     if not CLIMB_REFERENCE_PATTERN.match(decoded["intro_climb_reference"]):
         raise invalid("field 'intro_climb_reference' is not a pinned slug@version")
 
-    return ReleaseCore(**{**decoded, "placeholder_fields": tuple(unbound)})
+    return ReleaseCore(**decoded)
 
 
 # CLI boundary ---------------------------------------------------------------

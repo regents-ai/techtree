@@ -51,6 +51,12 @@ RECORDED = sorted(FIXTURES.glob("*.json"))
 #: The remaining envelopes are read-only answers that do not depend on which
 #: engine a home holds, and are captured from the ordinary one.
 #:
+#: ``release-info.json`` reports a ``source_commit``: it was captured from the
+#: candidate wheel installed into an isolated home, and a wheel is stamped with
+#: the commit it was built from (Techtree decisions document 0026). A CLI run
+#: out of a source tree reports null there instead, and the plugin accepts
+#: both, because it compares only the coordinates both documents hold.
+#:
 #: Everything else about the two Climb captures — the Climb, the Campaign, the
 #: policy, the digests — is identical, which is the point: the plugin must
 #: read both without either being a special case.

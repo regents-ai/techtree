@@ -34,8 +34,6 @@ IMPROVER_TEXT = (PLUGIN_ROOT / "skills" / "skill-improver" / "SKILL.md").read_te
 )
 CORE = dataclasses.replace(
     load_embedded_release_core(),
-    placeholder_release=False,
-    placeholder_fields=(),
     skill_improver_digest=file_digest(IMPROVER_TEXT.encode("utf-8")),
 )
 RUN_ID = "run_" + "0" * 32
@@ -351,43 +349,37 @@ def test_the_second_run_starts_once_the_diff_and_policy_were_shown(
     assert session.stage is DemoStage.SECOND_RUN_ACTIVE
 
 
-def test_a_build_whose_release_named_no_improver_keeps_its_turn(
+def test_a_build_whose_improver_is_not_the_one_named_keeps_its_turn(
     services: PluginServices,
 ) -> None:
     """Decision 0010: the verified Skill steers the turn, or there is no turn.
 
-    A build that never chose the Skill says so, and the session's one revision
-    is still there afterwards — a release coordinate nobody bound is not a
-    reason to spend someone's attempt.
+    A build whose bundled improver is not the Skill its release names says so,
+    and the session's one revision is still there afterwards — an unverifiable
+    Skill is not a reason to spend someone's attempt.
     """
     embedded = load_embedded_release_core()
-    placeholder = dataclasses.replace(
+    altered = dataclasses.replace(
         services,
         release_core=dataclasses.replace(
-            embedded,
-            placeholder_release=True,
-            placeholder_fields=(
-                *embedded.placeholder_fields,
-                "skill_improver_digest",
-            ),
-            skill_improver_digest="sha256:" + "0" * 64,
+            embedded, skill_improver_digest="sha256:" + "9" * 64
         ),
     )
     started = latest_session(services)
     assert started is not None
-    save_session(placeholder, dataclasses.replace(started, revision_attempts=0))
+    save_session(altered, dataclasses.replace(started, revision_attempts=0))
 
     answer = json.loads(
-        TOOL_HANDLERS["techtree_uplift_propose"](placeholder, {"source_run_id": RUN_ID})
+        TOOL_HANDLERS["techtree_uplift_propose"](altered, {"source_run_id": RUN_ID})
     )
 
     assert answer["ok"] is False
-    assert answer["code"] == "founder_skill_missing"
-    assert "has not chosen its skill-improver" in answer["message"]
-    unspent = latest_session(placeholder)
+    assert answer["code"] == "founder_skill_digest_mismatch"
+    assert "not the one this release names" in answer["message"]
+    unspent = latest_session(altered)
     assert unspent is not None
     assert unspent.revision_attempts == 0
-    assert placeholder.ctx.llm.calls == []
+    assert altered.ctx.llm.calls == []
 
 
 # One outbound generation request -----------------------------------------------------

@@ -452,11 +452,6 @@ def _error_line(answer: Mapping[str, Any]) -> str:
 
 def _release_line(answer: Mapping[str, Any]) -> str:
     release = answer.get("release") or {}
-    if release.get("placeholder_release"):
-        return (
-            f"Plugin {answer.get('plugin_version')}, development build "
-            "(its release coordinates are not chosen yet)."
-        )
     return (
         f"Plugin {answer.get('plugin_version')}, release {release.get('release_id')}."
     )

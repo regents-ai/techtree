@@ -31,17 +31,14 @@ from techtree_hermes.release import (
 
 VALID_RELEASE_CORE: dict[str, Any] = {
     "schema_version": "techtree.release-core.v1",
-    "placeholder_release": False,
-    "placeholder_fields": [],
     "release_id": "test-release",
     "cli_version": "0.1.0",
-    "cli_source_commit": "a" * 40,
     "protocol_version": "v1alpha1",
     "engine_digest": "sha256:" + "1" * 64,
     "catalog_digest": "sha256:" + "2" * 64,
     "intro_climb_reference": "hello-world-climb@1",
     "starter_skill_digest": "sha256:" + "3" * 64,
-    "starter_skill_object_url": "https://objects.example/skills/starter.tar.zst",
+    "starter_skill_object_url": "https://objects.example/objects/sha256:" + "4" * 64,
     "skill_improver_digest": "sha256:" + "5" * 64,
     "minimum_host_hermes_version": "0.20.0",
     "maximum_tested_host_hermes_version": "0.20.0",
@@ -51,7 +48,7 @@ VALID_RELEASE_CORE: dict[str, Any] = {
 #: The digest the release above is published under, taken over its one stored
 #: spelling. A change here means the release document contract changed.
 RELEASE_DIGEST_GOLDEN = (
-    "sha256:cb658d2d00a1f1b5869a38bf1f4b4f6dfef2a0361753717dbacded9e66861702"
+    "sha256:c69d8e48e00bdf378be715cdf2f03ff1ea8f1cb48fa165e51ad31136c92bada8"
 )
 
 VALID_ENVELOPE: dict[str, Any] = {
@@ -120,20 +117,30 @@ def test_the_embedded_release_is_valid() -> None:
     [
         ({"schema_version": "techtree.release-core.v2"}, "schema version"),
         ({"engine_digest": "not-a-digest"}, "sha256 digest"),
-        ({"cli_source_commit": "abc"}, "40-character commit"),
         ({"intro_climb_reference": "hello-world-climb"}, "slug@version"),
         ({"cli_version": ""}, "non-empty string"),
         ({"cli_version": None}, "missing fields"),
         ({"upload_endpoint": "https://example.test"}, "unknown fields"),
-        # The starter Skill's address: https only, and never with a
-        # credential in the authority. Mirrors techtree-python's
-        # OBJECT_URL_PATTERN, because the plugin copies these bytes verbatim.
-        ({"starter_skill_object_url": "sha256:" + "3" * 64}, "https address"),
-        ({"starter_skill_object_url": "http://objects.example/s.tar"}, "https address"),
-        ({"starter_skill_object_url": "https://objects.example"}, "https address"),
+        # The starter Skill's address: https only, keyed by the digest of the
+        # file it returns, and never with a credential in the authority.
+        # Mirrors techtree-python's OBJECT_URL_PATTERN, because the plugin
+        # copies these bytes verbatim.
+        ({"starter_skill_object_url": "sha256:" + "3" * 64}, "content address"),
         (
-            {"starter_skill_object_url": "https://u:tok@objects.example/s.tar"},
-            "https address",
+            {"starter_skill_object_url": "http://objects.example/sha256:" + "4" * 64},
+            "content address",
+        ),
+        ({"starter_skill_object_url": "https://objects.example"}, "content address"),
+        (
+            {"starter_skill_object_url": "https://objects.example/starter.md"},
+            "content address",
+        ),
+        (
+            {
+                "starter_skill_object_url": "https://u:tok@objects.example/sha256:"
+                + "4" * 64
+            },
+            "content address",
         ),
         ({"starter_skill_object_url": None}, "missing fields"),
     ],

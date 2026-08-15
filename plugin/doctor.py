@@ -454,34 +454,17 @@ def _check_release_core(root: Path, checks: list[DoctorCheck]) -> str | None:
         return None
 
     digest = release_core_digest(core)
-    # The release document says for itself whether a person has chosen every
-    # coordinate yet. A build carrying an unfinished release is usable, and
-    # must never be mistaken for a published one.
-    development = core.placeholder_release
     checks.append(
         DoctorCheck(
             id="release_core",
             label="Release core",
-            status="warn" if development else "pass",
+            status="pass",
             detail=(
                 f"release {core.release_id} pins CLI {core.cli_version} "
                 f"and carries digest {digest}"
-                + (
-                    "; it is not a published release yet, so installing "
-                    "Techtree from it is refused: "
-                    + ", ".join(core.placeholder_fields)
-                    + " have not been chosen"
-                    if development
-                    else ""
-                )
             ),
             blocking=True,
-            repair=(
-                f"Regenerate {RELEASE_CORE_FILENAME} from a real release before "
-                "publishing this plugin."
-                if development
-                else None
-            ),
+            repair=None,
         )
     )
     return digest

@@ -5,11 +5,10 @@ Techtree from the pinned public release and checked against the digest the
 release names. The plugin never downloads it, never accepts a URL for it, and
 never treats a Skill it cannot verify as the starter Skill.
 
-Today no release names one. The two founder Skills are the last unchosen
-release coordinates, so this build's release carries placeholder digests for
-them, and the installed Techtree ships no command that would hand one over.
-Rather than guess at either, this says so exactly: the guided introduction
-stops with a reason a person can act on.
+Every release names both founder Skills concretely (Techtree decisions
+document 0026), so there is no "not chosen yet" state to handle here — what is
+left is the check that matters: the bytes on disk must be the bytes the release
+pinned, or they are not read out to anybody.
 """
 
 from __future__ import annotations
@@ -33,14 +32,6 @@ from ..errors import (
 )
 from ..models import ReleaseCore
 
-#: The digest a release carries where a Skill has not been chosen yet.
-PLACEHOLDER_DIGEST: Final = "sha256:" + "0" * 64
-
-#: The address a release carries where nobody has published the starter Skill
-#: yet. `.invalid` is reserved by RFC 2606 so it can never resolve: the value
-#: is well formed, obviously unchosen, and unfetchable by design.
-PLACEHOLDER_OBJECT_URL: Final = "https://placeholder.invalid/unchosen"
-
 CODE_STARTER_SKILL_MISSING: Final = "starter_skill_missing"
 CODE_STARTER_SKILL_DIGEST_MISMATCH: Final = "starter_skill_digest_mismatch"
 
@@ -63,44 +54,18 @@ class ReleaseSkillProvider:
     """Asks Techtree for the starter Skill named by this build's release."""
 
     def materialize(self, services: Any) -> dict[str, Any]:
-        """Return the starter Skill, or explain why there is not one yet.
+        """Return the starter Skill this release names.
 
         Raises:
-            PluginError: with ``starter_skill_missing`` when this release does
-                not name a starter Skill.
+            PluginError: with ``starter_skill_missing`` while the installed
+                Techtree exposes no machine command that hands one over.
         """
-        release: ReleaseCore = services.release_core
-        if not names_a_starter_skill(release):
-            raise PluginError(
-                "this plugin build's release does not name a starter Skill yet, "
-                "so the guided introduction cannot prepare one",
-                code=CODE_STARTER_SKILL_MISSING,
-                repair="Use a published release, or prepare your own Skill.",
-            )
         raise PluginError(
             "the installed Techtree does not offer a way to materialize the "
             "starter Skill this release names",
             code=CODE_STARTER_SKILL_MISSING,
             repair="Update Techtree to the version this plugin release pins.",
         )
-
-
-def names_a_starter_skill(release: ReleaseCore) -> bool:
-    """Whether this release has chosen its starter Skill.
-
-    Both halves of the coordinate have to be bound. The digest says which
-    Skill the release measured; the URL says where a machine that does not
-    already hold those bytes obtains them. A digest with no address names a
-    Skill nobody can fetch, and an address with no digest is an invitation to
-    run whatever is served — so neither on its own is a chosen starter Skill.
-    """
-    return (
-        not release.placeholder_release
-        and release.starter_skill_digest != PLACEHOLDER_DIGEST
-        and "starter_skill_digest" not in release.placeholder_fields
-        and release.starter_skill_object_url != PLACEHOLDER_OBJECT_URL
-        and "starter_skill_object_url" not in release.placeholder_fields
-    )
 
 
 def verify_starter_skill_result(result: dict[str, Any], release: ReleaseCore) -> None:
@@ -142,10 +107,10 @@ def materialize_starter_skill(services: Any) -> dict[str, Any]:
 # revision. It is read-only, namespaced, and used only after its bytes have
 # been checked against the digest the release names.
 #
-# This build's release carries a placeholder digest for it (decision 0007 R10),
-# so every function here refuses rather than reading whatever happens to be on
-# disk under that name. Test fixtures follow the same contract and live under
-# tests/, where they cannot be mistaken for the real thing.
+# Nothing here reads whatever happens to be on disk under that name: the bytes
+# are hashed and compared against the release's digest first. Test fixtures
+# follow the same contract and live under tests/, where they cannot be mistaken
+# for the real thing.
 
 FounderSkillName = Literal["skill-improver"]
 
@@ -225,31 +190,15 @@ def expected_founder_skill_digest(release: ReleaseCore, name: str) -> str:
     return str(getattr(release, field))
 
 
-def names_a_founder_skill(release: ReleaseCore, name: str) -> bool:
-    """Whether the release has chosen this Skill yet."""
-    field = FOUNDER_SKILL_DIGEST_FIELDS[name]
-    return (
-        expected_founder_skill_digest(release, name) != PLACEHOLDER_DIGEST
-        and field not in release.placeholder_fields
-    )
-
-
 def load_verified_founder_skill(
     release: ReleaseCore, name: str, root: Path = PLUGIN_ROOT
 ) -> str:
     """Return a founder Skill's text, only if it is the one the release names.
 
     Raises:
-        PluginError: when the release names no such Skill yet, or when the
-            bundled bytes are not the bytes the release pinned.
+        PluginError: when the bundled bytes are not the bytes the release
+            pinned.
     """
-    if not names_a_founder_skill(release, name):
-        raise PluginError(
-            f"this release has not chosen its {name} Skill yet",
-            code=CODE_FOUNDER_SKILL_MISSING,
-            repair="Use a published release of the plugin.",
-        )
-
     text = load_bundled_skill_text(name, root)
     actual = file_digest(founder_skill_path(name, root).read_bytes())
     expected = expected_founder_skill_digest(release, name)

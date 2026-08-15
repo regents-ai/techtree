@@ -298,14 +298,12 @@ def test_a_matching_cli_release_verifies(
         "release_id": core.release_id,
         "cli_version": core.cli_version,
         "package_version": "0.1.0",
-        "cli_source_commit": core.cli_source_commit,
         "protocol_version": core.protocol_version,
         "release_core_digest": release_core_digest(core),
         "engine_digest": core.engine_digest,
         "catalog_digest": core.catalog_digest,
         "intro_climb_reference": core.intro_climb_reference,
-        "placeholder_release": core.placeholder_release,
-        "placeholder_fields": list(core.placeholder_fields),
+        "source_commit": "a" * 40,
     }
     cli = _fake_cli_printing(
         tmp_path, monkeypatch, print_envelope(command="release info", data=payload)
@@ -326,14 +324,12 @@ def test_a_different_cli_release_is_reported_coordinate_by_coordinate(
         "release_id": "0.9.9",
         "cli_version": "0.9.9",
         "package_version": "0.9.9",
-        "cli_source_commit": "b" * 40,
         "protocol_version": core.protocol_version,
         "release_core_digest": "sha256:" + "c" * 64,
         "engine_digest": core.engine_digest,
         "catalog_digest": core.catalog_digest,
         "intro_climb_reference": core.intro_climb_reference,
-        "placeholder_release": False,
-        "placeholder_fields": [],
+        "source_commit": "b" * 40,
     }
     _fake_cli_printing(
         tmp_path, monkeypatch, print_envelope(command="release info", data=payload)
@@ -346,5 +342,4 @@ def test_a_different_cli_release_is_reported_coordinate_by_coordinate(
         "release_core_digest",
         "release_id",
         "cli_version",
-        "cli_source_commit",
     }
