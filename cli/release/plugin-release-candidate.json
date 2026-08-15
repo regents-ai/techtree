@@ -1,9 +1,8 @@
 {
-  "commit": "bf427abd9d486ac078753ae6cea29aef72685473",
-  "commit_note": "This is the plugin HEAD before the final packaging pass is committed. The pass leaves release-core.json and the two recorded CLI envelopes modified in the plugin working tree, so committing them produces a new commit. Whoever commits must replace this field with that commit and delete this note. No future commit is guessed here.",
-  "plugin_doctor": "passed",
-  "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
-  "repository": "github.com/regents-ai/techtree-hermes",
-  "version": "0.1.0",
-  "wheel_sha256": "dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f"
+ "commit": "7f812ca5251ddb8f4db305d4d94f78bcc47e91ab",
+ "plugin_doctor": "passed",
+ "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+ "repository": "github.com/regents-ai/techtree-hermes",
+ "version": "0.1.0",
+ "wheel_sha256": "dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f"
 }

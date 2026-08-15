@@ -1,121 +1,120 @@
 {
-  "campaign_budgets": {
-    "maximum_input_tokens": null,
-    "maximum_model_calls": null,
-    "maximum_output_tokens": 8000,
-    "maximum_usd": 1
+ "campaign_budgets": {
+  "maximum_input_tokens": null,
+  "maximum_model_calls": null,
+  "maximum_output_tokens": 8000,
+  "maximum_usd": 1
+ },
+ "campaign_execution": {
+  "max_concurrent": 4,
+  "order": "parallel_variants",
+  "retry_limit": 0,
+  "timeout_seconds": 600
+ },
+ "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+ "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
+ "certified_scientific_code_commit": "1ad6ecf027b7a2b805bba27c7dd700b584501ec8",
+ "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
+ "cross_check": {
+  "note": "The Gate-1 packet \u00a71/\u00a78 names the SUPERSEDED pre-regeneration lineage (campaign 5aef3fb7, climb 61a7dd46, catalog 468e8ab1, ReleaseCore 80807821). Addendum 1 is the later record and names the lineage recorded here. The values the addendum states as unchanged from the packet \u2014 engine, membership, data policy, validation receipt, validation evidence, both Skill digests \u2014 are byte-identical to the packet's.",
+  "source": "release/founder-skill-approval-addendum-1.md \u00a7A1.3/\u00a7A1.4"
+ },
+ "data_policy_digest": "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
+ "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
+ "gate1_addendum_1_digest": "sha256:568f3a5371543d546db3e19ec51a83ab43481af0b72d874633a76c3dca278842",
+ "gate1_approval_digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
+ "gate1_approval_record_digest": "sha256:bc01c93e2aeced2dea33830939c9e35a2196335b9690b7d2b69647b5c4b54ce1",
+ "lineage": "regenerated (decisions document 0025 option A)",
+ "packaged_release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+ "placeholder_fields": [
+  "cli_source_commit",
+  "cli_version",
+  "release_id",
+  "starter_skill_object_url"
+ ],
+ "placeholder_release": true,
+ "purpose": "The scientific coordinates of the lineage this candidate wheel carries, read from the artifacts themselves at build time. Every value below is computed from a file in this repository or the plugin checkout; none is transcribed.",
+ "recertification_runs": [
+  {
+   "bundle_digest_prefix": "c043bb3d\u2026",
+   "cost_usd": 0.1605,
+   "report_digest_prefix": "5a49a010\u2026",
+   "role": "stability #1",
+   "run_id": "run_4bde126172c64cc3bc2b6dd7fd306bba",
+   "score": "0/36 \u2192 23/36"
   },
-  "campaign_execution": {
-    "max_concurrent": 4,
-    "order": "parallel_variants",
-    "retry_limit": 0,
-    "timeout_seconds": 600
+  {
+   "bundle_digest_prefix": "cf0c2a04\u2026",
+   "cost_usd": 0.1681,
+   "report_digest_prefix": "a4414411\u2026",
+   "role": "stability #2",
+   "run_id": "run_f987eea81ba342d7b7de5515598fa5fa",
+   "score": "0/36 \u2192 23/36"
   },
-  "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+  {
+   "bundle_digest_prefix": "13fbf571\u2026",
+   "cost_usd": 0.1955,
+   "report_digest_prefix": "45fa83a1\u2026",
+   "role": "engine reference",
+   "run_id": "run_4305dc3de7de46779c5c749f01529618",
+   "score": "0/36 \u2192 36/36"
+  }
+ ],
+ "recorded_for_ticket": "techtree-python-ndq.3.2",
+ "release_build_inputs": {
   "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
-  "certified_scientific_code_commit": "1ad6ecf027b7a2b805bba27c7dd700b584501ec8",
-  "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
-  "cross_check": {
-    "note": "The Gate-1 packet \u00a71/\u00a78 names the SUPERSEDED pre-regeneration lineage (campaign 5aef3fb7, climb 61a7dd46, catalog 468e8ab1, ReleaseCore 80807821). Addendum 1 is the later record and names the lineage recorded here. The values the addendum states as unchanged from the packet \u2014 engine, membership, data policy, validation receipt, validation evidence, both Skill digests \u2014 are byte-identical to the packet's.",
-    "source": "release/founder-skill-approval-addendum-1.md \u00a7A1.3/\u00a7A1.4"
-  },
-  "data_policy_digest": "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
   "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
-  "gate1_addendum_1_digest": "sha256:568f3a5371543d546db3e19ec51a83ab43481af0b72d874633a76c3dca278842",
-  "gate1_approval_digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
-  "gate1_approval_record_digest": "sha256:bc01c93e2aeced2dea33830939c9e35a2196335b9690b7d2b69647b5c4b54ce1",
-  "lineage": "regenerated (decisions document 0025 option A)",
-  "packaged_release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
-  "placeholder_fields": [
-    "cli_source_commit",
-    "cli_version",
-    "release_id",
-    "starter_skill_object_url"
-  ],
-  "placeholder_release": true,
-  "purpose": "The scientific coordinates of the lineage this candidate wheel carries, read from the artifacts themselves at build time. Every value below is computed from a file in this repository or the plugin checkout; none is transcribed.",
-  "recertification_runs": [
-    {
-      "bundle_digest_prefix": "c043bb3d\u2026",
-      "cost_usd": 0.1605,
-      "report_digest_prefix": "5a49a010\u2026",
-      "role": "stability #1",
-      "run_id": "run_4bde126172c64cc3bc2b6dd7fd306bba",
-      "score": "0/36 \u2192 23/36"
-    },
-    {
-      "bundle_digest_prefix": "cf0c2a04\u2026",
-      "cost_usd": 0.1681,
-      "report_digest_prefix": "a4414411\u2026",
-      "role": "stability #2",
-      "run_id": "run_f987eea81ba342d7b7de5515598fa5fa",
-      "score": "0/36 \u2192 23/36"
-    },
-    {
-      "bundle_digest_prefix": "13fbf571\u2026",
-      "cost_usd": 0.1955,
-      "report_digest_prefix": "45fa83a1\u2026",
-      "role": "engine reference",
-      "run_id": "run_4305dc3de7de46779c5c749f01529618",
-      "score": "0/36 \u2192 36/36"
-    }
-  ],
-  "recorded_for_ticket": "techtree-python-ndq.3.2",
-  "release_build_inputs": {
-    "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
-    "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
-    "intro_climb_reference": "hello-world-climb@1",
-    "protocol_version": "v1alpha1",
-    "pyproject_version": "0.1.0",
-    "release_inputs_digest": "sha256:ec04f352b866025e50053d9c57e08987e2466af333d133a1d3e64fea7f415f73"
-  },
-  "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
-  "release_source_commit": "e8b8cd9d9185f8bf6fa7a864479dc80bb6eeba3e",
-  "release_source_commit_note": "This is the techtree-python HEAD before the final packaging pass is committed. The pass leaves the release inputs, the two ReleaseCore copies, the build record and the package metadata modified in the working tree, so committing them produces a new commit. Whoever commits must replace this field with that commit and delete this note. No future commit is guessed here.",
-  "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
-  "runtime_image_platform_digests": {
-    "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",
-    "linux/arm64": "sha256:20eadabc42589e6543b24a64ab305b9895e9fcf6dbb2cadb14812f394ecdbadf"
-  },
-  "runtime_supported_platforms": [
-    "linux/amd64",
-    "linux/arm64"
-  ],
-  "schema_version": "techtree.certified-science.v1",
-  "scorer_identity": {
-    "aggregation": "mean",
-    "carried_by": "the embedded verifiers package, whose source digest is the taskset_package digest above; no separate scorer digest exists in this protocol",
-    "primary_reward": "exact_match",
-    "separately_digested": false
-  },
-  "skill_improver_file_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
-  "starter_skill_file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
-  "starter_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
-  "subject_credential_env": "PRIME_API_KEY",
-  "subject_hermes_version": "0.19.0",
-  "subject_model_id": "qwen/qwen3.7-flash",
-  "subject_model_provider": "prime",
-  "subject_model_revision": null,
-  "subject_sampling": {
-    "max_tokens": 4096,
-    "temperature": 0
-  },
-  "taskset_lock_digest": "sha256:2edd60bcdf67b01c8184728c23e5bdaa74003560aeb305927a05047a9fdab6d2",
-  "taskset_membership_digest": "sha256:56f697fb182cc31691c2e1fff20471acbd549a06e37232227c9491c03aa8f9aa",
-  "taskset_membership_task_count": 36,
-  "taskset_package": {
-    "digest": "sha256:14d9646d79fbcc1abddcac19d5dda9e50ee93df1269e4797e60182b54308384c",
-    "kind": "embedded",
-    "name": "procedure-transfer-v1",
-    "revision": "0.1.0"
-  },
-  "taskset_selection": {
-    "num_rollouts": 1,
-    "num_tasks": 36,
-    "shuffle": false
-  },
-  "taskset_validation_receipt_digest": "sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948",
-  "validation_evidence_digest": "sha256:9c4959d3b9217ab83c506ceb4219143aff74341be59b15c1de15d35c0cbdbed5",
-  "verifiers_commit": "7e1c47d24d055aae587ee8259f77a3e8e193513a",
-  "verifiers_version": "0.3.1.dev21"
+  "intro_climb_reference": "hello-world-climb@1",
+  "protocol_version": "v1alpha1",
+  "pyproject_version": "0.1.0",
+  "release_inputs_digest": "sha256:ec04f352b866025e50053d9c57e08987e2466af333d133a1d3e64fea7f415f73"
+ },
+ "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+ "release_source_commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+ "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
+ "runtime_image_platform_digests": {
+  "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",
+  "linux/arm64": "sha256:20eadabc42589e6543b24a64ab305b9895e9fcf6dbb2cadb14812f394ecdbadf"
+ },
+ "runtime_supported_platforms": [
+  "linux/amd64",
+  "linux/arm64"
+ ],
+ "schema_version": "techtree.certified-science.v1",
+ "scorer_identity": {
+  "aggregation": "mean",
+  "carried_by": "the embedded verifiers package, whose source digest is the taskset_package digest above; no separate scorer digest exists in this protocol",
+  "primary_reward": "exact_match",
+  "separately_digested": false
+ },
+ "skill_improver_file_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+ "starter_skill_file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+ "starter_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+ "subject_credential_env": "PRIME_API_KEY",
+ "subject_hermes_version": "0.19.0",
+ "subject_model_id": "qwen/qwen3.7-flash",
+ "subject_model_provider": "prime",
+ "subject_model_revision": null,
+ "subject_sampling": {
+  "max_tokens": 4096,
+  "temperature": 0
+ },
+ "taskset_lock_digest": "sha256:2edd60bcdf67b01c8184728c23e5bdaa74003560aeb305927a05047a9fdab6d2",
+ "taskset_membership_digest": "sha256:56f697fb182cc31691c2e1fff20471acbd549a06e37232227c9491c03aa8f9aa",
+ "taskset_membership_task_count": 36,
+ "taskset_package": {
+  "digest": "sha256:14d9646d79fbcc1abddcac19d5dda9e50ee93df1269e4797e60182b54308384c",
+  "kind": "embedded",
+  "name": "procedure-transfer-v1",
+  "revision": "0.1.0"
+ },
+ "taskset_selection": {
+  "num_rollouts": 1,
+  "num_tasks": 36,
+  "shuffle": false
+ },
+ "taskset_validation_receipt_digest": "sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948",
+ "validation_evidence_digest": "sha256:9c4959d3b9217ab83c506ceb4219143aff74341be59b15c1de15d35c0cbdbed5",
+ "verifiers_commit": "7e1c47d24d055aae587ee8259f77a3e8e193513a",
+ "verifiers_version": "0.3.1.dev21"
 }
