@@ -1,0 +1,772 @@
+{
+  "schema_version": "techtree.post-certification-change-classification.v1",
+  "certified_scientific_code_commit": "1ad6ecf027b7a2b805bba27c7dd700b584501ec8",
+  "release_source_commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+  "commit_count": 17,
+  "file_change_count": 88,
+  "classes": {
+    "documentation": "A document. Nothing the product runs.",
+    "non_scientific_copy": "Product bytes that change what a person is told or which next step is offered, never what is measured. Includes the readiness/onboarding behavior decision 0023 classifies as outside the certified scientific surface.",
+    "test_only": "Test or fixture code. Not shipped in the wheel.",
+    "release_packaging": "Release records, audits and approval packets. Shipped nowhere the science depends on.",
+    "scientific \u2014 re-certified (0025, addendum A1.4)": "A change to the scientific configuration, sanctioned by decision 0025 and certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4."
+  },
+  "counts_by_class": {
+    "documentation": 36,
+    "non_scientific_copy": 16,
+    "release_packaging": 11,
+    "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
+    "test_only": 19
+  },
+  "scientific_changes": {
+    "count": 6,
+    "sanctioned_commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+    "authority": "docs/decisions/0025-campaign-regeneration-option-a.md",
+    "certification": "release/founder-skill-approval-addendum-1.md \u00a7A1.3, \u00a7A1.4",
+    "campaign_field_changes": {
+      "/agents/subject/model/provider": [
+        "development",
+        "prime"
+      ],
+      "/agents/subject/model/model_id": [
+        "development-placeholder",
+        "qwen/qwen3.7-flash"
+      ],
+      "/agents/subject/model/credential_env": [
+        "TECHTREE_MODEL_API_KEY",
+        "PRIME_API_KEY"
+      ],
+      "/budgets/maximum_output_tokens": [
+        null,
+        8000
+      ],
+      "/budgets/maximum_usd": [
+        null,
+        1
+      ],
+      "/execution/order": [
+        "baseline_then_candidate",
+        "parallel_variants"
+      ],
+      "/execution/max_concurrent": [
+        1,
+        4
+      ]
+    },
+    "paths": [
+      "release/release-core.json",
+      "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+      "src/techtree/resources/catalog/catalog.json",
+      "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+      "src/techtree/resources/release/release-core.json",
+      "tools/build_fixture_catalog.py"
+    ]
+  },
+  "verdict": "PASS \u2014 the only scientific change in the range is the sanctioned decision-0025 regeneration, which is re-certified.",
+  "entries": [
+    {
+      "commit": "0a2e7fe939e142417b45f53ab968d3f7471e02df",
+      "commit_subject": "docs: decision 0021 \u2014 rehearsal v1-vs-v2 execution ruling after launcher credential failure",
+      "path": "docs/decisions/0021-rehearsal-execution-ruling.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "A decisions document. No product byte."
+    },
+    {
+      "commit": "3355ab55a35dd9534d09780ff0e13929e1df3c5c",
+      "commit_subject": "release: finalize the founder Skill approval packet (Gate 1)",
+      "path": "release/founder-skill-approval-draft.md",
+      "change": "modified",
+      "classification": "release_packaging",
+      "rationale": "The Gate-1 approval packet text. Release record, not product."
+    },
+    {
+      "commit": "7cc5d931c8662f6b23a92493fa2bff7f86750c8e",
+      "commit_subject": "docs+release: decision 0022 (founder-confirmed post-rehearsal rulings); amend Gate-1 packet with 7f-7h",
+      "path": "docs/decisions/0022-post-rehearsal-rulings.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "A decisions document."
+    },
+    {
+      "commit": "7cc5d931c8662f6b23a92493fa2bff7f86750c8e",
+      "commit_subject": "docs+release: decision 0022 (founder-confirmed post-rehearsal rulings); amend Gate-1 packet with 7f-7h",
+      "path": "release/founder-skill-approval-draft.md",
+      "change": "modified",
+      "classification": "release_packaging",
+      "rationale": "The Gate-1 approval packet text, amended before approval."
+    },
+    {
+      "commit": "dc37dfeea97767b2d02594581d957de615abc4a0",
+      "commit_subject": "release: record Gate-1 founder approval of the Climb v0.1 founder Skills",
+      "path": "release/founder-approvals/gate1-founder-skills.md",
+      "change": "added",
+      "classification": "release_packaging",
+      "rationale": "The founder's Gate-1 approval record."
+    },
+    {
+      "commit": "00c31b658b550b84e792529d1825739c2ed38f57",
+      "commit_subject": "docs: v0.1 ticket handoff \u2014 every closed and remaining ticket with specification assessment",
+      "path": "docs/handoff-v0.1-tickets.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "A ticket handoff document."
+    },
+    {
+      "commit": "58b6f3d738dc8e6d3f34a21319ab0c56dc5a6c11",
+      "commit_subject": "fix: truthful run_request_unreadable error for runs this build cannot read (ndq.3.43)",
+      "path": "docs/run-state-machine.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Documentation of the error this build now raises."
+    },
+    {
+      "commit": "58b6f3d738dc8e6d3f34a21319ab0c56dc5a6c11",
+      "commit_subject": "fix: truthful run_request_unreadable error for runs this build cannot read (ndq.3.43)",
+      "path": "docs/uninstall-and-data-retention.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Documentation of the error this build now raises."
+    },
+    {
+      "commit": "58b6f3d738dc8e6d3f34a21319ab0c56dc5a6c11",
+      "commit_subject": "fix: truthful run_request_unreadable error for runs this build cannot read (ndq.3.43)",
+      "path": "src/techtree/runs/store.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "One raised error's message and code. The run store still refuses the same inputs it refused before; only what it says changed."
+    },
+    {
+      "commit": "58b6f3d738dc8e6d3f34a21319ab0c56dc5a6c11",
+      "commit_subject": "fix: truthful run_request_unreadable error for runs this build cannot read (ndq.3.43)",
+      "path": "tests/unit/test_run_machine.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the new message."
+    },
+    {
+      "commit": "3cfbea64936e5b64aee60abc754c3a592b5401b5",
+      "commit_subject": "docs+copy: the evaluation credential comes from prime login, not an exported variable (3ym)",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "README section on the evaluation credential; the tracker's own export."
+    },
+    {
+      "commit": "3cfbea64936e5b64aee60abc754c3a592b5401b5",
+      "commit_subject": "docs+copy: the evaluation credential comes from prime login, not an exported variable (3ym)",
+      "path": "README.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "README section on the evaluation credential; the tracker's own export."
+    },
+    {
+      "commit": "3cfbea64936e5b64aee60abc754c3a592b5401b5",
+      "commit_subject": "docs+copy: the evaluation credential comes from prime login, not an exported variable (3ym)",
+      "path": "src/techtree/doctor/service.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Credential readiness wording and the repair it offers. Nothing that runs, scores, or is measured."
+    },
+    {
+      "commit": "3cfbea64936e5b64aee60abc754c3a592b5401b5",
+      "commit_subject": "docs+copy: the evaluation credential comes from prime login, not an exported variable (3ym)",
+      "path": "src/techtree/verifiers/credentials.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Credential readiness wording and the repair it offers. Nothing that runs, scores, or is measured."
+    },
+    {
+      "commit": "3cfbea64936e5b64aee60abc754c3a592b5401b5",
+      "commit_subject": "docs+copy: the evaluation credential comes from prime login, not an exported variable (3ym)",
+      "path": "tests/unit/test_verifiers_credentials.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the credential wording."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/decisions/0023-release-execution-contracts.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/handoff-v0.1-tickets.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11-budget.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11-claims.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11-doctor.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11-gateway-profile.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11-postpublish.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11b.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11c.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11d.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11e.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11f.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11g.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/release/contracts/wp11h.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/spec/CHECKSUMS.json",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "docs/spec/INDEX.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0023, the vendored-spec index and its checksums, and the per-ticket execution contracts."
+    },
+    {
+      "commit": "8a96618182163adc3be85db829d1f70c95b09a54",
+      "commit_subject": "docs+release: decision 0023 \u2014 vendored-spec index, per-ticket execution contracts, audit tickets, wdc promotion",
+      "path": "tests/unit/test_spec_index.py",
+      "change": "added",
+      "classification": "test_only",
+      "rationale": "A test that the vendored spec index matches its checksums."
+    },
+    {
+      "commit": "d96a1884e799ef5782586ac0ee87bc1d6b766b83",
+      "commit_subject": "release: budget-contract audit (WP11-budget) \u2014 certified-vs-released campaign findings",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "release_packaging",
+      "rationale": "The budget-contract audit report."
+    },
+    {
+      "commit": "d96a1884e799ef5782586ac0ee87bc1d6b766b83",
+      "commit_subject": "release: budget-contract audit (WP11-budget) \u2014 certified-vs-released campaign findings",
+      "path": "release/budget-contract-audit.json",
+      "change": "added",
+      "classification": "release_packaging",
+      "rationale": "The budget-contract audit report."
+    },
+    {
+      "commit": "926d79966ae629e4ec94bd40324bc6aca96367a7",
+      "commit_subject": "fix: doctor credential readiness answers for the run's environment, not the terminal (wdc)",
+      "path": "README.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "README wording for the credential."
+    },
+    {
+      "commit": "926d79966ae629e4ec94bd40324bc6aca96367a7",
+      "commit_subject": "fix: doctor credential readiness answers for the run's environment, not the terminal (wdc)",
+      "path": "src/techtree/doctor/execution_checks.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Doctor asks its credential question about the environment a detached run gets instead of the terminal it was typed into, and says so. Non-scientific onboarding behavior, classified by decision 0023. The launcher change extracts the existing inherited-variable builder so the check and the launch share one function; the environment a run is actually given is byte-for-byte what it was."
+    },
+    {
+      "commit": "926d79966ae629e4ec94bd40324bc6aca96367a7",
+      "commit_subject": "fix: doctor credential readiness answers for the run's environment, not the terminal (wdc)",
+      "path": "src/techtree/doctor/service.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Doctor asks its credential question about the environment a detached run gets instead of the terminal it was typed into, and says so. Non-scientific onboarding behavior, classified by decision 0023. The launcher change extracts the existing inherited-variable builder so the check and the launch share one function; the environment a run is actually given is byte-for-byte what it was."
+    },
+    {
+      "commit": "926d79966ae629e4ec94bd40324bc6aca96367a7",
+      "commit_subject": "fix: doctor credential readiness answers for the run's environment, not the terminal (wdc)",
+      "path": "src/techtree/runs/launcher.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Doctor asks its credential question about the environment a detached run gets instead of the terminal it was typed into, and says so. Non-scientific onboarding behavior, classified by decision 0023. The launcher change extracts the existing inherited-variable builder so the check and the launch share one function; the environment a run is actually given is byte-for-byte what it was."
+    },
+    {
+      "commit": "926d79966ae629e4ec94bd40324bc6aca96367a7",
+      "commit_subject": "fix: doctor credential readiness answers for the run's environment, not the terminal (wdc)",
+      "path": "src/techtree/verifiers/credentials.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Doctor asks its credential question about the environment a detached run gets instead of the terminal it was typed into, and says so. Non-scientific onboarding behavior, classified by decision 0023. The launcher change extracts the existing inherited-variable builder so the check and the launch share one function; the environment a run is actually given is byte-for-byte what it was."
+    },
+    {
+      "commit": "926d79966ae629e4ec94bd40324bc6aca96367a7",
+      "commit_subject": "fix: doctor credential readiness answers for the run's environment, not the terminal (wdc)",
+      "path": "tests/unit/test_doctor_execution_checks.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the readiness answer."
+    },
+    {
+      "commit": "926d79966ae629e4ec94bd40324bc6aca96367a7",
+      "commit_subject": "fix: doctor credential readiness answers for the run's environment, not the terminal (wdc)",
+      "path": "tests/unit/test_verifiers_credentials.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the readiness answer."
+    },
+    {
+      "commit": "e1a9241eec04cce24b4c7599bf3234b822311cea",
+      "commit_subject": "release: product-claim-to-evidence matrix (WP11-claims), 19 rows with verified citations",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "release_packaging",
+      "rationale": "The product-claim-to-evidence matrix."
+    },
+    {
+      "commit": "e1a9241eec04cce24b4c7599bf3234b822311cea",
+      "commit_subject": "release: product-claim-to-evidence matrix (WP11-claims), 19 rows with verified citations",
+      "path": "release/product-claim-evidence-matrix.json",
+      "change": "added",
+      "classification": "release_packaging",
+      "rationale": "The product-claim-to-evidence matrix."
+    },
+    {
+      "commit": "e1a9241eec04cce24b4c7599bf3234b822311cea",
+      "commit_subject": "release: product-claim-to-evidence matrix (WP11-claims), 19 rows with verified citations",
+      "path": "release/product-claim-evidence-matrix.md",
+      "change": "added",
+      "classification": "release_packaging",
+      "rationale": "The product-claim-to-evidence matrix."
+    },
+    {
+      "commit": "a02a947088c3b43e2a30982b5e09f5cd5d5365a4",
+      "commit_subject": "docs: wp11d contract \u2014 starter object URL uses the existing /api/v1/objects route",
+      "path": "docs/release/contracts/wp11d.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "An execution contract."
+    },
+    {
+      "commit": "73f3d6bbfe00b1b526f58c7406ee4b0ca68f4368",
+      "commit_subject": "docs: decision 0024 \u2014 iOS out, agent-first Hermes onboarding replaces the gateway journey",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0024 and the contracts it rewrites."
+    },
+    {
+      "commit": "73f3d6bbfe00b1b526f58c7406ee4b0ca68f4368",
+      "commit_subject": "docs: decision 0024 \u2014 iOS out, agent-first Hermes onboarding replaces the gateway journey",
+      "path": "docs/decisions/0024-agent-first-onboarding.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0024 and the contracts it rewrites."
+    },
+    {
+      "commit": "73f3d6bbfe00b1b526f58c7406ee4b0ca68f4368",
+      "commit_subject": "docs: decision 0024 \u2014 iOS out, agent-first Hermes onboarding replaces the gateway journey",
+      "path": "docs/handoff-v0.1-tickets.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0024 and the contracts it rewrites."
+    },
+    {
+      "commit": "73f3d6bbfe00b1b526f58c7406ee4b0ca68f4368",
+      "commit_subject": "docs: decision 0024 \u2014 iOS out, agent-first Hermes onboarding replaces the gateway journey",
+      "path": "docs/release/contracts/wp11-gateway-profile.md",
+      "change": "deleted",
+      "classification": "documentation",
+      "rationale": "Decision 0024 and the contracts it rewrites."
+    },
+    {
+      "commit": "73f3d6bbfe00b1b526f58c7406ee4b0ca68f4368",
+      "commit_subject": "docs: decision 0024 \u2014 iOS out, agent-first Hermes onboarding replaces the gateway journey",
+      "path": "docs/release/contracts/wp11f.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0024 and the contracts it rewrites."
+    },
+    {
+      "commit": "73f3d6bbfe00b1b526f58c7406ee4b0ca68f4368",
+      "commit_subject": "docs: decision 0024 \u2014 iOS out, agent-first Hermes onboarding replaces the gateway journey",
+      "path": "docs/release/contracts/wp11h.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0024 and the contracts it rewrites."
+    },
+    {
+      "commit": "73f3d6bbfe00b1b526f58c7406ee4b0ca68f4368",
+      "commit_subject": "docs: decision 0024 \u2014 iOS out, agent-first Hermes onboarding replaces the gateway journey",
+      "path": "docs/spec/INDEX.md",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0024 and the contracts it rewrites."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "Decision 0025; the tracker's own export."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "docs/decisions/0025-campaign-regeneration-option-a.md",
+      "change": "added",
+      "classification": "documentation",
+      "rationale": "Decision 0025; the tracker's own export."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "src/techtree/cli/commands/engine.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Which next step a successful command offers, and how a single step is headed. Presentation only."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "src/techtree/cli/commands/proof.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Which next step a successful command offers, and how a single step is headed. Presentation only."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "src/techtree/cli/commands/release.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Which next step a successful command offers, and how a single step is headed. Presentation only."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "src/techtree/cli/output.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Which next step a successful command offers, and how a single step is headed. Presentation only."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "tests/contract/test_catalog_object_graph.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the next-step surfaces."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "tests/contract/test_cli_envelope.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the next-step surfaces."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "tests/contract/test_release_cli.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the next-step surfaces."
+    },
+    {
+      "commit": "8ce211af8a835d49294886171460cae150e59c39",
+      "commit_subject": "copy: next-step rule on CLI success surfaces (twd); decision 0025 \u2014 option A authorized, USD 10 cap",
+      "path": "tests/integration/test_run_result_compact.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the next-step surfaces."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "release/build-info.json",
+      "change": "modified",
+      "classification": "release_packaging",
+      "rationale": "The generator's own record of which inputs produced which bytes."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "release/release-core.json",
+      "change": "modified",
+      "classification": "scientific \u2014 re-certified (0025, addendum A1.4)",
+      "rationale": "The decision-0025 option A regeneration. The shipped Campaign is rebuilt to carry the certified science, and the climb, catalog and ReleaseCore that name it follow. Exactly seven scientific values change: subject provider development -> prime, model_id development-placeholder -> qwen/qwen3.7-flash, credential_env TECHTREE_MODEL_API_KEY -> PRIME_API_KEY, maximum_output_tokens null -> 8000, maximum_usd null -> 1.00, execution order sequential -> parallel variants, max_concurrent 1 -> 4. Task membership, taskset, scoring, sampling, runtime image, data policy and both Skill digests are untouched. The regenerated Campaign is digest-identical to b9e3f00c, the campaign every certified run's signed proof names. Certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "src/techtree/doctor/execution_checks.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "Comments and one refusal's wording in the development-placeholder check. The check still scans every field and refuses the same Campaigns; the shipped one simply no longer trips it."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+      "change": "modified",
+      "classification": "scientific \u2014 re-certified (0025, addendum A1.4)",
+      "rationale": "The decision-0025 option A regeneration. The shipped Campaign is rebuilt to carry the certified science, and the climb, catalog and ReleaseCore that name it follow. Exactly seven scientific values change: subject provider development -> prime, model_id development-placeholder -> qwen/qwen3.7-flash, credential_env TECHTREE_MODEL_API_KEY -> PRIME_API_KEY, maximum_output_tokens null -> 8000, maximum_usd null -> 1.00, execution order sequential -> parallel variants, max_concurrent 1 -> 4. Task membership, taskset, scoring, sampling, runtime image, data policy and both Skill digests are untouched. The regenerated Campaign is digest-identical to b9e3f00c, the campaign every certified run's signed proof names. Certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "src/techtree/resources/catalog/catalog.json",
+      "change": "modified",
+      "classification": "scientific \u2014 re-certified (0025, addendum A1.4)",
+      "rationale": "The decision-0025 option A regeneration. The shipped Campaign is rebuilt to carry the certified science, and the climb, catalog and ReleaseCore that name it follow. Exactly seven scientific values change: subject provider development -> prime, model_id development-placeholder -> qwen/qwen3.7-flash, credential_env TECHTREE_MODEL_API_KEY -> PRIME_API_KEY, maximum_output_tokens null -> 8000, maximum_usd null -> 1.00, execution order sequential -> parallel variants, max_concurrent 1 -> 4. Task membership, taskset, scoring, sampling, runtime image, data policy and both Skill digests are untouched. The regenerated Campaign is digest-identical to b9e3f00c, the campaign every certified run's signed proof names. Certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+      "change": "modified",
+      "classification": "scientific \u2014 re-certified (0025, addendum A1.4)",
+      "rationale": "The decision-0025 option A regeneration. The shipped Campaign is rebuilt to carry the certified science, and the climb, catalog and ReleaseCore that name it follow. Exactly seven scientific values change: subject provider development -> prime, model_id development-placeholder -> qwen/qwen3.7-flash, credential_env TECHTREE_MODEL_API_KEY -> PRIME_API_KEY, maximum_output_tokens null -> 8000, maximum_usd null -> 1.00, execution order sequential -> parallel variants, max_concurrent 1 -> 4. Task membership, taskset, scoring, sampling, runtime image, data policy and both Skill digests are untouched. The regenerated Campaign is digest-identical to b9e3f00c, the campaign every certified run's signed proof names. Certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "src/techtree/resources/release/release-core.json",
+      "change": "modified",
+      "classification": "scientific \u2014 re-certified (0025, addendum A1.4)",
+      "rationale": "The decision-0025 option A regeneration. The shipped Campaign is rebuilt to carry the certified science, and the climb, catalog and ReleaseCore that name it follow. Exactly seven scientific values change: subject provider development -> prime, model_id development-placeholder -> qwen/qwen3.7-flash, credential_env TECHTREE_MODEL_API_KEY -> PRIME_API_KEY, maximum_output_tokens null -> 8000, maximum_usd null -> 1.00, execution order sequential -> parallel variants, max_concurrent 1 -> 4. Task membership, taskset, scoring, sampling, runtime image, data policy and both Skill digests are untouched. The regenerated Campaign is digest-identical to b9e3f00c, the campaign every certified run's signed proof names. Certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/fixtures/drafts/support.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/fixtures/runs/support.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/fixtures/verifiers/support.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/integration/test_cli_flow.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/integration/test_executor_selection.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/integration/test_real_concurrent_comparison.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/integration/test_real_variant_run.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/integration/test_taskset_validation.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tests/unit/test_doctor_execution_checks.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "The fixture overlay that used to derive the certified campaign is deleted, and the tests read the shipped Campaign instead."
+    },
+    {
+      "commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f",
+      "commit_subject": "release: regenerate Campaign with certified science \u2014 released digest now equals certified b9e3f00c (decision 0025, option A part 1)",
+      "path": "tools/build_fixture_catalog.py",
+      "change": "modified",
+      "classification": "scientific \u2014 re-certified (0025, addendum A1.4)",
+      "rationale": "The decision-0025 option A regeneration. The shipped Campaign is rebuilt to carry the certified science, and the climb, catalog and ReleaseCore that name it follow. Exactly seven scientific values change: subject provider development -> prime, model_id development-placeholder -> qwen/qwen3.7-flash, credential_env TECHTREE_MODEL_API_KEY -> PRIME_API_KEY, maximum_output_tokens null -> 8000, maximum_usd null -> 1.00, execution order sequential -> parallel variants, max_concurrent 1 -> 4. Task membership, taskset, scoring, sampling, runtime image, data policy and both Skill digests are untouched. The regenerated Campaign is digest-identical to b9e3f00c, the campaign every certified run's signed proof names. Certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4."
+    },
+    {
+      "commit": "850e4b00e0f13297afac91b7873b2d4db6b76904",
+      "commit_subject": "release: Gate-1 addendum 1 \u2014 cap lineage, regenerated lineage, re-certification runs, finding dispositions",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "release_packaging",
+      "rationale": "Gate-1 addendum 1: the certification record for the released lineage."
+    },
+    {
+      "commit": "850e4b00e0f13297afac91b7873b2d4db6b76904",
+      "commit_subject": "release: Gate-1 addendum 1 \u2014 cap lineage, regenerated lineage, re-certification runs, finding dispositions",
+      "path": "release/founder-skill-approval-addendum-1.md",
+      "change": "added",
+      "classification": "release_packaging",
+      "rationale": "Gate-1 addendum 1: the certification record for the released lineage."
+    },
+    {
+      "commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+      "commit_subject": "copy: honest declared-limit cost language in the CLI review (5i8, 57c)",
+      "path": ".beads/interactions.jsonl",
+      "change": "modified",
+      "classification": "documentation",
+      "rationale": "The tracker's own export."
+    },
+    {
+      "commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+      "commit_subject": "copy: honest declared-limit cost language in the CLI review (5i8, 57c)",
+      "path": "src/techtree/cli/commands/climb.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "The run review says the Campaign's declared spending limit is a declared limit, because nothing estimates a run's cost first and nothing stops one that exceeds it (decision 0025 disposition 3). Wording only; the figure printed is still read off the Campaign."
+    },
+    {
+      "commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+      "commit_subject": "copy: honest declared-limit cost language in the CLI review (5i8, 57c)",
+      "path": "src/techtree/cli/commands/uplift.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "The run review says the Campaign's declared spending limit is a declared limit, because nothing estimates a run's cost first and nothing stops one that exceeds it (decision 0025 disposition 3). Wording only; the figure printed is still read off the Campaign."
+    },
+    {
+      "commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+      "commit_subject": "copy: honest declared-limit cost language in the CLI review (5i8, 57c)",
+      "path": "src/techtree/models/run.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "The run review says the Campaign's declared spending limit is a declared limit, because nothing estimates a run's cost first and nothing stops one that exceeds it (decision 0025 disposition 3). Wording only; the figure printed is still read off the Campaign."
+    },
+    {
+      "commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+      "commit_subject": "copy: honest declared-limit cost language in the CLI review (5i8, 57c)",
+      "path": "src/techtree/presentation/build.py",
+      "change": "modified",
+      "classification": "non_scientific_copy",
+      "rationale": "The run review says the Campaign's declared spending limit is a declared limit, because nothing estimates a run's cost first and nothing stops one that exceeds it (decision 0025 disposition 3). Wording only; the figure printed is still read off the Campaign."
+    },
+    {
+      "commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+      "commit_subject": "copy: honest declared-limit cost language in the CLI review (5i8, 57c)",
+      "path": "tests/contract/test_release_copy.py",
+      "change": "modified",
+      "classification": "test_only",
+      "rationale": "Tests for the declared-limit wording across surfaces."
+    }
+  ]
+}
