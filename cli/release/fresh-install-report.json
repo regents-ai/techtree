@@ -2,9 +2,10 @@
   "schema_version": "techtree.fresh-install-report.v1",
   "wheel": {
     "path": "dist/techtree-0.1.0-py3-none-any.whl",
-    "sha256": "sha256:dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f"
+    "sha256": "sha256:c11702512f9704d55c0022a613834468fee394c51bd8c283a7673e2b84865703",
+    "built_from_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d"
   },
-  "expected_release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+  "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
   "uv_version": "uv 0.10.2 (Homebrew 2026-02-10)",
   "host": "Darwin 25.5.0 arm64",
   "installs": [
@@ -26,10 +27,10 @@
       ],
       "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
       "isolation": {
-        "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-default/home",
-        "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-default/techtree-home",
-        "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-default/uv-tool",
-        "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-default/uv-bin",
+        "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/home",
+        "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/techtree-home",
+        "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-tool",
+        "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-bin",
         "command_environment": [
           "HOME",
           "PATH",
@@ -37,6 +38,7 @@
         ],
         "detail": "each command runs with an environment built from nothing but PATH, HOME and TECHTREE_HOME, so nothing from the operator's shell reaches it"
       },
+      "install_exit_code": 0,
       "no_global_techtree": {
         "probe": "command -v techtree with the operator's PATH removed",
         "exit_code": 1,
@@ -46,11 +48,11 @@
       },
       "python": "Python 3.14.3",
       "installed_bytes_match_wheel": {
-        "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-default/uv-tool/techtree/lib/python3.14/site-packages",
-        "members_compared": 149,
+        "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-tool/techtree/lib/python3.14/site-packages",
+        "members_compared": 151,
         "members_differing": [],
         "result": "pass",
-        "detail": "all 149 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them"
+        "detail": "all 151 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them"
       },
       "commands": [
         {
@@ -72,14 +74,17 @@
             "--json"
           ],
           "exit_code": 0,
-          "stdout_bytes": 1285,
+          "stdout_bytes": 895,
           "stderr": "",
           "result": "pass",
           "envelope_ok": true,
-          "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+          "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+          "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+          "release_id": "climb-v0.1.0",
+          "cli_version": "0.1.0",
           "package_version": "0.1.0",
-          "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
-          "placeholder_release": true
+          "warnings": [],
+          "detail": "the installed build reports the commit stamped into it at build time, and reports it without a warning because it is a built artifact rather than a source checkout"
         },
         {
           "argv": [
@@ -87,23 +92,21 @@
             "release",
             "verify",
             "--expected",
-            "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+            "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
             "--json"
           ],
           "exit_code": 0,
-          "stdout_bytes": 3157,
+          "stdout_bytes": 3145,
           "stderr": "",
           "result": "pass",
-          "envelope_ok": true,
           "verified": true,
-          "expected_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
-          "checks": {
-            "total": 12,
-            "passed": 10,
-            "skipped": 2,
-            "failed": 0
-          },
-          "skipped_checks_reason": "the two Skill digests and the object URL are verified by the plugin and the website, which hold the bytes; an installed CLI carries no Skill"
+          "checks": 12,
+          "skipped": [
+            "starter_skill_digest",
+            "skill_improver_digest",
+            "starter_skill_object_url"
+          ],
+          "warnings": []
         },
         {
           "argv": [
@@ -116,10 +119,7 @@
           "stdout_bytes": 2244,
           "stderr": "",
           "result": "pass",
-          "envelope_ok": true,
-          "climbs": [
-            "hello-world-climb@1"
-          ]
+          "envelope_ok": true
         },
         {
           "argv": [
@@ -134,10 +134,10 @@
           "stderr": "",
           "result": "pass",
           "envelope_ok": true,
-          "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
           "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89"
         }
-      ]
+      ],
+      "result": "pass"
     },
     {
       "label": "interpreter pinned to a supported version",
@@ -161,10 +161,10 @@
       ],
       "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
       "isolation": {
-        "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-pinned/home",
-        "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-pinned/techtree-home",
-        "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-pinned/uv-tool",
-        "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-pinned/uv-bin",
+        "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/home",
+        "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/techtree-home",
+        "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-tool",
+        "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-bin",
         "command_environment": [
           "HOME",
           "PATH",
@@ -172,6 +172,7 @@
         ],
         "detail": "each command runs with an environment built from nothing but PATH, HOME and TECHTREE_HOME, so nothing from the operator's shell reaches it"
       },
+      "install_exit_code": 0,
       "no_global_techtree": {
         "probe": "command -v techtree with the operator's PATH removed",
         "exit_code": 1,
@@ -181,11 +182,11 @@
       },
       "python": "Python 3.12.13",
       "installed_bytes_match_wheel": {
-        "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages",
-        "members_compared": 149,
+        "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages",
+        "members_compared": 151,
         "members_differing": [],
         "result": "pass",
-        "detail": "all 149 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them"
+        "detail": "all 151 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them"
       },
       "commands": [
         {
@@ -207,14 +208,17 @@
             "--json"
           ],
           "exit_code": 0,
-          "stdout_bytes": 1285,
+          "stdout_bytes": 895,
           "stderr": "",
           "result": "pass",
           "envelope_ok": true,
-          "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+          "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+          "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+          "release_id": "climb-v0.1.0",
+          "cli_version": "0.1.0",
           "package_version": "0.1.0",
-          "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
-          "placeholder_release": true
+          "warnings": [],
+          "detail": "the installed build reports the commit stamped into it at build time, and reports it without a warning because it is a built artifact rather than a source checkout"
         },
         {
           "argv": [
@@ -222,23 +226,21 @@
             "release",
             "verify",
             "--expected",
-            "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+            "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
             "--json"
           ],
           "exit_code": 0,
-          "stdout_bytes": 3157,
+          "stdout_bytes": 3145,
           "stderr": "",
           "result": "pass",
-          "envelope_ok": true,
           "verified": true,
-          "expected_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
-          "checks": {
-            "total": 12,
-            "passed": 10,
-            "skipped": 2,
-            "failed": 0
-          },
-          "skipped_checks_reason": "the two Skill digests and the object URL are verified by the plugin and the website, which hold the bytes; an installed CLI carries no Skill"
+          "checks": 12,
+          "skipped": [
+            "starter_skill_digest",
+            "skill_improver_digest",
+            "starter_skill_object_url"
+          ],
+          "warnings": []
         },
         {
           "argv": [
@@ -251,10 +253,7 @@
           "stdout_bytes": 2244,
           "stderr": "",
           "result": "pass",
-          "envelope_ok": true,
-          "climbs": [
-            "hello-world-climb@1"
-          ]
+          "envelope_ok": true
         },
         {
           "argv": [
@@ -269,20 +268,19 @@
           "stderr": "",
           "result": "pass",
           "envelope_ok": true,
-          "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
           "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89"
         }
-      ]
+      ],
+      "result": "pass"
     }
   ],
   "observations": [
     {
       "id": "default_interpreter_ignores_requires_python",
       "severity": "note for WP11e and Gate 2",
-      "detail": "The wheel declares Requires-Python <3.14,>=3.12. Left to choose for itself, uv 0.10.2 (Homebrew 2026-02-10) built the tool environment on Python 3.14.3, which the package says it does not support. All five commands pass on it anyway, so this is not a release stop, but a clean-machine install can land on an interpreter outside the tested range without saying so. The second install pins 3.12 and is the supported path."
+      "detail": "The wheel declares Requires-Python <3.14,>=3.12. Left to choose for itself, uv 0.10.2 (Homebrew 2026-02-10) built the tool environment on 3.14.3, which the package says it does not support. All five commands pass on it anyway, so this is not a release stop, but a clean-machine install can land on an interpreter outside the tested range without saying so. The second install pins 3.12 and is the supported path. Unchanged from the pre-0026 report: the same host, the same uv, the same outcome."
     }
   ],
   "verdict": "PASS",
-  "failures": [],
-  "superseded": "SUPERSEDED. This record describes the wheel built before decision 0026 (the contract/provenance split), which carried ReleaseCore sha256:73d1be82\u2026 and no stamped source commit. The tree now generates ReleaseCore sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71, and a wheel can only be built once the commit it would be stamped with exists \u2014 the build refuses to name a commit it cannot establish. The chief rebuilds the wheel from the commit that lands this change and regenerates this record from that build."
+  "failures": []
 }

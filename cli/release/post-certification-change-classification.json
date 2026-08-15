@@ -7,13 +7,13 @@
   "scientific \u2014 re-certified (0025, addendum A1.4)": "A change to the scientific configuration, sanctioned by decision 0025 and certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 21,
+ "commit_count": 22,
  "counts_by_class": {
   "documentation": 38,
-  "non_scientific_copy": 16,
-  "release_packaging": 27,
+  "non_scientific_copy": 23,
+  "release_packaging": 43,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
-  "test_only": 19
+  "test_only": 29
  },
  "entries": [
   {
@@ -809,10 +809,274 @@
    "class": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
    "path": ".beads/interactions.jsonl"
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "Packaging metadata and the tracker log. No product byte the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": ".gitignore",
+   "rationale": "Packaging metadata and the tracker log. No product byte the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "pyproject.toml",
+   "rationale": "Packaging metadata and the tracker log. No product byte the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/README.md",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/build-info.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/fresh-install-report.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/release-core.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/release-core.schema.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/release-inputs.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "release/wheel-inspection.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/cli/commands/release.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/release/bootstrap.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/release/checks.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/release/generate.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/release/models.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured."
+  },
+  {
+   "change": "added",
+   "classification": "non_scientific_copy",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/release/provenance.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/resources/release/release-core.json",
+   "rationale": "The generated release document the wheel carries. Decision 0026 changed the contract's fields, not any measured value."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "src/techtree/skills/starter.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/contract/test_release_artifacts.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/contract/test_release_cli.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/fixtures/starter.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/integration/test_cli_flow.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/integration/test_starter_skill_fetch.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/unit/test_release_bootstrap.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/unit/test_release_checks.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/unit/test_release_core_model.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/unit/test_release_provenance.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tests/unit/test_starter_skill.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tools/stamp_provenance.py",
+   "rationale": "Release engineering: generation, the build-time provenance stamp, and verification. Not part of the evaluated product."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "tools/verify_release_core.py",
+   "rationale": "Release engineering: generation, the build-time provenance stamp, and verification. Not part of the evaluated product."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+   "commit_subject": "release: contract/provenance split \u2014 concrete ReleaseCore 90cd8ad6, build-time provenance stamp, gates opened (decision 0026)",
+   "path": "uv.lock",
+   "rationale": "Packaging metadata and the tracker log. No product byte the science depends on."
   }
  ],
- "file_change_count": 106,
- "release_source_commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+ "file_change_count": 139,
+ "release_source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "authority": "docs/decisions/0025-campaign-regeneration-option-a.md",
@@ -858,5 +1122,5 @@
   ],
   "sanctioned_commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f"
  },
- "verdict": "PASS \u2014 the only scientific change in the range is the sanctioned decision-0025 regeneration, which is re-certified."
+ "verdict": "PASS \u2014 the only scientific change in the range is the sanctioned decision-0025 regeneration, which is re-certified. The decision-0026 contract/provenance split (5ef44f99) touches no scientific path: the catalog, the Campaign, the Climb, the engine and both founder Skills are byte-identical, and release/certified-scientific-fingerprint.json is unchanged in every scientific coordinate."
 }

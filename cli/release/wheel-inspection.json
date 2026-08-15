@@ -3,27 +3,42 @@
   "wheel": {
     "path": "dist/techtree-0.1.0-py3-none-any.whl",
     "filename": "techtree-0.1.0-py3-none-any.whl",
-    "size_bytes": 584836,
-    "sha256": "sha256:dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f",
+    "size_bytes": 587019,
+    "sha256": "sha256:c11702512f9704d55c0022a613834468fee394c51bd8c283a7673e2b84865703",
     "version": "0.1.0",
-    "member_count": 154,
-    "built_from_commit": null,
-    "built_from": "a pristine export of the working tree of the final packaging pass (git ls-files, so exactly the tree the pending commit will hold). The commit does not exist yet: the chief rebuilds from it after committing, and that rebuild's SHA-256 is the definitive publishable digest. The build is reproducible, so it is expected to equal the digest recorded here.",
+    "member_count": 156,
+    "built_from_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+    "built_from": "a clean clone of commit 5ef44f99b470ce74214ee511674fd0c15411a27d, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
     "reproducible": {
       "result": "pass",
-      "detail": "a second build, from a second independent export of the same tree into a different directory, produced a byte-identical wheel with the same SHA-256."
+      "detail": "built twice, from two independent clean clones of the same commit, producing a byte-identical wheel with the same SHA-256. Recorded by the chief who ran both builds; this inspection hashes the artifact they produced."
+    },
+    "stamped_provenance": {
+      "member": "techtree/resources/release/build-provenance.json",
+      "schema_version": "techtree.build-provenance.v1",
+      "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d"
     }
   },
   "checks": [
     {
+      "check": "build_provenance_stamped",
+      "result": "pass",
+      "detail": "techtree/resources/release/build-provenance.json names source commit 5ef44f99b470ce74214ee511674fd0c15411a27d, which is the commit this repository is at (5ef44f99b470ce74214ee511674fd0c15411a27d)"
+    },
+    {
+      "check": "build_provenance_is_not_committed",
+      "result": "pass",
+      "detail": "the stamp exists only inside the artifact: it is not a tracked file at 5ef44f99, and .gitignore keeps it out of the tree"
+    },
+    {
       "check": "release_core_bytes_exact",
       "result": "pass",
-      "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c)"
+      "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71)"
     },
     {
       "check": "release_core_is_the_generated_document",
       "result": "pass",
-      "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c)"
+      "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71)"
     },
     {
       "check": "packaged_catalog_names_certified_campaign",
@@ -38,7 +53,7 @@
     {
       "check": "packaged_campaign_carries_no_development_placeholder",
       "result": "pass",
-      "detail": "the shipped Campaign names the ratified subject model, not a development placeholder"
+      "detail": "the shipped Campaign names the ratified subject model qwen/qwen3.7-flash, not a development placeholder"
     },
     {
       "check": "packaged_catalog_names_certified_climb",
@@ -56,9 +71,14 @@
       "detail": "no member carries the 'Private :: Do Not Upload' classifier; the wheel metadata declares ['Classifier: Programming Language :: Python :: 3.12', 'Classifier: Programming Language :: Python :: 3.13']"
     },
     {
-      "check": "no_placeholders_beyond_the_designed_coordinates",
+      "check": "no_placeholder_release_coordinate_anywhere",
       "result": "pass",
-      "detail": "the packaged ReleaseCore holds exactly the four designed placeholder coordinates ['cli_source_commit', 'cli_version', 'release_id', 'starter_skill_object_url']; the host Hermes range and every scientific coordinate are bound"
+      "detail": "no member carries any of the four placeholder spellings, and every coordinate of the packaged ReleaseCore is concrete: release climb-v0.1.0, CLI 0.1.0, starter Skill published at https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
+    },
+    {
+      "check": "no_deleted_release_core_field_references",
+      "result": "pass",
+      "detail": "no member mentions cli_source_commit or placeholder_fields; the one mention of placeholder_release is techtree/release/bootstrap.py, where it is the website bootstrap document's own flag, which decision 0026 section 3 keeps"
     },
     {
       "check": "no_absolute_build_paths",
@@ -83,7 +103,7 @@
     {
       "check": "wheel_version_agrees_with_release_core_build",
       "result": "pass",
-      "detail": "the wheel is version 0.1.0, which is the pyproject_version release/build-info.json records as the input to this ReleaseCore"
+      "detail": "the wheel is version 0.1.0, which is the pyproject_version release/build-info.json records as the input to this ReleaseCore, and the version the release names"
     }
   ],
   "console_scripts": {
@@ -99,7 +119,8 @@
     }
   },
   "packaged_lineage": {
-    "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+    "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+    "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
     "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
     "campaign_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
     "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
@@ -107,16 +128,10 @@
     "subject_hermes_version": "0.19.0",
     "minimum_host_hermes_version": "0.20.1",
     "maximum_tested_host_hermes_version": "0.20.1",
-    "placeholder_release": true,
-    "placeholder_fields": [
-      "cli_source_commit",
-      "cli_version",
-      "release_id",
-      "starter_skill_object_url"
-    ]
+    "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+    "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
   },
-  "placeholder_release_note": "The packaged ReleaseCore still declares placeholder_release true, and now names four unbound coordinates rather than five: the host Hermes ceiling is bound, because a version was tested. The four that remain - release_id, cli_version, cli_source_commit and the starter Skill's address - can only be chosen at deploy time, and decision 0023 puts the placeholder_release:false candidate in WP11d, after this wheel exists.",
+  "release_contract_note": "The packaged ReleaseCore is a contract: every coordinate in it is one a person chose, and it describes no artifact of its own (decision 0026). This wheel's identity is the stamp above, written during the build and absent from the committed tree.",
   "verdict": "PASS",
-  "findings": [],
-  "superseded": "SUPERSEDED. This record describes the wheel built before decision 0026 (the contract/provenance split), which carried ReleaseCore sha256:73d1be82\u2026 and no stamped source commit. The tree now generates ReleaseCore sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71, and a wheel can only be built once the commit it would be stamped with exists \u2014 the build refuses to name a commit it cannot establish. The chief rebuilds the wheel from the commit that lands this change and regenerates this record from that build."
+  "findings": []
 }
