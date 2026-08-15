@@ -28,9 +28,10 @@ because starting a run commits to both rights and work.
 
 ``start`` is where that commitment is collected. Decisions document 0019
 section 2 makes it one gesture rather than two handles: the five things a
-person has to weigh — how much work this is, the most it may cost, that the
-Skill is the only scientific change, where the model calls go, and what is
-never uploaded — are printed, the rights summary is printed under them, and the
+person has to weigh — how much work this is, the most the Campaign declares it
+may cost, that the Skill is the only scientific change, where the model calls
+go, and what is never uploaded — are printed, the rights summary is printed
+under them, and the
 answer is a plain ``y``. An operator who cannot be asked passes ``--yes``
 instead, which is an explicit act by a person configuring a machine and never a
 shortcut a model may take on somebody's behalf.
@@ -500,10 +501,16 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
     """Return the five things a person weighs before a run starts.
 
     Decisions document 0019 section 2 fixes the list and the order: how much
-    work this is, the most it is allowed to cost, what is being changed, where
-    the model calls go, and what is never uploaded. Every value is read off the
-    draft or the Campaign it was prepared against, so the review describes this
-    run and cannot describe a different one.
+    work this is, the most the Campaign declares it may cost, what is being
+    changed, where the model calls go, and what is never uploaded. Every value
+    is read off the draft or the Campaign it was prepared against, so the
+    review describes this run and cannot describe a different one.
+
+    The cost line says a declared figure and says that it is one. Nothing in
+    this build works out what a run will come to before it starts, and nothing
+    ends a run that spends more than the Campaign declares — so the line has to
+    be worded as the contract value it is, and decision 0025 forbids any
+    wording that would leave a reader expecting a meter or a cut-off.
     """
     return [
         f"This runs {draft.estimated_episodes} episodes: the same tasks once "
@@ -517,14 +524,22 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
 
 
 def _cost_line(campaign: CampaignSpec) -> str:
-    """Say the most this comparison is authorized to spend."""
+    """Say the most this comparison is declared to spend, and what that is worth."""
     ceiling = campaign.budgets.maximum_usd
     if ceiling is None:
         return (
-            "This comparison sets no spending ceiling, so what it costs is "
-            "whatever your model provider charges for the episodes above."
+            "This comparison declares no spending limit. What it comes to is "
+            "whatever your model provider charges for the episodes above: "
+            "nothing here works out what the run will come to first, and "
+            "nothing stops it once it is going."
         )
-    return f"The most it is authorized to spend is ${ceiling:.2f}."
+    return (
+        f"The Campaign declares a limit of ${ceiling:.2f} for this comparison. "
+        "That figure is a declared limit and nothing more: nothing here works "
+        "out what the run will come to first, and nothing stops it if it goes "
+        "past. What you pay is whatever your model provider charges for the "
+        "episodes above."
+    )
 
 
 def approve_run(
@@ -729,8 +744,8 @@ def _start_draft(payload: ClimbPreparePayload) -> NextAction:
         label=f"Start {payload.candidate_label} on {payload.climb_reference}",
         reason=(
             f"Runs {payload.estimated_episodes} episodes, baseline first. It "
-            "shows you what this costs and what it changes, and starts only "
-            "if you say yes."
+            "shows you the spending limit the Campaign declares and what this "
+            "changes, and starts only if you say yes."
         ),
         cli=["techtree", "climb", "start", payload.draft_id],
         hermes_tool=None,

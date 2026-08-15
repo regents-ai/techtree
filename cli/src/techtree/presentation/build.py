@@ -108,7 +108,7 @@ LATER_RESULT_LABEL: Final = "Hello World — A Later Iteration"
 HELD_FIXED_LINE: Final = (
     "Everything else was the same on both sides: the same model sampled the "
     "same way, the same harness and tools, the same runtime image, the same "
-    "tasks in the same order, the same reward, and the same spending ceiling."
+    "tasks in the same order, the same reward, and the same declared limits."
 )
 
 #: What changed, in the words decisions document 0019 section 1 fixes. The two

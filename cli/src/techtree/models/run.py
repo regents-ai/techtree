@@ -89,8 +89,9 @@ class PolicyAcknowledgement(ProtocolModel):
 
     Decisions document 0003 A5, as amended by 0019 section 2.
     ``explicit_cli_review`` says the review of what the run would do — its
-    size, its cost ceiling, the one change being measured, where model calls
-    go, and what is never uploaded — was put in front of whoever started it and
+    size, the spending limit its Campaign declares, the one change being
+    measured, where model calls go, and what is never uploaded — was put in
+    front of whoever started it and
     explicitly accepted. It covers both spellings of that answer at the command
     line, the typed ``y`` and the flag an operator passes instead, because the
     fact being recorded is the same one; who gave the answer is recorded

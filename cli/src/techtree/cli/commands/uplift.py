@@ -517,8 +517,9 @@ def _start_replacement(payload: UpliftPreparePayload) -> NextAction:
         id="start_replacement",
         label=f"Start {payload.candidate_label} against the previous Skill",
         reason=(
-            f"Runs {payload.estimated_episodes} episodes. It shows you what "
-            "this costs and what it changes, and starts only if you say yes."
+            f"Runs {payload.estimated_episodes} episodes. It shows you the "
+            "spending limit the Campaign declares and what this changes, and "
+            "starts only if you say yes."
         ),
         cli=["techtree", "uplift", "start", payload.draft_id],
         hermes_tool=None,
