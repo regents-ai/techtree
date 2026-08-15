@@ -2,9 +2,9 @@ defmodule TechtreeWeb.InstallComponents do
   @moduledoc """
   Getting Techtree installed, which is the only thing this site is for.
 
-  There are two ways in — a person at a terminal, or the agent they already
-  work with — and one of them is on screen at a time. Showing both at once
-  makes a reader choose before they know what they are choosing between; a
+  There are two ways in — the agent someone already works with, or the person
+  at the terminal — and one of them is on screen at a time. Showing both at
+  once makes a reader choose before they know what they are choosing between; a
   switcher lets them look at one, then the other.
 
   Which one is showing is part of the address, so the choice can be sent to
@@ -13,7 +13,9 @@ defmodule TechtreeWeb.InstallComponents do
 
   No command here is written into the page. Every one of them comes from the
   installation contract this site publishes, and when that contract says its
-  coordinates are stand-ins, the page says so above them.
+  coordinates are stand-ins, the page says so above them. The address of the
+  pinned plugin is held to the same rule: it is shown only once the contract
+  names a real revision, and never as a branch or a stand-in.
   """
 
   use TechtreeWeb, :html
@@ -21,6 +23,10 @@ defmodule TechtreeWeb.InstallComponents do
   alias TechtreeWeb.ClimbCopy
 
   @options [agent: "My agent is installing", me: "I’m installing"]
+
+  @guide_url "https://techtree.sh/start"
+  @portal_url "https://portal.nousresearch.com/"
+  @unset_revision String.duplicate("0", 40)
 
   @doc """
   Which way in the address asks for.
@@ -70,60 +76,177 @@ defmodule TechtreeWeb.InstallComponents do
         </.link>
       </nav>
 
-      <ol class="steps">
-        <%= if @focus == :agent do %>
-          <.next_step title="Add the Techtree plugin to Hermes.">
-            <p>
-              Hermes has to be installed already, and this first step is one you run
-              yourself at a terminal. Installing a plugin takes your explicit approval,
-              so an agent cannot put itself in a position to run trials.
-            </p>
-            <.command_block argv={plugin_install(@instructions)} />
-            <.command_block argv={plugin_doctor(@instructions)} label="Check it worked" />
-          </.next_step>
-          <.next_step title="Ask your agent, in your own words or these.">
-            <p class="digest">{host_prompt(@instructions)}</p>
-            <p>
-              It asks before it installs anything, runs anything, or spends anything. A
-              trial takes a while, so it hands back a run identifier instead of making
-              you wait, and you ask it for the result when you want it.
-            </p>
-          </.next_step>
-        <% else %>
-          <.next_step title="Install the command-line tool.">
-            <.command_block argv={cli_install(@instructions)} />
-          </.next_step>
-          <.next_step title="Prepare the machine.">
-            <.command_block argv={["techtree", "setup"]} />
-          </.next_step>
-          <.next_step title="Read the introductory Climb, then enter it.">
-            <.command_block argv={["techtree", "climb", "show", introductory(@instructions)]} />
-            <p>
-              You are asked to accept the terms of the Climb by name before a run starts.
-            </p>
-          </.next_step>
-        <% end %>
-      </ol>
+      <%= if @focus == :agent do %>
+        <section class="section">
+          <h2>Give this to your Hermes agent</h2>
+          <div class="prompt">
+            <pre class="prompt__block"><code>{agent_prompt(@instructions)}</code></pre>
+          </div>
+          <p class="small quiet">
+            It asks before it installs anything, runs anything, or spends anything. A
+            trial takes a while, so it hands back a run identifier instead of making you
+            wait, and you ask it for the result when you want it.
+          </p>
+        </section>
+      <% else %>
+        <section class="section">
+          <h2>Prefer installing it yourself?</h2>
+          <ol class="steps">
+            <li>
+              <p class="plain">Install the exact pinned Hermes plugin shown below.</p>
+            </li>
+            <li>
+              <p class="plain">Restart Hermes.</p>
+            </li>
+            <li>
+              <p class="plain">Ask: “{host_prompt(@instructions)}”</p>
+            </li>
+          </ol>
+          <.command_block argv={plugin_install(@instructions)} />
+          <.command_block argv={plugin_doctor(@instructions)} label="Check it worked" />
+          <p class="small quiet">
+            Installing a plugin takes your explicit approval, so an agent cannot put
+            itself in a position to run trials.
+          </p>
+        </section>
+      <% end %>
 
       <p :if={@climb} class="small quiet">{@climb.scope}</p>
 
       <p :if={introductory_slug(@instructions)} class="small">
         <a href={"/climbs/" <> introductory_slug(@instructions)}>What this Climb measures</a>
       </p>
-
-      <p class="small quiet">
-        Before either path: Docker running, macOS or Linux, Hermes {minimum_hermes(@instructions)} or newer, and a key from your model provider. Techtree never asks for the key, and you
-        pay for the model calls a trial makes.
-      </p>
-
-      <p class="small quiet">
-        Techtree does not upload your recordings, your results, or the work you submit. The
-        agent under test makes real model calls, and those are sent to the model provider you
-        selected, under that provider’s policies. If you later take the guided revision of your
-        Skill, that one request carries your Skill text and a sanitized summary of the run to
-        the provider your own agent uses.
-      </p>
     </div>
+    """
+  end
+
+  @doc """
+  What the machine needs before either path, and what a trial costs.
+  """
+  attr :instructions, :map, default: nil
+
+  def requirements(assigns) do
+    ~H"""
+    <section :if={@instructions} class="section">
+      <h2>Before you start</h2>
+
+      <.definition_list>
+        <:fact term="Operating system">macOS or Linux.</:fact>
+        <:fact term="Hermes">
+          {minimum(@instructions, "hermes_version")} or newer, already installed and working.
+        </:fact>
+        <:fact term="Python">{minimum(@instructions, "python")} or newer.</:fact>
+        <:fact term="uv">{minimum(@instructions, "uv")} or newer.</:fact>
+        <:fact :if={docker_required?(@instructions)} term="Docker">
+          Installed, and running before a trial starts.
+        </:fact>
+        <:fact term="A terminal">
+          Techtree installs and runs on the machine in front of you, at a terminal.
+        </:fact>
+        <:fact term="Model provider">
+          An account and a key from your model provider. Techtree never asks for the key.
+        </:fact>
+      </.definition_list>
+
+      <h2 class="section">What a trial costs</h2>
+      <p>
+        A trial runs the same tasks twice and makes real model calls both times, and
+        those calls are billed to the provider account you use. Techtree charges nothing
+        and holds no balance.
+      </p>
+      <p>
+        Nothing that spends money starts on its own. Before each paid run you are shown
+        how many tasks will run, the most that run may cost, and exactly what is
+        changing, and it waits for you to say yes. The introductory Climb is small on
+        purpose.
+      </p>
+    </section>
+    """
+  end
+
+  @doc """
+  The commands this release pins, taken from the published contract.
+  """
+  attr :instructions, :map, default: nil
+
+  def pinned_commands(assigns) do
+    assigns = assign(assigns, :release_url, pinned_repository_url(assigns.instructions))
+
+    ~H"""
+    <section :if={@instructions} class="section">
+      <h2>The commands this release pins</h2>
+      <p>
+        These are the exact commands, argument for argument. Nothing here is typed into
+        this page: it is read from the installation contract this site publishes, and it
+        changes only when a new release does.
+      </p>
+
+      <.command_block
+        argv={plugin_install(@instructions)}
+        label="Install and enable the Hermes plugin"
+      />
+      <.command_block
+        argv={plugin_doctor(@instructions)}
+        label="Check the plugin is loaded"
+      />
+      <.command_block
+        argv={cli_install(@instructions)}
+        label="Install the Techtree command-line tool"
+      />
+
+      <p class="small quiet">
+        Once the plugin is enabled, Hermes has to be restarted once so its Techtree tools
+        are loaded. The plugin then installs and checks the command-line tool for you —
+        the third command is the one it runs — and asks you before it does.
+      </p>
+
+      <p :if={@release_url} class="small">
+        <a href={@release_url}>The pinned plugin release on GitHub</a>
+      </p>
+      <p :if={is_nil(@release_url)} class="small quiet">
+        This release does not name a published plugin revision yet, so there is no
+        release page to link to.
+      </p>
+    </section>
+    """
+  end
+
+  @doc """
+  Where the work goes and where it does not.
+  """
+  def disclosure(assigns) do
+    ~H"""
+    <p class="small quiet section">
+      Techtree does not upload your recordings, your results, or the work you submit. The
+      agent under test makes real model calls, and those are sent to the model provider you
+      selected, under that provider’s policies. If you later take the guided revision of your
+      Skill, that one request carries your Skill text and a sanitized summary of the run to
+      the provider your own agent uses.
+    </p>
+    """
+  end
+
+  @doc """
+  For a reader who does not have Hermes yet.
+  """
+  def hermes_intro(assigns) do
+    assigns = assign(assigns, :portal, @portal_url)
+
+    ~H"""
+    <section class="section">
+      <h2>New to Hermes Agent?</h2>
+      <p>
+        Hermes is an open-source agent made by Nous Research. Nous Portal provides model
+        access, hosted tools, and cloud-hosted Hermes under one account.
+        Explore it at <a href={@portal}>{@portal}</a>.
+      </p>
+      <p class="small quiet">
+        Techtree Hello World currently requires a Hermes host where you can install the
+        plugin and CLI, access a terminal, run Docker, and authenticate with Prime. The
+        Nous Portal cloud-hosted path is not yet a separately certified Techtree execution
+        environment.
+      </p>
+    </section>
     """
   end
 
@@ -141,7 +264,10 @@ defmodule TechtreeWeb.InstallComponents do
   defp cli_install(instructions), do: get_in(instructions, ["cli", "install_argv"])
   defp host_prompt(instructions), do: get_in(instructions, ["introductory_climb", "host_prompt"])
   defp introductory(instructions), do: get_in(instructions, ["introductory_climb", "reference"])
-  defp minimum_hermes(instructions), do: get_in(instructions, ["minimums", "hermes_version"])
+  defp minimum(instructions, key), do: get_in(instructions, ["minimums", key])
+
+  defp docker_required?(instructions),
+    do: get_in(instructions, ["minimums", "docker_required"]) == true
 
   defp introductory_slug(instructions) do
     case introductory(instructions) do
@@ -149,4 +275,38 @@ defmodule TechtreeWeb.InstallComponents do
       _other -> nil
     end
   end
+
+  # The words a reader hands to their agent, with one address filled in: the
+  # pinned plugin release when this release names one, and the installation
+  # guide on this site until it does. Both are addresses that cannot move under
+  # the reader — a revision is a revision, and this page is this page.
+  defp agent_prompt(instructions) do
+    "Read the pinned Techtree installation guide at " <>
+      guide_url(instructions) <>
+      ". Review the exact GitHub plugin release and installation commands with me. " <>
+      "Ask for my approval before installing software or spending model credits. " <>
+      "Install and enable the Techtree Hermes plugin, tell me when Hermes must be " <>
+      "restarted, then use the plugin to install and verify the Techtree CLI and run " <>
+      "the Hello World Climb. Do not upload my local evaluation artifacts."
+  end
+
+  defp guide_url(instructions), do: pinned_repository_url(instructions) || @guide_url
+
+  # The plugin release as an address, or nothing at all. A stand-in revision and
+  # a branch name are both addresses that either point at nothing or point
+  # somewhere different tomorrow, so neither is ever shown.
+  defp pinned_repository_url(instructions) do
+    repository = get_in(instructions, ["hermes_plugin", "repository"])
+    revision = get_in(instructions, ["hermes_plugin", "revision"])
+
+    if not placeholder?(instructions) and is_binary(repository) and pinned?(revision) do
+      "https://github.com/" <> repository <> "/tree/" <> revision
+    end
+  end
+
+  defp pinned?(revision) when is_binary(revision) do
+    String.match?(revision, ~r/\A[0-9a-f]{40}\z/) and revision != @unset_revision
+  end
+
+  defp pinned?(_revision), do: false
 end

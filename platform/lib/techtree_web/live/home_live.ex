@@ -38,6 +38,15 @@ defmodule TechtreeWeb.HomeLive do
 
       <InstallComponents.install focus={@focus} instructions={@instructions} path={~p"/"} />
 
+      <p :if={@instructions} class="small">
+        <a href={~p"/start"}>The full installation guide</a>
+        — what the machine needs, what a trial costs, and every command this release pins.
+      </p>
+
+      <InstallComponents.disclosure />
+
+      <InstallComponents.hermes_intro />
+
       <section class="section">
         <h2>What it does</h2>
         <p>

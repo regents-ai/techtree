@@ -88,6 +88,58 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   @forbidden_name ~r/helloworldbench/i
 
+  # This release installs and runs at a terminal. Any page that hints at a
+  # journey beginning on a handheld device is describing something that does
+  # not exist. (Engineering notes about narrow screens are not published words
+  # and are not read here.)
+  @absent_journey ["phone", "mobile", "tablet", "ios", "android app", "no terminal"]
+
+  # Hermes can be run somewhere other than the reader's own machine. Naming a
+  # hosted one without the qualifier reads as an offer this release cannot make.
+  @hosted_path "portal.nousresearch.com"
+  @hosted_qualifier "not yet a separately certified Techtree execution environment"
+
+  # What a trial costs depends on a provider's prices and on how a run goes.
+  # Any figure on this site would be a quote, and this site cannot give one.
+  @priced_claim [
+    ~r/\$\s*\d/,
+    ~r/\b\d+(\.\d+)?\s*(usd|dollars?|cents?)\b/i
+  ]
+
+  # A pinned address is the whole promise: what a reader reads today is what
+  # they get tomorrow. A branch, a tag, or a stand-in revision is not one.
+  @repository_address ~r|https://github\.com/[^"\s<>]+|
+  @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}\z|
+  @unset_revision String.duplicate("0", 40)
+
+  # The words a reader hands to their agent are decided copy, not a paraphrase
+  # this suite is free to drift away from.
+  @agent_prompt "Read the pinned Techtree installation guide at https://techtree.sh/start. " <>
+                  "Review the exact GitHub plugin release and installation commands with me. " <>
+                  "Ask for my approval before installing software or spending model credits. " <>
+                  "Install and enable the Techtree Hermes plugin, tell me when Hermes must be " <>
+                  "restarted, then use the plugin to install and verify the Techtree CLI and " <>
+                  "run the Hello World Climb. Do not upload my local evaluation artifacts."
+
+  @alternate_path [
+    "Prefer installing it yourself?",
+    "Install the exact pinned Hermes plugin shown below.",
+    "Restart Hermes.",
+    "Ask: “Set up Techtree and run the Hello World Climb.”"
+  ]
+
+  @hermes_introduction [
+    "Hermes is an open-source agent made by Nous Research.",
+    "Nous Portal provides model access, hosted tools, and cloud-hosted Hermes " <>
+      "under one account.",
+    # The address is a link, so the sentence's full stop sits outside it.
+    "Explore it at https://portal.nousresearch.com/",
+    "Techtree Hello World currently requires a Hermes host where you can install the " <>
+      "plugin and CLI, access a terminal, run Docker, and authenticate with Prime.",
+    "The Nous Portal cloud-hosted path is not yet a separately certified Techtree " <>
+      "execution environment."
+  ]
+
   describe "every page, with a release being served" do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
@@ -141,6 +193,46 @@ defmodule TechtreeWeb.ReleaseCopyTest do
                  "of the toy tasks. Individual runs may vary."
     end
 
+    test "no page offers a hosted Hermes without saying what it is not yet", %{conn: conn} do
+      refute_uncertified_hosting(rendered(conn, @pages))
+    end
+
+    test "no page describes a journey that starts on a handheld device", %{conn: conn} do
+      refute_absent_journey(rendered(conn, @pages))
+    end
+
+    test "no page puts a figure on what a trial costs", %{conn: conn} do
+      refute_priced_claim(rendered(conn, @pages))
+    end
+
+    test "no page shows a plugin address that could move under the reader", %{conn: conn} do
+      refute_moving_address(markup(conn, @pages))
+    end
+
+    test "the pages offering the agent path carry the prompt as it was written",
+         %{conn: conn} do
+      for {label, text} <- rendered(conn, ["/", "/start"]) do
+        assert text =~ @agent_prompt, "#{label} does not carry the prompt word for word"
+      end
+    end
+
+    test "the pages offering the other path carry its three steps as they were written",
+         %{conn: conn} do
+      for {label, text} <- rendered(conn, ["/?install=me", "/start?install=me"]) do
+        for line <- @alternate_path do
+          assert text =~ line, "#{label} does not carry #{inspect(line)} word for word"
+        end
+      end
+    end
+
+    test "every page saying what Hermes is says it as it was written", %{conn: conn} do
+      for {label, text} <- rendered(conn, @pages), text =~ "New to Hermes Agent?" do
+        for line <- @hermes_introduction do
+          assert text =~ line, "#{label} does not carry #{inspect(line)} word for word"
+        end
+      end
+    end
+
     test "the pages that describe privacy say where the model calls go", %{conn: conn} do
       silent =
         for {label, text} <- rendered(conn, ["/", "/start", "/proofs/local"]),
@@ -168,6 +260,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_promised_revision(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
+      refute_uncertified_hosting(sources)
+      refute_priced_claim(sources)
+      refute_absent_journey(sources)
+      refute_moving_address(markup(conn, @pages_without_catalog))
     end
   end
 
@@ -184,6 +280,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_promised_revision(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
+      refute_uncertified_hosting(sources)
+      refute_priced_claim(sources)
     end
 
     test "the published installation contract carries no claim a page may not" do
@@ -198,6 +296,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_promised_revision(sources)
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
+      refute_uncertified_hosting(sources)
+      refute_priced_claim(sources)
     end
   end
 
@@ -257,12 +357,63 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     end
   end
 
+  # A template wraps its lines where the formatter puts them, so this one claim
+  # is read with the line breaks taken out: the sentence is what matters, not
+  # the column it happens to end in.
+  defp refute_uncertified_hosting(sources) do
+    for {label, source} <- sources,
+        text = String.replace(source, ~r/\s+/, " "),
+        String.contains?(text, @hosted_path) do
+      assert String.contains?(text, @hosted_qualifier),
+             "#{label} points a reader at a hosted Hermes without saying that it is " <>
+               "not yet a separately certified place to run a Climb"
+    end
+  end
+
+  defp refute_absent_journey(sources) do
+    for {label, text} <- sources, word <- @absent_journey do
+      refute String.downcase(text) =~ word,
+             "#{label} says #{inspect(word)}: this release is installed and run at a terminal"
+    end
+  end
+
+  defp refute_priced_claim(sources) do
+    for {label, text} <- sources, pattern <- @priced_claim do
+      refute text =~ pattern,
+             "#{label} matches #{inspect(pattern)}: what a trial costs is set by the " <>
+               "reader's provider, and this site cannot quote it"
+    end
+  end
+
+  defp refute_moving_address(sources) do
+    for {label, markup} <- sources, address <- addresses(markup) do
+      assert address =~ @pinned_address,
+             "#{label} shows #{address}, which is not one immutable revision"
+
+      refute String.contains?(address, @unset_revision),
+             "#{label} shows #{address}, which is a stand-in rather than a release"
+    end
+  end
+
+  defp addresses(markup) do
+    @repository_address |> Regex.scan(markup) |> List.flatten()
+  end
+
   # -- Where the words come from --------------------------------------------
 
   defp rendered(conn, pages) do
     Enum.map(pages, fn page ->
       {:ok, _live, html} = live(conn, page)
       {"the page at #{page}", visible_text(html)}
+    end)
+  end
+
+  # The same pages as markup, for the claims that live in an address rather
+  # than in a sentence: a link's target is a promise a reader never reads.
+  defp markup(conn, pages) do
+    Enum.map(pages, fn page ->
+      {:ok, _live, html} = live(conn, page)
+      {"the page at #{page}", html}
     end)
   end
 

@@ -30,9 +30,20 @@ defmodule TechtreeWeb.StartLive do
     ~H"""
     <Layouts.page>
       <h1>Install Techtree</h1>
-      <p class="lede">Two ways in. Pick whichever matches who is at the keyboard.</p>
+      <p class="lede">
+        The pinned installation guide. Two ways in — pick whichever matches who is at the
+        keyboard.
+      </p>
 
       <InstallComponents.install focus={@focus} instructions={@instructions} path={~p"/start"} />
+
+      <InstallComponents.requirements instructions={@instructions} />
+
+      <InstallComponents.pinned_commands instructions={@instructions} />
+
+      <InstallComponents.disclosure />
+
+      <InstallComponents.hermes_intro />
 
       <p class="small quiet section">
         Each Climb states what happens to your recordings and to the work you submit.

@@ -21,14 +21,59 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert text =~ "Test one change to an agent on your own machine"
       assert text =~ "My agent is installing"
       assert text =~ "I’m installing"
-      assert text =~ "Set up Techtree and run the Hello World Climb."
+      assert text =~ "Give this to your Hermes agent"
     end
 
     test "the landing page opens on the agent path", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
 
-      assert html =~ "hermes plugins install"
+      assert visible_text(html) =~
+               "Read the pinned Techtree installation guide at https://techtree.sh/start."
+
+      refute html =~ "hermes plugins install"
+      refute html =~ "Prefer installing it yourself?"
+    end
+
+    test "the other path is the alternate one, with the pinned plugin under it",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/?install=me")
+      text = visible_text(html)
+
+      assert text =~ "Prefer installing it yourself?"
+      assert text =~ "Install the exact pinned Hermes plugin shown below."
+      assert text =~ "Restart Hermes."
+      assert text =~ "Ask: “Set up Techtree and run the Hello World Climb.”"
+
+      assert html =~ "hermes plugins install regents-ai/techtree-hermes --ref"
+    end
+
+    test "the landing page stays out of the details and points at the guide", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
+
       refute html =~ "uv tool install"
+      refute html =~ "Before you start"
+
+      assert live
+             |> element(~s|a[href="/start"]|, "The full installation guide")
+             |> has_element?()
+    end
+
+    test "the landing page says what Hermes is and what a hosted one cannot do yet",
+         %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      assert text =~ "Hermes is an open-source agent made by Nous Research."
+
+      assert text =~
+               "Nous Portal provides model access, hosted tools, and cloud-hosted Hermes " <>
+                 "under one account."
+
+      assert text =~
+               "The Nous Portal cloud-hosted path is not yet a separately certified " <>
+                 "Techtree execution environment."
+
+      assert live |> element(~s|a[href="https://portal.nousresearch.com/"]|) |> has_element?()
     end
 
     test "either path calls the introductory Climb a toy demonstration", %{conn: conn} do

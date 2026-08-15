@@ -345,6 +345,24 @@ strong {
   line-height: 1.5;
 }
 
+/* The words a reader hands to their agent. Unlike a command it is prose, so it
+   wraps rather than scrolling sideways, and it is set wide enough to be read
+   as a paragraph and selected in one sweep. */
+.prompt {
+  margin-top: 0.75rem;
+}
+
+.prompt__block {
+  padding: 0.9rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left-width: 3px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
 .facts {
   display: grid;
   grid-template-columns: 1fr;

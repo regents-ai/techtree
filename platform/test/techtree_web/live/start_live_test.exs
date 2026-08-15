@@ -16,12 +16,19 @@ defmodule TechtreeWeb.StartLiveTest do
     test "the agent path is the one open by default", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start")
 
-      assert html =~ "hermes plugins install regents-ai/techtree-hermes --ref"
-      assert html =~ "hermes plugins doctor techtree --ci"
-      assert html =~ "Set up Techtree and run the Hello World Climb."
+      assert html =~ "Give this to your Hermes agent"
+      refute html =~ "Prefer installing it yourself?"
+    end
 
-      refute html =~ "uv tool install"
-      refute html =~ "techtree setup"
+    test "the guide shows every command this release pins, whoever is installing",
+         %{conn: conn} do
+      for address <- [~p"/start", ~p"/start?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+
+        assert html =~ "hermes plugins install regents-ai/techtree-hermes --ref"
+        assert html =~ "hermes plugins doctor techtree --ci"
+        assert html =~ "uv tool install techtree==0.0.0-placeholder"
+      end
     end
 
     test "the rendered install command is the pinned coordinate, argument for argument",
@@ -32,21 +39,30 @@ defmodule TechtreeWeb.StartLiveTest do
                 String.duplicate("0", 40) <> " --enable") in commands(html)
     end
 
-    test "the agent path says Hermes comes first and the plugin needs your approval",
+    test "the agent path says the agent asks first and hands back a run identifier",
          %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start")
       text = visible_text(html)
 
-      assert text =~ "Hermes has to be installed already"
-      assert text =~ "you run yourself at a terminal"
-      assert text =~ "Installing a plugin takes your explicit approval"
+      assert text =~ "It asks before it installs anything, runs anything, or spends anything."
+      assert text =~ "hands back a run identifier instead of making you wait"
     end
 
-    test "the agent path says long work comes back as a run identifier", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/start")
+    test "the other path says a plugin is installed only with your approval", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start?install=me")
 
       assert visible_text(html) =~
-               "hands back a run identifier instead of making you wait"
+               "Installing a plugin takes your explicit approval, so an agent cannot put " <>
+                 "itself in a position to run trials."
+    end
+
+    test "the guide says Hermes has to be there first and a terminal is needed",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+      text = visible_text(html)
+
+      assert text =~ "Hermes 0.19.0 or newer, already installed and working."
+      assert text =~ "Techtree installs and runs on the machine in front of you, at a terminal."
     end
 
     test "neither path suggests a first installation without a terminal", %{conn: conn} do
@@ -76,21 +92,24 @@ defmodule TechtreeWeb.StartLiveTest do
       end
     end
 
-    test "the terminal path is the one the address can ask for", %{conn: conn} do
+    test "the path for someone installing it themselves is the one the address can ask for",
+         %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start?install=me")
+      text = visible_text(html)
 
-      assert html =~ "uv tool install techtree==0.0.0-placeholder"
-      assert html =~ "techtree setup"
-      assert html =~ "techtree climb show hello-world-climb@1"
+      assert text =~ "Prefer installing it yourself?"
+      assert text =~ "Install the exact pinned Hermes plugin shown below."
+      assert text =~ "Restart Hermes."
+      assert text =~ "Ask: “Set up Techtree and run the Hello World Climb.”"
 
-      refute html =~ "hermes plugins install"
+      refute text =~ "Give this to your Hermes agent"
     end
 
     test "an address that names no path opens the agent one", %{conn: conn} do
       {:ok, _live, html} = live(conn, "/start?install=whatever")
 
-      assert html =~ "hermes plugins install"
-      refute html =~ "uv tool install"
+      assert html =~ "Give this to your Hermes agent"
+      refute html =~ "Prefer installing it yourself?"
     end
 
     test "the switcher swaps which path is in front", %{conn: conn} do
@@ -98,13 +117,13 @@ defmodule TechtreeWeb.StartLiveTest do
 
       terminal = live |> element(~s|a[href="/start?install=me"]|) |> render_click()
 
-      assert terminal =~ "uv tool install"
-      refute terminal =~ "hermes plugins install"
+      assert terminal =~ "Prefer installing it yourself?"
+      refute terminal =~ "Give this to your Hermes agent"
 
       agent = live |> element(~s|a[href="/start?install=agent"]|) |> render_click()
 
-      assert agent =~ "hermes plugins install"
-      refute agent =~ "uv tool install"
+      assert agent =~ "Give this to your Hermes agent"
+      refute agent =~ "Prefer installing it yourself?"
     end
 
     test "the switcher is an ordinary link, so it works without a live connection",
@@ -116,7 +135,7 @@ defmodule TechtreeWeb.StartLiveTest do
 
       switched = conn |> get(~p"/start?install=me") |> html_response(200)
 
-      assert switched =~ "uv tool install"
+      assert switched =~ "Prefer installing it yourself?"
     end
 
     test "the switcher marks the path that is open", %{conn: conn} do
@@ -144,9 +163,11 @@ defmodule TechtreeWeb.StartLiveTest do
         {:ok, _live, html} = live(conn, address)
         text = visible_text(html)
 
-        assert text =~ "Docker running"
         assert text =~ "macOS or Linux"
         assert text =~ "Hermes 0.19.0 or newer"
+        assert text =~ "Python 3.12 or newer"
+        assert text =~ "uv 0.11.1 or newer"
+        assert text =~ "Docker Installed, and running before a trial starts."
         assert text =~ "a key from your model provider"
 
         assert text =~
@@ -170,6 +191,17 @@ defmodule TechtreeWeb.StartLiveTest do
       end
     end
 
+    test "the guide says who is billed for a trial and that nothing paid starts unasked",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+      text = visible_text(html)
+
+      assert text =~ "billed to the provider account you use"
+      assert text =~ "Techtree charges nothing and holds no balance."
+      assert text =~ "the most that run may cost"
+      assert text =~ "waits for you to say yes"
+    end
+
     test "the placeholder release is labelled where the commands are shown", %{conn: conn} do
       for address <- [~p"/start", ~p"/start?install=me"] do
         {:ok, _live, html} = live(conn, address)
@@ -177,6 +209,25 @@ defmodule TechtreeWeb.StartLiveTest do
         assert html =~ "not a real release yet"
         assert html =~ "They install nothing."
       end
+    end
+
+    test "a placeholder release is given no plugin release address at all", %{conn: conn} do
+      for address <- [~p"/start", ~p"/start?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+
+        refute html =~ "github.com"
+
+        assert visible_text(html) =~
+                 "This release does not name a published plugin revision yet"
+      end
+    end
+
+    test "the prompt sends the agent to this site while the revision is a stand-in",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+
+      assert visible_text(html) =~
+               "Read the pinned Techtree installation guide at https://techtree.sh/start."
     end
 
     test "no command is presented as a line to be run by the site", %{conn: conn} do
@@ -187,6 +238,46 @@ defmodule TechtreeWeb.StartLiveTest do
         refute html =~ "| sh"
         refute html =~ "sudo"
       end
+    end
+  end
+
+  describe "with a release whose coordinates are real" do
+    @describetag :tmp_dir
+
+    setup %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_bootstrap!(bundle, &CatalogFixture.concrete_release/1)
+      CatalogFixture.use_bundle(bundle)
+      Importer.import!(bundle)
+
+      {:ok, revision: String.duplicate("a", 40)}
+    end
+
+    test "the prompt names the exact pinned plugin release instead of this site",
+         %{conn: conn, revision: revision} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+      text = visible_text(html)
+
+      assert text =~
+               "Read the pinned Techtree installation guide at " <>
+                 "https://github.com/regents-ai/techtree-hermes/tree/#{revision}."
+
+      refute text =~ "https://techtree.sh/start"
+    end
+
+    test "the guide links that same release and nothing that can move",
+         %{conn: conn, revision: revision} do
+      {:ok, live, html} = live(conn, ~p"/start")
+
+      assert live
+             |> element(
+               ~s|a[href="https://github.com/regents-ai/techtree-hermes/tree/#{revision}"]|
+             )
+             |> has_element?()
+
+      refute html =~ "not a real release yet"
+      refute visible_text(html) =~ "does not name a published plugin revision yet"
     end
   end
 
