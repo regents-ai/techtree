@@ -2,10 +2,14 @@
 
 Two surfaces, deliberately different.
 
-``/techtree …`` works in any session, including a phone. A host hands a slash
-command the same way from a terminal and from a gateway, with nothing that
-says which — so these always answer as if a phone were reading: compact text,
-no control characters, bounded, with the cut stated when there is one.
+``/techtree …`` works in any session, including one where answers have to stay
+short. A host hands a slash command the same way from a terminal and from a
+chat window, with nothing that says which — so these always answer as if the
+narrower window were reading: compact text, no control characters, bounded,
+with the cut stated when there is one.
+
+Every successful answer ends with one immediate next step (decision 0024
+section 7), so a reader is never left holding a result with nothing to do.
 
 ``hermes techtree …`` is terminal-only, and is where Techtree's own rendered
 output belongs. ``watch`` in particular runs Techtree's live view against the
@@ -69,7 +73,7 @@ def parse_slash_args(raw_args: str) -> tuple[str, list[str]]:
 
 
 def handle_slash_command(raw_args: str, services: Any) -> str:
-    """Run one fixed subcommand and return text a phone can read."""
+    """Run one fixed subcommand and return text any window can hold."""
     subcommand, arguments = parse_slash_args(raw_args)
     if not subcommand:
         return _usage("Techtree commands:")
@@ -129,15 +133,22 @@ def _slash_climbs(services: Any, arguments: Sequence[str]) -> str:
     if not answer.get("ok"):
         return _error_line(answer)
     if answer.get("truncated"):
-        return "The list is too long to show here. Run: techtree climb list"
+        return (
+            "The list is too long to show here. "
+            "Next: run `techtree climb list` in a terminal to see all of it."
+        )
     climbs = answer.get("data") or []
     if not isinstance(climbs, list) or not climbs:
-        return "This build ships no Climbs."
+        return (
+            "This build ships no Climbs. "
+            "Next: ask me whether Techtree is installed and ready."
+        )
     lines = ["Climbs in this build:"]
     for climb in climbs:
         reference = climb.get("reference") if isinstance(climb, dict) else None
         title = climb.get("title") if isinstance(climb, dict) else None
         lines.append(f"- {reference}{f' — {title}' if title else ''}")
+    lines.append("Next: ask me to show one of these Climbs in detail.")
     return "\n".join(lines)
 
 
@@ -156,6 +167,8 @@ def _slash_demo(services: Any, arguments: Sequence[str]) -> str:
             f"Episodes estimated: {answer.get('estimated_episodes')}",
             f"Data policy: {answer.get('data_policy_digest')}",
             "Starting it spends model budget, and needs your explicit approval.",
+            "Next: review the Skill-only change and the estimated cost, then "
+            "approve the start.",
         ]
     )
 
@@ -172,6 +185,12 @@ def _slash_status(services: Any, arguments: Sequence[str]) -> str:
         f"Run {run_id}: {summary.get('phase')}"
         + (" — finished" if summary.get("finished") else " — still going")
         + (", result ready" if summary.get("result_available") else "")
+        + "\n"
+        + (
+            "Next: ask me for its result."
+            if summary.get("result_available")
+            else "Next: ask me for its status at any time."
+        )
     )
 
 
@@ -181,7 +200,10 @@ def _slash_cancel(services: Any, arguments: Sequence[str]) -> str:
     answer = _tool(services, "techtree_run_cancel", {"run_id": arguments[0]})
     if not answer.get("ok"):
         return _error_line(answer)
-    return f"Asked Techtree to stop {arguments[0]}."
+    return (
+        f"Asked Techtree to stop {arguments[0]}.\n"
+        "Next: ask me for its status to confirm it stopped."
+    )
 
 
 def _slash_result(services: Any, arguments: Sequence[str]) -> str:
@@ -205,6 +227,7 @@ def _slash_result(services: Any, arguments: Sequence[str]) -> str:
     lines.append(
         "Run locally by Techtree, and not independently reproduced by anyone else."
     )
+    lines.append("Next: ask me to check this run's proof offline.")
     return "\n".join(lines)
 
 
@@ -221,6 +244,13 @@ def _slash_verify(services: Any, arguments: Sequence[str]) -> str:
         f"Proof for {target}: "
         + ("verified" if data.get("verified") else "did not verify")
         + f" ({len(data.get('checks') or [])} checks, all offline)"
+        + "\n"
+        + (
+            "Next: ask me for the measured difference in this run's result."
+            if data.get("verified")
+            else f"Next: run `techtree proof verify {target}` in a terminal to "
+            "see every check."
+        )
     )
 
 
@@ -237,6 +267,7 @@ def _slash_improve(services: Any, arguments: Sequence[str]) -> str:
             "It holds only what may be shown: public task inputs, pass or fail, "
             "and rewards — never the subject's answers or the expected ones.",
             "Proposing a revised Skill is not part of this build.",
+            "Next: ask me to check this run's proof offline.",
         ]
     )
 

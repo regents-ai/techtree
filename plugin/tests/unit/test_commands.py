@@ -307,6 +307,103 @@ def test_every_answer_is_bounded_and_free_of_control_characters() -> None:
     assert answer.endswith(TRUNCATION_NOTE)
 
 
+# The next-step rule -------------------------------------------------------------------
+
+#: Everything Techtree could be asked, answered the way a healthy machine
+#: would answer it, so that each subcommand reaches its successful ending.
+SUCCESSFUL_ANSWERS: dict[str, dict[str, Any]] = {
+    "doctor": _envelope("doctor", {"checks": []}),
+    "climb list": _envelope("climb list", [{"reference": "demo@1", "title": "A demo"}]),
+    "climb show": _envelope("climb show", {}),
+    "climb prepare": _envelope(
+        "climb prepare",
+        {
+            "draft_id": "draft_" + "0" * 32,
+            "data_policy_digest": "sha256:" + "b" * 64,
+            "estimated_episodes": 72,
+            "skill_root_digest": PUBLISHED.starter_skill_digest,
+        },
+    ),
+    "run status": _envelope(
+        "run status",
+        {
+            "run_id": RUN_ID,
+            "phase": "running_variants",
+            "terminal": False,
+            "result_available": False,
+        },
+    ),
+    "run cancel": _envelope("run cancel", {"run_id": RUN_ID}),
+    "run result": _envelope(
+        "run result",
+        {
+            "presentation": {
+                "baseline_score": 0.1,
+                "candidate_score": 0.7,
+                "wins": 20,
+                "losses": 1,
+                "ties": 15,
+                "decision": "improved",
+                "proof_grade": "P1",
+            }
+        },
+    ),
+    "proof verify": _envelope("proof verify", {"verified": True, "checks": [1, 2, 3]}),
+    "uplift context": _envelope("uplift context", {"context": {}}),
+}
+
+
+@pytest.mark.parametrize(
+    "invocation",
+    [
+        "setup",
+        "climbs",
+        "demo",
+        f"status {RUN_ID}",
+        f"cancel {RUN_ID}",
+        f"result {RUN_ID}",
+        f"verify {RUN_ID}",
+        f"improve {RUN_ID}",
+    ],
+)
+def test_every_successful_answer_ends_with_one_next_step(invocation: str) -> None:
+    """Decision 0024 section 7: nobody is left holding a result with nothing to do."""
+    services = _services(bridge=FakeBridge(SUCCESSFUL_ANSWERS))
+
+    answer = handle_slash_command(invocation, services)
+
+    steps = [line for line in answer.splitlines() if line.startswith("Next:")]
+    assert len(steps) == 1, f"{invocation} offered {len(steps)} next steps:\n{answer}"
+    assert answer.strip().splitlines()[-1] == steps[0], answer
+
+
+def test_a_climbless_build_still_says_what_to_do_next() -> None:
+    empty = _envelope("climb list", [])
+    services = _services(bridge=FakeBridge({"climb list": empty}))
+
+    answer = handle_slash_command("climbs", services)
+
+    assert "This build ships no Climbs." in answer
+    assert "Next: ask me whether Techtree is installed and ready." in answer
+
+
+def test_a_finished_run_is_pointed_at_its_result() -> None:
+    finished = _envelope(
+        "run status",
+        {
+            "run_id": RUN_ID,
+            "phase": "completed",
+            "terminal": True,
+            "result_available": True,
+        },
+    )
+    services = _services(bridge=FakeBridge({"run status": finished}))
+
+    answer = handle_slash_command(f"status {RUN_ID}", services)
+
+    assert answer.strip().endswith("Next: ask me for its result.")
+
+
 # Terminal subcommands -----------------------------------------------------------------
 
 

@@ -267,6 +267,9 @@ def test_installation_goes_through_the_hosts_own_terminal_approval(
         (TERMINAL_TOOL, {"command": "uv tool install techtree==0.1.0"})
     ]
     assert result["approval"] == "host_terminal"
+    # Decision 0024 section 7: a verified installation says what comes next.
+    assert result["installed"] is True
+    assert result["message"].endswith("Next: inspect the Hello World Climb.")
 
 
 def test_the_dispatched_command_carries_nothing_but_the_command(

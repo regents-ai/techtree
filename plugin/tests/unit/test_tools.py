@@ -231,6 +231,34 @@ def test_the_system_check_reports_the_release_beside_doctor() -> None:
         "docker_daemon",
     ]
     assert result["can_prepare_demo"] is True
+    # Decision 0024 section 7: a successful answer names the one thing to do next.
+    assert result["next_action"]["id"] == "inspect_climbs"
+    assert result["next_action"]["label"] == "Inspect the Hello World Climb"
+
+
+def test_a_blocked_system_check_names_the_blocking_step_instead() -> None:
+    doctor = _envelope(
+        "doctor",
+        {
+            "checks": [
+                {
+                    "id": "docker_daemon",
+                    "label": "Docker",
+                    "status": "fail",
+                    "detail": "the Docker daemon is not reachable",
+                    "blocking": True,
+                    "metadata": {},
+                }
+            ]
+        },
+    )
+    services = _services(bridge=FakeBridge({"doctor": doctor}))
+
+    result = _call("techtree_system_check", services, {})
+
+    assert result["ok"] is False
+    assert result["next_action"]["id"] == "resolve_doctor_failures"
+    assert "Docker daemon" in result["next_action"]["reason"]
 
 
 # Long work ----------------------------------------------------------------------------

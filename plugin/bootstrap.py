@@ -381,7 +381,7 @@ def install_cli_with_approval(
         "verification": verification,
         "message": (
             f"Techtree {verification.get('version')} is installed and belongs "
-            "to this plugin's release."
+            "to this plugin's release. Next: inspect the Hello World Climb."
             if verification["verified"]
             else "The installation did not verify; Techtree was not confirmed."
         ),

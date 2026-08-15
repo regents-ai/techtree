@@ -150,7 +150,7 @@ def _bootstrap(**overrides: Any) -> dict[str, Any]:
     document: dict[str, Any] = {
         "release_core_digest": release_core_digest(CORE),
         "cli_version": CORE.cli_version,
-        "plugin_repository": "regents-labs/techtree-hermes",
+        "plugin_repository": "regents-ai/techtree-hermes",
         "plugin_commit": "a" * 40,
     }
     document.update(overrides)

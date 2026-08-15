@@ -51,6 +51,20 @@ def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "can_prepare_demo": not blocking,
             "messages": doctor.get("messages", []),
             "warnings": doctor.get("warnings", []),
+            "next_action": (
+                {
+                    "id": "resolve_doctor_failures",
+                    "label": "Resolve what Doctor reported before running a Climb",
+                    "reason": "; ".join(str(check.get("detail")) for check in blocking),
+                }
+                if blocking
+                else {
+                    "id": "inspect_climbs",
+                    "label": "Inspect the Hello World Climb",
+                    "reason": "Nothing here blocks a Climb on this machine.",
+                    "tool": "techtree_climbs_list",
+                }
+            ),
         },
         channel,
     )

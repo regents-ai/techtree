@@ -1,14 +1,22 @@
 # Techtree for Hermes
 
-Run a controlled Skill comparison on your own machine, from the conversation
-you are already in.
+## Give this repository to your Hermes agent
 
-Techtree measures whether a Skill actually improves an agent. It runs the same
-pinned task set twice — once without the Skill, once with it — inside Docker,
-records what happened, and produces a locally signed result you can check
-offline. This plugin is the operator surface for that: it lets Hermes inspect
-what a Climb measures, prepare a run, start it, follow it, and read the
-result.
+Paste this into Hermes:
+
+> Read this repository's pinned Hello World installation instructions.
+> Explain the exact commands, prerequisites, expected model cost, and
+> privacy terms. Ask before installing the plugin, installing the
+> Techtree CLI, or starting a paid run. After the plugin is enabled,
+> tell me when to restart Hermes, then continue with Techtree Doctor
+> and the Hello World Climb.
+
+Techtree runs a neutral agent and a Skill-enabled agent against the
+same toy tasks, shows the measured difference, and creates a signed
+local receipt you can verify offline.
+
+This plugin is the operator surface for that: it lets Hermes inspect what a
+Climb measures, prepare a run, start it, follow it, and read the result.
 
 Techtree uploads none of your Episodes, Traces, receipts, proof bundles, or
 Skill proposals, and publishes nothing. Model inference is still sent to the
@@ -30,7 +38,7 @@ The plugin is installed at an exact commit, and Hermes must be restarted
 afterwards so it loads:
 
 ```bash
-hermes plugins install regents-labs/techtree-hermes \
+hermes plugins install regents-ai/techtree-hermes \
   --ref <full-40-character-plugin-commit> \
   --enable
 ```
@@ -56,7 +64,7 @@ writing a file, and then requires the plugin to load anyway
 
 ## Commands
 
-In any session, including a phone:
+In any session:
 
 ```text
 /techtree setup      is Techtree installed, and is this machine ready?
@@ -125,7 +133,7 @@ bridge.py            the only path from the plugin into Techtree
 doctor.py            the plugin's own doctor
 commands.py          `/techtree` and `hermes techtree ...` registries
 hooks.py             session lifecycle registry
-channels.py          terminal or phone, and what changes
+channels.py          how compact an answer has to be
 commands.py          /techtree and hermes techtree …
 hooks.py             session start and end
 state.py             the identifiers a conversation keeps
@@ -163,13 +171,13 @@ the conversation, and nothing is lost when it ends, because Techtree holds the
 run itself: ask about a run by its identifier and the answer comes back from
 Techtree, not from anything the plugin was keeping.
 
-## On a phone
+## Bounded answers
 
-Everything except `watch` works from a messaging gateway. Answers are compact,
-carry no terminal control codes, and are bounded — and when an answer is cut,
-it says so and names the command that shows all of it. When nothing tells the
-plugin which kind of session it is in, it assumes a phone, because output that
-is safe on a phone is also fine in a terminal.
+Everything except `watch` answers in the conversation itself. Those answers are
+compact, carry no terminal control codes, and are bounded — and when an answer
+is cut, it says so and names the command that shows all of it. When nothing
+tells the plugin how much room it has, it assumes the smaller budget, because
+an answer that fits a narrow window is also fine in a wide one.
 
 ## What it writes, and turning it off
 

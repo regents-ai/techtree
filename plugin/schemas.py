@@ -32,7 +32,7 @@ _CHANNEL: Final = {
     "enum": ["terminal", "gateway", "unknown"],
     "description": (
         "Where the answer will be read. Use 'terminal' only for an attached "
-        "terminal session and 'gateway' for phone or chat. When omitted the "
+        "terminal session and 'gateway' for a chat window. When omitted the "
         "plugin assumes 'unknown' and returns compact text with no escape codes."
     ),
 }
