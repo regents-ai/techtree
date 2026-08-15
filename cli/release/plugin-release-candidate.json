@@ -1,0 +1,8 @@
+{
+  "commit": "bf427abd9d486ac078753ae6cea29aef72685473",
+  "plugin_doctor": "passed",
+  "release_core_digest": "sha256:c0783963e03eee21bc0650a649bca0f716f15bf538a2300d2c388f1bd5e2c730",
+  "repository": "github.com/regents-ai/techtree-hermes",
+  "version": "0.1.0",
+  "wheel_sha256": "86e5908ee8f6db786ee7bb23c250c79452edcf4d463d8b57a9f3185dfdcd9dc5"
+}
