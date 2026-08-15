@@ -1,11 +1,15 @@
 """The website wrapper, checked from the side that produced the release.
 
-Spec sections 9.3.2, 9.4 and 9.7.
+Spec sections 9.3.2, 9.4 and 9.7; decisions document 0026.
 
 The bootstrap document and the ReleaseCore repeat four coordinates, and the
 whole point of checking them here is that a repeat which drifts sends operators
 to install one thing while the CLI believes another. Each repeat is broken on
 its own below.
+
+The document also names the source commit of the published wheel, which the
+release document deliberately does not carry. That one is checked against the
+wheel's own stamp, because the artifact is the only thing that can confirm it.
 
 The shape rules are the website's. They are restated in these tests for the
 same reason they are restated in the checker: a release that the website would
@@ -25,48 +29,44 @@ from techtree.release.bootstrap import (
     verify_bootstrap_document,
 )
 from techtree.release.checks import ReleaseCheck, ReleaseVerification
-from techtree.release.models import (
-    PLACEHOLDER_COMMIT,
-    PLACEHOLDER_DIGEST,
-    PLACEHOLDER_OBJECT_URL,
-    PLACEHOLDER_VERSION,
-    ReleaseCore,
-)
+from techtree.release.models import ReleaseCore
+from techtree.release.provenance import BuildProvenance
 
 INTRO_CLIMB = "hello-world-climb@1"
 PLUGIN_COMMIT = "e" * 40
-STARTER_OBJECT_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
+WHEEL_COMMIT = "b" * 40
+STARTER_FILE_DIGEST = "sha256:" + "3c" * 32
+STARTER_TREE_DIGEST = "sha256:" + "4d" * 32
+STARTER_OBJECT_URL = f"https://techtree.sh/api/v1/objects/{STARTER_FILE_DIGEST}"
+OTHER_FILE_DIGEST = "sha256:" + "7a" * 32
+OTHER_OBJECT_URL = f"https://techtree.sh/api/v1/objects/{OTHER_FILE_DIGEST}"
 
 
 def core(**overrides: Any) -> ReleaseCore:
-    """Return the placeholder release this build currently carries."""
+    """Return the release this build carries, every coordinate concrete."""
     fields: dict[str, Any] = {
         "schema_version": "techtree.release-core.v1",
-        "placeholder_release": True,
-        "placeholder_fields": [
-            "cli_source_commit",
-            "cli_version",
-            "maximum_tested_host_hermes_version",
-            "release_id",
-            "skill_improver_digest",
-            "starter_skill_digest",
-            "starter_skill_object_url",
-        ],
-        "release_id": PLACEHOLDER_VERSION,
-        "cli_version": PLACEHOLDER_VERSION,
-        "cli_source_commit": PLACEHOLDER_COMMIT,
+        "release_id": "climb-v0.1.0",
+        "cli_version": "0.1.0",
         "protocol_version": "v1alpha1",
         "engine_digest": "sha256:" + "1a" * 32,
         "catalog_digest": "sha256:" + "2b" * 32,
         "intro_climb_reference": INTRO_CLIMB,
-        "starter_skill_digest": PLACEHOLDER_DIGEST,
-        "starter_skill_object_url": PLACEHOLDER_OBJECT_URL,
-        "skill_improver_digest": PLACEHOLDER_DIGEST,
+        "starter_skill_digest": STARTER_TREE_DIGEST,
+        "starter_skill_object_url": STARTER_OBJECT_URL,
+        "skill_improver_digest": "sha256:" + "5e" * 32,
         "minimum_host_hermes_version": "0.19.0",
-        "maximum_tested_host_hermes_version": PLACEHOLDER_VERSION,
+        "maximum_tested_host_hermes_version": "0.19.3",
         "subject_hermes_version": "0.19.0",
     }
     return ReleaseCore(**{**fields, **overrides})
+
+
+def wheel(commit: str = WHEEL_COMMIT) -> BuildProvenance:
+    """Return the stamp a published wheel carries."""
+    return BuildProvenance(
+        schema_version="techtree.build-provenance.v1", source_commit=commit
+    )
 
 
 def bootstrap(**overrides: Any) -> dict[str, Any]:
@@ -79,7 +79,7 @@ def bootstrap(**overrides: Any) -> dict[str, Any]:
     document: dict[str, Any] = {
         "schema_version": "techtree.bootstrap.v1alpha1",
         "channel": "development",
-        "placeholder_release": True,
+        "placeholder_release": False,
         "published_at": "2026-08-13T00:00:00Z",
         "minimums": {
             "hermes_version": "0.19.0",
@@ -89,26 +89,21 @@ def bootstrap(**overrides: Any) -> dict[str, Any]:
         },
         "cli": {
             "distribution": "techtree",
-            "version": PLACEHOLDER_VERSION,
-            "source_revision": PLACEHOLDER_COMMIT,
-            "install_argv": [
-                "uv",
-                "tool",
-                "install",
-                f"techtree=={PLACEHOLDER_VERSION}",
-            ],
+            "version": "0.1.0",
+            "source_revision": WHEEL_COMMIT,
+            "install_argv": ["uv", "tool", "install", "techtree==0.1.0"],
         },
         "hermes_plugin": {
             "plugin_id": "techtree",
             "repository": "regents-labs/techtree-hermes",
-            "revision": PLACEHOLDER_COMMIT,
+            "revision": PLUGIN_COMMIT,
             "install_argv": [
                 "hermes",
                 "plugins",
                 "install",
                 "regents-labs/techtree-hermes",
                 "--ref",
-                PLACEHOLDER_COMMIT,
+                PLUGIN_COMMIT,
                 "--enable",
             ],
             "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"],
@@ -119,19 +114,26 @@ def bootstrap(**overrides: Any) -> dict[str, Any]:
         },
         "starter_skill": {
             "name": "hello-world-starter-v1",
-            "object_url": PLACEHOLDER_OBJECT_URL,
-            "digest": PLACEHOLDER_DIGEST,
+            "object_url": STARTER_OBJECT_URL,
+            "file_digest": STARTER_FILE_DIGEST,
+            "tree_digest": STARTER_TREE_DIGEST,
+            "media_type": "text/markdown",
+            "size": 1496,
         },
     }
     return {**document, **overrides}
 
 
 def check(
-    document: dict[str, Any], release: ReleaseCore | None = None
+    document: dict[str, Any],
+    release: ReleaseCore | None = None,
+    stamp: BuildProvenance | None = None,
 ) -> ReleaseVerification:
-    """Verify a bootstrap document against a release."""
+    """Verify a bootstrap document against a release and a built wheel."""
     return verify_bootstrap_document(
-        release or core(), json.dumps(document).encode("utf-8")
+        release or core(),
+        json.dumps(document).encode("utf-8"),
+        wheel=stamp or wheel(),
     )
 
 
@@ -166,13 +168,13 @@ def test_a_wrapper_that_names_this_release_verifies() -> None:
     assert set(by_id(result)) == {
         "bootstrap_schema_version",
         "bootstrap_importer_contract",
-        "bootstrap_placeholder_declaration",
         "bootstrap_cli_version",
         "bootstrap_cli_source_revision",
         "bootstrap_hermes_minimum",
         "bootstrap_intro_climb",
         "bootstrap_starter_skill_object_url",
-        "bootstrap_starter_skill_digest",
+        "bootstrap_starter_skill_tree_digest",
+        "bootstrap_starter_skill_address",
         "bootstrap_cli_install_argv",
         "bootstrap_plugin_install_argv",
     }
@@ -190,11 +192,12 @@ def test_a_wrapper_naming_another_cli_version_fails_alone() -> None:
     release's own install command breaks exactly one claim, and the command it
     publishes stays correct.
     """
-    result = check(replacing("cli", version="0.1.0"))
+    result = check(replacing("cli", version="0.2.0"))
     assert_only_failure(result, "bootstrap_cli_version", BOOTSTRAP_RELEASE_MISMATCH)
 
 
-def test_a_wrapper_naming_another_source_commit_fails_alone() -> None:
+def test_a_wrapper_naming_a_commit_the_wheel_was_not_built_from_fails_alone() -> None:
+    """The wheel is the only thing that can confirm which commit it is."""
     result = check(replacing("cli", source_revision="a" * 40))
     assert_only_failure(
         result, "bootstrap_cli_source_revision", BOOTSTRAP_RELEASE_MISMATCH
@@ -213,17 +216,31 @@ def test_a_wrapper_naming_another_climb_fails_alone() -> None:
 
 def test_a_wrapper_serving_the_starter_skill_elsewhere_fails_alone() -> None:
     """Spec section 10.5: the wrapper says where the public Skill object is."""
-    result = check(replacing("starter_skill", object_url=STARTER_OBJECT_URL))
+    result = check(
+        replacing(
+            "starter_skill",
+            object_url=OTHER_OBJECT_URL,
+            file_digest=OTHER_FILE_DIGEST,
+        )
+    )
     assert_only_failure(
         result, "bootstrap_starter_skill_object_url", BOOTSTRAP_RELEASE_MISMATCH
     )
 
 
 def test_a_wrapper_naming_another_starter_skill_fails_alone() -> None:
-    """An address the release agrees with, over bytes it never measured."""
-    result = check(replacing("starter_skill", digest="sha256:" + "7a" * 32))
+    """An address the release agrees with, over a tree it never measured."""
+    result = check(replacing("starter_skill", tree_digest="sha256:" + "7a" * 32))
     assert_only_failure(
-        result, "bootstrap_starter_skill_digest", BOOTSTRAP_RELEASE_MISMATCH
+        result, "bootstrap_starter_skill_tree_digest", BOOTSTRAP_RELEASE_MISMATCH
+    )
+
+
+def test_an_address_keyed_by_anything_but_the_bytes_it_returns_fails_alone() -> None:
+    """The website files an object under the digest of the file it serves."""
+    result = check(replacing("starter_skill", file_digest=OTHER_FILE_DIGEST))
+    assert_only_failure(
+        result, "bootstrap_starter_skill_address", BOOTSTRAP_RELEASE_MISMATCH
     )
 
 
@@ -236,17 +253,19 @@ def test_a_wrapper_that_publishes_no_starter_skill_at_all_is_refused() -> None:
         result, "bootstrap_importer_contract", BOOTSTRAP_RELEASE_INVALID
     )
     assert "starter_skill.object_url must be an object URL" in result.failures[0].detail
-    assert "starter_skill.digest must be a digest" in result.failures[0].detail
+    assert "starter_skill.file_digest must be a digest" in result.failures[0].detail
+    assert "starter_skill.tree_digest must be a digest" in result.failures[0].detail
 
 
 @pytest.mark.parametrize(
     "value",
     [
-        "techtree.sh/SKILL.md",
-        "http://techtree.sh/SKILL.md",
+        f"techtree.sh/{STARTER_FILE_DIGEST}",
+        f"http://techtree.sh/{STARTER_FILE_DIGEST}",
         "https://techtree.sh",
         "",
-        "https://user:token@techtree.sh/SKILL.md",
+        f"https://user:token@techtree.sh/{STARTER_FILE_DIGEST}",
+        "https://techtree.sh/objects/SKILL.md",
     ],
 )
 def test_an_address_that_is_not_one_exact_object_is_refused(value: str) -> None:
@@ -292,11 +311,12 @@ def test_a_wrapper_for_a_different_schema_is_refused_before_anything_else() -> N
 
 
 # ---------------------------------------------------------------------------
-# The placeholder declaration is mandatory on both sides
+# The website's own declaration
 # ---------------------------------------------------------------------------
 
 
 def test_a_wrapper_that_forgets_to_declare_itself_is_refused() -> None:
+    """The website states whether it is serving a development bootstrap."""
     document = bootstrap()
     del document["placeholder_release"]
     result = check(document)
@@ -310,42 +330,6 @@ def test_a_declaration_that_is_not_a_boolean_is_refused() -> None:
     result = check(bootstrap(placeholder_release="true"))
     assert_only_failure(
         result, "bootstrap_importer_contract", BOOTSTRAP_RELEASE_INVALID
-    )
-
-
-def test_a_real_wrapper_over_a_placeholder_release_is_refused() -> None:
-    result = check(bootstrap(placeholder_release=False))
-    assert_only_failure(
-        result, "bootstrap_placeholder_declaration", BOOTSTRAP_RELEASE_MISMATCH
-    )
-
-
-def test_a_placeholder_wrapper_over_a_real_release_is_refused() -> None:
-    real = core(
-        placeholder_release=False,
-        placeholder_fields=[],
-        release_id="climb-v0.1.0",
-        cli_version="0.1.0",
-        cli_source_commit="f" * 40,
-        maximum_tested_host_hermes_version="0.19.3",
-        skill_improver_digest="sha256:" + "5e" * 32,
-        starter_skill_digest="sha256:" + "6f" * 32,
-        starter_skill_object_url=STARTER_OBJECT_URL,
-    )
-    document = replacing(
-        "cli",
-        version="0.1.0",
-        source_revision="f" * 40,
-        install_argv=["uv", "tool", "install", "techtree==0.1.0"],
-    )
-    document["starter_skill"] = {
-        **document["starter_skill"],
-        "object_url": STARTER_OBJECT_URL,
-        "digest": "sha256:" + "6f" * 32,
-    }
-    result = check(document, real)
-    assert_only_failure(
-        result, "bootstrap_placeholder_declaration", BOOTSTRAP_RELEASE_MISMATCH
     )
 
 
@@ -409,13 +393,13 @@ def test_a_published_time_that_is_not_an_instant_is_refused() -> None:
 
 
 def test_a_document_that_is_not_json_is_refused() -> None:
-    result = verify_bootstrap_document(core(), b"not json")
+    result = verify_bootstrap_document(core(), b"not json", wheel=wheel())
     assert result.verified is False
     assert result.failures[0].id == "bootstrap_document"
 
 
 def test_a_json_array_is_not_a_bootstrap_document() -> None:
-    result = verify_bootstrap_document(core(), b"[]")
+    result = verify_bootstrap_document(core(), b"[]", wheel=wheel())
     assert result.verified is False
     assert result.failures[0].id == "bootstrap_document"
 

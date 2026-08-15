@@ -36,59 +36,62 @@ calibration record, never to the text a subject reads while being measured.
 file outside the package cannot go into a wheel, so the generator writes both
 copies and `make generated-check` fails if they ever differ.
 
-## This release is a placeholder
+## What this release names
 
-The coordinates that can only be chosen at deploy time are still blank, and
-the document says so in its own data:
+Every coordinate in `release-core.json` is concrete, and the schema is what
+makes that true rather than a convention (decisions document 0026). A version
+is three numbers, a release identifier is a name, a digest is sixty-four
+hexadecimal characters that are not all zero, and the starter Skill's address
+is a content address ending in the digest of the file it returns. Nothing that
+means "not chosen yet" validates, so a document that parses is a document
+somebody finished.
 
 ```text
-placeholder_release   true
-placeholder_fields    cli_source_commit, cli_version,
-                      maximum_tested_host_hermes_version, release_id,
-                      starter_skill_object_url
+release_id                 climb-v0.1.0
+cli_version                0.1.0
+starter_skill_object_url   https://techtree.sh/api/v1/objects/sha256:2aff2707…
 ```
 
-Both founder Skills are now bound. `starter_skill_digest` is the ordered
-content-tree digest of `skills/hello-world-starter-v1/SKILL.md` in this
-directory, and `skill_improver_digest` is the SHA-256 of the exact bytes of the
-plugin's `skills/skill-improver/SKILL.md` — two different digest semantics for
-two different kinds of consumption, fixed by decisions document 0008 and stated
-here because a reader cannot tell which is which by looking.
+`starter_skill_digest` is the ordered content-tree digest of
+`skills/hello-world-starter-v1/SKILL.md` in this directory, and
+`skill_improver_digest` is the SHA-256 of the exact bytes of the plugin's
+`skills/skill-improver/SKILL.md` — two different digest semantics for two
+different kinds of consumption, fixed by decisions document 0008 and stated
+here because a reader cannot tell which is which by looking. The object URL is
+keyed by a third number, the SHA-256 of the starter Skill *file*, because that
+is what the address returns and what a fetcher checks a response against
+before it builds anything.
 
-`starter_skill_object_url` is the one starter coordinate still open, and it is
-open for a reason rather than by oversight: the release knows exactly which
-Skill it measured, and where that Skill will be served from is not decided
-until the object is published. So this build can name the Skill and cannot
-fetch it, which is what `techtree skill starter` says when it refuses.
+## What the release document does not say
 
-There are four spellings of "not chosen yet", one per kind of coordinate, and
-none of them can collide with a real value: the version `0.0.0-placeholder`,
-the commit of forty zeros, the digest of sixty-four zeros, and the address
-`https://placeholder.invalid/unchosen`, under the top-level domain RFC 2606
-reserves so that it can never resolve. A blank is never an empty string and
-never an omitted field, because both of those read as an oversight.
+It names no wheel hash, no plugin commit and no source commit. Those are facts
+about artifacts that do not exist when the document is written, and a document
+that guessed at them would be wrong in a way nobody could see. Instead:
 
-The declaration is checked in both directions. A document cannot claim to be a
-real release while it still holds a blank, and cannot be marked provisional
-once every coordinate is bound. The engine digest, the catalog digest, the
-protocol version, the introductory Climb and the subject harness version are
-read out of this source tree, so they are never blank at all.
+| Fact | Where it comes from |
+| --- | --- |
+| the commit a wheel was built from | stamped into that wheel by the build (`tools/stamp_provenance.py`), reported by `techtree release info` |
+| the wheel's SHA-256 and the plugin commit | the website's `BootstrapRelease`, which wraps this document |
+
+The build refuses to stamp a wheel it cannot name a commit for: no git, no
+commit, or one packaged file differing from that commit, and there is no wheel.
+`release/build-info.json` records the mechanism in full.
 
 ## Cutting a real release
 
 1. Edit `release-inputs.json`. Every value in it is a decision, not a
-   derivation: the release identifier, the published CLI version, the tagged
-   source commit, the introductory Climb, the two Skill artifacts, the address
-   the starter Skill is published at, and the host Hermes range that has
-   actually been tested.
+   derivation: the release identifier, the published CLI version, the
+   introductory Climb, the two Skill artifacts, the address the starter Skill
+   is published at, and the host Hermes range that has actually been tested.
 2. Run `make release-core`. It rewrites the four generated files from the
    inputs and from this source tree, and prints the ReleaseCore digest.
 3. Run `make check`. The drift check regenerates everything in a throwaway copy
    of the repository and fails if what is committed is not what this tree
    produces.
 4. Run `uv run python tools/verify_release_core.py`, adding
-   `--bootstrap <path>` once the website's bootstrap document for this release
-   exists, to confirm the two agree on every coordinate they both name.
+   `--bootstrap <path> --wheel <path>` once the website's bootstrap document
+   and the built wheel exist, to confirm all three agree on every coordinate
+   they name.
 
 Steps 2 and 4 are ordinary local commands. Nothing in this directory publishes,
 uploads, or contacts anything.
@@ -103,6 +106,6 @@ release/release-core.json
        and the plugin commit that cannot exist yet when this document is made
 ```
 
-The release document deliberately names no plugin commit and no wheel hash.
-Both are produced *after* it, from it, which is what keeps the cross-repository
-binding free of a cycle (specification section 9.3.3).
+The release document deliberately names no plugin commit, no wheel hash and no
+source commit. All three are produced *after* it, from it, which is what keeps
+the cross-repository binding free of a cycle (specification section 9.3.3).

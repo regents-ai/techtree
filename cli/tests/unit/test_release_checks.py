@@ -18,38 +18,28 @@ from techtree.release.checks import (
     RELEASE_CORE_DIGEST_MISMATCH,
     RELEASE_CORE_INVALID,
     RELEASE_CORE_NOT_CANONICAL,
-    RELEASE_PLACEHOLDER_INDISTINCT,
     ReleaseCheck,
     ReleaseFacts,
     ReleaseVerification,
     verify_release_core,
 )
 from techtree.release.document import document_digest, render_release_core
-from techtree.release.models import (
-    PLACEHOLDER_COMMIT,
-    PLACEHOLDER_DIGEST,
-    PLACEHOLDER_OBJECT_URL,
-    PLACEHOLDER_VERSION,
-    ReleaseCore,
-)
+from techtree.release.models import ReleaseCore
 
 ENGINE_DIGEST = "sha256:" + "1a" * 32
 CATALOG_DIGEST = "sha256:" + "2b" * 32
 SKILL_DIGEST = "sha256:" + "3c" * 32
-SOURCE_COMMIT = "d" * 40
 INTRO_CLIMB = "hello-world-climb@1"
-SKILL_OBJECT_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
+SKILL_FILE_DIGEST = "sha256:" + "4d" * 32
+SKILL_OBJECT_URL = f"https://techtree.sh/api/v1/objects/{SKILL_FILE_DIGEST}"
 
 
 def bound_core(**overrides: Any) -> ReleaseCore:
     """Return a release with every coordinate bound to a real value."""
     fields: dict[str, Any] = {
         "schema_version": "techtree.release-core.v1",
-        "placeholder_release": False,
-        "placeholder_fields": [],
         "release_id": "climb-v0.1.0",
         "cli_version": "0.1.0",
-        "cli_source_commit": SOURCE_COMMIT,
         "protocol_version": "v1alpha1",
         "engine_digest": ENGINE_DIGEST,
         "catalog_digest": CATALOG_DIGEST,
@@ -62,30 +52,6 @@ def bound_core(**overrides: Any) -> ReleaseCore:
         "subject_hermes_version": "0.19.0",
     }
     return ReleaseCore(**{**fields, **overrides})
-
-
-def placeholder_core(**overrides: Any) -> ReleaseCore:
-    """Return a release whose founder-owned coordinates are still blank."""
-    return bound_core(
-        placeholder_release=True,
-        placeholder_fields=[
-            "cli_source_commit",
-            "cli_version",
-            "maximum_tested_host_hermes_version",
-            "release_id",
-            "skill_improver_digest",
-            "starter_skill_digest",
-            "starter_skill_object_url",
-        ],
-        cli_source_commit=PLACEHOLDER_COMMIT,
-        cli_version=PLACEHOLDER_VERSION,
-        maximum_tested_host_hermes_version=PLACEHOLDER_VERSION,
-        release_id=PLACEHOLDER_VERSION,
-        skill_improver_digest=PLACEHOLDER_DIGEST,
-        starter_skill_digest=PLACEHOLDER_DIGEST,
-        starter_skill_object_url=PLACEHOLDER_OBJECT_URL,
-        **overrides,
-    )
 
 
 def agreeing_facts(**overrides: Any) -> ReleaseFacts:
@@ -241,46 +207,22 @@ def test_a_document_that_is_not_a_release_stops_the_verification() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Placeholders are checked, not excused
+# What an installed CLI cannot settle for itself
 # ---------------------------------------------------------------------------
 
 
-def test_a_placeholder_release_still_verifies() -> None:
-    result = run(placeholder_core(), agreeing_facts())
-    assert result.verified is True
+def test_skill_digests_are_left_to_the_repositories_that_hold_the_bytes() -> None:
+    checks = by_id(run(bound_core(), agreeing_facts()))
+    assert checks["starter_skill_digest"].status == "skipped"
+    assert "carries no Skill bytes" in checks["starter_skill_digest"].detail
+    assert checks["skill_improver_digest"].status == "skipped"
 
 
-def test_a_declared_placeholder_version_is_reported_as_unbound() -> None:
-    result = run(placeholder_core(), agreeing_facts())
-    assert "declared unbound" in by_id(result)["cli_version"].detail
-
-
-def test_a_placeholder_that_matches_the_installed_version_is_a_failure() -> None:
-    """A blank that happens to equal reality cannot be told from a binding."""
-    result = run(
-        placeholder_core(), agreeing_facts(package_version=PLACEHOLDER_VERSION)
-    )
-    assert_only_failure(result, "cli_version", RELEASE_PLACEHOLDER_INDISTINCT)
-
-
-def test_unbound_skill_digests_pass_and_bound_ones_are_left_to_the_plugin() -> None:
-    unbound = by_id(run(placeholder_core(), agreeing_facts()))
-    assert unbound["starter_skill_digest"].status == "passed"
-
-    bound = by_id(run(bound_core(), agreeing_facts()))
-    assert bound["starter_skill_digest"].status == "skipped"
-    assert "carries no Skill bytes" in bound["starter_skill_digest"].detail
-
-
-def test_an_unpublished_starter_skill_passes_and_a_published_one_is_reported() -> None:
-    """Verification never fetches, so a bound address is reported, not resolved."""
-    unbound = by_id(run(placeholder_core(), agreeing_facts()))
-    assert unbound["starter_skill_object_url"].status == "passed"
-    assert "not been published" in unbound["starter_skill_object_url"].detail
-
-    bound = by_id(run(bound_core(), agreeing_facts()))
-    assert bound["starter_skill_object_url"].status == "skipped"
-    assert SKILL_OBJECT_URL in bound["starter_skill_object_url"].detail
+def test_the_published_starter_address_is_reported_rather_than_fetched() -> None:
+    """Verification contacts nothing, so an address is reported, not resolved."""
+    checks = by_id(run(bound_core(), agreeing_facts()))
+    assert checks["starter_skill_object_url"].status == "skipped"
+    assert SKILL_OBJECT_URL in checks["starter_skill_object_url"].detail
 
 
 def test_a_check_that_could_not_run_is_never_reported_as_a_pass() -> None:

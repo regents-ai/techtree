@@ -1,11 +1,9 @@
 {
   "$defs": {
-    "Commit": {
-      "pattern": "^[0-9a-f]{40}$",
-      "type": "string"
-    },
-    "Digest": {
-      "pattern": "^sha256:[0-9a-f]{64}$",
+    "ConcreteDigest": {
+      "maxLength": 71,
+      "minLength": 71,
+      "pattern": "^sha256:0*[1-9a-f][0-9a-f]*$",
       "type": "string"
     },
     "NonEmptyString": {
@@ -13,52 +11,46 @@
       "type": "string"
     },
     "ObjectUrl": {
-      "pattern": "^https://[^\\s/@]+/[^\\s]*$",
+      "pattern": "^https://[^\\s/@]+/[^\\s]*sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "ReleaseId": {
+      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$",
+      "type": "string"
+    },
+    "Version": {
+      "pattern": "^[0-9]+(?:\\.[0-9]+){2}$",
       "type": "string"
     }
   },
   "$id": "https://schemas.techtree.dev/release/release-core.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "The frozen coordinates of one Climb release. Spec section 6.6.\n\nThe field list is the specification's, with one addition: the release says\nout loud whether it is a placeholder and which of its coordinates are still\nblank. Downstream repositories copy these bytes verbatim, so a reader that\nnever learns to decode anything else still learns that much.\n\n``starter_skill_digest`` and ``starter_skill_object_url`` are two halves of\none coordinate and neither substitutes for the other. The digest says\n*which* Skill the release measured — spec section 4.1 and decisions 0008\nmake it the ordered content-tree digest, not a file hash — and the URL says\nwhere a machine that does not already hold those bytes can obtain them.\nWithout the URL the digest names a Skill nobody can fetch; without the\ndigest the URL is an invitation to run whatever is served.",
+  "description": "The frozen coordinates of one Climb release. Spec section 6.6.\n\nEvery field is required and concrete. There is no field that describes the\nwheel, the plugin, or the commit this document was authored at: those are\nfacts about artifacts that do not exist yet when the release is written,\nand decision 0026 puts them where they can be known — stamped into the\nwheel, and witnessed by the website's bootstrap document.\n\n``starter_skill_digest`` and ``starter_skill_object_url`` are two halves of\none coordinate and neither substitutes for the other. The digest says\n*which* Skill the release measured — spec section 4.1 and decisions 0008\nmake it the ordered content-tree digest, not a file hash — and the URL says\nwhere a machine that does not already hold those bytes can obtain them, and\nwhich bytes the address itself promises.",
   "properties": {
     "catalog_digest": {
-      "$ref": "#/$defs/Digest"
-    },
-    "cli_source_commit": {
-      "$ref": "#/$defs/Commit"
+      "$ref": "#/$defs/ConcreteDigest"
     },
     "cli_version": {
-      "$ref": "#/$defs/NonEmptyString"
+      "$ref": "#/$defs/Version"
     },
     "engine_digest": {
-      "$ref": "#/$defs/Digest"
+      "$ref": "#/$defs/ConcreteDigest"
     },
     "intro_climb_reference": {
       "$ref": "#/$defs/NonEmptyString"
     },
     "maximum_tested_host_hermes_version": {
-      "$ref": "#/$defs/NonEmptyString"
+      "$ref": "#/$defs/Version"
     },
     "minimum_host_hermes_version": {
-      "$ref": "#/$defs/NonEmptyString"
-    },
-    "placeholder_fields": {
-      "items": {
-        "type": "string"
-      },
-      "title": "Placeholder Fields",
-      "type": "array"
-    },
-    "placeholder_release": {
-      "title": "Placeholder Release",
-      "type": "boolean"
+      "$ref": "#/$defs/Version"
     },
     "protocol_version": {
       "$ref": "#/$defs/NonEmptyString"
     },
     "release_id": {
-      "$ref": "#/$defs/NonEmptyString"
+      "$ref": "#/$defs/ReleaseId"
     },
     "schema_version": {
       "const": "techtree.release-core.v1",
@@ -66,25 +58,22 @@
       "type": "string"
     },
     "skill_improver_digest": {
-      "$ref": "#/$defs/Digest"
+      "$ref": "#/$defs/ConcreteDigest"
     },
     "starter_skill_digest": {
-      "$ref": "#/$defs/Digest"
+      "$ref": "#/$defs/ConcreteDigest"
     },
     "starter_skill_object_url": {
       "$ref": "#/$defs/ObjectUrl"
     },
     "subject_hermes_version": {
-      "$ref": "#/$defs/NonEmptyString"
+      "$ref": "#/$defs/Version"
     }
   },
   "required": [
     "schema_version",
-    "placeholder_release",
-    "placeholder_fields",
     "release_id",
     "cli_version",
-    "cli_source_commit",
     "protocol_version",
     "engine_digest",
     "catalog_digest",

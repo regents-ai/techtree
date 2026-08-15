@@ -33,6 +33,9 @@ techtree-worker = "techtree.worker.main:main"
 # Spec section 7.3.
 [dependency-groups]
 dev = [
+  # The build backend, so that the tests can exercise the build hook that
+  # stamps a wheel's source commit into it (decisions 0026).
+  "hatchling>=1.27,<2",
   "mypy>=1.17,<2",
   "pytest>=8,<9",
   "pytest-cov>=6,<8",
@@ -53,9 +56,15 @@ artifacts = [
   # Decisions 0007 R9: the pinned harness tool surface a comparison checks the
   # Skill-index delta against.
   "src/techtree/resources/harness/**/*",
-  # Spec section 9.6: the wheel contains the exact ReleaseCore.
+  # Spec section 9.6: the wheel contains the exact ReleaseCore, and decisions
+  # 0026: the build stamps this wheel's source commit in beside it.
   "src/techtree/resources/release/**/*",
 ]
+
+# Decisions 0026: the wheel is stamped with the commit its sources are, while
+# it is built. The hook refuses to build a wheel it cannot name a commit for.
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "tools/stamp_provenance.py"
 
 [tool.hatch.build.targets.sdist]
 include = [

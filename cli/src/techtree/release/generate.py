@@ -50,11 +50,11 @@ from techtree.release.models import (
     RELEASE_CORE_SCHEMA_VERSION,
     ReleaseCore,
     ReleaseInputs,
-    declared_placeholder_fields,
 )
 from techtree.version import PROTOCOL_VERSION
 
 __all__ = [
+    "BUILD_PROVENANCE_MECHANISM",
     "GENERATOR_VERSION",
     "ReleaseSources",
     "build_info_document",
@@ -65,6 +65,36 @@ __all__ = [
 #: Bumped when the generated shape changes, so a stored artifact can say which
 #: generator produced it.
 GENERATOR_VERSION: Final = "0.1.0"
+
+#: How a wheel comes to know which commit it was built from (decisions 0026).
+#: One mechanism, described where the release process is recorded, so that a
+#: reader of ``release/build-info.json`` never has to read the build hook to
+#: learn what the stamp inside a wheel means or how much it is worth.
+BUILD_PROVENANCE_MECHANISM: Final[Mapping[str, str]] = {
+    "mechanism": (
+        "a hatchling build hook, tools/stamp_provenance.py, writes the source "
+        "commit into the package while the wheel is being built"
+    ),
+    "build_command": "uv build --wheel",
+    "stamped_file": "techtree/resources/release/build-provenance.json",
+    "stamp_schema_version": "techtree.build-provenance.v1",
+    "commit_source": "git rev-parse HEAD, asked of the tree being packaged",
+    "refuses": (
+        "a build with no git, no commit, or any packaged path (src/techtree, "
+        "pyproject.toml, README.md, LICENSE) differing from that commit; there "
+        "is no unknown value and no default"
+    ),
+    "in_the_committed_tree": (
+        "never; the stamp belongs to one artifact and is written and removed "
+        "by the build"
+    ),
+    "editable_installs": (
+        "not stamped: an editable install is the working tree rather than a "
+        "distributable artifact, and `techtree release info` reports that no "
+        "commit was stamped instead of naming one"
+    ),
+    "reported_by": "techtree release info",
+}
 
 
 @dataclass(frozen=True)
@@ -97,7 +127,6 @@ def build_release_core(inputs: ReleaseInputs, sources: ReleaseSources) -> Releas
     campaign = catalog.load_campaign(climb.campaign_spec_digest)
 
     values = {
-        "cli_source_commit": inputs.cli_source_commit,
         "cli_version": inputs.cli_version,
         "maximum_tested_host_hermes_version": (
             inputs.maximum_tested_host_hermes_version
@@ -108,12 +137,9 @@ def build_release_core(inputs: ReleaseInputs, sources: ReleaseSources) -> Releas
         "starter_skill_digest": inputs.starter_skill_digest,
         "starter_skill_object_url": inputs.starter_skill_object_url,
     }
-    placeholders = declared_placeholder_fields(values)
 
     return ReleaseCore(
         schema_version=RELEASE_CORE_SCHEMA_VERSION,
-        placeholder_release=bool(placeholders),
-        placeholder_fields=placeholders,
         protocol_version=sources.protocol_version,
         engine_digest=engine_bundle_digest(sources.engine_root),
         catalog_digest=document_digest(sources.catalog_index_bytes()),
@@ -140,9 +166,15 @@ def build_info_document(
     is recorded.
 
     ``pyproject_version`` is recorded even though the ReleaseCore names the
-    published CLI version separately. While a release is still a placeholder
-    those two differ on purpose, and both a support conversation and the
-    version check in :mod:`techtree.release.checks` need to see both.
+    published CLI version separately. They are two different statements — what
+    this source tree declares, and what the release publishes — and both a
+    support conversation and the version check in
+    :mod:`techtree.release.checks` need to see both.
+
+    ``build_provenance`` describes how the *wheel* gets the one coordinate this
+    document deliberately does not carry: the commit it was built from
+    (decisions 0026). The description is here because this is the record of how
+    a release is produced; the value itself exists only inside a built wheel.
 
     ``artifacts`` does not include this document. A build record cannot state
     its own digest, and pretending otherwise would only produce a value that
@@ -152,8 +184,7 @@ def build_info_document(
         "schema_version": BUILD_INFO_SCHEMA_VERSION,
         "generator": "tools/build_release_core.py",
         "generator_version": GENERATOR_VERSION,
-        "placeholder_release": core.placeholder_release,
-        "placeholder_fields": list(core.placeholder_fields),
+        "build_provenance": dict(BUILD_PROVENANCE_MECHANISM),
         "inputs": {
             "release_inputs_digest": inputs_digest,
             "pyproject_version": pyproject_version,

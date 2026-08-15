@@ -12,19 +12,26 @@ This module checks the same document from the producing end, and it does that
 for two different reasons that are worth keeping apart.
 
 *Does the wrapper still name this release?* The bootstrap and the ReleaseCore
-repeat six coordinates — the CLI version, the CLI source commit, the minimum
-host Hermes version, the introductory Climb, and the starter Skill's digest and
-object URL. Repeated values drift, and when they do the website tells operators
-to install one thing while the CLI believes another. Each repeat is compared
-individually here so a failure names the coordinate.
+repeat four coordinates — the CLI version, the minimum host Hermes version, the
+introductory Climb, and the starter Skill. Repeated values drift, and when they
+do the website tells operators to install one thing while the CLI believes
+another. Each repeat is compared individually here so a failure names the
+coordinate.
 
-The starter Skill is the newest of those repeats and the one with the most to
-lose. Spec sections 4.1 and 10.5 make the wrapper the thing that says where the
-public Skill object is served from, and the release document the thing that
-says which bytes count. A wrapper that pointed at a different object, or named
-a different digest, would send an operator to fetch a Skill this release never
-measured — so both halves are compared, and a placeholder release is expected
-to repeat the placeholder rather than quietly fill it in.
+The wrapper also states one coordinate the release document deliberately does
+not carry: which source commit the published wheel was built from. Decisions
+0026 puts that fact where it can be known — stamped into the wheel by the build
+— so the comparison here is against the wheel itself, not against a claim the
+release repeats about itself.
+
+The starter Skill is the coordinate with the most to lose. Spec sections 4.1
+and 10.5 make the wrapper the thing that says where the public Skill object is
+served from, and the release document the thing that says which bytes count.
+The wrapper carries both halves of the object: ``file_digest``, the bytes the
+address returns, and ``tree_digest``, the one-file Skill the CLI builds out of
+them and verifies before it runs anything. The address must be keyed by the
+file digest, because that is what the website serves it under, and the tree
+digest must be the one this release measured.
 
 *Would the website accept these bytes at all?* The shape rules are the
 website's, not this repository's, and they stay the website's: it re-checks
@@ -51,7 +58,12 @@ from techtree.release.checks import (
     ReleaseCheck,
     ReleaseVerification,
 )
-from techtree.release.models import COMMIT_PATTERN, OBJECT_URL_PATTERN, ReleaseCore
+from techtree.release.models import (
+    OBJECT_URL_PATTERN,
+    ReleaseCore,
+    object_url_digest,
+)
+from techtree.release.provenance import COMMIT_PATTERN, BuildProvenance
 
 __all__ = [
     "BOOTSTRAP_RELEASE_INVALID",
@@ -74,6 +86,9 @@ _DIGEST_RE = re.compile(DIGEST_PATTERN)
 #: as paths so a failure can name the field the way the document spells it.
 _REQUIRED_FIELDS: Final[tuple[tuple[tuple[str, ...], str], ...]] = (
     (("channel",), "string"),
+    # The website's own declaration of whether it is serving a development
+    # bootstrap or a published one (decisions 0026 section 3). It says nothing
+    # about the release document, which is concrete either way.
     (("placeholder_release",), "boolean"),
     (("published_at",), "timestamp"),
     (("minimums", "hermes_version"), "string"),
@@ -87,8 +102,12 @@ _REQUIRED_FIELDS: Final[tuple[tuple[tuple[str, ...], str], ...]] = (
     (("hermes_plugin", "doctor_argv"), "argv"),
     (("introductory_climb", "reference"), "string"),
     (("introductory_climb", "host_prompt"), "string"),
+    (("starter_skill", "name"), "string"),
     (("starter_skill", "object_url"), "object URL"),
-    (("starter_skill", "digest"), "digest"),
+    (("starter_skill", "file_digest"), "digest"),
+    (("starter_skill", "tree_digest"), "digest"),
+    (("starter_skill", "media_type"), "string"),
+    (("starter_skill", "size"), "byte count"),
 )
 
 #: The kinds whose name does not take "a". Spelled out rather than derived,
@@ -96,11 +115,19 @@ _REQUIRED_FIELDS: Final[tuple[tuple[tuple[str, ...], str], ...]] = (
 _IRREGULAR_ARTICLES: Final[Mapping[str, str]] = {
     "argv": "an argument array",
     "object URL": "an object URL",
+    "byte count": "a positive byte count",
 }
 
 
-def verify_bootstrap_document(core: ReleaseCore, raw: bytes) -> ReleaseVerification:
-    """Check one bootstrap document against the ReleaseCore it should wrap."""
+def verify_bootstrap_document(
+    core: ReleaseCore, raw: bytes, *, wheel: BuildProvenance
+) -> ReleaseVerification:
+    """Check one bootstrap document against the release it should wrap.
+
+    ``wheel`` is the provenance stamped into the CLI wheel this bootstrap
+    publishes. It is required rather than optional: the document names a source
+    commit, and the only thing that can confirm it is the artifact itself.
+    """
     try:
         document = json.loads(raw)
     except ValueError as error:
@@ -133,7 +160,6 @@ def verify_bootstrap_document(core: ReleaseCore, raw: bytes) -> ReleaseVerificat
 
     checks.extend(
         [
-            _placeholder_declaration_check(core, document),
             _coordinate_check(
                 "bootstrap_cli_version",
                 document,
@@ -141,13 +167,7 @@ def verify_bootstrap_document(core: ReleaseCore, raw: bytes) -> ReleaseVerificat
                 core.cli_version,
                 "the CLI version",
             ),
-            _coordinate_check(
-                "bootstrap_cli_source_revision",
-                document,
-                ("cli", "source_revision"),
-                core.cli_source_commit,
-                "the CLI source commit",
-            ),
+            _wheel_commit_check(document, wheel),
             _coordinate_check(
                 "bootstrap_hermes_minimum",
                 document,
@@ -170,12 +190,13 @@ def verify_bootstrap_document(core: ReleaseCore, raw: bytes) -> ReleaseVerificat
                 "the starter Skill object URL",
             ),
             _coordinate_check(
-                "bootstrap_starter_skill_digest",
+                "bootstrap_starter_skill_tree_digest",
                 document,
-                ("starter_skill", "digest"),
+                ("starter_skill", "tree_digest"),
                 core.starter_skill_digest,
-                "the starter Skill digest",
+                "the starter Skill tree digest",
             ),
+            _starter_skill_address_check(document),
             _cli_install_argv_check(core, document),
             _plugin_install_argv_check(document),
         ]
@@ -226,22 +247,59 @@ def _importer_contract_check(document: dict[str, JsonValue]) -> ReleaseCheck:
     )
 
 
-def _placeholder_declaration_check(
-    core: ReleaseCore, document: dict[str, JsonValue]
+def _wheel_commit_check(
+    document: dict[str, JsonValue], wheel: BuildProvenance
 ) -> ReleaseCheck:
-    declared = _lookup(document, ("placeholder_release",))
-    if declared == core.placeholder_release:
-        state = "a placeholder" if core.placeholder_release else "a real"
+    """The commit the wrapper publishes must be the wheel's own stamp.
+
+    The release document says nothing about which commit built which artifact
+    (decisions 0026), so this is the one coordinate here that is compared
+    against the artifact rather than against the release: the wheel was
+    stamped while it was built, and the wrapper repeats that stamp to
+    operators.
+    """
+    published = _lookup(document, ("cli", "source_revision"))
+    if published == wheel.source_commit:
         return _passed(
-            "bootstrap_placeholder_declaration",
-            f"both documents declare {state} release.",
+            "bootstrap_cli_source_revision",
+            f"the published CLI was built from {wheel.source_commit}, which is "
+            "what the wheel is stamped with.",
         )
     return _failed(
-        "bootstrap_placeholder_declaration",
+        "bootstrap_cli_source_revision",
         BOOTSTRAP_RELEASE_MISMATCH,
-        f"the bootstrap document declares placeholder_release={declared} and "
-        f"the ReleaseCore declares {core.placeholder_release}; one of them is "
-        "telling operators the wrong thing about this release.",
+        f"the bootstrap document says the published CLI was built from "
+        f"{published!r}, and the wheel is stamped {wheel.source_commit!r}.",
+    )
+
+
+def _starter_skill_address_check(document: dict[str, JsonValue]) -> ReleaseCheck:
+    """The published address must be keyed by the bytes it returns.
+
+    The website files public objects under the digest of the file it serves,
+    and refuses an address keyed by anything else. A fetcher checks what
+    arrives against the address before it has built anything, so an address
+    keyed by the tree digest — or by nothing at all — would leave the first
+    check with nothing to compare against.
+    """
+    url = _lookup(document, ("starter_skill", "object_url"))
+    file_digest = _lookup(document, ("starter_skill", "file_digest"))
+    if not isinstance(url, str) or not isinstance(file_digest, str):
+        raise AssertionError("both fields are validated before they are read")
+
+    keyed = object_url_digest(url)
+    if keyed == file_digest:
+        return _passed(
+            "bootstrap_starter_skill_address",
+            f"the starter Skill is published at the digest of its own bytes, "
+            f"{file_digest}.",
+        )
+    return _failed(
+        "bootstrap_starter_skill_address",
+        BOOTSTRAP_RELEASE_MISMATCH,
+        f"the starter Skill address is keyed by {keyed} and the document says "
+        f"the bytes it returns are {file_digest}; a fetcher would check what "
+        "arrives against the wrong digest.",
     )
 
 
@@ -333,6 +391,8 @@ def _holds(value: JsonValue, kind: str) -> bool:
             )
         case "argv":
             return _is_argv(value)
+        case "byte count":
+            return isinstance(value, int) and not isinstance(value, bool) and value > 0
     raise AssertionError(f"unknown field kind {kind!r}")
 
 

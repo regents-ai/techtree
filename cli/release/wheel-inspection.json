@@ -117,5 +117,6 @@
   },
   "placeholder_release_note": "The packaged ReleaseCore still declares placeholder_release true, and now names four unbound coordinates rather than five: the host Hermes ceiling is bound, because a version was tested. The four that remain - release_id, cli_version, cli_source_commit and the starter Skill's address - can only be chosen at deploy time, and decision 0023 puts the placeholder_release:false candidate in WP11d, after this wheel exists.",
   "verdict": "PASS",
-  "findings": []
+  "findings": [],
+  "superseded": "SUPERSEDED. This record describes the wheel built before decision 0026 (the contract/provenance split), which carried ReleaseCore sha256:73d1be82\u2026 and no stamped source commit. The tree now generates ReleaseCore sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71, and a wheel can only be built once the commit it would be stamped with exists \u2014 the build refuses to name a commit it cannot establish. The chief rebuilds the wheel from the commit that lands this change and regenerates this record from that build."
 }

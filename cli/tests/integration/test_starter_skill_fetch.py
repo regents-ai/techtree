@@ -11,8 +11,9 @@ machine is ever contacted: the published starter Skill's real home is not a
 test dependency, and a test that reached for it would fail on an aeroplane and
 would be measuring somebody else's uptime.
 
-The CLI's own answer on this build is here too, because this build pins no
-starter Skill and the honest refusal is the behaviour an operator meets today.
+The CLI's own local-copy path is here too, because ``--from-file`` is the one
+route through this module that a test can drive end to end without depending on
+somebody else's uptime.
 """
 
 from __future__ import annotations
@@ -29,7 +30,6 @@ from fixtures.starter import STARTER_FIXTURE, tree_digest
 from fixtures.starter import release_pinning as release
 from techtree.constants import MAX_SKILL_TOTAL_BYTES
 from techtree.errors import (
-    EXIT_NOT_FOUND,
     PrerequisiteError,
     ValidationError,
     VerificationError,
@@ -39,7 +39,6 @@ from techtree.paths import paths_from_root
 from techtree.skills.starter import (
     STARTER_SKILL_DIGEST_MISMATCH,
     STARTER_SKILL_SOURCE_REFUSED,
-    STARTER_SKILL_UNAVAILABLE,
     StarterSkillService,
 )
 
@@ -168,36 +167,10 @@ def test_a_source_that_is_not_there_is_refused(
     assert raised.value.retryable is True
 
 
-def test_the_cli_refuses_honestly_on_a_build_that_publishes_no_starter_skill(
+def test_the_cli_accepts_a_local_copy_of_the_skill_this_release_pins(
     tmp_path: Path,
 ) -> None:
-    """What an operator meets today, now that the Skill itself is pinned.
-
-    This build names which Skill counts and has nowhere to fetch it from: the
-    digest is bound and ``starter_skill_object_url`` is still the placeholder,
-    because where the object will be served from is decided at deploy. So the
-    refusal is about the address rather than about the Skill, and it offers the
-    step that still works — naming a copy, which is checked against the pinned
-    digest exactly as a download would be.
-    """
-    home = tmp_path / "home"
-    home.mkdir()
-
-    refused = run_cli(home, "skill", "starter")
-
-    assert refused.exit_code == EXIT_NOT_FOUND
-    envelope = refused.envelope()
-    assert envelope["error"]["code"] == STARTER_SKILL_UNAVAILABLE
-    assert envelope["error"]["details"]["expected"] == STARTER_SKILL_TREE_DIGEST
-    assert [action["id"] for action in envelope["next_actions"]] == [
-        "name_a_starter_skill_source"
-    ]
-
-
-def test_naming_a_local_copy_still_works_on_a_build_that_publishes_nothing(
-    tmp_path: Path,
-) -> None:
-    """The next action the refusal offers has to be one that actually works."""
+    """A copy already on the machine is checked against the release's digest."""
     home = tmp_path / "home"
     home.mkdir()
 

@@ -25,14 +25,7 @@
  "gate1_approval_digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
  "gate1_approval_record_digest": "sha256:bc01c93e2aeced2dea33830939c9e35a2196335b9690b7d2b69647b5c4b54ce1",
  "lineage": "regenerated (decisions document 0025 option A)",
- "packaged_release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
- "placeholder_fields": [
-  "cli_source_commit",
-  "cli_version",
-  "release_id",
-  "starter_skill_object_url"
- ],
- "placeholder_release": true,
+ "packaged_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
  "purpose": "The scientific coordinates of the lineage this candidate wheel carries, read from the artifacts themselves at build time. Every value below is computed from a file in this repository or the plugin checkout; none is transcribed.",
  "recertification_runs": [
   {
@@ -67,10 +60,12 @@
   "intro_climb_reference": "hello-world-climb@1",
   "protocol_version": "v1alpha1",
   "pyproject_version": "0.1.0",
-  "release_inputs_digest": "sha256:ec04f352b866025e50053d9c57e08987e2466af333d133a1d3e64fea7f415f73"
+  "release_inputs_digest": "sha256:3ecb69acd4f4a3ac2b989435ffccb3e6ba55eb892a37635b59808e4d6055d5b0"
  },
- "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+ "release_contract": "Decisions document 0026: the ReleaseCore is a contract of concrete coordinates and describes no artifact of its own. The commit a wheel was built from is stamped into that wheel by the build and reported by `techtree release info`.",
+ "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
  "release_source_commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+ "release_source_commit_note": "release_source_commit still names the commit the superseded wheel was built from. The contract/provenance split has not been committed yet, so the commit that will build the publishable wheel does not exist; the chief updates this field, and rebuilds the wheel, after committing. No scientific coordinate above depends on it.",
  "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
  "runtime_image_platform_digests": {
   "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",

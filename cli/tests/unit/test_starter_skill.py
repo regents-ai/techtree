@@ -5,10 +5,10 @@ Three questions, and the second is the one that matters.
 *Does the right Skill arrive?* A local copy is read, scanned, and cached under
 the Techtree home, and a second call reuses what is already there.
 
-*Is anything else refused?* Bytes that do not hash to the pinned tree digest,
-a Skill the ordinary policy would reject from anybody, a cached directory that
-has been edited, a build that pins no starter Skill at all, and a source that
-is not a source. Every one of those leaves the home unchanged.
+*Is anything else refused?* Bytes that are not what the address promised,
+bytes that do not hash to the pinned tree digest, a Skill the ordinary policy
+would reject from anybody, a cached directory that has been edited, and a
+source that is not a source. Every one of those leaves the home unchanged.
 
 *Is it the tree digest?* Decisions document 0008 pins the starter Skill by its
 ``SkillArtifact.root_digest`` — the ordered content-tree digest the scanner
@@ -26,11 +26,13 @@ import pytest
 from fixtures.starter import (
     SKILL_FIXTURES,
     STARTER_FIXTURE,
+    content_address,
     tree_digest,
 )
 from fixtures.starter import (
     release_pinning as release,
 )
+from techtree.canonical import sha256_digest_bytes
 from techtree.errors import (
     NotFoundError,
     PrerequisiteError,
@@ -40,20 +42,18 @@ from techtree.errors import (
 )
 from techtree.models.base import Digest
 from techtree.paths import paths_from_root
-from techtree.release.models import PLACEHOLDER_DIGEST
 from techtree.skills.starter import (
     STARTER_SKILL_DIGEST_MISMATCH,
-    STARTER_SKILL_NOT_PINNED,
     STARTER_SKILL_SOURCE_REFUSED,
-    STARTER_SKILL_UNAVAILABLE,
     StarterSkillService,
 )
 
 #: Any digest that is not the fixture's, spelled so a failure is readable.
 OTHER_DIGEST: Digest = f"sha256:{'1' * 64}"
 
-#: The address a release that has published its starter Skill would carry.
-PUBLISHED_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
+#: The bytes the published object serves, and the address it serves them at.
+STARTER_BYTES = (STARTER_FIXTURE / "SKILL.md").read_bytes()
+PUBLISHED_URL = content_address(sha256_digest_bytes(STARTER_BYTES))
 
 
 @pytest.fixture
@@ -117,7 +117,7 @@ def test_a_published_release_needs_nobody_to_name_a_source(
 
     def download(url: str) -> bytes:
         asked.append(url)
-        return (STARTER_FIXTURE / "SKILL.md").read_bytes()
+        return STARTER_BYTES
 
     service = StarterSkillService(
         paths_from_root(temp_techtree_home), download=download
@@ -134,7 +134,7 @@ def test_a_published_release_needs_nobody_to_name_a_source(
 def test_the_published_address_buys_the_bytes_it_serves_no_trust(
     temp_techtree_home: Path, pinned: Digest
 ) -> None:
-    """The release's own URL goes through the same identity check as any other."""
+    """The address promises which bytes it returns, and they are checked first."""
     service = StarterSkillService(
         paths_from_root(temp_techtree_home),
         download=lambda url: b"---\nname: other\n---\n\nSomething else.\n",
@@ -144,7 +144,24 @@ def test_the_published_address_buys_the_bytes_it_serves_no_trust(
         service.materialize(release=release(pinned, object_url=PUBLISHED_URL))
 
     assert raised.value.code == STARTER_SKILL_DIGEST_MISMATCH
-    assert raised.value.details["source"] == PUBLISHED_URL
+    assert raised.value.details["url"] == PUBLISHED_URL
+
+
+def test_a_mirror_that_promises_nothing_is_still_held_to_the_tree_digest(
+    temp_techtree_home: Path, pinned: Digest
+) -> None:
+    """An address with no digest in it is checked by the release's digest."""
+    mirror = "https://mirror.example.com/starter/SKILL.md"
+    service = StarterSkillService(
+        paths_from_root(temp_techtree_home),
+        download=lambda url: b"---\nname: other\n---\n\nSomething else.\n",
+    )
+
+    with pytest.raises(VerificationError) as raised:
+        service.materialize(release=release(pinned), url=mirror)
+
+    assert raised.value.code == STARTER_SKILL_DIGEST_MISMATCH
+    assert raised.value.details["source"] == mirror
 
 
 def test_a_cache_hit_never_reaches_for_the_published_address(
@@ -176,45 +193,28 @@ def test_a_second_call_reuses_what_this_machine_already_has(
 
 
 def test_a_cached_skill_is_re_verified_rather_than_trusted(
-    service: StarterSkillService, pinned: Digest
+    temp_techtree_home: Path, pinned: Digest
 ) -> None:
     """A cached directory somebody edited is not a shortcut past the check."""
-    cached = service.materialize(
-        release=release(pinned), local_file=STARTER_FIXTURE
-    ).root
+    published = release(pinned, object_url=PUBLISHED_URL)
+    service = StarterSkillService(
+        paths_from_root(temp_techtree_home), download=lambda url: STARTER_BYTES
+    )
+    cached = service.materialize(release=published, local_file=STARTER_FIXTURE).root
     entrypoint = cached / "SKILL.md"
     entrypoint.chmod(0o600)
     entrypoint.write_text("something else entirely\n", encoding="utf-8")
 
-    with pytest.raises(NotFoundError) as raised:
-        service.materialize(release=release(pinned))
-
-    assert raised.value.code == STARTER_SKILL_UNAVAILABLE
-
-    # And naming the source again repairs it, because the source is verified.
-    repaired = service.materialize(release=release(pinned), local_file=STARTER_FIXTURE)
+    # The edited copy is not reused: the Skill is obtained again and verified.
+    repaired = service.materialize(release=published)
+    assert repaired.origin == "release"
     assert repaired.root_digest == pinned
-    assert (repaired.root / "SKILL.md").read_text(
-        "utf-8"
-    ) != "something else entirely\n"
+    assert (repaired.root / "SKILL.md").read_bytes() == STARTER_BYTES
 
 
 # ---------------------------------------------------------------------------
 # What is refused
 # ---------------------------------------------------------------------------
-
-
-def test_a_build_that_pins_no_starter_skill_says_so(
-    service: StarterSkillService,
-) -> None:
-    """Decision R10: a placeholder release has not chosen a Skill."""
-    with pytest.raises(PrerequisiteError) as raised:
-        service.materialize(
-            release=release(PLACEHOLDER_DIGEST), local_file=STARTER_FIXTURE
-        )
-
-    assert raised.value.code == STARTER_SKILL_NOT_PINNED
-    assert [action.id for action in raised.value.next_actions] == ["inspect_release"]
 
 
 def test_bytes_that_are_not_the_pinned_skill_are_refused(
@@ -277,15 +277,24 @@ def test_naming_two_sources_is_refused(
     assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED
 
 
-def test_naming_no_source_on_a_machine_that_has_nothing_is_refused(
-    service: StarterSkillService, pinned: Digest
+def test_a_published_address_that_cannot_be_reached_is_a_typed_refusal(
+    temp_techtree_home: Path, pinned: Digest
 ) -> None:
-    """The refusal says what is missing rather than fetching from somewhere."""
-    with pytest.raises(NotFoundError) as raised:
-        service.materialize(release=release(pinned))
+    """Nothing is invented when the object cannot be obtained."""
 
-    assert raised.value.code == STARTER_SKILL_UNAVAILABLE
-    assert raised.value.details["expected"] == pinned
+    def offline(url: str) -> bytes:
+        raise PrerequisiteError(
+            f"the starter Skill could not be fetched from {url}",
+            code=STARTER_SKILL_SOURCE_REFUSED,
+            retryable=True,
+        )
+
+    service = StarterSkillService(paths_from_root(temp_techtree_home), download=offline)
+
+    with pytest.raises(PrerequisiteError) as raised:
+        service.materialize(release=release(pinned, object_url=PUBLISHED_URL))
+
+    assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED
 
 
 @pytest.mark.parametrize(

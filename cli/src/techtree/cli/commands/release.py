@@ -7,15 +7,17 @@ contact nothing, and call no model. A host agent runs ``release verify``
 immediately after installing the CLI, before anything has been set up, so
 needing state would make the command useless exactly when it matters.
 
-``release info`` answers "what is this build?" from the release document alone.
+``release info`` answers "what is this build?" from the release document and
+from the commit stamped into this artifact when it was built (decisions 0026).
 ``release verify`` answers "is it still that?" by comparing every coordinate
 against the thing it names, and — when the caller supplies the digest the
 website published — against that too.
 
-A build whose release is still a placeholder says so in both commands, in the
-data and in a warning. It is the single most important thing a reader can learn
-about a pre-release build, and it must not depend on anyone noticing that a
-version string looks odd.
+The stamped commit is the one thing here that is not in the release document,
+because it is the one thing the release document cannot honestly contain: it
+is a fact about this artifact rather than about the release. A source checkout
+carries no stamp, and ``release info`` says that rather than naming a commit
+nobody stamped.
 """
 
 from __future__ import annotations
@@ -44,6 +46,11 @@ from techtree.release.document import (
     parse_release_core,
 )
 from techtree.release.generate import packaged_sources
+from techtree.release.provenance import (
+    BuildProvenance,
+    Commit,
+    packaged_build_provenance,
+)
 from techtree.version import package_version
 
 __all__ = [
@@ -64,19 +71,21 @@ RELEASE_NOT_VERIFIED: Final = "release_not_verified"
 
 
 class ReleaseInfoPayload(ProtocolModel):
-    """The coordinates of the release this build belongs to."""
+    """The coordinates of the release this build belongs to.
+
+    ``source_commit`` is stamped into a built artifact and is absent from a
+    source checkout, which is why it is the one field here that can be null.
+    """
 
     release_id: NonEmptyString
     cli_version: NonEmptyString
     package_version: NonEmptyString
-    cli_source_commit: NonEmptyString
+    source_commit: Commit | None
     protocol_version: NonEmptyString
     release_core_digest: Digest
     engine_digest: Digest
     catalog_digest: Digest
     intro_climb_reference: NonEmptyString
-    placeholder_release: bool
-    placeholder_fields: list[str]
 
 
 class ReleaseVerificationPayload(ProtocolModel):
@@ -95,24 +104,21 @@ def info_release_command(ctx: typer.Context) -> None:
     def action() -> CommandResult[ReleaseInfoPayload]:
         raw = packaged_release_core_bytes()
         core = parse_release_core(raw)
+        stamp = packaged_build_provenance()
         payload = ReleaseInfoPayload(
             release_id=core.release_id,
             cli_version=core.cli_version,
             package_version=package_version(),
-            cli_source_commit=core.cli_source_commit,
+            source_commit=None if stamp is None else stamp.source_commit,
             protocol_version=core.protocol_version,
             release_core_digest=document_digest(raw),
             engine_digest=core.engine_digest,
             catalog_digest=core.catalog_digest,
             intro_climb_reference=core.intro_climb_reference,
-            placeholder_release=core.placeholder_release,
-            placeholder_fields=list(core.placeholder_fields),
         )
         return CommandResult(
             data=payload,
-            warnings=_placeholder_warnings(
-                core.placeholder_release, payload.placeholder_fields
-            ),
+            warnings=_unstamped_warnings(stamp),
             next_actions=[_verify_action()],
         )
 
@@ -141,7 +147,6 @@ def verify_release_command(
             local_release_facts(packaged_sources()),
             expected_digest=expected_digest,
         )
-        core = parse_release_core(raw)
         payload = ReleaseVerificationPayload(
             release_core_digest=document_digest(raw),
             expected_digest=expected_digest,
@@ -151,9 +156,7 @@ def verify_release_command(
         return CommandResult(
             data=payload,
             messages=_verified_messages(result),
-            warnings=_placeholder_warnings(
-                core.placeholder_release, list(core.placeholder_fields)
-            ),
+            warnings=_unstamped_warnings(packaged_build_provenance()),
             next_actions=[
                 _check_environment() if result.verified else _inspect_action()
             ],
@@ -207,19 +210,18 @@ def _verified_messages(result: ReleaseVerification) -> list[CliMessage]:
     ]
 
 
-def _placeholder_warnings(
-    placeholder_release: bool, fields: list[str]
-) -> list[CliMessage]:
-    if not placeholder_release:
+def _unstamped_warnings(stamp: BuildProvenance | None) -> list[CliMessage]:
+    """Say when this is not a built artifact, so nothing claims a commit."""
+    if stamp is not None:
         return []
     return [
         CliMessage(
             level=MessageLevel.WARNING,
-            code="release_placeholder",
+            code="release_source_commit_unstamped",
             text=(
-                "This build belongs to a placeholder release: "
-                f"{', '.join(fields)} have not been chosen yet. It is a "
-                "development build, not a published one."
+                "This is running from a source checkout rather than an "
+                "installed build, so no source commit was stamped into it and "
+                "none is reported."
             ),
         )
     ]
@@ -272,7 +274,10 @@ def _render_info(data: object, console: Console) -> None:
     table.add_row("Release", data.release_id)
     table.add_row("CLI version", data.cli_version)
     table.add_row("Installed package", data.package_version)
-    table.add_row("Source commit", data.cli_source_commit)
+    table.add_row(
+        "Source commit",
+        data.source_commit or "not stamped: this is a source checkout",
+    )
     table.add_row("Protocol", data.protocol_version)
     table.add_row("ReleaseCore", data.release_core_digest)
     table.add_row("Engine", data.engine_digest)

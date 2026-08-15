@@ -19,13 +19,23 @@ from typing import Any
 import pytest
 
 from fixtures.starter import tree_digest
+from techtree.canonical import sha256_digest_bytes
+from techtree.release.bootstrap import (
+    BOOTSTRAP_RELEASE_MISMATCH,
+    verify_bootstrap_document,
+)
 from techtree.release.document import (
     document_digest,
     is_canonical_document,
     packaged_release_core_bytes,
     parse_release_core,
 )
-from techtree.release.models import PLACEHOLDER_DIGEST, PLACEHOLDER_OBJECT_URL
+from techtree.release.models import ReleaseCore, object_url_digest
+from techtree.release.provenance import BuildProvenance
+
+#: A stand-in for the commit a published wheel is stamped with. These tests
+#: build no wheel, so the value only has to be a commit.
+WHEEL_COMMIT = "b" * 40
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_DIRECTORY = REPOSITORY_ROOT / "release"
@@ -176,15 +186,22 @@ def test_the_dry_run_notices_an_edited_artifact() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_this_build_carries_a_self_declaring_placeholder_release() -> None:
+def test_this_build_carries_the_release_it_is_published_as() -> None:
+    """Decisions 0026: the document is a contract, and every value in it is real."""
     core = parse_release_core(packaged_release_core_bytes())
-    assert core.placeholder_release is True
-    assert core.placeholder_fields == [
-        "cli_source_commit",
-        "cli_version",
-        "release_id",
-        "starter_skill_object_url",
-    ]
+    assert core.release_id == "climb-v0.1.0"
+    assert core.cli_version == "0.1.0"
+
+
+def test_the_release_document_holds_the_contract_and_nothing_else() -> None:
+    """Decisions 0026: what a person can author, and no fact about an artifact.
+
+    The committed document carries exactly the model's fields, so a coordinate
+    that describes a wheel, a plugin or a commit cannot appear in it without
+    this failing.
+    """
+    document = json.loads(packaged_release_core_bytes())
+    assert set(document) == set(ReleaseCore.model_fields)
 
 
 def test_the_release_names_the_climb_and_harness_this_build_ships() -> None:
@@ -298,33 +315,33 @@ SKILL_IMPROVER_FILE_DIGEST = (
     "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097"
 )
 
+#: The SHA-256 of the starter Skill's one file, which is what the website
+#: serves it under. Recomputed from the bytes beside these tests below, so the
+#: address and the file cannot drift apart.
+STARTER_SKILL_FILE_DIGEST = (
+    "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
+)
+
 
 def test_the_starter_skill_still_hashes_to_the_digest_the_release_will_pin() -> None:
     """The Skill and the coordinate that names it cannot drift apart silently."""
     assert tree_digest(STARTER_SKILL.parent) == STARTER_SKILL_TREE_DIGEST
 
 
-def test_the_release_pins_which_starter_skill_and_not_yet_where() -> None:
-    """The two halves of the starter coordinate are bound at different moments.
+def test_the_release_pins_which_starter_skill_and_where_it_is_served() -> None:
+    """The two halves of the starter coordinate, and how they fit together.
 
-    *Which* Skill is settled: these bytes exist, they are in this repository,
-    and their tree digest is above. *Where* it is served from cannot be settled
-    until the release is deployed and the object has an address, so that half
-    stays a placeholder and the document says so in its own data.
-
-    The asymmetry is the point. A build in this state knows exactly which Skill
-    it measured and has nowhere to send a machine that does not already hold
-    it — which is why :mod:`techtree.skills.starter` refuses rather than
-    guessing, and why the refusal is about the address and not about the Skill.
+    *Which* Skill is the tree digest above: the ordered content digest of the
+    bytes in this repository, which is what the CLI checks a built Skill
+    against. *Where* is a content address, keyed by the digest of the file the
+    website returns — a different number for a different question, which is
+    why both are stated.
     """
     core = parse_release_core(packaged_release_core_bytes())
 
     assert core.starter_skill_digest == STARTER_SKILL_TREE_DIGEST
-    assert core.starter_skill_digest != PLACEHOLDER_DIGEST
-    assert "starter_skill_digest" not in core.placeholder_fields
-
-    assert core.starter_skill_object_url == PLACEHOLDER_OBJECT_URL
-    assert "starter_skill_object_url" in core.placeholder_fields
+    assert object_url_digest(core.starter_skill_object_url) == STARTER_SKILL_FILE_DIGEST
+    assert core.starter_skill_object_url.startswith("https://techtree.sh/")
 
 
 def test_both_founder_skill_digests_are_bound_under_their_own_semantics() -> None:
@@ -341,7 +358,7 @@ def test_both_founder_skill_digests_are_bound_under_their_own_semantics() -> Non
 
     assert core.starter_skill_digest == STARTER_SKILL_TREE_DIGEST
     assert core.skill_improver_digest == SKILL_IMPROVER_FILE_DIGEST
-    assert core.placeholder_release is True
+    assert sha256_digest_bytes(STARTER_SKILL.read_bytes()) == STARTER_SKILL_FILE_DIGEST
 
 
 def _committed_paths() -> list[Path]:
@@ -353,30 +370,18 @@ def _committed_paths() -> list[Path]:
     ]
 
 
-def test_a_wrapper_carrying_the_bound_starter_digest_verifies() -> None:
-    """The published wrapper and this release agree, now that the Skill is pinned.
-
-    Built against the *packaged* ReleaseCore rather than a synthetic one, so
-    this is the real cross-repository comparison the website will make at
-    import: a bootstrap document that names ``596d1368...`` as the starter
-    Skill has to pass, and the placeholder address has to be repeated rather
-    than filled in, because this release has not published the object yet.
-    """
-    import json
-
-    from techtree.release.bootstrap import verify_bootstrap_document
-
-    core = parse_release_core(packaged_release_core_bytes())
-    document = {
+def wrapper(core: Any, **starter: Any) -> dict[str, Any]:
+    """Return a bootstrap document that wraps the packaged release."""
+    return {
         "schema_version": "techtree.bootstrap.v1alpha1",
         "channel": "development",
-        "placeholder_release": True,
+        "placeholder_release": False,
         "published_at": "2026-08-14T00:00:00Z",
         "minimums": {"hermes_version": core.minimum_host_hermes_version},
         "cli": {
             "distribution": "techtree",
             "version": core.cli_version,
-            "source_revision": core.cli_source_commit,
+            "source_revision": WHEEL_COMMIT,
             "install_argv": ["uv", "tool", "install", f"techtree=={core.cli_version}"],
         },
         "hermes_plugin": {
@@ -392,58 +397,54 @@ def test_a_wrapper_carrying_the_bound_starter_digest_verifies() -> None:
         "starter_skill": {
             "name": "hello-world-starter-v1",
             "object_url": core.starter_skill_object_url,
-            "digest": STARTER_SKILL_TREE_DIGEST,
+            "file_digest": STARTER_SKILL_FILE_DIGEST,
+            "tree_digest": STARTER_SKILL_TREE_DIGEST,
+            "media_type": "text/markdown",
+            "size": STARTER_SKILL.stat().st_size,
+            **starter,
         },
     }
 
-    result = verify_bootstrap_document(core, json.dumps(document).encode("utf-8"))
+
+def test_a_wrapper_carrying_this_releases_coordinates_verifies() -> None:
+    """The real cross-repository comparison the website will make at import.
+
+    Built against the *packaged* ReleaseCore rather than a synthetic one, and
+    against a wheel stamp rather than a claim the release makes about itself.
+    """
+    core = parse_release_core(packaged_release_core_bytes())
+    result = verify_bootstrap_document(
+        core,
+        json.dumps(wrapper(core)).encode("utf-8"),
+        wheel=BuildProvenance(
+            schema_version="techtree.build-provenance.v1",
+            source_commit=WHEEL_COMMIT,
+        ),
+    )
 
     assert result.verified is True, [check.detail for check in result.failures]
     by_id = {check.id: check for check in result.checks}
-    assert by_id["bootstrap_starter_skill_digest"].status == "passed"
-    assert STARTER_SKILL_TREE_DIGEST in by_id["bootstrap_starter_skill_digest"].detail
-
-
-def test_a_wrapper_naming_the_old_placeholder_digest_is_now_refused() -> None:
-    """Binding the Skill means a stale wrapper stops verifying, which is the point."""
-    import json
-
-    from techtree.release.bootstrap import (
-        BOOTSTRAP_RELEASE_MISMATCH,
-        verify_bootstrap_document,
+    assert by_id["bootstrap_starter_skill_tree_digest"].status == "passed"
+    assert (
+        STARTER_SKILL_TREE_DIGEST in by_id["bootstrap_starter_skill_tree_digest"].detail
     )
 
+
+def test_a_wrapper_naming_a_starter_tree_this_release_never_measured_is_refused() -> (
+    None
+):
+    """The wrapper cannot send an operator to a Skill this release did not pin."""
     core = parse_release_core(packaged_release_core_bytes())
-    document = {
-        "schema_version": "techtree.bootstrap.v1alpha1",
-        "channel": "development",
-        "placeholder_release": True,
-        "published_at": "2026-08-14T00:00:00Z",
-        "minimums": {"hermes_version": core.minimum_host_hermes_version},
-        "cli": {
-            "distribution": "techtree",
-            "version": core.cli_version,
-            "source_revision": core.cli_source_commit,
-            "install_argv": ["uv", "tool", "install", f"techtree=={core.cli_version}"],
-        },
-        "hermes_plugin": {
-            "plugin_id": "techtree",
-            "revision": "e" * 40,
-            "install_argv": ["hermes", "plugins", "install", "--ref", "e" * 40],
-            "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"],
-        },
-        "introductory_climb": {
-            "reference": core.intro_climb_reference,
-            "host_prompt": "Set up Techtree and run the Hello World Climb.",
-        },
-        "starter_skill": {
-            "name": "hello-world-starter-v1",
-            "object_url": core.starter_skill_object_url,
-            "digest": PLACEHOLDER_DIGEST,
-        },
-    }
+    result = verify_bootstrap_document(
+        core,
+        json.dumps(wrapper(core, tree_digest="sha256:" + "9c" * 32)).encode("utf-8"),
+        wheel=BuildProvenance(
+            schema_version="techtree.build-provenance.v1",
+            source_commit=WHEEL_COMMIT,
+        ),
+    )
 
-    result = verify_bootstrap_document(core, json.dumps(document).encode("utf-8"))
-
-    assert [check.id for check in result.failures] == ["bootstrap_starter_skill_digest"]
+    assert [check.id for check in result.failures] == [
+        "bootstrap_starter_skill_tree_digest"
+    ]
     assert result.failures[0].code == BOOTSTRAP_RELEASE_MISMATCH

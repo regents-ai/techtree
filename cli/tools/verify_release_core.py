@@ -18,8 +18,11 @@ does the website's bootstrap document still name this release
 
 The bootstrap check is opt-in through ``--bootstrap <path>``, because the
 website lives in another repository that may or may not be checked out beside
-this one. Nothing here writes, publishes, or fetches anything; the bootstrap
-document is read from a local path and nothing else.
+this one. It requires ``--wheel <path>`` alongside it: the bootstrap document
+names the source commit of the published CLI, the release document deliberately
+does not (decisions 0026), and the only thing that can confirm that coordinate
+is the wheel's own stamp. Nothing here writes, publishes, or fetches anything;
+both files are read from local paths and nothing else.
 
 Run it with ``uv run python tools/verify_release_core.py``.
 """
@@ -45,6 +48,7 @@ from techtree.release.document import (
     parse_release_core,
 )
 from techtree.release.generate import packaged_sources
+from techtree.release.provenance import wheel_build_provenance
 
 # The generator holds the repository layout and this tool checks it, so the
 # two share one definition of where the artifacts live. ``tools`` is a scripts
@@ -83,7 +87,19 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="A website bootstrap document to check this release against.",
     )
+    parser.add_argument(
+        "--wheel",
+        metavar="PATH",
+        type=Path,
+        help=(
+            "The built CLI wheel the bootstrap document publishes. Required "
+            "with --bootstrap: its stamp is what the document's source commit "
+            "is checked against."
+        ),
+    )
     arguments = parser.parse_args(argv)
+    if (arguments.bootstrap is None) != (arguments.wheel is None):
+        parser.error("--bootstrap and --wheel are given together or not at all")
 
     expected = (
         None if arguments.expected is None else validate_digest(arguments.expected)
@@ -97,8 +113,18 @@ def main(argv: list[str] | None = None) -> int:
     checks = [*result.checks, *repository_checks()]
 
     if arguments.bootstrap is not None:
+        stamp = wheel_build_provenance(arguments.wheel)
+        if stamp is None:
+            sys.stdout.write(
+                f"release: {arguments.wheel} carries no build provenance, so "
+                "the source commit the bootstrap document names cannot be "
+                "checked against anything\n"
+            )
+            return 1
         core = parse_release_core(raw)
-        bootstrap = verify_bootstrap_document(core, arguments.bootstrap.read_bytes())
+        bootstrap = verify_bootstrap_document(
+            core, arguments.bootstrap.read_bytes(), wheel=stamp
+        )
         checks.extend(bootstrap.checks)
 
     verification = ReleaseVerification(

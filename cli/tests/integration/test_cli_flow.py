@@ -296,9 +296,9 @@ def test_the_starter_skills_printed_next_step_runs_verbatim(
     the machine envelope and executed as a real subprocess, argument for
     argument, with nothing rewritten.
 
-    Only the release document is substituted, because this build has not yet
-    pinned a starter Skill and the command's only reachable answer without one
-    is the refusal.
+    Only the release document is substituted, so that the Skill named on the
+    command line is the fixture Skill rather than the released one: what is
+    under test is the command, not the contents of this release.
     """
     home: Path = flow["home"]
     document = render_release_core(release_pinning(tree_digest(STARTER_FIXTURE)))

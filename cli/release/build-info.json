@@ -1,8 +1,19 @@
 {
   "artifacts": {
-    "release/release-core.json": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
-    "release/release-core.schema.json": "sha256:034f002407058b2f00a796b4ea3adcbbc5857421874f0bc4f48b62bdd04c3b56",
-    "src/techtree/resources/release/release-core.json": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c"
+    "release/release-core.json": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+    "release/release-core.schema.json": "sha256:e3371ff2767f7bf28eba2d198b08e151e199c3e57d3f50f89b54fbd850c3828a",
+    "src/techtree/resources/release/release-core.json": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71"
+  },
+  "build_provenance": {
+    "build_command": "uv build --wheel",
+    "commit_source": "git rev-parse HEAD, asked of the tree being packaged",
+    "editable_installs": "not stamped: an editable install is the working tree rather than a distributable artifact, and `techtree release info` reports that no commit was stamped instead of naming one",
+    "in_the_committed_tree": "never; the stamp belongs to one artifact and is written and removed by the build",
+    "mechanism": "a hatchling build hook, tools/stamp_provenance.py, writes the source commit into the package while the wheel is being built",
+    "refuses": "a build with no git, no commit, or any packaged path (src/techtree, pyproject.toml, README.md, LICENSE) differing from that commit; there is no unknown value and no default",
+    "reported_by": "techtree release info",
+    "stamp_schema_version": "techtree.build-provenance.v1",
+    "stamped_file": "techtree/resources/release/build-provenance.json"
   },
   "generator": "tools/build_release_core.py",
   "generator_version": "0.1.0",
@@ -12,14 +23,7 @@
     "intro_climb_reference": "hello-world-climb@1",
     "protocol_version": "v1alpha1",
     "pyproject_version": "0.1.0",
-    "release_inputs_digest": "sha256:ec04f352b866025e50053d9c57e08987e2466af333d133a1d3e64fea7f415f73"
+    "release_inputs_digest": "sha256:3ecb69acd4f4a3ac2b989435ffccb3e6ba55eb892a37635b59808e4d6055d5b0"
   },
-  "placeholder_fields": [
-    "cli_source_commit",
-    "cli_version",
-    "release_id",
-    "starter_skill_object_url"
-  ],
-  "placeholder_release": true,
   "schema_version": "techtree.release-build-info.v1"
 }

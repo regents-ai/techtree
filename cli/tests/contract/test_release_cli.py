@@ -106,7 +106,7 @@ def test_release_info_reports_every_coordinate_the_spec_lists(techtree: Any) -> 
     data = result.envelope()["data"]
     assert set(data) >= {
         "cli_version",
-        "cli_source_commit",
+        "source_commit",
         "protocol_version",
         "release_core_digest",
         "engine_digest",
@@ -120,26 +120,31 @@ def test_release_info_reports_every_coordinate_the_spec_lists(techtree: Any) -> 
     ]
 
 
-def test_release_info_says_out_loud_that_this_release_is_a_placeholder(
+def test_release_info_reports_the_commit_this_artifact_was_stamped_with(
     techtree: Any,
 ) -> None:
+    """Decisions 0026: a build's identity is stamped on it, or it is absent.
+
+    These tests run against a source checkout, which is not a built artifact,
+    so what is exercised here is the honest absence: no commit is reported and
+    the reader is told why, rather than being handed a value nobody stamped.
+    """
     envelope = techtree("release", "info", "--json").envelope()
 
-    assert envelope["data"]["placeholder_release"] is True
-    assert envelope["data"]["placeholder_fields"]
+    assert envelope["data"]["source_commit"] is None
     assert [warning["code"] for warning in envelope["warnings"]] == [
-        "release_placeholder"
+        "release_source_commit_unstamped"
     ]
 
 
 def test_release_info_shows_the_installed_version_beside_the_named_one(
     techtree: Any,
 ) -> None:
-    """While a release is a placeholder those two differ, and hiding that lies."""
+    """Two different statements: what is installed, and what the release names."""
     data = techtree("release", "info", "--json").envelope()["data"]
 
-    assert data["cli_version"] == "0.0.0-placeholder"
-    assert data["package_version"] != data["cli_version"]
+    assert data["cli_version"] == "0.1.0"
+    assert data["package_version"] == data["cli_version"]
 
 
 # ---------------------------------------------------------------------------

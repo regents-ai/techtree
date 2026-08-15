@@ -19,12 +19,10 @@ contacts nothing must not go and fetch. Those are reported as skips with their
 values in the detail, so a reader sees the coordinate and sees that nobody
 here checked it.
 
-Placeholders are checked, not excused. A coordinate the release declares as
-still unbound is verified to be *visibly* unbound: it must carry the canonical
-placeholder spelling, and — for the CLI version, the one placeholder that has a
-real counterpart on the same machine — it must not be equal to the real value
-it stands in for. A placeholder that happens to match reality is
-indistinguishable from a binding nobody made.
+Every coordinate a release names is a real one (decisions 0026), so there is
+nothing here that treats a value as provisional: a document that parsed is a
+document whose every coordinate was chosen, and each one is compared against
+the thing it names.
 """
 
 from __future__ import annotations
@@ -53,7 +51,6 @@ __all__ = [
     "RELEASE_CORE_DIGEST_MISMATCH",
     "RELEASE_CORE_INVALID",
     "RELEASE_CORE_NOT_CANONICAL",
-    "RELEASE_PLACEHOLDER_INDISTINCT",
     "ReleaseCheck",
     "ReleaseFacts",
     "ReleaseVerification",
@@ -66,7 +63,6 @@ RELEASE_CORE_INVALID: Final = "release_core_invalid"
 RELEASE_CORE_NOT_CANONICAL: Final = "release_core_not_canonical"
 RELEASE_CORE_DIGEST_MISMATCH: Final = "release_core_digest_mismatch"
 RELEASE_COORDINATE_MISMATCH: Final = "release_coordinate_mismatch"
-RELEASE_PLACEHOLDER_INDISTINCT: Final = "release_placeholder_indistinct"
 
 #: Why a check could not be run. Never a failure and never a pass.
 RELEASE_CHECK_NOT_APPLICABLE: Final = "release_check_not_applicable"
@@ -188,15 +184,10 @@ def _document_check(raw: bytes) -> ReleaseCheck:
     except ValidationError as error:
         return _failed("release_core_document", RELEASE_CORE_INVALID, str(error))
 
-    declaration = (
-        f"declares {len(core.placeholder_fields)} unbound "
-        f"{'coordinate' if len(core.placeholder_fields) == 1 else 'coordinates'}"
-        if core.placeholder_release
-        else "declares every coordinate bound"
-    )
     return _passed(
         "release_core_document",
-        f"the ReleaseCore is valid and {declaration}.",
+        f"the ReleaseCore is valid: release {core.release_id}, with every "
+        "coordinate concrete.",
     )
 
 
@@ -235,21 +226,6 @@ def _digest_check(raw: bytes, expected: Digest | None) -> ReleaseCheck:
 
 
 def _cli_version_check(core: ReleaseCore, facts: ReleaseFacts) -> ReleaseCheck:
-    if "cli_version" in core.placeholder_fields:
-        if core.cli_version == facts.package_version:
-            return _failed(
-                "cli_version",
-                RELEASE_PLACEHOLDER_INDISTINCT,
-                "the release names its CLI version as unbound, but the "
-                f"installed package is also {facts.package_version}; a "
-                "placeholder that matches the real value cannot be told from "
-                "a binding nobody made.",
-            )
-        return _passed(
-            "cli_version",
-            "the CLI version is declared unbound; the installed package is "
-            f"{facts.package_version}.",
-        )
     if core.cli_version == facts.package_version:
         return _passed(
             "cli_version",
@@ -327,25 +303,19 @@ def _founder_skill_checks(core: ReleaseCore) -> list[ReleaseCheck]:
     """Report each founder Skill digest, which this package cannot resolve.
 
     The CLI ships no Skill bytes — the starter Skill is served by the website
-    and the operator Skill is bundled by the plugin — so a bound digest is
-    checked where those bytes are, not here (spec section 9.6). What can be
-    settled here is that an unbound one says so.
+    and the operator Skill is bundled by the plugin — so each digest is checked
+    where those bytes are, not here (spec section 9.6).
     """
-    checks: list[ReleaseCheck] = []
-    for field in ("starter_skill_digest", "skill_improver_digest"):
-        value = getattr(core, field)
-        if field in core.placeholder_fields:
-            checks.append(_passed(field, "this Skill artifact is declared unbound."))
-            continue
-        checks.append(
-            _skipped(
-                field,
-                f"this release binds {field.removesuffix('_digest')} to {value}; "
-                "the CLI package carries no Skill bytes, so the plugin and the "
-                "website verify it against the Skill they serve.",
-            )
+    return [
+        _skipped(
+            field,
+            f"this release binds {field.removesuffix('_digest')} to "
+            f"{getattr(core, field)}; the CLI package carries no Skill bytes, "
+            "so the plugin and the website verify it against the Skill they "
+            "serve.",
         )
-    return checks
+        for field in ("starter_skill_digest", "skill_improver_digest")
+    ]
 
 
 def _starter_skill_source_check(core: ReleaseCore) -> ReleaseCheck:
@@ -357,11 +327,6 @@ def _starter_skill_source_check(core: ReleaseCore) -> ReleaseCheck:
     at the other end have to be is already settled by the digest beside it, and
     that comparison happens where the fetch does (spec section 10.5).
     """
-    if "starter_skill_object_url" in core.placeholder_fields:
-        return _passed(
-            "starter_skill_object_url",
-            "the starter Skill has not been published anywhere yet.",
-        )
     return _skipped(
         "starter_skill_object_url",
         f"this release publishes the starter Skill at "

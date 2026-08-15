@@ -20,8 +20,13 @@ sections 4.1 and 10.5 make the starter Skill a public object at an exact URL,
 and the release carries that URL as ``starter_skill_object_url``. So a caller
 who names nothing gets the published object, and the identity check over what
 arrives is the same one a hand-typed URL goes through — the release's address
-buys the bytes no trust at all. A build whose URL is still the placeholder has
-published nothing, and says that instead of guessing.
+buys the bytes no trust at all.
+
+*An address that names its own bytes is checked against them first.* The
+published object URL is a content address: it ends in the digest of the file it
+serves. What arrives is hashed and compared to that before it is treated as a
+Skill at all, which is the cheapest possible refusal of a wrong or tampered
+response, and it happens before any scanning.
 
 *The digest is the Skill's root digest, not a file hash.* Decisions document
 0008 fixes this: the starter Skill is evaluated through the kernel, so it is
@@ -30,12 +35,6 @@ the scanner computes. Materializing therefore *scans*, exactly as preparing a
 participant's own Skill does, and compares the tree digest. A Skill that the
 ordinary scanner or the ordinary policy refuses is refused here too. There is
 no privileged path for a Skill because a release named it.
-
-*A placeholder release has no starter Skill, and says so.* Decision R10 makes
-``placeholder_release`` a permanent schema rule, and a build whose starter
-digest is still the placeholder spelling has not chosen a Skill. Inventing one
-would give an operator a demo that measured something nobody pinned, so the
-refusal is typed and carries the next step.
 
 *The cache is Techtree's own.* Materialized Skills live under the Techtree
 home, in a directory named by the digest they were verified against — never in
@@ -63,6 +62,7 @@ from urllib.parse import urlsplit
 
 from filelock import FileLock, Timeout
 
+from techtree.canonical import sha256_digest_bytes
 from techtree.constants import MAX_SKILL_TOTAL_BYTES
 from techtree.errors import (
     NotFoundError,
@@ -74,30 +74,20 @@ from techtree.errors import (
 from techtree.fs import ensure_private_directory, remove_tree
 from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import Digest
-from techtree.models.cli import NextAction
 from techtree.models.skill import SKILL_ENTRY_FILE, SkillFile
 from techtree.paths import TechtreePaths
-from techtree.release.models import (
-    PLACEHOLDER_DIGEST,
-    PLACEHOLDER_OBJECT_URL,
-    ReleaseCore,
-)
+from techtree.release.models import ReleaseCore, object_url_digest
 from techtree.skills.policy import default_instruction_skill_policy
 from techtree.skills.scanner import SkillScanResult, resolve_skill_root, scan_skill
 
 __all__ = [
     "STARTER_SKILL_DIGEST_MISMATCH",
-    "STARTER_SKILL_NOT_PINNED",
     "STARTER_SKILL_SOURCE_REFUSED",
     "STARTER_SKILL_UNAVAILABLE",
     "Downloader",
     "MaterializedStarterSkill",
     "StarterSkillService",
 ]
-
-#: This build pins no starter Skill yet. Decision R10: a placeholder release
-#: has not chosen one, and saying so is the honest answer.
-STARTER_SKILL_NOT_PINNED: Final = "starter_skill_not_pinned"
 
 #: Nothing here holds the pinned Skill and nowhere was named to get it from.
 STARTER_SKILL_UNAVAILABLE: Final = "starter_skill_unavailable"
@@ -157,7 +147,7 @@ class StarterSkillService:
         url: str | None = None,
     ) -> MaterializedStarterSkill:
         """Return the pinned starter Skill, obtaining it if this home lacks it."""
-        pinned = _pinned_digest(release)
+        pinned = release.starter_skill_digest
         if local_file is not None and url is not None:
             raise UsageError(
                 "name one source for the starter Skill, not two",
@@ -178,7 +168,7 @@ class StarterSkillService:
                 cached = _verified_cache_entry(destination, pinned)
                 if cached is not None:
                     return _describe(cached, origin="cache")
-                origin, source = "release", _published_source(release, destination)
+                origin, source = "release", release.starter_skill_object_url
 
             staging = destination.parent / f"{_STAGING_PREFIX}{destination.name}"
             remove_tree(staging)
@@ -187,7 +177,7 @@ class StarterSkillService:
                     _stage_local(local_file, staging)
                 else:
                     _require_fetchable(source)
-                    _stage_document(self._download(source), staging)
+                    _stage_document(_fetched(self._download, source), staging)
                 _verify_scan(staging, pinned, source=source)
                 remove_tree(destination)
                 staging.replace(destination)
@@ -234,76 +224,37 @@ class StarterSkillService:
 # ---------------------------------------------------------------------------
 
 
-def _pinned_digest(release: ReleaseCore) -> Digest:
-    """Return the starter Skill this release chose, or refuse because it has not."""
-    if release.starter_skill_digest == PLACEHOLDER_DIGEST:
-        raise PrerequisiteError(
-            "this build's release has not chosen a starter Skill yet, so there "
-            "is no Skill to obtain. A release that has chosen one names its "
-            "digest, and this one still carries the placeholder.",
-            code=STARTER_SKILL_NOT_PINNED,
-            details={
-                "release_id": release.release_id,
-                "placeholder_fields": ", ".join(release.placeholder_fields),
-            },
-            next_actions=[
-                NextAction(
-                    id="inspect_release",
-                    label="See which release coordinates are still unchosen",
-                    reason=(
-                        "The starter Skill is one of this build's placeholder "
-                        "coordinates. A build that pins one obtains it without "
-                        "anybody naming a file."
-                    ),
-                    cli=["techtree", "release", "info"],
-                    hermes_tool=None,
-                    hermes_args=None,
-                    requires_user_confirmation=False,
-                )
-            ],
-        )
-    return release.starter_skill_digest
+def _fetched(download: Downloader, url: str) -> bytes:
+    """Return the bytes one address serves, checked against that address.
 
-
-def _published_source(release: ReleaseCore, cache: Path) -> str:
-    """Return the address this release publishes its starter Skill at.
-
-    Reached only when nothing is cached and nobody named a source, so the
-    refusal here is the one a person sees when there is genuinely nowhere to
-    look: this machine does not hold the Skill and this build's release never
-    said where it lives.
+    A content address promises which bytes it returns, and the release's
+    starter Skill address is one. Checking the response against the address it
+    came from costs one hash and refuses a wrong or tampered object before any
+    of it is treated as a Skill. An address that promises nothing — a mirror a
+    person typed — is checked by the tree digest alone, further down.
     """
-    if release.starter_skill_object_url == PLACEHOLDER_OBJECT_URL:
-        raise NotFoundError(
-            "this machine does not hold the starter Skill this release pins, "
-            "and the release does not say where it is published yet, so there "
-            "is nowhere to get it from",
-            code=STARTER_SKILL_UNAVAILABLE,
-            details={
-                "expected": release.starter_skill_digest,
-                "cache": str(cache),
-                "release_id": release.release_id,
-            },
-            next_actions=[
-                NextAction(
-                    id="name_a_starter_skill_source",
-                    # The release names the Skill, so a copy can still be
-                    # proved against it. What is missing is only the address.
-                    label="Name a local copy of the starter Skill",
-                    reason=(
-                        "This release pins which Skill counts, so a copy you "
-                        "already have is checked against that digest and "
-                        "refused unless it matches. Only the address it will "
-                        "be published at is still unchosen."
-                    ),
-                    cli=["techtree", "skill", "starter", "--from-file", "PATH"],
-                    hermes_tool=None,
-                    hermes_args=None,
-                    requires_user_confirmation=False,
-                )
-            ],
+    data = download(url)
+    promised = _promised_digest(url)
+    if promised is None:
+        return data
+
+    served = sha256_digest_bytes(data)
+    if served != promised:
+        raise VerificationError(
+            f"{url} promises the bytes it serves are {promised}, and it served "
+            f"{served}",
+            code=STARTER_SKILL_DIGEST_MISMATCH,
+            details={"url": url, "expected": promised, "computed": served},
         )
-    return release.starter_skill_object_url
+    return data
+
+
+def _promised_digest(url: str) -> Digest | None:
+    """Return the digest an address is keyed by, when it is keyed by one."""
+    try:
+        return object_url_digest(url)
+    except ValueError:
+        return None
 
 
 def _stage_local(source: Path, staging: Path) -> None:

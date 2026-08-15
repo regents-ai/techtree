@@ -1,8 +1,10 @@
-"""The ReleaseCore document and its placeholder declaration. Spec section 6.6.
+"""The ReleaseCore document and what makes its coordinates real.
 
-The declaration is the only thing standing between a half-finished release and
-a document that reads as a finished one, so these tests attack it from both
-sides: a release that hides a blank, and a release that pretends to have one.
+Spec section 6.6, decisions document 0026. A ReleaseCore is a contract: every
+coordinate in it is one a person chose, and the schema is what makes that true
+rather than a convention someone has to remember. So these tests take each kind
+of coordinate — a version, an identifier, a digest, an address — and check that
+the schema admits the real spelling and nothing that only looks like one.
 """
 
 from __future__ import annotations
@@ -21,30 +23,23 @@ from techtree.release.document import (
     render_release_core,
 )
 from techtree.release.models import (
-    PLACEHOLDER_COMMIT,
-    PLACEHOLDER_DIGEST,
-    PLACEHOLDER_OBJECT_URL,
-    PLACEHOLDER_VERSION,
     ReleaseCore,
     ReleaseInputs,
-    declared_placeholder_fields,
+    object_url_digest,
 )
 
 REAL_DIGEST = "sha256:" + "a1" * 32
 OTHER_DIGEST = "sha256:" + "b2" * 32
-REAL_COMMIT = "c" * 40
-REAL_OBJECT_URL = "https://techtree.sh/objects/hello-world-starter-v1/SKILL.md"
+FILE_DIGEST = "sha256:" + "c3" * 32
+REAL_OBJECT_URL = f"https://techtree.sh/api/v1/objects/{FILE_DIGEST}"
 
 
-def bound_fields() -> dict[str, Any]:
-    """Return a ReleaseCore with every coordinate bound to a real value."""
+def coordinates() -> dict[str, Any]:
+    """Return one complete ReleaseCore, every coordinate concrete."""
     return {
         "schema_version": "techtree.release-core.v1",
-        "placeholder_release": False,
-        "placeholder_fields": [],
         "release_id": "climb-v0.1.0",
         "cli_version": "0.1.0",
-        "cli_source_commit": REAL_COMMIT,
         "protocol_version": "v1alpha1",
         "engine_digest": REAL_DIGEST,
         "catalog_digest": OTHER_DIGEST,
@@ -60,120 +55,107 @@ def bound_fields() -> dict[str, Any]:
 
 def core(**overrides: Any) -> ReleaseCore:
     """Build a ReleaseCore, overriding any field."""
-    return ReleaseCore(**{**bound_fields(), **overrides})
+    return ReleaseCore(**{**coordinates(), **overrides})
 
 
-def test_a_fully_bound_release_declares_no_placeholders() -> None:
-    assert core().placeholder_release is False
-    assert core().placeholder_fields == []
-
-
-def test_a_placeholder_must_be_declared() -> None:
-    with pytest.raises(PydanticValidationError, match="must name exactly the fields"):
-        core(cli_version=PLACEHOLDER_VERSION)
-
-
-def test_declaring_a_placeholder_that_is_not_there_is_refused() -> None:
-    with pytest.raises(PydanticValidationError, match="must name exactly the fields"):
-        core(placeholder_release=True, placeholder_fields=["cli_version"])
-
-
-def test_a_declared_placeholder_release_is_accepted() -> None:
-    document = core(
-        placeholder_release=True,
-        placeholder_fields=["cli_version"],
-        cli_version=PLACEHOLDER_VERSION,
-    )
-    assert document.placeholder_fields == ["cli_version"]
-
-
-def test_the_release_flag_must_follow_the_field_list() -> None:
-    with pytest.raises(PydanticValidationError, match="placeholder_release must be"):
-        core(
-            placeholder_release=False,
-            placeholder_fields=["cli_version"],
-            cli_version=PLACEHOLDER_VERSION,
-        )
-
-
-def test_a_release_with_no_blanks_cannot_be_marked_provisional() -> None:
-    with pytest.raises(PydanticValidationError, match="placeholder_release must be"):
-        core(placeholder_release=True)
-
-
-def test_placeholder_fields_must_be_sorted_and_unique() -> None:
-    with pytest.raises(PydanticValidationError, match="sorted"):
-        core(
-            placeholder_release=True,
-            placeholder_fields=["cli_version", "cli_source_commit"],
-            cli_version=PLACEHOLDER_VERSION,
-            cli_source_commit=PLACEHOLDER_COMMIT,
-        )
-
-
-def test_a_field_with_no_placeholder_spelling_cannot_be_declared() -> None:
-    with pytest.raises(PydanticValidationError, match="no placeholder spelling"):
-        core(placeholder_release=True, placeholder_fields=["engine_digest"])
+def test_a_release_names_its_coordinates_and_nothing_about_its_artifacts() -> None:
+    """The document says which release this is, never which build (0026)."""
+    assert core().release_id == "climb-v0.1.0"
+    assert set(core().model_dump()) == set(coordinates())
 
 
 @pytest.mark.parametrize(
-    ("field", "value"),
+    "field",
     [
-        ("engine_digest", PLACEHOLDER_DIGEST),
-        ("catalog_digest", PLACEHOLDER_DIGEST),
-        ("protocol_version", PLACEHOLDER_VERSION),
-        ("subject_hermes_version", PLACEHOLDER_VERSION),
-    ],
-)
-def test_a_coordinate_read_from_the_tree_can_never_be_blank(
-    field: str, value: str
-) -> None:
-    with pytest.raises(PydanticValidationError, match="can never be placeholders"):
-        core(**{field: value})
-
-
-def test_every_placeholder_kind_has_exactly_one_spelling() -> None:
-    document = core(
-        placeholder_release=True,
-        placeholder_fields=[
-            "cli_source_commit",
-            "cli_version",
-            "release_id",
-            "starter_skill_digest",
-            "starter_skill_object_url",
-        ],
-        cli_source_commit=PLACEHOLDER_COMMIT,
-        cli_version=PLACEHOLDER_VERSION,
-        release_id=PLACEHOLDER_VERSION,
-        starter_skill_digest=PLACEHOLDER_DIGEST,
-        starter_skill_object_url=PLACEHOLDER_OBJECT_URL,
-    )
-    assert declared_placeholder_fields(document.model_dump(mode="json")) == [
-        "cli_source_commit",
-        "cli_version",
         "release_id",
+        "cli_version",
+        "protocol_version",
+        "engine_digest",
+        "catalog_digest",
+        "intro_climb_reference",
         "starter_skill_digest",
         "starter_skill_object_url",
-    ]
-
-
-def test_an_abbreviated_commit_is_not_a_commit() -> None:
+        "skill_improver_digest",
+        "minimum_host_hermes_version",
+        "maximum_tested_host_hermes_version",
+        "subject_hermes_version",
+    ],
+)
+def test_every_coordinate_is_required(field: str) -> None:
+    incomplete = {name: v for name, v in coordinates().items() if name != field}
     with pytest.raises(PydanticValidationError):
-        core(cli_source_commit="c" * 12)
+        ReleaseCore.model_validate(incomplete)
 
 
 @pytest.mark.parametrize(
     "value",
     [
-        pytest.param("http://techtree.sh/objects/SKILL.md", id="plaintext"),
-        pytest.param("techtree.sh/objects/SKILL.md", id="no scheme"),
-        pytest.param("/objects/SKILL.md", id="relative"),
-        pytest.param("https://techtree.sh", id="bare host"),
-        pytest.param("https://techtree.sh/a b", id="whitespace"),
-        pytest.param("https://techtree.sh/objects/SKILL.md\n", id="trailing newline"),
+        pytest.param("0.0.0-placeholder", id="unchosen"),
         pytest.param("", id="empty"),
-        pytest.param("https://user:token@techtree.sh/SKILL.md", id="userinfo"),
-        pytest.param("https://token@techtree.sh/SKILL.md", id="bare userinfo"),
+        pytest.param("latest", id="moving"),
+        pytest.param("0.1", id="two numbers"),
+        pytest.param("v0.1.0", id="prefixed"),
+    ],
+)
+def test_a_version_is_three_numbers(value: str) -> None:
+    with pytest.raises(PydanticValidationError):
+        core(cli_version=value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("0.0.0-placeholder", id="a version, not a name"),
+        pytest.param("", id="empty"),
+        pytest.param("Climb-v0.1.0", id="uppercase"),
+        pytest.param("climb v0.1.0", id="whitespace"),
+    ],
+)
+def test_a_release_identifier_is_a_name(value: str) -> None:
+    with pytest.raises(PydanticValidationError):
+        core(release_id=value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("sha256:" + "0" * 64, id="zeroed"),
+        pytest.param("", id="empty"),
+        pytest.param("sha256:" + "a" * 63, id="short"),
+        pytest.param("sha256:" + "A" * 64, id="uppercase"),
+        pytest.param("a" * 64, id="unprefixed"),
+    ],
+)
+def test_a_digest_is_a_measurement(value: str) -> None:
+    with pytest.raises(PydanticValidationError):
+        core(engine_digest=value)
+
+
+def test_a_digest_of_almost_all_zeros_is_still_a_measurement() -> None:
+    """Only *nothing* hashes to zero; a leading run of zeros is ordinary."""
+    assert core(engine_digest="sha256:" + "0" * 63 + "1").engine_digest.endswith("1")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("https://placeholder.invalid/unchosen", id="unresolvable"),
+        pytest.param(
+            f"https://placeholder.invalid/objects/{FILE_DIGEST}",
+            id="unresolvable content address",
+        ),
+        pytest.param(
+            "https://techtree.sh/objects/SKILL.md", id="not content addressed"
+        ),
+        pytest.param(f"http://techtree.sh/objects/{FILE_DIGEST}", id="plaintext"),
+        pytest.param(f"techtree.sh/objects/{FILE_DIGEST}", id="no scheme"),
+        pytest.param(f"/objects/{FILE_DIGEST}", id="relative"),
+        pytest.param("https://techtree.sh", id="bare host"),
+        pytest.param(f"https://techtree.sh/a b/{FILE_DIGEST}", id="whitespace"),
+        pytest.param(f"https://techtree.sh/{FILE_DIGEST}\n", id="trailing newline"),
+        pytest.param("", id="empty"),
+        pytest.param(f"https://user:token@techtree.sh/{FILE_DIGEST}", id="userinfo"),
+        pytest.param(f"https://token@techtree.sh/{FILE_DIGEST}", id="bare userinfo"),
     ],
 )
 def test_a_starter_skill_address_that_is_not_one_exact_object_is_refused(
@@ -181,6 +163,8 @@ def test_a_starter_skill_address_that_is_not_one_exact_object_is_refused(
 ) -> None:
     """Spec section 4.1: an exact read-only object URL, or no coordinate.
 
+    The address is a content address, so it ends in the digest of the bytes it
+    returns and a fetcher can check a response before it trusts any of it.
     Userinfo is refused for a reason of its own: the coordinate is copied into
     the plugin, the website and an approval packet, so an address that can
     carry a credential is an address that can leak one.
@@ -191,15 +175,23 @@ def test_a_starter_skill_address_that_is_not_one_exact_object_is_refused(
 
 def test_a_path_may_still_contain_an_at_sign() -> None:
     """Only the authority is constrained; a versioned path is an ordinary one."""
-    assert core(
-        starter_skill_object_url="https://techtree.sh/objects/starter@1/SKILL.md"
-    ).starter_skill_object_url.endswith("starter@1/SKILL.md")
+    url = f"https://techtree.sh/objects/starter@1/{FILE_DIGEST}"
+    assert core(starter_skill_object_url=url).starter_skill_object_url == url
+
+
+def test_the_address_says_which_bytes_it_serves() -> None:
+    assert object_url_digest(REAL_OBJECT_URL) == FILE_DIGEST
+
+
+def test_an_address_that_promises_nothing_says_so() -> None:
+    with pytest.raises(ValueError, match="not keyed by the digest"):
+        object_url_digest("https://techtree.sh/objects/SKILL.md")
 
 
 def test_an_unknown_field_is_refused() -> None:
     with pytest.raises(PydanticValidationError):
         ReleaseCore.model_validate(
-            {**bound_fields(), "website_origin": "https://techtree.sh"}
+            {**coordinates(), "website_origin": "https://techtree.sh"}
         )
 
 
@@ -254,7 +246,6 @@ def founder_inputs() -> dict[str, Any]:
         "schema_version": "techtree.release-inputs.v1",
         "release_id": "climb-v0.1.0",
         "cli_version": "0.1.0",
-        "cli_source_commit": REAL_COMMIT,
         "intro_climb_reference": "hello-world-climb@1",
         "starter_skill_digest": REAL_DIGEST,
         "starter_skill_object_url": REAL_OBJECT_URL,
@@ -271,3 +262,10 @@ def test_release_inputs_accept_only_founder_decisions() -> None:
 def test_release_inputs_reject_a_derived_coordinate() -> None:
     with pytest.raises(PydanticValidationError):
         ReleaseInputs.model_validate({**founder_inputs(), "engine_digest": REAL_DIGEST})
+
+
+def test_release_inputs_hold_only_chosen_values() -> None:
+    with pytest.raises(PydanticValidationError):
+        ReleaseInputs.model_validate(
+            {**founder_inputs(), "cli_version": "0.0.0-placeholder"}
+        )

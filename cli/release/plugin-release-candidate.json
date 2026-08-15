@@ -3,6 +3,7 @@
  "plugin_doctor": "passed",
  "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
  "repository": "github.com/regents-ai/techtree-hermes",
+ "superseded": "SUPERSEDED. This record describes the wheel built before decision 0026 (the contract/provenance split), which carried ReleaseCore sha256:73d1be82\u2026 and no stamped source commit. The tree now generates ReleaseCore sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71, and a wheel can only be built once the commit it would be stamped with exists \u2014 the build refuses to name a commit it cannot establish. The chief rebuilds the wheel from the commit that lands this change and regenerates this record from that build.",
  "version": "0.1.0",
  "wheel_sha256": "dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f"
 }
