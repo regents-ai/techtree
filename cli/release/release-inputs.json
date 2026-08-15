@@ -7,6 +7,6 @@
   "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
   "starter_skill_object_url": "https://placeholder.invalid/unchosen",
   "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
-  "minimum_host_hermes_version": "0.19.0",
-  "maximum_tested_host_hermes_version": "0.0.0-placeholder"
+  "minimum_host_hermes_version": "0.20.1",
+  "maximum_tested_host_hermes_version": "0.20.1"
 }

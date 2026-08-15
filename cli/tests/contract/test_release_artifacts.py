@@ -182,7 +182,6 @@ def test_this_build_carries_a_self_declaring_placeholder_release() -> None:
     assert core.placeholder_fields == [
         "cli_source_commit",
         "cli_version",
-        "maximum_tested_host_hermes_version",
         "release_id",
         "starter_skill_object_url",
     ]
@@ -193,6 +192,18 @@ def test_the_release_names_the_climb_and_harness_this_build_ships() -> None:
     assert core.intro_climb_reference == "hello-world-climb@1"
     assert core.subject_hermes_version == "0.19.0"
     assert core.protocol_version == "v1alpha1"
+
+
+def test_the_release_names_the_host_hermes_range_this_build_was_tested_on() -> None:
+    """The host range is a decision; the subject version is a measurement.
+
+    They are different coordinates and the release states both. Pinning the
+    host floor to the first Hermes that can install a plugin at an immutable
+    commit is what makes the pinned bootstrap argv honest.
+    """
+    core = parse_release_core(packaged_release_core_bytes())
+    assert core.minimum_host_hermes_version == "0.20.1"
+    assert core.maximum_tested_host_hermes_version == "0.20.1"
 
 
 # ---------------------------------------------------------------------------

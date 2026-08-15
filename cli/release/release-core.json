@@ -4,12 +4,11 @@
   "cli_version": "0.0.0-placeholder",
   "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
   "intro_climb_reference": "hello-world-climb@1",
-  "maximum_tested_host_hermes_version": "0.0.0-placeholder",
-  "minimum_host_hermes_version": "0.19.0",
+  "maximum_tested_host_hermes_version": "0.20.1",
+  "minimum_host_hermes_version": "0.20.1",
   "placeholder_fields": [
     "cli_source_commit",
     "cli_version",
-    "maximum_tested_host_hermes_version",
     "release_id",
     "starter_skill_object_url"
   ],

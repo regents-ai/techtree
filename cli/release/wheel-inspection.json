@@ -3,27 +3,27 @@
   "wheel": {
     "path": "dist/techtree-0.1.0-py3-none-any.whl",
     "filename": "techtree-0.1.0-py3-none-any.whl",
-    "size_bytes": 584859,
-    "sha256": "sha256:86e5908ee8f6db786ee7bb23c250c79452edcf4d463d8b57a9f3185dfdcd9dc5",
+    "size_bytes": 584836,
+    "sha256": "sha256:dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f",
     "version": "0.1.0",
     "member_count": 154,
-    "built_from_commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
-    "built_from": "a pristine export of the recorded commit, not the working tree",
+    "built_from_commit": null,
+    "built_from": "a pristine export of the working tree of the final packaging pass (git ls-files, so exactly the tree the pending commit will hold). The commit does not exist yet: the chief rebuilds from it after committing, and that rebuild's SHA-256 is the definitive publishable digest. The build is reproducible, so it is expected to equal the digest recorded here.",
     "reproducible": {
       "result": "pass",
-      "detail": "a second build, from a second independent export of the same commit into a different directory, produced a byte-identical wheel with the same SHA-256. The digest decision 0011 pins the install coordinate to is therefore a property of the commit, not of this machine or this run."
+      "detail": "a second build, from a second independent export of the same tree into a different directory, produced a byte-identical wheel with the same SHA-256."
     }
   },
   "checks": [
     {
       "check": "release_core_bytes_exact",
       "result": "pass",
-      "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:c0783963e03eee21bc0650a649bca0f716f15bf538a2300d2c388f1bd5e2c730)"
+      "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c)"
     },
     {
-      "check": "release_core_is_the_certified_document",
+      "check": "release_core_is_the_generated_document",
       "result": "pass",
-      "detail": "the packaged ReleaseCore digest is the one WP11a produced and the Gate-1 addendum names"
+      "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c)"
     },
     {
       "check": "packaged_catalog_names_certified_campaign",
@@ -51,6 +51,16 @@
       "detail": "no file in the wheel contains the string rich_output"
     },
     {
+      "check": "no_do_not_upload_marker",
+      "result": "pass",
+      "detail": "no member carries the 'Private :: Do Not Upload' classifier; the wheel metadata declares ['Classifier: Programming Language :: Python :: 3.12', 'Classifier: Programming Language :: Python :: 3.13']"
+    },
+    {
+      "check": "no_placeholders_beyond_the_designed_coordinates",
+      "result": "pass",
+      "detail": "the packaged ReleaseCore holds exactly the four designed placeholder coordinates ['cli_source_commit', 'cli_version', 'release_id', 'starter_skill_object_url']; the host Hermes range and every scientific coordinate are bound"
+    },
+    {
       "check": "no_absolute_build_paths",
       "result": "pass",
       "detail": "no member names the build directory, the operator's home, or any absolute path from this machine"
@@ -68,12 +78,12 @@
     {
       "check": "console_scripts_resolve",
       "result": "pass",
-      "detail": "{\"techtree\": {\"target\": \"techtree.cli.app:main\", \"module_in_wheel\": \"techtree/cli/app.py\", \"callable_defined\": true}, \"techtree-worker\": {\"target\": \"techtree.worker.main:main\", \"module_in_wheel\": \"techtree/worker/main.py\", \"callable_defined\": true}}"
+      "detail": "{\"techtree\": {\"callable_defined\": true, \"module_in_wheel\": \"techtree/cli/app.py\", \"target\": \"techtree.cli.app:main\"}, \"techtree-worker\": {\"callable_defined\": true, \"module_in_wheel\": \"techtree/worker/main.py\", \"target\": \"techtree.worker.main:main\"}}"
     },
     {
       "check": "wheel_version_agrees_with_release_core_build",
       "result": "pass",
-      "detail": "the wheel is version 0.1.0, which is the pyproject_version release/build-info.json records as the input to the certified ReleaseCore"
+      "detail": "the wheel is version 0.1.0, which is the pyproject_version release/build-info.json records as the input to this ReleaseCore"
     }
   ],
   "console_scripts": {
@@ -89,21 +99,23 @@
     }
   },
   "packaged_lineage": {
-    "release_core_digest": "sha256:c0783963e03eee21bc0650a649bca0f716f15bf538a2300d2c388f1bd5e2c730",
+    "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
     "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
     "campaign_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
     "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
     "subject_model_id": "qwen/qwen3.7-flash",
+    "subject_hermes_version": "0.19.0",
+    "minimum_host_hermes_version": "0.20.1",
+    "maximum_tested_host_hermes_version": "0.20.1",
     "placeholder_release": true,
     "placeholder_fields": [
       "cli_source_commit",
       "cli_version",
-      "maximum_tested_host_hermes_version",
       "release_id",
       "starter_skill_object_url"
     ]
   },
-  "placeholder_release_note": "The packaged ReleaseCore declares placeholder_release true. That is the certified document, not a defect: the coordinates left open (release_id, cli_version, cli_source_commit, the tested host Hermes ceiling, and the starter Skill's address) can only be chosen at deploy time, and decision 0023 puts the placeholder_release:false candidate in WP11d, after this wheel exists. The stop condition this ticket carries is read as its purpose: the wheel must hold the exact certified ReleaseCore bytes and no substitute, which it does.",
+  "placeholder_release_note": "The packaged ReleaseCore still declares placeholder_release true, and now names four unbound coordinates rather than five: the host Hermes ceiling is bound, because a version was tested. The four that remain - release_id, cli_version, cli_source_commit and the starter Skill's address - can only be chosen at deploy time, and decision 0023 puts the placeholder_release:false candidate in WP11d, after this wheel exists.",
   "verdict": "PASS",
   "findings": []
 }

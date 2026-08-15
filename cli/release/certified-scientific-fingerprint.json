@@ -25,11 +25,10 @@
   "gate1_approval_digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
   "gate1_approval_record_digest": "sha256:bc01c93e2aeced2dea33830939c9e35a2196335b9690b7d2b69647b5c4b54ce1",
   "lineage": "regenerated (decisions document 0025 option A)",
-  "packaged_release_core_digest": "sha256:c0783963e03eee21bc0650a649bca0f716f15bf538a2300d2c388f1bd5e2c730",
+  "packaged_release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
   "placeholder_fields": [
     "cli_source_commit",
     "cli_version",
-    "maximum_tested_host_hermes_version",
     "release_id",
     "starter_skill_object_url"
   ],
@@ -68,10 +67,11 @@
     "intro_climb_reference": "hello-world-climb@1",
     "protocol_version": "v1alpha1",
     "pyproject_version": "0.1.0",
-    "release_inputs_digest": "sha256:10ce07d57d0b858f89012c813887738ca1c710993fab7c5ed0e176c5d45d3cad"
+    "release_inputs_digest": "sha256:ec04f352b866025e50053d9c57e08987e2466af333d133a1d3e64fea7f415f73"
   },
-  "release_core_digest": "sha256:c0783963e03eee21bc0650a649bca0f716f15bf538a2300d2c388f1bd5e2c730",
-  "release_source_commit": "b1bef82a0c720a85bd6a1194b05e9964119e989b",
+  "release_core_digest": "sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c",
+  "release_source_commit": "e8b8cd9d9185f8bf6fa7a864479dc80bb6eeba3e",
+  "release_source_commit_note": "This is the techtree-python HEAD before the final packaging pass is committed. The pass leaves the release inputs, the two ReleaseCore copies, the build record and the package metadata modified in the working tree, so committing them produces a new commit. Whoever commits must replace this field with that commit and delete this note. No future commit is guessed here.",
   "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
   "runtime_image_platform_digests": {
     "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",
