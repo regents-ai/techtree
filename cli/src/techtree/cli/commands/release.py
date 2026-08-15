@@ -113,6 +113,7 @@ def info_release_command(ctx: typer.Context) -> None:
             warnings=_placeholder_warnings(
                 core.placeholder_release, payload.placeholder_fields
             ),
+            next_actions=[_verify_action()],
         )
 
     invoke_command(context, INFO_COMMAND, action, render_data=_render_info)
@@ -153,7 +154,9 @@ def verify_release_command(
             warnings=_placeholder_warnings(
                 core.placeholder_release, list(core.placeholder_fields)
             ),
-            next_actions=[] if result.verified else [_inspect_action()],
+            next_actions=[
+                _check_environment() if result.verified else _inspect_action()
+            ],
             error=None if result.verified else _failure(result),
         )
 
@@ -228,6 +231,31 @@ def _inspect_action() -> NextAction:
         label="See every release check, including the ones that passed",
         reason="Machine output lists each check with its own stable code.",
         cli=["techtree", "release", "verify", "--json"],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=False,
+    )
+
+
+def _verify_action() -> NextAction:
+    return NextAction(
+        id="verify_release",
+        label="Check this build against the release it names",
+        reason="Every coordinate above is checked against the thing it points at.",
+        cli=["techtree", "release", "verify"],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=False,
+    )
+
+
+def _check_environment() -> NextAction:
+    return NextAction(
+        id="check_environment",
+        label="Check that this machine is ready",
+        reason="Doctor reports what is installed, what is missing, and what "
+        "would block a run.",
+        cli=["techtree", "doctor"],
         hermes_tool=None,
         hermes_args=None,
         requires_user_confirmation=False,

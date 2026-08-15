@@ -13,12 +13,14 @@ composed failure is much easier to arrange from the inside.
 
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 import typer
+from rich.console import Console
 from typer.testing import CliRunner
 
 from techtree.cli.app import (
@@ -36,7 +38,7 @@ from techtree.cli.invoke import (
     not_implemented_error,
     success_envelope,
 )
-from techtree.cli.output import json_stdout, shell_display
+from techtree.cli.output import json_stdout, render_next_actions, shell_display
 from techtree.constants import CLI_SCHEMA_VERSION
 from techtree.doctor.service import DoctorReport, DoctorService
 from techtree.errors import (
@@ -291,6 +293,29 @@ def test_json_output_is_one_line_of_canonical_json(
 
     keys = list(json.loads(captured.out))
     assert keys == sorted(keys)
+
+
+def _rendered(actions: list[NextAction]) -> str:
+    """Return what a person would see below an answer carrying these steps."""
+    buffer = io.StringIO()
+    render_next_actions(actions, Console(file=buffer, width=100, no_color=True))
+    return buffer.getvalue()
+
+
+def test_one_next_action_is_headed_as_the_one_thing_to_do_next() -> None:
+    """Decision 0024 section 7: a successful answer ends with one immediate step."""
+    text = _rendered([action("run_doctor")])
+
+    assert "Next:" in text
+    assert "Next steps:" not in text
+    assert "1." not in text
+
+
+def test_several_next_actions_are_still_headed_as_a_list() -> None:
+    text = _rendered([action("run_doctor"), action("list_climbs")])
+
+    assert "Next steps:" in text
+    assert "1." in text
 
 
 def test_a_displayed_command_is_quoted_but_the_vector_is_the_contract() -> None:

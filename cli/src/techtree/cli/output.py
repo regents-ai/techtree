@@ -145,7 +145,9 @@ def render_next_actions(actions: list[NextAction], console: Console) -> None:
         return
 
     console.print()
-    console.print("Next steps:")
+    # Decision 0024 section 7: a successful response ends with one immediate
+    # action, so the one-action case is headed the way that rule reads.
+    console.print("Next:" if len(actions) == 1 else "Next steps:")
     table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 1))
     table.add_column("index", justify="right", no_wrap=True)
     # Folded rather than truncated. A next step is meant to be typed, and a
@@ -155,6 +157,8 @@ def render_next_actions(actions: list[NextAction], console: Console) -> None:
     # the whole line is the place a narrow terminal would cut it.
     table.add_column("step", overflow="fold")
 
+    # One step is not a list, so it is not numbered like one.
+    numbered = len(actions) > 1
     for position, action in enumerate(actions, start=1):
         lines = [action.label]
         if action.cli is not None:
@@ -163,7 +167,7 @@ def render_next_actions(actions: list[NextAction], console: Console) -> None:
             lines.append(action.reason)
         if action.requires_user_confirmation:
             lines.append("Requires confirmation by a person before it runs.")
-        table.add_row(f"{position}.", "\n".join(lines))
+        table.add_row(f"{position}." if numbered else "", "\n".join(lines))
 
     console.print(table)
 

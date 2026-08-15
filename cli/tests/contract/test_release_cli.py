@@ -114,6 +114,10 @@ def test_release_info_reports_every_coordinate_the_spec_lists(techtree: Any) -> 
         "intro_climb_reference",
     }
     assert data["release_core_digest"] == document_digest(packaged_release_core_bytes())
+    # Decision 0024 section 7: one immediate step, and only one.
+    assert [action["id"] for action in result.envelope()["next_actions"]] == [
+        "verify_release"
+    ]
 
 
 def test_release_info_says_out_loud_that_this_release_is_a_placeholder(
@@ -152,6 +156,10 @@ def test_release_verify_passes_on_this_build(techtree: Any) -> None:
     assert envelope["error"] is None
     assert envelope["data"]["verified"] is True
     assert envelope["messages"][0]["code"] == "release_verified"
+    # Decision 0024 section 7: a verified build is pointed straight at Doctor.
+    assert [action["id"] for action in envelope["next_actions"]] == [
+        "check_environment"
+    ]
 
 
 def test_release_verify_accepts_the_published_digest(techtree: Any) -> None:

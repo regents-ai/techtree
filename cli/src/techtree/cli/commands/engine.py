@@ -103,7 +103,11 @@ def status_engine_command(ctx: typer.Context, digest: DigestArgument = None) -> 
                     text=f"Evaluation engine {status.digest} is {status.detail}.",
                 )
             ],
-            next_actions=[] if status.installed else [_install_action()],
+            next_actions=[
+                _activate_or_browse(registry, status)
+                if status.installed
+                else _install_action()
+            ],
         )
 
     invoke_command(context, "engine status", action, render_data=_render)
@@ -130,6 +134,7 @@ def verify_engine_command(ctx: typer.Context, digest: DigestArgument = None) -> 
                     ),
                 )
             ],
+            next_actions=[_activate_or_browse(registry, status)],
         )
 
     invoke_command(context, "engine verify", action, render_data=_render)

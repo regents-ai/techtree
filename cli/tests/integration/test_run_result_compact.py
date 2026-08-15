@@ -154,6 +154,8 @@ def test_verifying_a_run_by_identifier(finished: dict[str, Any]) -> None:
     assert envelope["ok"] is True
     assert envelope["data"]["verified"] is True
     assert envelope["data"]["kind"] == "bundle"
+    # Decision 0024 section 7: a verified proof still names one thing to do next.
+    assert [action["id"] for action in envelope["next_actions"]] == ["proof_checks"]
 
 
 def test_verifying_a_bundle_directory_anywhere(

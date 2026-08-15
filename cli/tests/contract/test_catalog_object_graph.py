@@ -644,7 +644,7 @@ def test_list_renders_one_readable_row_per_climb(populated_home: Path) -> None:
     assert "2 Climbs are available in this build." in result.stdout
     assert "synthetic-open@1" in result.stdout
     assert "synthetic-closed@1" not in result.stdout
-    assert "Next steps:" in result.stdout
+    assert "Next:" in result.stdout
     assert "techtree climb show synthetic-open@1" in result.stdout
 
 

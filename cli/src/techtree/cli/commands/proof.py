@@ -106,7 +106,7 @@ def verify_proof_command(
             data=payload,
             messages=_messages(payload),
             warnings=_warnings(result),
-            next_actions=[] if result.verified else [_read_logs(target)],
+            next_actions=[_read_logs(target)],
             error=None if result.verified else _failure(payload, result),
         )
 
