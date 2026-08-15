@@ -12,21 +12,21 @@
   "cli": {
     "distribution": "techtree",
     "version": "0.1.0",
-    "source_revision": "38e242b633ec031d39c3e407054cd153c0c98326",
-    "wheel_sha256": "sha256:dfed8ad818e95e356933cf25c66fcd3d8d4d00468e0ac227f7d21a035bdfc85f",
+    "source_revision": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+    "wheel_sha256": "sha256:c11702512f9704d55c0022a613834468fee394c51bd8c283a7673e2b84865703",
     "install_argv": ["uv", "tool", "install", "techtree==0.1.0"]
   },
   "hermes_plugin": {
     "plugin_id": "techtree",
     "repository": "regents-ai/techtree-hermes",
-    "revision": "7f812ca5251ddb8f4db305d4d94f78bcc47e91ab",
+    "revision": "5943148a7bef07b80e8baa4bdb27adf4636fbb40",
     "install_argv": [
       "hermes",
       "plugins",
       "install",
       "regents-ai/techtree-hermes",
       "--ref",
-      "7f812ca5251ddb8f4db305d4d94f78bcc47e91ab",
+      "5943148a7bef07b80e8baa4bdb27adf4636fbb40",
       "--enable"
     ],
     "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]

@@ -101,10 +101,10 @@ approve, and this build does not serve them. It is three files:
 
 | | |
 | --- | --- |
-| Candidate bootstrap digest | `sha256:2ef4a47572f2450c17ec3cbf6a2c56a41ad7597ec2de5ea13e7280de0444c17e` |
-| ReleaseCore digest | `sha256:73d1be8234424aaab9f281bf66937b21d76cfc5d33b3ff2fd9b9a4dc38a1d33c` |
-| CLI | `techtree==0.1.0`, source `38e242b6…`, wheel `sha256:dfed8ad8…` |
-| Hermes plugin | `regents-ai/techtree-hermes` at `7f812ca5…` |
+| Candidate bootstrap digest | `sha256:57f95dccba41067e7e6a3c8bf7fc2dfdf897b9712e83823c5cda202c242bef89` |
+| ReleaseCore digest | `sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71` |
+| CLI | `techtree==0.1.0`, source `5ef44f99…`, wheel `sha256:c1170251…` |
+| Hermes plugin | `regents-ai/techtree-hermes` at `5943148a…` (carries ReleaseCore `sha256:90cd8ad6…`) |
 | Host Hermes | 0.20.1 minimum, 0.20.1 highest tested |
 | Starter Skill | file `sha256:2aff2707…`, tree `sha256:596d1368…` |
 
@@ -159,7 +159,7 @@ values; the channel is `development` and the release is a declared placeholder.
 | Plugin revision pinned | forty zeros |
 | Host Hermes minimum | 0.20.1 |
 
-The Gate-2 candidate `sha256:2ef4a475…` is deliberately absent from that list:
+The Gate-2 candidate `sha256:57f95dcc…` is deliberately absent from that list:
 it is a file in the repository and has never been staged, so naming it to
 `publish` refuses with `bootstrap_release_missing` and moves nothing.
 
