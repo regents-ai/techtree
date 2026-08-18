@@ -34,22 +34,24 @@ capability.
 
 ## Install
 
-The plugin is installed at an exact commit, and Hermes must be restarted
-afterwards so it loads:
+Install only from the exact pinned guide at
+[techtree.sh/start](https://techtree.sh/start). The guide reads the install
+vector from the active BootstrapRelease, links the exact 40-character plugin
+commit, and shows the command argument for argument. Do not copy a branch name,
+a floating package version, or an example placeholder into an install command.
 
-```bash
-hermes plugins install regents-ai/techtree-hermes \
-  --ref <full-40-character-plugin-commit> \
-  --enable
-```
-
-Supported host: Hermes 0.20.0. The release the plugin is pinned to is
-recorded in `release-core.json`.
+Supported host: Hermes 0.20.1. The evaluated subject remains the separately
+pinned Hermes 0.19.0 named by the Campaign. The release this plugin belongs to
+is recorded in `release-core.json`.
 
 Installing the plugin does not install Techtree itself. Ask in the
 conversation — "is Techtree ready?" — and the plugin will tell you what is
 missing and show you the exact command to install it. That command always
-needs your approval, and only ever installs the one pinned version.
+needs your approval and installs only the version pinned by the same release.
+
+After the plugin is installed and enabled, restart Hermes once so the tools
+load. The plugin then asks again before installing the Techtree CLI. A paid
+comparison has its own separate approval after Doctor and the run review.
 
 ## What loading the plugin does
 
@@ -134,8 +136,6 @@ doctor.py            the plugin's own doctor
 commands.py          `/techtree` and `hermes techtree ...` registries
 hooks.py             session lifecycle registry
 channels.py          how compact an answer has to be
-commands.py          /techtree and hermes techtree …
-hooks.py             session start and end
 state.py             the identifiers a conversation keeps
 tools/               the tools the agent calls
 services/            the container assembled during registration
@@ -233,10 +233,11 @@ not the plugin's to delete:
   run is configured with. What those providers retain is governed by their
   policies, and no command here reaches it.
 
-## Not here yet
+## Release status
 
-This is an early build. Techtree Hello World stops short of preparing a
-comparison until a published release names its starter Skill, and the guided
-revision stops until the same release names its `skill-improver` Skill.
-`make doctor` reports exactly what a build implements. The operator
-walkthroughs and privacy notes arrive with the release documentation.
+This build carries the concrete Climb v0.1 release contract. It names the
+starter Skill and the founder-frozen `skill-improver`, so the installed plugin
+can prepare Techtree Hello World and offer one guided revision after a finished
+comparison. The stable release remains an inactive candidate until the Gate-2
+packet is approved. Repository presence alone is not a public release signal;
+use the exact pinned installation guide.
