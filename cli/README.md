@@ -1,67 +1,76 @@
 # Techtree
 
 Techtree is the open improvement and proof network for agent systems. Agents
-compete on executable environments, skills and harnesses climb through
+compete on executable environments, Skills and harnesses climb through
 controlled trials, and every improvement produces reproducible evidence.
 
-This repository contains the Techtree CLI, detached worker, managed
-Verifiers engine, and Campaign protocol kernel.
+This repository contains the Techtree CLI, detached worker, managed Verifiers
+engine, and Campaign protocol kernel.
+
+## Climb v0.1
+
+Techtree Climb v0.1 (“Techtree Hello World”) is a toy, synthetic demonstration
+of Skill uplift. It runs the same pinned agent on the same tasks twice, changes
+only the declared Skill, shows the measured difference, and creates a signed
+local receipt with an offline proof check.
+
+The repository contains the real evaluation path: managed engine installation,
+containerized subject runs, append-only run records, signed receipts and
+reports, local proof verification, and one guided single-`SKILL.md` revision
+flow. The release candidate remains inactive until the release gates in
+`docs/v0.1-remaining-tickets.md` are complete and the founder gives the exact
+final approval phrase.
+
+No Techtree account is required. A model-provider account and an active Prime
+CLI configuration are required for the introductory paid comparisons.
+Techtree does not upload evaluation artifacts. Model inference is sent to the
+selected provider under that provider’s policies. The resulting evidence is
+participant-attested and has not been independently reproduced.
 
 ## Campaign kernel
 
-Climb is a public wrapper around a reusable CampaignSpec.
-Execution artifacts reference the CampaignSpec, not the public Climb directly.
+Climb is a public wrapper around a reusable CampaignSpec. Execution artifacts
+reference the CampaignSpec, not the public Climb directly.
 
 A Climb owns public identity: slug, version, title, status, schedule, and the
 candidate, publication, and leaderboard policies. A CampaignSpec owns the
 science: taskset reference, selection and membership commitment, environment,
 named agents, evaluation backend, scoring, evidence requirements, and budgets.
 Every campaign points at a DataPolicy, and every artifact a run produces
-carries that policy's digest, so the rights attached to a submission cannot
+carries that policy’s digest, so the rights attached to a submission cannot
 change quietly between preparation and publication.
 
-## Development status
+## Source installation
 
-> The WP0–WP5 implementation validates real Prime Intellect Verifiers
-> tasksets but uses a fake baseline/candidate executor. It does not evaluate
-> a real agent. No result produced by the fake executor is a capability proof.
-
-Implementation is in progress. See `docs/decisions/` for binding decisions
-and `docs/spec/climb-v0.1-wp0-wp5.md` for the full implementation
-specification.
-
-## Installation
-
-Techtree targets Python 3.12 and uses [uv](https://docs.astral.sh/uv/) for
-every workflow.
+Techtree supports Python 3.12 and 3.13. Release acceptance journeys use a
+pinned Python 3.12 interpreter. Use [uv](https://docs.astral.sh/uv/) for every
+workflow.
 
 ```bash
-uv sync
-```
-
-That creates the project environment and installs the `techtree` and
-`techtree-worker` executables into it.
-
-```bash
+uv sync --python 3.12
 uv run techtree --version
 ```
 
+That creates the project environment and installs the `techtree` and
+`techtree-worker` executables into it. It is a source-development install, not
+the public-coordinate release journey.
+
 ## The evaluation credential
 
-Running a comparison pays for the evaluated agent's model calls, and that
+Running a comparison pays for the evaluated agent’s model calls, and that
 credential is yours. Techtree never stores it, never logs it, and never puts it
-in a run's files. It is also separate from whatever your own agent is signed in
-with.
+in a run’s files. It is also separate from whatever host agent you are talking
+to.
 
 **Exporting it in your terminal is not enough.** A comparison does not run
 inside the command you typed: `techtree climb start` and `techtree uplift start`
 hand the work to a separate background process, and that process is given a
-deliberately small environment so that nothing else on your machine can lean
-into an experiment. Variables you export in your shell are not passed to it. A
-run that cannot find the credential stops before it spends anything and says so.
+deliberately small environment so that unrelated local state cannot lean into
+an experiment. Variables exported in the shell are not passed to it. A run
+that cannot find the credential stops before model inference begins and says
+so.
 
-The supported way is to sign in with the Prime CLI. That leaves an active
-configuration the run reads for itself:
+The supported path is an active Prime CLI configuration:
 
 ```bash
 prime login
@@ -69,10 +78,9 @@ techtree doctor --for-evaluation
 ```
 
 `techtree doctor --for-evaluation` also checks the container image a run needs.
-Its credential line answers for the run, not for the terminal you typed it in:
-it passes only when a real comparison would find the credential for itself, and
-if you have exported the credential in that terminal it says plainly that the
-export cannot reach a run. It never prints the credential itself.
+Its credential line answers for the detached run rather than for the terminal
+that invoked Doctor. It never prints the credential itself. A present but
+revoked credential can still fail at the provider’s first model call.
 
 ## Local development
 
@@ -80,100 +88,88 @@ export cannot reach a run. It never prints the credential itself.
 make install          # uv sync
 make format           # rewrite formatting and apply safe lint fixes
 make check            # format-check, lint, typecheck, test, generated-check
+make test-integration
 ```
 
-`make check` is the gate. Individual steps are available as `make format-check`,
-`make lint`, `make typecheck`, and `make test`.
-
-The scientific environment is separate. The managed engine under
+`make check` and `make test-integration` are the repository gates. The
+scientific environment is separate: the managed engine under
 `src/techtree/resources/engines/default/` has its own pinned dependencies and
-its own lock file, and the ordinary package never depends on Verifiers,
-Hermes, or NeMo Relay.
+lock file, and the ordinary package never depends on Verifiers, Hermes, or
+NeMo Relay.
 
 ## Command overview
 
 ```bash
-techtree setup                                   # install the managed engine
+techtree setup
+techtree doctor --for-evaluation
 techtree climb list
-techtree climb show <climb-slug>                 # includes campaign and policy digests
+techtree climb show <climb-slug>
 techtree climb prepare <climb-slug> --skill <path>
-techtree climb start <draft-id>                   # shows the review, then asks
+techtree climb start <draft-id>
 techtree run status <run-id> --watch
 techtree run logs <run-id> --tail 200
-techtree run result <run-id>                     # the comparison, with its caveats
-techtree proof verify <run-id>                   # check the run's local proof, offline
-techtree uplift context <run-id>                 # what a host agent may read about a run
+techtree run result <run-id>
+techtree proof verify <run-id>
+techtree uplift context <run-id>
 techtree uplift prepare --from-run <run-id> --candidate-skill <path>
 techtree uplift start <draft-id>
 ```
 
 The detached worker is started by the CLI and is not a user-facing command.
-
-Every command speaks two languages: rendered output for a person and, with
-`--json`, exactly one JSON object on standard output so another program can
-drive the CLI. Logs always go to standard error.
+Every command has rendered output for a person and, with `--json`, exactly one
+JSON object on standard output for another program. Logs go to standard error.
 
 ## Local proof
 
-A finished real run signs its receipts and its report with a key this machine
+A finished run signs its receipts and report with an Ed25519 key this machine
 made and keeps. The signed documents travel together in a proof bundle inside
-the run directory, and `techtree proof verify` checks that bundle from its own
-stored bytes — no network, no Techtree account, and no Techtree state of its
-own, so a bundle copied to another machine still checks out.
+the run directory, and `techtree proof verify` checks that bundle from its
+stored bytes. The proof check needs no network, no Techtree account, and no
+Techtree service state, so a copied bundle can be checked on another machine.
 
-What a verified proof says is bounded, and the product says so wherever it
-shows one: the participant's own key vouches for bytes that verify against each
-other. Nobody has independently reproduced the comparison, no platform
-witnessed it, and nothing was uploaded. Running the comparison is a different
-matter from checking its proof: model inference is sent to the model provider
-whose credentials the run uses, under that provider's policies.
+A verified proof makes a bounded claim: the participant’s key vouches for
+bytes that verify against one another. Nobody else witnessed the computation,
+and the comparison has not been independently reproduced. Running the
+comparison is different from checking its proof: model inference is sent to
+the model provider whose credentials the run uses.
 
-## Improving a skill
+## Improving a Skill
 
 A finished run can be continued. `techtree uplift context` writes a sanitized
-account of what that run showed — the objective, the headline numbers, and the
-tasks worth looking at — for a host agent to read before proposing a revision.
-It carries no hidden expected answer, no grader material, no credential, no
-local path, and no transcript of what the evaluated agent replied; the context
-lists what it withholds, on the artifact itself.
+account of what the run showed—the objective, headline numbers, and tasks worth
+looking at—for a host agent to read before proposing a revision. It carries no
+hidden expected answer, grader material, credential, local path, or transcript
+of what the evaluated agent replied.
 
-`techtree uplift prepare` then sets up the second comparison: the skill the
-first run measured against the revision, everything else held fixed. The
-baseline is pinned to the skill as it was evaluated rather than to whatever is
-in a directory now, the revision goes through the same scanner and the same
-controlled-comparison check as any first submission, and the data policy is
-shown and accepted again before the second run starts. Nothing about that
-second run is smaller than the first: it produces its own signed report and its
-own local proof.
+`techtree uplift prepare` sets up the second comparison: the Skill measured in
+the first run versus the revision, with everything else held fixed. The
+baseline is pinned to the archived Skill rather than to a mutable directory.
+The revision goes through the same scanner and controlled-comparison checks,
+and the data policy is shown and accepted again before the second run starts.
+The second comparison produces its own signed report and local proof.
 
-Techtree does not write the revision. Proposing one is a host agent's job, and
-no command here calls a model.
-
-## Development-only runs
-
-Runs produced before WP6 validate a real taskset through Prime Intellect
-Verifiers, but the baseline and candidate results come from a fake executor.
-No agent is executed, no model credential is read, and no container image is
-pulled. Reports from these runs are marked development-only and are blocked
-from publication.
+The CLI does not write the revision and does not call a model to propose one.
+That one proposal belongs to the host-agent layer and is separately
+approval-gated.
 
 ## Repository architecture
 
 ```text
-src/techtree/          the CLI package
-  models/              protocol objects: campaign, climb, data policy, artifacts
-  cli/                 Typer application, rendering, command groups
-  catalog/             the embedded campaign and climb catalog
-  skills/              skill scanning and archiving
+src/techtree/          CLI package
+  models/              protocol objects
+  cli/                 Typer commands and rendering
+  catalog/             embedded campaign and Climb catalog
+  skills/              Skill scanning and archiving
   manifests/ drafts/   experiment manifests and prepared submissions
-  runs/ worker/        run state, events, and the detached worker
+  runs/ worker/        run state, events, and detached execution
   engines/             managed engine registry, installer, and runner
   tasksets/            taskset resolution, membership, and validation
-  resources/           embedded catalog and the managed engine bundle
-docs/                  architecture, protocol, and binding decisions
-schemas/v1alpha1/      exported JSON Schemas for protocol objects
-tools/                 generators for the engine bundle, catalog, goldens, schemas
-tests/                 unit, contract, and integration suites plus fixtures
+  resources/           embedded catalog, release contract, and engine bundle
+docs/                  architecture, protocol, decisions, and release contracts
+release/               release inputs, generated contract, and audit records
+schemas/v1alpha1/      exported JSON Schemas
+tools/                 generators and unpackaged release verification tools
+tests/                 unit, contract, integration, preflight, and fixtures
 ```
 
 Dependencies point inward: commands depend on services, services depend on
@@ -182,48 +178,56 @@ protocol models, and protocol models depend on nothing in the package.
 ## Testing
 
 ```bash
-make test               # unit and contract suites
+make test
 make test-unit
 make test-contract
-make test-integration   # real filesystem and subprocess flows
+make test-integration
 make verifiers-preflight
 ```
 
-Integration and preflight tests are excluded from the default run because they
-are slow and, for preflight, require the pinned Verifiers build. No test reads
-or writes a real user home; suites work inside a temporary Techtree home.
+Integration and preflight tests are excluded from the default pytest selection
+because they are slower and, for preflight, require the pinned Verifiers build.
+No test reads or writes a real user home; suites work inside a temporary
+Techtree home.
 
-## Security assumptions
+## Security boundaries
 
-- Skills are treated as untrusted input. They are scanned and archived, never
-  executed by the CLI.
-- Signing uses Ed25519 primitives only. There is no live signing, no device
-  key, and no identity storage before WP6.
-- Provider credentials are never stored in Techtree settings, never logged,
-  and never read by the fake executor.
-- The CLI prints command suggestions for a person to run; it never executes a
-  displayed command string.
-- All local state lives under a private Techtree home directory.
+- Skills are untrusted input. The CLI scans and archives them; it does not
+  execute submitted Skill files.
+- Completed evidence is append-only. The product never rewrites a finished
+  run’s stored bytes.
+- Receipts and reports use Ed25519 signatures, and proof verification reads the
+  stored bundle rather than a Techtree service.
+- Provider credentials are not stored in Techtree settings, logs, arguments,
+  drafts, runs, receipts, reports, or proof bundles.
+- Detached workers receive a deliberately scrubbed environment. Do not loosen
+  the allow-list in `src/techtree/runs/launcher.py`.
+- Displayed commands are argument vectors for a person or host to review. The
+  CLI does not execute a model-authored shell string.
+- Local state is created under private Techtree directories. The website
+  release surface is read-only.
 
 ## Generated files
 
 Some committed files are generated and must never be hand-edited: the JSON
-Schemas under `schemas/`, the protocol goldens under `tests/golden/`, the
-embedded catalog under `src/techtree/resources/catalog/`, and the managed
-engine bundle under `src/techtree/resources/engines/`.
+Schemas under `schemas/`, protocol goldens under `tests/golden/`, the embedded
+catalog under `src/techtree/resources/catalog/`, the managed engine bundle
+under `src/techtree/resources/engines/`, and generated release-contract copies.
 
 ```bash
-make regenerate         # engine bundle, catalog, goldens, schemas, in that order
-make generated-check    # regenerate in a temporary tree and fail on drift
+make regenerate
+make generated-check
 ```
 
-`make generated-check` never writes to the working tree.
+`make generated-check` regenerates into a temporary tree and does not write to
+the working tree.
 
-## Protocol documentation
+## Protocol and release documentation
 
 - `docs/protocol-v1alpha1.md` — normative protocol definition
 - `docs/architecture.md` — system architecture
 - `docs/cli-json-contract.md` — machine-mode CLI contract
-- `docs/run-state-machine.md` — run phases and events
-- `docs/wp6-handoff.md` — what WP6 may assume
+- `docs/run-state-machine.md` — internal lifecycle and public projection
+- `docs/agent-handoff.md` — current three-repository handoff
+- `docs/v0.1-remaining-tickets.md` — remaining release work and contracts
 - `docs/decisions/` — binding decisions
