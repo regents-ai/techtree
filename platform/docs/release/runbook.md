@@ -101,30 +101,59 @@ approve, and this build does not serve them. It is three files:
 
 | | |
 | --- | --- |
-| Candidate bootstrap digest | `sha256:57f95dccba41067e7e6a3c8bf7fc2dfdf897b9712e83823c5cda202c242bef89` |
+| Release channel | `stable` |
+| Candidate bootstrap digest | `sha256:ed7cb6128ef7fdc9a75685f8e62354e0a9c36360956945f517ed3fce4daf4ff4` |
 | ReleaseCore digest | `sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71` |
-| CLI | `techtree==0.1.0`, source `5ef44f99…`, wheel `sha256:c1170251…` |
-| Hermes plugin | `regents-ai/techtree-hermes` at `5943148a…` (carries ReleaseCore `sha256:90cd8ad6…`) |
+| CLI | `techtree==0.1.0`, source `a444c4d6…`, wheel `sha256:9a8c02af…` |
+| Hermes plugin | `regents-ai/techtree-hermes` at `0670ff11…` (carries ReleaseCore `sha256:90cd8ad6…`) |
 | Host Hermes | 0.20.1 minimum, 0.20.1 highest tested |
 | Starter Skill | file `sha256:2aff2707…`, tree `sha256:596d1368…` |
+| Rollback floor | `priv/bootstrap/stable.json`, `sha256:da064357…` |
 
-Activating it is the ordinary publishing sequence above with the candidate as
-the bundle's bootstrap, so the approved bytes become the served bytes without
-being rewritten:
+The source commit is the commit the published wheel was built from, and it is
+read from the stamp inside the wheel rather than from anything the repository
+says about itself (decision 0026). `techtree-python` checks the whole table:
+
+    uv run python tools/verify_release_core.py \
+      --bootstrap ../techtree-ash/priv/releases/climb-v0.1.0/bootstrap.json \
+      --wheel dist/techtree-0.1.0-py3-none-any.whl
+
+All 25 checks are green for these bytes: 21 pass and 4 are skipped as facts only
+the plugin and this site can see, and none fail.
+
+### The channel and its floor
+
+Decision 0027 puts this release on the channel `stable`, and gives that channel
+a floor to roll back to: `priv/bootstrap/stable.json`, a release that declares
+itself a placeholder and carries no coordinate anything could be installed from
+— version `0.0.0-placeholder`, both revisions unset, the starter Skill address
+`https://placeholder.invalid/unchosen`. It is staged on `stable` before the
+candidate is, and it stays staged afterwards, so a rollback is a pointer move
+onto bytes that exist rather than onto nothing.
+
+`development` is untouched and stays what it always was: the channel this
+repository serves locally, whose placeholder is `priv/bootstrap/development.json`
+(`sha256:9e5afcb3…`). A build serves one channel, chosen by
+`TECHTREE_BOOTSTRAP_CHANNEL`; the compile-time default is `development`.
+
+Activating the candidate is the ordinary publishing sequence above with the
+candidate as the bundle's bootstrap, so the approved bytes become the served
+bytes without being rewritten:
 
     mix run scripts/sync_catalog.exs \
       --source ../techtree-python/src/techtree/resources/catalog \
-      --source-revision <full commit> \
-      --generator-version <version> \
+      --source-revision a444c4d603a4094545cff8ae0d72f2197e26ce63 \
+      --generator-version 0.1.0 \
       --bootstrap priv/releases/climb-v0.1.0/bootstrap.json
 
 The digest served afterwards must be the candidate digest above, unchanged. The
-placeholder release stays staged, so rolling back is the pointer move in
-[rollback.md](rollback.md).
+floor stays staged, so rolling back is the pointer move in
+[rollback.md](rollback.md). The host-side sequence, including moving the live
+site onto `stable` before any of this, is [deploy-flyio.md](deploy-flyio.md).
 
 **None of this happens before Gate 2.** Until then the candidate is a file in
-the repository, the pointer is on the placeholder, and the public install flow
-stays shut.
+the repository, the pointer is on a declared placeholder, and the public
+install flow stays shut.
 
 ## Verifying
 
@@ -159,9 +188,11 @@ values; the channel is `development` and the release is a declared placeholder.
 | Plugin revision pinned | forty zeros |
 | Host Hermes minimum | 0.20.1 |
 
-The Gate-2 candidate `sha256:57f95dcc…` is deliberately absent from that list:
+The Gate-2 candidate `sha256:ed7cb612…` is deliberately absent from that list:
 it is a file in the repository and has never been staged, so naming it to
-`publish` refuses with `bootstrap_release_missing` and moves nothing.
+`publish` refuses with `bootstrap_release_missing` and moves nothing. So is the
+`stable` floor `sha256:da064357…`, which is staged on the live site before
+Gate 2 rather than here — `stable` has no rows in a local development database.
 
 `mix techtree.bootstrap.list` prints this table for whatever database it is
 pointed at, newest first, marking the published release with `*`.

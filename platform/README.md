@@ -101,8 +101,13 @@ mix run --no-start scripts/sync_catalog.exs \
 
 `--source-revision`, `--generator-version`, and the bootstrap document are
 release inputs, supplied explicitly rather than guessed: the pinned CLI version
-and the pinned Hermes plugin commit are founder-owned decisions. The document in
-`priv/bootstrap` is the placeholder used until they are made.
+and the pinned Hermes plugin commit are founder-owned decisions.
+
+`priv/bootstrap` holds one declared placeholder per release channel:
+`development.json` for local work, and `stable.json`, the release the `stable`
+channel is rolled back onto. Both are non-installable by construction. The
+release with real coordinates lives in `priv/releases/climb-v0.1.0/` and is not
+served by this build.
 
 Then verify and import:
 
@@ -147,7 +152,8 @@ DATABASE_URL                 required in production
 SECRET_KEY_BASE              required in production
 PHX_HOST, PORT               endpoint
 TECHTREE_CATALOG_ROOT        a bundle deployed beside the release, optional
-TECHTREE_BOOTSTRAP_CHANNEL   the release channel to import and serve
+TECHTREE_BOOTSTRAP_CHANNEL   the release channel to import and serve;
+                             `development` unless set, `stable` in production
 ```
 
 No model-provider credential is read by this application.

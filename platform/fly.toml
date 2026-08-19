@@ -31,9 +31,11 @@ swap_size_mb = 512
   # bin/server alone, so that `bin/migrate` and `bin/techtree eval` can run on
   # the same machine without a second process trying to bind PORT.
   #
-  # TECHTREE_BOOTSTRAP_CHANNEL is deliberately absent. Unset, the release
-  # serves the `development` channel, whose staged release is the declared
-  # placeholder. Setting it to `stable` is a Gate-2 action.
+  # TECHTREE_BOOTSTRAP_CHANNEL is deliberately absent here too: it belongs with
+  # the deployed app rather than in the image, because moving it and importing
+  # the matching bundle have to happen in one operator step (deploy runbook,
+  # part 1b). Unset, the release serves the `development` channel. Production
+  # serves `stable`.
 
 [deploy]
   # Migrations run in a one-off machine on the new image, before any machine

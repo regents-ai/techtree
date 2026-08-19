@@ -108,9 +108,10 @@ prints, and the origin its live pages are allowed to connect from, is built from
 it — so while the smoke test runs against `techtree-sh.fly.dev`, that is what it
 should say. Step 11 changes it to `techtree.sh` once the certificate is issued.
 
-There is no `TECHTREE_BOOTSTRAP_CHANNEL`. Unset, the release serves the
-`development` channel, whose staged release is the declared placeholder. See
-"The channel variable" below before setting it to anything.
+There is no `TECHTREE_BOOTSTRAP_CHANNEL` yet. Unset, the release serves the
+`development` channel, whose staged release is the declared placeholder. Part
+1b moves the app to the `stable` channel this release ships on; do not set the
+variable before then, and read "The channel variable" below first.
 
 ### 5. Deploy
 
@@ -252,8 +253,92 @@ Expected before Gate 2:
 Also worth one look: `https://techtree.sh/api/v1/objects/sha256:2aff2707…`
 returns the starter Skill as `text/markdown; charset=utf-8`.
 
-**Stop here until Gate 2.** The site is up, the certificate is real, the
-database is migrated, and what is published is the placeholder.
+The site is up, the certificate is real, the database is migrated, and what is
+published is the placeholder. Part 1b moves it to the channel this release
+ships on, and is also safe before Gate 2.
+
+## Part 1b — move to the `stable` channel, before Gate 2
+
+Decision 0027 puts Climb v0.1 on the channel `stable`, and gives that channel a
+floor to roll back to: a second declared placeholder, staged on `stable` before
+anything else is. Doing this *before* Gate 2 is the point. It leaves activation
+as nothing but a pointer move on a channel that already works, instead of a
+channel change and an activation at the same moment, and it proves the rollback
+target exists before there is anything to roll back from.
+
+Nothing here becomes installable. `priv/bootstrap/stable.json` declares
+`"placeholder_release": true`, pins `0.0.0-placeholder`, leaves both revisions
+unset, and gives the starter Skill the address
+`https://placeholder.invalid/unchosen`. The site keeps saying it is not a real
+release yet.
+
+### 12a. Build the bundle carrying the stable placeholder
+
+In the repository:
+
+    mix run scripts/sync_catalog.exs \
+      --source ../techtree-python/src/techtree/resources/catalog \
+      --source-revision a444c4d603a4094545cff8ae0d72f2197e26ce63 \
+      --generator-version 0.1.0 \
+      --bootstrap priv/bootstrap/stable.json
+
+    mix catalog.verify
+
+    shasum -a 256 priv/catalog/bootstrap.json
+
+The last command must print
+`da0643578137b8ae163299bc2e31c5c03c2f774f39ad959cb6b09435018b5ade`.
+
+`priv/catalog` is generated, not committed, so this replaces the development
+bundle in your working tree. Re-run the same command with `--bootstrap
+priv/bootstrap/development.json` to get back to the bundle local work expects.
+
+### 12b. Deploy that image
+
+    flyctl deploy --app techtree-sh --remote-only --ha=false
+
+The machine is still serving `development`, so it keeps serving the development
+placeholder while the new image rolls out. The image now *carries* a `stable`
+bundle; nothing has imported it.
+
+### 12c. Switch the channel and import, in that order
+
+    flyctl secrets set --app techtree-sh TECHTREE_BOOTSTRAP_CHANNEL=stable
+
+    flyctl ssh console --app techtree-sh \
+      --command "/app/bin/techtree eval 'Techtree.Release.import_catalog()'"
+
+**Expect the site to be briefly unavailable between these two commands.**
+Setting the secret restarts the machine onto a channel that has nothing
+imported yet, so `/healthz` answers 503 with `channel: "stable"`, the health
+check fails, and the proxy stops sending it traffic. Nothing is written and no
+pointer moves — the `development` rows are all still there — but the site is
+down until the import finishes. Run the two commands back to back. `flyctl ssh`
+works whether or not the machine is passing its checks.
+
+The import prints the catalog digest and `on channel stable`.
+
+### 12d. Confirm the channel moved and nothing became installable
+
+    flyctl checks list --app techtree-sh
+
+    curl -s https://techtree.sh/healthz
+
+    curl -sD- https://techtree.sh/api/v1/bootstrap -o bootstrap.json
+    shasum -a 256 bootstrap.json
+
+| Check | Expected |
+| --- | --- |
+| health check | passing again |
+| `/healthz` | 200, channel `stable`, catalog `sha256:62714b77…`, status `complete` |
+| `/api/v1/bootstrap` | `ETag` and body digest both `sha256:da064357…` — the stable floor |
+| the document itself | `"channel": "stable"`, `"placeholder_release": true`, `"version": "0.0.0-placeholder"` |
+| the pages | unchanged, still saying this is not a real release yet |
+
+Then re-run step 12's smoke test in full: the 405, the redirect, and the starter
+Skill object are all channel-independent and must be exactly as they were.
+
+**Stop here until Gate 2.**
 
 ## Part 2 — activation. GATE 2 ONLY
 
@@ -261,8 +346,13 @@ Nothing below runs before the founder has approved the candidate. Each step is
 reversible by the pointer move in [rollback.md](rollback.md), but the point of
 the gate is not to rely on that.
 
-The candidate is `priv/releases/climb-v0.1.0/`. Its bootstrap release is
-`sha256:57f95dccba41067e7e6a3c8bf7fc2dfdf897b9712e83823c5cda202c242bef89`, and
+Part 1b must be done first: the app serves `stable`, and the stable floor is
+staged and published there. If it is not, stop — activating onto a channel with
+no floor leaves nothing to roll back to.
+
+The candidate is `priv/releases/climb-v0.1.0/`, on channel `stable`. Its
+bootstrap release is
+`sha256:ed7cb6128ef7fdc9a75685f8e62354e0a9c36360956945f517ed3fce4daf4ff4`, and
 this build has never staged it.
 
 ### 13. Build the bundle that carries the candidate — founder approval required
@@ -271,15 +361,15 @@ In the repository:
 
     mix run scripts/sync_catalog.exs \
       --source ../techtree-python/src/techtree/resources/catalog \
-      --source-revision <full commit> \
-      --generator-version <version> \
+      --source-revision a444c4d603a4094545cff8ae0d72f2197e26ce63 \
+      --generator-version 0.1.0 \
       --bootstrap priv/releases/climb-v0.1.0/bootstrap.json
 
     mix catalog.verify
 
     shasum -a 256 priv/catalog/bootstrap.json
 
-The last command must print `57f95dcc…`. The approved bytes are copied, never
+The last command must print `ed7cb612…`. The approved bytes are copied, never
 rewritten; a different digest here means something regenerated them and the
 approval no longer covers what is about to ship.
 
@@ -288,10 +378,11 @@ approval no longer covers what is about to ship.
     flyctl deploy --app techtree-sh --remote-only --ha=false
 
 Default rolling strategy now: the health check gates it, and the running machine
-keeps serving the placeholder until the new one is healthy.
+keeps serving the stable floor until the new one is healthy. The channel does
+not change here — it was moved to `stable` in part 1b.
 
 Deploying still publishes nothing. The new image *carries* the candidate; the
-database still has the placeholder active.
+database still has the floor active.
 
 ### 15. Stage and publish the candidate — the point of no return
 
@@ -299,66 +390,72 @@ database still has the placeholder active.
     /app/bin/techtree eval 'Techtree.Release.import_catalog()'
 
 The import stages the candidate and publishes it in the same transaction, which
-is the activation. On any failure the placeholder keeps serving.
+is the activation. On any failure the floor keeps serving.
 
 If the candidate is already staged from an earlier attempt and only the pointer
 needs to move, that is the explicit form:
 
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:57f95dccba41067e7e6a3c8bf7fc2dfdf897b9712e83823c5cda202c242bef89")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:ed7cb6128ef7fdc9a75685f8e62354e0a9c36360956945f517ed3fce4daf4ff4")'
 
 ### 16. Verify what is published
 
     curl -sD- https://techtree.sh/api/v1/bootstrap -o bootstrap.json
     shasum -a 256 bootstrap.json
 
-`ETag` and body digest must both be `sha256:57f95dcc…`, and must equal the
-digest in `priv/releases/climb-v0.1.0/checksums.json`. Then re-run the whole of
-step 12; the 405 and the redirect must be unchanged.
+`ETag` and body digest must both be `sha256:ed7cb612…`, and must equal the
+digest in `priv/releases/climb-v0.1.0/checksums.json`. `/healthz` must still
+name channel `stable`. Then re-run the whole of step 12; the 405 and the
+redirect must be unchanged.
 
 ## Rolling back
 
-The placeholder stays staged forever, so going back is one command:
+The stable floor stays staged forever, so going back is one command:
 
     flyctl ssh console --app techtree-sh
     /app/bin/techtree eval 'Techtree.Release.list_bootstrap_releases()'
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:9e5afcb33633a702e106b5379a75f3a7cca250239b5fa08b228843cb61a2b9da")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:da0643578137b8ae163299bc2e31c5c03c2f774f39ad959cb6b09435018b5ade")'
 
 Nothing is deleted, nothing is rewritten, and nothing on anyone's machine is
 touched. The full reasoning is in [rollback.md](rollback.md).
 
 Note that a later `import_catalog()` publishes whatever bootstrap the deployed
 image carries, and would undo this. After a rollback, redeploy the image built
-in step 5 before importing again.
+in step 12b before importing again.
 
 ## The channel variable
 
 `TECHTREE_BOOTSTRAP_CHANNEL` selects the release channel the site imports and
-serves. Unset, it stays on the compile-time default, `development`.
+serves. Unset, it stays on the compile-time default, `development`. It is set
+to `stable` exactly once, in step 12c, and never changed again.
 
-**Do not set it to `stable` today.** Every bundle in this repository — the
-placeholder and the approved candidate alike — declares `"channel":
-"development"`, and the importer refuses a bundle whose channel does not match
-the one the build serves. Setting `stable` produces two things, both verified:
+The two rules that decide everything about it:
 
-- `import_catalog()` raises `the bundle publishes a different release channel
-  than this build serves` and writes nothing, and
-- the running site reports 503 at `/healthz` with `channel: "stable"`, because
-  nothing is active on a channel nothing was ever imported into. The machine
-  then fails its health check.
+- **A build serves one channel, and the bundle it imports must declare the same
+  one.** The importer refuses a mismatch with `the bundle publishes a different
+  release channel than this build serves`, and writes nothing. So the image and
+  the variable move together: step 12b ships an image whose bundle says
+  `stable`, and only then does step 12c say `stable`.
+- **A channel with nothing imported has nothing to serve.** The site answers
+  503 at `/healthz` and fails its health check until something is imported into
+  the channel it is now on. That is the gap step 12c warns about, and it is why
+  the secret and the import are run back to back.
 
-Both failures are safe — no data is written and no pointer moves — but the site
-goes dark. Moving to a `stable` channel means regenerating the bundles to
-declare it, which changes the candidate's digest and therefore changes what the
-founder approved. That is a Gate-2 decision, not a deploy setting.
+Both failure modes are safe — no data is written and no pointer moves — but the
+site goes dark, so neither is a thing to try casually on a live host.
+
+`development` keeps its own staged releases and its own floor
+(`sha256:9e5afcb3…`). They are not reachable from `stable`: a staged release
+belongs to a channel, and no rollback crosses between them.
 
 ## Who has to say yes
 
 | Step | Approval |
 | --- | --- |
 | 1–12 — create app, database, deploy, import placeholder, DNS, certificate, smoke test | Safe before Gate 2. Spends about $5 a month and publishes only the placeholder |
+| 12a–12d — move the live site to `stable` and import the stable floor | Safe before Gate 2. Publishes a second declared placeholder; nothing becomes installable |
 | 13–14 — build and deploy the image carrying the candidate | Founder approval. The approved bytes are on the host but not yet served |
 | 15 — import / publish | **Founder approval. This is activation.** The public install flow opens here |
-| Rollback | No approval needed. Moving back to the placeholder is always allowed |
+| Rollback | No approval needed. Moving back to the stable floor is always allowed |
 
 ## Notes for whoever runs this
 

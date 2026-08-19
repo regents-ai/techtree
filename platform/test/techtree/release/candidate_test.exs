@@ -9,13 +9,16 @@ defmodule Techtree.Release.CandidateTest do
   approval and activated unchanged afterwards — which only means anything if
   they are checked now, by the same validation that will check them at import.
 
-  So this suite does three things. It proves decision 0007 R10 accepts the
+  So this suite does four things. It proves decision 0007 R10 accepts the
   candidate, through the real import path rather than by calling the rule
   directly. It proves that acceptance is not vacuous, by spoiling one
   coordinate of the candidate at a time and watching the same path refuse it.
-  And it proves the candidate is still not what this build publishes: the
-  contract in `priv/bootstrap` remains a declared placeholder, and the pointer
-  is not this suite's to move.
+  It proves the candidate is still not what this build publishes: the contract
+  in `priv/bootstrap` remains a declared placeholder, and the pointer is not
+  this suite's to move. And it proves the release channel has a floor to roll
+  back to — `priv/bootstrap/stable.json`, the release that will be staged
+  underneath the candidate on the channel the candidate names, which decision
+  0027 requires to be believable as a release and useless as an installation.
   """
 
   use ExUnit.Case, async: true
@@ -31,6 +34,9 @@ defmodule Techtree.Release.CandidateTest do
 
   # The route this application already publishes content-addressed bytes at.
   @object_route "https://techtree.sh/api/v1/objects/"
+
+  # What a placeholder release puts where a commit belongs.
+  @unset_revision String.duplicate("0", 40)
 
   setup do
     %{
@@ -243,6 +249,53 @@ defmodule Techtree.Release.CandidateTest do
     end
   end
 
+  describe "the rollback floor of the candidate's channel" do
+    test "is a release on the same channel that says it is a placeholder", %{
+      bootstrap: bootstrap
+    } do
+      assert floor()["channel"] == bootstrap["channel"]
+      assert floor()["placeholder_release"] == true
+      assert floor()["schema_version"] == "techtree.bootstrap.v1alpha1"
+    end
+
+    test "carries no coordinate anything could be installed from" do
+      floor = floor()
+
+      assert floor["cli"]["version"] == "0.0.0-placeholder"
+      assert floor["cli"]["source_revision"] == @unset_revision
+
+      assert floor["cli"]["install_argv"] == [
+               "uv",
+               "tool",
+               "install",
+               "techtree==0.0.0-placeholder"
+             ]
+
+      refute Map.has_key?(floor["cli"], "wheel_sha256")
+      assert floor["hermes_plugin"]["revision"] == @unset_revision
+      assert @unset_revision in floor["hermes_plugin"]["install_argv"]
+      assert floor["starter_skill"]["object_url"] == "https://placeholder.invalid/unchosen"
+    end
+
+    test "asks for the same host Hermes and names the same starter Skill bytes", %{
+      bootstrap: bootstrap
+    } do
+      assert floor()["minimums"] == bootstrap["minimums"]
+
+      assert Map.delete(floor()["starter_skill"], "object_url") ==
+               Map.delete(bootstrap["starter_skill"], "object_url")
+    end
+
+    @tag :tmp_dir
+    test "is accepted by the validation an import runs, as a placeholder", %{tmp_dir: tmp_dir} do
+      assert verify(bundle_publishing(tmp_dir, floor())) == :ok
+    end
+
+    test "is a different release from the candidate", %{checksums: checksums} do
+      assert Digest.hash_bytes(floor_bytes()) != checksums["files"]["bootstrap.json"]
+    end
+  end
+
   # -- Helpers ----------------------------------------------------------------
 
   defp directory do
@@ -261,11 +314,25 @@ defmodule Techtree.Release.CandidateTest do
 
   defp published, do: published_bytes() |> Jason.decode!()
 
+  # The release the candidate's channel keeps underneath it, so that rolling
+  # back is a pointer move onto staged bytes rather than onto nothing.
+  defp floor_bytes do
+    File.read!(Application.app_dir(:techtree, "priv/bootstrap/stable.json"))
+  end
+
+  defp floor, do: floor_bytes() |> Jason.decode!()
+
   # The candidate bootstrap, published by a bundle that ships the Climb it
   # names, so that the full import verification runs against it.
   defp bundle_with_candidate(destination, spoil) do
+    bundle_publishing(destination, spoil.(decode("bootstrap.json")))
+  end
+
+  # A bundle that ships the fixture catalog and publishes `document` as its
+  # bootstrap release, which is what an import is handed.
+  defp bundle_publishing(destination, document) do
     bundle = CatalogFixture.copy!(destination)
-    CatalogFixture.rewrite_bootstrap!(bundle, fn _fixture -> spoil.(decode("bootstrap.json")) end)
+    CatalogFixture.rewrite_bootstrap!(bundle, fn _fixture -> document end)
     bundle
   end
 
