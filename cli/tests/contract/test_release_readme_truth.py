@@ -12,6 +12,16 @@ DECISION = (
 ).read_text(encoding="utf-8")
 
 
+def _prose(text: str) -> str:
+    """Normalize ordinary Markdown line wrapping before checking its prose."""
+    return " ".join(text.split())
+
+
+README_PROSE = _prose(README)
+WP11E_PROSE = _prose(WP11E)
+DECISION_PROSE = _prose(DECISION)
+
+
 def test_readme_describes_the_real_v01_path() -> None:
     stale_claims = (
         "Implementation is in progress",
@@ -23,7 +33,7 @@ def test_readme_describes_the_real_v01_path() -> None:
     )
 
     for claim in stale_claims:
-        assert claim not in README
+        assert claim not in README_PROSE
 
     for required in (
         "The repository contains the real evaluation path",
@@ -33,7 +43,7 @@ def test_readme_describes_the_real_v01_path() -> None:
         "Techtree does not upload evaluation artifacts",
         "Model inference is sent to the selected provider",
     ):
-        assert required in README
+        assert required in README_PROSE
 
 
 def test_wp11e_uses_the_standing_decision_0025_budget() -> None:
@@ -42,7 +52,7 @@ def test_wp11e_uses_the_standing_decision_0025_budget() -> None:
         "~1.03",
         "1.03 of",
     ):
-        assert stale not in WP11E
+        assert stale not in WP11E_PROSE
 
     for required in (
         "USD 10.00 programme cap",
@@ -51,7 +61,7 @@ def test_wp11e_uses_the_standing_decision_0025_budget() -> None:
         "USD 0.30 per host-model call",
         "no retry of any paid outcome",
     ):
-        assert required in WP11E
+        assert required in WP11E_PROSE
 
 
 def test_founder_channel_and_rollback_ruling_is_recorded() -> None:
@@ -64,6 +74,9 @@ def test_founder_channel_and_rollback_ruling_is_recorded() -> None:
         "`regents-ai/techtree-hermes`",
         "`regents-ai/techtree-ash`",
     ):
-        assert required in DECISION
+        assert required in DECISION_PROSE
 
-    assert "this implementation-plan approval is not release approval" in DECISION
+    assert (
+        "this implementation-plan approval is not release approval"
+        in DECISION_PROSE
+    )
