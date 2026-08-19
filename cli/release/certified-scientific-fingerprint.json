@@ -64,7 +64,7 @@
  },
  "release_contract": "Decisions document 0026: the ReleaseCore is a contract of concrete coordinates and describes no artifact of its own. The commit a wheel was built from is stamped into that wheel by the build and reported by `techtree release info`.",
  "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
- "release_source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+ "release_source_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
  "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
  "runtime_image_platform_digests": {
   "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",

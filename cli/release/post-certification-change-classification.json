@@ -7,13 +7,13 @@
   "scientific \u2014 re-certified (0025, addendum A1.4)": "A change to the scientific configuration, sanctioned by decision 0025 and certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 25,
+ "commit_count": 30,
  "counts_by_class": {
-  "documentation": 41,
+  "documentation": 45,
   "non_scientific_copy": 23,
   "release_packaging": 46,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
-  "test_only": 29
+  "test_only": 32
  },
  "entries": [
   {
@@ -1103,10 +1103,45 @@
    "class": "documentation",
    "commit": "d54a8be64eb4764c7e7db1f2b63307ae9c6a9262",
    "path": "docs/decisions/0026-contract-provenance-split.md"
+  },
+  {
+   "class": "documentation",
+   "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
+   "path": "README.md"
+  },
+  {
+   "class": "documentation",
+   "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
+   "path": "docs/decisions/0027-stable-channel-implementation-plan.md"
+  },
+  {
+   "class": "documentation",
+   "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
+   "path": "docs/release/contracts/wp11e.md"
+  },
+  {
+   "class": "test_only",
+   "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
+   "path": "tests/contract/test_release_readme_truth.py"
+  },
+  {
+   "class": "test_only",
+   "commit": "624c2192ead086c69baf4653a018344424b02ae2",
+   "path": "tests/contract/test_release_readme_truth.py"
+  },
+  {
+   "class": "test_only",
+   "commit": "2b4f6fab22729486fa07816190af354a002ec88a",
+   "path": "tests/contract/test_release_readme_truth.py"
+  },
+  {
+   "class": "documentation",
+   "commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
+   "path": "merge commit (PR 0A)"
   }
  ],
- "file_change_count": 145,
- "release_source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+ "file_change_count": 152,
+ "release_source_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "authority": "docs/decisions/0025-campaign-regeneration-option-a.md",

@@ -1,286 +1,287 @@
 {
-  "schema_version": "techtree.fresh-install-report.v1",
-  "wheel": {
-    "path": "dist/techtree-0.1.0-py3-none-any.whl",
-    "sha256": "sha256:c11702512f9704d55c0022a613834468fee394c51bd8c283a7673e2b84865703",
-    "built_from_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d"
-  },
-  "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
-  "uv_version": "uv 0.10.2 (Homebrew 2026-02-10)",
-  "host": "Darwin 25.5.0 arm64",
-  "installs": [
+ "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+ "failures": [],
+ "host": "Darwin 25.5.0 arm64",
+ "installs": [
+  {
+   "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
+   "commands": [
     {
-      "label": "default interpreter selection",
-      "install_argv": [
-        "uv",
-        "tool",
-        "install",
-        "--find-links",
-        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
-        "techtree==0.1.0"
-      ],
-      "proposed_public_argv": [
-        "uv",
-        "tool",
-        "install",
-        "techtree==0.1.0"
-      ],
-      "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
-      "isolation": {
-        "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/home",
-        "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/techtree-home",
-        "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-tool",
-        "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-bin",
-        "command_environment": [
-          "HOME",
-          "PATH",
-          "TECHTREE_HOME"
-        ],
-        "detail": "each command runs with an environment built from nothing but PATH, HOME and TECHTREE_HOME, so nothing from the operator's shell reaches it"
-      },
-      "install_exit_code": 0,
-      "no_global_techtree": {
-        "probe": "command -v techtree with the operator's PATH removed",
-        "exit_code": 1,
-        "stdout": "",
-        "result": "pass",
-        "detail": "no techtree executable is reachable on this machine outside the isolated bin directory, so every command below can only be the candidate wheel"
-      },
-      "python": "Python 3.14.3",
-      "installed_bytes_match_wheel": {
-        "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-tool/techtree/lib/python3.14/site-packages",
-        "members_compared": 151,
-        "members_differing": [],
-        "result": "pass",
-        "detail": "all 151 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them"
-      },
-      "commands": [
-        {
-          "argv": [
-            "techtree",
-            "--version"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 6,
-          "stderr": "",
-          "result": "pass",
-          "reported_version": "0.1.0"
-        },
-        {
-          "argv": [
-            "techtree",
-            "release",
-            "info",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 895,
-          "stderr": "",
-          "result": "pass",
-          "envelope_ok": true,
-          "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
-          "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
-          "release_id": "climb-v0.1.0",
-          "cli_version": "0.1.0",
-          "package_version": "0.1.0",
-          "warnings": [],
-          "detail": "the installed build reports the commit stamped into it at build time, and reports it without a warning because it is a built artifact rather than a source checkout"
-        },
-        {
-          "argv": [
-            "techtree",
-            "release",
-            "verify",
-            "--expected",
-            "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 3145,
-          "stderr": "",
-          "result": "pass",
-          "verified": true,
-          "checks": 12,
-          "skipped": [
-            "starter_skill_digest",
-            "skill_improver_digest",
-            "starter_skill_object_url"
-          ],
-          "warnings": []
-        },
-        {
-          "argv": [
-            "techtree",
-            "climb",
-            "list",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 2244,
-          "stderr": "",
-          "result": "pass",
-          "envelope_ok": true
-        },
-        {
-          "argv": [
-            "techtree",
-            "climb",
-            "show",
-            "hello-world-climb@1",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 2999,
-          "stderr": "",
-          "result": "pass",
-          "envelope_ok": true,
-          "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89"
-        }
-      ],
-      "result": "pass"
+     "argv": [
+      "techtree",
+      "--version"
+     ],
+     "exit_code": 0,
+     "reported_version": "0.1.0",
+     "result": "pass",
+     "stderr": "",
+     "stdout_bytes": 6
     },
     {
-      "label": "interpreter pinned to a supported version",
-      "install_argv": [
-        "uv",
-        "tool",
-        "install",
-        "--python",
-        "3.12",
-        "--find-links",
-        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
-        "techtree==0.1.0"
-      ],
-      "proposed_public_argv": [
-        "uv",
-        "tool",
-        "install",
-        "--python",
-        "3.12",
-        "techtree==0.1.0"
-      ],
-      "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
-      "isolation": {
-        "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/home",
-        "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/techtree-home",
-        "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-tool",
-        "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-bin",
-        "command_environment": [
-          "HOME",
-          "PATH",
-          "TECHTREE_HOME"
-        ],
-        "detail": "each command runs with an environment built from nothing but PATH, HOME and TECHTREE_HOME, so nothing from the operator's shell reaches it"
-      },
-      "install_exit_code": 0,
-      "no_global_techtree": {
-        "probe": "command -v techtree with the operator's PATH removed",
-        "exit_code": 1,
-        "stdout": "",
-        "result": "pass",
-        "detail": "no techtree executable is reachable on this machine outside the isolated bin directory, so every command below can only be the candidate wheel"
-      },
-      "python": "Python 3.12.13",
-      "installed_bytes_match_wheel": {
-        "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages",
-        "members_compared": 151,
-        "members_differing": [],
-        "result": "pass",
-        "detail": "all 151 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them"
-      },
-      "commands": [
-        {
-          "argv": [
-            "techtree",
-            "--version"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 6,
-          "stderr": "",
-          "result": "pass",
-          "reported_version": "0.1.0"
-        },
-        {
-          "argv": [
-            "techtree",
-            "release",
-            "info",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 895,
-          "stderr": "",
-          "result": "pass",
-          "envelope_ok": true,
-          "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
-          "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
-          "release_id": "climb-v0.1.0",
-          "cli_version": "0.1.0",
-          "package_version": "0.1.0",
-          "warnings": [],
-          "detail": "the installed build reports the commit stamped into it at build time, and reports it without a warning because it is a built artifact rather than a source checkout"
-        },
-        {
-          "argv": [
-            "techtree",
-            "release",
-            "verify",
-            "--expected",
-            "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 3145,
-          "stderr": "",
-          "result": "pass",
-          "verified": true,
-          "checks": 12,
-          "skipped": [
-            "starter_skill_digest",
-            "skill_improver_digest",
-            "starter_skill_object_url"
-          ],
-          "warnings": []
-        },
-        {
-          "argv": [
-            "techtree",
-            "climb",
-            "list",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 2244,
-          "stderr": "",
-          "result": "pass",
-          "envelope_ok": true
-        },
-        {
-          "argv": [
-            "techtree",
-            "climb",
-            "show",
-            "hello-world-climb@1",
-            "--json"
-          ],
-          "exit_code": 0,
-          "stdout_bytes": 2999,
-          "stderr": "",
-          "result": "pass",
-          "envelope_ok": true,
-          "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89"
-        }
-      ],
-      "result": "pass"
-    }
-  ],
-  "observations": [
+     "argv": [
+      "techtree",
+      "release",
+      "info",
+      "--json"
+     ],
+     "cli_version": "0.1.0",
+     "detail": "the installed build reports the commit stamped into it at build time, and reports it without a warning because it is a built artifact rather than a source checkout",
+     "envelope_ok": true,
+     "exit_code": 0,
+     "package_version": "0.1.0",
+     "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+     "release_id": "climb-v0.1.0",
+     "result": "pass",
+     "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+     "stderr": "",
+     "stdout_bytes": 895,
+     "warnings": []
+    },
     {
-      "id": "default_interpreter_ignores_requires_python",
-      "severity": "note for WP11e and Gate 2",
-      "detail": "The wheel declares Requires-Python <3.14,>=3.12. Left to choose for itself, uv 0.10.2 (Homebrew 2026-02-10) built the tool environment on 3.14.3, which the package says it does not support. All five commands pass on it anyway, so this is not a release stop, but a clean-machine install can land on an interpreter outside the tested range without saying so. The second install pins 3.12 and is the supported path. Unchanged from the pre-0026 report: the same host, the same uv, the same outcome."
+     "argv": [
+      "techtree",
+      "release",
+      "verify",
+      "--expected",
+      "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "--json"
+     ],
+     "checks": 12,
+     "exit_code": 0,
+     "result": "pass",
+     "skipped": [
+      "starter_skill_digest",
+      "skill_improver_digest",
+      "starter_skill_object_url"
+     ],
+     "stderr": "",
+     "stdout_bytes": 3145,
+     "verified": true,
+     "warnings": []
+    },
+    {
+     "argv": [
+      "techtree",
+      "climb",
+      "list",
+      "--json"
+     ],
+     "envelope_ok": true,
+     "exit_code": 0,
+     "result": "pass",
+     "stderr": "",
+     "stdout_bytes": 2244
+    },
+    {
+     "argv": [
+      "techtree",
+      "climb",
+      "show",
+      "hello-world-climb@1",
+      "--json"
+     ],
+     "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+     "envelope_ok": true,
+     "exit_code": 0,
+     "result": "pass",
+     "stderr": "",
+     "stdout_bytes": 2999
     }
-  ],
-  "verdict": "PASS",
-  "failures": []
+   ],
+   "install_argv": [
+    "uv",
+    "tool",
+    "install",
+    "--find-links",
+    "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+    "techtree==0.1.0"
+   ],
+   "install_exit_code": 0,
+   "installed_bytes_match_wheel": {
+    "detail": "all 151 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them",
+    "members_compared": 151,
+    "members_differing": [],
+    "result": "pass",
+    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-tool/techtree/lib/python3.14/site-packages"
+   },
+   "isolation": {
+    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/home",
+    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/techtree-home",
+    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-bin",
+    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-default/uv-tool",
+    "command_environment": [
+     "HOME",
+     "PATH",
+     "TECHTREE_HOME"
+    ],
+    "detail": "each command runs with an environment built from nothing but PATH, HOME and TECHTREE_HOME, so nothing from the operator's shell reaches it"
+   },
+   "label": "default interpreter selection",
+   "no_global_techtree": {
+    "detail": "no techtree executable is reachable on this machine outside the isolated bin directory, so every command below can only be the candidate wheel",
+    "exit_code": 1,
+    "probe": "command -v techtree with the operator's PATH removed",
+    "result": "pass",
+    "stdout": ""
+   },
+   "proposed_public_argv": [
+    "uv",
+    "tool",
+    "install",
+    "techtree==0.1.0"
+   ],
+   "python": "Python 3.14.3",
+   "result": "pass"
+  },
+  {
+   "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
+   "commands": [
+    {
+     "argv": [
+      "techtree",
+      "--version"
+     ],
+     "exit_code": 0,
+     "reported_version": "0.1.0",
+     "result": "pass",
+     "stderr": "",
+     "stdout_bytes": 6
+    },
+    {
+     "argv": [
+      "techtree",
+      "release",
+      "info",
+      "--json"
+     ],
+     "cli_version": "0.1.0",
+     "detail": "the installed build reports the commit stamped into it at build time, and reports it without a warning because it is a built artifact rather than a source checkout",
+     "envelope_ok": true,
+     "exit_code": 0,
+     "package_version": "0.1.0",
+     "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+     "release_id": "climb-v0.1.0",
+     "result": "pass",
+     "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+     "stderr": "",
+     "stdout_bytes": 895,
+     "warnings": []
+    },
+    {
+     "argv": [
+      "techtree",
+      "release",
+      "verify",
+      "--expected",
+      "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "--json"
+     ],
+     "checks": 12,
+     "exit_code": 0,
+     "result": "pass",
+     "skipped": [
+      "starter_skill_digest",
+      "skill_improver_digest",
+      "starter_skill_object_url"
+     ],
+     "stderr": "",
+     "stdout_bytes": 3145,
+     "verified": true,
+     "warnings": []
+    },
+    {
+     "argv": [
+      "techtree",
+      "climb",
+      "list",
+      "--json"
+     ],
+     "envelope_ok": true,
+     "exit_code": 0,
+     "result": "pass",
+     "stderr": "",
+     "stdout_bytes": 2244
+    },
+    {
+     "argv": [
+      "techtree",
+      "climb",
+      "show",
+      "hello-world-climb@1",
+      "--json"
+     ],
+     "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+     "envelope_ok": true,
+     "exit_code": 0,
+     "result": "pass",
+     "stderr": "",
+     "stdout_bytes": 2999
+    }
+   ],
+   "install_argv": [
+    "uv",
+    "tool",
+    "install",
+    "--python",
+    "3.12",
+    "--find-links",
+    "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+    "techtree==0.1.0"
+   ],
+   "install_exit_code": 0,
+   "installed_bytes_match_wheel": {
+    "detail": "all 151 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them",
+    "members_compared": 151,
+    "members_differing": [],
+    "result": "pass",
+    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages"
+   },
+   "isolation": {
+    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/home",
+    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/techtree-home",
+    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-bin",
+    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/post-commit/fresh-pinned/uv-tool",
+    "command_environment": [
+     "HOME",
+     "PATH",
+     "TECHTREE_HOME"
+    ],
+    "detail": "each command runs with an environment built from nothing but PATH, HOME and TECHTREE_HOME, so nothing from the operator's shell reaches it"
+   },
+   "label": "interpreter pinned to a supported version",
+   "no_global_techtree": {
+    "detail": "no techtree executable is reachable on this machine outside the isolated bin directory, so every command below can only be the candidate wheel",
+    "exit_code": 1,
+    "probe": "command -v techtree with the operator's PATH removed",
+    "result": "pass",
+    "stdout": ""
+   },
+   "proposed_public_argv": [
+    "uv",
+    "tool",
+    "install",
+    "--python",
+    "3.12",
+    "techtree==0.1.0"
+   ],
+   "python": "Python 3.12.13",
+   "result": "pass"
+  }
+ ],
+ "observations": [
+  {
+   "detail": "The wheel declares Requires-Python <3.14,>=3.12. Left to choose for itself, uv 0.10.2 (Homebrew 2026-02-10) built the tool environment on 3.14.3, which the package says it does not support. All five commands pass on it anyway, so this is not a release stop, but a clean-machine install can land on an interpreter outside the tested range without saying so. The second install pins 3.12 and is the supported path. Unchanged from the pre-0026 report: the same host, the same uv, the same outcome.",
+   "id": "default_interpreter_ignores_requires_python",
+   "severity": "note for WP11e and Gate 2"
+  }
+ ],
+ "schema_version": "techtree.fresh-install-report.v1",
+ "superseded": "Describes the pre-0A wheel; the current candidate wheel is sha256:9a8c02af1e2ecac643802c7d055469bec48c19cb800bb851fac578460e01cd27 built from a444c4d603a4094545cff8ae0d72f2197e26ce63. Full regeneration happens in the Gate-2 packet evidence pass.",
+ "uv_version": "uv 0.10.2 (Homebrew 2026-02-10)",
+ "verdict": "PASS",
+ "wheel": {
+  "built_from_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+  "path": "dist/techtree-0.1.0-py3-none-any.whl",
+  "sha256": "sha256:c11702512f9704d55c0022a613834468fee394c51bd8c283a7673e2b84865703"
+ }
 }

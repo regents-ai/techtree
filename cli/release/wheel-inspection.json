@@ -1,137 +1,138 @@
 {
-  "schema_version": "techtree.wheel-inspection.v1",
-  "wheel": {
-    "path": "dist/techtree-0.1.0-py3-none-any.whl",
-    "filename": "techtree-0.1.0-py3-none-any.whl",
-    "size_bytes": 587019,
-    "sha256": "sha256:c11702512f9704d55c0022a613834468fee394c51bd8c283a7673e2b84865703",
-    "version": "0.1.0",
-    "member_count": 156,
-    "built_from_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
-    "built_from": "a clean clone of commit 5ef44f99b470ce74214ee511674fd0c15411a27d, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
-    "reproducible": {
-      "result": "pass",
-      "detail": "built twice, from two independent clean clones of the same commit, producing a byte-identical wheel with the same SHA-256. Recorded by the chief who ran both builds; this inspection hashes the artifact they produced."
-    },
-    "stamped_provenance": {
-      "member": "techtree/resources/release/build-provenance.json",
-      "schema_version": "techtree.build-provenance.v1",
-      "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d"
-    }
+ "checks": [
+  {
+   "check": "build_provenance_stamped",
+   "detail": "techtree/resources/release/build-provenance.json names source commit 5ef44f99b470ce74214ee511674fd0c15411a27d, which is the commit this repository is at (5ef44f99b470ce74214ee511674fd0c15411a27d)",
+   "result": "pass"
   },
-  "checks": [
-    {
-      "check": "build_provenance_stamped",
-      "result": "pass",
-      "detail": "techtree/resources/release/build-provenance.json names source commit 5ef44f99b470ce74214ee511674fd0c15411a27d, which is the commit this repository is at (5ef44f99b470ce74214ee511674fd0c15411a27d)"
-    },
-    {
-      "check": "build_provenance_is_not_committed",
-      "result": "pass",
-      "detail": "the stamp exists only inside the artifact: it is not a tracked file at 5ef44f99, and .gitignore keeps it out of the tree"
-    },
-    {
-      "check": "release_core_bytes_exact",
-      "result": "pass",
-      "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71)"
-    },
-    {
-      "check": "release_core_is_the_generated_document",
-      "result": "pass",
-      "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71)"
-    },
-    {
-      "check": "packaged_catalog_names_certified_campaign",
-      "result": "pass",
-      "detail": "catalog.json names campaign ['sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89']"
-    },
-    {
-      "check": "packaged_campaign_bytes_hash_to_certified_digest",
-      "result": "pass",
-      "detail": "the packaged campaign's own bytes hash to sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89"
-    },
-    {
-      "check": "packaged_campaign_carries_no_development_placeholder",
-      "result": "pass",
-      "detail": "the shipped Campaign names the ratified subject model qwen/qwen3.7-flash, not a development placeholder"
-    },
-    {
-      "check": "packaged_catalog_names_certified_climb",
-      "result": "pass",
-      "detail": "catalog.json names climb sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b"
-    },
-    {
-      "check": "no_rich_output_field",
-      "result": "pass",
-      "detail": "no file in the wheel contains the string rich_output"
-    },
-    {
-      "check": "no_do_not_upload_marker",
-      "result": "pass",
-      "detail": "no member carries the 'Private :: Do Not Upload' classifier; the wheel metadata declares ['Classifier: Programming Language :: Python :: 3.12', 'Classifier: Programming Language :: Python :: 3.13']"
-    },
-    {
-      "check": "no_placeholder_release_coordinate_anywhere",
-      "result": "pass",
-      "detail": "no member carries any of the four placeholder spellings, and every coordinate of the packaged ReleaseCore is concrete: release climb-v0.1.0, CLI 0.1.0, starter Skill published at https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
-    },
-    {
-      "check": "no_deleted_release_core_field_references",
-      "result": "pass",
-      "detail": "no member mentions cli_source_commit or placeholder_fields; the one mention of placeholder_release is techtree/release/bootstrap.py, where it is the website bootstrap document's own flag, which decision 0026 section 3 keeps"
-    },
-    {
-      "check": "no_absolute_build_paths",
-      "result": "pass",
-      "detail": "no member names the build directory, the operator's home, or any absolute path from this machine"
-    },
-    {
-      "check": "no_repository_scratch_or_run_artifacts",
-      "result": "pass",
-      "detail": "the wheel holds no git metadata, tracker database, cache, virtual environment, test tree, recorded run or coverage output"
-    },
-    {
-      "check": "no_credentials_or_private_keys",
-      "result": "pass",
-      "detail": "no member carries a private key block, a provider key, or a credential assignment with a value"
-    },
-    {
-      "check": "console_scripts_resolve",
-      "result": "pass",
-      "detail": "{\"techtree\": {\"callable_defined\": true, \"module_in_wheel\": \"techtree/cli/app.py\", \"target\": \"techtree.cli.app:main\"}, \"techtree-worker\": {\"callable_defined\": true, \"module_in_wheel\": \"techtree/worker/main.py\", \"target\": \"techtree.worker.main:main\"}}"
-    },
-    {
-      "check": "wheel_version_agrees_with_release_core_build",
-      "result": "pass",
-      "detail": "the wheel is version 0.1.0, which is the pyproject_version release/build-info.json records as the input to this ReleaseCore, and the version the release names"
-    }
-  ],
-  "console_scripts": {
-    "techtree": {
-      "target": "techtree.cli.app:main",
-      "module_in_wheel": "techtree/cli/app.py",
-      "callable_defined": true
-    },
-    "techtree-worker": {
-      "target": "techtree.worker.main:main",
-      "module_in_wheel": "techtree/worker/main.py",
-      "callable_defined": true
-    }
+  {
+   "check": "build_provenance_is_not_committed",
+   "detail": "the stamp exists only inside the artifact: it is not a tracked file at 5ef44f99, and .gitignore keeps it out of the tree",
+   "result": "pass"
   },
-  "packaged_lineage": {
-    "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
-    "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
-    "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
-    "campaign_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
-    "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
-    "subject_model_id": "qwen/qwen3.7-flash",
-    "subject_hermes_version": "0.19.0",
-    "minimum_host_hermes_version": "0.20.1",
-    "maximum_tested_host_hermes_version": "0.20.1",
-    "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
-    "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+  {
+   "check": "release_core_bytes_exact",
+   "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71)",
+   "result": "pass"
   },
-  "release_contract_note": "The packaged ReleaseCore is a contract: every coordinate in it is one a person chose, and it describes no artifact of its own (decision 0026). This wheel's identity is the stamp above, written during the build and absent from the committed tree.",
-  "verdict": "PASS",
-  "findings": []
+  {
+   "check": "release_core_is_the_generated_document",
+   "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71)",
+   "result": "pass"
+  },
+  {
+   "check": "packaged_catalog_names_certified_campaign",
+   "detail": "catalog.json names campaign ['sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89']",
+   "result": "pass"
+  },
+  {
+   "check": "packaged_campaign_bytes_hash_to_certified_digest",
+   "detail": "the packaged campaign's own bytes hash to sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+   "result": "pass"
+  },
+  {
+   "check": "packaged_campaign_carries_no_development_placeholder",
+   "detail": "the shipped Campaign names the ratified subject model qwen/qwen3.7-flash, not a development placeholder",
+   "result": "pass"
+  },
+  {
+   "check": "packaged_catalog_names_certified_climb",
+   "detail": "catalog.json names climb sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
+   "result": "pass"
+  },
+  {
+   "check": "no_rich_output_field",
+   "detail": "no file in the wheel contains the string rich_output",
+   "result": "pass"
+  },
+  {
+   "check": "no_do_not_upload_marker",
+   "detail": "no member carries the 'Private :: Do Not Upload' classifier; the wheel metadata declares ['Classifier: Programming Language :: Python :: 3.12', 'Classifier: Programming Language :: Python :: 3.13']",
+   "result": "pass"
+  },
+  {
+   "check": "no_placeholder_release_coordinate_anywhere",
+   "detail": "no member carries any of the four placeholder spellings, and every coordinate of the packaged ReleaseCore is concrete: release climb-v0.1.0, CLI 0.1.0, starter Skill published at https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+   "result": "pass"
+  },
+  {
+   "check": "no_deleted_release_core_field_references",
+   "detail": "no member mentions cli_source_commit or placeholder_fields; the one mention of placeholder_release is techtree/release/bootstrap.py, where it is the website bootstrap document's own flag, which decision 0026 section 3 keeps",
+   "result": "pass"
+  },
+  {
+   "check": "no_absolute_build_paths",
+   "detail": "no member names the build directory, the operator's home, or any absolute path from this machine",
+   "result": "pass"
+  },
+  {
+   "check": "no_repository_scratch_or_run_artifacts",
+   "detail": "the wheel holds no git metadata, tracker database, cache, virtual environment, test tree, recorded run or coverage output",
+   "result": "pass"
+  },
+  {
+   "check": "no_credentials_or_private_keys",
+   "detail": "no member carries a private key block, a provider key, or a credential assignment with a value",
+   "result": "pass"
+  },
+  {
+   "check": "console_scripts_resolve",
+   "detail": "{\"techtree\": {\"callable_defined\": true, \"module_in_wheel\": \"techtree/cli/app.py\", \"target\": \"techtree.cli.app:main\"}, \"techtree-worker\": {\"callable_defined\": true, \"module_in_wheel\": \"techtree/worker/main.py\", \"target\": \"techtree.worker.main:main\"}}",
+   "result": "pass"
+  },
+  {
+   "check": "wheel_version_agrees_with_release_core_build",
+   "detail": "the wheel is version 0.1.0, which is the pyproject_version release/build-info.json records as the input to this ReleaseCore, and the version the release names",
+   "result": "pass"
+  }
+ ],
+ "console_scripts": {
+  "techtree": {
+   "callable_defined": true,
+   "module_in_wheel": "techtree/cli/app.py",
+   "target": "techtree.cli.app:main"
+  },
+  "techtree-worker": {
+   "callable_defined": true,
+   "module_in_wheel": "techtree/worker/main.py",
+   "target": "techtree.worker.main:main"
+  }
+ },
+ "findings": [],
+ "packaged_lineage": {
+  "campaign_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+  "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
+  "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
+  "maximum_tested_host_hermes_version": "0.20.1",
+  "minimum_host_hermes_version": "0.20.1",
+  "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+  "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+  "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+  "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+  "subject_hermes_version": "0.19.0",
+  "subject_model_id": "qwen/qwen3.7-flash"
+ },
+ "release_contract_note": "The packaged ReleaseCore is a contract: every coordinate in it is one a person chose, and it describes no artifact of its own (decision 0026). This wheel's identity is the stamp above, written during the build and absent from the committed tree.",
+ "schema_version": "techtree.wheel-inspection.v1",
+ "superseded": "Describes the pre-0A wheel; the current candidate wheel is sha256:9a8c02af1e2ecac643802c7d055469bec48c19cb800bb851fac578460e01cd27 built from a444c4d603a4094545cff8ae0d72f2197e26ce63. Full regeneration happens in the Gate-2 packet evidence pass.",
+ "verdict": "PASS",
+ "wheel": {
+  "built_from": "a clean clone of commit 5ef44f99b470ce74214ee511674fd0c15411a27d, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
+  "built_from_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d",
+  "filename": "techtree-0.1.0-py3-none-any.whl",
+  "member_count": 156,
+  "path": "dist/techtree-0.1.0-py3-none-any.whl",
+  "reproducible": {
+   "detail": "built twice, from two independent clean clones of the same commit, producing a byte-identical wheel with the same SHA-256. Recorded by the chief who ran both builds; this inspection hashes the artifact they produced.",
+   "result": "pass"
+  },
+  "sha256": "sha256:c11702512f9704d55c0022a613834468fee394c51bd8c283a7673e2b84865703",
+  "size_bytes": 587019,
+  "stamped_provenance": {
+   "member": "techtree/resources/release/build-provenance.json",
+   "schema_version": "techtree.build-provenance.v1",
+   "source_commit": "5ef44f99b470ce74214ee511674fd0c15411a27d"
+  },
+  "version": "0.1.0"
+ }
 }
