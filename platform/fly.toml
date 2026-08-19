@@ -1,0 +1,85 @@
+# Host configuration for techtree.sh.
+#
+# The runbook that turns this file into a running site is
+# docs/release/deploy-flyio.md. What is *published* once it runs is decided by
+# docs/release/runbook.md, not by anything here: this file provisions a box and
+# points it at a database, and the box serves whatever release has been
+# imported and published on its channel. Deploying does not import and does not
+# move the pointer.
+
+app = "techtree-sh"
+primary_region = "iad"
+
+# The BEAM's memory high-water mark is during the release command and the first
+# seconds of boot, not while serving. Half a gigabyte of swap makes that peak
+# survivable on a 512 MB machine instead of an OOM kill.
+swap_size_mb = 512
+
+[build]
+
+[env]
+  # Bandit binds this; [http_service] routes to it. The two must agree.
+  PORT = "8080"
+
+  # The database is reached over the organization's private network, which is
+  # IPv6 only. Without this the connection is attempted over IPv4 and fails to
+  # resolve.
+  ECTO_IPV6 = "true"
+
+  # PHX_HOST, SECRET_KEY_BASE, and DATABASE_URL are secrets, not settings, and
+  # are set with `flyctl secrets set` (see the runbook). PHX_SERVER is set by
+  # bin/server alone, so that `bin/migrate` and `bin/techtree eval` can run on
+  # the same machine without a second process trying to bind PORT.
+  #
+  # TECHTREE_BOOTSTRAP_CHANNEL is deliberately absent. Unset, the release
+  # serves the `development` channel, whose staged release is the declared
+  # placeholder. Setting it to `stable` is a Gate-2 action.
+
+[deploy]
+  # Migrations run in a one-off machine on the new image, before any machine
+  # serving traffic is replaced. This is the only thing a deploy does to the
+  # database.
+  release_command = "/app/bin/migrate"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # A published address is expected to answer. Machines that stop when idle
+  # answer the first request of the day slowly, and this site's readers are
+  # command-line tools with their own timeouts.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  # Healthy means there is an active, completed catalog release — the process
+  # being up is not the same as the site having something true to publish, and
+  # /healthz is written to tell those apart. A machine that has been deployed
+  # but never imported reports 503 and is correctly not sent traffic.
+  #
+  # The checker connects to the container directly, bypassing the proxy that
+  # terminates TLS, so the request arrives as plain HTTP. `Host: localhost` is
+  # the host `:force_ssl` excludes from its redirect (config/prod.exs), which
+  # is what lets the check read the status instead of a 301.
+  [[http_service.checks]]
+    path = "/healthz"
+    method = "GET"
+    protocol = "http"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "20s"
+
+    [http_service.checks.headers]
+      Host = "localhost"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"
+
+# There is deliberately no [[statics]] block. Fly's proxy would serve
+# priv/static itself and skip the endpoint, and with it the content-security,
+# nosniff, frame, and referrer headers this application attaches to every
+# static file. A stylesheet opened directly in a browser is a document like any
+# other, and it keeps those headers by being served by the application.

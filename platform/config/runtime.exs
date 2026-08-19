@@ -26,7 +26,11 @@ config :techtree, TechtreeWeb.Endpoint,
 # Catalog serving configuration. `TECHTREE_CATALOG_ROOT` points at a generated
 # bundle outside the release; without it the bundle shipped in `priv/catalog`
 # is used. `TECHTREE_BOOTSTRAP_CHANNEL` selects the release channel that is
-# imported and served. No model-provider credential is read here.
+# imported and served; unset, it stays on the compile-time default in
+# `config/config.exs`, which is `development` — the channel whose staged
+# release is the declared placeholder. An unset variable therefore publishes
+# the placeholder, never the Gate-2 candidate. No model-provider credential is
+# read here.
 config :techtree,
        Techtree.Catalog,
        Enum.reject(
@@ -67,7 +71,16 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  # Every absolute URL this site prints — and the origin its live pages are
+  # allowed to connect from — is built from this. A host guessed wrong is a
+  # site that quietly publishes addresses nobody can fetch, so it is named
+  # rather than defaulted.
+  host =
+    System.get_env("PHX_HOST") ||
+      raise """
+      environment variable PHX_HOST is missing.
+      It is the public hostname this site is served on, for example: techtree.sh
+      """
 
   config :techtree, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

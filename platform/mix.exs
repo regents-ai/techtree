@@ -10,9 +10,22 @@ defmodule Techtree.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      releases: releases(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
       consolidate_protocols: Mix.env() != :dev
+    ]
+  end
+
+  # The deployed artifact. `rel/overlays/bin` ships the two entry points a host
+  # needs — `server` to run the site, `migrate` to migrate before it starts —
+  # so neither has to be spelled as a quoted `eval` inside a host's own
+  # configuration file, where the quoting is what breaks.
+  defp releases do
+    [
+      techtree: [
+        include_executables_for: [:unix]
+      ]
     ]
   end
 

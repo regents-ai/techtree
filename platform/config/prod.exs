@@ -7,15 +7,19 @@ import Config
 # before starting your production server.
 config :techtree, TechtreeWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
 
-# Force using SSL in production. This also sets the "strict-security-transport" header,
-# known as HSTS. If you have a health check endpoint, you may want to exclude it below.
+# Force using SSL in production. This also sets the "strict-transport-security"
+# header, known as HSTS. The proxy in front of this application terminates TLS
+# and says so in `x-forwarded-proto`, which is what `:rewrite_on` reads.
+#
+# `:exclude` names the hosts that are reached without going through that proxy:
+# a platform health checker connects to the container directly, over plain
+# HTTP, and a redirect is not an answer to "are you serving". It is a
+# `Plug.SSL` option and belongs inside `:force_ssl` — spelled beside it, it is
+# an endpoint option that does not exist and silently does nothing.
+#
 # Note `:force_ssl` is required to be set at compile-time.
 config :techtree, TechtreeWeb.Endpoint,
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  exclude: [
-    # paths: ["/health"],
-    hosts: ["localhost", "127.0.0.1"]
-  ]
+  force_ssl: [rewrite_on: [:x_forwarded_proto], exclude: ["localhost", "127.0.0.1"]]
 
 # Do not print debug messages in production
 config :logger, level: :info
