@@ -76,7 +76,4 @@ def test_founder_channel_and_rollback_ruling_is_recorded() -> None:
     ):
         assert required in DECISION_PROSE
 
-    assert (
-        "this implementation-plan approval is not release approval"
-        in DECISION_PROSE
-    )
+    assert "this implementation-plan approval is not release approval" in DECISION_PROSE
