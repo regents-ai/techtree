@@ -64,9 +64,22 @@ founder is asked to approve anything. Do it in that order.
       --region iad \
       --initial-cluster-size 1 \
       --vm-size shared-cpu-1x \
+      --vm-memory 512 \
       --volume-size 1
 
-Single node, smallest machine, 1 GB volume. No backups are requested, and that
+`--vm-memory 512` is not optional. `--vm-size shared-cpu-1x` alone gives the
+machine 256 MB, and Postgres 18 flex is killed by the kernel partway through
+step 6 — the import writes enough at once to exceed it. The failure looks like a
+client-side pool timeout (`tcp recv (idle): timeout`, `connection not available
+and request was dropped from queue`), and the cause is only visible in
+`flyctl logs --app techtree-sh-db`: `Out of memory: Killed process (postgres)`.
+An already-created 256 MB cluster is raised in place with
+`flyctl machine update <id> --vm-memory 512 --app techtree-sh-db`, and the
+import can then be re-run as-is; nothing was written, so there is nothing to
+clean up first.
+
+Single node, smallest workable machine, 1 GB volume. No backups are requested,
+and that
 is deliberate rather than thrifty: every row in this database is reproduced
 exactly by importing the bundle the image already carries, so a backup would
 restore something the image can rebuild.
