@@ -76,6 +76,7 @@ from techtree.models.skill import (
 from techtree.models.uplift_report import UpliftReport
 from techtree.models.validation import TasksetValidationReceipt, ValidationEvidence
 from techtree.paths import TechtreePaths
+from techtree.runs.real import executor_kind_for
 from techtree.skills.archive import build_deterministic_tar
 from techtree.skills.policy import SkillPolicy, default_instruction_skill_policy
 from techtree.skills.scanner import ScannedFile, SkillScanResult, scan_skill
@@ -589,10 +590,16 @@ class SkillPreparationService:
             "The baseline runs first and the candidate second, on the same "
             "committed tasks, so the two are compared and not merely reported."
         )
-        warnings.append(
-            "Nothing produced here is a public proof. Real execution is not "
-            "part of this build."
-        )
+        if executor_kind_for(resolved.campaign) == "fake":
+            warnings.append(
+                "Nothing produced here is a public proof. No agent is "
+                "evaluated and no model is called on this Climb's runs."
+            )
+        else:
+            warnings.append(
+                "Nothing produced here is a public proof. Starting this run "
+                "evaluates the agent for real and spends money on model calls."
+            )
 
         release = resolved.data_policy.candidate_skill.public_release
         if release == "required_for_climb":
