@@ -65,10 +65,12 @@ person has seen those facts and said yes to *this* run. "Go ahead" from an
 earlier conversation is not consent for a second one.
 
 Two things you cannot tell them, so do not try. **How much it will come to:**
-Techtree works out no figure before a run and keeps no running total while one
-is under way, so the bill is whatever those episodes come to at the model
-provider they configured. **How long it will take:** nothing ends a run at a
-set time.
+Techtree checks a Campaign's declared maximum before a run and refuses one
+whose enforced limits could add up past it, but that maximum is a ceiling — it
+works out no figure for the bill and keeps no running total while one is under
+way, so what they pay is whatever those episodes come to at the model provider
+they configured. **How long it will take:** no finishing time is published for
+a run.
 Say both plainly rather than offering a guess; a number you invented is the
 one they will hold you to.
 

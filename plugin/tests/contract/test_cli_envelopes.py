@@ -51,11 +51,15 @@ RECORDED = sorted(FIXTURES.glob("*.json"))
 #: The remaining envelopes are read-only answers that do not depend on which
 #: engine a home holds, and are captured from the ordinary one.
 #:
-#: ``release-info.json`` reports a ``source_commit``: it was captured from the
-#: candidate wheel installed into an isolated home, and a wheel is stamped with
-#: the commit it was built from (Techtree decisions document 0026). A CLI run
-#: out of a source tree reports null there instead, and the plugin accepts
-#: both, because it compares only the coordinates both documents hold.
+#: ``release-info.json`` reports a null ``source_commit`` and the warning that
+#: goes with it. It used to carry a real one, because it was captured from the
+#: candidate wheel installed into an isolated home and a wheel is stamped with
+#: the commit it was built from (Techtree decisions document 0026). The
+#: Techtree decision 0029 regeneration moved the catalog and the ReleaseCore
+#: ahead of any wheel, so these two were re-captured from the source tree,
+#: where the CLI reports null and says so. The plugin accepts both shapes,
+#: because it compares only the coordinates both documents hold; the wheel
+#: capture comes back when there is a wheel carrying this release again.
 #:
 #: Everything else about the two Climb captures — the Climb, the Campaign, the
 #: policy, the digests — is identical, which is the point: the plugin must

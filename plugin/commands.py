@@ -169,8 +169,10 @@ def _slash_demo(services: Any, arguments: Sequence[str]) -> str:
             "Starting it spends real money on model calls, and needs your "
             "explicit approval.",
             "What it comes to is settled by the model provider you configured. "
-            "Techtree works out no figure first and keeps no running total as "
-            "it goes.",
+            "Techtree checks the Campaign's declared maximum before it starts "
+            "and refuses a run whose enforced limits could add up past it, but "
+            "it works out no figure for the bill first and keeps no running "
+            "total as it goes.",
             "Next: review the Skill-only change, then approve the start.",
         ]
     )

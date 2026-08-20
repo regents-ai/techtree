@@ -134,7 +134,10 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "rights, the model and provider it requires, how many tasks it "
             "runs, its proof grade, and whether this host can run it. It "
             "names no price: what a run costs is settled by the model provider "
-            "the user configured, and Techtree works out no figure in advance. "
+            "the user configured. Techtree checks a Campaign's declared "
+            "maximum before a run and refuses one whose enforced limits could "
+            "add up past it, but that maximum is a ceiling and never a "
+            "prediction of the bill. "
             "Read-only and free. Always inspect and show these facts before "
             "asking the user to approve a run."
         ),
@@ -199,7 +202,10 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "calls and provisions Docker, so call it only after the user has "
             "seen how many episodes will run, the data policy, and the Skill, "
             "and has said yes. Nobody can tell them the price first: Techtree "
-            "works out no figure before a run and keeps no running total while "
+            "checks before a run that the Campaign's enforced limits cannot "
+            "add up past the maximum it declares, and refuses one that could, "
+            "but that maximum is a ceiling — it works out no figure for what "
+            "this run will actually come to and keeps no running total while "
             "one is under way, so what they agree to is whatever those "
             "episodes come to at the provider they configured. Model inference "
             "goes to "
@@ -336,8 +342,10 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "money on model calls, so call it only after the user has seen the "
             "Skill diff, the data policy, and how many episodes will run, and "
             "has approved this second run specifically. As with the first run, "
-            "no price is worked out in advance and no running total is kept "
-            "while the run goes. Returns a run identifier immediately."
+            "the Campaign's declared maximum is checked before anything "
+            "starts, but no price is worked out in advance and no running "
+            "total is kept while the run goes. Returns a run identifier "
+            "immediately."
         ),
         properties={
             "draft_id": {

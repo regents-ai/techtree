@@ -194,12 +194,15 @@ FORBIDDEN_EXACT_SCORE: re.Pattern[str] = re.compile(
 #: containing the dishonest one would be a check that punishes candour.
 PERMITTED_BAND: re.Pattern[str] = re.compile("\\b20\\s*[-\\u2013]\\s*27\\s*/\\s*36\\b")
 
-#: Decision 0025. Nothing works out a price before a run and nothing ends a run
-#: for spending too much, so every one of these is a protection the reader
-#: would be told about and would not get. Each pattern bans the claim in the
-#: affirmative only: saying that none of it happens is the whole point of the
-#: honest copy, and a guard that could not tell the two apart would forbid the
-#: sentences it exists to require.
+#: Decisions 0025 and 0029. What a Campaign declares as a maximum is checked
+#: before a run starts and a run that could go past it is refused, so copy may
+#: say that much. What still does not exist is a price for the run and a
+#: cut-off during it: nothing works out what a run will come to, nothing counts
+#: the spending while it goes, and nothing ends one part-way through over
+#: money. Every pattern here is a protection the reader would be told about and
+#: would not get. Each bans the claim in the affirmative only: saying that none
+#: of it happens is the whole point of the honest copy, and a guard that could
+#: not tell the two apart would forbid the sentences it exists to require.
 FORBIDDEN_COST_PROMISE: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("a cost bound", re.compile(r"\bcost\s+(bound|ceiling|cap|limit)s?\b", re.I)),
     (
@@ -521,13 +524,16 @@ def test_the_surfaces_that_spend_money_say_no_price_is_worked_out() -> None:
 def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
     """The guards must not forbid the sentences they exist to require."""
     permitted = (
-        "Techtree works out no figure before a run and keeps no running "
-        "total while one is under way.",
+        "Techtree checks a Campaign's declared maximum before a run and "
+        "refuses one whose enforced limits could add up past it, but that "
+        "maximum is a ceiling and never a prediction of the bill.",
+        "it works out no figure for what this run will actually come to and "
+        "keeps no running total while one is under way",
         "It names no price: what a run costs is settled by the user's own "
         "model provider.",
         "no price is worked out in advance and no running total is kept "
         "while the run goes",
-        "nothing stops it if it goes past",
+        "no finishing time is published for a run",
         "This spends real money on model calls.",
         "A Climb is slow work, and nothing ends one at a set time.",
         "Never quote a price or a finishing time; neither one exists.",
