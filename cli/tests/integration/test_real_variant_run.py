@@ -192,6 +192,7 @@ def test_one_real_baseline_variant_runs_end_to_end(
         ),
         stdout_path=paths.variant_stdout_log(variant),
         stderr_path=paths.variant_stderr_log(variant),
+        supervision_record_path=paths.variant_supervision_record(variant),
     )
 
     traces_path = paths.variant_output_dir(variant) / TRACES_FILENAME

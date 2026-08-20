@@ -94,6 +94,7 @@ def _child(plan: VariantExecutionPlan) -> VerifiersChild:
         env={"PATH": os.environ.get("PATH", "/usr/bin:/bin")},
         stdout_path=output / "stdout.log",
         stderr_path=output / "stderr.log",
+        supervision_record_path=output / "supervision.json",
     )
 
 
@@ -137,14 +138,25 @@ def test_a_cancellation_in_the_journal_stops_both_process_groups(
     candidate = _child(pair.candidate)
 
     def ask_to_stop() -> None:
-        """Wait for both children to be up, then cancel the way the CLI does."""
+        """Wait for both evaluations to be working, then cancel as the CLI does.
+
+        Registration means the supervisor is up; the evaluation it supervises
+        is one ``fork`` behind it. What this test is about is a cancellation
+        that lands *mid-run*, so the trigger is both evaluations having started
+        to write evidence rather than both children having been registered.
+        """
         deadline = time.monotonic() + 30.0
         while time.monotonic() < deadline:
-            if len(registry.children(request.run_id)) == 2:
+            if len(registry.children(request.run_id)) == 2 and all(
+                (
+                    Path(pair.plan(variant).verifiers_output_dir) / TRACES_FILENAME
+                ).is_file()
+                for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
+            ):
                 store.request_cancel(request.run_id, requested_by="test")
                 return
             time.sleep(0.05)
-        raise AssertionError("both children never registered")
+        raise AssertionError("both evaluations never started working")
 
     canceller = threading.Thread(target=ask_to_stop, name="canceller")
     canceller.start()

@@ -25,6 +25,7 @@ from techtree.verifiers.config import (
     SamplingToml,
     SubjectAgentToml,
     TasksetToml,
+    TimeoutToml,
     config_to_toml_bytes,
     egress_for,
 )
@@ -232,3 +233,67 @@ def test_optional_bounds_are_absent_rather_than_null() -> None:
     document = tomllib.loads(config_to_toml_bytes(eval_config()).decode("utf-8"))
     assert "max_turns" not in document["env"]["subject"]
     assert "max_total_tokens" not in document["env"]["subject"]
+
+
+# ---------------------------------------------------------------------------
+# The limits a Campaign declares
+# ---------------------------------------------------------------------------
+
+
+def bounded_subject() -> SubjectAgentToml:
+    """Return a subject seat with every limit set to a distinguishable value."""
+    return subject(
+        max_turns=30,
+        max_input_tokens=200_000,
+        max_output_tokens=8_000,
+        max_total_tokens=208_000,
+        timeout=TimeoutToml(rollout=600.0),
+    )
+
+
+def test_every_limit_the_engine_enforces_can_be_spelled() -> None:
+    # The pinned build checks these four between turns and wraps each rollout
+    # phase in the timeout table. A limit Techtree cannot spell is a limit a
+    # Campaign cannot have, whatever its own document says.
+    document = tomllib.loads(
+        config_to_toml_bytes(
+            eval_config(
+                env=EnvToml(
+                    taskset=TasksetToml(id="procedure-transfer-v1"),
+                    subject=bounded_subject(),
+                )
+            )
+        ).decode("utf-8")
+    )
+    seat = document["env"]["subject"]
+
+    assert seat["max_turns"] == 30
+    assert seat["max_input_tokens"] == 200_000
+    assert seat["max_output_tokens"] == 8_000
+    assert seat["max_total_tokens"] == 208_000
+    assert seat["timeout"] == {"rollout": 600.0}
+
+
+@pytest.mark.parametrize(
+    "field", ["max_turns", "max_input_tokens", "max_output_tokens", "max_total_tokens"]
+)
+def test_a_limit_of_zero_or_less_has_no_representation(field: str) -> None:
+    # A cap of zero is not a tighter cap; it is a run that cannot take a turn.
+    with pytest.raises(PydanticValidationError):
+        subject(**{field: 0})
+
+
+@pytest.mark.parametrize("phase", ["setup", "rollout", "finalize", "scoring"])
+def test_a_timeout_of_zero_or_less_has_no_representation(phase: str) -> None:
+    with pytest.raises(PydanticValidationError):
+        TimeoutToml.model_validate({phase: 0.0})
+
+
+def test_an_unknown_timeout_phase_is_refused() -> None:
+    with pytest.raises(PydanticValidationError):
+        TimeoutToml.model_validate({"episode": 600.0})
+
+
+def test_a_seat_with_no_timeout_emits_an_empty_table_rather_than_nulls() -> None:
+    document = tomllib.loads(config_to_toml_bytes(eval_config()).decode("utf-8"))
+    assert document["env"]["subject"]["timeout"] == {}

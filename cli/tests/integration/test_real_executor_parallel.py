@@ -37,6 +37,7 @@ from techtree.runs.variants import VariantPair, VariantScheduler
 from techtree.verifiers.child import VerifiersChild
 from techtree.verifiers.models import VariantExecutionPlan, VariantName
 from techtree.verifiers.outputs import TRACES_FILENAME
+from techtree.verifiers.supervisor import SUPERVISOR_FAILURE_EXIT_CODE
 
 pytestmark = pytest.mark.integration
 
@@ -93,6 +94,7 @@ def _child(
         env={"PATH": os.environ.get("PATH", "/usr/bin:/bin")},
         stdout_path=output / "stdout.log",
         stderr_path=output / "stderr.log",
+        supervision_record_path=output / "supervision.json",
     )
 
 
@@ -232,21 +234,30 @@ def test_a_failed_variant_stops_its_sibling_and_keeps_both_partial_outputs(
         assert mode == 0o600
 
 
-def test_a_child_that_cannot_be_started_never_leaves_its_sibling_running(
+def test_an_evaluation_that_cannot_be_launched_never_leaves_its_sibling_running(
     started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
 ) -> None:
-    """One live side of a comparison is money spent on nothing."""
+    """One live side of a comparison is money spent on nothing.
+
+    The evaluation that does not exist is now discovered by its supervisor
+    rather than by the worker's own ``Popen``: what the worker starts is the
+    supervisor, which starts the evaluation and reports 125 when it cannot.
+    The property under test is unchanged — the sibling does not go on running —
+    and the supervision record is what says which of the two failed.
+    """
     from techtree.errors import RunError
 
     paths, store, request, pair = started
+    candidate_output = Path(pair.candidate.verifiers_output_dir)
     baseline = _child(pair.baseline, paths, _script(400))
     candidate = VerifiersChild(
         variant=VariantName.CANDIDATE,
         argv=[str(tmp_missing := Path("/nonexistent/techtree-eval"))],
-        cwd=Path(pair.candidate.verifiers_output_dir),
+        cwd=candidate_output,
         env={"PATH": os.environ.get("PATH", "/usr/bin:/bin")},
-        stdout_path=Path(pair.candidate.verifiers_output_dir) / "stdout.log",
-        stderr_path=Path(pair.candidate.verifiers_output_dir) / "stderr.log",
+        stdout_path=candidate_output / "stdout.log",
+        stderr_path=candidate_output / "stderr.log",
+        supervision_record_path=candidate_output / "supervision.json",
     )
     assert not tmp_missing.exists()
 
@@ -265,6 +276,11 @@ def test_a_child_that_cannot_be_started_never_leaves_its_sibling_running(
             candidate_child=candidate,
         )
     assert baseline.poll() is not None
+    assert candidate.poll() == SUPERVISOR_FAILURE_EXIT_CODE
+
+    record = json.loads((candidate_output / "supervision.json").read_text())
+    assert record["reason"] == "launch_failed"
+    assert record["variant"] == VariantName.CANDIDATE.value
 
 
 def _events(paths: TechtreePaths, run_id: str) -> list[dict[str, object]]:

@@ -80,6 +80,11 @@ from techtree.runs.variants import (
     require_concurrency_budget,
 )
 from techtree.tasksets.service import TASKSET_DIRECTORY
+from techtree.verifiers.budget import (
+    price_profile_for,
+    require_cost_bound,
+    require_executable_budget,
+)
 from techtree.verifiers.child import (
     DEFAULT_GRACE_SECONDS,
     VerifiersChild,
@@ -126,6 +131,7 @@ __all__ = [
     "executor_kind_for",
     "keep_evaluation_private",
     "real_execution_result_path",
+    "require_bounded_campaign",
     "require_live_campaign",
 ]
 
@@ -171,6 +177,7 @@ class ChildFactory(Protocol):
         env: Mapping[str, str],
         stdout_path: Path,
         stderr_path: Path,
+        supervision_record_path: Path,
     ) -> EvaluationChild:
         """Build one unstarted child."""
         ...
@@ -231,6 +238,21 @@ def require_live_campaign(campaign: CampaignSpec) -> None:
         code=REAL_EXECUTION_UNSUPPORTED,
         details={"campaign_id": campaign.metadata.id},
     )
+
+
+def require_bounded_campaign(campaign: CampaignSpec) -> None:
+    """Refuse to spend anything for a Campaign whose limits are not limits.
+
+    Both halves of decisions document 0029's layer A, asked in the one place
+    where a real run's first container is still one refusal away: every
+    declared execution limit is enforceable, and the most this comparison can
+    cost under those limits is not above what the Campaign says it may spend.
+    Asked here rather than when the run was created, because this is the
+    boundary between a run that has cost nothing and a run that is spending —
+    and it is the same boundary that already refuses a placeholder Campaign.
+    """
+    require_executable_budget(campaign)
+    require_cost_bound(campaign, price_profile_for(campaign.subject.model.model_id))
 
 
 def real_execution_result_path(run_root: Path) -> Path:
@@ -333,6 +355,14 @@ class RealVerifiersExecutor:
         # 4-5. The engine, and the credential the subject's calls are paid with.
         engine = self._resolve_engine()
         require_credentials(subject.model)
+
+        # 5a. What the Campaign may spend, and whether it can be held to it.
+        # After the credential rather than before it, because both refusals are
+        # free and this is the order the two are useful in: a machine that
+        # cannot pay for any run at all is told that first, and a Campaign
+        # whose limits are not limits is refused before the first container
+        # either way (decisions document 0029, layer A).
+        require_bounded_campaign(campaign)
 
         # 6-7. Local taskset validation, and the membership it commits to.
         validation = self._validate_taskset(context, inputs)
@@ -678,6 +708,7 @@ class RealVerifiersExecutor:
             env=environment,
             stdout_path=run_paths.variant_stdout_log(variant),
             stderr_path=run_paths.variant_stderr_log(variant),
+            supervision_record_path=run_paths.variant_supervision_record(variant),
         )
 
     # -- the engine's reading of the evidence -------------------------------

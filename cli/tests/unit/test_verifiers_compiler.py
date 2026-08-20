@@ -18,6 +18,7 @@ from __future__ import annotations
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -41,7 +42,7 @@ from techtree.verifiers.compiler import (
     skill_directory_name,
     write_variant_config,
 )
-from techtree.verifiers.config import config_to_toml_bytes
+from techtree.verifiers.config import SubjectAgentToml, config_to_toml_bytes
 from techtree.verifiers.models import RunPaths, VariantName
 
 PINNED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
@@ -257,6 +258,138 @@ def test_no_credential_value_reaches_the_compiled_bytes(
 
     assert secret.encode("utf-8") not in data
     assert graph.campaign.subject.model.credential_env.encode("utf-8") in data
+
+
+# ---------------------------------------------------------------------------
+# The limits the Campaign declares
+# ---------------------------------------------------------------------------
+
+#: One Campaign's declared limits, chosen so that no two compiled values are
+#: equal. A limit compiled into the wrong field, or a derived total that is
+#: really a copy of something else, is then a failing assertion rather than a
+#: coincidence that holds.
+DECLARED_TURNS: Final = 30
+DECLARED_INPUT: Final = 200_000
+DECLARED_OUTPUT: Final = 8_000
+DECLARED_TIMEOUT: Final = 600
+
+#: Every value the compiler is required to put in the seat the engine reads,
+#: and where it reads it. Parametrized rather than asserted in one block so
+#: that deleting any single assignment in the compiler fails a named case
+#: instead of one test that could be about anything.
+COMPILED_LIMITS: Final[tuple[tuple[str, object], ...]] = (
+    ("max_turns", DECLARED_TURNS),
+    ("max_input_tokens", DECLARED_INPUT),
+    ("max_output_tokens", DECLARED_OUTPUT),
+    ("max_total_tokens", DECLARED_INPUT + DECLARED_OUTPUT),
+)
+
+
+def bounded(campaign: CampaignSpec) -> CampaignSpec:
+    """Return the same Campaign with every execution limit declared."""
+    return campaign.model_copy(
+        update={
+            "budgets": campaign.budgets.model_copy(
+                update={
+                    "maximum_model_calls": DECLARED_TURNS,
+                    "maximum_input_tokens": DECLARED_INPUT,
+                    "maximum_output_tokens": DECLARED_OUTPUT,
+                }
+            ),
+            "execution": campaign.execution.model_copy(
+                update={"timeout_seconds": DECLARED_TIMEOUT}
+            ),
+        }
+    )
+
+
+def compiled_seats(
+    campaign: CampaignSpec, graph: SyntheticGraph, run_paths: RunPaths
+) -> dict[VariantName, SubjectAgentToml]:
+    """Compile both variants of one Campaign and return the two subject seats."""
+    campaign_digest = digest_object(campaign)
+    built = {
+        VariantName.BASELINE: build_baseline_manifest(
+            campaign=campaign,
+            campaign_digest=campaign_digest,
+            public_context=graph.public_context,
+            created_at=PINNED_TIME,
+        ),
+        VariantName.CANDIDATE: build_candidate_manifest(
+            campaign=campaign,
+            campaign_digest=campaign_digest,
+            skill=candidate_skill(),
+            public_context=graph.public_context,
+            created_at=PINNED_TIME,
+        ),
+    }
+    return {
+        variant: compile_variant_config(
+            campaign=campaign,
+            experiment=manifest,
+            run_paths=run_paths,
+            variant=variant,
+            variant_max_concurrent=1,
+        ).env.subject
+        for variant, manifest in built.items()
+    }
+
+
+@pytest.mark.parametrize(("field", "expected"), COMPILED_LIMITS)
+@pytest.mark.parametrize("variant", list(VariantName))
+def test_every_declared_limit_reaches_the_seat_the_engine_reads(
+    graph: SyntheticGraph,
+    run_paths: RunPaths,
+    variant: VariantName,
+    field: str,
+    expected: object,
+) -> None:
+    # A declared budget the engine never sees is decorative. Decision 0029
+    # forbids one, and this is the assertion that keeps it forbidden.
+    seat = compiled_seats(bounded(graph.campaign), graph, run_paths)[variant]
+
+    assert getattr(seat, field) == expected
+
+
+@pytest.mark.parametrize("variant", list(VariantName))
+def test_the_campaign_timeout_becomes_the_rollout_timeout(
+    graph: SyntheticGraph, run_paths: RunPaths, variant: VariantName
+) -> None:
+    # The Campaign's timeout bounds one subject rollout. The whole variant is
+    # bounded by the supervisor's deadline, which is not a Campaign field.
+    seat = compiled_seats(bounded(graph.campaign), graph, run_paths)[variant]
+
+    assert seat.timeout.rollout == float(DECLARED_TIMEOUT)
+    assert seat.timeout.setup is None
+    assert seat.timeout.finalize is None
+    assert seat.timeout.scoring is None
+
+
+def test_both_variants_are_bounded_identically(
+    graph: SyntheticGraph, run_paths: RunPaths
+) -> None:
+    # Two sides bounded differently is a second difference between them, which
+    # is the one thing a controlled comparison may not have.
+    seats = compiled_seats(bounded(graph.campaign), graph, run_paths)
+
+    assert seats[VariantName.BASELINE].max_turns is not None
+    for field, _ in COMPILED_LIMITS:
+        assert getattr(seats[VariantName.BASELINE], field) == getattr(
+            seats[VariantName.CANDIDATE], field
+        )
+    assert seats[VariantName.BASELINE].timeout == seats[VariantName.CANDIDATE].timeout
+
+
+def test_a_campaign_that_declares_no_total_gets_none_rather_than_a_guess(
+    graph: SyntheticGraph, run_paths: RunPaths
+) -> None:
+    # The total is derived from the two halves and is not a fourth thing a
+    # publisher chooses, so a Campaign missing either half has no total. Such a
+    # Campaign is refused before a run starts; the compiler's job is to invent
+    # nothing in the meantime.
+    seat = compiled_seats(graph.campaign, graph, run_paths)[VariantName.BASELINE]
+
+    assert seat.max_total_tokens is None
 
 
 # ---------------------------------------------------------------------------

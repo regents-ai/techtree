@@ -62,6 +62,7 @@ __all__ = [
     "SamplingToml",
     "SubjectAgentToml",
     "TasksetToml",
+    "TimeoutToml",
     "config_to_toml_bytes",
     "egress_for",
 ]
@@ -187,6 +188,23 @@ class DockerRuntimeToml(TomlModel):
         return self
 
 
+class TimeoutToml(TomlModel):
+    """Per-rollout Verifiers lifecycle limits.
+
+    Every one of these defaults to ``None`` upstream, and ``None`` means "no
+    limit": the pinned build wraps each phase in ``asyncio.timeout(value)``, and
+    ``asyncio.timeout(None)`` is a no-op. A Campaign that declares
+    ``timeout_seconds`` and cannot reach this table has declared nothing, which
+    is the whole reason the table exists here (decisions document 0029, layer
+    A).
+    """
+
+    setup: float | None = Field(default=None, gt=0.0)
+    rollout: float | None = Field(default=None, gt=0.0)
+    finalize: float | None = Field(default=None, gt=0.0)
+    scoring: float | None = Field(default=None, gt=0.0)
+
+
 class SubjectAgentToml(TomlModel):
     """The one seat v0.1 evaluates, named for the role it plays."""
 
@@ -196,6 +214,7 @@ class SubjectAgentToml(TomlModel):
     max_input_tokens: int | None = Field(default=None, ge=1)
     max_output_tokens: int | None = Field(default=None, ge=1)
     max_total_tokens: int | None = Field(default=None, ge=1)
+    timeout: TimeoutToml = Field(default_factory=TimeoutToml)
 
 
 class TasksetToml(TomlModel):

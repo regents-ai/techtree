@@ -39,6 +39,7 @@ __all__ = [
     "NORMALIZED_EPISODES_FILENAME",
     "STDERR_LOG_FILENAME",
     "STDOUT_LOG_FILENAME",
+    "SUPERVISION_RECORD_FILENAME",
     "VERIFIERS_DIRECTORY",
     "ChildProcessOutcome",
     "ExecutionCheck",
@@ -76,6 +77,12 @@ STDERR_LOG_FILENAME: Final = "stderr.log"
 #: The dry run is short and captured whole, so it is recorded in one file rather
 #: than as a pair of streams. Spec section 6.19.
 COMMAND_LOG_FILENAME: Final = "command.log"
+
+#: What one variant's supervisor leaves behind: why the evaluation ended, and
+#: how long it took to stop (decisions document 0029, layer B). It sits beside
+#: the evaluation rather than inside ``run/`` because the engine owns that
+#: directory and this is Techtree's own record of the engine's lifetime.
+SUPERVISION_RECORD_FILENAME: Final = "supervision.json"
 
 _DRY_RUN_DIRECTORY: Final = "dry-run"
 _RUN_DIRECTORY: Final = "run"
@@ -153,6 +160,10 @@ class RunPaths:
     def variant_dry_run_command_log(self, variant: VariantName) -> Path:
         """What the dry-run invocation was, and what it said back."""
         return self.variant_dry_run_dir(variant) / COMMAND_LOG_FILENAME
+
+    def variant_supervision_record(self, variant: VariantName) -> Path:
+        """Where one variant's supervisor records how its evaluation ended."""
+        return self.variant_dir(variant) / SUPERVISION_RECORD_FILENAME
 
     def variant_output_dir(self, variant: VariantName) -> Path:
         """Where the engine writes one variant's real evaluation output."""

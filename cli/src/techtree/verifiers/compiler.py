@@ -48,6 +48,7 @@ from techtree.verifiers.config import (
     SamplingToml,
     SubjectAgentToml,
     TasksetToml,
+    TimeoutToml,
     config_to_toml_bytes,
     egress_for,
 )
@@ -135,6 +136,31 @@ def compile_variant_config(
     taskset = experiment.configuration.taskset
     allow, block = egress_for(subject.runtime.network_policy)
 
+    # Every limit the Campaign declares, compiled into the place the engine
+    # reads it. A declared budget the engine never sees is decorative, and
+    # decision 0029 forbids one.
+    #
+    # Binding v0.1 interpretation: one Verifiers model turn is the supported
+    # Hermes model-call budget unit, so ``maximum_model_calls`` compiles to
+    # ``max_turns``. That mapping is VALID ONLY IF the turn-conformance check
+    # holds for the pinned profile — intercepted subject generations equal
+    # ``Trace.num_turns`` on every recorded canonical episode
+    # (``tools/verify_turn_conformance.py``, spec section 7). If it ever
+    # fails, the answer is a new ``maximum_turns`` field and
+    # ``maximum_model_calls`` left unsupported, never a silent false mapping.
+    #
+    # ``max_total_tokens`` is derived rather than declared: a Campaign exposes
+    # three publisher decisions (turns, input, output) and the total is their
+    # sum (decision 0029, resolution 1).
+    maximum_input = campaign.budgets.maximum_input_tokens
+    maximum_output = campaign.budgets.maximum_output_tokens
+    maximum_turns = campaign.budgets.maximum_model_calls
+    maximum_total = (
+        maximum_input + maximum_output
+        if maximum_input is not None and maximum_output is not None
+        else None
+    )
+
     if variant_max_concurrent < 1:
         _refuse(
             "a variant needs at least one concurrency permit",
@@ -163,8 +189,14 @@ def compile_variant_config(
                     cpu=subject.runtime.cpu,
                     memory=subject.runtime.memory_gb,
                 ),
-                max_output_tokens=campaign.budgets.maximum_output_tokens,
-                max_input_tokens=campaign.budgets.maximum_input_tokens,
+                max_turns=maximum_turns,
+                max_input_tokens=maximum_input,
+                max_output_tokens=maximum_output,
+                max_total_tokens=maximum_total,
+                # The Campaign's ``timeout_seconds`` bounds ONE subject
+                # rollout, not the whole variant. The variant's own bound is
+                # the supervisor's hard deadline (decision 0029, layer B).
+                timeout=TimeoutToml(rollout=float(campaign.execution.timeout_seconds)),
             ),
             max_concurrent_agents=1,
         ),

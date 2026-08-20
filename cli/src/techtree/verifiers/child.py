@@ -26,6 +26,17 @@ process exits ``130``. Killing outright would leave containers running. So
 :meth:`VerifiersChild.terminate` sends ``SIGTERM`` to the whole group, waits out
 a grace period, and only then escalates.
 
+*Nothing here can run once this process is gone.* Every rule above describes a
+worker that is alive to apply it, and a worker that is hard-killed applies
+none of them. So the process this class starts is not the evaluation: it is
+:mod:`techtree.verifiers.supervisor`, holding the read end of a pipe this
+worker keeps open, and the evaluation is that supervisor's own child
+(decisions document 0029, layer B). The worker's death closes the pipe, the
+supervisor reads end-of-file, and the evaluation is stopped by something that
+is still running. The invocation this class reports — its ``argv_digest``, its
+capture headers — remains the underlying evaluation's, because the digest
+identifies the experiment that was run and not the machinery that watched it.
+
 The capture files open with a single provenance line naming the variant, the
 start time and the digest of the invocation. It costs one line and buys two
 things: an ``ArtifactRef`` is well formed even when a stream stayed silent, and
@@ -39,6 +50,7 @@ import contextlib
 import os
 import signal
 import subprocess
+import sys
 import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
@@ -63,11 +75,15 @@ __all__ = [
     "EVAL_EXECUTABLE",
     "OUTPUT_DIR_FLAG",
     "PUSH_DISABLED_FLAG",
+    "SUPERVISOR_GRACE_SECONDS",
+    "SUPERVISOR_MODULE",
+    "VARIANT_HARD_DEADLINE_SECONDS",
     "VerifiersChild",
     "argv_digest",
     "capture_artifact",
     "dry_run_argv",
     "eval_argv",
+    "supervisor_argv",
     "write_command_log",
 ]
 
@@ -96,6 +112,25 @@ CANCELLATION_EXIT_CODE: Final = 130
 #: How long a terminated child is given to tear its containers down before the
 #: signal is escalated.
 DEFAULT_GRACE_SECONDS: Final = 30.0
+
+#: The supervisor's own grace period, and the reason it is shorter than the
+#: worker's. Both are running during an ordinary cancellation, and the inner
+#: escalation has to complete first: a worker that escalated first would
+#: ``SIGKILL`` a supervisor in the middle of a clean teardown and leave the
+#: containers it was tearing down. Decisions document 0029 makes the ordering
+#: an invariant, and a test holds it.
+SUPERVISOR_GRACE_SECONDS: Final = 20.0
+
+#: The longest one variant may run, whatever anything else believes. A named
+#: release constant rather than a Campaign field: the Campaign's
+#: ``timeout_seconds`` bounds one subject rollout, and this bounds the whole
+#: supervised evaluation (decisions document 0029, chief resolution 2).
+VARIANT_HARD_DEADLINE_SECONDS: Final = 1800.0
+
+#: The module the worker runs to supervise one evaluation. Executed with this
+#: interpreter, by module name, so it is the Techtree in this environment
+#: rather than whatever a ``PATH`` lookup would have found.
+SUPERVISOR_MODULE: Final = "techtree.verifiers.supervisor"
 
 CAPTURE_MEDIA_TYPE: Final = "text/plain"
 
@@ -139,6 +174,41 @@ def dry_run_argv(*, input_config_path: Path, dry_run_dir: Path) -> list[str]:
         PUSH_DISABLED_FLAG,
         OUTPUT_DIR_FLAG,
         str(dry_run_dir),
+    ]
+
+
+def supervisor_argv(
+    *,
+    variant: VariantName,
+    parent_fd: int,
+    record_path: Path,
+    deadline_seconds: float,
+    grace_seconds: float,
+    eval_argv: Sequence[str],
+) -> list[str]:
+    """Return the invocation that wraps one evaluation in its supervisor.
+
+    Everything here is a number, a path Techtree owns, or the evaluation's own
+    invocation. No credential appears and none can, for exactly the reason it
+    cannot appear on the evaluation's own argv: the configuration names an
+    environment variable and the value stays in the environment.
+    """
+    return [
+        sys.executable,
+        "-m",
+        SUPERVISOR_MODULE,
+        "--variant",
+        variant.value,
+        "--parent-fd",
+        str(parent_fd),
+        "--record",
+        str(record_path),
+        "--deadline-seconds",
+        f"{deadline_seconds:g}",
+        "--grace-seconds",
+        f"{grace_seconds:g}",
+        "--",
+        *eval_argv,
     ]
 
 
@@ -210,6 +280,9 @@ class VerifiersChild:
         env: Mapping[str, str],
         stdout_path: Path,
         stderr_path: Path,
+        supervision_record_path: Path,
+        hard_deadline_seconds: float = VARIANT_HARD_DEADLINE_SECONDS,
+        supervisor_grace_seconds: float = SUPERVISOR_GRACE_SECONDS,
     ) -> None:
         self._variant = variant
         self._argv = tuple(argv)
@@ -217,8 +290,12 @@ class VerifiersChild:
         self._env = dict(env)
         self._stdout_path = stdout_path
         self._stderr_path = stderr_path
+        self._supervision_record_path = supervision_record_path
+        self._hard_deadline_seconds = hard_deadline_seconds
+        self._supervisor_grace_seconds = supervisor_grace_seconds
 
         self._process: subprocess.Popen[bytes] | None = None
+        self._parent_liveness_fd: int | None = None
         self._streams: list[IO[bytes]] = []
         self._started_at: datetime | None = None
         self._started_monotonic: float | None = None
@@ -256,12 +333,19 @@ class VerifiersChild:
     # -- lifecycle --------------------------------------------------------
 
     def start(self) -> int:
-        """Start the child in its own process group and return its pid.
+        """Start the supervised evaluation and return the supervisor's pid.
 
-        A new session means the whole subprocess tree — the engine, its Docker
-        client, anything either spawns — can be signalled as one group, and
-        that the operator's own Ctrl-C in the foreground terminal does not reach
-        an evaluation mid-rollout and orphan its containers.
+        A new session means the whole subprocess tree — the supervisor, the
+        engine, its Docker client, anything any of them spawns — can be
+        signalled as one group, and that the operator's own Ctrl-C in the
+        foreground terminal does not reach an evaluation mid-rollout and orphan
+        its containers.
+
+        The pipe is the part that survives this process. Its read end is the
+        only descriptor handed to the supervisor and its write end is held here
+        and never written to, so the supervisor's read returns end-of-file at
+        the moment this worker stops existing — including the moment it is
+        killed outright, when no code here gets to run at all.
         """
         if self._process is not None:
             raise RunError(
@@ -274,11 +358,22 @@ class VerifiersChild:
         stdout = self._open_capture(self._stdout_path, stream="stdout")
         stderr = self._open_capture(self._stderr_path, stream="stderr")
 
+        read_fd, write_fd = os.pipe()
+        self._parent_liveness_fd = write_fd
+        launch = supervisor_argv(
+            variant=self._variant,
+            parent_fd=read_fd,
+            record_path=self._supervision_record_path,
+            deadline_seconds=self._hard_deadline_seconds,
+            grace_seconds=self._supervisor_grace_seconds,
+            eval_argv=self._argv,
+        )
+
         self._started_at = datetime.now(UTC)
         self._started_monotonic = time.monotonic()
         try:
             self._process = subprocess.Popen(
-                list(self._argv),
+                launch,
                 cwd=str(self._cwd),
                 env=self._env,
                 stdin=subprocess.DEVNULL,
@@ -286,14 +381,21 @@ class VerifiersChild:
                 stderr=stderr,
                 start_new_session=True,
                 close_fds=True,
+                pass_fds=(read_fd,),
             )
         except OSError as error:
             self._close_streams()
+            self._close_parent_liveness()
             raise RunError(
                 f"the evaluation child could not be started: {error.strerror or error}",
                 code=CHILD_START_FAILED,
                 details={"variant": self._variant.value, "program": self._argv[0]},
             ) from error
+        finally:
+            # The worker must not be a second writer to its own liveness pipe,
+            # and it must not hold the reader open either: only the supervisor
+            # reads, and only this process writes.
+            os.close(read_fd)
         return self._process.pid
 
     def poll(self) -> int | None:
@@ -383,6 +485,7 @@ class VerifiersChild:
         if self._process is not None and self._process.poll() is None:
             self.terminate()
         self._close_streams()
+        self._close_parent_liveness()
 
     # -- internals ---------------------------------------------------------
 
@@ -429,6 +532,21 @@ class VerifiersChild:
         if self._started_monotonic is not None:
             self._elapsed_seconds = time.monotonic() - self._started_monotonic
         self._close_streams()
+        self._close_parent_liveness()
+
+    def _close_parent_liveness(self) -> None:
+        """Close this worker's end of the supervisor's liveness pipe.
+
+        Idempotent, and safe to call on a child that never started. The
+        supervisor treats the close as this worker's death, so it is only ever
+        done once the evaluation has already finished or been stopped.
+        """
+        descriptor = self._parent_liveness_fd
+        if descriptor is None:
+            return
+        self._parent_liveness_fd = None
+        with contextlib.suppress(OSError):
+            os.close(descriptor)
 
     def _signal_group(self, number: int) -> None:
         """Signal the child's whole process group, tolerating a race with exit."""

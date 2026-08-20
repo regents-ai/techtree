@@ -1,0 +1,20 @@
+{
+  "schema_version": "techtree.price-profile-record.v1",
+  "recorded_on": "2026-08-20",
+  "purpose": "The provider prices the v0.1 orphan bound was computed with (decisions document 0029, layer C). Token exposure is protocol-bounded by the Campaign's enforced limits; the dollar figure uses provider pricing recorded at release time and is only as current as this record.",
+  "profiles": [
+    {
+      "schema_version": "techtree.price-profile.v1",
+      "model_id": "qwen/qwen3.7-flash",
+      "input_usd_per_mtok": 0.03,
+      "output_usd_per_mtok": 0.13,
+      "context_window_tokens": 131072,
+      "source": "Prime Intellect published rate card for qwen/qwen3.7-flash",
+      "recorded_on": "2026-08-20"
+    }
+  ],
+  "notes": {
+    "rates": "Highest uncached rates, per million tokens, in US dollars.",
+    "context_window_tokens": "Not a price. It is the one-turn input overshoot the bound charges for, because Verifiers checks max_input_tokens between turns and a single turn may still carry a whole context window. No context ceiling for this model is published in anything this repository carries, so the release uses 131072 - the largest window in common use for models of this class - which can only make the computed bound larger."
+  }
+}

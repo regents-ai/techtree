@@ -9,6 +9,7 @@ does with them. That belongs to the preflight suite and to the real-model run.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -21,12 +22,16 @@ from techtree.errors import RunError
 from techtree.verifiers.child import (
     CONFIG_ARGUMENT_MARKER,
     PUSH_DISABLED_FLAG,
+    SUPERVISOR_GRACE_SECONDS,
+    VARIANT_HARD_DEADLINE_SECONDS,
     VerifiersChild,
     argv_digest,
     eval_argv,
+    supervisor_argv,
     write_command_log,
 )
 from techtree.verifiers.models import VariantName
+from techtree.verifiers.supervisor import SUPERVISOR_FAILURE_EXIT_CODE
 
 
 def child(
@@ -34,6 +39,7 @@ def child(
     argv: list[str],
     *,
     variant: VariantName = VariantName.BASELINE,
+    **overrides: float,
 ) -> VerifiersChild:
     """Build a child that captures into ``tmp_path``."""
     return VerifiersChild(
@@ -43,6 +49,8 @@ def child(
         env={"PATH": os.environ.get("PATH", "")},
         stdout_path=tmp_path / "run" / "stdout.log",
         stderr_path=tmp_path / "run" / "stderr.log",
+        supervision_record_path=tmp_path / "supervision.json",
+        **overrides,
     )
 
 
@@ -121,6 +129,78 @@ def test_two_different_invocations_digest_differently(tmp_path: Path) -> None:
     # A separator that could appear inside an argument would let two different
     # vectors hash the same; the digest joins on a byte no argv can contain.
     assert first != joined
+
+
+# ---------------------------------------------------------------------------
+# The supervisor the evaluation is wrapped in
+# ---------------------------------------------------------------------------
+
+
+def supervised(tmp_path: Path, **overrides: object) -> list[str]:
+    """Return the invocation the worker would start for one evaluation."""
+    arguments: dict[str, object] = {
+        "variant": VariantName.BASELINE,
+        "parent_fd": 9,
+        "record_path": tmp_path / "supervision.json",
+        "deadline_seconds": VARIANT_HARD_DEADLINE_SECONDS,
+        "grace_seconds": SUPERVISOR_GRACE_SECONDS,
+        "eval_argv": eval_argv(
+            eval_executable=tmp_path / "eval",
+            input_config_path=tmp_path / "input.toml",
+        ),
+    }
+    arguments.update(overrides)
+    return supervisor_argv(**arguments)  # type: ignore[arg-type]
+
+
+def test_the_worker_starts_the_supervisor_and_the_supervisor_starts_the_eval(
+    tmp_path: Path,
+) -> None:
+    argv = supervised(tmp_path)
+
+    # This interpreter, by module name: the supervisor is the Techtree in this
+    # environment, not whatever a PATH lookup would have answered with.
+    assert argv[:3] == [sys.executable, "-m", "techtree.verifiers.supervisor"]
+    # Everything after the separator is the evaluation, unchanged.
+    assert argv[argv.index("--") + 1 :] == eval_argv(
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+    )
+
+
+def test_the_supervisor_is_told_the_deadline_and_the_grace_it_must_keep(
+    tmp_path: Path,
+) -> None:
+    argv = supervised(tmp_path)
+
+    assert argv[argv.index("--deadline-seconds") + 1] == "1800"
+    assert argv[argv.index("--grace-seconds") + 1] == "20"
+    assert argv[argv.index("--record") + 1] == str(tmp_path / "supervision.json")
+
+
+def test_no_credential_can_appear_in_the_supervisors_invocation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    secret = "sk-supervisor-argv-unit-test-secret"
+    monkeypatch.setenv("PRIME_API_KEY", secret)
+
+    argv = supervised(tmp_path)
+
+    assert not any(secret in argument for argument in argv)
+
+
+def test_the_reported_invocation_is_the_evaluations_rather_than_the_supervisors(
+    tmp_path: Path,
+) -> None:
+    # The digest identifies the experiment that was run. Wrapping it in a
+    # supervisor changed no input to that experiment, so a run compiled before
+    # this fix and a run compiled after it must still digest the same.
+    argv = eval_argv(
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+    )
+    started = child(tmp_path, list(argv))
+
+    assert started.argv_digest == argv_digest(argv)
+    assert started.argv_digest != argv_digest(supervised(tmp_path))
 
 
 # ---------------------------------------------------------------------------
@@ -227,12 +307,20 @@ def test_a_child_cannot_be_started_twice(tmp_path: Path) -> None:
     assert caught.value.code == "eval_child_start_failed"
 
 
-def test_a_program_that_does_not_exist_is_a_named_failure(tmp_path: Path) -> None:
+def test_an_evaluation_that_does_not_exist_is_the_supervisors_own_failure(
+    tmp_path: Path,
+) -> None:
+    # What the worker starts is the supervisor, which exists. An evaluation
+    # that does not exist is therefore discovered one level down, and the
+    # supervisor says so in its own code rather than exiting like a run that
+    # ran and failed.
     started = child(tmp_path, [str(tmp_path / "no-such-eval")])
+    started.start()
 
-    with pytest.raises(RunError) as caught:
-        started.start()
-    assert caught.value.code == "eval_child_start_failed"
+    assert wait_for_exit(started) == SUPERVISOR_FAILURE_EXIT_CODE
+    record = json.loads((tmp_path / "supervision.json").read_text())
+    assert record["reason"] == "launch_failed"
+    assert record["eval_pid"] is None
 
 
 def test_waiting_past_a_deadline_is_a_named_failure(tmp_path: Path) -> None:
