@@ -1,7 +1,7 @@
 {
   "climbs": [
     {
-      "digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
+      "digest": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
       "path": "climbs/hello-world-climb.json",
       "reference": "hello-world-climb@1"
     }
@@ -22,7 +22,7 @@
       "media_type": "application/json",
       "path": "validation-evidence/hello-world-climb.json"
     },
-    "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89": {
+    "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7": {
       "kind": "campaign",
       "media_type": "application/json",
       "path": "campaigns/hello-world-climb.json"

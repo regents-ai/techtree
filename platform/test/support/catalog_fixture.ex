@@ -14,8 +14,8 @@ defmodule Techtree.CatalogFixture do
 
   @climb_reference "hello-world-climb@1"
   @climb_path "climbs/hello-world-climb.json"
-  @campaign_digest "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89"
-  @catalog_digest "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903"
+  @campaign_digest "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7"
+  @catalog_digest "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386"
 
   # Stand-ins with the shape of a real coordinate and none of its meaning.
   @commit String.duplicate("a", 40)
