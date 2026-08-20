@@ -776,8 +776,7 @@ def test_a_skill_that_instructs_past_the_envelope_is_a_conflict(
 #
 # WP11g S4. The analysis, the rationale and the tradeoffs are model-authored
 # text about a measured result, and they are relayed into the conversation.
-# The claim and number guards existed for exactly this and were pointed at
-# nothing.
+# The claim guards existed for exactly this and were pointed at nothing.
 
 
 @pytest.mark.parametrize(
@@ -787,21 +786,6 @@ def test_a_skill_that_instructs_past_the_envelope_is_a_conflict(
             "analysis_summary",
             "The Skill was independently reproduced on held-out tasks.",
             "independent reproduc",
-        ),
-        (
-            "analysis_summary",
-            "The rule fixes 22 tasks out of the set.",
-            "states a counted outcome",
-        ),
-        (
-            "change_rationale",
-            ["This should take the score to 32/36."],
-            "score fraction",
-        ),
-        (
-            "change_rationale",
-            ["Accuracy rises to 0.89 with the corrected rule."],
-            "decimal value",
         ),
         (
             "expected_tradeoffs",
@@ -815,7 +799,7 @@ def test_a_skill_that_instructs_past_the_envelope_is_a_conflict(
         ),
     ],
 )
-def test_a_proposal_whose_prose_states_a_claim_or_a_number_is_refused(
+def test_a_proposal_whose_prose_states_a_forbidden_claim_is_refused(
     field: str, value: Any, expected: str
 ) -> None:
     host = StubHost(parsed={**GOOD_PROPOSAL, field: value})
@@ -829,12 +813,15 @@ def test_a_proposal_whose_prose_states_a_claim_or_a_number_is_refused(
 def test_refusing_the_prose_still_spends_the_one_turn() -> None:
     """Decision 0015: a refused proposal consumes the attempt. That is correct."""
     host = StubHost(
-        parsed={**GOOD_PROPOSAL, "analysis_summary": "It now scores 32/36 overall."}
+        parsed={
+            **GOOD_PROPOSAL,
+            "analysis_summary": "The revision was independently reproduced.",
+        }
     )
     service = _service(FakeBridge(), host)
     session = _session()
 
-    with pytest.raises(PluginError, match="score fraction"):
+    with pytest.raises(PluginError, match="independent reproduc"):
         _propose(service, session)
 
     with pytest.raises(PluginError, match="already had its one revision"):

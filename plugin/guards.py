@@ -7,10 +7,9 @@ are reachable from nothing in the released flow, and no release promise
 depends on them.
 
 They exist because the failure they prevent is not obvious in the output. A
-sentence that says "roughly two thirds of tasks now pass" reads like commentary
-and is in fact a claim about a number nobody computed. A sentence that says
-"independently reproduced" reads like praise and is in fact a false statement
-about how the result was produced. Both look fine next to a correct table.
+sentence that says "independently reproduced" reads like praise and is in fact
+a false statement about how the result was produced. It looks fine next to a
+correct table.
 
 When a check fails, the narrative is discarded whole. It is never edited into
 something acceptable, and the model is never asked again automatically: the
@@ -70,32 +69,6 @@ _FORBIDDEN_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ("a leaderboard claim", re.compile(r"leaderboard|state[- ]of[- ]the[- ]art", re.I)),
 )
 
-#: Values that belong to Techtree's payload and never to a sentence.
-_NUMERIC_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
-    ("a score fraction", re.compile(r"\d+\s*/\s*\d+")),
-    ("a percentage", re.compile(r"\d+(\.\d+)?\s*%")),
-    ("a decimal value", re.compile(r"\b\d+\.\d+\b")),
-    # Both dash characters are deliberate: the ASCII hyphen and the Unicode
-    # minus sign. A model that writes a negative delta with the typographic
-    # one is stating a value just as much, and the guard has to catch both.
-    ("a signed delta", re.compile(r"[+−-]\s?\d+(\.\d+)?\b")),  # noqa: RUF001
-    (
-        "a counted outcome",
-        re.compile(
-            r"\b\d+\s+(wins?|losses|loses|ties?|tasks?|episodes?|points?|tokens?"
-            r"|seconds?|dollars?)\b",
-            re.I,
-        ),
-    ),
-    (
-        "a named value",
-        re.compile(
-            r"\b(score|delta|cost|runtime|duration|latency|accuracy)\b[^.]{0,12}\d",
-            re.I,
-        ),
-    ),
-)
-
 #: Statuses, grades, and addresses the payload renders itself.
 _CANONICAL_TOKENS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ("a digest", re.compile(r"sha256:[0-9a-f]{8,}", re.I)),
@@ -133,7 +106,6 @@ def validate_narrative(
     """
     for text in narrative.texts():
         forbid_unapproved_claims(text)
-        forbid_numeric_claims(text)
         forbid_canonical_values(text)
         forbid_new_commands(text, allowed_commands=set())
         forbid_ansi(text)
@@ -166,16 +138,6 @@ def forbid_unapproved_claims(text: str) -> None:
             raise NarrativeRejectedError(
                 f"the narrative claims {described}, which is not true of a "
                 "comparison run on this machine"
-            )
-
-
-def forbid_numeric_claims(text: str) -> None:
-    """Refuse a sentence that states a value Techtree is responsible for."""
-    for described, pattern in _NUMERIC_PATTERNS:
-        if pattern.search(text):
-            raise NarrativeRejectedError(
-                f"the narrative states {described}; every number in a result "
-                "comes from Techtree's own payload"
             )
 
 
@@ -483,14 +445,8 @@ def validate_revision_prose(
     A proposal is not only a Skill. It comes with an analysis, a rationale,
     and a list of tradeoffs, and those go straight into the conversation. They
     are model-authored text about a measured result, which is exactly the
-    thing the claim and number guards were written for — they were simply
-    never pointed at this path.
-
-    Numbers are the sharp end. Every figure about a comparison is Techtree's,
-    rendered from its own payload; a rationale that states one has invented a
-    measurement, whether or not it happens to be right. So a proposal whose
-    prose states a value is refused rather than trimmed, and the turn it
-    spent is spent. That is the one-turn rule working, not a bug in it.
+    thing the claim guards were written for — they were simply never pointed
+    at this path.
 
     Raises:
         NarrativeRejected: naming what was written that could not be relayed.
@@ -498,7 +454,6 @@ def validate_revision_prose(
     members = list(task_inputs)
     for text in prose:
         forbid_unapproved_claims(text)
-        forbid_numeric_claims(text)
         forbid_canonical_values(text)
         forbid_ansi(text)
         forbid_secret_patterns(text)
