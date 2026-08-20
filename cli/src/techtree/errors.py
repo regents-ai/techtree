@@ -213,6 +213,13 @@ _SECRET_NAME = (
     r"credential|authorization)"
     r"[A-Za-z0-9_.-]*"
 )
+#: An unquoted value, when it is a credential rather than the next word of a
+#: sentence. Prose puts ordinary words after a colon — "no credential: the
+#: Prime CLI configuration on this machine holds no key" — and redacting those
+#: turns a sentence somebody has to act on into noise. A credential is not a
+#: word: it is long, and it carries a digit, a capital, or one of the
+#: characters tokens are built from.
+_BARE_TOKEN_VALUE = r"(?=\S{8,})\S*[^a-z]\S*"
 #: A secret-looking name, then a separator, then its value. The name may carry
 #: a closing quote because these often appear inside JSON. The value may carry
 #: an authentication scheme so that ``Authorization: Bearer <token>`` redacts
@@ -220,7 +227,7 @@ _SECRET_NAME = (
 _SECRET_ASSIGNMENT = re.compile(
     rf"(?i)\b({_SECRET_NAME}[\"']?)"
     r"(\s*[:=]\s*)"
-    r"(\"[^\"]*\"|'[^']*'|(?:bearer|basic|token)\s+\S+|\S+)"
+    rf"(\"[^\"]*\"|'[^']*'|(?:bearer|basic|token)\s+\S+|{_BARE_TOKEN_VALUE})"
 )
 #: Names that merely contain a secret-sounding word but never carry one. Every
 #: entry here is a real Techtree field, so redacting it would hide useful

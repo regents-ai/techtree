@@ -345,6 +345,23 @@ def test_secret_looking_assignments_are_redacted(text: str) -> None:
     assert REDACTED in message
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        # The sentence a signed-out person reads on their first run. The word
+        # after the colon is "the", and redacting it broke the sentence.
+        "the evaluation model endpoint has no credential: the Prime CLI "
+        "configuration on this machine holds no key",
+        "no credential: this machine is signed out",
+        "the token: no reasoning is included in the final answer",
+        "password: your provider sets this in its own console",
+    ],
+)
+def test_ordinary_prose_after_a_secret_looking_word_survives(text: str) -> None:
+    """A word in a sentence is not a credential, and hiding it explains nothing."""
+    assert sanitize_text(text) == text
+
+
 def test_a_prefixed_token_is_redacted_even_without_a_name() -> None:
     message = sanitize_exception_message(
         RuntimeError("upstream said ghp_abcdefghijklmnopqrstuvwxyz0123456789")

@@ -196,6 +196,24 @@ def test_the_report_is_development_only_and_cannot_be_published(
     assert report.statuses.comparison.value == "development_only"
 
 
+def test_starting_a_fake_run_says_no_model_is_called(
+    finished_run: dict[str, Any],
+) -> None:
+    """The other side of ticket ce9: here the executor really is the fake one.
+
+    The start surface reads the run's own executor, so the sentence about
+    model calls follows the run rather than a literal, and this catalog is
+    where it is true.
+    """
+    envelope = finished_run["started"].envelope()
+    warnings = {warning["code"]: warning["text"] for warning in envelope["warnings"]}
+
+    assert finished_run["started"].data()["development_only"] is True
+    assert "development_only_run" in warnings
+    assert "no model is called" in warnings["development_only_run"]
+    assert "spends money" not in " ".join(warnings.values())
+
+
 def test_the_machine_envelope_carries_the_caveat(
     finished_run: dict[str, Any],
 ) -> None:

@@ -70,6 +70,7 @@ from techtree.cli.commands.run import build_run_service
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import human_console
+from techtree.drafts.source import CampaignSource
 from techtree.drafts.store import DraftStore, utc_now
 from techtree.errors import (
     NotFoundError,
@@ -90,7 +91,12 @@ from techtree.models.catalog import (
 )
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.climb import ResolvedClimb
-from techtree.models.run import PolicyAcknowledgement, RunPhase, RunStatus
+from techtree.models.run import (
+    PolicyAcknowledgement,
+    RunPhase,
+    RunRequest,
+    RunStatus,
+)
 from techtree.models.skill import PolicyAcceptanceRequirement, SubmissionDraft
 from techtree.runs.service import POLICY_ACCEPTANCE_REQUIRED, ApprovalActor
 from techtree.skills.service import PreparedDraft, SkillPreparationService
@@ -441,10 +447,11 @@ def start_climb_command(
         service = build_run_service(context)
         store = DraftStore(context.paths)
         draft = store.get(draft_id)
+        source = store.get_source(draft_id)
         approval = approve_run(
             context,
             draft=draft,
-            campaign=store.get_source(draft_id).campaign,
+            campaign=source.campaign,
             assume_yes=yes,
             reviewed_on=reviewed_on,
         )
@@ -454,7 +461,8 @@ def start_climb_command(
             policy_acknowledgement=approval.acknowledgement,
             approved_by=approval.actor,
         )
-        payload = _start_payload(draft, status, approval)
+        request = service.request(status.state.run_id)
+        payload = _start_payload(draft, status, approval, request)
 
         return CommandResult(
             data=payload,
@@ -468,7 +476,7 @@ def start_climb_command(
                     ),
                 )
             ],
-            warnings=_start_warnings(payload),
+            warnings=_start_warnings(payload, source=source),
             next_actions=[_watch_run(payload.run_id)],
         )
 
@@ -620,7 +628,14 @@ def _start_payload(
     draft: SubmissionDraft,
     status: RunStatus,
     approval: RunApproval,
+    request: RunRequest,
 ) -> ClimbStartPayload:
+    """Project the run that was just created, reading its own record for what it is.
+
+    ``development_only`` is the run's executor and nothing else, read from the
+    request the start just wrote — the same source ``run status`` answers from,
+    so the two can never disagree about the same run.
+    """
     return ClimbStartPayload(
         run_id=status.state.run_id,
         draft_id=draft.id,
@@ -630,7 +645,7 @@ def _start_payload(
         data_policy_digest=draft.data_policy_digest,
         policy_acknowledgement_method=approval.acknowledgement.method,
         approved_by=approval.actor,
-        development_only=True,
+        development_only=request.executor_kind == "fake",
     )
 
 
@@ -754,21 +769,62 @@ def _start_draft(payload: ClimbPreparePayload) -> NextAction:
     )
 
 
-def _start_warnings(payload: ClimbStartPayload) -> list[CliMessage]:
-    """Say plainly, in both output modes, what this run is going to produce."""
-    if not payload.development_only:
-        return []
-    return [
-        CliMessage(
-            level=MessageLevel.WARNING,
-            code="development_only_run",
-            text=(
-                "This run is executed by the development fake executor. No "
-                "agent will be evaluated and no model will be called; the "
-                "report it produces is not publication eligible."
-            ),
+def _start_warnings(
+    payload: ClimbStartPayload, *, source: CampaignSource
+) -> list[CliMessage]:
+    """Say plainly, in both output modes, what this run is going to produce.
+
+    Two separate facts, each read off the run rather than stated here. Whether
+    a model is called at all is the executor the run's own request records.
+    Whether the report may be published is the Climb's proof grade. They are
+    independent: the Climb this build ships is a real evaluation that is paid
+    for and is still not publication eligible, and a single sentence that
+    assumed one from the other is how this surface came to tell people no
+    model would be called on the screen where they had just agreed to pay for
+    the calls.
+    """
+    warnings: list[CliMessage] = []
+
+    if payload.development_only:
+        warnings.append(
+            CliMessage(
+                level=MessageLevel.WARNING,
+                code="development_only_run",
+                text=(
+                    "No agent is evaluated and no model is called on this run. "
+                    "The numbers in the report it produces are invented."
+                ),
+            )
         )
-    ]
+    else:
+        warnings.append(
+            CliMessage(
+                level=MessageLevel.WARNING,
+                code="paid_evaluation_run",
+                text=(
+                    "This run evaluates the agent for real and spends money on "
+                    f"model calls with {source.campaign.subject.model.provider}. "
+                    "What you pay is whatever that provider charges."
+                ),
+            )
+        )
+
+    if source.climb is not None and (
+        source.climb.publication.proof_grade == "development_only"
+    ):
+        warnings.append(
+            CliMessage(
+                level=MessageLevel.WARNING,
+                code="not_publication_eligible",
+                text=(
+                    f"{climb_reference(source.climb)} is a development Climb. "
+                    "Its report is not publication eligible, and its result is "
+                    "not comparable evidence."
+                ),
+            )
+        )
+
+    return warnings
 
 
 def _watch_run(run_id: str) -> NextAction:

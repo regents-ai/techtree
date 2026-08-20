@@ -74,11 +74,15 @@ The supported path is an active Prime CLI configuration:
 
 ```bash
 prime login
-techtree doctor --for-evaluation
+techtree doctor --climb hello-world-climb@1
 ```
 
-`techtree doctor --for-evaluation` also checks the container image a run needs.
-Its credential line answers for the detached run rather than for the terminal
+Naming the Climb is what asks about the credential. `--for-evaluation` checks
+the machine — that anything could run here — and `--climb` checks the subject
+this Climb would run: its model credential and its container image. It implies
+`--for-evaluation`, so the command above is the complete check.
+
+The credential line answers for the detached run rather than for the terminal
 that invoked Doctor. It never prints the credential itself. A present but
 revoked credential can still fail at the provider’s first model call.
 
@@ -101,7 +105,7 @@ NeMo Relay.
 
 ```bash
 techtree setup
-techtree doctor --for-evaluation
+techtree doctor --climb <climb-slug>
 techtree climb list
 techtree climb show <climb-slug>
 techtree climb prepare <climb-slug> --skill <path>

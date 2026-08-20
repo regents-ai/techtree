@@ -20,10 +20,11 @@ Two rules govern secret handling and neither has an exception:
   alone: anything blocking has already raised.
 
 The rules are deliberately conservative. They look for credential shapes that
-are hard to write by accident — key blocks, provider token prefixes, and
-assignments to secret-sounding names — and they ignore environment references
-and placeholders, because a skill that documents ``API_KEY=${MY_KEY}`` is doing
-the right thing and must not be punished for it.
+are hard to write by accident — key blocks, provider token prefixes, AWS keys,
+and an authorization header carrying a scheme and a value. A shape is what is
+matched, never a name: a Skill is prose about a procedure, and the words a
+procedure uses ("the final output must contain only that token: no reasoning")
+are not evidence of a credential.
 """
 
 from __future__ import annotations
@@ -109,34 +110,6 @@ class _SecretRule:
     severity: Literal["warning", "blocking"]
 
 
-#: A name that, when something is assigned to it, is almost certainly a secret.
-_SECRET_NAME = (
-    r"[A-Za-z0-9_.-]*"
-    r"(?:api[_-]?key|access[_-]?key|secret[_-]?key|secret|token|password|passwd|"
-    r"passphrase|credential|private[_-]?key)"
-    r"[A-Za-z0-9_.-]*"
-)
-
-#: Names that only sound like secrets. Every entry is a real Techtree field or
-#: a common counter, and flagging one would train participants to ignore the
-#: scanner. Kept in step with ``techtree.errors``.
-_SAFE_NAMES: Final[frozenset[str]] = frozenset(
-    {
-        "credential_env",
-        "max_tokens",
-        "num_tokens",
-        "secret_scanning",
-        "token_count",
-        "tokens",
-        "total_tokens",
-    }
-)
-
-_SECRET_ASSIGNMENT = re.compile(
-    rf"(?i)(?P<name>\b{_SECRET_NAME})[\"']?\s*[:=]\s*"
-    r"(?P<value>\"[^\"]*\"|'[^']*'|<[^>]*>|\S+)"
-)
-
 _RULES: Final[tuple[_SecretRule, ...]] = (
     _SecretRule(
         rule_id="private_key_block",
@@ -185,31 +158,6 @@ _RULES: Final[tuple[_SecretRule, ...]] = (
 #: rather than a refusal.
 _OPAQUE_RUN = re.compile(r"(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+_-]{40,}={0,2}")
 _PURE_HEX = re.compile(r"[0-9a-fA-F]+")
-
-#: Values that name a secret instead of being one: environment references,
-#: angle-bracket placeholders, and masked text.
-_PLACEHOLDER = re.compile(
-    r"^(?:"
-    r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?"
-    r"|<[^>]*>"
-    r"|\.{3,}"
-    r"|\*+"
-    r"|x{3,}"
-    r")$",
-    re.IGNORECASE,
-)
-_ENV_REFERENCE = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?")
-
-
-def _is_placeholder(raw_value: str) -> bool:
-    """Return whether an assigned value names a secret rather than holding one."""
-    value = raw_value.strip().strip("\"'").strip()
-    if not value:
-        return True
-    if _PLACEHOLDER.fullmatch(value):
-        return True
-    # ``Bearer ${TOKEN}`` and friends: an environment reference with decoration.
-    return bool(_ENV_REFERENCE.fullmatch(value.split()[-1]))
 
 
 # ---------------------------------------------------------------------------
@@ -459,22 +407,9 @@ def _classify_line(
     for rule in _RULES:
         if rule.pattern.search(line):
             return rule.rule_id, rule.severity
-    if _has_secret_assignment(line):
-        return "secret_assignment", "blocking"
     if _has_opaque_run(line):
         return "high_entropy_string", "warning"
     return None, None
-
-
-def _has_secret_assignment(line: str) -> bool:
-    for match in _SECRET_ASSIGNMENT.finditer(line):
-        name = match.group("name").strip("\"' ").lower()
-        if name in _SAFE_NAMES:
-            continue
-        if _is_placeholder(match.group("value")):
-            continue
-        return True
-    return False
 
 
 def _has_opaque_run(line: str) -> bool:

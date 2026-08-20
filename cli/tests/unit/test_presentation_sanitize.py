@@ -159,7 +159,9 @@ def test_an_error_summary_is_bounded_and_flat() -> None:
     [
         "TECHTREE_MODEL_API_KEY=sk-1234567890abcdefghij",
         "Authorization: Bearer abcdefghijklmnop",
-        "password: hunter2",
+        # Long enough to be a password rather than the next word of a
+        # sentence, which is the line the scrubber draws on an unquoted value.
+        "password: hunter2hunter2",
     ],
 )
 def test_a_credential_shaped_value_is_refused(value: str) -> None:
