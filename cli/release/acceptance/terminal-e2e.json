@@ -620,6 +620,283 @@
     }
   ],
   "performed_at": "2026-08-19",
+  "re_leg": {
+    "artifacts_outside_this_repository": "The run directory, its proof bundle, the host completion's request and response bodies, the approval record and the network log stay in the worker scratchpad at wp11e-recert/ for the chief's durable snapshot. No run directory, raw episode, trace, provider response, hidden answer or credential is committed anywhere.",
+    "ce9_recheck": {
+      "development_fake_executor_wording_present": false,
+      "development_only_field_on_the_start_payload": false,
+      "no_model_claim_present": false,
+      "result": "pass \u2014 the false-red is gone and the replacement is true of this run",
+      "what_the_start_surface_said": [
+        {
+          "code": "paid_evaluation_run",
+          "text": "This run evaluates the agent for real and spends money on model calls with prime. What you pay is whatever that provider charges."
+        },
+        {
+          "code": "not_publication_eligible",
+          "text": "hello-world-climb@1 is a development Climb. Its report is not publication eligible, and its result is not comparable evidence."
+        }
+      ]
+    },
+    "clean_machine": {
+      "hermes_home": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/hermes-home",
+      "home": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/home",
+      "honest_description": "A second set of fresh homes on the founder's existing Mac, separate from the 2026-08-19 journey's. Not a fresh operating system and does not claim to be.",
+      "no_global_techtree": "command -v techtree exits 1 with the operator's PATH removed, and python3.12 -c 'import techtree' raises ModuleNotFoundError",
+      "primary_interpreter": "CPython 3.12.13, pinned with --python 3.12",
+      "prime_login": "represented, not performed \u2014 the operator's ~/.prime/config.json was copied in with a plain cp. Its contents were never read, printed, logged or passed anywhere, and no credential value appears in any artifact this leg produced.",
+      "subject_image_already_cached": true,
+      "uv_tool_bin_dir": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/uv-bin",
+      "uv_tool_dir": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/uv-tool"
+    },
+    "deleted_heuristics_confirmed_absent_in_the_installed_artifacts": {
+      "cli_scanner_aws_secret_assignment": "present, as intended",
+      "cli_scanner_generic_secret_assignment": "absent",
+      "plugin_guards_numeric_claims": "absent"
+    },
+    "digest_pull_path": {
+      "asserted": true,
+      "evidence": "doctor --climb reports the daemon holds the pinned subject image and serves it as linux/arm64; the run's own execution record names python@sha256:90744cff\u2026 and every container observed during the comparison ran image id 90744cff. Nothing resolved the moved python:3.11-slim tag."
+    },
+    "doctor": {
+      "credential_check": "pass \u2014 'the active Prime CLI configuration holds a key the pinned evaluation client can use.'",
+      "for_evaluation": "9 pass, 1 warn, 0 fail",
+      "result": "pass",
+      "the_one_warning": "hermes is not on this journey's PATH, which the check reports as a warning and says Techtree does not need",
+      "with_climb": "12 pass, 1 warn, 0 fail"
+    },
+    "findings": [
+      {
+        "priority": "P1",
+        "summary": "The one guided revision was destroyed a second time. The host completion spent its whole 32,768-token ceiling on reasoning, returned no content, billed USD 0.1589, and the product counted the attempt as used. The typed code is host_llm_unavailable, which is untrue: the host answered and charged for it.",
+        "ticket": "techtree-python-bbu"
+      },
+      {
+        "priority": "P2",
+        "summary": "The wheel checksum sidecar in dist/ still names the previous wheel's digest. Local artifact today, but it is the thing whose output becomes half the published release coordinate.",
+        "ticket": "techtree-python-oce"
+      }
+    ],
+    "guided_revision": {
+      "cost_note": "The provider's own figure is the one charged and the one recorded. The frozen profile's arithmetic (USD 1.68/Mtok in, 5.28/Mtok out) gives 0.1816 for the same token counts; the difference is the provider's, not a discrepancy in the accounting.",
+      "cost_usd_computed_at_frozen_profile_prices": 0.1816,
+      "cost_usd_provider_reported": 0.1589,
+      "guards": {
+        "cli_skill_scanner_reached": false,
+        "plugin_narrative_guards_reached": false,
+        "why": "No candidate Skill and no narrative were ever produced, so neither guard had anything to judge. The two founder-deleted heuristics were confirmed absent from the exact installed artifacts by inspection instead: the plugin's guards.py carries no _NUMERIC_PATTERNS and no forbid_numeric_claims, and the installed techtree/skills/scanner.py carries no _SECRET_NAME, no _SECRET_ASSIGNMENT and no secret_assignment rule id. The narrow aws_secret_assignment rule is untouched, as intended."
+      },
+      "host_profile": {
+        "max_completion_tokens": 32768,
+        "model": "z-ai/glm-5.2",
+        "provider_profile": "prime OpenAI-compatible https://api.pinference.ai/api/v1",
+        "repairs": 0,
+        "retries": 0,
+        "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+        "structured_output": "json_schema, strict=true, no fallback",
+        "temperature": 0
+      },
+      "outcome": {
+        "code": "host_llm_unavailable",
+        "message": "the host model could not answer: the host answered with no content (finish_reason='length'); the attempt is spent and no candidate was proposed",
+        "retried": false,
+        "retryable": false,
+        "ticket": "techtree-python-bbu",
+        "turn_spent": true
+      },
+      "request_accounting": {
+        "completion_tokens": 32768,
+        "content_returned": false,
+        "finish_reason": "length",
+        "invocations": 1,
+        "model_answered": "z-ai/glm-5.2",
+        "outbound_generation_requests": 1,
+        "prompt_tokens": 5133,
+        "reasoning_tokens": 20943,
+        "repairs": 0,
+        "request_digest": "sha256:3347f071df50dd5f98ea7645a30a9bfe2324385b0666973f28f0247fcd3a2217",
+        "response_digest": "sha256:ae144ec3ec395d4a514b7f7612f2bddfe1835a9a19e9f139ae3e9bcd39342bd7",
+        "response_id": "a2ddb0d4cc9a98ce-SJC",
+        "transport_retries": 0
+      }
+    },
+    "inputs": {
+      "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "plugin_commit": "f6ff4a3fd80e1553fffa39ecad9d23169337e832",
+      "plugin_repository": "../techtree-plugin",
+      "repository_moved_during_the_leg": "techtree-python main advanced to 6c0b16a7 (the mzy prepare-surface fix) while this leg was running. The leg certifies the wheel it installed, which is stamped 7f5370c5 and predates that commit.",
+      "wheel": "dist/techtree-0.1.0-py3-none-any.whl",
+      "wheel_label": "interim candidate, not the artifact WP11e certified",
+      "wheel_sha256": "949fc6288ef495ae3a5ee58ab32ec64de0850e9c695a6406d8fb6e3b263bbba6",
+      "wheel_stamped_source_commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452"
+    },
+    "install": {
+      "argv": [
+        "uv",
+        "tool",
+        "install",
+        "--python",
+        "3.12",
+        "--find-links",
+        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+        "techtree==0.1.0"
+      ],
+      "only_member_rewritten_by_the_installer": "techtree-0.1.0.dist-info/RECORD",
+      "published_argv": [
+        "uv",
+        "tool",
+        "install",
+        "techtree==0.1.0"
+      ],
+      "release_info_source_commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+      "release_verify": {
+        "failed": 0,
+        "passed": 9,
+        "skipped": 3
+      },
+      "reported_version": "0.1.0",
+      "result": "pass",
+      "wheel_payload_members_compared": 155,
+      "wheel_payload_members_differing": 0
+    },
+    "mzy_observation": {
+      "note": "Expected. techtree-python-mzy was fixed in commit 6c0b16a7, which is later than the wheel this leg installed. Recorded so the two surfaces are not confused: the start surface is fixed in this wheel, the prepare surface is fixed in the tree but not in this wheel.",
+      "prepare_surface_still_says": "Nothing produced here is a public proof. Real execution is not part of this build."
+    },
+    "no_upload_observation": {
+      "conclusion": "No mutation request to techtree.sh was observed, and the installed package contains no code path that could make one.",
+      "deliberate_techtree_sh_contact": "One GET of the starter object during the Skill-materialization step, which succeeded and matched the pinned digest. The five-second sampler did not catch it \u2014 it is a sub-second read of a content-addressed object, not a mutation \u2014 which is why the observed connection count for that address is zero rather than one.",
+      "method": "The same sampler WP11e used: every established remote TCP peer held by the journey's process tree, every 5 seconds for the whole leg, alongside a static audit of the installed package's outbound HTTP surface.",
+      "remote_peers_observed": {
+        "104.18.8.113, 104.18.9.113": "api.pinference.ai \u2014 the model provider",
+        "151.101.64.223, 151.101.128.223": "Fastly, serving pypi.org during engine installation"
+      },
+      "samples": 375,
+      "static_audit": {
+        "method": "GET",
+        "outbound_http_call_sites_in_the_installed_package": 1,
+        "post_put_patch_delete_call_sites": 0,
+        "where": "techtree/skills/starter.py"
+      },
+      "techtree_sh_address": "66.241.124.2",
+      "techtree_sh_connections_observed": 0
+    },
+    "performed_at": "2026-08-20",
+    "plugin": {
+      "argv": [
+        "hermes",
+        "plugins",
+        "install",
+        "file:///Users/sean/Documents/techtree-climb/techtree-plugin",
+        "--ref",
+        "f6ff4a3fd80e1553fffa39ecad9d23169337e832",
+        "--enable"
+      ],
+      "byte_identical_to_cli_release_core": true,
+      "checkout_state": "detached HEAD, clean",
+      "install_metadata_pinned": true,
+      "installed_commit": "f6ff4a3fd80e1553fffa39ecad9d23169337e832",
+      "plugin_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "result": "pass"
+    },
+    "proofs_verified_offline": [
+      {
+        "checks": 339,
+        "failures": 0,
+        "run_id": "run_b804a28c81b444c9b9f2466ec0378faf",
+        "verified": true
+      }
+    ],
+    "purpose": "Re-certify the guided-revision path on the fixed build after the founder-ruled deletion of the two heuristics that wrongly rejected it during the 2026-08-19 journey (techtree-python-5f6 and techtree-python-0mx), and confirm the honest start-surface warning that replaced the false 'no model will be called' claim (techtree-python-ce9). No workaround was permitted and none was used.",
+    "runs": {
+      "first_comparison": {
+        "cost_provenance": "computed from the run's own signed ComparisonExecutionRecord at the prices pinned in the certification evidence (input USD 0.03/Mtok, output USD 0.13/Mtok); the same method the durable ledger has used for every prior comparison. The product itself reports cost as unavailable and says so.",
+        "cost_usd": 0.1982,
+        "decision": "accepted",
+        "elapsed_seconds": 1261.3,
+        "executor_key_id": "sha256:77b1857ee4f3aff90a30b8609b99965ce5287823f362391cc81421464f305b7a",
+        "measured": {
+          "baseline": 0,
+          "candidate": 0.667,
+          "delta": 0.667,
+          "losses": 0,
+          "ties": 12,
+          "wins": 24
+        },
+        "outcome": "completed",
+        "proof_bundle_file_digest": "sha256:36332df5694e077507ba79aca3c33a0110aed939e12aec5029b2927caa3a6923",
+        "proof_bundle_payload_digest": "sha256:7e232a19e53f9757c3f9c8b36ec3dcdbd87f21ff40c6c07a7baeef6f6a5134d0",
+        "proof_grade": "P1",
+        "publication_eligible": false,
+        "report_digest": "sha256:626e65aeaa24e9b04fe0ed6bee20d78f25ee0bb93565e0491e32c6933bd615e9",
+        "run_id": "run_b804a28c81b444c9b9f2466ec0378faf",
+        "statuses": {
+          "comparison": "controlled_with_warnings",
+          "evidence": "complete",
+          "execution": "completed",
+          "publication": "not_requested",
+          "score": "valid"
+        },
+        "usage": {
+          "input_tokens": 6173902,
+          "model_calls": 527,
+          "output_tokens": 99822
+        }
+      }
+    },
+    "second_comparison": {
+      "performed": false,
+      "reason": "Two independent reasons, either of which alone is decisive. There was no revised Skill to compare, because the host completion produced none. And the leg's remaining authorization after the comparison and the host call was USD 0.0429, below what a 72-episode comparison costs on this machine. Nothing was substituted, hand-written or retried."
+    },
+    "spend": {
+      "authorized_for_this_leg_usd": 0.4,
+      "every_leg_estimated_before_it_ran": true,
+      "hard_stops": {
+        "any_comparison_over_0_30": false,
+        "any_host_call_over_0_30": false,
+        "any_paid_outcome_retried": false
+      },
+      "leg_total_usd": 0.3571,
+      "legs": [
+        {
+          "actual_provenance": "computed from the run's signed execution record",
+          "actual_usd": 0.1982,
+          "ceiling_usd": 0.3,
+          "conservative_estimate_usd": 0.2383,
+          "estimate_usd": 0.1523,
+          "leg": "comparison 1 (baseline vs starter, 72 episodes)",
+          "within_ceiling": true
+        },
+        {
+          "actual_provenance": "provider-reported",
+          "actual_usd": 0.1589,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.1142,
+          "leg": "one guided-revision host completion (z-ai/glm-5.2)",
+          "within_ceiling": true,
+          "worst_case_usd": 0.1816
+        },
+        {
+          "actual_provenance": "not performed \u2014 no candidate existed and the remaining authorization was short",
+          "actual_usd": 0.0,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.07,
+          "leg": "comparison 2 (v1 vs v2)",
+          "within_ceiling": true
+        }
+      ],
+      "per_comparison_ceiling_usd": 0.3,
+      "per_host_call_ceiling_usd": 0.3,
+      "programme_after_usd": 3.1386,
+      "programme_before_usd": 2.7815,
+      "programme_cap_usd": 10.0,
+      "programme_remaining_usd": 6.8614,
+      "remaining_of_this_leg_usd": 0.0429
+    },
+    "ticket": "techtree-python-ndq.3.5",
+    "verdict": "fail \u2014 the guided revision did not complete, for a new reason",
+    "verdict_detail": "The three fixes this leg was called to check all hold. The guided revision still did not reach a second comparison: the one paid host completion exhausted its predeclared token ceiling inside its reasoning channel and returned no content, and the product spent the session's only attempt on it. The guards were never reached, so nothing about them was disproved \u2014 and nothing about them was proved either."
+  },
   "runs": {
     "first_comparison": {
       "cost_provenance": "computed from the run's own signed ComparisonExecutionRecord at the prices pinned in the certification evidence (input USD 0.03/Mtok, output USD 0.13/Mtok); the same method the durable ledger used for every prior comparison. The product itself reports cost as unavailable and says so.",

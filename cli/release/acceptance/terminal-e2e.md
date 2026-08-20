@@ -247,3 +247,234 @@ and response, the network log, and every failure-injection home stay in the
 worker's scratchpad for the chief's durable snapshot. No run directory, raw
 episode, trace, provider response, hidden answer, or credential is committed to
 any repository.
+
+---
+
+# Re-leg — the guided revision, re-certified on the fixed build
+
+Performed 2026-08-20, same ticket. This section is appended, not a rewrite: the
+2026-08-19 journey above stands exactly as it was recorded, and nothing in it
+has been amended.
+
+**Verdict: fail.** Every fix this leg was called to check holds. The guided
+revision still does not reach a second comparison — this time for a reason that
+has nothing to do with the guards, which never got the chance to judge anything.
+
+## Why this leg exists
+
+Three defects found on 2026-08-19 were ruled on and fixed:
+
+- `techtree-python-ce9` (P0) — the start surface told every user their run used
+  a fake executor and would call no model, at the moment they approved paying
+  for it.
+- `techtree-python-5f6` (P1) — a narrative guard read the hyphen in "modulo-97"
+  as a negative number and threw away a paid revision. Resolved by deleting the
+  heuristic outright.
+- `techtree-python-0mx` (P1) — the Skill scanner read the ordinary sentence
+  "that token: no reasoning" as a leaked credential. Also resolved by deletion.
+
+Because the guided revision was rejected on 2026-08-19, the last four steps of
+the journey were completed with a disclosed workaround. This leg was authorized
+to prove the guided path now flows with no workaround at all. None was used, and
+the leg stops where the product stopped it.
+
+## What was installed
+
+The interim wheel `dist/techtree-0.1.0-py3-none-any.whl`, SHA-256 `949fc628…`,
+stamped at commit `7f5370c5…`, and the plugin at commit `f6ff4a3f…`. Fresh home,
+fresh Hermes home, fresh tool directories, on a pinned CPython 3.12.13 — a
+second clean machine in the same honest sense as the first: fresh homes on the
+founder's Mac, not a fresh operating system. All 155 payload files in the
+installed package are byte-for-byte the wheel's; the only member that differs is
+the install record the packaging tool rewrites by design. Release verification
+passes nine checks and skips three, none failing. The plugin is checked out
+detached at the exact commit, pinned in the install record, and its release
+contract is byte-identical to the CLI's.
+
+Sign-in was again represented rather than performed, by copying the operator's
+Prime configuration into the journey home with a plain file copy. Its contents
+were never read, printed, or passed anywhere, and no credential value appears in
+anything this leg produced — including the recorded model request, which is the
+request body only.
+
+## The message a person now reads before paying
+
+This is the ce9 recheck, and it passes. Starting the comparison printed exactly
+two warnings:
+
+> This run evaluates the agent for real and spends money on model calls with
+> prime. What you pay is whatever that provider charges.
+
+> hello-world-climb@1 is a development Climb. Its report is not publication
+> eligible, and its result is not comparable evidence.
+
+The start record itself now says the run is not a development-only one, which is
+true of it. The words "fake executor" and the claim that no model will be called
+are both gone. Both sentences are true of the run that followed, which called
+models and was billed for them.
+
+One related warning is *not* fixed in this wheel: the screen one step earlier
+still says "Real execution is not part of this build." That is
+`techtree-python-mzy`, fixed in a commit later than the wheel this leg
+installed. Recorded here so nobody reads the two screens as disagreeing about
+the same build.
+
+## The first comparison
+
+Run `run_b804a28c…`, live and paid, 72 episodes. The initiating shell exited
+immediately after the run started; the worker was reparented and kept going, and
+every later command addressed the run by its identifier from a new process.
+
+Baseline 0.000 → candidate 0.667, 24 wins, 0 losses, 12 ties. That sits with the
+certified stability pair (both 0.000 → 0.639) rather than on top of it: same
+direction, same shape, one more task won. Nothing here is retried or re-rolled —
+it is one run, reported as it came. The comparison is controlled with warnings,
+the evidence complete, the score valid, the decision accepted, the proof grade
+P1. Verified offline: 339 checks, 0 failures.
+
+Every container ran the image the Campaign pins by content address. Nothing
+resolved the `python:3.11-slim` name.
+
+## The guided revision — one request, and nothing came back
+
+The revision was driven through the plugin, which is the real product route: the
+plugin's own approval surface, its own compose path, its own guards, and its own
+bridge to the installed CLI. Only the Hermes host facade is stood in for, exactly
+as it was on 2026-08-19, because the plugin exposes this as a host tool and not
+as a shell command.
+
+Before anything was dispatched the plugin had made zero model calls and zero CLI
+reads — which is how the approval boundary is proved rather than asserted. Then
+one request went out, and one only.
+
+| | |
+|---|---|
+| Invocations | 1 |
+| Outbound generation requests | 1 |
+| Transport retries | 0 |
+| Repairs | 0 |
+| Model | `z-ai/glm-5.2` |
+| Response id | `a2ddb0d4cc9a98ce-SJC` |
+| Request digest | `sha256:3347f071…` |
+| Response digest | `sha256:ae144ec3…` |
+| Finish reason | **length** |
+| Prompt tokens | 5,133 |
+| Completion tokens | **32,768 — the whole ceiling** |
+| of which reasoning | 20,943 |
+| Content returned | **none** |
+| Provider-reported cost | **USD 0.1589** |
+
+The model spent its entire output budget thinking — eighty-two thousand
+characters of hand-worked modulo-97 arithmetic, computing letter values for
+individual fruit names — and never wrote a byte of the revision it was asked
+for. The provider charged for all of it.
+
+The plugin answered:
+
+> **Code** `host_llm_unavailable`
+> the host model could not answer: the host answered with no content
+> (finish_reason='length'); the attempt is spent and no candidate was proposed
+
+And the attempt is indeed spent. The guided introduction allows one, a failed
+one still uses it up, and this one failed.
+
+**The guards were never reached.** There was no proposed Skill for the scanner
+to scan and no narrative for the plugin to check, so this leg proves nothing
+about either heuristic by observation. What it can say is that both are gone
+from the exact artifacts that were installed: the plugin's guard module carries
+no numeric-claims patterns and no function that applied them, and the installed
+scanner carries no generic credential-assignment rule — while the narrow
+AWS-specific rule that was always meant to stay is still there.
+
+This is filed as `techtree-python-bbu` (P1). Three things are wrong at once, and
+they are worth separating:
+
+1. **A truncation costs the user their turn.** This is the same harm as the
+   guard false-positive that prompted this re-leg: the most expensive single
+   action in the product, allowed exactly once, destroyed by something the user
+   did nothing to cause. Deleting the guard removed one way to reach that
+   outcome. The rule that spends the turn regardless is still in place, and it
+   is the rule that actually takes the money.
+2. **The error names the wrong thing.** `host_llm_unavailable` says the host
+   offered no model. The host offered a model, answered, and billed USD 0.1589.
+   A person reading that message has no way to learn that the fix is a larger
+   completion allowance.
+3. **Nothing keeps reasoning from eating the output budget.** One number covers
+   both, and this model will spend all of it. On a task family that is entirely
+   modular arithmetic, a model that checks its arithmetic by hand is the
+   expected case. The same profile and prompt shape produced 8,841 output tokens
+   on 2026-08-19 and 32,768 on 2026-08-20, both at temperature zero.
+
+One caveat stated plainly: the 32,768 ceiling is the frozen certification
+profile's, carried by the acceptance harness. A real Hermes host uses the user's
+own setting, so what *triggered* this is profile-specific. What *followed* is
+not — a truncated answer from any host arrives at the plugin as a completion
+with nothing parsed, takes the same path to the same error code, and spends the
+turn the same way.
+
+## The second comparison did not happen
+
+Two independent reasons, either sufficient on its own. There was no revised
+Skill to compare, because none was ever produced. And the leg's remaining
+authorization after the comparison and the host call was USD 0.0429, short of
+what a 72-episode comparison costs on this machine.
+
+Nothing was substituted for it. No Skill was hand-written, no earlier proposal
+was reused, and the paid outcome was not retried. The journey stops where the
+product stopped it.
+
+## Nothing was uploaded
+
+Same observation method as the first journey: every established remote
+connection held by the journey's processes, sampled every five seconds for the
+whole leg — 375 samples — plus a static reading of the installed package's
+outbound surface. The only remote peers caught were the model provider and,
+briefly during engine installation, the package index.
+
+Techtree's own address was never among them. The product does contact it once,
+deliberately: fetching the starter Skill, which succeeded and matched the pinned
+digest. That read is a sub-second GET of a content-addressed object and fell
+between samples, which is why the count for that address reads zero rather than
+one. It is a read, not a write. The installed package makes exactly one kind of
+outbound request — that GET — and contains no code that could write anything
+anywhere.
+
+## Money
+
+| Leg | Estimated | Actual | Ceiling |
+|---|---|---|---|
+| Comparison 1 | 0.1523 (0.2383 conservative) | **0.1982** | 0.30 |
+| One host completion | 0.1142 (0.1816 worst case) | **0.1589** | 0.30 |
+| Comparison 2 | 0.0700 | **not performed** | 0.30 |
+| **Re-leg total** | | **USD 0.3571** | 0.40 authorized |
+
+The comparison figure is computed from the run's own signed execution record at
+the prices pinned in the certification evidence, the same method every prior
+comparison used. The host figure is the provider's own; the frozen profile's
+arithmetic gives 0.1816 for the same token counts, and the difference is the
+provider's rather than a gap in the accounting.
+
+Every leg was estimated before it ran. No ceiling was crossed. No paid outcome
+was retried. Programme spending moves from USD 2.7815 to **3.1386** of the 10.00
+cap, leaving 6.8614.
+
+## What this leg settles, and what it leaves open
+
+Settled: the false-red at the moment of payment is gone and the sentence that
+replaced it is true. The two heuristics that wrongly destroyed the 2026-08-19
+revision are gone from the shipped artifacts. A clean user can still install,
+run a real comparison, close the terminal, come back, and check the proof
+offline, and nothing is uploaded.
+
+Open: the guided revision — the second half of the introduction, and the reason
+the plugin exists — has now failed twice in a row on live money, by two
+unrelated routes, and has never once been observed to complete. `ndq.3.5` cannot
+close on this evidence. Whether a third paid attempt is worth making, and
+whether `techtree-python-bbu` must be fixed before v0.1 ships, are founder
+decisions; a further attempt is a new paid leg and needs its own authorization.
+
+## Where this leg's evidence lives
+
+The run directory, its proof bundle, the host completion's request and response
+bodies, the approval record and the network log stay in the worker scratchpad at
+`wp11e-recert/` for the chief's durable snapshot. Nothing live is committed.
