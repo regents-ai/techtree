@@ -128,7 +128,7 @@ def test_an_unusable_answer_is_not_repaired_by_a_second_request() -> None:
     with pytest.raises(HostLlmError) as raised:
         once.complete(_request())
 
-    assert raised.value.code == "host_llm_output_invalid"
+    assert raised.value.code == "host_proposal_generation_exhausted"
     assert len(port.calls) == 1
     assert once.outbound_requests == 1
 

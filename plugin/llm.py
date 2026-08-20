@@ -63,6 +63,7 @@ from .errors import (
     CODE_HOST_LLM_ALREADY_COMPLETED,
     CODE_HOST_LLM_OUTPUT_INVALID,
     CODE_HOST_LLM_UNAVAILABLE,
+    CODE_HOST_PROPOSAL_GENERATION_EXHAUSTED,
     PluginError,
     scrub_text,
 )
@@ -334,19 +335,12 @@ def _result_from(answer: Any, request: HostLlmRequest) -> HostLlmResult:
 
     parsed = answer.get("parsed")
     if not isinstance(parsed, Mapping):
-        usage = answer.get("usage")
-        spent = usage.get("output_tokens") if isinstance(usage, Mapping) else None
-        generated = (
-            f"it generated {spent} tokens, which the provider charges for, but "
-            if isinstance(spent, int) and spent > 0
-            else ""
-        )
         raise HostLlmError(
-            "the request reached the host model and "
-            f"{generated}no usable structured answer came back — often the "
-            "model spent its whole writing allowance reasoning and never "
-            "wrote the proposal. This run's one revision is used.",
-            code=CODE_HOST_LLM_OUTPUT_INVALID,
+            "The Host Hermes model reached the configured generation limit "
+            "before returning a usable Skill proposal. The provider may have "
+            "billed the request. This run's single guided-revision attempt "
+            "has been used.",
+            code=CODE_HOST_PROPOSAL_GENERATION_EXHAUSTED,
         )
 
     return HostLlmResult(

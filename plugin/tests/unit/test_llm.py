@@ -109,7 +109,7 @@ def test_the_turn_is_spent_even_when_the_answer_was_unusable() -> None:
     with pytest.raises(HostLlmError) as raised:
         host.complete(_request())
 
-    assert raised.value.code == "host_llm_output_invalid"
+    assert raised.value.code == "host_proposal_generation_exhausted"
     assert host.used is True
 
 
@@ -139,7 +139,7 @@ def test_an_answer_that_is_not_the_shape_asked_for_is_refused(answer: Any) -> No
     with pytest.raises(HostLlmError) as raised:
         OneShotHostLlm(StubPort(answer=answer)).complete(_request())
 
-    assert raised.value.code == "host_llm_output_invalid"
+    assert raised.value.code == "host_proposal_generation_exhausted"
 
 
 @pytest.mark.parametrize(

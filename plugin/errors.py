@@ -33,6 +33,7 @@ CODE_UV_NOT_FOUND: Final = "uv_not_found"
 CODE_CHANNEL_INVALID: Final = "channel_invalid"
 CODE_HOST_LLM_UNAVAILABLE: Final = "host_llm_unavailable"
 CODE_HOST_LLM_OUTPUT_INVALID: Final = "host_llm_output_invalid"
+CODE_HOST_PROPOSAL_GENERATION_EXHAUSTED: Final = "host_proposal_generation_exhausted"
 #: A second completion inside one improvement turn. Decision 0007 and spec
 #: section 8.11: the turn is one shot, and a retry would be a hidden second.
 CODE_HOST_LLM_ALREADY_COMPLETED: Final = "host_llm_already_completed"
