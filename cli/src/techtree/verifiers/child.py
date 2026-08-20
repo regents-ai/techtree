@@ -124,8 +124,13 @@ SUPERVISOR_GRACE_SECONDS: Final = 20.0
 #: The longest one variant may run, whatever anything else believes. A named
 #: release constant rather than a Campaign field: the Campaign's
 #: ``timeout_seconds`` bounds one subject rollout, and this bounds the whole
-#: supervised evaluation (decisions document 0029, chief resolution 2).
-VARIANT_HARD_DEADLINE_SECONDS: Final = 1800.0
+#: supervised evaluation (decisions document 0029, chief resolution 2). This
+#: wall exists for orphan containment, not performance judgment — the
+#: per-episode limits bound the work; this value only has to be unreachable
+#: by a legitimate run while staying finite. 1800 fired on a live canonical
+#: arm whose only sin was provider latency (founder-predeclared raise,
+#: 2026-08-20: 2.9x the worst observed variant, 2x the observed violation).
+VARIANT_HARD_DEADLINE_SECONDS: Final = 3600.0
 
 #: The module the worker runs to supervise one evaluation. Executed with this
 #: interpreter, by module name, so it is the Techtree in this environment

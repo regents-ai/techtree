@@ -172,7 +172,7 @@ def test_the_supervisor_is_told_the_deadline_and_the_grace_it_must_keep(
 ) -> None:
     argv = supervised(tmp_path)
 
-    assert argv[argv.index("--deadline-seconds") + 1] == "1800"
+    assert argv[argv.index("--deadline-seconds") + 1] == "3600"
     assert argv[argv.index("--grace-seconds") + 1] == "20"
     assert argv[argv.index("--record") + 1] == str(tmp_path / "supervision.json")
 
@@ -403,14 +403,19 @@ def test_a_terminated_child_records_that_it_was_cancelled(tmp_path: Path) -> Non
 def test_termination_is_gentle_before_it_is_final(tmp_path: Path) -> None:
     # The grace period exists so the engine can run its own teardown. A child
     # that handles SIGTERM must be given the chance to exit on its own terms.
+    ready = tmp_path / "handler-installed"
     program = (
-        "import signal, sys, time\n"
+        "import pathlib, signal, sys, time\n"
         "signal.signal(signal.SIGTERM, lambda *_: sys.exit(130))\n"
+        f"pathlib.Path({str(ready)!r}).write_text('ready')\n"
         "time.sleep(60)\n"
     )
     started = child(tmp_path, [sys.executable, "-c", program])
     started.start()
-    time.sleep(0.5)
+    deadline = time.monotonic() + 20.0
+    while not ready.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert ready.exists(), "the evaluation never installed its handler"
 
     started.terminate(grace_seconds=10.0)
 

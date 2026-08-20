@@ -187,17 +187,22 @@ def test_a_signalled_supervisor_forwards_the_signal_to_the_evaluation(
     # reaches the supervisor and nothing else. The engine's own teardown only
     # ever runs because the supervisor passes the signal on.
     marker = tmp_path / "signalled"
+    ready = tmp_path / "handler-installed"
     program = (
         "import pathlib, signal, sys, time\n"
         "signal.signal(\n"
         "    signal.SIGTERM,\n"
         "    lambda *_: (pathlib.Path(sys.argv[1]).write_text('term'), sys.exit(0)),\n"
         ")\n"
+        "pathlib.Path(sys.argv[2]).write_text('ready')\n"
         f"time.sleep({_FOREVER})\n"
     )
-    started = _child(tmp_path, [sys.executable, "-c", program, str(marker)])
+    started = _child(tmp_path, [sys.executable, "-c", program, str(marker), str(ready)])
     started.start()
-    time.sleep(0.5)
+    deadline = time.monotonic() + 20.0
+    while not ready.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert ready.exists(), "the evaluation never installed its handler"
 
     started.terminate(grace_seconds=DEFAULT_GRACE_SECONDS)
 
