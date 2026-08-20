@@ -127,19 +127,21 @@ def test_a_provider_failure_is_typed_and_scrubbed() -> None:
 
 
 @pytest.mark.parametrize(
-    "answer",
+    ("answer", "code"),
     [
-        {"parsed": None, "model": "m"},
-        {"model": "m"},
-        "just text",
-        {"parsed": ["a", "list"]},
+        ({"parsed": None, "model": "m"}, "host_proposal_generation_exhausted"),
+        ({"model": "m"}, "host_proposal_generation_exhausted"),
+        ("just text", "host_llm_output_invalid"),
+        ({"parsed": ["a", "list"]}, "host_proposal_generation_exhausted"),
     ],
 )
-def test_an_answer_that_is_not_the_shape_asked_for_is_refused(answer: Any) -> None:
+def test_an_answer_that_is_not_the_shape_asked_for_is_refused(
+    answer: Any, code: str
+) -> None:
     with pytest.raises(HostLlmError) as raised:
         OneShotHostLlm(StubPort(answer=answer)).complete(_request())
 
-    assert raised.value.code == "host_proposal_generation_exhausted"
+    assert raised.value.code == code
 
 
 @pytest.mark.parametrize(
