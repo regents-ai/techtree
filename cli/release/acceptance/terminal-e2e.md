@@ -478,3 +478,210 @@ decisions; a further attempt is a new paid leg and needs its own authorization.
 The run directory, its proof bundle, the host completion's request and response
 bodies, the approval record and the network log stay in the worker scratchpad at
 `wp11e-recert/` for the chief's durable snapshot. Nothing live is committed.
+
+# Attempt 3 — the guided revision, observed working
+
+Performed 2026-08-20, same ticket, on the artifacts that carry every fix. This
+section is appended, not a rewrite: the 2026-08-19 journey and the re-leg above
+both stand exactly as they were recorded.
+
+**Verdict: pass.** The guided revision completed end to end through the real
+plugin path, with no workaround at any step. One host completion returned a
+usable proposal; the plugin's guards and the CLI's Skill scanner both accepted
+it on their own; a draft was prepared; the diff and the six disclosures
+rendered; declining exited 8; approving started a real paid comparison; that
+comparison finished, and its receipt verified offline. The second half of the
+introduction has now been watched working.
+
+The comparison's own result is a flat no-change: 0.667 → 0.667, no wins, no
+losses, thirty-six ties. That is an honest outcome and is reported as one. What
+this leg was testing is the path, not the model's luck at improving a toy
+arithmetic Skill.
+
+## What was installed, and one thing that nearly went wrong
+
+The wheel `dist/techtree-0.1.0-py3-none-any.whl`, SHA-256 `20f4e747…`,
+recomputed here, stamped at commit `6c0b16a7…` — read out of the wheel's own
+build record rather than taken on trust. The checksum file beside it names that
+same wheel, so `techtree-python-oce` is fixed in this artifact. The plugin is at
+commit `b4f6a5c5…`.
+
+This attempt reused the re-leg's homes rather than building new ones. That is a
+deliberate saving: the comparison the guided revision reads from had already
+been paid for, its integrity was rechecked under the new build before anything
+else happened, and reusing it kept a third paid attempt inside a budget that
+would not have stretched to another one.
+
+The install did not go cleanly the first time, and the way it failed is worth
+recording. The published command with `--force` reported a successful
+reinstall and left the *previous* build in place: the package manager served the
+same-versioned wheel out of its own cache. `techtree release info` is what
+caught it — it reported the stamped commit of the build actually installed,
+which was still the old one. Repeating the install with `--reinstall` put the
+new wheel on. Nothing about the published release path is affected, because each
+release carries its own version number; but anyone rebuilding a wheel at a fixed
+version can install something other than what they think they did, and this
+acceptance journey would have certified the wrong build had the product been
+less honest about what it was.
+
+After that: 155 of the wheel's 156 members are byte-for-byte identical in the
+installed package, the sole exception being the install record the packaging
+tool rewrites by design. Release verification passes nine checks and skips three,
+none failing. Doctor runs thirteen checks with twelve passing and one warning,
+the warning being that Hermes is not on the journey's path, which Techtree says
+it does not need.
+
+The plugin installed detached at the exact commit, its code byte-identical to
+the repository's and its release contract byte-identical to the CLI's. It landed
+disabled this time and needed an explicit enable step — the same plugin enabled
+itself on the previous install into the same home. That is the host's behaviour,
+not Techtree's, and it says so plainly on screen.
+
+Sign-in was again represented rather than performed, by the copied Prime
+configuration carried forward in the reused home. Its contents were never read,
+printed, or passed anywhere, and no credential value appears in anything this
+attempt produced.
+
+## The run the revision was proposed from
+
+`run_b804a28c…`, the re-leg's own comparison, reused rather than re-run. Before
+anything was spent, it was re-read under the new build: the result still renders
+0.000 → 0.667 with 24 wins, 0 losses and 12 ties, and its receipt still verifies
+offline at 339 checks with no failures. The improvement context exported twenty
+of its thirty-six tasks, carrying the objective and the stable failures and no
+hidden task material.
+
+## The one request
+
+Before anything was sent, the surface a person would be shown was rendered: what
+the tool does, that it asks the model exactly once, that it starts nothing, that
+a failed attempt still uses up the one proposal the introduction allows, what
+leaves the machine and what does not. At that moment the counters read zero host
+calls, zero outbound requests, zero reads of the CLI.
+
+The host profile was left exactly as it was on the attempt that truncated —
+same model, same strict structured-output contract, same temperature, same
+32,768-token ceiling, no retries, no repairs. Nothing was widened to improve the
+odds.
+
+The request body that went out is byte-for-byte the same request that came back
+empty on the previous attempt. Same bytes, same model, same temperature; on
+2026-08-20 that request spent its entire allowance thinking and returned
+nothing, and thirty minutes later the same request came back complete in 6,501
+tokens. That is the single most useful thing this attempt learned about
+`techtree-python-bbu`: the failure it describes is a roll of the dice on this
+kind of task, not a property of the prompt — which is exactly what makes it
+serious for a person who gets one attempt.
+
+One invocation, one outbound request, no transport retries, no repairs. The
+provider answered with `stop`, 5,133 tokens in and 6,501 out, of which 3,834
+were reasoning, and charged USD 0.0376.
+
+## What the model proposed, and what the guards did
+
+The model returned a full revision with its own analysis, its rationale, its
+stated confidence — medium — and its own list of expected trade-offs, one of
+which was that the revision might not fix the failures it was aimed at.
+
+Four changes, all inside the procedure and the output contract: write out each
+letter's position-weighted product before summing them; re-verify the total and
+the modulo reduction before formatting; renumber the formatting step; and say
+explicitly that the no-commentary rule binds only the final returned token, so
+internal working is allowed.
+
+Both guards judged it on their own and both let it through. No narrative claim
+was flagged. No leaked-credential finding was raised. This matters more than it
+looks: the revision the model wrote contains the sentence "Do not include
+reasoning, arithmetic, punctuation, Markdown, or commentary in the final
+returned token" — the same shape of sentence that the 2026-08-19 build's scanner
+read as a leaked secret. It passes here untouched. Nothing was edited, nothing
+was substituted, no earlier proposal was reused.
+
+The tool's reply came back marked truncated, because the prepared draft ran to
+6,086 bytes against a 3,500-byte limit for a single tool result. That is the
+envelope's size rule, not a failure: the draft exists, the next action is
+carried, and the message says the full text is one command away and nothing was
+lost.
+
+## Approval, and the second comparison
+
+The review surface carried all six required disclosures: seventy-two episodes,
+the declared limit and an honest statement that the figure is declared and
+nothing more, that the Skill is the only scientific change, where model calls go,
+that nothing is uploaded, and the data policy. Declining exits 8 with
+`policy_acceptance_required`.
+
+Approving went through the plugin, which issued the CLI's own start with an
+explicit review flag. The approval is recorded as a host-agent confirmation. The
+person who confirmed was this acceptance worker acting as the operator of the
+journey, and it is recorded that way rather than as a founder approval.
+
+`run_25506edf…` ran seventy-two episodes and completed. Skill v1 against Skill
+v2: 0.667 → 0.667, no wins, no losses, thirty-six ties. Every task landed on the
+side it was already on — the revision neither helped nor hurt. The comparison is
+controlled with warnings, the proof grade P1, and the receipt verifies offline at
+339 checks with no failures. Every container ran the image the Campaign pins by
+content address; the moved `python:3.11-slim` name was never resolved.
+
+## What this says about the open bug
+
+`techtree-python-bbu` is neither fixed nor re-triggered. The plugin change in
+this build rewrites the two no-answer messages so they say plainly that the
+attempt was billed and the turn is used; it does not change the spend rule, the
+error code, or the completion ceiling. Because the model answered this time,
+those new messages did not render, and they remain unobserved in the live path.
+The identical request that came back empty is on record, so the trigger is known
+to still be live.
+
+## Nothing was uploaded
+
+The same observation method as both journeys before: every established remote
+connection held by this attempt's processes, sampled every five seconds across
+the whole paid window — 132 samples — plus a static reading of the installed
+package's outbound surface.
+
+Two remote addresses appeared, both belonging to the model provider. Techtree's
+own address was never among them. The installed package makes exactly one kind
+of outbound request, a read of a content-addressed object, and contains no code
+that could write anything anywhere.
+
+## Money
+
+| Leg | Estimated | Actual | Ceiling |
+|---|---|---|---|
+| Source comparison | 0.20 | **0.0000** — reused, not re-run | 0.30 |
+| One host completion | 0.1142 (0.1816 worst case) | **0.0376** | 0.30 |
+| Comparison 2 (v1 vs v2) | 0.0650 (0.0850 conservative) | **0.0559** | 0.30 |
+| **Attempt total** | | **USD 0.0935** | 0.45 authorized |
+
+The host figure is the provider's own. The comparison figure is computed from
+the run's signed execution record at the prices pinned in the certification
+evidence — 1,716,868 tokens in and 34,065 out over 152 model calls — the same
+method every comparison in this document used.
+
+Reusing the earlier comparison is what made this attempt cheap. Every leg was
+estimated before it ran. No ceiling was crossed. No paid outcome was retried.
+Programme spending moves from USD 3.1386 to **3.2321** of the 10.00 cap, leaving
+6.7679 — and USD 0.3565 of this attempt's own authorization was never needed.
+
+## What this attempt settles
+
+The guided revision works. It has now been watched, on live money, going the
+whole way: context out, one request to the host, a proposal back, both guards
+satisfied on their own judgement, a snapshot taken, a difference shown, a person
+asked and able to say no, a real comparison run on the answer, and a receipt
+anyone can check offline without a network. No step was worked around and no
+paid outcome was retried.
+
+What it does not settle is `techtree-python-bbu`. The route that destroyed the
+previous attempt is unchanged and demonstrably still open — the very same
+request produced both outcomes a half hour apart. Whether that must be fixed
+before v0.1 ships is still a founder decision; this attempt simply removes the
+question of whether the path can work at all.
+
+## Where this attempt's evidence lives
+
+The reused run home, both receipts, the model request and response bodies, the
+proposal, the approval records, the candidate Skill, the difference and the
+network log stay in the worker scratchpad at `wp11e-recert/` for the chief's
+durable snapshot. Nothing live is committed.

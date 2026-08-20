@@ -9,6 +9,362 @@
     "note": "No live run directory, raw Episode, Trace, provider response, hidden task answer, or credential is committed to any repository.",
     "where": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e"
   },
+  "attempt_3": {
+    "approval_and_second_comparison": {
+      "approval": {
+        "honest_note": "The person who confirmed was the acceptance worker acting as the operator of this journey, not the founder.",
+        "recorded_actor": "human_via_hermes",
+        "recorded_method": "host_agent_confirmation",
+        "route": "techtree_uplift_start on the installed plugin, which issued uplift start <draft> --yes --reviewed-on host-agent"
+      },
+      "baseline_mean": 0.667,
+      "candidate_mean": 0.667,
+      "comparison_state": "controlled_with_warnings",
+      "delta": 0.0,
+      "elapsed_seconds": {
+        "baseline": 354.8,
+        "candidate": 375.1
+      },
+      "episodes": 72,
+      "executor_key_id": "sha256:77b1857ee4f3aff90a30b8609b99965ce5287823f362391cc81421464f305b7a",
+      "honest_reading": "The revision did not change the score. It did not regress it either: every one of the 36 tasks landed on the same side it was already on. The model itself said its confidence was medium and listed 'this revision may not fix those cases' among its own expected trade-offs, which is what happened.",
+      "losses": 0,
+      "outcome": "completed",
+      "proof_bundle_file_sha256": "94456663da568c9c67cfe9871ca0addd39f4c7a2216b8b3fc7a8218aed410a59",
+      "proof_bundle_payload_digest": "sha256:cff0df22f9e935935577a0cd467e86eba8e13672c4f5d141da072f98265aeff4",
+      "proof_grade": "P1",
+      "proof_verify": {
+        "checks": 339,
+        "failed": 0,
+        "passed": 339
+      },
+      "report_sha256": "77c85b1b5d39b38e6c3ec7472a05954a880295cf9b036af24d3ed07eac886ef1",
+      "review_surface": {
+        "declared_limit_is_honest_about_itself": "The surface says the figure is a declared limit and nothing more, that nothing works out the cost in advance, and that nothing stops the run if it goes past.",
+        "declared_limit_usd": 1.0,
+        "declining_error_code": "policy_acceptance_required",
+        "declining_exit_code": 8,
+        "disclosures_present": 6,
+        "episodes_declared": 72
+      },
+      "run_id": "run_25506edf6a5f4bdb9b2276aea253f93d",
+      "threshold_met": false,
+      "ties": 36,
+      "wins": 0
+    },
+    "artifacts_outside_this_repository": "The reused run home, both proof bundles, the host completion's request and response bodies, the proposal, the approval records, the candidate Skill, the diff and the network log stay in the worker scratchpad at wp11e-recert/ for the chief's durable snapshot. Nothing live is committed.",
+    "bbu_status_after_this_attempt": "Not fixed and not re-triggered. The plugin at b4f6a5c5 changes the two no-answer messages so they say the attempt was billed and the turn is used; it does not change the spend rule, the error code, or the completion ceiling. Because the model answered this time, the new messages did not render and remain unobserved in the live path. The identical request that truncated on the previous attempt is on record, so the trigger is known to be live.",
+    "clean_machine": {
+      "home_root": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert",
+      "honest_description": "The 2026-08-20 re-leg's home, reused rather than rebuilt. It is a set of scrubbed-environment homes on the founder's existing Mac, not a fresh operating system, and does not claim to be. Reusing it is what let this attempt skip a fresh source comparison and stay well inside the authorization.",
+      "prime_login": "carried forward from the re-leg: the operator's ~/.prime/config.json was copied in with a plain cp. Its contents were never read, printed, logged or passed anywhere, and no credential value appears in any artifact from this attempt.",
+      "reused": true,
+      "what_was_carried_forward_unchanged": [
+        "the Techtree home and its run store",
+        "the source comparison run and its proof bundle",
+        "the copied Prime CLI configuration",
+        "the installed engine and the pinned subject image"
+      ],
+      "what_was_upgraded_in_place": [
+        "the installed CLI, replaced with the new wheel",
+        "the installed plugin, replaced at commit b4f6a5c5"
+      ]
+    },
+    "digest_pull_path": {
+      "asserted": true,
+      "moved_tag": "python:3.11-slim",
+      "moved_tag_resolved": false,
+      "pinned_digest_occurrences_in_the_run": 884,
+      "pinned_image": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff"
+    },
+    "doctor": {
+      "argv": [
+        "techtree",
+        "doctor",
+        "--climb",
+        "hello-world-climb@1"
+      ],
+      "checks": 13,
+      "credential_check": "the active Prime CLI configuration holds a key the pinned evaluation client can use",
+      "failed": 0,
+      "passed": 12,
+      "warned": 1,
+      "warning": "hermes was not found on PATH; Techtree does not need it, and the host-agent integration is not part of this build"
+    },
+    "findings": [
+      {
+        "caught_by": "techtree release info, which reported the stamped source commit of the build actually installed. The product told the truth about itself and that is how the stale install was noticed.",
+        "detail": "uv tool install --force reported a successful reinstall and left the previous build of the same version in place, because uv served the wheel from its own cache. --reinstall picked up the rebuilt wheel. This does not touch the published path, where every release carries its own version, but it does touch anyone rebuilding a wheel at a fixed version \u2014 including this acceptance journey, which would otherwise have certified the wrong build.",
+        "id": "uv-force-served-a-stale-cached-wheel",
+        "severity": "worth recording"
+      },
+      {
+        "detail": "hermes plugins install --force landed the plugin disabled; an earlier install of the same plugin into the same home enabled itself. An explicit hermes plugins enable was needed. Hermes' own behaviour, not Techtree's, and it says so clearly on screen.",
+        "id": "plugin-install-landed-disabled",
+        "severity": "worth recording"
+      }
+    ],
+    "guided_revision": {
+      "accounting": {
+        "invocations": 1,
+        "outbound_generation_requests": 1,
+        "repairs": 0,
+        "transport_retries": 0
+      },
+      "approval_surface_rendered_before_dispatch": true,
+      "approver": "the acceptance worker acting as the operator of this journey, per the WP11e execution contract. Recorded as an operator approval, not a founder approval.",
+      "cli_calls_the_plugin_made": [
+        [
+          "uplift",
+          "context"
+        ],
+        [
+          "uplift",
+          "skill-source"
+        ],
+        [
+          "uplift",
+          "context"
+        ],
+        [
+          "uplift",
+          "skill-source"
+        ],
+        [
+          "uplift",
+          "prepare"
+        ]
+      ],
+      "diff_summary": "Four changes, all inside the procedure and the output contract: write out each letter's position-weighted product before summing; add a re-verification step before formatting; renumber the formatting step; and say explicitly that the no-commentary rule binds the final returned token only, so internal working is allowed.",
+      "draft_id": "draft_28ac40d578094441a7fe1527ca961561",
+      "finish_reason": "stop",
+      "guards": {
+        "cli_skill_scanner_verdict": "accepted",
+        "judged_naturally": true,
+        "note": "The revision the model wrote contains the phrase 'Do not include reasoning, arithmetic, punctuation, Markdown, or commentary in the final returned token'. On the 2026-08-19 build the scanner's secret-assignment heuristic rejected the shipped Skill's own version of this sentence. It passes cleanly here, with no edit.",
+        "plugin_guards_verdict": "accepted",
+        "presentation_claim_forbidden_raised": false,
+        "secret_assignment_raised": false,
+        "workaround_applied": false
+      },
+      "host_profile": {
+        "frozen": true,
+        "max_completion_tokens": 32768,
+        "model": "z-ai/glm-5.2",
+        "note": "Unchanged from the attempt that truncated. Nothing about the profile was widened to make this attempt more likely to succeed.",
+        "repairs": 0,
+        "structured_output": "json_schema, strict=true, no fallback",
+        "temperature": 0,
+        "transport_retries": 0
+      },
+      "model_stated_confidence": "medium",
+      "outcome": "a usable proposal was returned",
+      "proposal_fields": [
+        "analysis_summary",
+        "change_rationale",
+        "confidence",
+        "expected_tradeoffs",
+        "revised_skill_markdown"
+      ],
+      "provider_response_id": "a2e008cb1b5e138a-SJC",
+      "request_body_byte_identical_to_the_attempt_that_truncated": true,
+      "request_digest": "sha256:3347f071df50dd5f98ea7645a30a9bfe2324385b0666973f28f0247fcd3a2217",
+      "request_identity_note": "The same bytes, to the same model, at temperature 0, produced a 32,768-token truncation with no content on 2026-08-20 08:0x and a complete 6,501-token structured answer on 2026-08-20 08:30. The failure bbu describes is a sampling outcome on this task family, not a property of the prompt \u2014 which is what makes it dangerous for a user who gets exactly one attempt.",
+      "response_digest": "sha256:30e1dc37c8d3eba2e1977bb1f705f77aa08a90c9daa2ceb9d6b1f54a99d269ac",
+      "route": "the real plugin path: techtree_uplift_propose on the installed plugin, over the installed CLI's JSON envelope",
+      "session_stage_after": "second_draft_prepared",
+      "snapshot": {
+        "baseline_manifest_digest": "sha256:55b7b8a7e2a4f17eaee2bf1657f14eccc200d311053347ac3bf8ac2b22edfcbc",
+        "baseline_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "candidate_manifest_digest": "sha256:78878c001e416e25341ba47347b8f722203b1b393f4cc5c4a12f6a94ff1e14c8",
+        "candidate_skill_bytes": 1966,
+        "candidate_skill_file_digest": "sha256:0beea6ecbc62bb0b8b17ffd2322b2b7d11f7b4b4c07cadf24282ec1e45468cb0",
+        "included_files": [
+          "SKILL.md"
+        ],
+        "source_kind": "manual"
+      },
+      "state_at_the_moment_of_approval": {
+        "cli_reads": 0,
+        "host_calls": 0,
+        "outbound_requests": 0
+      },
+      "tool_result_envelope": {
+        "bytes": 6086,
+        "code": "tool_result_too_large",
+        "limit_bytes": 3500,
+        "message": "The full answer is too large to return here. Nothing was lost: run the Techtree command yourself to see all of it.",
+        "note": "This is the envelope's size limit, not a failure. The draft was prepared and the next action was carried.",
+        "ok": true,
+        "truncated": true
+      },
+      "usage": {
+        "completion_tokens": 6501,
+        "cost_usd_provider_reported": 0.0376,
+        "prompt_tokens": 5133,
+        "reasoning_tokens": 3834
+      }
+    },
+    "inputs": {
+      "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "plugin_commit": "b4f6a5c5db960c5cf916a8f401ff2069e12504ba",
+      "plugin_repository": "../techtree-plugin",
+      "repository_head_during_the_leg": "techtree-python main was at 30252e1 (the re-leg evidence commit); the wheel this attempt installed is stamped 6c0b16a7, which is the last commit that changes product code. The leg certifies the wheel it installed and nothing later.",
+      "wheel": "dist/techtree-0.1.0-py3-none-any.whl",
+      "wheel_checksum_sidecar_agrees": true,
+      "wheel_checksum_sidecar_note": "techtree-python-oce is fixed in this artifact: the .sha256 sidecar names 20f4e747, which is the wheel beside it.",
+      "wheel_sha256": "20f4e747e9656512642d1bc09d292ac7183a3ec1e5d992d5f2fb9a0a4bb57883",
+      "wheel_sha256_recomputed_here": true,
+      "wheel_stamp_read_from": "techtree/resources/release/build-provenance.json inside the wheel",
+      "wheel_stamped_source_commit": "6c0b16a7e5be4409205ce737134e66af10b707f7"
+    },
+    "install": {
+      "argv_first_attempt": [
+        "uv",
+        "tool",
+        "install",
+        "--force",
+        "--python",
+        "3.12",
+        "--find-links",
+        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+        "techtree==0.1.0"
+      ],
+      "argv_first_attempt_result": "exit 0, reported 'Uninstalled 1 package / Installed 1 package', and left the OLD build in place: release info still read source_commit 7f5370c5. uv served the same-versioned wheel from its own cache.",
+      "argv_that_actually_installed_the_new_wheel": [
+        "uv",
+        "tool",
+        "install",
+        "--reinstall",
+        "--python",
+        "3.12",
+        "--find-links",
+        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+        "techtree==0.1.0"
+      ],
+      "only_member_rewritten_by_the_installer": "techtree-0.1.0.dist-info/RECORD",
+      "published_argv": [
+        "uv",
+        "tool",
+        "install",
+        "techtree==0.1.0"
+      ],
+      "release_info_source_commit": "6c0b16a7e5be4409205ce737134e66af10b707f7",
+      "release_verify": {
+        "failed": 0,
+        "passed": 9,
+        "skipped": 3
+      },
+      "release_verify_argv": [
+        "techtree",
+        "release",
+        "verify",
+        "--expected",
+        "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71"
+      ],
+      "release_verify_note": "Without --expected the release_core_digest check reports SKIPPED rather than PASSED and prints the bytes it found, which is correct and honest but changes the count to 8/0/4.",
+      "reported_version": "0.1.0",
+      "result": "pass",
+      "wheel_payload_members_compared": 156,
+      "wheel_payload_members_differing": 1
+    },
+    "no_upload_observation": {
+      "connections_to_techtree_sh": 0,
+      "installed_package_outbound_call_site": "a GET in techtree/skills/starter.py",
+      "installed_package_outbound_call_sites": 1,
+      "installed_package_post_put_patch_delete_sites": 0,
+      "method": "every established remote connection held by the journey's process tree, sampled every five seconds across the whole paid window, plus a static reading of the installed package's outbound surface",
+      "remote_peers": [
+        "104.18.8.113:443",
+        "104.18.9.113:443"
+      ],
+      "remote_peers_identified_as": "api.pinference.ai, the model provider",
+      "samples": 132,
+      "techtree_sh_address": "66.241.124.2"
+    },
+    "performed_at": "2026-08-20T08:24Z\u201308:40Z",
+    "plugin": {
+      "argv": [
+        "hermes",
+        "plugins",
+        "install",
+        "file:///Users/sean/Documents/techtree-climb/techtree-plugin",
+        "--ref",
+        "b4f6a5c5db960c5cf916a8f401ff2069e12504ba",
+        "--force"
+      ],
+      "argv_note": "hermes is not on the journey PATH by design, so it was invoked by absolute path. A bare local path is still read by Hermes as owner/repo shorthand; file:// plus --ref is still the working form.",
+      "detached_head": true,
+      "enable_step_required": "This install landed disabled and needed an explicit `hermes plugins enable techtree`; the earlier install of the same plugin enabled itself. Enabling also declines the built-in-tool override, which Techtree does not ask for.",
+      "installed_at_commit": "b4f6a5c5db960c5cf916a8f401ff2069e12504ba",
+      "llm_py_byte_identical_to_the_repository": true,
+      "numeric_claims_heuristic_absent": true,
+      "release_core_byte_identical_to_the_installed_cli": true,
+      "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71"
+    },
+    "purpose": "The final authorized guided-revision attempt. The two previous paid attempts each spent the one revision the introduction allows and returned no candidate \u2014 the first to two guard false-positives (5f6, 0mx), the second to a provider-side truncation (bbu). This attempt runs the same path on the fixed artifacts to find out whether the guided revision can complete end to end without a workaround.",
+    "source_run_reused": {
+      "cost_charged_to_this_attempt_usd": 0.0,
+      "improvement_context": "techtree uplift context exported 20 of the run's 36 tasks, with the objective and the stable failures and no hidden task material",
+      "integrity_rechecked_under_the_new_wheel_before_reuse": true,
+      "proof_verify": {
+        "checks": 339,
+        "failed": 0,
+        "passed": 339
+      },
+      "result_renders": "0.000 \u2192 0.667, 24 wins / 0 losses / 12 ties",
+      "run_id": "run_b804a28c81b444c9b9f2466ec0378faf",
+      "why": "It is the fresh clean-home comparison the 2026-08-20 re-leg already paid USD 0.1982 for. Reusing it saves this attempt a second ~USD 0.20 comparison and changes nothing the guided revision reads."
+    },
+    "spend": {
+      "authorized_for_this_leg_usd": 0.45,
+      "every_leg_estimated_before_it_ran": true,
+      "hard_stops": {
+        "any_comparison_over_0_30": false,
+        "any_host_call_over_0_30": false,
+        "any_paid_outcome_retried": false
+      },
+      "leg_total_usd": 0.0935,
+      "legs": [
+        {
+          "actual_provenance": "not performed \u2014 the 2026-08-20 re-leg's run was reused after its integrity was rechecked under the new wheel",
+          "actual_usd": 0.0,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.2,
+          "leg": "source comparison (baseline vs starter, 72 episodes)",
+          "within_ceiling": true
+        },
+        {
+          "actual_provenance": "provider-reported",
+          "actual_usd": 0.0376,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.1142,
+          "leg": "one guided-revision host completion (z-ai/glm-5.2)",
+          "within_ceiling": true,
+          "worst_case_usd": 0.1816
+        },
+        {
+          "actual_provenance": "computed from the run's signed execution record: 1,716,868 input and 34,065 output tokens over 152 model calls at the pinned prices",
+          "actual_usd": 0.0559,
+          "ceiling_usd": 0.3,
+          "conservative_estimate_usd": 0.085,
+          "estimate_usd": 0.065,
+          "leg": "comparison 2 (v1 vs v2, 72 episodes)",
+          "within_ceiling": true
+        }
+      ],
+      "per_comparison_ceiling_usd": 0.3,
+      "per_host_call_ceiling_usd": 0.3,
+      "programme_after_usd": 3.2321,
+      "programme_before_usd": 3.1386,
+      "programme_cap_usd": 10.0,
+      "programme_remaining_usd": 6.7679,
+      "remaining_of_this_leg_usd": 0.3565
+    },
+    "ticket": "techtree-python-ndq.3.5",
+    "verdict": "pass",
+    "verdict_detail": "The guided revision completed end to end through the real plugin path, with no workaround at any step: one host completion returned a usable proposal, the plugin's guards accepted it, the CLI's scanner accepted it, a draft was prepared, the diff and the six disclosures rendered, declining exited 8, approving started a real paid comparison, and that comparison finished and its proof verified offline. The comparison's own result is an honest no-change: 0.667 \u2192 0.667, 0 wins, 0 losses, 36 ties. What the journey was testing is the path, and the path works."
+  },
   "clean_machine": {
     "docker": {
       "images_present_before_the_journey": 34,
