@@ -297,7 +297,9 @@ class OneShotHostLlm:
             raise
         except Exception as error:
             raise HostLlmError(
-                f"the host model could not answer: {scrub_text(str(error))}",
+                "the request was sent but no answer came back from the host "
+                "model; the provider may still charge for the attempt, and "
+                f"this run's one revision is used: {scrub_text(str(error))}",
                 code=CODE_HOST_LLM_UNAVAILABLE,
                 retryable=False,
             ) from error
@@ -332,8 +334,18 @@ def _result_from(answer: Any, request: HostLlmRequest) -> HostLlmResult:
 
     parsed = answer.get("parsed")
     if not isinstance(parsed, Mapping):
+        usage = answer.get("usage")
+        spent = usage.get("output_tokens") if isinstance(usage, Mapping) else None
+        generated = (
+            f"it generated {spent} tokens, which the provider charges for, but "
+            if isinstance(spent, int) and spent > 0
+            else ""
+        )
         raise HostLlmError(
-            "the host model's answer was not the structured shape that was asked for",
+            "the request reached the host model and "
+            f"{generated}no usable structured answer came back — often the "
+            "model spent its whole writing allowance reasoning and never "
+            "wrote the proposal. This run's one revision is used.",
             code=CODE_HOST_LLM_OUTPUT_INVALID,
         )
 
