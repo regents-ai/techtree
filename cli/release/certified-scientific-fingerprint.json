@@ -1,9 +1,9 @@
 {
  "campaign_budgets": {
-  "maximum_input_tokens": null,
-  "maximum_model_calls": null,
-  "maximum_output_tokens": 8000,
-  "maximum_usd": 1
+  "maximum_input_tokens": 900000,
+  "maximum_model_calls": 44,
+  "maximum_output_tokens": 16000,
+  "maximum_usd": 2.5
  },
  "campaign_execution": {
   "max_concurrent": 4,
@@ -11,12 +11,12 @@
   "retry_limit": 0,
   "timeout_seconds": 600
  },
- "campaign_spec_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
- "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
+ "campaign_spec_digest": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+ "catalog_digest": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
  "certified_scientific_code_commit": "1ad6ecf027b7a2b805bba27c7dd700b584501ec8",
- "climb_digest": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
+ "climb_digest": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
  "cross_check": {
-  "note": "The Gate-1 packet \u00a71/\u00a78 names the SUPERSEDED pre-regeneration lineage (campaign 5aef3fb7, climb 61a7dd46, catalog 468e8ab1, ReleaseCore 80807821). Addendum 1 is the later record and names the lineage recorded here. The values the addendum states as unchanged from the packet \u2014 engine, membership, data policy, validation receipt, validation evidence, both Skill digests \u2014 are byte-identical to the packet's.",
+  "note": "The Gate-1 packet \u00a71/\u00a78 names the first superseded lineage (campaign 5aef3fb7, climb 61a7dd46, catalog 468e8ab1, ReleaseCore 80807821) and Addendum 1 names the second (campaign b9e3f00c, climb 93c03b3a, catalog 62714b77, ReleaseCore 90cd8ad6). Neither names the lineage recorded here: decision 0029 changed the Campaign's budget contract after both, so the digests above are newer than either record and the packet's approval does not yet cover them. The values the addendum states as unchanged from the packet \u2014 engine, membership, data policy, validation receipt, validation evidence, both Skill digests \u2014 are byte-identical here too, and that is asserted rather than transcribed.",
   "source": "release/founder-skill-approval-addendum-1.md \u00a7A1.3/\u00a7A1.4"
  },
  "data_policy_digest": "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
@@ -24,9 +24,35 @@
  "gate1_addendum_1_digest": "sha256:568f3a5371543d546db3e19ec51a83ab43481af0b72d874633a76c3dca278842",
  "gate1_approval_digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
  "gate1_approval_record_digest": "sha256:bc01c93e2aeced2dea33830939c9e35a2196335b9690b7d2b69647b5c4b54ce1",
- "lineage": "regenerated (decisions document 0025 option A)",
- "packaged_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+ "lineage": "regenerated (decisions document 0025 option A), then re-regenerated for the budget contract (decisions document 0029). Recertification pending \u2014 see note and recertification_pending.",
+ "note": "Decision 0029 (docs/decisions/0029-orphan-bound-fix.md) authorised this change and this file records the lineage it produced. The Campaign's declared execution limits are now enforced end to end \u2014 turns, input tokens, output tokens and the rollout timeout compiled into the evaluation, the derived total ceiling with them, the spending maximum checked as a pre-run precondition \u2014 and two of the declared values moved by the formulas the decision predeclared: the per-episode output ceiling from 8000 to 16000 (8000 had been reached by a successful canonical episode) and the comparison maximum from $1.00 to $2.50 (the bound computed from the enforced limits is $2.42, above the old maximum). RECERTIFICATION IS PENDING. The runs listed under recertification_runs were executed against the superseded lineage (campaign b9e3f00c\u2026) and are not evidence for the lineage recorded here; the recertification phase re-executes them against this Campaign and attaches the results. The scientific coordinates other than the budget contract are unchanged and are asserted to be so: engine, taskset package, membership, lock, validation receipt, validation evidence, data policy, subject model and sampling, and both Skill digests.",
+ "packaged_release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
  "purpose": "The scientific coordinates of the lineage this candidate wheel carries, read from the artifacts themselves at build time. Every value below is computed from a file in this repository or the plugin checkout; none is transcribed.",
+ "recertification_pending": {
+  "authorised_by": "docs/decisions/0029-orphan-bound-fix.md",
+  "current_lineage": {
+   "campaign": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+   "catalog": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
+   "climb": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
+   "core": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"
+  },
+  "reason": "new budget contract and new Campaign digest",
+  "runs_attached": false,
+  "runs_required": [
+   "two baseline-vs-v1 stability comparisons",
+   "one baseline-vs-reference comparison",
+   "one v1-vs-frozen-v2 comparison, re-executed and never re-proposed",
+   "the live turn-conformance probe",
+   "the worker-SIGKILL injection"
+  ],
+  "superseded_lineage": {
+   "campaign": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+   "catalog": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
+   "climb": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
+   "core": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71"
+  },
+  "ticket": "techtree-python-730"
+ },
  "recertification_runs": [
   {
    "bundle_digest_prefix": "c043bb3d\u2026",
@@ -53,9 +79,10 @@
    "score": "0/36 \u2192 36/36"
   }
  ],
+ "recertification_runs_note": "Executed against the superseded lineage above. Retained as the record of what was measured, not as evidence for the Campaign this file now names.",
  "recorded_for_ticket": "techtree-python-ndq.3.2",
  "release_build_inputs": {
-  "catalog_digest": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
+  "catalog_digest": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
   "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
   "intro_climb_reference": "hello-world-climb@1",
   "protocol_version": "v1alpha1",
@@ -63,7 +90,7 @@
   "release_inputs_digest": "sha256:3ecb69acd4f4a3ac2b989435ffccb3e6ba55eb892a37635b59808e4d6055d5b0"
  },
  "release_contract": "Decisions document 0026: the ReleaseCore is a contract of concrete coordinates and describes no artifact of its own. The commit a wheel was built from is stamped into that wheel by the build and reported by `techtree release info`.",
- "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+ "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
  "release_source_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
  "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
  "runtime_image_platform_digests": {

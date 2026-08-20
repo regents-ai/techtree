@@ -298,13 +298,15 @@ PERMITTED_BAND: Final[re.Pattern[str]] = re.compile(
     "\\b20\\s*[-\\u2013]\\s*27\\s*/\\s*36\\b"
 )
 
-#: Decision 0025. The Campaign declares a maximum spend and a per-episode
-#: timeout, and both are contract values that nothing holds a run to: no code
-#: works out what a run will come to before it starts, none watches the
-#: spending while it runs, and none ends a run when the declared time is up.
-#: Copy may state a declared figure and say that it is declared. Copy may not
-#: phrase one as a meter or a cut-off, because a reader told a protection
-#: exists will believe they have it.
+#: Decisions 0025 and 0029. What a run is held to changed; what it is not held
+#: to did not. Since 0029 the declared limits are enforced and the declared
+#: maximum spend is a precondition: before a real run starts, the most the
+#: comparison can cost under those limits is computed and a Campaign that could
+#: amount to more than it declares is refused. What still does not exist is a
+#: meter — nothing counts the spend while a run is under way, and nothing ends
+#: one part-way through over money. Copy may say what is checked. Copy may not
+#: phrase any of it as a running total or a mid-run cut-off, because a reader
+#: told a protection exists will believe they have it.
 #:
 #: Each pattern bans the claim in the affirmative only. Saying that none of
 #: this happens is exactly what the honest copy has to do, and a guard that
@@ -351,11 +353,12 @@ FORBIDDEN_COST_PROMISE: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ),
 )
 
-#: Decision 0025 again, for the clock. ``execution.timeout_seconds`` is a
-#: declared value the evaluation never receives, so a run has no finishing
-#: time anybody can state. The field itself stays: it is protocol, it is
-#: compared between the two sides, and the certified derivation carried it.
-#: What goes is any sentence that reads as a promise about the clock.
+#: Decisions 0025 and 0029 again, for the clock. ``execution.timeout_seconds``
+#: is now handed to the evaluation as the per-episode rollout timeout, so an
+#: episode does have an enforced time limit and copy may say so. A *run* is a
+#: different question: how long a comparison takes is how long its episodes
+#: take, and nothing publishes a finishing time for one. What goes is any
+#: sentence that reads as a promise about when a run is over.
 FORBIDDEN_TIME_PROMISE: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ("the declared 600 seconds", re.compile(r"\b600[\s-]*seconds?\b", re.I)),
     (
@@ -370,7 +373,7 @@ FORBIDDEN_TIME_PROMISE: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
         "a time-bounded run",
         re.compile(r"\btime[-\s](bound|bounded|limited|capped|boxed)\b", re.I),
     ),
-    ("a run time limit", re.compile(r"\b(time|run|episode)\s+limits?\b", re.I)),
+    ("a run time limit", re.compile(r"\brun\s+(time\s+)?limits?\b", re.I)),
     (
         "a promised finish",
         re.compile(
@@ -384,12 +387,19 @@ FORBIDDEN_TIME_PROMISE: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
 #: The other half of the money ban. Removing an overclaim leaves a surface free
 #: to say nothing, which is how a reader ends up assuming the protection anyway.
 #: The review a person answers before a run starts has to say what does not
-#: happen, in the same breath as the declared figure.
-NO_PRICE_FRAMING: Final[re.Pattern[str]] = re.compile(
-    r"nothing\s+here\s+works\s+out\s+what\s+the\s+run\s+will\s+come\s+to", re.I
+#: happen, in the same breath as whatever it says does.
+NO_METER_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"nothing\s+keeps\s+a\s+running\s+total", re.I
 )
 NO_CUT_OFF_FRAMING: Final[re.Pattern[str]] = re.compile(
-    r"nothing\s+stops\s+(it|the\s+run)", re.I
+    r"nothing\s+ends\s+it\s+part-?way\s+through", re.I
+)
+
+#: And the half that is now true. A Campaign that declares a maximum is checked
+#: against it before anything is spent, so the review says so rather than
+#: leaving a person to discover the refusal by being refused.
+PRE_RUN_CHECK_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"cannot\s+add\s+up\s+past\s+the\s+\$\d", re.I
 )
 
 
@@ -672,12 +682,14 @@ def test_no_copy_promises_a_run_is_over_by_a_certain_time(
     assert not offenders, f"copy promises {described!r}: {offenders}"
 
 
-def test_the_review_says_the_declared_limit_is_only_declared() -> None:
+def test_the_review_says_what_is_checked_and_what_is_not() -> None:
     """The line a person answers has to carry both halves of the truth.
 
-    A declared ceiling with no disclaimer beside it reads as a cap. Whichever
-    branch the Campaign lands in, the sentence says the figure is declared and
-    says that nothing works it out first and nothing stops the run over it.
+    A declared maximum with no disclaimer beside it reads as a meter. Whichever
+    branch the Campaign lands in, the sentence says that nothing keeps a
+    running total and nothing ends the run part-way through; where there is a
+    maximum, it also says that the run is refused if the enforced limits could
+    amount to more than it.
     """
     from techtree.cli.commands.climb import _cost_line
 
@@ -689,23 +701,28 @@ def test_the_review_says_the_declared_limit_is_only_declared() -> None:
     for campaign in (released, undeclared):
         line = _cost_line(campaign)
 
-        assert NO_PRICE_FRAMING.search(line), line
+        assert NO_METER_FRAMING.search(line), line
         assert NO_CUT_OFF_FRAMING.search(line), line
         for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
             assert not pattern.search(line), (described, line)
 
-    assert "declares a limit of $1.00" in _cost_line(released)
+    released_line = _cost_line(released)
+    assert PRE_RUN_CHECK_FRAMING.search(released_line), released_line
+    assert "$2.50 maximum it declares" in released_line
+    assert not PRE_RUN_CHECK_FRAMING.search(_cost_line(undeclared))
 
 
 def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
     """The guards must not forbid the sentences they exist to require."""
     permitted = (
-        "The Campaign declares a limit of $1.00 for this comparison.",
-        "That figure is a declared limit and nothing more.",
-        "nothing here works out what the run will come to first",
-        "nothing stops it if it goes past",
+        "Before anything starts, Techtree checks that this Campaign's enforced "
+        "per-episode limits cannot add up past the $2.50 maximum it declares, "
+        "and refuses to run it if they could.",
+        "Each episode has enforced turn, token, and time limits.",
+        "Nothing keeps a running total while the run is under way and nothing "
+        "ends it part-way through.",
         "What you pay is whatever your model provider charges for the episodes above.",
-        "This comparison declares no spending limit.",
+        "This Campaign declares no maximum.",
         "The cost shown is an estimate. It is not a figure the provider "
         "reported and it is not what you were charged.",
         "The run continues after this command returns.",

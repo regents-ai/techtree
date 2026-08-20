@@ -120,24 +120,39 @@ def test_every_missing_limit_is_named_at_once() -> None:
     ]
 
 
-def test_the_shipped_campaign_is_not_yet_startable_under_this_validator() -> None:
-    """The state this fix deliberately leaves the release in for one phase.
+def test_the_shipped_campaign_declares_limits_the_engine_can_be_held_to() -> None:
+    """The Campaign this build ships passes its own gate.
 
-    The Campaign in the packaged catalog declares an output ceiling and nothing
-    else, which is exactly the shape decision 0029 forbids. Regenerating it
-    with calibrated limits is the next phase's work and is a new Campaign
-    digest, so until then the honest state is a public Campaign that cannot
-    start — and a test that says so, rather than a validator that lets it
-    through. This test is expected to be rewritten by the regeneration.
+    Every field the validator asks for is present in the packaged catalog, so
+    the public Campaign starts on the strength of limits that reach the engine
+    rather than on limits nobody enforces. A regeneration that dropped one
+    would fail here rather than at somebody's first real run.
     """
-    with pytest.raises(PrerequisiteError) as caught:
-        require_executable_budget(shipped_campaign())
+    shipped = shipped_campaign()
 
-    assert caught.value.code == CAMPAIGN_BUDGET_NOT_ENFORCED
-    assert caught.value.details["missing"] == [
-        "budgets.maximum_model_calls",
-        "budgets.maximum_input_tokens",
-    ]
+    require_executable_budget(shipped)
+
+    assert shipped.budgets.maximum_model_calls == 44
+    assert shipped.budgets.maximum_input_tokens == 900_000
+    assert shipped.budgets.maximum_output_tokens == 16_000
+    assert shipped.execution.timeout_seconds == 600
+
+
+def test_the_shipped_campaign_cannot_outspend_what_it_declares() -> None:
+    """The other half of the gate, at the prices this release recorded.
+
+    The bound is deliberately pessimistic — the whole context window on top of
+    the input allowance and one more sampled reply on top of the output one,
+    charged for all 72 episodes — and it still lands under the declared
+    maximum. A regeneration that raised a token limit far enough to break that
+    would be refused here rather than by a run that already started.
+    """
+    shipped = shipped_campaign()
+
+    bound = require_cost_bound(shipped, price_profile_for(SUBJECT_MODEL_ID))
+
+    assert bound == pytest.approx(2.41521408)
+    assert shipped.budgets.maximum_usd == 2.50
 
 
 # ---------------------------------------------------------------------------

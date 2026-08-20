@@ -200,7 +200,18 @@ SUBJECT_CREDENTIAL_ENV: Final = "PRIME_API_KEY"
 
 #: What one comparison may spend, in USD. A hard ceiling, not an estimate, and
 #: never presented as the expected price (decisions documents 0006, 0017).
-CAMPAIGN_BUDGET_USD: Final = 1.00
+#:
+#: This was 1.00, and 1.00 was a figure nothing was ever asked to hold. Since
+#: decisions document 0029 the ceiling is a precondition: before a real run
+#: starts, the most the comparison can cost under the enforced token limits
+#: below is computed at the prices this release recorded, and a Campaign whose
+#: ceiling is lower than that figure is refused rather than run. The three
+#: enforced allowances put that figure at $2.42 for 36 tasks × 2 variants
+#: (release/limit-calibration.json), so a ceiling of 1.00 would refuse the
+#: Campaign this build ships. 2.50 is the smallest clean figure the enforced
+#: limits fit under, and it is still a ceiling and not a price: every canonical
+#: comparison measured so far settled between $0.16 and $0.20.
+CAMPAIGN_BUDGET_USD: Final = 2.50
 
 #: A per-rollout output-token ceiling, and the reason a Campaign needs one.
 #:
@@ -211,9 +222,41 @@ CAMPAIGN_BUDGET_USD: Final = 1.00
 #: fails the whole variant. The cap is on *output* tokens because output is
 #: counted once and grows with exactly the thing that runs away. It applies
 #: identically to both variants, so it constrains the experiment without
-#: favouring either side of it. It stays twice ``SUBJECT_MAX_OUTPUT_TOKENS``,
-#: so the per-call and per-rollout bounds remain two separate guards.
-CAMPAIGN_MAXIMUM_OUTPUT_TOKENS: Final = 8000
+#: favouring either side of it.
+#:
+#: This was 8000, and 8000 was reached. One successful canonical episode —
+#: post1 baseline, task ``sha256:e08bb7c7a18a…``, twenty-five turns — finished
+#: on ``max_output_tokens`` with 8212 output tokens after the one-turn
+#: overshoot, and the next-highest episode used 7218 of the 8000. A cap a
+#: measured episode already reaches is a cap that decides results, so
+#: decisions document 0029 forbids leaving it and forbids raising it quietly:
+#: the change is this new Campaign. 16000 is the predeclared 1.5× rule applied
+#: to the observed maximum (12318) rounded to a clean number, and it stays four
+#: times ``SUBJECT_MAX_OUTPUT_TOKENS``, so the per-call and per-rollout bounds
+#: remain two separate guards.
+CAMPAIGN_MAXIMUM_OUTPUT_TOKENS: Final = 16000
+
+#: A per-rollout input-token ceiling. Input was the leg with no cap at all: a
+#: conversation that keeps growing is charged for its whole history on every
+#: turn, which is where an unattended run's money actually goes.
+#:
+#: 900000 is the predeclared rule — 1.5 × the largest input any successful
+#: canonical episode used (571016, wp11e-recert first baseline) — rounded up
+#: to a clean number. No episode in the 731 measured came within a third of it.
+CAMPAIGN_MAXIMUM_INPUT_TOKENS: Final = 900000
+
+#: How many times the subject may be asked to answer, per episode.
+#:
+#: One Verifiers model turn is one subject model generation that produced a
+#: reply; provider-rejected exchanges are neither counted nor billed. That
+#: mapping is not an assumption: it was checked against all 731 successful
+#: canonical episodes, and the count of replying generations equalled the
+#: turn count in every one of them.
+#:
+#: 44 is the predeclared rule — ceil(1.25 × 35, the most turns any measured
+#: episode took) — and the median episode takes nine turns without a Skill and
+#: two with one.
+CAMPAIGN_MAXIMUM_MODEL_CALLS: Final = 44
 
 #: The Campaign-wide episode allowance a comparison is given. The executor
 #: halves it between the two variants, so each runs two rollouts at a time and
@@ -221,10 +264,11 @@ CAMPAIGN_MAXIMUM_OUTPUT_TOKENS: Final = 8000
 #: allowance of one: a variant would be starved to zero.
 CAMPAIGN_MAX_CONCURRENT: Final = 4
 
-#: How long one episode may take, declared. Decisions document 0025 records the
-#: disposition plainly: this value is declared and nothing enforces it in v0.1,
-#: so no public surface may state that runs are time-bounded. Declaring it is
-#: faithful to what was certified; claiming enforcement would not be.
+#: How long one episode's solve may take. The value is unchanged and its
+#: standing is not: decisions document 0025 had to record that nothing enforced
+#: it, and since decisions document 0029 the compiler hands it to the engine as
+#: the rollout timeout, so an episode that stops making progress is ended. The
+#: longest solve any measured canonical episode took was 376 seconds.
 CAMPAIGN_TIMEOUT_SECONDS: Final = 600
 
 #: No retries. A failed comparison is no result, never a poor one.
@@ -380,12 +424,19 @@ def build_hello_world_campaign(
     """Return the scientific contract. Spec section 23.3, decisions 0001.
 
     Nothing here is a placeholder any more. The subject *model* is the
-    founder-ratified release coordinate (decisions documents 0006 and 0025),
+    founder-ratified release coordinate (decisions documents 0006 and 0025) and
     the subject *runtime* is the container pinned by content for every platform
-    it supports (decisions document 0007 R5), and the budget contract is the
-    one every certified comparison ran under. The Campaign this build ships is
-    therefore the Campaign the certification measured, which is the whole point
-    of decisions document 0025.
+    it supports (decisions document 0007 R5).
+
+    The budget contract is the one place this Campaign deliberately differs
+    from the one the earlier comparisons ran under. Decisions document 0029
+    made the declared limits real — every one of them now reaches the engine —
+    and two of them could not survive being made real unchanged: the output
+    ceiling had been reached by a measured episode, and the spending ceiling
+    was below what the enforced limits can amount to. Both moved, by the
+    formulas predeclared in that decision and recorded in
+    release/limit-calibration.json, and the comparisons that establish this
+    Campaign's results are re-run against it rather than inherited.
     """
     return CampaignSpec(
         schema_version=CAMPAIGN_SCHEMA_VERSION,
@@ -467,10 +518,14 @@ def build_hello_world_campaign(
             verifiers_episode="required",
             runtime_evidence="not_required",
         ),
+        # Three publisher decisions, all of them enforced: turns, input,
+        # output. The total ceiling is not a fourth decision — the compiler
+        # derives it from the last two (decisions document 0029, resolution 1),
+        # so it is not a field of this document and cannot drift from them.
         budgets=BudgetSpec(
-            maximum_input_tokens=None,
+            maximum_input_tokens=CAMPAIGN_MAXIMUM_INPUT_TOKENS,
             maximum_output_tokens=CAMPAIGN_MAXIMUM_OUTPUT_TOKENS,
-            maximum_model_calls=None,
+            maximum_model_calls=CAMPAIGN_MAXIMUM_MODEL_CALLS,
             maximum_usd=CAMPAIGN_BUDGET_USD,
         ),
         data_policy_digest=data_policy_digest,

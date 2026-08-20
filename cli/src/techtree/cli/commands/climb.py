@@ -514,11 +514,15 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
     is read off the draft or the Campaign it was prepared against, so the
     review describes this run and cannot describe a different one.
 
-    The cost line says a declared figure and says that it is one. Nothing in
-    this build works out what a run will come to before it starts, and nothing
-    ends a run that spends more than the Campaign declares — so the line has to
-    be worded as the contract value it is, and decision 0025 forbids any
-    wording that would leave a reader expecting a meter or a cut-off.
+    The cost line says what is actually done about money. Since decisions
+    document 0029 there is a real check before a run starts: the most the
+    comparison can cost under the Campaign's enforced per-episode limits is
+    computed, and a Campaign that could amount to more than its declared
+    maximum is refused instead of started. What there still is not is a meter —
+    nothing counts the spend while a run is under way and nothing ends a run
+    part-way through over money — so the line says what the check is, and
+    decision 0025 still forbids any wording that would leave a reader expecting
+    a running total or a mid-run cut-off.
     """
     return [
         f"This runs {draft.estimated_episodes} episodes: the same tasks once "
@@ -532,21 +536,25 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
 
 
 def _cost_line(campaign: CampaignSpec) -> str:
-    """Say the most this comparison is declared to spend, and what that is worth."""
+    """Say what is checked about money before the run starts, and what is not."""
     ceiling = campaign.budgets.maximum_usd
     if ceiling is None:
         return (
-            "This comparison declares no spending limit. What it comes to is "
-            "whatever your model provider charges for the episodes above: "
-            "nothing here works out what the run will come to first, and "
-            "nothing stops it once it is going."
+            "This Campaign declares no maximum, so there is no figure for "
+            "Techtree to hold it to. Each episode still has enforced turn, "
+            "token, and time limits. Nothing keeps a running total while the "
+            "run is under way and nothing ends it part-way through, so what "
+            "you pay is whatever your model provider charges for the episodes "
+            "above."
         )
     return (
-        f"The Campaign declares a limit of ${ceiling:.2f} for this comparison. "
-        "That figure is a declared limit and nothing more: nothing here works "
-        "out what the run will come to first, and nothing stops it if it goes "
-        "past. What you pay is whatever your model provider charges for the "
-        "episodes above."
+        "Before anything starts, Techtree checks that this Campaign's enforced "
+        f"per-episode limits cannot add up past the ${ceiling:.2f} maximum it "
+        "declares, and refuses to run it if they could. Each episode has "
+        "enforced turn, token, and time limits. Nothing keeps a running total "
+        "while the run is under way and nothing ends it part-way through, so "
+        "what you pay is whatever your model provider charges for the episodes "
+        "above."
     )
 
 
