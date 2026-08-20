@@ -1,0 +1,1498 @@
+{
+  "schema_version": "techtree.limit-calibration.v1",
+  "generated_on": "2026-08-20",
+  "decision": "docs/decisions/0029-orphan-bound-fix.md",
+  "purpose": "Limit selection for decision 0029, layer A: every successful episode of every canonical paid run, split by arm, with the predeclared formulas applied. No intuition; every chosen value is a stated function of an observed maximum.",
+  "measurement_semantics": {
+    "source": "verifiers/<variant>/run/traces.jsonl per run, parsed with the pinned Verifiers build (0.3.1.dev21, commit 7e1c47d24d055aae587ee8259f77a3e8e193513a) from the engine venv, so every quantity is the same computed property the framework limit checks.",
+    "model_turns": "Trace.num_turns = count of trace nodes with sampled=True; this is what RolloutLimits.max_turns caps.",
+    "intercepted_model_calls": "len(Trace.calls) = every intercepted exchange, including provider failures that returned no generation.",
+    "input_tokens": "Trace.num_input_tokens (branch-aware min_new_input_tokens); this is what max_input_tokens caps. Every sampled node in these traces is its own graph leaf, so num_branches == num_turns for all 731 episodes and the quantity equals the sum of per-call input tokens (prompt + cached) \u2014 the billable input, not a de-duplicated prefix.",
+    "output_tokens": "Trace.num_output_tokens = sum of completion tokens; what max_output_tokens caps.",
+    "total_tokens": "Trace.num_total_tokens = per-branch final sequence length summed across branches.",
+    "elapsed_agent_seconds": "timing.agent.end - timing.agent.start. This is the stage AgentConfig.timeout.rollout bounds, i.e. the Campaign's execution.timeout_seconds once wired.",
+    "elapsed_episode_seconds": "max(stage end) - timing.start, i.e. boot + setup + agent + finalize + scoring.",
+    "variant_seconds": "execution/real-execution-result.json child_outcome finished_at - started_at: the whole managed eval child, which is what the 1800 s supervisor deadline bounds.",
+    "soft_overshoot": "Token limits are checked between turns, so the turn crossing a cap still completes. A cap of X therefore permits X + one turn."
+  },
+  "evidence_scope": {
+    "root": "/Users/sean/Documents/techtree-climb/certification-evidence",
+    "campaign_spec_digests": [
+      "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+      "sha256:f2f04ae5c9e8 (v1-vs-v2 runs)"
+    ],
+    "taskset_lock_digest": "sha256:2edd60bcdf67b01c8184728c23e5bdaa74003560aeb305927a05047a9fdab6d2 (identical across every run below)",
+    "arm_identification": "inputs/manifests/{baseline,candidate}.json -> configuration.agents.subject.harness.skills[0].digest",
+    "arm_digests": {
+      "neutral_baseline": "no skill (skills == [])",
+      "starter_v1": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b (1496 bytes)",
+      "complete_reference": "sha256:170256f734436c4debdee195247f4b04a0dfaa4df23f5bfb9036b46a931fd935 (2357 bytes)",
+      "skill_v2": [
+        "sha256:2081ae9000c0e... (wp11e-recert attempt 3, frozen v2, 1966 bytes)",
+        "sha256:554fda5863b10... (wp11e 2026-08-19 journey v2, 1900 bytes)"
+      ]
+    },
+    "runs": [
+      {
+        "run": "recert-0025/stab1",
+        "rel": "recert-0025/stab1/runs/run_4bde126172c64cc3bc2b6dd7fd306bba",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "recert-0025/stab1",
+        "rel": "recert-0025/stab1/runs/run_4bde126172c64cc3bc2b6dd7fd306bba",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "recert-0025/stab2",
+        "rel": "recert-0025/stab2/runs/run_f987eea81ba342d7b7de5515598fa5fa",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "recert-0025/stab2",
+        "rel": "recert-0025/stab2/runs/run_f987eea81ba342d7b7de5515598fa5fa",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "recert-0025/ref",
+        "rel": "recert-0025/ref/runs/run_4305dc3de7de46779c5c749f01529618",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "recert-0025/ref",
+        "rel": "recert-0025/ref/runs/run_4305dc3de7de46779c5c749f01529618",
+        "side": "candidate",
+        "arm": "complete_reference",
+        "skill_digest": "sha256:170256f734436c4debdee195247f4b04a0dfaa4df23f5bfb9036b46a931fd935",
+        "skill_size": 2357,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-recert/first",
+        "rel": "wp11e-recert-2026-08-20/home/Library/Application Support/techtree/runs/run_b804a28c81b444c9b9f2466ec0378faf",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-recert/first",
+        "rel": "wp11e-recert-2026-08-20/home/Library/Application Support/techtree/runs/run_b804a28c81b444c9b9f2466ec0378faf",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-recert/attempt3-v1v2",
+        "rel": "wp11e-recert-2026-08-20/home/Library/Application Support/techtree/runs/run_25506edf6a5f4bdb9b2276aea253f93d",
+        "side": "baseline",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-recert/attempt3-v1v2",
+        "rel": "wp11e-recert-2026-08-20/home/Library/Application Support/techtree/runs/run_25506edf6a5f4bdb9b2276aea253f93d",
+        "side": "candidate",
+        "arm": "skill_v2",
+        "skill_digest": "sha256:2081ae9000c0e19a034c9d6480a8ce0ea8e36364e784b9504a092c4aea9d02d8",
+        "skill_size": 1966,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-0819/journey-cmp1",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_719b335965704ecb84d2a57de9b61ccf",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-0819/journey-cmp1",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_719b335965704ecb84d2a57de9b61ccf",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-0819/journey-v1v2",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_697a17f8b68a40bebc086d44775d0ec7",
+        "side": "baseline",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-0819/journey-v1v2",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_697a17f8b68a40bebc086d44775d0ec7",
+        "side": "candidate",
+        "arm": "skill_v2",
+        "skill_digest": "sha256:554fda5863b10b265b31fb0b1e93100556e0eca5c677c84863782a8553f73a95",
+        "skill_size": 1900,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "wp11e-0819/journey-partial-a",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_6cb6461a105f42e3b30b4eaf6e26c3c0",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "interrupted",
+        "episodes_total": 1,
+        "episodes_ok": 1
+      },
+      {
+        "run": "wp11e-0819/journey-partial-a",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_6cb6461a105f42e3b30b4eaf6e26c3c0",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "interrupted",
+        "episodes_total": 8,
+        "episodes_ok": 8
+      },
+      {
+        "run": "wp11e-0819/journey-killed",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_8e170d30296f40fc9c05f272723e0666",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "failed_sigkill",
+        "episodes_total": 0,
+        "episodes_ok": 0
+      },
+      {
+        "run": "wp11e-0819/journey-killed",
+        "rel": "wp11e-2026-08-19/home/Library/Application Support/techtree/runs/run_8e170d30296f40fc9c05f272723e0666",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "failed_sigkill",
+        "episodes_total": 2,
+        "episodes_ok": 2
+      },
+      {
+        "run": "post1",
+        "rel": "scratchpad-snapshot-2026-08-14/post1/runs/run_d94094506aec482aa7ed35bad011486f",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "post1",
+        "rel": "scratchpad-snapshot-2026-08-14/post1/runs/run_d94094506aec482aa7ed35bad011486f",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "post2",
+        "rel": "scratchpad-snapshot-2026-08-14/post2/runs/run_a6c608b910324d6ca84062dc0c4960c2",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "post2",
+        "rel": "scratchpad-snapshot-2026-08-14/post2/runs/run_a6c608b910324d6ca84062dc0c4960c2",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "skill_size": 1496,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "postref",
+        "rel": "scratchpad-snapshot-2026-08-14/postref/runs/run_6ff833ca941745bcae620df4c6c0dc27",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "skill_digest": null,
+        "skill_size": 0,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      },
+      {
+        "run": "postref",
+        "rel": "scratchpad-snapshot-2026-08-14/postref/runs/run_6ff833ca941745bcae620df4c6c0dc27",
+        "side": "candidate",
+        "arm": "complete_reference",
+        "skill_digest": "sha256:170256f734436c4debdee195247f4b04a0dfaa4df23f5bfb9036b46a931fd935",
+        "skill_size": 2357,
+        "run_status": "completed",
+        "episodes_total": 36,
+        "episodes_ok": 36
+      }
+    ],
+    "variant_durations_seconds": [
+      {
+        "run": "recert-0025/stab1",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 783.39,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "recert-0025/stab1",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "seconds": 335.45,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "recert-0025/stab2",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 761.01,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "recert-0025/stab2",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "seconds": 308.66,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "recert-0025/ref",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 860.36,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "recert-0025/ref",
+        "side": "candidate",
+        "arm": "complete_reference",
+        "seconds": 277.34,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-recert/first",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 1261.32,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-recert/first",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "seconds": 339.7,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-recert/attempt3-v1v2",
+        "side": "baseline",
+        "arm": "starter_v1",
+        "seconds": 354.75,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-recert/attempt3-v1v2",
+        "side": "candidate",
+        "arm": "skill_v2",
+        "seconds": 375.12,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-0819/journey-cmp1",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 611.57,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-0819/journey-cmp1",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "seconds": 362.79,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-0819/journey-v1v2",
+        "side": "baseline",
+        "arm": "starter_v1",
+        "seconds": 287.62,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "wp11e-0819/journey-v1v2",
+        "side": "candidate",
+        "arm": "skill_v2",
+        "seconds": 321.47,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "post1",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 951.98,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "post1",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "seconds": 326.39,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "post2",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 1040.32,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "post2",
+        "side": "candidate",
+        "arm": "starter_v1",
+        "seconds": 317.04,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "postref",
+        "side": "baseline",
+        "arm": "neutral_baseline",
+        "seconds": 868.66,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      },
+      {
+        "run": "postref",
+        "side": "candidate",
+        "arm": "complete_reference",
+        "seconds": 381.37,
+        "exit_code": 0,
+        "cancelled": false,
+        "episodes": 36
+      }
+    ],
+    "note_on_partial_runs": "wp11e-0819/journey-partial-a (interrupted, phase running_variants) and wp11e-0819/journey-killed (baseline SIGKILLed, exit -9) contributed 11 successful episodes. They are reported separately; including them changes no maximum in any dimension."
+  },
+  "episode_counts": {
+    "completed_canonical_runs": 720,
+    "including_partial_runs": 731,
+    "by_arm_completed": {
+      "neutral_baseline": 288,
+      "starter_v1": 288,
+      "complete_reference": 72,
+      "skill_v2": 72
+    },
+    "by_arm_including_partial": {
+      "neutral_baseline": 289,
+      "starter_v1": 298,
+      "complete_reference": 72,
+      "skill_v2": 72
+    }
+  },
+  "calibration_table": {
+    "completed_canonical_runs": {
+      "neutral_baseline": {
+        "episode_count": 288,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 288,
+            "median": 9.0,
+            "p95": 24.0,
+            "p99": 30.13,
+            "maximum": 35.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "input_tokens": {
+            "episodes": 288,
+            "median": 101051.5,
+            "p95": 313758.75,
+            "p99": 394315.57,
+            "maximum": 571016.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "output_tokens": {
+            "episodes": 288,
+            "median": 1577.5,
+            "p95": 4859.5,
+            "p99": 6738.73,
+            "maximum": 8212.0,
+            "maximum_task_hash": "e08bb7c7a18a57a83d2ad8dba412c416a8746f708f54b8a29efc0355cabbdb45",
+            "maximum_episode_id": "46c3f1b9c1164d769f8073408d3bb37c",
+            "maximum_run": "post1",
+            "maximum_variant": "baseline"
+          },
+          "total_tokens": {
+            "episodes": 288,
+            "median": 102761.0,
+            "p95": 318569.7,
+            "p99": 400047.71,
+            "maximum": 577726.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 288,
+            "median": 30.134,
+            "p95": 100.339,
+            "p99": 213.83,
+            "maximum": 376.223,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 288,
+            "median": 37.274,
+            "p95": 109.205,
+            "p99": 224.849,
+            "maximum": 381.971,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "intercepted_model_calls": {
+            "episodes": 288,
+            "median": 9.0,
+            "p95": 24.0,
+            "p99": 30.13,
+            "maximum": 38.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          }
+        }
+      },
+      "starter_v1": {
+        "episode_count": 288,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 288,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 4.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "input_tokens": {
+            "episodes": 288,
+            "median": 22605.0,
+            "p95": 34507.95,
+            "p99": 34538.26,
+            "maximum": 46964.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "output_tokens": {
+            "episodes": 288,
+            "median": 424.0,
+            "p95": 568.3,
+            "p99": 770.03,
+            "maximum": 1567.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "total_tokens": {
+            "episodes": 288,
+            "median": 23021.5,
+            "p95": 35097.6,
+            "p99": 35286.91,
+            "maximum": 48531.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 288,
+            "median": 8.561,
+            "p95": 12.033,
+            "p99": 19.422,
+            "maximum": 168.038,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "9fb7d82d6b5249d8a0b6870a6dcc6945",
+            "maximum_run": "wp11e-0819/journey-cmp1",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 288,
+            "median": 15.802,
+            "p95": 23.866,
+            "p99": 29.87,
+            "maximum": 173.96,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "9fb7d82d6b5249d8a0b6870a6dcc6945",
+            "maximum_run": "wp11e-0819/journey-cmp1",
+            "maximum_variant": "candidate"
+          },
+          "intercepted_model_calls": {
+            "episodes": 288,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 4.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "f3f62aa51dd24712aaac814065a9dc18",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          }
+        }
+      },
+      "complete_reference": {
+        "episode_count": 72,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 72,
+            "median": 3.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 3.0,
+            "maximum_task_hash": "e9a51458548dcfb10572fd9f032f00abdb298425114f68acdc074faa79229232",
+            "maximum_episode_id": "6fbc60db432a4da58e7fb3a64244761b",
+            "maximum_run": "recert-0025/ref",
+            "maximum_variant": "candidate"
+          },
+          "input_tokens": {
+            "episodes": 72,
+            "median": 35534.0,
+            "p95": 35560.6,
+            "p99": 35648.48,
+            "maximum": 35657.0,
+            "maximum_task_hash": "4b6a3d718933e312c05adff201cd14ab1d58b0eb5c0a0d32faccedc09cb9af68",
+            "maximum_episode_id": "dcd8d949d43f4987a994f7306b465ad9",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "output_tokens": {
+            "episodes": 72,
+            "median": 207.0,
+            "p95": 454.8,
+            "p99": 516.09,
+            "maximum": 602.0,
+            "maximum_task_hash": "4b6a3d718933e312c05adff201cd14ab1d58b0eb5c0a0d32faccedc09cb9af68",
+            "maximum_episode_id": "dcd8d949d43f4987a994f7306b465ad9",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "total_tokens": {
+            "episodes": 72,
+            "median": 35744.0,
+            "p95": 35984.95,
+            "p99": 36085.05,
+            "maximum": 36259.0,
+            "maximum_task_hash": "4b6a3d718933e312c05adff201cd14ab1d58b0eb5c0a0d32faccedc09cb9af68",
+            "maximum_episode_id": "dcd8d949d43f4987a994f7306b465ad9",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 72,
+            "median": 8.544,
+            "p95": 10.78,
+            "p99": 47.859,
+            "maximum": 135.851,
+            "maximum_task_hash": "4fb4ddcab900a74eb7cb6ff6a730cc07b5a244535f40f6ddb6aa726cb2796596",
+            "maximum_episode_id": "1ff35c47ea6448be9a474cc9cb09aaf7",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 72,
+            "median": 14.975,
+            "p95": 23.677,
+            "p99": 59.837,
+            "maximum": 142.909,
+            "maximum_task_hash": "4fb4ddcab900a74eb7cb6ff6a730cc07b5a244535f40f6ddb6aa726cb2796596",
+            "maximum_episode_id": "1ff35c47ea6448be9a474cc9cb09aaf7",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "intercepted_model_calls": {
+            "episodes": 72,
+            "median": 3.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 3.0,
+            "maximum_task_hash": "e9a51458548dcfb10572fd9f032f00abdb298425114f68acdc074faa79229232",
+            "maximum_episode_id": "6fbc60db432a4da58e7fb3a64244761b",
+            "maximum_run": "recert-0025/ref",
+            "maximum_variant": "candidate"
+          }
+        }
+      },
+      "skill_v2": {
+        "episode_count": 72,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 72,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 3.29,
+            "maximum": 4.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "input_tokens": {
+            "episodes": 72,
+            "median": 22747.0,
+            "p95": 35048.7,
+            "p99": 38679.59,
+            "maximum": 47321.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "output_tokens": {
+            "episodes": 72,
+            "median": 505.0,
+            "p95": 1159.35,
+            "p99": 1283.3,
+            "maximum": 1333.0,
+            "maximum_task_hash": "98f86f8d3663dcf3d0f32b6b1f9ef44913bb144355ecbcd89b8e4c96337b6964",
+            "maximum_episode_id": "07272372466047afbfb92ede530ecfe3",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "total_tokens": {
+            "episodes": 72,
+            "median": 23272.5,
+            "p95": 36133.1,
+            "p99": 39931.94,
+            "maximum": 48584.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 72,
+            "median": 9.863,
+            "p95": 14.039,
+            "p99": 15.001,
+            "maximum": 15.636,
+            "maximum_task_hash": "f5d73f388d604fc4df9afe63c70ca81f22646faad2bae99e24b1be0b5b6e239a",
+            "maximum_episode_id": "ee27e637fcfd49c0ace7ba965b2ad847",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 72,
+            "median": 17.81,
+            "p95": 24.577,
+            "p99": 33.31,
+            "maximum": 43.882,
+            "maximum_task_hash": "af8a43bbaf38d332131d73ef9a5b995d9f330fdc37a777a12bef7c51c9fa0ed1",
+            "maximum_episode_id": "9076d46342b74b87a1316a36023a120a",
+            "maximum_run": "wp11e-recert/attempt3-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "intercepted_model_calls": {
+            "episodes": 72,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 4.0,
+            "maximum": 4.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          }
+        }
+      },
+      "__all_arms__": {
+        "episode_count": 720,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 720,
+            "median": 3.0,
+            "p95": 19.0,
+            "p99": 25.0,
+            "maximum": 35.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "input_tokens": {
+            "episodes": 720,
+            "median": 34534.0,
+            "p95": 233077.25,
+            "p99": 347960.24,
+            "maximum": 571016.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "output_tokens": {
+            "episodes": 720,
+            "median": 486.5,
+            "p95": 3808.4,
+            "p99": 5363.91,
+            "maximum": 8212.0,
+            "maximum_task_hash": "e08bb7c7a18a57a83d2ad8dba412c416a8746f708f54b8a29efc0355cabbdb45",
+            "maximum_episode_id": "46c3f1b9c1164d769f8073408d3bb37c",
+            "maximum_run": "post1",
+            "maximum_variant": "baseline"
+          },
+          "total_tokens": {
+            "episodes": 720,
+            "median": 35206.0,
+            "p95": 236693.45,
+            "p99": 351760.59,
+            "maximum": 577726.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 720,
+            "median": 10.28,
+            "p95": 67.032,
+            "p99": 167.018,
+            "maximum": 376.223,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 720,
+            "median": 19.259,
+            "p95": 74.634,
+            "p99": 173.105,
+            "maximum": 381.971,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "intercepted_model_calls": {
+            "episodes": 720,
+            "median": 3.0,
+            "p95": 19.0,
+            "p99": 25.81,
+            "maximum": 38.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          }
+        }
+      }
+    },
+    "including_partial_runs": {
+      "neutral_baseline": {
+        "episode_count": 289,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 289,
+            "median": 9.0,
+            "p95": 24.0,
+            "p99": 30.12,
+            "maximum": 35.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "input_tokens": {
+            "episodes": 289,
+            "median": 100649.0,
+            "p95": 313633.0,
+            "p99": 393367.68,
+            "maximum": 571016.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "output_tokens": {
+            "episodes": 289,
+            "median": 1566.0,
+            "p95": 4855.0,
+            "p99": 6736.52,
+            "maximum": 8212.0,
+            "maximum_task_hash": "e08bb7c7a18a57a83d2ad8dba412c416a8746f708f54b8a29efc0355cabbdb45",
+            "maximum_episode_id": "46c3f1b9c1164d769f8073408d3bb37c",
+            "maximum_run": "post1",
+            "maximum_variant": "baseline"
+          },
+          "total_tokens": {
+            "episodes": 289,
+            "median": 102736.0,
+            "p95": 318424.8,
+            "p99": 399086.04,
+            "maximum": 577726.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 289,
+            "median": 30.123,
+            "p95": 100.193,
+            "p99": 213.728,
+            "maximum": 376.223,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 289,
+            "median": 37.234,
+            "p95": 109.037,
+            "p99": 224.777,
+            "maximum": 381.971,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "intercepted_model_calls": {
+            "episodes": 289,
+            "median": 9.0,
+            "p95": 24.0,
+            "p99": 30.12,
+            "maximum": 38.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          }
+        }
+      },
+      "starter_v1": {
+        "episode_count": 298,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 298,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 4.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "input_tokens": {
+            "episodes": 298,
+            "median": 22605.0,
+            "p95": 34506.45,
+            "p99": 34538.06,
+            "maximum": 46964.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "output_tokens": {
+            "episodes": 298,
+            "median": 420.0,
+            "p95": 567.3,
+            "p99": 766.93,
+            "maximum": 1567.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "total_tokens": {
+            "episodes": 298,
+            "median": 23019.5,
+            "p95": 35095.6,
+            "p99": 35286.21,
+            "maximum": 48531.0,
+            "maximum_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "maximum_episode_id": "65550a0c7e2b4c2da9ec1658f63c15d6",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 298,
+            "median": 8.572,
+            "p95": 12.031,
+            "p99": 19.04,
+            "maximum": 168.038,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "9fb7d82d6b5249d8a0b6870a6dcc6945",
+            "maximum_run": "wp11e-0819/journey-cmp1",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 298,
+            "median": 15.802,
+            "p95": 23.821,
+            "p99": 29.665,
+            "maximum": 173.96,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "9fb7d82d6b5249d8a0b6870a6dcc6945",
+            "maximum_run": "wp11e-0819/journey-cmp1",
+            "maximum_variant": "candidate"
+          },
+          "intercepted_model_calls": {
+            "episodes": 298,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 4.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "f3f62aa51dd24712aaac814065a9dc18",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "candidate"
+          }
+        }
+      },
+      "complete_reference": {
+        "episode_count": 72,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 72,
+            "median": 3.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 3.0,
+            "maximum_task_hash": "e9a51458548dcfb10572fd9f032f00abdb298425114f68acdc074faa79229232",
+            "maximum_episode_id": "6fbc60db432a4da58e7fb3a64244761b",
+            "maximum_run": "recert-0025/ref",
+            "maximum_variant": "candidate"
+          },
+          "input_tokens": {
+            "episodes": 72,
+            "median": 35534.0,
+            "p95": 35560.6,
+            "p99": 35648.48,
+            "maximum": 35657.0,
+            "maximum_task_hash": "4b6a3d718933e312c05adff201cd14ab1d58b0eb5c0a0d32faccedc09cb9af68",
+            "maximum_episode_id": "dcd8d949d43f4987a994f7306b465ad9",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "output_tokens": {
+            "episodes": 72,
+            "median": 207.0,
+            "p95": 454.8,
+            "p99": 516.09,
+            "maximum": 602.0,
+            "maximum_task_hash": "4b6a3d718933e312c05adff201cd14ab1d58b0eb5c0a0d32faccedc09cb9af68",
+            "maximum_episode_id": "dcd8d949d43f4987a994f7306b465ad9",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "total_tokens": {
+            "episodes": 72,
+            "median": 35744.0,
+            "p95": 35984.95,
+            "p99": 36085.05,
+            "maximum": 36259.0,
+            "maximum_task_hash": "4b6a3d718933e312c05adff201cd14ab1d58b0eb5c0a0d32faccedc09cb9af68",
+            "maximum_episode_id": "dcd8d949d43f4987a994f7306b465ad9",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 72,
+            "median": 8.544,
+            "p95": 10.78,
+            "p99": 47.859,
+            "maximum": 135.851,
+            "maximum_task_hash": "4fb4ddcab900a74eb7cb6ff6a730cc07b5a244535f40f6ddb6aa726cb2796596",
+            "maximum_episode_id": "1ff35c47ea6448be9a474cc9cb09aaf7",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 72,
+            "median": 14.975,
+            "p95": 23.677,
+            "p99": 59.837,
+            "maximum": 142.909,
+            "maximum_task_hash": "4fb4ddcab900a74eb7cb6ff6a730cc07b5a244535f40f6ddb6aa726cb2796596",
+            "maximum_episode_id": "1ff35c47ea6448be9a474cc9cb09aaf7",
+            "maximum_run": "postref",
+            "maximum_variant": "candidate"
+          },
+          "intercepted_model_calls": {
+            "episodes": 72,
+            "median": 3.0,
+            "p95": 3.0,
+            "p99": 3.0,
+            "maximum": 3.0,
+            "maximum_task_hash": "e9a51458548dcfb10572fd9f032f00abdb298425114f68acdc074faa79229232",
+            "maximum_episode_id": "6fbc60db432a4da58e7fb3a64244761b",
+            "maximum_run": "recert-0025/ref",
+            "maximum_variant": "candidate"
+          }
+        }
+      },
+      "skill_v2": {
+        "episode_count": 72,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 72,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 3.29,
+            "maximum": 4.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "input_tokens": {
+            "episodes": 72,
+            "median": 22747.0,
+            "p95": 35048.7,
+            "p99": 38679.59,
+            "maximum": 47321.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "output_tokens": {
+            "episodes": 72,
+            "median": 505.0,
+            "p95": 1159.35,
+            "p99": 1283.3,
+            "maximum": 1333.0,
+            "maximum_task_hash": "98f86f8d3663dcf3d0f32b6b1f9ef44913bb144355ecbcd89b8e4c96337b6964",
+            "maximum_episode_id": "07272372466047afbfb92ede530ecfe3",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "total_tokens": {
+            "episodes": 72,
+            "median": 23272.5,
+            "p95": 36133.1,
+            "p99": 39931.94,
+            "maximum": 48584.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 72,
+            "median": 9.863,
+            "p95": 14.039,
+            "p99": 15.001,
+            "maximum": 15.636,
+            "maximum_task_hash": "f5d73f388d604fc4df9afe63c70ca81f22646faad2bae99e24b1be0b5b6e239a",
+            "maximum_episode_id": "ee27e637fcfd49c0ace7ba965b2ad847",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 72,
+            "median": 17.81,
+            "p95": 24.577,
+            "p99": 33.31,
+            "maximum": 43.882,
+            "maximum_task_hash": "af8a43bbaf38d332131d73ef9a5b995d9f330fdc37a777a12bef7c51c9fa0ed1",
+            "maximum_episode_id": "9076d46342b74b87a1316a36023a120a",
+            "maximum_run": "wp11e-recert/attempt3-v1v2",
+            "maximum_variant": "candidate"
+          },
+          "intercepted_model_calls": {
+            "episodes": 72,
+            "median": 2.0,
+            "p95": 3.0,
+            "p99": 4.0,
+            "maximum": 4.0,
+            "maximum_task_hash": "832e70ff2ab29bfc83da704344417f0c9be2af2935247178ecd1cedc00477097",
+            "maximum_episode_id": "1afb31738463421a8c64d7dda6d4f6a0",
+            "maximum_run": "wp11e-0819/journey-v1v2",
+            "maximum_variant": "candidate"
+          }
+        }
+      },
+      "__all_arms__": {
+        "episode_count": 731,
+        "dimensions": {
+          "model_turns": {
+            "episodes": 731,
+            "median": 3.0,
+            "p95": 18.5,
+            "p99": 25.0,
+            "maximum": 35.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "input_tokens": {
+            "episodes": 731,
+            "median": 34520.0,
+            "p95": 232353.5,
+            "p99": 347497.8,
+            "maximum": 571016.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "output_tokens": {
+            "episodes": 731,
+            "median": 486.0,
+            "p95": 3732.5,
+            "p99": 5329.7,
+            "maximum": 8212.0,
+            "maximum_task_hash": "e08bb7c7a18a57a83d2ad8dba412c416a8746f708f54b8a29efc0355cabbdb45",
+            "maximum_episode_id": "46c3f1b9c1164d769f8073408d3bb37c",
+            "maximum_run": "post1",
+            "maximum_variant": "baseline"
+          },
+          "total_tokens": {
+            "episodes": 731,
+            "median": 35156.0,
+            "p95": 235312.0,
+            "p99": 351646.3,
+            "maximum": 577726.0,
+            "maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+            "maximum_episode_id": "7fe80c9bb83c432ab7c1c3e7823af348",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_agent_seconds": {
+            "episodes": 731,
+            "median": 10.081,
+            "p95": 66.992,
+            "p99": 166.427,
+            "maximum": 376.223,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "elapsed_episode_seconds": {
+            "episodes": 731,
+            "median": 19.185,
+            "p95": 74.256,
+            "p99": 172.61,
+            "maximum": 381.971,
+            "maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+            "maximum_episode_id": "d0ca9fb755ea492fa64901e487947353",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          },
+          "intercepted_model_calls": {
+            "episodes": 731,
+            "median": 3.0,
+            "p95": 19.0,
+            "p99": 25.7,
+            "maximum": 38.0,
+            "maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+            "maximum_episode_id": "53d82fe197874e3c8ca0fa0945a83402",
+            "maximum_run": "wp11e-recert/first",
+            "maximum_variant": "baseline"
+          }
+        }
+      }
+    }
+  },
+  "turn_conformance": {
+    "question": "Does the count of intercepted subject-model generations equal Trace.num_turns per episode?",
+    "episodes_checked": 731,
+    "successful_generations_equal_num_turns": {
+      "agreements": 731,
+      "disagreements": 0,
+      "definition": "len([c for c in trace.calls if c.error is None]) == trace.num_turns; identical result for len([c for c in trace.calls if c.usage is not None])"
+    },
+    "raw_intercepted_exchanges_equal_num_turns": {
+      "agreements": 704,
+      "disagreements": 27,
+      "definition": "len(trace.calls) == trace.num_turns",
+      "direction": "calls always EXCEED turns, never fall short (deltas: +1 in 18 episodes, +2 in 7, +3 in 2)",
+      "cause": "38 intercepted exchanges across 27 episodes failed with ProviderError status 429 (upstream rate limit). Each carries usage=None and node=None: no generation, no node, no tokens, no cost.",
+      "affected_episodes_by_run_variant": {
+        "wp11e-recert/first/baseline": 19,
+        "wp11e-recert/first/candidate": 2,
+        "wp11e-0819/journey-cmp1/baseline": 2,
+        "wp11e-0819/journey-cmp1/candidate": 1,
+        "wp11e-0819/journey-v1v2/baseline": 1,
+        "wp11e-0819/journey-v1v2/candidate": 1,
+        "wp11e-recert/attempt3-v1v2/candidate": 1
+      },
+      "errored_exchanges_by_run_variant": {
+        "wp11e-recert/first/baseline": 30,
+        "wp11e-recert/first/candidate": 2,
+        "wp11e-0819/journey-cmp1/baseline": 2,
+        "wp11e-0819/journey-cmp1/candidate": 1,
+        "wp11e-0819/journey-v1v2/baseline": 1,
+        "wp11e-0819/journey-v1v2/candidate": 1,
+        "wp11e-recert/attempt3-v1v2/candidate": 1
+      }
+    },
+    "normalized_record_cross_check": "normalized-episodes.jsonl num_turns/model_calls agree with the recomputed values on all 720 episodes that carry a normalized record (the 11 partial-run episodes have none).",
+    "verdict": "CONFORMS on the billable reading. Every subject generation that actually produced a reply is one num_turns, in 731/731 episodes with zero exceptions. maximum_model_calls -> max_turns is therefore a true mapping for cost and for turn accounting. It is NOT true for the literal count of HTTP exchanges the interception layer saw: a provider 429 is an extra intercepted call that num_turns does not count. Since a 429 costs nothing and produces no turn, this recommends the mapping proceed; the chief should record which reading 'model calls' means in the Campaign's own documentation."
+  },
+  "predeclared_formulas": {
+    "maximum_turns": {
+      "formula": "ceil(1.25 x max observed overall)",
+      "observed_maximum_num_turns": 35,
+      "observed_maximum_task_hash": "bafa30550e9c0b09281b3b4b99cb467b9522babc9c2b9d97fee93abef26933b0",
+      "observed_maximum_run": "wp11e-recert/first/baseline",
+      "chosen": 44,
+      "headroom_turns": 9,
+      "note": "On the raw-intercepted-call reading the observed maximum is 38 and the formula would give 48. The cap is on num_turns, so 44 is the value; 48 is recorded only so the difference is visible."
+    },
+    "maximum_input_tokens": {
+      "formula": "1.5 x max observed, rounded up to a clean number",
+      "observed_maximum": 571016,
+      "observed_maximum_task_hash": "b11c2add8339b16dbe85804f9b046e203a0b05db2b7fe9412a4dc45172c6555b",
+      "observed_maximum_run": "wp11e-recert/first/baseline",
+      "formula_value_exact": 856524.0,
+      "chosen": 900000,
+      "headroom_ratio": 1.576,
+      "episodes_at_or_above_chosen": 0
+    },
+    "maximum_output_tokens": {
+      "formula": "keep 8000 if every observed episode sat comfortably below",
+      "currently_enforced": 8000,
+      "observed_maximum": 8212,
+      "observed_maximum_task_hash": "e08bb7c7a18a57a83d2ad8dba412c416a8746f708f54b8a29efc0355cabbdb45",
+      "observed_maximum_run": "post1/baseline",
+      "precondition_holds": false,
+      "margin": "NEGATIVE. One successful canonical episode (post1/baseline, task sha256:e08bb7c7a18a..., 25 turns) reached the enforced 8000 cap: stop_condition == 'max_output_tokens', 8212 output tokens after the one-turn soft overshoot. The next highest episode is 7218 output tokens (90.2% of 8000).",
+      "chosen": null,
+      "escalation": "0029 says keep 8000 only if every observed episode sat comfortably below; it did not. 0029 also says never auto-raise a cap a canonical run reached - any cap change is another Campaign version. This value is therefore NOT chosen here. The analogous 1.5x rule would give 12318, clean 16000."
+    },
+    "maximum_total_tokens": {
+      "formula": "derived in the compiler as maximum_input_tokens + maximum_output_tokens (0029 chief resolution 1); not a declared field",
+      "observed_maximum_total_tokens": 577726,
+      "derived_from_chosen": null,
+      "note": "Undetermined until maximum_output_tokens is settled. With input 900000 and output 8000 it would be 908000; with output 16000, 916000."
+    },
+    "rollout_timeout_seconds": {
+      "formula": "600 (now enforced)",
+      "chosen": 600,
+      "observed_maximum_agent_seconds": 376.223,
+      "observed_maximum_task_hash": "6c39dc6c8c62d0b471e3e40cc560d6cf105632c62e40de8ab21f00e1f3dcd8dc",
+      "observed_maximum_run": "wp11e-recert/first/baseline",
+      "margin_seconds": 223.777,
+      "headroom_ratio": 1.595,
+      "observed_maximum_full_episode_seconds": 381.971,
+      "note": "AgentConfig.timeout.rollout bounds the agent solve stage only. Even measured over the whole episode (boot+setup+agent+finalize+scoring) the maximum is 382.0 s, still 218.0 s inside 600."
+    },
+    "variant_deadline_seconds": {
+      "formula": "1800 (named release constant in the child-launch path, 0029 chief resolution 2)",
+      "chosen": 1800,
+      "observed_maximum_variant_seconds": 1261.32,
+      "observed_maximum_variant": "wp11e-recert/first baseline (36 episodes; 19 of them absorbed a provider 429 retry)",
+      "margin_seconds": 538.68,
+      "headroom_ratio": 1.427,
+      "note": "Tightest of the three time bounds: the worst observed variant used 70.1% of the deadline. Every other variant finished under 1041 s. The 429 storm on 2026-08-20 is what stretched it."
+    }
+  },
+  "cost_bound": {
+    "formula": "tasks x 2 x ((I + C) x input_price + (O + S) x output_price) / 1e6, per decision 0029 layer C and src/techtree/verifiers/budget.py",
+    "inputs": {
+      "tasks": 36,
+      "variants_per_comparison": 2,
+      "context_window_tokens": 131072,
+      "context_window_source": "release/price-profile.json and src/techtree/verifiers/budget.py; the provider publishes no context ceiling for qwen/qwen3.7-flash in anything this repository carries, so 131072 is the deliberately conservative assumption already recorded there. Nothing in certification-evidence records a context window for this model.",
+      "sampling_cap_S": 4096,
+      "sampling_cap_source": "Campaign agents.subject.sampling.max_tokens = 4096, confirmed identical in all 731 observed traces",
+      "input_usd_per_mtok": 0.03,
+      "output_usd_per_mtok": 0.13,
+      "prices_recorded_on": "2026-08-20"
+    },
+    "candidates": [
+      {
+        "maximum_input_tokens": 900000,
+        "maximum_output_tokens": 8000,
+        "bound_usd": 2.35,
+        "fits_under_maximum_usd_1_00": false
+      },
+      {
+        "maximum_input_tokens": 900000,
+        "maximum_output_tokens": 16000,
+        "bound_usd": 2.42,
+        "fits_under_maximum_usd_1_00": false
+      },
+      {
+        "maximum_input_tokens": 856524,
+        "maximum_output_tokens": 8000,
+        "bound_usd": 2.25,
+        "fits_under_maximum_usd_1_00": false
+      },
+      {
+        "maximum_input_tokens": 571016,
+        "maximum_output_tokens": 8000,
+        "bound_usd": 1.63,
+        "fits_under_maximum_usd_1_00": false,
+        "note": "zero headroom over the observed maximum; shown only to prove the ceiling is unreachable"
+      }
+    ],
+    "largest_input_cap_that_fits_under_1_00": {
+      "with_output_8000": 279474,
+      "episodes_that_would_have_reached_it": 24,
+      "of_episodes": 720,
+      "verdict": "unusable - it clips 3.3% of successful canonical episodes, which 0029's stop conditions forbid"
+    },
+    "declared_maximum_usd": 1.0,
+    "fits": false,
+    "observed_actual_cost_per_comparison_usd": {
+      "post1": 0.178,
+      "post2": 0.1709,
+      "postref": 0.1827,
+      "recert-0025/ref": 0.1955,
+      "recert-0025/stab1": 0.1605,
+      "recert-0025/stab2": 0.1681,
+      "wp11e-0819/journey-cmp1": 0.1523,
+      "wp11e-0819/journey-v1v2": 0.065,
+      "wp11e-recert/attempt3-v1v2": 0.0559,
+      "wp11e-recert/first": 0.1982
+    },
+    "observed_maximum_actual_cost_usd": 0.1982,
+    "escalation": "BLOCKING for layer A as specified. With the predeclared 1.5x input rule the conservative bound is $2.25 (exact) or $2.35 (clean 900000), against a declared maximum_usd of 1.00, so require_cost_bound would refuse the Campaign before it ran. The gap is structural, not a rounding accident: the input allowance alone is charged 72 times, so any input cap above ~279k tokens breaks $1.00 at $0.03/Mtok, and 24 successful canonical episodes already exceed 279k. Actual observed spend per comparison is $0.16-$0.20, so the Campaign is not really a dollar away from its limit; the bound is deliberately pessimistic. Resolution requires an author/founder decision: raise maximum_usd (a new Campaign version - $2.50 clears 900000/8000 and $2.50 also clears 900000/16000), or change the bound's formula. This worker did not choose."
+  },
+  "stop_condition_observations": {
+    "episodes_reaching_an_enforced_limit": 1,
+    "detail": "post1/baseline episode 46c3f1b9c1164d769f8073408d3bb37c, task sha256:e08bb7c7a18a57a83d2ad8dba412c416a8746f708f54b8a29efc0355cabbdb45, stop_condition max_output_tokens at 8212 output tokens against the enforced 8000. The episode still scored (ok=true).",
+    "all_other_episodes": "stop_condition 'agent_completed' (730/731); no episode was truncated by a length finish_reason.",
+    "currently_enforced_caps_in_every_canonical_config": {
+      "max_turns": null,
+      "max_input_tokens": null,
+      "max_output_tokens": 8000,
+      "max_total_tokens": null,
+      "env.subject.timeout": "empty",
+      "env.timeout": "empty"
+    },
+    "note": "Confirms 0029's premise: of the four declared execution limits only the output ceiling was ever compiled, and execution.timeout_seconds=600 was decorative in all 24 variant configs."
+  }
+}
