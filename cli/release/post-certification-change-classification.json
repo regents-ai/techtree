@@ -5,15 +5,17 @@
   "non_scientific_copy": "Product bytes that change what a person is told or which next step is offered, never what is measured. Includes the readiness/onboarding behavior decision 0023 classifies as outside the certified scientific surface.",
   "release_packaging": "Release records, audits and approval packets. Shipped nowhere the science depends on.",
   "scientific \u2014 re-certified (0025, addendum A1.4)": "A change to the scientific configuration, sanctioned by decision 0025 and certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4.",
+  "scientific \u2014 re-certified (0029, four canonical runs)": "A change to the scientific configuration or to what enforces it, sanctioned by decision 0029 and certified by the recertification attached to it: four canonical runs against the regenerated Campaign, the live turn-conformance probe, and a real worker-SIGKILL injection.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 30,
+ "commit_count": 42,
  "counts_by_class": {
-  "documentation": 45,
-  "non_scientific_copy": 23,
-  "release_packaging": 46,
+  "documentation": 49,
+  "non_scientific_copy": 28,
+  "release_packaging": 71,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
-  "test_only": 32
+  "scientific \u2014 re-certified (0029, four canonical runs)": 14,
+  "test_only": 51
  },
  "entries": [
   {
@@ -721,94 +723,148 @@
    "rationale": "Tests for the declared-limit wording across surfaces."
   },
   {
-   "class": "release_packaging",
+   "change": "added",
+   "classification": "release_packaging",
    "commit": "2e2156707540e3429c1bc965bd49e900e8a4a466",
-   "path": "release/certified-scientific-fingerprint.json"
+   "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "added",
+   "classification": "release_packaging",
    "commit": "2e2156707540e3429c1bc965bd49e900e8a4a466",
-   "path": "release/wheel-inspection.json"
+   "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
+   "path": "release/wheel-inspection.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "added",
+   "classification": "release_packaging",
    "commit": "2e2156707540e3429c1bc965bd49e900e8a4a466",
-   "path": "release/fresh-install-report.json"
+   "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
+   "path": "release/fresh-install-report.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "added",
+   "classification": "release_packaging",
    "commit": "2e2156707540e3429c1bc965bd49e900e8a4a466",
-   "path": "release/post-certification-change-classification.json"
+   "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "added",
+   "classification": "release_packaging",
    "commit": "4e5619577a56d16698ae600df2ebcf53fde5a164",
-   "path": "release/plugin-release-candidate.json"
+   "commit_subject": "release: plugin release-candidate record (WP11c) \u2014 commit bf427abd, ReleaseCore c0783963, wheel 86e5908e",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "documentation",
+   "change": "added",
+   "classification": "documentation",
    "commit": "e8b8cd9d9185f8bf6fa7a864479dc80bb6eeba3e",
-   "path": "docs/agent-handoff.md"
+   "commit_subject": "docs: agent handoff for the three repos; remaining v0.1 tickets verbatim",
+   "path": "docs/agent-handoff.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "documentation",
+   "change": "added",
+   "classification": "documentation",
    "commit": "e8b8cd9d9185f8bf6fa7a864479dc80bb6eeba3e",
-   "path": "docs/v0.1-remaining-tickets.md"
+   "commit_subject": "docs: agent handoff for the three repos; remaining v0.1 tickets verbatim",
+   "path": "docs/v0.1-remaining-tickets.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "pyproject.toml"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "pyproject.toml",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "release/release-inputs.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/release-inputs.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "release/release-core.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/release-core.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "src/techtree/resources/release/release-core.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "src/techtree/resources/release/release-core.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "release/build-info.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/build-info.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "tests/contract/test_release_artifacts.py"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "tests/contract/test_release_artifacts.py",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "release/certified-scientific-fingerprint.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "release/fresh-install-report.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/fresh-install-report.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "release/wheel-inspection.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/wheel-inspection.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": "release/plugin-release-candidate.json"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "path": ".beads/interactions.jsonl"
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
    "change": "modified",
@@ -1075,117 +1131,738 @@
    "rationale": "Packaging metadata and the tracker log. No product byte the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
-   "path": "release/plugin-release-candidate.json"
+   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
-   "path": "release/certified-scientific-fingerprint.json"
+   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "release_packaging",
+   "change": "modified",
+   "classification": "release_packaging",
    "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
-   "path": "release/post-certification-change-classification.json"
+   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
-   "class": "documentation",
+   "change": "modified",
+   "classification": "documentation",
    "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
-   "path": "docs/agent-handoff.md"
+   "commit_subject": "docs: refresh agent handoff and remaining-tickets to post-WP11d state",
+   "path": "docs/agent-handoff.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "documentation",
+   "change": "modified",
+   "classification": "documentation",
    "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
-   "path": "docs/v0.1-remaining-tickets.md"
+   "commit_subject": "docs: refresh agent handoff and remaining-tickets to post-WP11d state",
+   "path": "docs/v0.1-remaining-tickets.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "documentation",
+   "change": "added",
+   "classification": "documentation",
    "commit": "d54a8be64eb4764c7e7db1f2b63307ae9c6a9262",
-   "path": "docs/decisions/0026-contract-provenance-split.md"
+   "commit_subject": "docs: decision 0026 \u2014 ReleaseCore contract / build-provenance split (option B, hard cutover)",
+   "path": "docs/decisions/0026-contract-provenance-split.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "documentation",
+   "change": "modified",
+   "classification": "documentation",
    "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
-   "path": "README.md"
+   "commit_subject": "docs(release): make the v0.1 CLI package truthful and acceptance-ready",
+   "path": "README.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "documentation",
+   "change": "added",
+   "classification": "documentation",
    "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
-   "path": "docs/decisions/0027-stable-channel-implementation-plan.md"
+   "commit_subject": "docs(release): make the v0.1 CLI package truthful and acceptance-ready",
+   "path": "docs/decisions/0027-stable-channel-implementation-plan.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "documentation",
+   "change": "modified",
+   "classification": "documentation",
    "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
-   "path": "docs/release/contracts/wp11e.md"
+   "commit_subject": "docs(release): make the v0.1 CLI package truthful and acceptance-ready",
+   "path": "docs/release/contracts/wp11e.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
-   "class": "test_only",
+   "change": "added",
+   "classification": "test_only",
    "commit": "30b20e9069812c0235e83f225bfe9db08f3346e3",
-   "path": "tests/contract/test_release_readme_truth.py"
+   "commit_subject": "docs(release): make the v0.1 CLI package truthful and acceptance-ready",
+   "path": "tests/contract/test_release_readme_truth.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
   },
   {
-   "class": "test_only",
+   "change": "modified",
+   "classification": "test_only",
    "commit": "624c2192ead086c69baf4653a018344424b02ae2",
-   "path": "tests/contract/test_release_readme_truth.py"
+   "commit_subject": "test: normalize wrapped release copy assertions",
+   "path": "tests/contract/test_release_readme_truth.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
   },
   {
-   "class": "test_only",
+   "change": "modified",
+   "classification": "test_only",
    "commit": "2b4f6fab22729486fa07816190af354a002ec88a",
-   "path": "tests/contract/test_release_readme_truth.py"
+   "commit_subject": "style: ruff-format the release-truth tests",
+   "path": "tests/contract/test_release_readme_truth.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
   },
   {
-   "class": "documentation",
+   "change": "merged",
+   "classification": "documentation",
    "commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
-   "path": "merge commit (PR 0A)"
+   "commit_subject": "Merge pull request #1 from regents-ai/agent/v01-cli-release-truth",
+   "path": "merge commit (PR 0A)",
+   "rationale": "A document. Nothing the product runs."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "6727085cb990f2fe4ae889f7b445b36bce6e9933",
+   "commit_subject": "release: pin 0A/0B merge coordinates; wheel 9a8c02af; add PyPI trusted-publishing workflow",
+   "path": ".github/workflows/publish.yml",
+   "rationale": "The publishing workflow. It runs at Gate 2, ships in nothing, and touches no measured path."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6727085cb990f2fe4ae889f7b445b36bce6e9933",
+   "commit_subject": "release: pin 0A/0B merge coordinates; wheel 9a8c02af; add PyPI trusted-publishing workflow",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "The record of the certified scientific coordinates. It reports the science; it is not part of it."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6727085cb990f2fe4ae889f7b445b36bce6e9933",
+   "commit_subject": "release: pin 0A/0B merge coordinates; wheel 9a8c02af; add PyPI trusted-publishing workflow",
+   "path": "release/fresh-install-report.json",
+   "rationale": "The fresh-install evidence. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6727085cb990f2fe4ae889f7b445b36bce6e9933",
+   "commit_subject": "release: pin 0A/0B merge coordinates; wheel 9a8c02af; add PyPI trusted-publishing workflow",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "The plugin coordinates the release pins. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6727085cb990f2fe4ae889f7b445b36bce6e9933",
+   "commit_subject": "release: pin 0A/0B merge coordinates; wheel 9a8c02af; add PyPI trusted-publishing workflow",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "This document."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6727085cb990f2fe4ae889f7b445b36bce6e9933",
+   "commit_subject": "release: pin 0A/0B merge coordinates; wheel 9a8c02af; add PyPI trusted-publishing workflow",
+   "path": "release/wheel-inspection.json",
+   "rationale": "The wheel inspection. A release record."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "edd3e1ab86676e1577e42debf895d38e1c2aea5b",
+   "commit_subject": "release: WP11e terminal-journey acceptance evidence \u2014 conditional pass, findings ticketed",
+   "path": "release/acceptance/terminal-e2e.json",
+   "rationale": "Terminal-journey acceptance evidence. A release record."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "edd3e1ab86676e1577e42debf895d38e1c2aea5b",
+   "commit_subject": "release: WP11e terminal-journey acceptance evidence \u2014 conditional pass, findings ticketed",
+   "path": "release/acceptance/terminal-e2e.md",
+   "rationale": "The written form of the same acceptance evidence."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's interaction log. A release record; nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "README.md",
+   "rationale": "The repository's own document."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "What a person is told before and after a Climb \u2014 the start-surface warnings and the cost copy. It changes no measured value."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "src/techtree/errors.py",
+   "rationale": "Error codes and the words attached to them. Product bytes that change what a person is told."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "src/techtree/skills/scanner.py",
+   "rationale": "The readiness scan a participant's own Skill is put through before submission. Decision 0023 places readiness behaviour outside the certified scientific surface; the scan accepts or refuses, and alters no Skill byte and no measurement."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "tests/integration/test_cli_flow.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "tests/integration/test_fake_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "tests/unit/test_errors.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "tests/unit/test_presentation_sanitize.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+   "commit_subject": "fix: honest start-surface warnings; delete numeric-claims and secret-assignment heuristics; scrubber prose fix; doctor README (ce9, 5f6, 0mx, cmo, g5m)",
+   "path": "tests/unit/test_skill_scanner.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6c0b16a7e5be4409205ce737134e66af10b707f7",
+   "commit_subject": "fix: prepare-surface warning derives from executor truth (mzy, founder-ruled)",
+   "path": "src/techtree/skills/service.py",
+   "rationale": "The prepare-surface warning, now derived from what the executor will actually do. A warning, not a measurement."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "30252e1867f8815d535777ba91517d52a480f6c4",
+   "commit_subject": "release: guided-revision re-leg evidence \u2014 fixes hold; host reasoning-truncation failure recorded (paid, honest)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's interaction log. A release record; nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "30252e1867f8815d535777ba91517d52a480f6c4",
+   "commit_subject": "release: guided-revision re-leg evidence \u2014 fixes hold; host reasoning-truncation failure recorded (paid, honest)",
+   "path": "release/acceptance/terminal-e2e.json",
+   "rationale": "Terminal-journey acceptance evidence. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "30252e1867f8815d535777ba91517d52a480f6c4",
+   "commit_subject": "release: guided-revision re-leg evidence \u2014 fixes hold; host reasoning-truncation failure recorded (paid, honest)",
+   "path": "release/acceptance/terminal-e2e.md",
+   "rationale": "The written form of the same acceptance evidence."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "9264885d9ea8e30e60befc6ac4fdd7bdcc94b32e",
+   "commit_subject": "docs: decision 0028 \u2014 final RC rulings (experimental guided revision, no pre-Gate-2 stable flip, orphan-bound condition)",
+   "path": "docs/decisions/0028-final-rc-rulings.md",
+   "rationale": "A decisions document."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "e10841a0f8935b7ab868c6b640aa818b618a9594",
+   "commit_subject": "release: attempt-3 acceptance evidence \u2014 guided revision observed live end-to-end (36 ties, honest)",
+   "path": "release/acceptance/terminal-e2e.json",
+   "rationale": "Terminal-journey acceptance evidence. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "e10841a0f8935b7ab868c6b640aa818b618a9594",
+   "commit_subject": "release: attempt-3 acceptance evidence \u2014 guided revision observed live end-to-end (36 ties, honest)",
+   "path": "release/acceptance/terminal-e2e.md",
+   "rationale": "The written form of the same acceptance evidence."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "d7e3534a8b978677094906d6010e0637aee546ee",
+   "commit_subject": "docs: decision 0029 + orphan-bound technical spec (author-countersigned three-layer fix)",
+   "path": "docs/decisions/0029-orphan-bound-fix.md",
+   "rationale": "The decisions document that authorises the scientific change in this range."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "d7e3534a8b978677094906d6010e0637aee546ee",
+   "commit_subject": "docs: decision 0029 + orphan-bound technical spec (author-countersigned three-layer fix)",
+   "path": "docs/release/contracts/orphan-bound-fix.md",
+   "rationale": "The execution contract for the orphan-bound fix. A document."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "553986a6346f1334594c8bf2d0ff14b95ba9b073",
+   "commit_subject": "release: limit-calibration table from 731 canonical episodes (0029)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's interaction log. A release record; nothing the product runs."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "553986a6346f1334594c8bf2d0ff14b95ba9b073",
+   "commit_subject": "release: limit-calibration table from 731 canonical episodes (0029)",
+   "path": "release/limit-calibration.json",
+   "rationale": "The calibration table read off 731 canonical episodes, which decision 0029 used to choose the enforced limits. Evidence, not product."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "release/price-profile.json",
+   "rationale": "The declared prices the executable-budget validator computes a cost bound from. A release input read by an audit, shipped nowhere the measurement depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "src/techtree/runs/real.py",
+   "rationale": "The real executor: native limit enforcement and the cost-bound precondition of decision 0029's layer A. It changes what an episode is allowed to consume, so it is scientific, and it is certified by the four canonical runs and the SIGKILL injection recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "added",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "src/techtree/verifiers/budget.py",
+   "rationale": "The executable-budget validator decision 0029 requires: the Campaign's declared limits must be enforceable before a run may start. Certified by the same four canonical runs."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "src/techtree/verifiers/child.py",
+   "rationale": "The child-local supervisor and its variant deadline \u2014 the founder-predeclared 3600 seconds. It bounds a variant, so it is scientific, and no variant reached it in the recertification runs."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "src/techtree/verifiers/compiler.py",
+   "rationale": "Compiles the Campaign's declared limits into the evaluation, which is what makes the budget contract enforced rather than declared. Sanctioned by decision 0029 and certified with it."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "src/techtree/verifiers/config.py",
+   "rationale": "The evaluation configuration the compiled limits land in. Scientific under decision 0029, certified by the attached recertification."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "src/techtree/verifiers/models.py",
+   "rationale": "The shapes the limits and supervision records take. Scientific under decision 0029, certified by the attached recertification."
+  },
+  {
+   "change": "added",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "src/techtree/verifiers/supervisor.py",
+   "rationale": "The child-local supervisor of decision 0029's layer B, whose parent-loss behaviour is evidenced by the worker-SIGKILL injection in release/orphan-bound-analysis.json."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/integration/test_real_executor_cancel.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/integration/test_real_executor_parallel.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/integration/test_real_variant_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/unit/test_turn_conformance.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/unit/test_verifiers_budget.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/unit/test_verifiers_child.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/unit/test_verifiers_compiler.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/unit/test_verifiers_config.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tests/unit/test_verifiers_supervisor.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "437a799b6073ee9cd3a931fc42c85db585f96b81",
+   "commit_subject": "feat: orphan-bound layers A+B \u2014 native limit enforcement, executable-budget validator, cost-bound precondition, child-local supervisor (0029)",
+   "path": "tools/verify_turn_conformance.py",
+   "rationale": "The live turn-conformance probe. An audit tool that ships in nothing; its output is one of the recertification artifacts."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's interaction log. A release record; nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "release/budget-contract-audit.json",
+   "rationale": "The audit of the budget contract. A release record about the Campaign, not the Campaign."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "release/build-info.json",
+   "rationale": "The generator's record of what it read to build the ReleaseCore."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "The record of the certified scientific coordinates. It reports the science; it is not part of it."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "release/release-core.json",
+   "rationale": "The staged ReleaseCore. Its catalog_digest follows the regenerated Campaign, so it moves with the scientific lineage decision 0029 sanctioned and the recertification in release/certified-scientific-fingerprint.json certifies."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "What a person is told before and after a Climb \u2014 the start-surface warnings and the cost copy. It changes no measured value."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+   "rationale": "The Campaign itself, regenerated for the enforced budget contract decision 0029 predeclared the formulas for. Recertified by four canonical runs against these exact bytes (ad393bc0)."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "src/techtree/resources/catalog/catalog.json",
+   "rationale": "The catalog index, which names the regenerated Campaign and Climb. It moves with the lineage decision 0029 sanctioned and the recertification certifies."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+   "rationale": "The Climb, whose campaign_spec_digest follows the regenerated Campaign. Same authority, same recertification."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "src/techtree/resources/release/release-core.json",
+   "rationale": "The packaged copy of the staged ReleaseCore, byte-identical to it and moving with it."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "tests/contract/test_release_copy.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "tests/unit/test_verifiers_budget.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "a286b89e176ff1e32d2cf9739696ae31eb858db6",
+   "commit_subject": "release: Campaign v2 \u2014 enforced budgets (44 turns / 900k in / 16k out / 600s / $2.50), honest cost copy; new lineage ad393bc0 / core c037f457 (0029)",
+   "path": "tools/build_fixture_catalog.py",
+   "rationale": "The generator that produces the Campaign, the Climb and the catalog index. It is the source of the regenerated lineage, so it is classified with what it produces, as decision 0025's regeneration was."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific \u2014 re-certified (0029, four canonical runs)",
+   "commit": "48b7d784ea6e68a625709c828cfc86e0c80dbe5a",
+   "commit_subject": "feat: 3600s variant deadline (founder-predeclared); conformance tool aligned to 0029's binding definition; deterministic supervisor tests",
+   "path": "src/techtree/verifiers/child.py",
+   "rationale": "The child-local supervisor and its variant deadline \u2014 the founder-predeclared 3600 seconds. It bounds a variant, so it is scientific, and no variant reached it in the recertification runs."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "48b7d784ea6e68a625709c828cfc86e0c80dbe5a",
+   "commit_subject": "feat: 3600s variant deadline (founder-predeclared); conformance tool aligned to 0029's binding definition; deterministic supervisor tests",
+   "path": "tests/unit/test_turn_conformance.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "48b7d784ea6e68a625709c828cfc86e0c80dbe5a",
+   "commit_subject": "feat: 3600s variant deadline (founder-predeclared); conformance tool aligned to 0029's binding definition; deterministic supervisor tests",
+   "path": "tests/unit/test_verifiers_child.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "48b7d784ea6e68a625709c828cfc86e0c80dbe5a",
+   "commit_subject": "feat: 3600s variant deadline (founder-predeclared); conformance tool aligned to 0029's binding definition; deterministic supervisor tests",
+   "path": "tests/unit/test_verifiers_supervisor.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "48b7d784ea6e68a625709c828cfc86e0c80dbe5a",
+   "commit_subject": "feat: 3600s variant deadline (founder-predeclared); conformance tool aligned to 0029's binding definition; deterministic supervisor tests",
+   "path": "tools/verify_turn_conformance.py",
+   "rationale": "The live turn-conformance probe. An audit tool that ships in nothing; its output is one of the recertification artifacts."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+   "commit_subject": "release: 0029 recertification complete \u2014 four canonical runs attached, orphan-bound analysis, kill-injection evidence",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "The record of the certified scientific coordinates. It reports the science; it is not part of it."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+   "commit_subject": "release: 0029 recertification complete \u2014 four canonical runs attached, orphan-bound analysis, kill-injection evidence",
+   "path": "release/orphan-bound-analysis.json",
+   "rationale": "The kill-injection analysis attached to the 0029 recertification. Evidence."
   }
  ],
- "file_change_count": 152,
- "release_source_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
+ "file_change_count": 219,
+ "previous_anchor_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
+ "release_source_commit": "6761fd8605278d79cd72160d2f38938608aba52a",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
-  "authority": "docs/decisions/0025-campaign-regeneration-option-a.md",
-  "campaign_field_changes": {
-   "/agents/subject/model/credential_env": [
-    "TECHTREE_MODEL_API_KEY",
-    "PRIME_API_KEY"
+  "0025": {
+   "authority": "docs/decisions/0025-campaign-regeneration-option-a.md",
+   "campaign_field_changes": {
+    "/agents/subject/model/credential_env": [
+     "TECHTREE_MODEL_API_KEY",
+     "PRIME_API_KEY"
+    ],
+    "/agents/subject/model/model_id": [
+     "development-placeholder",
+     "qwen/qwen3.7-flash"
+    ],
+    "/agents/subject/model/provider": [
+     "development",
+     "prime"
+    ],
+    "/budgets/maximum_output_tokens": [
+     null,
+     8000
+    ],
+    "/budgets/maximum_usd": [
+     null,
+     1
+    ],
+    "/execution/max_concurrent": [
+     1,
+     4
+    ],
+    "/execution/order": [
+     "baseline_then_candidate",
+     "parallel_variants"
+    ]
+   },
+   "certification": "release/founder-skill-approval-addendum-1.md \u00a7A1.3, \u00a7A1.4",
+   "count": 6,
+   "paths": [
+    "release/release-core.json",
+    "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+    "src/techtree/resources/catalog/catalog.json",
+    "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+    "src/techtree/resources/release/release-core.json",
+    "tools/build_fixture_catalog.py"
    ],
-   "/agents/subject/model/model_id": [
-    "development-placeholder",
-    "qwen/qwen3.7-flash"
-   ],
-   "/agents/subject/model/provider": [
-    "development",
-    "prime"
-   ],
-   "/budgets/maximum_output_tokens": [
-    null,
-    8000
-   ],
-   "/budgets/maximum_usd": [
-    null,
-    1
-   ],
-   "/execution/max_concurrent": [
-    1,
-    4
-   ],
-   "/execution/order": [
-    "baseline_then_candidate",
-    "parallel_variants"
-   ]
+   "sanctioned_commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f"
   },
-  "certification": "release/founder-skill-approval-addendum-1.md \u00a7A1.3, \u00a7A1.4",
-  "count": 6,
-  "paths": [
-   "release/release-core.json",
-   "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
-   "src/techtree/resources/catalog/catalog.json",
-   "src/techtree/resources/catalog/climbs/hello-world-climb.json",
-   "src/techtree/resources/release/release-core.json",
-   "tools/build_fixture_catalog.py"
-  ],
-  "sanctioned_commit": "d81247b8fb1092a6cf2a2db2c76d7caed65f902f"
+  "0029": {
+   "authority": "docs/decisions/0029-orphan-bound-fix.md",
+   "campaign_field_changes": {
+    "/budgets/maximum_input_tokens": [
+     null,
+     900000
+    ],
+    "/budgets/maximum_model_calls": [
+     null,
+     44
+    ],
+    "/budgets/maximum_output_tokens": [
+     8000,
+     16000
+    ],
+    "/budgets/maximum_usd": [
+     1,
+     2.5
+    ]
+   },
+   "certification": "release/certified-scientific-fingerprint.json (recertification_runs, recertification_pending.runs_attached), release/orphan-bound-analysis.json",
+   "contract": "docs/release/contracts/orphan-bound-fix.md",
+   "enforcement_changes": "The Campaign's declared limits stopped being declarations. Turns, input tokens, output tokens and the rollout timeout are compiled into the evaluation, the derived total ceiling with them, and the spending maximum is a pre-run precondition; a child-local supervisor bounds each variant at the founder-predeclared 3600 seconds and tears its containers down when its parent is lost. Two declared values moved by formulas decision 0029 predeclared: the per-episode output ceiling 8000 \u2192 16000, and the comparison maximum $1.00 \u2192 $2.50 against a computed bound of $2.42.",
+   "evidence": "Four canonical runs were executed against Campaign ad393bc0 \u2014 two baseline-vs-v1 stability comparisons, one baseline-vs-reference comparison, and one v1-vs-frozen-v2 comparison \u2014 every proof verifying offline, no episode of the 288 reaching any enforced limit and no variant reaching the supervisor deadline. The orphan bound is evidenced by a real worker-SIGKILL injection in which both supervision records read parent_lost and all four recorded containers were gone 0.545 s after the kill.",
+   "lineage": {
+    "campaign": [
+     "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+     "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7"
+    ],
+    "catalog": [
+     "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903",
+     "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386"
+    ],
+    "climb": [
+     "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b",
+     "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa"
+    ],
+    "release_core": [
+     "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+     "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"
+    ]
+   }
+  }
  },
- "verdict": "PASS \u2014 the only scientific change in the range is the sanctioned decision-0025 regeneration, which is re-certified. The decision-0026 contract/provenance split (5ef44f99) touches no scientific path: the catalog, the Campaign, the Climb, the engine and both founder Skills are byte-identical, and release/certified-scientific-fingerprint.json is unchanged in every scientific coordinate."
+ "verdict": "PASS \u2014 every scientific change in the range is sanctioned and certified. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 \u00a7A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the SIGKILL injection attached to release/certified-scientific-fingerprint.json. Nothing else in the range touches a measured path: the remaining product changes are warning and cost copy, the scanner's readiness behaviour decision 0023 places outside the scientific surface, release records, documents and tests."
 }

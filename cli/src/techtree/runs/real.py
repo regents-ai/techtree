@@ -202,10 +202,11 @@ def campaign_is_executable(campaign: CampaignSpec) -> bool:
     """Whether this Campaign names a subject that may be executed for real.
 
     One predicate, consulted both by the worker choosing an executor and by the
-    real executor refusing to start. The Campaign this build ships names a
-    development-placeholder model and image on purpose, and the founder
-    ratifies the real release coordinates at WP11h; until then a placeholder
-    Campaign is a thing to compile and dry-run, never a thing to run.
+    real executor refusing to start. The Campaign this build ships names the
+    ratified release subject (decisions 0025/0029), so the predicate answers
+    yes for the packaged bytes; a development-placeholder Campaign — any
+    Campaign whose subject cannot actually be paid for and executed — remains
+    a thing to compile and dry-run, never a thing to run.
     """
     return check_live_campaign(campaign).status is CheckStatus.PASS
 

@@ -138,7 +138,7 @@
  },
  "release_contract": "Decisions document 0026: the ReleaseCore is a contract of concrete coordinates and describes no artifact of its own. The commit a wheel was built from is stamped into that wheel by the build and reported by `techtree release info`.",
  "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
- "release_source_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
+ "release_source_witnesses": "The release-source commit is witnessed by the wheel's build-provenance stamp and the BootstrapRelease's cli.source_revision, never by this file: a repository file cannot name the commit that contains it (decision 0026's principle, applied here 2026-08-20). The certified scientific code anchor remains certified_scientific_code_commit.",
  "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
  "runtime_image_platform_digests": {
   "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",

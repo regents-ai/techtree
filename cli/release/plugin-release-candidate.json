@@ -1,8 +1,10 @@
 {
- "commit": "0670ff11c2572c7cc43da2a18efd68871924f470",
+ "commit": "880aa8aeeeb168a8d2328d75d2d424ca471953f6",
  "plugin_doctor": "passed",
- "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+ "plugin_doctor_detail": "10 checks: 9 ok, 1 warn (no Techtree CLI on PATH in this checkout, which the doctor states is not a plugin fault); scripts/plugin_doctor.py exits 0",
+ "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
  "repository": "github.com/regents-ai/techtree-hermes",
  "version": "0.1.0",
- "wheel_sha256": "9a8c02af1e2ecac643802c7d055469bec48c19cb800bb851fac578460e01cd27"
+ "wheel_sha256": "b19d7c20841093e8653cec19a9e7feb370b1c5d73cec96c54aac633bc84c0158",
+ "worktree": "clean at the commit above"
 }
