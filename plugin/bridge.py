@@ -15,11 +15,14 @@ here rather than spread across the tool handlers:
   words about a Techtree result are the honest ones;
 * stderr is scrubbed and truncated before it is repeated anywhere.
 
-The host environment is inherited so the CLI and its worker can reach the
-Prime authentication and ``TECHTREE_HOME`` the user already set up. The bridge
-never reads, enumerates, copies, or logs those values: a credential that is
-never touched cannot be leaked into an argument, a log line, or a model-visible
-tool result.
+The environment a call is given is built by name from
+``constants.CLI_ENVIRONMENT_ALLOWLIST`` rather than inherited whole. A host
+agent's session carries whatever the person who started it had exported, and
+almost none of it is the CLI's business; what the CLI does need — where its
+home is, where its authentication is, what its output has to render as — is a
+short list that can be written down and read. The bridge copies those values
+across without reading, enumerating, or logging any of them, so nothing here
+can leak one into an argument, a log line, or a model-visible tool result.
 
 One command is deliberately not bridged. ``techtree --version`` prints a bare
 version string even in machine mode, so it is not an envelope and must never
@@ -28,6 +31,7 @@ be parsed as one. Release facts come from ``techtree release info``.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -36,6 +40,7 @@ from typing import Any, Final, Protocol
 
 from .constants import (
     CLI_COMMAND,
+    CLI_ENVIRONMENT_ALLOWLIST,
     CLI_JSON_FLAGS,
     DEFAULT_CLI_TIMEOUT_SECONDS,
     MAX_CLI_STDERR_BYTES,
@@ -59,6 +64,21 @@ RELEASE_INFO_ARGUMENTS: Final = ("release", "info")
 STDERR_EXCERPT_CHARS: Final = 2000
 
 PathLookup = Callable[[str], str | None]
+
+
+def cli_environment(environ: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Return the whole environment one Techtree call is given.
+
+    Values are copied in by name from ``CLI_ENVIRONMENT_ALLOWLIST``, so a
+    variable that is not on that list cannot reach the CLI however it came to
+    be set. A name that is absent from the host environment stays absent: the
+    bridge passes values through, and invents none.
+
+    ``environ`` names the environment to build from, which is this process's
+    own unless a caller says otherwise.
+    """
+    source = os.environ if environ is None else environ
+    return {name: source[name] for name in CLI_ENVIRONMENT_ALLOWLIST if name in source}
 
 
 def resolve_techtree_binary(*, path_lookup: PathLookup = which) -> str | None:
@@ -163,13 +183,15 @@ def call_cli(
     )
 
     try:
-        # An argv array with shell=False: nothing here reaches a shell.
+        # An argv array with shell=False: nothing here reaches a shell. The
+        # environment is the named allowlist, not this process's own.
         completed = subprocess.run(
             argv,
             shell=False,
             capture_output=True,
             timeout=timeout_seconds,
             check=False,
+            env=cli_environment(),
         )
     except subprocess.TimeoutExpired as error:
         raise CliInvocationError(
@@ -219,6 +241,7 @@ def read_cli_version(
             capture_output=True,
             timeout=timeout_seconds,
             check=False,
+            env=cli_environment(),
         )
     except (subprocess.TimeoutExpired, OSError) as error:
         raise CliInvocationError(
@@ -242,6 +265,10 @@ def invoke_cli_human(
     on the terminal the user is looking at, not inside a JSON tool result. So
     this inherits the caller's streams and returns the exit code, and callers
     must never route it to a gateway.
+
+    The streams are the caller's; the environment is not. It is the same named
+    allowlist every other call gets, which is why the list carries what a
+    terminal needs to render text.
     """
     argv = [require_techtree_binary(path_lookup=path_lookup)]
     for argument in arguments:
@@ -250,7 +277,9 @@ def invoke_cli_human(
         argv.append(argument)
 
     try:
-        completed = subprocess.run(argv, shell=False, check=False)
+        completed = subprocess.run(
+            argv, shell=False, check=False, env=cli_environment()
+        )
     except OSError as error:
         raise CliInvocationError(
             f"the Techtree CLI could not be run: {scrub_text(str(error))}"

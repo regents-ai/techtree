@@ -69,7 +69,9 @@ for yourself before you approve anything.
 - **Three places the plugin starts the Techtree CLI** — `bridge.py`, reported
   as execution. Those three are the entire boundary between this plugin and
   Techtree. Each starts the one command named in `constants.py`, with a fixed
-  argument list, no shell, and one JSON answer read back. There is no fourth.
+  argument list, no shell, a named list of environment variables rather than
+  everything the session holds, and one JSON answer read back. There is no
+  fourth.
 - **The control-character stripper** — `channels.py`, reported as
   obfuscation. One pattern, matching terminal control codes, so they can be
   taken out of anything the plugin puts into a conversation.
@@ -138,6 +140,13 @@ The plugin adds the machine-output flags itself, so an answer is never coloured
 or half-interactive, and it accepts exactly one well-formed answer — anything
 else is treated as the two sides disagreeing about the contract rather than
 something to guess at.
+
+That command is also given a short, named list of environment variables and
+nothing else: where Techtree keeps its home, where its own authentication
+lives, and what the terminal can render. A Hermes session carries whatever the
+person who started it had exported, and almost none of it is Techtree's
+business. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `constants.py`, short
+enough to read in one go.
 
 The plugin and the installed Techtree also have to belong to the same release.
 Both carry the identical `release-core.json`, published under the SHA-256 of

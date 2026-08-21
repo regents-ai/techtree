@@ -34,6 +34,43 @@ CLI_COMMAND: Final = "techtree"
 # Machine-mode flags appended to every bridged CLI invocation, exactly once.
 CLI_JSON_FLAGS: Final = ("--json", "--no-color", "--no-input")
 
+# The whole environment a bridged Techtree call is given. Named here, copied by
+# name, and nothing else goes across: a host agent's session carries whatever
+# the person who started it had exported — cloud credentials, provider keys for
+# unrelated services, tokens for things that have no business hearing about an
+# evaluation — and a call that inherits all of it hands every one of them to a
+# process that needs none of them.
+#
+# It is the same list Techtree's own launcher gives its detached worker, plus
+# what the CLI needs that a worker does not:
+#
+# * PATH, HOME, TMPDIR — find the CLI and the tools it runs, find the Prime CLI
+#   configuration and the package caches that hang off a home directory, and
+#   put scratch files where this host expects them;
+# * XDG_DATA_HOME — where the CLI resolves its own home from, on the platforms
+#   that use it. Dropping it would point the plugin at a different Techtree
+#   home than the one the person uses in their own terminal;
+# * TECHTREE_HOME, TECHTREE_LOG_LEVEL — Techtree's own variables, and the two
+#   the worker is given;
+# * LANG, LC_ALL, LC_CTYPE, TERM — how text is encoded, and what the terminal
+#   can render, for the commands whose output goes to a person's screen.
+#
+# A model-provider credential is deliberately absent, and costs nothing: a run
+# authenticates from the Prime CLI configuration under HOME, and Techtree's own
+# worker does not inherit one either.
+CLI_ENVIRONMENT_ALLOWLIST: Final = (
+    "PATH",
+    "HOME",
+    "TMPDIR",
+    "XDG_DATA_HOME",
+    "TECHTREE_HOME",
+    "TECHTREE_LOG_LEVEL",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TERM",
+)
+
 # The distribution an installation plan may name, and the only one. It is a
 # release coordinate, not a setting: no tool argument or model output can
 # change what gets installed.

@@ -1,9 +1,44 @@
 # Techtree Hermes plugin manifest. Specification section 7.4.
 #
-# Loading this plugin installs nothing and reaches no network. Provider
-# credentials are deliberately absent: evaluation-provider authentication is
-# checked by Techtree's own Doctor, never by plugin loading, so this manifest
-# declares no `requires_env`.
+# Loading this plugin installs nothing and reaches no network: registration
+# reads two files that shipped inside the plugin and tells the host which
+# tools exist.
+#
+# What this plugin does with the machine
+# --------------------------------------
+# Hermes' manifest has no field for most of this, and it is what somebody
+# reviewing an install wants to know, so it is declared here in plain words.
+#
+# * It runs one local executable. Everything scientific this plugin can cause
+#   happens by running the pinned `techtree` command, resolved by that name on
+#   PATH, with a fixed argument array and no shell. There is no second
+#   executable, and no second path into Techtree.
+#
+# * It reaches Docker only through that command. This plugin starts no
+#   container itself; an evaluation Techtree performs starts one, on this
+#   machine, after the approval that starts the run.
+#
+# * It reaches the network, and a paid model provider, only through a plan a
+#   person has confirmed. Installing the Techtree CLI and starting a
+#   comparison are separate approvals, and neither is a value a model can
+#   supply.
+#
+# * It gives that command a short, named list of environment variables and
+#   nothing else. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `constants.py`;
+#   whatever else a host session is carrying stays out of the CLI's
+#   environment.
+#
+# * It depends on an inherited HOME. Techtree authenticates to a model
+#   provider from its own configuration under the user's home directory, so
+#   HOME is what makes an evaluated run able to authenticate at all. That is
+#   Techtree's dependency, met by the environment every process already has —
+#   not a secret this plugin asks anybody for. Hence no `requires_env`: there
+#   is no credential to prompt for while installing, and provider
+#   authentication is checked by Techtree's own Doctor rather than by loading.
+#
+# * It asks for no privileged host surface. It overrides no built-in tool and
+#   picks no model for host-owned LLM calls, so it declares no `capabilities:`
+#   and there is nothing to consent to beyond the install itself.
 name: techtree
 version: 0.1.0
 description: Controlled local agent Skill evaluation and uplift through Techtree
