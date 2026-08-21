@@ -246,7 +246,7 @@ Expected before Gate 2:
 | --- | --- |
 | `/healthz` | 200, channel `development`, catalog `sha256:ae300ef6…`, status `complete` |
 | `/api/v1/catalog` | 200, `application/json` |
-| `/api/v1/bootstrap` | `ETag` and body digest both `sha256:9e5afcb3…` — the placeholder |
+| `/api/v1/bootstrap` | `ETag` and body digest both `sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` — the placeholder |
 | `POST /api/v1/bootstrap` | `405` with `Allow: GET, HEAD` |
 | plain `http://` | a redirect to `https://`, with `strict-transport-security` |
 
@@ -287,7 +287,7 @@ In the repository:
     shasum -a 256 priv/catalog/bootstrap.json
 
 The last command must print
-`da0643578137b8ae163299bc2e31c5c03c2f774f39ad959cb6b09435018b5ade`.
+`f8a7adf65f0e6ce50eab933419d4f830aad894204fcc690e25105d5f9db61e62`.
 
 `priv/catalog` is generated, not committed, so this replaces the development
 bundle in your working tree. Re-run the same command with `--bootstrap
@@ -331,7 +331,7 @@ The import prints the catalog digest and `on channel stable`.
 | --- | --- |
 | health check | passing again |
 | `/healthz` | 200, channel `stable`, catalog `sha256:ae300ef6…`, status `complete` |
-| `/api/v1/bootstrap` | `ETag` and body digest both `sha256:da064357…` — the stable floor |
+| `/api/v1/bootstrap` | `ETag` and body digest both `sha256:f8a7adf65f0e6ce…` — the stable floor |
 | the document itself | `"channel": "stable"`, `"placeholder_release": true`, `"version": "0.0.0-placeholder"` |
 | the pages | unchanged, still saying this is not a real release yet |
 
@@ -352,7 +352,7 @@ no floor leaves nothing to roll back to.
 
 The candidate is `priv/releases/climb-v0.1.0/`, on channel `stable`. Its
 bootstrap release is
-`sha256:a3e6d35071a1c7f3ae1cb877a24cbfa4cfbd0798572adaa0ff839a06077c3490`, and
+`sha256:09d6dc4e451fc54a76c60a99b2ef422917d67e45f917ee2e8b51c851f2602d5e`, and
 this build has never staged it.
 
 ### 13. Build the bundle that carries the candidate — founder approval required
@@ -395,7 +395,7 @@ is the activation. On any failure the floor keeps serving.
 If the candidate is already staged from an earlier attempt and only the pointer
 needs to move, that is the explicit form:
 
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:a3e6d35071a1c7f3ae1cb877a24cbfa4cfbd0798572adaa0ff839a06077c3490")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:09d6dc4e451fc54a76c60a99b2ef422917d67e45f917ee2e8b51c851f2602d5e")'
 
 ### 16. Verify what is published
 
@@ -413,7 +413,7 @@ The stable floor stays staged forever, so going back is one command:
 
     flyctl ssh console --app techtree-sh
     /app/bin/techtree eval 'Techtree.Release.list_bootstrap_releases()'
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:da0643578137b8ae163299bc2e31c5c03c2f774f39ad959cb6b09435018b5ade")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:f8a7adf65f0e6ce50eab933419d4f830aad894204fcc690e25105d5f9db61e62")'
 
 Nothing is deleted, nothing is rewritten, and nothing on anyone's machine is
 touched. The full reasoning is in [rollback.md](rollback.md).
@@ -444,7 +444,7 @@ Both failure modes are safe — no data is written and no pointer moves — but 
 site goes dark, so neither is a thing to try casually on a live host.
 
 `development` keeps its own staged releases and its own floor
-(`sha256:9e5afcb3…`). They are not reachable from `stable`: a staged release
+(`sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`). They are not reachable from `stable`: a staged release
 belongs to a channel, and no rollback crosses between them.
 
 ## Who has to say yes

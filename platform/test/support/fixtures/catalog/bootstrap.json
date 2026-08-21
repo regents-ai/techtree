@@ -6,7 +6,7 @@
   "minimums": {
     "hermes_version": "0.20.1",
     "python": "3.12",
-    "uv": "0.11.1",
+    "uv": "0.10.2",
     "docker_required": true
   },
   "cli": {

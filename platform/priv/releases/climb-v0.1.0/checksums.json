@@ -8,7 +8,7 @@
   "starter_skill_tree": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
  },
  "files": {
-  "bootstrap.json": "sha256:a3e6d35071a1c7f3ae1cb877a24cbfa4cfbd0798572adaa0ff839a06077c3490",
+  "bootstrap.json": "sha256:09d6dc4e451fc54a76c60a99b2ef422917d67e45f917ee2e8b51c851f2602d5e",
   "release-core.json": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"
  },
  "release_id": "climb-v0.1.0",

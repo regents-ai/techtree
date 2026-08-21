@@ -165,8 +165,8 @@ defmodule TechtreeWeb.StartLiveTest do
 
         assert text =~ "macOS or Linux"
         assert text =~ "Hermes 0.20.1 or newer"
-        assert text =~ "Python 3.12 or newer"
-        assert text =~ "uv 0.11.1 or newer"
+        assert text =~ "the installer provides its own Python 3.12"
+        assert text =~ "uv 0.10.2 or newer"
         assert text =~ "Docker Installed, and running before a trial starts."
         assert text =~ "a key from your model provider"
 

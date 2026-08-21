@@ -142,7 +142,10 @@ defmodule TechtreeWeb.InstallComponents do
         <:fact term="Hermes">
           {minimum(@instructions, "hermes_version")} or newer, already installed and working.
         </:fact>
-        <:fact term="Python">{minimum(@instructions, "python")} or newer.</:fact>
+        <:fact term="Python">
+          Nothing to install yourself — the installer provides its own
+          Python {minimum(@instructions, "python")}, whatever this machine has.
+        </:fact>
         <:fact term="uv">{minimum(@instructions, "uv")} or newer.</:fact>
         <:fact :if={docker_required?(@instructions)} term="Docker">
           Installed, and running before a trial starts.

@@ -31,7 +31,7 @@ Consequences worth stating plainly:
 Decision 0027 §2 makes the floor of the `stable` channel an ordinary staged
 release rather than an empty pointer: `priv/bootstrap/stable.json`,
 
-    sha256:da0643578137b8ae163299bc2e31c5c03c2f774f39ad959cb6b09435018b5ade
+    sha256:f8a7adf65f0e6ce50eab933419d4f830aad894204fcc690e25105d5f9db61e62
 
 It is a deliberately non-installable release. It declares
 `"placeholder_release": true`, pins version `0.0.0-placeholder`, leaves both
@@ -54,7 +54,7 @@ The consequences of that choice are the point of it:
   rollback lands on are approved in advance rather than found later.
 
 The `development` channel keeps its own floor,
-`priv/bootstrap/development.json` (`sha256:9e5afcb3…`), for local work. Neither
+`priv/bootstrap/development.json` (`sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`), for local work. Neither
 channel can roll back to the other's releases: staged releases belong to a
 channel.
 
@@ -108,18 +108,18 @@ running, on channel `development`.
 
 | Step | Command | Result |
 | --- | --- | --- |
-| Before | `mix techtree.bootstrap.list` | `*` on `sha256:9e5afcb3…`, four others staged |
-| Serve | `GET /api/v1/bootstrap` | ETag and body digest `sha256:9e5afcb3…` |
-| Roll back | `mix techtree.bootstrap.publish --digest sha256:be2e965a…` | published `be2e965a…`, previously `9e5afcb3…` |
+| Before | `mix techtree.bootstrap.list` | `*` on `sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`, four others staged |
+| Serve | `GET /api/v1/bootstrap` | ETag and body digest `sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` |
+| Roll back | `mix techtree.bootstrap.publish --digest sha256:be2e965a…` | published `be2e965a…`, previously `9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` |
 | Serve | `GET /api/v1/bootstrap` | ETag and body digest `sha256:be2e965a…`; pages still render |
-| Roll forward | `mix techtree.bootstrap.publish --digest sha256:9e5afcb3…` | published `9e5afcb3…`, previously `be2e965a…` |
+| Roll forward | `mix techtree.bootstrap.publish --digest sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` | published `9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`, previously `be2e965a…` |
 | Serve | `GET /api/v1/bootstrap` | byte-identical to the first response |
 | After | `mix techtree.bootstrap.list` | all five releases still staged, one active |
 | Refusal | `mix techtree.bootstrap.publish --digest sha256:a3e6d350…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |
 
 The last row was re-run on 2026-08-21, after the candidate was re-cut onto the
 scanner-fixed plugin commit: `sha256:a3e6d350…` was refused with
-`bootstrap_release_missing`, the pointer stayed on `sha256:9e5afcb3…`, and all
+`bootstrap_release_missing`, the pointer stayed on `sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`, and all
 five releases were still staged afterwards. The refusal is a property of any
 digest this channel never staged rather than of one release, so it re-runs
 unchanged against whichever candidate is current. Five earlier candidate digests
@@ -128,5 +128,5 @@ then `9a4dca4f…` — and none names bytes any repository still carries.
 
 This rehearsal was run on `development`, the only channel a local database has.
 The equivalent on `stable` is the pointer move in
-[deploy-flyio.md](deploy-flyio.md): back onto `sha256:da064357…`, the floor
+[deploy-flyio.md](deploy-flyio.md): back onto `sha256:f8a7adf65f0e6ce…`, the floor
 described above.
