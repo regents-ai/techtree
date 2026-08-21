@@ -16,8 +16,10 @@ from __future__ import annotations
 import json
 import os
 import stat
+import subprocess
 import sys
 from dataclasses import dataclass, field
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -163,6 +165,34 @@ def install_fake_cli(
     script.chmod(script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     monkeypatch.setenv("PATH", f"{directory}{os.pathsep}{os.environ.get('PATH', '')}")
     return FakeCli(directory=directory, argv_log=argv_log)
+
+
+@cache
+def platform_environment_names() -> frozenset[str]:
+    """Return the variable names this platform puts into a child by itself.
+
+    macOS adds ``__CF_USER_TEXT_ENCODING`` to every process it starts, and a
+    Python child given no locale sets its own ``LC_CTYPE``. Neither came from
+    the parent's environment, so neither is evidence that anything was
+    inherited — but both would break a comparison that assumed a child's
+    environment is exactly what it was handed.
+
+    The answer is measured rather than listed, by starting a child with an
+    empty environment and asking it what it has, so this stays true on a
+    platform that adds something else.
+    """
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import json, os; print(json.dumps(sorted(os.environ)))",
+        ],
+        env={},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return frozenset(json.loads(completed.stdout))
 
 
 def envelope(**overrides: Any) -> dict[str, Any]:
