@@ -2,12 +2,12 @@
  "checks": [
   {
    "check": "build_provenance_stamped",
-   "detail": "techtree/resources/release/build-provenance.json names source commit 6761fd8605278d79cd72160d2f38938608aba52a, which is the release candidate commit and the commit this repository is at (6761fd8605278d79cd72160d2f38938608aba52a)",
+   "detail": "techtree/resources/release/build-provenance.json names source commit a3ea8c585a44bfe9a626aa209f6f18fc65772163, which is the release candidate commit and the commit this repository is at (a3ea8c585a44bfe9a626aa209f6f18fc65772163)",
    "result": "pass"
   },
   {
    "check": "build_provenance_is_not_committed",
-   "detail": "the stamp exists only inside the artifact: `git ls-tree 6761fd86` returns nothing for src/techtree/resources/release/build-provenance.json, and .gitignore line 25 keeps it out of the tree",
+   "detail": "the stamp exists only inside the artifact: `git ls-tree a3ea8c58` returns nothing for src/techtree/resources/release/build-provenance.json, and .gitignore line 25 keeps it out of the tree",
    "result": "pass"
   },
   {
@@ -108,20 +108,7 @@
    "target": "techtree.worker.main:main"
   }
  },
- "findings": [
-  {
-   "detail": "The module prose still says the Campaign this build ships names a development-placeholder model and image, and that the founder ratifies the real coordinates later. That stopped being true at decision 0025 and again at 0029: the shipped Campaign names qwen/qwen3.7-flash on a pinned image, and the build's own predicate returns executable for it. No shipped coordinate is affected \u2014 this is a comment that outlived its subject.",
-   "id": "stale_placeholder_prose_in_runs_real",
-   "member": "techtree/runs/real.py",
-   "severity": "note, not a release stop"
-  },
-  {
-   "detail": "The fingerprint's release_source_commit still reads a444c4d603a4094545cff8ae0d72f2197e26ce63, the anchor before this release candidate, while the wheel is stamped 6761fd8605278d79cd72160d2f38938608aba52a. Every scientific coordinate in that file matches the packaged lineage; only the source-commit field lags. It is a certification artifact, so it is reported rather than edited here.",
-   "id": "fingerprint_release_source_commit_is_the_previous_anchor",
-   "member": "release/certified-scientific-fingerprint.json",
-   "severity": "note for the chief, outside this inspection's owned files"
-  }
- ],
+ "findings": [],
  "packaged_lineage": {
   "campaign_budgets": {
    "maximum_input_tokens": 900000,
@@ -143,7 +130,7 @@
   "minimum_host_hermes_version": "0.20.1",
   "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
   "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
-  "source_commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+  "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
   "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
   "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
   "subject_hermes_version": "0.19.0",
@@ -153,22 +140,22 @@
  "schema_version": "techtree.wheel-inspection.v1",
  "verdict": "PASS",
  "wheel": {
-  "built_from": "a clean clone of commit 6761fd8605278d79cd72160d2f38938608aba52a, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
-  "built_from_commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+  "built_from": "a clean clone of commit a3ea8c585a44bfe9a626aa209f6f18fc65772163, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
+  "built_from_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
   "filename": "techtree-0.1.0-py3-none-any.whl",
   "member_count": 158,
   "path": "dist/techtree-0.1.0-py3-none-any.whl",
   "payload_member_count": 153,
   "reproducible": {
-   "detail": "rebuilt twice for this inspection, from two independent fresh clones of 6761fd8605278d79cd72160d2f38938608aba52a, each producing a wheel whose SHA-256 is sha256:b19d7c20841093e8653cec19a9e7feb370b1c5d73cec96c54aac633bc84c0158 \u2014 the same bytes as the candidate in dist/.",
+   "detail": "rebuilt twice for this inspection, from two independent fresh clones of a3ea8c585a44bfe9a626aa209f6f18fc65772163, each producing a wheel whose SHA-256 is sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7 \u2014 the same bytes as the candidate in dist/.",
    "result": "pass"
   },
-  "sha256": "sha256:b19d7c20841093e8653cec19a9e7feb370b1c5d73cec96c54aac633bc84c0158",
-  "size_bytes": 598800,
+  "sha256": "sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7",
+  "size_bytes": 598822,
   "stamped_provenance": {
    "member": "techtree/resources/release/build-provenance.json",
    "schema_version": "techtree.build-provenance.v1",
-   "source_commit": "6761fd8605278d79cd72160d2f38938608aba52a"
+   "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163"
   },
   "version": "0.1.0"
  }

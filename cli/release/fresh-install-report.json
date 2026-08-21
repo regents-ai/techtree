@@ -34,7 +34,7 @@
      "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "release_id": "climb-v0.1.0",
      "result": "pass",
-     "source_commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+     "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
      "stderr": "",
      "stdout_bytes": 895,
      "warnings": []
@@ -119,13 +119,13 @@
     "members_compared": 153,
     "members_differing": [],
     "result": "pass",
-    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages"
+    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages"
    },
    "isolation": {
-    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-pinned/home",
-    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-pinned/techtree-home",
-    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-pinned/uv-bin",
-    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-pinned/uv-tool",
+    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/home",
+    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/techtree-home",
+    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/uv-bin",
+    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/uv-tool",
     "command_environment": [
      "HOME",
      "PATH",
@@ -183,7 +183,7 @@
      "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "release_id": "climb-v0.1.0",
      "result": "pass",
-     "source_commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+     "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
      "stderr": "",
      "stdout_bytes": 895,
      "warnings": []
@@ -266,13 +266,13 @@
     "members_compared": 153,
     "members_differing": [],
     "result": "pass",
-    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-default/uv-tool/techtree/lib/python3.14/site-packages"
+    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/uv-tool/techtree/lib/python3.14/site-packages"
    },
    "isolation": {
-    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-default/home",
-    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-default/techtree-home",
-    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-default/uv-bin",
-    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final/fresh-default/uv-tool",
+    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/home",
+    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/techtree-home",
+    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/uv-bin",
+    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/uv-tool",
     "command_environment": [
      "HOME",
      "PATH",
@@ -300,7 +300,7 @@
  ],
  "observations": [
   {
-   "detail": "The wheel declares <3.14,>=3.12. Left to choose for itself, uv 0.10.2 (Homebrew 2026-02-10) built the tool environment on 3.14.7, which the package says it does not support. All five commands pass on it anyway, so this is not a release stop, but a clean-machine install can land on an interpreter outside the tested range without saying so. The first install pins 3.12 and is the supported path. Unchanged in kind from the pre-0029 report: the same host, the same uv, the same outcome.",
+   "detail": "The wheel declares <3.14,>=3.12. Left to choose for itself, uv 0.10.2 (Homebrew 2026-02-10) built the tool environment on 3.14.7, which the package says it does not support. All five commands pass on it anyway, so this is not a release stop, but a clean-machine install can land on an interpreter outside the tested range without saying so. The first install pins 3.12 and is the supported path. Unchanged in kind from every previous report: the same host, the same uv, the same outcome.",
    "id": "default_interpreter_ignores_requires_python",
    "severity": "note for Gate 2"
   }
@@ -309,8 +309,8 @@
  "uv_version": "uv 0.10.2 (Homebrew 2026-02-10)",
  "verdict": "PASS",
  "wheel": {
-  "built_from_commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+  "built_from_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
   "path": "dist/techtree-0.1.0-py3-none-any.whl",
-  "sha256": "sha256:b19d7c20841093e8653cec19a9e7feb370b1c5d73cec96c54aac633bc84c0158"
+  "sha256": "sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7"
  }
 }

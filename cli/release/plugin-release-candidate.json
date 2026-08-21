@@ -5,6 +5,6 @@
  "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
  "repository": "github.com/regents-ai/techtree-hermes",
  "version": "0.1.0",
- "wheel_sha256": "b19d7c20841093e8653cec19a9e7feb370b1c5d73cec96c54aac633bc84c0158",
+ "wheel_sha256": "5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7",
  "worktree": "clean at the commit above"
 }

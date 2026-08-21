@@ -1,18 +1,18 @@
 {
  "certified_scientific_code_commit": "1ad6ecf027b7a2b805bba27c7dd700b584501ec8",
  "classes": {
-  "documentation": "A document. Nothing the product runs.",
+  "documentation": "A document. Nothing the product runs. Includes prose inside a shipped module \u2014 a docstring or a comment \u2014 which travels in the wheel but is never executed.",
   "non_scientific_copy": "Product bytes that change what a person is told or which next step is offered, never what is measured. Includes the readiness/onboarding behavior decision 0023 classifies as outside the certified scientific surface.",
   "release_packaging": "Release records, audits and approval packets. Shipped nowhere the science depends on.",
   "scientific \u2014 re-certified (0025, addendum A1.4)": "A change to the scientific configuration, sanctioned by decision 0025 and certified by the three re-certification runs of Gate-1 addendum 1 \u00a7A1.4.",
   "scientific \u2014 re-certified (0029, four canonical runs)": "A change to the scientific configuration or to what enforces it, sanctioned by decision 0029 and certified by the recertification attached to it: four canonical runs against the regenerated Campaign, the live turn-conformance probe, and a real worker-SIGKILL injection.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 42,
+ "commit_count": 43,
  "counts_by_class": {
-  "documentation": 49,
+  "documentation": 50,
   "non_scientific_copy": 28,
-  "release_packaging": 71,
+  "release_packaging": 77,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
   "scientific \u2014 re-certified (0029, four canonical runs)": 14,
   "test_only": 51
@@ -1769,11 +1769,67 @@
    "commit_subject": "release: 0029 recertification complete \u2014 four canonical runs attached, orphan-bound analysis, kill-injection evidence",
    "path": "release/orphan-bound-analysis.json",
    "rationale": "The kill-injection analysis attached to the 0029 recertification. Evidence."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's interaction log. A release record; nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "The fingerprint sheds release_source_commit for release_source_witnesses. A file cannot name the commit that contains it, so the release-source commit is witnessed by the wheel's build-provenance stamp and the BootstrapRelease's cli.source_revision instead \u2014 decision 0026's principle applied to this record. No scientific coordinate changes: every digest in the file is the one it already carried."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
+   "path": "release/fresh-install-report.json",
+   "rationale": "The fresh-install evidence. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "The plugin coordinates the release pins. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "This document."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
+   "path": "release/wheel-inspection.json",
+   "rationale": "The wheel inspection. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
+   "path": "src/techtree/runs/real.py",
+   "rationale": "A docstring, and nothing else: the change is entirely inside the triple-quoted prose of campaign_is_executable, correcting a description of the shipped Campaign that decisions 0025 and 0029 had made false. No statement, no value and no branch changes, so nothing the product runs is different."
   }
  ],
- "file_change_count": 219,
+ "file_change_count": 226,
  "previous_anchor_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
- "release_source_commit": "6761fd8605278d79cd72160d2f38938608aba52a",
+ "release_source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "0025": {
