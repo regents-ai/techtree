@@ -41,6 +41,8 @@ defmodule TechtreeWeb.StartLive do
 
       <InstallComponents.pinned_commands instructions={@instructions} />
 
+      <InstallComponents.scanning instructions={@instructions} />
+
       <InstallComponents.disclosure />
 
       <InstallComponents.hermes_intro />

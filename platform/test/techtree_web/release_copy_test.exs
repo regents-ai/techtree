@@ -10,7 +10,12 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   Each of them is close enough to the truth that it survives a careful edit,
   which is why it is checked here instead.
 
-  Every source of published words is scanned: each page as a reader sees it,
+  One sentence is the other way round: it has to be there. Hermes reads the
+  plugin's source before installing it and reports what it found, and a page
+  that tells a reader what that report will say also has to tell them that
+  switching the reporting off is not one of the answers.
+
+  Every source of published words is read here: each page as a reader sees it,
   with a release being served and with none, the installation contract this
   site publishes, and the text of the modules the pages are written in — so a
   sentence that only appears for a Climb in some other state is caught before
@@ -104,6 +109,26 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @priced_claim [
     ~r/\$\s*\d/,
     ~r/\b\d+(\.\d+)?\s*(usd|dollars?|cents?)\b/i
+  ]
+
+  # Describing the install-time report is optional. Describing it honestly is
+  # not: the one answer a reader must never be offered is to stop the source
+  # from being read at all. The word is looked for as prose — a name with a dot
+  # in front of it is one module calling another, not a sentence a reader ever
+  # sees.
+  @report_described ~r/(?<![.\w])scan(s|ned|ning|ner)?\b/i
+  @never_disable "Never turn the scanning off."
+
+  # A page that hands a reader the command that installs the plugin has said
+  # enough about installing to owe them the verdict that command will produce,
+  # in the words it was decided in.
+  @install_command "hermes plugins install"
+  @scan_section [
+    "What the security scan will say",
+    "This plugin comes back at caution, with five findings in three families.",
+    "A caution verdict is yours to answer.",
+    "Hermes stops, shows you the findings, and installs nothing until a person confirms.",
+    "Never turn the scanning off."
   ]
 
   # A pinned address is the whole promise: what a reader reads today is what
@@ -233,6 +258,27 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       end
     end
 
+    test "no page describes the install-time report without saying it stays on",
+         %{conn: conn} do
+      require_never_disable(rendered(conn, @pages))
+    end
+
+    test "every page that hands out the install command says what the report will say",
+         %{conn: conn} do
+      offering =
+        for {label, text} <- rendered(conn, ["/", "/?install=me", "/start", "/start?install=me"]),
+            String.contains?(text, @install_command) do
+          for line <- @scan_section do
+            assert String.contains?(text, line),
+                   "#{label} offers the install command without #{inspect(line)}"
+          end
+
+          label
+        end
+
+      assert offering != [], "no page offered the install command, so nothing was checked"
+    end
+
     test "the pages that describe privacy say where the model calls go", %{conn: conn} do
       silent =
         for {label, text} <- rendered(conn, ["/", "/start", "/proofs/local"]),
@@ -263,6 +309,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_uncertified_hosting(sources)
       refute_priced_claim(sources)
       refute_absent_journey(sources)
+      require_never_disable(sources)
       refute_moving_address(markup(conn, @pages_without_catalog))
     end
   end
@@ -282,6 +329,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_forbidden_name(sources)
       refute_uncertified_hosting(sources)
       refute_priced_claim(sources)
+      require_never_disable(sources)
     end
 
     test "the published installation contract carries no claim a page may not" do
@@ -382,6 +430,18 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute text =~ pattern,
              "#{label} matches #{inspect(pattern)}: what a trial costs is set by the " <>
                "reader's provider, and this site cannot quote it"
+    end
+  end
+
+  # Read with the line breaks taken out, so that a sentence a template wrapped
+  # is still one sentence.
+  defp require_never_disable(sources) do
+    for {label, source} <- sources,
+        text = String.replace(source, ~r/\s+/, " "),
+        text =~ @report_described do
+      assert String.contains?(text, @never_disable),
+             "#{label} describes the install-time report without telling a reader to " <>
+               "leave it switched on"
     end
   end
 

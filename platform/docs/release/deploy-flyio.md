@@ -352,7 +352,7 @@ no floor leaves nothing to roll back to.
 
 The candidate is `priv/releases/climb-v0.1.0/`, on channel `stable`. Its
 bootstrap release is
-`sha256:9a4dca4fb0f46f07bd5876403dd212b760f277a82ae232d20169c5999f88b021`, and
+`sha256:a3e6d35071a1c7f3ae1cb877a24cbfa4cfbd0798572adaa0ff839a06077c3490`, and
 this build has never staged it.
 
 ### 13. Build the bundle that carries the candidate — founder approval required
@@ -369,7 +369,7 @@ In the repository:
 
     shasum -a 256 priv/catalog/bootstrap.json
 
-The last command must print `9a4dca4f…`. The approved bytes are copied, never
+The last command must print `a3e6d350…`. The approved bytes are copied, never
 rewritten; a different digest here means something regenerated them and the
 approval no longer covers what is about to ship.
 
@@ -395,14 +395,14 @@ is the activation. On any failure the floor keeps serving.
 If the candidate is already staged from an earlier attempt and only the pointer
 needs to move, that is the explicit form:
 
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:9a4dca4fb0f46f07bd5876403dd212b760f277a82ae232d20169c5999f88b021")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:a3e6d35071a1c7f3ae1cb877a24cbfa4cfbd0798572adaa0ff839a06077c3490")'
 
 ### 16. Verify what is published
 
     curl -sD- https://techtree.sh/api/v1/bootstrap -o bootstrap.json
     shasum -a 256 bootstrap.json
 
-`ETag` and body digest must both be `sha256:9a4dca4f…`, and must equal the
+`ETag` and body digest must both be `sha256:a3e6d350…`, and must equal the
 digest in `priv/releases/climb-v0.1.0/checksums.json`. `/healthz` must still
 name channel `stable`. Then re-run the whole of step 12; the 405 and the
 redirect must be unchanged.

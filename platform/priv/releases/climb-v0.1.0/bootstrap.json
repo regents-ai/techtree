@@ -19,14 +19,14 @@
   "hermes_plugin": {
     "plugin_id": "techtree",
     "repository": "regents-ai/techtree-hermes",
-    "revision": "880aa8aeeeb168a8d2328d75d2d424ca471953f6",
+    "revision": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
     "install_argv": [
       "hermes",
       "plugins",
       "install",
       "regents-ai/techtree-hermes",
       "--ref",
-      "880aa8aeeeb168a8d2328d75d2d424ca471953f6",
+      "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
       "--enable"
     ],
     "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]

@@ -16,6 +16,13 @@ defmodule TechtreeWeb.InstallComponents do
   coordinates are stand-ins, the page says so above them. The address of the
   pinned plugin is held to the same rule: it is shown only once the contract
   names a real revision, and never as a branch or a stand-in.
+
+  One thing here is not a command and still has to be said: Hermes reads the
+  plugin's source before installing it, and what it reports is not nothing. A
+  reader who meets that report for the first time at the moment of installing
+  has to decide in a hurry, which is the worst moment to decide anything. So
+  the page says beforehand what the report will say, in the same plain words,
+  and says that the answer is theirs to give.
   """
 
   use TechtreeWeb, :html
@@ -206,6 +213,59 @@ defmodule TechtreeWeb.InstallComponents do
       <p :if={is_nil(@release_url)} class="small quiet">
         This release does not name a published plugin revision yet, so there is no
         release page to link to.
+      </p>
+    </section>
+    """
+  end
+
+  @doc """
+  What the install-time scan reports, before a reader meets it.
+  """
+  attr :instructions, :map, default: nil
+
+  def scanning(assigns) do
+    ~H"""
+    <section :if={@instructions} class="section">
+      <h2>What the security scan will say</h2>
+      <p>
+        Hermes reads a plugin's source before it installs it, and shows you what it
+        found. This plugin comes back at caution, with five findings in three
+        families. Not one of them is an oversight waiting to be tidied away: each is
+        part of how the plugin does its work, and each is a few lines you can read
+        for yourself before you answer.
+      </p>
+
+      <.definition_list>
+        <:fact term="A list of command words">
+          The plugin will not hand you a command a model wrote, and to catch one it
+          keeps the list of words it looks for — installers, shells, the ways of
+          asking for administrator rights. A list of what to refuse has to name the
+          things it refuses. One finding.
+        </:fact>
+        <:fact term="Three places it starts Techtree">
+          Each one starts the pinned Techtree command itself: a fixed set of
+          arguments, no shell, a named short list of environment variables rather
+          than everything your session holds, and one answer read back. Those three
+          are the whole boundary between the plugin and Techtree, and there is no
+          fourth. Three findings.
+        </:fact>
+        <:fact term="A filter for control characters">
+          It takes the control characters out of anything the plugin puts into a
+          conversation, so text that arrived from somewhere else cannot redraw what
+          you are reading. One finding.
+        </:fact>
+      </.definition_list>
+
+      <p>
+        A caution verdict is yours to answer. Hermes stops, shows you the findings,
+        and installs nothing until a person confirms. Read them against the source
+        they name, and confirm if you agree with what they say. The plugin's own
+        README goes through the same five, in the same order.
+      </p>
+      <p>
+        Never turn the scanning off. It is the one look at the source that happens
+        before the code is on your machine, and this plugin has nothing to hide from
+        it.
       </p>
     </section>
     """

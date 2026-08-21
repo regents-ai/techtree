@@ -43,6 +43,8 @@ defmodule TechtreeWeb.HomeLive do
         — what the machine needs, what a trial costs, and every command this release pins.
       </p>
 
+      <InstallComponents.scanning instructions={@instructions} />
+
       <InstallComponents.disclosure />
 
       <InstallComponents.hermes_intro />
