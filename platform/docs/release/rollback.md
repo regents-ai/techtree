@@ -115,16 +115,16 @@ running, on channel `development`.
 | Roll forward | `mix techtree.bootstrap.publish --digest sha256:9e5afcb3…` | published `9e5afcb3…`, previously `be2e965a…` |
 | Serve | `GET /api/v1/bootstrap` | byte-identical to the first response |
 | After | `mix techtree.bootstrap.list` | all five releases still staged, one active |
-| Refusal | `mix techtree.bootstrap.publish --digest sha256:ed7cb612…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |
+| Refusal | `mix techtree.bootstrap.publish --digest sha256:9a4dca4f…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |
 
-The last row was re-run on 2026-08-19, after the candidate was regenerated for
-the `stable` channel: `sha256:ed7cb612…` was refused with
+The last row was re-run on 2026-08-20, after the candidate was re-cut for the
+final release coordinates: `sha256:9a4dca4f…` was refused with
 `bootstrap_release_missing`, the pointer stayed on `sha256:9e5afcb3…`, and all
 five releases were still staged afterwards. The refusal is a property of any
 digest this channel never staged rather than of one release, so it re-runs
-unchanged against whichever candidate is current. Two earlier candidate digests
-appeared in this row — `2ef4a475…` and then `57f95dcc…` — and neither names
-bytes any repository still carries.
+unchanged against whichever candidate is current. Four earlier candidate digests
+appeared in this row — `2ef4a475…`, `57f95dcc…`, `ed7cb612…` and then
+`73623d58…` — and none names bytes any repository still carries.
 
 This rehearsal was run on `development`, the only channel a local database has.
 The equivalent on `stable` is the pointer move in

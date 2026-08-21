@@ -102,10 +102,10 @@ approve, and this build does not serve them. It is three files:
 | | |
 | --- | --- |
 | Release channel | `stable` |
-| Candidate bootstrap digest | `sha256:ed7cb6128ef7fdc9a75685f8e62354e0a9c36360956945f517ed3fce4daf4ff4` |
-| ReleaseCore digest | `sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71` |
-| CLI | `techtree==0.1.0`, source `a444c4d6…`, wheel `sha256:9a8c02af…` |
-| Hermes plugin | `regents-ai/techtree-hermes` at `0670ff11…` (carries ReleaseCore `sha256:90cd8ad6…`) |
+| Candidate bootstrap digest | `sha256:9a4dca4fb0f46f07bd5876403dd212b760f277a82ae232d20169c5999f88b021` |
+| ReleaseCore digest | `sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530` |
+| CLI | `techtree==0.1.0`, source `a3ea8c58…`, wheel `sha256:5a402a43…` |
+| Hermes plugin | `regents-ai/techtree-hermes` at `880aa8ae…` (carries ReleaseCore `sha256:c037f457…`) |
 | Host Hermes | 0.20.1 minimum, 0.20.1 highest tested |
 | Starter Skill | file `sha256:2aff2707…`, tree `sha256:596d1368…` |
 | Rollback floor | `priv/bootstrap/stable.json`, `sha256:da064357…` |
@@ -142,7 +142,7 @@ bytes without being rewritten:
 
     mix run scripts/sync_catalog.exs \
       --source ../techtree-python/src/techtree/resources/catalog \
-      --source-revision a444c4d603a4094545cff8ae0d72f2197e26ce63 \
+      --source-revision a3ea8c585a44bfe9a626aa209f6f18fc65772163 \
       --generator-version 0.1.0 \
       --bootstrap priv/releases/climb-v0.1.0/bootstrap.json
 
@@ -174,8 +174,12 @@ must return `2aff2707…` and `content-type: text/markdown; charset=utf-8`.
 
 ## Current pointer state
 
-Rehearsed on the local development database, 2026-08-15. These are development
-values; the channel is `development` and the release is a declared placeholder.
+Rehearsed on the local development database, 2026-08-15, and re-read on
+2026-08-20 unchanged. These are development values; the channel is `development`
+and the release is a declared placeholder. The catalog digest below is the
+bundle that was imported then; the decision-0029 regeneration has since produced
+`sha256:ae300ef6…`, and nothing has re-imported it here, because importing is a
+deployment step rather than a repository one.
 
 | | |
 | --- | --- |
@@ -188,7 +192,7 @@ values; the channel is `development` and the release is a declared placeholder.
 | Plugin revision pinned | forty zeros |
 | Host Hermes minimum | 0.20.1 |
 
-The Gate-2 candidate `sha256:ed7cb612…` is deliberately absent from that list:
+The Gate-2 candidate `sha256:9a4dca4f…` is deliberately absent from that list:
 it is a file in the repository and has never been staged, so naming it to
 `publish` refuses with `bootstrap_release_missing` and moves nothing. So is the
 `stable` floor `sha256:da064357…`, which is staged on the live site before

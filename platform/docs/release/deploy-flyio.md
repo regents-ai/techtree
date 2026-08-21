@@ -152,7 +152,7 @@ being able to do this early.
     curl -s https://techtree-sh.fly.dev/healthz
 
 `/healthz` must now be 200 and name channel `development`, catalog digest
-`sha256:62714b77…`, import status `complete`.
+`sha256:ae300ef6…`, import status `complete`.
 
 ### 8. Allocate the addresses DNS will point at
 
@@ -244,7 +244,7 @@ Expected before Gate 2:
 
 | Check | Expected |
 | --- | --- |
-| `/healthz` | 200, channel `development`, catalog `sha256:62714b77…`, status `complete` |
+| `/healthz` | 200, channel `development`, catalog `sha256:ae300ef6…`, status `complete` |
 | `/api/v1/catalog` | 200, `application/json` |
 | `/api/v1/bootstrap` | `ETag` and body digest both `sha256:9e5afcb3…` — the placeholder |
 | `POST /api/v1/bootstrap` | `405` with `Allow: GET, HEAD` |
@@ -278,7 +278,7 @@ In the repository:
 
     mix run scripts/sync_catalog.exs \
       --source ../techtree-python/src/techtree/resources/catalog \
-      --source-revision a444c4d603a4094545cff8ae0d72f2197e26ce63 \
+      --source-revision a3ea8c585a44bfe9a626aa209f6f18fc65772163 \
       --generator-version 0.1.0 \
       --bootstrap priv/bootstrap/stable.json
 
@@ -330,7 +330,7 @@ The import prints the catalog digest and `on channel stable`.
 | Check | Expected |
 | --- | --- |
 | health check | passing again |
-| `/healthz` | 200, channel `stable`, catalog `sha256:62714b77…`, status `complete` |
+| `/healthz` | 200, channel `stable`, catalog `sha256:ae300ef6…`, status `complete` |
 | `/api/v1/bootstrap` | `ETag` and body digest both `sha256:da064357…` — the stable floor |
 | the document itself | `"channel": "stable"`, `"placeholder_release": true`, `"version": "0.0.0-placeholder"` |
 | the pages | unchanged, still saying this is not a real release yet |
@@ -352,7 +352,7 @@ no floor leaves nothing to roll back to.
 
 The candidate is `priv/releases/climb-v0.1.0/`, on channel `stable`. Its
 bootstrap release is
-`sha256:ed7cb6128ef7fdc9a75685f8e62354e0a9c36360956945f517ed3fce4daf4ff4`, and
+`sha256:9a4dca4fb0f46f07bd5876403dd212b760f277a82ae232d20169c5999f88b021`, and
 this build has never staged it.
 
 ### 13. Build the bundle that carries the candidate — founder approval required
@@ -361,7 +361,7 @@ In the repository:
 
     mix run scripts/sync_catalog.exs \
       --source ../techtree-python/src/techtree/resources/catalog \
-      --source-revision a444c4d603a4094545cff8ae0d72f2197e26ce63 \
+      --source-revision a3ea8c585a44bfe9a626aa209f6f18fc65772163 \
       --generator-version 0.1.0 \
       --bootstrap priv/releases/climb-v0.1.0/bootstrap.json
 
@@ -369,7 +369,7 @@ In the repository:
 
     shasum -a 256 priv/catalog/bootstrap.json
 
-The last command must print `ed7cb612…`. The approved bytes are copied, never
+The last command must print `9a4dca4f…`. The approved bytes are copied, never
 rewritten; a different digest here means something regenerated them and the
 approval no longer covers what is about to ship.
 
@@ -395,14 +395,14 @@ is the activation. On any failure the floor keeps serving.
 If the candidate is already staged from an earlier attempt and only the pointer
 needs to move, that is the explicit form:
 
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:ed7cb6128ef7fdc9a75685f8e62354e0a9c36360956945f517ed3fce4daf4ff4")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:9a4dca4fb0f46f07bd5876403dd212b760f277a82ae232d20169c5999f88b021")'
 
 ### 16. Verify what is published
 
     curl -sD- https://techtree.sh/api/v1/bootstrap -o bootstrap.json
     shasum -a 256 bootstrap.json
 
-`ETag` and body digest must both be `sha256:ed7cb612…`, and must equal the
+`ETag` and body digest must both be `sha256:9a4dca4f…`, and must equal the
 digest in `priv/releases/climb-v0.1.0/checksums.json`. `/healthz` must still
 name channel `stable`. Then re-run the whole of step 12; the 405 and the
 redirect must be unchanged.
