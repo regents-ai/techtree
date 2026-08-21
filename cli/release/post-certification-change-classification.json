@@ -8,14 +8,14 @@
   "scientific \u2014 re-certified (0029, four canonical runs)": "A change to the scientific configuration or to what enforces it, sanctioned by decision 0029 and certified by the recertification attached to it: four canonical runs against the regenerated Campaign, the live turn-conformance probe, and a real worker-SIGKILL injection.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 43,
+ "commit_count": 47,
  "counts_by_class": {
-  "documentation": 50,
+  "documentation": 52,
   "non_scientific_copy": 28,
-  "release_packaging": 77,
+  "release_packaging": 91,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
   "scientific \u2014 re-certified (0029, four canonical runs)": 14,
-  "test_only": 51
+  "test_only": 100
  },
  "entries": [
   {
@@ -1825,11 +1825,531 @@
    "commit_subject": "release: final repackaging records; fingerprint sheds its self-referential commit field (0026 principle); honest executability docstring",
    "path": "src/techtree/runs/real.py",
    "rationale": "A docstring, and nothing else: the change is entirely inside the triple-quoted prose of campaign_is_executable, correcting a description of the shipped Campaign that decisions 0025 and 0029 had made false. No statement, no value and no branch changes, so nothing the product runs is different."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6cfd778c1b371a9d0d76f5a855442e55382394a9",
+   "commit_subject": "release: terminal delta re-pin \u2014 inspection 19/19 clean, candidate 9a4dca4f, classification through the RC",
+   "path": "release/fresh-install-report.json",
+   "rationale": "The fresh-install evidence. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6cfd778c1b371a9d0d76f5a855442e55382394a9",
+   "commit_subject": "release: terminal delta re-pin \u2014 inspection 19/19 clean, candidate 9a4dca4f, classification through the RC",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "The plugin coordinates the release pins. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6cfd778c1b371a9d0d76f5a855442e55382394a9",
+   "commit_subject": "release: terminal delta re-pin \u2014 inspection 19/19 clean, candidate 9a4dca4f, classification through the RC",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "This document."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6cfd778c1b371a9d0d76f5a855442e55382394a9",
+   "commit_subject": "release: terminal delta re-pin \u2014 inspection 19/19 clean, candidate 9a4dca4f, classification through the RC",
+   "path": "release/wheel-inspection.json",
+   "rationale": "The wheel inspection. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "669a424664a109435ef0f2b74ddccd64eb183972",
+   "commit_subject": "release: Hermes scanner dossier \u2014 finding-by-finding triage for the trusted-source appeal",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's interaction log. A release record; nothing the product runs."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "669a424664a109435ef0f2b74ddccd64eb183972",
+   "commit_subject": "release: Hermes scanner dossier \u2014 finding-by-finding triage for the trusted-source appeal",
+   "path": "release/hermes-scanner-dossier.md",
+   "rationale": "The dossier that appeals the plugin's install-time scan verdict to its host: a description of the plugin, a finding-by-finding triage, and the remediation. A release record; nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "Makefile",
+   "rationale": "The developer task file. It gains the targets that run the relocated plugin battery and the plugin's repository tooling from this checkout. It travels in no wheel and nothing the product runs reads it."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "README.md",
+   "rationale": "The repository's own document: it says that the plugin's suite and tooling live here now, and how to run them."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "docs/agent-handoff.md",
+   "rationale": "A document. Nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "pyproject.toml",
+   "rationale": "Packaging metadata: the marker the relocated real-CLI tests carry and the type-checker's exclusion of the relocated suite. The wheel's contents, its dependencies and its entry points are untouched."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/conftest.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_cli_envelopes.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_disable_and_remove.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_improvement_context.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_improver_skill_contract.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_no_registration_side_effects.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_one_generation_request.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_plugin_doctor.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_readme_release_truth.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_release_copy.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/contract/test_tool_handlers.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/climb-list-compatible.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/climb-list.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/climb-show-compatible.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/climb-show-not-found.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/climb-show.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/doctor.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/release-info.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/cli/release-verify.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/context/improvement-context.json",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/fixtures/skills/skill-improver/SKILL.md",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. A recorded fixture the plugin's suite reads. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/integration/test_demo_first_run.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/integration/test_first_result_relay.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/integration/test_host_load.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/integration/test_one_turn_revision.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/integration/test_second_run_flow.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/integration/test_terminal_commands.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/support.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_approvals.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_assets.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_bootstrap.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_bridge.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_channels.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_commands.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_guards.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_improvement_service.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_llm.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_models.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_narrative.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_presentation_service.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_proposal_service.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_registration.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_release.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_schemas.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_state.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tests/plugin/unit/test_tools.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Plugin test code, running here against the sibling checkout. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tools/plugin/_plugin_package.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Repository tooling for the plugin \u2014 its doctor, its schema export, its Skill and ReleaseCore checks. Release engineering, run from this checkout and part of no wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tools/plugin/check_founder_skills.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Repository tooling for the plugin \u2014 its doctor, its schema export, its Skill and ReleaseCore checks. Release engineering, run from this checkout and part of no wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tools/plugin/export_tool_schemas.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Repository tooling for the plugin \u2014 its doctor, its schema export, its Skill and ReleaseCore checks. Release engineering, run from this checkout and part of no wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tools/plugin/founder_skill_contract.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Repository tooling for the plugin \u2014 its doctor, its schema export, its Skill and ReleaseCore checks. Release engineering, run from this checkout and part of no wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tools/plugin/plugin_doctor.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Repository tooling for the plugin \u2014 its doctor, its schema export, its Skill and ReleaseCore checks. Release engineering, run from this checkout and part of no wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tools/plugin/typecheck.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Repository tooling for the plugin \u2014 its doctor, its schema export, its Skill and ReleaseCore checks. Release engineering, run from this checkout and part of no wheel."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "5ae040b18b7fe336b88c00379806bef4964797b2",
+   "commit_subject": "test: plugin test corpus + tooling relocated here (tests/plugin, tools/plugin) \u2014 scanner fix, llv",
+   "path": "tools/plugin/verify_release_core.py",
+   "rationale": "Relocated from the plugin repository unchanged, so the installable plugin tree carries its runtime, its Skills and its release bytes and nothing else. Repository tooling for the plugin \u2014 its doctor, its schema export, its Skill and ReleaseCore checks. Release engineering, run from this checkout and part of no wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "50729777ea83dff3d660806f24db36c0ce42af15",
+   "commit_subject": "test: bridge environment allowlist tests with wallet-canary; platform env measurement (llv pass 2)",
+   "path": "tests/plugin/support.py",
+   "rationale": "The plugin suite's shared helpers. They gain a measurement of what the platform itself adds to any child process, so the bridge tests can compare the child environment exactly rather than hardcoding a platform quirk. Test code; not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "50729777ea83dff3d660806f24db36c0ce42af15",
+   "commit_subject": "test: bridge environment allowlist tests with wallet-canary; platform env measurement (llv pass 2)",
+   "path": "tests/plugin/unit/test_bridge.py",
+   "rationale": "Tests for the environment the plugin builds for the CLI it starts: every allowlisted variable arrives, nothing else of the session does, and a planted wallet key reaches neither the child nor the envelope. The measurement of what the platform itself adds to any child process lives beside them. Test code; not shipped in the wheel."
   }
  ],
- "file_change_count": 226,
+ "file_change_count": 291,
  "previous_anchor_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
- "release_source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+ "release_source_commit": "50729777ea83dff3d660806f24db36c0ce42af15",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "0025": {
@@ -1920,5 +2440,5 @@
    }
   }
  },
- "verdict": "PASS \u2014 every scientific change in the range is sanctioned and certified. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 \u00a7A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the SIGKILL injection attached to release/certified-scientific-fingerprint.json. Nothing else in the range touches a measured path: the remaining product changes are warning and cost copy, the scanner's readiness behaviour decision 0023 places outside the scientific surface, release records, documents and tests."
+ "verdict": "PASS \u2014 every scientific change in the range is sanctioned and certified. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 \u00a7A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the SIGKILL injection attached to release/certified-scientific-fingerprint.json. Nothing else in the range touches a measured path: the remaining product changes are warning and cost copy, the scanner's readiness behaviour decision 0023 places outside the scientific surface, release records, documents and tests. The range now runs through the plugin-scanner cycle: the Hermes plugin's test corpus and repository tooling moved into this repository, and the environment the plugin builds for the CLI it starts gained tests. Test code, tooling, documents and release records \u2014 not one byte the wheel ships, and nothing a measurement reads."
 }

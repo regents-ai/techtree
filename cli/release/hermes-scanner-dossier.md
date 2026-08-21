@@ -21,11 +21,12 @@ BootstrapRelease; branch names and floating versions are refused by
 documentation and by the install-plan validator alike (`README.md` "Install";
 decision `docs/decisions/0024-agent-first-onboarding.md` §4).
 
-Release candidate under appeal: version 0.1.0, commit
-`880aa8aeeeb168a8d2328d75d2d424ca471953f6`, ReleaseCore digest
+Release candidate under appeal when this dossier was written: version 0.1.0,
+commit `880aa8aeeeb168a8d2328d75d2d424ca471953f6`, ReleaseCore digest
 `sha256:c037f457…`, `plugin_doctor` passed 10 checks (9 ok, 1 warn: no CLI on
-PATH in a bare checkout, which the doctor states is not a plugin fault)
-— `release/plugin-release-candidate.json`.
+PATH in a bare checkout, which the doctor states is not a plugin fault). The
+release record `release/plugin-release-candidate.json` now names the cleaned
+commit instead — §6.
 
 ## 2. The scan result being appealed
 
@@ -176,3 +177,76 @@ Everything referenced here is available for inspection: the plugin repository
 at the pinned commit, the certification repository with the full test battery
 and release records, and the signed run receipts, which verify offline without
 contacting us.
+
+## 6. Addendum, 2026-08-21 — the cleaned tree exists
+
+Sections 1 to 5 describe the tree at `880aa8a`, which is the tree the
+DANGEROUS verdict was returned on. Everything §4 said we would do is done, and
+the before and after of this appeal are now two commits a reviewer can install
+and compare.
+
+**The tree under appeal is now `0b0052fa68406ac4a63e4bf1fa1a6d00cf429815`.**
+It carries the runtime, the two operator Skills, the release bytes and the
+README, and nothing else: the adversarial test corpus and the repository
+tooling live in `techtree-python` as `tests/plugin/` and `tools/plugin/`, where
+the whole battery still runs: 791 tests green against this commit, which is
+§3's 785 plus the six this cycle added — one for the rewritten uninstall
+documentation, five for the environment allowlist below. That uninstall
+documentation is now prose naming the one directory the plugin can leave
+behind. ReleaseCore is still `sha256:c037f457…`, byte-identical in all three
+repositories; the frozen `skill-improver` is still `sha256:e6bc16c4…`; the
+CLI wheel is still `sha256:5a402a43…`, built from `a3ea8c58…`. Nothing
+measured moved. The release record is
+`release/plugin-release-candidate.json`, where `plugin_doctor` now passes all
+ten checks.
+
+**The verdict on that tree is CAUTION, five findings in three families.**
+Verified by a local `file://` install of a scratch clone whose tree is
+byte-identical to the tree of `0b0052fa` (git tree `dffe9e2e…` in both):
+
+| Location | Band | Rule | Family |
+|---|---|---|---|
+| `guards.py:86` | HIGH | privilege escalation | the command-word list that *is* the command-blocking guard |
+| `bridge.py:188` | MEDIUM | execution | the machine-mode CLI call |
+| `bridge.py:238` | MEDIUM | execution | the version probe |
+| `bridge.py:280` | MEDIUM | execution | the human-output passthrough |
+| `channels.py:30` | MEDIUM | obfuscation | the control-character stripper |
+
+The three bridge findings moved down the file when the environment allowlist
+was added; the calls themselves are the same three. The install decision was
+`BLOCKED — requires confirmation`, which is exactly the outcome §5 asks for:
+reviewable warnings a person reads and confirms. Nothing was registered.
+
+**Two hardening adoptions, from an independent source review.** A Hermes agent
+belonging to the founder read the plugin's source against this dossier's
+triage, corroborated it, and raised two things worth doing anyway. Both are in
+`0b0052fa`:
+
+1. **The CLI receives ten named variables and nothing else.** The bridge used
+   to hand the child the host session's whole environment. It now builds one
+   by name — `CLI_ENVIRONMENT_ALLOWLIST` in `constants.py`: PATH, HOME,
+   TMPDIR, XDG_DATA_HOME, TECHTREE_HOME, TECHTREE_LOG_LEVEL, LANG, LC_ALL,
+   LC_CTYPE, TERM — mirroring the scrub Techtree's own run launcher already
+   performs on a worker. Model-provider credentials are deliberately absent: a
+   run authenticates from Techtree's configuration under HOME, the same way
+   the certified worker does. Five tests hold it, including a canary: a wallet
+   key planted in the session reaches neither the child's environment nor any
+   envelope the plugin returns. What the platform itself adds to any child
+   process is measured rather than hardcoded, so the comparison is exact.
+2. **The manifest declares what the plugin does with the machine.** Hermes'
+   `capabilities:` is a consent registry for privileged host surfaces and
+   `requires_env` gates loading and prompts for a value, so neither may carry
+   a narrative. The declaration is therefore a labelled block at the top of
+   `plugin.yaml`: one local executable with a fixed argument array and no
+   shell, Docker only through that command, network and a paid provider only
+   through a person-confirmed plan, a named environment list, an inherited
+   HOME as Techtree's own authentication dependency — which is why nothing is
+   prompted for — and no privileged host surface, hence no `capabilities:`.
+
+**Two things still not done, and still refused.** No fixture was disguised,
+renamed or encoded to slip past a scanner, and no user or agent is told
+anywhere to switch scanning off. The onboarding copy — the plugin README and
+the installation guide on the site — now states the caution verdict in
+advance, explains each of the five findings in plain words, says the
+confirmation is the reader's to give, and says outright that the scanning
+stays on.

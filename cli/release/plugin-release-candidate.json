@@ -1,7 +1,7 @@
 {
- "commit": "880aa8aeeeb168a8d2328d75d2d424ca471953f6",
+ "commit": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
  "plugin_doctor": "passed",
- "plugin_doctor_detail": "10 checks: 9 ok, 1 warn (no Techtree CLI on PATH in this checkout, which the doctor states is not a plugin fault); scripts/plugin_doctor.py exits 0",
+ "plugin_doctor_detail": "10 checks, all ok, run from this checkout as tools/plugin/plugin_doctor.py, which exits 0. The plugin's own suite and tooling live here now, so the doctor reads the plugin out of the sibling checkout and finds the pinned CLI on this project's PATH; the earlier 1 warn was that missing CLI and nothing else.",
  "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
  "repository": "github.com/regents-ai/techtree-hermes",
  "version": "0.1.0",
