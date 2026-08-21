@@ -53,6 +53,33 @@ After the plugin is installed and enabled, restart Hermes once so the tools
 load. The plugin then asks again before installing the Techtree CLI. A paid
 comparison has its own separate approval after Doctor and the run review.
 
+## Install-time security scanning
+
+Hermes reads a plugin's source before installing it and shows you what it
+found. This plugin comes back at **caution**, with five findings in three
+places. Not one of them is an oversight waiting to be tidied away: each is
+part of how the plugin does its work, and each is a few lines you can read
+for yourself before you approve anything.
+
+- **The guard's own list of command words** — `guards.py`, reported as
+  privilege escalation. It is the deny-list: the words the guard looks for in
+  text a model wrote, so a proposed Skill that would have someone install a
+  package, open a shell, or take administrator rights is refused. A list of
+  what to refuse has to name the things it refuses.
+- **Three places the plugin starts the Techtree CLI** — `bridge.py`, reported
+  as execution. Those three are the entire boundary between this plugin and
+  Techtree. Each starts the one command named in `constants.py`, with a fixed
+  argument list, no shell, and one JSON answer read back. There is no fourth.
+- **The control-character stripper** — `channels.py`, reported as
+  obfuscation. One pattern, matching terminal control codes, so they can be
+  taken out of anything the plugin puts into a conversation.
+
+A caution verdict is yours to accept or refuse: Hermes stops and asks, and
+nothing is installed until a person answers. Read the findings and the code
+they name, then answer. Do not switch the scanning off — it is the one look
+at the source that happens before the code is on your machine, and this
+plugin has nothing to hide from it.
+
 ## What loading the plugin does
 
 It reads two files that shipped inside the plugin, then tells Hermes which
@@ -61,8 +88,9 @@ tools exist. That is the whole of it.
 Loading the plugin never installs software, never reaches the network, never
 starts Docker, never runs Techtree, and never calls a model. This is enforced
 by a test that seals off every way of starting a process, opening a socket, or
-writing a file, and then requires the plugin to load anyway
-(`tests/contract/test_no_registration_side_effects.py`).
+writing a file, and then requires the plugin to load anyway. It lives with the
+rest of the plugin's suite in the Techtree repository, as
+`tests/plugin/contract/test_no_registration_side_effects.py`.
 
 ## Commands
 
@@ -92,7 +120,7 @@ has stopped.
 ## Check the plugin
 
 ```bash
-make doctor
+make plugin-doctor      # in the techtree-python checkout
 ```
 
 Reports whether this build is sound — its manifest, its tool descriptions, its
@@ -117,7 +145,7 @@ the file itself, so agreement can be checked with `shasum` in either
 repository — or by asking the installed CLI what release it belongs to:
 
 ```bash
-make release-core-cli
+make plugin-release-core-cli      # in the techtree-python checkout
 ```
 
 ## Repository layout
@@ -140,28 +168,34 @@ state.py             the identifiers a conversation keeps
 tools/               the tools the agent calls
 services/            the container assembled during registration
 skills/              bundled read-only operator Skills
-scripts/             repository tooling
-tests/               unit, contract, and integration tests
 ```
+
+That is the whole checkout: what the plugin is, and nothing about how it is
+built. Its tests and its repository tooling live in the Techtree repository,
+under `tests/plugin/` and `tools/plugin/`, because a suite that proves the
+guards work has to carry the attacks they catch, and this is the directory an
+install-time scanner reads.
 
 ## Development
 
 ```bash
 make install    # sync the tooling environment
-make check      # format, lint, types, doctor, tests
+make check      # format, lint, types
 ```
 
 The plugin runtime uses only the Python standard library, and never imports
 Techtree's Python package: the CLI's JSON envelope is the only boundary
-between the two. `make doctor` fails the build if that stops being true.
+between the two. The plugin doctor fails the build if that stops being true.
 
-The contract tests can also be run against a real Techtree CLI:
+The full test battery — unit, contract, and integration, including the
+contract tests that talk to a real Techtree CLI with read-only commands — is:
 
 ```bash
-make test-cli-contract TECHTREE_CLI_ARGV="uv run --project ../techtree-python techtree"
+make test-plugin      # in the techtree-python checkout
 ```
 
-Only read-only commands are used there.
+It reads the plugin out of the checkout beside it, so keep the two clones side
+by side.
 
 ## What it remembers
 
@@ -214,12 +248,19 @@ Nothing on disk changes.
 
 ```bash
 hermes plugins remove techtree
-rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/techtree-hermes"
 ```
 
-The first command removes the plugin. The second removes the staging directory
-described above, which is the only thing the plugin can leave behind — you can
-look inside it first; on a healthy machine it is empty.
+That removes the plugin. One directory can be left behind, the staging
+directory described above, and it is the only thing the plugin can leave:
+
+```text
+${XDG_STATE_HOME:-$HOME/.local/state}/techtree-hermes
+```
+
+Look inside it — on a healthy machine it is empty — and then delete that
+folder yourself, with whatever you normally use. There is deliberately no
+command to copy from here: a line that erases a directory tree is not
+something anybody should paste out of a README.
 
 Two things are deliberately **not** removed by either command, because they are
 not the plugin's to delete:

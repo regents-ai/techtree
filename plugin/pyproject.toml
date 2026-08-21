@@ -3,7 +3,9 @@
 # Hermes loads this repository directory as a plugin package, so the runtime
 # code is standard library only and this project is never built or installed
 # as a distribution. Everything declared below is repository tooling: the
-# formatter, linter, type checker, and test runner that make up the gate.
+# formatter, linter, and type checker that make up the gate. The plugin's test
+# battery runs from the Techtree repository beside this one, which is where its
+# suite and its tooling live.
 
 [project]
 name = "techtree-hermes"
@@ -20,7 +22,6 @@ dependencies = []
 [dependency-groups]
 dev = [
   "mypy>=1.17,<2",
-  "pytest>=8,<9",
   "ruff>=0.12,<1",
 ]
 
@@ -44,29 +45,7 @@ ignore = ["N999"]
 python_version = "3.12"
 strict = true
 warn_unreachable = true
-# The plugin package is checked through `scripts/typecheck.py`, which gives the
-# hyphenated checkout directory an importable name. Running mypy directly on
-# this directory cannot work: `techtree-hermes` is not a Python identifier.
-# Tests and repository tooling are checked in their own passes, from their own
-# directories, so they are not crawled as part of the package.
-exclude = ["/tests/", "/scripts/"]
+# `make typecheck` gives the hyphenated checkout directory an importable name
+# and checks the package under it. Running mypy directly on this directory
+# cannot work: `techtree-hermes` is not a Python identifier.
 
-[tool.pytest.ini_options]
-minversion = "8.0"
-testpaths = ["tests/unit", "tests/contract", "tests/integration"]
-addopts = [
-  "-ra",
-  "--strict-config",
-  "--strict-markers",
-  # The repository root is the plugin package itself, and its directory name
-  # is not a Python identifier. `pytest_plugin_root` keeps pytest from trying
-  # to import the root as a test package; the tests load the plugin the same
-  # way the host tooling does.
-  "--import-mode=importlib",
-  "-p",
-  "pytest_plugin_root",
-]
-pythonpath = ["scripts", "tests"]
-markers = [
-  "real_cli: exercises the installed Techtree CLI; skipped when it is absent",
-]

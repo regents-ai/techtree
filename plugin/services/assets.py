@@ -109,8 +109,8 @@ def materialize_starter_skill(services: Any) -> dict[str, Any]:
 #
 # Nothing here reads whatever happens to be on disk under that name: the bytes
 # are hashed and compared against the release's digest first. Test fixtures
-# follow the same contract and live under tests/, where they cannot be mistaken
-# for the real thing.
+# follow the same contract and live with the suite, in the Techtree
+# repository, where they cannot be mistaken for the real thing.
 
 FounderSkillName = Literal["skill-improver"]
 

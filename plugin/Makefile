@@ -1,18 +1,22 @@
 # Techtree Hermes plugin developer tasks.
 #
 # Every target runs through uv so the pinned tooling environment is the only
-# environment that matters. `make check` is the gate: format, lint, types,
-# doctor, tests.
+# environment that matters. `make check` is this repository's gate: format,
+# lint, types.
+#
+# The test battery is not here. This checkout is what an install-time scanner
+# reads, and a suite that proves the guards work has to carry the attacks they
+# catch — fake private keys, destructive command strings — which is exactly
+# what a scanner is right to refuse. So the plugin's unit, contract and
+# integration tests, and the tooling that runs them, live in the Techtree
+# repository beside this one, and run there with `make test-plugin`.
 
 UV ?= uv
 RUN := $(UV) run
 
 .DEFAULT_GOAL := check
 
-.PHONY: install format format-check lint typecheck doctor schemas founder-skills \
-	release-core \
-	release-core-cli \
-	test test-unit test-contract test-cli-contract check
+.PHONY: install format format-check lint typecheck check
 
 install:
 	$(UV) sync
@@ -27,42 +31,19 @@ format-check:
 lint:
 	$(RUN) ruff check .
 
+# mypy identifies a package by its directory name, and `techtree-hermes` is not
+# a Python identifier. The package is checked under an importable name through
+# a symbolic link in a scratch directory, which is undone when the check ends.
 typecheck:
-	$(RUN) python scripts/typecheck.py
+	@work="$$(mktemp -d)"; \
+	ln -s "$(CURDIR)" "$$work/techtree_hermes"; \
+	MYPYPATH="$$work" $(RUN) mypy --namespace-packages -p techtree_hermes; \
+	status=$$?; \
+	unlink "$$work/techtree_hermes"; \
+	rmdir "$$work"; \
+	exit $$status
 
-# The plugin's own doctor: manifest, schemas, release bytes, runtime imports,
-# and host readiness. Exits non-zero on a blocking failure.
-doctor:
-	$(RUN) python scripts/plugin_doctor.py
-
-schemas:
-	$(RUN) python scripts/export_tool_schemas.py
-
-# Checks the founder Skills against decision 0007's behavioural contracts.
-# Neither exists yet; run it over tests/fixtures/skills to see the shape.
-founder-skills:
-	$(RUN) python scripts/check_founder_skills.py
-
-release-core:
-	$(RUN) python scripts/verify_release_core.py
-
-# Asks the installed Techtree CLI which release it belongs to, and compares.
-release-core-cli:
-	$(RUN) python scripts/verify_release_core.py --against-installed-cli
-
-test:
-	$(RUN) pytest
-
-test-unit:
-	$(RUN) pytest tests/unit
-
-test-contract:
-	$(RUN) pytest tests/contract
-
-# Runs the read-only contract tests against a real Techtree CLI. Set
-# TECHTREE_CLI_ARGV when the CLI is not on PATH, for example:
-#   make test-cli-contract TECHTREE_CLI_ARGV="uv run --project ../techtree-python techtree"
-test-cli-contract:
-	TECHTREE_CLI_ARGV="$(TECHTREE_CLI_ARGV)" $(RUN) pytest -m real_cli tests/contract
-
-check: format-check lint typecheck doctor test
+check: format-check lint typecheck
+	@echo
+	@echo "The plugin's tests run from the Techtree repository beside this one:"
+	@echo "    make test-plugin        (in the techtree-python checkout)"
