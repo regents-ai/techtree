@@ -30,7 +30,11 @@ Rigor stays internal; the user experience stays almost trivial.
   side effects. Native Hermes user approval gates every install and
   every paid run — there is no model-suppliable confirmation value.
   Ships two Skills: operator (product copy) and skill-improver
-  (founder-frozen). Gate: `make check`.
+  (founder-frozen). The checkout holds the runtime, the Skills and the
+  release bytes only: its tests and tooling live in techtree-python,
+  under tests/plugin/ and tools/plugin/, so that the install-time
+  scanner reads no adversarial fixture. Gate: `make check` there
+  (format, lint, types) plus `make test-plugin` in techtree-python.
 - **techtree-ash** — the read-only website (Elixir/Phoenix/Ash).
   Serves the catalog and content-addressed objects (refuses drifted
   bytes), the agent-first install pages, and the BootstrapRelease

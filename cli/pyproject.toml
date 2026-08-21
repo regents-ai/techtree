@@ -105,13 +105,22 @@ mypy_path = ["src"]
 # The preflight suite and the engine bundle packages import the pinned
 # Verifiers build. That build belongs to the managed engine environment, never
 # to the ordinary package environment, so its types are not resolvable here.
+#
+# The Hermes plugin's suite imports the plugin package, which is a directory in
+# the sibling checkout whose name is not a Python identifier. It is checked by
+# `make typecheck-plugin`, which gives that directory an importable name first.
 exclude = [
+  "^tests/plugin/",
   "^tests/preflight/",
   "^src/techtree/resources/engines/",
 ]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
+# The Hermes plugin's suite under tests/plugin is deliberately not here. It
+# reads the plugin out of the sibling checkout, so it is its own battery,
+# `make test-plugin`, and this repository's own gate does not depend on a
+# second checkout being present.
 testpaths = ["tests/unit", "tests/contract", "tests/integration"]
 addopts = [
   "-ra",
@@ -122,6 +131,7 @@ addopts = [
 ]
 markers = [
   "integration: exercises real filesystem and subprocess flows; run with `make test-integration`",
+  "real_cli: the Hermes plugin's read-only contract tests against an installed Techtree CLI; run with `make test-plugin`",
   "preflight: pinned-Verifiers compatibility checks; run with `make verifiers-preflight`",
   "real_model: calls a paid model endpoint and provisions Docker; never runs unattended, run with `make real-model-run`",
 ]

@@ -173,7 +173,9 @@ docs/                  architecture, protocol, decisions, and release contracts
 release/               release inputs, generated contract, and audit records
 schemas/v1alpha1/      exported JSON Schemas
 tools/                 generators and unpackaged release verification tools
+  plugin/              tooling for the Hermes plugin in the sibling checkout
 tests/                 unit, contract, integration, preflight, and fixtures
+  plugin/              the Hermes plugin's own suite (`make test-plugin`)
 ```
 
 Dependencies point inward: commands depend on services, services depend on
@@ -187,12 +189,20 @@ make test-unit
 make test-contract
 make test-integration
 make verifiers-preflight
+make test-plugin
 ```
 
 Integration and preflight tests are excluded from the default pytest selection
 because they are slower and, for preflight, require the pinned Verifiers build.
 No test reads or writes a real user home; suites work inside a temporary
 Techtree home.
+
+`make test-plugin` runs the Hermes plugin's own battery, which lives here
+rather than in the plugin checkout: it carries fixtures written to look exactly
+like the attacks the plugin's guards refuse, and the plugin checkout is what an
+install-time scanner reads before a host will install it. The suite reads the
+plugin out of the `techtree-plugin` checkout beside this one, and says so if it
+is not there. `make typecheck-plugin` type-checks it.
 
 ## Security boundaries
 
