@@ -1,0 +1,737 @@
+{
+  "schema_version": "techtree.orphan-bound-analysis.v1",
+  "generated_on": "2026-08-20",
+  "decision": "docs/decisions/0029-orphan-bound-fix.md",
+  "contract": "docs/release/contracts/orphan-bound-fix.md",
+  "ticket": "techtree-python-730",
+  "purpose": "The finite bound on one comparison's execution, derived from the limits the Campaign now enforces rather than from an assumption about how the subject behaves. Token exposure is protocol-bounded; the dollar figure uses provider pricing recorded at release time and is only as current as that record.",
+  "campaign": {
+    "digest": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+    "source": "the packaged catalog in this wheel",
+    "tasks": 36,
+    "variants_per_comparison": 2,
+    "rollouts_per_task": 1
+  },
+  "prices": {
+    "model_id": "qwen/qwen3.7-flash",
+    "input_usd_per_mtok": 0.03,
+    "output_usd_per_mtok": 0.13,
+    "context_window_tokens": 131072,
+    "source": "Prime Intellect published rate card for qwen/qwen3.7-flash",
+    "recorded_on": "2026-08-20",
+    "profile_record": "release/price-profile.json",
+    "rate_kind": "highest uncached rates, US dollars per million tokens"
+  },
+  "enforced_limits": {
+    "max_turns": 44,
+    "max_input_tokens": 900000,
+    "max_output_tokens": 16000,
+    "max_total_tokens": 916000,
+    "rollout_timeout_seconds": 600,
+    "sampling_max_tokens_per_call": 4096,
+    "where_enforced": "env.subject.{max_turns,max_input_tokens,max_output_tokens,max_total_tokens} and env.subject.timeout.rollout in both variants' compiled and resolved configs"
+  },
+  "one_turn_soft_overshoot": {
+    "why": "the pinned engine checks a rollout's caps between turns, so the turn that crosses a cap still completes. The bound charges for that whole extra turn.",
+    "input_overshoot_tokens": 131072,
+    "input_overshoot_source": "one whole context window, because a single turn's prompt can be as large as the window",
+    "output_overshoot_tokens": 4096,
+    "output_overshoot_source": "the per-call sampling ceiling"
+  },
+  "variant_deadline": {
+    "hard_deadline_seconds": 3600.0,
+    "supervisor_grace_seconds": 20.0,
+    "outer_grace_seconds": 30.0,
+    "invariant": "supervisor grace 20s < VerifiersChild grace 30s",
+    "where": "src/techtree/verifiers/child.py named release constants, passed to the child-local supervisor at launch"
+  },
+  "token_exposure": {
+    "per_episode_input_ceiling": 1031072,
+    "per_episode_output_ceiling": 20096,
+    "per_comparison_input_ceiling": 74237184,
+    "per_comparison_output_ceiling": 1446912,
+    "formula": "tasks x variants x ((max_input_tokens + context_window) input tokens + (max_output_tokens + sampling_max_tokens) output tokens)",
+    "note": "finite without reference to provider pricing, and finite whether or not the Techtree worker is alive"
+  },
+  "cost_bound": {
+    "usd": 2.4152,
+    "declared_maximum_usd": 2.5,
+    "fits": true,
+    "checked_by": "techtree.verifiers.budget.require_cost_bound, a run-start precondition; campaign_cost_bound_exceeded refuses the run"
+  },
+  "observed_this_recertification": {
+    "certification_conditions": {
+      "host": "executed in an exclusive quiet window: the founder closed the game, stopped the long-lived container and held all other work. Zero containers were running at every launch.",
+      "load_at_each_launch": {
+        "stability #1": "16.03 / 15.54 / 22.29",
+        "stability #2": "10.04 / 15.26 / 21.03",
+        "engine reference": "66.17 / 50.47 / 39.33 (tail of the previous run's own containers)",
+        "v1 vs frozen v2": "35.69 / 66.61 / 60.13 (tail of the previous run's own containers)",
+        "kill injection": "12.41 / 23.56 / 40.48"
+      },
+      "containers_running_at_each_launch": 0,
+      "repo_commit": "48b7d784ea6e68a625709c828cfc86e0c80dbe5a",
+      "launcher": "the real detached launcher and real child-local supervisors for every run",
+      "supervisor_argv_verified_live": "--deadline-seconds 3600 --grace-seconds 20, no credential value",
+      "home": "a fresh isolated TECHTREE_HOME per run"
+    },
+    "runs": [
+      {
+        "role": "stability #1",
+        "run_id": "run_06b2377d55f6455a9dc5a73e6f14e384",
+        "episodes": 72,
+        "per_episode_limits": {
+          "turns": {
+            "enforced": 44,
+            "observed_maximum": 28,
+            "margin": 16,
+            "headroom_ratio": 1.57,
+            "at_task_hash": "775f95710c5b09fd79e5720554b764f8a1c938063e5743977efe9a4f9d6dc12b",
+            "at_variant": "baseline"
+          },
+          "input": {
+            "enforced": 900000,
+            "observed_maximum": 353790,
+            "margin": 546210,
+            "headroom_ratio": 2.54,
+            "at_task_hash": "775f95710c5b09fd79e5720554b764f8a1c938063e5743977efe9a4f9d6dc12b",
+            "at_variant": "baseline"
+          },
+          "output": {
+            "enforced": 16000,
+            "observed_maximum": 4837,
+            "margin": 11163,
+            "headroom_ratio": 3.31,
+            "at_task_hash": "5ef9194a49f5ada8a059b52cee70090a53df2bd5b415bf9ed8533287f3020dfc",
+            "at_variant": "baseline"
+          },
+          "total": {
+            "enforced": 916000,
+            "observed_maximum": 358519,
+            "margin": 557481,
+            "headroom_ratio": 2.55,
+            "at_task_hash": "775f95710c5b09fd79e5720554b764f8a1c938063e5743977efe9a4f9d6dc12b",
+            "at_variant": "baseline"
+          },
+          "agent_seconds": {
+            "enforced": 600.0,
+            "observed_maximum": 212.3772051334381,
+            "margin": 387.6,
+            "headroom_ratio": 2.83,
+            "at_task_hash": "0a5bde37b05e74be39c62f4418d4812a123d627bc627591fb02dde124b246426",
+            "at_variant": "baseline"
+          }
+        },
+        "episodes_reaching_a_limit": [],
+        "stop_conditions": {
+          "agent_completed": 72
+        },
+        "calls_total": 459,
+        "errored_calls_total": 0,
+        "turns_total": 459,
+        "calls_at_or_over_sampling_cap": 0,
+        "usage": {
+          "uncached_input_tokens": 3231115,
+          "cached_input_tokens": 2149376,
+          "output_tokens": 92067
+        },
+        "cost_usd_all_input_at_uncached_rate": 0.1734,
+        "cost_usd_if_cached_input_free": 0.1089,
+        "variants": {
+          "baseline": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 891.0,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 2709.0,
+            "headroom_ratio": 4.04,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          },
+          "candidate": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 424.2,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 3175.8,
+            "headroom_ratio": 8.49,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          }
+        },
+        "worst_variant_seconds": 891.0,
+        "any_variant_reached_deadline": false,
+        "result": {
+          "baseline_mean": 0,
+          "candidate_mean": 0.6666666666666666,
+          "absolute_delta": 0.6666666666666666,
+          "wins": 24,
+          "losses": 0,
+          "ties": 12,
+          "baseline_score": "0/36",
+          "candidate_score": "24/36",
+          "episodes_without_a_reward": 0,
+          "statuses": {
+            "comparison": "controlled_with_warnings",
+            "evidence": "complete",
+            "execution": "completed",
+            "publication": "not_requested",
+            "score": "valid"
+          },
+          "decision": "accepted",
+          "proof_grade": "P1",
+          "warnings": null
+        },
+        "report_payload_digest": null,
+        "report_file_digest": "sha256:5ad470aaee6304808e34c530fe62270bdb1c7ea99464a0968decbd4a35e45bc3",
+        "bundle_payload_digest": "sha256:f41e51357f1f95fde1673b788a9451268e88c232bd5f64bdc7eb8424ab66d466",
+        "bundle_file_digest": "sha256:b8dedfe15d813a59cbda22ae71318f1cf3f160a7a87c37b1faa87849077113c5",
+        "execution_record_digest": "sha256:b66f5471398cf62e3e0ba5fb2ed600786a73643d1b6f87389cd35ff9c2c6f3a0"
+      },
+      {
+        "role": "stability #2",
+        "run_id": "run_8fdfdcf69811483b8c2e3260c7e2784c",
+        "episodes": 72,
+        "per_episode_limits": {
+          "turns": {
+            "enforced": 44,
+            "observed_maximum": 19,
+            "margin": 25,
+            "headroom_ratio": 2.32,
+            "at_task_hash": "e08bb7c7a18a57a83d2ad8dba412c416a8746f708f54b8a29efc0355cabbdb45",
+            "at_variant": "baseline"
+          },
+          "input": {
+            "enforced": 900000,
+            "observed_maximum": 242506,
+            "margin": 657494,
+            "headroom_ratio": 3.71,
+            "at_task_hash": "3efcd8d42d8adfce2038f5e5d8c88c3ec1d30d6ae3379c4727ea711b28e1929d",
+            "at_variant": "baseline"
+          },
+          "output": {
+            "enforced": 16000,
+            "observed_maximum": 5260,
+            "margin": 10740,
+            "headroom_ratio": 3.04,
+            "at_task_hash": "3efcd8d42d8adfce2038f5e5d8c88c3ec1d30d6ae3379c4727ea711b28e1929d",
+            "at_variant": "baseline"
+          },
+          "total": {
+            "enforced": 916000,
+            "observed_maximum": 247766,
+            "margin": 668234,
+            "headroom_ratio": 3.7,
+            "at_task_hash": "3efcd8d42d8adfce2038f5e5d8c88c3ec1d30d6ae3379c4727ea711b28e1929d",
+            "at_variant": "baseline"
+          },
+          "agent_seconds": {
+            "enforced": 600.0,
+            "observed_maximum": 130.8720622062683,
+            "margin": 469.1,
+            "headroom_ratio": 4.58,
+            "at_task_hash": "4b6a3d718933e312c05adff201cd14ab1d58b0eb5c0a0d32faccedc09cb9af68",
+            "at_variant": "baseline"
+          }
+        },
+        "episodes_reaching_a_limit": [],
+        "stop_conditions": {
+          "agent_completed": 72
+        },
+        "calls_total": 404,
+        "errored_calls_total": 0,
+        "turns_total": 404,
+        "calls_at_or_over_sampling_cap": 0,
+        "usage": {
+          "uncached_input_tokens": 2935125,
+          "cached_input_tokens": 1724416,
+          "output_tokens": 75827
+        },
+        "cost_usd_all_input_at_uncached_rate": 0.1496,
+        "cost_usd_if_cached_input_free": 0.0979,
+        "variants": {
+          "baseline": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 670.0,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 2930.0,
+            "headroom_ratio": 5.37,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          },
+          "candidate": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 300.4,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 3299.6,
+            "headroom_ratio": 11.98,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          }
+        },
+        "worst_variant_seconds": 670.0,
+        "any_variant_reached_deadline": false,
+        "result": {
+          "baseline_mean": 0,
+          "candidate_mean": 0.6388888888888888,
+          "absolute_delta": 0.6388888888888888,
+          "wins": 23,
+          "losses": 0,
+          "ties": 13,
+          "baseline_score": "0/36",
+          "candidate_score": "23/36",
+          "episodes_without_a_reward": 0,
+          "statuses": {
+            "comparison": "controlled_with_warnings",
+            "evidence": "complete",
+            "execution": "completed",
+            "publication": "not_requested",
+            "score": "valid"
+          },
+          "decision": "accepted",
+          "proof_grade": "P1",
+          "warnings": null
+        },
+        "report_payload_digest": null,
+        "report_file_digest": "sha256:f002a836d2e641eb4558f6203deeebf9e99540978b5e296d5833da41b5ada793",
+        "bundle_payload_digest": "sha256:cee88ccff5e9b3d5a31d4ea85445272180369dc5ed6a8a421002b025e16e894f",
+        "bundle_file_digest": "sha256:34dce285f71fa8418f4c94c2378b746cdc1456b58dc71071759b9cd7e5e909f1",
+        "execution_record_digest": "sha256:66872df7d30466e014a73c6e84069c5f4413016fbe3062999f8d9d14ceba64e8"
+      },
+      {
+        "role": "engine reference",
+        "run_id": "run_ad759a00588540b3b7020a4118599799",
+        "episodes": 72,
+        "per_episode_limits": {
+          "turns": {
+            "enforced": 44,
+            "observed_maximum": 19,
+            "margin": 25,
+            "headroom_ratio": 2.32,
+            "at_task_hash": "775f95710c5b09fd79e5720554b764f8a1c938063e5743977efe9a4f9d6dc12b",
+            "at_variant": "baseline"
+          },
+          "input": {
+            "enforced": 900000,
+            "observed_maximum": 240553,
+            "margin": 659447,
+            "headroom_ratio": 3.74,
+            "at_task_hash": "bd2815069c78bced9ef23d36770c941b27753dad15db3e6c3a90c197181202a1",
+            "at_variant": "baseline"
+          },
+          "output": {
+            "enforced": 16000,
+            "observed_maximum": 4164,
+            "margin": 11836,
+            "headroom_ratio": 3.84,
+            "at_task_hash": "206eb5646df5b41b67d28f0e42d370ceb3eb0d72a78cea97e5bbecb7e3841a9f",
+            "at_variant": "baseline"
+          },
+          "total": {
+            "enforced": 916000,
+            "observed_maximum": 244585,
+            "margin": 671415,
+            "headroom_ratio": 3.75,
+            "at_task_hash": "bd2815069c78bced9ef23d36770c941b27753dad15db3e6c3a90c197181202a1",
+            "at_variant": "baseline"
+          },
+          "agent_seconds": {
+            "enforced": 600.0,
+            "observed_maximum": 62.26284599304199,
+            "margin": 537.7,
+            "headroom_ratio": 9.64,
+            "at_task_hash": "206eb5646df5b41b67d28f0e42d370ceb3eb0d72a78cea97e5bbecb7e3841a9f",
+            "at_variant": "baseline"
+          }
+        },
+        "episodes_reaching_a_limit": [],
+        "stop_conditions": {
+          "agent_completed": 72
+        },
+        "calls_total": 440,
+        "errored_calls_total": 0,
+        "turns_total": 440,
+        "calls_at_or_over_sampling_cap": 0,
+        "usage": {
+          "uncached_input_tokens": 3351160,
+          "cached_input_tokens": 1771264,
+          "output_tokens": 74973
+        },
+        "cost_usd_all_input_at_uncached_rate": 0.1634,
+        "cost_usd_if_cached_input_free": 0.1103,
+        "variants": {
+          "baseline": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 662.1,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 2937.9,
+            "headroom_ratio": 5.44,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          },
+          "candidate": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 319.0,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 3281.0,
+            "headroom_ratio": 11.29,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          }
+        },
+        "worst_variant_seconds": 662.1,
+        "any_variant_reached_deadline": false,
+        "result": {
+          "baseline_mean": 0,
+          "candidate_mean": 1,
+          "absolute_delta": 1,
+          "wins": 36,
+          "losses": 0,
+          "ties": 0,
+          "baseline_score": "0/36",
+          "candidate_score": "36/36",
+          "episodes_without_a_reward": 0,
+          "statuses": {
+            "comparison": "controlled_with_warnings",
+            "evidence": "complete",
+            "execution": "completed",
+            "publication": "not_requested",
+            "score": "valid"
+          },
+          "decision": "accepted",
+          "proof_grade": "P1",
+          "warnings": null
+        },
+        "report_payload_digest": null,
+        "report_file_digest": "sha256:e3855700d341ab088e191ddec6ff3908b65681cff07d6faf08f5e86c8067f087",
+        "bundle_payload_digest": "sha256:9827854dbd737e7746569490ff50b5a9595b037d7b68be3f8e847f643392dccd",
+        "bundle_file_digest": "sha256:088eb76746af80b7175b93585aa033049274329de1973363418c0b40a5ec2c9d",
+        "execution_record_digest": "sha256:b2df2382f41beea9bb7ba1edb438b09d80f0c6593084fe4fdcc600121d791e4e"
+      },
+      {
+        "role": "v1 vs frozen v2",
+        "run_id": "run_ede1fd20186d43c68386a53501396fb5",
+        "episodes": 72,
+        "per_episode_limits": {
+          "turns": {
+            "enforced": 44,
+            "observed_maximum": 3,
+            "margin": 41,
+            "headroom_ratio": 14.67,
+            "at_task_hash": "4fb4ddcab900a74eb7cb6ff6a730cc07b5a244535f40f6ddb6aa726cb2796596",
+            "at_variant": "baseline"
+          },
+          "input": {
+            "enforced": 900000,
+            "observed_maximum": 35105,
+            "margin": 864895,
+            "headroom_ratio": 25.64,
+            "at_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "at_variant": "candidate"
+          },
+          "output": {
+            "enforced": 16000,
+            "observed_maximum": 868,
+            "margin": 15132,
+            "headroom_ratio": 18.43,
+            "at_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "at_variant": "candidate"
+          },
+          "total": {
+            "enforced": 916000,
+            "observed_maximum": 35973,
+            "margin": 880027,
+            "headroom_ratio": 25.46,
+            "at_task_hash": "0777a89a3da39284a1765937c3ce1cea7af2ac27a98ffee32e86a2a1fccca9b5",
+            "at_variant": "candidate"
+          },
+          "agent_seconds": {
+            "enforced": 600.0,
+            "observed_maximum": 105.21224093437195,
+            "margin": 494.8,
+            "headroom_ratio": 5.7,
+            "at_task_hash": "aee7f9a4999dce081dbd0ce6ab65db37ffe9bb88d9b4a07b944f376fef0a14ad",
+            "at_variant": "baseline"
+          }
+        },
+        "episodes_reaching_a_limit": [],
+        "stop_conditions": {
+          "agent_completed": 72
+        },
+        "calls_total": 151,
+        "errored_calls_total": 0,
+        "turns_total": 151,
+        "calls_at_or_over_sampling_cap": 0,
+        "usage": {
+          "uncached_input_tokens": 1394518,
+          "cached_input_tokens": 322560,
+          "output_tokens": 32982
+        },
+        "cost_usd_all_input_at_uncached_rate": 0.0558,
+        "cost_usd_if_cached_input_free": 0.0461,
+        "variants": {
+          "baseline": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 375.2,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 3224.8,
+            "headroom_ratio": 9.6,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          },
+          "candidate": {
+            "record_mode": "0o600",
+            "elapsed_seconds": 315.5,
+            "deadline_seconds": 3600.0,
+            "margin_seconds": 3284.5,
+            "headroom_ratio": 11.41,
+            "reached_deadline": false,
+            "reason": "completed",
+            "eval_exit_code": 0,
+            "supervisor_exit_code": 0,
+            "escalated_to_sigkill": false
+          }
+        },
+        "worst_variant_seconds": 375.2,
+        "any_variant_reached_deadline": false,
+        "result": {
+          "baseline_mean": 0.6388888888888888,
+          "candidate_mean": 0.6666666666666666,
+          "absolute_delta": 0.02777777777777779,
+          "wins": 1,
+          "losses": 0,
+          "ties": 35,
+          "baseline_score": "23/36",
+          "candidate_score": "24/36",
+          "episodes_without_a_reward": 0,
+          "statuses": {
+            "comparison": "controlled_with_warnings",
+            "evidence": "complete",
+            "execution": "completed",
+            "publication": "not_requested",
+            "score": "valid"
+          },
+          "decision": "accepted",
+          "proof_grade": "P1",
+          "warnings": null
+        },
+        "report_payload_digest": null,
+        "report_file_digest": "sha256:74c26dd1d44a260ac0bbdfa19c4b7db7a791af7d6439c40218c717b4ef7c5b23",
+        "bundle_payload_digest": "sha256:7f540adc1db807e3b17e40ccc227faa2a487193031db85ff57d843ea1fc4040c",
+        "bundle_file_digest": "sha256:f94f5d3e68500499c03b6a16f2c56708bb50a69243b37ab98b49c1d3837a02ed",
+        "execution_record_digest": "sha256:9bb4e58c7242eb626dd63501282d3e0ddc203ecfc3d845045cb07d5f57ea1654"
+      }
+    ],
+    "worst_case_across_runs": {
+      "turns": 28,
+      "input_tokens": 353790,
+      "output_tokens": 5260,
+      "total_tokens": 358519,
+      "agent_seconds": 212.4,
+      "variant_seconds": 891.0,
+      "episodes_reaching_any_limit": 0,
+      "any_variant_reached_the_deadline": false
+    },
+    "turn_conformance": {
+      "mode": "strict",
+      "tool": "tools/verify_turn_conformance.py",
+      "result": "exit 0 on all four canonical runs: 72 traces in 2 files each, every turn is one subject generation that produced a reply",
+      "rejected_exchange_info_lines": "none \u2014 on the quiet host the provider rejected no exchange in any of the four runs"
+    },
+    "total_cost_usd_all_input_at_uncached_rate": 0.5422,
+    "total_cost_usd_if_cached_input_free": 0.3632
+  },
+  "kill_injection": {
+    "run_id": "run_ba3998e2a0d94126bc7426d0c6b32aab",
+    "worker_pid": 77557,
+    "containers_before": [],
+    "subject_container_ids_at_kill": [
+      "0b8eebcd5452a66d5e1198cff7c913484419b442b6855221e73f271851d08dd7",
+      "1cd39a3cf84841f10f35ab6bc200961bbfb1194bfbdb427ef6149fbd5c26af63",
+      "3ea1ab3da3d85893cca234ed9172aad1336e5bb6efdd0936c7205708ef9d8eea",
+      "923c32b09d1403791053c76ee86c0222bd4bc69f6fc25a100484c9efd20591ef"
+    ],
+    "supervisor_pids": {
+      "baseline": 77628,
+      "candidate": 77629
+    },
+    "eval_pids": {
+      "baseline": 77630,
+      "candidate": 77631
+    },
+    "worker_descendants_at_kill": [
+      77628,
+      77629,
+      77630,
+      77631,
+      77871,
+      77872,
+      77895,
+      78130
+    ],
+    "supervision_records_before_kill": {
+      "baseline": null,
+      "candidate": null
+    },
+    "worker_sigkilled_at": 1787271670.5012858,
+    "worker_gone_seconds_after_kill": 1.2500036973506212e-05,
+    "supervision_record_written_seconds_after_kill": {
+      "baseline": 1.0814102090080269,
+      "candidate": 1.0814102090080269
+    },
+    "supervisor_exit_seconds_after_kill": {
+      "baseline": 1.0814102090080269,
+      "candidate": 1.0814102090080269
+    },
+    "eval_exit_seconds_after_kill": {
+      "baseline": 1.0814102090080269,
+      "candidate": 1.0814102090080269
+    },
+    "container_disappeared_seconds_after_kill": {
+      "0b8eebcd5452a66d5e1198cff7c913484419b442b6855221e73f271851d08dd7": 0.5450722920359112,
+      "1cd39a3cf84841f10f35ab6bc200961bbfb1194bfbdb427ef6149fbd5c26af63": 0.5450722920359112,
+      "3ea1ab3da3d85893cca234ed9172aad1336e5bb6efdd0936c7205708ef9d8eea": 0.5450722920359112,
+      "923c32b09d1403791053c76ee86c0222bd4bc69f6fc25a100484c9efd20591ef": 0.5450722920359112
+    },
+    "containers_never_disappeared": [],
+    "container_final_state": {
+      "0b8eebcd5452a66d5e1198cff7c913484419b442b6855221e73f271851d08dd7": {
+        "present": false
+      },
+      "1cd39a3cf84841f10f35ab6bc200961bbfb1194bfbdb427ef6149fbd5c26af63": {
+        "present": false
+      },
+      "3ea1ab3da3d85893cca234ed9172aad1336e5bb6efdd0936c7205708ef9d8eea": {
+        "present": false
+      },
+      "923c32b09d1403791053c76ee86c0222bd4bc69f6fc25a100484c9efd20591ef": {
+        "present": false
+      }
+    },
+    "total_cleanup_seconds": 1.1,
+    "leftover_new_running_containers": [],
+    "supervision_records_after": {
+      "baseline": {
+        "mode": "0o600",
+        "record": {
+          "deadline_seconds": 3600.0,
+          "elapsed_seconds": 18.518,
+          "escalated_to_sigkill": false,
+          "eval_exit_code": 130,
+          "eval_pid": 77630,
+          "eval_process_group": 77630,
+          "finished_at": "2026-08-21T00:21:11.444577+00:00",
+          "grace_seconds": 20.0,
+          "reason": "parent_lost",
+          "schema_version": "techtree.eval-supervision.v1",
+          "shutdown_seconds": 0.941,
+          "started_at": "2026-08-21T00:20:52.926761+00:00",
+          "supervisor_exit_code": 130,
+          "supervisor_pid": 77628,
+          "variant": "baseline"
+        }
+      },
+      "candidate": {
+        "mode": "0o600",
+        "record": {
+          "deadline_seconds": 3600.0,
+          "elapsed_seconds": 18.517,
+          "escalated_to_sigkill": false,
+          "eval_exit_code": 130,
+          "eval_pid": 77631,
+          "eval_process_group": 77631,
+          "finished_at": "2026-08-21T00:21:11.444292+00:00",
+          "grace_seconds": 20.0,
+          "reason": "parent_lost",
+          "schema_version": "techtree.eval-supervision.v1",
+          "shutdown_seconds": 0.941,
+          "started_at": "2026-08-21T00:20:52.926804+00:00",
+          "supervisor_exit_code": 130,
+          "supervisor_pid": 77629,
+          "variant": "candidate"
+        }
+      }
+    },
+    "timeline_tail": [
+      {
+        "seconds_since_kill": 0.0,
+        "recorded_containers_still_running": [
+          "0b8eebcd5452a66d5e1198cff7c913484419b442b6855221e73f271851d08dd7",
+          "1cd39a3cf84841f10f35ab6bc200961bbfb1194bfbdb427ef6149fbd5c26af63",
+          "3ea1ab3da3d85893cca234ed9172aad1336e5bb6efdd0936c7205708ef9d8eea",
+          "923c32b09d1403791053c76ee86c0222bd4bc69f6fc25a100484c9efd20591ef"
+        ],
+        "all_running_containers": 4
+      },
+      {
+        "seconds_since_kill": 0.55,
+        "recorded_containers_still_running": [],
+        "all_running_containers": 0
+      },
+      {
+        "seconds_since_kill": 1.08,
+        "recorded_containers_still_running": [],
+        "all_running_containers": 0
+      }
+    ],
+    "residual_provider_cost": {
+      "recorded_completed_episodes": 1,
+      "recorded_usage": {
+        "uncached_input_tokens": 13773,
+        "cached_input_tokens": 8832,
+        "output_tokens": 274
+      },
+      "recorded_cost_usd_all_input_at_uncached_rate": 0.0007,
+      "recorded_cost_usd_if_cached_input_free": 0.0004,
+      "note": "Only completed episodes are written to traces.jsonl, so the work of the episodes still in flight when the worker died is not in this figure. The worker was killed 18.5 s after the variants started, so that unrecorded work is seconds of it; its protocol ceiling is the per-episode exposure in this document, which holds whether or not the worker is alive."
+    },
+    "no_uplift_report": {
+      "report_directory_exists": false,
+      "proof_directory_exists": false,
+      "run_phase_after_kill": "running_variants",
+      "worker_alive": false,
+      "result_available": false,
+      "note": "A SIGKILLed worker cannot write its own terminal state, so the run record stays at the phase it had reached. No report and no proof bundle were produced, which is the point: a killed comparison yields no result."
+    },
+    "cleanup_seconds_summary": {
+      "worker_gone_after_kill_seconds": 1.2500036973506212e-05,
+      "supervision_records_written_after_kill_seconds": {
+        "baseline": 1.0814102090080269,
+        "candidate": 1.0814102090080269
+      },
+      "eval_trees_gone_after_kill_seconds": {
+        "baseline": 1.0814102090080269,
+        "candidate": 1.0814102090080269
+      },
+      "containers_gone_after_kill_seconds": {
+        "0b8eebcd5452a66d5e1198cff7c913484419b442b6855221e73f271851d08dd7": 0.5450722920359112,
+        "1cd39a3cf84841f10f35ab6bc200961bbfb1194bfbdb427ef6149fbd5c26af63": 0.5450722920359112,
+        "3ea1ab3da3d85893cca234ed9172aad1336e5bb6efdd0936c7205708ef9d8eea": 0.5450722920359112,
+        "923c32b09d1403791053c76ee86c0222bd4bc69f6fc25a100484c9efd20591ef": 0.5450722920359112
+      },
+      "total_cleanup_seconds": 1.1,
+      "supervisor_shutdown_seconds_from_records": 0.941,
+      "escalated_to_sigkill": false
+    },
+    "method": "Containers identified by before/after id diff with the exact ids recorded at the moment of the kill. Never by image. No docker kill, no docker rm -f, no sweep: the only cleanup path exercised is the supervisor's SIGTERM to the eval's own process group and the pinned engine's own teardown."
+  }
+}
