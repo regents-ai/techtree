@@ -293,13 +293,22 @@ def test_the_staging_root_is_named_in_the_removal_documentation() -> None:
 def test_staging_creates_private_directories_all_the_way_down(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    state_home = tmp_path / "state"
+    monkeypatch.setenv("XDG_STATE_HOME", str(state_home))
     service = ProposalService(bridge=FakeBridge())
 
     staged = service.write_temporary_skill(demo_id="demo_" + "0" * 32, output=_output())
 
-    for directory in (service.staging_root, staged.directory):
-        assert stat.S_IMODE(os.stat(directory).st_mode) == 0o700
+    # Every level the plugin created, including the state root above the
+    # staging directory — hardening the leaf alone left this one 0755
+    # (finding oj8). Walk from XDG_STATE_HOME down to the run directory.
+    created = (
+        state_home / "techtree-hermes",
+        service.staging_root,
+        staged.directory,
+    )
+    for directory in created:
+        assert stat.S_IMODE(os.stat(directory).st_mode) == 0o700, directory
     assert stat.S_IMODE(os.stat(staged.entrypoint).st_mode) == 0o600
     assert staged.directory.parent == service.staging_root
 
