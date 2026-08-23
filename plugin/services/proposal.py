@@ -59,6 +59,30 @@ _DIRECTORY_MODE: Final = stat.S_IRWXU
 _FILE_MODE: Final = stat.S_IRUSR | stat.S_IWUSR
 
 
+def _ensure_private_directory(path: Path) -> None:
+    """Create ``path`` and every missing ancestor, each one 0700.
+
+    ``mkdir(parents=True)`` makes intermediate directories under the process
+    umask and leaves them there, so hardening only the leaf hardens the room
+    and not the corridor: the plugin's own state root would be created 0755
+    and never tightened. Each level this call creates is made private at
+    creation, and re-hardened afterwards so the result is exact whatever the
+    umask. A directory that already existed is left as its owner set it.
+    """
+    missing: list[Path] = []
+    cursor = path
+    while not cursor.exists():
+        missing.append(cursor)
+        if cursor.parent == cursor:
+            break
+        cursor = cursor.parent
+    for directory in reversed(missing):
+        directory.mkdir(mode=_DIRECTORY_MODE, exist_ok=True)
+        os.chmod(directory, _DIRECTORY_MODE)
+    if path.exists():
+        os.chmod(path, _DIRECTORY_MODE)
+
+
 @dataclass(frozen=True)
 class StagedSkill:
     """A proposed Skill on disk, waiting to be handed over."""
@@ -102,8 +126,7 @@ class ProposalService:
     ) -> StagedSkill:
         """Write the proposed SKILL.md where only this user can read it."""
         parent = self.staging_root
-        parent.mkdir(parents=True, exist_ok=True)
-        os.chmod(parent, _DIRECTORY_MODE)
+        _ensure_private_directory(parent)
         directory = Path(
             tempfile.mkdtemp(prefix=f"techtree-proposal-{demo_id[:12]}-", dir=parent)
         )
