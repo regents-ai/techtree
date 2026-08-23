@@ -1,0 +1,254 @@
+{
+ "assertions": [
+  {
+   "assertion": "the instrument was alive",
+   "detail": "the deliberate loopback GET was recorded: [{\"method\": \"GET\", \"scheme\": \"http\", \"host\": \"127.0.0.1\", \"port\": 9, \"route\": \"/probe-self-test\"}]",
+   "result": "pass"
+  },
+  {
+   "assertion": "no mutating request was made by the product",
+   "detail": "1 product request(s) recorded, 0 of them with a method other than GET, HEAD or OPTIONS",
+   "result": "pass"
+  },
+  {
+   "assertion": "no mutation request to techtree.sh",
+   "detail": "1 request(s) to techtree.sh, 0 of them mutating",
+   "result": "pass"
+  },
+  {
+   "assertion": "the starter fetch is one GET and is not repeated",
+   "detail": "first materialisation made 1 request(s); the second made 0",
+   "result": "pass"
+  },
+  {
+   "assertion": "every recorded request is accounted for",
+   "detail": "2 request(s) in total, of which one is the instrument's own self-test",
+   "result": "pass"
+  }
+ ],
+ "contract": "docs/release/contracts/wp11g.md, no-upload method 2",
+ "executable": "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+ "generated_on": "2026-08-23",
+ "host": "Darwin 25.5.0 arm64",
+ "instrument": "tools/network_method_probe.py",
+ "limitations": [
+  "This is an observation of runs that happened, not a proof about runs that did not. It is the static audit \u2014 method 1 \u2014 that establishes there is no upload code path to exercise in the first place; this shows that the product, driven through its surface, behaves the way that audit predicts.",
+  "The recorder patches the standard library's HTTP and socket entry points. Code that reimplemented a socket below the standard library would evade the top two layers, though not the connect layer. The installed package imports no such thing: its only network import is urllib, and its dependency lock contains no HTTP client at all.",
+  "One machine, one release, one day. It says nothing about a different build, and it is meant to be re-run rather than cited forever."
+ ],
+ "observation_method": {
+  "continuous": "every request is recorded as it is made. Unlike a five-second poll, nothing can happen between samples.",
+  "installed_by": "a sitecustomize module on the child's PYTHONPATH, so the recorder is in place before any application code imports",
+  "kind": "in-process instrumentation, not packet or socket sampling",
+  "layers": [
+   "http.client.HTTPConnection.putrequest \u2014 method, route, host, port, scheme",
+   "socket.getaddrinfo \u2014 the host name a resolution was asked about",
+   "socket.socket.connect and connect_ex \u2014 the raw destination address"
+  ],
+  "self_test": "the first step makes a deliberate GET to a closed loopback port. It must appear in the recording, otherwise every zero below is the silence of a dead instrument rather than of a quiet product."
+ },
+ "purpose": "The method, host and route of every HTTP request the Techtree CLI makes across its whole network-reachable surface that does not require a paid comparison. WP11e's sampler could show destinations and nothing else; this shows what was asked for and how.",
+ "python": "3.12.12",
+ "schema_version": "techtree.network-method-log.v1",
+ "scope": {
+  "covers": [
+   "every Python process the probe starts, and any Python child that inherits PYTHONPATH",
+   "the CLI's whole command surface that is reachable without a paid comparison, including the one command that fetches"
+  ],
+  "does_not_cover": [
+   "the paid comparison path. Running it costs money and this probe never spends any. Its destinations are covered by method 3 instead \u2014 the WP11e sampler observed the provider and the package index and nothing else \u2014 and its configuration is covered by the resolved engine config, where push is false and the client base_url is the provider.",
+   "non-Python children. The Docker CLI, uv and git are separate executables, not Python, so a sitecustomize recorder cannot see inside them. What they contact is package-index and registry traffic, which method 3 enumerates as an expected destination.",
+   "the evaluation engine's own process. It has its own virtual environment and its own HTTP clients, and it is launched as a subprocess by the paid path above.",
+   "anything a request carried. Bodies are deliberately not recorded: the claim under test is about method and destination, and a body log would itself be a place a secret could land."
+  ]
+ },
+ "steps": [
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/python",
+    "-c",
+    "<self-test source>"
+   ],
+   "dns_lookups": [
+    {
+     "host": "127.0.0.1",
+     "port": 9
+    }
+   ],
+   "exit_code": 0,
+   "expectation": "one GET to a closed loopback port, which must appear in the recording. It is the seal on every zero below.",
+   "http_requests": [
+    {
+     "host": "127.0.0.1",
+     "method": "GET",
+     "port": 9,
+     "route": "/probe-self-test",
+     "scheme": "http"
+    }
+   ],
+   "id": "instrument_self_test",
+   "record_count": 3,
+   "socket_connections": [
+    {
+     "family": 2,
+     "host": "127.0.0.1",
+     "port": 9
+    }
+   ]
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--version"
+   ],
+   "dns_lookups": [],
+   "exit_code": 0,
+   "expectation": "no request",
+   "http_requests": [],
+   "id": "version",
+   "record_count": 0,
+   "socket_connections": []
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "doctor"
+   ],
+   "dns_lookups": [],
+   "exit_code": 0,
+   "expectation": "no request. Readiness is answered from this machine: the Docker daemon over its local socket, uv and the engine on disk.",
+   "http_requests": [],
+   "id": "doctor",
+   "record_count": 0,
+   "socket_connections": []
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "release",
+    "info"
+   ],
+   "dns_lookups": [],
+   "exit_code": 0,
+   "expectation": "no request. ReleaseCore is packaged in the wheel.",
+   "http_requests": [],
+   "id": "release_info",
+   "record_count": 0,
+   "socket_connections": []
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "release",
+    "verify"
+   ],
+   "dns_lookups": [],
+   "exit_code": 0,
+   "expectation": "no request. The check is over local bytes.",
+   "http_requests": [],
+   "id": "release_verify",
+   "record_count": 0,
+   "socket_connections": []
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "climb",
+    "list"
+   ],
+   "dns_lookups": [],
+   "exit_code": 0,
+   "expectation": "no request. The catalog is packaged in the wheel.",
+   "http_requests": [],
+   "id": "climb_list",
+   "record_count": 0,
+   "socket_connections": []
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "climb",
+    "show",
+    "hello-world-climb@1"
+   ],
+   "dns_lookups": [],
+   "exit_code": 0,
+   "expectation": "no request.",
+   "http_requests": [],
+   "id": "climb_show",
+   "record_count": 0,
+   "socket_connections": []
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "run",
+    "status",
+    "run_00000000000000000000000000000000"
+   ],
+   "dns_lookups": [],
+   "exit_code": 5,
+   "expectation": "no request. A run this machine has never heard of is answered from local state, not by asking anyone.",
+   "http_requests": [],
+   "id": "run_status_unknown",
+   "record_count": 0,
+   "socket_connections": []
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "skill",
+    "starter"
+   ],
+   "dns_lookups": [
+    {
+     "host": "techtree.sh",
+     "port": 443
+    }
+   ],
+   "exit_code": 0,
+   "expectation": "exactly one request: GET of the content-addressed starter object the release pins. This is the product's only outbound call site and its only contact with techtree.sh.",
+   "http_requests": [
+    {
+     "host": "techtree.sh",
+     "method": "GET",
+     "port": 443,
+     "route": "/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+     "scheme": "https"
+    }
+   ],
+   "id": "skill_starter",
+   "record_count": 3,
+   "socket_connections": [
+    {
+     "family": 30,
+     "host": "2a09:8280:1::177:ed19:0",
+     "port": 443
+    }
+   ]
+  },
+  {
+   "argv": [
+    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "--json",
+    "skill",
+    "starter"
+   ],
+   "dns_lookups": [],
+   "exit_code": 0,
+   "expectation": "no request. The verified cache entry answers without a fetch, so a second materialisation is not a second read.",
+   "http_requests": [],
+   "id": "skill_starter_again",
+   "record_count": 0,
+   "socket_connections": []
+  }
+ ],
+ "ticket": "techtree-python-ndq.3.7"
+}

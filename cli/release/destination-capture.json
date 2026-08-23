@@ -1,0 +1,192 @@
+{
+ "assertions": [
+  {
+   "assertion": "no mutation request to techtree.sh",
+   "evidence": "release/network-method-log.json records one techtree.sh request and its method is GET; the installed package contains no POST, PUT, PATCH or DELETE call site; the ash release surface answers every mutating method with 405",
+   "result": "pass"
+  },
+  {
+   "assertion": "no unexpected Techtree artifact destination",
+   "evidence": "the observed peer union is the provider and the package index. Neither receives an Episode, a Trace, a proof or a Skill proposal: the provider receives model calls, and the index is read from.",
+   "result": "pass"
+  },
+  {
+   "assertion": "verifiers push is disabled in every resolved configuration",
+   "evidence": "178 verifiers configuration files across the durable evidence, every one of them push = false, no other value anywhere",
+   "result": "pass"
+  }
+ ],
+ "claim_under_test": "Techtree does not upload local Episodes, Traces, proofs, or Skill proposals. Model requests are sent to the selected providers.",
+ "contract": "docs/release/contracts/wp11g.md, no-upload method 3",
+ "expected_destinations": [
+  {
+   "carries_techtree_artifacts": false,
+   "destination": "pypi.org and files.pythonhosted.org",
+   "observed": true,
+   "observed_as": "151.101.64.223, 151.101.128.223, 151.101.192.223 on 443",
+   "who_contacts_it": "uv, while installing the CLI and the engine",
+   "why": "the package origin. The CLI's lock and the engine's lock both name https://pypi.org/simple and no other index."
+  },
+  {
+   "carries_techtree_artifacts": false,
+   "destination": "github.com",
+   "note": "not seen in any leg. The five-second sampler cannot prove a short-lived connection did not happen, and the legs reused a warm uv cache. Recorded as expected-and-unobserved rather than as absent.",
+   "observed": false,
+   "observed_as": null,
+   "who_contacts_it": "uv, only when the engine is built rather than served from cache",
+   "why": "the engine lock pins one dependency to an exact 40-character git revision (Verifiers at 7e1c47d24d055aae587ee8259f77a3e8e193513a). Resolving it is a clone, not an upload."
+  },
+  {
+   "carries_techtree_artifacts": false,
+   "destination": "the Docker registry for the pinned subject image",
+   "note": "outside the sampler by construction: the daemon is not a descendant of the journey's process tree, and neither is anything inside a container. The image is pulled by digest and the pull is a read.",
+   "observed": false,
+   "observed_as": null,
+   "who_contacts_it": "the Docker daemon",
+   "why": "the Campaign pins the subject image by manifest digest; a machine that does not hold it must pull it."
+  },
+  {
+   "carries_techtree_artifacts": "the evaluated prompts and completions, which is what a model call is. No Episode, Trace, proof or Skill proposal is sent anywhere.",
+   "corroboration": "every resolved engine configuration in the evidence names base_url = https://api.pinference.ai/api/v1, which is what attributes those two addresses",
+   "destination": "api.pinference.ai \u2014 the selected model provider",
+   "observed": true,
+   "observed_as": "104.18.8.113 and 104.18.9.113 on 443",
+   "who_contacts_it": "the evaluation engine, in its own environment",
+   "why": "this is the part of the claim that is deliberately not a denial. A comparison buys model tokens, and the requests go to the provider the Campaign names."
+  },
+  {
+   "carries_techtree_artifacts": false,
+   "destination": "techtree.sh \u2014 read-only",
+   "observed": true,
+   "observed_as": "GET https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c, to 2a09:8280:1::177:ed19:0 on 443, in the WP11g probe",
+   "observed_by_the_sampler": false,
+   "sampler_note": "zero connections to 66.241.124.2 or 2a09:8280:1::177:ed19:0 appear in any of the three logs. The fetch is sub-second and the poll is five-second, so the sampler's zero is a miss, not a contradiction \u2014 which is exactly why method 2 exists.",
+   "who_contacts_it": "the CLI, at techtree/skills/starter.py",
+   "why": "one content-addressed object: the starter Skill the release pins by digest."
+  }
+ ],
+ "generated_on": "2026-08-23",
+ "how_destinations_were_observed": {
+  "in_process_probe": {
+   "instrument": "tools/network_method_probe.py",
+   "record": "release/network-method-log.json",
+   "what": "the WP11g instrumented log, which records method, host and route as each request is made",
+   "why_it_is_here_too": "the sampler never caught the one deliberate techtree.sh read, because it is a sub-second fetch between two polls. The probe caught it, named it, and showed it was a GET."
+  },
+  "resolved_engine_configuration": {
+   "client_base_url_lines": {
+    "base_url = \"https://api.pinference.ai/api/v1\"": 117
+   },
+   "push_lines": {
+    "push = false": 178
+   },
+   "verifiers_config_files_read": 178
+  },
+  "sampler": {
+   "counts_recomputed_here": "the sample counts and peer tallies above were recounted from the logs for this review rather than transcribed from the WP11e report",
+   "does_not_record": "host name, HTTP method, route, DNS query, bytes, or any part of a request or a response",
+   "legs": {
+    "wp11e-2026-08-19": {
+     "bytes": 80558,
+     "loopback_peer_lines": 993,
+     "non_loopback_peer_observations": {
+      "104.18.8.113:443": 187,
+      "104.18.9.113:443": 339,
+      "151.101.128.223:443": 2,
+      "151.101.192.223:443": 2
+     },
+     "path": "/Users/sean/Documents/techtree-climb/certification-evidence/wp11e-2026-08-19/evidence/netwatch.log",
+     "samples": 374,
+     "sha256": "6a160f68e770d6d635a83c000ea0a21d32f7900e69c33f53651716b5a159f937",
+     "window_utc": {
+      "first": "2026-08-19T23:31:29Z",
+      "last": "2026-08-20T00:03:08Z"
+     }
+    },
+    "wp11e-recert-2026-08-20": {
+     "bytes": 106501,
+     "loopback_peer_lines": 1411,
+     "non_loopback_peer_observations": {
+      "104.18.8.113:443": 132,
+      "104.18.9.113:443": 526,
+      "151.101.128.223:443": 1,
+      "151.101.64.223:443": 1
+     },
+     "path": "/Users/sean/Documents/techtree-climb/certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch.log",
+     "samples": 378,
+     "sha256": "b5e583fe400475577ac5ef8e27c9b1463ce77bfa0cb39836d54272aa9e4a065a",
+     "window_utc": {
+      "first": "2026-08-20T01:15:25Z",
+      "last": "2026-08-20T01:47:28Z"
+     }
+    },
+    "wp11e-recert-2026-08-20-attempt-3": {
+     "bytes": 27513,
+     "loopback_peer_lines": 264,
+     "non_loopback_peer_observations": {
+      "104.18.8.113:443": 241,
+      "104.18.9.113:443": 6
+     },
+     "path": "/Users/sean/Documents/techtree-climb/certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch-a3.log",
+     "samples": 132,
+     "sha256": "87dadc580c5985e9adfc724a79deed32629bfe01a8c63ac0cb9b266c93d7a143",
+     "window_utc": {
+      "first": "2026-08-20T08:29:43Z",
+      "last": "2026-08-20T08:40:50Z"
+     }
+    }
+   },
+   "records": "IP address and port only",
+   "tool": "lsof -nP -a -p <pids> -i TCP -sTCP:ESTABLISHED, in a shell loop; the scripts are netwatch.sh and netwatch-a3.sh beside each log",
+   "what": "every established remote TCP peer held by the journey's process tree, sampled every five seconds for the whole leg"
+  }
+ },
+ "limitations": [
+  "The sampler is a poll, not a capture. It sees sockets that were established at the instant of the sweep; anything opened and closed inside a five-second gap is invisible to it. It supports 'this peer was never observed', never 'this request was never made'. The starter fetch is the worked example: it happened, and the sampler missed it.",
+  "The sampler records addresses. Naming them is an attribution made from the resolved engine configuration and from what each process was doing at the time, not something the capture itself recorded.",
+  "Traffic from inside a subject container has its own network namespace and is not in the journey's process tree, so the sampler cannot see it. The engine configuration blocks the subject runtime's network entirely (allow = [], block = ['*']), which is a configuration assertion rather than an observation.",
+  "The WP11e re-certification report states 375 samples for its leg; the log it was written from holds 378 timestamp lines. The report was written while the sampler was still running. The figure recorded here is the log's own count.",
+  "Three legs, one machine, one release. This is the destination evidence that exists, not a continuous audit of the product in the field."
+ ],
+ "probe_assertions_carried_forward": [
+  {
+   "assertion": "the instrument was alive",
+   "detail": "the deliberate loopback GET was recorded: [{\"method\": \"GET\", \"scheme\": \"http\", \"host\": \"127.0.0.1\", \"port\": 9, \"route\": \"/probe-self-test\"}]",
+   "result": "pass"
+  },
+  {
+   "assertion": "no mutating request was made by the product",
+   "detail": "1 product request(s) recorded, 0 of them with a method other than GET, HEAD or OPTIONS",
+   "result": "pass"
+  },
+  {
+   "assertion": "no mutation request to techtree.sh",
+   "detail": "1 request(s) to techtree.sh, 0 of them mutating",
+   "result": "pass"
+  },
+  {
+   "assertion": "the starter fetch is one GET and is not repeated",
+   "detail": "first materialisation made 1 request(s); the second made 0",
+   "result": "pass"
+  },
+  {
+   "assertion": "every recorded request is accounted for",
+   "detail": "2 request(s) in total, of which one is the instrument's own self-test",
+   "result": "pass"
+  }
+ ],
+ "purpose": "Enumerate every destination this release is expected to contact, then set that list against what was actually observed, and say whether anything else appeared. The question this answers is where bytes went, not what they said.",
+ "schema_version": "techtree.destination-capture.v1",
+ "ticket": "techtree-python-ndq.3.7",
+ "unexpected_destinations": {
+  "count": 0,
+  "detail": "the union of every non-loopback peer across all three legs is 104.18.8.113, 104.18.9.113, 151.101.128.223, 151.101.192.223, 151.101.64.223. Every one of them is on the expected list above. No other remote peer was observed in 884 samples.",
+  "union_of_observed_peers": {
+   "104.18.8.113": 560,
+   "104.18.9.113": 871,
+   "151.101.128.223": 3,
+   "151.101.192.223": 2,
+   "151.101.64.223": 1
+  }
+ }
+}

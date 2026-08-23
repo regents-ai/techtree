@@ -1,0 +1,680 @@
+{
+ "artifacts_cited": {
+  "release/acceptance/terminal-e2e.json": "sha256:dc0e3c8d7eb682be18efbfd2f2b97e170702697cf0e719a5694a6720ed5c965f",
+  "release/certified-scientific-fingerprint.json": "sha256:629972418258cb56271b7e8c16aa517820b081de353675fa2cba5580bb05665e",
+  "release/hermes-scanner-dossier.md": "sha256:20848953b638df9e7cc627b90bb4e9401a42b73805fca1466ddb7ff100466fd5",
+  "release/orphan-bound-analysis.json": "sha256:ce48148e2443998457f05074dbbd7faf334c5a611e64203714d71867a38d8297",
+  "release/plugin-release-candidate.json": "sha256:b70b691846dcb6bc1cc341a0fd0946dd895677bf28ebbebeab2787860302a80b",
+  "release/release-core.json": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
+  "release/wheel-inspection.json": "sha256:b1a350bcaa8b672ce0f42aa2a191c82f37bef2a3fb4c36a5cefe75197ffcbac1",
+  "src/techtree/resources/engines/default/uv.lock": "sha256:5f019a340bbb74bf4f6f820ffe0951e02666fe26819553436b3bba64102ddc40",
+  "uv.lock": "sha256:b38547353d7e44008665ce971e842496206c8ccccf17e11b549cdfeea7f5e37a"
+ },
+ "binding": [
+  "decision 0014",
+  "decision 0015",
+  "decision 0023",
+  "spec \u00a79.12\u20139.13, \u00a715.8"
+ ],
+ "contract": "docs/release/contracts/wp11g.md",
+ "finding_disposition": [
+  {
+   "disposition": "NOT ACCEPTED \u2014 stop condition",
+   "finding": "The plugin state root ($XDG_STATE_HOME/techtree-hermes) is created by mkdir(parents=True) and left at the process umask \u2014 measured 0755 under umask 022. The contract specifies 0700.",
+   "future_ticket": "techtree-python-oj8",
+   "id": "plugin-state-root-mode",
+   "risk": "another local user can see that the directory exists and that it has a child called proposals. No content is exposed: the proposals directory is 0700 and the staged SKILL.md is 0600.",
+   "scope": "the plugin's own state directory, on every machine that stages a proposal",
+   "why_not_accepted": "the contract names a mode and the mode is not met. Low severity is a reason to fix it cheaply, not a reason to redefine the line."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1",
+   "finding": "The guided revision spends the host's money through the host's own model, and Techtree cannot see what it cost. Worse, the host can bill for an answer that contains nothing: on 2026-08-20 a completion spent its whole 32,768-token ceiling in the reasoning channel, returned message.content null, billed USD 0.1589, and the product counted the user's one revision as used with the typed code host_llm_unavailable \u2014 which is untrue, because the host answered and charged for it.",
+   "future_ticket": "techtree-python-bbu, with the design work in techtree-python-cjj",
+   "id": "unmetered-generation-billing",
+   "risk": "a first-time user pays for a completion and receives nothing, with no second attempt. This has now happened twice in acceptance, for two unrelated reasons.",
+   "scope": "the one guided revision the v0.1 introduction allows. It does not touch the comparison path, whose spend is bounded and pre-checked (cost bound USD 2.4152 against a declared maximum of 2.5).",
+   "why_accepted": "the host owns the sampling stack, the ceiling and the billing relationship; Techtree is handed one call and told nothing about its price. Metering it would mean claiming knowledge the product does not have. The plugin records the attempt honestly and the dossier states the division out loud rather than implying coverage: 'What Hermes does inside the single call it is handed is recorded per attempt and left to the host to account for \u2014 we do not claim more than we can hold.' The trigger is profile-specific; the consequence is not."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1",
+   "finding": "doctor reports the evaluation model credential PASS on presence and shape alone (verifiers/credentials.py:101-141, doctor/execution_checks.py:233). A revoked, expired or wrong-team key passes.",
+   "future_ticket": "techtree-python-aww",
+   "id": "stale-prime-key-passes-shape-check",
+   "risk": "the exact failure the check exists to prevent \u2014 a run that looks configured, provisions Docker, and finds thirty seconds later that nothing can answer.",
+   "scope": "the pre-run readiness check only. Nothing downstream trusts it further.",
+   "why_accepted": "validating the key means spending a request against the provider from inside a readiness check, which is its own unwelcome surprise, and a free introspection endpoint is provider-specific. The failure when it comes is loud and typed, and it arrives before any episode completes, so the cost is a stopped run rather than a wrong result. The check is also careful about the thing it can get wrong cheaply: it answers for the environment a detached run would be given, not for the terminal it was typed into."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1 as a documentation fix",
+   "finding": "The published install argv lets uv choose the interpreter. On a machine whose default is 3.14 it installs onto CPython 3.14.7, outside the wheel's declared Requires-Python: >=3.12,<3.14, and the user's first doctor fails with 'Python 3.14.7 is outside the supported range'.",
+   "future_ticket": "techtree-python-vom",
+   "id": "uv-selects-unsupported-python",
+   "risk": "a first-run failure on a machine that is otherwise fine. It is the first thing a new user would see.",
+   "scope": "the published install instructions, and only on machines defaulting to 3.14",
+   "why_accepted": "nothing is wrong with the product: the wheel metadata is correct, the doctor detects the condition, names it precisely and refuses. What is wrong is one line of published copy. Pinning --python 3.12 in the quickstart fixes it without a code change, which makes it a docs ticket rather than a release blocker."
+  },
+  {
+   "disposition": "ACCEPTED \u2014 and it is the outcome that was asked for",
+   "finding": "Installing the plugin depends on a person reading five scanner findings and confirming. The verdict is CAUTION, the install decision is BLOCKED \u2014 requires confirmation, and confirming is the reader's to give.",
+   "future_ticket": "techtree-python-llv (closed; the appeal to Nous Research is outstanding)",
+   "id": "hermes-scanner-caution-confirm",
+   "risk": "a reader who confirms without reading gets the same install as a reader who reads. The five findings are inherent to what the plugin is: a command-word list that constitutes a guard, three fixed-argv calls to a pinned CLI, and a control-character stripper matched by a rule looking for obfuscation.",
+   "scope": "plugin installation, until trusted-source or verified-publisher status is granted",
+   "why_accepted": "the alternative paths were both refused and remain refused: no fixture was disguised, renamed or encoded to slip past a scanner, and nothing anywhere tells a user or an agent to switch scanning off. What was done instead is real \u2014 the adversarial corpus moved out of the installable tree, taking the verdict from DANGEROUS with no override to CAUTION with a confirm \u2014 and the onboarding copy now states the verdict in advance, explains each finding in plain words and says the scanning stays on."
+  },
+  {
+   "disposition": "ACCEPTED as an open dependency, not as a limitation of this review",
+   "finding": "WP11f \u2014 the agent-first Hermes onboarding journey, eighteen steps with twelve acceptance points \u2014 is not certified. Its ticket is open.",
+   "future_ticket": "techtree-python-ndq.3.6",
+   "id": "wp11f-journey-evidence-pending",
+   "risk": "this review covers the security properties of the artifacts and of the terminal journey WP11e certified. It does not cover the onboarding journey a community user would actually take. Approval checkpoints before plugin install, CLI install and paid run are evidenced in code and in WP11e, but not in an end-to-end onboarding run.",
+   "scope": "the community onboarding path only",
+   "why_accepted": "WP11f is its own ticket with its own execution contract, and it is sequenced after this one. Claiming its evidence here would be the padding this review is meant not to do."
+  },
+  {
+   "disposition": "ACCEPTED \u2014 recorded per contract \u00a7'Plugin Skill conflict scan'",
+   "finding": "The plugin's envelope-conflict scan is deterministic and statement-level. A paraphrase can pass it. v0.1 adds no LLM-based semantic scanner.",
+   "future_ticket": "techtree-python-cjj",
+   "id": "skill-conflict-scan-paraphrase",
+   "risk": "an operator Skill could carry an instruction that conflicts with the safety envelope in words the scan does not match.",
+   "scope": "future untrusted operator Skills. In v0.1 the only inputs are two digest-pinned founder Skills and one model-authored revision that a person sees before anything happens with it.",
+   "why_accepted": "four things hold instead, and none of them is the scan: the founder Skills are pinned by exact digest and byte-identical across three repositories; there is a manual security review; there are negative tests for known conflicting instructions; and the envelope is hardcoded \u2014 one-turn, no-upload and no-auto-run are not expressible in a Skill and cannot be overridden by one. An LLM scanner would put a model in the position of deciding whether another model's output is safe, which is a larger design question than v0.1 should answer in passing."
+  },
+  {
+   "disposition": "ACCEPTED \u2014 founder ruling, recorded here for completeness",
+   "finding": "Two deterministic guards on the guided-revision path were deleted by founder ruling: the numeric-claims heuristic (techtree-python-5f6) and the generic secret-assignment heuristic (techtree-python-0mx).",
+   "future_ticket": "techtree-python-cjj",
+   "id": "guard-deletions-shrank-the-deterministic-surface",
+   "risk": "less deterministic checking of model-authored text than the design originally carried.",
+   "scope": "the guided-revision narrative and Skill-scan paths",
+   "why_accepted": "both were destroying paid turns on ordinary English \u2014 'modulo-97' read as the number -97 on a task family about arithmetic modulo 97, and 'that token: no reasoning' read as a credential assignment on a Climb entirely about returning a token. Neither guard held the envelope; both guessed at meaning from surface text. The envelope itself, the copy-guard and the Skill scanner's structural rules are untouched, and ndq.3.28 strengthened the copy-guard in the same cycle."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1",
+   "finding": "Two of the seven contract scrubber cases have no test: token in query string (neither scrubber) and private key block (Python side). Both redact today; both were verified by hand for this review.",
+   "future_ticket": "techtree-python-iql",
+   "id": "scrubber-cases-untested",
+   "risk": "the behaviour is not held by anything. On the Python side the query-string case is caught incidentally by the secret-assignment rule rather than by a rule written for it, and the PEM case is caught by the opaque-run rule, which leaves the BEGIN/END framing and would leave a final body line under 40 characters.",
+   "scope": "error-message and error-details scrubbing on both sides of the CLI boundary",
+   "why_accepted": "no case leaks, which is the stop condition. Adding two tests is a small, safe change, but it is a change to the certified tree at the end of the release, and the measured behaviour is recorded here so nothing rests on an untested assumption being invisible."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1",
+   "finding": "Both recursive scrubbers walk str, mapping and list. A tuple or set passes through with its secret intact.",
+   "future_ticket": "techtree-python-8yn",
+   "id": "scrubber-walk-misses-tuples",
+   "risk": "an unscrubbed credential in an error's details, if such a shape ever arrives",
+   "scope": "error details on both sides",
+   "why_accepted": "unreachable through the shapes that exist. On the Python side sanitize_details is typed JsonValue under strict mypy, so an authored call site cannot pass a tuple. On the plugin side the input is a JSON-decoded envelope and json.loads produces no tuples. It is one refactor away from being reachable, which is why it is written down rather than left as a detail."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1",
+   "finding": "The worker log is opened at 0600 and is 0600 everywhere in the durable evidence, but no test asserts it. The verifiers capture logs are covered; this one log is not.",
+   "future_ticket": "techtree-python-yl8",
+   "id": "worker-log-mode-untested",
+   "risk": "a future change to the launcher could loosen it silently",
+   "scope": "the worker log only",
+   "why_accepted": "the mode is correct today and measured on real files, in every run in the evidence"
+  },
+  {
+   "disposition": "ACCEPTED for v0.1",
+   "finding": "A mutating verb against an ash static asset path answers 404 rather than 405, because static paths are not in the routing table that MethodSurface derives its published set from. No test asserts it.",
+   "future_ticket": "techtree-python-ytu",
+   "id": "static-paths-outside-405",
+   "risk": "none to writability \u2014 Plug.Static serves GET and HEAD only and there is no route behind them. The surface simply answers two ways for two kinds of read-only address.",
+   "scope": "the website's static asset paths",
+   "why_accepted": "cosmetic. Nothing is writable and no artifact is reachable."
+  },
+  {
+   "disposition": "ACCEPTED",
+   "finding": "The plugin's no-socket property is enforced by AST scans of literal import statements. A dynamic importlib call would evade them, and the bundled skills/ directory is excluded from both scans.",
+   "future_ticket": "none filed; revisit if the plugin ever gains a plugin system of its own",
+   "id": "plugin-ast-scan-static-imports-only",
+   "risk": "a future runtime module could reach a socket through importlib without failing the doctor",
+   "scope": "the plugin runtime",
+   "why_accepted": "there are three independent mechanisms, not one, and the third is not static at all: tests/plugin/contract/test_no_registration_side_effects.py replaces socket, urllib, http.client, subprocess and the exec family with tripwires at runtime and requires register() to complete anyway. No dynamic import exists in the plugin today. The skills/ exclusion is correct \u2014 those files are prompts, not loaded code."
+  },
+  {
+   "disposition": "ACCEPTED \u2014 this is the design, and it is why the claim is narrow",
+   "finding": "The evaluation engine's own lock resolves 110 packages including aiohttp, httpx, requests, urllib3 and the OpenAI client. The engine therefore has full HTTP capability, unlike the CLI.",
+   "future_ticket": "none \u2014 recorded as a scope boundary of the claim",
+   "id": "engine-holds-http-clients",
+   "risk": "the no-upload claim cannot rest on 'no HTTP client exists' for the engine, because one does. It rests instead on where the engine is pointed and on push being off.",
+   "scope": "the paid comparison path",
+   "why_accepted": "the engine is what talks to the model provider, which the claim deliberately does not deny. Its configuration is checked rather than trusted: every one of 178 resolved configurations in the durable evidence carries push = false and base_url pointing at the provider, and the upstream uploader module is proved never to enter sys.modules on a complete run."
+  },
+  {
+   "disposition": "ACCEPTED \u2014 and this is precisely why the contract requires three methods",
+   "finding": "The WP11e destination sampler polls every five seconds. It supports 'this peer was never observed', not 'this request was never made'. The worked example is in its own data: the deliberate techtree.sh GET happened and the sampler recorded zero connections to it.",
+   "future_ticket": "none \u2014 recorded as a property of the method",
+   "id": "sampler-cannot-prove-absence",
+   "risk": "reading the sampler's zeros as proofs of absence would overstate what it shows",
+   "scope": "method 3's evidence only",
+   "why_accepted": "the three methods are complementary by design. Method 1 establishes that no upload code path exists to exercise; method 2 records what was actually asked for, continuously, with method and route; method 3 enumerates where bytes went across the paid journeys the other two do not reach. No single one of them carries the claim."
+  },
+  {
+   "disposition": "ACCEPTED \u2014 corrected in this review's records",
+   "finding": "The WP11e re-certification report states 375 samples; its netwatch log holds 378 timestamp lines.",
+   "future_ticket": "none \u2014 the correction lives in release/destination-capture.json",
+   "id": "recert-sample-count-discrepancy",
+   "risk": "a small published figure that does not match its source",
+   "scope": "one number in one WP11e record",
+   "why_accepted": "the report was written while the sampler was still running and picked up a point-in-time count. Nothing depends on the exact figure. release/destination-capture.json records the log's own count and names the discrepancy rather than repeating 375."
+  },
+  {
+   "disposition": "ACCEPTED",
+   "finding": "Fifteen engine-written files in the durable evidence are 0644 rather than 0600. All fifteen belong to one run \u2014 the SIGKILL failure-injection run whose evaluation children were orphaned. Every other run, including all four recertification runs, carries the same file names at 0600.",
+   "future_ticket": "none \u2014 recorded as an observation",
+   "id": "orphaned-run-engine-output-modes",
+   "risk": "none reachable \u2014 every one of the fifteen sits inside a 0700 parent",
+   "scope": "one historical run directory in the evidence",
+   "why_accepted": "the correlation with the orphaning defect decision 0029 fixed is clear, and the runs executed after that fix are uniformly 0600. This review did not establish the causal chain and does not assert it."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1 \u2014 carried forward from WP11e",
+   "finding": "ReleaseCore integrity is not verified on the run path. A tampered ReleaseCore is caught only by explicitly running `techtree release verify`.",
+   "future_ticket": "none filed at WP11e; recorded there as a note without a ticket",
+   "id": "release-core-not-checked-on-the-run-path",
+   "risk": "a locally modified ReleaseCore would change which starter object is fetched. The fetch is still digest-checked against the ReleaseCore that named it, so the check is self-consistent rather than independent.",
+   "scope": "local tampering only",
+   "why_accepted": "an attacker who can rewrite files inside a 0700 Techtree home on the user's own machine already has the user's account. The verify command exists, is documented and is offline."
+  },
+  {
+   "disposition": "ACCEPTED for v0.1",
+   "finding": "`uv tool install --force` reported a successful reinstall and left the previous build of the same version in place, serving the wheel from its own cache. An acceptance leg can certify the wrong bytes.",
+   "future_ticket": "techtree-python-kml, with the sidecar generator at techtree-python-oce",
+   "id": "uv-force-serves-a-stale-wheel",
+   "risk": "certifying a build that is not the one under test",
+   "scope": "the release and acceptance install argv",
+   "why_accepted": "not a Techtree defect, and the product is what caught it: `techtree release info` reported the stamped source commit of the build actually installed. `--reinstall` in place of `--force` installs correctly. The current dist/ sidecar and wheel agree (5a402a43\u2026), so the artifact under review is not affected."
+  },
+  {
+   "disposition": "ACCEPTED",
+   "finding": "src/techtree/verifiers/compiler.py:171 does not pass push explicitly; it relies on the Literal[False] default at config.py:258.",
+   "future_ticket": "none",
+   "id": "compiler-relies-on-a-type-literal-for-push",
+   "risk": "a reader of the compiler cannot see that push is off without following the type",
+   "scope": "readability of one construction site",
+   "why_accepted": "the literal is stronger than an explicit argument, not weaker: push = true is unrepresentable in the type, so no call site can set it. The argv flag says it out loud anyway, and the resolved config is read back and checked."
+  }
+ ],
+ "finding_disposition_summary": {
+  "accepted": 19,
+  "not_accepted": 1,
+  "tickets_opened_by_this_review": [
+   "techtree-python-oj8",
+   "techtree-python-iql",
+   "techtree-python-8yn",
+   "techtree-python-yl8",
+   "techtree-python-aww",
+   "techtree-python-ytu"
+  ],
+  "total": 20,
+  "with_a_future_ticket": 13
+ },
+ "generated_on": "2026-08-23",
+ "hardening_adopted_this_cycle": {
+  "environment_allowlist": {
+   "applied_at": "techtree-plugin/bridge.py:81, at all three call sites (:194, :244, :281)",
+   "canary_test": "tests/plugin/unit/test_bridge.py:352 test_a_secret_the_cli_has_no_business_seeing_never_arrives \u2014 a wallet key planted in the host session reaches neither the child's environment (:359) nor any envelope the plugin returns (:360). Four more tests hold the list itself, including :386, which proves the build is by exact name and not by prefix.",
+   "credentials_deliberately_absent": "no provider credential is on the list. A run authenticates from Techtree's own configuration under HOME, the same way the certified worker does.",
+   "measured_not_hardcoded": "what the platform itself adds to any child process is measured and subtracted, so an unaccounted-for variable is a test failure (test_bridge.py:320)",
+   "the_ten": [
+    "PATH",
+    "HOME",
+    "TMPDIR",
+    "XDG_DATA_HOME",
+    "TECHTREE_HOME",
+    "TECHTREE_LOG_LEVEL",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TERM"
+   ],
+   "what": "the bridge used to hand the CLI child the host session's whole environment. It now builds one by name.",
+   "where": "techtree-plugin/constants.py:61-72 CLI_ENVIRONMENT_ALLOWLIST"
+  },
+  "manifest_capability_declaration": {
+   "declaration": "techtree-plugin/plugin.yaml:26-41",
+   "enforcement": "techtree-plugin/doctor.py:55-57 defines the complete field set and :143 raises on any key outside it. Adding capabilities: or requires_env: to plugin.yaml is a hard parse failure, not a warning.",
+   "tests": [
+    "tests/plugin/unit/test_schemas.py:38 \u2014 the manifest declares no environment credentials",
+    "tests/plugin/contract/test_plugin_doctor.py:164 \u2014 a manifest asking for a credential is rejected",
+    "tests/plugin/contract/test_plugin_doctor.py:272 \u2014 the grammar is strict, four cases"
+   ],
+   "what": "the manifest states what the plugin does with the machine, and the statement is enforced by a closed-field grammar rather than left as a comment."
+  }
+ },
+ "hermes_scanner": {
+  "after": "CAUTION, five findings in three families, at commit 0b0052fa: guards.py:86 (the command-word list that is the guard), three fixed-argv bridge calls, and channels.py:30 (the control-character stripper). Install decision: BLOCKED \u2014 requires confirmation.",
+  "before": "DANGEROUS, 17 findings, no override, at commit 880aa8a",
+  "dossier": "release/hermes-scanner-dossier.md",
+  "how_the_change_was_made": "the adversarial test corpus moved into techtree-python as tests/plugin/ and tools/plugin/, where the whole battery still runs (791 tests green against 0b0052fa). The installable tree ships runtime, Skills, release bytes and README only. Nothing measured moved: ReleaseCore, the frozen improver digest and the wheel digest are unchanged.",
+  "refused": "no fixture was disguised, renamed or encoded to slip past a scanner, and nothing anywhere tells a user or an agent to switch scanning off.",
+  "residual_dependence": "the install now depends on a person reading five findings and confirming. That is the outcome the appeal asked for, and it is also a dependence: a reader who confirms without reading gets the same install as a reader who reads."
+ },
+ "local_permissions": {
+  "measured": [
+   {
+    "detail": "under umask 022 the CLI created Library, Library/Application Support and Library/Application Support/techtree, and all three came out 0700 \u2014 the corridor as well as the room, which is what ndq.3.33 was about. src/techtree/fs.py:57-101 walks the missing ancestors and creates each with mode=0o700 at creation. Held by tests/unit/test_fs.py:316 under a 0o000 umask fixture.",
+    "measured": "0700",
+    "result": "pass",
+    "specified": "0700",
+    "target": "Techtree home root and every level above it that Techtree created"
+   },
+   {
+    "measured": "0700 in every one of the eleven evidence homes",
+    "result": "pass",
+    "specified": "0700",
+    "target": "cache, drafts, engines, identities, runs"
+   },
+   {
+    "detail": "src/techtree/identity/store.py:91 and :141 open it exclusively at 0600. Tests: tests/unit/test_identity_store.py:87 and :99.",
+    "measured": "0600 on every executor-private-key.bin in the evidence",
+    "result": "pass",
+    "specified": "0600",
+    "target": "private signing key"
+   },
+   {
+    "detail": "src/techtree/runs/launcher.py:72 and :177-182. The verifiers capture logs are covered by tests/unit/test_verifiers_child.py:268 and :456; the worker log's mode has no test \u2014 techtree-python-yl8.",
+    "measured": "0600 on every worker.log in the evidence",
+    "result": "pass, untested",
+    "specified": "0600",
+    "target": "logs"
+   },
+   {
+    "detail": "src/techtree/verifiers/supervisor.py:87 and :314. Test: tests/unit/test_verifiers_supervisor.py:314. The kill-injection record in release/orphan-bound-analysis.json records mode 0o600 for both variants.",
+    "measured": "0600 on all 18 supervision.json files in the evidence",
+    "result": "pass",
+    "specified": "0600",
+    "target": "supervision record"
+   },
+   {
+    "detail": "techtree-plugin/services/proposal.py:106 and :110",
+    "measured": "0700",
+    "result": "pass",
+    "specified": "0700",
+    "target": "proposal temp root"
+   },
+   {
+    "detail": "techtree-plugin/services/proposal.py:114. Test: tests/plugin/unit/test_proposal_service.py:105",
+    "measured": "0600",
+    "result": "pass",
+    "specified": "0600",
+    "target": "temporary proposed SKILL.md"
+   },
+   {
+    "detail": "techtree-plugin/services/proposal.py:105 creates it with mkdir(parents=True) and hardens only the leaf. The ndq.3.33 fix was never ported to the plugin. Content is not exposed \u2014 the proposals directory inside it is 0700 \u2014 but the specified mode is not met.",
+    "measured": "0755 under umask 022",
+    "result": "FAIL",
+    "specified": "0700",
+    "target": "plugin state root",
+    "ticket": "techtree-python-oj8"
+   }
+  ],
+  "method": "measured on live directories, not read out of the code. A scratch HOME was created with umask 022 and the CLI was driven through doctor and skill starter; then every file and directory in the eleven Techtree homes preserved in the durable certification evidence was stat'd.",
+  "whole_tree_census": {
+   "engine_venv": "the installed engine's virtual environment holds 9,195 directories at 0755 and ~72,000 files at 0644. Those bytes are written by uv under the operator's umask, not by Techtree, and the engines directory above them is 0700, so no other user can reach them.",
+   "lock_files": "cache/skills/.skills.lock is 0644 in three homes. It is an empty filelock sentinel with no content, inside a 0700 directory.",
+   "one_outlier_run": "fifteen engine-written files (eval.log, traces.jsonl, config.toml, results.jsonl, summary.json, validate.log) are 0644, and all fifteen belong to a single run: run_6cb6461a105f42e3b30b4eaf6e26c3c0, the SIGKILL failure-injection run whose evaluation children were orphaned. Every other run in the evidence, including all four recertification runs, carries the same file names at 0600. Every one of the fifteen sits inside a 0700 parent. The correlation with the orphaning defect decision 0029 fixed is recorded as a correlation; this review did not establish the causal chain.",
+   "scope": "eleven live Techtree homes in the durable certification evidence",
+   "techtree_written_paths_looser_than_specified": 0
+  }
+ },
+ "no_upload": {
+  "claim": "Techtree does not upload local Episodes, Traces, proofs, or Skill proposals. Model requests are sent to the selected providers.",
+  "claim_scope": "decision 0028 keeps this narrow on purpose. It is not a claim that nothing leaves the machine \u2014 a comparison buys model tokens and those requests go to the provider the Campaign names. It is a claim about which local artifacts are sent, and to whom.",
+  "method_1_static_route_and_client_audit": {
+   "ash_release_surface": {
+    "gap": "static asset paths are not in the routing table, so a mutating verb against one answers 404 rather than 405, and no test asserts it. Nothing is writable either way. techtree-python-ytu.",
+    "mutation_refusal": "lib/techtree_web/method_surface.ex:26-27 (@mutations, @allowed 'GET, HEAD'), :33-47 (405 with Allow header and a typed non-retryable error), :52-54 (published set derived from the routing table itself, so it cannot drift), installed ahead of the router at endpoint.ex:77-78",
+    "ndq_3_34_state": {
+     "method_override": "not installed anywhere in the plug chain",
+     "multipart_parser": "absent \u2014 endpoint.ex:70-73 lists only :urlencoded and :json",
+     "static_headers": "endpoint.ex:30-35 and :46-52, verified at endpoint_test.exs:122-143"
+    },
+    "router": "lib/techtree_web/router.ex:40-64",
+    "routes": 11,
+    "tests": [
+     "test/techtree_web/router_test.exs:13-17 \u2014 every route is a read",
+     "test/techtree_web/router_test.exs:19-35 \u2014 the routing table is pinned",
+     "test/techtree_web/router_test.exs:64-91 \u2014 11 paths \u00d7 4 mutating verbs, all 405",
+     "test/techtree_web/router_test.exs:93-99 \u2014 unpublished addresses stay 404",
+     "test/techtree_web/endpoint_test.exs:30-41 \u2014 multipart body \u2192 405",
+     "test/techtree_web/endpoint_test.exs:76-85 \u2014 9 MB body \u2192 405, body never fetched",
+     "test/techtree_web/endpoint_test.exs:100-118 \u2014 _method override ignored, 405"
+    ],
+    "verbs": "GET only in the routing table; HEAD synthesized by Plug.Head (endpoint.ex:75)"
+   },
+   "plugin_stdlib_only_no_socket": {
+    "conformance_tests": [
+     "tests/plugin/contract/test_plugin_doctor.py:178-186 \u2014 test_the_runtime_cannot_open_a_connection: the no_network check passes and is blocking on the real checkout",
+     "tests/plugin/contract/test_plugin_doctor.py:188-194 \u2014 the negative control: a planted `import urllib.request` blocks",
+     "tests/plugin/contract/test_plugin_doctor.py:207-225 \u2014 a third-party import and an `import techtree` both block",
+     "tests/plugin/contract/test_one_generation_request.py:294-309 \u2014 test_the_plugin_holds_no_client_that_could_retry, an independent AST scan that also covers openai, anthropic, tenacity and backoff",
+     "tests/plugin/contract/test_no_registration_side_effects.py:50-110 \u2014 the runtime seal: subprocess, os.exec/fork, socket, urllib.request.urlopen and http.client are all replaced by tripwires and register() must still complete"
+    ],
+    "enforced_by": [
+     "techtree-plugin/doctor.py:474-522 \u2014 _check_no_network, an AST walk over every runtime module against a networking module set, blocking",
+     "techtree-plugin/doctor.py:525-568 \u2014 _check_runtime_imports, same mechanism, blocking, and flags `import techtree` separately"
+    ],
+    "limits_of_the_property": "both scans read literal import statements, so a dynamic importlib call would evade them, and the bundled skills/ directory is excluded from both. No such usage exists today; the property is enforced against static imports.",
+    "property": "the plugin runtime imports only the standard library, opens no socket, and never imports Techtree's Python package. Its one route outward is a fixed-argv subprocess call to the pinned CLI."
+   },
+   "python_cli": {
+    "method": "AST scan of every module under src/, not grep alone",
+    "network_imports_in_the_shipped_package": [
+     "src/techtree/skills/starter.py:53 \u2014 import urllib.error",
+     "src/techtree/skills/starter.py:54 \u2014 import urllib.request"
+    ],
+    "not_networking": "src/techtree/skills/starter.py:58 ipaddress and :61 urllib.parse are validation only; src/techtree/verifiers/supervisor.py:48 selectors is file-descriptor multiplexing",
+    "outbound_call_sites": 1,
+    "post_put_patch_delete_call_sites": 0,
+    "scheme_guard": "src/techtree/skills/starter.py:402-425 _require_fetchable admits https, or http only to this machine, and refuses every other scheme before any fetcher sees the URL",
+    "techtree_sh_in_source": "the string appears nowhere in src/. The one object URL comes from ReleaseCore at runtime, and src/techtree/release/models.py:99-113 constrains its shape and rejects a user:token@host form so a credential cannot ride in it.",
+    "the_one_call_site": "src/techtree/skills/starter.py:367-399 _download_document. The method is a literal at :375-376 \u2014 urllib.request.Request(url, method='GET', \u2026). The response is bounded at :380-381 and an over-size body is a refusal at :392-398, not a truncated accept.",
+    "trust_is_not_transport": "the fetched bytes are verified against the release-pinned digest at starter.py:181 and rescanned at :190",
+    "upload_client": "none \u2014 no HTTP client package in the CLI's 37-package lock",
+    "where_model_requests_happen": "not in this package. Providers are reached by the evaluation engine, launched as a subprocess at src/techtree/verifiers/child.py:380-391 with its own environment. The credential is handed to that child by name (verifiers/credentials.py:281-283) and the endpoint is resolved by the engine, not by Techtree (verifiers/config.py:108-110)."
+   }
+  },
+  "method_2_instrumented_method_host_route_log": {
+   "assertions": [
+    "the instrument was alive \u2014 pass",
+    "no mutating request was made by the product \u2014 pass",
+    "no mutation request to techtree.sh \u2014 pass",
+    "the starter fetch is one GET and is not repeated \u2014 pass",
+    "every recorded request is accounted for \u2014 pass"
+   ],
+   "instrument": "tools/network_method_probe.py",
+   "not_covered": "the paid comparison path, which this probe never runs because it spends money; non-Python children (Docker, uv, git), which a sitecustomize recorder cannot see inside; and the evaluation engine's own process. Those are covered by method 3 and by the resolved engine configuration instead.",
+   "observed": {
+    "mutating_requests": 0,
+    "product_http_requests": 1,
+    "the_one_request": {
+     "host": "techtree.sh",
+     "method": "GET",
+     "port": 443,
+     "resolved_to": "2a09:8280:1::177:ed19:0",
+     "route": "/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+     "scheme": "https",
+     "step": "skill starter"
+    },
+    "zero_request_commands": [
+     "--version",
+     "doctor",
+     "release info",
+     "release verify",
+     "climb list",
+     "climb show",
+     "run status (unknown id)",
+     "skill starter, second time \u2014 the verified cache answers without a fetch"
+    ]
+   },
+   "record": "release/network-method-log.json",
+   "self_test": "the first step makes a deliberate GET to a closed loopback port and it must appear in the recording. Without it every zero below would be the silence of a dead instrument.",
+   "what_was_done": "a recorder was installed as a sitecustomize module on the child's PYTHONPATH, so it is in place before any application code imports. It records three layers: http.client.HTTPConnection.putrequest for method, route, host and port; socket.getaddrinfo for the name being resolved; and socket.socket.connect/connect_ex for the raw destination. The CLI was then driven through its whole command surface that does not require a paid comparison.",
+   "why_this_was_outstanding": "WP11e could not supply it and said so. Its sampler polled established TCP peers with lsof every five seconds, which records an address and a port and nothing else \u2014 no method, no host name, no route. The WP11e report's own words: 'This is the observation WP11e can reasonably make; the full three-method capture is WP11g.'"
+  },
+  "method_3_destination_capture": {
+   "attribution_is_inference": "the capture ran with reverse DNS disabled, so it recorded addresses only. Naming them comes from the resolved engine configuration \u2014 every one of 117 config.toml files names base_url = https://api.pinference.ai/api/v1 \u2014 and from what each process was doing, not from the capture.",
+   "counts_recomputed": "the sample counts and peer tallies were recounted from the logs for this review. The WP11e figure of 374 matches its log exactly. The re-certification report states 375 where its log holds 378; the report was written while the sampler was still running, and this review records the log's own count.",
+   "observed_peer_union": {
+    "104.18.8.113": "api.pinference.ai \u2014 the model provider",
+    "104.18.9.113": "api.pinference.ai \u2014 the model provider",
+    "151.101.128.223": "Fastly, serving the package index during engine install",
+    "151.101.192.223": "Fastly, serving the package index during engine install",
+    "151.101.64.223": "Fastly, serving the package index during engine install"
+   },
+   "record": "release/destination-capture.json",
+   "sources": [
+    "certification-evidence/wp11e-2026-08-19/evidence/netwatch.log \u2014 374 samples, 2026-08-19T23:31:29Z to 2026-08-20T00:03:08Z",
+    "certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch.log \u2014 378 samples, 2026-08-20T01:15:25Z to 01:47:28Z",
+    "certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch-a3.log \u2014 132 samples, 2026-08-20T08:29:43Z to 08:40:50Z"
+   ],
+   "techtree_sh": "zero connections to 66.241.124.2 or 2a09:8280:1::177:ed19:0 in any of the three logs. That zero is a sampling miss, not an absence: the starter fetch is sub-second and the poll is five-second. Method 2 caught the fetch the sampler missed and showed it was a GET, which is why the contract asks for both.",
+   "unexpected_destinations": 0,
+   "what_samples_are": "polling cycles, not requests. Each is one lsof sweep over the journey's process tree. 884 samples is 884 snapshots, and the union of what they saw is five addresses."
+  }
+ },
+ "orphan_bound": {
+  "cost_bound_usd": 2.4152,
+  "decision": "docs/decisions/0029-orphan-bound-fix.md",
+  "declared_maximum_usd": 2.5,
+  "kill_injection": {
+   "containers_gone_seconds_after_kill": 0.5450722920359112,
+   "containers_never_disappeared": 0,
+   "escalated_to_sigkill": false,
+   "leftover_new_running_containers": 0,
+   "method": "containers identified by before/after id diff with the exact ids recorded at the moment of the kill, never by image. No forced container removal and no sweep: the only cleanup path exercised is the supervisor's SIGTERM to the eval's own process group and the pinned engine's own teardown.",
+   "no_report_and_no_proof": "a SIGKILLed worker cannot write its own terminal state, so no report directory and no proof bundle were produced. A killed comparison yields no result, which is the point.",
+   "residual_provider_cost_usd": 0.0007,
+   "run_id": "run_ba3998e2a0d94126bc7426d0c6b32aab",
+   "subject_containers_at_kill": 4,
+   "supervision_reason": "parent_lost, both variants",
+   "supervision_record_mode": "0o600, both variants",
+   "supervision_records_written_seconds_after_kill": 1.0814102090080269,
+   "supervisor_and_eval_exit_seconds_after_kill": 1.0814102090080269,
+   "supervisor_shutdown_seconds_from_records": 0.941,
+   "total_cleanup_seconds": 1.1,
+   "worker_gone_seconds_after_kill": 1.25e-05,
+   "worker_pid": 77557
+  },
+  "record": "release/orphan-bound-analysis.json"
+ },
+ "outputs": {
+  "release/destination-capture.json": "sha256:7f72ac0328a3fcf94ad83c82f5fbd08ea0daef3970b96ce347353449ed35ecfd",
+  "release/network-method-log.json": "sha256:157a5aa5597a65c1483c0e6356b143d4d1034c911c9300a8f977f9b3763547f4",
+  "release/security-review.json": "this document",
+  "release/security-review.md": "the prose review and the disposition table",
+  "tools/network_method_probe.py": "sha256:cd49bb3bed479fc2de12c19d3e0133419795495f2d80021ecb449ddb0307ec2a"
+ },
+ "repositories_reviewed": {
+  "techtree-ash": "32c705768a3367b2e306ebc2f614161b135e634f",
+  "techtree-plugin": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
+  "techtree-python": "679e8605407208e752c987cf7ddb8d6343116e07"
+ },
+ "schema_version": "techtree.security-review.v1",
+ "secrets_scrubber": {
+  "cases": [
+   {
+    "case": "bearer token",
+    "plugin": "redacted",
+    "python": "redacted",
+    "tests": "tests/unit/test_errors.py:311; tests/plugin/unit/test_models.py:361 and tests/plugin/unit/test_bridge.py:230"
+   },
+   {
+    "case": "token in URL userinfo",
+    "plugin": "redacted",
+    "python": "redacted",
+    "tests": "tests/unit/test_errors.py:250 and :269; tests/plugin/unit/test_models.py:351-358"
+   },
+   {
+    "case": "token in query string",
+    "note": "caught incidentally on the Python side by the secret-assignment pattern rather than by a rule written for it. Working, but nothing would notice if it stopped.",
+    "plugin": "redacted",
+    "python": "redacted",
+    "tests": "none on either side \u2014 techtree-python-iql"
+   },
+   {
+    "case": "quoted JSON API key",
+    "plugin": "redacted",
+    "python": "redacted",
+    "tests": "tests/unit/test_errors.py:321 and :177; tests/plugin/unit/test_models.py:342"
+   },
+   {
+    "case": "private key block",
+    "note": "the plugin has an explicit PEM rule and replaces the whole block. The Python side has no PEM rule; it redacts the body through the opaque-run rule line by line, so the BEGIN/END framing survives and a final body line shorter than 40 characters would survive with it.",
+    "plugin": "redacted",
+    "python": "redacted",
+    "tests": "plugin only, tests/plugin/unit/test_models.py:345-348 \u2014 techtree-python-iql"
+   },
+   {
+    "case": "nested list/dict",
+    "note": "the walk covers str, mapping and list. A tuple or set passes through unscrubbed \u2014 unreachable through the shapes that exist today, recorded as techtree-python-8yn.",
+    "plugin": "redacted",
+    "python": "redacted",
+    "tests": "tests/unit/test_errors.py:206 and :223; tests/plugin/unit/test_models.py:387"
+   },
+   {
+    "case": "package-manager stdout/stderr",
+    "plugin": "redacted",
+    "python": "redacted",
+    "tests": "tests/unit/test_errors.py:193 and :269; tests/plugin/unit/test_bridge.py:230"
+   }
+  ],
+  "implementations": [
+   "src/techtree/errors.py:300 sanitize_text, :329 sanitize_details",
+   "techtree-plugin/errors.py:160 scrub_text, :176 scrub_borrowed"
+  ],
+  "method": "each of the seven contract cases was constructed and pushed through both scrubbers on 2026-08-23, and the output checked for the secret verbatim. Behaviour was measured, not inferred from the patterns.",
+  "result": "seven of seven redact; five of seven have a test"
+ },
+ "skill_conflict_scan_limitation": {
+  "future_ticket": "techtree-python-cjj (v0.2 design brief)",
+  "guard_deletion_history": {
+   "honest_reading": "the deterministic surface is smaller than it was, and what is gone was the part that produced false positives rather than the part that held the envelope. The paraphrase gap is unchanged by the deletions: it was there before them and it is there now.",
+   "techtree-python-0mx": "the generic secret-assignment heuristic in the Skill scanner. 'that token: no reasoning' matched name='token', value='no' \u2014 and every Skill written for this Climb is about returning a token. Resolved by deletion.",
+   "techtree-python-5f6": "the numeric-claims heuristic. guards.py:81's signed-delta pattern had no left-hand boundary, so 'modulo-97' read as the number -97 \u2014 on a task family whose subject is arithmetic modulo 97. It consumed one paid revision (USD 0.0553) that was otherwise fine. Resolved by deletion.",
+   "what_happened": "two deterministic guards on the guided-revision path were deleted by founder ruling after WP11e found them destroying paid turns on ordinary English.",
+   "what_remains_authoritative": "the deletions removed two heuristics that guessed at meaning from surface text. They did not touch the envelope: the one-turn rule, the no-upload rule and the no-auto-run rule are hardcoded and are not expressible in, or overridable by, a Skill. The copy-guard also remains, and ndq.3.28 strengthened it \u2014 guards.py:391 forbid_any_copied_case now rejects a single exact member input at any length, with no minimum-length skip (the regression test is tests/plugin/unit/test_guards.py:381, using a two-character input). 14 copy-guard cases across tests/plugin/unit/test_guards.py:359-466 and tests/plugin/unit/test_improvement_service.py:573."
+  },
+  "scoped_to": "future untrusted operator Skills. In v0.1 the only Skills that reach the envelope-conflict path are the two founder Skills, pinned by digest, and a model-authored revision of the starter Skill, which is shown to a person before anything happens with it.",
+  "the_limitation": "a deterministic scan matches statements. A paraphrase that means the same thing without saying it the same way can pass. v0.1 does NOT add an LLM-based semantic scanner, and recording that is part of this contract rather than a confession extracted from it.",
+  "what_holds_instead": [
+   "exact founder Skill digest pinning \u2014 starter sha256:596d1368\u2026, improver sha256:e6bc16c4\u2026, both in ReleaseCore and byte-identical in all three repositories",
+   "manual security review checklist \u2014 this document and the ten closed SEC tickets",
+   "negative tests for known conflicting instructions",
+   "the hardcoded safety envelope stays authoritative: the founder Skill cannot override one-turn, no-upload or no-auto-run"
+  ],
+  "what_the_scan_is": "techtree-plugin/services/improvement.py envelope_conflicts / require_envelope_not_overridden: a deterministic, statement-level scan, conservative and affirmative-instruction-only. Decision 0010 requires conflicts to be release-test failures but specifies no method, and this method was designed by a worker."
+ },
+ "stop_conditions": [
+  {
+   "condition": "any mutation request to techtree.sh",
+   "evidence": "release/network-method-log.json: the product made one techtree.sh request across its whole non-paid command surface and its method was GET. src/techtree/skills/starter.py:375-376 hardcodes method='GET' and is the package's only outbound call site. The ash release surface answers POST, PUT, PATCH and DELETE on every published address with 405 (lib/techtree_web/method_surface.ex:26-47, 11 paths \u00d7 4 verbs asserted at test/techtree_web/router_test.exs:64-91).",
+   "result": "clear"
+  },
+  {
+   "condition": "any upload path reachable",
+   "evidence": "an AST scan of every module in src/techtree finds exactly two network imports, both urllib, both in skills/starter.py:53-54. The CLI's lock resolves 37 packages and contains no HTTP client at all. No POST, PUT, PATCH or DELETE call site exists. The verifiers uploader is upstream's and is proved not loaded: tests/preflight/test_verifiers_eval_contract.py:405 asserts verifiers.v1.utils.platform never enters sys.modules on a complete run with a credential present, and :422 is the control that proves the probe can fire.",
+   "result": "clear"
+  },
+  {
+   "condition": "any permission mode looser than specified",
+   "evidence": "the plugin state root ($XDG_STATE_HOME/techtree-hermes) is created by mkdir(parents=True) at techtree-plugin/services/proposal.py:105 and never chmod'd. Measured 0755 under umask 022. The contract says 0700. Everything else measured is at or tighter than the contract: see local_permissions. Ticket techtree-python-oj8.",
+   "result": "TRIGGERED"
+  },
+  {
+   "condition": "any scrubber case leaking",
+   "evidence": "all seven contract cases were run by hand against both scrubbers on 2026-08-23 and all seven redact. Two of the seven have no test; that is a coverage finding, not a leak. Ticket techtree-python-iql.",
+   "result": "clear"
+  }
+ ],
+ "supply_chain": {
+  "lockfiles": {
+   "cli": {
+    "http_client_packages": 0,
+    "indexes": [
+     "https://pypi.org/simple"
+    ],
+    "non_registry_sources": [
+     "editable = '.' (the project itself)"
+    ],
+    "packages": 37,
+    "path": "uv.lock",
+    "up_to_date": "`uv lock --check` resolves without change"
+   },
+   "engine": {
+    "http_client_packages": [
+     "aiohttp",
+     "httpx",
+     "httpx-sse",
+     "openai",
+     "requests",
+     "urllib3"
+    ],
+    "indexes": [
+     "https://pypi.org/simple"
+    ],
+    "non_registry_sources": [
+     "editable = 'packages/procedure-transfer-v1'",
+     "virtual = '.'",
+     "git = https://github.com/PrimeIntellect-ai/verifiers?rev=7e1c47d24d055aae587ee8259f77a3e8e193513a"
+    ],
+    "note": "the engine is where HTTP clients live, and that is the design: the CLI never depends on Verifiers, and the engine is installed into its own environment. It is the part of the system that talks to the model provider, which the no-upload claim deliberately does not deny. Its one git dependency is pinned to an exact revision.",
+    "packages": 110,
+    "path": "src/techtree/resources/engines/default/uv.lock",
+    "up_to_date": "`uv lock --check` resolves without change"
+   }
+  },
+  "no_arbitrary_package_index": "pypi.org is the only registry in either lock, and the only non-registry source in the engine lock is one git revision pinned by full SHA.",
+  "no_auto_update": "no auto-update or self-update path exists in src/techtree",
+  "no_install_time_script_from_model_input": "the plugin's install-plan validator (techtree-plugin/models.py:520-571) rejects a plan carrying executable fields, requires argv to be an array, requires the installer to be the fixed executable, requires the argv to install exactly the pinned requirement, and refuses requires_confirmation: false outright.",
+  "no_shell_true": "`shell=True` appears nowhere in src/ or tools/. Every subprocess in the package is an argv array: doctor/checks.py:104, doctor/execution_checks.py:420, verifiers/supervisor.py:191, verifiers/image.py:71, verifiers/child.py:380, engines/runner.py:120, engines/installer.py:545, runs/launcher.py:188.",
+  "plugin": {
+   "commit": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
+   "pin_shape": "an exact 40-character commit. Branch names and floating versions are refused by the install-plan validator, not only by documentation.",
+   "plugin_doctor": "10 checks, all ok",
+   "record": "release/plugin-release-candidate.json",
+   "repository": "github.com/regents-ai/techtree-hermes"
+  },
+  "release_core_equality": {
+   "digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
+   "identical_copies": [
+    "techtree-python/release/release-core.json",
+    "techtree-python/src/techtree/resources/release/release-core.json",
+    "techtree-plugin/release-core.json",
+    "techtree-ash/priv/releases/climb-v0.1.0/release-core.json"
+   ],
+   "method": "byte comparison with cmp on 2026-08-23, not a digest transcription",
+   "result": "all four byte-identical"
+  },
+  "static_security_findings_closed": {
+   "status": "all ten closed with fixes and tests",
+   "tickets": [
+    "techtree-python-ndq.3.26",
+    "techtree-python-ndq.3.27",
+    "techtree-python-ndq.3.28",
+    "techtree-python-ndq.3.29",
+    "techtree-python-ndq.3.30",
+    "techtree-python-ndq.3.31",
+    "techtree-python-ndq.3.32",
+    "techtree-python-ndq.3.33",
+    "techtree-python-ndq.3.34",
+    "techtree-python-ndq.3.35"
+   ]
+  },
+  "wheel": {
+   "built_from_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+   "filename": "techtree-0.1.0-py3-none-any.whl",
+   "inspection": "release/wheel-inspection.json, verdict PASS, 19 of 19 checks",
+   "provenance_stamp": "the source commit exists only inside the artifact. `git ls-tree` returns nothing for src/techtree/resources/release/build-provenance.json and .gitignore line 25 keeps it out of the tree.",
+   "reproducible": "rebuilt twice from two independent fresh clones of the same commit, each producing the same SHA-256 as the candidate in dist/",
+   "sha256": "5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7",
+   "sidecar_agrees_today": "dist/techtree-0.1.0-py3-none-any.whl.sha256 names 5a402a43\u2026, which is the digest of the wheel beside it. The staleness recorded in techtree-python-oce is not present in the current artifact; the generator that can produce it is still unfixed."
+  }
+ },
+ "ticket": "techtree-python-ndq.3.7",
+ "verdict": {
+  "detail": "Three of the contract's four stop conditions are clear on evidence gathered for this review. The fourth \u2014 'any permission mode looser than specified' \u2014 is triggered: the plugin state root is not 0700. Everything else in the contract is either satisfied or dispositioned below with a named risk, a reason, a scope and a ticket.",
+  "result": "one stop condition triggered"
+ },
+ "verifiers_push": {
+  "argv": "src/techtree/verifiers/child.py:105 PUSH_DISABLED_FLAG = '--no-push', emitted on the real eval argv at :163 and on the dry-run argv at :179. A flag on argv overrides whatever the file says, so the two layers are belt and braces rather than one restated.",
+  "compiled_config": "src/techtree/verifiers/config.py:258 \u2014 push: Literal[False] = False. A configuration that spells push = true is unrepresentable, not merely defaulted away. Constructed at src/techtree/verifiers/compiler.py:171.",
+  "note": "compiler.py:171 does not pass push explicitly; it relies on the Literal[False] default. Sound, because the literal makes True unspellable, but the construction site does not say so out loud.",
+  "product_path_tests": [
+   "tests/integration/test_real_variant_run.py:134 test_one_real_baseline_variant_runs_end_to_end \u2014 asserts compiled.push is False at :163 on the real compile \u2192 write \u2192 dry-run \u2192 child path",
+   "tests/integration/test_eval_compile.py:298 test_each_compiled_variant_dry_runs_against_the_installed_engine \u2014 asserts outcome.resolved_config['push'] is False at :327, which is what the installed engine itself resolved"
+  ],
+  "resolved_config_in_durable_evidence": {
+   "detail": "117 config.toml and 61 input.toml across every run directory in the certification evidence. Every one of the 178 carries push = false. No other value appears anywhere. Read for this review, not transcribed.",
+   "example": "certification-evidence/recert-0029-quiet-2026-08-20/v1v2/runs/run_06b2377d55f6455a9dc5a73e6f14e384/verifiers/candidate/run/config.toml, line 9",
+   "files_read": 178
+  },
+  "resolved_config_verified_by_the_product": "src/techtree/verifiers/verify.py:255-259 \u2014 the platform_push_disabled check reads the engine's own resolved configuration back.",
+  "uploader_never_invoked": "there is no uploader in Techtree's source at all; the uploader is upstream's verifiers.v1.utils.platform. Non-invocation is proved behaviourally rather than argued: tests/preflight/test_verifiers_eval_contract.py:405 asserts the module never enters sys.modules on a complete run with push off and a credential present, and :422 is the control that proves the probe fires when push is on."
+ }
+}
