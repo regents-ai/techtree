@@ -1,5 +1,5 @@
 {
- "commit": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
+ "commit": "d1d993e73160e7aa3f6739f0b871a425736a7605",
  "plugin_doctor": "passed",
  "plugin_doctor_detail": "10 checks, all ok, run from this checkout as tools/plugin/plugin_doctor.py, which exits 0. The plugin's own suite and tooling live here now, so the doctor reads the plugin out of the sibling checkout and finds the pinned CLI on this project's PATH; the earlier 1 warn was that missing CLI and nothing else.",
  "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",

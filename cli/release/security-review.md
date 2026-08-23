@@ -3,27 +3,30 @@
 Ticket `techtree-python-ndq.3.7` · contract `docs/release/contracts/wp11g.md` ·
 binding decisions 0014, 0015, 0023 · spec §9.12–9.13, §15.8.
 
-Reviewed at `techtree-python` `679e8605`, `techtree-plugin` `0b0052fa`,
+Reviewed at `techtree-python` `7c46058`, `techtree-plugin` `d1d993e7`,
 `techtree-ash` `32c70576`. Machine-readable form:
 `release/security-review.json`.
 
 ## Verdict
 
-**One stop condition is triggered.** Three of the contract's four are clear on
-evidence gathered for this review; the fourth is not.
+**All four stop conditions are clear.** Three were clear on evidence gathered
+for this review; the fourth was triggered and is now resolved.
 
 | Stop condition | Result |
 |---|---|
 | Any mutation request to techtree.sh | clear |
 | Any upload path reachable | clear |
-| Any permission mode looser than specified | **triggered** — the plugin state root is 0755, not 0700 |
+| Any permission mode looser than specified | clear — the plugin state root is `0700`, resolved at plugin `d1d993e7` |
 | Any scrubber case leaking | clear — all seven redact |
 
-The triggered condition is `techtree-python-oj8`. It exposes no content: the
-directory below it is `0700` and the staged Skill inside that is `0600`. What
-it exposes is that the directory exists. It is a one-line fix in a repository
-this review has read-only access to, and it is the reason this ticket is not
-closed as fully satisfied.
+The permission-mode condition was triggered when the plugin state root came out
+`0755` (`techtree-python-oj8`). It exposed no content — the directory below it is
+`0700` and the staged Skill inside that is `0600` — only that the directory
+existed. It is fixed at plugin `d1d993e7`: `services/proposal.py` now creates the
+state root and every missing ancestor at `0700`, and the regression guard
+`test_staging_creates_private_directories_all_the_way_down` walks from
+`XDG_STATE_HOME` down and asserts it. The ticket stays open pending chief
+verification.
 
 Everything else the contract asks for is either satisfied on evidence or
 dispositioned in the table at the end with a risk, a reason, a scope and a
@@ -64,7 +67,7 @@ the tree — so the wheel names its own source without the tree being able to
 lie about it.
 
 The plugin is pinned to the exact 40-character commit
-`0b0052fa68406ac4a63e4bf1fa1a6d00cf429815`. Branch names and floating versions
+`d1d993e73160e7aa3f6739f0b871a425736a7605`. Branch names and floating versions
 are refused by the install-plan validator, not only discouraged by
 documentation.
 
@@ -106,7 +109,7 @@ certification evidence was stat'd.
 | Supervision record | 0600 | 0600 on all 18 in the evidence | pass |
 | Proposal temp root | 0700 | 0700 | pass |
 | Temporary proposed `SKILL.md` | 0600 | 0600 | pass |
-| **Plugin state root** | **0700** | **0755 under umask 022** | **fail — `oj8`** |
+| Plugin state root | 0700 | 0700 all the way down at `d1d993e7` | pass |
 
 The first row is the interesting one, because it is the finding `ndq.3.33`
 raised: hardening only the leaf hardens the room and not the corridor. Under
@@ -118,10 +121,10 @@ which the directory exists and is readable. `tests/unit/test_fs.py:316` holds
 it under a `0o000` umask fixture, so the test measures the chosen mode and not
 the ambient one.
 
-The last row is the same defect, in the plugin, unfixed.
-`techtree-plugin/services/proposal.py:105` still calls
-`mkdir(parents=True, exist_ok=True)` and then hardens only the leaf. Reproducing
-that call sequence exactly under umask 022:
+The last row was the same defect in the plugin, and it is now fixed at
+`d1d993e7`. At review time `techtree-plugin/services/proposal.py:105` called
+`mkdir(parents=True, exist_ok=True)` and then hardened only the leaf, so under
+umask 022 the state root came out `0755`:
 
 ```
 0755  <XDG_STATE_HOME>
@@ -131,14 +134,17 @@ that call sequence exactly under umask 022:
 0600  .../proposals/techtree-proposal-<id>/SKILL.md
 ```
 
-The test that ought to have caught it is named
+The fix ports the `ndq.3.33` corridor walk to the plugin:
+`services/proposal.py:62-83` (`_ensure_private_directory`) creates the state root
+and every missing ancestor at `0700` at creation, so every level from
+`<XDG_STATE_HOME>/techtree-hermes` down is now `0700`, with the `SKILL.md` at
+`0600`. The regression guard
 `test_staging_creates_private_directories_all_the_way_down`
-(`tests/plugin/unit/test_proposal_service.py:293`) and does not go all the way
-down — its loop starts at `staging_root` and never looks at
-`plugin_state_home()`. It also runs without a permissive-umask fixture, so it
-would pass under a typical umask even if the modes were wrong.
+(`tests/plugin/unit/test_proposal_service.py`) was rewritten to walk from
+`XDG_STATE_HOME` down through `techtree-hermes` to the run directory and assert
+`0700` at each level — it no longer stops at `staging_root`.
 
-A whole-tree census found no other Techtree-written path looser than specified.
+A whole-tree census found no Techtree-written path looser than specified.
 Two things it did find are worth stating so nobody has to rediscover them.
 First, the installed engine's virtual environment holds 9,195 directories at
 `0755` and 72,057 group- or world-readable files (70,892 at `0644`, 1,160 at
@@ -398,7 +404,7 @@ that a person sees before anything happens with it.
 ## Hardening adopted this cycle
 
 Two changes came out of an independent source review by a Hermes agent
-belonging to the founder, and both are in `0b0052fa`.
+belonging to the founder, and both are carried in `d1d993e7`.
 
 **The CLI child receives ten named variables and nothing else.** The bridge used
 to hand it the host session's whole environment; it now builds one by exact name
@@ -437,13 +443,13 @@ reading gets the same install as a reader who reads.
 
 ## Finding disposition
 
-Twenty findings. One is not accepted; nineteen are, each with a named risk, a
-reason, a scope and — where one exists — a ticket. Six tickets were opened by
-this review.
+Twenty findings. One was not accepted and is now resolved; nineteen are
+accepted, each with a named risk, a reason, a scope and — where one exists — a
+ticket. Six tickets were opened by this review.
 
 | # | Finding | Disposition | Risk | Why accepted | Scope | Ticket |
 |---|---|---|---|---|---|---|
-| 1 | Plugin state root is 0755, not the specified 0700 | **NOT ACCEPTED — stop condition** | Another local user sees the directory exists; no content is exposed | Not accepted. The contract names a mode; low severity is a reason to fix it cheaply, not to move the line | The plugin's state directory, on every machine that stages a proposal | `oj8` |
+| 1 | Plugin state root is 0755, not the specified 0700 | **RESOLVED at plugin `d1d993e7`** | Another local user could see the directory exists; no content is exposed | Fixed by porting the `ndq.3.33` corridor walk to the plugin: `services/proposal.py` creates the state root and every ancestor at 0700, held by `test_staging_creates_private_directories_all_the_way_down`. Ticket open pending chief verification | The plugin's state directory, on every machine that stages a proposal | `oj8` |
 | 2 | Unmetered generation billing: the host can bill for an answer with no content and the user's one revision is spent | Accepted | A first-time user pays and receives nothing, twice observed in acceptance | The host owns the sampling stack, ceiling and billing; metering it would claim knowledge the product does not have. The dossier states the division rather than implying coverage | The one guided revision. Not the comparison path, whose spend is bounded and pre-checked | `bbu`, design in `cjj` |
 | 3 | A stale but present Prime key passes doctor's shape check | Accepted | The exact failure the check exists to prevent — configured-looking run, nothing can answer | Validating means spending a request from a readiness check; the failure is loud, typed and lands before any episode completes | The pre-run readiness check only | `aww` |
 | 4 | `uv` selects an unsupported Python and the first doctor fails | Accepted | First-run failure on an otherwise fine machine | Nothing is wrong with the product — the metadata is right and the doctor names the problem precisely. One line of published copy is wrong | Published install instructions, on machines defaulting to 3.14 | `vom` |
@@ -483,9 +489,13 @@ observed in any leg; the legs reused a warm cache, and a five-second poll
 cannot prove a short-lived connection did not happen. It is recorded as
 expected-and-unobserved rather than as absent.
 
-**The plugin permission defect could not be fixed here.** `techtree-plugin` is
-read-only for this review and the release candidate is pinned at `0b0052fa`.
-The finding is measured, reproduced, and filed as `techtree-python-oj8`.
+**The plugin permission defect is now fixed.** At review time `techtree-plugin`
+was read-only and the candidate pinned at `0b0052fa`; the finding was measured,
+reproduced, and filed as `techtree-python-oj8`. It has since been fixed at plugin
+`d1d993e7` — `services/proposal.py` creates the state root and every ancestor at
+`0700`, held by `test_staging_creates_private_directories_all_the_way_down` — and
+the candidate is re-pinned to that commit. The ticket stays open pending chief
+verification.
 
 ## Outputs
 

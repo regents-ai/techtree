@@ -4,7 +4,7 @@
   "release/certified-scientific-fingerprint.json": "sha256:629972418258cb56271b7e8c16aa517820b081de353675fa2cba5580bb05665e",
   "release/hermes-scanner-dossier.md": "sha256:20848953b638df9e7cc627b90bb4e9401a42b73805fca1466ddb7ff100466fd5",
   "release/orphan-bound-analysis.json": "sha256:ce48148e2443998457f05074dbbd7faf334c5a611e64203714d71867a38d8297",
-  "release/plugin-release-candidate.json": "sha256:b70b691846dcb6bc1cc341a0fd0946dd895677bf28ebbebeab2787860302a80b",
+  "release/plugin-release-candidate.json": "sha256:732aa7a5d92544b9974f277061b816bfc356f037ad426614a9b268cf2d5a1af5",
   "release/release-core.json": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
   "release/wheel-inspection.json": "sha256:b1a350bcaa8b672ce0f42aa2a191c82f37bef2a3fb4c36a5cefe75197ffcbac1",
   "src/techtree/resources/engines/default/uv.lock": "sha256:5f019a340bbb74bf4f6f820ffe0951e02666fe26819553436b3bba64102ddc40",
@@ -19,13 +19,13 @@
  "contract": "docs/release/contracts/wp11g.md",
  "finding_disposition": [
   {
-   "disposition": "NOT ACCEPTED \u2014 stop condition",
-   "finding": "The plugin state root ($XDG_STATE_HOME/techtree-hermes) is created by mkdir(parents=True) and left at the process umask \u2014 measured 0755 under umask 022. The contract specifies 0700.",
+   "disposition": "RESOLVED at plugin d1d993e7",
+   "finding": "The plugin state root ($XDG_STATE_HOME/techtree-hermes) was created by mkdir(parents=True) and left at the process umask \u2014 measured 0755 under umask 022. The contract specifies 0700.",
    "future_ticket": "techtree-python-oj8",
    "id": "plugin-state-root-mode",
-   "risk": "another local user can see that the directory exists and that it has a child called proposals. No content is exposed: the proposals directory is 0700 and the staged SKILL.md is 0600.",
-   "scope": "the plugin's own state directory, on every machine that stages a proposal",
-   "why_not_accepted": "the contract names a mode and the mode is not met. Low severity is a reason to fix it cheaply, not a reason to redefine the line."
+   "resolution": "Fixed at techtree-plugin d1d993e7: services/proposal.py:62-83 (_ensure_private_directory) now creates the state root and every missing ancestor at 0700, porting the ndq.3.33 walk src/techtree/fs.py already performs on the CLI side. The regression guard tests/plugin/unit/test_proposal_service.py::test_staging_creates_private_directories_all_the_way_down walks from XDG_STATE_HOME down through techtree-hermes to the run directory and asserts 0700 at each level, with the staged SKILL.md at 0600. Ticket techtree-python-oj8 stays open pending chief verification.",
+   "risk": "another local user could see that the directory existed and that it had a child called proposals. No content was exposed: the proposals directory is 0700 and the staged SKILL.md is 0600.",
+   "scope": "the plugin's own state directory, on every machine that stages a proposal"
   },
   {
    "disposition": "ACCEPTED for v0.1",
@@ -201,7 +201,8 @@
  ],
  "finding_disposition_summary": {
   "accepted": 19,
-  "not_accepted": 1,
+  "not_accepted": 0,
+  "resolved": 1,
   "tickets_opened_by_this_review": [
    "techtree-python-oj8",
    "techtree-python-iql",
@@ -247,7 +248,7 @@
   }
  },
  "hermes_scanner": {
-  "after": "CAUTION, five findings in three families, at commit 0b0052fa: guards.py:86 (the command-word list that is the guard), three fixed-argv bridge calls, and channels.py:30 (the control-character stripper). Install decision: BLOCKED \u2014 requires confirmation.",
+  "after": "CAUTION, five findings in three families, at commit d1d993e7: guards.py:86 (the command-word list that is the guard), three fixed-argv bridge calls (bridge.py:188, :238, :280), and channels.py:30 (the control-character stripper). The oj8 state-root fix added only a private-directory helper to services/proposal.py and introduced no new finding \u2014 re-verified by a local file:// install of the pinned commit. Install decision: BLOCKED \u2014 requires confirmation.",
   "before": "DANGEROUS, 17 findings, no override, at commit 880aa8a",
   "dossier": "release/hermes-scanner-dossier.md",
   "how_the_change_was_made": "the adversarial test corpus moved into techtree-python as tests/plugin/ and tools/plugin/, where the whole battery still runs (791 tests green against 0b0052fa). The installable tree ships runtime, Skills, release bytes and README only. Nothing measured moved: ReleaseCore, the frozen improver digest and the wheel digest are unchanged.",
@@ -305,12 +306,11 @@
     "target": "temporary proposed SKILL.md"
    },
    {
-    "detail": "techtree-plugin/services/proposal.py:105 creates it with mkdir(parents=True) and hardens only the leaf. The ndq.3.33 fix was never ported to the plugin. Content is not exposed \u2014 the proposals directory inside it is 0700 \u2014 but the specified mode is not met.",
-    "measured": "0755 under umask 022",
-    "result": "FAIL",
+    "detail": "techtree-plugin/services/proposal.py:62-83 (_ensure_private_directory) walks the state root and every missing ancestor and creates each at 0700, porting the ndq.3.33 fix to the plugin at d1d993e7. Test: tests/plugin/unit/test_proposal_service.py::test_staging_creates_private_directories_all_the_way_down walks from XDG_STATE_HOME down and asserts 0700 at each level.",
+    "measured": "0700",
+    "result": "pass",
     "specified": "0700",
-    "target": "plugin state root",
-    "ticket": "techtree-python-oj8"
+    "target": "plugin state root"
    }
   ],
   "method": "measured on live directories, not read out of the code. A scratch HOME was created with umask 022 and the CLI was driven through doctor and skill starter; then every file and directory in the eleven Techtree homes preserved in the durable certification evidence was stat'd.",
@@ -472,8 +472,8 @@
  },
  "repositories_reviewed": {
   "techtree-ash": "32c705768a3367b2e306ebc2f614161b135e634f",
-  "techtree-plugin": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
-  "techtree-python": "679e8605407208e752c987cf7ddb8d6343116e07"
+  "techtree-plugin": "d1d993e73160e7aa3f6739f0b871a425736a7605",
+  "techtree-python": "7c46058211a6310ddbd843949e3432f8fb05b463"
  },
  "schema_version": "techtree.security-review.v1",
  "secrets_scrubber": {
@@ -563,8 +563,8 @@
   },
   {
    "condition": "any permission mode looser than specified",
-   "evidence": "the plugin state root ($XDG_STATE_HOME/techtree-hermes) is created by mkdir(parents=True) at techtree-plugin/services/proposal.py:105 and never chmod'd. Measured 0755 under umask 022. The contract says 0700. Everything else measured is at or tighter than the contract: see local_permissions. Ticket techtree-python-oj8.",
-   "result": "TRIGGERED"
+   "evidence": "the plugin state root ($XDG_STATE_HOME/techtree-hermes) and every missing ancestor are created at 0700 by techtree-plugin/services/proposal.py:62-83 (_ensure_private_directory), fixed at plugin d1d993e7 and held by tests/plugin/unit/test_proposal_service.py::test_staging_creates_private_directories_all_the_way_down. Everything measured is at or tighter than the contract: every directory 0700, every file 0600. See local_permissions.",
+   "result": "clear"
   },
   {
    "condition": "any scrubber case leaking",
@@ -614,7 +614,7 @@
   "no_install_time_script_from_model_input": "the plugin's install-plan validator (techtree-plugin/models.py:520-571) rejects a plan carrying executable fields, requires argv to be an array, requires the installer to be the fixed executable, requires the argv to install exactly the pinned requirement, and refuses requires_confirmation: false outright.",
   "no_shell_true": "`shell=True` appears nowhere in src/ or tools/. Every subprocess in the package is an argv array: doctor/checks.py:104, doctor/execution_checks.py:420, verifiers/supervisor.py:191, verifiers/image.py:71, verifiers/child.py:380, engines/runner.py:120, engines/installer.py:545, runs/launcher.py:188.",
   "plugin": {
-   "commit": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
+   "commit": "d1d993e73160e7aa3f6739f0b871a425736a7605",
    "pin_shape": "an exact 40-character commit. Branch names and floating versions are refused by the install-plan validator, not only by documentation.",
    "plugin_doctor": "10 checks, all ok",
    "record": "release/plugin-release-candidate.json",
@@ -658,8 +658,8 @@
  },
  "ticket": "techtree-python-ndq.3.7",
  "verdict": {
-  "detail": "Three of the contract's four stop conditions are clear on evidence gathered for this review. The fourth \u2014 'any permission mode looser than specified' \u2014 is triggered: the plugin state root is not 0700. Everything else in the contract is either satisfied or dispositioned below with a named risk, a reason, a scope and a ticket.",
-  "result": "one stop condition triggered"
+  "detail": "All four of the contract's stop conditions are clear on evidence gathered for this review. The one that had been triggered \u2014 'any permission mode looser than specified', the plugin state root at 0755 \u2014 is resolved at plugin d1d993e7, which creates the state root and every ancestor at 0700 and is held by the regression guard test_staging_creates_private_directories_all_the_way_down. Everything else in the contract is either satisfied or dispositioned below with a named risk, a reason, a scope and a ticket.",
+  "result": "all stop conditions clear"
  },
  "verifiers_push": {
   "argv": "src/techtree/verifiers/child.py:105 PUSH_DISABLED_FLAG = '--no-push', emitted on the real eval argv at :163 and on the dry-run argv at :179. A flag on argv overrides whatever the file says, so the two layers are belt and braces rather than one restated.",

@@ -8,14 +8,14 @@
   "scientific \u2014 re-certified (0029, four canonical runs)": "A change to the scientific configuration or to what enforces it, sanctioned by decision 0029 and certified by the recertification attached to it: four canonical runs against the regenerated Campaign, the live turn-conformance probe, and a real worker-SIGKILL injection.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 47,
+ "commit_count": 53,
  "counts_by_class": {
-  "documentation": 52,
+  "documentation": 56,
   "non_scientific_copy": 28,
-  "release_packaging": 91,
+  "release_packaging": 99,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
   "scientific \u2014 re-certified (0029, four canonical runs)": 14,
-  "test_only": 100
+  "test_only": 101
  },
  "entries": [
   {
@@ -2345,11 +2345,115 @@
    "commit_subject": "test: bridge environment allowlist tests with wallet-canary; platform env measurement (llv pass 2)",
    "path": "tests/plugin/unit/test_bridge.py",
    "rationale": "Tests for the environment the plugin builds for the CLI it starts: every allowlisted variable arrives, nothing else of the session does, and a planted wallet key reaches neither the child nor the envelope. The measurement of what the platform itself adds to any child process lives beside them. Test code; not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "1db5d54fbed57e4cdafb19721bafd5db0f9833fe",
+   "commit_subject": "release: candidate re-pin to plugin 0b0052fa; dossier before/after addendum; classification through 5072977 (llv tail)",
+   "path": "release/hermes-scanner-dossier.md",
+   "rationale": "The scanner dossier's before/after addendum for the plugin re-pin. Release record, not product."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "1db5d54fbed57e4cdafb19721bafd5db0f9833fe",
+   "commit_subject": "release: candidate re-pin to plugin 0b0052fa; dossier before/after addendum; classification through 5072977 (llv tail)",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "The plugin release-candidate record, re-pinned to the scanner-fixed plugin commit. Release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "1db5d54fbed57e4cdafb19721bafd5db0f9833fe",
+   "commit_subject": "release: candidate re-pin to plugin 0b0052fa; dossier before/after addendum; classification through 5072977 (llv tail)",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "This classification record, extended through the previous tail. Release record."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "679e8605407208e752c987cf7ddb8d6343116e07",
+   "commit_subject": "chore: tracker interactions journal",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The issue tracker's own export. No product byte."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "914b643652359874e4f8da2bfcaac069b6ff749a",
+   "commit_subject": "docs: detailed architecture handoff \u2014 product, tech stack, per-repo file map, cross-codebase interactions",
+   "path": "docs/architecture-handoff.md",
+   "rationale": "An architecture handoff document. Nothing the product runs."
+  },
+  {
+   "change": "deleted",
+   "classification": "documentation",
+   "commit": "d51b055c6764539a1903786ab3dc79ec899717c7",
+   "commit_subject": "docs: consolidate to one architecture doc (product-architecture.md); drop the redundant shorter draft",
+   "path": "docs/architecture-handoff.md",
+   "rationale": "The shorter architecture draft, removed in favour of the consolidated document."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "d51b055c6764539a1903786ab3dc79ec899717c7",
+   "commit_subject": "docs: consolidate to one architecture doc (product-architecture.md); drop the redundant shorter draft",
+   "path": "docs/product-architecture.md",
+   "rationale": "The consolidated product-architecture document. Nothing the product runs."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "0cee7cab0853093b8a878ded4c7de37c767f27f2",
+   "commit_subject": "release: WP11g security closeout \u2014 review, three-method no-upload evidence, instrumented method probe",
+   "path": "release/destination-capture.json",
+   "rationale": "WP11g no-upload evidence: the end-to-end destination capture. Release record."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "0cee7cab0853093b8a878ded4c7de37c767f27f2",
+   "commit_subject": "release: WP11g security closeout \u2014 review, three-method no-upload evidence, instrumented method probe",
+   "path": "release/network-method-log.json",
+   "rationale": "WP11g no-upload evidence: the instrumented application-level HTTP method log. Release record."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "0cee7cab0853093b8a878ded4c7de37c767f27f2",
+   "commit_subject": "release: WP11g security closeout \u2014 review, three-method no-upload evidence, instrumented method probe",
+   "path": "release/security-review.json",
+   "rationale": "The WP11g security, privacy and no-upload review. Release record."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "0cee7cab0853093b8a878ded4c7de37c767f27f2",
+   "commit_subject": "release: WP11g security closeout \u2014 review, three-method no-upload evidence, instrumented method probe",
+   "path": "release/security-review.md",
+   "rationale": "The WP11g security, privacy and no-upload review, in prose. Release record."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "0cee7cab0853093b8a878ded4c7de37c767f27f2",
+   "commit_subject": "release: WP11g security closeout \u2014 review, three-method no-upload evidence, instrumented method probe",
+   "path": "tools/network_method_probe.py",
+   "rationale": "The instrumented method probe that produced the network-method log. Build-time release-evidence tooling; not shipped in the wheel and read by no measurement."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "7c46058211a6310ddbd843949e3432f8fb05b463",
+   "commit_subject": "test: proposal staging asserts 0700 at the state root (oj8 regression guard)",
+   "path": "tests/plugin/unit/test_proposal_service.py",
+   "rationale": "Regression guard for oj8: proposal staging asserts 0700 all the way down to the plugin state root, including the intermediate techtree-hermes directory. Test code; not shipped in the wheel."
   }
  ],
- "file_change_count": 291,
+ "file_change_count": 304,
  "previous_anchor_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
- "release_source_commit": "50729777ea83dff3d660806f24db36c0ce42af15",
+ "release_source_commit": "7c46058211a6310ddbd843949e3432f8fb05b463",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "0025": {
@@ -2440,5 +2544,5 @@
    }
   }
  },
- "verdict": "PASS \u2014 every scientific change in the range is sanctioned and certified. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 \u00a7A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the SIGKILL injection attached to release/certified-scientific-fingerprint.json. Nothing else in the range touches a measured path: the remaining product changes are warning and cost copy, the scanner's readiness behaviour decision 0023 places outside the scientific surface, release records, documents and tests. The range now runs through the plugin-scanner cycle: the Hermes plugin's test corpus and repository tooling moved into this repository, and the environment the plugin builds for the CLI it starts gained tests. Test code, tooling, documents and release records \u2014 not one byte the wheel ships, and nothing a measurement reads."
+ "verdict": "PASS \u2014 every scientific change in the range is sanctioned and certified. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 \u00a7A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the SIGKILL injection attached to release/certified-scientific-fingerprint.json. Nothing else in the range touches a measured path: the remaining product changes are warning and cost copy, the scanner's readiness behaviour decision 0023 places outside the scientific surface, release records, documents and tests. The range now runs through the plugin state-root re-pin: the candidate was re-pinned to the scanner-fixed, state-root-hardened plugin commit d1d993e7, witnessed by release/plugin-release-candidate.json; the Hermes plugin's test corpus and repository tooling had already moved into this repository, and the environment the plugin builds for the CLI it starts gained tests; the WP11g no-upload review closed with a static audit, an instrumented HTTP-method log and an end-to-end destination capture; the architecture handoff was consolidated into one document; and proposal staging gained a regression guard asserting 0700 all the way down to the plugin state root. Test code, tooling, documents and release records \u2014 not one byte the wheel ships, and nothing a measurement reads."
 }
