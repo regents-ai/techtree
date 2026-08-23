@@ -115,16 +115,20 @@ running, on channel `development`.
 | Roll forward | `mix techtree.bootstrap.publish --digest sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` | published `9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`, previously `be2e965a…` |
 | Serve | `GET /api/v1/bootstrap` | byte-identical to the first response |
 | After | `mix techtree.bootstrap.list` | all five releases still staged, one active |
-| Refusal | `mix techtree.bootstrap.publish --digest sha256:a3e6d350…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |
+| Refusal | `mix techtree.bootstrap.publish --digest sha256:4fe1e72a…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |
 
-The last row was re-run on 2026-08-21, after the candidate was re-cut onto the
-scanner-fixed plugin commit: `sha256:a3e6d350…` was refused with
-`bootstrap_release_missing`, the pointer stayed on `sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`, and all
-five releases were still staged afterwards. The refusal is a property of any
-digest this channel never staged rather than of one release, so it re-runs
-unchanged against whichever candidate is current. Five earlier candidate digests
-appeared in this row — `2ef4a475…`, `57f95dcc…`, `ed7cb612…`, `73623d58…` and
-then `9a4dca4f…` — and none names bytes any repository still carries.
+The last row names whichever candidate is current — now
+`sha256:4fe1e72a…`, the candidate re-cut onto the state-root-permission-fixed
+plugin commit. The refusal is a property of any digest this channel never staged
+rather than of one release: publishing a never-staged digest returns
+`bootstrap_release_missing` and moves nothing, so the row reads the same against
+each candidate in turn. It was last exercised live on 2026-08-21, when the
+then-current candidate was refused, the pointer stayed on
+`sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`, and
+all five releases stayed staged. Every candidate digest that has stood in this
+row — `2ef4a475…`, `57f95dcc…`, `ed7cb612…`, `73623d58…`, `9a4dca4f…`,
+`a3e6d350…` and `09d6dc4e…` — has since been superseded, and none names bytes any
+repository still carries.
 
 This rehearsal was run on `development`, the only channel a local database has.
 The equivalent on `stable` is the pointer move in

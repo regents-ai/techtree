@@ -8,14 +8,14 @@
   "starter_skill_tree": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
  },
  "files": {
-  "bootstrap.json": "sha256:09d6dc4e451fc54a76c60a99b2ef422917d67e45f917ee2e8b51c851f2602d5e",
+  "bootstrap.json": "sha256:4fe1e72a3a437bfaa69de74c0ccf8f02e06742c84b15b13e5bc660cb10b04fa2",
   "release-core.json": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"
  },
  "release_id": "climb-v0.1.0",
  "schema_version": "techtree.release-checksums.v1",
  "sources": {
   "cli_source_revision": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
-  "hermes_plugin_commit": "0b0052fa68406ac4a63e4bf1fa1a6d00cf429815",
+  "hermes_plugin_commit": "d1d993e73160e7aa3f6739f0b871a425736a7605",
   "hermes_plugin_repository": "github.com/regents-ai/techtree-hermes",
   "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"
  }

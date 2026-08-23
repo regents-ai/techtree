@@ -102,10 +102,10 @@ approve, and this build does not serve them. It is three files:
 | | |
 | --- | --- |
 | Release channel | `stable` |
-| Candidate bootstrap digest | `sha256:09d6dc4e451fc54a76c60a99b2ef422917d67e45f917ee2e8b51c851f2602d5e` |
+| Candidate bootstrap digest | `sha256:4fe1e72a3a437bfaa69de74c0ccf8f02e06742c84b15b13e5bc660cb10b04fa2` |
 | ReleaseCore digest | `sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530` |
 | CLI | `techtree==0.1.0`, source `a3ea8c58…`, wheel `sha256:5a402a43…` |
-| Hermes plugin | `regents-ai/techtree-hermes` at `0b0052fa…` (carries ReleaseCore `sha256:c037f457…`) |
+| Hermes plugin | `regents-ai/techtree-hermes` at `d1d993e7…` (carries ReleaseCore `sha256:c037f457…`) |
 | Host Hermes | 0.20.1 minimum, 0.20.1 highest tested |
 | Starter Skill | file `sha256:2aff2707…`, tree `sha256:596d1368…` |
 | Rollback floor | `priv/bootstrap/stable.json`, `sha256:f8a7adf65f0e6ce…` |
@@ -192,7 +192,7 @@ deployment step rather than a repository one.
 | Plugin revision pinned | forty zeros |
 | Host Hermes minimum | 0.20.1 |
 
-The Gate-2 candidate `sha256:a3e6d350…` is deliberately absent from that list:
+The Gate-2 candidate `sha256:4fe1e72a…` is deliberately absent from that list:
 it is a file in the repository and has never been staged, so naming it to
 `publish` refuses with `bootstrap_release_missing` and moves nothing. So is the
 `stable` floor `sha256:f8a7adf65f0e6ce…`, which is staged on the live site before
