@@ -586,3 +586,103 @@ def test_the_band_wording_is_still_allowed() -> None:
 
     for refused in ("the starter Skill scores 24", "it reaches 24/36"):
         assert FORBIDDEN_EXACT_SCORE.search(PERMITTED_BAND.sub("", refused))
+
+
+# The publication terms and the declared maximum ---------------------------------------
+
+#: Ticket q0l. A Climb's DataPolicy describes a result that has been published:
+#: entering requires releasing the candidate Skill, and the uplift report is
+#: public. Reported beside raw-episode terms that prohibit upload outright,
+#: those read as a plan to publish somebody's Skill and their numbers, and two
+#: agents stopped and refused to start a run over exactly that. Nothing in this
+#: build can publish anything. So the terms are reported unchanged and this is
+#: reported with them.
+PUBLICATION_TERMS_FRAMING: re.Pattern[str] = re.compile(
+    r"nothing\s+is\s+published\s+from\s+this\s+build", re.I
+)
+
+#: Every surface that hands a Climb's data rights to a reader or to the host
+#: agent that will read them out.
+PUBLICATION_SURFACES: tuple[str, ...] = (
+    "commands.py",
+    "tools/demo.py",
+    "skills/operator/SKILL.md",
+    "skills/operator/references/approvals.md",
+)
+
+#: Every tool whose description tells a host agent to show the data policy.
+PUBLICATION_TOOLS: tuple[str, ...] = (
+    "techtree_climb_inspect",
+    "techtree_demo_prepare",
+    "techtree_uplift_prepare",
+    "techtree_uplift_propose",
+)
+
+#: Ticket 8vj. A dollar figure written into the copy is right for one Campaign
+#: and wrong for every other one, which is why an earlier example was removed.
+#: The review renders what the prepared draft carried.
+A_WRITTEN_DOLLAR_FIGURE: re.Pattern[str] = re.compile(r"\$\s?\d")
+
+
+@pytest.mark.parametrize("surface", PUBLICATION_SURFACES)
+def test_the_publication_terms_are_never_shown_without_their_plain_meaning(
+    surface: str,
+) -> None:
+    """Ticket q0l. The terms describe a published result; this build has none."""
+    assert PUBLICATION_TERMS_FRAMING.search(PUBLIC_COPY[surface]), surface
+
+
+@pytest.mark.parametrize("tool", PUBLICATION_TOOLS)
+def test_a_tool_that_reports_the_data_rights_says_what_they_mean_here(
+    tool: str,
+) -> None:
+    """The host agent reads the raw terms out of the envelope, so its schema says."""
+    description = all_tool_schemas()[tool]["description"]
+
+    assert PUBLICATION_TERMS_FRAMING.search(description), tool
+
+
+def test_the_publication_truth_says_where_model_calls_still_go() -> None:
+    """Decision 0013 s4. "It stays here" is heard as "nothing goes anywhere"."""
+    from techtree_hermes.commands import PUBLICATION_TERMS_LINE
+
+    assert PUBLICATION_TERMS_FRAMING.search(PUBLICATION_TERMS_LINE)
+    assert has_provider_qualification(PUBLICATION_TERMS_LINE)
+    for described, pattern in FORBIDDEN_PRIVACY:
+        assert not pattern.search(PUBLICATION_TERMS_LINE), described
+
+
+def test_the_publication_guard_catches_a_review_that_only_states_the_terms() -> None:
+    """The claim the two agents met, in the words they met it in."""
+    assert not PUBLICATION_TERMS_FRAMING.search(
+        "Public release required in order to enter this Climb. "
+        "The uplift report is published."
+    )
+
+
+def test_the_review_that_offers_the_first_paid_run_names_the_declared_maximum() -> None:
+    """Ticket 8vj: the terminal review printed this figure and this one did not.
+
+    The figure is the Campaign's and arrives with the prepared draft, so the
+    command surface renders it and writes none of its own. A Campaign that
+    declares no maximum gets the sentence that says so.
+    """
+    from techtree_hermes.commands import _declared_maximum_line
+
+    declared = _declared_maximum_line({"campaign_maximum_usd": 2.5})
+    undeclared = _declared_maximum_line({})
+
+    assert "$2.50" in declared
+    assert "declares no maximum" in undeclared
+    for line in (declared, undeclared):
+        assert NO_PRICE_FRAMING.search(line), line
+        assert NO_METER_FRAMING.search(line), line
+        for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
+            assert not pattern.search(line), (described, line)
+
+
+def test_no_copy_writes_a_dollar_figure_of_its_own() -> None:
+    """A figure in the copy is right for one Campaign and wrong for the rest."""
+    offenders = _offenders(A_WRITTEN_DOLLAR_FIGURE)
+
+    assert not offenders, f"copy names a price of its own: {offenders}"
