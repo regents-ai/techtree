@@ -89,6 +89,14 @@ def _presentation(**overrides: Any) -> dict[str, Any]:
         "candidate_tokens": 1100,
         "baseline_seconds": 30.0,
         "candidate_seconds": 31.0,
+        "economics_source": "episode_receipts",
+        "cost_usd": None,
+        "cost_provenance": "unavailable",
+        "derived_cost": None,
+        "cost_unavailable_reason": (
+            "This run wrote no signed execution record, so there is no signed "
+            "token total to work a cost out from."
+        ),
         "caveats": [],
         "next_actions": [],
     }
@@ -361,10 +369,12 @@ def test_usage_is_reported_with_where_it_came_from(journey: PluginServices) -> N
     result = _call(journey, "techtree_run_result", run_id=FIRST_RUN)
 
     usage = result["usage"]
-    assert usage["source"] == "run_report"
+    assert usage["source"] == "episode_receipts"
     assert usage["baseline_tokens"] == 1000
     assert usage["cost_usd"] is None
+    assert usage["derived_cost"] is None
     assert usage["cost_provenance"] == "unavailable"
+    assert "no signed execution record" in usage["cost_unavailable_reason"]
 
 
 # The phone journey ---------------------------------------------------------------

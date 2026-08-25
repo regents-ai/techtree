@@ -31,10 +31,13 @@ demand an edit to it would be a test that could break a release coordinate.
 from __future__ import annotations
 
 import ast
+import json
 import re
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pytest
+from support import founder_result_payload
 from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.schemas import all_tool_schemas
 
@@ -763,3 +766,296 @@ def test_the_verdict_guard_catches_a_skill_that_lost_the_instruction() -> None:
 
     for described, pattern in NO_VERDICT_INSTRUCTION:
         assert not pattern.search(without), described
+
+
+# What a finished result actually says ------------------------------------------------
+
+#: Ticket tzz. Techtree's own result screen leads with the count a person reads
+#: a result in, names what the run cost and where that figure came from, names
+#: the attestation gap in plain words, puts the model turns beside the clock,
+#: and says how often the provider refused each side. The plugin relays the
+#: same payload, and the founder's journey ran through the plugin rather than
+#: the terminal — so a relay that dropped any of it would show the person on
+#: the primary route strictly less than the terminal shows.
+#:
+#: These guards hold the relay to the payload. They assert nothing about
+#: numbers the plugin invents, because it invents none: every figure below is
+#: read out of a payload built here with Techtree's own presentation models, so
+#: a field renamed in Techtree fails this file rather than quietly emptying a
+#: line in somebody's chat window.
+
+
+def _relayed_text(payload: Mapping[str, object]) -> str:
+    """Return what `/techtree result` shows for this payload."""
+    from techtree_hermes.approvals import InstallPlanStore
+    from techtree_hermes.commands import handle_slash_command
+    from techtree_hermes.release import load_embedded_release_core, release_core_digest
+    from techtree_hermes.services.container import PluginServices
+    from techtree_hermes.state import SessionStore
+
+    core = load_embedded_release_core()
+    services = PluginServices(
+        ctx=None,
+        root=PLUGIN_ROOT,
+        release_core=core,
+        release_core_digest=release_core_digest(core),
+        bridge=_ResultBridge(payload),
+        plans=InstallPlanStore(),
+        sessions=SessionStore(),
+        assets=None,
+    )
+    return handle_slash_command(f"result {payload['run_id']}", services)
+
+
+class _ResultBridge:
+    """A CLI that answers `run result` with one prepared payload."""
+
+    def __init__(self, payload: Mapping[str, object]) -> None:
+        self._payload = payload
+
+    def invoke(self, arguments: Sequence[str]) -> dict[str, object]:
+        return {
+            "schema_version": "techtree.cli.v1",
+            "command": "run result",
+            "ok": True,
+            "data": {
+                "report": {"run_id": self._payload["run_id"]},
+                "presentation": dict(self._payload),
+            },
+            "error": None,
+            "messages": [],
+            "warnings": [],
+            "next_actions": [],
+        }
+
+
+def _compact(payload: Mapping[str, object]) -> dict[str, object]:
+    """Return what a phone is shown of this payload."""
+    from techtree_hermes.services.presentation import compact_presentation
+
+    return compact_presentation(payload)
+
+
+def test_the_relay_leads_with_the_count_a_person_reads_a_result_in() -> None:
+    """Ticket tzz. A mean over a toy task set is not what anybody repeats."""
+    text = _relayed_text(founder_result_payload())
+
+    assert "0 of 36 → 24 of 36" in text
+    assert "mean 0.000 → 0.667 (+0.667)" in text
+    lines = text.splitlines()
+    assert lines[1].startswith("Tasks 0 of 36 → 24 of 36"), lines[:3]
+
+
+def test_a_reward_with_no_such_count_has_none_invented_for_it() -> None:
+    """The count is a real fact about an all-or-nothing reward, or nothing."""
+    text = _relayed_text(
+        founder_result_payload(
+            baseline_tasks_scored_full=None, candidate_tasks_scored_full=None
+        )
+    )
+
+    assert "of 36" not in text
+    assert "Mean score 0.000 → 0.667 (+0.667)" in text
+
+
+def test_the_relay_carries_the_cost_and_the_kind_of_figure_it_is() -> None:
+    """Decision 0007 R6: the word that tells them apart travels with the figure."""
+    text = _relayed_text(founder_result_payload())
+
+    assert "Cost: about $4.87, worked out here, not billed" in text
+    assert "Computed from 1,900,000 input and 542,125 output tokens" in text
+    assert "Your provider's bill is what you actually pay." in text
+    assert "410,000 of those input tokens came back from the provider's cache" in text
+
+
+def test_a_figure_the_provider_reported_is_relayed_as_that_and_not_as_derived() -> None:
+    """The better-sourced figure exists only when the provider gave one."""
+    text = _relayed_text(
+        founder_result_payload(
+            cost_usd=5.12, cost_provenance="provider_reported", derived_cost=None
+        )
+    )
+
+    assert "Cost: $5.12, reported by the provider" in text
+    assert "worked out here" not in text
+    assert "Computed from" not in text
+
+
+def test_a_run_with_no_cost_says_which_half_of_one_it_is_missing() -> None:
+    """ "Unavailable" alone leaves a reader unable to tell what went missing."""
+    reason = (
+        "This run wrote no signed execution record, so there is no signed "
+        "token total to work a cost out from."
+    )
+    text = _relayed_text(
+        founder_result_payload(derived_cost=None, cost_unavailable_reason=reason)
+    )
+
+    assert "Cost: unavailable" in text
+    assert reason in text
+
+
+def test_the_relay_carries_every_qualification_and_names_the_attestation_gap() -> None:
+    """Room is made by cutting detail, never by cutting a qualification."""
+    payload = founder_result_payload()
+    text = _relayed_text(payload)
+
+    warnings = [
+        caveat["text"]
+        for caveat in payload["caveats"]
+        if caveat["severity"] != "info"  # type: ignore[index]
+    ]
+    for warning in warnings:
+        assert warning in text, warning
+    assert "not provably the same model build" in text
+    assert "refused 3 model calls with a rate limit on the baseline side" in text
+
+
+def test_the_relay_puts_the_model_turns_beside_the_clock() -> None:
+    """Turns are a property of the work; the clock is a property of the day."""
+    text = _relayed_text(founder_result_payload())
+
+    assert "the candidate side took 412 model turns against the baseline's 388" in text
+    assert "finished in 598.4s against 612.0s" in text
+    assert "Turns are a property of the work." in text
+
+
+def test_a_run_with_no_recorded_turns_still_reports_the_clock() -> None:
+    """A run whose traces could not be read says the part it does have."""
+    text = _relayed_text(
+        founder_result_payload(
+            baseline_model_turns=None,
+            candidate_model_turns=None,
+            baseline_rate_limited_calls=None,
+            candidate_rate_limited_calls=None,
+            every_rollout_completed=None,
+        )
+    )
+
+    assert "Time: baseline 612.0s, candidate 598.4s" in text
+    assert "model turns" not in text
+
+
+def test_the_relay_adds_no_verdict_of_its_own() -> None:
+    """Ticket ip5's boundary, held on the surface that does the relaying.
+
+    Every word Techtree wrote is removed first, and what is left is the
+    plugin's own contribution. A verdict may not appear in it.
+    """
+    payload = founder_result_payload()
+    remainder = _relayed_text(payload)
+    for caveat in payload["caveats"]:  # type: ignore[attr-defined]
+        remainder = remainder.replace(caveat["text"], "")
+    verdicts = re.compile(
+        r"\b(passed|failed|succeeded|success|good|bad|strong|weak|threshold"
+        r"|works|improvement)\b",
+        re.I,
+    )
+
+    assert not verdicts.search(remainder), remainder
+
+
+def test_the_relayed_result_makes_no_claim_the_copy_boundaries_forbid() -> None:
+    """The relayed text is copy a person reads, and is held to the same lines."""
+    text = _relayed_text(founder_result_payload())
+
+    for described, pattern in (
+        *FORBIDDEN_PRIVACY,
+        *FORBIDDEN_ATTESTATION,
+        *FORBIDDEN_AGENCY,
+    ):
+        assert not pattern.search(text), described
+    assert not FORBIDDEN_OWNERSHIP.search(text)
+    assert not FORBIDDEN_ACCOUNT.search(text)
+
+
+def test_the_phone_is_shown_the_counts_the_turns_the_throttling_and_the_cost() -> None:
+    """Ticket tzz. The whitelist dropped every one of these before this."""
+    compact = _compact(founder_result_payload())
+
+    assert compact["baseline_tasks_scored_full"] == 0
+    assert compact["candidate_tasks_scored_full"] == 24
+    assert compact["task_count"] == 36
+    assert compact["baseline_model_turns"] == 388
+    assert compact["candidate_model_turns"] == 412
+    assert compact["baseline_rate_limited_calls"] == 3
+    assert compact["candidate_rate_limited_calls"] == 11
+    assert compact["every_rollout_completed"] is True
+    assert compact["derived_cost"]["usd"] == 4.87  # type: ignore[index]
+    assert compact["cost_usd"] is None
+    assert compact["cost_provenance"] == "unavailable"
+
+
+def test_the_phone_carries_the_qualifications_and_never_a_note_instead() -> None:
+    """A phone is where a number is most likely to be quoted onwards."""
+    compact = _compact(founder_result_payload())
+
+    assert len(compact["caveats"]) == 3  # type: ignore[arg-type]
+    assert "not provably the same model build" in compact["caveats"][0]  # type: ignore[index]
+    assert all(
+        "No external evidence service" not in text
+        for text in compact["caveats"]  # type: ignore[union-attr]
+    )
+
+
+def test_the_phone_whitelist_is_still_a_whitelist() -> None:
+    """A field reaches a phone because it was named, never because it existed."""
+    compact = _compact(
+        founder_result_payload(a_field_nobody_whitelisted="this must not travel")
+    )
+
+    assert "a_field_nobody_whitelisted" not in compact
+    assert "task_rows" not in compact
+    assert "baseline_skill" not in compact
+    assert "next_actions" not in compact
+
+
+def test_the_phone_answer_still_fits_the_channel_it_is_read_in() -> None:
+    """An answer over the budget is replaced whole, so it has to fit."""
+    from techtree_hermes.models import ChannelKind
+    from techtree_hermes.release import load_embedded_release_core
+    from techtree_hermes.services.presentation import PresentationService
+    from techtree_hermes.tools import tool_result
+
+    payload = founder_result_payload()
+    service = PresentationService(release=load_embedded_release_core())
+    answer = tool_result(
+        service.deterministic_only(
+            result_envelope={
+                "ok": True,
+                "data": {"report": {}, "presentation": payload},
+            },
+            channel=ChannelKind.GATEWAY,
+        ),
+        ChannelKind.GATEWAY,
+    )
+
+    assert '"truncated"' not in answer
+    assert "0 of 36" not in answer  # the count travels as two fields, not as prose
+    assert json.loads(answer)["presentation"]["candidate_tasks_scored_full"] == 24
+    assert "not provably the same model build" in answer
+
+
+def test_a_result_whose_qualifications_are_long_keeps_the_answer_whole() -> None:
+    """The one part of a compact answer a run can make arbitrarily long."""
+    from techtree_hermes.models import ChannelKind
+    from techtree_hermes.release import load_embedded_release_core
+    from techtree_hermes.services.presentation import PresentationService
+    from techtree_hermes.tools import tool_result
+
+    payload = founder_result_payload(
+        caveats=[
+            {"code": f"long_{index}", "severity": "warning", "text": "detail " * 120}
+            for index in range(6)
+        ]
+    )
+    service = PresentationService(release=load_embedded_release_core())
+    relayed = service.deterministic_only(
+        result_envelope={"ok": True, "data": {"report": {}, "presentation": payload}},
+        channel=ChannelKind.GATEWAY,
+    )
+    answer = tool_result(relayed, ChannelKind.GATEWAY)
+
+    assert '"truncated"' not in answer
+    assert relayed["presentation"]["caveats"]  # type: ignore[index]
+    assert relayed["presentation"]["caveats_not_shown"]  # type: ignore[index]

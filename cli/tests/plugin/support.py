@@ -203,3 +203,146 @@ def envelope(**overrides: Any) -> dict[str, Any]:
 def print_envelope(**overrides: Any) -> str:
     """Return fake-CLI source that prints one valid envelope."""
     return f"print(json.dumps({envelope(**overrides)!r}))"
+
+
+# The founder's run shape ---------------------------------------------------------
+
+#: The comparison the founder's journey actually ran: no Skill against the
+#: starter Skill, over thirty-six toy tasks, with a cost worked out while
+#: rendering because the provider reported none. Two suites relay it — the copy
+#: scan and the end-to-end tool journey — so it is built once, here, and built
+#: through Techtree's own presentation models rather than written out as a
+#: dictionary, so a field renamed in Techtree fails a test rather than quietly
+#: emptying a line in somebody's chat window.
+
+
+def founder_result_payload(**overrides: Any) -> dict[str, Any]:
+    """Return the founder's run shape: no Skill against the starter Skill.
+
+    Built through :class:`UpliftPresentationPayload` rather than written out as
+    a dictionary, so the fixture cannot drift away from the payload the CLI
+    actually emits.
+    """
+    from techtree.models.cli import NextAction
+    from techtree.presentation.models import (
+        DerivedCost,
+        PresentationCaveat,
+        SkillSummary,
+        TaskResultRow,
+        UpliftPresentationPayload,
+    )
+    from techtree.receipts.execution import CostProvenance
+
+    run_id = "run_" + "0" * 32
+    rows = [
+        TaskResultRow(
+            position=index,
+            task_label=f"task-{index + 1:02d}",
+            baseline_score=0.0,
+            candidate_score=1.0 if index < 24 else 0.0,
+            delta=1.0 if index < 24 else 0.0,
+            outcome="win" if index < 24 else "tie",
+        )
+        for index in range(36)
+    ]
+    payload = UpliftPresentationPayload(
+        schema_version="techtree.presentation.uplift.v1",
+        run_id=run_id,
+        campaign_title="Techtree Hello World",
+        comparison_label="Hello World Uplift Receipt",
+        change_label="No tested Skill → Skill v1",
+        baseline_skill=SkillSummary(
+            label="No tested Skill", root_digest=None, file_count=0, total_bytes=0
+        ),
+        candidate_skill=SkillSummary(
+            label="hello-world-starter",
+            root_digest="sha256:" + "b" * 64,
+            file_count=2,
+            total_bytes=3072,
+        ),
+        baseline_score=0.0,
+        candidate_score=24 / 36,
+        absolute_delta=24 / 36,
+        relative_delta=None,
+        wins=24,
+        losses=0,
+        ties=12,
+        task_rows=rows,
+        baseline_tasks_scored_full=0,
+        candidate_tasks_scored_full=24,
+        baseline_tokens=1_211_350,
+        candidate_tokens=1_230_775,
+        baseline_seconds=612.0,
+        candidate_seconds=598.4,
+        baseline_model_turns=388,
+        candidate_model_turns=412,
+        baseline_rate_limited_calls=3,
+        candidate_rate_limited_calls=11,
+        every_rollout_completed=True,
+        economics_source="comparison_execution_record",
+        cost_usd=None,
+        cost_provenance=CostProvenance.UNAVAILABLE,
+        derived_cost=DerivedCost(
+            usd=4.87,
+            input_tokens=1_900_000,
+            output_tokens=542_125,
+            cached_input_tokens=410_000,
+            prices_name_a_cached_rate=False,
+            model_id="a-pinned-model",
+            input_usd_per_mtok=3.0,
+            output_usd_per_mtok=15.0,
+            prices_recorded_on="2026-08-01",
+        ),
+        cost_unavailable_reason=None,
+        decision="accepted",
+        proof_grade="P1",
+        verification_status="verified_offline",
+        caveats=[
+            PresentationCaveat(
+                code="comparison_controlled_with_warnings",
+                severity="warning",
+                text=(
+                    "The comparison is controlled with warnings, which means one "
+                    "coordinate is attested more weakly than the rest. Your provider "
+                    "publishes no immutable build identifier for a-pinned-model, so "
+                    "both sides provably used the same model name but not provably "
+                    "the same model build. No mismatch was found; a mismatch would "
+                    "have made the comparison invalid."
+                ),
+            ),
+            PresentationCaveat(
+                code="no_independent_reproduction",
+                severity="warning",
+                text=(
+                    "Nobody has independently reproduced this comparison, and no "
+                    "platform witnessed it."
+                ),
+            ),
+            PresentationCaveat(
+                code="provider_rate_limiting",
+                severity="warning",
+                text=(
+                    "The provider refused 3 model calls with a rate limit on the "
+                    "baseline side and 11 on the candidate side. Every rollout "
+                    "still ran to completion."
+                ),
+            ),
+            PresentationCaveat(
+                code="no_external_evidence_service",
+                severity="info",
+                text="No external evidence service is required, used, or contacted.",
+            ),
+        ],
+        next_actions=[
+            NextAction(
+                id="show_every_task",
+                label="Show every task",
+                reason="The per-task table is one command away.",
+                cli=["techtree", "run", "result", run_id, "--show-tasks", "all"],
+                hermes_tool=None,
+                hermes_args=None,
+                requires_user_confirmation=False,
+            )
+        ],
+    )
+    return {**json.loads(payload.model_dump_json()), **overrides}

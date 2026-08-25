@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from support import envelope, install_fake_cli
+from support import envelope, founder_result_payload, install_fake_cli
 from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bridge import CliBridge
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
@@ -172,3 +172,80 @@ def test_nothing_in_the_released_flow_reaches_the_narration_code() -> None:
     }
 
     assert callers == set()
+
+
+# A real Climb's result, on a phone -----------------------------------------------
+
+
+@pytest.fixture
+def founder_services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
+    """A CLI answering with the comparison the founder's journey actually ran."""
+    payload = founder_result_payload()
+    answers = {
+        "run result": envelope(
+            command="run result",
+            data={"report": {"run_id": payload["run_id"]}, "presentation": payload},
+        )
+    }
+    body = (
+        f"answers = {answers!r}\n"
+        "key = ' '.join(a for a in argv if not a.startswith('--'))\n"
+        "for name in answers:\n"
+        "    if key.startswith(name):\n"
+        "        print(json.dumps(answers[name]))\n"
+        "        break\n"
+        "else:\n"
+        "    sys.exit(2)\n"
+    )
+    install_fake_cli(tmp_path / "bin", body=body, monkeypatch=monkeypatch)
+    return PluginServices(
+        ctx=StubCtx(CountingLlm()),
+        root=tmp_path,
+        release_core=CORE,
+        release_core_digest=release_core_digest(CORE),
+        bridge=CliBridge(),
+        plans=InstallPlanStore(),
+        sessions=SessionStore(),
+        assets=ReleaseSkillProvider(),
+    )
+
+
+def test_a_phone_gets_the_result_and_not_an_apology_for_its_size(
+    founder_services: PluginServices,
+) -> None:
+    """Ticket tzz. A thirty-six task result is the ordinary case, not an edge one.
+
+    An answer over the channel's budget is replaced whole by a note saying so,
+    which on a phone is the difference between a result and nothing at all. The
+    compact view exists precisely so that this fits, so this asserts it does.
+    """
+    answer = json.loads(
+        TOOL_HANDLERS["techtree_run_result"](
+            founder_services,
+            {"run_id": founder_result_payload()["run_id"], "channel": "gateway"},
+        )
+    )
+
+    assert answer.get("truncated") is not True
+    assert answer["presentation"]["baseline_tasks_scored_full"] == 0
+    assert answer["presentation"]["candidate_tasks_scored_full"] == 24
+    assert answer["presentation"]["task_count"] == 36
+    assert answer["presentation"]["derived_cost"]["usd"] == 4.87
+    assert answer["presentation"]["candidate_model_turns"] == 412
+    assert answer["presentation"]["candidate_rate_limited_calls"] == 11
+    assert "not provably the same model build" in json.dumps(answer)
+
+
+def test_the_terminal_still_gets_every_task_row(
+    founder_services: PluginServices,
+) -> None:
+    """The table is kept out of a phone's answer, not out of the terminal's."""
+    answer = json.loads(
+        TOOL_HANDLERS["techtree_run_result"](
+            founder_services,
+            {"run_id": founder_result_payload()["run_id"], "channel": "terminal"},
+        )
+    )
+
+    assert len(answer["presentation"]["task_rows"]) == 36
+    assert answer["data"]["presentation"]["candidate_tasks_scored_full"] == 24
