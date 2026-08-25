@@ -1,7 +1,6 @@
 defmodule Techtree.Catalog.QueryTest do
   use Techtree.DataCase, async: false
 
-  alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Error
   alias Techtree.Catalog.Importer
   alias Techtree.Catalog.Query
@@ -43,17 +42,6 @@ defmodule Techtree.Catalog.QueryTest do
 
       assert {:error, %Error{code: :catalog_object_missing}} =
                Query.get_climb_by_slug("no-such-climb")
-    end
-
-    test "installation instructions carry the digest of the exact decoded payload" do
-      assert {:ok, instructions, digest} = Query.bootstrap_instructions_with_digest()
-
-      assert digest ==
-               CatalogFixture.root()
-               |> CatalogFixture.read!("bootstrap.json")
-               |> Digest.hash_bytes()
-
-      assert Query.bootstrap_instructions() == {:ok, instructions}
     end
 
     test "an object is addressed only through the imported index" do

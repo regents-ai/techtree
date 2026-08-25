@@ -5,160 +5,150 @@ defmodule TechtreeWeb.HomeLiveTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
-  alias TechtreeWeb.ReleaseInfo
 
-  describe "with the active catalog imported" do
+  describe "with a release published" do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
       Importer.import!(CatalogFixture.root())
       :ok
     end
 
-    test "the hero makes one promise before introducing the machinery", %{conn: conn} do
+    test "the landing page says what this is and then how to install it", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "Improve a Skill. Prove it worked."
-
-      assert text =~
-               "Run a controlled baseline and candidate on your machine. Techtree keeps the " <>
-                 "taskset, model, harness, tools, and budget fixed, then signs the result " <>
-                 "so another participant can verify or reproduce it."
-
-      for concept <- [
-            "CampaignSpec",
-            "TasksetValidationReceipt",
-            "manifest",
-            "receipt schema",
-            "Fabric",
-            "Relay"
-          ] do
-        refute hero_text(html) =~ concept
-      end
+      assert text =~ "Techtree Climb"
+      assert text =~ "Test one change to an agent on your own machine"
+      assert text =~ "My agent is installing"
+      assert text =~ "I’m installing"
+      assert text =~ "Give this to your Hermes agent"
     end
 
-    test "installation is the sole primary action", %{conn: conn} do
+    test "the landing page opens on the agent path", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+
+      assert visible_text(html) =~
+               "Read the pinned Techtree installation guide at https://techtree.sh/start."
+
+      refute html =~ "hermes plugins install"
+      refute html =~ "Prefer installing it yourself?"
+    end
+
+    test "the other path is the alternate one, with the pinned plugin under it",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/?install=me")
+      text = visible_text(html)
+
+      assert text =~ "Prefer installing it yourself?"
+      assert text =~ "Install the exact pinned Hermes plugin shown below."
+      assert text =~ "Restart Hermes."
+      assert text =~ "Ask: “Set up Techtree and run the Hello World Climb.”"
+
+      assert html =~ "hermes plugins install regents-ai/techtree-hermes --ref"
+    end
+
+    test "the landing page stays out of the details and points at the guide", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
 
-      assert live
-             |> element(~s|a.button--primary[href="/docs#install"]|, "Install Techtree")
-             |> has_element?()
+      refute html =~ "uv tool install"
+      refute html =~ "Before you start"
 
       assert live
-             |> element(~s|a.text-link[href="/proofs"]|, "View a verified run")
+             |> element(~s|a[href="/start"]|, "The full installation guide")
              |> has_element?()
-
-      assert length(Regex.scan(~r/button--primary/, html)) == 1
-      refute html =~ "My agent is installing"
-      refute html =~ "I’m installing"
     end
 
-    test "the masthead has exactly the three product destinations", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
-
-      assert nav_links(html) == [
-               {"https://github.com/regents-ai", "GitHub"},
-               {"/docs", "Docs"},
-               {"/proofs", "View a proof"}
-             ]
-    end
-
-    test "the graph exposes only artifacts that actually exist", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/")
-      graph = live |> element("#home-evidence-graph") |> render()
-      text = visible_text(graph)
-
-      assert text =~ "Campaign"
-      assert text =~ "Baseline"
-      assert text =~ "Candidate"
-      assert text =~ "Task validation"
-      assert text =~ CatalogFixture.campaign_digest()
-      assert text =~ "36 tasks validated"
-      assert text =~ "Declared; no public run receipt"
-      refute text =~ "Signed proof"
-      refute text =~ "Independent reproduction"
-      refute text =~ ~r/\+?\d+(\.\d+)?%/
-    end
-
-    test "a placeholder release never becomes an executable installer", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
+    test "the landing page says what Hermes is and what a hosted one cannot do yet",
+         %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "This channel has placeholder coordinates."
-      refute html =~ "techtree==0.0.0-placeholder"
-      refute html =~ "0000000000000000000000000000000000000000"
+      assert text =~ "Hermes is an open-source agent made by Nous Research."
+
+      assert text =~
+               "Nous Portal provides model access, hosted tools, and cloud-hosted Hermes " <>
+                 "under one account."
+
+      assert text =~
+               "The Nous Portal cloud-hosted path is not yet a separately certified " <>
+                 "Techtree execution environment."
+
+      assert live |> element(~s|a[href="https://portal.nousresearch.com/"]|) |> has_element?()
     end
 
-    test "the homepage has only its four requested content regions", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
+    test "either path calls the introductory Climb a toy demonstration", %{conn: conn} do
+      for address <- [~p"/", ~p"/?install=me"] do
+        {:ok, _live, html} = live(conn, address)
 
-      assert html =~ ~s|class="hero"|
-      assert html =~ ~s|class="home-section process"|
-      assert html =~ ~s|class="home-section featured"|
-      assert html =~ ~s|class="home-section trust"|
-
-      for absent <- ["Sign in", "Leaderboard", "Pricing", "Dashboard", "Marketplace"] do
-        refute html =~ absent
+        assert visible_text(html) =~
+                 "A toy introductory demonstration of the mechanism, " <>
+                   "not a measure of broad capability.",
+               "#{address} drops the qualification"
       end
     end
 
-    test "the trust boundary names local data, provider calls, and proof limits", %{conn: conn} do
+    test "either path says what is not uploaded and where model calls go", %{conn: conn} do
+      for address <- [~p"/", ~p"/?install=me"] do
+        {:ok, _live, html} = live(conn, address)
+        text = visible_text(html)
+
+        assert text =~
+                 "Techtree does not upload your recordings, your results, or the work you submit."
+
+        assert text =~ "sent to the model provider you selected"
+      end
+    end
+
+    test "the landing page keeps the participant-attested wording", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~
-               "Techtree does not upload your recordings, result bundle, or submitted Skill."
+      assert text =~ "signed on the machine that produced it and can be checked there, offline"
+      assert text =~ "has not been independently reproduced"
+    end
 
-      assert text =~ "calls to the model provider you selected"
-      assert text =~ "A signed local proof establishes internal consistency and authorship."
-      assert text =~ "only when another participant runs and attests to it"
+    test "the landing page keeps the deeper pages one link away", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/")
+
+      for path <- ["/climbs", "/protocol", "/proofs/local"] do
+        assert live |> element(~s|a[href="#{path}"]|) |> has_element?()
+      end
+    end
+
+    test "the landing page invents no activity and claims no independent checking",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+
+      for fabrication <- [
+            "participants",
+            "runs completed",
+            "leaderboard",
+            "trending",
+            "join thousands",
+            "independently verified",
+            "verified by techtree"
+          ] do
+        refute String.downcase(html) =~ fabrication
+      end
+
+      refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)/i
     end
   end
 
-  @tag :tmp_dir
-  test "a concrete active release supplies the one copied install command", %{
-    conn: conn,
-    tmp_dir: tmp_dir
-  } do
-    bundle = CatalogFixture.copy!(tmp_dir)
-    CatalogFixture.rewrite_bootstrap!(bundle, &CatalogFixture.concrete_release/1)
-    CatalogFixture.use_bundle(bundle)
-    Importer.import!(bundle)
-
-    release = ReleaseInfo.current()
-    {:ok, live, html} = live(conn, ~p"/")
-
-    assert release.installable?
-
-    assert live
-           |> element(~s|#copy-home-install[data-copy-value="uv tool install techtree==0.1.0"]|)
-           |> has_element?()
-
-    assert visible_text(html) =~ "Python 3.12+"
-    assert visible_text(html) =~ "Docker required"
-    assert visible_text(html) =~ "Hermes 0.20.1+ optional"
-    refute html =~ "techtree up"
-  end
-
-  test "the homepage renders without a catalog or release", %{conn: conn} do
-    CatalogFixture.use_bundle(CatalogFixture.root())
-
+  test "the landing page needs no catalog to render", %{conn: conn} do
     {:ok, _live, html} = live(conn, ~p"/")
 
-    assert visible_text(html) =~ "No install release is active on this channel."
-    refute html =~ "home-evidence-graph"
-    refute html =~ "home-section featured"
+    assert visible_text(html) =~ "Installation details are not published on this site yet."
   end
 
-  defp hero_text(html) do
-    [copy] = Regex.run(~r/<div class="hero__copy".*?<\/div>/s, html)
-    visible_text(copy)
-  end
+  test "every page is reachable from every page", %{conn: conn} do
+    for path <- [~p"/", ~p"/start", ~p"/climbs", ~p"/proofs/local", ~p"/protocol"] do
+      {:ok, _live, html} = live(conn, path)
 
-  defp nav_links(html) do
-    [nav] = Regex.run(~r/<nav class="masthead__nav".*?<\/nav>/s, html)
-
-    Regex.scan(~r/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/s, nav, capture: :all_but_first)
-    |> Enum.map(fn [href, label] -> {href, visible_text(label) |> String.trim()} end)
+      assert html =~ ~s|href="/start"|
+      assert html =~ ~s|href="/climbs"|
+      assert html =~ ~s|href="/proofs/local"|
+      assert html =~ ~s|href="/protocol"|
+    end
   end
 end

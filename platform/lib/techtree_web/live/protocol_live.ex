@@ -115,9 +115,6 @@ defmodule TechtreeWeb.ProtocolLive do
             <.protocol_badge name={document.schema} />
           </div>
           <p>{document.role}</p>
-          <p :if={document.kind == :data_policy} class="small quiet">
-            {publication_note()}
-          </p>
           <p :if={shipped(@shipped, document)} class="small">
             In this release:
             <.digest

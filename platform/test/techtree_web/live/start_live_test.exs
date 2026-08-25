@@ -215,7 +215,7 @@ defmodule TechtreeWeb.StartLiveTest do
       for address <- [~p"/start", ~p"/start?install=me"] do
         {:ok, _live, html} = live(conn, address)
 
-        refute html =~ "github.com/regents-ai/techtree-hermes"
+        refute html =~ "github.com"
 
         assert visible_text(html) =~
                  "This release does not name a published plugin revision yet"

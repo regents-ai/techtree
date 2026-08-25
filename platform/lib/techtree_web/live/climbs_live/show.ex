@@ -92,8 +92,8 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           to quote it. Nothing enforces it in v0.1, so quoting it told a reader
           runs are time-bounded when they are not. Decision 0025 settles it for
           this release: the declared value stays in the document, and no public
-          surface states it. Enforcement returns to the public copy only when
-          the supporting evidence exists. --%>
+          surface states it. Enforcement is a v0.2 candidate and gets the
+          sentence back when it is true. --%>
           <:fact term="Runs">{schedule_words(get_in(@facts, ["execution", "order"]))}</:fact>
         </.definition_list>
       </section>

@@ -41,18 +41,10 @@ defmodule TechtreeWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive
-    live "/docs", DocsLive
-    live "/campaigns", CampaignsLive.Index
-    live "/campaigns/:slug", CampaignsLive.Show
-    live "/proofs", ProofsLive.Index
-    live "/proofs/local", LocalProofLive
-    live "/proofs/:digest", ProofsLive.Show
-    get "/skill.md", SkillController, :show
-
-    # Stable legacy addresses retained for release links already in circulation.
     live "/start", StartLive
     live "/climbs", ClimbsLive.Index
     live "/climbs/:slug", ClimbsLive.Show
+    live "/proofs/local", LocalProofLive
     live "/protocol", ProtocolLive
   end
 
