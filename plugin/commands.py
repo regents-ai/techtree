@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, TypeGuard
 
 from .channels import bounded_gateway_text, ensure_gateway_safe
 from .errors import PluginError, scrub_text
@@ -257,6 +257,185 @@ def _slash_cancel(services: Any, arguments: Sequence[str]) -> str:
     )
 
 
+#: What a cost figure's provenance means to a reader, in the words Techtree's
+#: own renderings use. The plugin cannot import Techtree — it reads a finished
+#: payload out of another process — so the phrase is looked up here and never
+#: reworded, and a figure is never shown with a basis this build cannot name.
+_COST_BASIS: Mapping[str, str] = {
+    "provider_reported": "reported by the provider",
+    "computed_from_pinned_price": "computed from the pinned price",
+    "estimated": "estimated, not billed",
+}
+
+#: What is said of a figure whose provenance this build has no phrase for. A
+#: number with no stated basis is the one thing decision 0007 R6 forbids, so
+#: the absence is stated rather than the figure being shown bare.
+_COST_BASIS_UNNAMED = "and this build has no name for where that figure came from"
+
+
+def _number(value: Any, spec: str) -> str | None:
+    """Return one figure from the payload as text, or nothing when it has none.
+
+    Formatting is all that happens here. Every figure the relay shows was
+    computed by Techtree and is copied out of its payload; this build works
+    out no number of its own and rounds none into a better one.
+    """
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return format(value, spec)
+
+
+def _measured_difference_line(presentation: Mapping[str, Any]) -> str:
+    """Return the measured difference, counted first wherever it can be.
+
+    A mean is what the report holds and a count is what a person reads a
+    result in, and for an all-or-nothing reward the two are the same fact.
+    Techtree's own renderings lead with the count for exactly that reason, and
+    this is the line most likely to be quoted to somebody, so it leads with the
+    same one and keeps the mean in the same breath. A reward with no such count
+    has none invented for it.
+    """
+    baseline = _number(presentation.get("baseline_score"), ".3f")
+    candidate = _number(presentation.get("candidate_score"), ".3f")
+    delta = _number(presentation.get("absolute_delta"), "+.3f")
+    if baseline is None or candidate is None:
+        means = "unavailable"
+    else:
+        means = f"{baseline} → {candidate}"
+        if delta is not None:
+            means = f"{means} ({delta})"
+    counted = _task_counts(presentation)
+    if counted is None:
+        return f"Mean score {means}"
+    scored_baseline, scored_candidate, total = counted
+    return (
+        f"Tasks {scored_baseline} of {total} → {scored_candidate} of {total}, "
+        f"mean {means}"
+    )
+
+
+def _task_counts(presentation: Mapping[str, Any]) -> tuple[int, int, int] | None:
+    """Return both sides' fully scored task counts and the size of the set."""
+    baseline = presentation.get("baseline_tasks_scored_full")
+    candidate = presentation.get("candidate_tasks_scored_full")
+    rows = presentation.get("task_rows")
+    if not _is_count(baseline) or not _is_count(candidate):
+        return None
+    if not isinstance(rows, Sequence) or isinstance(rows, str):
+        return None
+    return baseline, candidate, len(rows)
+
+
+def _is_count(value: Any) -> TypeGuard[int]:
+    """Whether the payload carried a whole count here rather than nothing."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _cost_line(presentation: Mapping[str, Any]) -> str:
+    """Return what the run cost and, in the same breath, what kind of figure it is.
+
+    Decision 0007 R6: a figure that was worked out and a figure that was billed
+    are different claims, and the word telling them apart travels with the
+    number rather than somewhere below it.
+    """
+    reported = _number(presentation.get("cost_usd"), ".2f")
+    if reported is not None:
+        basis = _COST_BASIS.get(
+            str(presentation.get("cost_provenance")), _COST_BASIS_UNNAMED
+        )
+        return f"${reported}, {basis}"
+    derived = presentation.get("derived_cost")
+    if isinstance(derived, Mapping):
+        figure = _number(derived.get("usd"), ".2f")
+        if figure is not None:
+            return f"about ${figure}, worked out here, not billed"
+    return "unavailable"
+
+
+def _cost_basis_lines(presentation: Mapping[str, Any]) -> list[str]:
+    """Return what a reader needs in order to judge the figure above it."""
+    if presentation.get("cost_usd") is not None:
+        return []
+    derived = presentation.get("derived_cost")
+    if not isinstance(derived, Mapping):
+        reason = presentation.get("cost_unavailable_reason")
+        return [reason] if isinstance(reason, str) and reason else []
+    lines = []
+    tokens_in = _number(derived.get("input_tokens"), ",")
+    tokens_out = _number(derived.get("output_tokens"), ",")
+    if tokens_in is not None and tokens_out is not None:
+        lines.append(
+            f"Computed from {tokens_in} input and {tokens_out} output tokens "
+            "at the prices this release recorded. Your provider's bill is what "
+            "you actually pay."
+        )
+    cached = _number(derived.get("cached_input_tokens"), ",")
+    if cached is not None and not derived.get("prices_name_a_cached_rate"):
+        lines.append(
+            f"{cached} of those input tokens came back from the provider's "
+            "cache. The recorded prices name no separate rate for those, so "
+            "every token is priced at the full rate and the figure above is "
+            "on the high side."
+        )
+    return lines
+
+
+def _work_line(presentation: Mapping[str, Any]) -> str:
+    """Return what each side spent doing the same tasks, in one line.
+
+    How many times each side had to go back to the model is the half of this
+    that a different machine would reproduce, so it is said first and the
+    clock is said with it rather than on its own.
+    """
+    baseline = _number(presentation.get("baseline_model_turns"), ",")
+    candidate = _number(presentation.get("candidate_model_turns"), ",")
+    baseline_seconds = _number(presentation.get("baseline_seconds"), ".1f")
+    candidate_seconds = _number(presentation.get("candidate_seconds"), ".1f")
+    if baseline is None or candidate is None:
+        if baseline_seconds is None and candidate_seconds is None:
+            return "Time: not recorded for this run"
+        return (
+            f"Time: baseline {_seconds(baseline_seconds)}, "
+            f"candidate {_seconds(candidate_seconds)}"
+        )
+    sentence = (
+        f"Work: the candidate side took {candidate} model turns against the "
+        f"baseline's {baseline}"
+    )
+    if baseline_seconds is not None and candidate_seconds is not None:
+        sentence += (
+            f", and finished in {candidate_seconds}s against {baseline_seconds}s"
+        )
+    return (
+        f"{sentence}. Turns are a property of the work. How long each side "
+        "took also depends on this machine and on how busy the provider was."
+    )
+
+
+def _seconds(value: str | None) -> str:
+    """Return one side's elapsed time, or the word for an absent one."""
+    return "unavailable" if value is None else f"{value}s"
+
+
+def _qualification_lines(presentation: Mapping[str, Any]) -> list[str]:
+    """Return every qualification Techtree attached to this result.
+
+    Room is made by cutting detail, never by cutting one of these. A result
+    that says only what went well, in the channel it is most likely to be
+    forwarded from, would be dishonest in exactly the place it matters most.
+    """
+    caveats = presentation.get("caveats")
+    if not isinstance(caveats, Sequence) or isinstance(caveats, str):
+        return []
+    return [
+        caveat["text"]
+        for caveat in caveats
+        if isinstance(caveat, Mapping)
+        and isinstance(caveat.get("text"), str)
+        and caveat.get("severity") != "info"
+    ]
+
+
 def _slash_result(services: Any, arguments: Sequence[str]) -> str:
     run_id = _run_argument(services, arguments)
     if run_id is None:
@@ -268,12 +447,15 @@ def _slash_result(services: Any, arguments: Sequence[str]) -> str:
     lines = [f"Run {run_id}"]
     if presentation:
         lines += [
-            f"Baseline {presentation.get('baseline_score')} versus candidate "
-            f"{presentation.get('candidate_score')}",
+            _measured_difference_line(presentation),
             f"Won {presentation.get('wins')}, lost {presentation.get('losses')}, "
             f"tied {presentation.get('ties')}",
             f"Decision: {presentation.get('decision')}",
             f"Proof grade: {presentation.get('proof_grade')}",
+            f"Cost: {_cost_line(presentation)}",
+            *_cost_basis_lines(presentation),
+            _work_line(presentation),
+            *_qualification_lines(presentation),
         ]
     lines.append(
         "Run locally by Techtree, and not independently reproduced by anyone else."

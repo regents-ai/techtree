@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..channels import is_gateway_safe_required
 from ..errors import PluginError, scrub_text
 from ..narrative import REPRODUCTION_STATEMENT
 from ..services.presentation import PresentationService
@@ -79,6 +80,14 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
         save_session(services, session)
 
     payload: dict[str, Any] = {**envelope, "reproduction": REPRODUCTION_STATEMENT}
+    if is_gateway_safe_required(channel):
+        # Techtree's envelope carries the whole report and every per-task row,
+        # which on a real Climb is several times what a phone's answer may
+        # hold. An answer over that budget is replaced whole by an apology, so
+        # leaving the raw envelope in is how a phone ends up with no result at
+        # all rather than a short one. The compact view added below is this
+        # channel's copy of it, and the full one is one terminal command away.
+        payload["data"] = None
     if envelope.get("ok"):
         second = session is not None and session.second_run_id == run_id
         try:

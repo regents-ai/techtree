@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
-from ..channels import is_gateway_safe_required
+from ..channels import bounded_gateway_text, is_gateway_safe_required
 from ..errors import PluginError
 from ..models import ChannelKind, ReleaseCore
 from ..narrative import (
@@ -172,41 +172,27 @@ def describe_outcome(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def usage_summary(
-    payload: Mapping[str, Any], execution_record: Mapping[str, Any] | None = None
-) -> dict[str, Any]:
+def usage_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Report tokens, time, and cost with where each number came from.
 
-    Decision 0007 R6: cost is shown with explicit provenance, and an estimate
-    is never presented as a provider-reported figure. This build has no signed
-    execution record to read — Techtree does not produce one yet — so cost is
-    reported as unavailable rather than guessed at, and tokens and timing are
-    attributed to the run report they actually came from. Missing economics
+    Decision 0007 R6: cost is shown with explicit provenance, and a figure that
+    was worked out is never presented as one the provider reported. Every value
+    here is read off Techtree's payload, including the word for where the
+    economics came from and, when no figure exists, Techtree's own sentence
+    saying which half of a cost this run is missing. Nothing is computed here
+    and no figure is invented for a run that recorded none: missing economics
     never invalidates a score; it makes the economics unavailable.
     """
-    if execution_record is not None:
-        return {
-            "source": "comparison_execution_record",
-            "baseline_tokens": execution_record.get("baseline_total_tokens"),
-            "candidate_tokens": execution_record.get("candidate_total_tokens"),
-            "baseline_seconds": execution_record.get("baseline_elapsed_seconds"),
-            "candidate_seconds": execution_record.get("candidate_elapsed_seconds"),
-            "cost_usd": execution_record.get("cost_usd"),
-            "cost_provenance": execution_record.get("cost_provenance", "unavailable"),
-        }
-
     return {
-        "source": "run_report",
+        "source": payload.get("economics_source", "unavailable"),
         "baseline_tokens": payload.get("baseline_tokens"),
         "candidate_tokens": payload.get("candidate_tokens"),
         "baseline_seconds": payload.get("baseline_seconds"),
         "candidate_seconds": payload.get("candidate_seconds"),
-        "cost_usd": None,
-        "cost_provenance": "unavailable",
-        "note": (
-            "This build reports no signed execution record, so cost is not "
-            "shown. The comparison itself is unaffected."
-        ),
+        "cost_usd": payload.get("cost_usd"),
+        "cost_provenance": payload.get("cost_provenance", "unavailable"),
+        "derived_cost": payload.get("derived_cost"),
+        "cost_unavailable_reason": payload.get("cost_unavailable_reason"),
     }
 
 
@@ -225,6 +211,11 @@ def forbidden_second_result_words(text: str) -> list[str]:
 
 
 #: What a phone is shown of a result: the canonical facts, without the table.
+#:
+#: A whitelist, and it stays one: a field reaches a phone because it was named
+#: here, never because it happened to be in the payload. Widening it is a
+#: deliberate act, which is why each addition below says what a reader loses
+#: without it.
 COMPACT_PRESENTATION_FIELDS: Final[tuple[str, ...]] = (
     "run_id",
     "campaign_title",
@@ -233,13 +224,49 @@ COMPACT_PRESENTATION_FIELDS: Final[tuple[str, ...]] = (
     "candidate_score",
     "absolute_delta",
     "relative_delta",
+    # The count a person actually reads a result in. A mean over a toy task
+    # set is not the number anyone repeats to somebody else, and a phone that
+    # carried only the mean showed strictly less than the terminal did.
+    "baseline_tasks_scored_full",
+    "candidate_tasks_scored_full",
     "wins",
     "losses",
     "ties",
+    # How much work each side did, which unlike the clock is a property of the
+    # work rather than of the machine and the afternoon it ran on.
+    "baseline_model_turns",
+    "candidate_model_turns",
+    # How often the provider refused each side, and whether every rollout still
+    # ran to completion. Two sides that met different amounts of throttling did
+    # not quite meet the same conditions.
+    "baseline_rate_limited_calls",
+    "candidate_rate_limited_calls",
+    "every_rollout_completed",
+    # What it cost and, inseparably, what kind of figure that is: a figure the
+    # provider reported, one worked out while rendering, or none with the
+    # reason there is none. Decision 0007 R6 forbids the figure without its
+    # basis, so the basis fields are part of the same widening.
+    "cost_usd",
+    "cost_provenance",
+    "derived_cost",
+    "cost_unavailable_reason",
     "decision",
     "proof_grade",
     "verification_status",
 )
+
+#: How many qualifications a phone carries, and how much room they may take
+#: between them. Warnings and errors, never a note in place of one: room is
+#: made by cutting detail, not by cutting the sentence that tells a reader how
+#: much the result proves.
+#:
+#: The block is bounded because everything else in a compact answer is a few
+#: hundred bytes and this is the one part of it a run can make arbitrarily
+#: long. An answer over the channel's budget is replaced whole by an apology
+#: rather than shortened, so an unbounded caveat block is how a phone ends up
+#: with no result at all.
+COMPACT_CAVEAT_LIMIT: Final = 4
+COMPACT_CAVEAT_CHARACTERS: Final = 900
 
 
 def compact_presentation(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -249,19 +276,53 @@ def compact_presentation(payload: Mapping[str, Any]) -> dict[str, Any]:
     per-task table: a twenty-row table in a chat message is unreadable, and a
     chat app would split it anyway. The full payload is still in Techtree, one
     terminal command away, and the answer says so.
+
+    Room is made by cutting the table and the notes, never by cutting a
+    qualification: the caveats a phone carries are the warnings and errors, and
+    a note is never kept in place of one.
     """
     compact = {
         name: payload[name] for name in COMPACT_PRESENTATION_FIELDS if name in payload
     }
     caveats = payload.get("caveats")
     if isinstance(caveats, Sequence):
-        compact["caveats"] = [
-            caveat.get("text")
+        texts = [
+            caveat["text"]
             for caveat in caveats
-            if isinstance(caveat, Mapping) and isinstance(caveat.get("text"), str)
-        ][:2]
+            if isinstance(caveat, Mapping)
+            and isinstance(caveat.get("text"), str)
+            and caveat.get("severity") != "info"
+        ]
+        kept = _fitted_caveats(texts)
+        compact["caveats"] = kept
+        if len(kept) < len(texts):
+            compact["caveats_not_shown"] = len(texts) - len(kept)
     rows = payload.get("task_rows")
     if isinstance(rows, Sequence):
         compact["task_count"] = len(rows)
         compact["task_rows_available_in_terminal"] = True
     return compact
+
+
+def _fitted_caveats(texts: Sequence[str]) -> list[str]:
+    """Return the qualifications that fit, most serious first, unreworded.
+
+    Techtree orders these by how much they matter — what would make the result
+    invalid, then what bounds how much it proves — so taking them in order
+    takes the ones a reader most needs. A sentence is kept whole or not at all,
+    except the first, which is kept even if the whole budget has to be spent
+    cutting it: a phone with no qualification at all is the one outcome worth
+    avoiding at any price. Whatever is left out is counted, never silently
+    dropped, and the full list is one terminal command away.
+    """
+    kept: list[str] = []
+    remaining = COMPACT_CAVEAT_CHARACTERS
+    for text in texts[:COMPACT_CAVEAT_LIMIT]:
+        if not kept:
+            kept.append(bounded_gateway_text(text, remaining))
+        elif len(text) <= remaining:
+            kept.append(text)
+        else:
+            break
+        remaining -= len(kept[-1])
+    return kept
