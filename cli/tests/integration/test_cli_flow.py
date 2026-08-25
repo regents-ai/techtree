@@ -36,6 +36,7 @@ from typing import Any, Final
 import pytest
 from typer.testing import CliRunner
 
+import techtree
 from fixtures.drafts.support import VALID_SKILL
 from fixtures.runs.support import run_cli, wait_for_terminal
 from fixtures.starter import STARTER_FIXTURE, release_pinning, tree_digest
@@ -44,6 +45,7 @@ from techtree.cli.commands.climb import abbreviated_digest
 from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
 from techtree.errors import EXIT_OK
 from techtree.identity.store import IdentityStore
+from techtree.models.campaign import CampaignSpec
 from techtree.paths import paths_from_root
 from techtree.release.document import render_release_core
 from techtree.runs.artifacts import RunArtifactStore
@@ -184,6 +186,18 @@ def test_show_reports_the_campaign_and_the_data_policy(
     assert flow["draft"]["data_policy_digest"].startswith("sha256:")
 
 
+def _shipped_campaign() -> CampaignSpec:
+    """Return the Campaign this build ships, read from the catalog it ships in."""
+    document = (
+        Path(techtree.__file__).parent
+        / "resources"
+        / "catalog"
+        / "campaigns"
+        / "hello-world-climb.json"
+    )
+    return CampaignSpec.model_validate_json(document.read_text(encoding="utf-8"))
+
+
 def test_prepare_builds_a_draft_from_a_real_skill(flow: dict[str, Any]) -> None:
     draft = flow["draft"]
 
@@ -192,6 +206,11 @@ def test_prepare_builds_a_draft_from_a_real_skill(flow: dict[str, Any]) -> None:
     assert draft["baseline_skill_count"] == 0
     assert draft["candidate_skill_count"] == 1
     assert draft["estimated_episodes"] == EXPECTED_TASK_COUNT * 2
+    # Ticket 8vj: the most the shipped Campaign declares it may cost travels
+    # with the draft, so a review surface that is not this terminal can print
+    # the same figure this terminal prints instead of inventing one.
+    assert draft["campaign_maximum_usd"] == _shipped_campaign().budgets.maximum_usd
+    assert draft["campaign_maximum_usd"] is not None
 
 
 def test_start_records_the_approval_and_who_gave_it(flow: dict[str, Any]) -> None:

@@ -63,6 +63,11 @@ def _public_copy() -> dict[str, str]:
         # The guided-revision disclosure is read out to a person verbatim, so
         # it is public copy and is held to the same boundaries.
         "approvals.py": _string_literals(PLUGIN_ROOT / "approvals.py"),
+        # A next action's reason is written for the host agent to act on and
+        # relay, which makes it copy a person meets at second hand. The demo
+        # tool is where the first paid step is offered, so its reasons say
+        # what that step commits to.
+        "tools/demo.py": _string_literals(PLUGIN_ROOT / "tools" / "demo.py"),
         "README.md": (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8"),
     }
     operator = PLUGIN_ROOT / "skills" / "operator"
@@ -310,6 +315,7 @@ def test_the_scan_reads_every_public_surface() -> None:
     assert set(PUBLIC_COPY) >= {
         "schemas.py",
         "commands.py",
+        "tools/demo.py",
         "README.md",
         "skills/operator/SKILL.md",
     }

@@ -57,6 +57,7 @@ from pathlib import Path
 from typing import Annotated, Final, Literal
 
 import typer
+from pydantic import PositiveFloat
 from rich.console import Console
 from rich.table import Table
 
@@ -202,6 +203,14 @@ class ClimbPreparePayload(ProtocolModel):
     baseline_skill_count: int
     candidate_skill_count: int
     estimated_episodes: int
+    # Read off the Campaign this draft was prepared against, so a caller that
+    # renders a review shows the maximum this run is held to and never a figure
+    # from somewhere else. ``None`` is a Campaign that declares no maximum, and
+    # says so: there is then no figure to hold it to. Decision 0019 section 2
+    # puts the budget in the plugin's review the way it is already in the
+    # terminal's, and a review that has to invent the number is a review that
+    # would be wrong for the next Campaign.
+    campaign_maximum_usd: PositiveFloat | None
     candidate_ownership: Literal["participant", "account", "shared"]
     candidate_public_release: Literal[
         "required_for_climb", "allowed", "prohibited", "consent_required"
@@ -504,6 +513,29 @@ NO_UPLOAD_LINE: Final = (
     "or Skill proposals."
 )
 
+#: What a DataPolicy's publication terms mean in this build, shown wherever
+#: those terms are shown.
+#:
+#: A Climb's DataPolicy describes a result that has been published: it says
+#: that entering requires releasing the candidate Skill and that the uplift
+#: report is public. Read on its own, next to the raw-episode terms that
+#: prohibit upload outright, that reads as a plan to publish somebody's Skill
+#: and their numbers — and two readers stopped and refused to start a run over
+#: exactly that. Nothing in this build can publish anything: there is no upload
+#: path, no result is publication-eligible, and every proof is graded
+#: development_only. So the terms are shown unchanged, and this is shown with
+#: them.
+#:
+#: The last clause is not decoration. Decision 0013 section 1.4: a sentence
+#: about what stays here is read as a claim that nothing goes anywhere, and
+#: model calls do.
+PUBLICATION_TERMS_LINE: Final = (
+    "These are the terms this Climb sets for a published result. Nothing is "
+    "published from this build: your Skill, the episodes and the report stay "
+    "on this machine, and model calls still go to the model provider you "
+    "configured."
+)
+
 
 def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]:
     """Return the five things a person weighs before a run starts.
@@ -606,6 +638,7 @@ def approve_run(
         console.print(line)
     console.print()
     console.print(draft.policy_acceptance.summary)
+    console.print(PUBLICATION_TERMS_LINE)
     console.print()
     if not typer.confirm("Start this run?", default=False):
         raise PolicyError(
@@ -943,6 +976,7 @@ def _render_show(data: object, console: Console) -> None:
             ("Uplift report", phrase(summary.data_policy.uplift_report_visibility)),
         ],
     )
+    console.print(PUBLICATION_TERMS_LINE)
 
     console.print()
     console.print("This machine")
@@ -1025,6 +1059,7 @@ def _render_prepare(data: object, console: Console) -> None:
         ],
     )
     console.print(data.policy_acceptance.summary)
+    console.print(PUBLICATION_TERMS_LINE)
 
 
 def _render_start(data: object, console: Console) -> None:
@@ -1129,6 +1164,7 @@ def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePay
         baseline_skill_count=len(source.campaign.subject.harness.skills),
         candidate_skill_count=1,
         estimated_episodes=draft.estimated_episodes,
+        campaign_maximum_usd=source.campaign.budgets.maximum_usd,
         candidate_ownership=data_policy.candidate_skill.ownership,
         candidate_public_release=data_policy.candidate_skill.public_release,
         raw_episode_server_upload=data_policy.raw_episodes.server_upload,

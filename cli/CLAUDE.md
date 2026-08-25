@@ -75,3 +75,17 @@ _Add a brief overview of your project architecture_
 ## Conventions & Patterns
 
 _Add your project-specific conventions here_
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in beads (`bd`) — a local Dolt database at `.beads/`, IDs prefixed `techtree-python-`. GitHub Issues are not used. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. Binding decision records live in `docs/decisions/` (not `docs/adr/`), with work-package specs in `docs/spec/`. See `docs/agents/domain.md`.

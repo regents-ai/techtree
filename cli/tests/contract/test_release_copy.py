@@ -766,3 +766,87 @@ def test_the_band_wording_is_still_allowed() -> None:
 
     for refused in ("the starter Skill scores 24", "it reaches 24/36"):
         assert FORBIDDEN_EXACT_SCORE.search(PERMITTED_BAND.sub("", refused))
+
+
+# The publication terms ---------------------------------------------------------------
+
+#: Ticket q0l. A DataPolicy's publication terms describe a result that has been
+#: published: entering a Climb requires releasing the candidate Skill, and the
+#: uplift report is public. Shown beside raw-episode terms that prohibit upload
+#: outright, they read as a plan to publish somebody's Skill and their numbers,
+#: and two readers stopped and refused to start a run over exactly that.
+#: Nothing in this build can publish anything — there is no upload path, no
+#: result is publication-eligible, and every proof is graded development_only.
+#: So the terms stay exactly as the policy states them, and the plain truth is
+#: shown with them.
+PUBLICATION_TERMS_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"nothing\s+is\s+published\s+from\s+this\s+build", re.I
+)
+
+#: What makes a function a place where those terms are put in front of a
+#: person: the row that renders the release permission, or the rights summary
+#: that spells the terms out in sentences. Derived rather than listed, so a new
+#: review surface joins this guard by existing.
+PUBLICATION_TERM_MARKERS: Final[tuple[str, ...]] = (
+    '"Public release"',
+    "policy_acceptance.summary",
+)
+
+
+def _functions_showing_publication_terms() -> list[tuple[str, str]]:
+    """Return every CLI function that shows a DataPolicy's publication terms."""
+    found: list[tuple[str, str]] = []
+    for path in sorted((SOURCE_ROOT / "cli").rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for node in ast.walk(ast.parse(text)):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                continue
+            segment = ast.get_source_segment(text, node) or ""
+            if any(marker in segment for marker in PUBLICATION_TERM_MARKERS):
+                name = f"{path.relative_to(REPOSITORY_ROOT).as_posix()}:{node.name}"
+                found.append((name, segment))
+    return found
+
+
+def test_the_publication_terms_are_never_shown_without_their_plain_meaning() -> None:
+    """Ticket q0l. The terms describe a published result; this build has none.
+
+    Derived, not listed: any function that renders the release permission or
+    prints the rights summary is a place a person reads the terms, and every
+    one of them has to print the line that says what they mean here.
+    """
+    sites = _functions_showing_publication_terms()
+    names = {name for name, _ in sites}
+
+    assert names >= {
+        "src/techtree/cli/commands/climb.py:approve_run",
+        "src/techtree/cli/commands/climb.py:_render_show",
+        "src/techtree/cli/commands/climb.py:_render_prepare",
+        "src/techtree/cli/commands/uplift.py:_render_prepare",
+    }
+    missing = [
+        name for name, segment in sites if "PUBLICATION_TERMS_LINE" not in segment
+    ]
+    assert not missing, (
+        f"these show the publication terms and not what they mean: {missing}"
+    )
+
+
+def test_the_publication_truth_says_where_model_calls_still_go() -> None:
+    """Decision 0013 s4. "It stays here" is heard as "nothing goes anywhere"."""
+    from techtree.cli.commands.climb import PUBLICATION_TERMS_LINE
+
+    assert PUBLICATION_TERMS_FRAMING.search(PUBLICATION_TERMS_LINE)
+    assert has_provider_qualification(PUBLICATION_TERMS_LINE)
+    for described, pattern in FORBIDDEN_PRIVACY:
+        assert not pattern.search(PUBLICATION_TERMS_LINE), described
+
+
+def test_the_publication_guard_catches_a_review_that_only_states_the_terms() -> None:
+    """The claim the two readers met, in the words they met it in."""
+    assert not PUBLICATION_TERMS_FRAMING.search(
+        "Public release required in order to enter this Climb. "
+        "The uplift report is published."
+    )

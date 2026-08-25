@@ -43,6 +43,7 @@ from rich.table import Table
 
 from techtree.canonical import canonical_json_bytes
 from techtree.cli.commands.climb import (
+    PUBLICATION_TERMS_LINE,
     ReviewSurface,
     approve_run,
     build_preparation_service,
@@ -661,6 +662,7 @@ def _render_prepare(data: object, console: Console) -> None:
         ],
     )
     console.print(data.policy_acceptance.summary)
+    console.print(PUBLICATION_TERMS_LINE)
 
 
 def _render_start(data: object, console: Console) -> None:

@@ -185,6 +185,67 @@ def test_demo_says_it_has_not_spent_anything() -> None:
     assert ["climb", "start"] not in [call[:2] for call in bridge.calls]
 
 
+def _demo_bridge(prepared_data: dict[str, Any]) -> Any:
+    """Return a bridge that answers everything `/techtree demo` asks."""
+    return FakeBridge(
+        {
+            "doctor": _envelope("doctor", {"checks": []}),
+            "climb prepare": _envelope("climb prepare", prepared_data),
+            "climb show": _envelope("climb show", {}),
+        }
+    )
+
+
+#: What Techtree returns for the shipped Climb, cut down to the fields the
+#: review reads. The maximum is the Campaign's; the point of the test is that
+#: the figure travels rather than being written into the copy.
+_PREPARED: dict[str, Any] = {
+    "draft_id": "draft_" + "0" * 32,
+    "data_policy_digest": "sha256:" + "b" * 64,
+    "estimated_episodes": 72,
+    "campaign_maximum_usd": 2.5,
+    "skill_root_digest": PUBLISHED.starter_skill_digest,
+}
+
+
+def test_demo_shows_the_maximum_the_campaign_declares() -> None:
+    """Ticket 8vj: the terminal review printed this figure and this one did not."""
+    answer = handle_slash_command("demo", _services(bridge=_demo_bridge(_PREPARED)))
+
+    assert "$2.50" in answer
+    assert "never a prediction" in answer
+    assert "keeps no running total" in answer
+
+
+def test_demo_reads_the_maximum_off_the_draft_rather_than_remembering_one() -> None:
+    """A figure written into the copy would be false for the next Campaign."""
+    other = {**_PREPARED, "campaign_maximum_usd": 9.0}
+    answer = handle_slash_command("demo", _services(bridge=_demo_bridge(other)))
+
+    assert "$9.00" in answer
+    assert "$2.50" not in answer
+
+
+def test_demo_says_so_when_a_campaign_declares_no_maximum() -> None:
+    """No figure exists for such a Campaign, and none is invented for it."""
+    without = {
+        key: value for key, value in _PREPARED.items() if key != "campaign_maximum_usd"
+    }
+    answer = handle_slash_command("demo", _services(bridge=_demo_bridge(without)))
+
+    assert "declares no maximum" in answer
+    assert "$" not in answer
+
+
+def test_demo_says_the_publication_terms_do_not_apply_to_this_build() -> None:
+    """Ticket q0l: two readers took the Climb's terms for a plan to publish."""
+    answer = handle_slash_command("demo", _services(bridge=_demo_bridge(_PREPARED)))
+
+    assert "terms this Climb sets for a published result" in answer
+    assert "Nothing is published from this build" in answer
+    assert "model calls still go to the model provider you configured" in answer
+
+
 def test_status_without_an_identifier_uses_the_session() -> None:
     services = _services(
         bridge=FakeBridge(

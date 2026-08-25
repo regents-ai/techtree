@@ -429,6 +429,9 @@ def test_the_machine_response_carries_everything_a_host_agent_needs(
     assert "SKILL.md" in payload["included_files"]
     assert payload["candidate_label"] == "worked-examples"
     assert payload["estimated_episodes"] == 8
+    # This fixture Campaign declares no maximum, and the payload says so
+    # rather than leaving a reader to supply a figure from elsewhere.
+    assert payload["campaign_maximum_usd"] is None
     assert payload["baseline_skill_count"] == 0
     assert payload["candidate_skill_count"] == 1
     assert payload["candidate_ownership"] == "participant"

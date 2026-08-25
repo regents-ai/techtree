@@ -39,14 +39,19 @@ Rigor stays internal; the user experience stays almost trivial.
   Serves the catalog and content-addressed objects (refuses drifted
   bytes), the agent-first install pages, and the BootstrapRelease
   behind an active-release pointer. GET/HEAD only; a 405 test locks
-  the surface. Gate: `PGUSER=sean mix check`. Use the ash-vibez skill.
+  the surface. Gate: `PGUSER=sean mix check`. ALWAYS use the `ash-regents` skill for
+  any work in this repository (founder standing rule, 2026-08-21) — it is
+  the canonical Ash playbook: resource design, queries, policies, AshOban,
+  AshPhoenix, extensions.
 
 ## Binding sources, in precedence order
 
-1. `docs/decisions/0001–0026` (techtree-python) — every numbered doc
+1. `docs/decisions/0001–0029` (techtree-python) — every numbered doc
    is binding. Start with 0019 (symmetry/approvals/UX), 0022 (change
    discipline), 0023 (execution contracts), 0024 (agent-first
-   onboarding), 0025 (regenerated lineage), 0026 (contract/provenance split).
+   onboarding), 0025 (regenerated lineage), 0026 (contract/provenance split), 0027
+   (stable channel), 0028 (experimental guided revision, no pre-Gate-2
+   flip), 0029 (the three orphan-containment layers).
 2. `docs/release/contracts/*.md` — self-contained execution contracts
    for every remaining release ticket.
 3. `docs/spec/` — the four vendored spec files, with CHECKSUMS.json
@@ -57,8 +62,9 @@ Rigor stays internal; the user experience stays almost trivial.
 
 ## The frozen science (do not touch, ever, without a founder ruling)
 
-Campaign b9e3f00c… (regenerated to be digest-identical to what every
-certified run executed) · task membership 56f697fb… · engine
+Campaign ad393bc0… (decision 0029 regenerated it with enforced
+budgets: 44 turns, 900k input, 16k output, 600s rollout, USD 2.50
+ceiling; superseded b9e3f00c…) · task membership 56f697fb… · engine
 874cbae0… · starter Skill tree 596d1368… / file 2aff2707… ·
 skill-improver e6bc16c4… · DataPolicy 6c532a43…. Subject model
 qwen/qwen3.7-flash via prime (credential PRIME_API_KEY resolved from
@@ -128,11 +134,12 @@ Guided revision is single-SKILL.md in v0.1 (decision 0023 §4).
   techtree-climb/certification-evidence/ (durable, local-only, never
   uploaded, never committed — run dirs contain task answers). Verify
   proofs with `uv run techtree proof verify <run-dir>/proof`.
-- Money: estimate before any paid run; programme cap USD 10.00
-  (decision 0025), ~2.50 spent; USD 0.30 ceiling per comparison; a
+- Money: estimate before any paid run; programme cap USD 15.00
+  (raised by the founder 2026-08-20), ~4.25 spent; USD 0.30 ceiling per comparison; a
   hard-stop violation stops the sequence — never retry a paid
   outcome.
-- Python: always uv. Ash: ash-vibez skill, idiomatic functional
+- Python: always uv. Ash: the `ash-regents` skill is mandatory for every
+  techtree-ash task (founder standing rule), idiomatic functional
   Elixir. Postgres: PGUSER=sean.
 
 ## Release state (as of 2026-08-15)
