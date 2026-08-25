@@ -16,6 +16,17 @@ defmodule TechtreeWeb.CoreComponents do
 
   use Phoenix.Component
 
+  # A Climb's terms are the terms of a public object: they describe what
+  # publication would mean for a result produced under them. This release
+  # performs none of it, and a reader who is being shown the terms is owed
+  # both halves in the same breath. The words are written once, here, and
+  # every place that shows the terms shows them with this beside it.
+  @publication_note "Nothing you produce is published. " <>
+                      "Your Skill, the recordings of each attempt and the result summary " <>
+                      "stay on your machine, and there is nowhere on this site to send them. " <>
+                      "The agent still makes calls to the model provider you selected, under " <>
+                      "that provider's policies."
+
   @doc """
   Name a protocol document, in the spelling the protocol uses.
   """
@@ -68,12 +79,34 @@ defmodule TechtreeWeb.CoreComponents do
   """
   attr :argv, :list, required: true
   attr :label, :string, default: nil
+  attr :copy, :boolean, default: true
+  attr :id, :string, default: nil
 
   def command_block(assigns) do
+    command = display_command(assigns.argv)
+
+    assigns =
+      assigns
+      |> assign(:command, command)
+      |> assign(:copy_id, assigns.id || command_id(command, assigns.label))
+
     ~H"""
     <div class="command">
       <p :if={@label} class="command__label">{@label}</p>
-      <pre class="command__block"><code>{display_command(@argv)}</code></pre>
+      <div class="command__frame">
+        <pre class="command__block"><code>{@command}</code></pre>
+        <button
+          :if={@copy}
+          id={@copy_id}
+          class="command__copy"
+          type="button"
+          phx-hook="CopyCommand"
+          phx-update="ignore"
+          data-copy-value={@command}
+        >
+          <span data-copy-label>Copy</span>
+        </button>
+      </div>
     </div>
     """
   end
@@ -178,6 +211,10 @@ defmodule TechtreeWeb.CoreComponents do
 
   @doc """
   The rights a participant would be agreeing to, one sentence each.
+
+  The last line is not read from the document. It is what this release does
+  with everything the document governs, and it is part of the list so that
+  the terms cannot be shown anywhere without it.
   """
   @spec data_policy_lines(map()) :: [{String.t(), String.t()}]
   def data_policy_lines(data_policy) do
@@ -185,9 +222,16 @@ defmodule TechtreeWeb.CoreComponents do
       {"Your recordings", recordings_words(data_policy["raw_episode_server_upload"])},
       {"Training", training_words(data_policy["raw_episode_training_use"])},
       {"The work you submit", submission_words(data_policy["candidate_skill_public_release"])},
-      {"The result summary", report_words(data_policy["uplift_report_visibility"])}
+      {"The result summary", report_words(data_policy["uplift_report_visibility"])},
+      {"In this release", publication_note()}
     ]
   end
+
+  @doc """
+  What this release does with everything a Climb's terms govern.
+  """
+  @spec publication_note() :: String.t()
+  def publication_note, do: @publication_note
 
   # -- Internals ------------------------------------------------------------
 
@@ -202,14 +246,16 @@ defmodule TechtreeWeb.CoreComponents do
   defp training_words(other), do: plain_words(other)
 
   defp submission_words("required_for_climb"),
-    do: "Is published as part of entering. Do not submit anything you want to keep private."
+    do:
+      "Would be published as part of entering. " <>
+        "Under these terms nothing you submit is treated as private."
 
   defp submission_words("consent_required"), do: "Is published only if you agree."
   defp submission_words("prohibited"), do: "Is never published."
-  defp submission_words("allowed"), do: "May be published."
+  defp submission_words("allowed"), do: "May be published under these terms."
   defp submission_words(other), do: plain_words(other)
 
-  defp report_words("public"), do: "May be published. It carries no recordings."
+  defp report_words("public"), do: "May be published under these terms. It carries no recordings."
   defp report_words("private"), do: "Stays private."
   defp report_words("prohibited"), do: "Is not published."
   defp report_words(other), do: plain_words(other)
@@ -228,6 +274,11 @@ defmodule TechtreeWeb.CoreComponents do
   # Display only. An argument that would need quoting in a shell is shown
   # quoted, so that what a reader copies is what the argument list means.
   defp display_command(argv), do: Enum.map_join(argv, " ", &quote_argument/1)
+
+  defp command_id(command, label) do
+    digest = :crypto.hash(:sha256, [label || "", command]) |> Base.encode16(case: :lower)
+    "copy-command-" <> String.slice(digest, 0, 12)
+  end
 
   defp quote_argument(argument) do
     if String.match?(argument, ~r|\A[A-Za-z0-9_@%+=:,./-]+\z|) do

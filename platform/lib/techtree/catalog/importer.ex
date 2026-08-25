@@ -240,6 +240,7 @@ defmodule Techtree.Catalog.Importer do
     policy_digest = fetch!(campaign, ["data_policy_digest"], entry)
     data_policy = decode_object!(bundle, policy_digest)
     validation_digest = fetch!(campaign, ["taskset", "validation_receipt_digest"], entry)
+    validation = decode_object!(bundle, validation_digest)
 
     %{
       title: fetch!(metadata, ["title"], entry),
@@ -254,7 +255,8 @@ defmodule Techtree.Catalog.Importer do
           campaign_digest: campaign_digest,
           data_policy: data_policy,
           policy_digest: policy_digest,
-          validation_digest: validation_digest
+          validation_digest: validation_digest,
+          validation: validation
         })
     }
   end
@@ -315,6 +317,18 @@ defmodule Techtree.Catalog.Importer do
           "require_candidate_above_baseline"
         ]),
       "evaluation_backend" => get_in(campaign, ["evaluation_backend", "kind"]),
+      "budget" =>
+        take(campaign, ["budgets"], [
+          "maximum_input_tokens",
+          "maximum_model_calls",
+          "maximum_output_tokens",
+          "maximum_usd"
+        ]),
+      "task_validation" => %{
+        "status" => get_in(parts.validation, ["status"]),
+        "valid" => get_in(parts.validation, ["upstream_summary", "valid"]),
+        "total" => get_in(parts.validation, ["upstream_summary", "total"])
+      },
       "candidate_skill_visibility" => get_in(climb, ["candidate_policy", "skill_visibility"]),
       "required_mutation" => get_in(climb, ["candidate_policy", "required_mutation"]),
       "publication" =>

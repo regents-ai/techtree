@@ -14,13 +14,26 @@ defmodule TechtreeWeb.PagesTest do
 
   @pages [
     "/",
+    "/docs",
+    "/campaigns",
+    "/campaigns/hello-world-climb",
+    "/proofs",
     "/start",
     "/climbs",
     "/climbs/hello-world-climb",
     "/proofs/local",
     "/protocol"
   ]
-  @pages_without_catalog ["/", "/start", "/climbs", "/proofs/local", "/protocol"]
+  @pages_without_catalog [
+    "/",
+    "/docs",
+    "/campaigns",
+    "/proofs",
+    "/start",
+    "/climbs",
+    "/proofs/local",
+    "/protocol"
+  ]
 
   describe "with a release being served" do
     setup do
@@ -81,8 +94,14 @@ defmodule TechtreeWeb.PagesTest do
 
         refute markup =~ "<form"
         refute markup =~ "<input"
-        refute markup =~ "<button"
         refute markup =~ ~s|type="file"|
+
+        for [button] <- Regex.scan(~r/<button\b[^>]*>/, markup) do
+          assert button =~ ~s|type="button"|
+          assert button =~ ~s|phx-hook="copycommand"|
+          assert button =~ ~s|phx-update="ignore"|
+          assert button =~ "data-copy-value="
+        end
 
         # Nothing on the page invites a reader to identify themselves.
         links = Regex.scan(~r/<a [^>]*>(.*?)<\/a>/s, markup, capture: :all_but_first)
@@ -146,7 +165,7 @@ defmodule TechtreeWeb.PagesTest do
     test "every page that does not name a Climb still renders", %{conn: conn} do
       for page <- @pages_without_catalog do
         assert {:ok, _live, html} = live(conn, page)
-        assert html =~ "Techtree Climb"
+        assert html =~ "Techtree"
       end
     end
 

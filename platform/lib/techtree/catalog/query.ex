@@ -139,10 +139,24 @@ defmodule Techtree.Catalog.Query do
   """
   @spec bootstrap_instructions() :: {:ok, map()} | {:error, Error.t()}
   def bootstrap_instructions do
-    with {:ok, payload, _digest} <- bootstrap_payload() do
+    with {:ok, instructions, _digest} <- bootstrap_instructions_with_digest() do
+      {:ok, instructions}
+    end
+  end
+
+  @doc """
+  The published installation contract and the digest of those exact bytes.
+
+  A page that displays both uses this form so a release cutover cannot pair one
+  payload's instructions with another payload's digest.
+  """
+  @spec bootstrap_instructions_with_digest() ::
+          {:ok, map(), String.t()} | {:error, Error.t()}
+  def bootstrap_instructions_with_digest do
+    with {:ok, payload, digest} <- bootstrap_payload() do
       case Jason.decode(payload) do
         {:ok, instructions} when is_map(instructions) ->
-          {:ok, instructions}
+          {:ok, instructions, digest}
 
         _other ->
           {:error, Error.bundle_invalid("the published installation contract could not be read")}

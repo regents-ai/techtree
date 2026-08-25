@@ -1,7 +1,6 @@
 defmodule TechtreeWeb.Layouts do
   @moduledoc """
-  The frame every page is read inside: a name, a short way to the other pages,
-  and one line at the bottom saying what this site is and is not.
+  The restrained frame shared by the Techtree public surface.
   """
 
   use TechtreeWeb, :html
@@ -12,23 +11,28 @@ defmodule TechtreeWeb.Layouts do
   Wrap one page.
   """
   attr :wide, :boolean, default: false, doc: "give the page the wider measure"
+  attr :flush, :boolean, default: false, doc: "let a page own its vertical rhythm"
   slot :inner_block, required: true
 
   def page(assigns) do
     ~H"""
     <header class="masthead">
       <div class="masthead__inner">
-        <a class="masthead__name" href={~p"/"}>Techtree Climb</a>
+        <a class="masthead__name" href={~p"/"} aria-label="Techtree home">
+          <span class="masthead__mark" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </span>
+          <span>Techtree</span>
+        </a>
         <nav class="masthead__nav" aria-label="Sections">
-          <a href={~p"/start"}>Start</a>
-          <a href={~p"/climbs"}>Climbs</a>
-          <a href={~p"/proofs/local"}>Local results</a>
-          <a href={~p"/protocol"}>Protocol</a>
+          <a href="https://github.com/regents-ai">GitHub</a>
+          <a href={~p"/docs"}>Docs</a>
+          <a class="masthead__proof" href={~p"/proofs"}>View a proof</a>
         </nav>
       </div>
     </header>
 
-    <main class={["page", @wide && "page--wide"]}>
+    <main class={["page", @wide && "page--wide", @flush && "page--flush"]}>
       <p class="notice" role="status">
         The connection to the site dropped. The page will reconnect on its own.
       </p>
@@ -36,9 +40,8 @@ defmodule TechtreeWeb.Layouts do
     </main>
 
     <footer class="colophon">
-      Techtree Climb publishes the public Climbs and the documents behind them.
-      Trials run on the participant's own machine; this site does not run them,
-      and does not receive their results.
+      <span>A Regents Labs project</span>
+      <span>Local by default. Proofs publish only by deliberate release.</span>
     </footer>
     """
   end

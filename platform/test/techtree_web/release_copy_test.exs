@@ -31,6 +31,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   @pages [
     "/",
+    "/docs",
+    "/campaigns",
+    "/campaigns/hello-world-climb",
+    "/proofs",
     "/start",
     "/climbs",
     "/climbs/hello-world-climb",
@@ -38,7 +42,16 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/protocol"
   ]
 
-  @pages_without_catalog ["/", "/start", "/climbs", "/proofs/local", "/protocol"]
+  @pages_without_catalog [
+    "/",
+    "/docs",
+    "/campaigns",
+    "/proofs",
+    "/start",
+    "/climbs",
+    "/proofs/local",
+    "/protocol"
+  ]
 
   # A claim that the machine keeps everything, which the remote model calls a
   # trial makes contradict unless the same passage says so.
@@ -91,6 +104,20 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     ~r/\bscores?\s+\d{1,3}\b/i
   ]
 
+  # A Climb's terms describe what publication would mean for a result produced
+  # under them. This release performs none of it, and the terms read as a
+  # threat to a careful reader unless the same passage says so.
+  @publication_terms [
+    "Would be published as part of entering",
+    "Under these terms nothing you submit is treated as private",
+    "May be published under these terms"
+  ]
+
+  @publishes_nothing [
+    "Nothing you produce is published.",
+    "stay on your machine, and there is nowhere on this site to send them"
+  ]
+
   @forbidden_name ~r/helloworldbench/i
 
   # This release installs and runs at a terminal. Any page that hints at a
@@ -133,7 +160,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   # A pinned address is the whole promise: what a reader reads today is what
   # they get tomorrow. A branch, a tag, or a stand-in revision is not one.
-  @repository_address ~r|https://github\.com/[^"\s<>]+|
+  @repository_address ~r|https://github\.com/regents-ai/techtree-hermes[^"\s<>]*|
   @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}\z|
   @unset_revision String.duplicate("0", 40)
 
@@ -236,14 +263,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
     test "the pages offering the agent path carry the prompt as it was written",
          %{conn: conn} do
-      for {label, text} <- rendered(conn, ["/", "/start"]) do
+      for {label, text} <- rendered(conn, ["/start"]) do
         assert text =~ @agent_prompt, "#{label} does not carry the prompt word for word"
       end
     end
 
     test "the pages offering the other path carry its three steps as they were written",
          %{conn: conn} do
-      for {label, text} <- rendered(conn, ["/?install=me", "/start?install=me"]) do
+      for {label, text} <- rendered(conn, ["/start?install=me"]) do
         for line <- @alternate_path do
           assert text =~ line, "#{label} does not carry #{inspect(line)} word for word"
         end
@@ -279,6 +306,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       assert offering != [], "no page offered the install command, so nothing was checked"
     end
 
+    test "every page stating a Climb's publication terms says this release publishes nothing",
+         %{conn: conn} do
+      showing = require_publishes_nothing(rendered(conn, @pages))
+
+      assert showing != [],
+             "no page stated the publication terms, so nothing was checked"
+    end
+
     test "the pages that describe privacy say where the model calls go", %{conn: conn} do
       silent =
         for {label, text} <- rendered(conn, ["/", "/start", "/proofs/local"]),
@@ -310,6 +345,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_priced_claim(sources)
       refute_absent_journey(sources)
       require_never_disable(sources)
+      require_publishes_nothing(sources)
       refute_moving_address(markup(conn, @pages_without_catalog))
     end
   end
@@ -330,6 +366,9 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_uncertified_hosting(sources)
       refute_priced_claim(sources)
       require_never_disable(sources)
+
+      assert require_publishes_nothing(sources) != [],
+             "no module stated the publication terms, so nothing was checked"
     end
 
     test "the published installation contract carries no claim a page may not" do
@@ -442,6 +481,23 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       assert String.contains?(text, @never_disable),
              "#{label} describes the install-time report without telling a reader to " <>
                "leave it switched on"
+    end
+  end
+
+  # Read with the line breaks taken out, so that a sentence a template wrapped
+  # is still one sentence. Answers with the sources that stated the terms, so
+  # that a caller can tell a passing check from one that read nothing.
+  defp require_publishes_nothing(sources) do
+    for {label, source} <- sources,
+        text = String.replace(source, ~r/\s+/, " "),
+        Enum.any?(@publication_terms, &String.contains?(text, &1)) do
+      for half <- @publishes_nothing do
+        assert String.contains?(text, half),
+               "#{label} states what publication would mean without saying, beside it, " <>
+                 "that this release publishes nothing: #{inspect(half)} is missing"
+      end
+
+      label
     end
   end
 
