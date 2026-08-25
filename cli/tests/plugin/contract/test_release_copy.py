@@ -686,3 +686,80 @@ def test_no_copy_writes_a_dollar_figure_of_its_own() -> None:
     offenders = _offenders(A_WRITTEN_DOLLAR_FIGURE)
 
     assert not offenders, f"copy names a price of its own: {offenders}"
+
+
+# The verdict boundary -----------------------------------------------------------------
+
+#: Ticket ip5. A founder's host agent ran the whole journey from one prompt and
+#: reported that the run "passed the toy Hello World uplift threshold".
+#: Techtree declares no threshold for that comparison and computed no verdict:
+#: the agent supplied both, and a reader had no way to tell which half of the
+#: sentence was Techtree's evidence and which was the agent's opinion. That is
+#: the same failure decision 0013 exists to stop, arriving through the host
+#: agent's own wording rather than through the plugin's. The operator Skill is
+#: the only surface that steers how a host agent words a result, so the
+#: instruction lives there, in the section an agent reads before reporting one.
+NO_VERDICT_INSTRUCTION: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "relay what Techtree rendered and stop there",
+        re.compile(r"relay\s+what\s+techtree\s+rendered\s+and\s+stop\s+there", re.I),
+    ),
+    (
+        "never passed, failed, good, bad, strong, weak, a success or a win",
+        re.compile(
+            r"never\s+call\s+a\s+result\s+passed\s+or\s+failed[^.]*"
+            r"a\s+success\s+or\s+a\s+win\s+overall",
+            re.I,
+        ),
+    ),
+    (
+        "never against a threshold Techtree did not declare",
+        re.compile(
+            r"never\s+hold\s+it\s+against\s+a\s+threshold[^.]*"
+            r"techtree\s+did\s+not\s+itself\s+declare\s+and\s+render",
+            re.I,
+        ),
+    ),
+    (
+        "never works or does not work from one toy comparison",
+        re.compile(
+            r"never\s+say\s+a\s+skill\s+works[^.]*"
+            r"one\s+comparison\s+on\s+a\s+synthetic\s+toy\s+task\s+set",
+            re.I,
+        ),
+    ),
+    (
+        "the reason, so the rule survives paraphrase",
+        re.compile(
+            r"verdict\s+techtree\s+did\s+not\s+compute\s+is\s+your\s+opinion\s+"
+            r"wearing\s+techtree'?s\s+evidence",
+            re.I,
+        ),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    NO_VERDICT_INSTRUCTION,
+    ids=[described for described, _ in NO_VERDICT_INSTRUCTION],
+)
+def test_the_operator_skill_forbids_a_verdict_of_the_agents_own(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    """Ticket ip5. Each half of the instruction is load-bearing on its own."""
+    skill = " ".join(PUBLIC_COPY["skills/operator/SKILL.md"].split())
+
+    assert pattern.search(skill), f"the operator Skill no longer says: {described}"
+
+
+def test_the_verdict_guard_catches_a_skill_that_lost_the_instruction() -> None:
+    """The Skill as it read before ip5: numbers relayed, verdicts unmentioned."""
+    without = (
+        "Techtree renders the result and the plugin relays it unchanged. Use "
+        "those numbers. Do not compute your own, round them into a better "
+        "story, or describe a tie as a win."
+    )
+
+    for described, pattern in NO_VERDICT_INSTRUCTION:
+        assert not pattern.search(without), described
