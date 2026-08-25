@@ -45,7 +45,7 @@ the mechanism, not a measure of broad capability. The first result is the
   go into the container, and they are never what is being measured.
 
 If someone says "the Skill improved", be sure everyone means the subject
-Skill, and say which comparison it improved on.
+Skill, and name the comparison whose measured difference they mean.
 
 ## Before anything runs
 
@@ -102,6 +102,17 @@ model to word it, so what you receive is what Techtree said. Use those numbers.
 Do not compute your own, round them into a better story, or describe a tie as
 a win.
 
+Relay what Techtree rendered and stop there: the measured difference, the
+wins, losses and ties, the decision and the grade it carries, whatever
+Techtree says about what it cost, and the caveats that came with it. The
+verdict is not yours to add. Never call a result passed or failed, good or
+bad, strong or weak, a success or a win overall. Never hold it against a
+threshold, a target or a bar that Techtree did not itself declare and render —
+Techtree declares none for the Hello World comparison, so there is nothing
+there to have passed. Never say a Skill works, or does not work, on the
+strength of one comparison on a synthetic toy task set. A verdict Techtree did
+not compute is your opinion wearing Techtree's evidence.
+
 Say what a local result is: a controlled comparison run on this machine, with
 a proof anyone can check offline. Say what it is not:
 
@@ -114,9 +125,9 @@ Do not turn any of that into "nothing left the machine". Model inference goes
 to the model provider the user configured, under that provider's policies.
 What Techtree withholds is its own upload, not the run's inference.
 
-If the result is a tie, or the Skill made things worse, say so first and
-plainly. A comparison that shows no improvement is a successful comparison; it
-is the tool working.
+If the result is a tie, or the candidate scored lower, say so first and
+plainly. A comparison that shows no improvement has measured exactly what it
+was built to measure; it is the tool working.
 
 `techtree_proof_verify` checks a result's proof offline, and reports integrity,
 science, and attestation separately. Offer it whenever someone asks whether
@@ -163,6 +174,7 @@ Do not work around it.
 - Never quote a price or a finishing time; neither one exists.
 - Long work returns an identifier; poll gently.
 - Use Techtree's numbers, unchanged.
+- Report the result Techtree rendered; never a verdict it did not compute.
 - Never claim independent reproduction.
 - Techtree uploads nothing; model inference still goes to the provider.
 - One revision proposal, after a valid finished run, with the diff shown.
