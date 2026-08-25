@@ -91,6 +91,20 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     ~r/\bscores?\s+\d{1,3}\b/i
   ]
 
+  # A Climb's terms describe what publication would mean for a result produced
+  # under them. This release performs none of it, and the terms read as a
+  # threat to a careful reader unless the same passage says so.
+  @publication_terms [
+    "Would be published as part of entering",
+    "Under these terms nothing you submit is treated as private",
+    "May be published under these terms"
+  ]
+
+  @publishes_nothing [
+    "Nothing you produce is published.",
+    "stay on your machine, and there is nowhere on this site to send them"
+  ]
+
   @forbidden_name ~r/helloworldbench/i
 
   # This release installs and runs at a terminal. Any page that hints at a
@@ -289,6 +303,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
              "these pages describe what stays on the reader's machine without saying that " <>
                "model calls go to the selected provider: #{Enum.join(silent, ", ")}"
     end
+
+    test "every page stating a Climb's publication terms says this release publishes nothing",
+         %{conn: conn} do
+      showing = require_publishes_nothing(rendered(conn, @pages))
+
+      assert showing != [],
+             "no page stated the publication terms, so nothing was checked"
+    end
   end
 
   describe "every page, with nothing imported" do
@@ -460,6 +482,20 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   end
 
   # -- Where the words come from --------------------------------------------
+
+  defp require_publishes_nothing(sources) do
+    for {label, source} <- sources,
+        text = String.replace(source, ~r/\s+/, " "),
+        Enum.any?(@publication_terms, &String.contains?(text, &1)) do
+      for half <- @publishes_nothing do
+        assert String.contains?(text, half),
+               "#{label} states what publication would mean without saying, beside it, " <>
+                 "that this release publishes nothing: #{inspect(half)} is missing"
+      end
+
+      label
+    end
+  end
 
   defp rendered(conn, pages) do
     Enum.map(pages, fn page ->

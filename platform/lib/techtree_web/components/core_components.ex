@@ -176,6 +176,18 @@ defmodule TechtreeWeb.CoreComponents do
 
   def proof_grade_words(other), do: plain_words(other)
 
+  # A Climb's terms describe a published result, and this build publishes
+  # nothing. Read alone, "is published as part of entering" tells someone
+  # their Skill will be taken; two agents refused to start a run over
+  # exactly that. Decision 0013 also forbids an unqualified "it stays here",
+  # because model calls do leave — so the sentence says both halves in the
+  # same breath. Written once, shown wherever the terms are.
+  @publication_note "Nothing you produce is published. " <>
+                      "Your Skill, the recordings of each attempt and the result summary " <>
+                      "stay on your machine, and there is nowhere on this site to send them. " <>
+                      "The agent still makes calls to the model provider you selected, under " <>
+                      "that provider's policies."
+
   @doc """
   The rights a participant would be agreeing to, one sentence each.
   """
@@ -185,11 +197,18 @@ defmodule TechtreeWeb.CoreComponents do
       {"Your recordings", recordings_words(data_policy["raw_episode_server_upload"])},
       {"Training", training_words(data_policy["raw_episode_training_use"])},
       {"The work you submit", submission_words(data_policy["candidate_skill_public_release"])},
-      {"The result summary", report_words(data_policy["uplift_report_visibility"])}
+      {"The result summary", report_words(data_policy["uplift_report_visibility"])},
+      {"In this release", publication_note()}
     ]
   end
 
   # -- Internals ------------------------------------------------------------
+
+  @doc """
+  What this release does with everything a Climb's terms govern.
+  """
+  @spec publication_note() :: String.t()
+  def publication_note, do: @publication_note
 
   defp recordings_words("prohibited"), do: "Stay on your machine. They are never uploaded."
   defp recordings_words("consent_required"), do: "Are uploaded only if you agree, each time."
@@ -202,14 +221,16 @@ defmodule TechtreeWeb.CoreComponents do
   defp training_words(other), do: plain_words(other)
 
   defp submission_words("required_for_climb"),
-    do: "Is published as part of entering. Do not submit anything you want to keep private."
+    do:
+      "Would be published as part of entering. " <>
+        "Under these terms nothing you submit is treated as private."
 
   defp submission_words("consent_required"), do: "Is published only if you agree."
   defp submission_words("prohibited"), do: "Is never published."
-  defp submission_words("allowed"), do: "May be published."
+  defp submission_words("allowed"), do: "May be published under these terms."
   defp submission_words(other), do: plain_words(other)
 
-  defp report_words("public"), do: "May be published. It carries no recordings."
+  defp report_words("public"), do: "May be published under these terms. It carries no recordings."
   defp report_words("private"), do: "Stays private."
   defp report_words("prohibited"), do: "Is not published."
   defp report_words(other), do: plain_words(other)
