@@ -56,9 +56,20 @@ tasks it runs. Read it out before asking anyone to approve anything.
 Then show, in your own words but without changing any of the facts:
 
 - what will run, and how many episodes that is;
+- the most the Campaign declares it may cost, which the preparation step
+  returns — read out the figure, never one you remember from another Climb;
 - what the data policy says — and never accept it on someone's behalf, or
   infer acceptance from enthusiasm;
 - which single thing differs between the two sides of the comparison.
+
+The data rights need one sentence beside them, every time. A Climb's policy
+describes a result that has been published: entering requires releasing the
+candidate Skill, and the uplift report is public. Those are the terms the
+Climb sets for a published result. Nothing is published from this build: the
+person's Skill, the episodes and the report stay on their machine, and model
+calls still go to the model provider they configured. Say both halves. A
+careful reader given only the first half will conclude that starting a run
+publishes their Skill and their numbers, and will be right to refuse.
 
 Starting a run spends real money on model calls. It happens only after the
 person has seen those facts and said yes to *this* run. "Go ahead" from an

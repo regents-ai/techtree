@@ -152,6 +152,55 @@ def _slash_climbs(services: Any, arguments: Sequence[str]) -> str:
     return "\n".join(lines)
 
 
+#: What the DataPolicy's publication terms mean in this build, shown where
+#: those terms are handed to a person.
+#:
+#: A Climb's data rights describe a result that has been published: entering
+#: requires releasing the candidate Skill, and the uplift report is public. On
+#: their own they read as a plan to publish somebody's Skill and their numbers,
+#: and two readers stopped and refused to start a run over exactly that.
+#: Nothing in this build can publish anything. So the terms are shown unchanged
+#: and this is shown with them.
+#:
+#: The last clause is not decoration. Decision 0013 section 1.4: a sentence
+#: about what stays here is read as a claim that nothing goes anywhere, and
+#: model calls do.
+PUBLICATION_TERMS_LINE = (
+    "These are the terms this Climb sets for a published result. Nothing is "
+    "published from this build: your Skill, the episodes and the report stay "
+    "on this machine, and model calls still go to the model provider you "
+    "configured."
+)
+
+
+def _declared_maximum_line(answer: Mapping[str, Any]) -> str:
+    """Say the most this Campaign declares it may cost, and what that is not.
+
+    The terminal review has printed this figure since decision 0029 and this
+    surface did not, so a reader who approved a run here was told a check
+    happens without being told what it checks against. The number is the
+    Campaign's and arrives with the prepared draft; a Campaign that declares no
+    maximum says so, because a figure invented for it would be false.
+    """
+    maximum = answer.get("campaign_maximum_usd")
+    if not isinstance(maximum, int | float) or isinstance(maximum, bool):
+        return (
+            "This Campaign declares no maximum, so there is no figure to hold "
+            "it to. Techtree works out no figure for the bill first and keeps "
+            "no running total as it goes, so what it comes to is settled by "
+            "the model provider you configured."
+        )
+    return (
+        f"The most this Campaign declares it may cost is ${maximum:.2f}. "
+        "Techtree checks before it starts that the limits the Campaign "
+        "enforces on each episode cannot add up past that, and refuses the "
+        "run if they could. That figure is a ceiling it declares and never "
+        "a prediction: Techtree works out no figure for the bill first and "
+        "keeps no running total as it goes, so what it comes to is settled by "
+        "the model provider you configured."
+    )
+
+
 def _slash_demo(services: Any, arguments: Sequence[str]) -> str:
     answer = _tool(services, "techtree_demo_prepare", {})
     if not answer.get("ok"):
@@ -166,13 +215,10 @@ def _slash_demo(services: Any, arguments: Sequence[str]) -> str:
             f"Draft: {answer.get('draft_id')}",
             f"Episodes to run: {answer.get('estimated_episodes')}",
             f"Data policy: {answer.get('data_policy_digest')}",
+            PUBLICATION_TERMS_LINE,
             "Starting it spends real money on model calls, and needs your "
             "explicit approval.",
-            "What it comes to is settled by the model provider you configured. "
-            "Techtree checks the Campaign's declared maximum before it starts "
-            "and refuses a run whose enforced limits could add up past it, but "
-            "it works out no figure for the bill first and keeps no running "
-            "total as it goes.",
+            _declared_maximum_line(answer),
             "Next: review the Skill-only change, then approve the start.",
         ]
     )

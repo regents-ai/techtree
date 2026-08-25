@@ -111,14 +111,24 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "skill_root_digest": data.get("skill_root_digest"),
             "starter_skill_digest": skill.get("digest"),
             "estimated_episodes": data.get("estimated_episodes"),
+            # The most this Campaign declares it may cost, read off the draft
+            # Techtree just prepared. Decision 0019 section 2 puts the budget in
+            # this review; the figure belongs to the Campaign, so it is carried
+            # here rather than written into the words that describe it.
+            "campaign_maximum_usd": data.get("campaign_maximum_usd"),
             "changed_field": "the candidate Skill; everything else is identical",
             "next_action": {
                 "id": "start_first_comparison",
                 "label": "Start the first comparison",
                 "reason": (
                     "This spends real money on model calls, and no price is "
-                    "worked out first. Show the policy, the episode count, "
-                    "and the Skill, and start only if the user agrees."
+                    "worked out first. Show the policy, the declared maximum, "
+                    "the episode count, and the Skill, and start only if the "
+                    "user agrees. The data rights are the terms this Climb "
+                    "sets for a published result. Nothing is published from "
+                    "this build: the user's Skill, the episodes and the report "
+                    "stay on their machine, and model calls still go to the "
+                    "model provider they configured."
                 ),
                 "tool": "techtree_climb_start",
                 "requires_user_confirmation": True,

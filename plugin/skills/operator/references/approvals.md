@@ -25,6 +25,14 @@ Read the policy out. Never accept it on someone's behalf. If they ask what it
 means, explain it — but the fingerprint that goes into the start command is
 the one the preparation step returned, never one you assembled.
 
+Read the publication terms with their plain meaning beside them. They are the
+terms the Climb sets for a published result — entering requires releasing the
+candidate Skill, and the uplift report is public. Nothing is published from
+this build: the person's Skill, the episodes and the report stay on their
+machine, and model calls still go to the model provider they configured. The
+terms without that sentence read as a plan to publish their work, and someone
+who refuses on that basis has read them correctly.
+
 ## Starting a run
 
 Preparation freezes a draft and names it by identifier. Starting means

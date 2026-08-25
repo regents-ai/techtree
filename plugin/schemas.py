@@ -42,6 +42,29 @@ _PATH_NOTE: Final = (
     "returned for a different purpose."
 )
 
+#: What a Climb's publication terms mean in this build, said wherever a tool
+#: hands those terms to a host agent.
+#:
+#: A DataPolicy describes a result that has been published: entering requires
+#: releasing the candidate Skill, and the uplift report is public. Beside
+#: raw-episode terms that prohibit upload outright, that reads as a plan to
+#: publish somebody's Skill and their numbers, and two agents stopped and
+#: refused to start a run over exactly that. Nothing in this build can publish
+#: anything. So the terms are reported unchanged and this is reported with
+#: them.
+#:
+#: The last clause is not decoration. Decision 0013 section 1.4: a sentence
+#: about what stays on the machine is read as a claim that nothing goes
+#: anywhere, and model calls do.
+_PUBLICATION_NOTE: Final = (
+    "The data rights a Climb declares are the terms it sets for a published "
+    "result. Nothing is published from this build: the user's Skill, the "
+    "episodes and the report stay on their machine, and model calls still go "
+    "to the model provider they configured. Read the terms out with that "
+    "beside them, or a careful reader will take them for a plan to publish "
+    "their Skill."
+)
+
 
 def _run_id(purpose: str) -> dict[str, Any]:
     return {
@@ -137,7 +160,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "the user configured. Techtree checks a Campaign's declared "
             "maximum before a run and refuses one whose enforced limits could "
             "add up past it, but that maximum is a ceiling and never a "
-            "prediction of the bill. "
+            "prediction of the bill. " + _PUBLICATION_NOTE + " "
             "Read-only and free. Always inspect and show these facts before "
             "asking the user to approve a run."
         ),
@@ -188,9 +211,11 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "CLI, run Doctor, materialize the starter Skill by its pinned "
             "digest, and prepare a draft. Free and starts nothing. It returns "
             "the exact field that changes between the two runs, the "
-            "data-policy summary, and how many episodes the comparison will "
-            "run. It names no price, and nothing here spends money: that "
-            "begins only when the user approves the start. Hello World "
+            "data-policy summary, how many episodes the comparison will run, "
+            "and the most the Campaign declares it may cost. That maximum is a "
+            "ceiling and never a prediction of the bill: it names no price, "
+            "and nothing here spends money — that begins only when the user "
+            "approves the start. " + _PUBLICATION_NOTE + " Hello World "
             "demonstrates how the mechanism works; it is not a measure of "
             "broad capability."
         ),
@@ -304,7 +329,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "which Techtree will test; a proposal may be unusable or may fail "
             "to improve the score. Show the user the diff, the data policy, "
             "and how many episodes the comparison runs before starting "
-            "anything."
+            "anything. " + _PUBLICATION_NOTE
         ),
         properties={
             "source_run_id": _run_id("The finished run whose Skill should be revised."),
@@ -316,7 +341,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "Prepare a comparison between a finished run's Skill and a revised "
             "version of it. Free and starts nothing. Show the user the diff "
             "between the two Skills and the data policy before starting the "
-            "comparison this prepares."
+            "comparison this prepares. " + _PUBLICATION_NOTE
         ),
         properties={
             "run_id": _run_id("The finished run whose Skill becomes the baseline."),
