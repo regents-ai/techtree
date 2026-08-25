@@ -30,9 +30,12 @@ from techtree.presentation.build import (
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
+    cost_explanation,
+    cost_summary,
+    efficiency_sentence,
+    task_counts,
 )
 from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
-from techtree.receipts.execution import CostProvenance
 
 __all__ = [
     "DEFAULT_MAXIMUM_TASK_ROWS",
@@ -47,14 +50,6 @@ DEFAULT_MAXIMUM_TASK_ROWS: Final = 5
 UNVERIFIED_HEADLINE: Final = (
     "**This run's local proof did not verify. Do not rely on the numbers below.**"
 )
-
-#: How each cost provenance is spelled in one short line.
-_COST_PROVENANCE: Final[dict[CostProvenance, str]] = {
-    CostProvenance.PROVIDER_REPORTED: "reported by the provider",
-    CostProvenance.COMPUTED_FROM_PINNED_PRICE: "computed from the pinned price",
-    CostProvenance.ESTIMATED: "estimated, not billed",
-    CostProvenance.UNAVAILABLE: "unavailable",
-}
 
 _VERIFICATION_PHRASE: Final[dict[str, str]] = {
     VERIFICATION_VERIFIED: "signature verified offline",
@@ -82,24 +77,18 @@ def render_uplift_markdown(
     the channel a number is most likely to be quoted out of, so the sentence
     that would stop somebody quoting it cannot be further down.
     """
-    lines = [
-        f"**{_HEADLINE[payload.decision]}: "
-        f"{payload.baseline_score:.3f} → {payload.candidate_score:.3f} "
-        f"({payload.absolute_delta:+.3f})**",
-        "",
-    ]
+    lines = [f"**{_HEADLINE[payload.decision]}: {_headline_numbers(payload)}**", ""]
     if payload.verification_status == VERIFICATION_FAILED:
         lines = [UNVERIFIED_HEADLINE, "", *lines]
     lines += [
         f"- {payload.campaign_title} — {payload.comparison_label}",
         f"- Changed: {payload.change_label}. {HELD_FIXED_LINE}",
-        f"- Wins: {payload.wins}",
-        f"- Losses: {payload.losses}",
-        f"- Ties: {payload.ties}",
+        f"- Tasks: {payload.wins} win, {payload.losses} loss, {payload.ties} tie",
         f"- Proof: local {payload.proof_grade}, "
         f"{_VERIFICATION_PHRASE[payload.verification_status]}",
-        f"- Cost: {_cost(payload)}",
-        f"- Time: {_time(payload)}",
+        f"- Cost: {cost_summary(payload)}",
+        *(f"- {line}" for line in cost_explanation(payload)),
+        *_work(payload),
         "- Raw episodes: retained locally; not uploaded",
     ]
 
@@ -125,16 +114,37 @@ def render_uplift_markdown(
     return "\n".join(lines)
 
 
-def _cost(payload: UpliftPresentationPayload) -> str:
-    """Return the one line a phone gets about money.
+def _headline_numbers(payload: UpliftPresentationPayload) -> str:
+    """Return the result in the unit a person quotes it in.
 
-    Decisions document 0007 R6 again: the provenance travels with the figure
-    even here, because the channel with the least room is the one where a
-    number is most likely to be read as more than it is.
+    This is the line most likely to be forwarded to somebody, so it leads with
+    the count rather than the mean where the reward has one, and keeps the mean
+    and the delta in the same breath so that nothing is lost by quoting it.
     """
-    if payload.cost_usd is None:
-        return "unavailable"
-    return f"${payload.cost_usd:.2f}, {_COST_PROVENANCE[payload.cost_provenance]}"
+    means = (
+        f"{payload.baseline_score:.3f} → {payload.candidate_score:.3f} "
+        f"({payload.absolute_delta:+.3f})"
+    )
+    counted = task_counts(payload)
+    if counted is None:
+        return means
+    baseline, candidate, total = counted
+    return f"{baseline} of {total} → {candidate} of {total} tasks, mean {means}"
+
+
+def _work(payload: UpliftPresentationPayload) -> list[str]:
+    """Return what each side spent doing the same tasks, in one bullet.
+
+    The channel with the least room still carries this: a Skill that took a
+    third of the model turns did something a reader wants to know, and unlike
+    the clock, that number does not move when the same run is repeated on a
+    busier afternoon. The sentence carries both times, so a run that has it
+    does not also get a bare pair of durations.
+    """
+    sentence = efficiency_sentence(payload)
+    if sentence is not None:
+        return [f"- Work: {sentence}"]
+    return [f"- Time: {_time(payload)}"]
 
 
 def _time(payload: UpliftPresentationPayload) -> str:

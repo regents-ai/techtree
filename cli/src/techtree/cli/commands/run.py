@@ -50,6 +50,7 @@ from techtree.models.run import RunPhase, RunProgress, VariantProgress
 from techtree.models.uplift_report import UpliftReport
 from techtree.presentation.build import build_uplift_presentation
 from techtree.presentation.compact import render_uplift_markdown
+from techtree.presentation.evidence import read_recorded_evidence
 from techtree.presentation.models import UpliftPresentationPayload
 from techtree.presentation.rich import TaskDisplay, render_uplift_console
 from techtree.receipts.bundle import (
@@ -724,6 +725,9 @@ def _presentation(
     baseline_skill = inputs.baseline_skill
     return build_uplift_presentation(
         report=report,
+        # The run's own signed Campaign: which model was measured, which is what
+        # a cost can be worked out from and what the weaker-claim warning names.
+        campaign=inputs.campaign,
         baseline_receipts=artifacts.episode_receipts(
             run_id, ExperimentVariant.BASELINE
         ),
@@ -738,6 +742,14 @@ def _presentation(
         # the verification just checked. A run without one is shown as a run
         # whose economics are unknown, never as one that cost nothing.
         execution_record=execution_record,
+        # Turns and throttling, counted out of the run's own evaluation output
+        # and checked against the digests that record already holds. Nothing is
+        # written; a run whose output has been cleared away simply says less.
+        recorded_evidence=(
+            None
+            if execution_record is None
+            else read_recorded_evidence(context.paths.run_dir(run_id), execution_record)
+        ),
     )
 
 

@@ -21,7 +21,7 @@ from fixtures.receipts.pair import RecordedPair, recorded_pair
 from fixtures.receipts.proof import execution_record as fixture_execution_record
 from techtree.canonical import canonical_json_bytes
 from techtree.identity.models import VerificationMessage, VerificationResult
-from techtree.models.campaign import VariantSchedule
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec, VariantSchedule
 from techtree.models.episode_receipt import EpisodeReceipt
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.skill import SkillArtifact, SkillFile
@@ -39,9 +39,14 @@ from techtree.presentation.build import (
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
     build_uplift_presentation,
+    cost_explanation,
+    cost_summary,
+    efficiency_sentence,
     score_bars,
+    task_count_line,
 )
 from techtree.presentation.compact import render_uplift_markdown
+from techtree.presentation.evidence import RecordedEvidence, VariantEvidence
 from techtree.presentation.models import (
     PresentationCaveat,
     UpliftPresentationPayload,
@@ -217,9 +222,12 @@ def build(
     receipts: dict[VariantName, list[EpisodeReceipt]],
     verification: VerificationResult | None = None,
     execution_record: ComparisonExecutionRecord | None = None,
+    recorded_evidence: RecordedEvidence | None = None,
+    campaign: CampaignSpec | None = None,
 ) -> UpliftPresentationPayload:
     return build_uplift_presentation(
         report=report,
+        campaign=recorded_pair().campaign if campaign is None else campaign,
         baseline_receipts=receipts[VariantName.BASELINE],
         candidate_receipts=receipts[VariantName.CANDIDATE],
         campaign_title=CAMPAIGN_TITLE,
@@ -227,6 +235,7 @@ def build(
         candidate_skill=candidate_skill(),
         verification=verification,
         execution_record=execution_record,
+        recorded_evidence=recorded_evidence,
     )
 
 
@@ -306,6 +315,7 @@ def _compare(
     """Build one payload over an arbitrary pair of Skills."""
     return build_uplift_presentation(
         report=report,
+        campaign=recorded_pair().campaign,
         baseline_receipts=receipts[VariantName.BASELINE],
         candidate_receipts=receipts[VariantName.CANDIDATE],
         campaign_title=CAMPAIGN_TITLE,
@@ -538,18 +548,301 @@ def test_every_cost_provenance_reaches_the_payload_with_its_own_caveat(
     assert _caveat(payload, code).severity == severity
 
 
-def test_a_recorded_run_with_no_cost_says_so_without_touching_the_result(
+def test_a_run_the_provider_priced_nothing_for_still_gets_a_derived_figure(
     report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
 ) -> None:
-    """What this build produces today: timing and tokens, and no cost."""
-    payload = build(report, receipts, verified(), execution_record(report))
+    """techtree-python-nom. Every token was recorded, so a cost is workable.
+
+    The signed record's own cost stays absent, because nothing may be written
+    back into it. The figure is worked out from the tokens it already holds
+    and the prices this release recorded, and it says which of the two it is.
+    """
+    record = execution_record(report)
+    payload = build(report, receipts, verified(), record)
 
     assert payload.cost_usd is None
     assert payload.cost_provenance is CostProvenance.UNAVAILABLE
-    assert payload.baseline_tokens is not None
-    caveat = _caveat(payload, "cost_unavailable")
+    derived = payload.derived_cost
+    assert derived is not None
+    assert derived.input_tokens == 2 * 2048
+    assert derived.output_tokens == 2 * 256
+    assert derived.usd == pytest.approx((4096 * 0.03 + 512 * 0.13) / 1_000_000)
+    assert derived.model_id == "qwen/qwen3.7-flash"
+    assert payload.cost_unavailable_reason is None
+    assert _caveat(payload, "cost_derived_while_rendering").severity == "info"
+
+
+def test_a_derived_figure_says_it_was_worked_out_and_names_what_from(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-nom. The sentence a reader judges the number by."""
+    payload = build(report, receipts, verified(), execution_record(report))
+
+    assert "not billed" in cost_summary(payload)
+    explanation = " ".join(cost_explanation(payload))
+    assert "4,096 input and 512 output tokens" in explanation
+    assert "Your provider's bill is what you actually pay." in explanation
+
+
+def test_a_reported_cost_is_preferred_over_one_that_could_be_worked_out(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-nom. A bill beats arithmetic wherever there is one."""
+    cost = VariantCost(
+        cost_usd=2.5,
+        provenance=CostProvenance.PROVIDER_REPORTED,
+        detail="from the feed",
+    )
+    payload = build(
+        report,
+        receipts,
+        verified(),
+        execution_record(report, costs={"baseline": cost, "candidate": cost}),
+    )
+
+    assert payload.derived_cost is None
+    assert payload.cost_usd == 5.0
+    assert cost_summary(payload) == "$5.00, reported by the provider"
+    assert cost_explanation(payload) == []
+
+
+def test_cached_input_is_priced_at_the_full_rate_and_said_to_be(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-nom. An unstated discount is never quietly assumed."""
+    record = execution_record(report)
+    cached = record.baseline.usage.model_copy(update={"cached_input_tokens": 1024})
+    payload = build(
+        report,
+        receipts,
+        verified(),
+        record.model_copy(
+            update={"baseline": record.baseline.model_copy(update={"usage": cached})}
+        ),
+    )
+
+    derived = payload.derived_cost
+    assert derived is not None
+    assert derived.cached_input_tokens == 1024
+    assert derived.prices_name_a_cached_rate is False
+    # The figure is the same as the one with no cache at all: nothing was
+    # discounted, and the reader is told the number is on the high side.
+    assert derived.usd == pytest.approx((4096 * 0.03 + 512 * 0.13) / 1_000_000)
+    explanation = " ".join(cost_explanation(payload))
+    assert "1,024 of those input tokens came back from the provider's cache" in (
+        explanation
+    )
+    assert "on the high side" in explanation
+
+
+def test_a_run_with_no_execution_record_says_which_half_is_missing(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-nom. "Unavailable" alone tells a reader nothing."""
+    payload = build(report, receipts, verified())
+
+    assert payload.derived_cost is None
+    assert payload.cost_usd is None
+    reason = payload.cost_unavailable_reason
+    assert reason is not None
+    assert "no signed execution record" in reason
+    assert cost_summary(payload) == "unavailable"
+    assert cost_explanation(payload) == [reason]
+
+
+def test_a_model_this_release_priced_nothing_for_invents_no_cost(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-nom. A missing price is stated, never guessed around."""
+    payload = build(
+        report,
+        receipts,
+        verified(),
+        execution_record(report),
+        campaign=_measuring("some-vendor/unpriced-model"),
+    )
+
+    assert payload.derived_cost is None
+    reason = payload.cost_unavailable_reason
+    assert reason is not None
+    assert "recorded no provider prices" in reason
+    assert "some-vendor/unpriced-model" in reason
+
+
+# ---------------------------------------------------------------------------
+# The count, the turns, the throttling and the named coordinate
+# ---------------------------------------------------------------------------
+
+
+def seen(
+    *,
+    baseline_turns: int = 406,
+    candidate_turns: int = 73,
+    baseline_refused: int = 4,
+    candidate_refused: int = 0,
+    completed: bool = True,
+) -> RecordedEvidence:
+    """Return one reading of a run's own recorded files."""
+    return RecordedEvidence(
+        baseline=VariantEvidence(
+            model_turns=baseline_turns,
+            rollouts=2,
+            rollouts_completed=2 if completed else 1,
+            rate_limited_calls=baseline_refused,
+        ),
+        candidate=VariantEvidence(
+            model_turns=candidate_turns,
+            rollouts=2,
+            rollouts_completed=2,
+            rate_limited_calls=candidate_refused,
+        ),
+    )
+
+
+def test_the_headline_is_offered_as_a_count_of_tasks(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-of9. The recorded pair is 0 of 36 against 24 of 36."""
+    payload = build(report, receipts, verified())
+
+    assert payload.baseline_tasks_scored_full == 0
+    assert payload.candidate_tasks_scored_full == 24
+    assert task_count_line(payload) == "0 of 36 → 24 of 36 (+24)"
+
+
+def test_a_reward_that_is_not_all_or_nothing_gets_no_invented_count(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-of9. A task scored 0.4 was neither right nor wrong."""
+    payload = build(report, receipts, verified())
+    partial = payload.task_rows[0].model_copy(
+        update={"candidate_score": 0.4, "delta": 0.4}
+    )
+    graded = payload.model_copy(
+        update={
+            "task_rows": [partial, *payload.task_rows[1:]],
+            "baseline_tasks_scored_full": None,
+            "candidate_tasks_scored_full": None,
+        }
+    )
+
+    assert task_count_line(graded) is None
+
+
+def test_the_turn_counts_are_carried_and_read_as_a_finding(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-bmk. Two bare durations are not a finding; this is."""
+    payload = build(
+        report, receipts, verified(), execution_record(report), recorded_evidence=seen()
+    )
+
+    assert payload.baseline_model_turns == 406
+    assert payload.candidate_model_turns == 73
+    sentence = efficiency_sentence(payload)
+    assert sentence is not None
+    assert "73 model turns against the baseline's 406" in sentence
+    assert "finished in 90.0s against 90.0s" in sentence
+    assert "also depends on this machine" in sentence
+
+
+def test_a_run_whose_files_could_not_be_read_claims_no_turns(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-bmk. Nothing is inferred from a reading that failed."""
+    payload = build(report, receipts, verified(), execution_record(report))
+
+    assert payload.baseline_model_turns is None
+    assert payload.every_rollout_completed is None
+    assert efficiency_sentence(payload) is None
+
+
+def test_an_asymmetric_rate_limit_is_a_warning_that_names_both_sides(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-vmp. The founder found this by reading raw eval logs."""
+    payload = build(report, receipts, verified(), recorded_evidence=seen())
+
+    caveat = _caveat(payload, "provider_rate_limiting")
     assert caveat.severity == "warning"
-    assert "unaffected" in caveat.text
+    assert caveat.text == (
+        "The provider refused 4 model calls with a rate limit on the baseline "
+        "side and 0 on the candidate side. Every rollout still ran to completion."
+    )
+
+
+def test_an_even_rate_limit_is_stated_without_being_a_qualification(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-vmp. Nothing is asymmetric, so nothing is qualified."""
+    payload = build(
+        report,
+        receipts,
+        verified(),
+        recorded_evidence=seen(baseline_refused=0, candidate_refused=0),
+    )
+
+    caveat = _caveat(payload, "provider_rate_limiting")
+    assert caveat.severity == "info"
+    assert caveat.text.startswith("The provider refused no model call on either side.")
+
+
+def test_a_rollout_that_did_not_complete_is_not_claimed_to_have(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-vmp. The completion clause is a claim, and it is checked."""
+    payload = build(
+        report, receipts, verified(), recorded_evidence=seen(completed=False)
+    )
+
+    assert payload.every_rollout_completed is False
+    assert (
+        "still ran to completion" not in _caveat(payload, "provider_rate_limiting").text
+    )
+
+
+def test_a_run_with_no_reading_says_nothing_about_throttling(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-vmp. Silence, never a zero nobody counted."""
+    payload = build(report, receipts, verified())
+
+    assert [caveat.code for caveat in payload.caveats].count(
+        "provider_rate_limiting"
+    ) == 0
+
+
+def test_the_weak_attestation_warning_names_the_coordinate(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-6rq. "At least one coordinate" is true and unusable."""
+    payload = build(report, receipts, verified())
+
+    text = _caveat(payload, "comparison_controlled_with_warnings").text
+    assert "no immutable build identifier for qwen/qwen3.7-flash" in text
+    assert "not provably the same model build" in text
+    assert "a mismatch would have made the comparison invalid" in text
+
+
+def test_a_cause_this_build_cannot_name_keeps_the_general_wording(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """techtree-python-6rq. The model-revision sentence is never borrowed.
+
+    The Campaign here publishes a model revision, so the one warning this build
+    knows how to name is not the one this comparison recorded. The reader gets
+    the honest general sentence rather than a plausible wrong cause.
+    """
+    payload = build(
+        report,
+        receipts,
+        verified(),
+        campaign=_measuring("qwen/qwen3.7-flash", revision="2026-08-01"),
+    )
+
+    text = _caveat(payload, "comparison_controlled_with_warnings").text
+    assert "no plainer name for it" in text
+    assert "model build" not in text
 
 
 def test_the_next_actions_only_name_commands_this_build_has(
@@ -588,6 +881,26 @@ def test_the_score_bars_are_drawn_on_one_scale(
 
 def _caveat(payload: UpliftPresentationPayload, code: str) -> PresentationCaveat:
     return next(caveat for caveat in payload.caveats if caveat.code == code)
+
+
+def _measuring(model_id: str, *, revision: str | None = None) -> CampaignSpec:
+    """Return the recorded Campaign with a different subject model on it."""
+    campaign = recorded_pair().campaign
+    subject = campaign.subject
+    return campaign.model_copy(
+        update={
+            "agents": {
+                **campaign.agents,
+                SUBJECT_AGENT: subject.model_copy(
+                    update={
+                        "model": subject.model.model_copy(
+                            update={"model_id": model_id, "revision": revision}
+                        )
+                    }
+                ),
+            }
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -677,9 +990,9 @@ def test_both_channels_say_what_the_measured_difference_was(
 
     assert f"{payload.baseline_score:.3f} → {payload.candidate_score:.3f}" in gateway
     assert f"{payload.absolute_delta:+.3f}" in gateway
-    assert f"- Wins: {payload.wins}" in gateway
-    assert f"- Losses: {payload.losses}" in gateway
-    assert f"- Ties: {payload.ties}" in gateway
+    assert (
+        f"- Tasks: {payload.wins} win, {payload.losses} loss, {payload.ties} tie"
+    ) in gateway
     assert "- Cost:" in gateway
     assert "- Time:" in gateway
 

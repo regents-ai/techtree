@@ -1,5 +1,7 @@
 {
   "absolute_delta": 0.3,
+  "baseline_model_turns": null,
+  "baseline_rate_limited_calls": null,
   "baseline_score": 0.3,
   "baseline_seconds": 612.0,
   "baseline_skill": {
@@ -8,8 +10,11 @@
     "root_digest": null,
     "total_bytes": 0
   },
+  "baseline_tasks_scored_full": 6,
   "baseline_tokens": 1211350,
   "campaign_title": "Techtree Hello World",
+  "candidate_model_turns": null,
+  "candidate_rate_limited_calls": null,
   "candidate_score": 0.6,
   "candidate_seconds": 598.0,
   "candidate_skill": {
@@ -18,12 +23,13 @@
     "root_digest": "sha256:735d909e6eec92550cef4e4a25daf0e680b6e2b6ef41ba3b1fbd6e8dc35b1c48",
     "total_bytes": 3072
   },
+  "candidate_tasks_scored_full": 12,
   "candidate_tokens": 1230775,
   "caveats": [
     {
       "code": "comparison_controlled_with_warnings",
       "severity": "warning",
-      "text": "The comparison is controlled with warnings: at least one declared coordinate could not be confirmed from what the run observed, so it is attested more weakly than the rest. No mismatch was found; a mismatch would have made the comparison invalid."
+      "text": "The comparison is controlled with warnings, which means one coordinate is attested more weakly than the rest. Your provider publishes no immutable build identifier for development-placeholder, so both sides provably used the same model name but not provably the same model build. No mismatch was found; a mismatch would have made the comparison invalid."
     },
     {
       "code": "local_participant_attestation",
@@ -53,15 +59,18 @@
     {
       "code": "cost_unavailable",
       "severity": "warning",
-      "text": "Timing and token counts come from this run's signed execution record. No cost was reported for it and this build pins no price to compute one from, so the cost is unavailable. What the comparison measured is unaffected."
+      "text": "Timing and token counts come from this run's signed execution record. No cost was reported for it and none could be worked out from what it recorded. What the comparison measured is unaffected."
     }
   ],
   "change_label": "No tested Skill → Skill v1",
   "comparison_label": "Hello World Uplift Receipt",
   "cost_provenance": "unavailable",
+  "cost_unavailable_reason": "This release recorded no provider prices for development-placeholder, so the tokens this run recorded cannot be turned into a cost.",
   "cost_usd": null,
   "decision": "accepted",
+  "derived_cost": null,
   "economics_source": "comparison_execution_record",
+  "every_rollout_completed": null,
   "losses": 2,
   "next_actions": [
     {

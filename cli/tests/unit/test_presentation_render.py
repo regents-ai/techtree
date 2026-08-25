@@ -32,6 +32,7 @@ from techtree.presentation.compact import (
 )
 from techtree.presentation.models import (
     PRESENTATION_SCHEMA_VERSION,
+    DerivedCost,
     EconomicsSource,
     PresentationCaveat,
     SkillSummary,
@@ -82,6 +83,13 @@ def payload(
     candidate_seconds: float | None = None,
     cost_usd: float | None = None,
     cost_provenance: CostProvenance = CostProvenance.UNAVAILABLE,
+    derived_cost: DerivedCost | None = None,
+    counted: bool = True,
+    baseline_model_turns: int | None = None,
+    candidate_model_turns: int | None = None,
+    baseline_rate_limited_calls: int | None = None,
+    candidate_rate_limited_calls: int | None = None,
+    every_rollout_completed: bool | None = None,
 ) -> UpliftPresentationPayload:
     table = rows(task_count)
     return UpliftPresentationPayload(
@@ -107,13 +115,30 @@ def payload(
         losses=sum(1 for row in table if row.outcome == "loss"),
         ties=sum(1 for row in table if row.outcome == "tie"),
         task_rows=table,
+        baseline_tasks_scored_full=(
+            sum(1 for row in table if row.baseline_score == 1.0) if counted else None
+        ),
+        candidate_tasks_scored_full=(
+            sum(1 for row in table if row.candidate_score == 1.0) if counted else None
+        ),
         baseline_tokens=baseline_tokens,
         candidate_tokens=candidate_tokens,
         baseline_seconds=baseline_seconds,
         candidate_seconds=candidate_seconds,
+        baseline_model_turns=baseline_model_turns,
+        candidate_model_turns=candidate_model_turns,
+        baseline_rate_limited_calls=baseline_rate_limited_calls,
+        candidate_rate_limited_calls=candidate_rate_limited_calls,
+        every_rollout_completed=every_rollout_completed,
         economics_source=economics_source,
         cost_usd=cost_usd,
         cost_provenance=cost_provenance,
+        derived_cost=derived_cost,
+        cost_unavailable_reason=(
+            None
+            if cost_usd is not None or derived_cost is not None
+            else "This run wrote no signed execution record."
+        ),
         decision=decision,
         proof_grade=proof_grade,
         verification_status=verification_status,
@@ -264,11 +289,90 @@ def test_efficiency_says_it_was_not_recorded_rather_than_showing_zero() -> None:
     """An unknown number is said to be unknown, never drawn as a zero."""
     text = rendered(payload())
 
+    assert "Turns    not recorded for this run" in text
     assert "Tokens   not recorded for this run" in text
     assert "Time     not recorded for this run" in text
     assert "Cost     unavailable" in text
     assert "Source   nothing recorded it" in text
     assert "$" not in text
+
+
+def test_the_terminal_leads_with_the_count_a_person_reads_in() -> None:
+    """techtree-python-of9. The mean stays, underneath, as the detail."""
+    lines = [line for line in rendered(payload()).splitlines() if line.strip()]
+
+    assert lines[3] == "Tasks   1 of 20 → 10 of 20 (+9)"
+    assert "Change  +0.400 mean score" in "\n".join(lines)
+    assert "Outcome 10 WIN / 1 LOSS / 9 TIE" in "\n".join(lines)
+
+
+def test_a_reward_with_no_count_still_draws_the_mean() -> None:
+    """techtree-python-of9. Nothing is rounded into a count that does not exist."""
+    text = rendered(payload(counted=False))
+
+    assert "Tasks   " not in text
+    assert "Change  +0.400 mean score" in text
+
+
+def test_the_terminal_shows_turns_beside_time_and_says_what_they_mean() -> None:
+    """techtree-python-bmk. The efficiency finding, not two bare numbers."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_seconds=994.1,
+            candidate_seconds=391.2,
+            baseline_model_turns=406,
+            candidate_model_turns=73,
+            baseline_rate_limited_calls=4,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+        )
+    )
+
+    assert "Turns    baseline 406, candidate 73" in text
+    assert "Time     baseline 994.1s, candidate 391.2s" in text
+    assert "73 model turns against the baseline's 406" in _flat(text)
+    assert "finished in 391.2s against 994.1s" in _flat(text)
+
+
+def test_a_derived_cost_is_drawn_with_everything_it_rests_on() -> None:
+    """techtree-python-nom. A figure worked out here never reads as a bill."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            derived_cost=DerivedCost(
+                usd=0.1809,
+                input_tokens=5_612_192,
+                output_tokens=96_583,
+                cached_input_tokens=2_244_480,
+                prices_name_a_cached_rate=False,
+                model_id="qwen/qwen3.7-flash",
+                input_usd_per_mtok=0.03,
+                output_usd_per_mtok=0.13,
+                prices_recorded_on="2026-08-20",
+            ),
+        )
+    )
+
+    assert "Cost     about $0.18, worked out here, not billed" in text
+    flat = _flat(text)
+    assert "Computed from 5,612,192 input and 96,583 output tokens" in flat
+    assert "Your provider's bill is what you actually pay." in flat
+    assert "2,244,480 of those input tokens came back from the provider's cache" in flat
+    assert "on the high side" in flat
+
+
+def test_a_cost_that_cannot_be_worked_out_says_what_is_missing() -> None:
+    """techtree-python-nom. "Unavailable" alone tells a reader nothing."""
+    text = rendered(payload())
+
+    assert "Cost     unavailable" in text
+    assert "This run wrote no signed execution record." in _flat(text)
+
+
+def _flat(text: str) -> str:
+    """Return one rendering with its line wrapping undone."""
+    return " ".join(text.split())
 
 
 def test_efficiency_shows_what_the_execution_record_recorded() -> None:
@@ -285,9 +389,9 @@ def test_efficiency_shows_what_the_execution_record_recorded() -> None:
         )
     )
 
-    assert "Tokens   baseline 1186432, candidate 1204771" in text
+    assert "Tokens   baseline 1,186,432, candidate 1,204,771" in text
     assert "Time     baseline 612.0s, candidate 598.0s" in text
-    assert "Cost     $4.10 (reported by the provider)" in text
+    assert "Cost     $4.10, reported by the provider" in text
     assert "Source   this run's signed execution record" in text
 
 
@@ -311,7 +415,7 @@ def test_every_cost_figure_is_shown_with_where_it_came_from(
         )
     )
 
-    assert f"Cost     $4.10 ({phrase})" in text
+    assert f"Cost     $4.10, {phrase}" in text
     if provenance is not CostProvenance.PROVIDER_REPORTED:
         assert "reported by the provider" not in text
 
@@ -338,6 +442,101 @@ def test_the_compact_rendering_is_bounded() -> None:
 
     assert len(re.findall(r"task \d\d · ", text)) == 5
     assert len(text.splitlines()) < 30
+
+
+def test_the_compact_rendering_stays_bounded_with_everything_on() -> None:
+    """Every line these tickets add, on one message, still fits a phone."""
+    text = render_uplift_markdown(
+        payload(
+            task_count=40,
+            economics_source="comparison_execution_record",
+            baseline_seconds=994.1,
+            candidate_seconds=391.2,
+            baseline_model_turns=406,
+            candidate_model_turns=73,
+            baseline_rate_limited_calls=4,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+            derived_cost=DerivedCost(
+                usd=0.1809,
+                input_tokens=5_612_192,
+                output_tokens=96_583,
+                cached_input_tokens=2_244_480,
+                prices_name_a_cached_rate=False,
+                model_id="qwen/qwen3.7-flash",
+                input_usd_per_mtok=0.03,
+                output_usd_per_mtok=0.13,
+                prices_recorded_on="2026-08-20",
+            ),
+        )
+    )
+
+    assert len(text.splitlines()) < 30
+
+
+def test_the_compact_headline_leads_with_the_count() -> None:
+    """techtree-python-of9. This is the line most likely to be forwarded."""
+    first = render_uplift_markdown(payload()).splitlines()[0]
+
+    assert "1 of 20 → 10 of 20 tasks" in first
+    assert "mean 0.050 → 0.450 (+0.400)" in first
+
+
+def test_the_compact_rendering_carries_the_turn_comparison() -> None:
+    """techtree-python-bmk. The channel with the least room still carries it."""
+    text = render_uplift_markdown(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_seconds=994.1,
+            candidate_seconds=391.2,
+            baseline_model_turns=406,
+            candidate_model_turns=73,
+            baseline_rate_limited_calls=4,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+        )
+    )
+
+    assert "- Work: The candidate side took 73 model turns" in text
+    # The sentence carries both clocks, so the bare pair is not printed twice.
+    assert "- Time:" not in text
+
+
+def test_the_compact_rendering_falls_back_to_the_clock_alone() -> None:
+    """A run with no turn counts still says how long each side took."""
+    text = render_uplift_markdown(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_seconds=994.1,
+            candidate_seconds=391.2,
+        )
+    )
+
+    assert "- Time: baseline 994.1s, candidate 391.2s" in text
+    assert "- Work:" not in text
+
+
+def test_the_compact_rendering_shows_the_derived_cost_and_its_basis() -> None:
+    """techtree-python-nom. Provenance travels with the figure even here."""
+    text = render_uplift_markdown(
+        payload(
+            economics_source="comparison_execution_record",
+            derived_cost=DerivedCost(
+                usd=0.1809,
+                input_tokens=5_612_192,
+                output_tokens=96_583,
+                cached_input_tokens=0,
+                prices_name_a_cached_rate=False,
+                model_id="qwen/qwen3.7-flash",
+                input_usd_per_mtok=0.03,
+                output_usd_per_mtok=0.13,
+                prices_recorded_on="2026-08-20",
+            ),
+        )
+    )
+
+    assert "- Cost: about $0.18, worked out here, not billed" in text
+    assert "- Computed from 5,612,192 input and 96,583 output tokens" in text
 
 
 def test_the_compact_rendering_keeps_every_qualification() -> None:

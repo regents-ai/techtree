@@ -238,6 +238,7 @@ def test_the_second_report_is_presented_as_a_replacement(tmp_path: Path) -> None
 
     payload = build_uplift_presentation(
         report=first.run_store.get_result(second_run_id),
+        campaign=inputs.campaign,
         baseline_receipts=artifacts.episode_receipts(
             second_run_id, ExperimentVariant.BASELINE
         ),

@@ -45,10 +45,13 @@ from techtree.presentation.build import (
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
+    cost_explanation,
+    cost_summary,
+    efficiency_sentence,
     score_bars,
+    task_count_line,
 )
 from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
-from techtree.receipts.execution import CostProvenance
 
 __all__ = ["TaskDisplay", "outcome_label", "render_uplift_console", "verdict_line"]
 
@@ -146,7 +149,18 @@ def _header(payload: UpliftPresentationPayload, console: Console) -> None:
 
 
 def _primary(payload: UpliftPresentationPayload, console: Console) -> None:
-    """The two bars, the delta, and the verdict."""
+    """The count, the two bars, the delta, and the verdict.
+
+    The count leads because it is the number a person reads a result in. A
+    mean of 0.667 and "24 of 36" are the same measurement, and only one of them
+    can be repeated to somebody over a table. The mean, the delta and the
+    relative change all stay, underneath, as the detail that supports it.
+    """
+    counted = task_count_line(payload)
+    if counted is not None:
+        console.print(f"Tasks   {counted}")
+        console.print()
+
     table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
     table.add_column("side", no_wrap=True)
     table.add_column("bar", no_wrap=True)
@@ -155,9 +169,11 @@ def _primary(payload: UpliftPresentationPayload, console: Console) -> None:
     console.print(table)
     console.print()
 
-    console.print(f"Change  {payload.absolute_delta:+.3f}  ({_relative(payload)})")
     console.print(
-        f"Tasks   {payload.wins} WIN / {payload.losses} LOSS / {payload.ties} TIE"
+        f"Change  {payload.absolute_delta:+.3f} mean score  ({_relative(payload)})"
+    )
+    console.print(
+        f"Outcome {payload.wins} WIN / {payload.losses} LOSS / {payload.ties} TIE"
     )
     console.print()
     console.print(verdict_line(payload))
@@ -218,21 +234,33 @@ def _selected(rows: list[TaskResultRow], show: TaskDisplay) -> list[TaskResultRo
 
 
 def _efficiency(payload: UpliftPresentationPayload, console: Console) -> None:
-    """Tokens, time and cost, each shown only with the source it came from.
+    """Turns, tokens, time and cost, each shown with the source it came from.
 
-    Decisions document 0007 R6 governs the last line: a cost is never printed
-    without saying where the figure is from, because "$4.10" and "$4.10,
-    estimated" are different claims and only one of them is about money that
-    was actually charged.
+    Decisions document 0007 R6 governs the cost line: a figure is never printed
+    without saying where it is from, because "$4.10" and "$4.10, estimated" are
+    different claims and only one of them is about money that was actually
+    charged.
+
+    The sentence under the numbers is there because two durations side by side
+    are not a finding. What the two sides did differently is legible in how
+    many times each had to go back to the model, and that is the half of the
+    comparison a different machine would reproduce.
     """
     seconds = _pair(payload.baseline_seconds, payload.candidate_seconds, unit="s")
     console.print("Efficiency")
+    turns = _pair(payload.baseline_model_turns, payload.candidate_model_turns)
+    console.print(f"  Turns    {turns}")
     console.print(
         f"  Tokens   {_pair(payload.baseline_tokens, payload.candidate_tokens)}"
     )
     console.print(f"  Time     {seconds}")
-    console.print(f"  Cost     {_cost(payload)}")
+    console.print(f"  Cost     {cost_summary(payload)}")
+    for line in cost_explanation(payload):
+        console.print(f"           {line}")
     console.print(f"  Source   {_ECONOMICS_SOURCE[payload.economics_source]}")
+    sentence = efficiency_sentence(payload)
+    if sentence is not None:
+        console.print(f"  {sentence}")
     console.print()
 
 
@@ -246,19 +274,16 @@ def _pair(
 
 
 def _number(value: float | int | None, unit: str) -> str:
-    """Return one measurement, or the word for an absent one."""
+    """Return one measurement, or the word for an absent one.
+
+    Whole counts are grouped. A token total is seven digits in a real run, and
+    seven ungrouped digits are a number a reader has to count rather than read.
+    """
     if value is None:
         return "unavailable"
     if isinstance(value, float):
         return f"{value:.1f}{unit}"
-    return f"{value}{unit}"
-
-
-def _cost(payload: UpliftPresentationPayload) -> str:
-    """Return the cost and its provenance, or say plainly that there is none."""
-    if payload.cost_usd is None:
-        return "unavailable"
-    return f"${payload.cost_usd:.2f} ({_COST_PROVENANCE[payload.cost_provenance]})"
+    return f"{value:,}{unit}"
 
 
 def _what_changed(payload: UpliftPresentationPayload, console: Console) -> None:
@@ -277,16 +302,7 @@ def _what_changed(payload: UpliftPresentationPayload, console: Console) -> None:
     console.print()
 
 
-#: How each cost provenance is spelled for a person. An estimate says so in
-#: the same breath as the number, which is decisions 0007 R6's requirement.
-_COST_PROVENANCE: Final[dict[CostProvenance, str]] = {
-    CostProvenance.PROVIDER_REPORTED: "reported by the provider",
-    CostProvenance.COMPUTED_FROM_PINNED_PRICE: "computed from the pinned price",
-    CostProvenance.ESTIMATED: "estimated, not billed",
-    CostProvenance.UNAVAILABLE: "unavailable",
-}
-
-#: Where the three numbers above came from, said in the reader's terms.
+#: Where the numbers above came from, said in the reader's terms.
 _ECONOMICS_SOURCE: Final[dict[str, str]] = {
     "comparison_execution_record": "this run's signed execution record",
     "episode_receipts": "the run's receipts; no execution record was written",

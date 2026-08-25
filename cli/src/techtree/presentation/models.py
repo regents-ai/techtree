@@ -37,6 +37,7 @@ from techtree.receipts.execution import CostProvenance
 
 __all__ = [
     "PRESENTATION_SCHEMA_VERSION",
+    "DerivedCost",
     "EconomicsSource",
     "PresentationCaveat",
     "ScoreBar",
@@ -108,6 +109,35 @@ class SkillSummary(ProtocolModel):
     total_bytes: int = Field(ge=0)
 
 
+class DerivedCost(ProtocolModel):
+    """A dollar figure worked out while rendering, from what the run recorded.
+
+    Decisions document 0007 R6 forbids exactly one thing about cost: a figure
+    presented as better sourced than it is. This is not a bill and is never
+    drawn as one, so everything it rests on travels with it — the two token
+    counts that were multiplied, the prices they were multiplied by, and the
+    day those prices were read.
+
+    ``cached_input_tokens`` and ``prices_name_a_cached_rate`` are carried
+    together because a provider that serves part of the prompt from its own
+    cache usually charges less for it. When the recorded prices name no cached
+    rate, every token is priced at the full rate and the reader is told the
+    figure is on the high side, which is the only direction an unstated
+    discount can move it. The count is ``None`` when the run recorded no
+    usable cache split, which is not the same as a run that cached nothing.
+    """
+
+    usd: float = Field(ge=0.0)
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    cached_input_tokens: int | None = Field(default=None, ge=0)
+    prices_name_a_cached_rate: bool
+    model_id: NonEmptyString
+    input_usd_per_mtok: float = Field(gt=0.0)
+    output_usd_per_mtok: float = Field(gt=0.0)
+    prices_recorded_on: NonEmptyString
+
+
 class PresentationCaveat(ProtocolModel):
     """One thing a reader must know before believing what they just read.
 
@@ -146,13 +176,22 @@ class UpliftPresentationPayload(ProtocolModel):
     losses: int = Field(ge=0)
     ties: int = Field(ge=0)
     task_rows: list[TaskResultRow]
+    baseline_tasks_scored_full: int | None
+    candidate_tasks_scored_full: int | None
     baseline_tokens: int | None
     candidate_tokens: int | None
     baseline_seconds: float | None
     candidate_seconds: float | None
+    baseline_model_turns: int | None
+    candidate_model_turns: int | None
+    baseline_rate_limited_calls: int | None
+    candidate_rate_limited_calls: int | None
+    every_rollout_completed: bool | None
     economics_source: EconomicsSource
     cost_usd: float | None = Field(default=None, ge=0.0)
     cost_provenance: CostProvenance
+    derived_cost: DerivedCost | None = None
+    cost_unavailable_reason: NonEmptyString | None = None
     decision: NonEmptyString
     proof_grade: NonEmptyString
     verification_status: NonEmptyString
@@ -201,4 +240,69 @@ class UpliftPresentationPayload(ProtocolModel):
                 "a cost figure comes from the signed execution record; a "
                 f"payload sourced from {self.economics_source} has none"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _check_a_derived_cost_never_stands_beside_a_reported_one(self) -> Self:
+        """Reject a payload carrying two answers to "what did this cost?".
+
+        A figure the provider reported is the better answer wherever there is
+        one, so a derived figure exists only in its absence. Two of them in one
+        payload would leave each channel free to pick, and two channels showing
+        one run would then be able to disagree about money.
+        """
+        if self.derived_cost is not None and self.cost_usd is not None:
+            raise ValueError(
+                "a cost is derived only when none was reported; this payload "
+                f"carries both {self.derived_cost.usd} and {self.cost_usd}"
+            )
+        figure = self.derived_cost is not None or self.cost_usd is not None
+        if figure == (self.cost_unavailable_reason is not None):
+            raise ValueError(
+                "a payload with no cost figure says what is missing, and one "
+                "with a figure has nothing to explain away"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _check_the_counts_read_from_the_run_arrive_together(self) -> Self:
+        """Reject a payload that read half of one run's recorded traces.
+
+        Turns, throttling and whether every rollout finished are one reading of
+        one pair of recorded, digest-checked files. A payload holding some of
+        them and not the others would be describing a reading that never
+        happened.
+        """
+        read = (
+            self.baseline_model_turns,
+            self.candidate_model_turns,
+            self.baseline_rate_limited_calls,
+            self.candidate_rate_limited_calls,
+            self.every_rollout_completed,
+        )
+        if None in read and any(value is not None for value in read):
+            raise ValueError(
+                "the counts read from a run's recorded traces are all present "
+                f"or all absent; got {read}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _check_the_task_counts_fit_the_table(self) -> Self:
+        """Reject a headline count that no per-task table could produce."""
+        baseline = self.baseline_tasks_scored_full
+        candidate = self.candidate_tasks_scored_full
+        if baseline is None or candidate is None:
+            if baseline is not candidate:
+                raise ValueError(
+                    "both sides carry a task count or neither does; got "
+                    f"{(baseline, candidate)}"
+                )
+            return self
+        for count in (baseline, candidate):
+            if not 0 <= count <= len(self.task_rows):
+                raise ValueError(
+                    f"a side scored between 0 and {len(self.task_rows)} of the "
+                    f"comparison's tasks; got {count}"
+                )
         return self

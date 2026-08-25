@@ -81,11 +81,15 @@ def compact(finished: dict[str, Any]) -> str:
 def test_the_compact_result_leads_with_the_measurement(
     finished: dict[str, Any],
 ) -> None:
-    text = compact(finished)
+    text = " ".join(compact(finished).split())
 
-    assert text.startswith("**The Skill met the Campaign's threshold: 0.000 → 0.667")
-    assert "- Wins: 2" in text
-    assert "- Losses: 0" in text
+    # Ticket of9: the count first, because that is the unit a person quotes a
+    # result in. The mean it comes from is in the same breath, not replaced.
+    assert text.startswith(
+        "**The Skill met the Campaign's threshold: 0 of 36 → 24 of 36 tasks, "
+        "mean 0.000 → 0.667 (+0.667)**"
+    )
+    assert "- Tasks: 24 win, 0 loss, 12 tie" in text
 
 
 def test_the_compact_result_names_the_proof_beside_the_numbers(

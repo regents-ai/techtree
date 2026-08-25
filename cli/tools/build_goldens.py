@@ -943,10 +943,12 @@ def build_presentation_payload(
     skill: SkillArtifact,
     climb: ClimbManifest,
     execution: ComparisonExecutionRecord,
+    campaign: CampaignSpec,
 ) -> UpliftPresentationPayload:
     """Return what every channel draws one real result from. Spec section 7.13."""
     return build_uplift_presentation(
         report=report,
+        campaign=campaign,
         baseline_receipts=[receipt],
         candidate_receipts=[receipt],
         campaign_title=climb.metadata.title,
@@ -1213,7 +1215,7 @@ def golden_objects() -> dict[str, BaseModel]:
         ),
         "comparison-execution": real_execution,
         "presentation-payload": build_presentation_payload(
-            real_report, real_receipt, skill, climb, real_execution
+            real_report, real_receipt, skill, climb, real_execution, campaign
         ),
         # The two real shapes travel signed, because that is how they exist on
         # disk once a run has proved itself: the receipt inside its envelope in

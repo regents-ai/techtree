@@ -51,6 +51,8 @@ from typing import Final
 import pytest
 
 from techtree.models.campaign import CampaignSpec
+from techtree.presentation.build import cost_explanation, cost_summary
+from techtree.presentation.models import DerivedCost, UpliftPresentationPayload
 
 REPOSITORY_ROOT: Final = Path(__file__).resolve().parents[2]
 SOURCE_ROOT: Final = REPOSITORY_ROOT / "src" / "techtree"
@@ -850,3 +852,142 @@ def test_the_publication_guard_catches_a_review_that_only_states_the_terms() -> 
         "Public release required in order to enter this Climb. "
         "The uplift report is published."
     )
+
+
+# The money a result reports ----------------------------------------------------------
+
+#: A figure Techtree worked out from recorded tokens is not a bill, and the
+#: sentence that says so has to be in the same breath as the number. Ticket nom
+#: put a dollar figure in front of a reader for the first time; these are the
+#: words that would make it read as one the provider charged.
+FORBIDDEN_BILLED: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (
+        "a figure the reader was charged",
+        re.compile(
+            r"\b(you\s+(were\s+charged|paid|owe)|what\s+you\s+(paid|were\s+charged)"
+            r"|the\s+provider\s+charged\s+you|your\s+bill\s+(is|was)\s+\$)",
+            re.I,
+        ),
+    ),
+    (
+        "a total the run kept",
+        re.compile(r"\b(running\s+total|total\s+so\s+far|spent\s+so\s+far)\b", re.I),
+    ),
+)
+
+#: The other half. Removing the overclaim leaves a number free to be read as a
+#: bill, so a derived figure states what it is and whose number the real one is.
+DERIVED_COST_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"worked\s+out\s+here,\s+not\s+billed", re.I
+)
+PROVIDER_BILL_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"your\s+provider'?s\s+bill\s+is\s+what\s+you\s+actually\s+pay", re.I
+)
+
+
+def _dollar_formatting_functions() -> set[str]:
+    """Return every presentation function that puts a dollar sign on a number.
+
+    Derived rather than listed, like the rest of this file: a second place that
+    formats money would be a second place a figure could be shown without the
+    sentence that says what kind of figure it is, and it joins this guard by
+    existing.
+    """
+    found: set[str] = set()
+    for path in sorted((SOURCE_ROOT / "presentation").glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        hidden = _module_docstring_ids(tree)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                continue
+            drawn = [
+                inner.value
+                for inner in ast.walk(node)
+                if isinstance(inner, ast.Constant)
+                and isinstance(inner.value, str)
+                and id(inner) not in hidden
+            ]
+            if any("$" in unit for unit in drawn):
+                found.add(f"{path.relative_to(REPOSITORY_ROOT).as_posix()}:{node.name}")
+    return found
+
+
+def _generated_payload() -> UpliftPresentationPayload:
+    """Return the payload the golden builder produces from real evidence."""
+    golden = REPOSITORY_ROOT / "tests" / "golden" / "presentation-payload.json"
+    return UpliftPresentationPayload.model_validate_json(
+        golden.read_text(encoding="utf-8")
+    )
+
+
+def _derived_payload() -> UpliftPresentationPayload:
+    """Return that payload with a worked-out cost figure on it."""
+    return _generated_payload().model_copy(
+        update={
+            "cost_unavailable_reason": None,
+            "derived_cost": DerivedCost(
+                usd=0.1809,
+                input_tokens=5_612_192,
+                output_tokens=96_583,
+                cached_input_tokens=2_244_480,
+                prices_name_a_cached_rate=False,
+                model_id="qwen/qwen3.7-flash",
+                input_usd_per_mtok=0.03,
+                output_usd_per_mtok=0.13,
+                prices_recorded_on="2026-08-20",
+            ),
+        }
+    )
+
+
+def test_every_place_that_formats_money_is_covered_by_this_guard() -> None:
+    """A guard nobody pointed at the money guards no money."""
+    assert _dollar_formatting_functions() == {
+        "src/techtree/presentation/build.py:cost_summary"
+    }
+
+
+def test_a_worked_out_cost_never_reads_as_one_the_provider_billed() -> None:
+    """Ticket nom. The figure and what kind of figure it is travel together."""
+    payload = _derived_payload()
+    summary = cost_summary(payload)
+    explanation = " ".join(cost_explanation(payload))
+
+    assert DERIVED_COST_FRAMING.search(summary), summary
+    assert PROVIDER_BILL_FRAMING.search(explanation), explanation
+    for described, pattern in FORBIDDEN_BILLED:
+        assert not pattern.search(f"{summary} {explanation}"), described
+    for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
+        assert not pattern.search(f"{summary} {explanation}"), described
+
+
+def test_a_worked_out_cost_says_what_it_was_worked_out_from() -> None:
+    """Ticket nom. A number nobody can check is a number nobody should trust."""
+    explanation = " ".join(cost_explanation(_derived_payload()))
+
+    assert "5,612,192 input and 96,583 output tokens" in explanation
+    assert "the prices this release recorded" in explanation
+    # The unstated cached rate, said out loud rather than assumed away.
+    assert "2,244,480" in explanation
+    assert "on the high side" in explanation
+
+
+def test_a_cost_that_cannot_be_worked_out_names_what_is_missing() -> None:
+    """Ticket nom. Printing nothing is what sent the founder to the raw record."""
+    payload = _generated_payload()
+
+    assert payload.derived_cost is None
+    assert cost_summary(payload) == "unavailable"
+    assert cost_explanation(payload) == [payload.cost_unavailable_reason]
+    assert "recorded no provider prices" in str(payload.cost_unavailable_reason)
+
+
+def test_the_billed_guard_catches_what_it_is_for() -> None:
+    """The sentences that would turn a computed figure into a charge."""
+    for refused in (
+        "About $0.18, which is what you were charged.",
+        "This is what you paid your provider.",
+        "The provider charged you $0.18 for this comparison.",
+        "The running total for this run is $0.18.",
+    ):
+        assert any(pattern.search(refused) for _, pattern in FORBIDDEN_BILLED), refused

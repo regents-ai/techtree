@@ -38,7 +38,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final, Literal
 
+from techtree.errors import PrerequisiteError
 from techtree.identity.models import VerificationResult
+from techtree.models.campaign import CampaignSpec
 from techtree.models.cli import NextAction
 from techtree.models.episode_receipt import EpisodeReceipt
 from techtree.models.skill import SkillArtifact
@@ -48,8 +50,10 @@ from techtree.models.uplift_report import (
     UpliftDecision,
     UpliftReport,
 )
+from techtree.presentation.evidence import RecordedEvidence
 from techtree.presentation.models import (
     PRESENTATION_SCHEMA_VERSION,
+    DerivedCost,
     EconomicsSource,
     PresentationCaveat,
     ScoreBar,
@@ -62,11 +66,17 @@ from techtree.presentation.sanitize import (
     ensure_no_hidden_task_material,
     sanitize_label,
 )
+from techtree.receipts.compare import (
+    MODEL_REVISION_UNDISCOVERABLE,
+    weaker_claim_warnings,
+)
 from techtree.receipts.execution import (
     ComparisonExecutionRecord,
     CostProvenance,
     TotalCost,
+    VariantUsage,
 )
+from techtree.verifiers.budget import price_profile_for
 
 __all__ = [
     "BASELINE_SKILL_LABEL",
@@ -82,7 +92,12 @@ __all__ = [
     "VERIFICATION_NOT_VERIFIED",
     "VERIFICATION_VERIFIED",
     "build_uplift_presentation",
+    "cost_explanation",
+    "cost_summary",
+    "efficiency_sentence",
     "score_bars",
+    "task_count_line",
+    "task_counts",
 ]
 
 #: What a Skill-insertion comparison measures against. Not an absent value,
@@ -132,10 +147,19 @@ VERIFICATION_NOT_VERIFIED: Final = "not_verified"
 _FILLED: Final = "█"
 _EMPTY: Final = "·"
 
+#: What one task is worth when it is got right. The rewards this build measures
+#: are all-or-nothing, and a headline count is only offered for a reward that
+#: is: see :func:`_tasks_scored_full`.
+_FULL_SCORE: Final = 1.0
+
+#: The unit the recorded prices are quoted in.
+_TOKENS_PER_MILLION: Final = 1_000_000.0
+
 
 def build_uplift_presentation(
     *,
     report: UpliftReport,
+    campaign: CampaignSpec,
     baseline_receipts: Sequence[EpisodeReceipt],
     candidate_receipts: Sequence[EpisodeReceipt],
     campaign_title: str,
@@ -143,6 +167,7 @@ def build_uplift_presentation(
     candidate_skill: SkillArtifact,
     verification: VerificationResult | None,
     execution_record: ComparisonExecutionRecord | None = None,
+    recorded_evidence: RecordedEvidence | None = None,
 ) -> UpliftPresentationPayload:
     """Build a channel-neutral presentation payload from a signed report.
 
@@ -153,12 +178,33 @@ def build_uplift_presentation(
     report has no proof to check at all.
 
     ``execution_record`` is decisions document 0007 R6's signed operational
-    record, when the run carries one. It is the only source of a cost figure
-    and the preferred source of tokens and timing; a payload built without one
-    says so in ``economics_source`` and carries the operational-evidence
-    caveat rather than a number nobody signed.
+    record, when the run carries one. It is the only source of a *reported*
+    cost figure and the preferred source of tokens and timing; a payload built
+    without one says so in ``economics_source`` and carries the
+    operational-evidence caveat rather than a number nobody signed.
+
+    ``campaign`` is the run's own signed Campaign. It says which model was
+    measured, which is what lets a cost be worked out from the prices this
+    release recorded and what lets the weaker-claim warning name its
+    coordinate instead of gesturing at one.
+
+    ``recorded_evidence`` is what
+    :func:`~techtree.presentation.evidence.read_recorded_evidence` read back
+    out of the run's own digest-checked files, when they are still there. It
+    adds nothing to any artifact; it is counted while the result is drawn.
     """
     economics = _economics(execution_record, baseline_receipts, candidate_receipts)
+    task_rows = _task_rows(report.task_deltas)
+    scored_full = _tasks_scored_full(task_rows)
+    seen = recorded_evidence
+    baseline_seen = None if seen is None else seen.baseline
+    candidate_seen = None if seen is None else seen.candidate
+    derived = _derived_cost(campaign, execution_record, economics)
+    unavailable = (
+        None
+        if derived is not None or economics.cost.cost_usd is not None
+        else _cost_unavailable_reason(campaign, execution_record, economics)
+    )
     generation = _generation(baseline_skill)
     primary = report.primary_result
     payload = UpliftPresentationPayload(
@@ -176,22 +222,147 @@ def build_uplift_presentation(
         wins=primary.wins,
         losses=primary.losses,
         ties=primary.ties,
-        task_rows=_task_rows(report.task_deltas),
+        task_rows=task_rows,
+        baseline_tasks_scored_full=scored_full[0],
+        candidate_tasks_scored_full=scored_full[1],
         baseline_tokens=economics.baseline_tokens,
         candidate_tokens=economics.candidate_tokens,
         baseline_seconds=economics.baseline_seconds,
         candidate_seconds=economics.candidate_seconds,
+        baseline_model_turns=(
+            None if baseline_seen is None else baseline_seen.model_turns
+        ),
+        candidate_model_turns=(
+            None if candidate_seen is None else candidate_seen.model_turns
+        ),
+        baseline_rate_limited_calls=(
+            None if baseline_seen is None else baseline_seen.rate_limited_calls
+        ),
+        candidate_rate_limited_calls=(
+            None if candidate_seen is None else candidate_seen.rate_limited_calls
+        ),
+        every_rollout_completed=(
+            None if seen is None else seen.every_rollout_completed
+        ),
         economics_source=economics.source,
         cost_usd=economics.cost.cost_usd,
         cost_provenance=economics.cost.provenance,
+        derived_cost=derived,
+        cost_unavailable_reason=unavailable,
         decision=report.decision.value,
         proof_grade=report.proof_grade,
         verification_status=_verification_status(verification),
-        caveats=_caveats(report, verification, economics),
+        caveats=_caveats(
+            report=report,
+            campaign=campaign,
+            verification=verification,
+            economics=economics,
+            recorded_evidence=recorded_evidence,
+            derived=derived,
+        ),
         next_actions=_next_actions(report.run_id, report.proof_grade),
     )
     ensure_no_hidden_task_material(payload)
     return payload
+
+
+def task_counts(payload: UpliftPresentationPayload) -> tuple[int, int, int] | None:
+    """Return each side's count and the total, in the unit a person counts in.
+
+    A mean is what the report holds and a count is what a reader thinks in, and
+    the two are the same fact for an all-or-nothing reward. A reward that is not
+    all-or-nothing has no such count, and this returns nothing rather than
+    rounding one into existence.
+
+    The three numbers are returned rather than one sentence because the two
+    channels have room for different words around them and must never be free
+    to disagree about the numbers themselves.
+    """
+    baseline = payload.baseline_tasks_scored_full
+    candidate = payload.candidate_tasks_scored_full
+    if baseline is None or candidate is None:
+        return None
+    return baseline, candidate, len(payload.task_rows)
+
+
+def task_count_line(payload: UpliftPresentationPayload) -> str | None:
+    """Return the count, both sides and the movement, as one line."""
+    counted = task_counts(payload)
+    if counted is None:
+        return None
+    baseline, candidate, total = counted
+    return f"{baseline} of {total} → {candidate} of {total} ({candidate - baseline:+d})"
+
+
+def efficiency_sentence(payload: UpliftPresentationPayload) -> str | None:
+    """Return what the two sides' turn counts and clocks mean together.
+
+    Two bare durations are not a finding. How many times each side had to go
+    back to the model is one, and it is the part that does not move when the
+    same comparison is run on a busier afternoon — so the sentence says which
+    of the two numbers is a property of the work and which is a property of the
+    day.
+    """
+    baseline = payload.baseline_model_turns
+    candidate = payload.candidate_model_turns
+    if baseline is None or candidate is None:
+        return None
+    sentence = (
+        f"The candidate side took {candidate:,} model turns against the "
+        f"baseline's {baseline:,}"
+    )
+    if payload.baseline_seconds is not None and payload.candidate_seconds is not None:
+        sentence += (
+            f", and finished in {payload.candidate_seconds:.1f}s against "
+            f"{payload.baseline_seconds:.1f}s"
+        )
+    return (
+        f"{sentence}. Turns are a property of the work. How long each side "
+        "took also depends on this machine and on how busy the provider was."
+    )
+
+
+def _calls(count: int) -> str:
+    """Return a count of model calls, in the number the count actually is."""
+    return f"{count:,} model call" if count == 1 else f"{count:,} model calls"
+
+
+def cost_summary(payload: UpliftPresentationPayload) -> str:
+    """Return the figure and, in the same breath, what kind of figure it is.
+
+    Decisions document 0007 R6: a number that was worked out and a number that
+    was billed are different claims, and the one word that tells them apart
+    travels with the number rather than somewhere below it.
+    """
+    if payload.cost_usd is not None:
+        return f"${payload.cost_usd:.2f}, {_COST_PROVENANCE[payload.cost_provenance]}"
+    if payload.derived_cost is not None:
+        return f"about ${payload.derived_cost.usd:.2f}, worked out here, not billed"
+    return "unavailable"
+
+
+def cost_explanation(payload: UpliftPresentationPayload) -> list[str]:
+    """Return what a reader needs in order to judge the figure above it."""
+    if payload.cost_usd is not None:
+        return []
+    derived = payload.derived_cost
+    if derived is None:
+        assert payload.cost_unavailable_reason is not None
+        return [payload.cost_unavailable_reason]
+    lines = [
+        f"Computed from {derived.input_tokens:,} input and "
+        f"{derived.output_tokens:,} output tokens at the prices this release "
+        "recorded. Your provider's bill is what you actually pay."
+    ]
+    cached = derived.cached_input_tokens
+    if cached and not derived.prices_name_a_cached_rate:
+        lines.append(
+            f"{cached:,} of those input tokens came back from the provider's "
+            "cache. The recorded prices name no separate rate for those, so "
+            "every token is priced at the full rate and the figure above is "
+            "on the high side."
+        )
+    return lines
 
 
 def score_bars(payload: UpliftPresentationPayload) -> list[ScoreBar]:
@@ -350,6 +521,27 @@ def _outcome(delta: TaskDelta) -> TaskOutcome:
     return "tie"
 
 
+def _tasks_scored_full(rows: Sequence[TaskResultRow]) -> tuple[int | None, int | None]:
+    """Return how many tasks each side got right, when that is a countable thing.
+
+    A person reads "24 of 36", not "0.667". The translation is only honest for
+    a reward that is all-or-nothing: a task scored 0.4 was not got right and
+    was not got wrong, and counting it either way would invent a number the
+    report does not contain. So the count is offered only when every score on
+    both sides is exactly zero or exactly the full reward, and the mean stands
+    alone otherwise.
+    """
+    if not rows:
+        return None, None
+    scores = [(row.baseline_score, row.candidate_score) for row in rows]
+    if any(value not in (0.0, _FULL_SCORE) for pair in scores for value in pair):
+        return None, None
+    return (
+        sum(1 for baseline, _ in scores if baseline == _FULL_SCORE),
+        sum(1 for _, candidate in scores if candidate == _FULL_SCORE),
+    )
+
+
 @dataclass(frozen=True)
 class _Economics:
     """What a payload can honestly say about cost and time, and from where."""
@@ -399,6 +591,73 @@ def _economics(
     )
 
 
+def _derived_cost(
+    campaign: CampaignSpec,
+    record: ComparisonExecutionRecord | None,
+    economics: _Economics,
+) -> DerivedCost | None:
+    """Work one comparison's cost out from the tokens it recorded, or return none.
+
+    Only ever reached when the provider reported no cost of its own: a figure
+    it billed is the better answer wherever there is one. Nothing computed here
+    is written anywhere. It is multiplication, done while the result is drawn,
+    over token counts the signed execution record already holds and prices this
+    release recorded on a named day.
+
+    A model this release recorded no prices for produces nothing rather than a
+    guess, and so does a run whose sides did not both report their usage. Both
+    are said out loud by the caveat rather than shown as a blank.
+    """
+    if record is None or economics.cost.provenance is not CostProvenance.UNAVAILABLE:
+        return None
+    usage = (record.baseline.usage, record.candidate.usage)
+    input_tokens = _summed(usage, "input_tokens")
+    output_tokens = _summed(usage, "output_tokens")
+    if input_tokens is None or output_tokens is None:
+        return None
+    try:
+        prices = price_profile_for(campaign.subject.model.model_id)
+    except PrerequisiteError:
+        return None
+
+    cached = _summed(usage, "cached_input_tokens")
+    return DerivedCost(
+        usd=(
+            input_tokens * prices.input_usd_per_mtok
+            + output_tokens * prices.output_usd_per_mtok
+        )
+        / _TOKENS_PER_MILLION,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        # A split that claims more cached input than there was input describes
+        # no cache this can price around, so it is carried as unknown rather
+        # than repaired into something plausible.
+        cached_input_tokens=(
+            None if cached is None or cached > input_tokens else cached
+        ),
+        # The recorded profile quotes one rate per direction and says outright
+        # that they are the highest uncached ones. Until a profile distinguishes
+        # a cached rate, every input token is priced as though the provider
+        # cached none of it, which can only make the figure too high.
+        prices_name_a_cached_rate=False,
+        model_id=sanitize_label(prices.model_id),
+        input_usd_per_mtok=prices.input_usd_per_mtok,
+        output_usd_per_mtok=prices.output_usd_per_mtok,
+        prices_recorded_on=sanitize_label(prices.recorded_on),
+    )
+
+
+def _summed(usage: tuple[VariantUsage, VariantUsage], field: str) -> int | None:
+    """Return both sides' count of one thing, or ``None`` when a side has none."""
+    total = 0
+    for side in usage:
+        recorded = getattr(side, field)
+        if recorded is None:
+            return None
+        total += int(recorded)
+    return total
+
+
 def _tokens(receipts: Sequence[EpisodeReceipt]) -> int | None:
     """Return one side's token total when the receipts carry one.
 
@@ -425,10 +684,25 @@ def _verification_status(verification: VerificationResult | None) -> str:
     return VERIFICATION_VERIFIED if verification.verified else VERIFICATION_FAILED
 
 
+#: How each cost provenance is spelled for a person, in one phrase that fits
+#: beside the number. Owned here rather than by either renderer, so that the
+#: terminal and a phone cannot describe one figure two ways.
+_COST_PROVENANCE: Final[dict[CostProvenance, str]] = {
+    CostProvenance.PROVIDER_REPORTED: "reported by the provider",
+    CostProvenance.COMPUTED_FROM_PINNED_PRICE: "computed from the pinned price",
+    CostProvenance.ESTIMATED: "estimated, not billed",
+    CostProvenance.UNAVAILABLE: "unavailable",
+}
+
+
 def _caveats(
+    *,
     report: UpliftReport,
+    campaign: CampaignSpec,
     verification: VerificationResult | None,
     economics: _Economics,
+    recorded_evidence: RecordedEvidence | None,
+    derived: DerivedCost | None,
 ) -> list[PresentationCaveat]:
     """Return everything a reader has to know to read the numbers correctly.
 
@@ -480,13 +754,7 @@ def _caveats(
             PresentationCaveat(
                 code="comparison_controlled_with_warnings",
                 severity="warning",
-                text=(
-                    "The comparison is controlled with warnings: at least one "
-                    "declared coordinate could not be confirmed from what the "
-                    "run observed, so it is attested more weakly than the rest. "
-                    "No mismatch was found; a mismatch would have made the "
-                    "comparison invalid."
-                ),
+                text=_weak_attestation_text(campaign),
             )
         )
     if report.proof_grade == "P1":
@@ -544,7 +812,10 @@ def _caveats(
             text="No external evidence service is required, used, or contacted.",
         )
     )
-    caveats.append(_economics_caveat(economics))
+    throttling = _throttling_caveat(recorded_evidence)
+    if throttling is not None:
+        caveats.append(throttling)
+    caveats.append(_economics_caveat(economics, derived))
     if report.decision is UpliftDecision.REJECTED:
         caveats.append(
             PresentationCaveat(
@@ -558,6 +829,69 @@ def _caveats(
             )
         )
     return caveats
+
+
+def _weak_attestation_text(campaign: CampaignSpec) -> str:
+    """Say which declared coordinate the run could not confirm, when it can.
+
+    "At least one declared coordinate could not be confirmed" is true and
+    useless: a reader cannot weigh a warning whose subject is withheld. The
+    subject is not guessed here — the same function the comparison itself used
+    to decide whether to raise this warning is asked again, over the run's own
+    signed Campaign, and the coordinate is named only when that answer names
+    it. A cause this build does not have a plain sentence for keeps the honest
+    general wording rather than borrowing the model-revision one.
+    """
+    recorded = weaker_claim_warnings(campaign)
+    coordinates = {check.id for check in recorded}
+    if coordinates == {MODEL_REVISION_UNDISCOVERABLE}:
+        named = (
+            "Your provider publishes no immutable build identifier for "
+            f"{sanitize_label(campaign.subject.model.model_id)}, so both sides "
+            "provably used the same model name but not provably the same model "
+            "build."
+        )
+    else:
+        named = (
+            "At least one declared coordinate could not be confirmed from what "
+            "the run observed, and this build has no plainer name for it."
+        )
+    return (
+        "The comparison is controlled with warnings, which means one "
+        f"coordinate is attested more weakly than the rest. {named} No "
+        "mismatch was found; a mismatch would have made the comparison invalid."
+    )
+
+
+def _throttling_caveat(
+    recorded_evidence: RecordedEvidence | None,
+) -> PresentationCaveat | None:
+    """Say how often the provider refused each side, when the run still says.
+
+    Two sides that met different amounts of throttling did not quite meet the
+    same conditions, so an asymmetry is part of how much the comparison proves
+    and is raised as a warning. An even count is worth stating and is not a
+    qualification of anything, so it is a note. A run whose recorded traces
+    can no longer be read says nothing here at all.
+    """
+    if recorded_evidence is None:
+        return None
+    baseline = recorded_evidence.baseline.rate_limited_calls
+    candidate = recorded_evidence.candidate.rate_limited_calls
+    if baseline == candidate == 0:
+        text = "The provider refused no model call on either side."
+    else:
+        text = (
+            f"The provider refused {_calls(baseline)} with a rate limit on the "
+            f"baseline side and {candidate:,} on the candidate side."
+        )
+    if recorded_evidence.every_rollout_completed:
+        text = f"{text} Every rollout still ran to completion."
+    return PresentationCaveat(
+        code="provider_rate_limiting",
+        severity="warning" if baseline != candidate else "info",
+        text=text,
+    )
 
 
 #: What each cost provenance means to a reader, in the words decisions
@@ -587,7 +921,42 @@ _COST_CAVEATS: Final[
 }
 
 
-def _economics_caveat(economics: _Economics) -> PresentationCaveat:
+def _cost_unavailable_reason(
+    campaign: CampaignSpec,
+    record: ComparisonExecutionRecord | None,
+    economics: _Economics,
+) -> str:
+    """Say which of the two things a cost needs this run is missing.
+
+    "Unavailable" on its own leaves a reader who has just spent money unable
+    to tell whether the run lost the tokens or the release lost the prices, so
+    the sentence names whichever one is actually absent.
+    """
+    if record is None:
+        return (
+            "This run wrote no signed execution record, so there is no signed "
+            "token total to work a cost out from."
+        )
+    model_id = campaign.subject.model.model_id
+    try:
+        price_profile_for(model_id)
+    except PrerequisiteError:
+        return (
+            "This release recorded no provider prices for "
+            f"{sanitize_label(model_id)}, so the tokens this run recorded "
+            "cannot be turned into a cost."
+        )
+    if economics.cost.provenance is not CostProvenance.UNAVAILABLE:
+        return _COST_PROVENANCE[economics.cost.provenance]
+    return (
+        "Neither side of this comparison reported how many tokens it used, "
+        "and the provider reported no cost of its own."
+    )
+
+
+def _economics_caveat(
+    economics: _Economics, derived: DerivedCost | None
+) -> PresentationCaveat:
     """Say where the cost and timing came from, or that they are unknown.
 
     Decisions document 0007 R6: missing economics is an operational-evidence
@@ -601,14 +970,27 @@ def _economics_caveat(economics: _Economics) -> PresentationCaveat:
         if named is not None:
             code, severity, text = named
             return PresentationCaveat(code=code, severity=severity, text=text)
+        if derived is not None:
+            return PresentationCaveat(
+                code="cost_derived_while_rendering",
+                severity="info",
+                text=(
+                    "Timing and token counts come from this run's signed "
+                    "execution record. The provider reported no figure for what "
+                    "it charged, so the one shown was worked out from those "
+                    "token counts and the prices this release recorded. It was "
+                    "not written into anything this run signed, and what the "
+                    "comparison measured is unaffected."
+                ),
+            )
         return PresentationCaveat(
             code="cost_unavailable",
             severity="warning",
             text=(
                 "Timing and token counts come from this run's signed execution "
-                "record. No cost was reported for it and this build pins no "
-                "price to compute one from, so the cost is unavailable. What "
-                "the comparison measured is unaffected."
+                "record. No cost was reported for it and none could be worked "
+                "out from what it recorded. What the comparison measured is "
+                "unaffected."
             ),
         )
     if economics.source == "episode_receipts":

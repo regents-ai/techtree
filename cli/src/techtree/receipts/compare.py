@@ -110,6 +110,7 @@ from techtree.verifiers.models import (
 
 __all__ = [
     "COMPARISON_INVALID",
+    "MODEL_REVISION_UNDISCOVERABLE",
     "SKILL_INDEX_TOOL",
     "ComparisonCheck",
     "ObservedVariant",
@@ -118,6 +119,7 @@ __all__ = [
     "ScheduleObservation",
     "compare_real_variants",
     "observe_variant",
+    "weaker_claim_warnings",
 ]
 
 #: Stable error code. Spec section 15. Raised by whoever turns an invalid
@@ -133,6 +135,12 @@ COMPARISON_INVALID: Final = "comparison_invalid"
 #: ``tests/fixtures/receipts/support.py`` and
 #: ``test_inserting_a_skill_changes_exactly_one_tool_description``.
 SKILL_INDEX_TOOL: Final = "skill_manage"
+
+#: The one weaker-claim warning this build can record, named so that a reader
+#: of a result can be told which coordinate it is about rather than only that
+#: there was one. :func:`weaker_claim_warnings` is what decides whether a run
+#: has it.
+MODEL_REVISION_UNDISCOVERABLE: Final = "model_revision_discoverable"
 
 _PASSED: Final = "passed"
 _FAILED: Final = "failed"
@@ -651,7 +659,7 @@ def _observed_checks(
         ),
         _declared_to_observed(baseline_manifest, baseline),
         _declared_to_observed(candidate_manifest, candidate),
-        *_weaker_claim_warnings(campaign),
+        *weaker_claim_warnings(campaign),
     ]
 
 
@@ -882,7 +890,7 @@ def _runtime_pin_checks(
     ]
 
 
-def _weaker_claim_warnings(campaign: CampaignSpec) -> list[ComparisonCheck]:
+def weaker_claim_warnings(campaign: CampaignSpec) -> list[ComparisonCheck]:
     """Record the one fact about a real run that cannot be independently pinned.
 
     It is not a scientific failure and it may not be left unsaid. Presenting
@@ -896,7 +904,7 @@ def _weaker_claim_warnings(campaign: CampaignSpec) -> list[ComparisonCheck]:
         return []
     return [
         _check(
-            "model_revision_discoverable",
+            MODEL_REVISION_UNDISCOVERABLE,
             _WARNING,
             f"the provider publishes no revision for "
             f"{campaign.subject.model.model_id}, so both variants are known "
