@@ -103,6 +103,27 @@ defmodule TechtreeWeb.PagesTest do
       end
     end
 
+    test "Verifiers is only ever named as Prime Intellect's product", %{conn: conn} do
+      # Founder ruling 2026-08-26: the site credits Prime Intellect's
+      # Verifiers by name. The credit is the ONLY sanctioned use — bare
+      # machinery-speak ("the verifiers") stays out of a reader's view.
+      for page <- @pages do
+        {:ok, _live, html} = live(conn, page)
+        body = html |> visible_text() |> String.downcase()
+
+        bare =
+          body
+          |> String.split("verifiers", trim: false)
+          |> Enum.drop(-1)
+          |> Enum.reject(
+            &String.ends_with?(&1, ["prime intellect's ", "prime intellect\u2019s "])
+          )
+
+        assert bare == [] or not (body =~ "verifiers"),
+               "#{page} says 'verifiers' without the Prime Intellect credit"
+      end
+    end
+
     test "no page offers a form, an upload, or an account", %{conn: conn} do
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
@@ -213,7 +234,6 @@ defmodule TechtreeWeb.PagesTest do
       "upliftreport",
       "localproofbundle",
       "experimentmanifest",
-      "verifiers",
       "schema",
       "enum",
       "manifest",

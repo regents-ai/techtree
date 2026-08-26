@@ -318,4 +318,30 @@ defmodule TechtreeWeb.DocsLiveTest do
       _other -> nil
     end
   end
+
+  describe "the substrate credits" do
+    setup do
+      Techtree.CatalogFixture.use_bundle(Techtree.CatalogFixture.root())
+      Techtree.Catalog.Importer.import!(Techtree.CatalogFixture.root())
+      :ok
+    end
+
+    test "Verifiers is credited to Prime Intellect with the exact pinned version", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = Phoenix.LiveViewTest.rendered_to_string(html)
+
+      assert text =~ "Prime Intellect’s Verifiers"
+      # The pin is 0.3.1.dev21 (techtree-python docs/verifiers-eval.md). If the
+      # pin moves, this copy must move with it — that is what this line is for.
+      assert text =~ "0.3.1.dev21"
+      refute text =~ ~r/Verifiers 0\.3\.1(?!\.dev21)/
+    end
+
+    test "Hermes is credited to Nous Research on the pages that name the stack", %{conn: conn} do
+      for page <- ["/", "/docs"] do
+        {:ok, _live, html} = live(conn, page)
+        assert html =~ "Nous Research", "#{page} does not credit Hermes to Nous Research"
+      end
+    end
+  end
 end

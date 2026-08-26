@@ -217,7 +217,8 @@ defmodule TechtreeWeb.DocsLive do
               <li>
                 <p class="plain"><strong>Here is the measured difference.</strong></p>
                 <p>
-                  Prime’s pinned evaluation engine records each task’s outcome and score.
+                  Prime Intellect’s Verifiers — pinned at version 0.3.1.dev21, down to the exact
+                  commit — records each task’s outcome and score.
                   Techtree pairs the results and reports the baseline score, candidate score,
                   wins, losses, ties, cost, timing, and validity.
                 </p>
@@ -318,6 +319,13 @@ defmodule TechtreeWeb.DocsLive do
               agent helping you operate Techtree.
             </p>
 
+            <p>
+              Both roles are played by Hermes, Nous Research’s open agent — one copy at a
+              pinned version inside the experiment, and your own everyday copy outside it,
+              on whichever model provider you already use. Scoring belongs to neither:
+              Prime Intellect’s Verifiers decides every task’s outcome.
+            </p>
+
             <.comparison_boundary>
               <:side title="Operator">
                 <.definition_list>
@@ -394,7 +402,7 @@ defmodule TechtreeWeb.DocsLive do
               invalid or changes the type of claim that may be made.
             </p>
             <p>
-              Prime’s pinned evaluation engine remains the source of task and score truth.
+              Prime Intellect’s Verifiers remains the source of task and score truth.
               Techtree does not calculate a replacement score.
             </p>
           </section>

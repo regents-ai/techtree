@@ -146,6 +146,11 @@ defmodule TechtreeWeb.HomeLive do
             participant who produced it. Nobody else watched the run, and this site never
             receives it.
           </p>
+          <p class="trust__stack">
+            The agent inside the experiment is Hermes, Nous Research’s open agent, at a
+            pinned version. Every task is scored by Prime Intellect’s Verifiers, pinned
+            just as exactly. Techtree fixes the conditions and signs the comparison.
+          </p>
         </div>
         <p class="trust__links">
           <a href={~p"/docs#trust"}>What leaves my machine?</a>

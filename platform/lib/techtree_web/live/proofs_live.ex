@@ -93,6 +93,7 @@ defmodule TechtreeWeb.ProofsLive do
               {@facts["subject_harness"]} {@facts["subject_harness_version"]}
             </:fact>
             <:fact term="Model">{model_coordinate(@facts["subject_model"])}</:fact>
+            <:fact term="Scored by">Prime Intellect’s Verifiers, at a pinned version</:fact>
             <:fact term="Ceiling">
               {CampaignFacts.budget_words(@published.budget) || "Not published"}
             </:fact>
