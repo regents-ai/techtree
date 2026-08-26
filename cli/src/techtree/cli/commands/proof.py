@@ -20,10 +20,23 @@ public publication           nothing was uploaded, and none was requested
 A failed verification is a typed failure with exit code 11 and the failed
 checks in the envelope, not a printed warning, because a caller that scripts
 this is deciding whether to believe a number.
+
+Two audiences read the same result and need opposite things from it. A machine
+gets every check under its own stable identifier, and those identifiers are
+named for the failure each check reports, because that is the vocabulary a
+caller branches on. A person reading a proof that holds together does not need
+three hundred rows each headed by the name of something that did not happen; a
+check that passed is worth counting, and what a reader wants counted is the
+kind of thing it confirmed. So the human rendering groups the checks under
+headings it derives here, at the moment of printing, and prints the full list
+only when it is asked for. A check that failed is the other way round entirely:
+it keeps its exact identifier and its exact code, and gains the heading and the
+subject that say where in the proof the trouble is.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Annotated, Final, Literal
 
@@ -33,6 +46,7 @@ from rich.table import Table
 
 from techtree.cli.context import cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.output import DataRenderer
 from techtree.errors import NotFoundError, ValidationError, VerificationError
 from techtree.identity.models import VerificationMessage, VerificationResult
 from techtree.ids import validate_id
@@ -83,6 +97,16 @@ def verify_proof_command(
             ),
         ),
     ],
+    every_check: Annotated[
+        bool,
+        typer.Option(
+            "--checks",
+            help=(
+                "List every check that ran and what it confirmed, instead of "
+                "the counts."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Check a local proof, offline, from the bytes it stored."""
     context = cli_context(ctx)
@@ -110,7 +134,12 @@ def verify_proof_command(
             error=None if result.verified else _failure(payload, result),
         )
 
-    invoke_command(context, VERIFY_COMMAND, action, render_data=_render)
+    invoke_command(
+        context,
+        VERIFY_COMMAND,
+        action,
+        render_data=_renderer(every_check=every_check),
+    )
 
 
 def resolve_proof_target(
@@ -215,7 +244,143 @@ def _read_logs(target: str) -> NextAction:
     )
 
 
-def _render(data: object, console: Console) -> None:
+# ---------------------------------------------------------------------------
+# Turning identifiers into headings, at the moment of printing
+# ---------------------------------------------------------------------------
+
+type _Selector = Callable[[str], bool]
+
+#: The tail every envelope check carries. These are the only checks whose own
+#: sentence does not say what it was about — thirty-six receipts report the
+#: same sentence — so the thing checked is read back off the identifier's head.
+_SIGNATURE_ASPECTS: Final = (
+    ".payload_digest",
+    ".signature",
+    ".signature_key",
+    ".signature_present",
+)
+
+_ARTIFACT_PREFIX: Final = "artifact."
+
+
+def _about_a_missing_file(identifier: str) -> bool:
+    return (
+        identifier.endswith(".present")
+        or identifier.startswith("document.")
+        or identifier == "bundle.public_key"
+    )
+
+
+def _about_a_stored_digest(identifier: str) -> bool:
+    return (
+        identifier.startswith(_ARTIFACT_PREFIX)
+        or identifier == "bundle.root_report_digest"
+    )
+
+
+def _about_linkage(identifier: str) -> bool:
+    return identifier.startswith(("linkage.", "receipt_set.", "execution_record."))
+
+
+def _about_a_signature(identifier: str) -> bool:
+    return identifier.endswith(_SIGNATURE_ASPECTS)
+
+
+#: The headings a person reads a verification under, in the order the checks
+#: were run. Each one says what its checks confirmed rather than what they
+#: would have reported had they failed. The last heading takes whatever the
+#: others left, so the counts always add up to everything that ran.
+_HEADINGS: Final[tuple[tuple[str, _Selector], ...]] = (
+    ("Files and key present", _about_a_missing_file),
+    ("Stored file digests", _about_a_stored_digest),
+    ("Linkage and control", _about_linkage),
+    ("Signatures", _about_a_signature),
+    (
+        "Aggregate recomputation",
+        lambda identifier: identifier.startswith("aggregate."),
+    ),
+    ("Publication", lambda identifier: identifier.startswith("publication.")),
+    ("Proof grade conditions", lambda identifier: identifier.startswith("p1.")),
+    ("Other checks", lambda _identifier: True),
+)
+
+
+def _grouped(
+    checks: Sequence[VerificationMessage],
+) -> list[tuple[str, list[VerificationMessage]]]:
+    """Return the checks under their headings, in reading order."""
+    collected: dict[str, list[VerificationMessage]] = {
+        heading: [] for heading, _ in _HEADINGS
+    }
+    for message in checks:
+        for heading, belongs_here in _HEADINGS:
+            if belongs_here(message.id):
+                collected[heading].append(message)
+                break
+    return [
+        (heading, collected[heading]) for heading, _ in _HEADINGS if collected[heading]
+    ]
+
+
+def _heading_of(identifier: str) -> str:
+    """Return the heading one check is counted under."""
+    for heading, belongs_here in _HEADINGS:
+        if belongs_here(identifier):
+            return heading
+    raise AssertionError("the last heading takes every identifier")
+
+
+def _subject_of(message: VerificationMessage) -> str:
+    """Return what one check was about, or nothing when its own words say so."""
+    for aspect in _SIGNATURE_ASPECTS:
+        if message.id.endswith(aspect):
+            return message.id[: -len(aspect)]
+    if message.id.startswith(_ARTIFACT_PREFIX):
+        return message.id[len(_ARTIFACT_PREFIX) :]
+    return ""
+
+
+def _named_beside(message: VerificationMessage) -> str:
+    """Return the subject to print beside a check, or nothing if it repeats.
+
+    Most checks open their own sentence with the thing they were about. The
+    envelope checks do not, because thirty-six receipts report the identical
+    sentence, and those are the ones worth naming.
+    """
+    subject = _subject_of(message)
+    return "" if message.detail.startswith(subject) else subject
+
+
+def _tally(checks: Sequence[VerificationMessage]) -> tuple[str, str]:
+    """Return how one heading came out, and anything about it worth reading."""
+    passed = sum(1 for message in checks if message.status == "passed")
+    failed = sum(1 for message in checks if message.status == "failed")
+    weaker = len(checks) - passed - failed
+    if len(checks) == 1:
+        return checks[0].status, ""
+    notes = []
+    if failed:
+        notes.append(f"{failed} failed")
+    if weaker:
+        notes.append("1 warning" if weaker == 1 else f"{weaker} warnings")
+    return f"{passed}/{len(checks)}", ", ".join(notes)
+
+
+# ---------------------------------------------------------------------------
+# Printing it
+# ---------------------------------------------------------------------------
+
+
+def _renderer(*, every_check: bool) -> DataRenderer:
+    """Return the human rendering, with or without the full list of checks."""
+
+    def render(data: object, console: Console) -> None:
+        _render(data, console, every_check=every_check)
+
+    return render
+
+
+def _render(data: object, console: Console, *, every_check: bool) -> None:
     if not isinstance(data, ProofVerificationPayload):
         return
 
@@ -228,10 +393,90 @@ def _render(data: object, console: Console) -> None:
         table.add_row(message.status.upper(), message.detail)
     console.print(table)
 
+    headings = _grouped(data.checks)
+    _render_counts(headings, len(data.checks), console)
+    if every_check:
+        _render_every_check(headings, console)
+    else:
+        console.print()
+        console.print("Add --checks to see every one of them and what it confirmed.")
+
     failures = [message for message in data.checks if message.status == "failed"]
-    if not failures:
-        return
+    if failures:
+        _render_failures(failures, len(data.checks), console)
+
+
+def _render_counts(
+    headings: Sequence[tuple[str, list[VerificationMessage]]],
+    total: int,
+    console: Console,
+) -> None:
     console.print()
-    console.print("Failed checks")
-    for message in failures:
-        console.print(f"  {message.id}: {message.detail}")
+    console.print(f"What was checked, {total} checks in all")
+    rows = [(heading, *_tally(checks)) for heading, checks in headings]
+    table = Table(box=None, show_header=False, pad_edge=True, padding=(0, 2))
+    table.add_column("heading", overflow="fold")
+    table.add_column("outcome", justify="right", no_wrap=True)
+    # The third column exists only when something is in it, so a proof that
+    # holds together prints no column of blanks beside its counts.
+    troubled = any(note for _, _, note in rows)
+    if troubled:
+        table.add_column("note", no_wrap=True)
+    for heading, outcome, note in rows:
+        cells = (heading, outcome, note) if troubled else (heading, outcome)
+        table.add_row(*cells)
+    console.print(table)
+
+
+def _render_every_check(
+    headings: Sequence[tuple[str, list[VerificationMessage]]], console: Console
+) -> None:
+    for heading, checks in headings:
+        console.print()
+        console.print(heading)
+        rows = [
+            (message.status.upper(), _named_beside(message), message.detail)
+            for message in checks
+        ]
+        table = Table(box=None, show_header=False, pad_edge=True, padding=(0, 2))
+        table.add_column("status", no_wrap=True)
+        # Most checks say what they were about in their own words. The ones
+        # that do not are named beside them rather than left to the reader.
+        named = any(subject for _, subject, _ in rows)
+        if named:
+            table.add_column("subject", overflow="fold")
+        table.add_column("confirmed", overflow="fold")
+        for status, subject, detail in rows:
+            cells = (status, subject, detail) if named else (status, detail)
+            table.add_row(*cells)
+        console.print(table)
+
+
+def _render_failures(
+    failures: Sequence[VerificationMessage], total: int, console: Console
+) -> None:
+    """Print every failure whole: where it is, what went wrong, and its code.
+
+    Nothing here is grouped or shortened. A reader whose proof does not hold
+    together is the one reader who needs all of it, and the identifier and the
+    code are exactly the two strings they will quote to somebody else.
+    """
+    console.print()
+    console.print(f"What failed, {len(failures)} of {total} checks")
+    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 1))
+    table.add_column("index", justify="right", no_wrap=True)
+    table.add_column("failure", overflow="fold")
+    for position, message in enumerate(failures, start=1):
+        subject = _subject_of(message)
+        where = _heading_of(message.id)
+        table.add_row(
+            f"{position}.",
+            "\n".join(
+                [
+                    f"{where} — {subject}" if subject else where,
+                    message.detail,
+                    f"check {message.id}, reported as {message.code}",
+                ]
+            ),
+        )
+    console.print(table)
