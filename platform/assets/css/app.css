@@ -1685,3 +1685,55 @@ strong {
     break-inside: avoid;
   }
 }
+
+/* -- Hover definition: the verifiers card ---------------------------------- */
+
+.hoverdef {
+  position: relative;
+  display: inline-block;
+}
+
+.hoverdef__term {
+  cursor: help;
+  border-bottom: 1px dashed var(--ink-quiet);
+}
+
+.hoverdef__card {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: none;
+  flex-direction: column;
+  gap: 0.7rem;
+  width: 19rem;
+  max-width: 82vw;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--rule-strong);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.hoverdef:hover .hoverdef__card,
+.hoverdef:focus-within .hoverdef__card {
+  display: flex;
+}
+
+.hoverdef__button {
+  align-self: flex-start;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--rule-strong);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.hoverdef__button:hover {
+  border-color: var(--accent);
+}

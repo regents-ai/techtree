@@ -105,25 +105,37 @@ defmodule TechtreeWeb.PagesTest do
 
     test "Verifiers is only ever named in a sanctioned form", %{conn: conn} do
       # Founder rulings 2026-08-26: the site credits Prime Intellect's
-      # Verifiers by name, and the founder-worded lede may call the
-      # environment kind a "verifiers environment". Those two forms are the
-      # only sanctioned uses; bare machinery-speak stays out of a reader's view.
+      # Verifiers by name; the founder-worded lede may call the environment
+      # kind a "verifiers environment"; and the hover card may define the
+      # word ("verifiers is a library by Prime Intellect..."). A hover term
+      # sits directly against its own card, so a bare occurrence is also fine
+      # when the definition follows it immediately. Anything else is refused.
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
         body = html |> visible_text() |> String.downcase()
         parts = String.split(body, "verifiers", trim: false)
+        last = length(parts) - 2
+
+        base =
+          for index <- 0..max(last, 0)//1, into: %{} do
+            before = Enum.at(parts, index, "")
+            after_ = parts |> Enum.at(index + 1, "") |> String.trim_leading()
+
+            {index,
+             String.ends_with?(before, ["prime intellect's ", "prime intellect’s "]) or
+               String.starts_with?(after_, [
+                 "environment",
+                 "is a library by prime intellect"
+               ])}
+          end
 
         bare =
-          parts
-          |> Enum.with_index()
-          |> Enum.filter(fn {part, index} ->
-            index < length(parts) - 1 and
-              not String.ends_with?(part, ["prime intellect's ", "prime intellect\u2019s "]) and
-              not (parts
-                   |> Enum.at(index + 1)
-                   |> String.trim_leading()
-                   |> String.starts_with?("environment"))
-          end)
+          for index <- 0..max(last, 0)//1,
+              last >= 0,
+              not Map.get(base, index, true),
+              not (String.trim(Enum.at(parts, index + 1, "x")) == "" and
+                     Map.get(base, index + 1, false)),
+              do: index
 
         assert bare == [],
                "#{page} says 'verifiers' outside the sanctioned forms"

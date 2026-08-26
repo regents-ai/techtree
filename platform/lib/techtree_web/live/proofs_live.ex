@@ -49,9 +49,9 @@ defmodule TechtreeWeb.ProofsLive do
         <p class="eyebrow">Participant-attested</p>
         <h1>A verified run</h1>
         <p class="lede">
-          Your agent runs one Skill versus another in a <code>verifiers</code>
-          environment. The output is a verified result that can be shared, and used
-          to hill-climb Skill improvement.
+          Your agent runs one Skill versus another in a <.verifiers_term code />
+          environment. The output is a verified result proof that can be shared, and
+          used to hill-climb Skill improvement.
         </p>
       </header>
 

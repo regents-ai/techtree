@@ -148,7 +148,8 @@ defmodule TechtreeWeb.HomeLive do
           </p>
           <p class="trust__stack">
             The agent inside the experiment is Hermes, Nous Research’s open agent, at a
-            pinned version. Every task is scored by Prime Intellect’s Verifiers, pinned
+            pinned version. Every task is scored by Prime Intellect’s
+            <.verifiers_term label="Verifiers" />, pinned
             just as exactly. Techtree fixes the conditions and signs the comparison.
           </p>
         </div>

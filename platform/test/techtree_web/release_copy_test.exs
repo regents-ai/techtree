@@ -186,6 +186,13 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # they get tomorrow. A branch, a tag, or a stand-in revision is not one.
   @repository_address ~r|https://github\.com/[^"\s<>]+|
   @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}\z|
+
+  # The one GitHub address that is informational rather than installable: the
+  # verifiers hover card links the library's home (founder ruling 2026-08-26).
+  # Nothing a reader installs is ever taken from it, so the immutable-revision
+  # rule does not apply — and nothing else may join this list without the same
+  # kind of ruling.
+  @informational_addresses ["https://github.com/PrimeIntellect-ai/verifiers"]
   @unset_revision String.duplicate("0", 40)
 
   # The words a reader hands to their agent are decided copy, not a paraphrase
@@ -582,7 +589,9 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   end
 
   defp refute_moving_address(sources) do
-    for {label, markup} <- sources, address <- addresses(markup) do
+    for {label, markup} <- sources,
+        address <- addresses(markup),
+        address not in @informational_addresses do
       assert address =~ @pinned_address,
              "#{label} shows #{address}, which is not one immutable revision"
 
