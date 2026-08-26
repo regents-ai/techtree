@@ -549,7 +549,7 @@ skills/
 ```
 
 The tools, in the order a session meets them: `techtree_bootstrap_check`,
-`techtree_bootstrap_install`, `techtree_system_check`, `techtree_climbs_list`,
+`techtree_bootstrap_install`, `techtree_system_check`, `techtree_climb_list`,
 `techtree_climb_inspect`, `techtree_climb_prepare`, `techtree_demo_prepare`,
 `techtree_climb_start`, `techtree_run_status`, `techtree_run_cancel`,
 `techtree_run_result`, `techtree_proof_verify`, `techtree_uplift_context`,

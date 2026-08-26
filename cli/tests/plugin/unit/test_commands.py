@@ -150,7 +150,7 @@ def test_setup_reports_the_build_and_the_next_step() -> None:
     assert "Techtree CLI" in answer
 
 
-def test_climbs_lists_what_the_build_offers() -> None:
+def test_the_climbs_command_lists_what_the_build_offers() -> None:
     listing = _envelope("climb list", [{"reference": "demo@1", "title": "A demo"}])
     answer = handle_slash_command(
         "climbs", _services(bridge=FakeBridge({"climb list": listing}))

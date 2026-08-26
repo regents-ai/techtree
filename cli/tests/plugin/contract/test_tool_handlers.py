@@ -65,7 +65,7 @@ def test_the_readiness_tool_answers_from_the_real_doctor(
 
 
 def test_the_catalog_tool_lists_the_real_catalog(services: PluginServices) -> None:
-    result = _call("techtree_climbs_list", services, {})
+    result = _call("techtree_climb_list", services, {})
 
     assert result["ok"] is True
     assert result["command"] == "climb list"
@@ -108,7 +108,7 @@ def test_verifying_a_proof_that_does_not_exist_fails_in_band(
 def test_no_read_only_tool_emits_escape_codes(services: PluginServices) -> None:
     for name, args in (
         ("techtree_system_check", {}),
-        ("techtree_climbs_list", {}),
+        ("techtree_climb_list", {}),
         (
             "techtree_climb_inspect",
             {"reference": services.release_core.intro_climb_reference},

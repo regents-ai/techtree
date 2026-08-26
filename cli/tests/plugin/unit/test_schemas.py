@@ -132,7 +132,7 @@ def test_reading_tools_say_they_are_free() -> None:
     for name in (
         "techtree_bootstrap_check",
         "techtree_system_check",
-        "techtree_climbs_list",
+        "techtree_climb_list",
         "techtree_climb_inspect",
         "techtree_run_status",
         "techtree_run_result",

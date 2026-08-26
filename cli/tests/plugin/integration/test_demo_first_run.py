@@ -144,7 +144,7 @@ def test_the_whole_first_run_sequence(services: PluginServices) -> None:
     readiness = _call("techtree_system_check", services, {})
     assert readiness["ok"] is True
 
-    catalogue = _call("techtree_climbs_list", services, {})
+    catalogue = _call("techtree_climb_list", services, {})
     assert catalogue["ok"] is True
 
     prepared = _call("techtree_demo_prepare", services, {})

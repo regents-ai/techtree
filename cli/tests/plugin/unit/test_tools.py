@@ -160,7 +160,7 @@ def test_an_oversized_answer_is_capped_and_says_so() -> None:
         bridge=FakeBridge({"climb list": _envelope("climb list", huge)})
     )
 
-    result = _call("techtree_climbs_list", services, {})
+    result = _call("techtree_climb_list", services, {})
 
     assert result["truncated"] is True
     assert result["code"] == "tool_result_too_large"
@@ -174,7 +174,7 @@ def test_the_catalog_is_read_through_the_cli() -> None:
     bridge = FakeBridge()
     services = _services(bridge=bridge)
 
-    _call("techtree_climbs_list", services, {})
+    _call("techtree_climb_list", services, {})
 
     assert bridge.last_argv() == ["climb", "list"]
 
