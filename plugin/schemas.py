@@ -365,12 +365,14 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         description=(
             "Start a prepared Skill-against-Skill comparison. This spends real "
             "money on model calls, so call it only after the user has seen the "
-            "Skill diff, the data policy, and how many episodes will run, and "
-            "has approved this second run specifically. As with the first run, "
-            "the Campaign's declared maximum is checked before anything "
-            "starts, but no price is worked out in advance and no running "
-            "total is kept while the run goes. Returns a run identifier "
-            "immediately."
+            "Skill diff, the data policy, how many episodes will run, and the "
+            "most the Campaign declares it may cost — which the prepared "
+            "revision reports, and which is a ceiling it declares and never a "
+            "prediction of the bill — and has approved this second run "
+            "specifically. As with the first run, that declared maximum is "
+            "checked before anything starts, but no price is worked out in "
+            "advance and no running total is kept while the run goes. Returns "
+            "a run identifier immediately."
         ),
         properties={
             "draft_id": {

@@ -166,6 +166,14 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             **reviewed,
             "data_policy_digest": prepared["data_policy_digest"],
             "estimated_episodes": prepared.get("estimated_episodes"),
+            # The most this Campaign declares the second run may cost, read off
+            # the replacement draft Techtree just prepared. Decision 0019
+            # section 2 puts the budget in the review a paid run is approved
+            # from, and this payload is that review for the second run. The
+            # figure belongs to the Campaign, so it is carried here rather than
+            # written into the words that describe it: a Campaign that declares
+            # no maximum arrives with no figure, and none is invented for it.
+            "campaign_maximum_usd": prepared.get("campaign_maximum_usd"),
             "scanner": prepared.get("scanner_findings"),
             "baseline_skill_digest": prepared.get("baseline_skill_digest"),
             "candidate_skill_digest": prepared.get("candidate_skill_digest"),
@@ -174,9 +182,9 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
                 "id": "start_second_comparison",
                 "label": "Start the second comparison",
                 "reason": (
-                    "Nothing has run. Show the difference above and the data "
-                    "policy, and start only if the user agrees to this exact "
-                    "comparison."
+                    "Nothing has run. Show the difference above, the data "
+                    "policy, and the declared maximum, and start only if the "
+                    "user agrees to this exact comparison."
                 ),
                 "tool": "techtree_uplift_start",
                 "requires_user_confirmation": True,
