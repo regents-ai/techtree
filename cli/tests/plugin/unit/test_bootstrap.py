@@ -172,7 +172,7 @@ def test_the_plan_installs_on_a_python_this_release_supports() -> None:
     Left to choose, uv installs onto whatever Python the machine treats as its
     default, which can be newer than Techtree supports. The install succeeds,
     and the first thing the person sees is Techtree's own Doctor saying the
-    interpreter is wrong (Techtree decisions document 0031).
+    interpreter is wrong (Techtree decisions document 0034).
     """
     plan = create_install_plan(
         PUBLISHED, uv_path="/usr/local/bin/uv", release_core_digest=DIGEST

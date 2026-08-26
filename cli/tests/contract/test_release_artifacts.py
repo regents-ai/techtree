@@ -40,7 +40,7 @@ WHEEL_COMMIT = "b" * 40
 #: it: lowercase hex, no prefix.
 WHEEL_SHA256 = "f" * 64
 #: The Python a published wrapper states it needs, and therefore the one its
-#: install command has to name (decision 0031). The wrapper states it once and
+#: install command has to name (decision 0034). The wrapper states it once and
 #: the command reads it from there, so this stands in for both.
 PUBLISHED_PYTHON = "3.12"
 

@@ -1,4 +1,4 @@
-# 0031 — The published install command pins the interpreter
+# 0034 — The published install command pins the interpreter
 
 Status: binding (founder decision, 2026-08-26). Amends decision 0011
 item 2, which fixed the install coordinate as the bare

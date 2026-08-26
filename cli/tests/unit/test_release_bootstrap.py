@@ -311,7 +311,7 @@ def test_an_install_command_that_does_not_pin_the_interpreter_fails_alone() -> N
     Left to choose, the installer takes the machine's default Python, which can
     be newer than Techtree supports: the install succeeds and the operator's
     first Techtree output is Doctor reporting a wrong interpreter (decision
-    0031). A document that publishes such a command does not verify.
+    0034). A document that publishes such a command does not verify.
     """
     result = check(
         replacing("cli", install_argv=["uv", "tool", "install", "techtree==0.1.0"])

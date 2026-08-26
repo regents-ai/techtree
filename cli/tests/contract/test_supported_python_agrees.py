@@ -4,7 +4,7 @@ Which Python this release runs on is written down more than once, because
 several different readers need it and none of them can see the others' copy:
 the package metadata is what an installer obeys, the doctor's range is what a
 participant is told, and the published bootstrap document is what the install
-command must name. Decision 0031 made the last of those a release check after
+command must name. Decision 0034 made the last of those a release check after
 two clean-machine journeys found the install and the health check disagreeing.
 
 This is the rest of that fix. A number repeated in three places is one number
@@ -55,6 +55,6 @@ def test_the_doctor_reports_the_range_the_package_declares() -> None:
     These two disagreeing is worse than either being wrong on its own: an
     installer that accepts an interpreter the doctor rejects produces a
     working install whose first output is a failure, which is exactly the
-    report decision 0031 came from.
+    report decision 0034 came from.
     """
     assert declared_range() == SUPPORTED_PYTHON

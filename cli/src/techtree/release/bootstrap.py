@@ -80,7 +80,7 @@ BOOTSTRAP_RELEASE_MISMATCH: Final = "bootstrap_release_mismatch"
 
 #: How the published install command names an interpreter to the installer.
 #: The value beside it is never written here — it is read from the document
-#: being checked (decision 0031).
+#: being checked (decision 0034).
 _INTERPRETER_FLAG: Final = "--python"
 
 _COMMIT_RE = re.compile(COMMIT_PATTERN)
@@ -365,7 +365,7 @@ def _cli_install_argv_check(
     treats as its default — which can be a version Techtree does not support.
     The install then succeeds and the first thing the operator sees is Doctor
     saying the interpreter is wrong, after running the exact command this
-    project published (decision 0031). So the command pins the interpreter.
+    project published (decision 0034). So the command pins the interpreter.
 
     Which interpreter is not restated here. It is read from the document's own
     requirements, because a second written-out copy of one number is how a
