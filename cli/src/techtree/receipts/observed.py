@@ -290,7 +290,7 @@ def _require_config_agrees_with_traces(
             },
         )
 
-    if _sampling_of(resolved_config) != dict(trace.sampling):
+    if _sampling_of(resolved_config) != _set_knobs(dict(trace.sampling)):
         raise VerificationError(
             "the sampling settings the engine resolved are not the ones this "
             "variant's rollouts record being sampled under",
@@ -392,12 +392,35 @@ def _table(document: Mapping[str, Any], name: str) -> Mapping[str, Any]:
     return value
 
 
+def _set_knobs(sampling: Mapping[str, Any]) -> dict[str, JsonValue]:
+    """Return only the knobs a rollout actually recorded a value for.
+
+    The same rule as `_sampling_of`, applied to the other side, so neither
+    side can make "not set" look like a difference.
+    """
+    return {str(k): v for k, v in sorted(sampling.items()) if v is not None}
+
+
 def _sampling_of(resolved_config: Mapping[str, Any]) -> dict[str, JsonValue]:
-    """Return the sampling parameters the engine wrote back out."""
+    """Return the sampling knobs the engine wrote back out, as set values.
+
+    A knob the engine resolved to null was not set, and a rollout that omits
+    the knob is recording the same fact in fewer words. Keeping the nulls made
+    the two spellings of "not set" compare unequal, which failed a real paid
+    run whose sampling was in fact identical on both sides: the engine had
+    grown two nullable knobs the rollouts do not mention.
+
+    Dropping them narrows nothing. A knob with a value on one side and not the
+    other still differs, and two knobs with different values still differ -
+    the only comparison that stops failing is the one that was never a
+    difference.
+    """
     sampling = _table(resolved_config, "sampling")
     values: dict[str, JsonValue] = {}
     for key, value in sorted(sampling.items()):
-        if not isinstance(value, str | int | float | bool) and value is not None:
+        if value is None:
+            continue
+        if not isinstance(value, str | int | float | bool):
             raise VerificationError(
                 "the resolved sampling parameters hold a value that is not a "
                 "scalar, so they cannot be fingerprinted",

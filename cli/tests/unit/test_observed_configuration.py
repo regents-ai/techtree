@@ -163,6 +163,45 @@ def test_a_configuration_that_resolved_different_sampling_is_refused(
     assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
 
 
+def test_a_knob_the_engine_left_unset_is_not_a_disagreement(
+    recorded: RecordedVariant,
+) -> None:
+    """Not set, spelled two ways, is not a difference.
+
+    A real paid run failed on exactly this. The released engine grew two
+    nullable sampling knobs and writes them out as null; a rollout that never
+    had them simply omits them. Every value present on both sides was
+    identical, and the comparison called it a mismatch anyway.
+    """
+    with_nulls = deepcopy(recorded.resolved_config)
+    with_nulls["sampling"]["top_p"] = None
+    with_nulls["sampling"]["reasoning_effort"] = None
+
+    observed = observed_of(recorded, resolved_config=with_nulls)
+
+    trace = recorded.episodes[0].traces[0]
+
+    assert observed.sampling_digest == digest_object(trace.sampling)
+
+
+def test_a_knob_set_on_only_one_side_is_still_a_disagreement(
+    recorded: RecordedVariant,
+) -> None:
+    """Ignoring the nulls must not start ignoring the values.
+
+    The engine naming a knob the rollouts never recorded means the run was
+    sampled under something the rollouts cannot account for, which is the
+    thing this check exists to catch.
+    """
+    narrowed = deepcopy(recorded.resolved_config)
+    narrowed["sampling"]["top_p"] = 0.9
+
+    with pytest.raises(TechtreeError) as failure:
+        observed_of(recorded, resolved_config=narrowed)
+
+    assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
+
+
 def test_rollouts_sampled_differently_from_each_other_are_refused(
     recorded: RecordedVariant,
 ) -> None:
