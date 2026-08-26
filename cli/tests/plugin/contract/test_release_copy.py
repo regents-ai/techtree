@@ -39,6 +39,7 @@ from pathlib import Path
 import pytest
 from support import founder_result_payload
 from techtree_hermes.constants import PLUGIN_ROOT
+from techtree_hermes.models import CliResponse, ReleaseCore
 from techtree_hermes.schemas import all_tool_schemas
 
 # What counts as public copy -------------------------------------------------------
@@ -817,6 +818,7 @@ def _relayed_text(payload: Mapping[str, object]) -> str:
     from techtree_hermes.approvals import InstallPlanStore
     from techtree_hermes.commands import handle_slash_command
     from techtree_hermes.release import load_embedded_release_core, release_core_digest
+    from techtree_hermes.services.assets import ReleaseSkillProvider
     from techtree_hermes.services.container import PluginServices
     from techtree_hermes.state import SessionStore
 
@@ -829,13 +831,19 @@ def _relayed_text(payload: Mapping[str, object]) -> str:
         bridge=_ResultBridge(payload),
         plans=InstallPlanStore(),
         sessions=SessionStore(),
-        assets=None,
+        assets=ReleaseSkillProvider(),
     )
     return handle_slash_command(f"result {payload['run_id']}", services)
 
 
 class _ResultBridge:
-    """A CLI that answers `run result` with one prepared payload."""
+    """A CLI that answers `run result` with one prepared payload.
+
+    Relaying a result asks the CLI one question, so only ``invoke`` answers.
+    The rest of the bridge is written out because the container is given a
+    whole CLI boundary, and each one says plainly why the relay may not reach
+    it rather than quietly returning something a test could then believe.
+    """
 
     def __init__(self, payload: Mapping[str, object]) -> None:
         self._payload = payload
@@ -854,6 +862,18 @@ class _ResultBridge:
             "warnings": [],
             "next_actions": [],
         }
+
+    def call(self, arguments: Sequence[str], *, purpose: str = "") -> CliResponse:
+        raise AssertionError("relaying a result needs no exit code")
+
+    def invoke_human(self, arguments: Sequence[str]) -> int:
+        raise AssertionError("relaying a result runs no terminal command")
+
+    def version(self) -> str:
+        raise AssertionError("relaying a result reads no version string")
+
+    def verify_release(self, expected: ReleaseCore) -> dict[str, object]:
+        raise AssertionError("relaying a result verifies no release")
 
 
 def _compact(payload: Mapping[str, object]) -> dict[str, object]:
@@ -928,9 +948,7 @@ def test_the_relay_carries_every_qualification_and_names_the_attestation_gap() -
     text = _relayed_text(payload)
 
     warnings = [
-        caveat["text"]
-        for caveat in payload["caveats"]
-        if caveat["severity"] != "info"  # type: ignore[index]
+        caveat["text"] for caveat in payload["caveats"] if caveat["severity"] != "info"
     ]
     for warning in warnings:
         assert warning in text, warning
@@ -971,7 +989,7 @@ def test_the_relay_adds_no_verdict_of_its_own() -> None:
     """
     payload = founder_result_payload()
     remainder = _relayed_text(payload)
-    for caveat in payload["caveats"]:  # type: ignore[attr-defined]
+    for caveat in payload["caveats"]:
         remainder = remainder.replace(caveat["text"], "")
     verdicts = re.compile(
         r"\b(passed|failed|succeeded|success|good|bad|strong|weak|threshold"
@@ -1016,13 +1034,12 @@ def test_the_phone_is_shown_the_counts_the_turns_the_throttling_and_the_cost() -
 def test_the_phone_carries_the_qualifications_and_never_a_note_instead() -> None:
     """A phone is where a number is most likely to be quoted onwards."""
     compact = _compact(founder_result_payload())
+    caveats = compact["caveats"]
+    assert isinstance(caveats, list)
 
-    assert len(compact["caveats"]) == 3  # type: ignore[arg-type]
-    assert "not provably the same model build" in compact["caveats"][0]  # type: ignore[index]
-    assert all(
-        "No external evidence service" not in text
-        for text in compact["caveats"]  # type: ignore[union-attr]
-    )
+    assert len(caveats) == 3
+    assert "not provably the same model build" in caveats[0]
+    assert all("No external evidence service" not in text for text in caveats)
 
 
 def test_the_phone_whitelist_is_still_a_whitelist() -> None:
@@ -1084,5 +1101,5 @@ def test_a_result_whose_qualifications_are_long_keeps_the_answer_whole() -> None
     answer = tool_result(relayed, ChannelKind.GATEWAY)
 
     assert '"truncated"' not in answer
-    assert relayed["presentation"]["caveats"]  # type: ignore[index]
-    assert relayed["presentation"]["caveats_not_shown"]  # type: ignore[index]
+    assert relayed["presentation"]["caveats"]
+    assert relayed["presentation"]["caveats_not_shown"]
