@@ -3,8 +3,17 @@
 Every assertion here records observed behaviour of
 `PrimeIntellect-ai/verifiers@b2e4e8157783b2c0dffc7821044c87f29f1c3ccf`. When
 the pin is bumped this module is the gate: rerun it, and update
-``docs/verifiers-eval.md`` with whatever moved. The five deviations from the
-specification's assumptions are written up there, at the top, under CRITICAL.
+``docs/verifiers-pin-0.3.1.md`` with whatever moved. The five deviations from
+the specification's assumptions are written up in ``docs/verifiers-eval.md``,
+at the top, under CRITICAL — read that document's superseding note first, since
+three of its findings describe the development build this pin replaced.
+
+Two of those three shape every invocation below. A run writes into
+``<output-dir>/<run.dir>`` and takes a random suffix unless ``--run.name``
+names it, and the rollouts are hosted through an elastic worker pool unless
+``--no-serve`` says otherwise. So the helpers here pass both, exactly as
+``techtree.verifiers.child`` does — this suite asks about the invocation
+Techtree actually performs, not a convenient variation on it.
 
 ## No model is called
 
@@ -36,7 +45,6 @@ from __future__ import annotations
 import json
 import os
 import time
-import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -56,11 +64,21 @@ from techtree.manifests.builder import (
 )
 from techtree.models.campaign import CampaignSpec
 from techtree.models.skill import SkillArtifact, SkillFile
-from techtree.verifiers.child import DRY_RUN_NAME, dry_run_argv
+from techtree.verifiers.child import (
+    DRY_RUN_NAME,
+    PUSH_DISABLED_FLAG,
+    RUN_NAME_FLAG,
+    SERVE_DISABLED_FLAG,
+    dry_run_argv,
+)
 from techtree.verifiers.compiler import compile_variant_config, write_variant_config
 from techtree.verifiers.config import config_to_json_bytes
-from techtree.verifiers.models import RunPaths, VariantName
-from techtree.verifiers.verify import RESOLVED_CONFIG_PATH
+from techtree.verifiers.models import EVAL_RUN_NAME, RunPaths, VariantName
+from techtree.verifiers.outputs import (
+    EVAL_LOG_PATH,
+    RESOLVED_CONFIG_PATH,
+    TRACES_FILENAME,
+)
 
 pytestmark = pytest.mark.preflight
 
@@ -76,8 +94,15 @@ STAGGER_ENV = "TECHTREE_PREFLIGHT_STAGGER"
 TASK_COUNT = 4
 PINNED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 
-RUN_OUTPUT_FILES = {"config.toml", "traces.jsonl", "eval.log"}
-"""Spec 6.3 — what a completed run leaves behind, and nothing else."""
+LATEST_LOG_LINK = "logs/latest"
+
+RUN_OUTPUT_PATHS = {RESOLVED_CONFIG_PATH, TRACES_FILENAME, EVAL_LOG_PATH}
+"""What a completed run leaves behind, relative to the run's own directory.
+
+Spec 6.3 named three flat files; the released engine writes these three, two of
+them nested (deviations D1 and D5). It also leaves the ``logs/latest`` symlink,
+which is listed separately because it is not a file and is not evidence.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +150,10 @@ def techtree_shaped_config(
         "num_rollouts": 1,
         "shuffle": False,
         "max_concurrent": 1,
-        "rich": False,
+        # Null rather than false: `rich` stopped being a bool, and a null is
+        # the only way a file can turn the dashboard off (deviation D5). It is
+        # also why these documents are JSON — TOML has no null literal.
+        "rich": None,
         "push": False,
         "output_dir": str(output_dir),
         "client": {"type": "eval", "api_key_var": "PRIME_API_KEY"},
@@ -155,29 +183,50 @@ def techtree_shaped_config(
     return document
 
 
-def write_toml(path: Path, document: dict[str, Any]) -> Path:
-    """Write one configuration for the engine to read."""
-    import tomli_w
+def write_config_file(path: Path, document: dict[str, Any]) -> Path:
+    """Write one configuration for the engine to read.
 
+    JSON, because the engine picks its parser from the extension and JSON is
+    the only one of the two formats that can spell an explicit null — which is
+    what turns the dashboard off. Techtree compiles to JSON for the same
+    reason, so this is also the shape the engine really receives.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(tomli_w.dumps(document))
+    path.write_text(json.dumps(document, indent=2))
     return path
+
+
+def read_resolved(run_dir: Path) -> dict[str, Any]:
+    """Read the configuration the engine wrote back for one run."""
+    document: dict[str, Any] = json.loads(
+        (run_dir / RESOLVED_CONFIG_PATH).read_text(encoding="utf-8")
+    )
+    return document
 
 
 def dry_run(
     eval_cli: Path, config: Path, output_dir: Path, **environment: str
 ) -> tuple[int, Path, str]:
-    """Dry-run one configuration and return its exit code, output dir and stderr."""
+    """Dry-run one configuration and return its code, *run* directory and stderr.
+
+    The returned directory is the run's own, one level below the grouping
+    directory ``--output-dir`` names (deviation D2). Nothing here reads the
+    group: an unnamed run would land under a random suffix, and a resolved
+    configuration nobody can find twice establishes nothing.
+    """
     result = run_engine_command(
         eval_cli,
         "@",
         config,
         "--dry-run",
+        SERVE_DISABLED_FLAG,
+        RUN_NAME_FLAG,
+        DRY_RUN_NAME,
         "--output-dir",
         output_dir,
         env=scrubbed_environment(**environment),
     )
-    return result.returncode, output_dir, result.stderr
+    return result.returncode, output_dir / DRY_RUN_NAME, result.stderr
 
 
 @pytest.fixture(scope="session")
@@ -186,15 +235,13 @@ def resolved_config(
 ) -> dict[str, Any]:
     """The configuration the engine writes back for a Techtree-shaped input."""
     root = tmp_path_factory.mktemp("eval-dry-run")
-    code, output, stderr = dry_run(
+    code, run_dir, stderr = dry_run(
         eval_cli,
-        write_toml(root / "input.toml", techtree_shaped_config(root / "run")),
+        write_config_file(root / "input.json", techtree_shaped_config(root / "out")),
         root / "dry-run",
     )
     assert code == 0, stderr
-    with (output / "config.toml").open("rb") as handle:
-        document: dict[str, Any] = tomllib.load(handle)
-    return document
+    return read_resolved(run_dir)
 
 
 @pytest.fixture(scope="session")
@@ -208,8 +255,9 @@ def finished_run(
     make every assertion here depend on Docker and a network.
     """
     root = tmp_path_factory.mktemp("eval-run")
-    output = root / "run"
-    document = techtree_shaped_config(output, harness_id=TASKSET_ID)
+    group = root / "out"
+    output = group / EVAL_RUN_NAME
+    document = techtree_shaped_config(group, harness_id=TASKSET_ID)
     document["num_tasks"] = TASK_COUNT
     document["max_concurrent"] = TASK_COUNT
     del document["env"]["subject"]["harness"]["version"]
@@ -219,14 +267,17 @@ def finished_run(
     result = run_engine_command(
         eval_cli,
         "@",
-        write_toml(root / "input.toml", document),
+        write_config_file(root / "input.json", document),
+        SERVE_DISABLED_FLAG,
+        RUN_NAME_FLAG,
+        EVAL_RUN_NAME,
         env=scrubbed_environment(**{STAGGER_ENV: "0.4"}),
     )
     assert result.returncode == 0, result.stderr
 
     episodes = [
         json.loads(line)
-        for line in (output / "traces.jsonl").read_text().splitlines()
+        for line in (output / TRACES_FILENAME).read_text().splitlines()
         if line.strip()
     ]
     return {
@@ -291,11 +342,11 @@ def test_a_subject_seat_is_refused_by_an_environment_without_one(
 ) -> None:
     # E0. This is the exact failure the shipped reference package produces
     # today, and the reason the named-subject Env is a STOP-AND-NOTE.
-    document = techtree_shaped_config(tmp_path / "run")
+    document = techtree_shaped_config(tmp_path / "out")
     document["env"]["taskset"]["id"] = "techtree-preflight-taskset"
     code, _, stderr = dry_run(
         eval_cli,
-        write_toml(tmp_path / "input.toml", document),
+        write_config_file(tmp_path / "input.json", document),
         tmp_path / "dry-run",
     )
 
@@ -310,17 +361,16 @@ def test_a_subject_seat_is_refused_by_an_environment_without_one(
 
 
 def test_the_upload_defaults_to_on_upstream(eval_cli: Path, tmp_path: Path) -> None:
-    document = techtree_shaped_config(tmp_path / "run")
+    document = techtree_shaped_config(tmp_path / "out")
     del document["push"]
-    code, output, stderr = dry_run(
+    code, run_dir, stderr = dry_run(
         eval_cli,
-        write_toml(tmp_path / "input.toml", document),
+        write_config_file(tmp_path / "input.json", document),
         tmp_path / "dry-run",
     )
 
     assert code == 0, stderr
-    with (output / "config.toml").open("rb") as handle:
-        assert tomllib.load(handle)["push"] is True
+    assert read_resolved(run_dir)["push"] is True
 
 
 def test_the_resolved_configuration_records_the_upload_setting(
@@ -332,22 +382,23 @@ def test_the_resolved_configuration_records_the_upload_setting(
 def test_the_command_line_flag_overrides_an_upload_in_the_file(
     eval_cli: Path, tmp_path: Path
 ) -> None:
-    document = techtree_shaped_config(tmp_path / "run")
+    document = techtree_shaped_config(tmp_path / "out")
     document["push"] = True
     result = run_engine_command(
         eval_cli,
         "@",
-        write_toml(tmp_path / "input.toml", document),
+        write_config_file(tmp_path / "input.json", document),
         "--dry-run",
-        "--no-push",
+        PUSH_DISABLED_FLAG,
+        RUN_NAME_FLAG,
+        DRY_RUN_NAME,
         "--output-dir",
         tmp_path / "dry-run",
         env=scrubbed_environment(),
     )
 
     assert result.returncode == 0, result.stderr
-    with (tmp_path / "dry-run" / "config.toml").open("rb") as handle:
-        assert tomllib.load(handle)["push"] is False
+    assert read_resolved(tmp_path / "dry-run" / DRY_RUN_NAME)["push"] is False
 
 
 def _upload_probe(directory: Path) -> Path:
@@ -377,8 +428,7 @@ def _run_with_upload_probe(
     eval_cli: Path, root: Path, *, push: bool, credential: bool
 ) -> str:
     """Run one complete evaluation under the probe and return what it saw."""
-    output = root / "run"
-    document = techtree_shaped_config(output, harness_id=TASKSET_ID)
+    document = techtree_shaped_config(root / "out", harness_id=TASKSET_ID)
     document["push"] = push
     del document["env"]["subject"]["harness"]["version"]
     del document["env"]["subject"]["harness"]["use_bundled_skill"]
@@ -398,7 +448,13 @@ def _run_with_upload_probe(
         Path(environment["HOME"]).mkdir(parents=True, exist_ok=True)
 
     result = run_engine_command(
-        eval_cli, "@", write_toml(root / "input.toml", document), env=environment
+        eval_cli,
+        "@",
+        write_config_file(root / "input.json", document),
+        SERVE_DISABLED_FLAG,
+        RUN_NAME_FLAG,
+        EVAL_RUN_NAME,
+        env=environment,
     )
     assert result.returncode == 0, result.stderr
     return probe.read_text(encoding="utf-8")
@@ -444,39 +500,71 @@ def test_the_upload_probe_sees_the_path_when_push_is_on(
 def test_a_dry_run_writes_only_the_resolved_configuration(
     eval_cli: Path, tmp_path: Path
 ) -> None:
-    code, output, stderr = dry_run(
+    code, run_dir, stderr = dry_run(
         eval_cli,
-        write_toml(tmp_path / "input.toml", techtree_shaped_config(tmp_path / "run")),
+        write_config_file(
+            tmp_path / "input.json", techtree_shaped_config(tmp_path / "out")
+        ),
         tmp_path / "dry-run",
     )
 
     assert code == 0, stderr
-    assert {path.name for path in output.iterdir()} == {"config.toml"}
+    written = {
+        path.relative_to(run_dir).as_posix()
+        for path in run_dir.rglob("*")
+        if path.is_file()
+    }
+    assert written == {RESOLVED_CONFIG_PATH}
 
 
 def test_a_real_run_writes_exactly_the_three_expected_files(
     finished_run: dict[str, Any],
 ) -> None:
     output: Path = finished_run["dir"]
-    assert {path.name for path in output.iterdir()} == RUN_OUTPUT_FILES
+    written = {
+        path.relative_to(output).as_posix()
+        for path in output.rglob("*")
+        if path.is_file() and not path.is_symlink()
+    }
+    assert written == RUN_OUTPUT_PATHS
+
+
+def test_a_real_run_also_leaves_a_symlink_to_the_current_attempt(
+    finished_run: dict[str, Any],
+) -> None:
+    """The one entry in a run directory that is not evidence.
+
+    ``logs/latest`` points at the attempt directory of the launch that made it
+    and is repointed by every later launch, so it is the run's convenience
+    rather than its record. Techtree names ``logs/attempt_1`` instead, which it
+    can do because an attempt directory is minted per launch and a Techtree run
+    directory is launched exactly once.
+    """
+    latest = finished_run["dir"] / LATEST_LOG_LINK
+
+    assert latest.is_symlink()
+    assert latest.readlink().as_posix() == "attempt_1"
+    assert (latest / "eval.log").read_bytes() == (
+        finished_run["dir"] / EVAL_LOG_PATH
+    ).read_bytes()
 
 
 def test_the_resolved_configuration_is_a_fixed_point(
     eval_cli: Path, tmp_path: Path, resolved_config: dict[str, Any]
 ) -> None:
-    # A resolved config is re-runnable through `@ config.toml`, so resolving it
-    # again must not keep changing it.
+    # A resolved config is re-runnable through
+    # `@ <run-dir>/configs/resolved/eval.json`, so resolving it again must not
+    # keep changing it.
     again = dict(resolved_config)
-    again["output_dir"] = str(tmp_path / "run")
-    code, output, stderr = dry_run(
+    again["output_dir"] = str(tmp_path / "out")
+    code, run_dir, stderr = dry_run(
         eval_cli,
-        write_toml(tmp_path / "resolved.toml", again),
+        write_config_file(tmp_path / "resolved.json", again),
         tmp_path / "dry-run",
     )
 
     assert code == 0, stderr
-    with (output / "config.toml").open("rb") as handle:
-        document = tomllib.load(handle)
+    document = read_resolved(run_dir)
     # --output-dir on argv overrides the file, so the one key the flag owns is
     # normalized away before the documents are compared.
     assert document.pop("output_dir") == str(tmp_path / "dry-run")
@@ -492,9 +580,9 @@ def test_the_resolved_configuration_is_a_fixed_point(
 def test_an_unknown_key_is_refused(eval_cli: Path, tmp_path: Path) -> None:
     code, _, stderr = dry_run(
         eval_cli,
-        write_toml(
-            tmp_path / "input.toml",
-            techtree_shaped_config(tmp_path / "run", not_a_key=1),
+        write_config_file(
+            tmp_path / "input.json",
+            techtree_shaped_config(tmp_path / "out", not_a_key=1),
         ),
         tmp_path / "dry-run",
     )
@@ -504,11 +592,11 @@ def test_an_unknown_key_is_refused(eval_cli: Path, tmp_path: Path) -> None:
 
 
 def test_an_unresolvable_taskset_is_refused(eval_cli: Path, tmp_path: Path) -> None:
-    document = techtree_shaped_config(tmp_path / "run")
+    document = techtree_shaped_config(tmp_path / "out")
     document["env"]["taskset"]["id"] = "no-such-taskset-anywhere"
     code, _, stderr = dry_run(
         eval_cli,
-        write_toml(tmp_path / "input.toml", document),
+        write_config_file(tmp_path / "input.json", document),
         tmp_path / "dry-run",
     )
 
@@ -529,12 +617,12 @@ def test_the_dry_run_accepts_settings_techtree_must_reject_itself(
 ) -> None:
     # E3. Each of these fails mid-run or never, so the compiler's allow-list is
     # the only place they can be caught before Docker is provisioned.
-    document = techtree_shaped_config(tmp_path / "run")
+    document = techtree_shaped_config(tmp_path / "out")
     mutate(document["env"]["subject"]["harness"], tmp_path)
 
     code, _, stderr = dry_run(
         eval_cli,
-        write_toml(tmp_path / "input.toml", document),
+        write_config_file(tmp_path / "input.json", document),
         tmp_path / "dry-run",
     )
 
@@ -548,7 +636,11 @@ def test_a_hermes_and_docker_configuration_resolves_without_docker(
     assert subject["harness"]["id"] == "hermes-agent"
     assert subject["harness"]["version"] == "0.19.0"
     assert subject["harness"]["use_bundled_skill"] is False
-    assert "disabled_tools" not in subject["harness"]
+    # The released harness config declares `disabled_tools`, and the resolved
+    # document dumps the model whole, so the key is present and null rather
+    # than absent. Either way nothing is disabled, which is the claim; the
+    # compiler refuses to spell the setting at all.
+    assert subject["harness"]["disabled_tools"] is None
     assert subject["runtime"]["type"] == "docker"
 
 
@@ -580,7 +672,7 @@ def test_every_line_is_one_complete_episode(finished_run: dict[str, Any]) -> Non
     for episode in episodes:
         assert set(episode) >= {"id", "env", "ok", "errors", "traces"}
         assert len(episode["traces"]) == 1
-    assert (finished_run["dir"] / "traces.jsonl").read_bytes().endswith(b"\n")
+    assert (finished_run["dir"] / TRACES_FILENAME).read_bytes().endswith(b"\n")
 
 
 def test_line_order_is_completion_order_and_not_task_order(
@@ -599,24 +691,32 @@ def test_line_order_is_completion_order_and_not_task_order(
 def test_episodes_are_appended_one_whole_record_at_a_time(
     eval_cli: Path, tmp_path: Path
 ) -> None:
-    output = tmp_path / "run"
-    document = techtree_shaped_config(output, harness_id=TASKSET_ID)
+    group = tmp_path / "out"
+    output = group / EVAL_RUN_NAME
+    document = techtree_shaped_config(group, harness_id=TASKSET_ID)
     document["num_tasks"] = TASK_COUNT
     document["max_concurrent"] = 1
     del document["env"]["subject"]["harness"]["version"]
     del document["env"]["subject"]["harness"]["use_bundled_skill"]
     document["env"]["subject"]["runtime"] = {"type": "subprocess"}
-    config = write_toml(tmp_path / "input.toml", document)
+    config = write_config_file(tmp_path / "input.json", document)
 
     import subprocess
 
     child = subprocess.Popen(
-        [str(eval_cli), "@", str(config)],
+        [
+            str(eval_cli),
+            "@",
+            str(config),
+            SERVE_DISABLED_FLAG,
+            RUN_NAME_FLAG,
+            EVAL_RUN_NAME,
+        ],
         env=scrubbed_environment(**{STAGGER_ENV: "0.5"}),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    traces = output / "traces.jsonl"
+    traces = output / TRACES_FILENAME
     sizes: list[int] = []
     try:
         while child.poll() is None:
@@ -712,27 +812,31 @@ def test_each_trace_carries_its_own_task_hash_to_pair_on(
 def test_no_credential_value_reaches_a_dry_runs_output(
     eval_cli: Path, tmp_path: Path
 ) -> None:
-    code, output, stderr = dry_run(
+    code, run_dir, stderr = dry_run(
         eval_cli,
-        write_toml(tmp_path / "input.toml", techtree_shaped_config(tmp_path / "run")),
+        write_config_file(
+            tmp_path / "input.json", techtree_shaped_config(tmp_path / "out")
+        ),
         tmp_path / "dry-run",
     )
 
     assert code == 0, stderr
-    assert SECRET not in (output / "config.toml").read_text()
+    assert SECRET not in (run_dir / RESOLVED_CONFIG_PATH).read_text()
 
 
 def test_no_credential_value_reaches_a_real_runs_output(
     finished_run: dict[str, Any],
 ) -> None:
     written = "".join(
-        path.read_text(errors="replace") for path in finished_run["dir"].iterdir()
+        path.read_text(errors="replace")
+        for path in finished_run["dir"].rglob("*")
+        if path.is_file() and not path.is_symlink()
     )
     assert SECRET not in written
     assert SECRET not in finished_run["stdout"]
     assert SECRET not in finished_run["stderr"]
     # The variable's name travels; its value does not.
-    assert "PRIME_API_KEY" in (finished_run["dir"] / "config.toml").read_text()
+    assert "PRIME_API_KEY" in (finished_run["dir"] / RESOLVED_CONFIG_PATH).read_text()
 
 
 def test_standard_output_is_a_full_transcript_dump(
@@ -743,7 +847,7 @@ def test_standard_output_is_a_full_transcript_dump(
     assert '"verifiers"' in finished_run["stdout"]
     assert (
         len(finished_run["stdout"])
-        > len((finished_run["dir"] / "traces.jsonl").read_text()) / 2
+        > len((finished_run["dir"] / TRACES_FILENAME).read_text()) / 2
     )
 
 
@@ -839,9 +943,21 @@ def test_a_techtree_compiled_configuration_is_accepted_by_the_pinned_engine(
     assert resolved["rich"] is None
     assert resolved["shuffle"] is False
     assert resolved["num_rollouts"] == 1
-    # --output-dir on argv points a dry run away from the real run directory.
+    # `--no-serve` is on the real invocation and on this one, so the engine
+    # confirms the rollouts would be the evaluation child's own work rather
+    # than an elastic worker pool's (deviation D5).
+    assert resolved["serve"] is None
+    # --output-dir on argv points a dry run away from the real run directory,
+    # and --run.name names the directory underneath it, so the resolved
+    # document has exactly one findable path (deviation D2).
     assert resolved["output_dir"] == str(dry_run_dir)
-    assert config.output_dir == str(run_paths.variant_output_dir(variant))
+    assert resolved["run"]["dir"] == DRY_RUN_NAME
+    # The compiled `output_dir` names the directory runs are grouped under; the
+    # real run lands one level below it, under EVAL_RUN_NAME.
+    assert config.output_dir == str(run_paths.variant_output_group_dir(variant))
+    assert Path(config.output_dir) / EVAL_RUN_NAME == run_paths.variant_output_dir(
+        variant
+    )
     assert "subject" in resolved["env"]
     assert resolved["env"]["subject"]["harness"]["use_bundled_skill"] is False
     expected_skills = 0 if variant is VariantName.BASELINE else 1

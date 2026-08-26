@@ -25,6 +25,14 @@ argv rather than the one in the file, so the dry run's own redirection is
 folded into the comparison instead of being excused from it. What must hold is
 that nothing Techtree *did* declare came back changed.
 
+Two settings are checked in the resolved document even though the compiled one
+never mentions them, because for both the engine's default is the dangerous
+answer and a flag is what turns it off: the platform upload, and whether the
+rollouts are hosted through an env-server worker pool. The dry run carries the
+same flags the run does, so what it resolves is what the run would do — and a
+flag the engine stopped understanding is found here, before anything is spent,
+rather than afterwards.
+
 Section 6.14's post-execution half is :func:`verify_variant_execution`. It
 answers one question — is this execution complete and scientifically usable —
 as an ordered list of named verdicts rather than as an exception, so a caller
@@ -68,6 +76,7 @@ from techtree.verifiers.models import (
     VariantExecutionResult,
     VariantName,
 )
+from techtree.verifiers.outputs import RESOLVED_CONFIG_PATH
 
 __all__ = [
     "DEFAULT_DRY_RUN_TIMEOUT_SECONDS",
@@ -87,17 +96,16 @@ VARIANT_EXECUTION_UNCHECKABLE: Final = "variant_execution_uncheckable"
 
 DEFAULT_DRY_RUN_TIMEOUT_SECONDS: Final = 300.0
 
-#: Where the engine leaves the configuration it resolved, relative to the run
-#: directory it was told to use. It is JSON, and it is JSON for the same reason
-#: Techtree's own document is: only JSON round-trips an explicit null
-#: (``docs/verifiers-pin-0.3.1.md``, deviation D1).
-RESOLVED_CONFIG_PATH: Final = Path("configs") / "resolved" / "eval.json"
-
 #: The one key the engine fills in that Techtree deliberately left out, so a
 #: difference there is not a disagreement. The routing header the engine may
 #: also add needs no entry: Techtree declares no headers at all, so an added
 #: one has nothing on the declared side to disagree with.
 _ENGINE_RESOLVED_KEYS: Final[frozenset[str]] = frozenset({"client.base_url"})
+
+#: Sentinel for "the key was not in the resolved document at all", which is a
+#: different answer from "the key resolved to null" wherever null is the safe
+#: value.
+_MISSING: Final = object()
 
 
 @dataclass(frozen=True)
@@ -173,8 +181,7 @@ def dry_run_variant_config(
                 id="resolved_config_written",
                 status="passed",
                 detail=(
-                    f"the engine wrote {RESOLVED_CONFIG_PATH.name} to the "
-                    "dry-run directory."
+                    f"the engine wrote {RESOLVED_CONFIG_PATH} to the dry-run directory."
                 ),
             )
         )
@@ -252,6 +259,7 @@ def verify_compiled_config(
             ),
         ),
         _push_check(observed),
+        _serve_check(observed),
         _subject_seat_check(observed),
     ]
     return checks
@@ -271,6 +279,31 @@ def _invocation_check(process: EngineProcessResult) -> ExecutionCheck:
         detail=(
             f"the engine's eval entrypoint exited {process.exit_code}: "
             f"{_last_meaningful_line(process)}"
+        ),
+    )
+
+
+def _serve_check(observed: Mapping[str, Any]) -> ExecutionCheck:
+    """Whether the run the engine resolved is this process's own work.
+
+    Hosting through the elastic env-server worker pool is the default since
+    v0.3.1 (``docs/verifiers-pin-0.3.1.md``, deviation D5), and it is a default
+    Techtree cannot take: the supervision a real run depends on watches one
+    child and tears its containers down through one process group (decisions
+    document 0029). ``--no-serve`` is what turns it off, and this is the engine
+    confirming that it did rather than Techtree assuming the flag still means
+    what it meant.
+    """
+    in_process = observed.get("serve", _MISSING) is None
+    return ExecutionCheck(
+        id="rollouts_run_in_process",
+        status="passed" if in_process else "failed",
+        detail=(
+            "the resolved configuration records no worker pool, so the "
+            "rollouts are the evaluation child's own work."
+            if in_process
+            else "the resolved configuration would host the rollouts through "
+            "an env-server worker pool rather than in the evaluation child."
         ),
     )
 

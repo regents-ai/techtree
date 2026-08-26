@@ -1,11 +1,33 @@
 """The files one variant's evaluation must have left behind. Spec section 6.13.
 
-A real ``eval`` run writes exactly three files, and Techtree keeps all three:
-the resolved configuration, the raw upstream episodes, and the upstream log.
-The normalizer that the engine runs over them does not replace any of them
-(spec section 6.12) — Techtree retains raw upstream evidence *and* its
-normalized projection, because a projection nobody can check against its source
-is a claim rather than evidence.
+A real ``eval`` run leaves three files Techtree keeps: the resolved
+configuration, the raw upstream episodes, and the upstream log. The normalizer
+that the engine runs over them does not replace any of them (spec section 6.12)
+— Techtree retains raw upstream evidence *and* its normalized projection,
+because a projection nobody can check against its source is a claim rather than
+evidence.
+
+*Two of the three live in subdirectories now.* The released engine writes
+``configs/resolved/eval.json`` and ``logs/attempt_<n>/eval.log`` rather than the
+flat ``config.toml`` and ``eval.log`` of the development build
+(``docs/verifiers-pin-0.3.1.md``, deviations D1 and D5), and the resolved
+configuration is JSON because only JSON round-trips the explicit nulls the
+engine writes. The attempt number is ``1`` and can be nothing else: an attempt
+directory is minted per *launch*, and Techtree launches a run directory exactly
+once — it never resumes and never re-enters one (deviation D3).
+
+*The engine also writes ``logs/latest``, and Techtree ignores it.* It is a
+symbolic link to the current attempt directory, repointed by every later
+launch. A digest taken over a link is not a digest of the file it names, and a
+path that another launch can silently redirect is not a citation, so the
+evidence this module hashes is the attempt directory itself. Nothing here
+follows, records or hashes the link.
+
+*The engine writes no copy of the launch configuration for a Techtree run.* It
+copies the launch file verbatim to ``configs/eval.toml`` only when that file is
+TOML, and Techtree's is ``input.json`` (deviation D5). Nothing is lost: the
+compiled input is already the run's own file and already digested where it was
+written.
 
 A dry-run directory is deliberately not accepted here. Dry run writes only the
 resolved configuration (``docs/verifiers-eval.md``, finding E2), so applying
@@ -44,14 +66,14 @@ from techtree.verifiers.models import (
 )
 
 __all__ = [
-    "CONFIG_FILENAME",
-    "CONFIG_MEDIA_TYPE",
     "DEFAULT_NORMALIZE_TIMEOUT_SECONDS",
-    "EVAL_LOG_FILENAME",
     "EVAL_LOG_MEDIA_TYPE",
+    "EVAL_LOG_PATH",
     "NORMALIZED_EPISODES_FILENAME",
     "NORMALIZED_EPISODES_MEDIA_TYPE",
     "NORMALIZE_EVAL_OUTPUT_TOOL",
+    "RESOLVED_CONFIG_MEDIA_TYPE",
+    "RESOLVED_CONFIG_PATH",
     "TRACES_FILENAME",
     "TRACES_MEDIA_TYPE",
     "VARIANT_OUTPUT_INCOMPLETE",
@@ -66,15 +88,25 @@ __all__ = [
 #: Stable error code. Spec section 6.13.
 VARIANT_OUTPUT_INCOMPLETE: Final = "variant_output_incomplete"
 
-CONFIG_FILENAME: Final = "config.toml"
+#: The configuration the engine resolved and wrote back, relative to the run's
+#: own directory. Nested and JSON since v0.3.1 (deviation D1), and the same
+#: relative path whether the run was real or a dry run, which is what lets the
+#: validation confirm the path the real run's reader will use.
+RESOLVED_CONFIG_PATH: Final = "configs/resolved/eval.json"
+
 TRACES_FILENAME: Final = "traces.jsonl"
-EVAL_LOG_FILENAME: Final = "eval.log"
+
+#: This launch's log. One attempt directory is minted per launch and Techtree
+#: launches once, so the run's log is always attempt one's (deviation D5). The
+#: ``logs/latest`` link beside it is deliberately not what is read: see the
+#: module docstring.
+EVAL_LOG_PATH: Final = "logs/attempt_1/eval.log"
 
 #: The engine helper that turns raw episodes into the protocol projection. It
 #: lives inside the digested bundle (decisions document 0003 A3).
 NORMALIZE_EVAL_OUTPUT_TOOL: Final = "normalize_eval_output.py"
 
-CONFIG_MEDIA_TYPE: Final = "application/toml"
+RESOLVED_CONFIG_MEDIA_TYPE: Final = "application/json"
 TRACES_MEDIA_TYPE: Final = "application/x-ndjson"
 EVAL_LOG_MEDIA_TYPE: Final = "text/plain"
 NORMALIZED_EPISODES_MEDIA_TYPE: Final = "application/x-ndjson"
@@ -83,11 +115,15 @@ DEFAULT_NORMALIZE_TIMEOUT_SECONDS: Final = 300.0
 
 
 def required_output_paths(output_dir: Path) -> dict[str, Path]:
-    """Return the three files a completed evaluation writes."""
+    """Return the three files a completed evaluation writes.
+
+    ``output_dir`` is the run's own directory — the one ``--run.name`` pins,
+    one level below the directory the compiled configuration groups runs under.
+    """
     return {
-        "config": output_dir / CONFIG_FILENAME,
+        "config": output_dir / RESOLVED_CONFIG_PATH,
         "traces": output_dir / TRACES_FILENAME,
-        "eval_log": output_dir / EVAL_LOG_FILENAME,
+        "eval_log": output_dir / EVAL_LOG_PATH,
     }
 
 
@@ -312,7 +348,9 @@ def build_variant_result(
     return VariantExecutionResult(
         variant=plan.variant,
         experiment_manifest_digest=plan.experiment_manifest_digest,
-        resolved_verifiers_config=artifact_for(paths["config"], CONFIG_MEDIA_TYPE),
+        resolved_verifiers_config=artifact_for(
+            paths["config"], RESOLVED_CONFIG_MEDIA_TYPE
+        ),
         raw_traces=artifact_for(paths["traces"], TRACES_MEDIA_TYPE),
         eval_log=artifact_for(paths["eval_log"], EVAL_LOG_MEDIA_TYPE),
         normalized_episodes=artifact_for(destination, NORMALIZED_EPISODES_MEDIA_TYPE),

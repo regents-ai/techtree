@@ -52,7 +52,12 @@ from techtree.verifiers.config import (
     config_to_json_bytes,
     egress_for,
 )
-from techtree.verifiers.models import RunPaths, VariantExecutionPlan, VariantName
+from techtree.verifiers.models import (
+    EVAL_RUN_NAME,
+    RunPaths,
+    VariantExecutionPlan,
+    VariantName,
+)
 
 __all__ = [
     "EVAL_CONFIG_MEDIA_TYPE",
@@ -135,7 +140,11 @@ def compile_variant_config(
     _check_subject_is_executable(subject)
     skill_paths = _resolve_skill_paths(subject, run_paths)
 
-    output_dir = run_paths.variant_output_dir(variant)
+    # ``output_dir`` names the directory the engine *groups* runs under, not
+    # the directory this run writes into; the invocation's ``--run.name`` names
+    # that (deviation D2). The two are joined in exactly one place,
+    # :meth:`RunPaths.variant_output_dir`.
+    output_dir = run_paths.variant_output_group_dir(variant)
     taskset = experiment.configuration.taskset
     allow, block = egress_for(subject.runtime.network_policy)
 
@@ -412,7 +421,10 @@ def compile_plans(
             experiment_manifest_digest=digest_object(manifest),
             experiment_manifest_path=str(run_paths.manifest_path(variant)),
             verifiers_input_config_path=str(run_paths.variant_input_config(variant)),
-            verifiers_output_dir=config.output_dir,
+            # The engine's ``--output-dir`` groups runs; the plan names the one
+            # this variant writes into, which is the group plus the name
+            # :func:`~techtree.verifiers.child.eval_argv` pins (deviation D2).
+            verifiers_output_dir=str(Path(config.output_dir) / EVAL_RUN_NAME),
             skill_paths=list(config.env.subject.harness.skills),
             task_count=config.num_tasks,
             max_concurrent=config.max_concurrent,

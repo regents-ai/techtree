@@ -1,5 +1,30 @@
 # Verifiers `eval` — WP6a preflight findings
 
+> **PARTLY SUPERSEDED (2026-08-26).** The engine is now pinned to the released
+> `v0.3.1` (`b2e4e8157783b2c0dffc7821044c87f29f1c3ccf`), and three things below
+> are true of `0.3.1.dev21` only. `docs/verifiers-pin-0.3.1.md` is the current
+> record; where the two disagree, it wins.
+>
+> 1. **A run writes into a directory it has to name.** `--output-dir` groups
+>    runs; the run itself lands in `<output-dir>/<run.dir>`, with a random
+>    suffix when nothing names it (deviation D2). Every Techtree invocation now
+>    passes `--run.name`.
+> 2. **The run's files moved, and one of them changed format** (deviations D1
+>    and D5). Where this document says a run writes `config.toml`,
+>    `traces.jsonl` and `eval.log` side by side, the released engine writes
+>    `configs/resolved/eval.json`, `traces.jsonl`, `logs/attempt_<n>/eval.log`
+>    and a `logs/latest` symlink. The resolved configuration is JSON because
+>    only JSON round-trips an explicit null. A verbatim copy of the launch file
+>    appears at `configs/eval.toml` only when that file is TOML; Techtree's is
+>    `input.json`, so no copy is written for a Techtree run.
+> 3. **Hosting is pooled by default.** `serve` is an elastic env-server worker
+>    pool unless `--no-serve` is passed (deviation D5). Techtree passes it on
+>    the evaluation and on the validation.
+>
+> Findings E0, E1, E3 and E4 are unaffected, and so is everything this document
+> says about credentials, ordering and the dashboard. E2 still holds — a dry run
+> writes only the resolved configuration — at the new path.
+
 Ticket: `techtree-python-85a.1.2` (WP6a — Verifiers eval compatibility and
 compiler). Spec sections §6.3–§6.9 and §6.12–§6.14.
 

@@ -57,7 +57,11 @@ from techtree.verifiers.models import (
     VariantExecutionResult,
     VariantName,
 )
-from techtree.verifiers.outputs import TRACES_FILENAME
+from techtree.verifiers.outputs import (
+    EVAL_LOG_PATH,
+    RESOLVED_CONFIG_PATH,
+    TRACES_FILENAME,
+)
 
 pytestmark = pytest.mark.real_model
 
@@ -179,7 +183,7 @@ def test_both_variants_of_a_real_campaign_run_at_once(
         # Raw evidence is retained beside the projection that reads it, and
         # every byte of it is the participant's alone. Spec section 6.19.
         output = paths.variant_output_dir(variant)
-        for name in ("config.toml", TRACES_FILENAME, "eval.log"):
+        for name in (RESOLVED_CONFIG_PATH, TRACES_FILENAME, EVAL_LOG_PATH):
             assert (output / name).is_file(), f"{variant.value}/{name} was not retained"
         for written in output.iterdir():
             assert stat.S_IMODE(written.stat().st_mode) == 0o600, written

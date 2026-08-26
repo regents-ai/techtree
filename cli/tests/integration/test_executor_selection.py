@@ -191,28 +191,45 @@ def test_the_engines_own_output_is_made_private_after_it_is_written(
     """Raw subject transcripts are the participant's. Spec section 6.19.
 
     Techtree's own capture files are created ``0600``, but ``traces.jsonl``,
-    ``eval.log`` and the resolved configuration are written by the engine under
+    the log and the resolved configuration are written by the engine under
     whatever umask the operator happens to have, and ``traces.jsonl`` is every
     subject conversation in full. Tightening them is the last thing an
     execution does, successful or not.
+
+    The tree here is the one the released engine leaves — two of the three
+    files inside directories, and a ``logs/latest`` symlink beside them. The
+    directories have to be tightened as well as the files, and the link has to
+    be left alone: chmod follows a link, and what a link points at is not
+    necessarily the run's.
     """
     from techtree.runs.real import keep_evaluation_private
     from techtree.verifiers.models import RunPaths, VariantName
+    from techtree.verifiers.outputs import (
+        EVAL_LOG_PATH,
+        RESOLVED_CONFIG_PATH,
+        TRACES_FILENAME,
+    )
 
     paths = RunPaths(root=tmp_path / "runs" / "run_x")
     for variant in (VariantName.BASELINE, VariantName.CANDIDATE):
         output = paths.variant_output_dir(variant)
         output.mkdir(parents=True)
-        for name in ("config.toml", "traces.jsonl", "eval.log"):
+        for name in (RESOLVED_CONFIG_PATH, TRACES_FILENAME, EVAL_LOG_PATH):
             written = output / name
+            written.parent.mkdir(parents=True, exist_ok=True)
             written.write_text("{}\n")
             written.chmod(0o644)
+        attempt = (output / EVAL_LOG_PATH).parent
+        (attempt.parent / "latest").symlink_to(attempt.name)
 
     keep_evaluation_private(paths)
 
     for variant in (VariantName.BASELINE, VariantName.CANDIDATE):
-        for written in paths.variant_output_dir(variant).iterdir():
-            assert stat.S_IMODE(written.stat().st_mode) == 0o600, written
+        for written in paths.variant_output_dir(variant).rglob("*"):
+            if written.is_symlink():
+                continue
+            expected = 0o700 if written.is_dir() else 0o600
+            assert stat.S_IMODE(written.stat().st_mode) == expected, written
 
 
 def test_making_an_evaluation_private_tolerates_a_run_that_never_started(

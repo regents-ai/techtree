@@ -51,7 +51,7 @@ consistency.
 
 from __future__ import annotations
 
-import tomllib
+import json
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final
@@ -102,11 +102,16 @@ class ObservedSubjectConfiguration(ProtocolModel):
 
 
 def read_resolved_config(path: Path) -> dict[str, Any]:
-    """Read the configuration the engine resolved and wrote back out."""
+    """Read the configuration the engine resolved and wrote back out.
+
+    JSON, because that is what the engine writes: it dumps the resolved model
+    whole, nulls included, so an explicitly-unset setting round-trips as itself
+    (``docs/verifiers-pin-0.3.1.md``, deviation D1). TOML could not carry those
+    nulls, which is why upstream stopped using it here.
+    """
     try:
-        with path.open("rb") as handle:
-            document: dict[str, Any] = tomllib.load(handle)
-    except (OSError, tomllib.TOMLDecodeError) as error:
+        document: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValidationError(
             "the configuration this variant's engine resolved could not be "
             "read, so what it actually ran cannot be established",

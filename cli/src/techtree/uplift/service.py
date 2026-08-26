@@ -131,7 +131,7 @@ from techtree.verifiers.models import (
     VariantExecutionResult,
     VariantName,
 )
-from techtree.verifiers.outputs import CONFIG_FILENAME
+from techtree.verifiers.outputs import RESOLVED_CONFIG_PATH
 
 __all__ = [
     "REAL_REPORT_STAGE_FAILED",
@@ -327,7 +327,7 @@ class RealUpliftReportService:
             observed=observe_variant(
                 result=result,
                 resolved_config=read_resolved_config(
-                    run_paths.variant_output_dir(variant) / CONFIG_FILENAME
+                    run_paths.variant_output_dir(variant) / RESOLVED_CONFIG_PATH
                 ),
                 runtime=campaign.subject.runtime,
             ),

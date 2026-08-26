@@ -62,8 +62,8 @@ from techtree.verifiers.models import (
     VariantExecutionResult,
     VariantName,
 )
+from techtree.verifiers.outputs import RESOLVED_CONFIG_PATH
 from techtree.verifiers.verify import (
-    RESOLVED_CONFIG_PATH,
     dry_run_variant_config,
     verify_compiled_config,
     verify_variant_execution,
@@ -101,7 +101,9 @@ def resolved_document(config: EvalToml, **overrides: Any) -> dict[str, Any]:
     """
     document = emitted_document(config)
     document["verbose"] = False
-    document["server"] = False
+    # `--no-serve` resolves the optional serve block to null; the engine dumps
+    # the model whole, so the null is in the document rather than absent.
+    document["serve"] = None
     document["client"]["base_url"] = "https://api.pinference.ai/api/v1"
     document["client"]["headers"] = {"X-Prime-Team-ID": "team-42"}
     document["env"]["interception"] = {"type": "elastic", "multiplex": 32}
@@ -310,6 +312,7 @@ def test_a_clean_dry_run_passes_every_check(
         "resolved_config_written",
         "resolved_config_matches_compiled",
         "platform_push_disabled",
+        "rollouts_run_in_process",
         "named_subject_seat_resolved",
         "runtime_image_digest_pinned",
         "output_directory_is_run_owned",
@@ -428,6 +431,38 @@ def test_a_resolved_config_that_would_upload_fails_the_push_check(
 
     push = next(check for check in checks if check.id == "platform_push_disabled")
     assert push.status == "failed"
+
+
+def test_a_resolved_config_that_would_use_a_worker_pool_fails(
+    written_config: tuple[EvalToml, Path, Path],
+) -> None:
+    # The dangerous case is the engine's own default: `serve` is an elastic
+    # worker pool unless `--no-serve` turns it off, and a pooled run is not the
+    # one child the supervisor watches.
+    config, _, _ = written_config
+    document = resolved_document(config)
+    document["serve"] = {"pool": {"type": "elastic", "multiplex": 128}}
+
+    checks = verify_compiled_config(compiled=config, resolved=document)
+
+    serve = next(check for check in checks if check.id == "rollouts_run_in_process")
+    assert serve.status == "failed"
+
+
+def test_a_resolved_config_that_never_mentions_serving_fails(
+    written_config: tuple[EvalToml, Path, Path],
+) -> None:
+    # An absent key is not a null one. The engine dumps the resolved model
+    # whole, so a document with no `serve` at all is a document that did not
+    # come from the pinned engine, and it cannot vouch for the hosting mode.
+    config, _, _ = written_config
+    document = resolved_document(config)
+    document.pop("serve")
+
+    checks = verify_compiled_config(compiled=config, resolved=document)
+
+    serve = next(check for check in checks if check.id == "rollouts_run_in_process")
+    assert serve.status == "failed"
 
 
 def test_an_environment_that_seats_an_agent_rather_than_a_subject_fails(

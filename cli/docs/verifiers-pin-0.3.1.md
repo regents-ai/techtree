@@ -448,20 +448,28 @@ Mechanical, and already done in the preflight:
    resolved configuration under a randomly suffixed directory (D2). No
    guarantee moved to argv (D5).
 
-Not mechanical, and still open:
+6. **Done** — `--no-serve` is on the real eval invocation, and on the dry run
+   beside it, so the validation resolves the hosting the run will actually use.
+   Without it Techtree would silently start running through the env-server
+   worker pool (D5). The engine's own answer is now a named dry-run check:
+   `rollouts_run_in_process` fails unless the resolved configuration records
+   `serve` as null, so a run refuses to start rather than spending through a
+   pool.
+7. **Done** — the real invocation names its run directory with
+   `--run.name run`, the compiled configuration's `output_dir` names the
+   *group* one level above it, and `src/techtree/verifiers/outputs.py` names
+   the released layout: `configs/resolved/eval.json` (`application/json`),
+   `traces.jsonl`, `logs/attempt_1/eval.log`. Two details were settled by
+   reading the engine rather than by assumption. The verbatim copy of the
+   launch configuration is written only when the launch file is TOML
+   (`write_launch_toml` filters on the suffix) and Techtree launches with
+   `input.json`, so no copy exists for a Techtree run and none is required.
+   And `logs/latest` is ignored: it is a symlink every later launch repoints,
+   a digest over it would not be a digest of the log, and the attempt number
+   is `1` and can be nothing else, because an attempt directory is minted per
+   launch and Techtree never resumes or re-enters a run directory (D3).
 
-6. `--no-serve` must be added to the **real** eval invocation, or Techtree
-   silently starts running through the env-server worker pool. Confirmed still
-   true against the released engine: a dry run of a Techtree-compiled config
-   resolves `serve` to an elastic pool (D5).
-7. The eval run's artifact set grew a verbatim copy of the launch config, a
-   `logs/attempt_<n>/` directory and a `logs/latest` symlink, and the resolved
-   configuration moved to `configs/resolved/eval.json` under a named run
-   directory. `src/techtree/verifiers/outputs.py` still names the flat
-   `config.toml`/`eval.log` layout, and `docs/verifiers-eval.md`'s three-file
-   contract needs rewriting with it. This is one change with (6), not two: the
-   files can only be found once the real invocation names its run directory
-   (D5).
+Nothing here is open.
 
 Nothing in decision 0001's task-hash boundary, spec §22.5's taskset sketch or
 spec §22.6's `__init__.py` export needs to change. All three still match.
@@ -498,12 +506,11 @@ unrelated red for this one:
 * `test_subject_image_pin.py` — 2 green, 1 red. **Pre-existing and unrelated**:
   Docker Hub has re-pushed `python:3.11-slim`, so the tag no longer resolves to
   the recorded index digest.
-* `test_verifiers_eval_contract.py` — still largely red, but no longer behind
-  the `rich` blocker. Only the one test that exercises Techtree's own compiler
-  and serializer,
-  `test_a_techtree_compiled_configuration_is_accepted_by_the_pinned_engine`,
-  was ported when D5 was settled. The rest write their own TOML documents
-  against the dev21 run layout and belong with items 6 and 7 above; the
-  integration suite's
-  `tests/integration/test_eval_compile.py` covers the compiled configuration
-  against a real installed engine in the meantime, and is green.
+* `test_verifiers_eval_contract.py` — 34 of 34 green, ported with items 6 and 7.
+  Every invocation in it now carries `--run.name` and `--no-serve` and every
+  document it writes is JSON with an explicit `rich` null, so the suite asks
+  about the invocation Techtree actually performs. Two assertions changed
+  because the engine did, not because the test was inconvenient:
+  `disabled_tools` is now a declared harness field that resolves to null rather
+  than an absent key, and a real run leaves `logs/latest` beside its three
+  files. Both are recorded rather than smoothed over.

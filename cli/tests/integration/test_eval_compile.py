@@ -148,7 +148,9 @@ def test_both_variants_of_the_shipped_campaign_compile(
         assert config.rich is None
         assert config.shuffle is False
         assert config.num_rollouts == 1
-        assert config.output_dir == str(run_paths.variant_output_dir(variant))
+        # `--output-dir` groups runs; the run itself is one level below it,
+        # under the name the invocation pins (deviation D2).
+        assert config.output_dir == str(run_paths.variant_output_group_dir(variant))
     assert configs[VariantName.BASELINE].env.subject.harness.skills == []
     assert len(configs[VariantName.CANDIDATE].env.subject.harness.skills) == 1
 
@@ -338,7 +340,12 @@ WIRE_EPISODE_GENERATOR = '''
 import json
 import sys
 
-from verifiers.v1.cli.output import write_episode
+from verifiers.v1.cli.output import (
+    create_attempt_log_dir,
+    save_config,
+    write_episode,
+)
+from verifiers.v1.configs.cli.eval import EvalConfig
 from verifiers.v1.configs.agent import WireAgentConfig
 from verifiers.v1.configs.harness import WireHarnessConfig
 from verifiers.v1.episode import Episode, EnvInfo
@@ -351,9 +358,15 @@ from pathlib import Path
 
 directory = Path(output_dir)
 directory.mkdir(parents=True, exist_ok=True)
-(directory / "config.toml").write_text("push = false\\n")
-(directory / "traces.jsonl").write_text("")
-(directory / "eval.log").write_text("INFO results\\n")
+
+# Laid out by the engine's own writers rather than by hand, so this run
+# directory is the shape the released engine produces and not the shape
+# Techtree hopes for. `save_config` writes `configs/resolved/eval.json`,
+# copies the launch file only when it is TOML (Techtree's is JSON, so no
+# copy appears), and truncates `traces.jsonl`; `create_attempt_log_dir`
+# mints `logs/attempt_1` and points the `logs/latest` symlink at it.
+save_config(EvalConfig(model=model, output_dir=directory.parent), directory)
+(create_attempt_log_dir(directory) / "eval.log").write_text("INFO results\\n")
 
 # Written in reverse membership order on purpose: line order is completion
 # order, and the normalizer is what puts the projection back into the

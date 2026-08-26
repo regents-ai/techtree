@@ -58,6 +58,8 @@ from techtree.verifiers.models import (
     VariantName,
 )
 from techtree.verifiers.outputs import (
+    EVAL_LOG_PATH,
+    RESOLVED_CONFIG_PATH,
     TRACES_FILENAME,
     build_variant_result,
 )
@@ -225,7 +227,7 @@ def test_one_real_baseline_variant_runs_end_to_end(
 
     # -- raw evidence is retained ----------------------------------------
     output_dir = paths.variant_output_dir(variant)
-    for name in ("config.toml", TRACES_FILENAME, "eval.log"):
+    for name in (RESOLVED_CONFIG_PATH, TRACES_FILENAME, EVAL_LOG_PATH):
         assert (output_dir / name).is_file(), f"{name} was not retained"
     assert paths.variant_stdout_log(variant).is_file()
     assert paths.variant_stderr_log(variant).is_file()

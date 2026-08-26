@@ -36,6 +36,7 @@ of running it is a stub.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Final
 
@@ -43,6 +44,7 @@ from fixtures.receipts.pair import restrict_to_tasks
 from fixtures.receipts.support import (
     NORMALIZED_EPISODES_FILE,
     RESOLVED_CONFIG_FILE,
+    read_recorded_config,
     recorded_root,
 )
 from techtree.canonical import digest_object, sha256_digest_bytes
@@ -59,6 +61,10 @@ from techtree.verifiers.models import (
     RunPaths,
     VariantExecutionResult,
     VariantName,
+)
+from techtree.verifiers.outputs import (
+    RESOLVED_CONFIG_MEDIA_TYPE,
+    RESOLVED_CONFIG_PATH,
 )
 
 __all__ = [
@@ -184,20 +190,37 @@ class ReplacementEvidenceExecutor:
         output = run_paths.variant_output_dir(variant)
         output.mkdir(parents=True, exist_ok=True)
 
-        for name in (NORMALIZED_EPISODES_FILE, RESOLVED_CONFIG_FILE):
-            source = (recorded_root() / _RECORDED.value / name).read_text("utf-8")
-            # The only edit: the Skill this side declares. Both spellings of a
-            # digest occur — ``sha256:`` in the episodes, ``sha256-`` in the
-            # mount directory the resolved configuration names — and both are
-            # rewritten so that what the traces record and what the engine
-            # mounted still agree with each other.
-            rewritten = source.replace(
-                _hexadecimal(recorded_skill), _hexadecimal(declared)
-            )
-            (output / name).write_text(rewritten, encoding="utf-8")
+        # The only edit: the Skill this side declares. Both spellings of a
+        # digest occur — ``sha256:`` in the episodes, ``sha256-`` in the mount
+        # directory the resolved configuration names — and both are rewritten
+        # so that what the traces record and what the engine mounted still
+        # agree with each other.
+        def restated(source: str) -> str:
+            return source.replace(_hexadecimal(recorded_skill), _hexadecimal(declared))
+
+        recorded = recorded_root() / _RECORDED.value
 
         episodes_path = output / NORMALIZED_EPISODES_FILE
-        config_path = output / RESOLVED_CONFIG_FILE
+        episodes_path.write_text(
+            restated((recorded / NORMALIZED_EPISODES_FILE).read_text("utf-8")),
+            encoding="utf-8",
+        )
+
+        # The probe's own resolved configuration, at the path and in the format
+        # this build's engine writes one (deviation D1). The recorded bytes are
+        # TOML and stay TOML where they are recorded; what a *run* carries has
+        # to be shaped the way a run's own reader expects, or the pipeline this
+        # exercises is not the pipeline that ships.
+        config_path = output / RESOLVED_CONFIG_PATH
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(
+            restated(
+                json.dumps(
+                    read_recorded_config(recorded / RESOLVED_CONFIG_FILE), indent=2
+                )
+            ),
+            encoding="utf-8",
+        )
         recorded_result = _recorded_result()
         return restrict_to_tasks(
             recorded_result.model_copy(
@@ -215,7 +238,7 @@ class ReplacementEvidenceExecutor:
                     "episodes": read_variant_episodes(episodes_path),
                     "normalized_episodes": _written(episodes_path),
                     "resolved_verifiers_config": _written(
-                        config_path, media_type="application/toml"
+                        config_path, media_type=RESOLVED_CONFIG_MEDIA_TYPE
                     ),
                 }
             ),

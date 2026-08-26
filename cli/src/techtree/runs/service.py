@@ -85,7 +85,7 @@ from techtree.runs.machine import is_terminal
 from techtree.runs.real import executor_kind_for
 from techtree.runs.store import RunStore
 from techtree.verifiers.models import RunPaths, VariantName
-from techtree.verifiers.outputs import EVAL_LOG_FILENAME
+from techtree.verifiers.outputs import EVAL_LOG_PATH
 
 __all__ = [
     "ACKNOWLEDGEMENT_METHODS",
@@ -550,7 +550,7 @@ class RunService:
         paths = RunPaths.for_run(self._paths, run_id)
         return self._read_log(
             run_id,
-            path=paths.variant_output_dir(variant) / EVAL_LOG_FILENAME,
+            path=paths.variant_output_dir(variant) / EVAL_LOG_PATH,
             tail=tail,
             missing=(
                 f"the {variant.value} variant of run {run_id} has not started "

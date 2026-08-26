@@ -25,6 +25,17 @@ so the re-issued graph is verified rather than asserted.
 *The child process envelope.* Each probe's ``ChildProcessOutcome`` is the
 operational record ``fixtures.receipts.support`` reconstructed from the child's
 own capture files. It says when a process ran, not what it measured.
+
+One thing is re-expressed rather than re-issued, and it is worth being exact
+about. The probes' resolved configuration was written as ``config.toml`` by the
+engine of the day; the pinned engine writes ``configs/resolved/eval.json``
+(``docs/verifiers-pin-0.3.1.md``, deviation D1), and that is where a run's own
+reader looks. The committed bytes under ``recorded/`` are never touched — they
+are the record of what happened — but what this module lays out is a *run*, and
+a run's evaluation directory has to be shaped the way this build's engine
+shapes one, or the thing under test is not the thing that ships. So the
+recorded document is read as the TOML it is and written back out as the same
+document in the format a run carries. No value changes; only the spelling does.
 """
 
 from __future__ import annotations
@@ -39,6 +50,7 @@ from fixtures.receipts.pair import RecordedPair, recorded_pair, trimmed_campaign
 from fixtures.receipts.support import (
     NORMALIZED_EPISODES_FILE,
     RESOLVED_CONFIG_FILE,
+    read_recorded_config,
     recorded_root,
 )
 from techtree.canonical import canonical_json_bytes, digest_object
@@ -71,6 +83,7 @@ from techtree.verifiers.models import (
     RunPaths,
     VariantName,
 )
+from techtree.verifiers.outputs import RESOLVED_CONFIG_PATH
 
 __all__ = [
     "RecordedEvidenceExecutor",
@@ -271,8 +284,20 @@ class RecordedEvidenceExecutor:
         for variant in (VariantName.BASELINE, VariantName.CANDIDATE):
             output = run_paths.variant_output_dir(variant)
             output.mkdir(parents=True, exist_ok=True)
-            for name in (NORMALIZED_EPISODES_FILE, RESOLVED_CONFIG_FILE):
-                shutil.copyfile(recorded_root() / variant.value / name, output / name)
+            recorded = recorded_root() / variant.value
+            shutil.copyfile(
+                recorded / NORMALIZED_EPISODES_FILE, output / NORMALIZED_EPISODES_FILE
+            )
+            # The same document, at the path and in the format this build's
+            # engine writes it (see the module docstring).
+            resolved = output / RESOLVED_CONFIG_PATH
+            resolved.parent.mkdir(parents=True, exist_ok=True)
+            resolved.write_text(
+                json.dumps(
+                    read_recorded_config(recorded / RESOLVED_CONFIG_FILE), indent=2
+                ),
+                encoding="utf-8",
+            )
 
         return RealExecutionResult(
             execution_backend="verifiers",

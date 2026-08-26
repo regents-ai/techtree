@@ -1,9 +1,13 @@
 """What a finished evaluation must have left on disk. Spec section 6.13.
 
-Two properties are worth testing here and one is easy to get wrong. The easy
-one is that the three upstream files exist. The one that matters is that a
-partially written normalized file is refused rather than parsed: a JSONL reader
-that stops at the last complete line silently drops an episode, and a
+Three properties are worth testing here and two are easy to get wrong. The easy
+one is that the three upstream files exist. The first that matters is *where*:
+two of the three live in subdirectories the released engine writes
+(``docs/verifiers-pin-0.3.1.md``, deviations D1 and D5), and a run directory is
+laid out here the way the engine lays it out — the ``logs/latest`` symlink
+included — rather than the way Techtree would find convenient. The second is
+that a partially written normalized file is refused rather than parsed: a JSONL
+reader that stops at the last complete line silently drops an episode, and a
 comparison missing one task still looks like a comparison.
 """
 
@@ -23,6 +27,9 @@ from techtree.verifiers.models import (
     NormalizedUsage,
 )
 from techtree.verifiers.outputs import (
+    EVAL_LOG_PATH,
+    RESOLVED_CONFIG_PATH,
+    TRACES_FILENAME,
     artifact_for,
     read_normalized_episodes,
     require_output_files,
@@ -87,10 +94,23 @@ def normalized_episode(position: int = 0) -> NormalizedEpisode:
 
 
 def write_run_output(directory: Path, *, traces: bytes = b"{}\n") -> Path:
+    """Lay out a run directory exactly as the released engine leaves one.
+
+    Including ``logs/latest``, which is a relative symlink to the attempt
+    directory. It is here so that every assertion below is made in its
+    presence: the engine writes it and Techtree has to be indifferent to it.
+    """
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "config.toml").write_text("push = false\n")
-    (directory / "traces.jsonl").write_bytes(traces)
-    (directory / "eval.log").write_text("INFO results\n")
+    config = directory / RESOLVED_CONFIG_PATH
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text('{"push": false, "rich": null, "serve": null}\n')
+
+    (directory / TRACES_FILENAME).write_bytes(traces)
+
+    log = directory / EVAL_LOG_PATH
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("INFO results\n")
+    (log.parent.parent / "latest").symlink_to(log.parent.name)
     return directory
 
 
@@ -100,8 +120,29 @@ def write_run_output(directory: Path, *, traces: bytes = b"{}\n") -> Path:
 
 
 def test_the_three_upstream_files_are_the_ones_required(tmp_path: Path) -> None:
-    names = {path.name for path in required_output_paths(tmp_path).values()}
-    assert names == {"config.toml", "traces.jsonl", "eval.log"}
+    relative = {
+        path.relative_to(tmp_path).as_posix()
+        for path in required_output_paths(tmp_path).values()
+    }
+    assert relative == {
+        "configs/resolved/eval.json",
+        "traces.jsonl",
+        "logs/attempt_1/eval.log",
+    }
+
+
+def test_the_required_files_are_the_ones_a_run_directory_holds(tmp_path: Path) -> None:
+    """The paths are the engine's, not a restatement of them.
+
+    ``write_run_output`` builds the directory from the same constants, so this
+    asserts against a directory laid out the way the engine lays one out and
+    would catch a required path that names a file no run produces.
+    """
+    output = write_run_output(tmp_path / "run")
+
+    for name, path in required_output_paths(output).items():
+        assert path.is_file(), name
+        assert not path.is_symlink(), name
 
 
 def test_a_complete_run_directory_is_accepted(tmp_path: Path) -> None:
@@ -109,7 +150,9 @@ def test_a_complete_run_directory_is_accepted(tmp_path: Path) -> None:
     assert set(require_output_files(output)) == {"config", "traces", "eval_log"}
 
 
-@pytest.mark.parametrize("removed", ["config.toml", "traces.jsonl", "eval.log"])
+@pytest.mark.parametrize(
+    "removed", [RESOLVED_CONFIG_PATH, TRACES_FILENAME, EVAL_LOG_PATH]
+)
 def test_a_missing_upstream_file_is_refused(tmp_path: Path, removed: str) -> None:
     output = write_run_output(tmp_path / "run")
     (output / removed).unlink()
@@ -120,11 +163,12 @@ def test_a_missing_upstream_file_is_refused(tmp_path: Path, removed: str) -> Non
 
 
 def test_a_dry_run_directory_is_not_a_run_directory(tmp_path: Path) -> None:
-    # A dry run writes config.toml and nothing else, so treating it as a run
-    # would report a truncated run where none was ever attempted.
+    # A dry run writes the resolved configuration and nothing else, so treating
+    # it as a run would report a truncated run where none was ever attempted.
     dry_run = tmp_path / "dry-run"
-    dry_run.mkdir()
-    (dry_run / "config.toml").write_text("push = false\n")
+    config = dry_run / RESOLVED_CONFIG_PATH
+    config.parent.mkdir(parents=True)
+    config.write_text('{"push": false}\n')
 
     with pytest.raises(ValidationError):
         require_output_files(dry_run)

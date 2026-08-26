@@ -43,7 +43,7 @@ from techtree.verifiers.compiler import (
     write_variant_config,
 )
 from techtree.verifiers.config import SubjectAgentToml, config_to_json_bytes
-from techtree.verifiers.models import RunPaths, VariantName
+from techtree.verifiers.models import EVAL_RUN_NAME, RunPaths, VariantName
 
 PINNED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -126,7 +126,15 @@ def test_the_campaign_values_land_where_the_engine_reads_them(
     assert config.env.subject.runtime.cpu == subject.runtime.cpu
     assert config.env.subject.runtime.memory == subject.runtime.memory_gb
     assert config.num_tasks == graph.campaign.taskset.selection.num_tasks
-    assert config.output_dir == str(run_paths.variant_output_dir(VariantName.BASELINE))
+    # `output_dir` names the group, not the run: the engine puts the run one
+    # level below it, under the name the invocation pins (deviation D2).
+    assert config.output_dir == str(
+        run_paths.variant_output_group_dir(VariantName.BASELINE)
+    )
+    assert (
+        run_paths.variant_output_dir(VariantName.BASELINE)
+        == Path(config.output_dir) / EVAL_RUN_NAME
+    )
 
 
 def test_a_restricted_campaign_runtime_compiles_to_framework_only_egress(

@@ -61,7 +61,7 @@ from techtree.canonical import sha256_digest_bytes
 from techtree.errors import RunError
 from techtree.fs import ensure_private_directory, fsync_directory
 from techtree.models.base import ArtifactRef, Digest
-from techtree.verifiers.models import ChildProcessOutcome, VariantName
+from techtree.verifiers.models import EVAL_RUN_NAME, ChildProcessOutcome, VariantName
 
 __all__ = [
     "CANCELLATION_EXIT_CODE",
@@ -77,6 +77,7 @@ __all__ = [
     "OUTPUT_DIR_FLAG",
     "PUSH_DISABLED_FLAG",
     "RUN_NAME_FLAG",
+    "SERVE_DISABLED_FLAG",
     "SUPERVISOR_GRACE_SECONDS",
     "SUPERVISOR_MODULE",
     "VARIANT_HARD_DEADLINE_SECONDS",
@@ -103,9 +104,10 @@ OUTPUT_DIR_FLAG: Final = "--output-dir"
 
 #: ``--output-dir`` names the directory runs are *grouped* under; the run
 #: itself lands in ``<output-dir>/<run.dir>``, and an unnamed run takes a
-#: random suffix (``docs/verifiers-pin-0.3.1.md``, deviation D2). A validation
-#: nobody can find the answer of is not a validation, so the dry run names its
-#: own run directory.
+#: random suffix (``docs/verifiers-pin-0.3.1.md``, deviation D2). Evidence
+#: nobody can find the second time is not evidence, so every invocation here
+#: names its own run directory — the validation as ``dry-run`` and the
+#: evaluation as :data:`~techtree.verifiers.models.EVAL_RUN_NAME`.
 RUN_NAME_FLAG: Final = "--run.name"
 DRY_RUN_NAME: Final = "dry-run"
 
@@ -113,6 +115,17 @@ DRY_RUN_NAME: Final = "dry-run"
 #: defaults to uploading the participant's episodes (``docs/verifiers-eval.md``,
 #: finding E1), and a flag on argv overrides whatever the file says.
 PUSH_DISABLED_FLAG: Final = "--no-push"
+
+#: Runs the evaluation in this process rather than through the engine's elastic
+#: env-server worker pool, which is what ``eval`` does by default
+#: (``docs/verifiers-pin-0.3.1.md``, deviation D5). Techtree has always run
+#: in-process and everything downstream assumes it: one child, one process
+#: group, one cancellation path that tears the subject's containers down
+#: (decisions document 0029). Rollouts farmed out to a pool of spawned workers
+#: are none of those things. Carried by the validation as well as by the run,
+#: for the same reason ``--no-push`` is: a flag the engine stopped
+#: understanding should be found before a run starts spending, not after.
+SERVE_DISABLED_FLAG: Final = "--no-serve"
 
 #: The conventional Ctrl-C code the pinned CLI exits on after it has torn its
 #: containers down (``docs/verifiers-eval.md``). A stopped run is cancelled,
@@ -162,15 +175,29 @@ def eval_argv(*, eval_executable: Path, input_config_path: Path) -> list[str]:
 
     The output directory is deliberately absent: the compiled configuration
     already names an absolute one, and repeating it on argv would create a
-    second place the two documents could disagree. No credential appears here
-    and none can — the configuration names an environment variable, and the
-    engine reads it from the child's environment (spec section 6.9).
+    second place the two documents could disagree. What the configuration
+    cannot name is the run *inside* that directory — ``--output-dir`` only
+    groups runs (deviation D2) — so ``--run.name`` pins it here, and the
+    evidence lands at
+    :meth:`~techtree.verifiers.models.RunPaths.variant_output_dir` rather than
+    under a random suffix nobody can find twice.
+
+    ``--no-serve`` is the other half of the same sentence: without it the
+    rollouts are hosted through an elastic worker pool instead of running in
+    this child (deviation D5).
+
+    No credential appears here and none can — the configuration names an
+    environment variable, and the engine reads it from the child's environment
+    (spec section 6.9).
     """
     return [
         str(eval_executable),
         CONFIG_ARGUMENT_MARKER,
         str(input_config_path),
         PUSH_DISABLED_FLAG,
+        SERVE_DISABLED_FLAG,
+        RUN_NAME_FLAG,
+        EVAL_RUN_NAME,
     ]
 
 
@@ -182,14 +209,20 @@ def dry_run_argv(*, input_config_path: Path, dry_run_dir: Path) -> list[str]:
     (``docs/verifiers-eval.md``, finding E2), and ``--run.name`` pins the
     directory underneath it so the resolved document has one findable path.
     Neither is a setting the experiment turns on — every one of those stays in
-    the file. The executable itself is prepended by
-    :class:`~techtree.engines.runner.EngineRunner`.
+    the file.
+
+    ``--no-push`` and ``--no-serve`` are carried because the run carries them:
+    the point of resolving the configuration first is to learn what the run
+    would do, and a validation that resolved a hosting mode the run will not
+    use would be answering a question nobody asked. The executable itself is
+    prepended by :class:`~techtree.engines.runner.EngineRunner`.
     """
     return [
         CONFIG_ARGUMENT_MARKER,
         str(input_config_path),
         DRY_RUN_FLAG,
         PUSH_DISABLED_FLAG,
+        SERVE_DISABLED_FLAG,
         RUN_NAME_FLAG,
         DRY_RUN_NAME,
         OUTPUT_DIR_FLAG,

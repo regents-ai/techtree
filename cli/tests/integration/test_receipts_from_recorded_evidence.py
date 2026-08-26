@@ -35,6 +35,7 @@ from fixtures.receipts.support import (
     NORMALIZED_EPISODES_FILE,
     RESOLVED_CONFIG_FILE,
     RecordedVariant,
+    read_recorded_config,
     recorded_variant,
 )
 from techtree.canonical import sha256_digest_bytes
@@ -51,7 +52,7 @@ from techtree.receipts.episode import (
     experiment_variant_of,
     read_variant_episodes,
 )
-from techtree.receipts.observed import observed_from_episodes, read_resolved_config
+from techtree.receipts.observed import observed_from_episodes
 from techtree.receipts.set import (
     ReceiptSetManifest,
     build_receipt_set,
@@ -146,7 +147,7 @@ def test_receipts_are_built_from_a_run_directory_without_executing_anything(
     # 5. And what the engine actually resolved is recoverable beside it.
     observed = observed_from_episodes(
         episodes,
-        resolved_config=read_resolved_config(output / RESOLVED_CONFIG_FILE),
+        resolved_config=read_recorded_config(output / RESOLVED_CONFIG_FILE),
         image_resolution=recorded.image_resolution,
         runtime=recorded.campaign.agents[SUBJECT_AGENT].runtime,
     )

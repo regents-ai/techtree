@@ -40,7 +40,12 @@ Recorded, as the run produced it:
   never reads a raw upstream record, so this is the evidence the receipt code
   is supposed to see.
 * ``config.toml`` — the configuration the engine resolved and wrote back out,
-  byte for byte.
+  byte for byte. It is TOML because the engine of 2026-08-13 wrote TOML; the
+  released engine writes ``configs/resolved/eval.json`` instead, and the live
+  reader in :mod:`techtree.receipts.observed` reads only that. This evidence is
+  append-only, so it is read here as what it is — by
+  :func:`read_recorded_config`, which parses the historical bytes rather than
+  asking the live path to understand two formats.
 * ``campaign.json``, ``experiment.json``, ``request.json`` — the run's own
   staged copies of what it executed.
 * the artifact digests and sizes in ``execution.json``, each hashed from the
@@ -95,6 +100,7 @@ the subject's own final message.
 from __future__ import annotations
 
 import json
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
@@ -105,7 +111,6 @@ from techtree.models.campaign import CampaignSpec
 from techtree.models.experiment import ExperimentManifest
 from techtree.models.run import RunRequest
 from techtree.receipts.episode import read_variant_episodes
-from techtree.receipts.observed import read_resolved_config
 from techtree.verifiers.models import (
     ChildProcessOutcome,
     NormalizedEpisode,
@@ -118,12 +123,17 @@ __all__ = [
     "NORMALIZED_EPISODES_FILE",
     "RESOLVED_CONFIG_FILE",
     "RecordedVariant",
+    "read_recorded_config",
     "recorded_platform",
     "recorded_root",
     "recorded_variant",
 ]
 
 NORMALIZED_EPISODES_FILE: Final = "normalized-episodes.jsonl"
+
+#: What the 2026-08-13 engine called the configuration it resolved. The name and
+#: the format are both historical: this is recorded evidence, and recorded
+#: evidence is never rewritten to match a later engine.
 RESOLVED_CONFIG_FILE: Final = "config.toml"
 
 _EXECUTION_FILE: Final = "execution.json"
@@ -248,8 +258,22 @@ def recorded_variant(variant: VariantName) -> RecordedVariant:
             image_resolution=image_resolution,
             episodes=episodes,
         ),
-        resolved_config=read_resolved_config(directory / RESOLVED_CONFIG_FILE),
+        resolved_config=read_recorded_config(directory / RESOLVED_CONFIG_FILE),
     )
+
+
+def read_recorded_config(path: Path) -> dict[str, Any]:
+    """Read a recorded probe's resolved configuration, as the TOML it is.
+
+    Deliberately not :func:`techtree.receipts.observed.read_resolved_config`.
+    That function reads what the pinned engine writes today, which is JSON, and
+    teaching it a second format so it could also read a 2026-08-13 probe would
+    put a fork in the path a paid run depends on. The historical bytes are read
+    here instead, by the only code that has any business knowing they are old.
+    """
+    with path.open("rb") as handle:
+        document: dict[str, Any] = tomllib.load(handle)
+    return document
 
 
 def _artifact(execution: dict[str, Any], name: str) -> ArtifactRef:

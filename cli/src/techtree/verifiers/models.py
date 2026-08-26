@@ -35,6 +35,7 @@ from techtree.paths import TechtreePaths
 
 __all__ = [
     "COMMAND_LOG_FILENAME",
+    "EVAL_RUN_NAME",
     "INPUT_CONFIG_FILENAME",
     "NORMALIZED_EPISODES_FILENAME",
     "STDERR_LOG_FILENAME",
@@ -87,8 +88,15 @@ COMMAND_LOG_FILENAME: Final = "command.log"
 #: directory and this is Techtree's own record of the engine's lifetime.
 SUPERVISION_RECORD_FILENAME: Final = "supervision.json"
 
+#: What Techtree calls the one evaluation it groups under a variant's output
+#: directory. Since v0.3.1 ``--output-dir`` names the directory runs are
+#: *grouped* under and the run itself lands in ``<output-dir>/<run.dir>``, with
+#: a random suffix when nothing names it (``docs/verifiers-pin-0.3.1.md``,
+#: deviation D2). Naming it is what makes one variant's evidence findable, and
+#: findable twice.
+EVAL_RUN_NAME: Final = "run"
+
 _DRY_RUN_DIRECTORY: Final = "dry-run"
-_RUN_DIRECTORY: Final = "run"
 _INPUTS_DIRECTORY: Final = "inputs"
 _MANIFESTS_DIRECTORY: Final = "manifests"
 _SKILL_FILES_PATH: Final = ("skill", "files")
@@ -168,9 +176,24 @@ class RunPaths:
         """Where one variant's supervisor records how its evaluation ended."""
         return self.variant_dir(variant) / SUPERVISION_RECORD_FILENAME
 
+    def variant_output_group_dir(self, variant: VariantName) -> Path:
+        """The directory the engine groups one variant's evaluations under.
+
+        This is what the compiled configuration's ``output_dir`` names, and it
+        is a level above the run itself: ``--output-dir`` groups runs rather
+        than receiving one (deviation D2).
+        """
+        return self.variant_dir(variant)
+
     def variant_output_dir(self, variant: VariantName) -> Path:
-        """Where the engine writes one variant's real evaluation output."""
-        return self.variant_dir(variant) / _RUN_DIRECTORY
+        """Where the engine writes one variant's real evaluation output.
+
+        One level below the group directory, under the name the invocation
+        pins with ``--run.name``. Left unpinned the engine would append a
+        random suffix here and the evidence would land somewhere Techtree
+        never looks.
+        """
+        return self.variant_output_group_dir(variant) / EVAL_RUN_NAME
 
     def variant_stdout_log(self, variant: VariantName) -> Path:
         """Where one variant's child sends everything it prints.

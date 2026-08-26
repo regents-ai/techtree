@@ -23,15 +23,18 @@ from techtree.errors import RunError
 from techtree.verifiers.child import (
     CONFIG_ARGUMENT_MARKER,
     PUSH_DISABLED_FLAG,
+    RUN_NAME_FLAG,
+    SERVE_DISABLED_FLAG,
     SUPERVISOR_GRACE_SECONDS,
     VARIANT_HARD_DEADLINE_SECONDS,
     VerifiersChild,
     argv_digest,
+    dry_run_argv,
     eval_argv,
     supervisor_argv,
     write_command_log,
 )
-from techtree.verifiers.models import VariantName
+from techtree.verifiers.models import EVAL_RUN_NAME, VariantName
 from techtree.verifiers.supervisor import SUPERVISOR_FAILURE_EXIT_CODE
 
 #: How long a test waits for something a started process was going to do anyway.
@@ -96,6 +99,43 @@ def test_the_upload_is_disabled_on_the_command_line(tmp_path: Path) -> None:
     )
 
     assert PUSH_DISABLED_FLAG in argv
+
+
+def test_the_real_invocation_names_the_directory_it_writes_into(
+    tmp_path: Path,
+) -> None:
+    # `--output-dir` only groups runs; an unnamed run lands under a random
+    # suffix, so a real evaluation would write its evidence somewhere Techtree
+    # never looks and never finds twice (deviation D2).
+    argv = eval_argv(
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
+    )
+
+    assert argv[argv.index(RUN_NAME_FLAG) + 1] == EVAL_RUN_NAME
+
+
+def test_the_real_invocation_runs_the_rollouts_in_this_child(
+    tmp_path: Path,
+) -> None:
+    # Hosting through the elastic env-server worker pool is the default, and it
+    # is not what the supervisor watches (deviation D5).
+    argv = eval_argv(
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
+    )
+
+    assert SERVE_DISABLED_FLAG in argv
+
+
+def test_the_validation_asks_about_the_same_hosting_as_the_run(
+    tmp_path: Path,
+) -> None:
+    # A validation that resolved a hosting mode the run will not use would be
+    # answering a question nobody asked.
+    argv = dry_run_argv(
+        input_config_path=tmp_path / "input.json", dry_run_dir=tmp_path / "dry-run"
+    )
+
+    assert SERVE_DISABLED_FLAG in argv
 
 
 def test_the_real_invocation_never_overrides_the_output_directory(

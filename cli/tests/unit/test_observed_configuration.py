@@ -21,6 +21,7 @@ comparison.
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,7 @@ from techtree.receipts.observed import (
     read_resolved_config,
 )
 from techtree.verifiers.models import NormalizedEpisode, VariantName
+from techtree.verifiers.outputs import RESOLVED_CONFIG_PATH
 
 
 @pytest.fixture(params=[VariantName.BASELINE, VariantName.CANDIDATE])
@@ -399,17 +401,51 @@ def test_no_episodes_means_no_observed_configuration(
 # ---------------------------------------------------------------------------
 
 
-def test_the_recorded_configuration_reads_back(recorded: RecordedVariant) -> None:
-    """The configuration the engine wrote is TOML this code can read."""
-    document = read_resolved_config(recorded.resolved_config_path)
+def test_a_resolved_configuration_reads_back(tmp_path: Path) -> None:
+    """What a run's engine writes back is JSON, and its nulls survive.
+
+    The shape here is the released engine's: the resolved model dumped whole,
+    nulls included, at ``configs/resolved/eval.json`` under the run directory.
+    An explicit null is the reason the format is JSON at all — it is how the
+    live dashboard and the worker pool are recorded as off — so reading one
+    back is the part worth asserting.
+    """
+    path = tmp_path / RESOLVED_CONFIG_PATH
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        json.dumps(
+            {
+                "push": False,
+                "rich": None,
+                "serve": None,
+                "env": {"subject": {"harness": {"id": "hermes-agent"}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    document = read_resolved_config(path)
 
     assert document["push"] is False
+    assert document["rich"] is None
+    assert document["serve"] is None
     assert document["env"]["subject"]["harness"]["id"] == "hermes-agent"
 
 
 def test_an_unreadable_configuration_is_refused(tmp_path: Path) -> None:
     """A configuration that cannot be read cannot establish what ran."""
     with pytest.raises(TechtreeError) as failure:
-        read_resolved_config(tmp_path / "config.toml")
+        read_resolved_config(tmp_path / "eval.json")
+
+    assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
+
+
+def test_a_configuration_that_is_not_json_is_refused(tmp_path: Path) -> None:
+    """The engine writes JSON; anything else is not the run's own record."""
+    path = tmp_path / "eval.json"
+    path.write_text("push = false\n", encoding="utf-8")
+
+    with pytest.raises(TechtreeError) as failure:
+        read_resolved_config(path)
 
     assert failure.value.code == OBSERVED_CONFIGURATION_MISMATCH
