@@ -83,13 +83,17 @@ def test_the_compact_result_leads_with_the_measurement(
 ) -> None:
     text = " ".join(compact(finished).split())
 
-    # Ticket of9: the count first, because that is the unit a person quotes a
-    # result in. The mean it comes from is in the same breath, not replaced.
+    # Tickets e83 and 637: what the run established, then how much of the task
+    # family is still failing. Ticket of9's counts and the mean they come from
+    # stay in the same breath, one line underneath.
     assert text.startswith(
-        "**The Skill met the Campaign's threshold: 0 of 36 → 24 of 36 tasks, "
-        "mean 0.000 → 0.667 (+0.667)**"
+        "**Improved on this development task family — Solved 24 of 36 · "
+        "12 still failing · 0 regressions**"
     )
-    assert "- Tasks: 24 win, 0 loss, 12 tie" in text
+    assert "- Not broad-capability evidence" in text
+    assert "- Tasks: 0 of 36 → 24 of 36 (+24), mean 0.000 → 0.667 (+0.667)" in text
+    assert "win, " not in text
+    assert "threshold" not in text
 
 
 def test_the_compact_result_names_the_proof_beside_the_numbers(

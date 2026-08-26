@@ -42,18 +42,21 @@ from rich.table import Table
 
 from techtree.presentation.build import (
     HELD_FIXED_LINE,
+    NOT_BROAD_CAPABILITY_LINE,
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
     cost_explanation,
     cost_summary,
+    decision_headline,
     efficiency_sentence,
     score_bars,
+    solved_line,
     task_count_line,
 )
 from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
 
-__all__ = ["TaskDisplay", "outcome_label", "render_uplift_console", "verdict_line"]
+__all__ = ["TaskDisplay", "outcome_label", "render_uplift_console"]
 
 
 class TaskDisplay(StrEnum):
@@ -92,30 +95,10 @@ _VERIFICATION_BADGE: Final[dict[str, str]] = {
     VERIFICATION_NOT_VERIFIED: "local proof not checked",
 }
 
-_DECISION_SENTENCE: Final[dict[str, str]] = {
-    "accepted": "Accepted: the candidate met the threshold this Campaign declared.",
-    "rejected": (
-        "Rejected: the candidate did not meet the threshold this Campaign "
-        "declared. That is evidence about the Skill, not a failed run."
-    ),
-    "inconclusive": (
-        "Inconclusive: this Campaign declared no rule that can decide this comparison."
-    ),
-    "invalid": "Invalid: this comparison cannot carry a result.",
-    "development_only": (
-        "No verdict: this report is development-only and states no verdict."
-    ),
-}
-
 
 def outcome_label(outcome: str) -> str:
     """Return the word a reader sees for one task's outcome."""
     return _OUTCOME_LABEL[outcome]
-
-
-def verdict_line(payload: UpliftPresentationPayload) -> str:
-    """Return the one sentence that says what the comparison decided."""
-    return _DECISION_SENTENCE[payload.decision]
 
 
 def render_uplift_console(
@@ -149,13 +132,29 @@ def _header(payload: UpliftPresentationPayload, console: Console) -> None:
 
 
 def _primary(payload: UpliftPresentationPayload, console: Console) -> None:
-    """The count, the two bars, the delta, and the verdict.
+    """What was established, what is still failing, and the numbers under it.
 
-    The count leads because it is the number a person reads a result in. A
-    mean of 0.667 and "24 of 36" are the same measurement, and only one of them
-    can be repeated to somebody over a table. The mean, the delta and the
-    relative change all stay, underneath, as the detail that supports it.
+    The three lines at the top are the ones a reader repeats to somebody else,
+    so they are the three that have to be defensible on their own: what this
+    comparison showed, how much of the task family is still unsolved, and the
+    fact that none of it is evidence about broad capability.
+
+    Wins, losses and ties do not appear here. On this Climb the baseline scores
+    nothing on every task, so a tie means the candidate failed the task too,
+    and a headline of twenty-four wins and no losses would read as a clean
+    sweep over a run with twelve tasks still failing. The three words stay in
+    the per-task table below, where each one is beside the scores that produced
+    it.
+
+    The count leads the detail because it is the number a person reads a result
+    in. A mean of 0.667 and "24 of 36" are the same measurement, and only one
+    of them can be repeated to somebody over a table.
     """
+    console.print(f"Result  {decision_headline(payload)}")
+    console.print(f"        {solved_line(payload)}")
+    console.print(f"        {NOT_BROAD_CAPABILITY_LINE}")
+    console.print()
+
     counted = task_count_line(payload)
     if counted is not None:
         console.print(f"Tasks   {counted}")
@@ -172,11 +171,6 @@ def _primary(payload: UpliftPresentationPayload, console: Console) -> None:
     console.print(
         f"Change  {payload.absolute_delta:+.3f} mean score  ({_relative(payload)})"
     )
-    console.print(
-        f"Outcome {payload.wins} WIN / {payload.losses} LOSS / {payload.ties} TIE"
-    )
-    console.print()
-    console.print(verdict_line(payload))
     console.print()
 
 

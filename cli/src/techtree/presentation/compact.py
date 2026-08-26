@@ -27,13 +27,16 @@ from typing import Final
 
 from techtree.presentation.build import (
     HELD_FIXED_LINE,
+    NOT_BROAD_CAPABILITY_LINE,
     VERIFICATION_FAILED,
     VERIFICATION_NOT_VERIFIED,
     VERIFICATION_VERIFIED,
     cost_explanation,
     cost_summary,
+    decision_headline,
     efficiency_sentence,
-    task_counts,
+    solved_line,
+    task_count_line,
 )
 from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
 
@@ -57,14 +60,6 @@ _VERIFICATION_PHRASE: Final[dict[str, str]] = {
     VERIFICATION_NOT_VERIFIED: "signature not checked",
 }
 
-_HEADLINE: Final[dict[str, str]] = {
-    "accepted": "The Skill met the Campaign's threshold",
-    "rejected": "The Skill did not meet the Campaign's threshold",
-    "inconclusive": "This comparison could not be decided",
-    "invalid": "This comparison is not valid",
-    "development_only": "Development-only result, no verdict",
-}
-
 
 def render_uplift_markdown(
     payload: UpliftPresentationPayload,
@@ -77,13 +72,17 @@ def render_uplift_markdown(
     the channel a number is most likely to be quoted out of, so the sentence
     that would stop somebody quoting it cannot be further down.
     """
-    lines = [f"**{_HEADLINE[payload.decision]}: {_headline_numbers(payload)}**", ""]
+    lines = [
+        f"**{decision_headline(payload)} — {solved_line(payload)}**",
+        "",
+        f"- {NOT_BROAD_CAPABILITY_LINE}",
+    ]
     if payload.verification_status == VERIFICATION_FAILED:
         lines = [UNVERIFIED_HEADLINE, "", *lines]
     lines += [
         f"- {payload.campaign_title} — {payload.comparison_label}",
         f"- Changed: {payload.change_label}. {HELD_FIXED_LINE}",
-        f"- Tasks: {payload.wins} win, {payload.losses} loss, {payload.ties} tie",
+        f"- Tasks: {_headline_numbers(payload)}",
         f"- Proof: local {payload.proof_grade}, "
         f"{_VERIFICATION_PHRASE[payload.verification_status]}",
         f"- Cost: {cost_summary(payload)}",
@@ -115,21 +114,21 @@ def render_uplift_markdown(
 
 
 def _headline_numbers(payload: UpliftPresentationPayload) -> str:
-    """Return the result in the unit a person quotes it in.
+    """Return how the two sides scored, in the unit a person counts in.
 
-    This is the line most likely to be forwarded to somebody, so it leads with
-    the count rather than the mean where the reward has one, and keeps the mean
-    and the delta in the same breath so that nothing is lost by quoting it.
+    The bold line above carries what was established and what is still failing.
+    This carries the movement underneath it: both sides' counts where the
+    reward has them, and the means they came from in the same breath, so that
+    nothing is lost by quoting either one.
     """
     means = (
         f"{payload.baseline_score:.3f} → {payload.candidate_score:.3f} "
         f"({payload.absolute_delta:+.3f})"
     )
-    counted = task_counts(payload)
+    counted = task_count_line(payload)
     if counted is None:
-        return means
-    baseline, candidate, total = counted
-    return f"{baseline} of {total} → {candidate} of {total} tasks, mean {means}"
+        return f"mean {means}"
+    return f"{counted}, mean {means}"
 
 
 def _work(payload: UpliftPresentationPayload) -> list[str]:

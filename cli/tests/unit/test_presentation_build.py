@@ -41,8 +41,10 @@ from techtree.presentation.build import (
     build_uplift_presentation,
     cost_explanation,
     cost_summary,
+    decision_headline,
     efficiency_sentence,
     score_bars,
+    solved_line,
     task_count_line,
 )
 from techtree.presentation.compact import render_uplift_markdown
@@ -51,11 +53,7 @@ from techtree.presentation.models import (
     PresentationCaveat,
     UpliftPresentationPayload,
 )
-from techtree.presentation.rich import (
-    TaskDisplay,
-    render_uplift_console,
-    verdict_line,
-)
+from techtree.presentation.rich import TaskDisplay, render_uplift_console
 from techtree.receipts.compare import compare_real_variants
 from techtree.receipts.episode import experiment_variant_of
 from techtree.receipts.execution import (
@@ -729,21 +727,25 @@ def test_a_reward_that_is_not_all_or_nothing_gets_no_invented_count(
     assert task_count_line(graded) is None
 
 
-def test_the_turn_counts_are_carried_and_read_as_a_finding(
+def test_the_turn_counts_are_carried_and_read_as_a_saving(
     report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
 ) -> None:
-    """techtree-python-bmk. Two bare durations are not a finding; this is."""
+    """techtree-python-4y1. Two bare counts are not a finding; the saving is.
+
+    The recorded pair spent the same tokens and the same ninety seconds on both
+    sides, so the only difference this run has to report is the turns, and the
+    sentence reports that one and no other.
+    """
     payload = build(
         report, receipts, verified(), execution_record(report), recorded_evidence=seen()
     )
 
     assert payload.baseline_model_turns == 406
     assert payload.candidate_model_turns == 73
-    sentence = efficiency_sentence(payload)
-    assert sentence is not None
-    assert "73 model turns against the baseline's 406" in sentence
-    assert "finished in 90.0s against 90.0s" in sentence
-    assert "also depends on this machine" in sentence
+    assert efficiency_sentence(payload) == (
+        "On this controlled run the Skill took 333 fewer model turns (82%). "
+        "Those counts are properties of the work."
+    )
 
 
 def test_a_run_whose_files_could_not_be_read_claims_no_turns(
@@ -982,19 +984,20 @@ def test_both_channels_say_what_the_measured_difference_was(
     assert f"{payload.baseline_score:.3f}" in terminal
     assert f"{payload.candidate_score:.3f}" in terminal
     assert f"{payload.absolute_delta:+.3f}" in terminal
-    outcomes = f"{payload.wins} WIN / {payload.losses} LOSS / {payload.ties} TIE"
-    assert outcomes in terminal
-    assert verdict_line(payload) in terminal
+    assert decision_headline(payload) in terminal
+    assert solved_line(payload) in terminal
     assert "Cost" in terminal
     assert "Time" in terminal
 
     assert f"{payload.baseline_score:.3f} → {payload.candidate_score:.3f}" in gateway
     assert f"{payload.absolute_delta:+.3f}" in gateway
-    assert (
-        f"- Tasks: {payload.wins} win, {payload.losses} loss, {payload.ties} tie"
-    ) in gateway
+    assert decision_headline(payload) in gateway
+    assert solved_line(payload) in gateway
     assert "- Cost:" in gateway
     assert "- Time:" in gateway
+
+    # Wins, losses and ties stay on the payload, where a machine reads them.
+    assert (payload.wins, payload.losses, payload.ties) == (24, 0, 12)
 
 
 def test_both_channels_say_what_the_receipt_is_worth_and_how_to_check_it(

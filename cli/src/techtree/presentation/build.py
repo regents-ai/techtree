@@ -84,6 +84,7 @@ __all__ = [
     "FIRST_RESULT_LABEL",
     "HELD_FIXED_LINE",
     "LATER_RESULT_LABEL",
+    "NOT_BROAD_CAPABILITY_LINE",
     "P1_MEANING",
     "SCORE_BAR_WIDTH",
     "SECOND_CHANGE_LABEL",
@@ -94,8 +95,10 @@ __all__ = [
     "build_uplift_presentation",
     "cost_explanation",
     "cost_summary",
+    "decision_headline",
     "efficiency_sentence",
     "score_bars",
+    "solved_line",
     "task_count_line",
     "task_counts",
 ]
@@ -135,6 +138,35 @@ SECOND_CHANGE_LABEL: Final = "Skill v1 → Skill v2"
 #: Decisions document 0005 section 3.4, verbatim. The only words this build is
 #: permitted to explain ``P1`` with.
 P1_MEANING: Final = "integrity-bound, participant-attested local execution"
+
+#: What each decision actually established, said as what was measured rather
+#: than as a verdict that was won.
+#:
+#: The bar on this Climb is to beat a baseline of zero by any margin at all, on
+#: a synthetic task family, at proof grade P1, with no publication eligibility.
+#: "Accepted" and "met the threshold" are both literally true of that and both
+#: read as a benchmark somebody passed, which is the one thing this result is
+#: not. So the accepted case says what it can defend — that the Skill improved
+#: on this particular task family — and the standing line underneath says what
+#: it cannot.
+#:
+#: An accepted decision always means the candidate out-scored the baseline:
+#: :func:`~techtree.receipts.uplift.decide_uplift` reaches it only through a
+#: positive delta. A rejected one may still have moved the score a little, so
+#: it is described by the bar it fell under rather than as no improvement.
+DECISION_HEADLINE: Final[dict[str, str]] = {
+    "accepted": "Improved on this development task family",
+    "rejected": "Did not clear the bar this Climb declared",
+    "inconclusive": "Not decided: this Climb declared no rule that could decide it",
+    "invalid": "Not valid: this comparison cannot carry a result",
+    "development_only": "Development-only: this report states no verdict",
+}
+
+#: The sentence that stops any of the headlines above being read as a claim
+#: about what the Skill can do in general. It is not a footer: decisions
+#: document 0013's toy/synthetic boundary belongs in the first lines, beside
+#: the number a reader would otherwise quote on its own.
+NOT_BROAD_CAPABILITY_LINE: Final = "Not broad-capability evidence"
 
 #: How wide a score bar is drawn, in cells. Fixed so two bars are comparable
 #: and so a rendering is the same width on every terminal.
@@ -294,32 +326,124 @@ def task_count_line(payload: UpliftPresentationPayload) -> str | None:
     return f"{baseline} of {total} → {candidate} of {total} ({candidate - baseline:+d})"
 
 
-def efficiency_sentence(payload: UpliftPresentationPayload) -> str | None:
-    """Return what the two sides' turn counts and clocks mean together.
+def decision_headline(payload: UpliftPresentationPayload) -> str:
+    """Return what this comparison established, in one line."""
+    return DECISION_HEADLINE[payload.decision]
 
-    Two bare durations are not a finding. How many times each side had to go
-    back to the model is one, and it is the part that does not move when the
-    same comparison is run on a busier afternoon — so the sentence says which
-    of the two numbers is a property of the work and which is a property of the
-    day.
+
+def solved_line(payload: UpliftPresentationPayload) -> str:
+    """Return the count a reader can act on: solved, still failing, regressed.
+
+    In a Skill-insertion comparison the baseline scores nothing on every task,
+    so a tie means both sides failed the task rather than that nothing moved.
+    Reporting wins and ties would then read as a clean sweep while hiding the
+    most actionable fact in the run, which is how many tasks are still failing.
+    Wins, losses and ties stay in the per-task table and in the machine
+    envelope, where they are read by something that knows what they mean.
+
+    A reward that is not all-or-nothing carries no count of solved tasks (see
+    :func:`_tasks_scored_full`), and nothing is inferred in its absence: the
+    regressions are reported on their own rather than beside a number this
+    build would have had to invent.
     """
-    baseline = payload.baseline_model_turns
-    candidate = payload.candidate_model_turns
-    if baseline is None or candidate is None:
-        return None
-    sentence = (
-        f"The candidate side took {candidate:,} model turns against the "
-        f"baseline's {baseline:,}"
-    )
-    if payload.baseline_seconds is not None and payload.candidate_seconds is not None:
-        sentence += (
-            f", and finished in {payload.candidate_seconds:.1f}s against "
-            f"{payload.baseline_seconds:.1f}s"
-        )
+    regressions = f"{payload.losses} regression{'' if payload.losses == 1 else 's'}"
+    counted = task_counts(payload)
+    if counted is None:
+        return regressions
+    _, candidate, total = counted
     return (
-        f"{sentence}. Turns are a property of the work. How long each side "
-        "took also depends on this machine and on how busy the provider was."
+        f"Solved {candidate} of {total} · {total - candidate} still failing · "
+        f"{regressions}"
     )
+
+
+def efficiency_sentence(payload: UpliftPresentationPayload) -> str | None:
+    """Return what the candidate saved against the baseline, on this run.
+
+    The two sides' turn counts, token totals and clocks are the most striking
+    measurement most runs produce, and a pair of numbers on adjacent lines is
+    not a finding. The difference is, so it is stated — and stated as a fact
+    about this one controlled comparison, because without that anchor the
+    percentages read as a general claim about what Skills do, which nothing
+    here measures.
+
+    Every figure needs both of its sides. A measurement one side did not record
+    is left out entirely rather than compared against a zero, and a side that
+    spent exactly what the other did contributes no difference to report. A
+    comparison with no differences left to report gets no sentence at all.
+    """
+    turns = _saving(
+        payload.baseline_model_turns,
+        payload.candidate_model_turns,
+        fewer="took {count} fewer model turn{s}",
+        more="took {count} more model turn{s}",
+    )
+    tokens = _saving(
+        payload.baseline_tokens,
+        payload.candidate_tokens,
+        fewer="used {count} fewer token{s}",
+        more="used {count} more token{s}",
+    )
+    clock = _saving(
+        payload.baseline_seconds,
+        payload.candidate_seconds,
+        fewer="finished {count} seconds sooner",
+        more="finished {count} seconds later",
+    )
+    savings = [phrase for phrase in (turns, tokens, clock) if phrase is not None]
+    if not savings:
+        return None
+    counted = turns is not None or tokens is not None
+    return (
+        f"On this controlled run the Skill {_listed(savings)}. "
+        f"{_WORK_OR_WEATHER[counted, clock is not None]}"
+    )
+
+
+#: What the numbers above are properties of. Turn and token counts are
+#: properties of the work and reproduce; a clock also reads this machine and
+#: how busy the provider was that afternoon, and a reader deciding what to
+#: repeat needs to know which of the two they are holding.
+_WORK_OR_WEATHER: Final[dict[tuple[bool, bool], str]] = {
+    (True, True): (
+        "Those counts are properties of the work; how long each side took also "
+        "depends on this machine and on how busy the provider was."
+    ),
+    (True, False): "Those counts are properties of the work.",
+    (False, True): (
+        "How long each side took depends on this machine and on how busy the "
+        "provider was, as well as on the work."
+    ),
+}
+
+
+def _saving(
+    baseline: float | int | None,
+    candidate: float | int | None,
+    *,
+    fewer: str,
+    more: str,
+) -> str | None:
+    """Return one measured difference, or nothing where there is not one."""
+    if baseline is None or candidate is None or baseline == candidate:
+        return None
+    difference = abs(baseline - candidate)
+    count = f"{difference:,.1f}" if isinstance(difference, float) else f"{difference:,}"
+    phrase = (fewer if candidate < baseline else more).format(
+        count=count, s="" if difference == 1 else "s"
+    )
+    if not baseline:
+        return phrase
+    return f"{phrase} ({difference / baseline:.0%})"
+
+
+def _listed(phrases: list[str]) -> str:
+    """Join what was measured into one readable list."""
+    if len(phrases) == 1:
+        return phrases[0]
+    if len(phrases) == 2:
+        return f"{phrases[0]} and {phrases[1]}"
+    return f"{', '.join(phrases[:-1])}, and {phrases[-1]}"
 
 
 def _calls(count: int) -> str:

@@ -44,11 +44,13 @@ demand an edit to it would be a test that could break a release coordinate.
 from __future__ import annotations
 
 import ast
+import io
 import re
 from pathlib import Path
 from typing import Final
 
 import pytest
+from rich.console import Console
 
 from techtree.models.campaign import CampaignSpec
 from techtree.presentation.build import cost_explanation, cost_summary
@@ -298,6 +300,49 @@ FORBIDDEN_EXACT_SCORE: Final[re.Pattern[str]] = re.compile(
 #: punishes candour.
 PERMITTED_BAND: Final[re.Pattern[str]] = re.compile(
     "\\b20\\s*[-\\u2013]\\s*27\\s*/\\s*36\\b"
+)
+
+#: Ticket 637. On this Climb the bar a candidate has to clear is: beat a
+#: baseline of zero by any margin at all, on a synthetic toy task family, at
+#: proof grade P1, with no publication eligibility. "Accepted" and "met the
+#: threshold" are both literally true of that and both read like passing a
+#: benchmark, which is the one thing the result is not. What may be said is
+#: what was measured — that the Skill improved on this task family, how much of
+#: it is still failing, and that none of it is broad-capability evidence.
+#:
+#: Each pattern bans the claim in the affirmative only. Saying that a candidate
+#: did NOT clear the bar the Campaign declared is exactly what the honest copy
+#: has to do, and a guard that could not tell the two apart would forbid the
+#: sentences it exists to require. That is why the verbs are only ever the ones
+#: that assert success — "met", "cleared", "passed" — and never the bare
+#: infinitives a negation is built from.
+FORBIDDEN_BENCHMARK_VERDICT: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (
+        "a bar that was met",
+        re.compile(
+            r"\b(met|meets|meeting|passed|passes|passing|cleared|clears|clearing"
+            r"|reached|reaches|reaching|achieved|achieves|achieving|beat|beats"
+            r"|beating)\b[^.]{0,60}\b(threshold|thresholds|bar|standard|standards)\b",
+            re.I,
+        ),
+    ),
+    (
+        "a verdict word standing in for what was measured",
+        re.compile(
+            r"\baccepted\b\s*[:.]"
+            r"|\b(candidate|skill|result|report)s?\s+(was\s+|were\s+|is\s+|are\s+)?"
+            r"accepted\b",
+            re.I,
+        ),
+    ),
+    ("benchmark framing", re.compile(r"\bbenchmark(s|ed|ing)?\b", re.I)),
+)
+
+#: The other half of ticket 637. Removing the overclaim leaves the headline
+#: free to say nothing about what the result does not establish, which is how a
+#: reader ends up assuming it anyway. Both channels lead with this line.
+NOT_BROAD_CAPABILITY_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"not\s+broad-capability\s+evidence", re.I
 )
 
 #: Decisions 0025 and 0029. What a run is held to changed; what it is not held
@@ -754,6 +799,83 @@ def test_the_money_and_clock_guards_catch_what_they_are_for() -> None:
         assert any(
             pattern.search(sentence)
             for _, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE
+        ), sentence
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    FORBIDDEN_BENCHMARK_VERDICT,
+    ids=[described for described, _ in FORBIDDEN_BENCHMARK_VERDICT],
+)
+def test_no_copy_frames_the_result_as_a_benchmark_that_was_passed(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    """Ticket 637. The bar is a baseline of zero, beaten by any margin at all."""
+    offenders = _offenders(pattern)
+
+    assert not offenders, f"copy claims {described!r}: {offenders}"
+
+
+def test_the_result_says_what_it_does_not_establish_in_the_lines_that_lead() -> None:
+    """Ticket 637. Removing an overclaim is only half of the fix.
+
+    Both channels are rendered from one payload and checked as a reader meets
+    them, because the line has to be at the top rather than merely present
+    somewhere in the module the guard above scans.
+    """
+    from techtree.presentation.compact import render_uplift_markdown
+    from techtree.presentation.rich import render_uplift_console
+
+    payload = _generated_payload()
+    assert payload.decision == "accepted"
+
+    output = io.StringIO()
+    render_uplift_console(payload, Console(file=output, width=100, no_color=True))
+    terminal = output.getvalue()
+    gateway = render_uplift_markdown(payload)
+
+    for text in (terminal, gateway):
+        assert NOT_BROAD_CAPABILITY_FRAMING.search(text), text
+        for described, pattern in FORBIDDEN_BENCHMARK_VERDICT:
+            assert not pattern.search(text), (described, text)
+    # In the opening block of each, not in a footer a reader scrolls past.
+    for text in (terminal, gateway):
+        head = "\n".join(text.splitlines()[:8])
+        assert NOT_BROAD_CAPABILITY_FRAMING.search(head), head
+
+
+def test_the_honest_verdict_wording_is_still_allowed() -> None:
+    """The guard must not forbid the sentences it exists to require."""
+    permitted = (
+        "Improved on this development task family",
+        "Did not clear the bar this Climb declared",
+        "Not broad-capability evidence",
+        "Solved 24 of 36 · 12 still failing · 0 regressions",
+        "A rejected candidate is a measurement, not a failed run: this Skill "
+        "did not meet the threshold the Campaign declared in advance.",
+        "Global options are accepted anywhere on the command line.",
+        "The data policy is shown and accepted again before the second run starts.",
+    )
+
+    for sentence in permitted:
+        for described, pattern in FORBIDDEN_BENCHMARK_VERDICT:
+            assert not pattern.search(sentence), (described, sentence)
+
+
+def test_the_benchmark_guard_catches_what_it_is_for() -> None:
+    """The claims ticket 637 removed, in the words they were written in."""
+    refused = (
+        "Accepted: the candidate met the threshold this Campaign declared.",
+        "The Skill met the Campaign's threshold",
+        "The candidate cleared the bar the Campaign declared.",
+        "The Skill passed the benchmark.",
+        "The candidate was accepted.",
+        "It reaches the standard this Campaign set.",
+    )
+
+    for sentence in refused:
+        assert any(
+            pattern.search(sentence) for _, pattern in FORBIDDEN_BENCHMARK_VERDICT
         ), sentence
 
 

@@ -85,15 +85,19 @@ def test_the_result_shows_the_comparison_and_the_measurement(
     assert "No tested Skill" in text
     assert "Baseline" in text
     assert "Candidate" in text
-    assert "24 WIN / 0 LOSS / 12 TIE" in text
+    assert "Solved 24 of 36 · 12 still failing · 0 regressions" in text
 
 
-def test_the_result_states_the_verdict_as_a_sentence(
+def test_the_result_leads_with_what_the_run_established(
     finished: dict[str, Any],
 ) -> None:
+    """Tickets e83 and 637. The iteration frame, not a benchmark that was passed."""
     text = human(finished, "--format", "rich")
 
-    assert "Accepted: the candidate met the threshold this Campaign declared." in text
+    assert "Result  Improved on this development task family" in text
+    assert "Not broad-capability evidence" in text
+    assert "threshold" not in text
+    assert "WIN / " not in text
 
 
 def test_the_result_explains_p1_in_the_permitted_words(
@@ -178,7 +182,7 @@ def test_the_default_rendering_of_a_piped_result_is_the_compact_one(
     """Spec section 7.21: rich at a terminal, compact when piped."""
     text = human(finished)
 
-    assert text.startswith("**The Skill met the Campaign's threshold")
+    assert text.startswith("**Improved on this development task family")
 
 
 # ---------------------------------------------------------------------------
