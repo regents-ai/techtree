@@ -11,6 +11,19 @@ Paste this into Hermes:
 > enabled, tell me when to restart Hermes, then continue with Techtree
 > Doctor and the Hello World Climb.
 
+Techtree Climb v0.1 is a proof of concept for a stack of three independent
+parts: Prime Intellect's Verifiers as the evaluation engine, Nous Research's
+Hermes as the agent host, and Techtree as the campaign kernel and evidence
+layer. What it demonstrates is that the three pin together tightly enough for a
+controlled comparison to run end to end and leave a receipt that verifies
+offline. It is a development release, and nothing here is a measurement anyone
+should cite.
+
+The evaluation engine, the agent host, and the container the subject runs in
+are each pinned to an exact version, and the release is only as reproducible as
+those pins. Those are the seams of the stack, and they are worth knowing about
+before anyone leans on a result.
+
 Techtree runs a neutral agent and a Skill-enabled agent against the
 same toy tasks, shows the measured difference, and creates a signed
 local receipt you can verify offline.
