@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Annotated, Final, Literal
 
 import typer
+from pydantic import PositiveFloat
 from rich.console import Console
 from rich.table import Table
 
@@ -141,6 +142,13 @@ class UpliftPreparePayload(ProtocolModel):
     baseline_skill_count: int
     candidate_skill_count: int
     estimated_episodes: int
+    # Read off the Campaign this replacement was prepared against, so a caller
+    # that renders a review shows the maximum this second run is held to and
+    # never a figure from somewhere else. ``None`` is a Campaign that declares
+    # no maximum, and says so: there is then no figure to hold it to. Decision
+    # 0019 section 2 asks the same of both comparisons, and ``climb prepare``
+    # already carries it for the first.
+    campaign_maximum_usd: PositiveFloat | None
     candidate_ownership: Literal["participant", "account", "shared"]
     candidate_public_release: Literal[
         "required_for_climb", "allowed", "prohibited", "consent_required"
@@ -374,7 +382,8 @@ def _prepare_payload(
     """Project a prepared replacement draft into the response a caller acts on."""
     draft = prepared.draft
     comparison = prepared.manifest_comparison
-    subject = prepared.source.campaign.subject
+    campaign = prepared.source.campaign
+    subject = campaign.subject
     data_policy = prepared.source.data_policy
     return UpliftPreparePayload(
         draft_id=draft.id,
@@ -389,6 +398,7 @@ def _prepare_payload(
         baseline_skill_count=len(subject.harness.skills),
         candidate_skill_count=1,
         estimated_episodes=draft.estimated_episodes,
+        campaign_maximum_usd=campaign.budgets.maximum_usd,
         candidate_ownership=data_policy.candidate_skill.ownership,
         candidate_public_release=data_policy.candidate_skill.public_release,
         raw_episode_server_upload=data_policy.raw_episodes.server_upload,

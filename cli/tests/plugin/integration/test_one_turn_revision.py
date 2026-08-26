@@ -123,7 +123,34 @@ class StubLlm:
         )
 
 
-def _answers() -> dict[str, dict[str, Any]]:
+#: What the Campaign behind this fixture run declares as its maximum. Ticket
+#: jgf: the figure is the Campaign's and travels with the prepared replacement,
+#: so the tests below hand the review a different one — and none at all — and
+#: read what the review then says.
+DECLARED_MAXIMUM = 2.5
+
+
+def _prepared(**overrides: Any) -> dict[str, Any]:
+    """Return what ``uplift prepare`` answers, with any field replaced."""
+    data: dict[str, Any] = {
+        "draft_id": DRAFT_ID,
+        "draft_digest": DRAFT_DIGEST,
+        "confirmation_expires_at": "2026-08-13T12:00:00Z",
+        "source_run_id": RUN_ID,
+        "campaign_spec_digest": "sha256:" + "2" * 64,
+        "data_policy_digest": POLICY,
+        "baseline_skill_digest": ROOT_DIGEST,
+        "candidate_skill_digest": "sha256:" + "5" * 64,
+        "candidate_label": "revision",
+        "included_files": ["SKILL.md"],
+        "estimated_episodes": 72,
+        "campaign_maximum_usd": DECLARED_MAXIMUM,
+    }
+    data.update(overrides)
+    return data
+
+
+def _answers(prepared: dict[str, Any] | None = None) -> dict[str, dict[str, Any]]:
     return {
         "uplift context": envelope(
             command="uplift context",
@@ -144,19 +171,7 @@ def _answers() -> dict[str, dict[str, Any]]:
         ),
         "uplift prepare": envelope(
             command="uplift prepare",
-            data={
-                "draft_id": DRAFT_ID,
-                "draft_digest": DRAFT_DIGEST,
-                "confirmation_expires_at": "2026-08-13T12:00:00Z",
-                "source_run_id": RUN_ID,
-                "campaign_spec_digest": "sha256:" + "2" * 64,
-                "data_policy_digest": POLICY,
-                "baseline_skill_digest": ROOT_DIGEST,
-                "candidate_skill_digest": "sha256:" + "5" * 64,
-                "candidate_label": "revision",
-                "included_files": ["SKILL.md"],
-                "estimated_episodes": 72,
-            },
+            data=prepared if prepared is not None else _prepared(),
         ),
         "uplift start": envelope(
             command="uplift start",
@@ -165,9 +180,12 @@ def _answers() -> dict[str, dict[str, Any]]:
     }
 
 
-@pytest.fixture
-def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
-    answers = _answers()
+def _wire(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    answers: dict[str, dict[str, Any]],
+) -> PluginServices:
+    """Wire the plugin to a fake CLI answering exactly these envelopes."""
     body = (
         f"answers = {answers!r}\n"
         "key = ' '.join(a for a in argv if not a.startswith('--'))\n"
@@ -212,6 +230,11 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
     return container
 
 
+@pytest.fixture
+def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
+    return _wire(tmp_path, monkeypatch, _answers())
+
+
 def _call(services: PluginServices, name: str, **args: Any) -> dict[str, Any]:
     parsed = json.loads(TOOL_HANDLERS[name](services, dict(args)))
     assert isinstance(parsed, dict)
@@ -248,6 +271,49 @@ def test_the_diff_is_shown_with_the_policy_and_the_estimate(
     assert result["data_policy_digest"] == POLICY
     assert result["estimated_episodes"] == 72
     assert result["proposal"]["confidence"] == "medium"
+
+
+def test_the_review_that_offers_the_second_paid_run_carries_the_maximum(
+    services: PluginServices,
+) -> None:
+    """Ticket jgf: decision 0019 s2 asks the same of both paid runs.
+
+    This payload is what an operator reads before asking a person to approve
+    the second run, so the maximum the Campaign declares travels in it and the
+    next action says to show it. The figure is a field rather than a sentence,
+    for the same reason the first run's is: it belongs to the Campaign.
+    """
+    result = _propose(services)
+
+    assert result["campaign_maximum_usd"] == DECLARED_MAXIMUM
+    assert "the declared maximum" in result["next_action"]["reason"]
+
+
+def test_the_second_run_review_reads_the_maximum_off_the_prepared_revision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A figure remembered from another Campaign would be wrong for this one."""
+    services = _wire(
+        tmp_path, monkeypatch, _answers(_prepared(campaign_maximum_usd=9.0))
+    )
+
+    result = _propose(services)
+
+    assert result["campaign_maximum_usd"] == 9.0
+
+
+def test_the_second_run_review_invents_nothing_when_no_maximum_is_declared(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A Campaign that declares no maximum has no figure to hold it to."""
+    services = _wire(
+        tmp_path, monkeypatch, _answers(_prepared(campaign_maximum_usd=None))
+    )
+
+    result = _propose(services)
+
+    assert result["campaign_maximum_usd"] is None
+    assert "$" not in json.dumps(result["next_action"])
 
 
 def test_the_proposal_records_what_it_was_made_from(

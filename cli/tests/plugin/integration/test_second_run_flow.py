@@ -201,6 +201,7 @@ def _answers(**overrides: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 "candidate_label": "revision",
                 "included_files": ["SKILL.md"],
                 "estimated_episodes": 72,
+                "campaign_maximum_usd": 2.5,
             },
         ),
         "uplift start": envelope(
@@ -317,6 +318,9 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
     assert proposal["started"] is False
     assert "DISTINCT" in proposal["diff"]["unified"]
     assert proposal["data_policy_digest"] == POLICY
+    # Ticket jgf: the second paid run is offered with the same figure the
+    # first was — the one the Campaign declares, carried by the draft.
+    assert proposal["campaign_maximum_usd"] == 2.5
     assert _stage(journey) is DemoStage.SECOND_DRAFT_PREPARED
 
     started = _call(

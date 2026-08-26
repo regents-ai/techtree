@@ -71,6 +71,10 @@ def _public_copy() -> dict[str, str]:
         # tool is where the first paid step is offered, so its reasons say
         # what that step commits to.
         "tools/demo.py": _string_literals(PLUGIN_ROOT / "tools" / "demo.py"),
+        # The second paid step is offered from the uplift tool's payload, and
+        # its reason is read out the same way the first one's is, so it is held
+        # to the same boundaries.
+        "tools/uplift.py": _string_literals(PLUGIN_ROOT / "tools" / "uplift.py"),
         "README.md": (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8"),
     }
     operator = PLUGIN_ROOT / "skills" / "operator"
@@ -319,6 +323,7 @@ def test_the_scan_reads_every_public_surface() -> None:
         "schemas.py",
         "commands.py",
         "tools/demo.py",
+        "tools/uplift.py",
         "README.md",
         "skills/operator/SKILL.md",
     }
@@ -682,6 +687,28 @@ def test_the_review_that_offers_the_first_paid_run_names_the_declared_maximum() 
         assert NO_METER_FRAMING.search(line), line
         for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
             assert not pattern.search(line), (described, line)
+
+
+def test_the_review_that_offers_the_second_paid_run_names_the_declared_maximum() -> (
+    None
+):
+    """Ticket jgf: the first run named the figure on both surfaces; this did not.
+
+    The second run has no rendered review of its own — what an operator reads
+    is the payload the uplift tool returns with its next action — so that is
+    where decision 0019 section 2's budget goes. The reason names the declared
+    maximum among the things to show, exactly as the first run's does, and the
+    tool that spends the money says what that maximum is and is not, where
+    Hermes shows it before asking anybody to confirm.
+    """
+    offered = PUBLIC_COPY["tools/uplift.py"]
+    description = all_tool_schemas()["techtree_uplift_start"]["description"]
+
+    assert "the declared maximum" in offered
+    assert "declares it may cost" in description
+    assert "never a prediction of the bill" in description
+    assert NO_PRICE_FRAMING.search(description)
+    assert NO_METER_FRAMING.search(description)
 
 
 def test_no_copy_writes_a_dollar_figure_of_its_own() -> None:

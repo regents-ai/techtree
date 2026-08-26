@@ -29,6 +29,7 @@ measured rather than to whatever is in a directory now.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -54,6 +55,7 @@ from fixtures.runs.support import (
     utc_now,
 )
 from techtree.canonical import digest_object, sha256_digest_bytes
+from techtree.cli.commands.uplift import _prepare_payload
 from techtree.drafts.store import DraftStore
 from techtree.errors import PolicyError, VerificationError
 from techtree.models.campaign import MutationKind
@@ -463,11 +465,59 @@ def test_the_cli_exports_a_context_and_prepares_a_replacement(
     assert payload["controlled"] is True
     assert payload["baseline_skill_digest"] != payload["candidate_skill_digest"]
     assert payload["source_run_id"] == first.run_id
+    # Ticket jgf: the maximum the derived Campaign declares travels with the
+    # replacement draft, so the surface a second run is approved from states
+    # the same figure this terminal states.
+    inputs = first.artifacts.load_inputs(
+        first.run_id, first.run_store.get_request(first.run_id)
+    )
+    assert payload["campaign_maximum_usd"] == inputs.campaign.budgets.maximum_usd
+    assert payload["campaign_maximum_usd"] is not None
 
     started = run_cli(home, "uplift", "start", payload["draft_id"], "--yes")
     assert started.exit_code == 0, started.stderr
     assert started.data()["policy_acknowledgement_method"] == "explicit_cli_review"
     assert started.data()["approved_by"] == "operator_via_flag"
+
+
+def test_the_declared_maximum_is_read_off_the_campaign_and_never_invented(
+    tmp_path: Path,
+) -> None:
+    """Ticket jgf: the figure follows the Campaign, whatever the Campaign says.
+
+    Decision 0019 section 2 puts the declared maximum in the review a second
+    paid run is approved from, and a review that supplied a figure of its own
+    would be right for this Campaign and wrong for the next one. So the payload
+    is projected twice from the same prepared draft: once against the Campaign
+    the run was derived from, and once against the same Campaign with its
+    maximum removed. The answer tracks the Campaign both times, and the second
+    one reports that there is no figure rather than reaching for the first.
+    """
+    first = _first_run(tmp_path / "home")
+    prepared = _uplift_service(first).prepare_replacement(
+        source_run_id=first.run_id,
+        candidate_skill_path=write_revised_skill(tmp_path / "skill-v2"),
+        candidate_label="branch-code-v2",
+    )
+    campaign = prepared.source.campaign
+    declared = campaign.budgets.maximum_usd
+    assert declared is not None
+
+    assert _prepare_payload(first.run_id, prepared).campaign_maximum_usd == declared
+
+    undeclared = dataclasses.replace(
+        prepared,
+        source=dataclasses.replace(
+            prepared.source,
+            campaign=campaign.model_copy(
+                update={
+                    "budgets": campaign.budgets.model_copy(update={"maximum_usd": None})
+                }
+            ),
+        ),
+    )
+
+    assert _prepare_payload(first.run_id, undeclared).campaign_maximum_usd is None
 
 
 def test_the_cli_hands_over_the_runs_own_verified_skill_text(
