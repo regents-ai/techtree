@@ -381,9 +381,7 @@ def test_the_starter_skill_comes_from_the_command_techtree_publishes() -> None:
 def test_a_skill_that_is_not_the_one_this_release_names_is_refused() -> None:
     """The whole point of the provider: the digest is checked, and it bites."""
     services = _starter_services(
-        _starter_envelope(
-            data=_starter_payload(skill_root_digest="sha256:" + "e" * 64)
-        )
+        _starter_envelope(data=_starter_payload(skill_root_digest="sha256:" + "e" * 64))
     )
 
     with pytest.raises(PluginError, match="not the one this release names") as raised:
@@ -410,7 +408,9 @@ def test_a_skill_returned_without_a_digest_is_refused() -> None:
 def test_a_skill_missing_what_preparing_needs_is_refused(
     field: str, expected: str
 ) -> None:
-    services = _starter_services(_starter_envelope(data=_starter_payload(**{field: ""})))
+    services = _starter_services(
+        _starter_envelope(data=_starter_payload(**{field: ""}))
+    )
 
     with pytest.raises(PluginError, match=expected) as raised:
         materialize_starter_skill(services)
