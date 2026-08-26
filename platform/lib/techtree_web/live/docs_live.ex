@@ -55,6 +55,7 @@ defmodule TechtreeWeb.DocsLive do
             <.docs_group
               title="Start"
               links={[
+                {"What v0.1 is", "#what-this-release-is"},
                 {"Quickstart", "#quickstart"},
                 {"Install", "#install"},
                 {"Run Hello World", "#hello-world"},
@@ -118,6 +119,8 @@ defmodule TechtreeWeb.DocsLive do
               model credits starts without explicit approval.
             </p>
           </header>
+
+          <.proof_of_concept class="doc-section" />
 
           <section id="quickstart" class="doc-section">
             <h2>Quickstart</h2>

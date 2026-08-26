@@ -101,6 +101,46 @@ defmodule TechtreeWeb.CoreComponents do
   end
 
   @doc """
+  What this release is, written once and shown wherever a page says so.
+
+  Decision 0035: v0.1 is a proof of concept for a stack of three independent
+  parts, and two of the three are other people's work. A page that says what
+  this release is has to name all three with the projects that made them, and
+  has to say where the seams are — the engine, the host and the container are
+  pinned, and the release is only as reproducible as those pins. Written in one
+  place so that two pages cannot drift into two different claims.
+  """
+  attr :class, :string, default: "section"
+  attr :eyebrow, :string, default: nil
+
+  def proof_of_concept(assigns) do
+    ~H"""
+    <section class={@class} aria-labelledby="what-this-release-is">
+      <div class="section-heading">
+        <p :if={@eyebrow} class="eyebrow">{@eyebrow}</p>
+        <h2 id="what-this-release-is">What v0.1 is</h2>
+      </div>
+      <div class="what-this-is">
+        <p>
+          Techtree Climb v0.1 is a proof of concept for a stack of three independent parts:
+          Prime Intellect’s Verifiers as the evaluation engine, Nous Research’s Hermes as the
+          agent host, and Techtree as the campaign kernel and evidence layer. What it
+          demonstrates is that the three pin together tightly enough for a controlled
+          comparison to run end to end and leave a receipt that verifies offline. It is a
+          development release, and nothing it produces is a measurement anyone should cite.
+        </p>
+        <p class="small quiet">
+          The evaluation engine, the agent host, and the container the agent under test runs
+          in are each pinned to an exact version, and the release is only as reproducible as
+          those pins. Those are the seams of the stack, and this site names them rather than
+          leaving a reader to find them.
+        </p>
+      </div>
+    </section>
+    """
+  end
+
+  @doc """
   Show one command, built from the arguments that make it up.
 
   The copy control hands over exactly the characters shown, and nothing on this

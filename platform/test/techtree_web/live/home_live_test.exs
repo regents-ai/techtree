@@ -53,13 +53,14 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute text =~ "Prefer installing it yourself?"
     end
 
-    test "the page holds exactly the four regions it was given", %{conn: conn} do
+    test "the page holds exactly the five regions it was given", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
 
       sections = Regex.scan(~r/<section[^>]*class="([^"]*)"/, html, capture: :all_but_first)
 
       assert [
                ["hero"],
+               ["home-section proof-of-concept"],
                ["home-section process"],
                ["home-section featured"],
                ["home-section trust"]

@@ -10,10 +10,13 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   Each of them is close enough to the truth that it survives a careful edit,
   which is why it is checked here instead.
 
-  One sentence is the other way round: it has to be there. Hermes reads the
+  Two things are the other way round: they have to be there. Hermes reads the
   plugin's source before installing it and reports what it found, and a page
   that tells a reader what that report will say also has to tell them that
-  switching the reporting off is not one of the answers.
+  switching the reporting off is not one of the answers. And a page that says
+  what this release is has to say the whole of it — a proof of concept for a
+  stack of three independent parts, two of them somebody else's work, pinned to
+  exact versions the release is no more reproducible than.
 
   Every source of published words is read here: each page as a reader sees it,
   with a release being served and with none, the installation contract this
@@ -243,6 +246,34 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       "execution environment."
   ]
 
+  # Decision 0035. Every other check here removes a claim; this one requires
+  # one. What v0.1 is — a proof of concept for a stack of three independent
+  # parts — is the frame around everything else the site says, and the way it
+  # goes wrong is not a banned word appearing but the frame quietly going
+  # missing, leaving a reader who has been told what the software does to
+  # decide for themselves what it amounts to.
+  @proof_of_concept ~r/\bproof[\s-]of[\s-]concept\b/i
+
+  # Two of the three parts are somebody else's work, so each is named with the
+  # project that made it. A proof of concept that reads as though we built the
+  # whole stack is the same class of overclaim as any other.
+  # The `u` modifier matters: without it the typographic apostrophe is three
+  # bytes the character class would try to match one at a time.
+  @stack_attribution [
+    ~r/Prime\s+Intellect[’']s\s+Verifiers/iu,
+    ~r/Nous\s+Research[’']s\s+Hermes/iu,
+    ~r/Techtree\s+as\s+the\s+campaign\s+kernel/iu
+  ]
+
+  # "Stack" is the word that tells a reader where the seams are: an engine, a
+  # host and a container, each pinned, and a release that is only as
+  # reproducible as those pins. A frame that leaves that out is half the ruling.
+  @stack_seams ~r/only\s+as\s+reproducible\s+as\s+those\s+pins/i
+
+  # The pages that say what this release is: the front page a stranger lands
+  # on, and the documentation they read before running anything.
+  @pages_that_say_what_this_is ["/", "/docs"]
+
   describe "every page, with a release being served" do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
@@ -285,6 +316,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
     test "no page calls the introductory Climb a benchmark", %{conn: conn} do
       refute_forbidden_name(rendered(conn, @pages))
+    end
+
+    test "the pages that say what this release is carry the whole frame", %{conn: conn} do
+      require_proof_of_concept(rendered(conn, @pages_that_say_what_this_is))
     end
 
     test "the Climb page states the starter Skill's calibration in the approved words",
@@ -440,6 +475,13 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_offered_publication(sources)
       require_never_disable(sources)
       refute_moving_address(markup(conn, @pages_without_catalog))
+      require_proof_of_concept(rendered(conn, @pages_that_say_what_this_is))
+    end
+  end
+
+  describe "the repository's own front page" do
+    test "it says what this release is, the way the pages do" do
+      require_proof_of_concept([{"README.md", File.read!("README.md")}])
     end
   end
 
@@ -572,6 +614,26 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       assert String.contains?(text, @never_disable),
              "#{label} describes the install-time report without telling a reader to " <>
                "leave it switched on"
+    end
+  end
+
+  # Decision 0035, in three parts, because a surface can lose any one of them
+  # on its own: the frame, the attribution of the two parts that are not ours,
+  # and what the release is pinned to.
+  defp require_proof_of_concept(sources) do
+    for {label, source} <- sources, text = String.replace(source, ~r/\s+/, " ") do
+      assert text =~ @proof_of_concept,
+             "#{label} says what this release is without calling it a proof of concept"
+
+      for pattern <- @stack_attribution do
+        assert text =~ pattern,
+               "#{label} does not match #{inspect(pattern)}: the stack is three parts and " <>
+                 "two of them are somebody else's work"
+      end
+
+      assert text =~ @stack_seams,
+             "#{label} does not say that the release is only as reproducible as the " <>
+               "versions it pins"
     end
   end
 

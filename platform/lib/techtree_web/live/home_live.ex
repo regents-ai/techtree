@@ -2,11 +2,13 @@ defmodule TechtreeWeb.HomeLive do
   @moduledoc """
   What Techtree is, what it produces, and how to install it — in that order.
 
-  Four regions and no more: the claim and the evidence behind it, the three
-  steps that produce that evidence, the one campaign this release actually
-  publishes, and where the work goes. Nothing on this page counts anything, and
-  nothing on it moves: no activity, no totals, no claim about how many people
-  have run anything.
+  Five regions and no more: the claim and the evidence behind it, what this
+  release is (decision 0035 — a proof of concept for a stack of three
+  independent parts, two of them other people's work), the three steps that
+  produce that evidence, the one campaign this release actually publishes, and
+  where the work goes. Nothing on this page counts anything, and nothing on it
+  moves: no activity, no totals, no claim about how many people have run
+  anything.
   """
 
   use TechtreeWeb, :live_view
@@ -75,6 +77,11 @@ defmodule TechtreeWeb.HomeLive do
           compact
         />
       </section>
+
+      <.proof_of_concept
+        class="home-section proof-of-concept"
+        eyebrow="A proof of concept, not a product"
+      />
 
       <section class="home-section process" aria-labelledby="process-title">
         <div class="section-heading">
