@@ -25,7 +25,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
 
       assert text =~ "No participant result is published here"
       assert text =~ "This release publishes nothing and receives nothing."
-      assert text =~ "There is no upload on this site and no place to put one."
+      assert text =~ "arrives in a later release"
     end
 
     test "every coordinate it shows is one the release publishes", %{conn: conn} do
@@ -35,7 +35,6 @@ defmodule TechtreeWeb.ProofsLiveTest do
       assert has_element?(live, "#proof-evidence-graph")
       assert text =~ CatalogFixture.campaign_digest()
       assert text =~ "36 tasks, fixed before either run"
-      assert text =~ "36 tasks validated"
       assert text =~ "hermes-agent 0.19.0"
       assert text =~ "prime · qwen/qwen3.7-flash"
       assert text =~ "44 model calls"
@@ -46,8 +45,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/proofs")
       text = visible_text(html)
 
-      assert text =~ "No Skill is mounted."
-      assert text =~ "Exactly one Skill is mounted. Nothing else may differ."
+      assert text =~ "One Skill, mounted in the candidate and absent from the baseline."
       assert text =~ "Starts from hello-world-starter-v1"
       assert text =~ Techtree.Release.StarterSkill.tree_digest()
     end
@@ -57,11 +55,9 @@ defmodule TechtreeWeb.ProofsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/proofs")
       text = visible_text(html)
 
-      assert text =~
-               "intentionally incomplete and calibrated to solve roughly two-thirds " <>
-                 "of the toy tasks. Individual runs may vary."
-
-      assert text =~ "No document this release publishes carries those counts"
+      # The band lives on the Climb and docs pages; this page draws no numbers
+      # at all for what only a run can carry (founder ruling 2026-08-26).
+      assert text =~ "Scores, every task’s outcome, and a signed bundle."
       refute text =~ ~r/\b\d+\s+(wins|losses|ties)\b/i
       refute text =~ ~r/\b\d{1,3}\s*(\/|out of)\s*36\b/
     end
@@ -69,7 +65,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
     test "the reader is told how to check a bundle they hold, offline", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/proofs")
 
-      assert visible_text(html) =~ "Check it on your own machine."
+      assert visible_text(html) =~ "check it on their own machine"
 
       assert live
              |> element(

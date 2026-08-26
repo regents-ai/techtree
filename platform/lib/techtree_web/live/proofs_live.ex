@@ -11,6 +11,8 @@ defmodule TechtreeWeb.ProofsLive do
 
   What a run adds — the scores, the task-by-task record, the signature — is
   named here as what would be there, never drawn as though it already is.
+  Founder ruling 2026-08-26: this page is deliberately short, and it names its
+  own future — publishing a finished run to it arrives in a later release.
   """
 
   use TechtreeWeb, :live_view
@@ -47,17 +49,17 @@ defmodule TechtreeWeb.ProofsLive do
         <p class="eyebrow">Participant-attested</p>
         <h1>A verified run</h1>
         <p class="lede">
-          What a finished comparison contains, in the exact coordinates this release
-          pins — and what is missing from it until someone runs one.
+          The experiment your agent runs, pinned in advance — and the proof it hands
+          you at the end. Read this before you approve one: what is fixed, what
+          changes, what you get back.
         </p>
       </header>
 
       <.warning_callout title="No participant result is published here" attention>
         <p>
-          This release publishes nothing and receives nothing. A finished comparison is
-          written on the machine that produced it, and stays there unless its
-          participant hands the bundle to someone. There is no upload on this site and
-          no place to put one.
+          This release publishes nothing and receives nothing. A finished run stays on
+          the machine that produced it. Publishing one to this page arrives in a later
+          release — this page is where it will land.
         </p>
       </.warning_callout>
 
@@ -77,7 +79,7 @@ defmodule TechtreeWeb.ProofsLive do
                 {(@copy && @copy.campaign_title) || @campaign.title}
               </a>
             </:fact>
-            <:fact term="Campaign fingerprint">
+            <:fact term="Fingerprint">
               <.digest
                 value={@facts["campaign_spec_digest"]}
                 href={object_url(@facts["campaign_spec_digest"])}
@@ -86,70 +88,32 @@ defmodule TechtreeWeb.ProofsLive do
             <:fact term="Tasks">
               {CampaignFacts.membership_words(@published.membership) || "Not published"}
             </:fact>
-            <:fact term="Task validation">
-              {CampaignFacts.validation_words(@published.validation) || "Not published"}
+            <:fact term="Subject">
+              {@facts["subject_harness"]} {@facts["subject_harness_version"]} · {model_coordinate(
+                @facts["subject_model"]
+              )}
             </:fact>
-            <:fact term="Harness">
-              {@facts["subject_harness"]} {@facts["subject_harness_version"]}
-            </:fact>
-            <:fact term="Model">{model_coordinate(@facts["subject_model"])}</:fact>
             <:fact term="Scored by">Prime Intellect’s Verifiers, at a pinned version</:fact>
             <:fact term="Ceiling">
               {CampaignFacts.budget_words(@published.budget) || "Not published"}
             </:fact>
-          </.definition_list>
-        </section>
-
-        <section class="doc-section">
-          <p class="eyebrow">The one difference</p>
-          <h2>Baseline against candidate</h2>
-          <.comparison_boundary>
-            <:side title="Baseline">
-              <p>No Skill is mounted. Everything else is the campaign above.</p>
-            </:side>
-            <:side title="Candidate">
-              <p>Exactly one Skill is mounted. Nothing else may differ.</p>
-              <p :if={@starter_skill} class="small quiet">
-                Starts from {@starter_skill["name"]}:
-              </p>
+            <:fact term="The one change">
+              One Skill, mounted in the candidate and absent from the baseline.
+              <span :if={@starter_skill}>Starts from {@starter_skill["name"]}:</span>
               <.digest :if={@starter_skill} value={@starter_skill["tree_digest"]} />
-              <p :if={is_nil(@starter_skill)} class="small quiet">
-                The Skill is supplied when a participant prepares the run.
-              </p>
-            </:side>
-          </.comparison_boundary>
-          <p class="small quiet">
-            A revision of that Skill is a second fingerprint, produced and recorded on
-            the participant’s own machine. This site never sees either one.
-          </p>
-        </section>
-
-        <section class="doc-section">
-          <p class="eyebrow">What a run adds</p>
-          <h2>The parts only a run can carry</h2>
-          <.definition_list>
-            <:fact term="Score band">
-              {(@copy && @copy.starter_note) || "Not published"}
-            </:fact>
-            <:fact term="Task by task">
-              A finished bundle records the outcome of every task in both branches. No
-              document this release publishes carries those counts, so none is shown.
-            </:fact>
-            <:fact term="Signature">
-              Produced on the machine that ran the comparison, with a key made there.
-            </:fact>
-            <:fact term="Reproduction">
-              None. A result becomes reproduced when another participant runs the same
-              campaign and says what they got; this release offers no way to do that.
             </:fact>
           </.definition_list>
-          <p class="small quiet">{publication_note()}</p>
         </section>
 
         <section class="offline-verify">
           <div>
-            <p class="eyebrow">Holding a bundle?</p>
-            <h2>Check it on your own machine.</h2>
+            <p class="eyebrow">What a run adds</p>
+            <h2>Scores, every task’s outcome, and a signed bundle.</h2>
+            <p class="small quiet">
+              Only a run carries those. The bundle is signed on the machine that
+              produced it, and anyone holding a copy can check it on their own
+              machine, offline:
+            </p>
           </div>
           <.command_block
             id="copy-proof-verify"
@@ -159,8 +123,7 @@ defmodule TechtreeWeb.ProofsLive do
         </section>
 
         <p class="small quiet section">
-          <a href={~p"/proofs/local"}>What a local result claims</a>
-          · <a href={~p"/campaigns/#{@facts["slug"]}"}>The campaign behind it</a>
+          <a href={~p"/campaigns/#{@facts["slug"]}"}>The campaign behind it</a>
           · <a href={~p"/docs#proof-limits"}>What verification checks</a>
         </p>
       </div>
