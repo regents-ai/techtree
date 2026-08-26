@@ -27,7 +27,7 @@ import json
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, NamedTuple, TypeGuard
 
-from .channels import bounded_gateway_text, ensure_gateway_safe
+from .channels import ensure_gateway_safe
 from .errors import PluginError, scrub_text
 from .models import ChannelKind
 from .state import active_run_ids, latest_session
@@ -86,7 +86,10 @@ def handle_slash_command(raw_args: str, services: Any) -> str:
         text = f"That did not work: {scrub_text(str(error))}"
     except Exception as error:  # a defect must not break the session
         text = f"That did not work: {scrub_text(str(error))}"
-    return bounded_gateway_text(text)
+    # Sanitised, not shortened. Stripping what a display would obey is a
+    # safety control; cutting the answer at a guessed length was not, and is
+    # gone.
+    return ensure_gateway_safe(text)
 
 
 def register_cli_subcommands(ctx: Any, services: Any) -> None:

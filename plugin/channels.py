@@ -29,11 +29,6 @@ from .models import ChannelKind
 #: tab and newline that ordinary text uses.
 _UNSAFE_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 
-#: How much text a gateway answer may carry before it is cut, with the cut
-#: stated. Chat apps split or drop long messages, and a silently split proof
-#: summary is a misleading proof summary.
-GATEWAY_TEXT_LIMIT: Final = 3500
-
 #: What a truncated gateway answer ends with, so nobody mistakes a cut for the
 #: end of the story.
 TRUNCATION_NOTE: Final = (
@@ -101,7 +96,7 @@ def ensure_gateway_safe(value: str) -> str:
     return _UNSAFE_CONTROL.sub("", value)
 
 
-def bounded_gateway_text(value: str, maximum_chars: int = GATEWAY_TEXT_LIMIT) -> str:
+def bounded_gateway_text(value: str, maximum_chars: int) -> str:
     """Return text no longer than the limit, saying so when it was cut.
 
     The cut is made at a whitespace boundary where there is one nearby, so a

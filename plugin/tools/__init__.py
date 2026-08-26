@@ -26,9 +26,6 @@ from types import MappingProxyType
 from typing import Any, Protocol
 
 from ..channels import (
-    GATEWAY_TEXT_LIMIT,
-    bounded_gateway_text,
-    is_gateway_safe_required,
     resolve_channel,
 )
 from ..constants import MAX_TOOL_RESULT_BYTES
@@ -77,11 +74,16 @@ def tool_result(
     naming the command that shows the whole thing, rather than by a truncated
     document that would parse as if it were complete.
 
-    A phone gets a much smaller budget than a terminal, because a chat app
-    will split or drop a long message and a split result reads as a whole one.
+    One budget, whatever is reading. There used to be a much smaller one for
+    anything not explicitly a terminal, which was every call that did not say
+    so, and it was a guess: no host documents a size at which it splits a
+    message. What it bought was a review that vanished at a threshold nobody
+    could point at, and what it cost was the diff, the episode count and the
+    declared maximum in the one case where the diff was worth showing. A host
+    that splits a long message shows a split message; that is the host's
+    business, and it is not a reason to throw the answer away here.
     """
-    compact = is_gateway_safe_required(channel)
-    limit = GATEWAY_TEXT_LIMIT if compact else MAX_TOOL_RESULT_BYTES
+    limit = MAX_TOOL_RESULT_BYTES
     text = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
     if len(text.encode("utf-8")) <= limit:
         return text
@@ -120,11 +122,6 @@ def failed(error: Exception, **extra: Any) -> str:
     """Return the safe JSON answer for a failure."""
     payload: dict[str, Any] = {"ok": False, **safe_error_payload(error), **extra}
     return tool_result(payload)
-
-
-def gateway_text(value: str, channel: ChannelKind = ChannelKind.UNKNOWN) -> str:
-    """Return text shaped for the channel that will read it."""
-    return bounded_gateway_text(value) if is_gateway_safe_required(channel) else value
 
 
 def safe_tool(handler: Any) -> Any:
