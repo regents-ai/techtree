@@ -199,9 +199,13 @@ Do not work around it.
 - Never claim independent reproduction.
 - Techtree uploads nothing; model inference still goes to the provider.
 - One revision proposal, after a valid finished run, with the diff shown.
+- A tie usually means both sides failed that task, not that they drew.
+- Say you do not know, rather than filling the gap with something plausible.
 
 ## References
 
 - `references/approvals.md` — what needs approval, and what a token is for.
 - `references/proof-grades.md` — what a proof grade means and does not mean.
 - `references/troubleshooting.md` — what to do when something is blocked.
+- `references/questions.md` — what people ask about a result and a
+  receipt, and how to answer without overclaiming or underselling.
