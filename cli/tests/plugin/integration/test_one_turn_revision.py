@@ -319,8 +319,12 @@ def test_the_second_run_review_invents_nothing_when_no_maximum_is_declared(
 def test_the_proposal_records_what_it_was_made_from(
     services: PluginServices,
 ) -> None:
-    provenance = _propose(services)["provenance"]
+    answer = _propose(services, channel="terminal")
 
+    assert answer["demo"]["stage"] == DemoStage.SECOND_DRAFT_PREPARED.value
+    assert answer["demo"]["revision_attempts"] == 1
+
+    provenance = answer["provenance"]
     assert provenance["source_skill_root_digest"] == ROOT_DIGEST
     assert provenance["source_skill_entrypoint_digest"] == ENTRYPOINT_DIGEST
     assert provenance["skill_improver_digest"] == CORE.skill_improver_digest
@@ -637,15 +641,22 @@ def test_a_spent_turn_issues_no_further_request(services: PluginServices) -> Non
     assert len(services.ctx.llm.calls) == 1
 
 
-def test_a_phone_gets_the_proposal_without_the_request_accounting(
+def test_a_phone_gets_the_proposal_without_the_records_it_cannot_act_on(
     services: PluginServices,
 ) -> None:
-    """A bounded channel drops the record whole rather than trimming it."""
+    """A bounded channel drops each record whole rather than trimming it.
+
+    Nothing here is something a person weighs before approving a paid run: the
+    request accounting is about the provider boundary, the provenance is
+    digests nobody can check by eye, and the session is the plugin's own
+    bookkeeping. A terminal carries all three.
+    """
     answer = _propose(services, channel="gateway")
 
     assert answer["ok"] is True
     assert answer["request_accounting"] is None
-    assert answer["provenance"]["complete_request_digest"].startswith("sha256:")
+    assert "provenance" not in answer
+    assert "demo" not in answer
     assert len(services.ctx.llm.calls) == 1
 
 

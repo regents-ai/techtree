@@ -18,6 +18,7 @@ import pytest
 from support import envelope, install_fake_cli
 from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bridge import CliBridge
+from techtree_hermes.channels import GATEWAY_TEXT_LIMIT
 from techtree_hermes.constants import PLUGIN_ROOT
 from techtree_hermes.errors import PluginError
 from techtree_hermes.models import ChannelKind, DemoStage
@@ -60,6 +61,14 @@ V1 = (
     "# BranchCode\n\nAdd seven times the TOTAL characters.\n"
 )
 V2 = V1.replace("TOTAL characters", "number of DISTINCT characters")
+
+#: The longest revision this suite proposes, and so the worst case for every
+#: answer built from one: a rewrite that adds two hundred rules to the Skill.
+LONG_V2 = V2 + "".join(f"\n## Rule {n}\n\nDo the thing.\n" for n in range(200))
+
+#: How many bytes of the gateway limit the second run's phone review must
+#: leave free. See `test_the_phone_review_of_the_second_run_has_room_to_spare`.
+PHONE_REVIEW_HEADROOM_BYTES = 800
 
 PROPOSAL: dict[str, Any] = {
     "analysis_summary": "Every failure repeats a character.",
@@ -404,19 +413,72 @@ def test_the_phone_gets_a_bounded_diff_that_says_it_was_cut(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, journey: PluginServices
 ) -> None:
     _call(journey, "techtree_run_status", run_id=FIRST_RUN)
-    long_v2 = V2 + "".join(f"\n## Rule {n}\n\nDo the thing.\n" for n in range(200))
-    journey = dataclasses.replace(
-        journey,
-        ctx=SimpleNamespace(
-            llm=_ScriptedLlm({**PROPOSAL, "revised_skill_markdown": long_v2})
-        ),
-    )
+    journey = _revising(journey, LONG_V2)
 
     proposal = _propose(journey, channel=ChannelKind.GATEWAY.value)
 
     assert proposal["diff"]["truncated"] is True
     assert "not shown here" in proposal["diff"]["unified"]
     assert proposal["diff"]["changed_lines"] > 10
+
+
+def test_the_phone_review_of_the_second_run_has_room_to_spare(
+    journey: PluginServices,
+) -> None:
+    """The review a paid run is approved from must not be near the limit.
+
+    Over the limit the whole review is replaced by "too large, run the command
+    yourself", and the phone loses the diff, the episode count and the declared
+    maximum in exactly the case where the diff was worth showing. Being one
+    byte under is not being safe, so this measures the worst case — the longest
+    revision the suite produces — and asks for a clear margin rather than a
+    survival.
+
+    The margin is 800 bytes because that is larger than either block this
+    review used to carry on a phone and no longer does: the provenance digests
+    (773 bytes) and the demo session (561). So anything of that size coming
+    back, or a comparable block arriving new, fails here — with a name that
+    says the phone review is running out of room — while there is still a
+    review to save, instead of failing somewhere else once it has already
+    vanished.
+    """
+    _call(journey, "techtree_run_status", run_id=FIRST_RUN)
+    journey = _revising(journey, LONG_V2)
+
+    answer = TOOL_HANDLERS["techtree_uplift_propose"](
+        journey,
+        {"source_run_id": FIRST_RUN, "channel": ChannelKind.GATEWAY.value},
+    )
+    measured = len(answer.encode("utf-8"))
+    review = json.loads(answer)
+
+    # What the operator is approving from, still whole at the worst case.
+    assert review["ok"] is True
+    assert "not shown here" in review["diff"]["unified"]
+    assert review["data_policy_digest"] == POLICY
+    assert review["estimated_episodes"] == 72
+    assert review["campaign_maximum_usd"] == 2.5
+    assert review["next_action"]["id"] == "start_second_comparison"
+
+    assert measured <= GATEWAY_TEXT_LIMIT - PHONE_REVIEW_HEADROOM_BYTES, (
+        f"the phone review of the second run is running out of room: "
+        f"{measured} bytes of the {GATEWAY_TEXT_LIMIT}-byte limit, leaving "
+        f"{GATEWAY_TEXT_LIMIT - measured} bytes free where "
+        f"{PHONE_REVIEW_HEADROOM_BYTES} are wanted. Past the limit the review "
+        f"is replaced by an apology and the phone loses the diff, the episode "
+        f"count and the declared maximum. Take something out of the gateway "
+        f"payload rather than raising this margin."
+    )
+
+
+def _revising(services: PluginServices, revised: str) -> PluginServices:
+    """Return the container with a host that proposes exactly this Skill text."""
+    return dataclasses.replace(
+        services,
+        ctx=SimpleNamespace(
+            llm=_ScriptedLlm({**PROPOSAL, "revised_skill_markdown": revised})
+        ),
+    )
 
 
 class _ScriptedLlm:
