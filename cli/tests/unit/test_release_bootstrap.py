@@ -92,7 +92,14 @@ def bootstrap(**overrides: Any) -> dict[str, Any]:
             "version": "0.1.0",
             "source_revision": WHEEL_COMMIT,
             "wheel_sha256": f"sha256:{WHEEL_SHA256}",
-            "install_argv": ["uv", "tool", "install", "techtree==0.1.0"],
+            "install_argv": [
+                "uv",
+                "tool",
+                "install",
+                "--python",
+                "3.12",
+                "techtree==0.1.0",
+            ],
         },
         "hermes_plugin": {
             "plugin_id": "techtree",
@@ -290,7 +297,98 @@ def test_an_address_that_is_not_one_exact_object_is_refused(value: str) -> None:
 
 
 def test_an_install_command_that_does_not_pin_the_version_fails_alone() -> None:
-    result = check(replacing("cli", install_argv=["uv", "tool", "install", "techtree"]))
+    result = check(
+        replacing("cli", install_argv=["uv", "tool", "install", "--python", "3.12"])
+    )
+    assert_only_failure(
+        result, "bootstrap_cli_install_argv", BOOTSTRAP_RELEASE_MISMATCH
+    )
+
+
+def test_an_install_command_that_does_not_pin_the_interpreter_fails_alone() -> None:
+    """The published command must land on a Python this release supports.
+
+    Left to choose, the installer takes the machine's default Python, which can
+    be newer than Techtree supports: the install succeeds and the operator's
+    first Techtree output is Doctor reporting a wrong interpreter (decision
+    0031). A document that publishes such a command does not verify.
+    """
+    result = check(
+        replacing("cli", install_argv=["uv", "tool", "install", "techtree==0.1.0"])
+    )
+    assert_only_failure(
+        result, "bootstrap_cli_install_argv", BOOTSTRAP_RELEASE_MISMATCH
+    )
+    assert "minimums.python is '3.12'" in result.failures[0].detail
+
+
+def test_an_install_command_pinning_an_undeclared_interpreter_fails() -> None:
+    """The pin is only worth anything if it is the declared interpreter.
+
+    This is the failure the check exists for: a document that tells a reader to
+    install on one Python while its own requirements name another.
+    """
+    result = check(
+        replacing(
+            "cli",
+            install_argv=[
+                "uv",
+                "tool",
+                "install",
+                "--python",
+                "3.14",
+                "techtree==0.1.0",
+            ],
+        )
+    )
+    assert_only_failure(
+        result, "bootstrap_cli_install_argv", BOOTSTRAP_RELEASE_MISMATCH
+    )
+
+
+def test_the_interpreter_pin_follows_what_the_document_requires() -> None:
+    """Move the declared Python and the accepted command moves with it."""
+    document = bootstrap()
+    document["minimums"]["python"] = "3.13"
+    document["cli"]["install_argv"] = [
+        "uv",
+        "tool",
+        "install",
+        "--python",
+        "3.13",
+        "techtree==0.1.0",
+    ]
+
+    assert check(document).verified is True
+
+
+def test_a_document_that_states_no_interpreter_publishes_no_pinned_command() -> None:
+    """There is nothing to pin the command to, so the command cannot verify."""
+    document = bootstrap()
+    del document["minimums"]["python"]
+
+    result = check(document)
+    assert_only_failure(
+        result, "bootstrap_cli_install_argv", BOOTSTRAP_RELEASE_MISMATCH
+    )
+    assert "minimums.python is None" in result.failures[0].detail
+
+
+def test_a_flag_and_a_version_that_are_not_adjacent_do_not_pin_anything() -> None:
+    """``--python`` takes the argument beside it, so only that one counts."""
+    result = check(
+        replacing(
+            "cli",
+            install_argv=[
+                "uv",
+                "tool",
+                "install",
+                "--python",
+                "techtree==0.1.0",
+                "3.12",
+            ],
+        )
+    )
     assert_only_failure(
         result, "bootstrap_cli_install_argv", BOOTSTRAP_RELEASE_MISMATCH
     )

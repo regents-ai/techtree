@@ -39,6 +39,10 @@ WHEEL_COMMIT = "b" * 40
 #: The SHA-256 of the wheel these tests stand in for, as the caller computes
 #: it: lowercase hex, no prefix.
 WHEEL_SHA256 = "f" * 64
+#: The Python a published wrapper states it needs, and therefore the one its
+#: install command has to name (decision 0031). The wrapper states it once and
+#: the command reads it from there, so this stands in for both.
+PUBLISHED_PYTHON = "3.12"
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_DIRECTORY = REPOSITORY_ROOT / "release"
@@ -380,13 +384,23 @@ def wrapper(core: Any, **starter: Any) -> dict[str, Any]:
         "channel": "development",
         "placeholder_release": False,
         "published_at": "2026-08-14T00:00:00Z",
-        "minimums": {"hermes_version": core.minimum_host_hermes_version},
+        "minimums": {
+            "hermes_version": core.minimum_host_hermes_version,
+            "python": PUBLISHED_PYTHON,
+        },
         "cli": {
             "distribution": "techtree",
             "version": core.cli_version,
             "source_revision": WHEEL_COMMIT,
             "wheel_sha256": f"sha256:{WHEEL_SHA256}",
-            "install_argv": ["uv", "tool", "install", f"techtree=={core.cli_version}"],
+            "install_argv": [
+                "uv",
+                "tool",
+                "install",
+                "--python",
+                PUBLISHED_PYTHON,
+                f"techtree=={core.cli_version}",
+            ],
         },
         "hermes_plugin": {
             "plugin_id": "techtree",

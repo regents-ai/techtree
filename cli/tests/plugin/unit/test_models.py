@@ -66,7 +66,7 @@ VALID_PLAN: dict[str, Any] = {
     "plan_id": "install_" + "0" * 32,
     "package": "techtree",
     "version": "0.1.0",
-    "argv": ["uv", "tool", "install", "techtree==0.1.0"],
+    "argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.0"],
     "release_core_digest": "sha256:" + "6" * 64,
     "requires_confirmation": True,
     "created_at": "2026-08-13T00:00:00Z",
@@ -307,9 +307,9 @@ def test_a_malformed_error_is_rejected(error: dict[str, Any], expected: str) -> 
 def test_a_fixed_plan_parses() -> None:
     plan = parse_bootstrap_install_plan(VALID_PLAN)
 
-    assert plan.argv == ("uv", "tool", "install", "techtree==0.1.0")
+    assert plan.argv == ("uv", "tool", "install", "--python", "3.12", "techtree==0.1.0")
     assert plan.requires_confirmation is True
-    assert plan.display_command() == "uv tool install techtree==0.1.0"
+    assert plan.display_command() == "uv tool install --python 3.12 techtree==0.1.0"
 
 
 @pytest.mark.parametrize(
@@ -317,7 +317,7 @@ def test_a_fixed_plan_parses() -> None:
     [
         ({"command": "uv tool install techtree"}, "executable fields"),
         ({"index_url": "https://example.test/simple"}, "executable fields"),
-        ({"argv": "uv tool install techtree==0.1.0"}, "argument array"),
+        ({"argv": "uv tool install --python 3.12 techtree==0.1.0"}, "argument array"),
         ({"argv": ["curl", "install", "techtree==0.1.0"]}, "installer must be"),
         ({"argv": ["uv", "tool", "install", "techtree"]}, "does not install exactly"),
         ({"requires_confirmation": False}, "requires confirmation"),

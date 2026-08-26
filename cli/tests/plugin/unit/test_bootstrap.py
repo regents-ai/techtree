@@ -27,6 +27,7 @@ from techtree_hermes.bootstrap import (
     uv_prerequisite,
 )
 from techtree_hermes.bridge import CliBridge
+from techtree_hermes.constants import CLI_PYTHON_SERIES
 from techtree_hermes.errors import BootstrapPlanError
 from techtree_hermes.models import parse_bootstrap_install_plan
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
@@ -123,8 +124,15 @@ def test_a_missing_cli_produces_one_exact_plan() -> None:
     )
 
     plan = result["install_plan"]
-    assert plan["argv"] == ["uv", "tool", "install", "techtree==0.1.0"]
-    assert plan["command"] == "uv tool install techtree==0.1.0"
+    assert plan["argv"] == [
+        "uv",
+        "tool",
+        "install",
+        "--python",
+        "3.12",
+        "techtree==0.1.0",
+    ]
+    assert plan["command"] == "uv tool install --python 3.12 techtree==0.1.0"
     assert plan["requires_confirmation"] is True
     assert result["next_action"]["tool"] == "techtree_bootstrap_install"
     assert result["next_action"]["requires_user_confirmation"] is True
@@ -156,6 +164,23 @@ def test_the_plan_names_only_the_release_version() -> None:
         )
         == plan
     )
+
+
+def test_the_plan_installs_on_a_python_this_release_supports() -> None:
+    """The command names the interpreter instead of letting uv choose one.
+
+    Left to choose, uv installs onto whatever Python the machine treats as its
+    default, which can be newer than Techtree supports. The install succeeds,
+    and the first thing the person sees is Techtree's own Doctor saying the
+    interpreter is wrong (Techtree decisions document 0031).
+    """
+    plan = create_install_plan(
+        PUBLISHED, uv_path="/usr/local/bin/uv", release_core_digest=DIGEST
+    )
+
+    interpreter = plan.argv.index("--python")
+    assert plan.argv[interpreter + 1] == CLI_PYTHON_SERIES
+    assert interpreter < plan.argv.index(f"techtree=={PUBLISHED.cli_version}")
 
 
 def test_a_plan_expires() -> None:
@@ -240,7 +265,7 @@ def test_installation_goes_through_the_hosts_own_terminal_approval(
     result = install_cli_with_approval(host, services, plan_id=plan.plan_id)
 
     assert host.dispatched == [
-        (TERMINAL_TOOL, {"command": "uv tool install techtree==0.1.0"})
+        (TERMINAL_TOOL, {"command": "uv tool install --python 3.12 techtree==0.1.0"})
     ]
     assert result["approval"] == "host_terminal"
     # Decision 0024 section 7: a verified installation says what comes next.
@@ -281,7 +306,7 @@ def test_a_host_without_a_terminal_gets_manual_instructions() -> None:
 
     assert result["installed"] is False
     assert result["approval"] == "manual"
-    assert result["plan"]["command"] == "uv tool install techtree==0.1.0"
+    assert result["plan"]["command"] == "uv tool install --python 3.12 techtree==0.1.0"
 
 
 def test_a_refused_dispatch_never_becomes_a_direct_install() -> None:

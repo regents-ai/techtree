@@ -78,6 +78,11 @@ BOOTSTRAP_SCHEMA_VERSION: Final = "techtree.bootstrap.v1alpha1"
 BOOTSTRAP_RELEASE_INVALID: Final = "bootstrap_release_invalid"
 BOOTSTRAP_RELEASE_MISMATCH: Final = "bootstrap_release_mismatch"
 
+#: How the published install command names an interpreter to the installer.
+#: The value beside it is never written here — it is read from the document
+#: being checked (decision 0031).
+_INTERPRETER_FLAG: Final = "--python"
+
 _COMMIT_RE = re.compile(COMMIT_PATTERN)
 _OBJECT_URL_RE = re.compile(OBJECT_URL_PATTERN)
 _DIGEST_RE = re.compile(DIGEST_PATTERN)
@@ -353,19 +358,55 @@ def _coordinate_check(
 def _cli_install_argv_check(
     core: ReleaseCore, document: dict[str, JsonValue]
 ) -> ReleaseCheck:
-    """The published install command must install the published version."""
+    """The published install command must install the published version, and
+    install it on the interpreter this same document requires.
+
+    Left to choose, the installer takes whatever Python the machine already
+    treats as its default — which can be a version Techtree does not support.
+    The install then succeeds and the first thing the operator sees is Doctor
+    saying the interpreter is wrong, after running the exact command this
+    project published (decision 0031). So the command pins the interpreter.
+
+    Which interpreter is not restated here. It is read from the document's own
+    requirements, because a second written-out copy of one number is how a
+    document ends up telling someone to install on an interpreter it also
+    calls unsupported. That makes the two halves one fact, and this check is
+    what keeps them one fact.
+    """
     argv = _string_list(_lookup(document, ("cli", "install_argv")))
     distribution = _lookup(document, ("cli", "distribution"))
+    interpreter = _lookup(document, ("minimums", "python"))
     pin = f"{distribution}=={core.cli_version}"
-    if pin in argv:
-        return _passed(
+
+    if pin not in argv:
+        return _failed(
             "bootstrap_cli_install_argv",
-            f"the published install command pins {pin}.",
+            BOOTSTRAP_RELEASE_MISMATCH,
+            f"the published install command does not pin {pin}; it is {argv}.",
         )
-    return _failed(
+    if not _pins_interpreter(argv, interpreter):
+        return _failed(
+            "bootstrap_cli_install_argv",
+            BOOTSTRAP_RELEASE_MISMATCH,
+            "the published install command does not pin the interpreter this "
+            f"document requires: minimums.python is {interpreter!r} and the "
+            f"command is {argv}.",
+        )
+    return _passed(
         "bootstrap_cli_install_argv",
-        BOOTSTRAP_RELEASE_MISMATCH,
-        f"the published install command does not pin {pin}; it is {argv}.",
+        f"the published install command pins {pin} and installs it on the "
+        f"Python {interpreter} this document requires.",
+    )
+
+
+def _pins_interpreter(argv: list[str], interpreter: JsonValue) -> bool:
+    """Return whether the command names that interpreter to the installer."""
+    if not isinstance(interpreter, str) or not interpreter.strip():
+        return False
+    wanted = (_INTERPRETER_FLAG, interpreter)
+    return any(
+        tuple(argv[position : position + 2]) == wanted
+        for position in range(len(argv) - 1)
     )
 
 

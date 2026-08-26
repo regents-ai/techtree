@@ -38,7 +38,7 @@ def _plan(
         plan_id=plan_id or issue_local_plan_id("install", DIGEST),
         package="techtree",
         version="0.1.0",
-        argv=("uv", "tool", "install", "techtree==0.1.0"),
+        argv=("uv", "tool", "install", "--python", "3.12", "techtree==0.1.0"),
         release_core_digest=release_core_digest,
         requires_confirmation=True,
         created_at=issued.isoformat(),
