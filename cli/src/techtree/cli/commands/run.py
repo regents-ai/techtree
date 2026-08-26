@@ -128,7 +128,7 @@ DEVELOPMENT_ONLY_BANNER: Final = (
     "This report is not publication eligible."
 )
 
-_DEVELOPMENT_ONLY_WARNING: Final = (
+_FAKE_EXECUTOR_WARNING: Final = (
     "This run was executed by the development fake executor. No agent was "
     "evaluated, no model was called, and the numbers below are invented. The "
     "report is not publication eligible."
@@ -307,7 +307,7 @@ def status_run_command(
         )
         return CommandResult(
             data=payload,
-            warnings=_development_warnings(payload.fake_executor),
+            warnings=_fake_executor_warnings(payload.fake_executor),
             next_actions=_status_next_actions(payload),
         )
 
@@ -804,20 +804,32 @@ def _default_format(context: CliContext) -> ResultFormat:
 # ---------------------------------------------------------------------------
 
 
-def _development_warnings(fake_executor: bool) -> list[CliMessage]:
+def _fake_executor_warnings(fake_executor: bool) -> list[CliMessage]:
+    """Return the caveat a run driven by the fake executor carries.
+
+    ``fake_executor_run`` states one fact and only that fact: this run called
+    no model. It is the same code ``climb start`` fires off the same request
+    field, and it is deliberately not the code a development-only *grade*
+    fires, because the two are independent — a run against a real model at
+    real cost still produces a report that may not be published.
+    """
     if not fake_executor:
         return []
     return [
         CliMessage(
             level=MessageLevel.WARNING,
-            code="development_only_result",
-            text=_DEVELOPMENT_ONLY_WARNING,
+            code="fake_executor_run",
+            text=_FAKE_EXECUTOR_WARNING,
         )
     ]
 
 
 def _result_warnings(report: UpliftReport) -> list[CliMessage]:
     """Return the caveat a finished report carries. Spec section 29.
+
+    ``development_only_result`` states the report's proof grade and only that:
+    these numbers are not evidence and no verdict is stated. Which executor
+    produced them is a separate fact with its own code.
 
     A report knows which DataPolicy its run executed under, so the warning on
     a result can name it. Progress reporting cannot — a run in flight has no

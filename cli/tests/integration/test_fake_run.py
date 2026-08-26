@@ -209,8 +209,8 @@ def test_starting_a_fake_run_says_no_model_is_called(
     warnings = {warning["code"]: warning["text"] for warning in envelope["warnings"]}
 
     assert finished_run["started"].data()["fake_executor"] is True
-    assert "development_only_run" in warnings
-    assert "no model is called" in warnings["development_only_run"]
+    assert "fake_executor_run" in warnings
+    assert "no model is called" in warnings["fake_executor_run"]
     assert "spends money" not in " ".join(warnings.values())
 
 
@@ -221,6 +221,29 @@ def test_the_machine_envelope_carries_the_caveat(
     warnings = finished_run["result"].envelope()["warnings"]
 
     assert any(warning["code"] == "development_only_result" for warning in warnings)
+
+
+def test_status_and_result_name_two_different_facts(
+    finished_run: dict[str, Any],
+) -> None:
+    """One code per fact, so a machine can tell the two apart.
+
+    Progress reports which executor ran: ``fake_executor_run``, the same code
+    ``climb start`` fires off the same request field. A finished report states
+    its proof grade: ``development_only_result``. This run happens to be both,
+    which is exactly why neither code may stand for the other.
+    """
+    status = run_cli(
+        finished_run["home"], "run", "status", finished_run["run_id"]
+    ).envelope()
+    status_codes = [warning["code"] for warning in status["warnings"]]
+    result_codes = [
+        warning["code"] for warning in finished_run["result"].envelope()["warnings"]
+    ]
+
+    assert status_codes == ["fake_executor_run"]
+    assert "development_only_result" not in status_codes
+    assert "fake_executor_run" not in result_codes
 
 
 def test_the_human_result_leads_with_the_banner(

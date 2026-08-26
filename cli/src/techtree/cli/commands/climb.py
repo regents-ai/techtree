@@ -833,7 +833,7 @@ def _start_warnings(
         warnings.append(
             CliMessage(
                 level=MessageLevel.WARNING,
-                code="development_only_run",
+                code="fake_executor_run",
                 text=(
                     "No agent is evaluated and no model is called on this run. "
                     "The numbers in the report it produces are invented."

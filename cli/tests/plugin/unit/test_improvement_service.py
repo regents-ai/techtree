@@ -307,7 +307,9 @@ def test_a_context_carrying_a_credential_is_refused() -> None:
 
 def test_a_context_carrying_a_private_path_is_refused() -> None:
     with pytest.raises(PluginError, match="private path"):
-        validate_context(_context(objective="See /Users/sean/runs/run_1 for detail."))
+        validate_context(
+            _context(objective="See /Users/someone/runs/run_1 for detail.")
+        )
 
 
 def test_a_context_of_an_unknown_schema_is_refused() -> None:
