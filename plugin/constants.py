@@ -78,7 +78,7 @@ CLI_DISTRIBUTION_NAME: Final = "techtree"
 
 # The Python an installation plan installs Techtree on, and the only one. Also
 # a release coordinate: this release states the Python it needs, and the
-# published install command names it (Techtree decisions document 0031).
+# published install command names it (Techtree decisions document 0034).
 #
 # Left to choose, uv installs onto whatever Python this machine already treats
 # as its default, which on a current Mac is newer than Techtree supports. The
