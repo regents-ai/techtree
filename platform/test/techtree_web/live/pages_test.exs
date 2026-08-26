@@ -14,13 +14,31 @@ defmodule TechtreeWeb.PagesTest do
 
   @pages [
     "/",
+    "/docs",
+    "/campaigns",
+    "/campaigns/hello-world-climb",
+    "/proofs",
     "/start",
     "/climbs",
     "/climbs/hello-world-climb",
     "/proofs/local",
     "/protocol"
   ]
-  @pages_without_catalog ["/", "/start", "/climbs", "/proofs/local", "/protocol"]
+  @pages_without_catalog [
+    "/",
+    "/docs",
+    "/campaigns",
+    "/proofs",
+    "/start",
+    "/climbs",
+    "/proofs/local",
+    "/protocol"
+  ]
+
+  # Two pages name protocol documents on purpose and say so: the protocol map,
+  # and the section of a Climb page headed "The documents behind this page".
+  # Everywhere else is written for a reader who has never opened one.
+  @pages_in_plain_words ["/", "/docs", "/campaigns", "/campaigns/hello-world-climb", "/proofs"]
 
   describe "with a release being served" do
     setup do
@@ -74,6 +92,17 @@ defmodule TechtreeWeb.PagesTest do
       end
     end
 
+    test "no page names the machinery where a reader is being spoken to", %{conn: conn} do
+      for page <- @pages_in_plain_words do
+        {:ok, _live, html} = live(conn, page)
+        body = html |> visible_text() |> String.downcase()
+
+        for word <- protocol_words() do
+          refute body =~ word, "#{page} says #{inspect(word)} to a reader"
+        end
+      end
+    end
+
     test "no page offers a form, an upload, or an account", %{conn: conn} do
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
@@ -81,8 +110,16 @@ defmodule TechtreeWeb.PagesTest do
 
         refute markup =~ "<form"
         refute markup =~ "<input"
-        refute markup =~ "<button"
         refute markup =~ ~s|type="file"|
+
+        # The one control on this site copies a command that is already on the
+        # page. Nothing may submit, and nothing may ask the server for anything.
+        for [attributes] <-
+              Regex.scan(~r/<button([^>]*)>/, markup, capture: :all_but_first) do
+          assert attributes =~ ~s|type="button"|, "#{page} has a button that could submit"
+          assert attributes =~ "copycommand", "#{page} has a button that is not the copy control"
+          refute attributes =~ "phx-click"
+        end
 
         # Nothing on the page invites a reader to identify themselves.
         links = Regex.scan(~r/<a [^>]*>(.*?)<\/a>/s, markup, capture: :all_but_first)
@@ -146,7 +183,7 @@ defmodule TechtreeWeb.PagesTest do
     test "every page that does not name a Climb still renders", %{conn: conn} do
       for page <- @pages_without_catalog do
         assert {:ok, _live, html} = live(conn, page)
-        assert html =~ "Techtree Climb"
+        assert html =~ "A Regents Labs project"
       end
     end
 
@@ -161,6 +198,27 @@ defmodule TechtreeWeb.PagesTest do
     test "a Climb page is not found rather than empty", %{conn: conn} do
       assert_error_sent 404, fn -> live(conn, ~p"/climbs/hello-world-climb") end
     end
+  end
+
+  # The names of protocol documents and of the machinery that produces them.
+  # Each is the right word in a specification and the wrong word on a page
+  # somebody is reading to decide whether to install something.
+  defp protocol_words do
+    [
+      "campaignspec",
+      "climbmanifest",
+      "datapolicy",
+      "tasksetvalidationreceipt",
+      "episodereceipt",
+      "upliftreport",
+      "localproofbundle",
+      "experimentmanifest",
+      "verifiers",
+      "schema",
+      "enum",
+      "manifest",
+      "projection"
+    ]
   end
 
   defp forbidden_words do

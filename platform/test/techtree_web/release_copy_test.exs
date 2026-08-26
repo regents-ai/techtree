@@ -31,6 +31,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   @pages [
     "/",
+    "/docs",
+    "/campaigns",
+    "/campaigns/hello-world-climb",
+    "/proofs",
     "/start",
     "/climbs",
     "/climbs/hello-world-climb",
@@ -38,7 +42,21 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/protocol"
   ]
 
-  @pages_without_catalog ["/", "/start", "/climbs", "/proofs/local", "/protocol"]
+  @pages_without_catalog [
+    "/",
+    "/docs",
+    "/campaigns",
+    "/proofs",
+    "/start",
+    "/climbs",
+    "/proofs/local",
+    "/protocol"
+  ]
+
+  # The addresses that carry one of the two installation paths. Which page
+  # offers which is a design decision and has moved once already; that a page
+  # offering one carries its exact words has not moved and is not allowed to.
+  @install_paths ["/", "/start", "/?install=me", "/start?install=me", "/docs"]
 
   # A claim that the machine keeps everything, which the remote model calls a
   # trial makes contradict unless the same passage says so.
@@ -107,6 +125,25 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   @forbidden_name ~r/helloworldbench/i
 
+  # This release publishes nothing and receives nothing, and the pages that
+  # describe a finished comparison are exactly the pages tempted to offer the
+  # parts of it that do not exist yet: something to download, somebody else's
+  # attestation, a place to publish.
+  @offered_publication [
+    ~r/\bdownload\b[^.]{0,60}\bbundle\b/i,
+    ~r/reproduction attestations?/i,
+    ~r/\bpublish (your|the) (proof|result|bundle)\b/i,
+    ~r/\bupload (your|the|a) (proof|result bundle)\b/i
+  ]
+
+  # A stand-in coordinate may be described as release state. On the pages that
+  # exist to get somebody running it may never appear at all: a command that
+  # installs nothing is worse than no command. The pinned installation guide is
+  # the one place the stand-in commands are shown, under a warning that says
+  # what they are, so that the path can be read before it is real.
+  @placeholder_coordinates ["0.0.0-placeholder", String.duplicate("0", 40)]
+  @pages_that_get_you_running ["/", "/docs", "/campaigns", "/proofs"]
+
   # This release installs and runs at a terminal. Any page that hints at a
   # journey beginning on a handheld device is describing something that does
   # not exist. (Engineering notes about narrow screens are not published words
@@ -159,6 +196,9 @@ defmodule TechtreeWeb.ReleaseCopyTest do
                   "Install and enable the Techtree Hermes plugin, tell me when Hermes must be " <>
                   "restarted, then use the plugin to install and verify the Techtree CLI and " <>
                   "run the Hello World Climb. Do not upload my local evaluation artifacts."
+
+  @agent_path_heading "Give this to your Hermes agent"
+  @alternate_path_heading "Prefer installing it yourself?"
 
   @alternate_path [
     "Prefer installing it yourself?",
@@ -248,20 +288,31 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_moving_address(markup(conn, @pages))
     end
 
-    test "the pages offering the agent path carry the prompt as it was written",
+    test "every page offering the agent path carries the prompt as it was written",
          %{conn: conn} do
-      for {label, text} <- rendered(conn, ["/", "/start"]) do
-        assert text =~ @agent_prompt, "#{label} does not carry the prompt word for word"
-      end
+      offering =
+        for {label, text} <- rendered(conn, @install_paths),
+            String.contains?(text, @agent_path_heading) do
+          assert text =~ @agent_prompt, "#{label} does not carry the prompt word for word"
+          label
+        end
+
+      assert offering != [], "no page offered the agent path, so nothing was checked"
     end
 
-    test "the pages offering the other path carry its three steps as they were written",
+    test "every page offering the other path carries its three steps as they were written",
          %{conn: conn} do
-      for {label, text} <- rendered(conn, ["/?install=me", "/start?install=me"]) do
-        for line <- @alternate_path do
-          assert text =~ line, "#{label} does not carry #{inspect(line)} word for word"
+      offering =
+        for {label, text} <- rendered(conn, @install_paths),
+            String.contains?(text, @alternate_path_heading) do
+          for line <- @alternate_path do
+            assert text =~ line, "#{label} does not carry #{inspect(line)} word for word"
+          end
+
+          label
         end
-      end
+
+      assert offering != [], "no page offered the other path, so nothing was checked"
     end
 
     test "every page saying what Hermes is says it as it was written", %{conn: conn} do
@@ -280,7 +331,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     test "every page that hands out the install command says what the report will say",
          %{conn: conn} do
       offering =
-        for {label, text} <- rendered(conn, ["/", "/?install=me", "/start", "/start?install=me"]),
+        for {label, text} <- rendered(conn, @install_paths),
             String.contains?(text, @install_command) do
           for line <- @scan_section do
             assert String.contains?(text, line),
@@ -311,6 +362,29 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       assert showing != [],
              "no page stated the publication terms, so nothing was checked"
     end
+
+    test "no page offers a part of a result this release does not have", %{conn: conn} do
+      refute_offered_publication(rendered(conn, @pages))
+    end
+
+    test "no page hands a reader a stand-in coordinate to run", %{conn: conn} do
+      refute_placeholder_coordinates(markup(conn, @pages_that_get_you_running))
+    end
+
+    test "the page a reader is sent to for a proof says what is and is not there",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/proofs")
+      text = visible_text(html)
+
+      assert text =~ "No participant result is published here"
+      assert text =~ "This release publishes nothing and receives nothing."
+      assert text =~ "Participant-attested"
+      assert text =~ "techtree proof verify path/to/result-bundle"
+
+      # Every coordinate it does show is one the served release publishes.
+      assert text =~ CatalogFixture.campaign_digest()
+      assert text =~ "prime · qwen/qwen3.7-flash"
+    end
   end
 
   describe "every page, with nothing imported" do
@@ -331,6 +405,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_uncertified_hosting(sources)
       refute_priced_claim(sources)
       refute_absent_journey(sources)
+      refute_offered_publication(sources)
       require_never_disable(sources)
       refute_moving_address(markup(conn, @pages_without_catalog))
     end
@@ -351,6 +426,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_forbidden_name(sources)
       refute_uncertified_hosting(sources)
       refute_priced_claim(sources)
+      refute_offered_publication(sources)
       require_never_disable(sources)
     end
 
@@ -464,6 +540,21 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       assert String.contains?(text, @never_disable),
              "#{label} describes the install-time report without telling a reader to " <>
                "leave it switched on"
+    end
+  end
+
+  defp refute_offered_publication(sources) do
+    for {label, text} <- sources, pattern <- @offered_publication do
+      refute text =~ pattern,
+             "#{label} matches #{inspect(pattern)}: this release publishes nothing, " <>
+               "receives nothing, and has no result of anyone's to hand over"
+    end
+  end
+
+  defp refute_placeholder_coordinates(sources) do
+    for {label, markup} <- sources, coordinate <- @placeholder_coordinates do
+      refute String.contains?(markup, coordinate),
+             "#{label} shows #{coordinate}, which is a stand-in rather than a release"
     end
   end
 

@@ -65,15 +65,41 @@ defmodule TechtreeWeb.CoreComponents do
 
   @doc """
   Show one command, built from the arguments that make it up.
+
+  The copy control hands over exactly the characters shown, and nothing on this
+  site ever runs them: what a reader copies is what the release published, and
+  where it is run is their business.
   """
   attr :argv, :list, required: true
   attr :label, :string, default: nil
+  attr :copy, :boolean, default: true
+  attr :id, :string, default: nil
 
   def command_block(assigns) do
+    command = display_command(assigns.argv)
+
+    assigns =
+      assigns
+      |> assign(:command, command)
+      |> assign(:copy_id, assigns.id || command_id(command, assigns.label))
+
     ~H"""
     <div class="command">
-      <p :if={@label} class="command__label">{@label}</p>
-      <pre class="command__block"><code>{display_command(@argv)}</code></pre>
+      <div class="command__head">
+        <p class="command__label">{@label || "Command"}</p>
+        <button
+          :if={@copy}
+          id={@copy_id}
+          class="command__copy"
+          type="button"
+          phx-hook="CopyCommand"
+          phx-update="ignore"
+          data-copy-value={@command}
+        >
+          <span data-copy-label>Copy</span>
+        </button>
+      </div>
+      <pre class="command__block"><code>{@command}</code></pre>
     </div>
     """
   end
@@ -249,6 +275,13 @@ defmodule TechtreeWeb.CoreComponents do
   # Display only. An argument that would need quoting in a shell is shown
   # quoted, so that what a reader copies is what the argument list means.
   defp display_command(argv), do: Enum.map_join(argv, " ", &quote_argument/1)
+
+  # A stable name for the copy control, derived from what it copies, so that a
+  # page holding several commands does not have to name each one by hand.
+  defp command_id(command, label) do
+    digest = :crypto.hash(:sha256, [label || "", command]) |> Base.encode16(case: :lower)
+    "copy-command-" <> String.slice(digest, 0, 12)
+  end
 
   defp quote_argument(argument) do
     if String.match?(argument, ~r|\A[A-Za-z0-9_@%+=:,./-]+\z|) do

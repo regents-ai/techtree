@@ -1,4 +1,14 @@
 defmodule TechtreeWeb.HomeLiveTest do
+  @moduledoc """
+  The landing page answers "what is this?" before "who are you?", and every
+  number on it comes from a document this release publishes.
+
+  Four regions, in one order, with one way in. What is checked here is the
+  wording that was decided rather than written, the coordinates that must be
+  read rather than typed, and the two things this page must never grow: an
+  invented figure and a second installation path.
+  """
+
   use TechtreeWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -13,114 +23,104 @@ defmodule TechtreeWeb.HomeLiveTest do
       :ok
     end
 
-    test "the landing page says what this is and then how to install it", %{conn: conn} do
+    test "the hero says what this is, in the words it was decided in", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "Techtree Climb"
-      assert text =~ "Test one change to an agent on your own machine"
-      assert text =~ "My agent is installing"
-      assert text =~ "I’m installing"
-      assert text =~ "Give this to your Hermes agent"
+      assert text =~ "Improve a Skill."
+      assert text =~ "Prove it worked."
+
+      assert text =~
+               "Run a controlled baseline and candidate on your machine. Techtree keeps the " <>
+                 "taskset, model, harness, tools, and budget fixed, then signs the result so " <>
+                 "another participant can verify or reproduce it."
+
+      assert text =~ "Local preview · v0.1 development release"
     end
 
-    test "the landing page opens on the agent path", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
-
-      assert visible_text(html) =~
-               "Read the pinned Techtree installation guide at https://techtree.sh/start."
-
-      refute html =~ "hermes plugins install"
-      refute html =~ "Prefer installing it yourself?"
-    end
-
-    test "the other path is the alternate one, with the pinned plugin under it",
-         %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/?install=me")
-      text = visible_text(html)
-
-      assert text =~ "Prefer installing it yourself?"
-      assert text =~ "Install the exact pinned Hermes plugin shown below."
-      assert text =~ "Restart Hermes."
-      assert text =~ "Ask: “Set up Techtree and run the Hello World Climb.”"
-
-      assert html =~ "hermes plugins install regents-ai/techtree-hermes --ref"
-    end
-
-    test "the landing page stays out of the details and points at the guide", %{conn: conn} do
+    test "there is one way in, and it is the same one for everybody", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
+      text = visible_text(html)
 
-      refute html =~ "uv tool install"
-      refute html =~ "Before you start"
+      assert live |> element(~s|a.button--primary[href="/docs#install"]|) |> has_element?()
+      assert live |> element(~s|a[href="/proofs"]|, "View a verified run") |> has_element?()
+
+      # The agent-and-human fork moved to the installation guide; the front
+      # page no longer asks a reader to choose before they know what for.
+      refute text =~ "My agent is installing"
+      refute text =~ "I’m installing"
+      refute text =~ "Give this to your Hermes agent"
+      refute text =~ "Prefer installing it yourself?"
+    end
+
+    test "the page holds exactly the four regions it was given", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+
+      sections = Regex.scan(~r/<section[^>]*class="([^"]*)"/, html, capture: :all_but_first)
+
+      assert [
+               ["hero"],
+               ["home-section process"],
+               ["home-section featured"],
+               ["home-section trust"]
+             ] =
+               Enum.reject(sections, fn [class] ->
+                 String.starts_with?(class, "evidence-graph")
+               end)
+    end
+
+    test "the three steps read as they were written", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      assert text =~ "Resolve a pinned campaign and record the baseline."
+      assert text =~ "Change one declared Skill under a fixed budget and validation rule."
+
+      assert text =~
+               "Sign the comparison, inspect its evidence, and let another machine reproduce it."
+    end
+
+    test "the graph and the featured campaign come out of the imported catalog",
+         %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      assert has_element?(live, "#home-evidence-graph")
+      assert text =~ CatalogFixture.campaign_digest()
+      assert text =~ "prime · qwen/qwen3.7-flash"
+      assert text =~ "36 tasks, fixed before either run"
+      assert text =~ "36 tasks validated"
+      assert text =~ "Hello World Skill Uplift"
 
       assert live
-             |> element(~s|a[href="/start"]|, "The full installation guide")
+             |> element(~s|a[href="/campaigns/hello-world-climb"]|, "Inspect the campaign")
              |> has_element?()
     end
 
-    test "the landing page says what Hermes is and what a hosted one cannot do yet",
+    test "the trust region says where the model calls go and who attested the run",
          %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/")
-      text = visible_text(html)
-
-      assert text =~ "Hermes is an open-source agent made by Nous Research."
-
-      assert text =~
-               "Nous Portal provides model access, hosted tools, and cloud-hosted Hermes " <>
-                 "under one account."
-
-      assert text =~
-               "The Nous Portal cloud-hosted path is not yet a separately certified " <>
-                 "Techtree execution environment."
-
-      assert live |> element(~s|a[href="https://portal.nousresearch.com/"]|) |> has_element?()
-    end
-
-    test "either path calls the introductory Climb a toy demonstration", %{conn: conn} do
-      for address <- [~p"/", ~p"/?install=me"] do
-        {:ok, _live, html} = live(conn, address)
-
-        assert visible_text(html) =~
-                 "A toy introductory demonstration of the mechanism, " <>
-                   "not a measure of broad capability.",
-               "#{address} drops the qualification"
-      end
-    end
-
-    test "either path says what is not uploaded and where model calls go", %{conn: conn} do
-      for address <- [~p"/", ~p"/?install=me"] do
-        {:ok, _live, html} = live(conn, address)
-        text = visible_text(html)
-
-        assert text =~
-                 "Techtree does not upload your recordings, your results, or the work you submit."
-
-        assert text =~ "sent to the model provider you selected"
-      end
-    end
-
-    test "the landing page keeps the participant-attested wording", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "signed on the machine that produced it and can be checked there, offline"
-      assert text =~ "has not been independently reproduced"
+      assert text =~ "Techtree does not upload your recordings"
+      assert text =~ "go to the model provider you selected, under that provider’s policies"
+      assert text =~ "attested by the participant who produced it"
+      assert text =~ "Nobody else watched the run"
     end
 
-    test "the landing page keeps the deeper pages one link away", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/")
+    test "a stand-in release is described and never handed over as a command", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
 
-      for path <- ["/climbs", "/protocol", "/proofs/local"] do
-        assert live |> element(~s|a[href="#{path}"]|) |> has_element?()
-      end
+      assert visible_text(html) =~ "This channel publishes stand-in coordinates"
+      refute html =~ "techtree==0.0.0-placeholder"
+      refute html =~ String.duplicate("0", 40)
     end
 
-    test "the landing page invents no activity and claims no independent checking",
-         %{conn: conn} do
+    test "the page invents no activity and claims no independent checking", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
 
       for fabrication <- [
-            "participants",
+            "participants so far",
             "runs completed",
             "leaderboard",
             "trending",
@@ -131,24 +131,77 @@ defmodule TechtreeWeb.HomeLiveTest do
         refute String.downcase(html) =~ fabrication
       end
 
-      refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)/i
+      refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)\b/i
+      refute html =~ ~r/\+\d+(\.\d+)?%/
+    end
+  end
+
+  describe "with a concrete release published" do
+    @tag :tmp_dir
+    test "the install command, its label and the source link are read from the release",
+         %{conn: conn, tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+      CatalogFixture.rewrite_bootstrap!(bundle, &CatalogFixture.concrete_release/1)
+      CatalogFixture.use_bundle(bundle)
+      Importer.import!(bundle)
+
+      {:ok, live, html} = live(conn, ~p"/")
+
+      assert live
+             |> element(~s|#copy-home-install[data-copy-value="uv tool install techtree==0.1.0"]|)
+             |> has_element?()
+
+      assert visible_text(html) =~ "macOS or Linux · Python 3.12"
+      assert visible_text(html) =~ "Docker required"
+
+      assert live
+             |> element(
+               ~s|a.masthead__source[href="https://github.com/regents-ai/techtree-hermes/tree/#{String.duplicate("a", 40)}"]|
+             )
+             |> has_element?()
     end
   end
 
   test "the landing page needs no catalog to render", %{conn: conn} do
     {:ok, _live, html} = live(conn, ~p"/")
+    text = visible_text(html)
 
-    assert visible_text(html) =~ "Installation details are not published on this site yet."
+    assert text =~ "Improve a Skill."
+    assert text =~ "No release is published on this channel yet."
+    refute text =~ "Evidence graph"
   end
 
-  test "every page is reachable from every page", %{conn: conn} do
-    for path <- [~p"/", ~p"/start", ~p"/climbs", ~p"/proofs/local", ~p"/protocol"] do
+  test "the source link is shown only when the release names one immutable revision",
+       %{conn: conn} do
+    CatalogFixture.use_bundle(CatalogFixture.root())
+    Importer.import!(CatalogFixture.root())
+
+    {:ok, live, _html} = live(conn, ~p"/")
+
+    refute live |> element("a.masthead__source") |> has_element?()
+  end
+
+  test "every page carries the same three ways on", %{conn: conn} do
+    CatalogFixture.use_bundle(CatalogFixture.root())
+    Importer.import!(CatalogFixture.root())
+
+    for path <- [
+          ~p"/",
+          ~p"/docs",
+          ~p"/campaigns",
+          ~p"/campaigns/hello-world-climb",
+          ~p"/proofs",
+          ~p"/start",
+          ~p"/climbs",
+          ~p"/proofs/local",
+          ~p"/protocol"
+        ] do
       {:ok, _live, html} = live(conn, path)
 
-      assert html =~ ~s|href="/start"|
-      assert html =~ ~s|href="/climbs"|
-      assert html =~ ~s|href="/proofs/local"|
-      assert html =~ ~s|href="/protocol"|
+      assert html =~ ~s|href="/docs"|, "#{path} does not link to the documentation"
+      assert html =~ ~s|href="/proofs"|, "#{path} does not link to a proof"
+      assert html =~ "A Regents Labs project"
+      refute html =~ ~s|>Sign in<|
     end
   end
 end

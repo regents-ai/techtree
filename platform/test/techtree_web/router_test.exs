@@ -25,11 +25,16 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/catalog",
              "get /api/v1/climbs/:slug",
              "get /api/v1/objects/:digest",
+             "get /campaigns",
+             "get /campaigns/:slug",
              "get /climbs",
              "get /climbs/:slug",
+             "get /docs",
              "get /healthz",
+             "get /proofs",
              "get /proofs/local",
              "get /protocol",
+             "get /skill.md",
              "get /start"
            ]
   end
@@ -64,6 +69,11 @@ defmodule TechtreeWeb.RouterTest do
   test "a published address answers a mutating method with 405, not 404", %{conn: conn} do
     for path <- [
           "/",
+          "/docs",
+          "/campaigns",
+          "/campaigns/hello-world-climb",
+          "/proofs",
+          "/skill.md",
           "/start",
           "/climbs",
           "/climbs/hello-world-climb",

@@ -41,10 +41,17 @@ defmodule TechtreeWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive
+    live "/docs", DocsLive
+    live "/campaigns", CampaignsLive.Index
+    live "/campaigns/:slug", CampaignsLive.Show
+    live "/proofs", ProofsLive
+    live "/proofs/local", LocalProofLive
+    get "/skill.md", SkillController, :show
+
+    # The addresses release documents already point at, unchanged.
     live "/start", StartLive
     live "/climbs", ClimbsLive.Index
     live "/climbs/:slug", ClimbsLive.Show
-    live "/proofs/local", LocalProofLive
     live "/protocol", ProtocolLive
   end
 
