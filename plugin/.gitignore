@@ -3,3 +3,20 @@ __pycache__/
 .venv/
 .mypy_cache/
 .ruff_cache/
+
+# Editor and OS noise, which nobody's checkout should carry into anyone else's.
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Test and coverage output.
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build output. The plugin ships as a checkout, so nothing here is a release
+# artifact - anything that appears is local.
+build/
+dist/
+*.egg-info/
