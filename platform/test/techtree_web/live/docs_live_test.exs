@@ -331,10 +331,11 @@ defmodule TechtreeWeb.DocsLiveTest do
       text = Phoenix.LiveViewTest.rendered_to_string(html)
 
       assert text =~ "Prime Intellect’s Verifiers"
-      # The pin is 0.3.1.dev21 (techtree-python docs/verifiers-eval.md). If the
-      # pin moves, this copy must move with it — that is what this line is for.
-      assert text =~ "0.3.1.dev21"
-      refute text =~ ~r/Verifiers 0\.3\.1(?!\.dev21)/
+      # The pin is verifiers 0.3.1 (founder ruling 2026-08-26; the python-side
+      # switch from 0.3.1.dev21 lands with the same ruling). If the pin moves,
+      # this copy must move with it — that is what these lines are for.
+      assert text =~ "pinned at version 0.3.1"
+      refute text =~ "dev21"
     end
 
     test "Hermes is credited to Nous Research on the pages that name the stack", %{conn: conn} do

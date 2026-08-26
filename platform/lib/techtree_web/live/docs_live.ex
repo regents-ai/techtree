@@ -217,7 +217,7 @@ defmodule TechtreeWeb.DocsLive do
               <li>
                 <p class="plain"><strong>Here is the measured difference.</strong></p>
                 <p>
-                  Prime Intellect’s Verifiers — pinned at version 0.3.1.dev21, down to the exact
+                  Prime Intellect’s Verifiers — pinned at version 0.3.1, down to the exact
                   commit — records each task’s outcome and score.
                   Techtree pairs the results and reports the baseline score, candidate score,
                   wins, losses, ties, cost, timing, and validity.
