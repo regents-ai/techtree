@@ -63,6 +63,17 @@ svg {
 
 /* System ---------------------------------------------------------------- */
 
+/* Geist Pixel (Square), Vercel's pixel display face. SIL OFL 1.1 — the
+   license ships beside the font at /fonts/GeistPixel-OFL.txt. Served from
+   this site only; display headings and the wordmark use it. */
+@font-face {
+  font-family: "Geist Pixel";
+  src: url("/fonts/GeistPixel-Square.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* One surface. Panels are the same field, a shade apart, never a second
      material. */
@@ -90,6 +101,7 @@ svg {
 
   --font-prose: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  --font-display: "Geist Pixel", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
 
   --page-width: 76rem;
@@ -115,6 +127,14 @@ h3 {
   font-weight: 610;
   line-height: 1.05;
   letter-spacing: -0.035em;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.1;
 }
 
 h1 {
@@ -233,9 +253,10 @@ strong {
   align-items: center;
   gap: 0.65rem;
   color: var(--ink);
-  font-size: 1rem;
-  font-weight: 680;
-  letter-spacing: -0.025em;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: normal;
   text-decoration: none;
 }
 
