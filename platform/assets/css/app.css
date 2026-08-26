@@ -77,37 +77,40 @@ svg {
 :root {
   /* One surface. Panels are the same field, a shade apart, never a second
      material. */
-  --page: #aecacd;
-  --panel: #bcd4d6;
-  --panel-strong: #c9dcde;
+  /* The exact ground the Regents platform stands on. */
+  --page: oklch(0.145 0 0);
+  --panel: oklch(0.185 0 0);
+  --panel-strong: oklch(0.22 0 0);
 
-  --ink: #161616;
-  --ink-quiet: #44585b;
-  --ink-faint: #5d7174;
-  --rule: #8fabae;
-  --rule-strong: #64848a;
+  --ink: #e5e3d2;
+  --ink-quiet: #aecacd;
+  --ink-faint: #7e9599;
+  --rule: #2d2d2d;
+  --rule-strong: #474747;
 
-  /* The one Techtree accent: tangerine. It marks what a reader may act on,
-     and never doubles as a state. --accent-deep is the same voice at small
-     text sizes, where the pure accent would not read on powder blue. */
+  /* Titanium: the display voice. Titles and the mark wear it; the accent
+     never does. */
+  --titanium: #c9d1d3;
+
+  /* The one Techtree accent: tangerine, for highlights only. It marks what a
+     reader may act on, and never doubles as a state. */
   --accent: #ff5b19;
   --accent-lift: #ff7440;
-  --accent-deep: #b23a00;
+  --accent-deep: #ff6a30;
   --accent-ink: #161616;
 
-  /* The palette's other two quadrants: platinum paper for raised surfaces,
-     charcoal for the terminal blocks and the evidence cards. */
+  /* Platinum paper for the raised cards; charcoal for the terminal blocks. */
   --paper: #e5e3d2;
-  --terminal: #161616;
+  --paper-ink: #161616;
+  --terminal: #101010;
   --terminal-ink: #e5e3d2;
-  --terminal-rule: #34383a;
+  --terminal-rule: #343434;
 
-  /* Reserved. Each of these says one thing about a state and nothing else.
-     Deep enough to read on powder blue; the dark cards use them as dots. */
-  --complete: #1a7f37;
-  --running: #7d5c00;
-  --failed: #c8321e;
-  --unavailable: #57606a;
+  /* Reserved. Each of these says one thing about a state and nothing else. */
+  --complete: #3fb950;
+  --running: #e3b341;
+  --failed: #f85149;
+  --unavailable: #6e7772;
 
   --font-prose: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -148,7 +151,7 @@ h2 {
 }
 
 h1 {
-  color: var(--accent);
+  color: var(--titanium);
 }
 
 h1 {
@@ -283,7 +286,7 @@ strong {
 .masthead__mark {
   display: inline-flex;
   width: 1.45rem;
-  color: var(--accent);
+  color: var(--titanium);
 }
 
 .masthead__mark svg {
@@ -782,7 +785,7 @@ strong {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.8rem 1rem;
   /* One block from the mark, repeated: the crown reduced to its unit. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Crect width='5' height='5' fill='%23161616' fill-opacity='0.12'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Crect width='5' height='5' fill='%23E5E3D2' fill-opacity='0.10'/%3E%3C/svg%3E");
   background-size: 1.375rem 1.375rem;
 }
 
@@ -1729,6 +1732,7 @@ strong {
   display: flex;
   visibility: hidden;
   opacity: 0;
+  color: var(--paper-ink);
   /* The card lingers 1.5s after the pointer leaves, so it can be reached. */
   transition:
     opacity 0.2s ease 1.3s,
@@ -1757,8 +1761,8 @@ strong {
 .hoverdef__button {
   align-self: flex-start;
   padding: 0.3rem 0.85rem;
-  border: 1px solid var(--rule-strong);
-  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--paper-ink) 35%, var(--paper));
+  color: #b23a00;
   font-family: var(--font-mono);
   font-size: 0.8rem;
   text-decoration: none;
@@ -1854,7 +1858,7 @@ strong {
   padding: 0.55rem 0.7rem;
   border: 0;
   background: transparent;
-  color: var(--ink);
+  color: var(--paper-ink);
   cursor: pointer;
   font-family: var(--font-prose);
   font-size: 0.85rem;
@@ -1867,7 +1871,7 @@ strong {
 
 .pagecopy__item small {
   display: block;
-  color: var(--ink-quiet);
+  color: color-mix(in srgb, var(--paper-ink) 62%, var(--paper));
   font-size: 0.72rem;
 }
 
