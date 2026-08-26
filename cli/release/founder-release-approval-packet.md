@@ -105,6 +105,14 @@ Stated here rather than left to be discovered.
   publication grade is `development_only`; the local proof's integrity
   grade is `P1`. Both are customer-visible and they mean different
   things. Nothing false is said; the collision is a v0.2 naming fix.
+- **The base image tag has moved upstream, and it does not reach us.**
+  `python:3.11-slim` no longer resolves to the index the Campaign was
+  validated against; the preflight drift check found this during the
+  freeze. It cannot affect a participant, because the Campaign pins the
+  image by digest — `python@sha256:90744cff…` — not by tag, and that
+  digest still resolves at the registry (confirmed, HTTP 200). Anyone
+  reproducing the validation by tag on a clean machine would now get
+  different bytes; anyone running the Climb gets the certified ones.
 
 ## §5 Current state of the world
 
@@ -163,6 +171,14 @@ Recorded because a packet that lists only successes is not evidence.
   It costs money and needs the founder's separate authorization.
 - No paid run was made during the freeze. Programme cap USD 15.00.
 - The public-coordinate smoke check runs only after publication.
+- **The engine pin has a shelf life.** The bundle pins verifiers
+  `0.3.1.dev21` at an exact commit. Probed during the freeze: the
+  released `v0.3.1` tag of the same library fails 10 of the 23 engine
+  contract checks, because the module the engine's install path imports
+  no longer exists there. Nothing to fix for this release — the pin is
+  exact and the certification ran against it, and this is the pin doing
+  its job — but the upstream API is still moving, and moving with it
+  costs a new certification. Tracked as techtree-python-0a8.
 
 ## §9 The approval
 
