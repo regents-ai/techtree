@@ -30,6 +30,7 @@ Run it with ``uv run python tools/verify_release_core.py``.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 from typing import Final
@@ -122,8 +123,12 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
         core = parse_release_core(raw)
+        wheel_sha256 = hashlib.sha256(arguments.wheel.read_bytes()).hexdigest()
         bootstrap = verify_bootstrap_document(
-            core, arguments.bootstrap.read_bytes(), wheel=stamp
+            core,
+            arguments.bootstrap.read_bytes(),
+            wheel=stamp,
+            wheel_sha256=wheel_sha256,
         )
         checks.extend(bootstrap.checks)
 

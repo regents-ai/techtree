@@ -36,6 +36,9 @@ from techtree.release.provenance import BuildProvenance
 #: A stand-in for the commit a published wheel is stamped with. These tests
 #: build no wheel, so the value only has to be a commit.
 WHEEL_COMMIT = "b" * 40
+#: The SHA-256 of the wheel these tests stand in for, as the caller computes
+#: it: lowercase hex, no prefix.
+WHEEL_SHA256 = "f" * 64
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_DIRECTORY = REPOSITORY_ROOT / "release"
@@ -382,6 +385,7 @@ def wrapper(core: Any, **starter: Any) -> dict[str, Any]:
             "distribution": "techtree",
             "version": core.cli_version,
             "source_revision": WHEEL_COMMIT,
+            "wheel_sha256": f"sha256:{WHEEL_SHA256}",
             "install_argv": ["uv", "tool", "install", f"techtree=={core.cli_version}"],
         },
         "hermes_plugin": {
@@ -420,6 +424,7 @@ def test_a_wrapper_carrying_this_releases_coordinates_verifies() -> None:
             schema_version="techtree.build-provenance.v1",
             source_commit=WHEEL_COMMIT,
         ),
+        wheel_sha256=WHEEL_SHA256,
     )
 
     assert result.verified is True, [check.detail for check in result.failures]
@@ -442,6 +447,7 @@ def test_a_wrapper_naming_a_starter_tree_this_release_never_measured_is_refused(
             schema_version="techtree.build-provenance.v1",
             source_commit=WHEEL_COMMIT,
         ),
+        wheel_sha256=WHEEL_SHA256,
     )
 
     assert [check.id for check in result.failures] == [

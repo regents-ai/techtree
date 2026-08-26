@@ -91,6 +91,7 @@ def bootstrap(**overrides: Any) -> dict[str, Any]:
             "distribution": "techtree",
             "version": "0.1.0",
             "source_revision": WHEEL_COMMIT,
+            "wheel_sha256": f"sha256:{WHEEL_SHA256}",
             "install_argv": ["uv", "tool", "install", "techtree==0.1.0"],
         },
         "hermes_plugin": {
@@ -124,16 +125,23 @@ def bootstrap(**overrides: Any) -> dict[str, Any]:
     return {**document, **overrides}
 
 
+#: The SHA-256 of the wheel these tests pretend to have built, as the
+#: caller computes it: lowercase hex, no prefix.
+WHEEL_SHA256 = "b" * 64
+
+
 def check(
     document: dict[str, Any],
     release: ReleaseCore | None = None,
     stamp: BuildProvenance | None = None,
+    wheel_sha256: str = WHEEL_SHA256,
 ) -> ReleaseVerification:
     """Verify a bootstrap document against a release and a built wheel."""
     return verify_bootstrap_document(
         release or core(),
         json.dumps(document).encode("utf-8"),
         wheel=stamp or wheel(),
+        wheel_sha256=wheel_sha256,
     )
 
 
@@ -170,6 +178,7 @@ def test_a_wrapper_that_names_this_release_verifies() -> None:
         "bootstrap_importer_contract",
         "bootstrap_cli_version",
         "bootstrap_cli_source_revision",
+        "bootstrap_cli_wheel_sha256",
         "bootstrap_hermes_minimum",
         "bootstrap_intro_climb",
         "bootstrap_starter_skill_object_url",
@@ -393,13 +402,17 @@ def test_a_published_time_that_is_not_an_instant_is_refused() -> None:
 
 
 def test_a_document_that_is_not_json_is_refused() -> None:
-    result = verify_bootstrap_document(core(), b"not json", wheel=wheel())
+    result = verify_bootstrap_document(
+        core(), b"not json", wheel=wheel(), wheel_sha256=WHEEL_SHA256
+    )
     assert result.verified is False
     assert result.failures[0].id == "bootstrap_document"
 
 
 def test_a_json_array_is_not_a_bootstrap_document() -> None:
-    result = verify_bootstrap_document(core(), b"[]", wheel=wheel())
+    result = verify_bootstrap_document(
+        core(), b"[]", wheel=wheel(), wheel_sha256=WHEEL_SHA256
+    )
     assert result.verified is False
     assert result.failures[0].id == "bootstrap_document"
 
@@ -422,3 +435,20 @@ def test_a_plugin_commit_is_never_compared_against_the_release() -> None:
         )
     )
     assert result.verified is True
+
+
+def test_a_wheel_that_is_not_the_published_one_is_refused() -> None:
+    """The document names a digest; the wheel in hand must hash to it.
+
+    Without this the gate would confirm the wheel's commit and its name while
+    never once hashing the bytes a participant actually installs.
+    """
+    result = check(bootstrap(), wheel_sha256="c" * 64)
+
+    assert_only_failure(
+        result, "bootstrap_cli_wheel_sha256", BOOTSTRAP_RELEASE_MISMATCH
+    )
+
+
+def test_the_published_wheel_digest_passes() -> None:
+    assert by_id(check(bootstrap()))["bootstrap_cli_wheel_sha256"].status == "passed"

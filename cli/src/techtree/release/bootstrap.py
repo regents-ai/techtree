@@ -120,13 +120,21 @@ _IRREGULAR_ARTICLES: Final[Mapping[str, str]] = {
 
 
 def verify_bootstrap_document(
-    core: ReleaseCore, raw: bytes, *, wheel: BuildProvenance
+    core: ReleaseCore, raw: bytes, *, wheel: BuildProvenance, wheel_sha256: str
 ) -> ReleaseVerification:
     """Check one bootstrap document against the release it should wrap.
 
     ``wheel`` is the provenance stamped into the CLI wheel this bootstrap
     publishes. It is required rather than optional: the document names a source
     commit, and the only thing that can confirm it is the artifact itself.
+
+    ``wheel_sha256`` is that same file's SHA-256, in lowercase hex without a
+    prefix, computed by the caller from the bytes it holds. The stamp cannot
+    carry it — decision 0026: an artifact never names its own identity — so the
+    one thing that can confirm the digest the document publishes is a fresh
+    hash of the file. Without this the gate would bind a wheel by name and by
+    commit while never checking the number a participant actually installs
+    against.
     """
     try:
         document = json.loads(raw)
@@ -168,6 +176,7 @@ def verify_bootstrap_document(
                 "the CLI version",
             ),
             _wheel_commit_check(document, wheel),
+            _wheel_digest_check(document, wheel_sha256),
             _coordinate_check(
                 "bootstrap_hermes_minimum",
                 document,
@@ -270,6 +279,26 @@ def _wheel_commit_check(
         BOOTSTRAP_RELEASE_MISMATCH,
         f"the bootstrap document says the published CLI was built from "
         f"{published!r}, and the wheel is stamped {wheel.source_commit!r}.",
+    )
+
+
+def _wheel_digest_check(
+    document: dict[str, JsonValue], wheel_sha256: str
+) -> ReleaseCheck:
+    """The digest the document publishes must be this wheel's own."""
+    published = _lookup(document, ("cli", "wheel_sha256"))
+    expected = f"sha256:{wheel_sha256}"
+    if published == expected:
+        return _passed(
+            "bootstrap_cli_wheel_sha256",
+            f"the published CLI wheel hashes to {expected}, which is what the "
+            "bootstrap document names.",
+        )
+    return _failed(
+        "bootstrap_cli_wheel_sha256",
+        BOOTSTRAP_RELEASE_MISMATCH,
+        f"the bootstrap document publishes the wheel digest {published!r}, and "
+        f"the wheel handed to this check hashes to {expected!r}.",
     )
 
 
