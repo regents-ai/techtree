@@ -287,7 +287,9 @@ defmodule TechtreeWeb.DocsLiveTest do
     text = visible_text(html)
 
     assert live
-           |> element(~s|#copy-docs-install[data-copy-value="uv tool install techtree==0.1.0"]|)
+           |> element(
+             ~s|#copy-docs-install[data-copy-value="uv tool install --python 3.12 techtree==0.1.0"]|
+           )
            |> has_element?()
 
     assert text =~ release.digest

@@ -59,7 +59,17 @@ defmodule Techtree.Release.CandidateTest do
       assert bootstrap["cli"]["distribution"] == "techtree"
       assert bootstrap["cli"]["version"] == "0.1.0"
       assert bootstrap["cli"]["source_revision"] =~ ~r/\A[0-9a-f]{40}\z/
-      assert bootstrap["cli"]["install_argv"] == ["uv", "tool", "install", "techtree==0.1.0"]
+
+      assert bootstrap["cli"]["install_argv"] == [
+               "uv",
+               "tool",
+               "install",
+               "--python",
+               bootstrap["minimums"]["python"],
+               "techtree==0.1.0"
+             ]
+
+      assert bootstrap["minimums"]["python"] == "3.12"
       assert bootstrap["cli"]["wheel_sha256"] == checksums["coordinates"]["cli_wheel"]
     end
 
@@ -268,6 +278,8 @@ defmodule Techtree.Release.CandidateTest do
                "uv",
                "tool",
                "install",
+               "--python",
+               "3.12",
                "techtree==0.0.0-placeholder"
              ]
 

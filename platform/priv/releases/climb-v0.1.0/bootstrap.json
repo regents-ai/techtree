@@ -14,7 +14,7 @@
     "version": "0.1.0",
     "source_revision": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
     "wheel_sha256": "sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7",
-    "install_argv": ["uv", "tool", "install", "techtree==0.1.0"]
+    "install_argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.0"]
   },
   "hermes_plugin": {
     "plugin_id": "techtree",

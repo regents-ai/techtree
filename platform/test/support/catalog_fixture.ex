@@ -128,7 +128,14 @@ defmodule Techtree.CatalogFixture do
     |> Map.put("placeholder_release", false)
     |> put_in(["cli", "version"], "0.1.0")
     |> put_in(["cli", "source_revision"], @commit)
-    |> put_in(["cli", "install_argv"], ["uv", "tool", "install", "techtree==0.1.0"])
+    |> put_in(["cli", "install_argv"], [
+      "uv",
+      "tool",
+      "install",
+      "--python",
+      "3.12",
+      "techtree==0.1.0"
+    ])
     |> put_in(["hermes_plugin", "revision"], @commit)
     |> put_in(["hermes_plugin", "install_argv"], [
       "hermes",

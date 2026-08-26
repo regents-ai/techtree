@@ -22,7 +22,7 @@ defmodule TechtreeWeb.SkillControllerTest do
     conn = get(conn, ~p"/skill.md")
 
     assert response(conn, 200) =~ "# Techtree 0.1.0"
-    assert conn.resp_body =~ "uv tool install techtree==0.1.0"
+    assert conn.resp_body =~ "uv tool install --python 3.12 techtree==0.1.0"
     assert conn.resp_body =~ release.digest
     assert conn.resp_body =~ release.source_revision
     assert conn.resp_body =~ "techtree doctor --climb hello-world-climb@1"

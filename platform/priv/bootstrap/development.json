@@ -13,7 +13,7 @@
     "distribution": "techtree",
     "version": "0.0.0-placeholder",
     "source_revision": "0000000000000000000000000000000000000000",
-    "install_argv": ["uv", "tool", "install", "techtree==0.0.0-placeholder"]
+    "install_argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.0.0-placeholder"]
   },
   "hermes_plugin": {
     "plugin_id": "techtree",

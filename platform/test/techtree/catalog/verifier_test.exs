@@ -125,7 +125,11 @@ defmodule Techtree.Catalog.VerifierTest do
       bundle = CatalogFixture.copy!(tmp_dir)
 
       CatalogFixture.rewrite_bootstrap!(bundle, fn bootstrap ->
-        put_in(bootstrap, ["cli", "install_argv"], "uv tool install techtree==0.1.0")
+        put_in(
+          bootstrap,
+          ["cli", "install_argv"],
+          "uv tool install --python 3.12 techtree==0.1.0"
+        )
       end)
 
       assert {:error, error} = verify(bundle)

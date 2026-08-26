@@ -148,7 +148,9 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
 
       assert live
-             |> element(~s|#copy-home-install[data-copy-value="uv tool install techtree==0.1.0"]|)
+             |> element(
+               ~s|#copy-home-install[data-copy-value="uv tool install --python 3.12 techtree==0.1.0"]|
+             )
              |> has_element?()
 
       assert visible_text(html) =~ "macOS or Linux · Python 3.12"

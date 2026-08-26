@@ -115,10 +115,10 @@ running, on channel `development`.
 | Roll forward | `mix techtree.bootstrap.publish --digest sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` | published `9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…`, previously `be2e965a…` |
 | Serve | `GET /api/v1/bootstrap` | byte-identical to the first response |
 | After | `mix techtree.bootstrap.list` | all five releases still staged, one active |
-| Refusal | `mix techtree.bootstrap.publish --digest sha256:4fe1e72a…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |
+| Refusal | `mix techtree.bootstrap.publish --digest sha256:39677295…` | the Gate-2 candidate was never staged: `bootstrap_release_missing`, pointer unmoved |
 
 The last row names whichever candidate is current — now
-`sha256:4fe1e72a…`, the candidate re-cut onto the state-root-permission-fixed
+`sha256:39677295…`, the candidate re-cut onto the state-root-permission-fixed
 plugin commit. The refusal is a property of any digest this channel never staged
 rather than of one release: publishing a never-staged digest returns
 `bootstrap_release_missing` and moves nothing, so the row reads the same against

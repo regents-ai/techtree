@@ -27,7 +27,7 @@ defmodule TechtreeWeb.StartLiveTest do
 
         assert html =~ "hermes plugins install regents-ai/techtree-hermes --ref"
         assert html =~ "hermes plugins doctor techtree --ci"
-        assert html =~ "uv tool install techtree==0.0.0-placeholder"
+        assert html =~ "uv tool install --python 3.12 techtree==0.0.0-placeholder"
       end
     end
 
