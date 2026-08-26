@@ -799,9 +799,9 @@ def _start_draft(payload: ClimbPreparePayload) -> NextAction:
         id="start_climb",
         label=f"Start {payload.candidate_label} on {payload.climb_reference}",
         reason=(
-            f"Runs {payload.estimated_episodes} episodes, baseline first. It "
-            "shows you the spending limit the Campaign declares and what this "
-            "changes, and starts only if you say yes."
+            f"Runs {payload.estimated_episodes} episodes. It shows you the "
+            "spending limit the Campaign declares and what this changes, and "
+            "starts only if you say yes."
         ),
         cli=["techtree", "climb", "start", payload.draft_id],
         hermes_tool=None,

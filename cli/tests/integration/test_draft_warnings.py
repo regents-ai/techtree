@@ -21,6 +21,7 @@ failure can only ever be about that field.
 
 from __future__ import annotations
 
+import ast
 import re
 from collections.abc import Iterable
 from pathlib import Path
@@ -217,3 +218,67 @@ def test_every_way_of_running_a_comparison_gets_its_own_sentence() -> None:
     }
 
     assert len(sentences) == len(VariantSchedule)
+
+
+#: The one place a running order may be written out. Every other mention of an
+#: order beside the word "baseline" is copy that cannot have consulted the
+#: Campaign, because nothing else in the tree has the Campaign to consult.
+ORDER_IS_DERIVED_IN: Final = Path("src/techtree/skills/service.py")
+
+#: An order claim attaches to the side it orders: "baseline first", "baseline
+#: runs first", "baseline, then the candidate". Allowing a couple of words in
+#: between catches those and leaves alone a sentence that merely mentions the
+#: baseline and, much later, a second comparison. An enum value such as
+#: ``baseline_then_candidate`` is not matched either, being one word.
+ORDERS_THE_BASELINE: Final = re.compile(
+    r"baseline\W+(?:\w+\W+){0,2}(?:first|second|then|after|before)\b",
+    re.IGNORECASE,
+)
+
+
+def order_claiming_strings(source: Path) -> list[str]:
+    """Return the strings in one module that order the two sides.
+
+    Docstrings are excluded: they explain the code to whoever reads it and are
+    read by nobody the claim could mislead. What is checked is the text the
+    program can put in front of a person.
+    """
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    documentation = {
+        id(first.value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef)
+        and node.body
+        and isinstance(first := node.body[0], ast.Expr)
+        and isinstance(first.value, ast.Constant)
+        and isinstance(first.value.value, str)
+    }
+    return [
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in documentation
+        and ORDERS_THE_BASELINE.search(node.value)
+    ]
+
+
+@pytest.mark.integration
+def test_only_the_derived_sentence_orders_the_two_sides() -> None:
+    """No other copy in the tree may say which side runs when.
+
+    The bug this replaces was one hardcoded sentence; the same sentence was
+    then found a second time in the start action, written by a different hand
+    on a different day. Neither could have been right, because neither had the
+    Campaign in front of it. So the rule is not "fix those two" but "only the
+    function that reads the Campaign is allowed to say it at all".
+    """
+    root = Path(__file__).resolve().parents[2]
+    offenders = {
+        str(module.relative_to(root)): claims
+        for module in sorted((root / "src" / "techtree").rglob("*.py"))
+        if module != root / ORDER_IS_DERIVED_IN
+        and (claims := order_claiming_strings(module))
+    }
+
+    assert offenders == {}, offenders
