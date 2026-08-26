@@ -8,14 +8,14 @@
   "scientific \u2014 re-certified (0029, four canonical runs)": "A change to the scientific configuration or to what enforces it, sanctioned by decision 0029 and certified by the recertification attached to it: four canonical runs against the regenerated Campaign, the live turn-conformance probe, and a real worker-SIGKILL injection.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 53,
+ "commit_count": 65,
  "counts_by_class": {
-  "documentation": 56,
-  "non_scientific_copy": 28,
-  "release_packaging": 99,
+  "documentation": 74,
+  "non_scientific_copy": 38,
+  "release_packaging": 111,
   "scientific \u2014 re-certified (0025, addendum A1.4)": 6,
   "scientific \u2014 re-certified (0029, four canonical runs)": 14,
-  "test_only": 101
+  "test_only": 123
  },
  "entries": [
   {
@@ -723,19 +723,19 @@
    "rationale": "Tests for the declared-limit wording across surfaces."
   },
   {
-   "change": "added",
-   "classification": "release_packaging",
+   "change": "modified",
+   "classification": "documentation",
    "commit": "2e2156707540e3429c1bc965bd49e900e8a4a466",
    "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
-   "path": "release/certified-scientific-fingerprint.json",
-   "rationale": "A release record. Shipped nowhere the science depends on."
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
   },
   {
    "change": "added",
    "classification": "release_packaging",
    "commit": "2e2156707540e3429c1bc965bd49e900e8a4a466",
    "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
-   "path": "release/wheel-inspection.json",
+   "path": "release/certified-scientific-fingerprint.json",
    "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
@@ -753,6 +753,22 @@
    "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
    "path": "release/post-certification-change-classification.json",
    "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "2e2156707540e3429c1bc965bd49e900e8a4a466",
+   "commit_subject": "release: WP11b artifacts \u2014 certified fingerprint, wheel inspection, fresh-install report, change classification",
+   "path": "release/wheel-inspection.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "4e5619577a56d16698ae600df2ebcf53fde5a164",
+   "commit_subject": "release: plugin release-candidate record (WP11c) \u2014 commit bf427abd, ReleaseCore c0783963, wheel 86e5908e",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
   },
   {
    "change": "added",
@@ -783,6 +799,14 @@
    "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
    "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
    "path": "pyproject.toml",
    "rationale": "A release record. Shipped nowhere the science depends on."
   },
@@ -791,39 +815,7 @@
    "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
    "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
-   "path": "release/release-inputs.json",
-   "rationale": "A release record. Shipped nowhere the science depends on."
-  },
-  {
-   "change": "modified",
-   "classification": "release_packaging",
-   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
-   "path": "release/release-core.json",
-   "rationale": "A release record. Shipped nowhere the science depends on."
-  },
-  {
-   "change": "modified",
-   "classification": "release_packaging",
-   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
-   "path": "src/techtree/resources/release/release-core.json",
-   "rationale": "A release record. Shipped nowhere the science depends on."
-  },
-  {
-   "change": "modified",
-   "classification": "release_packaging",
-   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
    "path": "release/build-info.json",
-   "rationale": "A release record. Shipped nowhere the science depends on."
-  },
-  {
-   "change": "modified",
-   "classification": "release_packaging",
-   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
-   "path": "tests/contract/test_release_artifacts.py",
    "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
@@ -847,14 +839,6 @@
    "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
    "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
-   "path": "release/wheel-inspection.json",
-   "rationale": "A release record. Shipped nowhere the science depends on."
-  },
-  {
-   "change": "modified",
-   "classification": "release_packaging",
-   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
-   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
    "path": "release/plugin-release-candidate.json",
    "rationale": "A release record. Shipped nowhere the science depends on."
   },
@@ -863,8 +847,96 @@
    "classification": "release_packaging",
    "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
    "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
-   "path": ".beads/interactions.jsonl",
+   "path": "release/release-core.json",
    "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/release-inputs.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "release/wheel-inspection.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "src/techtree/resources/release/release-core.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38e242b633ec031d39c3e407054cd153c0c98326",
+   "commit_subject": "release: consolidated packaging pass \u2014 Hermes 0.20.1 floor/ceiling, publishable metadata, ReleaseCore 73d1be82",
+   "path": "tests/contract/test_release_artifacts.py",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
+   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
+   "path": "release/certified-scientific-fingerprint.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
+   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
+   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
+   "commit_subject": "docs: refresh agent handoff and remaining-tickets to post-WP11d state",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
+   "commit_subject": "docs: refresh agent handoff and remaining-tickets to post-WP11d state",
+   "path": "docs/agent-handoff.md",
+   "rationale": "A document. Nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
+   "commit_subject": "docs: refresh agent handoff and remaining-tickets to post-WP11d state",
+   "path": "docs/v0.1-remaining-tickets.md",
+   "rationale": "A document. Nothing the product runs."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "d54a8be64eb4764c7e7db1f2b63307ae9c6a9262",
+   "commit_subject": "docs: decision 0026 \u2014 ReleaseCore contract / build-provenance split (option B, hard cutover)",
+   "path": "docs/decisions/0026-contract-provenance-split.md",
+   "rationale": "A document. Nothing the product runs."
   },
   {
    "change": "modified",
@@ -1133,49 +1205,81 @@
   {
    "change": "modified",
    "classification": "release_packaging",
-   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
-   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
-   "path": "release/plugin-release-candidate.json",
-   "rationale": "A release record. Shipped nowhere the science depends on."
-  },
-  {
-   "change": "modified",
-   "classification": "release_packaging",
-   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
-   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
+   "commit": "f3a7aa75a857636d7a4ced0ec9fc9eae58bc54fb",
+   "commit_subject": "release: regenerate wheel inspection + fresh-install records against the stamped wheel c1170251 (0026 cycle)",
    "path": "release/certified-scientific-fingerprint.json",
    "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
    "change": "modified",
    "classification": "release_packaging",
-   "commit": "f19d8892fd1420f97307ff2fefcebd6bcbe489c6",
-   "commit_subject": "release: pin final commits into candidate record, fingerprint, and classification (packaging pass close-out)",
-   "path": "release/post-certification-change-classification.json",
+   "commit": "f3a7aa75a857636d7a4ced0ec9fc9eae58bc54fb",
+   "commit_subject": "release: regenerate wheel inspection + fresh-install records against the stamped wheel c1170251 (0026 cycle)",
+   "path": "release/fresh-install-report.json",
    "rationale": "A release record. Shipped nowhere the science depends on."
   },
   {
    "change": "modified",
+   "classification": "release_packaging",
+   "commit": "f3a7aa75a857636d7a4ced0ec9fc9eae58bc54fb",
+   "commit_subject": "release: regenerate wheel inspection + fresh-install records against the stamped wheel c1170251 (0026 cycle)",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "f3a7aa75a857636d7a4ced0ec9fc9eae58bc54fb",
+   "commit_subject": "release: regenerate wheel inspection + fresh-install records against the stamped wheel c1170251 (0026 cycle)",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "This document's own previous revision. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "f3a7aa75a857636d7a4ced0ec9fc9eae58bc54fb",
+   "commit_subject": "release: regenerate wheel inspection + fresh-install records against the stamped wheel c1170251 (0026 cycle)",
+   "path": "release/wheel-inspection.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "d8602484a754b52433cfb813ffa734b8c8add296",
+   "commit_subject": "release: pin plugin commit into candidate record; backfill classification (0026 cycle close)",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "d8602484a754b52433cfb813ffa734b8c8add296",
+   "commit_subject": "release: pin plugin commit into candidate record; backfill classification (0026 cycle close)",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "This document's own previous revision. A release record."
+  },
+  {
+   "change": "modified",
    "classification": "documentation",
-   "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
-   "commit_subject": "docs: refresh agent handoff and remaining-tickets to post-WP11d state",
+   "commit": "0d653a5c551778d014da762d294b1de37c3278ff",
+   "commit_subject": "docs: refresh handoff and remaining-tickets to post-0026 state",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "0d653a5c551778d014da762d294b1de37c3278ff",
+   "commit_subject": "docs: refresh handoff and remaining-tickets to post-0026 state",
    "path": "docs/agent-handoff.md",
    "rationale": "A document. Nothing the product runs."
   },
   {
    "change": "modified",
    "classification": "documentation",
-   "commit": "1fe1c981ac18f049e9f208441d0e85cf14597f2a",
-   "commit_subject": "docs: refresh agent handoff and remaining-tickets to post-WP11d state",
+   "commit": "0d653a5c551778d014da762d294b1de37c3278ff",
+   "commit_subject": "docs: refresh handoff and remaining-tickets to post-0026 state",
    "path": "docs/v0.1-remaining-tickets.md",
-   "rationale": "A document. Nothing the product runs."
-  },
-  {
-   "change": "added",
-   "classification": "documentation",
-   "commit": "d54a8be64eb4764c7e7db1f2b63307ae9c6a9262",
-   "commit_subject": "docs: decision 0026 \u2014 ReleaseCore contract / build-provenance split (option B, hard cutover)",
-   "path": "docs/decisions/0026-contract-provenance-split.md",
    "rationale": "A document. Nothing the product runs."
   },
   {
@@ -2449,11 +2553,434 @@
    "commit_subject": "test: proposal staging asserts 0700 at the state root (oj8 regression guard)",
    "path": "tests/plugin/unit/test_proposal_service.py",
    "rationale": "Regression guard for oj8: proposal staging asserts 0700 all the way down to the plugin state root, including the intermediate techtree-hermes directory. Test code; not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "fe46d4ca44e6d101be3af1cb454f69119815e931",
+   "commit_subject": "release: candidate re-pin to plugin d1d993e7 (oj8 fix); security review oj8 RESOLVED; candidate 4fe1e72a",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "The candidate coordinate record. A release record; nothing the product runs."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "fe46d4ca44e6d101be3af1cb454f69119815e931",
+   "commit_subject": "release: candidate re-pin to plugin d1d993e7 (oj8 fix); security review oj8 RESOLVED; candidate 4fe1e72a",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "This document's own previous revision. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "fe46d4ca44e6d101be3af1cb454f69119815e931",
+   "commit_subject": "release: candidate re-pin to plugin d1d993e7 (oj8 fix); security review oj8 RESOLVED; candidate 4fe1e72a",
+   "path": "release/security-review.json",
+   "rationale": "The security review's findings register. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "fe46d4ca44e6d101be3af1cb454f69119815e931",
+   "commit_subject": "release: candidate re-pin to plugin d1d993e7 (oj8 fix); security review oj8 RESOLVED; candidate 4fe1e72a",
+   "path": "release/security-review.md",
+   "rationale": "The security review in prose. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "CLAUDE.md",
+   "rationale": "Repository instructions for agents. No product byte."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "docs/agent-handoff.md",
+   "rationale": "Handoff coordinates. No product byte."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "docs/agents/domain.md",
+   "rationale": "Agent-facing domain notes. No product byte."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "docs/agents/issue-tracker.md",
+   "rationale": "Agent-facing tracker notes. No product byte."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "docs/agents/triage-labels.md",
+   "rationale": "Agent-facing triage notes. No product byte."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "q0l and 8vj. Adds PUBLICATION_TERMS_LINE, printed beside the DataPolicy summary wherever those terms are shown, and carries the Campaign's own declared maximum into the prepare payload so a review shows the figure the run is held to instead of inventing one. The maximum is read off the signed Campaign and never written to it. The approval gate itself is untouched: the same confirm, the same refusal, one more sentence above it."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "src/techtree/cli/commands/uplift.py",
+   "rationale": "The same publication-terms sentence on the uplift prepare surface. Two import-and-print lines."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "tests/contract/test_release_copy.py",
+   "rationale": "Copy guards for the surfaces above. Test code; not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "tests/integration/test_cli_flow.py",
+   "rationale": "Flow expectations updated for the added sentence. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "tests/integration/test_skill_prepare.py",
+   "rationale": "Prepare expectations updated for the declared maximum. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "tests/plugin/contract/test_release_copy.py",
+   "rationale": "Plugin copy guards. Test code; the plugin ships no test."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "commit_subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates",
+   "path": "tests/plugin/unit/test_commands.py",
+   "rationale": "Plugin command expectations. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "c2c648a2e072e1c28880e20cbb39843cc04631b7",
+   "commit_subject": "test: plugin copy guards for the publication sentence and the declared maximum (q0l, 8vj)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "c2c648a2e072e1c28880e20cbb39843cc04631b7",
+   "commit_subject": "test: plugin copy guards for the publication sentence and the declared maximum (q0l, 8vj)",
+   "path": "tests/plugin/contract/test_release_copy.py",
+   "rationale": "Plugin copy guards. Test code; the plugin ships no test."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "f1db39d2e4296e51d50c4697ce1864a95e76cf20",
+   "commit_subject": "test: verdict-boundary guard for the operator Skill, mutation-checked (ip5)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f1db39d2e4296e51d50c4697ce1864a95e76cf20",
+   "commit_subject": "test: verdict-boundary guard for the operator Skill, mutation-checked (ip5)",
+   "path": "tests/plugin/contract/test_release_copy.py",
+   "rationale": "Plugin copy guards. Test code; the plugin ships no test."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "src/techtree/cli/commands/run.py",
+   "rationale": "nom, 6rq, of9, bmk, vmp. Hands the presentation builder the run's own signed Campaign and the evidence read back out of the run directory. Twelve lines, all of them arguments to a renderer; no run, verifier or receipt behaviour changes."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "src/techtree/presentation/build.py",
+   "rationale": "Derives a cost from the tokens the execution record already holds, names the attestation the comparison already recorded, and carries counts, turns and rate-limit observations into the payload. Everything shown is read from artefacts the verification already checked; nothing is recomputed and nothing is measured here."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "src/techtree/presentation/compact.py",
+   "rationale": "The markdown rendering of the fields above."
+  },
+  {
+   "change": "added",
+   "classification": "non_scientific_copy",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "src/techtree/presentation/evidence.py",
+   "rationale": "New module. Counts turns and throttling out of the run's own normalized evaluation output and checks them against the digests the execution record already holds. Read-only: the module contains no write, no mkdir and no unlink, so a run directory is evidence to it and never a workspace. A run whose output has been cleared away simply says less."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "src/techtree/presentation/models.py",
+   "rationale": "The payload fields the two renderers above show."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "src/techtree/presentation/rich.py",
+   "rationale": "The terminal rendering of the fields above."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "src/techtree/receipts/compare.py",
+   "rationale": "Two edits, neither of them to comparison logic: the weaker-claim warning code moves from a bare literal into a named constant with the same value ('model_revision_discoverable'), and _weaker_claim_warnings loses its underscore so the result screen can ask the same question the comparison asks. Same inputs, same checks, same outputs."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/contract/test_release_copy.py",
+   "rationale": "Copy guards for the surfaces above. Test code; not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/golden/presentation-payload.json",
+   "rationale": "The regenerated presentation golden. Fixture; not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/integration/test_replacement_run_prepare.py",
+   "rationale": "Prepare expectations updated for the added payload fields. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/integration/test_run_result_compact.py",
+   "rationale": "Compact-result expectations. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/unit/test_presentation_build.py",
+   "rationale": "Unit coverage for the derived cost, the named attestation and the counts. Test code."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/unit/test_presentation_evidence.py",
+   "rationale": "New unit suite for the read-only evidence reader. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/unit/test_presentation_render.py",
+   "rationale": "Renderer expectations. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tests/unit/test_presentation_sanitize.py",
+   "rationale": "Sanitizer expectations for the added labels. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6bc47a57132db12f95f041f1d83f38611cf49b9d",
+   "commit_subject": "feat: the result screen says what the run recorded \u2014 derived cost, named attestation, counts, turns, rate limits (nom, 6rq, of9, bmk, vmp)",
+   "path": "tools/build_goldens.py",
+   "rationale": "The golden generator, taught the new payload fields. Repository tooling; not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "5fabb55dbbe50cb160b7386251cea08ecc52a868",
+   "commit_subject": "test: relay parity guards, founder-shape payload built through Techtree's own models (tzz)",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5fabb55dbbe50cb160b7386251cea08ecc52a868",
+   "commit_subject": "test: relay parity guards, founder-shape payload built through Techtree's own models (tzz)",
+   "path": "tests/plugin/contract/test_release_copy.py",
+   "rationale": "Plugin copy guards. Test code; the plugin ships no test."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5fabb55dbbe50cb160b7386251cea08ecc52a868",
+   "commit_subject": "test: relay parity guards, founder-shape payload built through Techtree's own models (tzz)",
+   "path": "tests/plugin/integration/test_first_result_relay.py",
+   "rationale": "tzz. Relay parity: the agent-first path is asserted to carry what the terminal carries. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5fabb55dbbe50cb160b7386251cea08ecc52a868",
+   "commit_subject": "test: relay parity guards, founder-shape payload built through Techtree's own models (tzz)",
+   "path": "tests/plugin/integration/test_second_run_flow.py",
+   "rationale": "Second-run flow expectations under the relay guards. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "5fabb55dbbe50cb160b7386251cea08ecc52a868",
+   "commit_subject": "test: relay parity guards, founder-shape payload built through Techtree's own models (tzz)",
+   "path": "tests/plugin/support.py",
+   "rationale": "Test support: builds the founder-shape payload through Techtree's own models instead of a hand-written dict, so the guards cannot drift from the real shape. Test code."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "19b3033b407d37ca876f1b1bc210f4608e4c3b8d",
+   "commit_subject": "docs: architecture \u2014 render-time evidence module, cost/disclosure/verdict/relay invariants, the scan step in the journey",
+   "path": "docs/product-architecture.md",
+   "rationale": "The consolidated product-architecture document. Nothing the product runs."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "a773fc40ca93bc837a5e90df3fa31a7dd4e58ab2",
+   "commit_subject": "docs: decision 0030 \u2014 public site rebuild on the OpenResearch composition, v0.1/v0.2 split",
+   "path": "docs/decisions/0030-public-site-rebuild.md",
+   "rationale": "A decisions document. No product byte."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "f0c2421349db95858fb590cde88278b764312fb8",
+   "commit_subject": "release: hash the wheel the cross-repository gate is handed (techtree-python-5uq)",
+   "path": "src/techtree/release/bootstrap.py",
+   "rationale": "Release, install and provenance behaviour, which decision 0026 section 4 places outside the certified scientific surface: it changes what an operator is told and which next step is offered, never what is measured. Here it adds the check that hashes the wheel the cross-repository gate is handed."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f0c2421349db95858fb590cde88278b764312fb8",
+   "commit_subject": "release: hash the wheel the cross-repository gate is handed (techtree-python-5uq)",
+   "path": "tests/contract/test_release_artifacts.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f0c2421349db95858fb590cde88278b764312fb8",
+   "commit_subject": "release: hash the wheel the cross-repository gate is handed (techtree-python-5uq)",
+   "path": "tests/unit/test_release_bootstrap.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "f0c2421349db95858fb590cde88278b764312fb8",
+   "commit_subject": "release: hash the wheel the cross-repository gate is handed (techtree-python-5uq)",
+   "path": "tools/verify_release_core.py",
+   "rationale": "Release engineering: generation, the build-time provenance stamp, and verification. Not part of the evaluated product."
   }
  ],
- "file_change_count": 304,
- "previous_anchor_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63",
- "release_source_commit": "7c46058211a6310ddbd843949e3432f8fb05b463",
+ "file_change_count": 366,
+ "mixed_content_disclosure": [
+  {
+   "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
+   "honest_note": "The message says docs. The commit is not only docs: alongside CLAUDE.md, the handoff and three new agent documents it carries the q0l publication-terms sentence and the 8vj declared-maximum field in src/techtree/cli/commands/climb.py and src/techtree/cli/commands/uplift.py, plus the five test files that guard them. Both product changes are classified on their own lines above and neither is scientific, so the range's verdict is unaffected \u2014 but a reader scanning subjects alone would miss them. History is not rewritten to tidy this up; it is disclosed here.",
+   "product_paths_carried": [
+    "src/techtree/cli/commands/climb.py",
+    "src/techtree/cli/commands/uplift.py"
+   ],
+   "subject": "docs: ash-regents is mandatory for techtree-ash work (founder standing rule); refresh stale handoff coordinates"
+  }
+ ],
+ "non_scientific_assertion": {
+  "asserted": "No change in 7c46058..f0c2421 touches the certified scientific surface. Everything in the range is presentation, copy, Skill text, tests or release records.",
+  "checked_areas": [
+   "Campaign",
+   "Skill-mounting",
+   "approvals",
+   "guards",
+   "host-request-composition",
+   "proof",
+   "proposals",
+   "receipts",
+   "runs"
+  ],
+  "method": "Every file change in the range was enumerated from git \u2014 not sampled \u2014 and each path was tested against the prefixes of the nine areas above. A hit is a hard failure that stops this document from being written. One path in the range sits inside a checked area and is exempted by name, with the reason recorded below.",
+  "result": "pass",
+  "reviewed_exemptions": {
+   "src/techtree/receipts/compare.py": "Reviewed line by line against 7c46058. The diff renames one private function to public and lifts one string literal into a constant of the same value. No check is added, removed or reordered; no comparison input or output changes."
+  },
+  "surface_hits": []
+ },
+ "previous_anchor_commit": "7c46058211a6310ddbd843949e3432f8fb05b463",
+ "release_source_commit": "f0c2421349db95858fb590cde88278b764312fb8",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "0025": {
@@ -2544,5 +3071,5 @@
    }
   }
  },
- "verdict": "PASS \u2014 every scientific change in the range is sanctioned and certified. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 \u00a7A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the SIGKILL injection attached to release/certified-scientific-fingerprint.json. Nothing else in the range touches a measured path: the remaining product changes are warning and cost copy, the scanner's readiness behaviour decision 0023 places outside the scientific surface, release records, documents and tests. The range now runs through the plugin state-root re-pin: the candidate was re-pinned to the scanner-fixed, state-root-hardened plugin commit d1d993e7, witnessed by release/plugin-release-candidate.json; the Hermes plugin's test corpus and repository tooling had already moved into this repository, and the environment the plugin builds for the CLI it starts gained tests; the WP11g no-upload review closed with a static audit, an instrumented HTTP-method log and an end-to-end destination capture; the architecture handoff was consolidated into one document; and proposal staging gained a regression guard asserting 0700 all the way down to the plugin state root. Test code, tooling, documents and release records \u2014 not one byte the wheel ships, and nothing a measurement reads."
+ "verdict": "PASS \u2014 every scientific change in the range is sanctioned and certified. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 \u00a7A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the SIGKILL injection attached to release/certified-scientific-fingerprint.json. Nothing else in the range touches a measured path: the remaining product changes are warning and cost copy, the scanner's readiness behaviour decision 0023 places outside the scientific surface, release records, documents and tests. The range now runs through the plugin state-root re-pin: the candidate was re-pinned to the scanner-fixed, state-root-hardened plugin commit d1d993e7, witnessed by release/plugin-release-candidate.json; the Hermes plugin's test corpus and repository tooling had already moved into this repository, and the environment the plugin builds for the CLI it starts gained tests; the WP11g no-upload review closed with a static audit, an instrumented HTTP-method log and an end-to-end destination capture; the architecture handoff was consolidated into one document; and proposal staging gained a regression guard asserting 0700 all the way down to the plugin state root. Test code, tooling, documents and release records \u2014 not one byte the wheel ships, and nothing a measurement reads. Extended through 5fabb55dbbe50cb160b7386251cea08ecc52a868: the six commits from 7c46058 onward add no scientific change. They are the result screen's presentation, the publication-terms and declared-maximum copy, the operator Skill's verdict boundary, the relay parity guards and the release records \u2014 checked path by path against the nine areas of the scientific surface, with the one in-area path (receipts/compare.py) reviewed line by line and exempted for cause."
 }
