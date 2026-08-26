@@ -186,6 +186,14 @@ def test_a_signalled_supervisor_forwards_the_signal_to_the_evaluation(
     # The evaluation is in a process group of its own, so the worker's SIGTERM
     # reaches the supervisor and nothing else. The engine's own teardown only
     # ever runs because the supervisor passes the signal on.
+    #
+    # The evaluation says when it is ready and the test waits for that, because
+    # a signal sent any earlier would be answered by a default disposition
+    # rather than by a handler, and the forwarding this test is about would
+    # never happen. The announcement cannot arrive too early: the supervisor
+    # installs its own handlers before it launches anything, and the evaluation
+    # installs its handler before it writes the file, so a readable marker
+    # means every handler between here and there is already in place.
     marker = tmp_path / "signalled"
     ready = tmp_path / "handler-installed"
     program = (
@@ -199,10 +207,7 @@ def test_a_signalled_supervisor_forwards_the_signal_to_the_evaluation(
     )
     started = _child(tmp_path, [sys.executable, "-c", program, str(marker), str(ready)])
     started.start()
-    deadline = time.monotonic() + 20.0
-    while not ready.exists() and time.monotonic() < deadline:
-        time.sleep(0.05)
-    assert ready.exists(), "the evaluation never installed its handler"
+    _wait_for(ready)
 
     started.terminate(grace_seconds=DEFAULT_GRACE_SECONDS)
 

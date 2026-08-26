@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -32,6 +33,9 @@ from techtree.verifiers.child import (
 )
 from techtree.verifiers.models import VariantName
 from techtree.verifiers.supervisor import SUPERVISOR_FAILURE_EXIT_CODE
+
+#: How long a test waits for something a started process was going to do anyway.
+_PATIENCE_SECONDS: Final = 30.0
 
 
 def child(
@@ -381,10 +385,7 @@ def test_terminating_reaches_the_whole_process_group(tmp_path: Path) -> None:
     started = child(tmp_path, [sys.executable, "-c", program])
     started.start()
 
-    deadline = time.monotonic() + 20.0
-    while not marker.exists() and time.monotonic() < deadline:
-        time.sleep(0.05)
-    assert marker.exists(), "the grandchild never announced itself"
+    _wait_for(marker, complaint="the grandchild never announced itself")
     grandchild = int(marker.read_text())
 
     started.terminate(grace_seconds=2.0)
@@ -403,6 +404,14 @@ def test_a_terminated_child_records_that_it_was_cancelled(tmp_path: Path) -> Non
 def test_termination_is_gentle_before_it_is_final(tmp_path: Path) -> None:
     # The grace period exists so the engine can run its own teardown. A child
     # that handles SIGTERM must be given the chance to exit on its own terms.
+    #
+    # The evaluation says when it is ready and the test waits for that, because
+    # a signal sent any earlier would be answered by a default disposition
+    # rather than by a handler, and this test would then be measuring the race
+    # instead of the grace. The announcement cannot arrive too early: the
+    # supervisor installs its own handlers before it launches anything, and the
+    # evaluation installs its handler before it writes the file, so a readable
+    # marker means every handler between here and there is already in place.
     ready = tmp_path / "handler-installed"
     program = (
         "import pathlib, signal, sys, time\n"
@@ -412,10 +421,7 @@ def test_termination_is_gentle_before_it_is_final(tmp_path: Path) -> None:
     )
     started = child(tmp_path, [sys.executable, "-c", program])
     started.start()
-    deadline = time.monotonic() + 20.0
-    while not ready.exists() and time.monotonic() < deadline:
-        time.sleep(0.05)
-    assert ready.exists(), "the evaluation never installed its handler"
+    _wait_for(ready, complaint="the evaluation never installed its handler")
 
     started.terminate(grace_seconds=10.0)
 
@@ -464,6 +470,24 @@ def test_a_command_log_is_private_to_the_operator(tmp_path: Path) -> None:
     )
 
     assert path.stat().st_mode & 0o777 == 0o600
+
+
+def _wait_for(path: Path, *, complaint: str) -> None:
+    """Wait for a process to announce itself by writing a file.
+
+    Waiting for the announcement is the only honest way to know a started
+    process has reached a particular line, and the alternative this replaced —
+    sleeping a guessed interval — was a race: what the worker starts is an
+    interpreter that has to import Techtree before the evaluation exists at
+    all, and how long that takes is a property of the machine and its load
+    rather than of anything under test.
+    """
+    deadline = time.monotonic() + _PATIENCE_SECONDS
+    while time.monotonic() < deadline:
+        if path.is_file() and path.read_text().strip():
+            return
+        time.sleep(0.05)
+    raise AssertionError(complaint)
 
 
 def _alive(pid: int) -> bool:
