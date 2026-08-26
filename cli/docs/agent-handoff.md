@@ -34,7 +34,11 @@ Rigor stays internal; the user experience stays almost trivial.
   release bytes only: its tests and tooling live in techtree-python,
   under tests/plugin/ and tools/plugin/, so that the install-time
   scanner reads no adversarial fixture. Gate: `make check` there
-  (format, lint, types) plus `make test-plugin` in techtree-python.
+  (format, lint, types) plus `make check-plugin` in techtree-python,
+  which runs its tests, the typecheck that reads it through an
+  installed techtree, and its doctor. That typecheck is deliberately
+  outside techtree-python's own `make check`, which must pass in a
+  clone with no sibling checkout at all.
 - **techtree-ash** — the read-only website (Elixir/Phoenix/Ash).
   Serves the catalog and content-addressed objects (refuses drifted
   bytes), the agent-first install pages, and the BootstrapRelease

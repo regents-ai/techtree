@@ -33,7 +33,7 @@ GENERATED_PATHS := \
 	test-integration test-plugin typecheck-plugin plugin-doctor plugin-schemas \
 	plugin-founder-skills plugin-release-core plugin-release-core-cli \
 	real-model-run real-model-run-single schemas engine-bundle fixture-catalog goldens \
-	release-core regenerate generated-check verifiers-preflight check clean
+	release-core regenerate generated-check verifiers-preflight check check-plugin clean
 
 install:
 	$(UV) sync
@@ -90,6 +90,13 @@ plugin-doctor:
 
 plugin-schemas:
 	$(RUN) python tools/plugin/export_tool_schemas.py
+
+# Everything that reads the sibling plugin checkout, in one target. Kept out of
+# `check`, which must pass in a clone that has no sibling checkout at all. The
+# typecheck belongs here rather than nowhere: it is the only pass that reads the
+# plugin the way a host does, through an installed techtree, and it went red and
+# unnoticed for as long as it was a target nobody ran (techtree-python-qgr).
+check-plugin: test-plugin typecheck-plugin plugin-doctor
 
 # Checks the founder Skills in the plugin checkout against decision 0007's
 # behavioural contracts.
