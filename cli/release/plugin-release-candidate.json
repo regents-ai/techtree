@@ -1,10 +1,11 @@
 {
- "commit": "d1d993e73160e7aa3f6739f0b871a425736a7605",
+ "commit": "cc387bd3340d574924e93d216aaa1ab99df9d8c0",
  "plugin_doctor": "passed",
- "plugin_doctor_detail": "10 checks, all ok, run from this checkout as tools/plugin/plugin_doctor.py, which exits 0. The plugin's own suite and tooling live here now, so the doctor reads the plugin out of the sibling checkout and finds the pinned CLI on this project's PATH; the earlier 1 warn was that missing CLI and nothing else.",
+ "plugin_doctor_detail": "10 checks, all ok, run from this checkout as tools/plugin/plugin_doctor.py, which exits 0. The plugin's own suite and tooling live here now, so the doctor reads the plugin out of the sibling checkout and finds the pinned CLI on this project's PATH: Techtree CLI: techtree is at /Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree.",
  "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
+ "release_core_is_byte_identical_to_python": true,
  "repository": "github.com/regents-ai/techtree-hermes",
  "version": "0.1.0",
- "wheel_sha256": "5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7",
+ "wheel_sha256": "90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a",
  "worktree": "clean at the commit above"
 }

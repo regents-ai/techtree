@@ -2,12 +2,12 @@
  "checks": [
   {
    "check": "build_provenance_stamped",
-   "detail": "techtree/resources/release/build-provenance.json names source commit a3ea8c585a44bfe9a626aa209f6f18fc65772163, which is the release candidate commit and the commit this repository is at (a3ea8c585a44bfe9a626aa209f6f18fc65772163)",
+   "detail": "techtree/resources/release/build-provenance.json names source commit 8d9068cfca818d3ae39f7ea130a90f596b33d4f5, which is the release candidate commit and the commit this repository is at (8d9068cfca818d3ae39f7ea130a90f596b33d4f5)",
    "result": "pass"
   },
   {
    "check": "build_provenance_is_not_committed",
-   "detail": "the stamp exists only inside the artifact: `git ls-tree a3ea8c58` returns nothing for src/techtree/resources/release/build-provenance.json, and .gitignore line 25 keeps it out of the tree",
+   "detail": "the stamp exists only inside the artifact: `git ls-tree 8d9068cf` returns nothing for src/techtree/resources/release/build-provenance.json, and .gitignore line 25 keeps it out of the tree",
    "result": "pass"
   },
   {
@@ -17,22 +17,17 @@
   },
   {
    "check": "release_core_is_the_generated_document",
-   "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530), and `make check` regenerated it into a throwaway tree without drift",
+   "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530), and `make generated-check` regenerated it into a throwaway tree without drift",
    "result": "pass"
   },
   {
    "check": "packaged_catalog_names_certified_campaign",
-   "detail": "catalog.json names campaign [\"sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7\"]",
+   "detail": "catalog.json names campaign [\"sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7\"], written the way catalog.json holds it — as the prefixed key of its objects index",
    "result": "pass"
   },
   {
    "check": "packaged_campaign_bytes_hash_to_certified_digest",
    "detail": "the packaged campaign's own bytes hash to sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7, the digest the catalog files it under",
-   "result": "pass"
-  },
-  {
-   "check": "packaged_campaign_carries_no_development_placeholder",
-   "detail": "the shipped Campaign names the ratified subject model qwen/qwen3.7-flash on provider prime, not a development placeholder, and the build's own predicate agrees: check_live_campaign returns PASS and campaign_is_executable returns True for these bytes",
    "result": "pass"
   },
   {
@@ -47,7 +42,12 @@
   },
   {
    "check": "packaged_campaign_budget_contract_is_enforced_shape",
-   "detail": "the shipped Campaign declares the decision-0029 budget contract \u2014 44 model calls, 900000 input tokens, 16000 output tokens, 600s rollout timeout, $2.5 maximum \u2014 the values release/certified-scientific-fingerprint.json records as recertified",
+   "detail": "the shipped Campaign declares the decision-0029 budget contract — 44 model calls, 900000 input tokens, 16000 output tokens, 600s rollout timeout, $2.5 maximum — the values release/certified-scientific-fingerprint.json records as recertified",
+   "result": "pass"
+  },
+  {
+   "check": "packaged_campaign_carries_no_development_placeholder",
+   "detail": "the shipped Campaign names the ratified subject model qwen/qwen3.7-flash on provider prime, not a development placeholder, and the build's own predicate agrees: check_live_campaign returns PASS and campaign_is_executable returns True for these bytes",
    "result": "pass"
   },
   {
@@ -62,7 +62,7 @@
   },
   {
    "check": "no_placeholder_release_coordinate_anywhere",
-   "detail": "every coordinate of the packaged ReleaseCore is concrete: release climb-v0.1.0, CLI 0.1.0, protocol v1alpha1, starter Skill published at https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c. Of the four placeholder spellings (0.0.0-placeholder, development-placeholder, https://placeholder.invalid/unchosen, sha256:0000000000000000000000000000000000000000000000000000000000000000), three appear nowhere in the wheel; 'development-placeholder' appears only in techtree/doctor/execution_checks.py and techtree/runs/real.py, where it is the marker the guard refuses on and the prose describing that refusal \u2014 never a coordinate the release names",
+   "detail": "every coordinate of the packaged ReleaseCore is concrete: release climb-v0.1.0, CLI 0.1.0, protocol v1alpha1, starter Skill published at https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c. Of the four placeholder spellings (0.0.0-placeholder, development-placeholder, https://placeholder.invalid/unchosen, sha256:0000000000000000000000000000000000000000000000000000000000000000), three appear nowhere in the wheel; 'development-placeholder' appears only in techtree/doctor/execution_checks.py and techtree/runs/real.py, where it is the marker the guard refuses on and the prose describing that refusal — never a coordinate the release names",
    "result": "pass"
   },
   {
@@ -77,12 +77,12 @@
   },
   {
    "check": "no_repository_scratch_or_run_artifacts",
-   "detail": "the wheel holds no git metadata, tracker database, cache, virtual environment, test tree, recorded run or coverage output; the 153 payload members are the package and its resources and nothing else",
+   "detail": "the wheel holds no git metadata, tracker database, cache, virtual environment, test tree, recorded run or coverage output; every member sits under techtree/ or techtree-0.1.0.dist-info/, and the 155 payload members are the package and its resources and nothing else. techtree/runs/ and techtree/drafts/ are the package's own source modules, not recorded output",
    "result": "pass"
   },
   {
    "check": "no_credentials_or_private_keys",
-   "detail": "no member carries a private key block, a provider key, or a credential assignment with a value. The one string the scanner stopped on, `secret = \"findings\"` in techtree/skills/service.py, is a local boolean naming a scanner result code, not a credential",
+   "detail": "no member carries a private key block, a provider key, or a credential assignment with a value. The one string the scanner stopped on, secret = \"findings\" in techtree/skills/service.py, is a local boolean naming a scanner result code, not a credential",
    "result": "pass"
   },
   {
@@ -130,7 +130,7 @@
   "minimum_host_hermes_version": "0.20.1",
   "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
   "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
-  "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+  "source_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
   "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
   "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
   "subject_hermes_version": "0.19.0",
@@ -140,22 +140,23 @@
  "schema_version": "techtree.wheel-inspection.v1",
  "verdict": "PASS",
  "wheel": {
-  "built_from": "a clean clone of commit a3ea8c585a44bfe9a626aa209f6f18fc65772163, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
-  "built_from_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+  "built_from": "a clean clone of commit 8d9068cfca818d3ae39f7ea130a90f596b33d4f5, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
+  "built_from_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
   "filename": "techtree-0.1.0-py3-none-any.whl",
-  "member_count": 158,
+  "member_count": 160,
+  "member_count_note": "160 members: 155 payload plus the 5 dist-info files. One payload member more than the previous inspection of this package — techtree/py.typed now ships, the marker that tells a type checker reading an installed techtree that the package is typed (techtree-python-qgr).",
   "path": "dist/techtree-0.1.0-py3-none-any.whl",
-  "payload_member_count": 153,
+  "payload_member_count": 155,
   "reproducible": {
-   "detail": "rebuilt twice for this inspection, from two independent fresh clones of a3ea8c585a44bfe9a626aa209f6f18fc65772163, each producing a wheel whose SHA-256 is sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7 \u2014 the same bytes as the candidate in dist/.",
-   "result": "pass"
+   "detail": "NOT re-observed by this inspection. The two-clean-clone double build of 8d9068cfca818d3ae39f7ea130a90f596b33d4f5 was performed by the orchestrating session before this record was written and was not repeated here, so this inspection makes no first-hand reproducibility claim. What this inspection did read for itself: the wheel in dist/ hashes to sha256:90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a, and the provenance stamp inside it names 8d9068cfca818d3ae39f7ea130a90f596b33d4f5.",
+   "result": "not_re_observed_here"
   },
-  "sha256": "sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7",
-  "size_bytes": 598822,
+  "sha256": "sha256:90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a",
+  "size_bytes": 614618,
   "stamped_provenance": {
    "member": "techtree/resources/release/build-provenance.json",
    "schema_version": "techtree.build-provenance.v1",
-   "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163"
+   "source_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5"
   },
   "version": "0.1.0"
  }

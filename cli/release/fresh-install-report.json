@@ -1,10 +1,18 @@
 {
  "expected_release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
- "failures": [],
+ "failures": [
+  {
+   "command": "techtree doctor --json",
+   "detail": "On the leg that does not pin the interpreter, uv built the tool environment on Python 3.14.7, which the wheel's own metadata (Requires-Python: <3.14,>=3.12) excludes. The install reports success and every command runs, and then the health check says: Python 3.14.7 is outside the supported range >=3.12,<3.14. Exit code 4.",
+   "leg": "default interpreter selection",
+   "stops_the_release": false,
+   "why_not": "Decision 0034: the published install command pins the interpreter, read from the bootstrap document's own requirements block. This leg exists to record what an unpinned install does on this machine — it is the observation the decision was made from, not a defect in the wheel."
+  }
+ ],
  "host": "Darwin 25.5.0 arm64",
  "installs": [
   {
-   "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
+   "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged. --reinstall is the release-engineering rule of decision 0034: this version number is rebuilt repeatedly here, and --force can serve a stale cached wheel of the same version (techtree-python-kml).",
    "commands": [
     {
      "argv": [
@@ -34,7 +42,7 @@
      "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "release_id": "climb-v0.1.0",
      "result": "pass",
-     "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+     "source_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
      "stderr": "",
      "stdout_bytes": 895,
      "warnings": []
@@ -52,6 +60,7 @@
      "exit_code": 0,
      "expected_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "failed": 0,
+     "failed_ids": [],
      "passed": 9,
      "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "result": "pass",
@@ -100,13 +109,45 @@
      "result": "pass",
      "stderr": "",
      "stdout_bytes": 2999,
-     "subject_model_id": "qwen/qwen3.7-flash"
+     "subject_model_id": "qwen/qwen3.7-flash",
+     "warnings": [
+      "development_climb",
+      "engine_not_installed"
+     ]
+    },
+    {
+     "argv": [
+      "techtree",
+      "doctor",
+      "--json"
+     ],
+     "blocking_failures": [],
+     "check_count": 8,
+     "envelope_ok": true,
+     "exit_code": 0,
+     "failed": [],
+     "isolation_note": "uv, docker and hermes warn here only because this leg's PATH deliberately excludes the operator's tools; they say nothing about the wheel. The check this leg exists to record, python_version, depends on the interpreter the tool environment was built on, not on PATH.",
+     "passed_count": 3,
+     "python_version_check": {
+      "detail": "Python 3.12.13",
+      "status": "pass"
+     },
+     "result": "pass",
+     "stderr": "",
+     "stdout_bytes": 3799,
+     "warned": [
+      "uv",
+      "docker_cli",
+      "hermes",
+      "active_engine"
+     ]
     }
    ],
    "install_argv": [
     "uv",
     "tool",
     "install",
+    "--reinstall",
     "--python",
     "3.12",
     "--find-links",
@@ -114,18 +155,24 @@
     "techtree==0.1.0"
    ],
    "install_exit_code": 0,
+   "install_stderr_tail": [
+    " + typing-inspection==0.4.4",
+    "Installed 2 executables: techtree, techtree-worker",
+    "warning: `/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-pinned/uv-bin` is not on your PATH. To use installed tools, add the directory to your PATH."
+   ],
    "installed_bytes_match_wheel": {
-    "detail": "all 153 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them",
-    "members_compared": 153,
+    "detail": "all 155 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them",
+    "members_compared": 155,
     "members_differing": [],
     "result": "pass",
-    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages"
+    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-pinned/uv-tool/techtree/lib/python3.12/site-packages"
    },
    "isolation": {
-    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/home",
-    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/techtree-home",
-    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/uv-bin",
-    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-pinned/uv-tool",
+    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-pinned/home",
+    "PATH": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-pinned/uv-bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-pinned/techtree-home",
+    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-pinned/uv-bin",
+    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-pinned/uv-tool",
     "command_environment": [
      "HOME",
      "PATH",
@@ -150,10 +197,11 @@
     "techtree==0.1.0"
    ],
    "python": "Python 3.12.13",
-   "result": "pass"
+   "result": "pass",
+   "result_detail": "The published install command, run start to finish in a throwaway home. Every command answers, every release coordinate matches the contract, and the health check passes: Python 3.12.13."
   },
   {
-   "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged.",
+   "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. The requested coordinate itself is unchanged. --reinstall is the release-engineering rule of decision 0034: this version number is rebuilt repeatedly here, and --force can serve a stale cached wheel of the same version (techtree-python-kml).",
    "commands": [
     {
      "argv": [
@@ -183,7 +231,7 @@
      "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "release_id": "climb-v0.1.0",
      "result": "pass",
-     "source_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+     "source_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
      "stderr": "",
      "stdout_bytes": 895,
      "warnings": []
@@ -201,6 +249,7 @@
      "exit_code": 0,
      "expected_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "failed": 0,
+     "failed_ids": [],
      "passed": 9,
      "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
      "result": "pass",
@@ -249,30 +298,72 @@
      "result": "pass",
      "stderr": "",
      "stdout_bytes": 2999,
-     "subject_model_id": "qwen/qwen3.7-flash"
+     "subject_model_id": "qwen/qwen3.7-flash",
+     "warnings": [
+      "development_climb",
+      "engine_not_installed"
+     ]
+    },
+    {
+     "argv": [
+      "techtree",
+      "doctor",
+      "--json"
+     ],
+     "blocking_failures": [
+      "python_version"
+     ],
+     "check_count": 8,
+     "envelope_ok": false,
+     "exit_code": 4,
+     "failed": [
+      "python_version"
+     ],
+     "isolation_note": "uv, docker and hermes warn here only because this leg's PATH deliberately excludes the operator's tools; they say nothing about the wheel. The check this leg exists to record, python_version, depends on the interpreter the tool environment was built on, not on PATH.",
+     "passed_count": 2,
+     "python_version_check": {
+      "detail": "Python 3.14.7 is outside the supported range >=3.12,<3.14",
+      "status": "fail"
+     },
+     "result": "fail",
+     "stderr": "",
+     "stdout_bytes": 3988,
+     "warned": [
+      "uv",
+      "docker_cli",
+      "hermes",
+      "active_engine"
+     ]
     }
    ],
    "install_argv": [
     "uv",
     "tool",
     "install",
+    "--reinstall",
     "--find-links",
     "/Users/sean/Documents/techtree-climb/techtree-python/dist",
     "techtree==0.1.0"
    ],
    "install_exit_code": 0,
+   "install_stderr_tail": [
+    " + typing-inspection==0.4.4",
+    "Installed 2 executables: techtree, techtree-worker",
+    "warning: `/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-default/uv-bin` is not on your PATH. To use installed tools, add the directory to your PATH."
+   ],
    "installed_bytes_match_wheel": {
-    "detail": "all 153 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them",
-    "members_compared": 153,
+    "detail": "all 155 payload members of the candidate wheel are installed byte-for-byte; nothing else supplied them",
+    "members_compared": 155,
     "members_differing": [],
     "result": "pass",
-    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/uv-tool/techtree/lib/python3.14/site-packages"
+    "site_packages": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-default/uv-tool/techtree/lib/python3.14/site-packages"
    },
    "isolation": {
-    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/home",
-    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/techtree-home",
-    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/uv-bin",
-    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-final2/fresh-default/uv-tool",
+    "HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-default/home",
+    "PATH": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-default/uv-bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "TECHTREE_HOME": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-default/techtree-home",
+    "UV_TOOL_BIN_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-default/uv-bin",
+    "UV_TOOL_DIR": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/rc-freeze/installs/fresh-default/uv-tool",
     "command_environment": [
      "HOME",
      "PATH",
@@ -295,22 +386,41 @@
     "techtree==0.1.0"
    ],
    "python": "Python 3.14.7",
-   "result": "pass"
+   "result": "fail",
+   "result_detail": "Every command answers and every release coordinate is correct, but `techtree doctor` reports a failing health check on this interpreter: Python 3.14.7 is outside the supported range >=3.12,<3.14. That is the observation decision 0034 was made from, reproduced here against the frozen wheel. It does not stop the release, because the published install command now pins the interpreter and the pinned leg above is green."
   }
  ],
  "observations": [
   {
-   "detail": "The wheel declares <3.14,>=3.12. Left to choose for itself, uv 0.10.2 (Homebrew 2026-02-10) built the tool environment on 3.14.7, which the package says it does not support. All five commands pass on it anyway, so this is not a release stop, but a clean-machine install can land on an interpreter outside the tested range without saying so. The first install pins 3.12 and is the supported path. Unchanged in kind from every previous report: the same host, the same uv, the same outcome.",
+   "detail": "The wheel declares Requires-Python <3.14,>=3.12. Left to choose for itself, uv 0.12.5 (Homebrew 2026-08-14 aarch64-apple-darwin) built the tool environment on 3.14.7, which the package says it does not support. The install exits zero and all five release and catalog commands still answer correctly on it — but `techtree doctor` fails, so a first-time participant's first output would be a failed health check. The published command pins the interpreter for exactly this reason (decision 0034), and the pinned leg is green. Same finding as WP11b and WP11e, reproduced here on the frozen build with a newer uv.",
    "id": "default_interpreter_ignores_requires_python",
-   "severity": "note for Gate 2"
+   "severity": "recorded finding — resolved by decision 0034"
+  },
+  {
+   "detail": "Both legs install with --reinstall, never --force. Decision 0034 and ticket techtree-python-kml: --force can exit zero, print \"Installed 1 package\" and leave a stale cached wheel of the same version in place. Both legs then compared every payload member of the installed package against the candidate wheel byte for byte, and both legs' `release info` reported the stamped source commit 8d9068cfca818d3ae39f7ea130a90f596b33d4f5, so the bytes under these results are the bytes that were meant.",
+   "id": "reinstall_not_force",
+   "severity": "method note"
   }
  ],
+ "published_install_argv": {
+  "argv": [
+   "uv",
+   "tool",
+   "install",
+   "--python",
+   "3.12",
+   "techtree==0.1.0"
+  ],
+  "detail": "The install command the staged bootstrap candidate publishes, read from techtree-ash priv/releases/climb-v0.1.0/bootstrap.json. It pins the interpreter to the Python that document's own minimums block declares (3.12), which is what decision 0034 requires. The pinned leg below runs exactly this command, with --reinstall and --find-links added for release engineering.",
+  "matches_pinned_leg": true,
+  "pins_the_declared_python": true
+ },
  "schema_version": "techtree.fresh-install-report.v1",
- "uv_version": "uv 0.10.2 (Homebrew 2026-02-10)",
- "verdict": "PASS",
+ "uv_version": "uv 0.12.5 (Homebrew 2026-08-14 aarch64-apple-darwin)",
+ "verdict": "PASS — the published install command, interpreter pinned, is green from a throwaway home. One recorded, expected failure on the unpinned leg: the health check on an unsupported interpreter, which is why the published command pins.",
  "wheel": {
-  "built_from_commit": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
+  "built_from_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
   "path": "dist/techtree-0.1.0-py3-none-any.whl",
-  "sha256": "sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7"
+  "sha256": "sha256:90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a"
  }
 }
