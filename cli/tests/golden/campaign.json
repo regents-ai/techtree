@@ -134,6 +134,6 @@
       "num_tasks": 20,
       "shuffle": false
     },
-    "validation_receipt_digest": "sha256:3cbd6ed39a9d2f5690fb03a6dc24a38d2f5b61ad0883f53ea34b5a455512736e"
+    "validation_receipt_digest": "sha256:b0ff34a2b54a35ea85856babdf86b4a93c6ef86c9a7fc33d2c7fa230490e3c94"
   }
 }

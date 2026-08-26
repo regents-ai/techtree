@@ -51,7 +51,7 @@ from techtree.verifiers.compiler import (
     compile_variant_config,
     write_variant_config,
 )
-from techtree.verifiers.config import EvalToml, config_to_toml_bytes
+from techtree.verifiers.config import EvalToml, config_to_json_bytes
 from techtree.verifiers.credentials import credential_status
 from techtree.verifiers.models import (
     RunPaths,
@@ -145,7 +145,7 @@ def test_both_variants_of_the_shipped_campaign_compile(
         assert config.env.taskset.id == campaign.taskset.ref.id
         assert config.num_tasks == campaign.taskset.selection.num_tasks
         assert config.push is False
-        assert config.rich is False
+        assert config.rich is None
         assert config.shuffle is False
         assert config.num_rollouts == 1
         assert config.output_dir == str(run_paths.variant_output_dir(variant))
@@ -162,7 +162,7 @@ def test_the_shipped_campaign_compiles_to_the_same_bytes_every_time(
     second = compile_both(campaign, candidate_skill, run_paths)
 
     for variant in VariantName:
-        assert config_to_toml_bytes(first[variant]) == config_to_toml_bytes(
+        assert config_to_json_bytes(first[variant]) == config_to_json_bytes(
             second[variant]
         )
 
@@ -180,7 +180,7 @@ def test_no_credential_value_appears_in_either_compiled_document(
     configs = compile_both(campaign, candidate_skill, run_paths)
 
     for config in configs.values():
-        data = config_to_toml_bytes(config)
+        data = config_to_json_bytes(config)
         assert secret.encode("utf-8") not in data
         assert campaign.subject.model.credential_env.encode("utf-8") in data
 
@@ -338,7 +338,7 @@ WIRE_EPISODE_GENERATOR = '''
 import json
 import sys
 
-from verifiers.v1.cli.output import save_config, write_episode
+from verifiers.v1.cli.output import write_episode
 from verifiers.v1.configs.agent import WireAgentConfig
 from verifiers.v1.configs.harness import WireHarnessConfig
 from verifiers.v1.episode import Episode, EnvInfo
@@ -359,12 +359,16 @@ directory.mkdir(parents=True, exist_ok=True)
 # order, and the normalizer is what puts the projection back into the
 # Campaign's committed order.
 for position, task_hash in reversed(list(enumerate(hashes))):
+    # `key` alongside `hash`: the released build records both, and for every
+    # task Techtree owns they are equal.
+    task = TraceTask(
+        type="ProcedureTransferTask",
+        data=WireTaskData(idx=position, name="task-%d" % position),
+        key=task_hash,
+        hash=task_hash,
+    )
     trace = Trace(
-        task=TraceTask(
-            type="ProcedureTransferTask",
-            data=WireTaskData(idx=position, name="task-%d" % position),
-            hash=task_hash,
-        ),
+        task=task,
         agent=AgentInfo(
             config=WireAgentConfig(
                 harness=WireHarnessConfig(
@@ -384,10 +388,15 @@ for position, task_hash in reversed(list(enumerate(hashes))):
         is_completed=True,
         ok=True,
     )
+    # An episode now carries the task it was dispatched with, so that a task
+    # that produced no trace at all is still on the record.
     write_episode(
         directory,
         Episode(
-            env=EnvInfo(id="procedure-transfer-v1"), ok=True, traces=[trace]
+            env=EnvInfo(id="procedure-transfer-v1"),
+            task=task,
+            ok=True,
+            traces=[trace],
         ),
     )
 print(json.dumps({"written": len(hashes)}))

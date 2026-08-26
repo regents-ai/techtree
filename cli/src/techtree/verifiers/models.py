@@ -61,8 +61,11 @@ __all__ = [
 #: The run-owned subtree every variant's evaluation lives under.
 VERIFIERS_DIRECTORY: Final = "verifiers"
 #: The configuration Techtree compiles, as opposed to the one the engine
-#: resolves and writes back out under its own name.
-INPUT_CONFIG_FILENAME: Final = "input.toml"
+#: resolves and writes back out under its own name. The extension is load
+#: bearing rather than cosmetic: the engine chooses its parser from it, and
+#: JSON is the only one of the two formats that can spell the explicit null
+#: that turns the live dashboard off (``src/techtree/verifiers/config.py``).
+INPUT_CONFIG_FILENAME: Final = "input.json"
 
 #: What the engine writes when it normalizes one variant's raw episodes. It sits
 #: beside the raw evidence inside ``run/`` (spec section 6.19) rather than above
@@ -150,10 +153,10 @@ class RunPaths:
     def variant_dry_run_dir(self, variant: VariantName) -> Path:
         """Where the engine writes the resolved config during validation.
 
-        Separate from the run directory on purpose: a dry run writes only
-        ``config.toml`` (``docs/verifiers-eval.md``, finding E2), and letting
-        it land beside real evidence would leave a directory that looks like a
-        truncated run.
+        Separate from the run directory on purpose: a dry run writes only the
+        resolved configuration (``docs/verifiers-eval.md``, finding E2), and
+        letting it land beside real evidence would leave a directory that looks
+        like a truncated run.
         """
         return self.variant_dir(variant) / _DRY_RUN_DIRECTORY
 

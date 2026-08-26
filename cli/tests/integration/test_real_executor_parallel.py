@@ -66,8 +66,8 @@ def _plan(variant: VariantName, root: Path) -> VariantExecutionPlan:
     """Build a plan whose inputs are all present on disk."""
     directory = root / variant.value
     directory.mkdir(parents=True, exist_ok=True)
-    config = directory / "input.toml"
-    config.write_text("num_tasks = 4\n")
+    config = directory / "input.json"
+    config.write_text('{"num_tasks": 4}\n')
     manifest = directory / "manifest.json"
     manifest.write_text("{}")
     return VariantExecutionPlan(

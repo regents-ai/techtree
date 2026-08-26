@@ -1,7 +1,7 @@
 {
-  "catalog_digest": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
+  "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
   "cli_version": "0.1.0",
-  "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
+  "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
   "intro_climb_reference": "hello-world-climb@1",
   "maximum_tested_host_hermes_version": "0.20.1",
   "minimum_host_hermes_version": "0.20.1",

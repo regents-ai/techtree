@@ -72,9 +72,11 @@ __all__ = [
     "CONFIG_ARGUMENT_MARKER",
     "DEFAULT_GRACE_SECONDS",
     "DRY_RUN_FLAG",
+    "DRY_RUN_NAME",
     "EVAL_EXECUTABLE",
     "OUTPUT_DIR_FLAG",
     "PUSH_DISABLED_FLAG",
+    "RUN_NAME_FLAG",
     "SUPERVISOR_GRACE_SECONDS",
     "SUPERVISOR_MODULE",
     "VARIANT_HARD_DEADLINE_SECONDS",
@@ -98,6 +100,14 @@ EVAL_EXECUTABLE: Final = "eval"
 CONFIG_ARGUMENT_MARKER: Final = "@"
 DRY_RUN_FLAG: Final = "--dry-run"
 OUTPUT_DIR_FLAG: Final = "--output-dir"
+
+#: ``--output-dir`` names the directory runs are *grouped* under; the run
+#: itself lands in ``<output-dir>/<run.dir>``, and an unnamed run takes a
+#: random suffix (``docs/verifiers-pin-0.3.1.md``, deviation D2). A validation
+#: nobody can find the answer of is not a validation, so the dry run names its
+#: own run directory.
+RUN_NAME_FLAG: Final = "--run.name"
+DRY_RUN_NAME: Final = "dry-run"
 
 #: Belt and braces alongside ``push = false`` in the compiled document. Upstream
 #: defaults to uploading the participant's episodes (``docs/verifiers-eval.md``,
@@ -169,14 +179,19 @@ def dry_run_argv(*, input_config_path: Path, dry_run_dir: Path) -> list[str]:
 
     ``--output-dir`` redirects the resolved document away from the real run
     directory, so a validation cannot be mistaken later for a truncated run
-    (``docs/verifiers-eval.md``, finding E2). The executable itself is prepended
-    by :class:`~techtree.engines.runner.EngineRunner`.
+    (``docs/verifiers-eval.md``, finding E2), and ``--run.name`` pins the
+    directory underneath it so the resolved document has one findable path.
+    Neither is a setting the experiment turns on — every one of those stays in
+    the file. The executable itself is prepended by
+    :class:`~techtree.engines.runner.EngineRunner`.
     """
     return [
         CONFIG_ARGUMENT_MARKER,
         str(input_config_path),
         DRY_RUN_FLAG,
         PUSH_DISABLED_FLAG,
+        RUN_NAME_FLAG,
+        DRY_RUN_NAME,
         OUTPUT_DIR_FLAG,
         str(dry_run_dir),
     ]

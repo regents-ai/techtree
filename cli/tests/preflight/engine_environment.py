@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 
 VERIFIERS_REPO = "https://github.com/PrimeIntellect-ai/verifiers"
-VERIFIERS_PIN = "7e1c47d24d055aae587ee8259f77a3e8e193513a"
+VERIFIERS_PIN = "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf"
 """Binding (docs/decisions/0001). Never bump this here; a bump is its own ticket."""
 
 ENGINE_PYTHON_ENV = "TECHTREE_PREFLIGHT_ENGINE_PYTHON"

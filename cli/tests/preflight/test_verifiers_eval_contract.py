@@ -1,7 +1,7 @@
 """WP6a — the pinned Verifiers ``eval`` contract, proven against the pin.
 
 Every assertion here records observed behaviour of
-`PrimeIntellect-ai/verifiers@7e1c47d24d055aae587ee8259f77a3e8e193513a`. When
+`PrimeIntellect-ai/verifiers@b2e4e8157783b2c0dffc7821044c87f29f1c3ccf`. When
 the pin is bumped this module is the gate: rerun it, and update
 ``docs/verifiers-eval.md`` with whatever moved. The five deviations from the
 specification's assumptions are written up there, at the top, under CRITICAL.
@@ -56,9 +56,11 @@ from techtree.manifests.builder import (
 )
 from techtree.models.campaign import CampaignSpec
 from techtree.models.skill import SkillArtifact, SkillFile
+from techtree.verifiers.child import DRY_RUN_NAME, dry_run_argv
 from techtree.verifiers.compiler import compile_variant_config, write_variant_config
-from techtree.verifiers.config import config_to_toml_bytes
+from techtree.verifiers.config import config_to_json_bytes
 from techtree.verifiers.models import RunPaths, VariantName
+from techtree.verifiers.verify import RESOLVED_CONFIG_PATH
 
 pytestmark = pytest.mark.preflight
 
@@ -818,23 +820,31 @@ def test_a_techtree_compiled_configuration_is_accepted_by_the_pinned_engine(
     input_path = run_paths.variant_input_config(variant)
     write_variant_config(config, input_path)
 
-    code, output, stderr = dry_run(
-        eval_cli, input_path, run_paths.variant_dry_run_dir(variant)
+    # The real invocation, not a re-spelling of it: whatever Techtree hands the
+    # engine is what this asks the engine about.
+    dry_run_dir = run_paths.variant_dry_run_dir(variant)
+    result = run_engine_command(
+        eval_cli,
+        *dry_run_argv(input_config_path=input_path, dry_run_dir=dry_run_dir),
+        env=scrubbed_environment(),
     )
 
-    assert code == 0, stderr
-    with (output / "config.toml").open("rb") as handle:
-        resolved = tomllib.load(handle)
+    assert result.returncode == 0, result.stderr
+    resolved = json.loads(
+        (dry_run_dir / DRY_RUN_NAME / RESOLVED_CONFIG_PATH).read_text()
+    )
     assert resolved["push"] is False
-    assert resolved["rich"] is False
+    # Null, and present. An absent key resolves to a live dashboard with the
+    # log lines suppressed, which is the failure the lock-down exists for.
+    assert resolved["rich"] is None
     assert resolved["shuffle"] is False
     assert resolved["num_rollouts"] == 1
     # --output-dir on argv points a dry run away from the real run directory.
-    assert resolved["output_dir"] == str(run_paths.variant_dry_run_dir(variant))
+    assert resolved["output_dir"] == str(dry_run_dir)
     assert config.output_dir == str(run_paths.variant_output_dir(variant))
     assert "subject" in resolved["env"]
     assert resolved["env"]["subject"]["harness"]["use_bundled_skill"] is False
     expected_skills = 0 if variant is VariantName.BASELINE else 1
     assert len(resolved["env"]["subject"]["harness"]["skills"]) == expected_skills
     # The bytes the engine read are the bytes the compiler produced.
-    assert input_path.read_bytes() == config_to_toml_bytes(config)
+    assert input_path.read_bytes() == config_to_json_bytes(config)

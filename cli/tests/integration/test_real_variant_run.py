@@ -161,7 +161,7 @@ def test_one_real_baseline_variant_runs_end_to_end(
     assert compiled.env.subject.harness.use_bundled_skill is False
     assert compiled.env.subject.harness.skills == []
     assert compiled.push is False
-    assert compiled.rich is False
+    assert compiled.rich is None
 
     input_path = paths.variant_input_config(variant)
     write_variant_config(compiled, input_path)

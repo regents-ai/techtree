@@ -178,7 +178,8 @@ def test_the_descriptor_source_digest_matches_the_shipped_package_tree(
 def test_the_descriptor_pins_the_verifiers_commit_and_the_host_vocabulary(
     descriptor: EngineDescriptor,
 ) -> None:
-    assert descriptor.verifiers_revision == ("7e1c47d24d055aae587ee8259f77a3e8e193513a")
+    # Verifiers v0.3.1, the released tag (``docs/verifiers-pin-0.3.1.md``).
+    assert descriptor.verifiers_revision == ("b2e4e8157783b2c0dffc7821044c87f29f1c3ccf")
     assert descriptor.python_version == "3.12"
     assert sorted(descriptor.supported_hosts) == [
         "darwin/amd64",

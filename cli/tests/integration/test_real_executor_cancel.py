@@ -70,13 +70,13 @@ def _plan(variant: VariantName, root: Path) -> VariantExecutionPlan:
     """Build a plan whose inputs are all present on disk."""
     directory = root / variant.value
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "input.toml").write_text("num_tasks = 6\n")
+    (directory / "input.json").write_text('{"num_tasks": 6}\n')
     (directory / "manifest.json").write_text("{}")
     return VariantExecutionPlan(
         variant=variant,
         experiment_manifest_digest=sha256_digest_bytes(variant.value.encode()),
         experiment_manifest_path=str(directory / "manifest.json"),
-        verifiers_input_config_path=str(directory / "input.toml"),
+        verifiers_input_config_path=str(directory / "input.json"),
         verifiers_output_dir=str(directory / "run"),
         skill_paths=[],
         task_count=_TASK_COUNT,

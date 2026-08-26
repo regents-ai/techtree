@@ -15,9 +15,15 @@ Several fields are typed as literals rather than validated at runtime, because
     Episode — prompts and subject replies included — to the Prime platform
     (``docs/verifiers-eval.md``, finding E1). A config that merely forgets to
     set it exfiltrates the participant's trajectories.
-``rich: Literal[False]``
+``rich: Literal[None]``
     The dashboard is the whole output when it is on; a captured child needs log
-    lines.
+    lines. Upstream's ``rich`` is a table, not a flag, and **null is the only
+    spelling that turns the dashboard off**. Measured against the pinned build:
+    an omitted key resolves to ``{"show_logs": false}``, which is the dashboard
+    on *and* the log lines suppressed — the exact failure this lock-down
+    exists to prevent. So the danger here is a key that is missing, not a key
+    set to true, and :func:`emitted_document` writes this one null explicitly
+    while every other unset optional stays absent.
 ``shuffle: Literal[False]`` and ``num_rollouts: Literal[1]``
     Decisions document 0001. There is no seed anywhere in the protocol, so a
     shuffled run could not be reproduced by anyone.
@@ -33,14 +39,22 @@ The Docker table carries ``allow`` and ``block``, which spec section 6.7 does
 not model. Upstream's default egress policy is unrestricted, so without them a
 Campaign declaring ``network_policy: "restricted"`` would compile to a
 container with open network access.
+
+The emitted document is **JSON**, and that is a safety property rather than a
+taste. TOML has no null literal, so a TOML document cannot say "no dashboard"
+at all — it can only leave ``rich`` out, which is the dangerous value. The
+engine reads either format and picks its parser from the file extension, so
+the configuration Techtree writes is named ``.json`` and every locked-down
+setting stays expressible only as its safe value, in the file, where the run's
+own inputs record it.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any, Final, Literal, Self
 
-import tomli_w
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from techtree.errors import ValidationError
@@ -63,8 +77,9 @@ __all__ = [
     "SubjectAgentToml",
     "TasksetToml",
     "TimeoutToml",
-    "config_to_toml_bytes",
+    "config_to_json_bytes",
     "egress_for",
+    "emitted_document",
 ]
 
 #: Stable error code. Spec section 6.7.
@@ -94,6 +109,11 @@ IMAGE_DIGEST_PATTERN: Final = r"@sha256:[0-9a-f]{64}$"
 
 _CREDENTIAL_ENV_RE: Final = re.compile(CREDENTIAL_ENV_PATTERN)
 _IMAGE_DIGEST_RE: Final = re.compile(IMAGE_DIGEST_PATTERN)
+
+#: The settings whose null the emitted document must state out loud, because
+#: leaving the key out would select something else. Only ``rich`` qualifies:
+#: every other optional in this module defaults to the same ``None`` upstream.
+_NULL_IS_THE_DECISION: Final[frozenset[str]] = frozenset({"rich"})
 
 
 class TomlModel(BaseModel):
@@ -254,7 +274,7 @@ class EvalToml(TomlModel):
     num_rollouts: Literal[1] = 1
     shuffle: Literal[False] = False
     max_concurrent: int = Field(ge=1)
-    rich: Literal[False] = False
+    rich: Literal[None] = None
     push: Literal[False] = False
     output_dir: str = Field(min_length=1)
 
@@ -293,17 +313,51 @@ def egress_for(network_policy: str) -> tuple[list[str], list[str]]:
     )
 
 
-def config_to_toml_bytes(config: EvalToml) -> bytes:
-    """Serialize one configuration to deterministic TOML bytes.
+def emitted_document(config: EvalToml) -> dict[str, Any]:
+    """Return exactly the mapping Techtree writes for one configuration.
 
-    ``exclude_none`` matches what the engine itself does when it writes a
-    resolved config, so an omitted optional field is absent from both documents
-    rather than present as a null in one of them. Field order is declaration
-    order, so the same configuration always produces the same bytes.
+    ``exclude_none`` is kept for every field but one, because for every other
+    optional here a null and an absence mean the same thing to the engine and
+    an absence says it more honestly. ``client.base_url`` is left out so the
+    pinned client resolves the endpoint itself; an unset token ceiling or
+    timeout phase is a limit the Campaign did not declare, and upstream's own
+    default for each is the same ``None`` it would have been written as. In
+    every one of those cases the document should say only what Techtree
+    actually decided.
+
+    ``rich`` is the exception, and it is why the omission is not simply
+    switched off wholesale: its null is the decision, and dropping the key
+    selects the opposite (see the module docstring). So it is kept, which is
+    safe precisely because :class:`EvalToml` can spell no other value for it.
+    """
+    document: dict[str, Any] = config.model_dump(mode="json")
+    return {
+        key: _without_nulls(value)
+        for key, value in document.items()
+        if value is not None or key in _NULL_IS_THE_DECISION
+    }
+
+
+def _without_nulls(value: Any) -> Any:
+    """Drop every unset optional from one nested value."""
+    if isinstance(value, dict):
+        return {
+            key: _without_nulls(inner)
+            for key, inner in value.items()
+            if inner is not None
+        }
+    return value
+
+
+def config_to_json_bytes(config: EvalToml) -> bytes:
+    """Serialize one configuration to deterministic JSON bytes.
+
+    Key order is declaration order, so the same configuration always produces
+    the same bytes. The engine chooses its parser from the file's extension,
+    so these bytes belong in a file named ``.json``.
     """
     try:
-        document: dict[str, Any] = config.model_dump(mode="json", exclude_none=True)
-        return tomli_w.dumps(document).encode("utf-8")
+        return json.dumps(emitted_document(config), indent=2).encode("utf-8") + b"\n"
     except (TypeError, ValueError) as error:
         raise ValidationError(
             f"the compiled evaluation config is not serializable: {error}",

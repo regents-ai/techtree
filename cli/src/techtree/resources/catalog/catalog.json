@@ -1,13 +1,13 @@
 {
   "climbs": [
     {
-      "digest": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
+      "digest": "sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236",
       "path": "climbs/hello-world-climb.json",
       "reference": "hello-world-climb@1"
     }
   ],
   "objects": {
-    "sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948": {
+    "sha256:4944bd71caa1a295e03325b18a7af753d0d8fcf787189c89244209171cda1302": {
       "kind": "taskset_validation",
       "media_type": "application/json",
       "path": "taskset-validations/hello-world-climb.json"
@@ -17,12 +17,12 @@
       "media_type": "application/json",
       "path": "data-policies/hello-world-climb.json"
     },
-    "sha256:9c4959d3b9217ab83c506ceb4219143aff74341be59b15c1de15d35c0cbdbed5": {
+    "sha256:991be5e42acbd48c6bd9aaf8e1f5a5a2478c0a0e4bf04ad4f2be84b702adee43": {
       "kind": "validation_evidence",
       "media_type": "application/json",
       "path": "validation-evidence/hello-world-climb.json"
     },
-    "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7": {
+    "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1": {
       "kind": "campaign",
       "media_type": "application/json",
       "path": "campaigns/hello-world-climb.json"

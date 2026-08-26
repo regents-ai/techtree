@@ -72,7 +72,7 @@ def test_the_engines_own_eval_is_named_by_absolute_path(tmp_path: Path) -> None:
     executable = tmp_path / "engine" / ".venv" / "bin" / "eval"
 
     argv = eval_argv(
-        eval_executable=executable, input_config_path=tmp_path / "input.toml"
+        eval_executable=executable, input_config_path=tmp_path / "input.json"
     )
 
     assert argv[0] == str(executable)
@@ -81,18 +81,18 @@ def test_the_engines_own_eval_is_named_by_absolute_path(tmp_path: Path) -> None:
 
 def test_the_config_travels_as_its_own_argv_marker(tmp_path: Path) -> None:
     argv = eval_argv(
-        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
     )
 
     assert argv[1] == CONFIG_ARGUMENT_MARKER
-    assert argv[2] == str(tmp_path / "input.toml")
+    assert argv[2] == str(tmp_path / "input.json")
 
 
 def test_the_upload_is_disabled_on_the_command_line(tmp_path: Path) -> None:
     # push defaults to true upstream, so the flag backs up push = false in the
     # compiled document rather than replacing it.
     argv = eval_argv(
-        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
     )
 
     assert PUSH_DISABLED_FLAG in argv
@@ -105,7 +105,7 @@ def test_the_real_invocation_never_overrides_the_output_directory(
     # resolved config is compared against it. A second copy on argv would be a
     # second place the two could disagree.
     argv = eval_argv(
-        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
     )
 
     assert "--output-dir" not in argv
@@ -118,7 +118,7 @@ def test_no_credential_can_appear_in_the_invocation(
     monkeypatch.setenv("PRIME_API_KEY", secret)
 
     argv = eval_argv(
-        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
     )
 
     assert not any(secret in argument for argument in argv)
@@ -150,7 +150,7 @@ def supervised(tmp_path: Path, **overrides: object) -> list[str]:
         "grace_seconds": SUPERVISOR_GRACE_SECONDS,
         "eval_argv": eval_argv(
             eval_executable=tmp_path / "eval",
-            input_config_path=tmp_path / "input.toml",
+            input_config_path=tmp_path / "input.json",
         ),
     }
     arguments.update(overrides)
@@ -167,7 +167,7 @@ def test_the_worker_starts_the_supervisor_and_the_supervisor_starts_the_eval(
     assert argv[:3] == [sys.executable, "-m", "techtree.verifiers.supervisor"]
     # Everything after the separator is the evaluation, unchanged.
     assert argv[argv.index("--") + 1 :] == eval_argv(
-        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
     )
 
 
@@ -199,7 +199,7 @@ def test_the_reported_invocation_is_the_evaluations_rather_than_the_supervisors(
     # supervisor changed no input to that experiment, so a run compiled before
     # this fix and a run compiled after it must still digest the same.
     argv = eval_argv(
-        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.toml"
+        eval_executable=tmp_path / "eval", input_config_path=tmp_path / "input.json"
     )
     started = child(tmp_path, list(argv))
 
@@ -446,7 +446,7 @@ def test_a_command_log_records_what_was_asked_and_answered(tmp_path: Path) -> No
     path = write_command_log(
         tmp_path / "dry-run" / "command.log",
         variant=VariantName.CANDIDATE,
-        argv=["/engine/.venv/bin/eval", "@", "/run/input.toml", "--dry-run"],
+        argv=["/engine/.venv/bin/eval", "@", "/run/input.json", "--dry-run"],
         exit_code=0,
         stdout="resolved",
         stderr="",

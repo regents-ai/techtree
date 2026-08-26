@@ -20,4 +20,4 @@ package = false
 
 [tool.uv.sources]
 procedure-transfer-v1 = { path = "packages/procedure-transfer-v1", editable = true }
-verifiers = { git = "https://github.com/PrimeIntellect-ai/verifiers", rev = "7e1c47d24d055aae587ee8259f77a3e8e193513a" }
+verifiers = { git = "https://github.com/PrimeIntellect-ai/verifiers", rev = "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf" }

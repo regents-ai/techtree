@@ -1,5 +1,5 @@
 {
-  "campaign_spec_digest": "sha256:9680cd12222341f2f288f8c8a57578a070db20e786e1613ceac03d2301e4b35b",
+  "campaign_spec_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1",
   "configuration": {
     "agents": {
       "subject": {
@@ -126,15 +126,15 @@
         "num_tasks": 20,
         "shuffle": false
       },
-      "validation_receipt_digest": "sha256:3cbd6ed39a9d2f5690fb03a6dc24a38d2f5b61ad0883f53ea34b5a455512736e"
+      "validation_receipt_digest": "sha256:b0ff34a2b54a35ea85856babdf86b4a93c6ef86c9a7fc33d2c7fa230490e3c94"
     }
   },
-  "configuration_digest": "sha256:c51fe2fe5c37b38367a60e97bd8b9e7be5add17ceb5b2a1cf1fb3d79eda573a6",
+  "configuration_digest": "sha256:7b6bb68686258c71a0588e7e86a260b9e5db7457717d54c1b83ecef28346211b",
   "created_at": "2026-01-01T00:00:00Z",
   "id": "receipt_cb5af344e0b2011f02e6008bffddc955",
   "program_ref": null,
   "public_context": {
-    "climb_digest": "sha256:0d79a320264d69ce71881026b742c4678def349eaff5127c89f41da7b1090f43",
+    "climb_digest": "sha256:8a98cf28affe2de98e3431db3b2a26b0a6dc60861fc9fb0f264d8ca044c217ba",
     "kind": "climb"
   },
   "schema_version": "techtree.experiment.v1alpha1",

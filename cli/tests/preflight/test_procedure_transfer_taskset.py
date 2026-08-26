@@ -38,7 +38,7 @@ import pytest
 pytestmark = pytest.mark.preflight
 
 VERIFIERS_REPO = "https://github.com/PrimeIntellect-ai/verifiers"
-VERIFIERS_PIN = "7e1c47d24d055aae587ee8259f77a3e8e193513a"
+VERIFIERS_PIN = "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf"
 """Binding (docs/decisions/0001). Never bump this here; a bump is its own ticket."""
 
 TASKSET_ID = "procedure-transfer-v1"
@@ -57,7 +57,15 @@ PACKAGE_DIR = (
     / "procedure-transfer-v1"
 )
 
-EXPECTED_OUTPUT_FILES = {"config.toml", "results.jsonl", "summary.json", "validate.log"}
+EXPECTED_OUTPUT_FILES = {
+    "configs/resolved/validate.json",
+    "logs/validate.log",
+    "results.jsonl",
+    "summary.json",
+}
+
+RUN_DIR = "run"
+"""``--output-dir`` groups runs; each run lands in ``<output-dir>/<run.dir>``."""
 OUTCOME_KEYS = {"valid", "invalid", "error", "timeout", "missing"}
 RAW_HASH = re.compile(r"^[0-9a-f]{64}$")
 
@@ -146,8 +154,11 @@ import re
 import verifiers.v1 as vf
 from verifiers.v1 import Env, Taskset
 from verifiers.v1.configs.agent import AgentConfig
-from verifiers.v1.utils.install import env_module, env_name
-from verifiers.v1.utils.loaders import env_config_type, environment_class
+from verifiers.v1.utils.loaders import (
+    env_config_type,
+    environment_class,
+    import_taskset,
+)
 
 TASKSET_ID = "procedure-transfer-v1"
 RAW_HASH = re.compile(r"^[0-9a-f]{64}$")
@@ -161,7 +172,12 @@ def trace_with(task, reply):
     assistant message, so the reply has to arrive as a MessageNode.
     """
     return vf.Trace(
-        task=vf.TraceTask(type=type(task).__name__, data=task.data, hash=task.hash),
+        task=vf.TraceTask(
+            type=type(task).__name__,
+            data=task.data,
+            key=task.key,
+            hash=task.hash,
+        ),
         state=vf.State(),
         agent=vf.AgentInfo(config=vf.AgentConfig(), name="pr10", trainable=False),
         nodes=[
@@ -201,8 +217,8 @@ def probe():
         "is_taskset": isinstance(first, Taskset),
         "task_type": type(first).task_type().__name__,
         "infinite": type(first).INFINITE,
-        "env_name": env_name(TASKSET_ID),
-        "env_module": env_module(TASKSET_ID),
+        "taskset_name": vf.TasksetConfig(id=TASKSET_ID).name,
+        "taskset_import": import_taskset(TASKSET_ID).__name__,
         "all": list(package.__all__),
         "exported_taskset_count": sum(
             1
@@ -340,7 +356,7 @@ def probe(engine_python: Path) -> dict:
 @pytest.fixture(scope="session")
 def validated(validate_cli: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Output directory of a full pinned `validate` run over every task."""
-    out = tmp_path_factory.mktemp("reference-validate") / "run"
+    out = tmp_path_factory.mktemp("reference-validate")
     _check(
         validate_cli,
         TASKSET_ID,
@@ -350,10 +366,12 @@ def validated(validate_cli: Path, tmp_path_factory: pytest.TempPathFactory) -> P
         "subprocess",
         "--output-dir",
         out,
+        "--run.name",
+        RUN_DIR,
         "--rich",
         "false",
     )
-    return out
+    return out / RUN_DIR
 
 
 @pytest.fixture(scope="session")
@@ -369,7 +387,7 @@ def rows(validated: Path) -> list[dict]:
 
 
 def test_pin_is_never_edited() -> None:
-    assert VERIFIERS_PIN == "7e1c47d24d055aae587ee8259f77a3e8e193513a"
+    assert VERIFIERS_PIN == "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf"
 
 
 def test_package_loads_as_a_taskset(probe: dict) -> None:
@@ -385,8 +403,13 @@ def test_loaded_class_comes_from_this_package_not_a_bundled_one(probe: dict) -> 
 
 
 def test_taskset_id_normalizes_to_the_package_module(probe: dict) -> None:
-    assert probe["env_name"] == TASKSET_ID
-    assert probe["env_module"] == "procedure_transfer_v1"
+    """The id is a distribution name; hyphens become underscores.
+
+    v0.3.1 removed the helpers that spelled this out; the rule now lives inline
+    in the plugin importer, and `TasksetConfig.name` is the id verbatim.
+    """
+    assert probe["taskset_name"] == TASKSET_ID
+    assert probe["taskset_import"] == "procedure_transfer_v1"
 
 
 def test_package_exports_exactly_one_taskset_and_one_environment(
@@ -544,7 +567,12 @@ def test_reward_hook_is_discovered_and_scores_the_last_reply(probe: dict) -> Non
 
 
 def test_validation_creates_exactly_the_four_expected_files(validated: Path) -> None:
-    assert {p.name for p in validated.iterdir()} == EXPECTED_OUTPUT_FILES
+    written = {
+        str(path.relative_to(validated))
+        for path in validated.rglob("*")
+        if path.is_file()
+    }
+    assert written == EXPECTED_OUTPUT_FILES
 
 
 def test_every_task_validates_under_the_pinned_runner(validated: Path) -> None:
@@ -589,12 +617,12 @@ def test_result_rows_carry_the_expected_task_names(rows: list[dict]) -> None:
     assert [by_position[i] for i in range(TASK_COUNT)] == list(EXPECTED_NAMES)
 
 
-def test_config_toml_records_shuffle_false(validated: Path) -> None:
+def test_resolved_config_records_shuffle_false(validated: Path) -> None:
     """Decision 0001: shuffle is false only; the runner must never reorder."""
-    config = (validated / "config.toml").read_text()
-    assert "shuffle = false" in config
-    assert f'id = "{TASKSET_ID}"' in config
-    assert 'type = "subprocess"' in config
+    config = json.loads((validated / "configs/resolved/validate.json").read_text())
+    assert config["shuffle"] is False
+    assert config["taskset"]["id"] == TASKSET_ID
+    assert config["runtime"]["type"] == "subprocess"
 
 
 if __name__ == "__main__":

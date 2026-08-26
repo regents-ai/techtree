@@ -15,7 +15,7 @@ import re
 
 import verifiers.v1 as vf
 from verifiers.v1 import Task, TaskData, Taskset
-from verifiers.v1.utils.install import env_module, env_name
+from verifiers.v1.utils.loaders import import_taskset
 
 TASKSET_ID = "techtree-preflight-taskset"
 RAW_HASH = re.compile(r"^[0-9a-f]{64}$")
@@ -34,7 +34,12 @@ def probe() -> dict:
     task = tasks[0]
 
     trace = vf.Trace(
-        task=vf.TraceTask(type=type(task).__name__, data=task.data, hash=task.hash),
+        task=vf.TraceTask(
+            type=type(task).__name__,
+            data=task.data,
+            key=task.key,
+            hash=task.hash,
+        ),
         state=vf.State(),
         agent=vf.AgentInfo(config=vf.AgentConfig(), name="preflight", trainable=False),
     )
@@ -53,13 +58,14 @@ def probe() -> dict:
         "is_taskset": isinstance(first, Taskset),
         "task_type": type(first).task_type().__name__,
         "infinite": type(first).INFINITE,
-        "env_name": env_name(TASKSET_ID),
-        "env_module": env_module(TASKSET_ID),
+        "taskset_name": vf.TasksetConfig(id=TASKSET_ID).name,
+        "taskset_module": import_taskset(TASKSET_ID).__name__,
         # claim 4 + hash format
         "hashes": hashes,
         "hashes_reloaded": reloaded,
         "hashes_are_raw_hex64": all(bool(RAW_HASH.match(h)) for h in hashes),
         "hash_wire_data": task.data.model_dump(mode="json", exclude_none=True),
+        "key_equals_hash": task.key == task.hash,
         # iteration order / membership
         "head_two": [t.hash for t in first.head(2)],
         "head_two_idx": [t.data.idx for t in first.head(2)],

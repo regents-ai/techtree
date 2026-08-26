@@ -8,7 +8,7 @@ right answer is a named error, not a compiled document that splits the
 difference.
 
 Determinism is the property the rest of WP6 leans on. The same manifest, the
-same run paths and the same variant always produce byte-identical TOML, which
+same run paths and the same variant always produce byte-identical JSON, which
 is what lets a resolved config be compared against a compiled one and what lets
 a run be reproduced from its own inputs.
 
@@ -49,7 +49,7 @@ from techtree.verifiers.config import (
     SubjectAgentToml,
     TasksetToml,
     TimeoutToml,
-    config_to_toml_bytes,
+    config_to_json_bytes,
     egress_for,
 )
 from techtree.verifiers.models import RunPaths, VariantExecutionPlan, VariantName
@@ -71,7 +71,10 @@ MANIFEST_NOT_COMPILABLE: Final = "manifest_not_compilable"
 #: The only subject harness WP6 executes. Spec section 6.2.
 REFERENCE_HARNESS_ID: Final = "hermes-agent"
 
-EVAL_CONFIG_MEDIA_TYPE: Final = "application/toml"
+#: What Techtree writes for one variant. JSON rather than TOML because the
+#: dashboard can only be turned off by an explicit null, and TOML has none
+#: (``src/techtree/verifiers/config.py``, ``docs/verifiers-pin-0.3.1.md`` D5).
+EVAL_CONFIG_MEDIA_TYPE: Final = "application/json"
 
 #: The minimum Campaign-wide concurrency a parallel schedule can be divided
 #: from: one permit each, and no variant may be starved to zero.
@@ -324,13 +327,13 @@ def _resolve_skill_paths(subject: AgentSpec, run_paths: RunPaths) -> list[str]:
 
 
 def write_variant_config(config: EvalToml, destination: Path) -> ArtifactRef:
-    """Write deterministic TOML and return its artifact reference.
+    """Write deterministic JSON and return its artifact reference.
 
     The write is exclusive: a compiled config is an input to exactly one run,
     and silently overwriting one would make a re-read prove nothing about what
     the child was actually handed.
     """
-    data = config_to_toml_bytes(config)
+    data = config_to_json_bytes(config)
     ensure_private_directory(destination.parent)
     with open_exclusive(destination) as handle:
         handle.write(data)

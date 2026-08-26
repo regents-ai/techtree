@@ -11,13 +11,13 @@ pinned engine accept this" to the preflight suite, where a real engine answers.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
-import tomli_w
 from pydantic import ValidationError as PydanticValidationError
 
 from fixtures.drafts.support import synthetic_graph
@@ -33,8 +33,11 @@ from techtree.models.validation import TasksetLock
 from techtree.verifiers.child import (
     CONFIG_ARGUMENT_MARKER,
     DRY_RUN_FLAG,
+    DRY_RUN_NAME,
     EVAL_EXECUTABLE,
+    OUTPUT_DIR_FLAG,
     PUSH_DISABLED_FLAG,
+    RUN_NAME_FLAG,
     dry_run_argv,
 )
 from techtree.verifiers.config import (
@@ -46,7 +49,8 @@ from techtree.verifiers.config import (
     SamplingToml,
     SubjectAgentToml,
     TasksetToml,
-    config_to_toml_bytes,
+    config_to_json_bytes,
+    emitted_document,
 )
 from techtree.verifiers.models import (
     ChildProcessOutcome,
@@ -59,6 +63,7 @@ from techtree.verifiers.models import (
     VariantName,
 )
 from techtree.verifiers.verify import (
+    RESOLVED_CONFIG_PATH,
     dry_run_variant_config,
     verify_compiled_config,
     verify_variant_execution,
@@ -90,9 +95,11 @@ def resolved_document(config: EvalToml, **overrides: Any) -> dict[str, Any]:
 
     Modelled on the real thing: every default Techtree never mentioned is
     filled in, ``client.base_url`` is resolved from the Prime configuration,
-    and a routing header may be added.
+    and a routing header may be added. It starts from the document Techtree
+    actually writes, so the explicit ``rich`` null round-trips the way the
+    released engine round-trips it.
     """
-    document = config.model_dump(mode="json", exclude_none=True)
+    document = emitted_document(config)
     document["verbose"] = False
     document["server"] = False
     document["client"]["base_url"] = "https://api.pinference.ai/api/v1"
@@ -127,10 +134,13 @@ class RecordingEngine(EngineRunner):
         if self.document is not None:
             # --output-dir on argv overrides the file, so the engine records
             # the directory it was pointed at rather than the compiled one.
-            document = {**self.document, "output_dir": str(args[-1])}
-            destination = Path(args[-1]) / "config.toml"
+            # The run itself lands under the name the dry run pinned.
+            output_dir = Path(args[list(args).index(OUTPUT_DIR_FLAG) + 1])
+            run_name = args[list(args).index(RUN_NAME_FLAG) + 1]
+            document = {**self.document, "output_dir": str(output_dir)}
+            destination = output_dir / run_name / RESOLVED_CONFIG_PATH
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_text(tomli_w.dumps(document))
+            destination.write_text(json.dumps(document, indent=2))
         return EngineProcessResult(
             argv=(executable, *args),
             exit_code=self.exit_code,
@@ -144,9 +154,9 @@ class RecordingEngine(EngineRunner):
 def written_config(tmp_path: Path) -> tuple[EvalToml, Path, Path]:
     """A compiled config on disk, plus its input path and dry-run directory."""
     config = compiled(tmp_path / "verifiers" / "baseline" / "run")
-    input_path = tmp_path / "verifiers" / "baseline" / "input.toml"
+    input_path = tmp_path / "verifiers" / "baseline" / "input.json"
     input_path.parent.mkdir(parents=True)
-    input_path.write_bytes(config_to_toml_bytes(config))
+    input_path.write_bytes(config_to_json_bytes(config))
     return config, input_path, tmp_path / "verifiers" / "baseline" / "dry-run"
 
 
@@ -157,11 +167,11 @@ def written_config(tmp_path: Path) -> tuple[EvalToml, Path, Path]:
 
 def test_the_config_file_is_passed_as_its_own_argv_marker(tmp_path: Path) -> None:
     argv = dry_run_argv(
-        input_config_path=tmp_path / "input.toml", dry_run_dir=tmp_path / "dry-run"
+        input_config_path=tmp_path / "input.json", dry_run_dir=tmp_path / "dry-run"
     )
 
     assert argv[0] == CONFIG_ARGUMENT_MARKER
-    assert argv[1] == str(tmp_path / "input.toml")
+    assert argv[1] == str(tmp_path / "input.json")
     assert DRY_RUN_FLAG in argv
 
 
@@ -169,9 +179,20 @@ def test_the_upload_is_also_disabled_on_the_command_line(tmp_path: Path) -> None
     # push defaults to true upstream, so the flag is belt and braces alongside
     # push = false in the compiled document.
     argv = dry_run_argv(
-        input_config_path=tmp_path / "input.toml", dry_run_dir=tmp_path / "dry-run"
+        input_config_path=tmp_path / "input.json", dry_run_dir=tmp_path / "dry-run"
     )
     assert PUSH_DISABLED_FLAG in argv
+
+
+def test_the_dry_run_names_the_directory_it_writes_into(tmp_path: Path) -> None:
+    # --output-dir only groups runs; the run itself lands under a name that is
+    # random unless it is pinned, and a resolved configuration nobody can find
+    # twice establishes nothing.
+    argv = dry_run_argv(
+        input_config_path=tmp_path / "input.json", dry_run_dir=tmp_path / "dry-run"
+    )
+
+    assert argv[argv.index(RUN_NAME_FLAG) + 1] == DRY_RUN_NAME
 
 
 def test_no_credential_can_appear_in_the_invocation(
@@ -181,7 +202,7 @@ def test_no_credential_can_appear_in_the_invocation(
     monkeypatch.setenv("PRIME_API_KEY", secret)
 
     argv = dry_run_argv(
-        input_config_path=tmp_path / "input.toml", dry_run_dir=tmp_path / "dry-run"
+        input_config_path=tmp_path / "input.json", dry_run_dir=tmp_path / "dry-run"
     )
 
     assert not any(secret in argument for argument in argv)
@@ -256,7 +277,7 @@ def test_a_config_that_was_never_written_is_refused_before_the_engine_runs(
             engine_runner=engine,
             variant=VariantName.BASELINE,
             compiled=config,
-            input_config_path=tmp_path / "absent.toml",
+            input_config_path=tmp_path / "absent.json",
             dry_run_dir=tmp_path / "dry-run",
         )
     assert caught.value.code == "variant_dry_run_failed"
@@ -301,8 +322,8 @@ def test_a_real_run_writing_outside_the_run_tree_is_a_failure(
     # The dry run is redirected by argv, so the directory the real run would
     # use is checked on the compiled document rather than the resolved one.
     config = compiled(tmp_path / "somewhere-else")
-    input_path = tmp_path / "input.toml"
-    input_path.write_bytes(config_to_toml_bytes(config))
+    input_path = tmp_path / "input.json"
+    input_path.write_bytes(config_to_json_bytes(config))
     engine = RecordingEngine(document=resolved_document(config))
 
     outcome = dry_run_variant_config(
@@ -377,6 +398,25 @@ def test_a_value_the_engine_changed_is_a_disagreement(
     assert "num_tasks" in match.detail
 
 
+def test_a_resolved_config_that_turned_the_dashboard_on_is_a_disagreement(
+    written_config: tuple[EvalToml, Path, Path],
+) -> None:
+    # The dashboard is the whole output when it is on, and an omitted key is
+    # how a run gets one by accident. Techtree writes the null; this is the
+    # engine being asked to confirm it kept it.
+    config, _, _ = written_config
+    document = resolved_document(config)
+    document["rich"] = {"show_logs": False}
+
+    checks = verify_compiled_config(compiled=config, resolved=document)
+
+    match = next(
+        check for check in checks if check.id == "resolved_config_matches_compiled"
+    )
+    assert match.status == "failed"
+    assert "rich" in match.detail
+
+
 def test_a_resolved_config_that_would_upload_fails_the_push_check(
     written_config: tuple[EvalToml, Path, Path],
 ) -> None:
@@ -418,8 +458,8 @@ def test_an_unpinned_runtime_image_warns_rather_than_failing(tmp_path: Path) -> 
             )
         }
     )
-    input_path = tmp_path / "input.toml"
-    input_path.write_bytes(config_to_toml_bytes(config))
+    input_path = tmp_path / "input.json"
+    input_path.write_bytes(config_to_json_bytes(config))
     engine = RecordingEngine(document=resolved_document(config))
 
     outcome = dry_run_variant_config(

@@ -204,7 +204,7 @@ def _plan(
     """Build one variant's plan with every input actually present."""
     directory = root / variant.value
     directory.mkdir(parents=True, exist_ok=True)
-    config = directory / "input.toml"
+    config = directory / "input.json"
     config.write_text("num_tasks = 4\n")
     manifest = directory / "manifest.json"
     manifest.write_text("{}")

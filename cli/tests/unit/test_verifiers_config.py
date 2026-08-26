@@ -9,7 +9,7 @@ that matter most are therefore the ones that expect a construction to fail.
 
 from __future__ import annotations
 
-import tomllib
+import json
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
@@ -26,7 +26,7 @@ from techtree.verifiers.config import (
     SubjectAgentToml,
     TasksetToml,
     TimeoutToml,
-    config_to_toml_bytes,
+    config_to_json_bytes,
     egress_for,
 )
 
@@ -80,7 +80,13 @@ def eval_config(**overrides: object) -> EvalToml:
     ("field", "value"),
     [
         ("push", True),
+        # Upstream's ``rich`` is a table now, and null is the only spelling
+        # that turns the dashboard off. Neither the old ``false`` nor a table
+        # of settings may be reachable from here.
         ("rich", True),
+        ("rich", False),
+        ("rich", {}),
+        ("rich", {"show_logs": True}),
         ("shuffle", True),
         ("num_rollouts", 2),
     ],
@@ -212,14 +218,14 @@ def test_a_digest_pinned_image_is_recognised_and_a_tagged_one_is_not() -> None:
 
 
 def test_the_same_configuration_always_serializes_to_the_same_bytes() -> None:
-    assert config_to_toml_bytes(eval_config()) == config_to_toml_bytes(eval_config())
+    assert config_to_json_bytes(eval_config()) == config_to_json_bytes(eval_config())
 
 
 def test_the_emitted_document_reads_back_as_the_engine_would_read_it() -> None:
-    document = tomllib.loads(config_to_toml_bytes(eval_config()).decode("utf-8"))
+    document = json.loads(config_to_json_bytes(eval_config()).decode("utf-8"))
 
     assert document["push"] is False
-    assert document["rich"] is False
+    assert document["rich"] is None
     assert document["shuffle"] is False
     assert document["num_rollouts"] == 1
     assert document["env"]["subject"]["harness"]["use_bundled_skill"] is False
@@ -227,10 +233,42 @@ def test_the_emitted_document_reads_back_as_the_engine_would_read_it() -> None:
     assert "base_url" not in document["client"]
 
 
+def test_the_dashboard_is_turned_off_by_a_key_that_is_present_and_null() -> None:
+    # The whole reason the emitted document is JSON. An omitted ``rich``
+    # resolves upstream to a live dashboard with the log lines suppressed, so
+    # the key being *there* is the guarantee, not the value being falsey.
+    text = config_to_json_bytes(eval_config()).decode("utf-8")
+    document = json.loads(text)
+
+    assert "rich" in document
+    assert document["rich"] is None
+    assert '"rich": null' in text
+
+
+def test_the_emitted_document_keeps_the_fields_in_declaration_order() -> None:
+    # ``rich`` is re-included after the unset optionals are dropped, and it
+    # must land where a reader expects it rather than appended at the end.
+    document = json.loads(config_to_json_bytes(eval_config()).decode("utf-8"))
+    assert list(document) == [
+        "model",
+        "client",
+        "sampling",
+        "env",
+        "num_tasks",
+        "num_rollouts",
+        "shuffle",
+        "max_concurrent",
+        "rich",
+        "push",
+        "output_dir",
+    ]
+
+
 def test_optional_bounds_are_absent_rather_than_null() -> None:
-    # TOML cannot represent a null, and the engine drops None the same way, so
-    # an unset bound must not appear in either document.
-    document = tomllib.loads(config_to_toml_bytes(eval_config()).decode("utf-8"))
+    # JSON could spell these as nulls, and they still must not be. For every
+    # optional but ``rich`` an unset value and upstream's own default are the
+    # same thing, so the document says only what the Campaign decided.
+    document = json.loads(config_to_json_bytes(eval_config()).decode("utf-8"))
     assert "max_turns" not in document["env"]["subject"]
     assert "max_total_tokens" not in document["env"]["subject"]
 
@@ -255,8 +293,8 @@ def test_every_limit_the_engine_enforces_can_be_spelled() -> None:
     # The pinned build checks these four between turns and wraps each rollout
     # phase in the timeout table. A limit Techtree cannot spell is a limit a
     # Campaign cannot have, whatever its own document says.
-    document = tomllib.loads(
-        config_to_toml_bytes(
+    document = json.loads(
+        config_to_json_bytes(
             eval_config(
                 env=EnvToml(
                     taskset=TasksetToml(id="procedure-transfer-v1"),
@@ -295,5 +333,5 @@ def test_an_unknown_timeout_phase_is_refused() -> None:
 
 
 def test_a_seat_with_no_timeout_emits_an_empty_table_rather_than_nulls() -> None:
-    document = tomllib.loads(config_to_toml_bytes(eval_config()).decode("utf-8"))
+    document = json.loads(config_to_json_bytes(eval_config()).decode("utf-8"))
     assert document["env"]["subject"]["timeout"] == {}

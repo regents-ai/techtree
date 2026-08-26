@@ -38,7 +38,7 @@ a run somebody stopped did not produce a wrong answer, it produced no answer.
 
 from __future__ import annotations
 
-import tomllib
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -53,11 +53,12 @@ from techtree.models.experiment import ExperimentManifest
 from techtree.models.validation import TasksetLock
 from techtree.verifiers.child import (
     CANCELLATION_EXIT_CODE,
+    DRY_RUN_NAME,
     EVAL_EXECUTABLE,
     dry_run_argv,
     write_command_log,
 )
-from techtree.verifiers.config import EvalToml
+from techtree.verifiers.config import EvalToml, emitted_document
 from techtree.verifiers.credentials import credential_status
 from techtree.verifiers.models import (
     COMMAND_LOG_FILENAME,
@@ -67,7 +68,6 @@ from techtree.verifiers.models import (
     VariantExecutionResult,
     VariantName,
 )
-from techtree.verifiers.outputs import CONFIG_FILENAME
 
 __all__ = [
     "DEFAULT_DRY_RUN_TIMEOUT_SECONDS",
@@ -86,6 +86,12 @@ VARIANT_DRY_RUN_FAILED: Final = "variant_dry_run_failed"
 VARIANT_EXECUTION_UNCHECKABLE: Final = "variant_execution_uncheckable"
 
 DEFAULT_DRY_RUN_TIMEOUT_SECONDS: Final = 300.0
+
+#: Where the engine leaves the configuration it resolved, relative to the run
+#: directory it was told to use. It is JSON, and it is JSON for the same reason
+#: Techtree's own document is: only JSON round-trips an explicit null
+#: (``docs/verifiers-pin-0.3.1.md``, deviation D1).
+RESOLVED_CONFIG_PATH: Final = Path("configs") / "resolved" / "eval.json"
 
 #: The one key the engine fills in that Techtree deliberately left out, so a
 #: difference there is not a disagreement. The routing header the engine may
@@ -157,7 +163,7 @@ def dry_run_variant_config(
     )
 
     checks: list[ExecutionCheck] = [_invocation_check(process)]
-    resolved_path = dry_run_dir / CONFIG_FILENAME
+    resolved_path = dry_run_dir / DRY_RUN_NAME / RESOLVED_CONFIG_PATH
     resolved: dict[str, Any] | None = None
 
     if process.exit_code == 0 and resolved_path.is_file():
@@ -166,7 +172,10 @@ def dry_run_variant_config(
             ExecutionCheck(
                 id="resolved_config_written",
                 status="passed",
-                detail=f"the engine wrote {CONFIG_FILENAME} to the dry-run directory.",
+                detail=(
+                    f"the engine wrote {RESOLVED_CONFIG_PATH.name} to the "
+                    "dry-run directory."
+                ),
             )
         )
         # ``--output-dir`` on argv overrides the file, so the resolved document
@@ -208,14 +217,28 @@ def dry_run_variant_config(
 def verify_compiled_config(
     *, compiled: EvalToml, resolved: Mapping[str, Any]
 ) -> list[ExecutionCheck]:
-    """Compare what the engine resolved against what Techtree declared."""
-    declared = _flatten(compiled.model_dump(mode="json", exclude_none=True))
+    """Compare what the engine resolved against what Techtree declared.
+
+    Declared means the document that was written, not the model behind it. The
+    two differ in exactly one place and it is the place that matters: ``rich``
+    is written as an explicit null, so comparing the emitted document is what
+    makes the engine confirm the dashboard is off rather than leaving that
+    unasked.
+    """
+    declared = _flatten(emitted_document(compiled))
     observed = _flatten(resolved)
 
+    # A declared key that is simply *missing* from the resolved document is a
+    # difference too, and it has to be spelled out rather than left to
+    # ``get``: ``rich`` is declared as a null, so an engine that resolved it
+    # into a table of dashboard settings would flatten to ``rich.show_logs``
+    # and a plain ``get`` would read the absent ``rich`` back as the null it
+    # was looking for.
     differences = sorted(
         key
         for key, value in declared.items()
-        if key not in _ENGINE_RESOLVED_KEYS and observed.get(key) != value
+        if key not in _ENGINE_RESOLVED_KEYS
+        and (key not in observed or observed[key] != value)
     )
     checks = [
         ExecutionCheck(
@@ -341,9 +364,9 @@ def _credential_check(model: ModelSpec) -> ExecutionCheck:
 def _read_resolved_config(path: Path) -> dict[str, Any]:
     """Read the configuration the engine wrote back."""
     try:
-        with path.open("rb") as handle:
-            return tomllib.load(handle)
-    except (OSError, tomllib.TOMLDecodeError) as error:
+        document: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        return document
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValidationError(
             "the engine's resolved configuration could not be read",
             code=VARIANT_DRY_RUN_FAILED,

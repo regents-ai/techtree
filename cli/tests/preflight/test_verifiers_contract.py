@@ -1,12 +1,12 @@
 """PI0 — the pinned Verifiers contract, proven against the pinned commit.
 
 Every assertion here records observed behaviour of
-`PrimeIntellect-ai/verifiers@7e1c47d24d055aae587ee8259f77a3e8e193513a`.
-When the pin is bumped this module is the gate: rerun it, and update
-`docs/verifiers-pin.md` with whatever moved.
+`PrimeIntellect-ai/verifiers@b2e4e8157783b2c0dffc7821044c87f29f1c3ccf`.
+When the pin is bumped this module is the gate: rerun it, and write up
+whatever moved.
 
-Findings, including the three deviations from the spec's assumptions, are
-written up in `docs/verifiers-pin.md`.
+Findings for the current pin are in `docs/verifiers-pin-0.3.1.md`; the
+superseded `0.3.1.dev21` record is `docs/verifiers-pin.md`.
 
 ## Running it
 
@@ -48,8 +48,27 @@ PREFLIGHT_DIR = Path(__file__).parent
 FIXTURE_DIR = PREFLIGHT_DIR / "fixture_taskset"
 PROBE = PREFLIGHT_DIR / "verifiers_probe.py"
 
-EXPECTED_OUTPUT_FILES = {"config.toml", "results.jsonl", "summary.json", "validate.log"}
-"""Spec 2.1 claim 7 — exactly these, nothing else."""
+EXPECTED_OUTPUT_FILES = {
+    "configs/resolved/validate.json",
+    "logs/validate.log",
+    "results.jsonl",
+    "summary.json",
+}
+"""Spec 2.1 claim 7 — exactly these, nothing else.
+
+Still four files, but no longer four flat names: v0.3.1 moved the resolved
+configuration into ``configs/resolved/`` (as JSON, not TOML) and the log into
+``logs/``. See docs/verifiers-pin-0.3.1.md, deviation D1.
+"""
+
+RUN_DIR = "run"
+"""The run directory Techtree names explicitly.
+
+``--output-dir`` no longer names the directory a run writes into: it names the
+directory runs are *grouped* under, and each run lands in
+``<output-dir>/<run.dir>``. Left unset, ``run.dir`` auto-generates with a random
+suffix, so the engine must always pass ``--run.name``. Deviation D2.
+"""
 
 OUTCOME_KEYS = {"valid", "invalid", "error", "timeout", "missing"}
 RAW_HASH = re.compile(r"^[0-9a-f]{64}$")
@@ -105,23 +124,35 @@ def probe(engine_python: Path) -> dict:
     return json.loads(_check(engine_python, PROBE, cwd=PREFLIGHT_DIR))
 
 
-@pytest.fixture(scope="session")
-def validated(validate_cli: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Output directory of the pinned validate invocation (claims 6-8)."""
-    out = tmp_path_factory.mktemp("validate") / "run"
-    _check(
-        validate_cli,
+def _validate_argv(out: Path, *extra: str) -> tuple[str, ...]:
+    """The invocation Techtree pins, rooted at `out`.
+
+    ``--run.name`` is not decoration: without it the run directory carries a
+    random suffix and neither the engine nor a digest can name the artifacts it
+    just produced.
+    """
+    return (
         TASKSET_ID,
         "--num-tasks",
         "2",
         "--runtime.type",
         "subprocess",
         "--output-dir",
-        out,
+        str(out),
+        "--run.name",
+        RUN_DIR,
         "--rich",
         "false",
+        *extra,
     )
-    return out
+
+
+@pytest.fixture(scope="session")
+def validated(validate_cli: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Run directory of the pinned validate invocation (claims 6-8)."""
+    out = tmp_path_factory.mktemp("validate")
+    _check(validate_cli, *_validate_argv(out))
+    return out / RUN_DIR
 
 
 # --------------------------------------------------------------------------
@@ -130,7 +161,7 @@ def validated(validate_cli: Path, tmp_path_factory: pytest.TempPathFactory) -> P
 
 
 def test_pin_is_never_edited() -> None:
-    assert VERIFIERS_PIN == "7e1c47d24d055aae587ee8259f77a3e8e193513a"
+    assert VERIFIERS_PIN == "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf"
 
 
 def test_pinned_commit_installs(engine_python: Path) -> None:
@@ -170,9 +201,16 @@ def test_fixture_package_loads_as_a_taskset(probe: dict) -> None:
 
 
 def test_taskset_id_normalizes_to_a_module_name(probe: dict) -> None:
-    # A local id is a distribution name; hyphens become underscores.
-    assert probe["env_name"] == TASKSET_ID
-    assert probe["env_module"] == "techtree_preflight_taskset"
+    """A taskset id is a distribution name; hyphens become underscores.
+
+    The helpers that used to spell this out (`verifiers.v1.utils.install`)
+    are gone in v0.3.1. The rule survives, inlined in the plugin importer, and
+    is now observed rather than computed: `import_taskset` returns the module
+    actually imported. `TasksetConfig.name` no longer strips a Hub `org/` or
+    `@version` — it is the id verbatim. Deviation D0.
+    """
+    assert probe["taskset_name"] == TASKSET_ID
+    assert probe["taskset_module"] == "techtree_preflight_taskset"
 
 
 # --------------------------------------------------------------------------
@@ -251,21 +289,9 @@ def test_validate_exits_zero_even_when_every_task_is_invalid(
     """
     out = tmp_path / "invalid"
     env = {**os.environ, "TECHTREE_PREFLIGHT_INVALID": "1"}
-    result = _run(
-        validate_cli,
-        TASKSET_ID,
-        "--num-tasks",
-        "2",
-        "--runtime.type",
-        "subprocess",
-        "--output-dir",
-        out,
-        "--rich",
-        "false",
-        env=env,
-    )
+    result = _run(validate_cli, *_validate_argv(out), env=env)
     assert result.returncode == 0, result.stderr
-    summary = json.loads((out / "summary.json").read_text())
+    summary = json.loads((out / RUN_DIR / "summary.json").read_text())
     assert summary["outcomes"]["invalid"] == 2
     assert summary["outcomes"]["valid"] == 0
     assert summary["valid_rate"] == 0.0
@@ -283,6 +309,8 @@ def test_validate_exits_nonzero_on_an_unknown_taskset(
         "subprocess",
         "--output-dir",
         tmp_path / "missing",
+        "--run.name",
+        RUN_DIR,
         "--rich",
         "false",
     )
@@ -295,7 +323,12 @@ def test_validate_exits_nonzero_on_an_unknown_taskset(
 
 
 def test_validation_creates_exactly_the_four_expected_files(validated: Path) -> None:
-    assert {p.name for p in validated.iterdir()} == EXPECTED_OUTPUT_FILES
+    written = {
+        str(path.relative_to(validated))
+        for path in validated.rglob("*")
+        if path.is_file()
+    }
+    assert written == EXPECTED_OUTPUT_FILES
 
 
 def test_results_jsonl_joins_on_the_raw_task_hash(validated: Path, probe: dict) -> None:
@@ -310,12 +343,32 @@ def test_results_jsonl_joins_on_the_raw_task_hash(validated: Path, probe: dict) 
     assert all(row["mode"] == "all" for row in rows)
 
 
-def test_config_toml_records_shuffle_false(validated: Path) -> None:
-    """Decision 0001: shuffle is false only; the runner must never reorder."""
-    config = (validated / "config.toml").read_text()
-    assert "shuffle = false" in config
-    assert 'id = "techtree-preflight-taskset"' in config
-    assert 'type = "subprocess"' in config
+def test_resolved_config_records_shuffle_false(validated: Path) -> None:
+    """Decision 0001: shuffle is false only; the runner must never reorder.
+
+    v0.3.1 writes the resolved run configuration as JSON under
+    ``configs/resolved/`` instead of a flat ``config.toml``. Deviation D1.
+    """
+    config = json.loads((validated / "configs/resolved/validate.json").read_text())
+    assert config["shuffle"] is False
+    assert config["taskset"]["id"] == "techtree-preflight-taskset"
+    assert config["runtime"]["type"] == "subprocess"
+    assert config["run"]["dir"] == RUN_DIR
+
+
+def test_a_second_run_refuses_to_overwrite_a_run_directory(
+    validate_cli: Path, tmp_path: Path
+) -> None:
+    """New in v0.3.1: a run directory holding results is never written twice.
+
+    Techtree names its run directories, so this is the behaviour it meets every
+    time it re-validates the same taskset into the same run tree. Deviation D3.
+    """
+    out = tmp_path / "twice"
+    _check(validate_cli, *_validate_argv(out))
+    again = _run(validate_cli, *_validate_argv(out))
+    assert again.returncode != 0
+    assert "already contains results" in (again.stdout + again.stderr)
 
 
 # --------------------------------------------------------------------------
@@ -393,20 +446,8 @@ def test_single_check_modes_omit_the_checks_block(
 ) -> None:
     """The `checks` key exists only in mode `all`; the parser must not require it."""
     out = tmp_path / mode
-    _check(
-        validate_cli,
-        TASKSET_ID,
-        "--num-tasks",
-        "2",
-        "--runtime.type",
-        "subprocess",
-        "--output-dir",
-        out,
-        "--rich",
-        "false",
-        flag,
-    )
-    summary = json.loads((out / "summary.json").read_text())
+    _check(validate_cli, *_validate_argv(out, flag))
+    summary = json.loads((out / RUN_DIR / "summary.json").read_text())
     assert summary["mode"] == mode
     assert "checks" not in summary
     assert summary["outcomes"]["valid"] == 2

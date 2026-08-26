@@ -1,5 +1,11 @@
 # Verifiers pin — PI0 preflight findings
 
+> **SUPERSEDED (2026-08-26).** The engine is now pinned to the released
+> `v0.3.1` (`b2e4e8157783b2c0dffc7821044c87f29f1c3ccf`). The current contract is
+> `docs/verifiers-pin-0.3.1.md`, which says what moved and what did not. This
+> document is kept as the record of `0.3.1.dev21` and of the reasoning behind
+> findings C0–C3, which still hold.
+
 Ticket: `techtree-python-3jj.5.1` (PI0 — Verify the pinned Verifiers contract).
 Blocks PR9–PR12. Spec sections §2.1, §11.9, §21.4, §22.5.
 

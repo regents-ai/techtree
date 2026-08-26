@@ -116,4 +116,4 @@ ALLOWED_SKILL_SUFFIXES: Final[frozenset[str]] = frozenset(
 #: Decisions document 0001. Never a branch, a tag, or an unpinned PyPI range.
 #: Changing this value requires a dedicated dependency-bump change that reruns
 #: the pinned-Verifiers preflight suite.
-PINNED_VERIFIERS_REVISION: Final = "7e1c47d24d055aae587ee8259f77a3e8e193513a"
+PINNED_VERIFIERS_REVISION: Final = "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf"

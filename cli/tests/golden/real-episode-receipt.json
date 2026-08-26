@@ -26,7 +26,7 @@
         "size": 65536
       }
     ],
-    "campaign_spec_digest": "sha256:9680cd12222341f2f288f8c8a57578a070db20e786e1613ceac03d2301e4b35b",
+    "campaign_spec_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1",
     "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
     "episode_digest": "sha256:2d565e9c04faf86eee1e2109aedf98d41c5b102297d5af24528e51cc09add015",
     "episode_id": "episode_5869149432600cea179657733b163b52",
@@ -40,7 +40,7 @@
     },
     "evidence_status": "complete",
     "execution_backend": "verifiers",
-    "experiment_manifest_digest": "sha256:92b1470737783b88cbb23cc692e7d819d669203794f2e2708b3ae91aa953050f",
+    "experiment_manifest_digest": "sha256:756460a08406fa5f3b1db8616f453ba03991b0e37a9d527fa049945cb78060d9",
     "id": "receipt_47bd13e7cf2e823779c833f246d644af",
     "named_traces": {
       "subject": [
@@ -60,7 +60,7 @@
     "outcome_contract_digest": null,
     "program_ref": null,
     "public_context": {
-      "climb_digest": "sha256:0d79a320264d69ce71881026b742c4678def349eaff5127c89f41da7b1090f43",
+      "climb_digest": "sha256:8a98cf28affe2de98e3431db3b2a26b0a6dc60861fc9fb0f264d8ca044c217ba",
       "kind": "climb"
     },
     "run_id": "run_bc6bcf8a52493f173292f667c596bfb7",
@@ -74,10 +74,10 @@
     "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
     "variant": "candidate"
   },
-  "payload_digest": "sha256:2c4bb320a710c6fae602c22f99789b2ea8caf8db3eea09cd3d2ffb5f8cddad36",
+  "payload_digest": "sha256:d803696ef8f8001baaafbe5e8109820b18fca7bae5e48e9164b8ad4627a46fd5",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "sha256:cb1636de7059dc2a939fb3e53590a8373911d5613540d1c00eeaf7d37a10d38f",
-    "signature": "Evz9oSZQ9I+LZsiUX2QOa+DUzMTm6MdiWUO2sz6fShVVCYK3iqIbWzNEjFxSRepnLezGxjvxVF6Max6hGw+xBg=="
+    "signature": "9lBeGN4c79ZA5SvZMkmZoEYjFK5/utMeakePjIDh01gwwyJeOKGgpY1ZpakbyVldFLPgTE4qdYr650ypZFlyCA=="
   }
 }

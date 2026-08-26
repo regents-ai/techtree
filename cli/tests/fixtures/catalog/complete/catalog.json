@@ -1,41 +1,41 @@
 {
   "climbs": [
     {
-      "digest": "sha256:1260156ee426c218b9d1bdf9f2c3aed3ce2fa2fff728c8ef9f84bea38c110f84",
+      "digest": "sha256:1b1509443d25f05d1c3613431647d8d849b1e7ffc28b1ba762aabf56637867f8",
       "path": "climbs/synthetic-open.json",
       "reference": "synthetic-open@1"
     },
     {
-      "digest": "sha256:ce62a366280639a2a291240d27eb7944457b321f59d778031fe5f2d01364b388",
+      "digest": "sha256:7744a1da9a359a14e3a6c39b9f645d86291df582e1a53234f310f90e86cd51ff",
       "path": "climbs/synthetic-development.json",
       "reference": "synthetic-development@1"
     },
     {
-      "digest": "sha256:fd582cfca6730c77499695c92f8a1bd8ec321bb81a9d6f96ebd701757e720e8f",
+      "digest": "sha256:0aac0fe67c93e82fc123428f7aeb335290dcc41d551f494222bbe38b5b735f9e",
       "path": "climbs/synthetic-closed.json",
       "reference": "synthetic-closed@1"
     }
   ],
   "objects": {
+    "sha256:15e8bbf1f49f586a3624ca3e3d6bc2a0715d0e30c61c59e6b539179a983ad727": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/synthetic.json"
+    },
+    "sha256:19137c2c6b79543b2c313016a7341deccc82cf82762bea50f5da8647759d01e8": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/synthetic.json"
+    },
     "sha256:88ad47c15e31ace586490770e2266e40c80f7c7be37099a49e37a12052094822": {
       "kind": "data_policy",
       "media_type": "application/json",
       "path": "data-policies/synthetic.json"
     },
-    "sha256:d52d22a443cd73ed12f9dd170bdda5bc5da75b5c4809e8cddee07ad4801ce675": {
-      "kind": "campaign",
-      "media_type": "application/json",
-      "path": "campaigns/synthetic.json"
-    },
-    "sha256:de4747504f2c37a40991a50b8ed3f8c2fa273f41e8f7a933bd41dafb5954efc0": {
+    "sha256:8cd33ff20887a5eec88b78520b948b5b08f4466b81f35b79ed3f72e2eb75106d": {
       "kind": "validation_evidence",
       "media_type": "application/json",
       "path": "validation-evidence/synthetic.json"
-    },
-    "sha256:e36743715541116917904493e481fa2372cdcca839bfe6c7cb0328b410c25e3d": {
-      "kind": "taskset_validation",
-      "media_type": "application/json",
-      "path": "taskset-validations/synthetic.json"
     }
   },
   "schema_version": "techtree.catalog.v1alpha1"

@@ -15,7 +15,7 @@ actually resolves, including the fields nobody thinks about.
 
 from __future__ import annotations
 
-import tomllib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
@@ -42,7 +42,7 @@ from techtree.verifiers.compiler import (
     skill_directory_name,
     write_variant_config,
 )
-from techtree.verifiers.config import SubjectAgentToml, config_to_toml_bytes
+from techtree.verifiers.config import SubjectAgentToml, config_to_json_bytes
 from techtree.verifiers.models import RunPaths, VariantName
 
 PINNED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
@@ -183,8 +183,8 @@ def test_the_only_difference_between_the_two_documents_is_the_skill_list(
     graph: SyntheticGraph, run_paths: RunPaths
 ) -> None:
     baseline_manifest, candidate_manifest = manifests(graph)
-    baseline = tomllib.loads(
-        config_to_toml_bytes(
+    baseline = json.loads(
+        config_to_json_bytes(
             compile_variant_config(
                 campaign=graph.campaign,
                 experiment=baseline_manifest,
@@ -194,8 +194,8 @@ def test_the_only_difference_between_the_two_documents_is_the_skill_list(
             )
         ).decode("utf-8")
     )
-    candidate = tomllib.loads(
-        config_to_toml_bytes(
+    candidate = json.loads(
+        config_to_json_bytes(
             compile_variant_config(
                 campaign=graph.campaign,
                 experiment=candidate_manifest,
@@ -236,7 +236,7 @@ def test_the_same_manifest_always_compiles_to_the_same_bytes(
         variant_max_concurrent=1,
     )
 
-    assert config_to_toml_bytes(compile_once) == config_to_toml_bytes(compile_again)
+    assert config_to_json_bytes(compile_once) == config_to_json_bytes(compile_again)
 
 
 def test_no_credential_value_reaches_the_compiled_bytes(
@@ -246,7 +246,7 @@ def test_no_credential_value_reaches_the_compiled_bytes(
     monkeypatch.setenv(graph.campaign.subject.model.credential_env, secret)
     baseline, _ = manifests(graph)
 
-    data = config_to_toml_bytes(
+    data = config_to_json_bytes(
         compile_variant_config(
             campaign=graph.campaign,
             experiment=baseline,
@@ -539,7 +539,7 @@ def test_a_written_config_is_hashed_from_the_bytes_on_disk(
     data = destination.read_bytes()
     assert reference.size == len(data)
     assert reference.media_type == EVAL_CONFIG_MEDIA_TYPE
-    assert data == config_to_toml_bytes(config)
+    assert data == config_to_json_bytes(config)
 
 
 def test_a_compiled_config_is_never_silently_overwritten(

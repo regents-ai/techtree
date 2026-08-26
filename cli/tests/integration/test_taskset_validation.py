@@ -62,7 +62,7 @@ from techtree.tasksets.service import (
     TasksetService,
     TasksetValidationRun,
 )
-from techtree.tasksets.verifiers_cli import VALIDATION_FILENAMES
+from techtree.tasksets.verifiers_cli import VALIDATION_FILENAMES, validation_run_dir
 
 pytestmark = pytest.mark.integration
 
@@ -275,7 +275,7 @@ def test_validation_writes_the_layout_the_spec_describes(
         validated.receipt
     )
     for name in VALIDATION_FILENAMES:
-        assert (validation / name).is_file()
+        assert (validation_run_dir(validation) / name).is_file()
 
 
 def test_the_execution_record_holds_what_the_receipt_refuses_to(

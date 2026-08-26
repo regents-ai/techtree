@@ -7,10 +7,10 @@ The normalizer that the engine runs over them does not replace any of them
 normalized projection, because a projection nobody can check against its source
 is a claim rather than evidence.
 
-A dry-run directory is deliberately not accepted here. Dry run writes only
-``config.toml`` (``docs/verifiers-eval.md``, finding E2), so applying the run's
-requirements to it would report a truncated run where there was never a run at
-all.
+A dry-run directory is deliberately not accepted here. Dry run writes only the
+resolved configuration (``docs/verifiers-eval.md``, finding E2), so applying
+the run's requirements to it would report a truncated run where there was never
+a run at all.
 
 ``build_variant_result`` does not interpret anything itself. It hands the raw
 directory to the engine tool ``normalize_eval_output.py``, which runs under the

@@ -2,8 +2,20 @@
 
 This module is the whole of Techtree's contact with the upstream ``validate``
 command, and every line of it is shaped by what the PI0 preflight actually
-observed (``docs/verifiers-pin.md``) rather than by what the specification
-assumed.
+observed (``docs/verifiers-pin-0.3.1.md``) rather than by what the
+specification assumed.
+
+*A run has a directory of its own* (deviation D2). ``--output-dir`` names the
+directory runs are *grouped* under, not the directory a run writes into: the
+run lands in ``<output-dir>/<run.dir>``, and an unnamed run auto-generates that
+directory with a random suffix. So the pinned invocation always passes
+``--run.name`` and everything here reads the artifacts from
+:func:`validation_run_dir`.
+
+*A run directory is written once* (deviation D3). The validator refuses a run
+directory that already holds results, so :meth:`VerifiersValidationRunner.run`
+requires a directory nothing has written into yet rather than resuming or
+clearing one.
 
 *The exit code is not the verdict* (finding C2). ``validate`` exits ``0`` when
 every task in a taskset fails, because its status reports runner health. So
@@ -60,29 +72,37 @@ __all__ = [
     "NORMALIZE_VALIDATION_TOOL",
     "VALIDATE_EXECUTABLE",
     "VALIDATION_FILENAMES",
+    "VALIDATION_RUN_NAME",
     "VALIDATION_TIMEOUT_SECONDS",
     "UpstreamCheckCounts",
     "VerifiersValidationRunner",
     "validate_argv",
+    "validation_run_dir",
 ]
 
 #: The console script the pinned Verifiers build installs. Generic enough to
 #: collide with anything on ``PATH``, which is why it is only ever run through
-#: the engine's absolute path (``docs/verifiers-pin.md``, finding C3).
+#: the engine's absolute path (``docs/verifiers-pin-0.3.1.md``, finding C3).
 VALIDATE_EXECUTABLE: Final = "validate"
 
 #: The engine helper that turns raw validator output into deterministic
 #: evidence. It lives inside the digested bundle (decisions document 0003 A3).
 NORMALIZE_VALIDATION_TOOL: Final = "normalize_validation.py"
 
-#: Exactly the files one validation run writes, in the order a receipt lists
-#: them (``docs/verifiers-pin.md``, claim 7). Nothing else appears, and a
-#: missing one is a broken run rather than a smaller one.
+#: What Techtree calls the one run it groups under an output directory. Naming
+#: it is what makes the run's own directory predictable and its resolved
+#: configuration the same from run to run (deviation D2).
+VALIDATION_RUN_NAME: Final = "run"
+
+#: Exactly the files one validation run writes, relative to the run's own
+#: directory, in the order a receipt lists them
+#: (``docs/verifiers-pin-0.3.1.md``, claim 7 and deviation D1). Nothing else
+#: appears, and a missing one is a broken run rather than a smaller one.
 VALIDATION_FILENAMES: Final[tuple[str, ...]] = (
-    "config.toml",
+    "configs/resolved/validate.json",
+    "logs/validate.log",
     "results.jsonl",
     "summary.json",
-    "validate.log",
 )
 
 #: Model-free validation of the reference taskset finishes in seconds. The
@@ -108,10 +128,10 @@ _OUTCOME_KEYS: Final[tuple[str, ...]] = (
 _SUMMARY_FILE: Final = "summary.json"
 _JSON_MEDIA_TYPE: Final = "application/json"
 _MEDIA_TYPES: Final[Mapping[str, str]] = {
-    "config.toml": "application/toml",
+    "configs/resolved/validate.json": _JSON_MEDIA_TYPE,
+    "logs/validate.log": "text/plain",
     "results.jsonl": "application/x-ndjson",
     "summary.json": _JSON_MEDIA_TYPE,
-    "validate.log": "text/plain",
 }
 
 _EVIDENCE_FILENAME: Final = "evidence.json"
@@ -162,14 +182,26 @@ class UpstreamCheckCounts:
         )
 
 
+def validation_run_dir(output_dir: Path) -> Path:
+    """Return the directory the run itself writes into.
+
+    ``output_dir`` is the directory runs are grouped under, which is all
+    ``--output-dir`` has meant since v0.3.1; the run's own files are one level
+    below it, under the name :func:`validate_argv` pins (deviation D2).
+    """
+    return output_dir / VALIDATION_RUN_NAME
+
+
 def validate_argv(*, taskset_id: str, num_tasks: int, output_dir: Path) -> list[str]:
     """Return the pinned validate arguments, without the executable.
 
     Spelled once, here, because this exact form is what the PI0 preflight
     proved and what a :class:`~techtree.models.validation.ValidationMethod`
     claims. ``--runtime.type subprocess`` is mandatory — upstream defaults to
-    docker — and ``--rich false`` replaces a live dashboard with one log line
-    per task, which is what a captured subprocess wants.
+    prime sandboxes — ``--run.name`` is what stops the run directory from
+    carrying a random suffix nobody can name afterwards, and ``--rich false``
+    replaces a live dashboard with one log line per task, which is what a
+    captured subprocess wants.
     """
     return [
         taskset_id,
@@ -179,6 +211,8 @@ def validate_argv(*, taskset_id: str, num_tasks: int, output_dir: Path) -> list[
         "subprocess",
         "--output-dir",
         str(output_dir),
+        "--run.name",
+        VALIDATION_RUN_NAME,
         "--rich",
         "false",
     ]
@@ -217,11 +251,26 @@ class VerifiersValidationRunner:
     ) -> EngineProcessResult:
         """Invoke the pinned validate command and return what the process did.
 
+        ``output_dir`` is the directory this run is grouped under; the run
+        writes into :func:`validation_run_dir` below it, and that directory has
+        to be one nothing has written into yet — the validator refuses a second
+        run in the same place (deviation D3).
+
         The result is data. A zero exit code means the validator ran, not that
-        the taskset is valid (``docs/verifiers-pin.md``, finding C2), so the
-        only failure this raises is one where no summary could exist at all.
+        the taskset is valid (``docs/verifiers-pin-0.3.1.md``, finding C2), so
+        the only failure this raises is one where no summary could exist at all.
         """
         ensure_private_directory(output_dir)
+        run_dir = validation_run_dir(output_dir)
+        if run_dir.exists():
+            raise EngineError(
+                f"a validation run has already written into {run_dir}; the "
+                "pinned validator writes a run directory once, so every "
+                "validation needs one of its own",
+                code="validation_run_directory_reused",
+                details={"taskset_id": taskset_id, "path": str(run_dir)},
+            )
+
         result = self._runner.run(
             VALIDATE_EXECUTABLE,
             validate_argv(
@@ -232,7 +281,7 @@ class VerifiersValidationRunner:
             timeout=self._timeout_seconds,
         )
 
-        if not (output_dir / _SUMMARY_FILE).is_file():
+        if not (run_dir / _SUMMARY_FILE).is_file():
             raise EngineError(
                 f"the validator produced no summary for taskset {taskset_id}: "
                 f"{_last_line(result.stderr)}",
@@ -268,7 +317,7 @@ class VerifiersValidationRunner:
                 script,
                 [
                     "--results-dir",
-                    str(output_dir),
+                    str(validation_run_dir(output_dir)),
                     "--taskset-lock-digest",
                     taskset_lock_digest,
                     "--output",
@@ -305,29 +354,30 @@ class VerifiersValidationRunner:
 
         Field by field, because every one of the five outcome counts sits at
         the wrong depth upstream and two of the document's keys have no
-        protocol meaning at all (``docs/verifiers-pin.md``, finding C1).
+        protocol meaning at all (``docs/verifiers-pin-0.3.1.md``, finding C1).
         """
-        document = self._summary_document(output_dir)
-        outcomes = _require_object(document, "outcomes", output_dir)
+        run_dir = validation_run_dir(output_dir)
+        document = self._summary_document(run_dir)
+        outcomes = _require_object(document, "outcomes", run_dir)
 
         try:
             return UpstreamValidationSummary(
-                mode=_require_str(document, "mode", output_dir),  # type: ignore[arg-type]
-                total=_require_count(document, "total", output_dir),
-                recorded=_require_count(document, "recorded", output_dir),
-                valid=_require_count(outcomes, "valid", output_dir),
-                invalid=_require_count(outcomes, "invalid", output_dir),
-                error=_require_count(outcomes, "error", output_dir),
-                timeout=_require_count(outcomes, "timeout", output_dir),
-                missing=_require_count(outcomes, "missing", output_dir),
-                valid_rate=_optional_rate(document, output_dir),
+                mode=_require_str(document, "mode", run_dir),  # type: ignore[arg-type]
+                total=_require_count(document, "total", run_dir),
+                recorded=_require_count(document, "recorded", run_dir),
+                valid=_require_count(outcomes, "valid", run_dir),
+                invalid=_require_count(outcomes, "invalid", run_dir),
+                error=_require_count(outcomes, "error", run_dir),
+                timeout=_require_count(outcomes, "timeout", run_dir),
+                missing=_require_count(outcomes, "missing", run_dir),
+                valid_rate=_optional_rate(document, run_dir),
             )
         except PydanticValidationError as error:
             raise ValidationError(
                 "the validator's summary does not describe a coherent run: "
                 f"{error.errors()[0]['msg']}",
                 code="validation_summary_invalid",
-                details={"path": str(output_dir / _SUMMARY_FILE)},
+                details={"path": str(run_dir / _SUMMARY_FILE)},
             ) from error
 
     def parse_check_counts(self, output_dir: Path) -> dict[str, UpstreamCheckCounts]:
@@ -337,7 +387,8 @@ class VerifiersValidationRunner:
         Techtree always asks for both, so an empty result is something the
         caller reports as a failed check rather than something this hides.
         """
-        document = self._summary_document(output_dir)
+        run_dir = validation_run_dir(output_dir)
+        document = self._summary_document(run_dir)
         checks = document.get("checks")
         if checks is None:
             return {}
@@ -346,7 +397,7 @@ class VerifiersValidationRunner:
                 "the validator's summary records a checks breakdown that is "
                 "not an object",
                 code="validation_summary_invalid",
-                details={"path": str(output_dir / _SUMMARY_FILE)},
+                details={"path": str(run_dir / _SUMMARY_FILE)},
             )
 
         counts: dict[str, UpstreamCheckCounts] = {}
@@ -356,13 +407,10 @@ class VerifiersValidationRunner:
                     f"the validator's summary records the {name} check as "
                     "something other than a set of counts",
                     code="validation_summary_invalid",
-                    details={"path": str(output_dir / _SUMMARY_FILE)},
+                    details={"path": str(run_dir / _SUMMARY_FILE)},
                 )
             counts[str(name)] = UpstreamCheckCounts(
-                **{
-                    key: _require_count(reported, key, output_dir)
-                    for key in _OUTCOME_KEYS
-                }
+                **{key: _require_count(reported, key, run_dir) for key in _OUTCOME_KEYS}
             )
         return counts
 
@@ -376,9 +424,10 @@ class VerifiersValidationRunner:
         :class:`~techtree.models.validation.ValidationExecutionRecord` and are
         never referenced by a receipt or shipped in a catalog.
         """
+        run_dir = validation_run_dir(output_dir)
         artifacts: list[ArtifactRef] = []
         for name in VALIDATION_FILENAMES:
-            path = output_dir / name
+            path = run_dir / name
             try:
                 data = path.read_bytes()
             except OSError as error:
@@ -399,8 +448,8 @@ class VerifiersValidationRunner:
 
     # -- one read of one small file ----------------------------------------
 
-    def _summary_document(self, output_dir: Path) -> dict[str, Any]:
-        path = output_dir / _SUMMARY_FILE
+    def _summary_document(self, run_dir: Path) -> dict[str, Any]:
+        path = run_dir / _SUMMARY_FILE
         try:
             raw = path.read_bytes()
         except OSError as error:
@@ -436,41 +485,41 @@ class VerifiersValidationRunner:
 
 
 def _require_object(
-    document: Mapping[str, Any], key: str, output_dir: Path
+    document: Mapping[str, Any], key: str, run_dir: Path
 ) -> dict[str, Any]:
     value = document.get(key)
     if not isinstance(value, dict):
         raise ValidationError(
             f"the validator's summary has no {key} object",
             code="validation_summary_invalid",
-            details={"path": str(output_dir / _SUMMARY_FILE), "field": key},
+            details={"path": str(run_dir / _SUMMARY_FILE), "field": key},
         )
     return value
 
 
-def _require_str(document: Mapping[str, Any], key: str, output_dir: Path) -> str:
+def _require_str(document: Mapping[str, Any], key: str, run_dir: Path) -> str:
     value = document.get(key)
     if not isinstance(value, str) or not value:
         raise ValidationError(
             f"the validator's summary field {key} is not a name: {value!r}",
             code="validation_summary_invalid",
-            details={"path": str(output_dir / _SUMMARY_FILE), "field": key},
+            details={"path": str(run_dir / _SUMMARY_FILE), "field": key},
         )
     return value
 
 
-def _require_count(document: Mapping[str, Any], key: str, output_dir: Path) -> int:
+def _require_count(document: Mapping[str, Any], key: str, run_dir: Path) -> int:
     value = document.get(key)
     if not isinstance(value, int) or isinstance(value, bool) or value < 0:
         raise ValidationError(
             f"the validator's summary field {key} is not a count: {value!r}",
             code="validation_summary_invalid",
-            details={"path": str(output_dir / _SUMMARY_FILE), "field": key},
+            details={"path": str(run_dir / _SUMMARY_FILE), "field": key},
         )
     return value
 
 
-def _optional_rate(document: Mapping[str, Any], output_dir: Path) -> float | None:
+def _optional_rate(document: Mapping[str, Any], run_dir: Path) -> float | None:
     value = document.get("valid_rate")
     if value is None:
         return None
@@ -478,7 +527,7 @@ def _optional_rate(document: Mapping[str, Any], output_dir: Path) -> float | Non
         raise ValidationError(
             f"the validator's summary field valid_rate is not a rate: {value!r}",
             code="validation_summary_invalid",
-            details={"path": str(output_dir / _SUMMARY_FILE), "field": "valid_rate"},
+            details={"path": str(run_dir / _SUMMARY_FILE), "field": "valid_rate"},
         )
     return float(value)
 
