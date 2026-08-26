@@ -452,5 +452,5 @@ def _next_action_for_installed(result: Mapping[str, Any]) -> dict[str, Any]:
         id="inspect_climbs",
         label="Browse the Climbs this build offers",
         reason="Techtree is installed and belongs to this plugin's release.",
-        tool="techtree_climbs_list",
+        tool="techtree_climb_list",
     ).to_dict()

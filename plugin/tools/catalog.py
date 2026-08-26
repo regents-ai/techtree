@@ -62,7 +62,7 @@ def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) ->
                     "id": "inspect_climbs",
                     "label": "Inspect the Hello World Climb",
                     "reason": "Nothing here blocks a Climb on this machine.",
-                    "tool": "techtree_climbs_list",
+                    "tool": "techtree_climb_list",
                 }
             ),
         },
@@ -71,7 +71,7 @@ def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) ->
 
 
 @safe_tool
-def techtree_climbs_list(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
+def techtree_climb_list(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """List the Climbs this Techtree build offers."""
     channel = channel_of(args, kwargs)
     return passthrough(services.bridge.invoke(["climb", "list"]), channel)

@@ -48,7 +48,7 @@ provides_tools:
   - techtree_bootstrap_check
   - techtree_bootstrap_install
   - techtree_system_check
-  - techtree_climbs_list
+  - techtree_climb_list
   - techtree_climb_inspect
   - techtree_climb_prepare
   - techtree_demo_prepare

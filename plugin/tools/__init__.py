@@ -161,7 +161,7 @@ from .bootstrap import (  # noqa: E402
 )
 from .catalog import (  # noqa: E402
     techtree_climb_inspect,
-    techtree_climbs_list,
+    techtree_climb_list,
     techtree_system_check,
 )
 from .demo import (  # noqa: E402
@@ -187,7 +187,7 @@ TOOL_HANDLERS: Mapping[str, ServiceHandler] = MappingProxyType(
         "techtree_bootstrap_check": techtree_bootstrap_check,
         "techtree_bootstrap_install": techtree_bootstrap_install,
         "techtree_system_check": techtree_system_check,
-        "techtree_climbs_list": techtree_climbs_list,
+        "techtree_climb_list": techtree_climb_list,
         "techtree_climb_inspect": techtree_climb_inspect,
         "techtree_climb_prepare": techtree_climb_prepare,
         "techtree_demo_prepare": techtree_demo_prepare,

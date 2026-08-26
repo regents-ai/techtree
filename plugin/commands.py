@@ -129,7 +129,7 @@ def _slash_setup(services: Any, arguments: Sequence[str]) -> str:
 
 
 def _slash_climbs(services: Any, arguments: Sequence[str]) -> str:
-    answer = _tool(services, "techtree_climbs_list", {})
+    answer = _tool(services, "techtree_climb_list", {})
     if not answer.get("ok"):
         return _error_line(answer)
     if answer.get("truncated"):

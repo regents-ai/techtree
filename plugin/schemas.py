@@ -144,7 +144,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
         ),
         properties={},
     ),
-    "techtree_climbs_list": _schema(
+    "techtree_climb_list": _schema(
         description=(
             "List the Climbs this Techtree build offers. Read-only and free. "
             "Use it before inspecting or preparing anything."
