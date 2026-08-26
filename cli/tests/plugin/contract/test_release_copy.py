@@ -1103,3 +1103,34 @@ def test_a_result_whose_qualifications_are_long_keeps_the_answer_whole() -> None
     assert '"truncated"' not in answer
     assert relayed["presentation"]["caveats"]
     assert relayed["presentation"]["caveats_not_shown"]
+
+
+# The interpreter the plugin offers to install onto -----------------------------------
+
+
+def test_the_plugin_offers_the_python_this_release_actually_supports() -> None:
+    """The plugin's copy of the interpreter must be the package's own floor.
+
+    Decision 0031 pinned the interpreter in the published install command and
+    bound the website document's copy to the command it publishes. The plugin
+    offers that same command from its own checkout and carries no bootstrap
+    document to read the number out of - it ships only the release contract,
+    which deliberately holds no install command at all.
+
+    So its copy is bound here instead, to the floor of the range the techtree
+    package declares. That is the value an installer obeys and the doctor
+    reports, so a plugin naming anything else would offer a command whose
+    result the product then refuses - which is the report decision 0031 came
+    from, arriving by a different door. The range is read from the package
+    metadata rather than written down again: repeating the parsing is not
+    repeating the fact.
+    """
+    import tomllib
+
+    from techtree_hermes.constants import CLI_PYTHON_SERIES
+
+    root = Path(__file__).resolve().parents[3]
+    metadata = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    floor = metadata["project"]["requires-python"].split(",")[0].strip().lstrip(">=")
+
+    assert ".".join(floor.split(".")[:2]) == CLI_PYTHON_SERIES
