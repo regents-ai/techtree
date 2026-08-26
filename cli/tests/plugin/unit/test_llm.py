@@ -113,6 +113,27 @@ def test_the_turn_is_spent_even_when_the_answer_was_unusable() -> None:
     assert host.used is True
 
 
+def test_a_completion_that_wrote_nothing_says_so_in_its_own_words() -> None:
+    """The host answered and charged, and nothing came back to read.
+
+    The three things a person needs are all in the sentence: what happened,
+    that it did not cost them their attempt, and what makes it less likely
+    next time — with the price of finding out stated rather than implied.
+    """
+    port = StubPort(answer={"parsed": None, "text": "", "model": "m"})
+
+    with pytest.raises(HostLlmError) as raised:
+        OneShotHostLlm(port).complete(_request())
+
+    assert raised.value.code == "host_completion_truncated"
+    assert str(raised.value) == (
+        "The model ran out of room before it wrote anything. Your attempt has "
+        "not been used. Raising your model's completion limit makes this less "
+        "likely — each attempt costs money at your provider."
+    )
+    assert len(port.calls) == 1, "and nothing asked again"
+
+
 # Typed failures ----------------------------------------------------------------
 
 
@@ -129,10 +150,15 @@ def test_a_provider_failure_is_typed_and_scrubbed() -> None:
 @pytest.mark.parametrize(
     ("answer", "code"),
     [
-        ({"parsed": None, "model": "m"}, "host_proposal_generation_exhausted"),
-        ({"model": "m"}, "host_proposal_generation_exhausted"),
+        ({"parsed": None, "model": "m"}, "host_completion_truncated"),
+        ({"model": "m"}, "host_completion_truncated"),
+        ({"parsed": None, "text": "   ", "model": "m"}, "host_completion_truncated"),
         ("just text", "host_llm_output_invalid"),
         ({"parsed": ["a", "list"]}, "host_proposal_generation_exhausted"),
+        (
+            {"parsed": None, "text": "here is my thinking"},
+            "host_proposal_generation_exhausted",
+        ),
     ],
 )
 def test_an_answer_that_is_not_the_shape_asked_for_is_refused(

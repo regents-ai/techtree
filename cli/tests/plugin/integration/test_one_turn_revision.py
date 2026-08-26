@@ -448,6 +448,118 @@ def test_a_build_whose_improver_is_not_the_one_named_keeps_its_turn(
     assert altered.ctx.llm.calls == []
 
 
+# What a turn produced, and what it costs ---------------------------------------------
+#
+# The guided introduction allows one revision, and one thing decides whether a
+# turn spends it: whether the model produced a candidate. Nothing produced
+# leaves the attempt where it was. Something produced spends it — and what
+# anybody thinks of what was produced does not enter into it. The tests below
+# sit on either side of that line and are the line's only definition.
+
+
+class WroteNothingLlm(StubLlm):
+    """A host that answered, and returned no part of an answer.
+
+    What a completion that reached the end of what it was allowed to write,
+    before its first written byte, looks like from here: the host is there,
+    the provider charges, and there is nothing at all to read.
+    """
+
+    def complete_structured(self, **kwargs: Any) -> Any:
+        answered = super().complete_structured(**kwargs)
+        answered.parsed = None
+        answered.text = ""
+        return answered
+
+
+def _with_host(services: PluginServices, host: StubLlm) -> PluginServices:
+    """Return the same plugin, same session store, answering from this host."""
+    return dataclasses.replace(services, ctx=SimpleNamespace(llm=host))
+
+
+def test_a_completion_that_wrote_nothing_leaves_the_attempt_where_it_was(
+    services: PluginServices,
+) -> None:
+    """Nothing was produced, so there is nothing this turn measured."""
+    host = WroteNothingLlm()
+    truncated = _with_host(services, host)
+
+    answer = _call(truncated, "techtree_uplift_propose", source_run_id=RUN_ID)
+
+    assert answer["ok"] is False
+    assert answer["code"] == "host_completion_truncated"
+    assert "Your attempt has not been used" in answer["message"]
+    kept = latest_session(truncated)
+    assert kept is not None
+    assert kept.revision_attempts == 0
+    assert kept.stage is DemoStage.FIRST_RESULT_READY
+    assert len(host.calls) == 1, "and nothing asked the model again"
+
+
+def test_the_restored_attempt_is_the_users_to_spend(
+    services: PluginServices,
+) -> None:
+    """Restoring the attempt is not retrying it.
+
+    Nothing tried again on the user's behalf. What the restored attempt buys
+    is the ability to decide — so the next proposal is a fresh call this test
+    makes deliberately, and it is allowed through because the session really
+    was left unspent.
+    """
+    _call(
+        _with_host(services, WroteNothingLlm()),
+        "techtree_uplift_propose",
+        source_run_id=RUN_ID,
+    )
+
+    second = _propose(services, channel="terminal")
+
+    assert second["ok"] is True
+    assert second["provenance"]["revision_attempt"] == 1
+    assert len(services.ctx.llm.calls) == 1
+
+
+def test_a_candidate_that_was_produced_and_is_worse_spends_the_attempt(
+    services: PluginServices,
+) -> None:
+    """A poor revision is a measurement, and measuring is what costs.
+
+    The plugin does not judge the revision it relays, and this is why that is
+    not a gap: whether the proposed Skill is better, worse, or pointless, the
+    model produced it and the turn is spent on it.
+    """
+    worse = dict(PROPOSAL, revised_skill_markdown=V1.replace("seven", "nine"))
+    regressed = _with_host(services, StubLlm(parsed=worse))
+
+    answer = _call(regressed, "techtree_uplift_propose", source_run_id=RUN_ID)
+
+    assert answer["ok"] is True
+    spent = latest_session(regressed)
+    assert spent is not None
+    assert spent.revision_attempts == 1
+
+
+def test_a_candidate_that_was_produced_and_cannot_be_used_spends_the_attempt(
+    services: PluginServices,
+) -> None:
+    """The other half of the same rule: unusable is not the same as absent.
+
+    The model wrote an answer. It is not one Techtree can carry forward, and
+    that is an outcome the turn produced rather than an outcome it missed.
+    """
+    unusable = dict(PROPOSAL)
+    del unusable["revised_skill_markdown"]
+    refused = _with_host(services, StubLlm(parsed=unusable))
+
+    answer = _call(refused, "techtree_uplift_propose", source_run_id=RUN_ID)
+
+    assert answer["ok"] is False
+    assert answer["code"] == "skill_revision_output_invalid"
+    spent = latest_session(refused)
+    assert spent is not None
+    assert spent.revision_attempts == 1
+
+
 # One outbound generation request -----------------------------------------------------
 
 
@@ -530,6 +642,11 @@ def test_the_declaration_carries_the_disclosure_it_has_to_carry() -> None:
         assert withheld in described, withheld
     assert "one model-generation request" in described
     assert "may be unusable or may fail to improve the score" in described
+    # What the attempt actually costs, said where the person deciding reads
+    # it. A declaration that a failed attempt always uses the turn up is the
+    # thing the product was wrong about, and it is not to come back.
+    assert "uses the attempt up even if it turns out to be unusable" in described
+    assert "comes back with nothing written does not" in described
 
 
 def test_the_plugin_mints_no_approval_of_its_own(services: PluginServices) -> None:

@@ -122,13 +122,32 @@ def test_a_transport_failure_is_counted_and_not_retried() -> None:
 
 def test_an_unusable_answer_is_not_repaired_by_a_second_request() -> None:
     """A structured-repair completion is a second request wearing a hat."""
-    port = RefusesASecondRequest(parsed=None)
+    port = RefusesASecondRequest(parsed=["not", "the", "shape"])
     once = OneShotHostLlm(port)
 
     with pytest.raises(HostLlmError) as raised:
         once.complete(_request())
 
     assert raised.value.code == "host_proposal_generation_exhausted"
+    assert len(port.calls) == 1
+    assert once.outbound_requests == 1
+
+
+def test_an_answer_that_wrote_nothing_is_not_asked_again() -> None:
+    """Leaving the attempt in place is not the same as taking it again.
+
+    The one failure the guided introduction does not charge for is the one
+    most likely to be mistaken for a reason to retry. Nothing retries: one
+    request went out, one is all that ever goes out, and trying again is a
+    person's decision made knowing what it costs.
+    """
+    port = RefusesASecondRequest(parsed=None)
+    once = OneShotHostLlm(port)
+
+    with pytest.raises(HostLlmError) as raised:
+        once.complete(_request())
+
+    assert raised.value.code == "host_completion_truncated"
     assert len(port.calls) == 1
     assert once.outbound_requests == 1
 
