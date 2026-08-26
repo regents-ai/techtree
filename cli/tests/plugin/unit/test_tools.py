@@ -85,7 +85,11 @@ class StarterSkillDouble:
     """A release whose starter Skill exists and materializes cleanly."""
 
     def materialize(self, services: Any) -> dict[str, Any]:
-        return {"path": "/tmp/starter-skill", "digest": PUBLISHED.starter_skill_digest}
+        return {
+            "skill_path": "/tmp/starter-skill/SKILL.md",
+            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "candidate_label": "hello-world-v1",
+        }
 
 
 def _services(
@@ -497,18 +501,56 @@ def test_the_demo_stops_when_doctor_blocks() -> None:
     assert ["climb", "prepare"] not in [call[:2] for call in bridge.calls]
 
 
-def test_the_demo_stops_when_the_release_names_no_starter_skill() -> None:
-    """This build's release has not chosen one, and says so instead of guessing."""
-    services = _services(release=CORE, bridge=_demo_bridge(), assets=None)
+def test_the_demo_prepares_the_candidate_under_the_release_label() -> None:
+    """Ticket 06v: the guided path names the candidate rather than the cache."""
+    bridge = _demo_bridge()
+    services = _services(bridge=bridge)
+
+    _call("techtree_demo_prepare", services, {})
+
+    prepare = next(call for call in bridge.calls if call[:2] == ["climb", "prepare"])
+    assert prepare == [
+        "climb",
+        "prepare",
+        PUBLISHED.intro_climb_reference,
+        "--skill",
+        "/tmp/starter-skill/SKILL.md",
+        "--label",
+        "hello-world-v1",
+    ]
+
+
+def test_the_demo_stops_when_techtree_cannot_hand_over_the_starter_skill() -> None:
+    """Ticket 06v: Techtree's own reason reaches the operator, and no other.
+
+    The failure a new participant meets must describe what actually went
+    wrong. It carries Techtree's code and Techtree's sentence, and it does not
+    tell anybody to update a Techtree that is working.
+    """
     from techtree_hermes.services.assets import ReleaseSkillProvider
 
-    services = dataclasses.replace(services, assets=ReleaseSkillProvider())
+    bridge = _demo_bridge()
+    bridge.answers["skill starter"] = {
+        **_envelope("skill starter", ok=False),
+        "error": {
+            "code": "starter_skill_source_refused",
+            "message": "https://mirror.example does not serve the starter Skill",
+            "retryable": False,
+            "details": {},
+        },
+    }
+    services = _services(bridge=bridge, assets=ReleaseSkillProvider())
 
     result = _call("techtree_demo_prepare", services, {})
 
     assert result["ok"] is False
     assert result["blocked"] == "starter_skill_unavailable"
-    assert result["code"] == "starter_skill_missing"
+    assert result["code"] == "starter_skill_source_refused"
+    assert result["message"] == (
+        "https://mirror.example does not serve the starter Skill"
+    )
+    assert result["repair"] is None
+    assert ["climb", "prepare"] not in [call[:2] for call in bridge.calls]
 
 
 def test_the_demo_records_the_run_it_started() -> None:

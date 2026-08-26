@@ -89,7 +89,11 @@ class FakeBridge:
 
 class SkillDouble:
     def materialize(self, services: Any) -> dict[str, Any]:
-        return {"path": "/tmp/skill", "digest": PUBLISHED.starter_skill_digest}
+        return {
+            "skill_path": "/tmp/skill/SKILL.md",
+            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "candidate_label": "hello-world-v1",
+        }
 
 
 def _services(*, release: Any = PUBLISHED, bridge: Any = None) -> PluginServices:

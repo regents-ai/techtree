@@ -16,10 +16,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from support import envelope, install_fake_cli
+from support import FakeCli, envelope, install_fake_cli
 from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.models import DemoStage
 from techtree_hermes.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.services.assets import ReleaseSkillProvider
 from techtree_hermes.services.container import PluginServices
 from techtree_hermes.state import SessionStore, latest_session
 from techtree_hermes.tools import TOOL_HANDLERS
@@ -35,11 +36,14 @@ DRAFT_DIGEST = "sha256:" + "d" * 64
 POLICY = "sha256:" + "b" * 64
 
 
-class StarterSkillDouble:
-    """Stands in for a release whose starter Skill exists."""
-
-    def materialize(self, services: Any) -> dict[str, Any]:
-        return {"path": "/tmp/starter-skill", "digest": PUBLISHED.starter_skill_digest}
+#: What ``techtree skill starter`` puts on a machine: the Skill's entry file
+#: inside a cache directory Techtree names by the digest it verified.
+STARTER_SKILL_PATH = (
+    "/tmp/techtree-home/cache/skills/"
+    + PUBLISHED.starter_skill_digest.replace(":", "-", 1)
+    + "/SKILL.md"
+)
+STARTER_SKILL_LABEL = "hello-world-v1"
 
 
 def _answers() -> dict[str, dict[str, Any]]:
@@ -59,6 +63,21 @@ def _answers() -> dict[str, dict[str, Any]]:
             },
         ),
         "doctor": envelope(command="doctor", data={"checks": []}),
+        "skill starter": envelope(
+            command="skill starter",
+            data={
+                "release_id": PUBLISHED.release_id,
+                "skill_root_digest": PUBLISHED.starter_skill_digest,
+                "skill_path": STARTER_SKILL_PATH,
+                "skill_name": "hello-world-starter-v1",
+                "skill_purpose": "intentionally incomplete introductory Skill",
+                "candidate_label": STARTER_SKILL_LABEL,
+                "file_count": 1,
+                "total_bytes": 1496,
+                "origin": "cache",
+                "intro_climb_reference": PUBLISHED.intro_climb_reference,
+            },
+        ),
         "climb list": envelope(
             command="climb list",
             data=[{"reference": PUBLISHED.intro_climb_reference}],
@@ -98,8 +117,8 @@ def _answers() -> dict[str, dict[str, Any]]:
 
 
 @pytest.fixture
-def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
-    """A container wired to a fake Techtree executable on PATH."""
+def cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FakeCli:
+    """A real executable named ``techtree``, first on PATH, that records argv."""
     answers = _answers()
     body = (
         f"answers = {answers!r}\n"
@@ -111,8 +130,12 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         "else:\n"
         "    sys.exit(2)\n"
     )
-    install_fake_cli(tmp_path / "bin", body=body, monkeypatch=monkeypatch)
+    return install_fake_cli(tmp_path / "bin", body=body, monkeypatch=monkeypatch)
 
+
+@pytest.fixture
+def services(tmp_path: Path, cli: FakeCli) -> PluginServices:
+    """A container wired to a fake Techtree executable on PATH."""
     from techtree_hermes.bridge import CliBridge
 
     return PluginServices(
@@ -123,7 +146,7 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         bridge=CliBridge(),
         plans=InstallPlanStore(),
         sessions=SessionStore(),
-        assets=StarterSkillDouble(),
+        assets=ReleaseSkillProvider(),
     )
 
 
@@ -172,6 +195,40 @@ def test_the_whole_first_run_sequence(services: PluginServices) -> None:
     assert result["ok"] is True
     assert "not been independently reproduced" in result["reproduction"]
     assert result["demo"]["stage"] == DemoStage.FIRST_RESULT_READY.value
+
+
+def test_the_guided_preparation_gets_its_skill_from_techtree(
+    services: PluginServices, cli: FakeCli
+) -> None:
+    """Ticket 06v: the plugin asks Techtree for the pinned starter Skill.
+
+    Through the real bridge and a real process, so the argv is the argv a host
+    would run. The Skill is obtained by the command Techtree publishes for it,
+    the digest that came back is the one this release names, and the candidate
+    is prepared under the release's own short label rather than under the
+    seventy-one-character cache directory the Skill happens to live in.
+    """
+    prepared = _call("techtree_demo_prepare", services, {})
+
+    assert prepared["ok"] is True
+    assert prepared["starter_skill_digest"] == PUBLISHED.starter_skill_digest
+
+    recorded = cli.recorded_argv()
+    assert ["skill", "starter", "--json", "--no-color", "--no-input"] in recorded
+
+    prepare = next(call for call in recorded if call[:2] == ["climb", "prepare"])
+    assert prepare == [
+        "climb",
+        "prepare",
+        PUBLISHED.intro_climb_reference,
+        "--skill",
+        STARTER_SKILL_PATH,
+        "--label",
+        STARTER_SKILL_LABEL,
+        "--json",
+        "--no-color",
+        "--no-input",
+    ]
 
 
 def test_nothing_in_the_sequence_starts_a_run_by_itself(

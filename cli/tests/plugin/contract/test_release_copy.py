@@ -26,6 +26,14 @@ over by any particular time.
 `skills/skill-improver/SKILL.md` is deliberately absent. It is founder-written
 and frozen by digest, it is never shown to a user, and a test that could
 demand an edit to it would be a test that could break a release coordinate.
+
+One scan here runs the other way round. Decision 0035 settles what v0.1 *is* —
+a proof of concept for a stack of three independent parts — and the danger with
+that ruling is not a banned word appearing but the frame quietly going missing,
+leaving a reader who has been told what the software does to decide for
+themselves what it amounts to. So the surfaces that say what this release is
+have to carry the frame, have to name each of the three parts with the project
+that made it, and have to say what the release is pinned to.
 """
 
 from __future__ import annotations
@@ -595,6 +603,95 @@ def test_the_band_wording_is_still_allowed() -> None:
 
     for refused in ("the starter Skill scores 24", "it reaches 24/36"):
         assert FORBIDDEN_EXACT_SCORE.search(PERMITTED_BAND.sub("", refused))
+
+
+# What this release is ----------------------------------------------------------------
+
+#: Decision 0035. Every other scan here removes a claim. This one requires one,
+#: because the honest name for v0.1 is the frame around everything else it
+#: says: a proof of concept for a stack of three independent parts.
+PROOF_OF_CONCEPT_FRAME: re.Pattern[str] = re.compile(
+    r"\bproof[\s-]of[\s-]concept\b", re.I
+)
+
+#: Two of the three parts are somebody else's work, so each is named with the
+#: project that made it. A proof of concept that reads as though we built the
+#: whole stack is the same class of overclaim as any other.
+STACK_ATTRIBUTION: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "Prime Intellect's Verifiers, the evaluation engine",
+        re.compile(r"Prime\s+Intellect[’']s\s+Verifiers", re.I),
+    ),
+    (
+        "Nous Research's Hermes, the agent host",
+        re.compile(r"Nous\s+Research[’']s\s+Hermes", re.I),
+    ),
+    (
+        "Techtree, the campaign kernel and evidence layer",
+        re.compile(r"Techtree\s+as\s+the\s+campaign\s+kernel", re.I),
+    ),
+)
+
+#: "Stack" is the word that tells a reader where the seams are. An engine, a
+#: host and a container are each pinned, and the release is only as reproducible
+#: as those pins. That is a strength stated plainly rather than a weakness
+#: confessed, and a frame that leaves it out is only half the ruling.
+STACK_SEAMS: re.Pattern[str] = re.compile(
+    r"only\s+as\s+reproducible\s+as\s+those\s+pins", re.I
+)
+
+#: The surfaces that say what this release is: the front page a stranger reads
+#: before installing anything, and the Skill the host agent reads before saying
+#: anything about Techtree on that stranger's behalf.
+RELEASE_CLAIM_SURFACES: tuple[str, ...] = ("README.md", "skills/operator/SKILL.md")
+
+
+def _frame_faults(text: str) -> list[str]:
+    """Return what a surface still owes a reader about what this release is."""
+    missing = []
+    if not PROOF_OF_CONCEPT_FRAME.search(text):
+        missing.append("the proof-of-concept frame")
+    missing.extend(
+        described
+        for described, pattern in STACK_ATTRIBUTION
+        if not pattern.search(text)
+    )
+    if not STACK_SEAMS.search(text):
+        missing.append("what the release is pinned to")
+    return missing
+
+
+@pytest.mark.parametrize("surface", RELEASE_CLAIM_SURFACES)
+def test_a_surface_that_says_what_this_release_is_carries_the_frame(
+    surface: str,
+) -> None:
+    """Decision 0035. Dropping any part of it fails."""
+    missing = _frame_faults(PUBLIC_COPY[surface])
+
+    assert not missing, f"{surface} does not carry {missing}"
+
+
+def test_the_frame_guard_catches_what_it_is_for() -> None:
+    """The copy that stood before the ruling, and each half-done version of it."""
+    refused = (
+        # What the front page said before decision 0035: what the software
+        # does, and nothing about what the release amounts to.
+        "Techtree runs a neutral agent and a Skill-enabled agent against the "
+        "same toy tasks, shows the measured difference, and creates a signed "
+        "local receipt you can verify offline.",
+        # The frame with the parts passed off as ours.
+        "Techtree Climb v0.1 is a proof of concept for a stack of three parts: "
+        "our evaluation engine, our agent host, and our evidence layer. The "
+        "release is only as reproducible as those pins.",
+        # The frame and the attribution, with the seams left for the reader.
+        "Techtree Climb v0.1 is a proof of concept for a stack of three "
+        "independent parts: Prime Intellect’s Verifiers as the evaluation "
+        "engine, Nous Research’s Hermes as the agent host, and Techtree as "
+        "the campaign kernel and evidence layer.",
+    )
+
+    for text in refused:
+        assert _frame_faults(text), text
 
 
 # The publication terms and the declared maximum ---------------------------------------
