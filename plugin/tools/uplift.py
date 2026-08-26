@@ -14,7 +14,7 @@ from ..approvals import run_approved_event, start_arguments
 from ..channels import is_gateway_safe_required
 from ..diff import build_skill_diff
 from ..errors import PluginError
-from ..llm import HermesHostLlm, HostCompletionTruncatedError
+from ..llm import HermesHostLlm, NothingProducedError
 from ..services.improvement import ImprovementService
 from ..services.proposal import ProposalService
 from ..services.session import (
@@ -86,12 +86,13 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         proposal = improvement.propose_once(
             source_run_id=source_run_id, demo_session=session
         )
-    except HostCompletionTruncatedError:
-        # Nothing was written, so this turn produced nothing and measured
-        # nothing. The session is left exactly as it was — not saved, not
-        # spent — and the attempt is still there. Nothing asks again on the
-        # user's behalf: what they get is an honest account of what happened
-        # and a decision that is theirs.
+    except NothingProducedError:
+        # No revision reached the user, so this turn produced nothing and
+        # measured nothing — whether the model ran out of room before writing
+        # or the answer never came back at all. The session is left exactly as
+        # it was — not saved, not spent — and the attempt is still there.
+        # Nothing asks again on the user's behalf: what they get is an honest
+        # account of what happened and a decision that is theirs.
         raise
     except PluginError as error:
         # A revision that was produced and cannot be used is still a

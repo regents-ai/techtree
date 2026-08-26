@@ -40,6 +40,12 @@ CODE_HOST_PROPOSAL_GENERATION_EXHAUSTED: Final = "host_proposal_generation_exhau
 #: cannot be used" — it is its own outcome, and the only one where the turn
 #: produced nothing to count.
 CODE_HOST_COMPLETION_TRUNCATED: Final = "host_completion_truncated"
+#: The request left the machine and no answer ever came back. Not "the
+#: host offered no model": the host was there and the request was sent.
+#: Nothing reached the user either way, so the guided introduction leaves
+#: its one attempt where it was, and the wording never claims the
+#: provider did not charge — from here that cannot be known.
+CODE_HOST_ANSWER_NEVER_ARRIVED: Final = "host_answer_never_arrived"
 #: A second completion inside one improvement turn. Decision 0007 and spec
 #: section 8.11: the turn is one shot, and a retry would be a hidden second.
 CODE_HOST_LLM_ALREADY_COMPLETED: Final = "host_llm_already_completed"

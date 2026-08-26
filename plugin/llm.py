@@ -75,6 +75,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
 from .errors import (
+    CODE_HOST_ANSWER_NEVER_ARRIVED,
     CODE_HOST_COMPLETION_TRUNCATED,
     CODE_HOST_LLM_ALREADY_COMPLETED,
     CODE_HOST_LLM_OUTPUT_INVALID,
@@ -107,7 +108,19 @@ class HostLlmError(PluginError):
     code = CODE_HOST_LLM_UNAVAILABLE
 
 
-class HostCompletionTruncatedError(HostLlmError):
+class NothingProducedError(HostLlmError):
+    """No candidate reached the user, so this turn measured nothing.
+
+    The guided introduction allows one revision. What that allowance is for is
+    a measurement: a revision the model wrote, which may be good, poor or
+    worse than what it revises. A turn that produced no revision at all
+    produced nothing to hold the allowance against, whatever prevented it, so
+    the attempt stays where it was. Subclasses differ only in what to tell
+    somebody about why, never in that answer.
+    """
+
+
+class HostCompletionTruncatedError(NothingProducedError):
     """The host answered, and the answer carried nothing the model wrote.
 
     Its own outcome, and its own code, because the three it would otherwise be
@@ -118,6 +131,19 @@ class HostCompletionTruncatedError(HostLlmError):
     """
 
     code = CODE_HOST_COMPLETION_TRUNCATED
+
+
+class HostAnswerNeverArrivedError(NothingProducedError):
+    """The request left the machine and nothing ever came back.
+
+    Distinct from the host offering no model at all, which is what the
+    general code says and which would be false here: the host was there
+    and the request was sent. Whether the provider charged cannot be
+    known from this side, so the wording says so rather than guessing in
+    either direction.
+    """
+
+    code = CODE_HOST_ANSWER_NEVER_ARRIVED
 
 
 class HostLlmPort(Protocol):
@@ -326,12 +352,11 @@ class OneShotHostLlm:
         except HostLlmError:
             raise
         except Exception as error:
-            raise HostLlmError(
-                "the request was sent but no answer came back from the host "
-                "model; the provider may still charge for the attempt, and "
-                f"this run's one revision is used: {scrub_text(str(error))}",
-                code=CODE_HOST_LLM_UNAVAILABLE,
-                retryable=False,
+            raise HostAnswerNeverArrivedError(
+                "The request was sent and no answer came back. Your attempt "
+                "has not been used. Your provider may still have charged for "
+                "it — each attempt costs money at your provider: "
+                f"{scrub_text(str(error))}"
             ) from error
 
         self._last = _result_from(answer, request)
