@@ -154,7 +154,7 @@ either of those two facts stops being true.
 | Data | Ash 3 + AshPostgres 2 over PostgreSQL 14+ |
 | Assets | esbuild, hand-written CSS, no framework, no remote fonts |
 | Deployment | Fly.io (`fly.toml`, app `techtree-sh`), multi-stage `Dockerfile`, OTP release with `bin/server` and `bin/migrate` overlays |
-| Gates | `PGUSER=sean mix check` — formatting, warnings-as-errors, tests |
+| Gates | `PGUSER="${PGUSER:-postgres}" mix check` — formatting, warnings-as-errors, tests |
 
 ### 2.4 The pinned external systems
 
@@ -951,7 +951,7 @@ make check              # techtree-python: format, lint, types, tests, drift
 make test-integration   # techtree-python: real filesystem and subprocess flows
 make test-plugin        # techtree-python: the plugin's battery, reading the sibling checkout
 make check              # techtree-plugin: format, lint, types
-PGUSER=sean mix check   # techtree-ash: formatting, warnings-as-errors, tests
+PGUSER="${PGUSER:-postgres}" mix check   # techtree-ash: formatting, warnings-as-errors, tests
 ```
 
 `make verifiers-preflight` needs the pinned Verifiers build.
