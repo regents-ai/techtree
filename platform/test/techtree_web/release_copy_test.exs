@@ -406,9 +406,11 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       {:ok, _live, html} = live(conn, ~p"/proofs")
       text = visible_text(html)
 
-      assert text =~ "No participant result is published here"
-      assert text =~ "This release publishes nothing and receives nothing."
+      # Founder ruling 2026-08-26: the page leads with the real certified
+      # example — and still says plainly that a reader cannot publish here yet.
+      assert text =~ "Example Baseline vs. Instructional Skill"
       assert text =~ "Participant-attested"
+      assert text =~ "arrives in a later release"
       assert text =~ "techtree proof verify path/to/result-bundle"
 
       # Every coordinate it does show is one the served release publishes.

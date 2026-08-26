@@ -21,6 +21,7 @@ defmodule TechtreeWeb.ProofsLive do
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.EvidenceComponents
+  alias TechtreeWeb.ExampleResult
   alias TechtreeWeb.EvidenceGraph
   alias TechtreeWeb.ReleaseInfo
 
@@ -37,7 +38,9 @@ defmodule TechtreeWeb.ProofsLive do
        facts: (campaign && campaign.projection) || %{},
        published: CampaignFacts.for_climb(campaign),
        graph: EvidenceGraph.from_climb(campaign, release),
-       starter_skill: starter_skill(release)
+       starter_skill: starter_skill(release),
+       example:
+         ExampleResult.for_campaign(campaign && campaign.projection["campaign_spec_digest"])
      )}
   end
 
@@ -55,7 +58,40 @@ defmodule TechtreeWeb.ProofsLive do
         </p>
       </header>
 
-      <.warning_callout title="No participant result is published here" attention>
+      <section :if={@example} class="example-result" aria-labelledby="example-title">
+        <p class="eyebrow">Participant-attested · certified {@example.certified_on}</p>
+        <h2 id="example-title">Example Baseline vs. Instructional Skill</h2>
+        <p>
+          The results shown here are for the v0.1 release, proving that a Hermes agent
+          can run long-horizon tasks using the Techtree Plugin, and create <.verifiers_term code />
+          proofs of Skill uplift.
+        </p>
+        <.definition_list>
+          <:fact term="Without the Skill">
+            {@example.baseline_total} of {@example.tasks} tasks
+          </:fact>
+          <:fact term="With the Skill">
+            {@example.candidate_total} of {@example.tasks} tasks
+          </:fact>
+          <:fact term="Task by task">
+            {@example.wins} wins · {@example.ties} ties · {@example.losses} losses
+          </:fact>
+          <:fact term="Decision">{@example.decision}</:fact>
+          <:fact term="Signed report">
+            <.digest value={@example.file_digest} />
+          </:fact>
+        </.definition_list>
+        <p class="small quiet">
+          Measured on the founder's machine during v0.1 certification, run {@example.run_id}. Publishing your own result here arrives in a later
+          release.
+        </p>
+      </section>
+
+      <.warning_callout
+        :if={is_nil(@example)}
+        title="No participant result is published here"
+        attention
+      >
         <p>
           This release publishes nothing and receives nothing. A finished run stays on
           the machine that produced it. Publishing one to this page arrives in a later

@@ -1704,7 +1704,13 @@ strong {
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  display: none;
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  /* The card lingers 1.5s after the pointer leaves, so it can be reached. */
+  transition:
+    opacity 0.2s ease 1.3s,
+    visibility 0s linear 1.5s;
   flex-direction: column;
   gap: 0.7rem;
   width: 19rem;
@@ -1721,7 +1727,9 @@ strong {
 
 .hoverdef:hover .hoverdef__card,
 .hoverdef:focus-within .hoverdef__card {
-  display: flex;
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0s;
 }
 
 .hoverdef__button {
@@ -1736,4 +1744,22 @@ strong {
 
 .hoverdef__button:hover {
   border-color: var(--accent);
+}
+
+/* -- The published example comparison -------------------------------------- */
+
+.example-result {
+  margin: 2rem 0;
+  border: 1px solid var(--rule-strong);
+  border-left: 3px solid var(--accent);
+  padding: 1.4rem 1.6rem;
+  background: var(--panel);
+}
+
+.example-result h2 {
+  margin-bottom: 0.6rem;
+}
+
+.example-result > p {
+  max-width: var(--measure);
 }
