@@ -145,6 +145,15 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
     # identifier and reads the digest in a terminal; the record it belongs to
     # is the approval event, which is not bounded.
     reviewed: dict[str, Any] = {"draft_digest": prepared["draft_digest"]}
+    # Where the guided introduction has got to, and what the proposal was made
+    # from. Both belong in the record and neither is something a person decides
+    # on: a digest cannot be checked by eye, and the session is the plugin's own
+    # bookkeeping. A terminal has room for both, and the proposal Techtree
+    # prepared holds what the second run is actually run against.
+    context: dict[str, Any] = {
+        "demo": session_payload(session),
+        "provenance": proposal.provenance.to_dict(),
+    }
     if is_gateway_safe_required(channel):
         # The whole revised Skill will not fit in a chat message, and the diff
         # is what an approval actually turns on. The Skill itself is staged in
@@ -153,6 +162,7 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         written["revised_skill_available_in_terminal"] = True
         accounting = None
         reviewed = {}
+        context = {}
 
     # Reported only when there is something to report, on every channel: a
     # file of the participant's content left on disk is worth its bytes on a
@@ -166,9 +176,8 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
             "ok": True,
             "command": "uplift propose",
             **staging,
-            "demo": session_payload(session),
+            **context,
             "proposal": written,
-            "provenance": proposal.provenance.to_dict(),
             "request_accounting": accounting,
             "diff": difference.to_dict(),
             "draft_id": prepared["draft_id"],
