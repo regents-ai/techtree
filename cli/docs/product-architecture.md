@@ -299,8 +299,17 @@ src/techtree/
 ├── presentation/       models.py (the channel-neutral payload), build.py (signed
 │                       report → payload, describing rather than deciding), rich.py
 │                       (the terminal rendering), compact.py (the bounded rendering),
-│                       sanitize.py (enforces that no hidden answer, grader source,
-│                       credential or private path can appear).
+│                       evidence.py (reads model turns and provider refusals back out
+│                       of the run's unsigned evaluation output, and only after
+│                       checking those files against the fingerprints the signed
+│                       record already committed — a file that is missing or altered
+│                       yields no number rather than a zero), sanitize.py (enforces
+│                       that no hidden answer, grader source, credential or private
+│                       path can appear).
+│                       Everything the screen adds beyond the signed report — the
+│                       derived cost, the turn counts, the rate-limit tally — is
+│                       computed at render time. The signed report, the receipts and
+│                       the proof bundle are never rewritten to carry it.
 ├── uplift/             derive.py (turn a finished comparison into the next Campaign:
 │                       exactly two things change), context.py (what a host agent may
 │                       be told — built by subtraction from the signed record),
@@ -742,7 +751,10 @@ sequenceDiagram
     H->>W: read /start (pinned guide)
     H->>U: prerequisites, commands, cost, privacy
     U-->>H: approve plugin install
-    H->>H: plugins install --ref FULL_COMMIT, scan source, enable
+    H->>H: plugins install --ref FULL_COMMIT, scan source
+    H->>U: scan verdict: caution, five findings in three families
+    U-->>H: confirm after reading them
+    H->>H: enable
     H->>U: restart Hermes once
     Note over H,P: registration: reads two shipped files, registers surfaces
     U->>P: "is Techtree ready?"
@@ -766,6 +778,19 @@ The terminal journey is the same spine with the CLI's own prompt in place of
 Hermes's approval surface: `climb prepare` → the review → `y` (or an explicit
 `--yes` where nobody can be asked) → `climb start` → `run status --watch` →
 `run result` → `proof verify`.
+
+One step in that sequence is not Techtree's own. Hermes reads a plugin's
+source before installing it and reports a verdict of its own. This plugin comes
+back at **caution** with five findings in three families — the guard's list of
+command words (one), the three places it starts the pinned CLI with a fixed
+argument list and no shell (three), and the filter that strips control
+characters (one). Every one is a consequence of how the plugin works, so the
+answer is to explain them rather than to hide them: `/start` and the plugin's
+README name all five, and the person confirms the install after reading them.
+The installable tree carries no adversarial test fixture, which is why its
+tests live in `techtree-python` — a scanner that reads a synthetic private key
+written to prove a scrubber works cannot tell it from a real one, and verdicts
+it as dangerous.
 
 ### 4.4 What one comparison actually does
 
@@ -896,6 +921,10 @@ graph LR
 | Detached worker gets a small environment | `runs/launcher.py` allow-list — never loosen it |
 | Host agent gets a small environment | plugin `constants.CLI_ENVIRONMENT_ALLOWLIST` — the same ten names |
 | A displayed command is never executed | `cli/output.py` `shell_display` is display-only; `NextAction.cli` is an argv array |
+| A cost is derived, never invented | `presentation/build.py` prices recorded tokens with `release/price-profile.json`, labels the figure derived-not-billed, prefers a provider-reported cost when one exists, and prices cached input at the full rate rather than assuming a discount |
+| A published-terms disclosure carries its own truth | the publication sentence travels with the DataPolicy on every surface (CLI reviews, plugin tools and relay, both operator Skill files, and the ash pages' shared `publication_note()` row), each locked by a copy guard |
+| The host agent adds no verdict | plugin `skills/operator/SKILL.md` — relay the measured difference, never a pass, a threshold Techtree did not declare, or a claim that a Skill works; five guard patterns, one per clause |
+| The agent-first path shows what the terminal shows | plugin `services/presentation.py` `COMPACT_PRESENTATION_FIELDS` (a deliberate whitelist) and `commands.py` `_slash_result`, with the compact channel's byte budget enforced so qualifications are counted, never silently dropped |
 | Copy claims stay true | copy-guard suites in all three repos (`tests/contract/test_release_copy.py`, `tests/plugin/contract/test_release_copy.py`, `test/techtree_web/release_copy_test.exs`) |
 | Generated files are not hand-edited | `make regenerate` / `make generated-check` over schemas, goldens, release, and the embedded catalog, engine and release resources |
 
