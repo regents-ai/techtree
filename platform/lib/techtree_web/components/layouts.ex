@@ -57,7 +57,7 @@ defmodule TechtreeWeb.Layouts do
     </header>
 
     <main class={["page", @wide && "page--wide", @flush && "page--flush"]}>
-      <p class="notice" role="status">
+      <p class="notice" role="status" data-markdown-skip>
         The connection to the site dropped. The page will reconnect on its own.
       </p>
       {render_slot(@inner_block)}

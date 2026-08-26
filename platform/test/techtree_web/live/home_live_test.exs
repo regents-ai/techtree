@@ -35,7 +35,7 @@ defmodule TechtreeWeb.HomeLiveTest do
                  "taskset, model, harness, tools, and budget fixed, then signs the result so " <>
                  "another participant can verify or reproduce it."
 
-      assert text =~ "Local preview · v0.1 development release"
+      assert text =~ "Techtree v0.1 · development release"
     end
 
     test "there is one way in, and it is the same one for everybody", %{conn: conn} do

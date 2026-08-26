@@ -24,6 +24,8 @@ defmodule TechtreeWeb.DocsLive do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  import TechtreeWeb.PageCopy, only: [page_copy: 1]
+
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.InstallComponents
   alias TechtreeWeb.ReleaseInfo
@@ -49,8 +51,8 @@ defmodule TechtreeWeb.DocsLive do
     ~H"""
     <Layouts.page wide>
       <div class="docs-layout">
-        <aside class="docs-nav" aria-label="Documentation sections">
-          <p class="docs-nav__version">Local preview</p>
+        <aside class="docs-nav" aria-label="Documentation sections" data-markdown-skip>
+          <p class="docs-nav__version">Techtree v0.1</p>
           <nav>
             <.docs_group
               title="Start"
@@ -106,7 +108,10 @@ defmodule TechtreeWeb.DocsLive do
 
         <article class="docs-content">
           <header class="docs-hero">
-            <p class="eyebrow">Local preview</p>
+            <div class="docs-hero__top">
+              <p class="eyebrow">Techtree v0.1</p>
+              <.page_copy />
+            </div>
             <h1>Get to a controlled first run.</h1>
             <p class="lede">
               Use the pinned Hermes plugin or install the pinned command-line tool directly.

@@ -1785,3 +1785,95 @@ strong {
 .example-result > p {
   max-width: var(--measure);
 }
+
+/* -- Copy page: the docs page as Markdown ---------------------------------- */
+
+.pagecopy {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.pagecopy__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-right: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.pagecopy__main:active {
+  transform: scale(0.97);
+}
+
+.pagecopy__main.is-copied {
+  color: var(--accent-deep);
+}
+
+.pagecopy details {
+  position: static;
+}
+
+.pagecopy summary {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.55rem;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-quiet);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.pagecopy summary::-webkit-details-marker {
+  display: none;
+}
+
+.pagecopy__menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 20;
+  min-width: 15rem;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+  padding: 0.3rem;
+}
+
+.pagecopy__item {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-prose);
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.pagecopy__item:hover {
+  background: color-mix(in srgb, var(--paper) 70%, var(--rule));
+}
+
+.pagecopy__item small {
+  display: block;
+  color: var(--ink-quiet);
+  font-size: 0.72rem;
+}
+
+.docs-hero__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}

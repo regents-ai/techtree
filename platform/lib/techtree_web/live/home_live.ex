@@ -23,7 +23,7 @@ defmodule TechtreeWeb.HomeLive do
   # The milestone this preview is, said once. It is not an install coordinate:
   # the version, the fingerprint and the command all come from the published
   # release below, and none of them is written into this page.
-  @preview_label "Local preview · v0.1 development release"
+  @preview_label "Techtree v0.1 · development release"
 
   @impl true
   def mount(_params, _session, socket) do

@@ -344,5 +344,24 @@ defmodule TechtreeWeb.DocsLiveTest do
         assert html =~ "Nous Research", "#{page} does not credit Hermes to Nous Research"
       end
     end
+
+    test "the page offers itself as Markdown through the copy control", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+
+      assert html =~ ~s|phx-hook="CopyCommandPage"|
+      assert html =~ ~s|phx-hook="CopyCommandPageView"|
+      assert html =~ "Copy page as Markdown for agents"
+      assert html =~ "View as Markdown"
+      # The control never talks to the server and is excluded from its own copy.
+      assert html =~ "data-markdown-skip"
+    end
+
+    test "the release label names the product and version", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      assert text =~ "Techtree v0.1"
+      refute text =~ "Local preview"
+    end
   end
 end
