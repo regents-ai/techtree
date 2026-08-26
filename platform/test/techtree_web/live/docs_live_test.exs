@@ -1,8 +1,10 @@
 defmodule TechtreeWeb.DocsLiveTest do
   @moduledoc """
-  The documentation is checked for three things: that a reader meets a working
+  The documentation is checked for four things: that a reader meets a working
   run before a concept, that what leaves the machine is answered on the way
-  past, and that every command named here is one the tool actually has.
+  past, that every command named here is one the tool actually has, and that
+  the page states the limits of v0.1 rather than letting a reader assume more
+  than was measured.
   """
 
   use TechtreeWeb.ConnCase, async: false
@@ -25,30 +27,101 @@ defmodule TechtreeWeb.DocsLiveTest do
       text = visible_text(html)
 
       assert text =~ "Get to a controlled first run."
+      assert text =~ "Give this to your Hermes agent"
+      assert text =~ "Installing manually"
       assert text =~ "What leaves my machine?"
+      assert text =~ "Climbs and Campaigns"
       assert text =~ "Baseline and candidate"
-      assert text =~ "Validation and final test"
+      assert text =~ "Taskset validation and the recorded comparison"
       assert text =~ "Proofs and reproduction"
 
-      assert byte_offset(html, ~s|id="quickstart"|) < byte_offset(html, ~s|id="trust"|)
+      assert byte_offset(html, ~s|id="quickstart"|) < byte_offset(html, ~s|id="install"|)
+      assert byte_offset(html, ~s|id="install"|) < byte_offset(html, ~s|id="trust"|)
       assert byte_offset(html, ~s|id="trust"|) < byte_offset(html, ~s|id="campaigns"|)
+    end
+
+    test "the quickstart shows the same prompt the installation guide shows", %{conn: conn} do
+      {:ok, _live, docs_html} = live(conn, ~p"/docs")
+      {:ok, _live, start_html} = live(conn, ~p"/start")
+
+      prompt = prompt_text(docs_html)
+
+      assert prompt != nil
+      assert String.contains?(visible_text(start_html), prompt)
+      assert prompt =~ "Read the pinned Techtree installation guide at"
+      assert prompt =~ "Do not upload my local evaluation artifacts."
+    end
+
+    test "no held-out final test is claimed for v0.1", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      assert text =~ "There is no held-out final test in v0.1"
+      assert text =~ "Hello World uses one fixed 36-task membership for its recorded comparisons."
+      assert text =~ "It is not a held-out generalization claim."
+
+      # The sidebar and the section it points at both name the recorded
+      # comparison. Nothing on the page offers a held-out split.
+      refute text =~ "Validation and final test"
     end
 
     test "what leaves the machine is answered with both halves", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
-      assert text =~ "Techtree does not upload your recordings"
-      assert text =~ "there is nowhere on this site to send them"
-      assert text =~ "make real model calls"
-      assert text =~ "go to the model provider the campaign names, under that provider’s policies"
-      assert text =~ "It needs no Techtree account"
+      assert text =~ "Techtree does not upload your local:"
+      assert text =~ "This website has no account system and no route for submitting those"
+      assert text =~ "A comparison still makes real model requests."
+
+      assert text =~
+               "send requests to the subject-model provider named by the Campaign, under that " <>
+                 "provider’s policies"
+
+      assert text =~ "No Techtree account is required."
+    end
+
+    test "the guided revision says what is sent and what is never sent", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      for sent <- [
+            "the verified source Skill;",
+            "the founder-pinned Skill-improver instructions;",
+            "a sanitized summary of the measured run; and",
+            "a strict required response shape."
+          ] do
+        assert text =~ sent
+      end
+
+      assert text =~
+               "It does not receive hidden expected answers, grader source, provider " <>
+                 "credentials, local private paths, or the evaluated subject’s final replies."
+
+      assert text =~
+               "The sanitized summary excludes hidden expected answers, grader source, " <>
+                 "provider credentials, private filesystem paths, and the evaluated " <>
+                 "subject’s final replies."
+    end
+
+    test "the install-time report is described with its verdict and left switched on",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      assert text =~
+               "Hermes is expected to report caution with five reviewed findings in " <>
+                 "three families"
+
+      assert text =~ "Read the report before approving installation."
+      assert text =~ "Never turn the scanning off."
     end
 
     test "stand-in coordinates are described but never offered", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
 
-      assert visible_text(html) =~ "There is nothing to install from here yet"
+      assert text =~ "No installable release is active on this channel yet."
+      assert text =~ "No installable release coordinate is active on this channel yet."
       refute html =~ "techtree==0.0.0-placeholder"
       refute html =~ String.duplicate("0", 40)
     end
@@ -70,6 +143,8 @@ defmodule TechtreeWeb.DocsLiveTest do
           ] do
         assert text =~ command
       end
+
+      assert text =~ "The command list above is the complete v0.1 CLI namespace."
 
       # Three commands a reader could reasonably expect and this build does not
       # have. Naming one would be an instruction that fails on their machine.
@@ -95,21 +170,89 @@ defmodule TechtreeWeb.DocsLiveTest do
       text = visible_text(html)
 
       assert text =~ "Experimental"
-      assert text =~ "a proposal may be unusable, or may run and change nothing"
+      assert text =~ "A proposal may be unusable. A valid proposal may improve, tie, or regress."
+      assert text =~ "Techtree does not automatically retry the proposal."
     end
 
-    test "the exit codes and the supported variables are the real ones", %{conn: conn} do
+    test "machine mode is stated the way an agent needs it", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      assert text =~ "--json implies --no-input ;"
+      assert text =~ "machine output contains one JSON object on stdout;"
+      assert text =~ "operational logs go to stderr;"
+      assert text =~ "the command never waits for interactive input."
+    end
+
+    test "the exit codes are listed with the meaning of each", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      assert text =~ "A host agent may branch on exit codes without parsing human text."
+
+      for {code, meaning} <- [
+            {"0", "Finished as requested."},
+            {"1", "An internal or otherwise unclassified error."},
+            {"2", "The command or its arguments were used incorrectly."},
+            {"3", "Input or stored data failed validation."},
+            {"4", "A prerequisite is missing."},
+            {"5", "The requested object does not exist."},
+            {"6", "The request conflicts with existing immutable state."},
+            {"7", "A credential is missing, expired, or refused."},
+            {"8", "A data or publication policy forbids the request."},
+            {"9", "The managed evaluation engine failed."},
+            {"10", "The run failed or the requested run operation is invalid in its current"},
+            {"11",
+             "A digest, signature, membership commitment, report, or proof did not verify."},
+            {"130", "Cancelled."}
+          ] do
+        assert text =~ "#{code} #{meaning}", "exit code #{code} is not listed with its meaning"
+      end
+    end
+
+    test "the supported variables are the real ones and the internal one says so",
+         %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
       assert text =~ "TECHTREE_OUTPUT_MODE"
       assert text =~ "TECHTREE_LOG_LEVEL"
       assert text =~ "TECHTREE_ACTIVE_ENGINE_DIGEST"
-      assert text =~ "TECHTREE_HOME"
+      assert text =~ "No other TECHTREE_* setting is inferred or guessed."
 
-      # The credential variable a Campaign names is not public information.
-      refute text =~ "PRIME_API_KEY"
-      assert text =~ "Techtree never asks you for the value"
+      assert text =~
+               "TECHTREE_HOME is used internally when the CLI starts its detached worker. " <>
+                 "It is not the documented user-facing replacement for --home"
+    end
+
+    test "the credential path is the Prime login, not an exported key", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      assert text =~ "Hello World requires an active Prime CLI login."
+
+      assert text =~
+               "An exported PRIME_API_KEY in the shell is not the supported detached-run " <>
+                 "path and is deliberately not inherited as ambient worker state."
+
+      assert text =~
+               "Techtree does not store, print, or copy the provider credential into a " <>
+                 "draft, run directory, receipt, report, or proof bundle."
+
+      assert live
+             |> element(~s|#copy-docs-prime-login[data-copy-value="prime login"]|)
+             |> has_element?()
+    end
+
+    test "a proof is verified from one of three things, offline", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      text = visible_text(html)
+
+      assert text =~ "You can verify a run ID, a proof-bundle directory, or a signed report file"
+      assert text =~ "makes no model request;"
+      assert text =~ "contacts no Techtree service;"
+      assert text =~ "fetches nothing from the network; and"
+      assert text =~ "writes nothing to the proof."
     end
 
     test "every command block can be copied", %{conn: conn} do
@@ -150,12 +293,27 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ release.digest
     assert text =~ release.source_revision
     assert text =~ "techtree doctor --climb hello-world-climb@1"
-    assert text =~ "techtree climb prepare hello-world-climb@1 --skill path/to/skill"
     assert text =~ "macOS or Linux · Python 3.12, provided by the installer · Docker required"
+
+    # The coordinates come out of the record, never out of this page.
+    assert text =~ release.version
+    assert text =~ release.starter_skill["file_digest"]
+    assert text =~ release.starter_skill["tree_digest"]
+    refute text =~ "No installable release coordinate is active on this channel yet."
   end
 
   defp byte_offset(haystack, needle) do
     {offset, _length} = :binary.match(haystack, needle)
     offset
+  end
+
+  # The prompt as a reader sees it, taken from the block they copy.
+  defp prompt_text(html) do
+    case Regex.run(~r|<pre class="prompt__block"><code>(.*?)</code></pre>|s, html,
+           capture: :all_but_first
+         ) do
+      [prompt] -> prompt |> String.replace(~r/\s+/, " ") |> String.trim()
+      _other -> nil
+    end
   end
 end

@@ -84,17 +84,7 @@ defmodule TechtreeWeb.InstallComponents do
       </nav>
 
       <%= if @focus == :agent do %>
-        <section class="section">
-          <h2>Give this to your Hermes agent</h2>
-          <div class="prompt">
-            <pre class="prompt__block"><code>{agent_prompt(@instructions)}</code></pre>
-          </div>
-          <p class="small quiet">
-            It asks before it installs anything, runs anything, or spends anything. A
-            trial takes a while, so it hands back a run identifier instead of making you
-            wait, and you ask it for the result when you want it.
-          </p>
-        </section>
+        <.agent_prompt_block instructions={@instructions} />
       <% else %>
         <section class="section">
           <h2>Prefer installing it yourself?</h2>
@@ -124,6 +114,30 @@ defmodule TechtreeWeb.InstallComponents do
         <a href={"/climbs/" <> introductory_slug(@instructions)}>What this Climb measures</a>
       </p>
     </div>
+    """
+  end
+
+  @doc """
+  The words a reader hands to their agent.
+
+  Written once and shown wherever the agent path is offered, so that the
+  documentation and the installation guide cannot drift into two prompts.
+  """
+  attr :instructions, :map, default: nil
+
+  def agent_prompt_block(assigns) do
+    ~H"""
+    <section :if={@instructions} class="section">
+      <h2>Give this to your Hermes agent</h2>
+      <div class="prompt">
+        <pre class="prompt__block"><code>{agent_prompt(@instructions)}</code></pre>
+      </div>
+      <p class="small quiet">
+        It asks before it installs anything, runs anything, or spends anything. A
+        trial takes a while, so it hands back a run identifier instead of making you
+        wait, and you ask it for the result when you want it.
+      </p>
+    </section>
     """
   end
 
@@ -344,13 +358,27 @@ defmodule TechtreeWeb.InstallComponents do
   # guide on this site until it does. Both are addresses that cannot move under
   # the reader — a revision is a revision, and this page is this page.
   defp agent_prompt(instructions) do
-    "Read the pinned Techtree installation guide at " <>
-      guide_url(instructions) <>
-      ". Review the exact GitHub plugin release and installation commands with me. " <>
-      "Ask for my approval before installing software or spending model credits. " <>
-      "Install and enable the Techtree Hermes plugin, tell me when Hermes must be " <>
-      "restarted, then use the plugin to install and verify the Techtree CLI and run " <>
-      "the Hello World Climb. Do not upload my local evaluation artifacts."
+    """
+    Read the pinned Techtree installation guide at #{guide_url(instructions)}.
+
+    If the guide says no installable release is active, stop and tell me.
+
+    Otherwise, use only the exact plugin commit and CLI version published by the
+    active release. Explain the prerequisites, the expected Hermes scanner
+    findings, what may spend money, and what stays local.
+
+    Ask before:
+    1. installing the Techtree plugin;
+    2. installing the Techtree CLI; or
+    3. starting a paid comparison.
+
+    After the plugin is enabled, tell me when Hermes must be restarted. Then run
+    Techtree Doctor, obtain the Hello World starter Skill, and prepare the
+    comparison. Stop before spending until I approve it.
+
+    Do not upload my local evaluation artifacts.
+    """
+    |> String.trim_trailing()
   end
 
   defp guide_url(instructions), do: pinned_repository_url(instructions) || @guide_url

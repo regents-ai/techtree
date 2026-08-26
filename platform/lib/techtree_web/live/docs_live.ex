@@ -3,33 +3,44 @@ defmodule TechtreeWeb.DocsLive do
   The documentation: a working first run, then the ideas behind it.
 
   The order is the whole design. A reader arrives wanting to run something, so
-  the first thing on the page is three commands and what they do, and the
-  second is the answer to the question every one of those commands raises —
-  what leaves this machine. Concepts come after both, because a concept a
-  reader has already seen working is a different thing to read.
+  the first thing on the page is the words they hand their agent, then what to
+  type if they would rather type it, and then the answer to the question every
+  one of those commands raises — what leaves this machine. Concepts come after
+  all three, because a concept a reader has already seen working is a different
+  thing to read.
 
   Every command shown here is either read from the published release or is a
   command this build's own command-line tool actually offers. Nothing on this
   page is generated from a help output, and nothing describes a command that
-  does not exist.
+  does not exist. Where a release coordinate belongs, it is rendered from the
+  release record this site serves; when that record says its coordinates are
+  stand-ins, the page says so instead of printing one.
+
+  The words a reader hands to their agent are not written here. They are the
+  same component the installation guide shows, so the two pages cannot drift
+  into two different prompts.
   """
 
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.InstallComponents
   alias TechtreeWeb.ReleaseInfo
 
   @impl true
   def mount(_params, _session, socket) do
     campaign = Query.list_climbs() |> List.first()
+    release = ReleaseInfo.current()
 
     {:ok,
      assign(socket,
        page_title: "Docs",
        campaign: campaign,
        campaign_facts: CampaignFacts.for_climb(campaign),
-       release: ReleaseInfo.current()
+       climb_reference: release && release.introductory_reference,
+       instructions: instructions(),
+       release: release
      )}
   end
 
@@ -53,11 +64,11 @@ defmodule TechtreeWeb.DocsLive do
             <.docs_group
               title="Concepts"
               links={[
-                {"Campaigns", "#campaigns"},
-                {"Subjects and harnesses", "#subjects"},
+                {"Climbs and Campaigns", "#campaigns"},
+                {"Subject and harness", "#subjects"},
                 {"Baseline and candidate", "#comparison"},
-                {"Validation and final test", "#validation"},
-                {"Run graph", "#run-graph"},
+                {"Taskset validation and the recorded comparison", "#validation"},
+                {"Evidence graph", "#evidence-graph"},
                 {"Proofs and reproduction", "#proofs"}
               ]}
             />
@@ -66,7 +77,7 @@ defmodule TechtreeWeb.DocsLive do
               links={[
                 {"From the CLI", "#cli"},
                 {"From Hermes", "#hermes"},
-                {"Traces and artifacts", "#artifacts"}
+                {"Traces and local artifacts", "#artifacts"}
               ]}
             />
             <.docs_group
@@ -81,9 +92,9 @@ defmodule TechtreeWeb.DocsLive do
             <.docs_group
               title="Reference"
               links={[
-                {"Commands", "#commands"},
+                {"Command reference", "#commands"},
                 {"Exit codes", "#exit-codes"},
-                {"Environment", "#environment"},
+                {"Configuration and environment variables", "#environment"},
                 {"Release coordinates", "#release"},
                 {"Troubleshooting", "#troubleshooting"},
                 {"Protocol documents", "/protocol"}
@@ -97,370 +108,944 @@ defmodule TechtreeWeb.DocsLive do
             <p class="eyebrow">Local preview</p>
             <h1>Get to a controlled first run.</h1>
             <p class="lede">
-              Install the pinned command-line tool, check this machine, then prepare the
-              Hello World comparison. Preparation prints the one command that starts it,
-              and nothing that spends model credits starts without you.
+              Use the pinned Hermes plugin or install the pinned command-line tool directly.
+              Check the machine, obtain the introductory Skill, and prepare the Hello World
+              comparison.
+            </p>
+            <p>
+              Preparation does not make model calls. It shows what will run, what may change,
+              where model requests go, and the Campaign’s cost limit. Nothing that spends
+              model credits starts without explicit approval.
             </p>
           </header>
 
           <section id="quickstart" class="doc-section">
             <h2>Quickstart</h2>
-            <%= if runnable?(@release, @campaign) do %>
-              <ol class="quickstart">
-                <li id="install">
-                  <h3>Install the published release</h3>
-                  <.command_block
-                    id="copy-docs-install"
-                    argv={@release.install_argv}
-                    label="Quick install"
-                  />
-                  <p class="compatibility">{ReleaseInfo.compatibility(@release)}</p>
-                </li>
-                <li>
-                  <h3>Check this machine</h3>
-                  <.command_block
-                    id="copy-docs-doctor"
-                    argv={["techtree", "doctor", "--climb", @campaign.reference]}
-                    label="Check this machine"
-                  />
-                  <p>
-                    It checks the credential the campaign names, the container runtime, the
-                    evaluation engine and the installation itself, without starting anything
-                    that costs money.
-                  </p>
-                </li>
-                <li id="hello-world">
-                  <h3>Prepare the first comparison</h3>
-                  <.command_block
-                    id="copy-docs-prepare"
-                    argv={[
-                      "techtree",
-                      "climb",
-                      "prepare",
-                      @campaign.reference,
-                      "--skill",
-                      "path/to/skill"
-                    ]}
-                  />
-                  <p>
-                    Review the declared tasks, the ceiling, the terms and the changed Skill.
-                    Preparation then prints the one-time <code>techtree climb start</code>
-                    command; running that exact command begins the two runs.
-                  </p>
-                </li>
-              </ol>
+            <InstallComponents.agent_prompt_block instructions={@instructions} />
+          </section>
+
+          <section id="install" class="doc-section">
+            <h2>Installing manually</h2>
+            <%= if installable?(@release) do %>
+              <p>
+                This channel is serving a concrete, content-addressed release, so the exact
+                command it publishes is the one shown here.
+              </p>
+              <.command_block
+                id="copy-docs-install"
+                argv={@release.install_argv}
+                label="Install the pinned command-line tool"
+              />
+              <p class="compatibility">{ReleaseInfo.compatibility(@release)}</p>
             <% else %>
-              <aside id="install" class="callout">
-                <p class="callout__title">There is nothing to install from here yet</p>
-                <p>
-                  This channel publishes stand-in coordinates. The command appears here only
-                  once a real, content-addressed release is the one being served — a stand-in
-                  is never printed as something to run.
-                </p>
-              </aside>
+              <p>No installable release is active on this channel yet.</p>
+              <p>
+                This page prints installation commands only when it is serving a concrete,
+                content-addressed release. Techtree never turns stand-in coordinates, branch
+                names, or placeholder versions into commands someone could run.
+              </p>
+              <p>
+                Once an installable release is active, its exact CLI and plugin commands will
+                appear here from the published release record.
+              </p>
             <% end %>
+
+            <p>After installation, the direct terminal flow is:</p>
+            <.command_block
+              id="copy-docs-prime-login"
+              argv={["prime", "login"]}
+              label="Sign in to Prime"
+            />
+            <.command_block
+              id="copy-docs-setup"
+              argv={["techtree", "setup"]}
+              label="Prepare the local layout"
+            />
+            <.command_block
+              :if={@climb_reference}
+              id="copy-docs-doctor"
+              argv={["techtree", "doctor", "--climb", @climb_reference]}
+              label="Check this machine"
+            />
+            <.command_block
+              id="copy-docs-skill-starter"
+              argv={["techtree", "skill", "starter"]}
+              label="Obtain the starter Skill"
+            />
+            <p>
+              <code>techtree skill starter</code>
+              verifies and materializes the Skill pinned by the release, then prints the exact
+              next command for preparing Hello World. Each later command also prints its next
+              valid action.
+            </p>
+
+            <h3>Requirements</h3>
+            <p>The current release path requires:</p>
+            <ul class="doc-list">
+              <li>Python {minimum(@release, "python")};</li>
+              <li><code>uv</code>;</li>
+              <li>Docker running locally;</li>
+              <li>
+                an active Prime CLI configuration created with <code>prime login</code>;
+              </li>
+              <li>
+                Hermes {minimum(@release, "hermes_version")} for the agent-first plugin path.
+              </li>
+            </ul>
+            <p>The direct CLI path does not require a host Hermes installation.</p>
+            <p>The Hermes you talk to is an operator. It is not the agent being evaluated.</p>
+          </section>
+
+          <section id="hello-world" class="doc-section">
+            <h2>What the first run demonstrates</h2>
+            <p>Techtree Hello World reduces the experiment to four statements:</p>
+            <ol class="steps">
+              <li>
+                <p class="plain"><strong>Same agent and same tasks.</strong></p>
+                <p>
+                  Both branches use the same configured model, harness, runtime, task
+                  membership, tools, scorer, sampling, and budgets.
+                </p>
+              </li>
+              <li>
+                <p class="plain"><strong>The Skill is the only permitted change.</strong></p>
+                <p>
+                  The baseline mounts no tested Skill. The candidate mounts exactly one
+                  content-addressed Skill tree.
+                </p>
+              </li>
+              <li>
+                <p class="plain"><strong>Here is the measured difference.</strong></p>
+                <p>
+                  Prime’s pinned evaluation engine records each task’s outcome and score.
+                  Techtree pairs the results and reports the baseline score, candidate score,
+                  wins, losses, ties, cost, timing, and validity.
+                </p>
+              </li>
+              <li>
+                <p class="plain">
+                  <strong>Here is the local receipt and how to verify it.</strong>
+                </p>
+                <p>
+                  Techtree writes a signed, participant-attested proof bundle that can be
+                  checked offline.
+                </p>
+              </li>
+            </ol>
+            <p>
+              Hello World is a synthetic introductory mechanism test. It is not a broad agent
+              benchmark and should not be used to make claims about general intelligence or
+              production capability.
+            </p>
           </section>
 
           <section id="trust" class="doc-section">
             <h2>What leaves my machine?</h2>
+            <p>Techtree does not upload your local:</p>
+            <ul class="doc-list">
+              <li>Episodes;</li>
+              <li>Traces;</li>
+              <li>run logs;</li>
+              <li>receipts;</li>
+              <li>proof bundles; or</li>
+              <li>saved Skill proposals.</li>
+            </ul>
             <p>
-              Techtree does not upload your recordings, your result bundle, or the Skill you
-              submit, and there is nowhere on this site to send them. The baseline and the
-              candidate make real model calls, and those go to the model provider the
-              campaign names, under that provider’s policies. A guided revision sends your
-              Skill text and a sanitized summary of the run to the provider your own agent
-              uses, which may be a different one.
+              This website has no account system and no route for submitting those artifacts.
             </p>
             <p>
-              Running a comparison needs an account and a key with your model provider. It
-              needs no Techtree account: this site has no sign-in, and nothing here knows
-              who you are.
+              A comparison still makes real model requests. The baseline and candidate send
+              requests to the subject-model provider named by the Campaign, under that
+              provider’s policies.
             </p>
+            <p>
+              When you use the experimental Hermes-guided revision, the verified Skill text
+              and a sanitized summary of the run are sent to the model provider configured for
+              the host Hermes agent. That may be a different provider from the one used by the
+              evaluated subject.
+            </p>
+            <p>
+              The sanitized summary excludes hidden expected answers, grader source, provider
+              credentials, private filesystem paths, and the evaluated subject’s final replies.
+            </p>
+            <p>
+              Hello World requires an active Prime CLI login. Techtree does not store, print,
+              or copy the provider credential into a draft, run directory, receipt, report, or
+              proof bundle.
+            </p>
+            <p>No Techtree account is required.</p>
           </section>
 
           <section id="campaigns" class="doc-section">
-            <h2>Campaigns</h2>
+            <h2>Climbs and Campaigns</h2>
             <p>
-              A campaign fixes the comparison before either branch runs: which tasks, which
-              model, which harness, which runtime, how the score is decided, and what a run
-              may spend. It is a published document with a fingerprint, and both branches
-              are read from that one document.
+              A Climb is the public invitation: its name, version, status, candidate rules,
+              and publication policy.
             </p>
+            <p>A Campaign is the fixed scientific contract behind the Climb. It defines:</p>
+            <ul class="doc-list">
+              <li>the exact taskset and ordered task membership;</li>
+              <li>the evaluated subject;</li>
+              <li>the model and sampling configuration;</li>
+              <li>the harness and runtime;</li>
+              <li>the scorer;</li>
+              <li>the permitted mutation;</li>
+              <li>the evidence requirements;</li>
+              <li>the execution limits; and</li>
+              <li>the data policy.</li>
+            </ul>
+            <p>
+              The Campaign is content-addressed. Changing a scientific field creates a
+              different Campaign and a different fingerprint.
+            </p>
+            <p>Both branches of a comparison are derived from the same Campaign.</p>
             <p :if={@campaign}>
-              This release publishes <a href={~p"/campaigns/#{@campaign.projection["slug"]}"}>{@campaign.title}</a>.
-              Its page shows every coordinate above before you run anything.
+              The introductory Climb is <a href={~p"/climbs/#{@campaign.projection["slug"]}"}>{@campaign.title}</a>. Its
+              page shows the public terms and links to the exact published objects behind them.
             </p>
-            <p :if={is_nil(@campaign)}>No campaign is published on this channel.</p>
+            <p :if={is_nil(@campaign)}>No Climb is published on this channel.</p>
+            <p>
+              The cost shown before a run is a conservative Campaign limit, not a quoted or
+              guaranteed bill. Actual provider-reported or derived cost is recorded separately
+              when the run completes.
+            </p>
           </section>
 
           <section id="subjects" class="doc-section">
-            <h2>Subjects and harnesses</h2>
+            <h2>Subject and harness</h2>
             <p>
-              The subject is the agent under test: a harness at a pinned version, a model at
-              a pinned coordinate, and a container image addressed by its own fingerprint.
-              The campaign names all three, so the subject is not whatever happens to be
-              installed on the machine that runs it.
+              The subject is the agent system under evaluation. It is separate from the Hermes
+              agent helping you operate Techtree.
             </p>
-            <dl :if={@campaign} class="facts">
-              <dt class="facts__term">Harness</dt>
-              <dd class="facts__value">
-                {@campaign.projection["subject_harness"]} {@campaign.projection[
-                  "subject_harness_version"
-                ]}
-              </dd>
-              <dt class="facts__term">Model</dt>
-              <dd class="facts__value">{model_coordinate(@campaign.projection["subject_model"])}</dd>
-            </dl>
+
+            <.comparison_boundary>
+              <:side title="Operator">
+                <.definition_list>
+                  <:fact term="Host Hermes">
+                    Tested version: {minimum(@release, "hermes_version")}
+                  </:fact>
+                  <:fact term="Role">
+                    Explains, prepares, asks for approval, and relays Techtree results.
+                  </:fact>
+                </.definition_list>
+              </:side>
+              <:side title="Evaluated subject">
+                <.definition_list :if={@campaign}>
+                  <:fact term="Harness">
+                    {@campaign.projection["subject_harness"]} {@campaign.projection[
+                      "subject_harness_version"
+                    ]}
+                  </:fact>
+                  <:fact term="Provider">
+                    {subject_field(@campaign, "provider")}
+                  </:fact>
+                  <:fact term="Model">
+                    {subject_field(@campaign, "model_id")}
+                  </:fact>
+                  <:fact term="Runtime">Pinned Docker image</:fact>
+                </.definition_list>
+                <p :if={is_nil(@campaign)}>No Campaign is published on this channel.</p>
+              </:side>
+            </.comparison_boundary>
+
+            <p>
+              The Campaign pins the subject coordinates. The evaluated subject is not whatever
+              Hermes, model, Skill set, or container happens to be installed in the operator’s
+              normal session.
+            </p>
+            <p>
+              The host conversation, host memory, ambient plugins, and unrelated host Skills
+              are not inherited by the evaluated subject.
+            </p>
           </section>
 
           <section id="comparison" class="doc-section">
             <h2>Baseline and candidate</h2>
             <p>
-              Both branches run the same tasks under the same coordinates. Exactly one thing
-              may differ, and the campaign says which: in Hello World the baseline mounts no
-              Skill and the candidate mounts exactly one. Anything else that differed would
-              make the comparison say nothing.
+              Both branches receive the same ordered 36-task membership under the same
+              Campaign. For the first Hello World comparison:
+            </p>
+
+            <.comparison_boundary>
+              <:side title="Baseline">
+                <ul class="doc-list">
+                  <li>pinned subject</li>
+                  <li>no tested Skill</li>
+                </ul>
+              </:side>
+              <:side title="Candidate">
+                <ul class="doc-list">
+                  <li>same pinned subject</li>
+                  <li>one declared starter Skill</li>
+                </ul>
+              </:side>
+            </.comparison_boundary>
+
+            <p>
+              Exactly one scientific difference is permitted: the Skill mounted into the
+              candidate subject. Techtree checks that rule twice:
+            </p>
+            <ul class="doc-list">
+              <li>before execution, by comparing the resolved run descriptions;</li>
+              <li>after execution, by comparing the observed evidence.</li>
+            </ul>
+            <p>
+              An unexplained difference does not become Skill uplift. It makes the comparison
+              invalid or changes the type of claim that may be made.
+            </p>
+            <p>
+              Prime’s pinned evaluation engine remains the source of task and score truth.
+              Techtree does not calculate a replacement score.
             </p>
           </section>
 
           <section id="validation" class="doc-section">
-            <h2>Validation and final test</h2>
+            <h2>Taskset validation and the recorded comparison</h2>
             <p>
-              Before a campaign is published, the publisher checks every task in it and
-              signs what was found. That receipt ships with the release and is addressed by
-              its own fingerprint, so the tasks you run are the tasks that were checked.
+              Before paid evaluation, the taskset is checked without asking a model to solve
+              it. The published validation receipt establishes, for this taskset, that:
             </p>
+            <ul class="doc-list">
+              <li>the package loads;</li>
+              <li>task identities are unique;</li>
+              <li>membership is deterministic;</li>
+              <li>each task’s own expected answer scores correctly;</li>
+              <li>a known-wrong answer does not;</li>
+              <li>the scorer is available; and</li>
+              <li>
+                required validation work completed without missing tasks or timeouts.
+              </li>
+            </ul>
             <p :if={CampaignFacts.validation_words(@campaign_facts.validation)}>
-              For the published campaign, that check reports <strong>{CampaignFacts.validation_words(@campaign_facts.validation)}</strong>.
+              For Hello World, the published receipt reports <strong>{CampaignFacts.validation_words(@campaign_facts.validation)}</strong>.
             </p>
             <p>
-              The final comparison is recorded separately from anything you tried while
-              working on a Skill. Private exploration is yours; the recorded comparison is
-              the one run under the fixed campaign.
+              This is mechanical validation. It does not claim that the synthetic tasks are
+              economically meaningful, representative of real work, or free from all possible
+              model-training contamination.
+            </p>
+
+            <h3>There is no held-out final test in v0.1</h3>
+            <p>
+              Hello World uses one fixed 36-task membership for its recorded comparisons.
+            </p>
+            <p>
+              The baseline and candidate see the same tasks. The experimental guided revision
+              also evaluates Skill v1 and Skill v2 on that same membership.
+            </p>
+            <p>
+              Therefore, the guided result is a same-benchmark Skill replacement result. It is
+              not a held-out generalization claim.
+            </p>
+            <p>
+              A candidate Skill is frozen and fingerprinted before its comparison starts, but
+              v0.1 does not claim that its tasks were hidden from the revision process.
             </p>
           </section>
 
-          <section id="run-graph" class="doc-section">
-            <h2>Run graph</h2>
+          <section id="evidence-graph" class="doc-section">
+            <h2>Evidence graph</h2>
             <p>
-              The graph on this site is an index of evidence, not an illustration of
-              progress. A node exists because a document exists, and opening one shows the
-              document it came from. A branch that has been declared but not run says so.
+              The graph on this site is an index over published evidence and declared state.
+              It is not decorative artwork and it is not a live view into your machine.
+            </p>
+            <p>A node may represent:</p>
+            <ul class="doc-list">
+              <li>a published Campaign;</li>
+              <li>taskset validation;</li>
+              <li>a declared baseline or candidate;</li>
+              <li>a completed comparison;</li>
+              <li>a signed local receipt; or</li>
+              <li>an explicitly unavailable or unexecuted step.</li>
+            </ul>
+            <p>
+              A completed node is shown only when the corresponding published object or
+              recorded evidence exists. A declared branch that has not run must say so.
+            </p>
+            <p>
+              This site does not receive your local run artifacts, so it cannot automatically
+              add your private runs to the public graph.
             </p>
           </section>
 
           <section id="proofs" class="doc-section">
             <h2>Proofs and reproduction</h2>
             <p>
-              When a comparison finishes, your machine writes a bundle: both runs, the
-              documents they ran under, the scores recorded task by task, and a summary of
-              the difference. It is signed with a key made on your machine that never leaves
-              it, and anyone you hand the bundle to can check it without a network:
+              When a comparison finishes, Techtree creates a local proof bundle containing the
+              signed comparison report, signed per-task receipts, the resolved, frozen
+              description of what will run, membership commitments, and the references needed
+              to verify the result from stored bytes.
+            </p>
+            <p>The bundle is signed with a private key kept on your machine.</p>
+            <p>
+              You can verify a run ID, a proof-bundle directory, or a signed report file:
             </p>
             <.command_block
               id="copy-docs-proof-verify"
               argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
               label="Verify offline"
             />
+            <p>Verification:</p>
+            <ul class="doc-list">
+              <li>makes no model request;</li>
+              <li>contacts no Techtree service;</li>
+              <li>fetches nothing from the network; and</li>
+              <li>writes nothing to the proof.</li>
+            </ul>
             <p>
-              A checked bundle is internally consistent and attested by the participant who
-              produced it. It becomes a reproduction only when someone else runs the same
-              campaign and attests to what they got. This release publishes nothing and
-              receives nothing, so no reproduction is offered here.
+              A copied bundle can therefore be checked on another machine with the Techtree
+              CLI installed.
+            </p>
+            <p>
+              A verified bundle establishes that the stored files, fingerprints, signatures,
+              task membership, and reported aggregation agree with one another. It is an
+              attestation by the participant-controlled key that produced it.
+            </p>
+            <p>It does not establish that:</p>
+            <ul class="doc-list">
+              <li>the participant’s machine behaved honestly;</li>
+              <li>an independent party witnessed the computation;</li>
+              <li>the result generalizes beyond the Campaign; or</li>
+              <li>somebody else reproduced the result.</li>
+            </ul>
+            <p>
+              A reproduction would require another executor to run the same scientific
+              contract and record a separately attributable result. v0.1 does not provide a
+              public reproduction or attestation-import workflow.
+            </p>
+            <p>
+              This release uploads nothing, receives no proof submissions, and publishes no
+              participant results.
             </p>
           </section>
 
           <section id="cli" class="doc-section">
             <h2>From the CLI</h2>
             <p>
-              The command-line tool is the whole product surface. Every command below is one
-              this build ships; there is no command here that does not exist.
+              The CLI is the authoritative local product surface. The Hermes plugin is an
+              operator adapter over the CLI’s machine-readable contract, not a second
+              evaluation implementation.
             </p>
+            <p>Every command group below exists in this build.</p>
             <.definition_list>
-              <:fact term="techtree doctor">
-                Check that this machine is ready to run a Climb. <code>--climb</code>
-                checks the subject a particular Climb would run.
+              <:fact term="techtree setup">
+                Prepare Techtree’s local directory layout, signing identity, and release state.
               </:fact>
-              <:fact term="techtree setup">Prepare this machine to run a Climb.</:fact>
+              <:fact term="techtree doctor">
+                Check whether the machine can run Techtree.
+                <span :if={@climb_reference}>
+                  Use <code>techtree doctor --climb {@climb_reference}</code>
+                  to check the exact subject, credential path, container image, and engine
+                  required by Hello World.
+                </span>
+                Doctor does not start a paid comparison.
+              </:fact>
               <:fact term="techtree climb">
                 Browse and enter Climbs: <code>list</code>, <code>show</code>, <code>prepare</code>, <code>start</code>.
               </:fact>
               <:fact term="techtree skill">
-                Obtain the Skills a release names: <code>starter</code>.
+                Obtain Skills named by the active release: <code>starter</code>. The starter
+                command verifies the Skill against the release digest before keeping it.
               </:fact>
               <:fact term="techtree run">
-                Follow and control your runs: <code>status</code>, <code>logs</code>, <code>cancel</code>, <code>result</code>.
+                Follow and control runs: <code>status</code>, <code>logs</code>, <code>cancel</code>, <code>result</code>. Runs are detached. Closing the terminal
+                or ending the initiating Hermes conversation does not end a run.
               </:fact>
               <:fact term="techtree engine">
-                Install and check the evaluation engine: <code>install</code>, <code>status</code>, <code>verify</code>.
+                Install and check the managed evaluation engine: <code>install</code>, <code>status</code>, <code>verify</code>.
               </:fact>
               <:fact term="techtree proof">
                 Check local proofs: <code>verify</code>.
               </:fact>
               <:fact term="techtree release">
-                Show and check the release this build belongs to: <code>info</code>, <code>verify</code>.
+                Inspect and verify the release carried by the installed build: <code>info</code>, <code>verify</code>.
               </:fact>
               <:fact term="techtree uplift">
                 <span class="state state--development">Experimental</span>
-                Guided revision. <code>context</code>, <code>skill-source</code>, <code>prepare</code>, <code>start</code>. Your own agent proposes one
-                revision and Techtree measures it the same way it measured the first
-                attempt; a proposal may be unusable, or may run and change nothing.
+                Skill replacement flow: <code>context</code>, <code>skill-source</code>, <code>prepare</code>, <code>start</code>.
               </:fact>
             </.definition_list>
             <p>
-              Global options: <code>--home</code>
-              for where local state is kept, <code>--json</code>
-              for one machine-readable envelope instead of human output, <code>--no-color</code>, <code>--no-input</code>, <code>--debug</code>,
-              and <code>--version</code>.
+              The CLI exports the sanitized context and verified source Skill, but it does not
+              itself call a model to write a revision.
             </p>
+            <p>
+              A person, Hermes, or another host agent may propose one candidate Skill. Techtree
+              then scans it, snapshots it, shows the exact diff, and prepares a Skill-v1-versus-Skill-v2
+              comparison.
+            </p>
+            <p>
+              A proposal may be unusable. A valid proposal may improve, tie, or regress.
+              Techtree does not automatically retry the proposal.
+            </p>
+
+            <h3>Global options</h3>
+            <.definition_list>
+              <:fact term="--home PATH">
+                Use PATH for Techtree’s local state for this invocation.
+              </:fact>
+              <:fact term="--json">
+                Emit exactly one machine-readable envelope on stdout.
+              </:fact>
+              <:fact term="--no-color">Never use terminal colour in human output.</:fact>
+              <:fact term="--no-input">
+                Never prompt; fail instead of waiting for a person.
+              </:fact>
+              <:fact term="--debug">Write additional operational detail to stderr.</:fact>
+              <:fact term="--version">Print the installed Techtree version.</:fact>
+            </.definition_list>
+            <p>Machine mode is designed for agents:</p>
+            <ul class="doc-list">
+              <li><code>--json</code> implies <code>--no-input</code>;</li>
+              <li>machine output contains one JSON object on stdout;</li>
+              <li>operational logs go to stderr;</li>
+              <li>the command never waits for interactive input.</li>
+            </ul>
           </section>
 
           <section id="hermes" class="doc-section">
             <h2>From Hermes</h2>
             <p>
-              The pinned Hermes plugin gives the same commands a conversational front door:
-              you ask, it shows you the exact command, and it waits for you before it
-              installs anything or spends anything. The <a href={~p"/start"}>installation guide</a>
-              carries the pinned plugin commands and what the install-time report will say.
+              The pinned Hermes plugin gives the same local CLI a conversational front door.
+            </p>
+            <p>The <a href={~p"/start"}>installation guide</a> contains:</p>
+            <ul class="doc-list">
+              <li>the exact plugin repository and commit;</li>
+              <li>the exact CLI version;</li>
+              <li>the expected installation commands;</li>
+              <li>the prerequisites;</li>
+              <li>the privacy boundary; and</li>
+              <li>the expected install-time scanner report.</li>
+            </ul>
+            <p>Hermes must ask before:</p>
+            <ol class="steps">
+              <li>
+                <p class="plain">installing the plugin;</p>
+              </li>
+              <li>
+                <p class="plain">installing the CLI;</p>
+              </li>
+              <li>
+                <p class="plain">starting the first paid comparison;</p>
+              </li>
+              <li>
+                <p class="plain">
+                  sending the guided-revision context to a host-model provider; or
+                </p>
+              </li>
+              <li>
+                <p class="plain">starting the second paid comparison.</p>
+              </li>
+            </ol>
+            <p>
+              After the plugin is installed and enabled, Hermes must be restarted once so its
+              tools load.
+            </p>
+
+            <h3>Expected scanner result</h3>
+            <p>
+              For this release, Hermes is expected to report <code>caution</code>
+              with five reviewed findings in three families:
+            </p>
+            <ul class="doc-list">
+              <li>the guard’s own list of command-like words;</li>
+              <li>the plugin’s three fixed, shell-free CLI invocation sites; and</li>
+              <li>the control-character filter used to sanitize conversational output.</li>
+            </ul>
+            <p>
+              The installation guide explains the findings and points to the exact code. Read
+              the report before approving installation. Never turn the scanning off.
+            </p>
+            <p>
+              The plugin itself does not score tasks, generate receipts, or implement
+              evaluation logic. It invokes fixed CLI argument arrays and reads one JSON
+              envelope back.
+            </p>
+
+            <h3>Experimental guided revision</h3>
+            <p>
+              After a completed first comparison, the Hermes flow may offer one experimental
+              revision. The model configured for Host Hermes receives:
+            </p>
+            <ul class="doc-list">
+              <li>the verified source Skill;</li>
+              <li>the founder-pinned Skill-improver instructions;</li>
+              <li>a sanitized summary of the measured run; and</li>
+              <li>a strict required response shape.</li>
+            </ul>
+            <p>
+              It does not receive hidden expected answers, grader source, provider credentials,
+              local private paths, or the evaluated subject’s final replies.
+            </p>
+            <p>The host may make exactly one proposal request.</p>
+            <p>
+              If that request fails, reaches its generation limit, or returns an unusable
+              Skill:
+            </p>
+            <ul class="doc-list">
+              <li>the attempt is still used;</li>
+              <li>the provider may still charge for it;</li>
+              <li>Techtree does not retry automatically.</li>
+            </ul>
+            <p>When a proposal is usable:</p>
+            <ol class="steps">
+              <li>
+                <p class="plain">the plugin performs preliminary guards;</p>
+              </li>
+              <li>
+                <p class="plain">Techtree runs the ordinary Skill scanner;</p>
+              </li>
+              <li>
+                <p class="plain">Techtree snapshots and fingerprints the proposed Skill;</p>
+              </li>
+              <li>
+                <p class="plain">the exact Skill diff is shown;</p>
+              </li>
+              <li>
+                <p class="plain">the second Campaign and cost limit are shown;</p>
+              </li>
+              <li>
+                <p class="plain">the user must approve again; and</p>
+              </li>
+              <li>
+                <p class="plain">
+                  Skill v1 and Skill v2 are evaluated under the same task membership and
+                  scientific configuration.
+                </p>
+              </li>
+            </ol>
+            <p>
+              The second receipt proves only the result of that same-benchmark comparison.
             </p>
           </section>
 
           <section id="artifacts" class="doc-section">
-            <h2>Traces and artifacts</h2>
+            <h2>Traces and local artifacts</h2>
             <p>
-              Everything a run produces is written under the Techtree directory on your own
-              machine: the recordings of each attempt, the per-task results, the logs, and
-              the signed bundle. <code>techtree run result</code>
-              prints the finished report, and <code>--json</code>
-              gives the same thing in a form a program can read. None of it is sent
-              anywhere.
+              Techtree stores local state under its platform-appropriate data directory, or
+              under the directory selected with <code>--home</code>.
+            </p>
+            <p>A run directory may contain:</p>
+            <ul class="doc-list">
+              <li>the append-only run journal;</li>
+              <li>the resolved, frozen description of what will run;</li>
+              <li>the evaluation engine’s own recorded outputs;</li>
+              <li>operational logs;</li>
+              <li>per-task receipts;</li>
+              <li>the signed comparison report;</li>
+              <li>the execution and cost record;</li>
+              <li>the proof bundle; and</li>
+              <li>local supervision records.</li>
+            </ul>
+            <p>
+              <code>techtree run result &lt;run-id&gt;</code>
+              prints the finished report, and <code>techtree run result &lt;run-id&gt; --json</code>
+              returns the same result as one machine-readable envelope.
+            </p>
+            <p>
+              Techtree does not upload these local artifacts. Model inference still travels to
+              the configured providers as described above.
             </p>
           </section>
 
           <section id="proof-limits" class="doc-section">
             <h2>What a proof establishes</h2>
+            <p>The offline verifier keeps five questions separate.</p>
+            <ol class="steps">
+              <li>
+                <p class="plain"><strong>Cryptographic integrity</strong></p>
+                <p>Do the stored files still match their fingerprints and signatures?</p>
+              </li>
+              <li>
+                <p class="plain"><strong>Scientific validity</strong></p>
+                <p>
+                  Do the documents describe one internally consistent controlled comparison,
+                  with the expected task membership and permitted mutation?
+                </p>
+              </li>
+              <li>
+                <p class="plain"><strong>Participant attestation</strong></p>
+                <p>
+                  Which local key vouched for the stored bytes, and what bounded claim does
+                  that signature support?
+                </p>
+              </li>
+              <li>
+                <p class="plain"><strong>Independent reproduction</strong></p>
+                <p>
+                  Has a separately attributable executor reproduced this result? For v0.1, the
+                  answer is no.
+                </p>
+              </li>
+              <li>
+                <p class="plain"><strong>Public publication</strong></p>
+                <p>
+                  Was the result uploaded or published? For v0.1 local runs, the answer is no.
+                </p>
+              </li>
+            </ol>
             <p>
-              Verification checks four things: that every document the result names is
-              present and matches its fingerprint, that the two runs differed only where the
-              campaign allowed, that the summary's numbers are the ones recorded task by
-              task, and that the signature holds. It does not establish that the machine was
-              honest or that anyone else watched.
+              A proof that passes these checks is internally consistent and
+              participant-attested. It is not proof that the machine was honest or that an
+              independent party witnessed the execution.
             </p>
           </section>
 
           <section id="evidence" class="doc-section">
             <h2>Evidence completeness</h2>
+            <p>A Campaign declares which evidence a valid result must contain.</p>
+            <p>Missing evidence stays missing:</p>
+            <ul class="doc-list">
+              <li>a missing task is not treated as zero;</li>
+              <li>a missing reward is not guessed;</li>
+              <li>a partial comparison is not silently aggregated;</li>
+              <li>a missing artifact is not replaced by a placeholder; and</li>
+              <li>a failed proof check is not reduced to a warning.</li>
+            </ul>
             <p>
-              A campaign declares which evidence a result must carry. What is missing stays
-              visibly missing: a result never fills a gap with a default, and this site never
-              draws a node for a document that does not exist.
+              If a required episode does not complete, Techtree does not issue a valid uplift
+              claim for that comparison.
+            </p>
+            <p>
+              The website follows the same rule: it does not draw a completed evidence node
+              for a document that does not exist.
             </p>
           </section>
 
           <section id="model-pinning" class="doc-section">
             <h2>Model pinning</h2>
             <p>
-              The campaign pins the model the agent under test answers with, including its
-              revision where the provider publishes one. You bring the account and the key;
-              you do not choose the subject model, because a comparison whose model moved
-              between the two runs measures the model, not the Skill.
+              The Campaign pins the provider and model identifier used by the evaluated
+              subject.
+            </p>
+            <p>
+              Where a provider publishes an immutable model revision, that revision can also
+              be pinned.
+            </p>
+            <p :if={@campaign}>
+              For Hello World, the provider does not publish an immutable revision for <strong>{model_coordinate(@campaign.projection["subject_model"])}</strong>.
+            </p>
+            <p>
+              Both branches use the same configured provider and model identifier, but
+              Techtree cannot independently prove that the provider served the same underlying
+              model build throughout the comparison.
+            </p>
+            <p>
+              The result therefore carries that limitation as a comparison warning rather than
+              hiding it.
+            </p>
+            <p>
+              Participants do not choose a different subject model for one branch. If the
+              subject model changed between baseline and candidate, the comparison would
+              measure more than the Skill.
             </p>
           </section>
 
           <section id="commands" class="doc-section">
             <h2>Command reference</h2>
+            <p>The command list above is the complete v0.1 CLI namespace.</p>
+            <p>For the exact arguments supported by the installed release, use:</p>
+            <.command_block
+              id="copy-docs-help"
+              argv={["techtree", "--help"]}
+              label="Every command this build has"
+            />
             <p>
-              The list above is the whole surface, and <code>techtree &lt;command&gt; --help</code>
-              on your own installation is the authority for a given release. This page is
-              written by hand against the commands this build ships, and says nothing about
-              commands a later release might add.
+              and the same option on one command or group: <code>techtree &lt;command&gt; --help</code>, <code>techtree &lt;group&gt; &lt;command&gt; --help</code>.
+            </p>
+            <p>
+              The installed CLI is authoritative. This page does not document commands that
+              might exist in a later release.
             </p>
           </section>
 
           <section id="exit-codes" class="doc-section">
             <h2>Exit codes</h2>
             <p>
-              A host agent branches on these without reading any output. They are
-              append-only: a number never changes meaning.
+              A host agent may branch on exit codes without parsing human text. Their meanings
+              are append-only.
             </p>
             <.definition_list>
-              <:fact term="0">Finished as asked.</:fact>
-              <:fact term="1">An error that has no more specific code.</:fact>
-              <:fact term="2">The command was used incorrectly.</:fact>
-              <:fact term="3">Something did not validate.</:fact>
-              <:fact term="4">A prerequisite is missing on this machine.</:fact>
-              <:fact term="5">What was asked for does not exist.</:fact>
-              <:fact term="6">It conflicts with something already there.</:fact>
-              <:fact term="7">A credential is missing or was refused.</:fact>
-              <:fact term="8">A policy forbids it.</:fact>
-              <:fact term="9">The evaluation engine failed.</:fact>
-              <:fact term="10">The run itself failed.</:fact>
-              <:fact term="11">Verification failed.</:fact>
+              <:fact term="0">Finished as requested.</:fact>
+              <:fact term="1">An internal or otherwise unclassified error.</:fact>
+              <:fact term="2">The command or its arguments were used incorrectly.</:fact>
+              <:fact term="3">Input or stored data failed validation.</:fact>
+              <:fact term="4">A prerequisite is missing.</:fact>
+              <:fact term="5">The requested object does not exist.</:fact>
+              <:fact term="6">The request conflicts with existing immutable state.</:fact>
+              <:fact term="7">A credential is missing, expired, or refused.</:fact>
+              <:fact term="8">A data or publication policy forbids the request.</:fact>
+              <:fact term="9">The managed evaluation engine failed.</:fact>
+              <:fact term="10">
+                The run failed or the requested run operation is invalid in its current state.
+              </:fact>
+              <:fact term="11">
+                A digest, signature, membership commitment, report, or proof did not verify.
+              </:fact>
               <:fact term="130">Cancelled.</:fact>
             </.definition_list>
           </section>
 
           <section id="environment" class="doc-section">
-            <h2>Environment variables</h2>
+            <h2>Configuration and environment variables</h2>
+            <p>
+              Use the global option <code>--home PATH</code>
+              to select where a CLI invocation keeps local Techtree state.
+            </p>
+            <p>The supported <code>TECHTREE_*</code> settings overrides are:</p>
             <.definition_list>
-              <:fact term="TECHTREE_HOME">
-                Where local state is kept. The <code>--home</code> option sets the same thing.
-              </:fact>
               <:fact term="TECHTREE_OUTPUT_MODE">
-                <code>human</code> or <code>json</code>, the same choice as <code>--json</code>.
+                <code>human</code>
+                or <code>json</code>. <code>json</code>
+                selects machine mode and therefore also disables prompts and colour.
               </:fact>
-              <:fact term="TECHTREE_LOG_LEVEL">How much operational detail is written.</:fact>
+              <:fact term="TECHTREE_LOG_LEVEL">
+                Controls the amount of operational logging.
+              </:fact>
               <:fact term="TECHTREE_ACTIVE_ENGINE_DIGEST">
-                Which installed evaluation engine to use.
+                Selects which installed, content-addressed evaluation engine is active.
               </:fact>
             </.definition_list>
+            <p>No other <code>TECHTREE_*</code> setting is inferred or guessed.</p>
             <p>
-              Your provider key is read from the variable the campaign names, at the moment
-              the run needs it. Techtree never asks you for the value, never copies it into a
-              run directory, and never writes it into any document.
-              <code>techtree doctor --climb &lt;reference&gt;</code>
-              names the variable it expects.
+              <code>TECHTREE_HOME</code>
+              is used internally when the CLI starts its detached worker. It is not the
+              documented user-facing replacement for <code>--home</code>.
+            </p>
+            <p>Provider credentials are not Techtree settings. For Hello World, use:</p>
+            <.command_block
+              id="copy-docs-prime-login-credential"
+              argv={["prime", "login"]}
+              label="The supported credential path"
+            />
+            <p>
+              An exported <code>PRIME_API_KEY</code>
+              in the shell is not the supported detached-run path and is deliberately not
+              inherited as ambient worker state.
+            </p>
+            <p :if={@climb_reference}>
+              <code>techtree doctor --climb {@climb_reference}</code>
+              checks whether the detached evaluation path can resolve the required credential
+              without printing it.
             </p>
           </section>
 
           <section id="release" class="doc-section">
             <h2>Release coordinates</h2>
-            <%= if @release && @release.installable? do %>
+            <%= if installable?(@release) do %>
+              <p>
+                These coordinates are generated from the active release record, not written
+                into this page.
+              </p>
               <.definition_list>
-                <:fact term="Version">{@release.version}</:fact>
                 <:fact term="Channel">{@release.channel}</:fact>
-                <:fact term="Contract fingerprint">
-                  <.digest value={@release.digest} />
-                </:fact>
-                <:fact term="Source revision">
+                <:fact term="CLI version">{@release.version}</:fact>
+                <:fact term="CLI source revision">
                   <.digest value={@release.source_revision} />
                 </:fact>
-                <:fact :if={@release.repository_url} term="Pinned plugin">
+                <:fact term="Release record fingerprint">
+                  <.digest value={@release.digest} />
+                </:fact>
+                <:fact :if={@release.repository_url} term="Pinned plugin commit">
                   <a href={@release.repository_url}>{@release.repository_url}</a>
+                </:fact>
+                <:fact :if={minimum(@release, "hermes_version")} term="Minimum Hermes">
+                  {minimum(@release, "hermes_version")}
+                </:fact>
+                <:fact :if={minimum(@release, "python")} term="Minimum Python">
+                  {minimum(@release, "python")}
+                </:fact>
+                <:fact :if={minimum(@release, "uv")} term="Minimum uv">
+                  {minimum(@release, "uv")}
+                </:fact>
+                <:fact :if={@climb_reference} term="Introductory Climb">
+                  {@climb_reference}
+                </:fact>
+                <:fact :if={starter(@release, "file_digest")} term="Starter Skill file">
+                  <.digest value={starter(@release, "file_digest")} />
+                </:fact>
+                <:fact :if={starter(@release, "tree_digest")} term="Starter Skill tree">
+                  <.digest value={starter(@release, "tree_digest")} />
                 </:fact>
               </.definition_list>
             <% else %>
+              <p>No installable release coordinate is active on this channel yet.</p>
               <p>
-                No real release coordinate is being served on this channel, so there is none
-                to show.
+                When an installable release is activated, this section is generated from the
+                active release record rather than written by hand.
               </p>
             <% end %>
+
+            <p>Do not install from:</p>
+            <ul class="doc-list">
+              <li><code>main</code>;</li>
+              <li><code>latest</code>;</li>
+              <li>a shortened commit;</li>
+              <li>an unpinned package range;</li>
+              <li>a command copied from an old post; or</li>
+              <li>a placeholder coordinate.</li>
+            </ul>
+            <p>The active release record and the installed CLI’s own answers are the authorities:</p>
+            <.command_block
+              id="copy-docs-release-info"
+              argv={["techtree", "release", "info"]}
+              label="What release is installed"
+            />
+            <.command_block
+              id="copy-docs-release-verify"
+              argv={["techtree", "release", "verify"]}
+              label="Check the installed release"
+            />
           </section>
 
           <section id="troubleshooting" class="doc-section">
             <h2>Troubleshooting</h2>
+            <p>Start with:</p>
+            <.command_block
+              :if={@climb_reference}
+              id="copy-docs-doctor-troubleshooting"
+              argv={["techtree", "doctor", "--climb", @climb_reference]}
+              label="Check this machine"
+            />
             <p>
-              Start with <code>techtree doctor</code>, and add <code>--climb &lt;reference&gt;</code>
-              to check what one particular Climb needs. It reports the missing credential,
-              the container runtime, the engine and the installation without starting a run
-              that costs anything.
+              It checks the release, local installation, Prime login, Docker, managed engine,
+              subject image, and Climb requirements without starting paid model inference.
+            </p>
+            <p>For the Hermes plugin:</p>
+            <.command_block
+              id="copy-docs-plugin-doctor"
+              argv={["hermes", "plugins", "doctor", "techtree", "--ci"]}
+              label="Check the plugin is loaded"
+            />
+            <p>
+              If a run is already in progress: <code>techtree run status &lt;run-id&gt;</code>, <code>techtree run logs &lt;run-id&gt; --tail 200</code>, and <code>techtree run cancel &lt;run-id&gt;</code>.
             </p>
             <p>
-              If a run is already going, <code>techtree run status</code>
-              says where it is, <code>techtree run logs</code>
-              shows what it wrote, and <code>techtree run cancel</code>
-              stops it. If the engine is the suspect, <code>techtree engine verify</code>
-              confirms the installed one is intact.
+              A detached run continues after the initiating terminal or Hermes conversation
+              closes. A later session can recover it by run ID.
+            </p>
+            <p>
+              To inspect the result: <code>techtree run result &lt;run-id&gt;</code>. To verify
+              its proof: <code>techtree proof verify &lt;run-id&gt;</code>. To check the managed
+              engine: <code>techtree engine status</code>
+              and <code>techtree engine verify</code>. To check the installed release:
+              <code>techtree release info</code>
+              and <code>techtree release verify</code>.
+            </p>
+            <p>When asking for support, include:</p>
+            <ul class="doc-list">
+              <li>operating system and architecture;</li>
+              <li>Hermes version, if using the plugin;</li>
+              <li><code>techtree release info --json</code>;</li>
+              <li :if={@climb_reference}>
+                <code>techtree doctor --climb {@climb_reference} --json</code>;
+              </li>
+              <li>the stable error code; and</li>
+              <li>the run ID, when one exists.</li>
+            </ul>
+            <p>
+              Do not post provider credentials, private Skills, raw Episodes, raw Traces, or
+              proof bundles publicly.
             </p>
           </section>
         </article>
@@ -481,10 +1066,28 @@ defmodule TechtreeWeb.DocsLive do
     """
   end
 
-  defp runnable?(%{installable?: true}, %{reference: reference}) when is_binary(reference),
-    do: true
+  defp instructions do
+    case Query.bootstrap_instructions() do
+      {:ok, instructions} -> instructions
+      {:error, _error} -> nil
+    end
+  end
 
-  defp runnable?(_release, _campaign), do: false
+  defp installable?(%{installable?: true}), do: true
+  defp installable?(_release), do: false
+
+  defp minimum(%{minimums: minimums}, key), do: minimums[key]
+  defp minimum(_release, _key), do: nil
+
+  defp starter(%{starter_skill: starter}, key), do: starter[key]
+  defp starter(_release, _key), do: nil
+
+  defp subject_field(%{projection: projection}, key) do
+    case projection["subject_model"] do
+      model when is_map(model) -> model[key]
+      _other -> nil
+    end
+  end
 
   defp model_coordinate(model) when is_map(model) do
     [model["provider"], model["model_id"], model["revision"]]

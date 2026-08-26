@@ -161,7 +161,8 @@ h2 + p,
 h3 + p,
 .entry__head + p,
 dl + p,
-ol + p {
+ol + p,
+ul + p {
   margin-top: 0.8rem;
 }
 
@@ -1003,6 +1004,45 @@ strong {
   color: var(--ink-quiet);
 }
 
+.doc-list {
+  max-width: var(--measure);
+  margin-top: 0.8rem;
+  color: var(--ink-quiet);
+}
+
+.doc-list > li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.doc-list > li + li {
+  margin-top: 0.35rem;
+}
+
+.doc-list > li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.doc-section .boundary {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* The reference lists an environment variable whose name is the longest word
+   on the site. The term column is given room for it rather than breaking a
+   name a reader has to type exactly. */
+.doc-section .facts {
+  grid-template-columns: minmax(9rem, 16rem) minmax(0, 1fr);
+}
+
+.doc-section .steps {
+  max-width: var(--measure);
+  color: var(--ink-quiet);
+}
+
 .quickstart {
   margin-top: 1.5rem;
   counter-reset: quickstart;
@@ -1258,6 +1298,7 @@ strong {
 .facts__term {
   color: var(--ink-faint);
   font-family: var(--font-mono);
+  overflow-wrap: anywhere;
 }
 
 .boundary {
@@ -1445,6 +1486,13 @@ strong {
   .campaign-detail,
   .docs-layout {
     grid-template-columns: 1fr;
+  }
+
+  /* A command is the widest thing on the documentation page and scrolls inside
+     its own box. The single column has to be allowed to be narrower than it,
+     or the whole page grows to fit one line nobody has to read in one piece. */
+  .docs-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .process__steps article,

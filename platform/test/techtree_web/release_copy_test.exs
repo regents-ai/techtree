@@ -189,13 +189,30 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @unset_revision String.duplicate("0", 40)
 
   # The words a reader hands to their agent are decided copy, not a paraphrase
-  # this suite is free to drift away from.
+  # this suite is free to drift away from. One prompt is written once and shown
+  # wherever the agent path is offered, so every page carrying it carries all of
+  # it — read here with the line breaks taken out, because a page renders the
+  # prompt as the block a reader copies.
   @agent_prompt "Read the pinned Techtree installation guide at https://techtree.sh/start. " <>
-                  "Review the exact GitHub plugin release and installation commands with me. " <>
-                  "Ask for my approval before installing software or spending model credits. " <>
-                  "Install and enable the Techtree Hermes plugin, tell me when Hermes must be " <>
-                  "restarted, then use the plugin to install and verify the Techtree CLI and " <>
-                  "run the Hello World Climb. Do not upload my local evaluation artifacts."
+                  "If the guide says no installable release is active, stop and tell me. " <>
+                  "Otherwise, use only the exact plugin commit and CLI version published by " <>
+                  "the active release. Explain the prerequisites, the expected Hermes scanner " <>
+                  "findings, what may spend money, and what stays local. Ask before: " <>
+                  "1. installing the Techtree plugin; 2. installing the Techtree CLI; or " <>
+                  "3. starting a paid comparison. After the plugin is enabled, tell me when " <>
+                  "Hermes must be restarted. Then run Techtree Doctor, obtain the Hello World " <>
+                  "starter Skill, and prepare the comparison. Stop before spending until I " <>
+                  "approve it. Do not upload my local evaluation artifacts."
+
+  # The three promises inside the prompt that a rewrite must never lose: it asks
+  # before it installs, it asks before it spends, and it never sends the
+  # reader's own artifacts anywhere.
+  @agent_prompt_promises [
+    "Ask before: 1. installing the Techtree plugin; 2. installing the Techtree CLI; or " <>
+      "3. starting a paid comparison.",
+    "Stop before spending until I approve it.",
+    "Do not upload my local evaluation artifacts."
+  ]
 
   @agent_path_heading "Give this to your Hermes agent"
   @alternate_path_heading "Prefer installing it yourself?"
@@ -294,6 +311,12 @@ defmodule TechtreeWeb.ReleaseCopyTest do
         for {label, text} <- rendered(conn, @install_paths),
             String.contains?(text, @agent_path_heading) do
           assert text =~ @agent_prompt, "#{label} does not carry the prompt word for word"
+
+          for promise <- @agent_prompt_promises do
+            assert String.contains?(text, promise),
+                   "#{label} does not carry #{inspect(promise)} word for word"
+          end
+
           label
         end
 
