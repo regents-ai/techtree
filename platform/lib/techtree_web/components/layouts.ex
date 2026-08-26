@@ -65,7 +65,7 @@ defmodule TechtreeWeb.Layouts do
 
     <footer class="colophon">
       <span class="colophon__mark" aria-hidden="true"></span>
-      <span>A Regents Labs project</span>
+      <a href="https://regents.sh" rel="noopener noreferrer">A Regents Labs project</a>
     </footer>
     """
   end
