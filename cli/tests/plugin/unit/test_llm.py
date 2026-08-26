@@ -86,8 +86,14 @@ def test_a_second_completion_in_one_turn_is_refused() -> None:
     assert len(port.calls) == 1
 
 
-def test_a_failed_completion_still_spends_the_turn() -> None:
-    """Failure is reported to the person; it is not retried behind their back."""
+def test_a_failed_completion_still_uses_up_the_one_completion() -> None:
+    """Failure is reported to the person; it is not retried behind their back.
+
+    The one completion is used up whatever happened, because a request left
+    the machine. Whether the guided introduction's one ATTEMPT is spent is a
+    separate question with a separate answer: an answer that never arrived
+    produced nothing, so it is not.
+    """
     port = StubPort(error=RuntimeError("provider is down"))
     host = OneShotHostLlm(port)
 
@@ -96,7 +102,7 @@ def test_a_failed_completion_still_spends_the_turn() -> None:
     with pytest.raises(HostLlmError) as second:
         host.complete(_request())
 
-    assert first.value.code == "host_llm_unavailable"
+    assert first.value.code == "host_answer_never_arrived"
     assert first.value.retryable is False
     assert second.value.code == "host_llm_already_completed"
     assert len(port.calls) == 1
@@ -143,7 +149,7 @@ def test_a_provider_failure_is_typed_and_scrubbed() -> None:
     with pytest.raises(HostLlmError) as raised:
         OneShotHostLlm(port).complete(_request())
 
-    assert raised.value.code == "host_llm_unavailable"
+    assert raised.value.code == "host_answer_never_arrived"
     assert "abc123DEF456ghi" not in str(raised.value)
 
 

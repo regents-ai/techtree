@@ -472,6 +472,19 @@ class WroteNothingLlm(StubLlm):
         return answered
 
 
+class AnswerNeverArrivedLlm(StubLlm):
+    """A host that was asked and never answered.
+
+    What a request that left the machine and came back as nothing looks like
+    from here: the host was there, something went wrong in flight, and whether
+    the provider charged cannot be known from this side.
+    """
+
+    def complete_structured(self, **kwargs: Any) -> Any:
+        super().complete_structured(**kwargs)
+        raise TimeoutError("upstream closed the stream")
+
+
 def _with_host(services: PluginServices, host: StubLlm) -> PluginServices:
     """Return the same plugin, same session store, answering from this host."""
     return dataclasses.replace(services, ctx=SimpleNamespace(llm=host))
@@ -490,6 +503,33 @@ def test_a_completion_that_wrote_nothing_leaves_the_attempt_where_it_was(
     assert answer["code"] == "host_completion_truncated"
     assert "Your attempt has not been used" in answer["message"]
     kept = latest_session(truncated)
+    assert kept is not None
+    assert kept.revision_attempts == 0
+    assert kept.stage is DemoStage.FIRST_RESULT_READY
+    assert len(host.calls) == 1, "and nothing asked the model again"
+
+
+def test_an_answer_that_never_arrived_leaves_the_attempt_where_it_was(
+    services: PluginServices,
+) -> None:
+    """No revision reached the user, whatever stopped it from arriving.
+
+    The sibling of the truncation case, and the reason the rule is written
+    around what was produced rather than around what went wrong: a turn that
+    handed back no revision measured nothing, so there is nothing to hold the
+    one attempt against. The wording never claims the provider did not
+    charge — from here that cannot be known.
+    """
+    host = AnswerNeverArrivedLlm()
+    lost = _with_host(services, host)
+
+    answer = _call(lost, "techtree_uplift_propose", source_run_id=RUN_ID)
+
+    assert answer["ok"] is False
+    assert answer["code"] == "host_answer_never_arrived"
+    assert "Your attempt has not been used" in answer["message"]
+    assert "may still have charged" in answer["message"]
+    kept = latest_session(lost)
     assert kept is not None
     assert kept.revision_attempts == 0
     assert kept.stage is DemoStage.FIRST_RESULT_READY

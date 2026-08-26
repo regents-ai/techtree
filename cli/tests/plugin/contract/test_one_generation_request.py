@@ -11,8 +11,8 @@ What these tests lock is everything on this side of that boundary:
   through the one-shot wrapper and through the improvement service;
 * an unusable answer spends the attempt and returns a typed failure, without
   a repair completion;
-* a transport failure spends the attempt and returns a typed failure, without
-  a retry;
+* a transport failure returns a typed failure without a retry, and does not
+  spend the attempt, because nothing was produced to spend it on;
 * the plugin owns no HTTP client, so there is no client-level retry setting
   to disable — proved statically rather than asserted.
 
@@ -107,14 +107,19 @@ def test_a_second_ask_is_refused_before_it_reaches_the_provider() -> None:
 
 
 def test_a_transport_failure_is_counted_and_not_retried() -> None:
-    """A request that failed in flight still happened, and happened once."""
+    """A request that failed in flight still happened, and happened once.
+
+    The request counts because it left the machine, and the accounting is
+    about what was sent. Whether the guided introduction's one attempt is
+    spent is a different question, answered where the attempt lives.
+    """
     port = RefusesASecondRequest(error=TimeoutError("upstream 429"))
     once = OneShotHostLlm(port)
 
     with pytest.raises(HostLlmError) as raised:
         once.complete(_request())
 
-    assert raised.value.code == "host_llm_unavailable"
+    assert raised.value.code == "host_answer_never_arrived"
     assert raised.value.retryable is False
     assert len(port.calls) == 1
     assert once.outbound_requests == 1
@@ -225,10 +230,18 @@ def test_the_guided_proposal_makes_exactly_one_request(
     )
 
 
-def test_a_failed_proposal_spends_the_attempt_with_one_request(
+def test_a_failed_proposal_is_typed_and_makes_one_request(
     improvement_case: Any,
 ) -> None:
-    """Honest typed failure, attempt consumed, and no second call."""
+    """Honest typed failure, one call, and a spent session still refused.
+
+    An answer that never arrived produced nothing, so it does not spend the
+    attempt — that is decided where the attempt lives, not here. What this
+    holds is that the failure is typed, that exactly one request left the
+    machine, and that a session which HAS used its revision is refused before
+    any further request, so restoring an attempt in one case cannot become an
+    unlimited supply in another.
+    """
     port = RefusesASecondRequest(error=RuntimeError("closed stream"))
     service = _service(
         port,
@@ -243,7 +256,7 @@ def test_a_failed_proposal_spends_the_attempt_with_one_request(
             demo_session=improvement_case.session,
         )
 
-    assert raised.value.code == "host_llm_unavailable"
+    assert raised.value.code == "host_answer_never_arrived"
     assert raised.value.retryable is False
     assert len(port.calls) == 1
 
@@ -254,7 +267,7 @@ def test_a_failed_proposal_spends_the_attempt_with_one_request(
                 improvement_case.session, revision_attempts=1
             ),
         )
-    assert len(port.calls) == 1, "the spent turn made no further request"
+    assert len(port.calls) == 1, "a session at its limit made no further request"
 
 
 def test_an_invalid_proposal_spends_the_attempt_with_one_request(
