@@ -49,9 +49,9 @@ defmodule TechtreeWeb.ProofsLive do
         <p class="eyebrow">Participant-attested</p>
         <h1>A verified run</h1>
         <p class="lede">
-          The experiment your agent runs, pinned in advance — and the proof it hands
-          you at the end. Read this before you approve one: what is fixed, what
-          changes, what you get back.
+          Your agent runs one Skill versus another in a <code>verifiers</code>
+          environment. The output is a verified result that can be shared, and used
+          to hill-climb Skill improvement.
         </p>
       </header>
 

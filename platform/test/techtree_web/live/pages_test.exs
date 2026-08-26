@@ -103,24 +103,30 @@ defmodule TechtreeWeb.PagesTest do
       end
     end
 
-    test "Verifiers is only ever named as Prime Intellect's product", %{conn: conn} do
-      # Founder ruling 2026-08-26: the site credits Prime Intellect's
-      # Verifiers by name. The credit is the ONLY sanctioned use — bare
-      # machinery-speak ("the verifiers") stays out of a reader's view.
+    test "Verifiers is only ever named in a sanctioned form", %{conn: conn} do
+      # Founder rulings 2026-08-26: the site credits Prime Intellect's
+      # Verifiers by name, and the founder-worded lede may call the
+      # environment kind a "verifiers environment". Those two forms are the
+      # only sanctioned uses; bare machinery-speak stays out of a reader's view.
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
         body = html |> visible_text() |> String.downcase()
+        parts = String.split(body, "verifiers", trim: false)
 
         bare =
-          body
-          |> String.split("verifiers", trim: false)
-          |> Enum.drop(-1)
-          |> Enum.reject(
-            &String.ends_with?(&1, ["prime intellect's ", "prime intellect\u2019s "])
-          )
+          parts
+          |> Enum.with_index()
+          |> Enum.filter(fn {part, index} ->
+            index < length(parts) - 1 and
+              not String.ends_with?(part, ["prime intellect's ", "prime intellect\u2019s "]) and
+              not (parts
+                   |> Enum.at(index + 1)
+                   |> String.trim_leading()
+                   |> String.starts_with?("environment"))
+          end)
 
-        assert bare == [] or not (body =~ "verifiers"),
-               "#{page} says 'verifiers' without the Prime Intellect credit"
+        assert bare == [],
+               "#{page} says 'verifiers' outside the sanctioned forms"
       end
     end
 
