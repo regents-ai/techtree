@@ -45,3 +45,19 @@ two-thirds" band is qwen-calibrated and does not transfer.
    model choice before that model's band is calibrated.
 2. Band discipline per model: binding wording pattern so each model's
    band is stated only from its own calibration runs.
+
+## Founder answers (2026-08-26, ruled directly, no author relay needed)
+
+1. Additional models are SIBLING Campaigns under one Climb, presented
+   as different lines on the same chart. Uncalibrated models are
+   distinguished by DASHED lines. Chief's binding refinement so this
+   never collides with the no-invented-numbers rule: a line — solid
+   or dashed — is only ever drawn from measured runs. A certified,
+   calibrated band draws solid; preliminary measured runs that are
+   not yet a certified calibration draw dashed and say so in the
+   label; a model with no measured runs gets no line at all, only a
+   legend entry marked "not yet calibrated". A dashed line is a
+   confidence style, never a sketch of data that does not exist.
+2. Per-model band discipline accepted: each model's band is stated
+   only from that model's own calibration runs; copy guards extend to
+   every surface that states a band when the first added model ships.
