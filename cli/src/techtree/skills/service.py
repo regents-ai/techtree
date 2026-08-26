@@ -37,7 +37,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-from typing import Final
+from typing import Final, assert_never
 
 from techtree.canonical import (
     canonical_json_bytes,
@@ -63,7 +63,7 @@ from techtree.manifests.builder import (
 )
 from techtree.manifests.compare import assert_controlled_comparison, compare_manifests
 from techtree.models.base import Digest
-from techtree.models.campaign import CampaignSpec, PublicContext
+from techtree.models.campaign import CampaignSpec, PublicContext, VariantSchedule
 from techtree.models.climb import ResolvedClimb
 from techtree.models.data_policy import DataPolicy
 from techtree.models.experiment import ExperimentManifest, ManifestComparison
@@ -586,10 +586,7 @@ class SkillPreparationService:
             "Results are attested by this machine only. Nobody else has "
             "verified that this run happened as described."
         )
-        warnings.append(
-            "The baseline runs first and the candidate second, on the same "
-            "committed tasks, so the two are compared and not merely reported."
-        )
+        warnings.append(_comparison_warning(resolved.campaign))
         if executor_kind_for(resolved.campaign) == "fake":
             warnings.append(
                 "Nothing produced here is a public proof. No agent is "
@@ -641,6 +638,43 @@ class SkillPreparationService:
             "verified that this run happened as described.",
             *scan.warnings,
         ]
+
+
+# ---------------------------------------------------------------------------
+# How the comparison is run
+# ---------------------------------------------------------------------------
+
+
+def _comparison_warning(campaign: CampaignSpec) -> str:
+    """Say how this Campaign runs its two sides, reading it off the Campaign.
+
+    The approval screen is where a person decides to spend money on a
+    comparison, so the sentence describing how that comparison is controlled
+    has to be the one this Campaign will actually produce. It is therefore
+    derived from ``execution.order`` — the same field the executor dispatches
+    on when it picks between running the two sides side by side and running one
+    after the other (``runs/real.py``). Writing the sentence out by hand is how
+    it came to describe an order the Campaign had not asked for since the day
+    side-by-side execution arrived.
+
+    Exhaustive on purpose: a Campaign that grows a third way of running its two
+    sides fails to typecheck here rather than quietly inheriting a sentence
+    written for a different one.
+    """
+    match campaign.execution.order:
+        case VariantSchedule.PARALLEL:
+            return (
+                "The baseline and the candidate launch in parallel against the "
+                "same committed task set, under matched configuration, so the "
+                "two are compared and not merely reported."
+            )
+        case VariantSchedule.SEQUENTIAL:
+            return (
+                "The baseline runs first and the candidate second, on the same "
+                "committed tasks, so the two are compared and not merely "
+                "reported."
+            )
+    assert_never(campaign.execution.order)
 
 
 # ---------------------------------------------------------------------------
