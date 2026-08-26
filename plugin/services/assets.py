@@ -9,11 +9,20 @@ Every release names both founder Skills concretely (Techtree decisions
 document 0026), so there is no "not chosen yet" state to handle here — what is
 left is the check that matters: the bytes on disk must be the bytes the release
 pinned, or they are not read out to anybody.
+
+Obtaining one is Techtree's job and is asked for by name: ``skill starter``,
+across the ordinary CLI boundary, with no options. Techtree resolves it from
+the address its own release publishes, reuses a copy already on the machine,
+scans it, and proves it against the digest that release pins. What comes back
+is then proved a second time here, against the release *this build* carries,
+because a Skill that satisfied some other release is not the one this
+comparison is about.
 """
 
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, Literal, Protocol
@@ -32,49 +41,85 @@ from ..errors import (
 )
 from ..models import ReleaseCore
 
-CODE_STARTER_SKILL_MISSING: Final = "starter_skill_missing"
+#: Nothing usable came back about the pinned starter Skill, and Techtree did
+#: not say why in its own words.
+CODE_STARTER_SKILL_UNAVAILABLE: Final = "starter_skill_unavailable"
 CODE_STARTER_SKILL_DIGEST_MISMATCH: Final = "starter_skill_digest_mismatch"
 
-
-class StarterSkill(Protocol):
-    """Where the starter Skill is, and what proves it is the right one."""
-
-    path: str
-    digest: str
+#: The read-only Techtree command that puts the starter Skill this release
+#: pins on this machine and says where it landed. It downloads nothing the
+#: release did not already name, and reuses a copy that is already here.
+STARTER_SKILL_ARGUMENTS: Final = ("skill", "starter")
 
 
 class SkillProvider(Protocol):
     """How the plugin obtains the founder-supplied starter Skill."""
 
     def materialize(self, services: Any) -> dict[str, Any]:
-        """Return the local path and verified digest of starter Skill v1."""
+        """Return what Techtree said about the starter Skill on this machine."""
 
 
 class ReleaseSkillProvider:
-    """Asks Techtree for the starter Skill named by this build's release."""
+    """Asks Techtree for the starter Skill named by this build's release.
+
+    The answer is Techtree's own payload, returned unchanged: where the Skill
+    is, the tree digest it was verified against, and the short label a
+    comparison carrying it is filed under. Renaming any of those here would
+    only give the same facts a second set of names to drift between.
+    """
 
     def materialize(self, services: Any) -> dict[str, Any]:
-        """Return the starter Skill this release names.
+        """Return Techtree's own answer about the pinned starter Skill.
 
         Raises:
-            PluginError: with ``starter_skill_missing`` while the installed
-                Techtree exposes no machine command that hands one over.
+            PluginError: carrying Techtree's own code and sentence when the
+                command failed. Nothing is diagnosed here on Techtree's
+                behalf — it knows why it could not hand a Skill over, and
+                repeating what it said is the only honest thing to report.
         """
-        raise PluginError(
-            "the installed Techtree does not offer a way to materialize the "
-            "starter Skill this release names",
-            code=CODE_STARTER_SKILL_MISSING,
-            repair="Update Techtree to the version this plugin release pins.",
-        )
+        envelope = services.bridge.invoke(list(STARTER_SKILL_ARGUMENTS))
+        if not envelope.get("ok"):
+            raise PluginError(_cli_message(envelope), code=_cli_code(envelope))
+
+        data = envelope.get("data")
+        if not isinstance(data, dict):
+            raise PluginError(
+                "Techtree answered the starter Skill command with nothing to read",
+                code=CODE_STARTER_SKILL_UNAVAILABLE,
+            )
+        return dict(data)
+
+
+def _cli_message(envelope: Mapping[str, Any]) -> str:
+    """Return Techtree's own words about a failure, when it wrote any."""
+    error = envelope.get("error")
+    if isinstance(error, Mapping) and isinstance(error.get("message"), str):
+        return str(error["message"])
+    return "Techtree could not put the starter Skill this release pins on this machine"
+
+
+def _cli_code(envelope: Mapping[str, Any]) -> str:
+    """Return Techtree's own code for a failure, when it named one."""
+    error = envelope.get("error")
+    code = error.get("code") if isinstance(error, Mapping) else None
+    if isinstance(code, str) and code:
+        return code
+    return CODE_STARTER_SKILL_UNAVAILABLE
 
 
 def verify_starter_skill_result(result: dict[str, Any], release: ReleaseCore) -> None:
     """Check a materialized Skill against the digest the release names.
 
+    Techtree verifies the Skill against its own release document before it
+    keeps a copy. This is the second half of that, made on the plugin's side:
+    the tree digest that came back has to be the one *this* build's release
+    names, or the Skill is refused however well it verified elsewhere.
+
     Raises:
-        PluginError: when the answer carries no digest, or a different one.
+        PluginError: when the answer carries no digest, a different one, or
+            leaves out something preparing the comparison needs.
     """
-    digest = result.get("digest")
+    digest = result.get("skill_root_digest")
     if not isinstance(digest, str) or not digest:
         raise PluginError(
             "the starter Skill was returned without a digest to check it by",
@@ -86,11 +131,18 @@ def verify_starter_skill_result(result: dict[str, Any], release: ReleaseCore) ->
             code=CODE_STARTER_SKILL_DIGEST_MISMATCH,
             repair="Reinstall the pinned Techtree release.",
         )
-    path = result.get("path")
+    path = result.get("skill_path")
     if not isinstance(path, str) or not path:
         raise PluginError(
             "the starter Skill was returned without a local path",
-            code=CODE_STARTER_SKILL_MISSING,
+            code=CODE_STARTER_SKILL_UNAVAILABLE,
+        )
+    label = result.get("candidate_label")
+    if not isinstance(label, str) or not label:
+        raise PluginError(
+            "the starter Skill was returned without the label its comparison "
+            "is filed under",
+            code=CODE_STARTER_SKILL_UNAVAILABLE,
         )
 
 

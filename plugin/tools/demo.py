@@ -83,8 +83,22 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
 
     reference = services.release_core.intro_climb_reference
     inspection = services.bridge.invoke(["climb", "show", reference])
+    # The label is stated rather than left to default. Techtree keeps a
+    # materialized Skill in a directory named by the digest it was verified
+    # against, and a candidate left unlabelled is filed under its directory's
+    # name — which here is seventy-one characters of hash and means nothing to
+    # a reader. The release's own short name for the candidate comes back with
+    # the Skill, so it is used.
     prepared = services.bridge.invoke(
-        ["climb", "prepare", reference, "--skill", skill["path"]]
+        [
+            "climb",
+            "prepare",
+            reference,
+            "--skill",
+            skill["skill_path"],
+            "--label",
+            skill["candidate_label"],
+        ]
     )
     if not prepared.get("ok"):
         return passthrough(prepared, channel)
@@ -109,7 +123,7 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "data_policy_digest": data.get("data_policy_digest"),
             "campaign_spec_digest": data.get("campaign_spec_digest"),
             "skill_root_digest": data.get("skill_root_digest"),
-            "starter_skill_digest": skill.get("digest"),
+            "starter_skill_digest": skill["skill_root_digest"],
             "estimated_episodes": data.get("estimated_episodes"),
             # The most this Campaign declares it may cost, read off the draft
             # Techtree just prepared. Decision 0019 section 2 puts the budget in
