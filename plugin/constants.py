@@ -76,6 +76,16 @@ CLI_ENVIRONMENT_ALLOWLIST: Final = (
 # change what gets installed.
 CLI_DISTRIBUTION_NAME: Final = "techtree"
 
+# The Python an installation plan installs Techtree on, and the only one. Also
+# a release coordinate: this release states the Python it needs, and the
+# published install command names it (Techtree decisions document 0031).
+#
+# Left to choose, uv installs onto whatever Python this machine already treats
+# as its default, which on a current Mac is newer than Techtree supports. The
+# install then succeeds and Techtree's own Doctor reports a wrong interpreter
+# as the first thing a new user sees. Naming it here is the whole fix.
+CLI_PYTHON_SERIES: Final = "3.12"
+
 DEFAULT_CLI_TIMEOUT_SECONDS: Final = 120.0
 
 # Bound for CLI work that reaches the public release origin, such as catalog

@@ -43,6 +43,7 @@ from .approvals import (
 from .bridge import PathLookup, read_cli_version, resolve_techtree_binary
 from .constants import (
     CLI_DISTRIBUTION_NAME,
+    CLI_PYTHON_SERIES,
     INSTALL_PLAN_TTL_SECONDS,
     PLUGIN_VERSION,
 )
@@ -67,7 +68,10 @@ from .models import (
 TERMINAL_TOOL: Final = "terminal"
 
 #: The fixed shape of the one installation command, filled in from the release.
-INSTALL_ARGUMENTS: Final = ("tool", "install")
+#: The interpreter is named rather than left to the installer to choose, so
+#: that Techtree lands on a Python it supports on a machine whose default is
+#: newer than it supports.
+INSTALL_ARGUMENTS: Final = ("tool", "install", "--python", CLI_PYTHON_SERIES)
 
 #: Where a person learns to install uv. The plugin links; it does not fetch.
 UV_DOCUMENTATION_URL: Final = "https://docs.astral.sh/uv/getting-started/installation/"
