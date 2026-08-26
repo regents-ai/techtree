@@ -40,7 +40,7 @@ from techtree.runs.events import (
     VARIANT_PROGRESS,
 )
 from techtree.verifiers.models import RunPaths, VariantName
-from techtree.verifiers.outputs import EVAL_LOG_FILENAME
+from techtree.verifiers.outputs import EVAL_LOG_PATH
 
 pytestmark = pytest.mark.integration
 
@@ -94,7 +94,9 @@ def write_variant_log(paths: TechtreePaths, run_id: str, text: str) -> None:
     run_paths = RunPaths.for_run(paths, run_id)
     output_dir = run_paths.variant_output_dir(VariantName.BASELINE)
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / EVAL_LOG_FILENAME).write_text(text, encoding="utf-8")
+    log = output_dir / EVAL_LOG_PATH
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text(text, encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +211,7 @@ def test_the_variant_log_response_never_names_a_file(
 
     result = run_cli(paths.root, "run", "logs", run_id, "--variant", "baseline")
 
-    assert EVAL_LOG_FILENAME not in result.stdout
+    assert Path(EVAL_LOG_PATH).name not in result.stdout
 
 
 def test_following_a_variant_log_is_refused_rather_than_half_supported(
@@ -311,5 +313,5 @@ def _watching_payload(*, baseline: int | None, candidate: int | None):  # type: 
         result_available=False,
         result_digest=None,
         error=None,
-        development_only=False,
+        fake_executor=False,
     )

@@ -259,7 +259,7 @@ def test_start_tells_the_person_what_this_run_actually_does(
     codes = [warning["code"] for warning in envelope["warnings"]]
     text = " ".join(warning["text"] for warning in envelope["warnings"])
 
-    assert flow["started"].data()["development_only"] is False
+    assert flow["started"].data()["fake_executor"] is False
     assert codes == ["paid_evaluation_run", "not_publication_eligible"]
     assert "spends money on model calls with prime" in text
     assert "not publication eligible" in text

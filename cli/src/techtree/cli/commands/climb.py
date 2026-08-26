@@ -237,7 +237,10 @@ class ClimbStartPayload(ProtocolModel):
         "host_agent_confirmation",
     ]
     approved_by: ApprovalActor
-    development_only: bool
+    #: Whether this run used the fake executor, and so called no model at all.
+    #: It is not the Climb's proof grade: a Climb whose results may never be
+    #: published is still run for real, against a real model, at real cost.
+    fake_executor: bool
 
 
 def build_catalog_service(context: CliContext) -> CatalogService:
@@ -673,7 +676,7 @@ def _start_payload(
 ) -> ClimbStartPayload:
     """Project the run that was just created, reading its own record for what it is.
 
-    ``development_only`` is the run's executor and nothing else, read from the
+    ``fake_executor`` is the run's executor and nothing else, read from the
     request the start just wrote — the same source ``run status`` answers from,
     so the two can never disagree about the same run.
     """
@@ -686,7 +689,7 @@ def _start_payload(
         data_policy_digest=draft.data_policy_digest,
         policy_acknowledgement_method=approval.acknowledgement.method,
         approved_by=approval.actor,
-        development_only=request.executor_kind == "fake",
+        fake_executor=request.executor_kind == "fake",
     )
 
 
@@ -826,7 +829,7 @@ def _start_warnings(
     """
     warnings: list[CliMessage] = []
 
-    if payload.development_only:
+    if payload.fake_executor:
         warnings.append(
             CliMessage(
                 level=MessageLevel.WARNING,

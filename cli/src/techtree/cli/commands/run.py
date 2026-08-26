@@ -197,7 +197,10 @@ class RunStatusPayload(ProtocolModel):
     result_available: bool
     result_digest: Digest | None
     error: CliError | None
-    development_only: bool
+    #: Whether this run used the fake executor, and so called no model at all.
+    #: It is not the Climb's proof grade: a Climb whose results may never be
+    #: published is still run for real, against a real model, at real cost.
+    fake_executor: bool
 
 
 class RunLogsPayload(ProtocolModel):
@@ -304,7 +307,7 @@ def status_run_command(
         )
         return CommandResult(
             data=payload,
-            warnings=_development_warnings(payload.development_only),
+            warnings=_development_warnings(payload.fake_executor),
             next_actions=_status_next_actions(payload),
         )
 
@@ -332,7 +335,7 @@ def _status_payload(service: RunService, run_id: str) -> RunStatusPayload:
         result_available=status.result_available,
         result_digest=state.result_digest,
         error=state.error,
-        development_only=service.request(run_id).executor_kind == "fake",
+        fake_executor=service.request(run_id).executor_kind == "fake",
     )
 
 
@@ -801,8 +804,8 @@ def _default_format(context: CliContext) -> ResultFormat:
 # ---------------------------------------------------------------------------
 
 
-def _development_warnings(development_only: bool) -> list[CliMessage]:
-    if not development_only:
+def _development_warnings(fake_executor: bool) -> list[CliMessage]:
+    if not fake_executor:
         return []
     return [
         CliMessage(

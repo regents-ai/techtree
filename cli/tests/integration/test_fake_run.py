@@ -208,7 +208,7 @@ def test_starting_a_fake_run_says_no_model_is_called(
     envelope = finished_run["started"].envelope()
     warnings = {warning["code"]: warning["text"] for warning in envelope["warnings"]}
 
-    assert finished_run["started"].data()["development_only"] is True
+    assert finished_run["started"].data()["fake_executor"] is True
     assert "development_only_run" in warnings
     assert "no model is called" in warnings["development_only_run"]
     assert "spends money" not in " ".join(warnings.values())
