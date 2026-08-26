@@ -1,46 +1,59 @@
 {
-  "schema_version": "techtree.bootstrap.v1alpha1",
   "channel": "stable",
-  "placeholder_release": false,
-  "published_at": "2026-08-20T00:00:00Z",
-  "minimums": {
-    "hermes_version": "0.20.1",
-    "python": "3.12",
-    "uv": "0.10.2",
-    "docker_required": true
-  },
   "cli": {
     "distribution": "techtree",
+    "install_argv": [
+      "uv",
+      "tool",
+      "install",
+      "--python",
+      "3.12",
+      "techtree==0.1.0"
+    ],
+    "source_revision": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
     "version": "0.1.0",
-    "source_revision": "a3ea8c585a44bfe9a626aa209f6f18fc65772163",
-    "wheel_sha256": "sha256:5a402a43c5f478eb455ff3e7a9b24c46260d7406b4abfbc8c94e25e2277f63d7",
-    "install_argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.0"]
+    "wheel_sha256": "sha256:90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a"
   },
   "hermes_plugin": {
-    "plugin_id": "techtree",
-    "repository": "regents-ai/techtree-hermes",
-    "revision": "d1d993e73160e7aa3f6739f0b871a425736a7605",
+    "doctor_argv": [
+      "hermes",
+      "plugins",
+      "doctor",
+      "techtree",
+      "--ci"
+    ],
     "install_argv": [
       "hermes",
       "plugins",
       "install",
       "regents-ai/techtree-hermes",
       "--ref",
-      "d1d993e73160e7aa3f6739f0b871a425736a7605",
+      "cc387bd3340d574924e93d216aaa1ab99df9d8c0",
       "--enable"
     ],
-    "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]
+    "plugin_id": "techtree",
+    "repository": "regents-ai/techtree-hermes",
+    "revision": "cc387bd3340d574924e93d216aaa1ab99df9d8c0"
   },
   "introductory_climb": {
-    "reference": "hello-world-climb@1",
-    "host_prompt": "Set up Techtree and run the Hello World Climb."
+    "host_prompt": "Set up Techtree and run the Hello World Climb.",
+    "reference": "hello-world-climb@1"
   },
+  "minimums": {
+    "docker_required": true,
+    "hermes_version": "0.20.1",
+    "python": "3.12",
+    "uv": "0.10.2"
+  },
+  "placeholder_release": false,
+  "published_at": "2026-08-20T00:00:00Z",
+  "schema_version": "techtree.bootstrap.v1alpha1",
   "starter_skill": {
+    "file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+    "media_type": "text/markdown",
     "name": "hello-world-starter-v1",
     "object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
-    "file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
-    "tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
-    "media_type": "text/markdown",
-    "size": 1496
+    "size": 1496,
+    "tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
   }
 }
