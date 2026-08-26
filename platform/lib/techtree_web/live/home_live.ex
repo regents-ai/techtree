@@ -53,7 +53,7 @@ defmodule TechtreeWeb.HomeLive do
           <p class="hero__lede">
             Run a controlled baseline and candidate on your machine. Techtree keeps the
             taskset, model, harness, tools, and budget fixed, then signs the result so
-            another participant can verify or reproduce it.
+            another participant can verify or reproduce it in an identical Environment.
           </p>
 
           <div class="hero__actions">

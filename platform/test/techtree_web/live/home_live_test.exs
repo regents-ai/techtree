@@ -33,7 +33,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert text =~
                "Run a controlled baseline and candidate on your machine. Techtree keeps the " <>
                  "taskset, model, harness, tools, and budget fixed, then signs the result so " <>
-                 "another participant can verify or reproduce it."
+                 "another participant can verify or reproduce it in an identical Environment."
 
       assert text =~ "Techtree v0.1 · development release"
     end
