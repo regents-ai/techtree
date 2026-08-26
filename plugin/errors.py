@@ -34,6 +34,12 @@ CODE_CHANNEL_INVALID: Final = "channel_invalid"
 CODE_HOST_LLM_UNAVAILABLE: Final = "host_llm_unavailable"
 CODE_HOST_LLM_OUTPUT_INVALID: Final = "host_llm_output_invalid"
 CODE_HOST_PROPOSAL_GENERATION_EXHAUSTED: Final = "host_proposal_generation_exhausted"
+#: The host answered, and what came back carried nothing at all: the model
+#: reached the end of what it was allowed to write before it wrote a byte.
+#: This is not "the host offered no model" and it is not "what the model wrote
+#: cannot be used" — it is its own outcome, and the only one where the turn
+#: produced nothing to count.
+CODE_HOST_COMPLETION_TRUNCATED: Final = "host_completion_truncated"
 #: A second completion inside one improvement turn. Decision 0007 and spec
 #: section 8.11: the turn is one shot, and a retry would be a hidden second.
 CODE_HOST_LLM_ALREADY_COMPLETED: Final = "host_llm_already_completed"

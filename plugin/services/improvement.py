@@ -6,12 +6,20 @@ claims to be, and refuses it outright if anything from the exclusion list is
 in there. The plugin never assembles its own view of a run, and never reaches
 past what the context carries.
 
-Then exactly one completion. Not one that succeeds — one that happens. A
-failed or unusable answer still spends the turn, because the promise being
-kept is "one agent reasoning turn", and a retry that only fires on failure is
-a search dressed as an error path. A person can always leave the guided
-introduction and use the ordinary tools; what cannot happen is the plugin
-quietly trying again.
+Then exactly one completion. Not one that succeeds — one that happens. An
+answer that came back and cannot be used still spends the turn, because the
+promise being kept is "one agent reasoning turn", and a retry that only fires
+on failure is a search dressed as an error path. A person can always leave the
+guided introduction and use the ordinary tools; what cannot happen is the
+plugin quietly trying again.
+
+The single exception is a completion that wrote nothing at all — the host
+answered, and no part of an answer came back. There is no candidate, so there
+is nothing the turn produced to count, and the guided introduction's one
+attempt is left where it was. That is a rule about what happened, not about
+what somebody thought of the result: a revision that was written and turns out
+poor, unusable, or worse than the Skill it revises is a measurement, and it
+spends the turn like any other.
 """
 
 from __future__ import annotations
@@ -375,9 +383,15 @@ class ImprovementService:
 
         Raises:
             PluginError: when the run is not a finished one, when the turn has
-                already been spent, or when what came back cannot be used. The
-                turn is spent either way: the returned session records the
-                attempt whether the answer was usable or not.
+                already been spent, or when what came back cannot be used.
+            HostCompletionTruncatedError: when the host answered and nothing
+                the model wrote came back. It is raised rather than returned
+                because no proposal exists, and it is the one failure that
+                leaves the attempt where it was.
+
+        The returned session records the attempt as spent. A caller that does
+        not receive a proposal decides what to store, and the guided
+        introduction's tool is where that decision is written down.
         """
         # The turn limit is checked first, so a second attempt is told the
         # true reason — the turn is spent — rather than something about the

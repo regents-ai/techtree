@@ -40,6 +40,21 @@ the best result against the same tasks is how a controlled comparison becomes
 an uncontrolled one. If a completion fails, the failure is returned to the
 conversation, and asking again is a new thing a person decides to do.
 
+A completion that wrote nothing is its own outcome
+--------------------------------------------------
+
+A model can reach the end of what it is allowed to write before it writes
+anything: the host answers, the provider charges, and no part of an answer
+comes back. ``HostCompletionTruncatedError`` says so in its own words and with
+its own code, and it is the one failure the guided introduction does not count
+as its attempt — there is no candidate, so there is nothing the turn measured.
+Restoring the attempt is not a retry: nothing here asks again, and whether to
+spend a fresh one is a decision a person makes knowing it costs money.
+
+The line is exactly "nothing was produced". An answer the model did write and
+that cannot be used is still an answer, and spending an attempt on it is what
+measuring costs.
+
 Everything sent is bound by a digest — the instructions, the payload, the
 schema, and any text attached to the request, such as the Skill being revised.
 Everything returned is bound by a digest too. A Skill proposed by this seam
@@ -60,6 +75,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
 from .errors import (
+    CODE_HOST_COMPLETION_TRUNCATED,
     CODE_HOST_LLM_ALREADY_COMPLETED,
     CODE_HOST_LLM_OUTPUT_INVALID,
     CODE_HOST_LLM_UNAVAILABLE,
@@ -89,6 +105,19 @@ class HostLlmError(PluginError):
     """The host model could not be used, or did not answer usably."""
 
     code = CODE_HOST_LLM_UNAVAILABLE
+
+
+class HostCompletionTruncatedError(HostLlmError):
+    """The host answered, and the answer carried nothing the model wrote.
+
+    Its own outcome, and its own code, because the three it would otherwise be
+    confused with are three different things to tell somebody. The host was
+    there and it charged. What came back is not a poor revision. And nothing
+    was produced, so there is nothing this turn measured — which is why the
+    guided introduction leaves its one attempt where it was.
+    """
+
+    code = CODE_HOST_COMPLETION_TRUNCATED
 
 
 class HostLlmPort(Protocol):
@@ -335,6 +364,13 @@ def _result_from(answer: Any, request: HostLlmRequest) -> HostLlmResult:
 
     parsed = answer.get("parsed")
     if not isinstance(parsed, Mapping):
+        if _wrote_nothing(answer):
+            raise HostCompletionTruncatedError(
+                "The model ran out of room before it wrote anything. Your "
+                "attempt has not been used. Raising your model's completion "
+                "limit makes this less likely — each attempt costs money at "
+                "your provider."
+            )
         raise HostLlmError(
             "The Host Hermes model reached the configured generation limit "
             "before returning a usable Skill proposal. The provider may have "
@@ -354,6 +390,22 @@ def _result_from(answer: Any, request: HostLlmRequest) -> HostLlmResult:
         provider_request_id=_identifier(answer.get("request_id")),
         provider_response_id=_identifier(answer.get("response_id")),
     )
+
+
+def _wrote_nothing(answer: Mapping[str, Any]) -> bool:
+    """Whether the model wrote no part of an answer at all.
+
+    The distinction the guided introduction turns on, so it is drawn from what
+    the host actually reports rather than from why it happened. A completion
+    that stopped before its first written byte comes back with no structured
+    object and no text beside it. Anything the model did write — an object of
+    the wrong shape, a list, prose where a schema was asked for — is something
+    it produced, however unusable, and is judged as an answer rather than as
+    an absence.
+    """
+    text = answer.get("text")
+    written = isinstance(text, str) and bool(text.strip())
+    return answer.get("parsed") is None and not written
 
 
 def _identifier(value: Any) -> str | None:
