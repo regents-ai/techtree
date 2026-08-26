@@ -77,27 +77,37 @@ svg {
 :root {
   /* One surface. Panels are the same field, a shade apart, never a second
      material. */
-  --page: #0b0d0c;
-  --panel: #111411;
-  --panel-strong: #171b17;
+  --page: #aecacd;
+  --panel: #bcd4d6;
+  --panel-strong: #c9dcde;
 
-  --ink: #f2f5ee;
-  --ink-quiet: #9ca59a;
-  --ink-faint: #697168;
-  --rule: #282e28;
-  --rule-strong: #3d463d;
+  --ink: #161616;
+  --ink-quiet: #44585b;
+  --ink-faint: #5d7174;
+  --rule: #8fabae;
+  --rule-strong: #64848a;
 
-  /* The one Techtree accent: the leaf. It marks what a reader may act on, and
-     never doubles as a state. */
-  --accent: #b8ff57;
-  --accent-lift: #c9ff7f;
-  --accent-ink: #10150d;
+  /* The one Techtree accent: tangerine. It marks what a reader may act on,
+     and never doubles as a state. --accent-deep is the same voice at small
+     text sizes, where the pure accent would not read on powder blue. */
+  --accent: #ff5b19;
+  --accent-lift: #ff7440;
+  --accent-deep: #b23a00;
+  --accent-ink: #161616;
 
-  /* Reserved. Each of these says one thing about a state and nothing else. */
-  --complete: #3fb950;
-  --running: #e3b341;
-  --failed: #f85149;
-  --unavailable: #6e7772;
+  /* The palette's other two quadrants: platinum paper for raised surfaces,
+     charcoal for the terminal blocks and the evidence cards. */
+  --paper: #e5e3d2;
+  --terminal: #161616;
+  --terminal-ink: #e5e3d2;
+  --terminal-rule: #34383a;
+
+  /* Reserved. Each of these says one thing about a state and nothing else.
+     Deep enough to read on powder blue; the dark cards use them as dots. */
+  --complete: #1a7f37;
+  --running: #7d5c00;
+  --failed: #c8321e;
+  --unavailable: #57606a;
 
   --font-prose: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -135,6 +145,10 @@ h2 {
   font-weight: 400;
   letter-spacing: normal;
   line-height: 1.1;
+}
+
+h1 {
+  color: var(--accent);
 }
 
 h1 {
@@ -193,8 +207,13 @@ pre,
 }
 
 code {
-  color: #d9f7b5;
+  color: var(--accent-deep);
   font-size: 0.9em;
+}
+
+.command__block code,
+.command__block {
+  color: var(--terminal-ink);
 }
 
 strong {
@@ -208,7 +227,7 @@ strong {
 }
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--accent-deep);
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 650;
@@ -417,13 +436,13 @@ strong {
 .command {
   min-width: 0;
   margin-top: 0.85rem;
-  border: 1px solid var(--rule);
-  background: var(--panel);
+  border: 1px solid var(--terminal-rule);
+  background: var(--terminal);
 }
 
 .command__head {
   padding: 0.45rem 0.6rem 0.45rem 1rem;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--terminal-rule);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -431,7 +450,7 @@ strong {
 }
 
 .command__label {
-  color: var(--ink-faint);
+  color: color-mix(in srgb, var(--terminal-ink) 62%, var(--terminal));
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.06em;
@@ -443,7 +462,7 @@ strong {
   margin: 0;
   padding: 0.9rem 1rem;
   overflow-x: auto;
-  color: #d9f7b5;
+  color: var(--terminal-ink);
   font-size: 0.82rem;
   line-height: 1.5;
   white-space: pre;
@@ -458,9 +477,9 @@ strong {
 
 .command__copy {
   padding: 0.35rem 0.7rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--terminal-rule);
   background: transparent;
-  color: var(--ink-quiet);
+  color: color-mix(in srgb, var(--terminal-ink) 80%, var(--terminal));
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -708,6 +727,12 @@ strong {
   font-size: 0.9rem;
 }
 
+.what-this-is {
+  margin-top: 2rem;
+  max-width: var(--measure);
+  color: var(--ink-quiet);
+}
+
 /* Evidence graph --------------------------------------------------------- */
 
 .evidence-graph {
@@ -756,12 +781,9 @@ strong {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.8rem 1rem;
-  background-image: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--accent) 13%, transparent) 1px,
-    transparent 1px
-  );
-  background-size: 1.1rem 1.1rem;
+  /* One block from the mark, repeated: the crown reduced to its unit. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Crect width='5' height='5' fill='%23161616' fill-opacity='0.12'/%3E%3C/svg%3E");
+  background-size: 1.375rem 1.375rem;
 }
 
 .evidence-node {
@@ -1655,7 +1677,7 @@ strong {
     --ink-faint: #555;
     --rule: #bbb;
     --rule-strong: #777;
-    --accent: #2e6c00;
+    --accent: #b23a00;
   }
 
   .masthead__nav,
