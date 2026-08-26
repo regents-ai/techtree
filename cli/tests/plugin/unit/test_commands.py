@@ -12,7 +12,6 @@ from typing import Any
 import pytest
 from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bootstrap import create_install_plan
-from techtree_hermes.channels import TRUNCATION_NOTE
 from techtree_hermes.commands import (
     CLI_COMMAND_NAMES,
     SLASH_USAGE,
@@ -343,7 +342,7 @@ def test_a_failure_is_reported_not_raised() -> None:
     assert "Techtree said no" in answer
 
 
-def test_every_answer_is_bounded_and_free_of_control_characters() -> None:
+def test_every_answer_is_whole_and_free_of_control_characters() -> None:
     listing = _envelope(
         "climb list",
         [
@@ -356,7 +355,7 @@ def test_every_answer_is_bounded_and_free_of_control_characters() -> None:
     answer = handle_slash_command("climbs", services)
 
     assert "\x1b" not in answer
-    assert answer.endswith(TRUNCATION_NOTE)
+    assert "climb-199@1" in answer, "the answer is whole, not cut at a guess"
 
 
 # The next-step rule -------------------------------------------------------------------

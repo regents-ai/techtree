@@ -8,7 +8,6 @@ from typing import Any
 import pytest
 from techtree_hermes.channels import (
     DOCUMENTED_CHANNEL_KEYS,
-    GATEWAY_TEXT_LIMIT,
     TRUNCATION_NOTE,
     bounded_gateway_text,
     ensure_gateway_safe,
@@ -92,15 +91,21 @@ def test_ordinary_text_is_left_alone() -> None:
 
 
 def test_short_text_is_not_touched() -> None:
-    assert bounded_gateway_text("a short answer") == "a short answer"
+    assert bounded_gateway_text("a short answer", 3500) == "a short answer"
 
 
 def test_long_text_is_cut_and_says_so() -> None:
+    """A caller that asks for a budget gets one, and is told where it cut.
+
+    There is no default any more. Every budget is now named by whoever wants
+    one, because the single number that used to serve them all was a guess
+    that quietly governed every answer the plugin gave.
+    """
     long_text = "\n".join(f"line {number} of the answer" for number in range(1000))
 
-    bounded = bounded_gateway_text(long_text)
+    bounded = bounded_gateway_text(long_text, 3500)
 
-    assert len(bounded) <= GATEWAY_TEXT_LIMIT
+    assert len(bounded) <= 3500
     assert bounded.endswith(TRUNCATION_NOTE)
     assert "line 0 of the answer" in bounded
 
@@ -109,7 +114,7 @@ def test_a_cut_does_not_split_a_word() -> None:
     digest = "sha256:" + "a" * 64
     text = " ".join([digest] * 500)
 
-    bounded = bounded_gateway_text(text)
+    bounded = bounded_gateway_text(text, 3500)
     body = bounded[: -len(TRUNCATION_NOTE)]
 
     for fragment in body.split():
@@ -130,20 +135,31 @@ def test_a_terminal_may_receive_a_large_answer() -> None:
     assert len(answer["rows"]) == 100
 
 
-def test_a_phone_receives_a_capped_answer_that_admits_it() -> None:
+def test_a_phone_receives_the_whole_answer() -> None:
+    """One budget, whatever is reading.
+
+    There used to be a far smaller one for anything not explicitly a terminal,
+    and no host documents a size at which it splits a message, so the number
+    was a guess. What it bought was answers that vanished at a threshold
+    nobody could point at. A host that splits a long message shows a split
+    message; that is the host's business.
+    """
     answer = json.loads(tool_result(_payload(100), ChannelKind.GATEWAY))
 
-    assert answer["truncated"] is True
-    assert answer["code"] == "tool_result_too_large"
-    assert answer["channel"] == "gateway"
-    assert answer["ok"] is True
+    assert answer.get("truncated") is None
+    assert len(answer["rows"]) == 100
 
 
-def test_an_unknown_channel_is_capped_like_a_phone() -> None:
+def test_an_unknown_channel_receives_the_whole_answer_too() -> None:
+    """Unknown was every call that did not say otherwise, which was most.
+
+    So the small budget was never really the phone's: it governed nearly every
+    answer the plugin gave, including in a terminal.
+    """
     answer = json.loads(tool_result(_payload(100), ChannelKind.UNKNOWN))
 
-    assert answer["truncated"] is True
-    assert answer["channel"] == "unknown"
+    assert answer.get("truncated") is None
+    assert len(answer["rows"]) == 100
 
 
 def test_a_capped_answer_still_carries_what_matters() -> None:
