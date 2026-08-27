@@ -179,13 +179,24 @@ person deciding whether to go ahead is entitled to know which sees what:
 - **your** provider sees the Skill text and the sanitized context, for the one
   revision request.
 
-## What this build cannot do yet
+## Where this build stops
 
-This is an early build. Techtree Hello World stops before preparing a
-comparison, because the starter Skill has not been chosen for this release
-yet, and the plugin says so rather than substituting something else. Proposing
-a revised Skill needs the same release to have chosen its `skill-improver`
-Skill, so it stops for the same reason.
+Not blocked, and not waiting on anything. These are the edges of what v0.1
+does, and somebody is better told before they walk into one.
+
+The guided revision rewrites a single `SKILL.md`. A Skill made of several
+files can be measured, but the revision step will not restructure it, and the
+one attempt a person gets is spent on that one file.
+
+Techtree publishes nothing. The Skill, the episodes, the report and the proof
+stay on the machine that made them, and the tasks still go to the model
+provider the person configured, under that provider's terms. There is no
+upload of results, no leaderboard, and no way to set one person's result
+beside another's: a comparison is meaningful against the other side of its own
+run and nowhere else.
+
+Nobody has reproduced any of it. Every result is attested by a key the
+machine made for itself, and by nothing further.
 
 When a tool tells you it is blocked, relay the reason and the repair it gives.
 Do not work around it.

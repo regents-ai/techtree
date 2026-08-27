@@ -9,12 +9,6 @@ Run the readiness check. It offers a pinned install command that needs the
 user's approval. If `uv` is missing, install that first — the plugin will show
 the documentation link and the usual options, and will not install it for you.
 
-## This plugin build is a development build
-
-Its release coordinates have not been chosen yet, so it will not install
-Techtree and cannot prepare the guided introduction. Say that plainly; there
-is nothing to fix locally, and a published build is the answer.
-
 ## Doctor reports a blocking failure
 
 Something the run needs is not ready — Docker not running, the evaluation
