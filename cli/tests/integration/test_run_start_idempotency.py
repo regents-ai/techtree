@@ -26,7 +26,7 @@ from fixtures.runs.support import (
     wait_for_terminal,
 )
 from techtree.drafts.store import DraftStore
-from techtree.errors import EXIT_OK
+from techtree.errors import EXIT_OK, EXIT_POLICY
 from techtree.fs import remove_tree
 from techtree.ids import new_id
 from techtree.paths import TechtreePaths
@@ -202,6 +202,27 @@ def test_a_person_approves_by_answering_yes(
     assert "human via cli" in started.stdout
     run_id = start_through_the_cli(home, draft).data()["run_id"]
     assert wait_for_terminal(home, run_id)["phase"] == "completed"
+
+
+def test_a_review_nobody_can_answer_starts_nothing_and_says_why(
+    prepared: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """techtree-python-xse. A review that reached nobody is a policy outcome.
+
+    Standard input is closed here, so the question is written and immediately
+    reaches end of input. Nothing about Techtree went wrong: it asked for an
+    approval and was not given one, which is the same answer as a person
+    declining, and it must carry the same code rather than an internal error.
+    """
+    home, paths, draft = prepared
+
+    unanswered = run_cli(home, "climb", "start", draft.draft.id, machine=False)
+
+    assert unanswered.exit_code == EXIT_POLICY
+    assert "Start this run?" in unanswered.stdout
+    assert "Code: policy_acceptance_required" in unanswered.stdout
+    assert "internal_error" not in unanswered.stdout
+    assert not paths.runs_dir.exists() or _runs(paths) == []
 
 
 def test_the_surface_defaults_to_the_command_line_the_approval_was_given_on(

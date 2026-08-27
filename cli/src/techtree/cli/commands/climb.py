@@ -68,6 +68,7 @@ from techtree.catalog.service import (
     current_host_info,
 )
 from techtree.cli.commands.run import build_run_service
+from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import human_console
@@ -651,7 +652,7 @@ def approve_run(
     console.print(draft.policy_acceptance.summary)
     console.print(PUBLICATION_TERMS_LINE)
     console.print()
-    if not typer.confirm("Start this run?", default=False):
+    if not confirmed("Start this run?"):
         raise PolicyError(
             "the run was not approved, so nothing was started",
             code=POLICY_ACCEPTANCE_REQUIRED,

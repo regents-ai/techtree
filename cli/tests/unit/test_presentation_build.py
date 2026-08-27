@@ -51,9 +51,10 @@ from techtree.presentation.compact import render_uplift_markdown
 from techtree.presentation.evidence import RecordedEvidence, VariantEvidence
 from techtree.presentation.models import (
     PresentationCaveat,
+    TaskDisplay,
     UpliftPresentationPayload,
 )
-from techtree.presentation.rich import TaskDisplay, render_uplift_console
+from techtree.presentation.rich import render_uplift_console
 from techtree.receipts.compare import compare_real_variants
 from techtree.receipts.episode import experiment_variant_of
 from techtree.receipts.execution import (

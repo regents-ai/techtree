@@ -6,6 +6,12 @@ anything long. So this renderer is bounded by construction: a headline, the
 counts, the honest qualifications, at most a few task rows, and one sentence
 about what could happen next.
 
+The row cap is a default, not a refusal. A reader who says ``--show-tasks all``
+has asked for every task on purpose, and the bound exists so that an unasked-for
+message is short rather than so that somebody who asked can be told no. So the
+cap applies to the selections a reader did not have to name, and the explicit
+request for everything overrides it.
+
 Two things are *not* dropped to make it fit.
 
 *Every warning and error survives.* Room is made by cutting the table, never by
@@ -38,7 +44,11 @@ from techtree.presentation.build import (
     solved_line,
     task_count_line,
 )
-from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
+from techtree.presentation.models import (
+    TaskDisplay,
+    UpliftPresentationPayload,
+    selected_task_rows,
+)
 
 __all__ = [
     "DEFAULT_MAXIMUM_TASK_ROWS",
@@ -65,12 +75,18 @@ def render_uplift_markdown(
     payload: UpliftPresentationPayload,
     *,
     maximum_task_rows: int = DEFAULT_MAXIMUM_TASK_ROWS,
+    show_tasks: TaskDisplay = TaskDisplay.CHANGED,
 ) -> str:
     """Return compact Markdown suitable for a phone or gateway message.
 
     A result whose proof did not verify says that first and in bold. This is
     the channel a number is most likely to be quoted out of, so the sentence
     that would stop somebody quoting it cannot be further down.
+
+    ``show_tasks`` is the same choice the terminal renderer takes, answered by
+    the same reader through the same option, and it selects rows through the
+    same rule. A reader who asks a piped command for every task and is handed
+    the default five has been told the option works when it did not.
     """
     lines = [
         f"**{decision_headline(payload)} — {solved_line(payload)}**",
@@ -91,17 +107,7 @@ def render_uplift_markdown(
         "- Raw episodes: retained locally; not uploaded",
     ]
 
-    rows = _worst_first(payload)[:maximum_task_rows]
-    if rows:
-        lines.append("")
-        lines.append(
-            f"Largest changes ({len(rows)} of {len(payload.task_rows)} tasks):"
-        )
-        lines.extend(
-            f"- {row.task_label}: {row.baseline_score:.2f} → "
-            f"{row.candidate_score:.2f} ({row.outcome.upper()})"
-            for row in rows
-        )
+    lines += _table(payload, show_tasks, maximum_task_rows)
 
     qualifications = [caveat for caveat in payload.caveats if caveat.severity != "info"]
     if qualifications:
@@ -184,9 +190,57 @@ def _next_line(payload: UpliftPresentationPayload) -> str:
     )
 
 
-def _worst_first(payload: UpliftPresentationPayload) -> list[TaskResultRow]:
-    """Return the tasks that moved, regressions first, ties never."""
-    changed = [row for row in payload.task_rows if row.outcome != "tie"]
-    return sorted(
-        changed, key=lambda row: (0 if row.outcome == "loss" else 1, row.position)
-    )
+def _table(
+    payload: UpliftPresentationPayload, show: TaskDisplay, maximum_task_rows: int
+) -> list[str]:
+    """Return the heading and the rows for the table this reader asked for.
+
+    The cap is the bound this channel keeps by default, and it is applied to
+    every selection except the one a reader had to type out. Asking for all
+    tasks is a deliberate override of a default, so it is honoured; a reader
+    who wanted a short message never asked for the long one.
+
+    A reader who asked for no table, or a selection with nothing in it, gets
+    neither rows nor a heading over them. A heading with nothing underneath is
+    a line that says a table exists somewhere it does not.
+    """
+    selected = selected_task_rows(payload.task_rows, show)
+    shown = selected if show is TaskDisplay.ALL else selected[:maximum_task_rows]
+    if not shown:
+        return []
+    return [
+        "",
+        _heading(payload, show, shown=len(shown), selected=len(selected)),
+        *(
+            f"- {row.task_label}: {row.baseline_score:.2f} → "
+            f"{row.candidate_score:.2f} ({row.outcome.upper()})"
+            for row in shown
+        ),
+    ]
+
+
+def _heading(
+    payload: UpliftPresentationPayload,
+    show: TaskDisplay,
+    *,
+    shown: int,
+    selected: int,
+) -> str:
+    """Say what the rows underneath are, and say when some were left out.
+
+    The heading a reader can check is the heading that names its own
+    selection. Calling a full table the largest changes claims a ranking that
+    nothing performed, and calling a list of losses by the same name reads as
+    though the wins had also been in the running and only just lost.
+
+    The counts follow the same rule. Where every row a reader asked for is
+    printed, the pair says how much of the whole comparison that is; where the
+    cap left some out, it says how many of the asked-for rows are here instead,
+    because that is the number that tells a reader something is missing.
+    """
+    if show is TaskDisplay.ALL:
+        return f"All {selected} tasks:"
+    name = "Regressions" if show is TaskDisplay.REGRESSIONS else "Changed tasks"
+    if shown < selected:
+        return f"{name} ({shown} of {selected} shown):"
+    return f"{name} ({selected} of {len(payload.task_rows)} tasks):"

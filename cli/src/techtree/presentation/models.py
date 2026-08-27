@@ -23,10 +23,19 @@ because something mutated the payload between them.
 credential has no field to enter through, and
 :func:`~techtree.presentation.sanitize.ensure_no_hidden_task_material` checks
 the free text that could carry one anyway.
+
+One thing that is not a field lives here too: :class:`TaskDisplay`, the
+reader's answer to how much of the per-task table they want, and
+:func:`selected_task_rows`, which turns that answer into rows. It is here
+rather than in either renderer because a reader who asks the same question of
+two channels has to be shown the same tasks, and two renderers that each kept
+their own idea of which rows "changed" means could quietly disagree about
+whether a tie is a change.
 """
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Final, Literal, Self
 
 from pydantic import Field, model_validator
@@ -42,9 +51,11 @@ __all__ = [
     "PresentationCaveat",
     "ScoreBar",
     "SkillSummary",
+    "TaskDisplay",
     "TaskOutcome",
     "TaskResultRow",
     "UpliftPresentationPayload",
+    "selected_task_rows",
 ]
 
 #: Deliberately not in :mod:`techtree.constants`, which holds protocol schema
@@ -93,6 +104,45 @@ class TaskResultRow(ProtocolModel):
     candidate_score: float
     delta: float
     outcome: TaskOutcome
+
+
+class TaskDisplay(StrEnum):
+    """Which task rows a reader asked to see."""
+
+    ALL = "all"
+    CHANGED = "changed"
+    REGRESSIONS = "regressions"
+    NONE = "none"
+
+
+#: Losses first, then wins, then ties. Within a group, committed task order.
+_OUTCOME_RANK: Final[dict[str, int]] = {"loss": 0, "win": 1, "tie": 2}
+
+
+def selected_task_rows(
+    rows: list[TaskResultRow], show: TaskDisplay
+) -> list[TaskResultRow]:
+    """Return the rows a reader asked for, worst first.
+
+    A reader scanning a table wants the rows that moved the wrong way, then the
+    ones that moved, then the rest, so the order is fixed here rather than left
+    to whichever channel is drawing. ``TaskDisplay.NONE`` selects nothing at
+    all, which is the honest reading of a reader who said they did not want the
+    table: a channel given no rows prints no table and no heading over it.
+
+    Selecting rows is all this does. No filter can change a count, because
+    every count a reader sees comes from the payload rather than from what a
+    channel happened to have room for.
+    """
+    if show is TaskDisplay.NONE:
+        return []
+    if show is TaskDisplay.REGRESSIONS:
+        chosen = [row for row in rows if row.outcome == "loss"]
+    elif show is TaskDisplay.CHANGED:
+        chosen = [row for row in rows if row.outcome != "tie"]
+    else:
+        chosen = list(rows)
+    return sorted(chosen, key=lambda row: (_OUTCOME_RANK[row.outcome], row.position))
 
 
 class SkillSummary(ProtocolModel):

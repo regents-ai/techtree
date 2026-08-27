@@ -37,6 +37,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import human_console
@@ -51,8 +52,8 @@ from techtree.models.uplift_report import UpliftReport
 from techtree.presentation.build import build_uplift_presentation
 from techtree.presentation.compact import render_uplift_markdown
 from techtree.presentation.evidence import read_recorded_evidence
-from techtree.presentation.models import UpliftPresentationPayload
-from techtree.presentation.rich import TaskDisplay, render_uplift_console
+from techtree.presentation.models import TaskDisplay, UpliftPresentationPayload
+from techtree.presentation.rich import render_uplift_console
 from techtree.receipts.bundle import (
     BUNDLE_DIRECTORY,
     PROOF_BUNDLE_INVALID,
@@ -549,7 +550,7 @@ def cancel_run_command(
 
     def action() -> CommandResult[RunCancelPayload]:
         service = build_run_service(context)
-        _require_cancel_confirmation(context, run_id, confirm=confirm)
+        _require_cancel_confirmation(context, service, run_id, confirm=confirm)
 
         cancellation = service.cancel(run_id)
         state = cancellation.status.state
@@ -577,10 +578,24 @@ def cancel_run_command(
 
 
 def _require_cancel_confirmation(
-    context: CliContext, run_id: str, *, confirm: bool
+    context: CliContext, service: RunService, run_id: str, *, confirm: bool
 ) -> None:
-    """Require an explicit yes, from a person or from an option."""
+    """Require an explicit yes, from a person or from an option.
+
+    A confirmation is asked for because something is about to be stopped, so a
+    run that has already ended is not asked about at all. There is no work left
+    to lose, ``cancel`` will report that it changed nothing, and a question
+    whose only honest answer is "nothing would happen either way" is a question
+    that should not have been put to somebody.
+
+    Reading the run's state first is also how an identifier that names no run
+    stops being a question. Asking whether to stop a run that does not exist,
+    and only then saying it does not exist, wastes the reader's answer on a
+    decision there was never anything to decide.
+    """
     if confirm:
+        return
+    if is_terminal(service.status(run_id).state.phase):
         return
     if context.no_input:
         raise UsageError(
@@ -589,7 +604,7 @@ def _require_cancel_confirmation(
             code=CANCEL_CONFIRMATION_REQUIRED,
             details={"run_id": run_id},
         )
-    if not typer.confirm(f"Stop run {run_id}?", default=False):
+    if not confirmed(f"Stop run {run_id}?"):
         raise UsageError(
             f"run {run_id} was left running",
             code=CANCEL_CONFIRMATION_REQUIRED,
@@ -887,13 +902,26 @@ def _read_result(run_id: str) -> NextAction:
 
 
 def _render_status(data: object, console: Console) -> None:
+    """Show where a run is, saying only what is true of where it is.
+
+    Progress measures work in flight through the phase the run is in now, and
+    a run that has ended has no work in flight. Its progress is not zero and it
+    is not complete; there is simply nothing left for the row to be about, and
+    ``Phase`` above has already said how the run finished. So the row is left
+    out for a terminal run, the way ``Cancellation`` and ``Error`` are left out
+    of a run that has neither, rather than filled in with a number nothing
+    measured.
+    """
     if not isinstance(data, RunStatusPayload):
         return
 
     rows = [
         ("Run", data.run_id),
         ("Phase", data.phase.value),
-        ("Progress", _progress_text(data.progress)),
+    ]
+    if not data.terminal:
+        rows.append(("Progress", _progress_text(data.progress)))
+    rows += [
         ("Worker", _worker_text(data)),
         ("Heartbeat", _heartbeat_text(data)),
         ("Result", "ready" if data.result_available else "not yet"),
@@ -944,6 +972,13 @@ def _variant_state(variant: VariantProgress | None) -> str:
 
 
 def _progress_text(progress: RunProgress | None) -> str:
+    """Say how far through its current phase a live run has got.
+
+    A live run with nothing recorded yet has not started the work this phase
+    measures, which is what the words say. Only a live run is asked: a run that
+    has ended is not given this row at all, because "not started" would be an
+    answer about work that finished long ago.
+    """
     if progress is None:
         return "not started"
     return f"{progress.current} of {progress.total} {progress.label}"
@@ -1005,7 +1040,9 @@ def _render_result(data: object, console: Console) -> None:
         _render_result_paths(data, console)
         return
     if data.format is ResultFormat.COMPACT:
-        console.print(render_uplift_markdown(data.presentation))
+        console.print(
+            render_uplift_markdown(data.presentation, show_tasks=data.show_tasks)
+        )
         return
     render_uplift_console(data.presentation, console, show_tasks=data.show_tasks)
 

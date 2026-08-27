@@ -5,7 +5,7 @@ uses to follow it have to say so honestly: status exposes both sides' episode
 counts to a program and shows them side by side to a person, and logs can be
 pointed at one side's evaluation rather than at the worker's own output.
 
-Three rules are tested here, and each of them is a rule about not overstating
+Four rules are tested here, and each of them is a rule about not overstating
 what is known.
 
 *No delta before both sides finish.* A partial mean of a partial run reads like
@@ -17,6 +17,10 @@ with rich output disabled is a dump of every subject transcript.
 
 *A variant that has not started says so.* Asking for a log that does not exist
 yet is an ordinary answer, not a crash.
+
+*A run that has ended reports no position.* Progress measures work in flight
+through the phase a run is in, and a run that has finished has none. The phase
+already says what happened, so the row is left out rather than filled in.
 """
 
 from __future__ import annotations
@@ -25,7 +29,7 @@ from pathlib import Path
 
 import pytest
 
-from fixtures.runs.support import run_cli, run_harness
+from fixtures.runs.support import execute_in_process, run_cli, run_harness
 from techtree.cli.commands.run import PROVISIONAL_SCORE
 from techtree.errors import EXIT_OK
 from techtree.models.run import RunPhase
@@ -149,6 +153,45 @@ def test_no_uplift_is_shown_while_either_side_is_unfinished(
 
     assert PROVISIONAL_SCORE in result.stdout
     assert "provisional until every task completes" in _unwrapped(result.stdout)
+
+
+def test_a_run_still_going_reports_where_it_has_got_to(
+    comparison: RunningRun,
+) -> None:
+    """techtree-python-1sl. The row exists for exactly as long as it means something."""
+    paths, run_id = comparison
+
+    result = run_cli(paths.root, "run", "status", run_id, machine=False)
+
+    assert result.exit_code == EXIT_OK
+    assert "Progress" in result.stdout
+
+
+def test_a_run_that_has_ended_reports_no_progress_at_all(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """techtree-python-1sl. A finished run used to report that it never started.
+
+    Entering a phase discards the position inside the last one, so a finished
+    run holds no progress, and the row read as though the run had never begun
+    while the phase beside it said it had completed. There is no number to put
+    there and no completion to claim; the phase has already said how it ended.
+    """
+    home = tmp_path_factory.mktemp("techtree-home")
+    harness = run_harness(home)
+    run_id = harness.start().state.run_id
+    execute_in_process(harness, run_id)
+
+    result = run_cli(harness.paths.root, "run", "status", run_id, machine=False)
+
+    assert result.exit_code == EXIT_OK
+    assert "completed" in result.stdout
+    assert "Progress" not in result.stdout
+    # The machine envelope is a contract and says exactly what it always said:
+    # a caller reading `phase` already has the answer.
+    machine = run_cli(harness.paths.root, "run", "status", run_id).data()
+    assert machine["progress"] is None
+    assert machine["terminal"] is True
 
 
 def test_a_run_with_no_variants_shows_no_comparison_table(

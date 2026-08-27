@@ -59,7 +59,7 @@ def finished(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     return {"home": home, "run_id": run.run_id, "paths": run.paths}
 
 
-def compact(finished: dict[str, Any]) -> str:
+def compact(finished: dict[str, Any], *arguments: str) -> str:
     result = run_cli(
         finished["home"],
         "run",
@@ -67,6 +67,21 @@ def compact(finished: dict[str, Any]) -> str:
         finished["run_id"],
         "--format",
         "compact",
+        *arguments,
+        machine=False,
+    )
+    assert result.exit_code == EXIT_OK, result.stderr
+    return result.stdout
+
+
+def piped(finished: dict[str, Any], *arguments: str) -> str:
+    """Ask for the result the way a script does: no format, nothing at a terminal."""
+    result = run_cli(
+        finished["home"],
+        "run",
+        "result",
+        finished["run_id"],
+        *arguments,
         machine=False,
     )
     assert result.exit_code == EXIT_OK, result.stderr
@@ -141,6 +156,40 @@ def test_the_compact_result_is_short_enough_to_send(
     text = compact(finished)
 
     assert len(text.splitlines()) < 56
+
+
+def test_a_piped_reader_who_asks_for_every_task_is_given_them(
+    finished: dict[str, Any],
+) -> None:
+    """techtree-python-fg1. The command's own next action tells a script to ask.
+
+    Nothing that reads this product is at a terminal, so the flag being real in
+    the terminal rendering alone was the flag not being real at all.
+    """
+    default = piped(finished)
+    everything = piped(finished, "--show-tasks", "all")
+
+    assert everything != default
+    assert len(default) < len(everything)
+    assert default.count("(WIN)") == 5
+    assert everything.count("(WIN)") == 24
+    assert everything.count("(TIE)") == 12
+
+
+def test_the_compact_result_shows_only_what_was_asked_for(
+    finished: dict[str, Any],
+) -> None:
+    none = compact(finished, "--show-tasks", "none")
+    regressions = compact(finished, "--show-tasks", "regressions")
+
+    # This run has no losses, so both of these have no table to print.
+    assert "(WIN)" not in none
+    assert "Changed tasks" not in none
+    assert "All 36 tasks:" not in none
+    assert "(WIN)" not in regressions
+    assert "Regressions" not in regressions
+    # Cutting the table never cuts a qualification.
+    assert "The comparison is controlled with warnings" in " ".join(none.split())
 
 
 def test_the_compact_result_offers_one_next_step_in_words(

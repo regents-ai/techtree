@@ -34,7 +34,6 @@ be the only command in the product that answers that question twice.
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Final
 
 from rich.console import Console
@@ -54,19 +53,13 @@ from techtree.presentation.build import (
     solved_line,
     task_count_line,
 )
-from techtree.presentation.models import TaskResultRow, UpliftPresentationPayload
+from techtree.presentation.models import (
+    TaskDisplay,
+    UpliftPresentationPayload,
+    selected_task_rows,
+)
 
-__all__ = ["TaskDisplay", "outcome_label", "render_uplift_console"]
-
-
-class TaskDisplay(StrEnum):
-    """Which task rows a reader asked to see."""
-
-    ALL = "all"
-    CHANGED = "changed"
-    REGRESSIONS = "regressions"
-    NONE = "none"
-
+__all__ = ["outcome_label", "render_uplift_console"]
 
 _SEVERITY_PREFIX: Final[dict[str, str]] = {
     "info": "Note:",
@@ -85,9 +78,6 @@ _OUTCOME_LABEL: Final[dict[str, str]] = {
     "loss": "LOSS",
     "tie": "TIE",
 }
-
-#: Losses first, then wins, then ties. Within a group, committed task order.
-_OUTCOME_RANK: Final[dict[str, int]] = {"loss": 0, "win": 1, "tie": 2}
 
 _VERIFICATION_BADGE: Final[dict[str, str]] = {
     VERIFICATION_VERIFIED: "local proof verified offline",
@@ -187,9 +177,9 @@ def _tasks(
     """The per-task table, regressions first."""
     if show is TaskDisplay.NONE:
         return
-    rows = _selected(payload.task_rows, show)
+    rows = selected_task_rows(payload.task_rows, show)
     if not rows:
-        console.print("Every task scored the same on both sides.")
+        console.print(_nothing_selected(show))
         console.print()
         return
 
@@ -216,15 +206,21 @@ def _tasks(
     console.print()
 
 
-def _selected(rows: list[TaskResultRow], show: TaskDisplay) -> list[TaskResultRow]:
-    """Return the rows a reader asked for, worst first."""
+def _nothing_selected(show: TaskDisplay) -> str:
+    """Say why the table is empty, in terms of what was asked for.
+
+    An empty selection and an unchanged comparison are not the same fact, and
+    one sentence cannot honestly stand for both. Asking a run that solved
+    twenty-three tasks to list its regressions finds none, and answering that
+    with "every task scored the same" contradicts the three lines directly
+    above it — the reader is told the run improved and then told it did not.
+    So each selection says what its own emptiness means.
+    """
     if show is TaskDisplay.REGRESSIONS:
-        chosen = [row for row in rows if row.outcome == "loss"]
-    elif show is TaskDisplay.CHANGED:
-        chosen = [row for row in rows if row.outcome != "tie"]
-    else:
-        chosen = list(rows)
-    return sorted(chosen, key=lambda row: (_OUTCOME_RANK[row.outcome], row.position))
+        return "No task scored worse with the Skill than without it."
+    if show is TaskDisplay.ALL:
+        return "This run recorded no tasks."
+    return "Every task scored the same on both sides."
 
 
 def _efficiency(payload: UpliftPresentationPayload, console: Console) -> None:

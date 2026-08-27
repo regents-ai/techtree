@@ -29,7 +29,7 @@ from fixtures.runs.support import (
     wait_for_terminal,
     wait_until,
 )
-from techtree.errors import EXIT_OK, EXIT_USAGE
+from techtree.errors import EXIT_NOT_FOUND, EXIT_OK, EXIT_USAGE
 from techtree.paths import TechtreePaths
 from techtree.runs.events import read_events
 from techtree.skills.service import PreparedDraft
@@ -175,6 +175,101 @@ def test_a_person_who_says_no_leaves_the_run_alone(tmp_path: Path) -> None:
     assert refused.exit_code == EXIT_USAGE
     wait_for_terminal(home, run_id)
     assert run_cli(home, "run", "status", run_id).data()["phase"] == "completed"
+
+
+# ---------------------------------------------------------------------------
+# Who is asked, and when
+# ---------------------------------------------------------------------------
+
+
+def test_a_run_that_has_already_ended_is_never_asked_about(tmp_path: Path) -> None:
+    """techtree-python-253. There is nothing left to stop, so there is nothing to ask.
+
+    Nothing answers this command's standard input, so a confirmation put to a
+    finished run would not merely be pointless: it would be unanswerable, and
+    the command would fail where it should have said that the run had ended.
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    _, prepared = prepare_only(home)
+    run_id = start_through_the_cli(home, prepared).data()["run_id"]
+    wait_for_terminal(home, run_id)
+
+    cancelled = run_cli(home, "run", "cancel", run_id, machine=False)
+
+    assert cancelled.exit_code == EXIT_OK, cancelled.stdout + cancelled.stderr
+    assert "Stop run" not in cancelled.stdout
+    assert "had already ended in completed" in cancelled.stdout
+    assert "A run that has ended cannot be cancelled" in " ".join(
+        cancelled.stdout.split()
+    )
+
+
+def test_an_identifier_that_names_no_run_is_never_asked_about(
+    tmp_path: Path,
+) -> None:
+    """techtree-python-253. Answering a question about a run nobody has."""
+    home = tmp_path / "home"
+    home.mkdir()
+    prepare_only(home)
+
+    missing = run_cli(home, "run", "cancel", "run_" + "0" * 32, machine=False)
+
+    assert missing.exit_code == EXIT_NOT_FOUND
+    assert "Stop run" not in missing.stdout
+    assert "Code: run_not_found" in missing.stdout
+
+
+def test_a_run_that_is_still_going_is_still_asked_about(
+    slow_run: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """techtree-python-253. Reading the state replaced no question worth asking."""
+    home, _, prepared = slow_run
+    run_id = _start_and_reach_baseline(home, prepared)
+
+    refused = run_cli(home, "run", "cancel", run_id, machine=False, stdin="n\n")
+
+    assert refused.exit_code == EXIT_USAGE
+    assert f"Stop run {run_id}?" in refused.stdout
+    assert run_cli(home, "run", "status", run_id).data()["phase"] != "cancelled"
+    run_cli(home, "run", "cancel", run_id, "--confirm")
+    wait_for_terminal(home, run_id)
+
+
+def test_a_confirmation_nobody_can_answer_is_a_usage_outcome(
+    slow_run: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """techtree-python-xse. An unanswered question is not a defect in Techtree.
+
+    Standard input is closed, so the prompt reaches end of input the instant it
+    is written. That is the same outcome as a person saying no, and reporting
+    it as an internal error told the caller the product was broken.
+    """
+    home, _, prepared = slow_run
+    run_id = _start_and_reach_baseline(home, prepared)
+
+    unanswered = run_cli(home, "run", "cancel", run_id, machine=False)
+
+    assert unanswered.exit_code == EXIT_USAGE
+    assert "Code: run_cancel_confirmation_required" in unanswered.stdout
+    assert "internal_error" not in unanswered.stdout
+    assert run_cli(home, "run", "status", run_id).data()["phase"] != "cancelled"
+    run_cli(home, "run", "cancel", run_id, "--confirm")
+    wait_for_terminal(home, run_id)
+
+
+def test_a_piped_yes_is_a_caller_that_genuinely_answered(
+    slow_run: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """techtree-python-xse. Having no terminal is not the same as having no answer."""
+    home, _, prepared = slow_run
+    run_id = _start_and_reach_baseline(home, prepared)
+
+    cancelled = run_cli(home, "run", "cancel", run_id, machine=False, stdin="y\n")
+
+    assert cancelled.exit_code == EXIT_OK, cancelled.stdout + cancelled.stderr
+    assert f"Stop run {run_id}?" in cancelled.stdout
+    assert wait_for_terminal(home, run_id)["phase"] == "cancelled"
 
 
 def _event_kinds(paths: TechtreePaths, run_id: str) -> list[str]:

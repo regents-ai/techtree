@@ -42,10 +42,11 @@ from techtree.presentation.models import (
     EconomicsSource,
     PresentationCaveat,
     SkillSummary,
+    TaskDisplay,
     TaskResultRow,
     UpliftPresentationPayload,
 )
-from techtree.presentation.rich import TaskDisplay, render_uplift_console
+from techtree.presentation.rich import render_uplift_console
 from techtree.receipts.execution import CostProvenance
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
@@ -255,6 +256,36 @@ def test_the_reader_chooses_how_much_of_the_table_to_see(
     text = rendered(payload(), show_tasks=show)
 
     assert len(re.findall(r"task \d\d · ", text)) == expected
+
+
+def test_an_empty_selection_says_why_it_is_empty_and_not_something_false() -> None:
+    """A selection with nothing in it is not the same fact as an unchanged run.
+
+    The shipped example run solved twenty-three of thirty-six tasks and
+    regressed on none. Asking it for its regressions used to answer "every task
+    scored the same on both sides", three lines under a headline saying the run
+    improved.
+    """
+    improved = payload().model_copy(
+        update={
+            "task_rows": [row for row in payload().task_rows if row.outcome != "loss"]
+        }
+    )
+
+    text = rendered(improved, show_tasks=TaskDisplay.REGRESSIONS)
+
+    assert "No task scored worse with the Skill than without it." in text
+    assert "Every task scored the same" not in text
+
+
+def test_a_run_where_nothing_moved_still_says_so() -> None:
+    unchanged = payload().model_copy(
+        update={
+            "task_rows": [row for row in payload().task_rows if row.outcome == "tie"]
+        }
+    )
+
+    assert "Every task scored the same on both sides." in rendered(unchanged)
 
 
 def test_a_filtered_table_says_that_it_is_filtered() -> None:
@@ -617,6 +648,84 @@ def test_the_compact_rendering_is_bounded() -> None:
     assert len(text.splitlines()) < 30
 
 
+@pytest.mark.parametrize(
+    ("show", "expected"),
+    [
+        (TaskDisplay.ALL, 20),
+        (TaskDisplay.CHANGED, 5),
+        (TaskDisplay.REGRESSIONS, 1),
+        (TaskDisplay.NONE, 0),
+    ],
+)
+def test_the_gateway_reader_chooses_how_much_of_the_table_to_see(
+    show: TaskDisplay, expected: int
+) -> None:
+    """techtree-python-fg1. The option a piped result advertises has to work."""
+    text = render_uplift_markdown(payload(), show_tasks=show)
+
+    assert len(re.findall(r"task \d\d · ", text)) == expected
+
+
+def test_asking_the_gateway_for_every_task_overrides_the_default_bound() -> None:
+    """The cap keeps an unasked-for message short; it does not refuse a reader."""
+    text = render_uplift_markdown(payload(task_count=40), show_tasks=TaskDisplay.ALL)
+
+    assert len(re.findall(r"task \d\d · ", text)) == 40
+    assert text.splitlines()[0].startswith("**")
+
+
+def test_the_gateway_shows_the_ties_only_when_every_task_was_asked_for() -> None:
+    everything = render_uplift_markdown(payload(), show_tasks=TaskDisplay.ALL)
+    changed = render_uplift_markdown(payload(), show_tasks=TaskDisplay.CHANGED)
+
+    assert "(TIE)" in everything
+    assert "(TIE)" not in changed
+
+
+def test_a_gateway_reader_who_wants_no_table_gets_no_heading_either() -> None:
+    text = render_uplift_markdown(payload(), show_tasks=TaskDisplay.NONE)
+
+    assert "Changed tasks" not in text
+    assert "Regressions" not in text
+    assert "All 20 tasks:" not in text
+    assert "(WIN)" not in text
+
+
+@pytest.mark.parametrize(
+    ("show", "heading"),
+    [
+        (TaskDisplay.ALL, "All 20 tasks:"),
+        (TaskDisplay.CHANGED, "Changed tasks (5 of 11 shown):"),
+        (TaskDisplay.REGRESSIONS, "Regressions (1 of 20 tasks):"),
+    ],
+)
+def test_the_gateway_heading_names_the_rows_it_is_printing(
+    show: TaskDisplay, heading: str
+) -> None:
+    """A heading that claims a ranking nothing performed is a heading that lies."""
+    text = render_uplift_markdown(payload(), show_tasks=show)
+
+    assert heading in text
+    assert "Largest changes" not in text
+
+
+def test_the_gateway_heading_stops_saying_rows_were_cut_when_they_were_not() -> None:
+    text = render_uplift_markdown(
+        payload(), show_tasks=TaskDisplay.CHANGED, maximum_task_rows=11
+    )
+
+    assert "Changed tasks (11 of 20 tasks):" in text
+    assert "shown" not in text
+
+
+def test_the_gateway_still_keeps_every_caveat_when_every_task_is_shown() -> None:
+    """The cap may cut a row; nothing may cut a qualification."""
+    text = render_uplift_markdown(payload(task_count=40), show_tasks=TaskDisplay.ALL)
+
+    assert "The comparison is controlled with warnings." in text
+    assert "- Proof: local P1, signature verified offline" in text
+
+
 def test_the_compact_rendering_stays_bounded_with_everything_on() -> None:
     """Every line these tickets add, on one message, still fits a phone."""
     text = render_uplift_markdown(
@@ -743,7 +852,7 @@ def test_the_compact_rendering_names_the_proof_beside_the_numbers() -> None:
 
 def test_the_compact_rendering_shows_the_regression_first() -> None:
     text = render_uplift_markdown(payload())
-    body = text[text.index("Largest changes") :]
+    body = text[text.index("Changed tasks") :]
 
     assert body.index("LOSS") < body.index("WIN")
 
