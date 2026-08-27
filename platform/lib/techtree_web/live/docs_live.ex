@@ -120,8 +120,8 @@ defmodule TechtreeWeb.DocsLive do
             </p>
             <p>
               Preparation does not make model calls. It shows what will run, what may change,
-              where model requests go, and the Campaign’s cost limit. Nothing that spends
-              model tokens starts without explicit approval.
+              where model requests go, and the Campaign’s cost limit. Nothing causing LLM
+              token spend starts on its own.
             </p>
           </header>
 

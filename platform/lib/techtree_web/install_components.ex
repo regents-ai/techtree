@@ -181,7 +181,7 @@ defmodule TechtreeWeb.InstallComponents do
         and holds no balance.
       </p>
       <p>
-        Nothing that spends model tokens starts on its own. Before each run you are
+        Nothing causing LLM token spend starts on its own. Before each run you are
         shown how many tasks will run, the most that run may cost, and exactly what is
         changing, and it waits for you to say yes. The introductory Climb is small on
         purpose.

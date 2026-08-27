@@ -76,10 +76,8 @@ defmodule TechtreeWeb.CampaignsLiveTest do
 
     for {digest, label} <- [
           {CatalogFixture.campaign_digest(), "Campaign definition"},
-          {"sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948",
-           "Task validation"},
-          {"sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
-           "Data policy"}
+          {CatalogFixture.taskset_validation_digest(), "Task validation"},
+          {CatalogFixture.data_policy_digest(), "Data policy"}
         ] do
       assert live
              |> element(~s|a[href="/api/v1/objects/#{digest}"]|, label)

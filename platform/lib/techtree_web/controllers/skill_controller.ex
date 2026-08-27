@@ -55,7 +55,7 @@ defmodule TechtreeWeb.SkillController do
     ```
 
     Read the preparation output and run the exact one-time `techtree climb start`
-    command it prints. Nothing that spends model tokens starts without approval.
+    command it prints. Nothing causing LLM token spend starts on its own.
 
     ## Data boundary
 

@@ -14,8 +14,10 @@ defmodule Techtree.CatalogFixture do
 
   @climb_reference "hello-world-climb@1"
   @climb_path "climbs/hello-world-climb.json"
-  @campaign_digest "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7"
-  @catalog_digest "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386"
+  @campaign_digest "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1"
+  @catalog_digest "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c"
+  @taskset_validation_digest "sha256:4944bd71caa1a295e03325b18a7af753d0d8fcf787189c89244209171cda1302"
+  @data_policy_digest "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9"
 
   # Stand-ins with the shape of a real coordinate and none of its meaning.
   @commit String.duplicate("a", 40)
@@ -182,4 +184,18 @@ defmodule Techtree.CatalogFixture do
   """
   @spec catalog_digest() :: String.t()
   def catalog_digest, do: @catalog_digest
+
+  @doc """
+  The publisher's signed task-validation receipt, and the data policy.
+
+  Written out here rather than hashed from the fixture, for the same reason
+  the campaign digest is: a test that recomputes the number it is checking
+  cannot notice the fixture changing underneath it. When the science moves
+  these move with it, by hand, which is the point.
+  """
+  @spec taskset_validation_digest() :: String.t()
+  def taskset_validation_digest, do: @taskset_validation_digest
+
+  @spec data_policy_digest() :: String.t()
+  def data_policy_digest, do: @data_policy_digest
 end

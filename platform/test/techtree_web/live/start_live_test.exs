@@ -191,7 +191,7 @@ defmodule TechtreeWeb.StartLiveTest do
       end
     end
 
-    test "the guide says who is billed for a trial and that nothing paid starts unasked",
+    test "the guide says who is billed and that nothing spends tokens unasked",
          %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start")
       text = visible_text(html)
@@ -200,6 +200,10 @@ defmodule TechtreeWeb.StartLiveTest do
       assert text =~ "Techtree charges nothing and holds no balance."
       assert text =~ "the most that run may cost"
       assert text =~ "waits for you to say yes"
+      # Founder wording, 2026-08-27. Somebody deciding whether to install this
+      # is owed the sentence in the words he chose for it, and the surface
+      # where they decide is the one that must not paraphrase it.
+      assert text =~ "Nothing causing LLM token spend starts on its own"
     end
 
     test "the placeholder release is labelled where the commands are shown", %{conn: conn} do
