@@ -39,7 +39,7 @@ defmodule TechtreeWeb.HomeLive do
   # here once. It is an address on this site and the name of the introductory
   # Climb — neither of which belongs to any one release — so unlike a command it
   # is not read from the release record, and it stays true when the record moves.
-  @agent_line "Go to techtree.sh/download and set up Techtree and run the Hello World Climb."
+  @agent_line "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
 
   @impl true
   def mount(_params, _session, socket) do

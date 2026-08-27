@@ -57,11 +57,11 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
 
       assert visible_text(html) =~
-               "Go to techtree.sh/download and set up Techtree and run the Hello World Climb."
+               "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
 
       assert live
              |> element(
-               ~s|#copy-home-agent-line[data-copy-value="Go to techtree.sh/download and set up | <>
+               ~s|#copy-home-agent-line[data-copy-value="Go to techtree.sh/start and set up | <>
                  ~s|Techtree and run the Hello World Climb."]|
              )
              |> has_element?()
@@ -209,7 +209,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     # The line for the agent names no coordinate, so it survives; the half of
     # the panel that would need one is not printed at all.
-    assert text =~ "Go to techtree.sh/download"
+    assert text =~ "Go to techtree.sh/start"
     refute html =~ "copy-home-install"
     refute html =~ "copy-home-doctor"
   end
