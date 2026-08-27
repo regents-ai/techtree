@@ -136,8 +136,17 @@ In any session:
 In a terminal, where Techtree's own rendered output belongs:
 
 ```text
-hermes techtree doctor | demo | status <run> | watch <run> | result <run> | verify <path>
+hermes techtree doctor            is this machine ready to run a Climb?
+hermes techtree demo              prepare Techtree Hello World
+hermes techtree status <run>      how a run is progressing
+hermes techtree watch <run>       follow a run until it ends
+hermes techtree result <run>      the finished report for a run
+hermes techtree verify <path>     check a local proof, offline
 ```
+
+Everything this plugin adds to your terminal sits under the one word
+`techtree`, so nothing here takes a name of its own alongside Hermes' own
+commands. `hermes techtree` on its own lists what you just read.
 
 `watch` follows a run live in your terminal. Nothing the model can call ever
 holds an open watch — a conversation that is waiting is a conversation that

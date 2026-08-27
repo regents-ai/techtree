@@ -71,8 +71,8 @@ class SkillDiff:
         if self.truncated_lines:
             payload["truncated_lines"] = self.truncated_lines
             payload["see_all_of_it"] = (
-                "Run `hermes techtree result` in a terminal, or read the two "
-                "Skills, to see the whole difference."
+                "Run `hermes techtree result <run-id>` in a terminal, or read "
+                "the two Skills, to see the whole difference."
             )
         return payload
 

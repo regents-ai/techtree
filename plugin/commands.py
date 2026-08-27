@@ -16,6 +16,13 @@ output belongs. ``watch`` in particular runs Techtree's live view against the
 user's own terminal; no model-visible tool ever holds an open watch, because a
 tool call that never returns is a conversation that never continues.
 
+That surface is one command deep on purpose. The host turns every name a
+plugin registers into ``hermes <name>``, so this plugin registers the single
+name ``techtree`` and hangs its verbs off that. A verb registered on its own
+would be a bare ``hermes doctor`` or ``hermes watch`` — the first four of ours
+shadowed by Hermes's own commands of those names, the rest a top-level word
+taken from everyone else who might want it.
+
 The grammar is fixed. A subcommand is looked up in a table, its arguments are
 checked, and anything else is refused with the list of what does exist. There
 is no passthrough: nothing a user or a model types becomes part of a command.
@@ -57,7 +64,7 @@ class SlashCommandHandler:
 
 
 class CliCommand(NamedTuple):
-    """One ``hermes techtree …`` terminal subcommand."""
+    """One verb beneath ``hermes techtree``."""
 
     help: str
     setup: Callable[[Any], None]
@@ -93,14 +100,21 @@ def handle_slash_command(raw_args: str, services: Any) -> str:
 
 
 def register_cli_subcommands(ctx: Any, services: Any) -> None:
-    """Register the ``hermes techtree …`` terminal-only commands."""
-    for name, command in sorted(build_cli_commands(services).items()):
-        ctx.register_cli_command(
-            name=name,
-            help=command.help,
-            setup_fn=command.setup,
-            handler_fn=command.handler,
-        )
+    """Register the one ``techtree`` terminal command and its verbs.
+
+    The host turns each registered name into ``hermes <name>``, so exactly one
+    name is registered — our own — and every verb lives beneath it. Registering
+    the verbs themselves would put ``doctor``, ``demo``, ``status`` and
+    ``verify`` up against Hermes's own commands of those names, and would claim
+    ``watch`` and ``result`` as top-level words that are not ours to take.
+    """
+    command = build_cli_command(services)
+    ctx.register_cli_command(
+        name=CLI_COMMAND,
+        help=command.help,
+        setup_fn=command.setup,
+        handler_fn=command.handler,
+    )
 
 
 # The slash grammar ------------------------------------------------------------
@@ -583,8 +597,8 @@ def _cli_demo(services: Any) -> Callable[[Any], int]:
     return run
 
 
-def build_cli_commands(services: Any) -> Mapping[str, CliCommand]:
-    """Return the terminal subcommands, bound to this session's services."""
+def build_cli_verbs(services: Any) -> Mapping[str, CliCommand]:
+    """Return the verbs of `hermes techtree`, bound to this session's services."""
     return {
         "doctor": CliCommand(
             help="check that this machine is ready to run a Climb",
@@ -619,9 +633,39 @@ def build_cli_commands(services: Any) -> Mapping[str, CliCommand]:
     }
 
 
-#: What `hermes techtree …` offers. The commands themselves are built per
-#: session, because each one runs against that session's services.
-CLI_COMMAND_NAMES: tuple[str, ...] = (
+def build_cli_command(services: Any) -> CliCommand:
+    """Return the single `techtree` terminal command for this session.
+
+    Its setup hangs every verb off the parser the host hands us, and its
+    handler is what runs when a person types `hermes techtree` and stops: the
+    same help the parser would print for `--help`, and nothing else.
+    """
+
+    def setup(parser: Any) -> None:
+        # Kept so the handler can print the help of the parser it belongs to.
+        parser.set_defaults(techtree_parser=parser)
+        verbs = parser.add_subparsers(dest="techtree_verb", metavar="<verb>")
+        for name, verb in build_cli_verbs(services).items():
+            subparser = verbs.add_parser(name, help=verb.help, description=verb.help)
+            verb.setup(subparser)
+            subparser.set_defaults(func=verb.handler)
+
+    def handler(namespace: Any) -> int:
+        namespace.techtree_parser.print_help()
+        return 0
+
+    return CliCommand(help=CLI_COMMAND_HELP, setup=setup, handler=handler)
+
+
+#: The one name registered with the host, which it turns into `hermes techtree`.
+CLI_COMMAND = "techtree"
+
+#: What the host shows beside `techtree` in `hermes --help`.
+CLI_COMMAND_HELP = "Operate Techtree from the terminal"
+
+#: The verbs beneath it. The verbs themselves are built per session, because
+#: each one runs against that session's services.
+CLI_VERB_NAMES: tuple[str, ...] = (
     "doctor",
     "demo",
     "status",
@@ -704,10 +748,13 @@ def _usage(headline: str) -> str:
 
 
 __all__ = [
-    "CLI_COMMAND_NAMES",
+    "CLI_COMMAND",
+    "CLI_COMMAND_HELP",
+    "CLI_VERB_NAMES",
     "SLASH_COMMANDS",
     "CliCommand",
-    "build_cli_commands",
+    "build_cli_command",
+    "build_cli_verbs",
     "handle_slash_command",
     "parse_slash_args",
     "register_cli_subcommands",
