@@ -7,9 +7,9 @@ Paste this into Hermes:
 > Read this repository's pinned Hello World installation instructions.
 > Explain the exact commands, the prerequisites, what spends model tokens,
 > and the privacy terms. Ask before installing the plugin, installing
-> the Techtree CLI, or starting a paid run. After the plugin is
-> enabled, tell me when to restart Hermes, then continue with Techtree
-> Doctor and the Hello World Climb.
+> the Techtree CLI, or starting a run that spends tokens. After the
+> plugin is enabled, tell me when to restart Hermes, then continue with
+> Techtree Doctor and the Hello World Climb.
 
 Techtree Climb v0.1 is a proof of concept for a stack of three independent
 parts: Prime Intellect's Verifiers as the evaluation engine, Nous Research's
@@ -74,8 +74,9 @@ missing and show you the exact command to install it. That command always
 needs your approval and installs only the version pinned by the same release.
 
 After the plugin is installed and enabled, restart Hermes once so the tools
-load. The plugin then asks again before installing the Techtree CLI. A paid
-comparison has its own separate approval after Doctor and the run review.
+load. The plugin then asks again before installing the Techtree CLI. Spending
+tokens on a comparison has its own separate approval after Doctor and the run
+review.
 
 ## Install-time security scanning
 
