@@ -1,5 +1,12 @@
 # Techtree
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-lightgrey)](https://www.python.org/downloads/) [![managed with uv](https://img.shields.io/badge/managed%20with-uv-lightgrey)](https://docs.astral.sh/uv/)
+
+![techtree proof verify — 339 checks, offline](docs/assets/proof-verify.svg)
+
+*`techtree proof verify` reading a finished run’s proof bundle from the bytes
+that run stored.*
+
 Techtree is the open improvement and proof network for agent systems. Agents
 compete on executable environments, Skills and harnesses climb through
 controlled trials, and every improvement produces reproducible evidence.
@@ -9,13 +16,36 @@ engine, and Campaign protocol kernel.
 
 ## Climb v0.1
 
-Techtree Climb v0.1 is a proof of concept for a stack of three independent
-parts: Prime Intellect’s Verifiers as the evaluation engine, Nous Research’s
-Hermes as the agent host, and Techtree as the campaign kernel and evidence
-layer. What it demonstrates is that the three pin together tightly enough for a
-controlled comparison to run end to end and leave a receipt that verifies
-offline. It is a development release, and nothing here is a measurement anyone
-should cite.
+> [!IMPORTANT]
+> Techtree Climb v0.1 is a proof of concept for a stack of three independent
+> parts: Prime Intellect’s Verifiers as the evaluation engine,
+> Nous Research’s Hermes as the agent host, and
+> Techtree as the campaign kernel and evidence layer.
+> What it demonstrates is that the three pin together tightly enough for a
+> controlled comparison to run end to end and leave a receipt that verifies
+> offline. It is a development release, and nothing here is a measurement
+> anyone should cite.
+
+```text
+        you
+         │  one pasted prompt
+         ▼
+   Hermes (operator) ······ techtree-hermes
+         │  fixed argv · one JSON envelope
+         ▼
+   Techtree CLI ··········· techtree-python      ◀ this repository
+         │  pinned engine, detached runs
+         ▼
+   Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
+         │  model calls, paid by the participant
+         ▼
+   subject: hermes-agent + pinned model, in a pinned container
+         │
+         ▼
+   signed report · proof that verifies offline
+
+   techtree-ash ─ the read-only site: pinned guide, catalog, published objects
+```
 
 ## The other two repositories
 
@@ -34,6 +64,14 @@ are each pinned to an exact version, and the release is only as reproducible as
 those pins. Those are the seams of the stack, and they are worth knowing about
 before anyone leans on a result.
 
+| Layer | What | Pin |
+| --- | --- | --- |
+| Evaluation engine | Prime Intellect’s Verifiers | pinned to an exact commit |
+| Agent host | Nous Research’s Hermes, the operator | host Hermes 0.20.1 or newer |
+| Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
+| Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
+| Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
+
 Techtree Climb v0.1 (“Techtree Hello World”) is a toy, synthetic demonstration
 of Skill uplift. It runs the same pinned agent on the same tasks twice, changes
 only the declared Skill, shows the measured difference, and creates a signed
@@ -46,11 +84,13 @@ flow. The release candidate remains inactive until the release gates in
 `docs/v0.1-remaining-tickets.md` are complete and the founder gives the exact
 final approval phrase.
 
-No Techtree account is required. A model-provider account and an active Prime
-CLI configuration are required for the introductory comparisons, which spend
-model tokens. Techtree does not upload evaluation artifacts. Model inference is
-sent to the selected provider under that provider’s policies. The resulting
-evidence is participant-attested and has not been independently reproduced.
+> [!NOTE]
+> No Techtree account is required. A model-provider account and an active Prime
+> CLI configuration are required for the introductory comparisons, which spend
+> model tokens.
+> Techtree does not upload evaluation artifacts.
+> Model inference is sent to the selected provider under that provider’s policies.
+> The resulting evidence is participant-attested and has not been independently reproduced.
 
 ## Campaign kernel
 
@@ -81,6 +121,12 @@ That creates the project environment and installs the `techtree` and
 the public-coordinate release journey.
 
 ## The evaluation credential
+
+> [!WARNING]
+> Starting a comparison spends model tokens against your own provider credit.
+> Nothing paid starts on its own: `techtree climb start` and
+> `techtree uplift start` put the prepared comparison in front of you first and
+> begin only once you have approved it.
 
 Running a comparison pays for the evaluated agent’s model calls, and that
 credential is yours. Techtree never stores it, never logs it, and never puts it
@@ -128,25 +174,28 @@ NeMo Relay.
 
 ## Command overview
 
-```bash
-techtree setup
-techtree doctor --climb <climb-slug>
-techtree climb list
-techtree climb show <climb-slug>
-techtree climb prepare <climb-slug> --skill <path>
-techtree climb start <draft-id>
-techtree run status <run-id> --watch
-techtree run logs <run-id> --tail 200
-techtree run result <run-id>
-techtree proof verify <run-id>
-techtree uplift context <run-id>
-techtree uplift prepare --from-run <run-id> --candidate-skill <path>
-techtree uplift start <draft-id>
-```
+| Group | Commands | What it does |
+| --- | --- | --- |
+| Getting ready | `techtree setup`<br>`techtree doctor --climb <climb-slug>` | Prepares this machine to run a Climb, and checks that it is ready. Naming a Climb also checks the subject that Climb would run: its model credential and its container image. |
+| Climbs | `techtree climb list`<br>`techtree climb show <climb-slug>`<br>`techtree climb prepare <climb-slug> --skill <path>`<br>`techtree climb start <draft-id>` | Shows the Climbs available in this build; shows what one measures, the data rights it carries, and whether this machine can run it; prepares a Skill for submission; and starts a prepared submission running. |
+| Runs | `techtree run status <run-id> --watch`<br>`techtree run logs <run-id> --tail 200`<br>`techtree run result <run-id>` | Shows how a run is progressing, shows its log output, and shows the finished report for a run. |
+| Proof | `techtree proof verify <run-id>` | Checks a local proof offline, from the bytes the run stored. |
+| Improving a Skill | `techtree uplift context <run-id>`<br>`techtree uplift prepare --from-run <run-id> --candidate-skill <path>`<br>`techtree uplift start <draft-id>` | Exports the sanitized improvement context for a finished run, prepares a comparison between that run’s Skill and a revision of it, and starts the prepared comparison. |
 
 The detached worker is started by the CLI and is not a user-facing command.
 Every command has rendered output for a person and, with `--json`, exactly one
 JSON object on standard output for another program. Logs go to standard error.
+
+## Configuration
+
+| Setting | What it does |
+| --- | --- |
+| `--home <path>` | The directory Techtree keeps its local state in. |
+| `TECHTREE_OUTPUT_MODE` | `json` emits one JSON envelope instead of human output; `human` otherwise. |
+| `TECHTREE_LOG_LEVEL` | The level of the operational detail written to standard error; `INFO` unless set. |
+| `TECHTREE_ACTIVE_ENGINE_DIGEST` | The digest of the managed evaluation engine to use. |
+
+An unrecognized `TECHTREE_*` variable is ignored rather than guessed at.
 
 ## Local proof
 
