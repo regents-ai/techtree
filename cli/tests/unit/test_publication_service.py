@@ -385,19 +385,24 @@ def test_no_address_is_sent_unless_one_was_given(
 
     outcome = publisher.publish(publisher.plan(PROOF_RUN_ID))
 
-    assert transport.submission.contributor_address_unverified is None
+    assert transport.addresses == [None]
     assert outcome.contributor_address_sent is False
 
 
-def test_an_address_travels_in_the_body_and_lands_nowhere_on_disk(
+def test_an_address_travels_beside_the_body_and_lands_nowhere_on_disk(
     proof: RecordedProof, runs_dir: Path, tmp_path: Path
 ) -> None:
     """The rule that makes an address safe to ask for.
 
-    It goes into the request and into nothing else: not the journal, not the
-    receipt, not the proof, not any file anywhere under the Techtree home. The
-    search below is over every byte of the tree rather than over the files this
-    test happens to know about.
+    It goes beside the request and into nothing else: not into the submission,
+    not the journal, not the receipt, not the proof, not any file anywhere under
+    the Techtree home. The search below is over every byte of the tree rather
+    than over the files this test happens to know about.
+
+    Beside rather than inside is the whole of it. The run log stores the
+    submission it is given and serves those exact bytes back at a public
+    address, so an address written into the body would be public by
+    construction however carefully everything after it behaved.
     """
     transport = StubTransport()
     publisher = service(runs_dir, transport)
@@ -406,8 +411,11 @@ def test_an_address_travels_in_the_body_and_lands_nowhere_on_disk(
         publisher.plan(PROOF_RUN_ID), contributor_address=ADDRESS.lower()
     )
 
-    assert transport.submission.contributor_address_unverified == ADDRESS.lower()
+    assert transport.addresses == [ADDRESS.lower()]
     assert outcome.contributor_address_sent is True
+    # Not in the body either, which is the bytes the run log serves back.
+    assert ADDRESS.lower().encode() not in transport.bodies[0].lower()
+    assert ADDRESS[2:].lower().encode() not in transport.bodies[0].lower()
     for path in sorted(tmp_path.rglob("*")):
         if not path.is_file():
             continue

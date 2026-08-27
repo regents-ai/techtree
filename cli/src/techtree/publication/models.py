@@ -71,9 +71,6 @@ class PublicationSubmission(ProtocolModel):
     #: file below. One value identifies the whole submission.
     bundle_digest: Digest
     files: list[SubmittedFile]
-    #: An address somebody chose to leave, in its canonical lowercase form.
-    #: The name is the record: nothing here proves the sender controls it.
-    contributor_address_unverified: NonEmptyString | None = None
 
     @model_validator(mode="after")
     def _check_the_files_are_a_bundle(self) -> Self:

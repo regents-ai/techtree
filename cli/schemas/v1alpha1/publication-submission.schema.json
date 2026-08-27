@@ -45,17 +45,6 @@
     "bundle_digest": {
       "$ref": "#/$defs/Digest"
     },
-    "contributor_address_unverified": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/NonEmptyString"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
-    },
     "files": {
       "items": {
         "$ref": "#/$defs/SubmittedFile"

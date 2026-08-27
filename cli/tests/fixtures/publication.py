@@ -63,13 +63,18 @@ class StubTransport:
         self, answer: Callable[[PublicationSubmission], bytes] | None = None
     ) -> None:
         self.bodies: list[bytes] = []
+        #: What travelled beside each body. An address is never inside one.
+        self.addresses: list[str | None] = []
         self.endpoints: list[str] = []
         self._answer = answer
 
-    def submit(self, *, endpoint: str, body: bytes) -> bytes:
+    def submit(
+        self, *, endpoint: str, body: bytes, contributor_address: str | None
+    ) -> bytes:
         """Record what was sent and return what the test wants back."""
         self.endpoints.append(endpoint)
         self.bodies.append(body)
+        self.addresses.append(contributor_address)
         submission = PublicationSubmission.model_validate_json(body)
         if self._answer is not None:
             return self._answer(submission)
@@ -85,7 +90,9 @@ class StubTransport:
 class RefusingTransport:
     """A run log nobody can reach, which is every run log today."""
 
-    def submit(self, *, endpoint: str, body: bytes) -> bytes:
+    def submit(
+        self, *, endpoint: str, body: bytes, contributor_address: str | None
+    ) -> bytes:
         """Fail the way an unreachable address fails."""
         raise TechtreeError(
             "the run log could not be reached, so nothing was sent",

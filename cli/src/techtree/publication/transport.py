@@ -22,6 +22,13 @@ and a scheme that permitted it would be a setting somebody could get wrong once.
 *Nothing in the address bar.* The submission is a request body. Nothing this
 module sends is ever appended to a URL or a query string, so nothing can end up
 in a proxy log, in an access log, or in a browser history.
+
+*A volunteered address travels beside the body, never inside it.* The run log
+stores the submission it was given and serves those exact bytes back at a public
+address, so anything inside the body is public by construction. An address is
+not, so it goes in a header the log reads and does not echo. This is the shape
+the receiving side settled on for the same reason, and the two halves have to
+agree or the log refuses the submission.
 """
 
 from __future__ import annotations
@@ -34,6 +41,7 @@ from urllib.parse import urlsplit
 from techtree.errors import TechtreeError, ValidationError
 
 __all__ = [
+    "CONTRIBUTOR_ADDRESS_HEADER",
     "PUBLICATION_ENDPOINT_INVALID",
     "PUBLICATION_TRANSPORT_FAILED",
     "HttpsPublicationTransport",
@@ -50,6 +58,10 @@ PUBLICATION_TRANSPORT_FAILED: Final = "publication_transport_failed"
 _MEDIA_TYPE: Final = "application/json"
 _TIMEOUT_SECONDS: Final = 120.0
 
+#: Where a volunteered address travels. Beside the body, never inside it: the
+#: run log serves a stored submission back at a public address.
+CONTRIBUTOR_ADDRESS_HEADER: Final = "x-techtree-contributor-address"
+
 #: Enough for a proof bundle several times over, and small enough that a
 #: misconfigured address answering with something enormous is refused rather
 #: than read into memory.
@@ -59,7 +71,9 @@ _MAX_RESPONSE_BYTES: Final = 4 * 1024 * 1024
 class PublicationTransport(Protocol):
     """Send one submission and return whatever came back."""
 
-    def submit(self, *, endpoint: str, body: bytes) -> bytes:
+    def submit(
+        self, *, endpoint: str, body: bytes, contributor_address: str | None
+    ) -> bytes:
         """Return the response body, or raise a typed failure."""
         ...
 
@@ -67,17 +81,22 @@ class PublicationTransport(Protocol):
 class HttpsPublicationTransport:
     """The real request: one POST, one response, no redirects followed."""
 
-    def submit(self, *, endpoint: str, body: bytes) -> bytes:
+    def submit(
+        self, *, endpoint: str, body: bytes, contributor_address: str | None
+    ) -> bytes:
         """POST ``body`` to ``endpoint`` and return the response bytes."""
+        headers = {
+            "Content-Type": _MEDIA_TYPE,
+            "Accept": _MEDIA_TYPE,
+            "Content-Length": str(len(body)),
+        }
+        if contributor_address is not None:
+            headers[CONTRIBUTOR_ADDRESS_HEADER] = contributor_address
         request = urllib.request.Request(
             validated_endpoint(endpoint),
             data=body,
             method="POST",
-            headers={
-                "Content-Type": _MEDIA_TYPE,
-                "Accept": _MEDIA_TYPE,
-                "Content-Length": str(len(body)),
-            },
+            headers=headers,
         )
         try:
             with urllib.request.urlopen(request, timeout=_TIMEOUT_SECONDS) as response:

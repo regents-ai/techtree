@@ -38,7 +38,6 @@ from techtree.cli.commands.publish import (
 )
 from techtree.errors import EXIT_OK, EXIT_USAGE, EXIT_VERIFICATION
 from techtree.publication.journal import PublicationJournal
-from techtree.publication.models import PublicationSubmission
 from techtree.publication.service import (
     PUBLICATION_RECEIPT_FILENAME,
     PublicationPlan,
@@ -46,8 +45,11 @@ from techtree.publication.service import (
 )
 
 #: The one transport every invocation in this module shares, so a test can look
-#: at what the command sent after the process it ran in has exited.
+#: at what the command sent after the process it ran in has exited. The address
+#: has its own list because it does not travel in the body: the run log serves a
+#: stored submission back at a public address, so it goes beside one.
 SENT: Final[list[bytes]] = []
+SENT_ADDRESSES: Final[list[str | None]] = []
 
 
 class RecordingTransport(StubTransport):
@@ -58,10 +60,15 @@ class RecordingTransport(StubTransport):
     list because each invocation builds its own instance.
     """
 
-    def submit(self, *, endpoint: str, body: bytes) -> bytes:
+    def submit(
+        self, *, endpoint: str, body: bytes, contributor_address: str | None
+    ) -> bytes:
         """Record the request where the test can read it, then answer."""
         SENT.append(body)
-        return super().submit(endpoint=endpoint, body=body)
+        SENT_ADDRESSES.append(contributor_address)
+        return super().submit(
+            endpoint=endpoint, body=body, contributor_address=contributor_address
+        )
 
 
 @pytest.fixture
@@ -71,6 +78,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root.mkdir()
     write_proof(signed_proof(root), root / "runs" / PROOF_RUN_ID)
     SENT.clear()
+    SENT_ADDRESSES.clear()
     monkeypatch.setattr(publish_module, "HttpsPublicationTransport", RecordingTransport)
     monkeypatch.setenv(ENDPOINT_VARIABLE, ENDPOINT)
     return root
@@ -270,8 +278,7 @@ def test_the_address_question_is_asked_once_and_defaults_to_no(
 
     assert result.exit_code == EXIT_OK
     assert result.stdout.count("Leave an address with this run?") == 1
-    sent = PublicationSubmission.model_validate_json(SENT[0])
-    assert sent.contributor_address_unverified is None
+    assert SENT_ADDRESSES == [None]
 
 
 def test_the_address_question_says_nothing_is_offered_for_it(home: Path) -> None:
@@ -289,8 +296,7 @@ def test_an_address_given_at_the_prompt_is_sent_in_its_canonical_form(
     result = invoke(home, "proof", "publish", PROOF_RUN_ID, stdin=f"y\n{ADDRESS}\ny\n")
 
     assert result.exit_code == EXIT_OK
-    sent = PublicationSubmission.model_validate_json(SENT[0])
-    assert sent.contributor_address_unverified == ADDRESS.lower()
+    assert [ADDRESS.lower()] == SENT_ADDRESSES
 
 
 def test_a_machine_publishing_without_the_option_sends_no_address(
@@ -299,8 +305,7 @@ def test_a_machine_publishing_without_the_option_sends_no_address(
     """Nobody was asked, so nobody volunteered anything."""
     invoke(home, "--json", "proof", "publish", PROOF_RUN_ID, "--yes")
 
-    sent = PublicationSubmission.model_validate_json(SENT[0])
-    assert sent.contributor_address_unverified is None
+    assert SENT_ADDRESSES == [None]
 
 
 def test_a_mistyped_address_stops_the_publication(home: Path) -> None:

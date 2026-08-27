@@ -214,9 +214,13 @@ class PublicationService:
         """Send the planned submission, record what happened, and return it.
 
         ``contributor_address`` is already canonical by the time it arrives:
-        checking it is :mod:`techtree.publication.address`'s job, and this
-        method's job is to make sure it goes into the request body and nowhere
-        else at all.
+        checking it is :mod:`techtree.publication.address`'s job. This method's
+        job is to make sure it travels beside the request and nowhere else at
+        all — not into the submission, not into the journal, not into a log
+        line. The run log stores what it is sent and serves those exact bytes
+        back at a public address, so an address inside the body would be public
+        by construction; the receiving side reads it from a header for that
+        reason and refuses a body carrying anything but the proof.
         """
         journal = PublicationJournal(self._run_dir(plan.run_id))
         self._record(journal, plan, status=PublicationStatus.PENDING)
@@ -274,11 +278,11 @@ class PublicationService:
             run_id=plan.run_id,
             bundle_digest=plan.bundle_digest,
             files=plan.files,
-            contributor_address_unverified=contributor_address,
         )
         response = self._transport.submit(
             endpoint=validated_endpoint(plan.endpoint),
             body=canonical_json_bytes(submission),
+            contributor_address=contributor_address,
         )
         return self._receipt(response, plan)
 
