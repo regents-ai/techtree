@@ -227,7 +227,7 @@
         "--python",
         "3.12",
         "--find-links",
-        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
         "techtree==0.1.0"
       ],
       "argv_first_attempt_result": "exit 0, reported 'Uninstalled 1 package / Installed 1 package', and left the OLD build in place: release info still read source_commit 7f5370c5. uv served the same-versioned wheel from its own cache.",
@@ -239,7 +239,7 @@
         "--python",
         "3.12",
         "--find-links",
-        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
         "techtree==0.1.0"
       ],
       "only_member_rewritten_by_the_installer": "techtree-0.1.0.dist-info/RECORD",
@@ -288,7 +288,7 @@
         "hermes",
         "plugins",
         "install",
-        "file:///Users/sean/Documents/techtree-climb/techtree-plugin",
+        "file:///Users/redacted/Documents/techtree-climb/techtree-plugin",
         "--ref",
         "b4f6a5c5db960c5cf916a8f401ff2069e12504ba",
         "--force"
@@ -644,7 +644,7 @@
         "hermes",
         "plugins",
         "install",
-        "file:///Users/sean/Documents/techtree-climb/techtree-plugin",
+        "file:///Users/redacted/Documents/techtree-climb/techtree-plugin",
         "--ref",
         "0670ff11c2572c7cc43da2a18efd68871924f470",
         "--enable"
@@ -678,7 +678,7 @@
         "--python",
         "3.12",
         "--find-links",
-        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
         "techtree==0.1.0"
       ],
       "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. --python 3.12 pins the supported interpreter; without it uv chose 3.14.7 on this machine, which is outside the declared range (see open_findings).",
@@ -1094,7 +1094,7 @@
         "--python",
         "3.12",
         "--find-links",
-        "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
         "techtree==0.1.0"
       ],
       "only_member_rewritten_by_the_installer": "techtree-0.1.0.dist-info/RECORD",
@@ -1143,7 +1143,7 @@
         "hermes",
         "plugins",
         "install",
-        "file:///Users/sean/Documents/techtree-climb/techtree-plugin",
+        "file:///Users/redacted/Documents/techtree-climb/techtree-plugin",
         "--ref",
         "f6ff4a3fd80e1553fffa39ecad9d23169337e832",
         "--enable"

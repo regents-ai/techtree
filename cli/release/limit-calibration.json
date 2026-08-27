@@ -16,7 +16,7 @@
     "soft_overshoot": "Token limits are checked between turns, so the turn crossing a cap still completes. A cap of X therefore permits X + one turn."
   },
   "evidence_scope": {
-    "root": "/Users/sean/Documents/techtree-climb/certification-evidence",
+    "root": "/Users/redacted/Documents/techtree-climb/certification-evidence",
     "campaign_spec_digests": [
       "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
       "sha256:f2f04ae5c9e8 (v1-vs-v2 runs)"

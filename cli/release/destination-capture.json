@@ -95,7 +95,7 @@
       "151.101.128.223:443": 2,
       "151.101.192.223:443": 2
      },
-     "path": "/Users/sean/Documents/techtree-climb/certification-evidence/wp11e-2026-08-19/evidence/netwatch.log",
+     "path": "/Users/redacted/Documents/techtree-climb/certification-evidence/wp11e-2026-08-19/evidence/netwatch.log",
      "samples": 374,
      "sha256": "6a160f68e770d6d635a83c000ea0a21d32f7900e69c33f53651716b5a159f937",
      "window_utc": {
@@ -112,7 +112,7 @@
       "151.101.128.223:443": 1,
       "151.101.64.223:443": 1
      },
-     "path": "/Users/sean/Documents/techtree-climb/certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch.log",
+     "path": "/Users/redacted/Documents/techtree-climb/certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch.log",
      "samples": 378,
      "sha256": "b5e583fe400475577ac5ef8e27c9b1463ce77bfa0cb39836d54272aa9e4a065a",
      "window_utc": {
@@ -127,7 +127,7 @@
       "104.18.8.113:443": 241,
       "104.18.9.113:443": 6
      },
-     "path": "/Users/sean/Documents/techtree-climb/certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch-a3.log",
+     "path": "/Users/redacted/Documents/techtree-climb/certification-evidence/wp11e-recert-2026-08-20/evidence/netwatch-a3.log",
      "samples": 132,
      "sha256": "87dadc580c5985e9adfc724a79deed32629bfe01a8c63ac0cb9b266c93d7a143",
      "window_utc": {

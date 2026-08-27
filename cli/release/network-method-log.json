@@ -27,7 +27,7 @@
   }
  ],
  "contract": "docs/release/contracts/wp11g.md, no-upload method 2",
- "executable": "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+ "executable": "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
  "generated_on": "2026-08-23",
  "host": "Darwin 25.5.0 arm64",
  "instrument": "tools/network_method_probe.py",
@@ -65,7 +65,7 @@
  "steps": [
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/python",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/python",
     "-c",
     "<self-test source>"
    ],
@@ -98,7 +98,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--version"
    ],
    "dns_lookups": [],
@@ -111,7 +111,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "doctor"
    ],
@@ -125,7 +125,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "release",
     "info"
@@ -140,7 +140,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "release",
     "verify"
@@ -155,7 +155,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "climb",
     "list"
@@ -170,7 +170,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "climb",
     "show",
@@ -186,7 +186,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "run",
     "status",
@@ -202,7 +202,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "skill",
     "starter"
@@ -236,7 +236,7 @@
   },
   {
    "argv": [
-    "/Users/sean/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree",
     "--json",
     "skill",
     "starter"

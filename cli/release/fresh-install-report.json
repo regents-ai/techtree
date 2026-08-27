@@ -151,7 +151,7 @@
     "--python",
     "3.12",
     "--find-links",
-    "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
     "techtree==0.1.0"
    ],
    "install_exit_code": 0,
@@ -342,7 +342,7 @@
     "install",
     "--reinstall",
     "--find-links",
-    "/Users/sean/Documents/techtree-climb/techtree-python/dist",
+    "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
     "techtree==0.1.0"
    ],
    "install_exit_code": 0,

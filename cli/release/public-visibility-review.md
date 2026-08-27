@@ -519,3 +519,32 @@ secret was found.
   flight. I scanned but did not touch them; they need re-checking when they land.
 - **Everything else.** I changed nothing in any repository. No git command that
   writes was run: no fetch, no commit, no gc, no rewrite.
+
+---
+
+## Remediation record (chief session, 2026-08-26, founder-directed)
+
+The founder ruled: fix the blocker and the home-path family now; every
+other finding is accepted as-is.
+
+1. **BLOCKER cured by history rewrite.** `docs/UI-AGENT-BRIEF.md` was
+   already deleted at the techtree-ash tip (552ba38); it has now been
+   filtered out of the repository's entire history with git filter-repo
+   and the rewritten history force-pushed (with lease) to the private
+   remote while no external clone exists. Old tip e50f107 → new tip
+   0a000fd; zero objects referencing the document remain in the object
+   database, verified by enumeration. Consequence: every techtree-ash
+   commit hash from 1af0301 forward changed — any record citing an old
+   ash hash (tickets, packet drafts, decision notes) is citing
+   pre-rewrite history. A full pre-rewrite bundle, the document's
+   content, and the stash patch are preserved outside the repositories
+   at certification-evidence/pre-rewrite-backup/. The publishable
+   substance of the brief was rewritten as
+   techtree-ash/docs/contributor-guide.md with the unrelated project,
+   governance roles, incident anecdotes and personal values removed.
+2. **Home paths redacted at the tip, accepted in history**, exactly as
+   this review prescribed: `/Users/sean` → `/Users/redacted` across the
+   seven release evidence files (26 occurrences); the test and the
+   doctor fixture had already been fixed by the tidy-up commit. The
+   redaction alters recorded report bytes and is disclosed here; the
+   underlying runs and their signed artifacts are untouched.
