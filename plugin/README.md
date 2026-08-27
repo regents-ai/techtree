@@ -95,25 +95,6 @@ they name, then answer. Do not switch the scanning off — it is the one look
 at the source that happens before the code is on your machine, and this
 plugin has nothing to hide from it.
 
-## Why Techtree contains things that look like secrets
-
-Techtree has to prove that its own scanners and scrubbers work, and the only
-honest way to prove that is to keep real examples of what they are meant to
-catch. So the project deliberately holds a set of things shaped like
-credentials: API tokens with the right prefixes, a private key block whose body
-spells out FAKE and NOT, authorization headers, connection strings with a
-password in them, and a file made of every possible byte. Each one is fed to a
-test that has to refuse it, redact it, or strip it out.
-
-None of them is a secret. Nothing there was ever real and nothing there ever
-worked. They are convincing on purpose, because examples a scanner shrugs at
-would prove nothing — so any scanner pointed at Techtree will report them, and
-that is the test material doing its job rather than something to chase down.
-
-All of it lives in the Techtree repository, beside the tests that read it. The
-tree an installer scans before this plugin goes on a machine holds the plugin's
-runtime, its Skills and its release bytes, and none of that material at all.
-
 ## What loading the plugin does
 
 It reads two files that shipped inside the plugin, then tells Hermes which
@@ -196,7 +177,7 @@ plugin.yaml          what the host reads: name, tools, hooks
 release-core.json    the release this build is pinned to (generated)
 __init__.py          registration
 constants.py         fixed values; no mutable state
-errors.py            plugin-local errors and secret scrubbing
+errors.py            plugin-local errors and their stable codes
 models.py            local models and strict parsers
 schemas.py           the model-visible tool schemas
 release.py           the pinned release, its digest, and its cross-checks

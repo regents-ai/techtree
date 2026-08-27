@@ -29,7 +29,7 @@ from ..channels import (
     resolve_channel,
 )
 from ..constants import MAX_TOOL_RESULT_BYTES
-from ..errors import PluginError, safe_error_payload, scrub_text
+from ..errors import PluginError, safe_error_payload
 from ..models import ChannelKind
 
 #: Stable code for a result that will not fit in a model-visible answer.
@@ -135,11 +135,7 @@ def safe_tool(handler: Any) -> Any:
         except PluginError as error:
             return failed(error)
         except Exception as error:  # a defect here must not break the session
-            return failed(
-                PluginError(
-                    f"the {handler.__name__} tool failed: {scrub_text(str(error))}"
-                )
-            )
+            return failed(PluginError(f"the {handler.__name__} tool failed: {error}"))
 
     return call
 

@@ -82,7 +82,6 @@ from .errors import (
     CODE_HOST_LLM_UNAVAILABLE,
     CODE_HOST_PROPOSAL_GENERATION_EXHAUSTED,
     PluginError,
-    scrub_text,
 )
 from .models import SkillRevisionProvenance
 
@@ -356,7 +355,7 @@ class OneShotHostLlm:
                 "The request was sent and no answer came back. Your attempt "
                 "has not been used. Your provider may still have charged for "
                 "it — each attempt costs money at your provider: "
-                f"{scrub_text(str(error))}"
+                f"{error}"
             ) from error
 
         self._last = _result_from(answer, request)

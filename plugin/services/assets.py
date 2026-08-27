@@ -37,7 +37,6 @@ from ..errors import (
     CODE_FOUNDER_SKILL_DIGEST_MISMATCH,
     CODE_FOUNDER_SKILL_MISSING,
     PluginError,
-    contains_secret_material,
 )
 from ..models import ReleaseCore
 
@@ -186,8 +185,8 @@ def load_bundled_skill_text(name: str, root: Path = PLUGIN_ROOT) -> str:
     """Return one bundled Skill's text, refusing anything unusable.
 
     Raises:
-        PluginError: when the file is absent, empty, larger than the reviewed
-            size, or carries something that looks like a credential.
+        PluginError: when the file is absent, empty, or larger than the
+            reviewed size.
     """
     if name not in FOUNDER_SKILL_DIGEST_FIELDS:
         raise PluginError(
@@ -216,14 +215,7 @@ def load_bundled_skill_text(name: str, root: Path = PLUGIN_ROOT) -> str:
             code=CODE_FOUNDER_SKILL_MISSING,
         )
 
-    text = raw.decode("utf-8", errors="replace")
-    if contains_secret_material(text):
-        raise PluginError(
-            f"the bundled {name} Skill carries something that looks like a "
-            "credential, so it will not be read out to a model",
-            code=CODE_FOUNDER_SKILL_MISSING,
-        )
-    return text
+    return raw.decode("utf-8", errors="replace")
 
 
 def bundled_skill_digest(name: str, root: Path = PLUGIN_ROOT) -> str:
@@ -323,12 +315,6 @@ def read_verified_skill(
         )
 
     text = raw.decode("utf-8", errors="replace")
-    if contains_secret_material(text):
-        raise PluginError(
-            "this Skill carries something that looks like a credential, so it "
-            "will not be read out to a model",
-            code=CODE_FOUNDER_SKILL_MISSING,
-        )
     return VerifiedSkill(
         name=directory.name,
         entrypoint=entrypoint,

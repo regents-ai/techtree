@@ -13,7 +13,8 @@ here rather than spread across the tool handlers:
 * output is bounded, and one valid JSON envelope is the only acceptable answer;
 * the envelope is returned to the caller unchanged, because Techtree's own
   words about a Techtree result are the honest ones;
-* stderr is scrubbed and truncated before it is repeated anywhere.
+* stderr is truncated before it is repeated anywhere, and otherwise
+  repeated word for word.
 
 The environment a call is given is built by name from
 ``constants.CLI_ENVIRONMENT_ALLOWLIST`` rather than inherited whole. A host
@@ -52,7 +53,6 @@ from .errors import (
     CliEnvelopeError,
     CliInvocationError,
     CliNotInstalledError,
-    scrub_text,
 )
 from .models import CliInvocation, CliResponse, ReleaseCore, parse_cli_envelope
 from .release import compare_cli_release, release_core_digest
@@ -60,7 +60,7 @@ from .release import compare_cli_release, release_core_digest
 #: The frozen read-only command that answers "which release is installed?".
 RELEASE_INFO_ARGUMENTS: Final = ("release", "info")
 
-#: How much scrubbed stderr is worth repeating as a diagnostic.
+#: How much stderr is worth repeating as a diagnostic.
 STDERR_EXCERPT_CHARS: Final = 2000
 
 PathLookup = Callable[[str], str | None]
@@ -201,10 +201,10 @@ def call_cli(
         ) from error
     except OSError as error:
         raise CliInvocationError(
-            f"the Techtree CLI could not be run: {scrub_text(str(error))}"
+            f"the Techtree CLI could not be run: {error}"
         ) from error
 
-    stderr_excerpt = _safe_stderr(completed.stderr, maximum_stderr_bytes)
+    stderr_excerpt = _bounded_stderr(completed.stderr, maximum_stderr_bytes)
     stdout = _bounded_stdout(completed.stdout, maximum_stdout_bytes)
     envelope = parse_cli_envelope(stdout)
 
@@ -245,7 +245,7 @@ def read_cli_version(
         )
     except (subprocess.TimeoutExpired, OSError) as error:
         raise CliInvocationError(
-            f"the Techtree CLI could not report its version: {scrub_text(str(error))}"
+            f"the Techtree CLI could not report its version: {error}"
         ) from error
 
     version = completed.stdout.decode("utf-8", errors="replace").strip()
@@ -282,7 +282,7 @@ def invoke_cli_human(
         )
     except OSError as error:
         raise CliInvocationError(
-            f"the Techtree CLI could not be run: {scrub_text(str(error))}"
+            f"the Techtree CLI could not be run: {error}"
         ) from error
     return completed.returncode
 
@@ -329,13 +329,16 @@ def _bounded_stdout(raw: bytes, maximum_bytes: int) -> str:
         raise CliEnvelopeError("CLI machine output was not valid UTF-8") from error
 
 
-def _safe_stderr(raw: bytes, maximum_bytes: int) -> str:
-    """Return a bounded, scrubbed excerpt of stderr, safe to repeat."""
-    text = raw[:maximum_bytes].decode("utf-8", errors="replace")
-    scrubbed = scrub_text(text).strip()
-    if len(scrubbed) <= STDERR_EXCERPT_CHARS:
-        return scrubbed
-    return scrubbed[:STDERR_EXCERPT_CHARS] + "… (truncated)"
+def _bounded_stderr(raw: bytes, maximum_bytes: int) -> str:
+    """Return a bounded excerpt of stderr, word for word.
+
+    Only the length is decided here. What the CLI printed is what is
+    repeated: decision 0036 leaves borrowed text alone.
+    """
+    excerpt = raw[:maximum_bytes].decode("utf-8", errors="replace").strip()
+    if len(excerpt) <= STDERR_EXCERPT_CHARS:
+        return excerpt
+    return excerpt[:STDERR_EXCERPT_CHARS] + "… (truncated)"
 
 
 class Bridge(Protocol):

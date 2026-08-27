@@ -17,7 +17,6 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any, Protocol
 
-from .errors import scrub_text
 from .state import prune_expired_plans, prune_expired_sessions
 
 
@@ -72,7 +71,7 @@ def _quietly(work: Any) -> None:
         import logging
 
         logging.getLogger(__name__).debug(
-            "techtree plugin housekeeping skipped: %s", scrub_text(str(error))
+            "techtree plugin housekeeping skipped: %s", error
         )
 
 

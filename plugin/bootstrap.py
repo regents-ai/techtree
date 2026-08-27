@@ -54,7 +54,6 @@ from .errors import (
     CODE_UV_NOT_FOUND,
     BootstrapPlanError,
     PluginError,
-    scrub_text,
 )
 from .models import (
     INSTALLER_EXECUTABLE,
@@ -295,7 +294,7 @@ def install_cli_with_approval(
             **manual_install_response(plan),
             "message": (
                 "The installation did not run through this host's terminal: "
-                f"{scrub_text(str(error))}. Run this command yourself, then "
+                f"{error}. Run this command yourself, then "
                 "check again."
             ),
         }
@@ -329,14 +328,14 @@ def verify_installation(services: Any) -> dict[str, Any]:
         result["version"] = services.bridge.version()
     except PluginError as error:
         result["code"] = getattr(error, "code", CODE_TECHTREE_CLI_NOT_FOUND)
-        result["message"] = scrub_text(str(error))
+        result["message"] = str(error)
         return result
 
     try:
         release = services.bridge.verify_release(services.release_core)
     except PluginError as error:
         result["code"] = CODE_BOOTSTRAP_POST_INSTALL_VERIFY_FAILED
-        result["message"] = scrub_text(str(error))
+        result["message"] = str(error)
         return result
 
     result["release"] = release
@@ -368,7 +367,7 @@ def doctor_summary(services: Any) -> dict[str, Any]:
             "ran": False,
             "ok": False,
             "blocking_failures": [],
-            "message": scrub_text(str(error)),
+            "message": str(error),
             "code": getattr(error, "code", None),
         }
 
@@ -405,7 +404,7 @@ def _installed_cli_facts(
     try:
         cli["version"] = read_cli_version()
     except PluginError as error:
-        cli["message"] = scrub_text(str(error))
+        cli["message"] = str(error)
     facts["cli"] = cli
 
     try:
@@ -421,7 +420,7 @@ def _installed_cli_facts(
             "checked": False,
             "compatible": None,
             "mismatches": [],
-            "message": scrub_text(str(error)),
+            "message": str(error),
         }
 
     if include_doctor:

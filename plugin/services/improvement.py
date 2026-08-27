@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Any, Final
 
 from ..constants import PLUGIN_ROOT
-from ..errors import PluginError, contains_secret_material
+from ..errors import PluginError
 from ..guards import validate_revised_skill, validate_revision_prose
 from ..llm import (
     REQUEST_COMMITMENT_FIELDS,
@@ -300,13 +300,6 @@ class ImprovementService:
                 code=CODE_CONTEXT_FORBIDDEN,
                 repair="Rebuild the improvement context from the run.",
             )
-        if contains_secret_material(text):
-            raise PluginError(
-                "the Skill carries something that looks like a credential, so it "
-                "will not be read out to a model",
-                code=CODE_CONTEXT_FORBIDDEN,
-            )
-
         return SourceSkill(
             run_id=run_id,
             name=str(data.get("skill_name") or "skill"),
@@ -698,11 +691,6 @@ def validate_context(context: Mapping[str, Any]) -> None:
             )
 
     document = json.dumps(context, default=str)
-    if contains_secret_material(document):
-        raise PluginError(
-            "this improvement context carries something that looks like a credential",
-            code=CODE_CONTEXT_FORBIDDEN,
-        )
     for prefix in _PRIVATE_PATH_PREFIXES:
         if prefix in document:
             raise PluginError(

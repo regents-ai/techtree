@@ -25,7 +25,7 @@ from typing import Final
 
 from .channels import bounded_gateway_text, is_gateway_safe_required
 from .constants import MAX_STARTER_SKILL_BYTES
-from .errors import PluginError, contains_secret_material
+from .errors import PluginError
 from .models import ChannelKind, PresentationNarrative
 
 CODE_PRESENTATION_CLAIM_FORBIDDEN: Final = "presentation_claim_forbidden"
@@ -109,7 +109,6 @@ def validate_narrative(
         forbid_canonical_values(text)
         forbid_new_commands(text, allowed_commands=set())
         forbid_ansi(text)
-        forbid_secret_patterns(text)
 
     unknown = sorted(set(narrative.selected_task_refs) - allowed_task_refs)
     if unknown:
@@ -176,14 +175,6 @@ def forbid_ansi(text: str) -> None:
         )
 
 
-def forbid_secret_patterns(text: str) -> None:
-    """Refuse a sentence carrying something that looks like a credential."""
-    if contains_secret_material(text):
-        raise NarrativeRejectedError(
-            "the narrative carries something that looks like a credential"
-        )
-
-
 def bounded_narrative(
     narrative: PresentationNarrative, channel: ChannelKind = ChannelKind.UNKNOWN
 ) -> PresentationNarrative:
@@ -238,7 +229,6 @@ def _fit(texts: Iterable[str], budget: int) -> list[str]:
 # score well once and teach nothing.
 
 CODE_SKILL_REVISION_INVALID: Final = "skill_revision_output_invalid"
-CODE_SKILL_REVISION_SECRET: Final = "skill_revision_secret_detected"
 
 #: A Skill is a Markdown file, and a Markdown file has lines. A model that
 #: answers with the whole file but no line breaks has produced something no
@@ -456,7 +446,6 @@ def validate_revision_prose(
         forbid_unapproved_claims(text)
         forbid_canonical_values(text)
         forbid_ansi(text)
-        forbid_secret_patterns(text)
         forbid_quoted_cases(text, members)
 
 
@@ -486,12 +475,6 @@ def validate_revised_skill(
             f"the revision is larger than the {maximum_bytes} bytes a Skill may be",
             code=CODE_SKILL_REVISION_INVALID,
         )
-    if contains_secret_material(markdown):
-        raise NarrativeRejectedError(
-            "the revision carries something that looks like a credential",
-            code=CODE_SKILL_REVISION_SECRET,
-        )
-
     forbid_ansi(markdown)
     # Structure before content. A blob with no lines cannot be judged for
     # diff-ness, and judging it anyway is how it came to be refused for the

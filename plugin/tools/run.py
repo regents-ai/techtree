@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..channels import is_gateway_safe_required
-from ..errors import PluginError, scrub_text
+from ..errors import PluginError
 from ..narrative import REPRODUCTION_STATEMENT
 from ..services.presentation import PresentationService
 from ..services.session import update_after_first_result
@@ -104,7 +104,7 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
         except PluginError as error:
             # Techtree answered with something this build cannot compose into a
             # presentation. Its own words are still the honest answer.
-            payload["presentation_note"] = scrub_text(str(error))
+            payload["presentation_note"] = str(error)
     if session is not None:
         payload["demo"] = session_payload(session)
     return tool_result(payload, channel)

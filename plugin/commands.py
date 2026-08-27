@@ -28,7 +28,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any, NamedTuple, TypeGuard
 
 from .channels import ensure_gateway_safe
-from .errors import PluginError, scrub_text
+from .errors import PluginError
 from .models import ChannelKind
 from .state import active_run_ids, latest_session
 from .tools import TOOL_HANDLERS
@@ -83,9 +83,9 @@ def handle_slash_command(raw_args: str, services: Any) -> str:
     try:
         text = _SLASH_ACTIONS[subcommand](services, arguments)
     except PluginError as error:
-        text = f"That did not work: {scrub_text(str(error))}"
+        text = f"That did not work: {error}"
     except Exception as error:  # a defect must not break the session
-        text = f"That did not work: {scrub_text(str(error))}"
+        text = f"That did not work: {error}"
     # Sanitised, not shortened. Stripping what a display would obey is a
     # safety control; cutting the answer at a guessed length was not, and is
     # gone.

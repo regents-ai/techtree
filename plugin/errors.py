@@ -1,15 +1,18 @@
-"""Plugin-local errors and output scrubbing. Specification sections 7.4, 12.
+"""Plugin-local errors. Specification sections 7.4, 12.
 
 The plugin does not restate Techtree's error taxonomy. When the CLI produced a
 failure, its envelope is preserved as-is; the codes here belong to the bridge,
 bootstrap, release, and state layers that live on this side of the boundary.
+
+Borrowed text — CLI stderr, an exception message, an installer quoting a
+command line back — is repeated word for word. Decision 0036 removed the
+scrubber that used to edit it: a value's shape is not evidence of what it is,
+so nothing here guesses.
 """
 
 from __future__ import annotations
 
-import re
-from collections.abc import Mapping
-from typing import Any, Final
+from typing import Final
 
 # Error codes -----------------------------------------------------------------
 # Stable strings from specification section 12. Callers compare against these
@@ -138,80 +141,6 @@ class PluginStateError(PluginError):
     repair = "Report the preserved state file; do not delete it."
 
 
-# Scrubbing -------------------------------------------------------------------
-
-_PRIVATE_KEY_BLOCK = re.compile(
-    r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
-    re.DOTALL,
-)
-_BEARER = re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]+")
-_QUOTED_SECRET = re.compile(
-    r"(?i)(\"[A-Za-z0-9_.-]*"
-    r"(?:api[_-]?key|secret|token|password|passphrase|credential)"
-    r"[A-Za-z0-9_.-]*\"\s*:\s*)\"[^\"]*\""
-)
-_ENV_SECRET = re.compile(
-    r"(?i)\b([A-Z0-9_]*"
-    r"(?:API_KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSPHRASE|CREDENTIAL)"
-    r"[A-Z0-9_]*)\s*=\s*\S+"
-)
-_PROVIDER_TOKEN = re.compile(
-    r"\b(?:sk|rk|pk)-[A-Za-z0-9_-]{12,}"
-    r"|\bgh[pousr]_[A-Za-z0-9]{16,}"
-    r"|\bxox[abprs]-[A-Za-z0-9-]{10,}"
-)
-#: Credentials written into a URL. A private package index is the way this
-#: actually reaches a log: `https://user:token@index.example/simple` appears
-#: verbatim in an installer's own output, and the token in it is a real one
-#: however ordinary the line around it looks.
-_URL_CREDENTIALS = re.compile(r"(?i)(\b[a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@")
-
-REDACTED: Final = "[redacted]"
-
-
-def scrub_text(value: str) -> str:
-    """Remove Bearer tokens, quoted secret keys, provider tokens, private keys.
-
-    Scrubbing is applied to every piece of borrowed text the plugin repeats:
-    CLI stderr, exception messages, error detail, and diagnostics. It replaces
-    the value and keeps the surrounding shape, so an operator can still see
-    which credential was involved without seeing the credential.
-    """
-    scrubbed = _PRIVATE_KEY_BLOCK.sub("[redacted private key]", value)
-    scrubbed = _BEARER.sub(f"Bearer {REDACTED}", scrubbed)
-    scrubbed = _QUOTED_SECRET.sub(rf'\1"{REDACTED}"', scrubbed)
-    scrubbed = _ENV_SECRET.sub(rf"\1={REDACTED}", scrubbed)
-    scrubbed = _URL_CREDENTIALS.sub(rf"\1{REDACTED}@", scrubbed)
-    return _PROVIDER_TOKEN.sub(REDACTED, scrubbed)
-
-
-def scrub_borrowed(value: Any) -> Any:
-    """Return a document with every string in it scrubbed, structure intact.
-
-    Used on text the plugin did not write and is about to repeat. Techtree
-    sanitizes its own error messages, and this does not assume it: an error's
-    ``details`` is a free-shaped object built from whatever failed, and the
-    thing that failed is often an installer quoting a command line back.
-    """
-    if isinstance(value, str):
-        return scrub_text(value)
-    if isinstance(value, Mapping):
-        return {key: scrub_borrowed(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [scrub_borrowed(item) for item in value]
-    return value
-
-
-def contains_secret_material(value: str) -> bool:
-    """Whether this text carries something that looks like a credential.
-
-    Used on files the plugin is about to read out to a model or ship in a
-    release. It is deliberately the same set of patterns the scrubber uses:
-    one definition of "this looks like a secret", checked in both directions.
-    """
-    return scrub_text(value) != value
-
-
 def safe_error_payload(error: Exception) -> dict[str, object]:
     """Return stable code, safe message, retryability, and repair action."""
     if isinstance(error, PluginError):
@@ -223,7 +152,7 @@ def safe_error_payload(error: Exception) -> dict[str, object]:
         retryable = False
         repair = None
 
-    message = scrub_text(str(error)) or error.__class__.__name__
+    message = str(error) or error.__class__.__name__
     payload: dict[str, object] = {
         "code": code,
         "message": message,

@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any, Final
 
 from ..constants import proposal_staging_home
-from ..errors import PluginError, scrub_text
+from ..errors import PluginError
 from ..models import SkillRevisionOutput
 
 CODE_PROPOSAL_PREPARE_FAILED: Final = "skill_revision_prepare_failed"
@@ -104,7 +104,7 @@ class StagedSkill:
         except OSError as error:
             return (
                 f"the staged copy of the proposed Skill could not be removed "
-                f"from {self.directory}: {scrub_text(str(error))}"
+                f"from {self.directory}: {error}"
             )
         return None
 
