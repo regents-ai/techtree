@@ -11,7 +11,15 @@ patching over the subprocess call, because the thing worth testing is the whole
 probe: that the argument vector is one a real Hermes answers, that a Hermes
 which answers with something else is read as unknown, and that a slow one is
 given up on. A patched ``_probe`` would test the branch table and nothing
-underneath it.
+underneath it. The stand-ins answer in the shape a real Hermes on a real
+machine answers in, an object per plugin carrying a name and the word for
+whether it will be loaded.
+
+Installed and switched on are asked separately, because a plugin can be the
+first without being the second and an agent in that state has no Techtree
+commands at all. Both refusals are held here too: a listing this build cannot
+read is never reported as a missing plugin, and a word this build does not know
+is never reported as a plugin that is switched off.
 
 One claim is absent on purpose and is guarded here as an absence. Doctor cannot
 name the commit the plugin is pinned at: decision 0026 makes the release
@@ -39,7 +47,8 @@ from techtree.doctor.checks import (
 )
 from techtree.models.cli import CheckStatus
 
-#: A plugin listing carrying the plugin, in the shape Hermes documents.
+#: A plugin listing carrying the plugin and switched on, in the shape Hermes
+#: documents.
 INSTALLED_LISTING: Final = (
     '[{"name": "browser-firecrawl", "status": "not enabled"}, '
     '{"name": "techtree", "status": "enabled", "version": "0.1.0"}]'
@@ -47,6 +56,17 @@ INSTALLED_LISTING: Final = (
 
 #: The same answer from a Hermes that does not have it.
 WITHOUT_LISTING: Final = '[{"name": "browser-firecrawl", "status": "not enabled"}]'
+
+#: The two ways Hermes says a plugin it has will not be loaded: one nobody
+#: turned on, and one somebody turned off.
+NEVER_TURNED_ON_LISTING: Final = (
+    '[{"name": "browser-firecrawl", "status": "not enabled"}, '
+    '{"name": "techtree", "status": "not enabled", "version": "0.1.0"}]'
+)
+TURNED_OFF_LISTING: Final = (
+    '[{"name": "browser-firecrawl", "status": "not enabled"}, '
+    '{"name": "techtree", "status": "disabled", "version": "0.1.0"}]'
+)
 
 
 def _standin_hermes(directory: Path, script: str) -> None:
@@ -96,10 +116,22 @@ def test_no_host_agent_check_can_block_or_fail(host_path: Path) -> None:
     _standin_hermes(host_path, _answering(WITHOUT_LISTING))
     without_plugin = [check_hermes_cli(), check_hermes_plugin()]
 
+    _standin_hermes(host_path, _answering(NEVER_TURNED_ON_LISTING))
+    never_turned_on = [check_hermes_cli(), check_hermes_plugin()]
+
+    _standin_hermes(host_path, _answering(TURNED_OFF_LISTING))
+    turned_off = [check_hermes_cli(), check_hermes_plugin()]
+
     _standin_hermes(host_path, _answering(INSTALLED_LISTING))
     with_both = [check_hermes_cli(), check_hermes_plugin()]
 
-    for check in [*without_hermes, *without_plugin, *with_both]:
+    for check in [
+        *without_hermes,
+        *without_plugin,
+        *never_turned_on,
+        *turned_off,
+        *with_both,
+    ]:
         assert check.blocking is False, check
         assert check.status is not CheckStatus.FAIL, check
 
@@ -138,15 +170,21 @@ def test_the_plugin_check_is_skipped_when_there_is_no_hermes(host_path: Path) ->
     assert "hermes executable was not found" in check.detail
 
 
-def test_an_installed_plugin_is_reported_without_advice(host_path: Path) -> None:
+def test_an_installed_and_switched_on_plugin_is_reported_without_advice(
+    host_path: Path,
+) -> None:
     _standin_hermes(host_path, _answering(INSTALLED_LISTING))
 
     check = check_hermes_plugin()
 
     assert check.status is CheckStatus.PASS
-    assert check.detail == "The Techtree plugin is installed for this Hermes"
+    assert (
+        check.detail == "The Techtree plugin is installed and switched on for this "
+        "Hermes"
+    )
     assert START_PAGE_URL not in check.detail
     assert check.metadata["installed"] is True
+    assert check.metadata["enabled"] is True
 
 
 def test_a_missing_plugin_is_a_next_step_and_points_at_the_start_page(
@@ -162,6 +200,80 @@ def test_a_missing_plugin_is_a_next_step_and_points_at_the_start_page(
     assert "works without it" in check.detail
     assert START_PAGE_URL in check.detail
     assert check.metadata["installed"] is False
+
+
+#: Hermes has two words for a plugin it will not load, and a person in either
+#: state has the same problem and the same thing to do about it.
+NOT_SWITCHED_ON: Final[tuple[tuple[str, str], ...]] = (
+    ("a plugin nobody has turned on", NEVER_TURNED_ON_LISTING),
+    ("a plugin somebody turned off", TURNED_OFF_LISTING),
+)
+
+
+@pytest.mark.parametrize(
+    ("described", "listing"),
+    NOT_SWITCHED_ON,
+    ids=[described for described, _ in NOT_SWITCHED_ON],
+)
+def test_a_plugin_that_is_present_but_off_says_so_and_says_how_to_turn_it_on(
+    host_path: Path, described: str, listing: str
+) -> None:
+    """The state that would otherwise be told everything is fine.
+
+    An agent whose plugin is installed but not switched on has no Techtree
+    commands, so saying only "installed" would be a true sentence that leaves
+    somebody stuck. Hermes turns a plugin on with a command of its own, and
+    naming it is the whole of what Doctor can usefully offer here.
+    """
+    _standin_hermes(host_path, _answering(listing))
+
+    check = check_hermes_plugin()
+
+    assert check.status is CheckStatus.WARN, described
+    assert check.blocking is False
+    assert "is installed for this Hermes but is not switched on" in check.detail
+    assert "hermes plugins enable techtree" in check.detail
+    assert check.metadata["installed"] is True
+    assert check.metadata["enabled"] is False
+
+
+def test_an_unreadable_activation_word_is_not_read_as_switched_off(
+    host_path: Path,
+) -> None:
+    """The mirror of the absence rule, for the second question.
+
+    Telling somebody their plugin is off when it is not is the same mistake as
+    telling them to install what they already have, so a word this build does
+    not know leaves the question unanswered rather than answered wrongly.
+    """
+    _standin_hermes(host_path, _answering('[{"name": "techtree", "status": "loaded"}]'))
+
+    check = check_hermes_plugin()
+
+    assert check.status is CheckStatus.SKIP
+    assert "could not be established" in check.detail
+    assert "is not switched on" not in check.detail
+    assert "hermes plugins enable" not in check.detail
+    assert check.metadata["installed"] is True
+    assert "enabled" not in check.metadata
+
+
+def test_a_plugin_listed_with_no_activation_word_leaves_the_question_open(
+    host_path: Path,
+) -> None:
+    """A listed plugin is installed even when nothing was said about its state.
+
+    Reading the silence as absence would send somebody to reinstall what is
+    already there, so the entry still counts as installed and only the second
+    question goes unanswered.
+    """
+    _standin_hermes(host_path, _answering('[{"name": "techtree"}]'))
+
+    check = check_hermes_plugin()
+
+    assert check.status is CheckStatus.SKIP
+    assert "could not be established" in check.detail
+    assert check.metadata["installed"] is True
 
 
 def test_a_hermes_with_no_plugins_at_all_is_still_a_readable_answer(
@@ -263,8 +375,9 @@ def test_the_doctor_never_names_a_pinned_plugin_coordinate(host_path: Path) -> N
     appearing anyway.
     """
     details = [check_hermes_cli().detail, check_hermes_plugin().detail]
-    _standin_hermes(host_path, _answering(WITHOUT_LISTING))
-    details += [check_hermes_cli().detail, check_hermes_plugin().detail]
+    for listing in (WITHOUT_LISTING, NEVER_TURNED_ON_LISTING, TURNED_OFF_LISTING):
+        _standin_hermes(host_path, _answering(listing))
+        details += [check_hermes_cli().detail, check_hermes_plugin().detail]
 
     for detail in details:
         assert not INVENTED_COORDINATE.search(detail), detail

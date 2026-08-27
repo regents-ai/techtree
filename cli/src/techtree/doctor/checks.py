@@ -84,9 +84,17 @@ SUPPORTED_PYTHON: Final[tuple[tuple[int, int], tuple[int, int]]] = ((3, 12), (3,
 #: loud without refusing to work.
 _PRIVATE_DIRECTORY_MODE: Final = 0o700
 
-#: The name the Techtree plugin registers with Hermes, and the only thing a
-#: plugin listing has to carry for Doctor to recognise it.
+#: The name the Techtree plugin registers with Hermes, and what Doctor looks
+#: for in a plugin listing.
 TECHTREE_PLUGIN_NAME: Final = "techtree"
+
+#: The word Hermes writes beside a plugin it will actually load.
+_ENABLED: Final = "enabled"
+
+#: The two words Hermes writes beside a plugin it will not load: one nobody has
+#: turned on, and one somebody turned off. Techtree's answer is the same for
+#: both, because from where a person sits they are the same situation.
+_NOT_ENABLED: Final[frozenset[str]] = frozenset({"not enabled", "disabled"})
 
 #: Decision 0024 section 4: the pinned installation guide for this release.
 #:
@@ -443,7 +451,7 @@ def check_hermes_cli() -> DoctorCheck:
 
 
 def check_hermes_plugin() -> DoctorCheck:
-    """Say whether the Techtree plugin is installed for the Hermes on PATH.
+    """Say whether the Techtree plugin is installed and on for the Hermes on PATH.
 
     Never blocking, and never a failure. A host without the plugin is a
     perfectly good host: the CLI does its whole job on its own, and the plugin
@@ -451,12 +459,19 @@ def check_hermes_plugin() -> DoctorCheck:
     ``check_active_engine`` makes about an engine that is not active yet — a
     next step, written as one.
 
+    Installed and switched on are two questions, and a plugin can be the first
+    without being the second. Answering only the first would tell somebody in
+    that state that everything is fine while their agent still has no Techtree
+    commands, so both are answered and the second carries the command that
+    changes it.
+
     The answer is only as good as what Hermes will say. Plugins are held per
     profile as well as per user, so a listing describes the Hermes this
     command resolves to and not necessarily another profile's. And a Hermes
     that does not answer with a listing this build can read is reported as
     unknown rather than guessed at: an unfounded "not installed" would send
-    someone to reinstall software they already have.
+    someone to reinstall software they already have, and an unfounded "not
+    switched on" would send them to turn on what is already running.
     """
     if shutil.which("hermes") is None:
         return DoctorCheck(
@@ -471,9 +486,9 @@ def check_hermes_plugin() -> DoctorCheck:
     probe = _probe(
         ["hermes", "plugins", "list", "--json"], timeout=VERSION_TIMEOUT_SECONDS
     )
-    installed = _plugin_names(probe)
+    listing = _plugin_states(probe)
 
-    if installed is None:
+    if listing is None:
         return DoctorCheck(
             id="hermes_plugin",
             label="Techtree plugin",
@@ -486,7 +501,7 @@ def check_hermes_plugin() -> DoctorCheck:
             metadata={"timed_out": probe.timed_out, "exit_code": probe.exit_code},
         )
 
-    if TECHTREE_PLUGIN_NAME not in installed:
+    if TECHTREE_PLUGIN_NAME not in listing:
         return DoctorCheck(
             id="hermes_plugin",
             label="Techtree plugin",
@@ -501,11 +516,50 @@ def check_hermes_plugin() -> DoctorCheck:
             metadata={"plugin_name": TECHTREE_PLUGIN_NAME, "installed": False},
         )
 
+    state = listing[TECHTREE_PLUGIN_NAME]
+
+    if state == _ENABLED:
+        return DoctorCheck(
+            id="hermes_plugin",
+            label="Techtree plugin",
+            status=CheckStatus.PASS,
+            detail="The Techtree plugin is installed and switched on for this Hermes",
+            blocking=False,
+            metadata={
+                "plugin_name": TECHTREE_PLUGIN_NAME,
+                "installed": True,
+                "enabled": True,
+            },
+        )
+
+    if state in _NOT_ENABLED:
+        return DoctorCheck(
+            id="hermes_plugin",
+            label="Techtree plugin",
+            status=CheckStatus.WARN,
+            detail=(
+                "The Techtree plugin is installed for this Hermes but is not "
+                "switched on, so your agent cannot see Techtree's commands yet. "
+                "The CLI works either way. Switch it on with: hermes plugins "
+                f"enable {TECHTREE_PLUGIN_NAME}"
+            ),
+            blocking=False,
+            metadata={
+                "plugin_name": TECHTREE_PLUGIN_NAME,
+                "installed": True,
+                "enabled": False,
+            },
+        )
+
     return DoctorCheck(
         id="hermes_plugin",
         label="Techtree plugin",
-        status=CheckStatus.PASS,
-        detail="The Techtree plugin is installed for this Hermes",
+        status=CheckStatus.SKIP,
+        detail=(
+            "This Hermes lists the Techtree plugin but described its state in a "
+            "word this build does not know, so whether it is switched on could "
+            "not be established"
+        ),
         blocking=False,
         metadata={"plugin_name": TECHTREE_PLUGIN_NAME, "installed": True},
     )
@@ -578,13 +632,18 @@ def check_active_engine(paths: TechtreePaths, settings: Settings) -> DoctorCheck
     )
 
 
-def _plugin_names(probe: _Probe) -> frozenset[str] | None:
-    """Return the names in a plugin listing, or None if there is no listing.
+def _plugin_states(probe: _Probe) -> dict[str, str | None] | None:
+    """Map each listed plugin to the word beside it, or None if there is no listing.
 
-    None is the honest answer to every way this can go wrong — a Hermes too
-    old to know the flag, one that timed out, one that answered with something
-    other than the documented array of plugin objects. Doctor says it does not
-    know rather than reporting an absence it did not observe.
+    None for the whole listing is the honest answer to every way this can go
+    wrong — a Hermes too old to know the flag, one that timed out, one that
+    answered with something other than the documented array of plugin objects.
+    Doctor says it does not know rather than reporting an absence it did not
+    observe.
+
+    A named plugin whose word is missing or is not text maps to None on its
+    own. Dropping such an entry would be worse than keeping it: the plugin was
+    listed, so reporting it as absent would be an absence nobody observed.
     """
     if not probe.succeeded:
         return None
@@ -594,17 +653,17 @@ def _plugin_names(probe: _Probe) -> frozenset[str] | None:
         return None
     if not isinstance(listing, list):
         return None
-    names = {
-        entry["name"]
+    states = {
+        entry["name"]: entry["status"] if isinstance(entry.get("status"), str) else None
         for entry in listing
         if isinstance(entry, dict) and isinstance(entry.get("name"), str)
     }
-    if listing and not names:
+    if listing and not states:
         # A listing of somethings, none of which is a named plugin, is a shape
         # this build does not understand. Reading it as "no plugins" would turn
         # an unread answer into a claim about the host.
         return None
-    return frozenset(names)
+    return states
 
 
 def _probe_failure_detail(subject: str, probe: _Probe) -> str:
