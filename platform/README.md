@@ -1,16 +1,45 @@
 # techtree-ash
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Elixir ~> 1.15](https://img.shields.io/badge/elixir-~%3E%201.15-lightgrey)](https://elixir-lang.org/) [![Phoenix ~> 1.8.4](https://img.shields.io/badge/phoenix-~%3E%201.8.4-lightgrey)](https://www.phoenixframework.org/)
+
+![The Techtree homepage](docs/assets/homepage.png)
+
+*The front page this application serves, read-only, at `/`.*
+
 The read-only public surface for Techtree Climb: an onboarding and bootstrap
 registry, and a catalog of the public Climbs and the protocol objects they are
 built from.
 
-Techtree Climb v0.1 is a proof of concept for a stack of three independent
-parts: Prime Intellect's Verifiers as the evaluation engine, Nous Research's
-Hermes as the agent host, and Techtree as the campaign kernel and evidence
-layer. What it demonstrates is that the three pin together tightly enough for a
-controlled comparison to run end to end and leave a receipt that verifies
-offline. It is a development release, and nothing here is a measurement anyone
-should cite.
+> [!IMPORTANT]
+> Techtree Climb v0.1 is a proof of concept for a stack of three independent
+> parts: Prime Intellect's Verifiers as the evaluation engine,
+> Nous Research's Hermes as the agent host, and
+> Techtree as the campaign kernel and evidence layer.
+> What it demonstrates is that the three pin together tightly enough for a
+> controlled comparison to run end to end and leave a receipt that verifies
+> offline. It is a development release, and nothing here is a measurement
+> anyone should cite.
+
+```text
+        you
+         │  one pasted prompt
+         ▼
+   Hermes (operator) ······ techtree-hermes
+         │  fixed argv · one JSON envelope
+         ▼
+   Techtree CLI ··········· techtree-python
+         │  pinned engine, detached runs
+         ▼
+   Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
+         │  model calls, paid by the participant
+         ▼
+   subject: hermes-agent + pinned model, in a pinned container
+         │
+         ▼
+   signed report · proof that verifies offline
+
+   techtree-ash ─ the read-only site: pinned guide, catalog, published objects   ◀ this repository
+```
 
 ## The other two repositories
 
@@ -29,10 +58,19 @@ are each pinned to an exact version, and the release is only as reproducible as
 those pins. Those are the seams of the stack, and this site says so rather than
 letting a reader find them.
 
-This application does not run evaluations, accept Skills, receipts, or reports,
-store Episodes or Traces, authenticate anyone, or run a leaderboard. The local
-scientific loop in `techtree-python` keeps working when this site is offline —
-the site is discovery and onboarding, never a runtime dependency.
+| Layer | What | Pin |
+| --- | --- | --- |
+| Evaluation engine | Prime Intellect's Verifiers | pinned to an exact commit |
+| Agent host | Nous Research's Hermes, the operator | host Hermes 0.20.1 or newer |
+| Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
+| Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
+| Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
+
+> [!NOTE]
+> This application does not run evaluations, accept Skills, receipts, or
+> reports, store Episodes or Traces, authenticate anyone, or run a leaderboard.
+> The local scientific loop in `techtree-python` keeps working when this site is
+> offline — the site is discovery and onboarding, never a runtime dependency.
 
 ## What is implemented so far
 
@@ -172,13 +210,12 @@ connection when the local server does not use the Phoenix defaults.
 
 ## Runtime configuration
 
-```text
-DATABASE_URL                 required in production
-SECRET_KEY_BASE              required in production
-PHX_HOST, PORT               endpoint
-TECHTREE_CATALOG_ROOT        a bundle deployed beside the release, optional
-TECHTREE_BOOTSTRAP_CHANNEL   the release channel to import and serve;
-                             `development` unless set, `stable` in production
-```
+| Variable | What it is for |
+| --- | --- |
+| `DATABASE_URL` | required in production |
+| `SECRET_KEY_BASE` | required in production |
+| `PHX_HOST`, `PORT` | endpoint |
+| `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
+| `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 
 No model-provider credential is read by this application.
