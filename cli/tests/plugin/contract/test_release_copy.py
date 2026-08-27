@@ -1286,3 +1286,52 @@ def test_the_plugin_offers_the_python_this_release_actually_supports() -> None:
     floor = metadata["project"]["requires-python"].split(",")[0].strip().lstrip(">=")
 
     assert ".".join(floor.split(".")[:2]) == CLI_PYTHON_SERIES
+
+
+# What the operator Skill says this build cannot do -----------------------------------
+
+#: Sentences that were true of a placeholder build and became false the moment
+#: the release chose its coordinates. Each is written as the claim rather than
+#: as one phrasing of it, so a rewrite that keeps the meaning still fails.
+STALE_INCAPACITY: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "the release has not chosen its Skills",
+        re.compile(r"(?:has|have) not been chosen", re.IGNORECASE),
+    ),
+    (
+        "the build stops before preparing a comparison",
+        re.compile(r"stops before preparing", re.IGNORECASE),
+    ),
+    (
+        "the plugin will not install Techtree",
+        re.compile(r"will not install\s+Techtree", re.IGNORECASE),
+    ),
+    (
+        "there is nothing a person can fix",
+        re.compile(r"nothing to fix locally", re.IGNORECASE),
+    ),
+)
+
+
+def test_the_operator_skill_never_says_this_build_cannot_do_the_journey() -> None:
+    """The first document an agent reads must not tell it the journey is off.
+
+    The operator Skill is loaded before any Techtree tool is touched, so a
+    false sentence in it is not one wrong answer among many - it is the reply
+    the person gets instead of the product. This build's Skills are pinned by
+    digest, the CLI installs, the introduction prepares and both comparisons
+    run; a document saying otherwise sends the agent to tell somebody to come
+    back for a later release that already arrived.
+
+    These sentences were true of the placeholder build that preceded this one,
+    which is exactly why nothing caught them: every other check on this file
+    looks for a claim that is forbidden, and a claim that merely stopped being
+    true looks like ordinary prose. Found by walking the journey (WP11f), not
+    by reading the file.
+    """
+    for path, text in PUBLIC_COPY.items():
+        if not path.startswith("skills/operator/"):
+            continue
+        for claim, pattern in STALE_INCAPACITY:
+            found = pattern.search(text)
+            assert found is None, f"{path} still says {claim}: {found.group(0)!r}"
