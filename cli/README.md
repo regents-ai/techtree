@@ -124,7 +124,7 @@ the public-coordinate release journey.
 
 > [!WARNING]
 > Starting a comparison spends model tokens against your own provider credit.
-> Nothing paid starts on its own: `techtree climb start` and
+> Nothing causing LLM token spend starts on its own: `techtree climb start` and
 > `techtree uplift start` put the prepared comparison in front of you first and
 > begin only once you have approved it.
 
