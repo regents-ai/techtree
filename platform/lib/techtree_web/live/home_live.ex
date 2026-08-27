@@ -19,6 +19,12 @@ defmodule TechtreeWeb.HomeLive do
   served release record. Neither is written into this page, and when no release
   is being served the panel says so rather than printing a coordinate that
   installs nothing.
+
+  Behind the headline sits one piece of decoration: a lattice of lit cubes, the
+  mark extruded, drawn on the same ground as the page and carrying no text, no
+  status and no number. Decision 0039 rules it in. It is not a second reading
+  of anything — the evidence graph in front of it stays the page's only data
+  layer — and a browser that cannot draw it simply does not.
   """
 
   use TechtreeWeb, :live_view
@@ -64,6 +70,15 @@ defmodule TechtreeWeb.HomeLive do
     ~H"""
     <Layouts.page wide flush>
       <section class="hero" aria-labelledby="hero-title">
+        <canvas
+          id="hero-lattice"
+          class="hero__lattice"
+          phx-hook="HeroLattice"
+          phx-update="ignore"
+          aria-hidden="true"
+        >
+        </canvas>
+
         <div class="hero__copy">
           <p class="eyebrow">{@preview_label}</p>
           <h1 id="hero-title">Improve a Skill.<br />Prove it worked.</h1>
@@ -85,7 +100,9 @@ defmodule TechtreeWeb.HomeLive do
             </a>
           </div>
 
-          <p class="hero__caption">No Techtree account, and nothing to upload.</p>
+          <p class="hero__caption">
+            No Techtree account, and nothing uploaded unless you publish it.
+          </p>
         </div>
 
         <EvidenceComponents.graph
@@ -162,9 +179,11 @@ defmodule TechtreeWeb.HomeLive do
         </div>
         <div class="trust__grid">
           <p>
-            Techtree does not upload your recordings, your result bundle, or the work you
-            submit. The agent under test makes real model calls, and those go to the model
-            provider you selected, under that provider’s policies.
+            Techtree uploads nothing on its own. Your recordings, your result bundle and
+            the work you submit stay where they were made unless you publish a run
+            yourself, and publishing sends the receipt rather than the recordings. The
+            agent under test makes real model calls, and those go to the model provider
+            you selected, under that provider’s policies.
           </p>
           <p>
             A result signed on your machine is internally consistent and attested by the

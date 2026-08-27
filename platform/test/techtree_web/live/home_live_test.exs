@@ -130,7 +130,8 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, _live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "Techtree does not upload your recordings"
+      assert text =~ "Techtree uploads nothing on its own"
+      assert text =~ "publishing sends the receipt rather than the recordings"
       assert text =~ "go to the model provider you selected, under that provider’s policies"
       assert text =~ "attested by the participant who produced it"
       assert text =~ "Nobody else watched the run"
