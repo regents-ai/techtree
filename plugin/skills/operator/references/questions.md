@@ -70,6 +70,12 @@ account, no network, and nothing from us.
 If it passes, say how many checks passed. If it fails, do not soften it: a
 proof that does not verify is not a result.
 
+Point them at the command rather than at the files. Every file in the bundle is
+a signed envelope, so opening one directly shows the signature and a digest and
+not much else — the readable part sits inside the payload. Someone who greps
+the bundle for the proof grade and finds nothing has not found a problem, they
+have found the envelope.
+
 ## "Has anyone else confirmed this?"
 
 No, and say so without being asked. The signature comes from a key this machine
@@ -177,6 +183,26 @@ worse account of it than the scanner gives.
 
 So the verdict is caution, and it stays caution. What is owed instead is a
 straight answer about what each finding is — which is this.
+
+## "Why does one Skill have three different names?"
+
+Because they are three different things, and the difference is worth keeping.
+
+- **`hello-world-starter-v1`** is the name of the published file — the Skill's
+  own front matter, and what the release names as the artifact it ships. It
+  identifies the bytes.
+- **`hello-world-v1`** is the label the candidate side of a comparison carries.
+  It says which entrant this is in this run, not which file it came from.
+- **"No tested Skill → Skill v1"** is how the result describes the change that
+  was made. It names the two sides, not the artifact.
+
+They are deliberately separate values and none of them is ever derived from a
+file path, a temporary directory, or a digest. A Skill is verified against a
+digest and filed in a folder named after it, and a digest is neither a name
+anybody chose nor a label a run should carry.
+
+If someone is trying to cite a result, the name that identifies the bytes is
+the first one, and the digest beside it is stronger still.
 
 ## "Can I compare my result to someone else's?"
 
