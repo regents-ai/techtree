@@ -70,7 +70,8 @@ defmodule TechtreeWeb.HomeLive do
           <p class="hero__lede">
             Run a controlled baseline and candidate on your machine. Techtree keeps the
             taskset, model, harness, tools, and budget fixed, then signs the result so
-            another participant can verify or reproduce it in an identical Environment.
+            anyone holding a copy can check it offline, needing no account and nothing
+            from us.
           </p>
 
           <.installer release={@release} agent_line={@agent_line} />
@@ -119,7 +120,7 @@ defmodule TechtreeWeb.HomeLive do
           <article>
             <span>03</span>
             <h3>Prove</h3>
-            <p>Sign the comparison, inspect its evidence, and let another machine reproduce it.</p>
+            <p>Sign the comparison, read the outcome of every task, and check the receipt offline.</p>
           </article>
         </div>
       </section>

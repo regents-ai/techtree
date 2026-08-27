@@ -271,8 +271,11 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @stack_seams ~r/only\s+as\s+reproducible\s+as\s+those\s+pins/i
 
   # The pages that say what this release is: the front page a stranger lands
-  # on, and the documentation they read before running anything.
-  @pages_that_say_what_this_is ["/", "/docs"]
+  # on, the documentation they read before running anything, and the page that
+  # shows a real result. The last one was missing and that is how two capability
+  # claims reached it - it draws an exact score, which is the one place a reader
+  # most needs to be told what the number is and is not.
+  @pages_that_say_what_this_is ["/", "/docs", "/proofs"]
 
   describe "every page, with a release being served" do
     setup do

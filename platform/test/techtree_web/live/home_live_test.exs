@@ -33,7 +33,8 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert text =~
                "Run a controlled baseline and candidate on your machine. Techtree keeps the " <>
                  "taskset, model, harness, tools, and budget fixed, then signs the result so " <>
-                 "another participant can verify or reproduce it in an identical Environment."
+                 "anyone holding a copy can check it offline, needing no account and " <>
+                 "nothing from us."
 
       assert text =~ "Techtree v0.1 · development release"
     end
@@ -104,7 +105,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert text =~ "Change one declared Skill under a fixed budget and validation rule."
 
       assert text =~
-               "Sign the comparison, inspect its evidence, and let another machine reproduce it."
+               "Sign the comparison, read the outcome of every task, and check the receipt offline."
     end
 
     test "the graph and the featured campaign come out of the imported catalog",

@@ -53,18 +53,21 @@ defmodule TechtreeWeb.ProofsLive do
         <h1>A verified run</h1>
         <p class="lede">
           Your agent runs one Skill versus another in a <.verifiers_term code />
-          environment. The output is a verified result proof that can be shared, and
-          used to hill-climb Skill improvement.
+          environment. What comes out is a signed receipt of that one comparison, which
+          anyone holding a copy can check offline, needing no account and nothing from us.
         </p>
       </header>
+
+      <.proof_of_concept class="doc-section" />
 
       <section :if={@example} class="example-result" aria-labelledby="example-title">
         <p class="eyebrow">Participant-attested · certified {@example.certified_on}</p>
         <h2 id="example-title">Example Baseline vs. Instructional Skill</h2>
         <p>
-          The results shown here are for the v0.1 release, proving that a Hermes agent
-          can run long-horizon tasks using the Techtree Plugin, and create <.verifiers_term code />
-          proofs of Skill uplift.
+          One comparison from the v0.1 certification, shown in full. The tasks are
+          synthetic and were built to demonstrate the mechanism, so a good score here
+          says nothing about how an agent performs on real work, and neither does a
+          poor one. Nobody outside this project has reproduced it.
         </p>
         <.definition_list>
           <:fact term="Without the Skill">
