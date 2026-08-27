@@ -8,8 +8,15 @@ Doctor is to tell you about all of them at once.
 ``blocking`` is a claim about *this* moment, not about the tool in general.
 Python and a usable Techtree home block everything, so a failure there blocks.
 uv blocks engine setup and nothing else, so an ordinary Doctor reports it as a
-warning and says what it will block. Docker and Hermes are warnings before the
-subject and host-agent work packages exist.
+warning and says what it will block. Docker is a warning before the subject
+work package exists.
+
+Two checks here are about the host agent rather than about Techtree, and
+neither is ever a fault. Hermes is where a person's agent drives Techtree from,
+and the Techtree plugin is what puts Techtree's commands in front of that
+agent; a machine with neither still runs every command in this program. So
+both are observations with a next step attached, and the one thing they must
+never do is turn a ready host into an unready one.
 
 Two platform strings appear here and they are different things. The *host*
 platform is where Techtree itself runs. The *Docker* platform is where an
@@ -24,6 +31,7 @@ directory happens to be called, and no probe can block on a prompt.
 
 from __future__ import annotations
 
+import json
 import os
 import platform
 import shutil
@@ -45,12 +53,15 @@ from techtree.settings import Settings
 
 __all__ = [
     "DAEMON_TIMEOUT_SECONDS",
+    "START_PAGE_URL",
     "SUPPORTED_PYTHON",
+    "TECHTREE_PLUGIN_NAME",
     "VERSION_TIMEOUT_SECONDS",
     "check_active_engine",
     "check_docker_cli",
     "check_docker_daemon",
     "check_hermes_cli",
+    "check_hermes_plugin",
     "check_host_platform",
     "check_python_version",
     "check_techtree_home",
@@ -73,14 +84,36 @@ SUPPORTED_PYTHON: Final[tuple[tuple[int, int], tuple[int, int]]] = ((3, 12), (3,
 #: loud without refusing to work.
 _PRIVATE_DIRECTORY_MODE: Final = 0o700
 
+#: The name the Techtree plugin registers with Hermes, and the only thing a
+#: plugin listing has to carry for Doctor to recognise it.
+TECHTREE_PLUGIN_NAME: Final = "techtree"
+
+#: Decision 0024 section 4: the pinned installation guide for this release.
+#:
+#: Doctor points at it instead of printing the plugin's install command, and
+#: the reason is an ordering fact rather than a shortcut. Decision 0026 makes
+#: the release contract a document that is authored first and describes only
+#: what is knowable at that moment; the plugin then embeds a byte-identical
+#: copy of that contract, and the website's release document names the commit
+#: the plugin ended up at. A commit that comes into existence two steps after
+#: the contract cannot be a field of the contract, so this program has no way
+#: to know it — and a coordinate invented here would be worse than an address
+#: that is always current.
+START_PAGE_URL: Final = "https://techtree.sh/start"
+
 
 @dataclass(frozen=True)
 class _Probe:
-    """What running one external tool told us."""
+    """What running one external tool told us.
+
+    ``output`` is the one line a version probe is after. ``stdout`` is
+    everything the tool wrote, which is what a machine-readable answer needs.
+    """
 
     executable: str | None
     exit_code: int | None
     output: str
+    stdout: str
     timed_out: bool
 
     @property
@@ -98,7 +131,9 @@ def _probe(argv: list[str], *, timeout: float) -> _Probe:
     """Run one argument vector with stdin closed and a hard timeout."""
     executable = shutil.which(argv[0])
     if executable is None:
-        return _Probe(executable=None, exit_code=None, output="", timed_out=False)
+        return _Probe(
+            executable=None, exit_code=None, output="", stdout="", timed_out=False
+        )
 
     try:
         completed = subprocess.run(
@@ -110,12 +145,19 @@ def _probe(argv: list[str], *, timeout: float) -> _Probe:
             stdin=subprocess.DEVNULL,
         )
     except subprocess.TimeoutExpired:
-        return _Probe(executable=executable, exit_code=None, output="", timed_out=True)
+        return _Probe(
+            executable=executable,
+            exit_code=None,
+            output="",
+            stdout="",
+            timed_out=True,
+        )
     except OSError as error:
         return _Probe(
             executable=executable,
             exit_code=None,
             output=str(error.strerror or error),
+            stdout="",
             timed_out=False,
         )
 
@@ -123,6 +165,7 @@ def _probe(argv: list[str], *, timeout: float) -> _Probe:
         executable=executable,
         exit_code=completed.returncode,
         output=_first_line(completed.stdout) or _first_line(completed.stderr),
+        stdout=completed.stdout,
         timed_out=False,
     )
 
@@ -370,8 +413,10 @@ def check_hermes_cli() -> DoctorCheck:
             label="Hermes",
             status=CheckStatus.WARN,
             detail=(
-                "hermes was not found on PATH; Techtree does not need it, and "
-                "the host-agent integration is not part of this build"
+                "hermes was not found on PATH. Techtree runs inside Hermes, an "
+                "open-source agent made by Nous Research; the CLI also works "
+                "on its own. The pinned installation guide for this release is "
+                f"{START_PAGE_URL}"
             ),
             blocking=False,
             metadata={},
@@ -394,6 +439,75 @@ def check_hermes_cli() -> DoctorCheck:
         detail=probe.output or "hermes is available",
         blocking=False,
         metadata={"executable": probe.executable, "version": probe.output},
+    )
+
+
+def check_hermes_plugin() -> DoctorCheck:
+    """Say whether the Techtree plugin is installed for the Hermes on PATH.
+
+    Never blocking, and never a failure. A host without the plugin is a
+    perfectly good host: the CLI does its whole job on its own, and the plugin
+    is what lets an agent drive it. So this is the same kind of observation
+    ``check_active_engine`` makes about an engine that is not active yet — a
+    next step, written as one.
+
+    The answer is only as good as what Hermes will say. Plugins are held per
+    profile as well as per user, so a listing describes the Hermes this
+    command resolves to and not necessarily another profile's. And a Hermes
+    that does not answer with a listing this build can read is reported as
+    unknown rather than guessed at: an unfounded "not installed" would send
+    someone to reinstall software they already have.
+    """
+    if shutil.which("hermes") is None:
+        return DoctorCheck(
+            id="hermes_plugin",
+            label="Techtree plugin",
+            status=CheckStatus.SKIP,
+            detail="Skipped because the hermes executable was not found",
+            blocking=False,
+            metadata={},
+        )
+
+    probe = _probe(
+        ["hermes", "plugins", "list", "--json"], timeout=VERSION_TIMEOUT_SECONDS
+    )
+    installed = _plugin_names(probe)
+
+    if installed is None:
+        return DoctorCheck(
+            id="hermes_plugin",
+            label="Techtree plugin",
+            status=CheckStatus.SKIP,
+            detail=(
+                "Skipped because this Hermes did not return a plugin list this "
+                "build can read"
+            ),
+            blocking=False,
+            metadata={"timed_out": probe.timed_out, "exit_code": probe.exit_code},
+        )
+
+    if TECHTREE_PLUGIN_NAME not in installed:
+        return DoctorCheck(
+            id="hermes_plugin",
+            label="Techtree plugin",
+            status=CheckStatus.WARN,
+            detail=(
+                "The Techtree plugin is not installed for this Hermes. The CLI "
+                "works without it, and installing it is what lets your agent "
+                "drive Techtree for you. The pinned installation guide for "
+                f"this release is {START_PAGE_URL}"
+            ),
+            blocking=False,
+            metadata={"plugin_name": TECHTREE_PLUGIN_NAME, "installed": False},
+        )
+
+    return DoctorCheck(
+        id="hermes_plugin",
+        label="Techtree plugin",
+        status=CheckStatus.PASS,
+        detail="The Techtree plugin is installed for this Hermes",
+        blocking=False,
+        metadata={"plugin_name": TECHTREE_PLUGIN_NAME, "installed": True},
     )
 
 
@@ -462,6 +576,35 @@ def check_active_engine(paths: TechtreePaths, settings: Settings) -> DoctorCheck
             "engine_digest": digest,
         },
     )
+
+
+def _plugin_names(probe: _Probe) -> frozenset[str] | None:
+    """Return the names in a plugin listing, or None if there is no listing.
+
+    None is the honest answer to every way this can go wrong — a Hermes too
+    old to know the flag, one that timed out, one that answered with something
+    other than the documented array of plugin objects. Doctor says it does not
+    know rather than reporting an absence it did not observe.
+    """
+    if not probe.succeeded:
+        return None
+    try:
+        listing = json.loads(probe.stdout)
+    except ValueError:
+        return None
+    if not isinstance(listing, list):
+        return None
+    names = {
+        entry["name"]
+        for entry in listing
+        if isinstance(entry, dict) and isinstance(entry.get("name"), str)
+    }
+    if listing and not names:
+        # A listing of somethings, none of which is a named plugin, is a shape
+        # this build does not understand. Reading it as "no plugins" would turn
+        # an unread answer into a claim about the host.
+        return None
+    return frozenset(names)
 
 
 def _probe_failure_detail(subject: str, probe: _Probe) -> str:
