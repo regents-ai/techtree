@@ -23,9 +23,10 @@ records that the person answered in the conversation, which is the same surface
 
 *The address question is asked once, and promises nothing.* It defaults to no,
 what is typed is checked and canonicalised before it goes anywhere, and it
-travels in the request body and is written down nowhere. The wording says what
-is true: an address can be left, it is kept in case contributors can be
-recognised later, and nothing is being offered in exchange today.
+travels in a request header, beside the submission and never inside it, and is
+written down nowhere. The wording says what is true: an address can be left, it
+is kept in case contributors can be recognised later, and nothing is being
+offered in exchange today.
 
 The run's own files are not touched. The countersigned receipt is a new file in
 the run directory and the outcome goes into a publication journal of the run's
@@ -116,7 +117,7 @@ class ProofPublicationPayload(ProtocolModel):
     accepted_at: UtcDateTime
     receipt_path: NonEmptyString
     #: Whether an address was sent. The address is not here, and is not
-    #: anywhere else this machine can be read: it went into the request body
+    #: anywhere else this machine can be read: it went into a request header
     #: and into nothing else.
     contributor_address_sent: bool
 

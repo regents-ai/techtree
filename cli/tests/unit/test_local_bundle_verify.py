@@ -197,38 +197,46 @@ def test_verification_reports_every_check_it_ran(bundle: Path) -> None:
 
     assert f"p1.{P1_REPORT_SIGNED}" in identifiers
     assert "publication.not_requested" in identifiers
-    assert "publication.eligibility_recomputed" in identifiers
+    assert "publication.eligibility_not_overclaimed" in identifiers
     assert "linkage.report_campaign" in identifiers
     assert f"artifact.{REPORT_FILENAME}" in identifiers
 
 
-def test_a_p1_report_may_be_published_and_says_so(bundle: Path) -> None:
-    """Decisions 0038. Sealed evidence, a policy that publishes it: eligible.
+def test_a_report_claiming_no_more_than_it_may_passes(bundle: Path) -> None:
+    """Decisions 0038. The check is about overclaiming and only that.
 
-    The check is a recomputation rather than a reading, so this passes because
-    the flag agrees with the grade and the status beside it, not because the
-    flag says anything in particular.
+    What a proof can honestly say about this flag is that the report does not
+    claim it may be published when its own grade or its own rights statement
+    forbid it. That is a property of the signed bytes and holds however the
+    rules move afterwards.
+
+    What a proof must NOT do is work the flag out under today's rules and
+    demand the report agree. The flag records what the build that wrote the
+    report allowed, which is a fact about that build rather than about the run,
+    and a proof that insisted otherwise would fail every report signed before
+    publishing existed — including the certification runs this release rests
+    on. That happened, briefly, and this test is the shape it should have had.
     """
     result = verify_local_bundle(bundle)
-    recomputed = next(
+    checked = next(
         message
         for message in result.messages
-        if message.id == "publication.eligibility_recomputed"
+        if message.id == "publication.eligibility_not_overclaimed"
     )
 
-    assert recomputed.status == "passed"
-    assert "may be published" in recomputed.detail
+    assert checked.status == "passed"
+    assert "claims no more" in checked.detail
 
 
 def test_an_edited_eligibility_flag_breaks_the_proof(bundle: Path) -> None:
-    """The tamper the recomputation exists to catch, and the reason it can.
+    """The flag is protected by the signature, which is the whole of it.
 
-    The frozen model already refuses the overclaim — a development-only report
-    that said it was eligible would not parse. What it cannot refuse is the
-    other direction, a P1 report whose flag has been turned off, and that is
-    exactly the edit that would stop a run being publishable while leaving
-    every signature intact. So the flag is not read: it is worked out again
-    from the grade and the status beside it, and compared.
+    Turning it off would stop a run being publishable, so it is worth knowing
+    that nobody can. They cannot, and not because anything recomputes it: the
+    flag sits inside the report's signed payload, so editing it moves the
+    payload's digest and the signature over that digest stops verifying. The
+    assertions below name those checks rather than a publication check,
+    because that is the mechanism actually doing the work.
     """
 
     def deny_eligibility(document: dict[str, Any]) -> None:
@@ -238,7 +246,9 @@ def test_an_edited_eligibility_flag_breaks_the_proof(bundle: Path) -> None:
     result = verify_local_bundle(bundle)
 
     assert not result.verified
-    assert "publication.eligibility_recomputed" in failed(result)
+    broken = failed(result)
+    assert "uplift-report.payload_digest" in broken
+    assert "uplift-report.signature" in broken
 
 
 # ---------------------------------------------------------------------------

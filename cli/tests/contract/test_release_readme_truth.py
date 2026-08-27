@@ -40,7 +40,12 @@ def test_readme_describes_the_real_v01_path() -> None:
         "participant-attested",
         "has not been independently reproduced",
         "Release acceptance journeys use a pinned Python 3.12 interpreter",
-        "Techtree does not upload evaluation artifacts",
+        # Decision 0038 made publishing a thing somebody can choose, so the
+        # flat claim became false. What must survive is the shape of it: the
+        # default is that nothing goes, and what goes when somebody asks is
+        # the receipt rather than the episodes.
+        "Techtree uploads nothing unless you publish a run yourself",
+        "the receipt, never the episodes",
         "Model inference is sent to the selected provider",
     ):
         assert required in README_PROSE

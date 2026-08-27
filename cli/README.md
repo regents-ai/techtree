@@ -88,7 +88,8 @@ final approval phrase.
 > No Techtree account is required. A model-provider account and an active Prime
 > CLI configuration are required for the introductory comparisons, which spend
 > model tokens.
-> Techtree does not upload evaluation artifacts.
+> Techtree uploads nothing unless you publish a run yourself, and what travels
+> then is the receipt, never the episodes.
 > Model inference is sent to the selected provider under that provider’s policies.
 > The resulting evidence is participant-attested and has not been independently reproduced.
 

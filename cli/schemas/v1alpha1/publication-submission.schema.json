@@ -1,5 +1,9 @@
 {
   "$defs": {
+    "Base64String": {
+      "minLength": 1,
+      "type": "string"
+    },
     "Digest": {
       "pattern": "^sha256:[0-9a-f]{64}$",
       "type": "string"
@@ -7,50 +11,25 @@
     "NonEmptyString": {
       "minLength": 1,
       "type": "string"
-    },
-    "SubmittedFile": {
-      "additionalProperties": false,
-      "description": "One file of the proof directory, placed and carried verbatim.",
-      "properties": {
-        "content": {
-          "$ref": "#/$defs/NonEmptyString"
-        },
-        "digest": {
-          "$ref": "#/$defs/Digest"
-        },
-        "path": {
-          "$ref": "#/$defs/NonEmptyString"
-        },
-        "size": {
-          "exclusiveMinimum": 0,
-          "title": "Size",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "path",
-        "digest",
-        "size",
-        "content"
-      ],
-      "title": "SubmittedFile",
-      "type": "object"
     }
   },
   "$id": "https://schemas.techtree.dev/v1alpha1/publication-submission.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Everything one publication sends, and nothing else.",
+  "description": "Everything one publication sends, and nothing else.\n\nFour members, fixed by decisions 0038 and by nothing else. The document is\nstored by the run log and served back at a public address, so a member that\narrived here without being in the contract would be published without\nanybody having agreed to publish it. The receiving side refuses a body that\ncarries more; ``extra=\"forbid\"`` on :class:`~techtree.models.base.\nProtocolModel` means this side cannot build one.",
   "properties": {
     "bundle_digest": {
       "$ref": "#/$defs/Digest"
     },
     "files": {
-      "items": {
-        "$ref": "#/$defs/SubmittedFile"
+      "additionalProperties": {
+        "$ref": "#/$defs/Base64String"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/NonEmptyString"
       },
       "title": "Files",
-      "type": "array"
+      "type": "object"
     },
     "run_id": {
       "$ref": "#/$defs/NonEmptyString"

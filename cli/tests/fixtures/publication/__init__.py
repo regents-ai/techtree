@@ -6,6 +6,10 @@ answers with a receipt written here; everything on either side of it — the
 offline verification, the plan, the receipt file, the journal — is the real
 code, so substituting this replaces the request and nothing else.
 
+This is a package rather than a module because ``conformance-submission.json``
+sits beside it: the submission bytes the other half of this feature is tested
+against, and :mod:`fixtures.publication.conformance`, which produces them.
+
 The receipt is built rather than recorded because there is nothing to record
 from: no server exists yet. What it has to be is a well-formed
 :class:`~techtree.publication.models.PublicationReceipt`, and the model is what

@@ -12,17 +12,20 @@ mistake if they stopped being true:
 * a proof that does not verify is never published, whatever else is true of it;
 * a report that may not be published is not published;
 * no file the run already wrote is touched, byte for byte;
-* an address that was volunteered is in the request body and nowhere on disk.
+* an address that was volunteered travels beside the request body and lands
+  nowhere on disk.
 """
 
 from __future__ import annotations
 
 import base64
 import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from fixtures.publication import (
     ADDRESS,
@@ -54,7 +57,7 @@ from techtree.publication.journal import (
     PUBLICATION_JOURNAL_FILENAME,
     PublicationJournal,
 )
-from techtree.publication.models import PublicationCheck
+from techtree.publication.models import PublicationCheck, PublicationSubmission
 from techtree.publication.service import (
     PUBLICATION_ENDPOINT_NOT_CONFIGURED,
     PUBLICATION_NOT_ELIGIBLE,
@@ -112,11 +115,49 @@ def fingerprint(directory: Path) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Planning
+# The wire shape
+#
+# Decisions 0038 fixes it: four members, and ``files`` a mapping of path to
+# base64. Both halves of the feature were built at once from opposite ends and
+# disagreed about exactly this, so it is held here as bytes rather than as an
+# intention.
 # ---------------------------------------------------------------------------
 
 
-def test_the_plan_is_the_whole_proof_directory(
+def test_the_submission_has_exactly_the_four_members_the_contract_names(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """A fifth member added later fails here rather than at the run log.
+
+    The run log refuses a body carrying anything it did not ask for, because
+    what it stores it serves back at a public address. A field somebody adds to
+    this model would otherwise be discovered by a participant whose publication
+    failed.
+    """
+    body = json.loads(service(runs_dir, StubTransport()).submission_bytes(PROOF_RUN_ID))
+
+    assert set(body) == {"schema_version", "run_id", "bundle_digest", "files"}
+    assert body["schema_version"] == "techtree.publication-submission.v1alpha1"
+    assert body["run_id"] == PROOF_RUN_ID
+
+
+def test_a_submission_that_places_no_file_is_not_a_submission() -> None:
+    """An empty mapping is a publication of nothing, and is refused as one.
+
+    The mapping shape already makes it impossible to place one file twice, so
+    emptiness is the only way left for the file set to be wrong on its own
+    terms, and it is the one the model still has to say out loud.
+    """
+    with pytest.raises(PydanticValidationError):
+        PublicationSubmission(
+            schema_version="techtree.publication-submission.v1alpha1",
+            run_id=PROOF_RUN_ID,
+            bundle_digest="sha256:" + "0" * 64,
+            files={},
+        )
+
+
+def test_the_submission_is_the_whole_proof_directory_as_a_mapping(
     proof: RecordedProof, runs_dir: Path
 ) -> None:
     """What is sent is the bytes on disk, including the signed manifest.
@@ -124,19 +165,33 @@ def test_the_plan_is_the_whole_proof_directory(
     The manifest cannot commit to itself, so a submission that carried only the
     files it names would carry nothing the receiver could check them against.
     """
-    plan = service(runs_dir, StubTransport()).plan(PROOF_RUN_ID)
+    body = json.loads(service(runs_dir, StubTransport()).submission_bytes(PROOF_RUN_ID))
 
-    on_disk = fingerprint(runs_dir / PROOF_RUN_ID / "proof")
-    assert set(plan.paths) == set(on_disk)
-    assert BUNDLE_MANIFEST_FILENAME in plan.paths
-    assert plan.byte_count == sum(
-        (runs_dir / PROOF_RUN_ID / "proof" / path).stat().st_size for path in plan.paths
-    )
-    for entry in plan.files:
-        assert (
-            base64.b64decode(entry.content)
-            == (runs_dir / PROOF_RUN_ID / "proof" / entry.path).read_bytes()
-        )
+    directory = runs_dir / PROOF_RUN_ID / "proof"
+    assert set(body["files"]) == set(fingerprint(directory))
+    assert BUNDLE_MANIFEST_FILENAME in body["files"]
+    for path, content in body["files"].items():
+        assert base64.b64decode(content) == (directory / path).read_bytes()
+
+
+def test_no_file_travels_with_a_digest_or_a_size_beside_it(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """The reason ``files`` is a mapping, held as a shape rather than a comment.
+
+    A digest the submitter wrote next to bytes the submitter wrote is worth
+    nothing and is dangerous the moment anybody downstream believes it. Every
+    digest the receiving side works with comes out of the bundle's own signed
+    manifest, so the submission gives it nothing else to reach for.
+
+    Held over the raw bytes rather than the parsed document, because the names
+    of the fields the earlier shape carried are what must not come back. Base64
+    cannot contain a quotation mark, so a quoted key in this body is a key.
+    """
+    raw = service(runs_dir, StubTransport()).submission_bytes(PROOF_RUN_ID)
+
+    for gone in (b'"digest"', b'"size"', b'"content"', b'"path"'):
+        assert gone not in raw, gone
 
 
 def test_the_proof_directory_carries_no_transcript(
@@ -147,13 +202,36 @@ def test_the_proof_directory_carries_no_transcript(
     Every file that would travel is canonical JSON of a protocol document, and
     the vocabulary those documents use has no field for a prompt or a reply.
     """
-    plan = service(runs_dir, StubTransport()).plan(PROOF_RUN_ID)
+    body = json.loads(service(runs_dir, StubTransport()).submission_bytes(PROOF_RUN_ID))
 
     forbidden = ("prompt", "completion", "messages", "content", "reply", "response")
-    for entry in plan.files:
-        text = base64.b64decode(entry.content).decode("utf-8").lower()
+    for path, content in body["files"].items():
+        text = base64.b64decode(content).decode("utf-8").lower()
         for word in forbidden:
-            assert f'"{word}"' not in text, (entry.path, word)
+            assert f'"{word}"' not in text, (path, word)
+
+
+def test_the_request_carries_exactly_the_submission_that_was_built(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """One builder, one shape, and no second document that merely looks alike.
+
+    The conformance fixture the receiving side is tested against comes out of
+    :meth:`~techtree.publication.service.PublicationService.submission_bytes`.
+    This is what makes that fixture evidence about the request rather than
+    about a function nothing sends.
+    """
+    transport = StubTransport()
+    publisher = service(runs_dir, transport)
+
+    publisher.publish(publisher.plan(PROOF_RUN_ID))
+
+    assert transport.bodies == [publisher.submission_bytes(PROOF_RUN_ID)]
+
+
+# ---------------------------------------------------------------------------
+# Planning
+# ---------------------------------------------------------------------------
 
 
 def test_a_run_with_no_proof_here_is_not_published(runs_dir: Path) -> None:
@@ -440,10 +518,18 @@ def test_nothing_about_an_address_is_in_the_endpoint(
 def test_the_plan_says_what_a_person_is_shown(
     proof: RecordedProof, runs_dir: Path
 ) -> None:
-    """The three numbers the review prints come off the plan, not off a guess."""
+    """The three numbers the review prints come off the plan, not off a guess.
+
+    They are counted off the proof directory rather than off the encoded
+    submission, so what a person is shown is the size of the thing they
+    recognise — their run's proof — and not the size of its base64.
+    """
+    directory = runs_dir / PROOF_RUN_ID / "proof"
     plan: PublicationPlan = service(runs_dir, StubTransport()).plan(PROOF_RUN_ID)
 
-    assert plan.file_count == len(plan.files) > 1
-    assert plan.byte_count > 0
+    assert plan.file_count == len(fingerprint(directory)) > 1
+    assert plan.byte_count == sum(
+        path.stat().st_size for path in directory.rglob("*") if path.is_file()
+    )
     assert plan.endpoint == ENDPOINT
     assert plan.bundle_digest.startswith("sha256:")

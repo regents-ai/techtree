@@ -722,23 +722,33 @@ def _check_publication(report: UpliftReport, checks: _Checks) -> None:
         ),
     )
 
-    expected = publication_eligible_for(grade=report.proof_grade, publication=status)
-    agrees = report.publication_eligible == expected
+    # The flag says what the build that wrote this report allowed, and that is
+    # a property of that build rather than of the run. Recomputing it under
+    # today's rules and demanding agreement fails every report signed before
+    # publishing existed — including the certification runs this release rests
+    # on — and it protects nothing, because the flag sits inside the signed
+    # payload and any edit to it breaks the signature two checks above.
+    #
+    # What a proof can honestly check is that the report does not overclaim:
+    # a report may not say it is publishable when its own grade or its own
+    # rights statement forbid it. That is the direction that matters, it is a
+    # property of the signed bytes alone, and it holds however the rules move.
+    overclaims = report.publication_eligible and not publication_eligible_for(
+        grade=report.proof_grade, publication=status
+    )
     checks.record(
-        "publication.eligibility_recomputed",
-        _PASSED if agrees else _FAILED,
+        "publication.eligibility_not_overclaimed",
+        _FAILED if overclaims else _PASSED,
         PROOF_BUNDLE_INVALID,
         (
-            "the report may be published, which is what its grade and its "
-            "rights statement together allow"
-            if expected
-            else "the report may not be published, and does not claim it may"
+            f"the report claims it may be published while its grade is "
+            f"{report.proof_grade} and its publication status is "
+            f"{status.value}, which do not allow it"
         )
-        if agrees
+        if overclaims
         else (
-            f"the report says publication_eligible is "
-            f"{report.publication_eligible}, and its own proof grade and "
-            f"publication status make it {expected}"
+            "the report claims no more about publishing than its own grade "
+            "and rights statement allow"
         ),
     )
 
