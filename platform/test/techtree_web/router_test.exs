@@ -34,6 +34,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/bootstrap",
              "get /api/v1/catalog",
              "get /api/v1/climbs/:slug",
+             "get /api/v1/network-key",
              "get /api/v1/objects/:digest",
              "get /api/v1/submissions/:digest",
              "get /campaigns",

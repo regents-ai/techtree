@@ -26,8 +26,11 @@ swap_size_mb = 512
   # resolve.
   ECTO_IPV6 = "true"
 
-  # PHX_HOST, SECRET_KEY_BASE, and DATABASE_URL are secrets, not settings, and
-  # are set with `flyctl secrets set` (see the runbook). PHX_SERVER is set by
+  # PHX_HOST, SECRET_KEY_BASE, DATABASE_URL, and TECHTREE_NETWORK_SIGNING_KEY
+  # are secrets, not settings, and are set with `flyctl secrets set` (see the
+  # runbook). The signing key is the private half of the key this site
+  # countersigns publication receipts with; it belongs in no file here, and the
+  # release refuses to start without it. PHX_SERVER is set by
   # bin/server alone, so that `bin/migrate` and `bin/techtree eval` can run on
   # the same machine without a second process trying to bind PORT.
   #

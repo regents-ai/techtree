@@ -18,7 +18,7 @@ defmodule Techtree.NetworkFixture do
   alias Techtree.Catalog.Digest
 
   @root Path.expand("fixtures/proof", __DIR__)
-  @schema_version "techtree.submission.v1alpha1"
+  @schema_version "techtree.publication-submission.v1alpha1"
   @manifest "bundle.json"
 
   @doc """
@@ -34,11 +34,22 @@ defmodule Techtree.NetworkFixture do
 
   @doc """
   A submission document carrying these files.
+
+  The two claims the document makes about the bundle are read out of the bundle
+  itself, which is what an honest sender does: the run it publishes and the
+  digest it is filed under are both in the manifest it is about to send.
+
+  `declared` overrides one of those claims, which is the only way to reach the
+  check that a claim has to agree with the bundle it travels with.
   """
-  @spec submission(%{String.t() => binary()}) :: binary()
-  def submission(files \\ files()) do
+  @spec submission(%{String.t() => binary()}, keyword()) :: binary()
+  def submission(files \\ files(), declared \\ []) do
+    manifest = files |> Map.fetch!(@manifest) |> Jason.decode!()
+
     Jason.encode!(%{
       "schema_version" => @schema_version,
+      "run_id" => Keyword.get(declared, :run_id, manifest["payload"]["run_id"]),
+      "bundle_digest" => Keyword.get(declared, :bundle_digest, manifest["payload_digest"]),
       "files" => Map.new(files, fn {path, bytes} -> {path, Base.encode64(bytes)} end)
     })
   end

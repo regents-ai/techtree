@@ -101,7 +101,16 @@ IPv6 only. `fly.toml` sets `ECTO_IPV6 = "true"` for that reason.
 
     flyctl secrets set --app techtree-sh \
       SECRET_KEY_BASE="$(mix phx.gen.secret)" \
-      PHX_HOST="techtree-sh.fly.dev"
+      PHX_HOST="techtree-sh.fly.dev" \
+      TECHTREE_NETWORK_SIGNING_KEY="$(openssl genpkey -algorithm ed25519 -outform DER \
+        | tail -c 32 | base64)"
+
+`TECHTREE_NETWORK_SIGNING_KEY` is the private half of the key this site signs
+publication receipts with: 32 bytes of Ed25519 private key, base64 encoded. It
+is generated once, here, and never written into the repository. The public half
+is derived from it at runtime and served at `/api/v1/network-key`, so a receipt
+can be checked by anybody. Replacing it invalidates every receipt already
+issued, so it is set once and left alone.
 
 `PHX_HOST` is deliberately the Fly hostname for now. Every absolute URL the site
 prints, and the origin its live pages are allowed to connect from, is built from
@@ -471,5 +480,6 @@ belongs to a channel, and no rollback crosses between them.
   nosniff, frame, and referrer headers this application attaches to every static
   file.
 - `flyctl logs --app techtree-sh` for anything that goes wrong at boot. A
-  missing `PHX_HOST`, `SECRET_KEY_BASE`, or `DATABASE_URL` stops the release
-  before it starts, by name, rather than booting into a wrong guess.
+  missing `PHX_HOST`, `SECRET_KEY_BASE`, `DATABASE_URL`, or
+  `TECHTREE_NETWORK_SIGNING_KEY` stops the release before it starts, by name,
+  rather than booting into a wrong guess.

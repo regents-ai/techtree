@@ -258,16 +258,34 @@ defmodule Techtree.Network.IngestTest do
             "{}",
             "not json at all",
             ~s({"schema_version":"other","files":{}}),
-            ~s({"schema_version":"techtree.submission.v1alpha1","files":{},"note":"read me"})
+            Jason.encode!(
+              NetworkFixture.submission()
+              |> Jason.decode!()
+              |> Map.put("note", "read me")
+            )
           ] do
         assert {:error, %{code: :submission_malformed}} = Ingest.accept(body)
       end
     end
 
-    test "carrying anything beside the proof is refused" do
+    test "under the name the protocol used before this document had one is refused" do
+      # The protocol names every document `techtree.<object>.v1alpha1`, and this
+      # one is `techtree.publication-submission.v1alpha1`. A body under the old
+      # spelling is not a submission, and there is no second name for it.
+      renamed =
+        NetworkFixture.submission()
+        |> Jason.decode!()
+        |> Map.put("schema_version", "techtree.submission.v1alpha1")
+        |> Jason.encode!()
+
+      assert {:error, %{code: :submission_malformed}} = Ingest.accept(renamed)
+      assert Network.list_submissions!() == []
+    end
+
+    test "carrying anything beside its four members is refused" do
       # A submission's bytes are stored and served back at a public address, so
-      # a document that allowed a field beside the proof would be a way to have
-      # this site host whatever somebody put in it.
+      # a document that allowed a fifth member would be a way to have this site
+      # host whatever somebody put in it.
       smuggled =
         NetworkFixture.submission()
         |> Jason.decode!()
@@ -278,14 +296,83 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_submissions!() == []
     end
 
+    test "declaring less than the four members is refused" do
+      for missing <- ["schema_version", "run_id", "bundle_digest", "files"] do
+        body =
+          NetworkFixture.submission()
+          |> Jason.decode!()
+          |> Map.delete(missing)
+          |> Jason.encode!()
+
+        assert {:error, %{code: :submission_malformed}} = Ingest.accept(body)
+      end
+
+      assert Network.list_submissions!() == []
+    end
+
     test "carrying a file that is not base64 is refused" do
       body =
         Jason.encode!(%{
-          "schema_version" => "techtree.submission.v1alpha1",
+          "schema_version" => "techtree.publication-submission.v1alpha1",
+          "run_id" => "run_c4758ddb5bba4023aa3530b47f4582e9",
+          "bundle_digest" => NetworkFixture.bundle_digest(),
           "files" => %{"bundle.json" => "not base64 !!"}
         })
 
       assert {:error, %{code: :submission_malformed}} = Ingest.accept(body)
+    end
+  end
+
+  describe "what a submission claims about the bundle it carries" do
+    setup :publish_the_catalog
+
+    test "a declared digest that is not the bundle's own is refused" do
+      wrong = "sha256:" <> String.duplicate("e", 64)
+
+      assert {:error, %{code: :submission_bundle_digest_mismatch, details: details}} =
+               Ingest.accept(
+                 NetworkFixture.submission(NetworkFixture.files(), bundle_digest: wrong)
+               )
+
+      assert details["declared_bundle_digest"] == wrong
+      assert details["bundle_digest"] == NetworkFixture.bundle_digest()
+      assert Network.list_submissions!() == []
+    end
+
+    test "a declared run the signed report does not name is refused" do
+      assert {:error, %{code: :submission_run_id_mismatch, details: details}} =
+               Ingest.accept(
+                 NetworkFixture.submission(NetworkFixture.files(), run_id: "run_somebody_else")
+               )
+
+      assert details["declared_run_id"] == "run_somebody_else"
+      assert details["run_id"] == NetworkFixture.report()["payload"]["run_id"]
+      assert Network.list_submissions!() == []
+    end
+
+    test "is checked after the bundle itself, not instead of it" do
+      # A bundle with a broken signature and a wrong declaration is refused for
+      # the signature. What the submitter claims about a bundle means nothing
+      # until the bundle has been shown to hold together.
+      files =
+        NetworkFixture.replace(
+          @manifest_path,
+          NetworkFixture.files()
+          |> Map.fetch!(@manifest_path)
+          |> Jason.decode!()
+          |> put_in(["signature", "signature"], Base.encode64(:binary.copy(<<0>>, 64)))
+          |> Jason.encode!()
+        )
+
+      assert {:error, %{code: :submission_signature_invalid}} =
+               Ingest.accept(NetworkFixture.submission(files, run_id: "run_somebody_else"))
+    end
+
+    test "agreeing is what an honest submission does, and it is recorded from the bundle" do
+      assert {:ok, entry, :recorded} = Ingest.accept(NetworkFixture.submission())
+
+      assert entry.run_id == NetworkFixture.report()["payload"]["run_id"]
+      assert entry.bundle_digest == NetworkFixture.bundle_digest()
     end
   end
 

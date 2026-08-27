@@ -41,7 +41,37 @@ config :techtree,
          fn {_key, value} -> is_nil(value) end
        )
 
+# The key this site countersigns publication receipts with. The private half is
+# operational configuration and lives nowhere in this repository: it is the
+# base64 of 32 bytes of Ed25519 private key, generated on a machine the operator
+# trusts and set as a secret. Without it the publish address and the key address
+# both answer 503, which `Techtree.Network.Key` explains; a production release
+# refuses to boot rather than reach that state by omission.
+config :techtree,
+       Techtree.Network.Key,
+       private_key: System.get_env("TECHTREE_NETWORK_SIGNING_KEY")
+
 if config_env() == :prod do
+  network_signing_key =
+    System.get_env("TECHTREE_NETWORK_SIGNING_KEY") ||
+      raise """
+      environment variable TECHTREE_NETWORK_SIGNING_KEY is missing.
+      It is the base64 of the 32 bytes of the Ed25519 private key this site
+      countersigns publication receipts with. Generate one on a machine you
+      trust and set it as a secret; it must never be written into this
+      repository. The public half is served at /api/v1/network-key.
+      """
+
+  # The value itself is never printed, here or anywhere else. A misconfigured
+  # key that only announced itself the first time somebody published a run
+  # would be found by a participant rather than by the operator.
+  if not match?({:ok, decoded} when byte_size(decoded) == 32, Base.decode64(network_signing_key)) do
+    raise """
+    environment variable TECHTREE_NETWORK_SIGNING_KEY is not usable.
+    It must be the base64 of exactly 32 bytes of Ed25519 private key.
+    """
+  end
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """

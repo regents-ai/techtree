@@ -44,11 +44,26 @@ defmodule Techtree.Network.Bundle do
   to the artifact list, which commits to every file — so the same proof sent
   twice is the same entry however it was wrapped for transport.
 
-  One more rule is here for a reason that is not about proof at all. The
-  submitted document may carry the proof and nothing else, because those bytes
-  are stored and served back at a public address, and a document that allowed
-  anything beside the proof would be a way to have this site host whatever
-  somebody wanted to put in it.
+  Two more rules are here for reasons that are not about proof at all.
+
+  *The submitted document has exactly four members* — the schema version, the
+  run, the bundle's digest, and the files — and a document carrying a fifth is
+  refused. Those bytes are stored and served back at a public address, so a
+  document that allowed anything beside the proof would be a way to have this
+  site host whatever somebody wanted to put in it. `files` is a mapping of path
+  to base64 and nothing else: it carries no per-file digest and no per-file
+  size, because those would be claims the submitter wrote, and every digest
+  here is taken from the bundle's own signed manifest instead.
+
+  *The other two members are claims, and they are checked as claims.* `run_id`
+  and `bundle_digest` are what the submitter says they are sending. Neither is
+  read for anything — every column the site records comes from the signed bytes
+  — but a submission whose declared digest is not the manifest's own payload
+  digest, or whose declared run is not the one the signed report names, is
+  refused rather than quietly published under the bundle's version of events.
+  That check runs last, after all eight, because "what the bundle itself says"
+  only means anything once the bundle has been shown to say it consistently and
+  under a signature that verifies.
   """
 
   alias Techtree.Canonical
@@ -57,7 +72,7 @@ defmodule Techtree.Network.Bundle do
   alias Techtree.Network
   alias Techtree.Network.Error
 
-  @schema_version "techtree.submission.v1alpha1"
+  @schema_version "techtree.publication-submission.v1alpha1"
   @manifest_path "bundle.json"
   @envelope_keys ~w(payload payload_digest signature)
 
@@ -112,7 +127,8 @@ defmodule Techtree.Network.Bundle do
          {:ok, report} <- report(manifest, envelopes),
          {:ok, campaign, reference} <- campaign(manifest),
          :ok <- counts(report),
-         :ok <- membership(report, campaign) do
+         :ok <- membership(report, campaign),
+         :ok <- declarations(document, manifest, report) do
       {:ok,
        %__MODULE__{
          raw: raw,
@@ -149,22 +165,31 @@ defmodule Techtree.Network.Bundle do
 
   # -- The submission document ----------------------------------------------
 
-  # The document carries the proof and nothing else. Anything a submitter added
-  # beside it would be bytes this site stored and served back at a public
-  # address, which is the one way arbitrary text could reach a surface here, so
-  # a document with anything else in it is not a submission.
+  # The document carries the proof, what it claims the proof is, and nothing
+  # else. Anything a submitter added beside those would be bytes this site
+  # stored and served back at a public address, which is the one way arbitrary
+  # text could reach a surface here, so a document with a fifth member in it is
+  # not a submission.
   defp decode_submission(raw) do
     case Jason.decode(raw) do
-      {:ok, %{"schema_version" => @schema_version, "files" => files} = document}
-      when is_map(files) and map_size(document) == 2 ->
+      {:ok,
+       %{
+         "schema_version" => @schema_version,
+         "run_id" => run_id,
+         "bundle_digest" => bundle_digest,
+         "files" => files
+       } = document}
+      when is_binary(run_id) and is_binary(bundle_digest) and is_map(files) and
+             map_size(document) == 4 ->
         {:ok, document}
 
       _other ->
         {:error,
          Error.new(
            :submission_malformed,
-           "a submission is a #{@schema_version} document whose only contents " <>
-             "are the files of one proof bundle"
+           "a submission is a #{@schema_version} document with exactly four " <>
+             "members: the run it publishes, the digest of the bundle it carries, " <>
+             "the files of that bundle, and this version"
          )}
     end
   end
@@ -509,5 +534,40 @@ defmodule Techtree.Network.Bundle do
          }
        )}
     end
+  end
+
+  # -- What the submitter said they were sending -----------------------------
+
+  # Neither of these is read for anything else. They are the two claims the
+  # submission document makes about itself, and a claim that disagrees with the
+  # signed bundle it travels with is a disagreement the participant has to
+  # resolve on their own machine rather than one this site picks a side in.
+  defp declarations(document, manifest, report) do
+    with :ok <- declared_digest(document["bundle_digest"], manifest["payload_digest"]) do
+      declared_run_id(document["run_id"], report["run_id"])
+    end
+  end
+
+  defp declared_digest(declared, declared), do: :ok
+
+  defp declared_digest(declared, actual) do
+    {:error,
+     Error.new(
+       :submission_bundle_digest_mismatch,
+       "this submission declares a bundle digest that is not the digest of " <>
+         "the bundle it carries",
+       %{"declared_bundle_digest" => declared, "bundle_digest" => actual}
+     )}
+  end
+
+  defp declared_run_id(declared, declared), do: :ok
+
+  defp declared_run_id(declared, actual) do
+    {:error,
+     Error.new(
+       :submission_run_id_mismatch,
+       "this submission declares a run that the signed result inside it does not name",
+       %{"declared_run_id" => declared, "run_id" => actual}
+     )}
   end
 end

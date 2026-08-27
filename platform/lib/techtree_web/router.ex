@@ -11,6 +11,10 @@ defmodule TechtreeWeb.Router do
   slug the catalog can resolve. A request for anything else is a `404`, never a
   placeholder that appears to have worked.
 
+  `GET /api/v1/network-key` is the counterpart of that one write: the public
+  half of the key this site signs publication receipts with, at a fixed address
+  so that a receipt can be checked by anybody holding one.
+
   The endpoint also declares the live-page transport the public pages use.
   Nothing reachable through it can write: every catalog and network resource
   forbids create, update, and destroy through any interface, and the importer
@@ -83,6 +87,7 @@ defmodule TechtreeWeb.Router do
     get "/climbs/:slug", ClimbController, :show
     get "/objects/:digest", ObjectController, :show
     get "/submissions/:digest", SubmissionController, :show
+    get "/network-key", NetworkKeyController, :show
   end
 
   # The one address that accepts anything, on its own so that what stands in

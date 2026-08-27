@@ -13,11 +13,16 @@ defmodule TechtreeWeb.SubmissionControllerTest do
 
   use TechtreeWeb.ConnCase, async: false
 
+  alias Techtree.Canonical
+  alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
   alias Techtree.Network
+  alias Techtree.Network.Bundle
   alias Techtree.Network.Ingest
+  alias Techtree.Network.Key
   alias Techtree.NetworkFixture
+  alias TechtreeWeb.Endpoint
 
   @address "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
 
@@ -29,20 +34,55 @@ defmodule TechtreeWeb.SubmissionControllerTest do
   end
 
   describe "publishing a run" do
-    test "a real bundle is accepted, and the receipt says what was checked", %{conn: conn} do
+    test "a real bundle is accepted, and the receipt is the document 0038 fixes",
+         %{conn: conn} do
       conn = publish(conn, NetworkFixture.submission())
 
       assert conn.status == 201
 
       body = json_response(conn, 201)
 
-      assert body["sequence"] >= 1
-      assert body["bundle_digest"] == NetworkFixture.bundle_digest()
-      assert body["checks_run"] == 8
-      assert body["checks_passed"] == 8
-      assert body["location"] == "/api/v1/submissions/#{NetworkFixture.bundle_digest()}"
+      assert Enum.sort(Map.keys(body)) == [
+               "accepted_at",
+               "bundle_digest",
+               "checks",
+               "entry_url",
+               "id",
+               "log_sequence",
+               "public_key",
+               "run_id",
+               "schema_version",
+               "signature"
+             ]
 
-      assert get_resp_header(conn, "location") == [body["location"]]
+      assert body["schema_version"] == "techtree.publication-receipt.v1alpha1"
+      assert body["bundle_digest"] == NetworkFixture.bundle_digest()
+      assert body["run_id"] == NetworkFixture.report()["payload"]["run_id"]
+      assert body["log_sequence"] >= 1
+      assert body["entry_url"] == Endpoint.url() <> "/network/" <> NetworkFixture.bundle_digest()
+
+      assert get_resp_header(conn, "location") ==
+               ["/api/v1/submissions/#{NetworkFixture.bundle_digest()}"]
+    end
+
+    test "the receipt names every check the ingest actually ran", %{conn: conn} do
+      body = conn |> publish(NetworkFixture.submission()) |> json_response(201)
+
+      expected =
+        Enum.map(Bundle.checks(), fn {id, detail} ->
+          %{"id" => to_string(id), "passed" => true, "detail" => detail}
+        end)
+
+      assert body["checks"] == expected
+      assert length(body["checks"]) == 8
+    end
+
+    test "the receipt says when the log accepted it, in UTC", %{conn: conn} do
+      body = conn |> publish(NetworkFixture.submission()) |> json_response(201)
+
+      assert {:ok, accepted_at, 0} = DateTime.from_iso8601(body["accepted_at"])
+      assert String.ends_with?(body["accepted_at"], "Z")
+      assert DateTime.diff(DateTime.utc_now(), accepted_at, :second) < 60
     end
 
     test "the same bundle again is the same entry, not a second one", %{conn: conn} do
@@ -55,7 +95,7 @@ defmodule TechtreeWeb.SubmissionControllerTest do
         |> publish(NetworkFixture.submission())
 
       assert again.status == 200
-      assert json_response(again, 200)["sequence"] == first["sequence"]
+      assert json_response(again, 200)["log_sequence"] == first["log_sequence"]
       assert length(Network.list_submissions!()) == 1
     end
 
@@ -93,7 +133,9 @@ defmodule TechtreeWeb.SubmissionControllerTest do
     test "a body over it is refused at the parser, before it is decoded", %{conn: conn} do
       oversized =
         Jason.encode!(%{
-          "schema_version" => "techtree.submission.v1alpha1",
+          "schema_version" => "techtree.publication-submission.v1alpha1",
+          "run_id" => "run_c4758ddb5bba4023aa3530b47f4582e9",
+          "bundle_digest" => NetworkFixture.bundle_digest(),
           "files" => %{"bundle.json" => String.duplicate("a", 5_000_000)}
         })
 
@@ -114,7 +156,7 @@ defmodule TechtreeWeb.SubmissionControllerTest do
   describe "the rate limit" do
     test "one caller sending run after run is asked to wait" do
       caller = own_address()
-      body = ~s({"schema_version":"techtree.submission.v1alpha1","files":{}})
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
 
       statuses =
         for _attempt <- 1..12 do
@@ -130,7 +172,7 @@ defmodule TechtreeWeb.SubmissionControllerTest do
 
     test "the refusal says retrying could help, and roughly when" do
       caller = own_address()
-      body = ~s({"schema_version":"techtree.submission.v1alpha1","files":{}})
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
 
       refused =
         Enum.reduce(1..12, nil, fn _attempt, _previous ->
@@ -150,7 +192,7 @@ defmodule TechtreeWeb.SubmissionControllerTest do
 
     test "another caller is unaffected by the first one's flood", %{conn: conn} do
       flooder = own_address()
-      body = ~s({"schema_version":"techtree.submission.v1alpha1","files":{}})
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
 
       for _attempt <- 1..12 do
         Phoenix.ConnTest.build_conn() |> Map.put(:remote_ip, flooder) |> publish(body)
@@ -225,7 +267,8 @@ defmodule TechtreeWeb.SubmissionControllerTest do
         |> publish(NetworkFixture.submission())
 
       assert conn.status == 201
-      refute conn.resp_body =~ "0x"
+      refute conn.resp_body =~ @address
+      refute conn.resp_body =~ String.downcase(@address)
 
       assert Ingest.contributor_address(String.downcase(@address)).submission_count == 1
 
@@ -251,10 +294,130 @@ defmodule TechtreeWeb.SubmissionControllerTest do
     end
   end
 
+  describe "the countersignature" do
+    test "verifies against the key served at the published address", %{conn: conn} do
+      receipt = conn |> publish(NetworkFixture.submission()) |> json_response(201)
+
+      published = build_conn() |> get("/api/v1/network-key") |> json_response(200)
+
+      assert receipt["public_key"] == published
+      assert receipt["signature"]["key_id"] == published["key_id"]
+      assert receipt["signature"]["algorithm"] == "ed25519"
+      assert verified?(receipt)
+    end
+
+    test "is over every member of the receipt but itself", %{conn: conn} do
+      receipt = conn |> publish(NetworkFixture.submission()) |> json_response(201)
+
+      for member <- Map.keys(receipt), member != "signature" do
+        refute verified?(Map.put(receipt, member, "tampered")),
+               "changing #{member} left the signature verifying"
+      end
+    end
+
+    test "does not verify under a key that is not the one that made it", %{conn: conn} do
+      receipt = conn |> publish(NetworkFixture.submission()) |> json_response(201)
+
+      {other, _private} = :crypto.generate_key(:eddsa, :ed25519)
+
+      refute verify(receipt, other)
+    end
+
+    test "the fingerprint the receipt names is the hash of the key it names", %{conn: conn} do
+      receipt = conn |> publish(NetworkFixture.submission()) |> json_response(201)
+
+      assert receipt["public_key"]["key_id"] ==
+               Digest.hash_bytes(Base.decode64!(receipt["public_key"]["public_key"]))
+    end
+  end
+
+  describe "the published public key" do
+    test "is the three-member document a key is written as in this protocol" do
+      served = get(build_conn(), "/api/v1/network-key")
+
+      assert served.status == 200
+      assert Enum.sort(Map.keys(json_response(served, 200))) == ~w(algorithm key_id public_key)
+
+      assert get_resp_header(served, "etag") == [~s("#{Digest.hash_bytes(served.resp_body)}")]
+    end
+
+    test "is not served by a build that holds no key" do
+      without_a_key(fn ->
+        served = get(build_conn(), "/api/v1/network-key")
+
+        assert served.status == 503
+
+        assert %{"error" => %{"code" => "network_key_unavailable", "retryable" => true}} =
+                 json_response(served, 503)
+      end)
+    end
+  end
+
+  describe "a build that holds no signing key" do
+    test "publishes nothing, and says so rather than accepting silently", %{conn: conn} do
+      without_a_key(fn ->
+        refused = publish(conn, NetworkFixture.submission())
+
+        assert refused.status == 503
+
+        assert %{"error" => %{"code" => "network_key_unavailable", "retryable" => true}} =
+                 json_response(refused, 503)
+
+        assert Network.list_submissions!() == []
+      end)
+    end
+
+    test "accepts the identical bundle once a key is there", %{conn: conn} do
+      without_a_key(fn -> assert publish(conn, NetworkFixture.submission()).status == 503 end)
+
+      assert conn
+             |> recycle()
+             |> from_own_address()
+             |> publish(NetworkFixture.submission())
+             |> Map.fetch!(:status) == 201
+    end
+  end
+
   defp publish(conn, body) do
     conn
     |> put_req_header("content-type", "application/json")
     |> post("/api/v1/submissions", body)
+  end
+
+  # The receipt's own payload is the receipt without its signature, canonicalized
+  # and hashed — recomputed here rather than asked of the code that made it, so
+  # that this is the check anybody holding a receipt would run.
+  defp verified?(receipt) do
+    {:ok, key} = Key.load()
+
+    verify(receipt, key.public)
+  end
+
+  defp verify(receipt, public) do
+    digest =
+      receipt
+      |> Map.delete("signature")
+      |> Canonical.encode!()
+      |> Digest.hash_bytes()
+
+    :crypto.verify(
+      :eddsa,
+      :none,
+      digest,
+      Base.decode64!(receipt["signature"]["signature"]),
+      [public, :ed25519]
+    )
+  end
+
+  defp without_a_key(body) do
+    configured = Application.get_env(:techtree, Key)
+    Application.delete_env(:techtree, Key)
+
+    try do
+      body.()
+    after
+      Application.put_env(:techtree, Key, configured)
+    end
   end
 
   defp from_own_address(conn), do: Map.put(conn, :remote_ip, own_address())

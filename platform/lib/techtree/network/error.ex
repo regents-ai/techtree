@@ -8,7 +8,10 @@ defmodule Techtree.Network.Error do
   again could possibly help. `Techtree.Catalog.Error` fixed that shape for the
   read surface; this is the same shape for the one address that reads a body.
 
-  The codes are one-to-one with the checks in `Techtree.Network.Bundle`, so a
+  Most of the codes are one-to-one with the checks in
+  `Techtree.Network.Bundle`; two more name the two claims the submission
+  document makes about the bundle it carries, which are refused when they
+  disagree with it. Either way a
   participant whose bundle was turned away learns which property of it did not
   hold rather than that "verification failed". The details are limited to what
   the submitter already has: file paths inside their own bundle, digests they
@@ -31,6 +34,8 @@ defmodule Techtree.Network.Error do
           | :submission_campaign_unpublished
           | :submission_counts_inconsistent
           | :submission_task_membership_mismatch
+          | :submission_bundle_digest_mismatch
+          | :submission_run_id_mismatch
           | :contributor_address_invalid
 
   @type t :: %__MODULE__{
