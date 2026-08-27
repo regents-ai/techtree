@@ -11,8 +11,9 @@ defmodule TechtreeWeb.ProofsLive do
 
   What a run adds — the scores, the task-by-task record, the signature — is
   named here as what would be there, never drawn as though it already is.
-  Founder ruling 2026-08-26: this page is deliberately short, and it names its
-  own future — publishing a finished run to it arrives in a later release.
+  Founder ruling 2026-08-26: this page is deliberately short. Publishing a
+  finished run is now a thing somebody can do, and where those land is
+  `/network`; this page stays the one curated example.
   """
 
   use TechtreeWeb, :live_view
@@ -96,9 +97,8 @@ defmodule TechtreeWeb.ProofsLive do
         attention
       >
         <p>
-          This release publishes nothing and receives nothing. A finished run stays on
-          the machine that produced it. Publishing one to this page arrives in a later
-          release — this page is where it will land.
+          A finished run stays on the machine that produced it unless its owner chooses
+          to publish it. Where published runs land is <.link navigate={~p"/network"}>the run log</.link>.
         </p>
       </.warning_callout>
 

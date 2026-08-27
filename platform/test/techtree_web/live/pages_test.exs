@@ -69,7 +69,7 @@ defmodule TechtreeWeb.PagesTest do
       assert text =~ "This site did not witness the trial"
       assert text =~ "not the same as an independent"
       assert text =~ "techtree proof verify path/to/result-bundle"
-      assert text =~ "There is nowhere to upload a result on this site"
+      assert text =~ "A finished result goes nowhere unless you ask it to"
     end
 
     test "the protocol page maps the documents and links the ones shipped", %{conn: conn} do

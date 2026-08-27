@@ -93,9 +93,13 @@ defmodule TechtreeWeb.LocalProofLive do
       <section class="section">
         <h2>Sending it somewhere</h2>
         <p>
-          There is nowhere to upload a result on this site, by design. If you want to
-          share one, share the bundle: it can be checked wherever it lands, and it
-          contains no recordings unless you chose to include them.
+          A finished result goes nowhere unless you ask it to. If you want one on the
+          public <.link navigate={~p"/network"}>run log</.link>, publishing it is a
+          command you run yourself, and what travels is the receipt rather than the
+          recordings. You can also just share the bundle: it can be checked wherever it
+          lands. The model calls the run made are a separate matter and already
+          happened — they went to the model provider you configured, under that
+          provider's policies.
         </p>
       </section>
     </Layouts.page>
