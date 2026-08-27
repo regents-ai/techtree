@@ -2,14 +2,20 @@ defmodule TechtreeWeb.Endpoint do
   @moduledoc """
   Everything a request passes through before the routing table sees it.
 
-  This application publishes and does nothing else, and the pipeline is built
-  so that this stays true by construction rather than by nobody having added a
-  route yet. There is no multipart parser, so a body of files is never read,
-  never spooled to disk, and never held in memory on its way to a refusal.
-  There is no method override, so a hidden parameter cannot turn a request into
-  a verb the routing table does not answer. And a static file is served with
-  the same refusals a page is, because a file opened directly in a browser is a
-  document like any other.
+  This application publishes, and accepts exactly one thing at exactly one
+  address, and the pipeline is built so that this stays true by construction
+  rather than by nobody having added a route yet. There is no multipart parser,
+  so a body of files is never read, never spooled to disk, and never held in
+  memory on its way to a refusal. There is no method override, so a hidden
+  parameter cannot turn a request into a verb the routing table does not
+  answer. And a static file is served with the same refusals a page is, because
+  a file opened directly in a browser is a document like any other.
+
+  The one address that does take a body reads it through
+  `TechtreeWeb.SubmissionBody`, which keeps the exact bytes for the endpoint
+  that serves them back and stops an oversized body at the parser. Every other
+  address is unchanged by that: nothing is kept for one and no body is read for
+  one.
   """
 
   use Phoenix.Endpoint, otp_app: :techtree
@@ -64,12 +70,13 @@ defmodule TechtreeWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
-  # No route reads a request body, so nothing here needs to accept a file. A
+  # One route reads a request body, and nothing here needs to accept a file. A
   # body in a content type this does not parse is passed along untouched and
   # meets the same refusal it would have met anyway.
   plug Plug.Parsers,
     parsers: [:urlencoded, :json],
     pass: ["*/*"],
+    body_reader: {TechtreeWeb.SubmissionBody, :read_body, []},
     json_decoder: Phoenix.json_library()
 
   plug Plug.Head

@@ -2,15 +2,20 @@ defmodule TechtreeWeb.Router do
   @moduledoc """
   Every route this application answers.
 
-  All of them are `GET`. There is no route that creates, accepts, uploads,
-  authenticates, or ranks anything, and there is no route that takes a path
-  parameter other than a digest or a slug the catalog can resolve. A request for
-  anything else is a `404`, never a placeholder that appears to have worked.
+  All but one of them are `GET`. The exception is `POST /api/v1/submissions`,
+  where a participant publishes a finished run; it is the only route on this
+  site that accepts anything, and what is done with what it accepts is in
+  `Techtree.Network.Ingest`, which checks every property of a bundle before a
+  row exists. There is no route that uploads a file, authenticates anybody, or
+  ranks anything, and no route takes a path parameter other than a digest or a
+  slug the catalog can resolve. A request for anything else is a `404`, never a
+  placeholder that appears to have worked.
 
-  The endpoint also declares the live-page transport the public pages will use.
-  Nothing reachable through it can write either: every catalog resource forbids
-  create, update, and destroy through any interface, and the importer is the one
-  caller that bypasses that, deliberately and in one place.
+  The endpoint also declares the live-page transport the public pages use.
+  Nothing reachable through it can write: every catalog and network resource
+  forbids create, update, and destroy through any interface, and the importer
+  and the ingest are the two callers that bypass that, deliberately and each in
+  one place.
   """
 
   use TechtreeWeb, :router
@@ -37,6 +42,13 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
+  # The one pipeline in front of something that accepts a body.
+  pipeline :submissions do
+    plug :accepts, ["json"]
+    plug :put_public_api_headers
+    plug TechtreeWeb.SubmissionRate
+  end
+
   scope "/", TechtreeWeb do
     pipe_through :browser
 
@@ -46,6 +58,8 @@ defmodule TechtreeWeb.Router do
     live "/campaigns/:slug", CampaignsLive.Show
     live "/proofs", ProofsLive
     live "/proofs/local", LocalProofLive
+    live "/network", NetworkLive.Index
+    live "/network/:digest", NetworkLive.Show
     get "/skill.md", SkillController, :show
 
     # The addresses release documents already point at, unchanged.
@@ -68,6 +82,16 @@ defmodule TechtreeWeb.Router do
     get "/catalog", CatalogController, :index
     get "/climbs/:slug", ClimbController, :show
     get "/objects/:digest", ObjectController, :show
+    get "/submissions/:digest", SubmissionController, :show
+  end
+
+  # The one address that accepts anything, on its own so that what stands in
+  # front of it is visible here rather than buried in a pipeline everything
+  # shares.
+  scope "/api/v1", TechtreeWeb do
+    pipe_through :submissions
+
+    post "/submissions", SubmissionController, :create
   end
 
   # An API response is data, never a document: nothing in it may be sniffed into

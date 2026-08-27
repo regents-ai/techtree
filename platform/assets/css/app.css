@@ -1427,6 +1427,139 @@ strong {
   overflow-wrap: anywhere;
 }
 
+/* The run log ------------------------------------------------------------ */
+
+.log {
+  margin-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+
+.log__entry {
+  padding: 1.6rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.log__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.log__title {
+  margin-top: 0.4rem;
+  font-size: 1.35rem;
+}
+
+.log__when {
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.log__facts {
+  margin: 1.2rem 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.log__facts div {
+  padding: 0.8rem 1rem 0.8rem 0;
+}
+
+.log__facts div + div {
+  padding-left: 1rem;
+  border-left: 1px solid var(--rule);
+}
+
+.log__facts dt,
+.log__facts dd {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.log__facts dt {
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.log__facts dd {
+  margin-top: 0.25rem;
+}
+
+/* What was checked, and every task both runs attempted. Rows rather than a
+   table: the widest thing in one is a fingerprint, which wraps. */
+
+.checks {
+  margin-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.checks li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.85rem;
+}
+
+.checks__mark {
+  color: var(--complete);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.tasks {
+  margin-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.tasks__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(3.5rem, 0.22fr));
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.8rem;
+}
+
+.tasks__head {
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tasks__task {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.tasks__number {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* Said to a reader using a screen reader, who has no header row to carry down
+   the page with them. */
+.offscreen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Responsive ------------------------------------------------------------- */
 
 @media (max-width: 68.75rem) {
@@ -1499,6 +1632,20 @@ strong {
   .campaign-detail,
   .docs-layout {
     grid-template-columns: 1fr;
+  }
+
+  .log__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .log__facts div:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .tasks__row {
+    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(2.75rem, 0.3fr));
+    gap: 0.5rem;
   }
 
   /* A command is the widest thing on the documentation page and scrolls inside
@@ -1690,6 +1837,7 @@ strong {
 
   .evidence-node,
   .campaign-card,
+  .log__entry,
   .callout {
     break-inside: avoid;
   }

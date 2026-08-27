@@ -31,6 +31,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
+  alias Techtree.Network.Ingest
+  alias Techtree.NetworkFixture
 
   @pages [
     "/",
@@ -42,7 +44,9 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/climbs",
     "/climbs/hello-world-climb",
     "/proofs/local",
-    "/protocol"
+    "/protocol",
+    "/network",
+    "/network/" <> Techtree.NetworkFixture.bundle_digest()
   ]
 
   @pages_without_catalog [
@@ -53,7 +57,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/start",
     "/climbs",
     "/proofs/local",
-    "/protocol"
+    "/protocol",
+    "/network"
   ]
 
   # The addresses that carry one of the two installation paths. Which page
@@ -281,6 +286,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
       Importer.import!(CatalogFixture.root())
+      {:ok, _entry, :recorded} = Ingest.accept(NetworkFixture.submission())
       :ok
     end
 

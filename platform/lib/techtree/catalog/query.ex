@@ -45,6 +45,31 @@ defmodule Techtree.Catalog.Query do
   end
 
   @doc """
+  The Climb whose Campaign is the one this fingerprint addresses.
+
+  A published run names the Campaign it was a run of, and everything a page can
+  say about the comparison — the tasks, the harness, the model, the ceiling —
+  is on the Climb that Campaign belongs to. This is the one lookup that gets
+  from the first to the second, so the ingest and the pages ask the same
+  question in the same words.
+  """
+  @spec get_climb_by_campaign_digest(String.t()) :: {:ok, CatalogEntry.t()} | {:error, Error.t()}
+  def get_climb_by_campaign_digest(digest) when is_binary(digest) do
+    list_climbs()
+    |> Enum.find(&(&1.projection["campaign_spec_digest"] == digest))
+    |> case do
+      nil ->
+        {:error,
+         Error.object_missing("this release publishes no campaign under that digest", %{
+           "digest" => digest
+         })}
+
+      climb ->
+        {:ok, climb}
+    end
+  end
+
+  @doc """
   The catalog entry one digest addresses, whether or not it is still active.
   """
   @spec get_entry_by_digest(String.t()) :: {:ok, CatalogEntry.t()} | {:error, Error.t()}

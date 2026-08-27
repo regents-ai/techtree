@@ -1,0 +1,177 @@
+{
+  "baseline_manifest_digest": "sha256:64c3b29cd258f0ad8b0d5684cc53b8d3690a39bc7a9dd35dff7f03ed3922e8fa",
+  "campaign_spec_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1",
+  "candidate_manifest_digest": "sha256:756460a08406fa5f3b1db8616f453ba03991b0e37a9d527fa049945cb78060d9",
+  "created_at": "2026-01-01T00:00:00Z",
+  "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
+  "decision": "development_only",
+  "evaluation_backend": {
+    "attestation": "participant",
+    "executor_identity": null,
+    "kind": "local_techtree",
+    "provider_run_ref": null,
+    "schema_version": "techtree.evaluation-backend.v1alpha1",
+    "workspace_ref": null
+  },
+  "id": "uplift_6569bef0966b2a7e0ac2a5f0cc62b7e6",
+  "manifest_comparison": {
+    "allowed_differences": [
+      "/agents/subject/harness/skills"
+    ],
+    "baseline_configuration_digest": "sha256:7b6bb68686258c71a0588e7e86a260b9e5db7457717d54c1b83ecef28346211b",
+    "candidate_configuration_digest": "sha256:0fa0563a5658b9930743f91c5ffbce617d60c3cc0bcf518ade77be54d9f51f50",
+    "controlled": true,
+    "differences": [],
+    "violations": []
+  },
+  "outcome_contract_digest": null,
+  "primary_result": {
+    "absolute_delta": 0.25,
+    "baseline_mean": 0.5,
+    "candidate_mean": 0.75,
+    "losses": 0,
+    "relative_delta": 0.5,
+    "reward_name": "reward",
+    "ties": 15,
+    "wins": 5
+  },
+  "program_ref": null,
+  "proof_grade": "development_only",
+  "public_context": {
+    "climb_digest": "sha256:8a98cf28affe2de98e3431db3b2a26b0a6dc60861fc9fb0f264d8ca044c217ba",
+    "kind": "climb"
+  },
+  "publication_eligible": false,
+  "run_id": "run_46feb0de43b3b7d736d6de15ae68353b",
+  "schema_version": "techtree.uplift-report.v1alpha1",
+  "statuses": {
+    "comparison": "development_only",
+    "evidence": "development_only",
+    "execution": "completed",
+    "publication": "blocked",
+    "score": "development_only"
+  },
+  "task_deltas": [
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.75,
+      "delta": 0.25,
+      "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.75,
+      "delta": 0.25,
+      "task_hash": "sha256:f13f0e1a9e8c5c1fa7ee22b0bf16fe4f4c4f295830f002dc8f6c041ceea8bc6f"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.75,
+      "delta": 0.25,
+      "task_hash": "sha256:7382751baf5726771425c5f5b334f806efca1cfa0e1402d4021fb551faebcda8"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.75,
+      "delta": 0.25,
+      "task_hash": "sha256:6b934d6dc7dd6a4388b115659f8692b4c6f02a4fcc4a76469d7ff37b955c1e4b"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.75,
+      "delta": 0.25,
+      "task_hash": "sha256:96861527b5de3158782357f69610d89210c4951f5cbad26e1788557d2271364a"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:00762bfef7cc69cce110987ac209463d0cd0c329a86be0d558d2426edd99a6ef"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:9ca894dd9d22c8af2cc6d4e439eafe60561a119780845f1eb33be5286795f9e5"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:fd6726a063cf25adbd3e4793ac119ad62924e65f8e01e55a9693363be8e8daef"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:9eeed74698f6dde1f07a16701ca456c9255cfebbd562455946d51dd25d24b202"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:aeec0e9f474384198b2066ba8caa41596daa727ebf7a10aa7edb0ae98dcc4df9"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:b39ea2241332303b53f3ffb9fc12dfa25ace66aaa622b46466fae63035fb14c0"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:376fa59ae32b4d7b7ee9ef003d21eec0adb70d0c872672aef7c57114552ed8db"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:1b2de99b6bda9f670b9236b6879a2f37f1b4ec98fba73e57898b6afd4f1097e0"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:3512f8c4290ba90e558e9cc85f9d99fe3e18ec406b5a4d188da1be3797426852"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:9ea788992a0dc938497ff97ad196d25b21c8ec94c98c6fd149bcad44623ce68f"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:1b60f6c51856f50a1456739513e5e94f97a407be7391f473f39f147d513af932"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:0e38a939d3a0ae65e606a50b1c95a4b2dfc6810a264a5a157ff07bcbb96cda49"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:2368de2a2ed5fceae718086004cbde5b4893e2023d7c0849019186d44d682c9a"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:f7381bc2e26f3a761853c95fdc529a2995a6f4e989c4e289797dc17b9a1fe5c0"
+    },
+    {
+      "baseline_reward": 0.5,
+      "candidate_reward": 0.5,
+      "delta": 0.0,
+      "task_hash": "sha256:331ddd7dd1e56ccb23b6358980e142b0d0dd912646f9a546454e281e312a6fb5"
+    }
+  ],
+  "taskset_validation_receipt_digest": "sha256:b0ff34a2b54a35ea85856babdf86b4a93c6ef86c9a7fc33d2c7fa230490e3c94"
+}
