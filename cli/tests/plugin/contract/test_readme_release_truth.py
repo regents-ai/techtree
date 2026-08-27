@@ -40,7 +40,7 @@ def test_installation_is_routed_through_the_exact_pinned_guide() -> None:
         "exact 40-character plugin\ncommit",
         "shows the command argument for argument",
         "needs your approval and installs only the version pinned",
-        "A paid\ncomparison has its own separate approval",
+        "Spending\ntokens on a comparison has its own separate approval",
     ):
         assert required in README
 
@@ -54,5 +54,5 @@ def test_agent_first_opening_keeps_all_three_approval_boundaries() -> None:
 
     assert "Ask before installing the plugin" in opening
     assert "installing\n> the Techtree CLI" in opening
-    assert "or starting a paid run" in opening
+    assert "or starting a run that spends tokens" in opening
     assert "restart Hermes once" in opening

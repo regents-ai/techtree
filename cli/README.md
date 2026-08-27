@@ -47,10 +47,10 @@ flow. The release candidate remains inactive until the release gates in
 final approval phrase.
 
 No Techtree account is required. A model-provider account and an active Prime
-CLI configuration are required for the introductory paid comparisons.
-Techtree does not upload evaluation artifacts. Model inference is sent to the
-selected provider under that provider’s policies. The resulting evidence is
-participant-attested and has not been independently reproduced.
+CLI configuration are required for the introductory comparisons, which spend
+model tokens. Techtree does not upload evaluation artifacts. Model inference is
+sent to the selected provider under that provider’s policies. The resulting
+evidence is participant-attested and has not been independently reproduced.
 
 ## Campaign kernel
 
