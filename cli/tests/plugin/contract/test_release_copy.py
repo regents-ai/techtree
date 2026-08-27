@@ -310,6 +310,17 @@ NO_METER_FRAMING: re.Pattern[str] = re.compile(
     r"keeps\s+no\s+running\s+total|no\s+running\s+total\s+is\s+kept", re.I
 )
 
+#: Founder directive, 2026-08-26. What a run spends is model tokens on
+#: inference, and that is as true of a model answering on the person's own
+#: hardware as of one behind a hosted provider. Said on its own it understates
+#: the commitment for most readers, whose provider turns those tokens into a
+#: charge, so the surfaces that offer to spend them name where a charge lands
+#: as well. Same shape as the two above: the true half a reader would otherwise
+#: supply for themselves, wrongly.
+BILLING_FRAMING: re.Pattern[str] = re.compile(
+    r"provider\s+(that\s+)?charges\s+for\s+tokens", re.I
+)
+
 
 def _offenders(
     pattern: re.Pattern[str], scrub: re.Pattern[str] | None = None
@@ -544,6 +555,44 @@ def test_the_surfaces_that_spend_money_say_no_price_is_worked_out() -> None:
     assert NO_METER_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
 
 
+def test_the_surfaces_that_spend_tokens_say_where_a_charge_lands() -> None:
+    """Founder directive, 2026-08-26. The token frame alone understates it.
+
+    Saying a run spends model tokens on inference is true for everybody,
+    including somebody answering from a model on their own machine. It is only
+    half of what a reader on a hosted provider needs, and it is the half that
+    sounds cheaper, so every surface that offers to spend the tokens also says
+    that a provider charging for them bills the person's own account.
+    """
+    schemas = all_tool_schemas()
+
+    for name in ("techtree_climb_start", "techtree_uplift_start"):
+        assert BILLING_FRAMING.search(schemas[name]["description"]), name
+
+    assert BILLING_FRAMING.search(PUBLIC_COPY["commands.py"])
+    assert BILLING_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
+
+
+def test_the_billing_guard_catches_copy_that_only_names_the_tokens() -> None:
+    """The guard has to fail the wording that leaves the charge unsaid."""
+    silent = (
+        "This spends model tokens on inference.",
+        "Starting it spends model tokens on inference, and needs your "
+        "explicit approval.",
+        "The tokens go to the model provider you configured.",
+    )
+    honest = (
+        "A provider that charges for tokens bills them to your own account, "
+        "and a model you run yourself sends no bill.",
+        "a provider that charges for tokens bills this use to the user's own account",
+    )
+
+    for sentence in silent:
+        assert not BILLING_FRAMING.search(sentence), sentence
+    for sentence in honest:
+        assert BILLING_FRAMING.search(sentence), sentence
+
+
 def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
     """The guards must not forbid the sentences they exist to require."""
     permitted = (
@@ -557,7 +606,13 @@ def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
         "no price is worked out in advance and no running total is kept "
         "while the run goes",
         "no finishing time is published for a run",
-        "This spends real money on model calls.",
+        "This spends model tokens on inference.",
+        "A provider that charges for tokens bills those episodes to the "
+        "account behind the credentials it was given; a model the user runs "
+        "themselves sends no bill.",
+        "What the tokens come to is settled at the model provider you "
+        "configured, on that provider's terms; a model you run yourself sends "
+        "no bill.",
         "A Climb is slow work, and nothing ends one at a set time.",
         "Never quote a price or a finishing time; neither one exists.",
         "The offer expires after a few minutes, and works once.",

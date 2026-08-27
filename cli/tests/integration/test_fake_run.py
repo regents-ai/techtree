@@ -211,7 +211,7 @@ def test_starting_a_fake_run_says_no_model_is_called(
     assert finished_run["started"].data()["fake_executor"] is True
     assert "fake_executor_run" in warnings
     assert "no model is called" in warnings["fake_executor_run"]
-    assert "spends money" not in " ".join(warnings.values())
+    assert "spends model tokens" not in " ".join(warnings.values())
 
 
 def test_the_machine_envelope_carries_the_caveat(

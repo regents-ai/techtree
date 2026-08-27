@@ -593,7 +593,10 @@ class SkillPreparationService:
         else:
             warnings.append(
                 "Nothing produced here is a public proof. Starting this run "
-                "evaluates the agent for real and spends money on model calls."
+                "evaluates the agent for real and spends model tokens on "
+                "inference at the model provider you configured. A provider "
+                "that charges for tokens bills that use to your own account; "
+                "a model you run yourself sends no bill."
             )
 
         release = resolved.data_policy.candidate_skill.public_release
@@ -644,7 +647,7 @@ class SkillPreparationService:
 def _comparison_warning(campaign: CampaignSpec) -> str:
     """Say how this Campaign runs its two sides, reading it off the Campaign.
 
-    The approval screen is where a person decides to spend money on a
+    The approval screen is where a person decides to spend model tokens on a
     comparison, so the sentence describing how that comparison is controlled
     has to be the one this Campaign will actually produce. It is therefore
     derived from ``execution.order`` — the same field the executor dispatches

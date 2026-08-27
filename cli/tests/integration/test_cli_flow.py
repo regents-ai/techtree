@@ -246,14 +246,15 @@ def test_start_says_a_real_evaluation_is_what_was_approved(
 def test_start_tells_the_person_what_this_run_actually_does(
     flow: dict[str, Any],
 ) -> None:
-    """Ticket ce9: the warning at the money moment is read off the run.
+    """Ticket ce9: the warning at the spending moment is read off the run.
 
-    This is the seam where it can be checked without paying for anything. The
+    This is the seam where it can be checked without spending anything. The
     warnings are rendered before the worker resolves a credential, so a start
-    in a signed-out home still produces the sentences a paying person reads —
-    and under the shipped Campaign those are "this spends money" and "this
-    Climb's report is still not publication eligible", which are two separate
-    facts. A literal here used to say the opposite of the first one.
+    in a signed-out home still produces the sentences a person reads before
+    they agree — and under the shipped Campaign those are "this spends model
+    tokens" and "this Climb's report is still not publication eligible", which
+    are two separate facts. A literal here used to say the opposite of the
+    first one.
     """
     envelope = flow["started"].envelope()
     codes = [warning["code"] for warning in envelope["warnings"]]
@@ -261,7 +262,11 @@ def test_start_tells_the_person_what_this_run_actually_does(
 
     assert flow["started"].data()["fake_executor"] is False
     assert codes == ["paid_evaluation_run", "not_publication_eligible"]
-    assert "spends money on model calls with prime" in text
+    assert "spends model tokens on inference with prime" in text
+    assert (
+        "If that provider charges for tokens, what you pay is whatever it "
+        "charges" in text
+    )
     assert "not publication eligible" in text
     assert "no model" not in text.lower()
     assert "fake" not in text.lower()

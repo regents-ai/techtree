@@ -521,8 +521,9 @@ def test_an_answer_that_never_arrived_leaves_the_attempt_where_it_was(
     The sibling of the truncation case, and the reason the rule is written
     around what was produced rather than around what went wrong: a turn that
     handed back no revision measured nothing, so there is nothing to hold the
-    one attempt against. The wording never claims the provider did not
-    charge — from here that cannot be known.
+    one attempt against. The wording never claims the tokens went unspent, or
+    that a provider charging for them did not charge — from here neither can
+    be known.
     """
     host = AnswerNeverArrivedLlm()
     lost = _with_host(services, host)
@@ -532,7 +533,7 @@ def test_an_answer_that_never_arrived_leaves_the_attempt_where_it_was(
     assert answer["ok"] is False
     assert answer["code"] == "host_answer_never_arrived"
     assert "Your attempt has not been used" in answer["message"]
-    assert "may still have charged" in answer["message"]
+    assert "may still have been spent at your provider" in answer["message"]
     kept = latest_session(lost)
     assert kept is not None
     assert kept.revision_attempts == 0

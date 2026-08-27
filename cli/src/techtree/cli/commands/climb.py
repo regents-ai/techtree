@@ -549,13 +549,13 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
     is read off the draft or the Campaign it was prepared against, so the
     review describes this run and cannot describe a different one.
 
-    The cost line says what is actually done about money. Since decisions
+    The cost line says what is actually done about the spend. Since decisions
     document 0029 there is a real check before a run starts: the most the
     comparison can cost under the Campaign's enforced per-episode limits is
     computed, and a Campaign that could amount to more than its declared
     maximum is refused instead of started. What there still is not is a meter —
     nothing counts the spend while a run is under way and nothing ends a run
-    part-way through over money — so the line says what the check is, and
+    part-way through over it — so the line says what the check is, and
     decision 0025 still forbids any wording that would leave a reader expecting
     a running total or a mid-run cut-off.
     """
@@ -571,25 +571,33 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
 
 
 def _cost_line(campaign: CampaignSpec) -> str:
-    """Say what is checked about money before the run starts, and what is not."""
+    """Say what is checked about the spend before the run starts, and what is not.
+
+    The declared maximum stays a US-dollar figure, because that is what the
+    Campaign declares. What the sentence around it may not do is read as though
+    everybody gets a bill: the run spends model tokens on inference, and only a
+    provider that charges for tokens turns that into money.
+    """
     ceiling = campaign.budgets.maximum_usd
     if ceiling is None:
         return (
-            "This Campaign declares no maximum, so there is no figure for "
+            "This run spends model tokens on inference. This Campaign declares "
+            "no maximum, so there is no figure for "
             "Techtree to hold it to. Each episode still has enforced turn, "
             "token, and time limits. Nothing keeps a running total while the "
-            "run is under way and nothing ends it part-way through, so what "
-            "you pay is whatever your model provider charges for the episodes "
-            "above."
+            "run is under way and nothing ends it part-way through: a provider "
+            "that charges for tokens bills the episodes above to your own "
+            "account, and a model you run yourself sends no bill."
         )
     return (
-        "Before anything starts, Techtree checks that this Campaign's enforced "
+        "This run spends model tokens on inference. Before anything starts, "
+        "Techtree checks that this Campaign's enforced "
         f"per-episode limits cannot add up past the ${ceiling:.2f} maximum it "
-        "declares, and refuses to run it if they could. Each episode has "
-        "enforced turn, token, and time limits. Nothing keeps a running total "
-        "while the run is under way and nothing ends it part-way through, so "
-        "what you pay is whatever your model provider charges for the episodes "
-        "above."
+        "declares, and refuses to run it if they could. Each "
+        "episode has enforced turn, token, and time limits. Nothing keeps a "
+        "running total while the run is under way and nothing ends it part-way "
+        "through: a provider that charges for tokens bills the episodes above "
+        "to your own account, and a model you run yourself sends no bill."
     )
 
 
@@ -846,9 +854,11 @@ def _start_warnings(
                 level=MessageLevel.WARNING,
                 code="paid_evaluation_run",
                 text=(
-                    "This run evaluates the agent for real and spends money on "
-                    f"model calls with {source.campaign.subject.model.provider}. "
-                    "What you pay is whatever that provider charges."
+                    "This run evaluates the agent for real and spends model "
+                    "tokens on inference with "
+                    f"{source.campaign.subject.model.provider}. If that "
+                    "provider charges for tokens, what you pay is whatever it "
+                    "charges; a model you run yourself sends no bill."
                 ),
             )
         )

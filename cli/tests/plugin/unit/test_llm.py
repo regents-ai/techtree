@@ -120,11 +120,11 @@ def test_the_turn_is_spent_even_when_the_answer_was_unusable() -> None:
 
 
 def test_a_completion_that_wrote_nothing_says_so_in_its_own_words() -> None:
-    """The host answered and charged, and nothing came back to read.
+    """The host answered, the tokens went, and nothing came back to read.
 
     The three things a person needs are all in the sentence: what happened,
     that it did not cost them their attempt, and what makes it less likely
-    next time — with the price of finding out stated rather than implied.
+    next time — with what finding out spends stated rather than implied.
     """
     port = StubPort(answer={"parsed": None, "text": "", "model": "m"})
 
@@ -135,7 +135,8 @@ def test_a_completion_that_wrote_nothing_says_so_in_its_own_words() -> None:
     assert str(raised.value) == (
         "The model ran out of room before it wrote anything. Your attempt has "
         "not been used. Raising your model's completion limit makes this less "
-        "likely — each attempt costs money at your provider."
+        "likely — each attempt spends model tokens on inference at your "
+        "provider."
     )
     assert len(port.calls) == 1, "and nothing asked again"
 

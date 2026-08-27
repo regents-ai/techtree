@@ -457,6 +457,17 @@ PRE_RUN_CHECK_FRAMING: Final[re.Pattern[str]] = re.compile(
     r"cannot\s+add\s+up\s+past\s+the\s+\$\d", re.I
 )
 
+#: Founder directive, 2026-08-26. What a run actually spends is model tokens on
+#: inference, and that is true of somebody answering from their own hardware as
+#: much as of somebody on a hosted provider. Saying only that would understate
+#: it for most readers, who are on a provider that turns those tokens into a
+#: charge. So the surfaces that offer to spend them say where a charge lands as
+#: well as what is spent — the same shape as the two bans above: state the true
+#: half a reader would otherwise supply for themselves, wrongly.
+BILLING_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"provider\s+(that\s+)?charges\s+for\s+tokens", re.I
+)
+
 
 def _released_campaign() -> CampaignSpec:
     """Return the Campaign this build ships, read from the catalog it ships in.
@@ -742,9 +753,9 @@ def test_the_review_says_what_is_checked_and_what_is_not() -> None:
 
     A declared maximum with no disclaimer beside it reads as a meter. Whichever
     branch the Campaign lands in, the sentence says that nothing keeps a
-    running total and nothing ends the run part-way through; where there is a
-    maximum, it also says that the run is refused if the enforced limits could
-    amount to more than it.
+    running total and nothing ends the run part-way through, and it says where
+    a charge for the tokens lands; where there is a maximum, it also says that
+    the run is refused if the enforced limits could amount to more than it.
     """
     from techtree.cli.commands.climb import _cost_line
 
@@ -758,6 +769,7 @@ def test_the_review_says_what_is_checked_and_what_is_not() -> None:
 
         assert NO_METER_FRAMING.search(line), line
         assert NO_CUT_OFF_FRAMING.search(line), line
+        assert BILLING_FRAMING.search(line), line
         for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
             assert not pattern.search(line), (described, line)
 
@@ -765,6 +777,33 @@ def test_the_review_says_what_is_checked_and_what_is_not() -> None:
     assert PRE_RUN_CHECK_FRAMING.search(released_line), released_line
     assert "$2.50 maximum it declares" in released_line
     assert not PRE_RUN_CHECK_FRAMING.search(_cost_line(undeclared))
+
+
+def test_the_billing_guard_catches_a_review_that_only_names_the_tokens() -> None:
+    """Founder directive, 2026-08-26. The token frame alone understates it.
+
+    A run spends model tokens on inference whoever is answering, which is why
+    the copy says that and not "money". For most readers those tokens arrive as
+    a charge from a provider, and a review that stopped at the tokens would let
+    them find that out afterwards. So the guard has to fail exactly the wording
+    that leaves the charge unsaid, and pass the wording that names it.
+    """
+    silent = (
+        "This run spends model tokens on inference.",
+        "Nothing keeps a running total while the run is under way.",
+        "Each episode has enforced turn, token, and time limits.",
+        "The tokens go to the model provider you configured.",
+    )
+    honest = (
+        "A provider that charges for tokens bills the episodes above to your "
+        "own account, and a model you run yourself sends no bill.",
+        "If that provider charges for tokens, what you pay is whatever it charges.",
+    )
+
+    for sentence in silent:
+        assert not BILLING_FRAMING.search(sentence), sentence
+    for sentence in honest:
+        assert BILLING_FRAMING.search(sentence), sentence
 
 
 def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
@@ -776,7 +815,11 @@ def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
         "Each episode has enforced turn, token, and time limits.",
         "Nothing keeps a running total while the run is under way and nothing "
         "ends it part-way through.",
-        "What you pay is whatever your model provider charges for the episodes above.",
+        "A provider that charges for tokens bills the episodes above to your "
+        "own account, and a model you run yourself sends no bill.",
+        "This run evaluates the agent for real and spends model tokens on "
+        "inference with prime. If that provider charges for tokens, what you "
+        "pay is whatever it charges; a model you run yourself sends no bill.",
         "This Campaign declares no maximum.",
         "The cost shown is an estimate. It is not a figure the provider "
         "reported and it is not what you were charged.",

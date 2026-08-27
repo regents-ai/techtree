@@ -1,4 +1,4 @@
-"""What the approval screen tells a person about how their money is spent.
+"""What the approval screen tells a person about how their tokens are spent.
 
 A draft's warnings are the last thing a participant reads before authorising a
 paid comparison, and one of them describes how the comparison is controlled:
