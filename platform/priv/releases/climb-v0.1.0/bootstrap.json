@@ -28,12 +28,12 @@
       "install",
       "regents-ai/techtree-hermes",
       "--ref",
-      "df5ead2b38316a8def7837ae0bedfe8c1d5c64a4",
+      "6ef36a358ec0bb6079a6c9991cb8563acf65e91d",
       "--enable"
     ],
     "plugin_id": "techtree",
     "repository": "regents-ai/techtree-hermes",
-    "revision": "df5ead2b38316a8def7837ae0bedfe8c1d5c64a4"
+    "revision": "6ef36a358ec0bb6079a6c9991cb8563acf65e91d"
   },
   "introductory_climb": {
     "host_prompt": "Set up Techtree and run the Hello World Climb.",
