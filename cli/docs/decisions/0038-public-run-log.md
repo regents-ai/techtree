@@ -219,3 +219,115 @@ including somebody who does not trust either party.
 
 `checks` is the list the receiving side actually ran, not a constant. A
 receipt naming no check is refused by the participant's own CLI.
+
+## Founder ruling, 2026-08-27 — the log ships inside v0.1
+
+The public run log is v0.1 scope: a working `techtree publish`, an ingest
+address, a newest-first log and a detail page. That requires a new wheel
+freeze, a new plugin and release-coordinate pin, a regenerated
+BootstrapRelease and a replacement Gate-2 packet.
+
+**It does not require more paid evaluation.** No Campaign, engine,
+taskset, subject execution, scorer, receipt generation or comparison
+logic changes, so nothing scientific moved and nothing is re-run for
+money. Every canonical proof is re-verified offline and the publication
+journey is walked, but a post-run command is not a reason to pay for
+model inference again.
+
+### The command
+
+`techtree publish <run-id>`. Not `techtree proof publish`. Nothing has
+been released, so this is a hard cut with no alias: `proof` keeps
+`verify` and nothing else.
+
+### Ten blockers, closed before the re-freeze
+
+1. The command name, above.
+2. Every stale comment saying the contributor address travels in the
+   body. It travels in `x-techtree-contributor-address` and the entire
+   privacy argument rests on that separation, so prose that contradicts
+   it is not a typo. The CLI's table says **Log sequence**, never
+   "Position": a sequence is not a rank and may have gaps.
+3. Redirects. The transport's docstring says none are followed and
+   `urlopen` follows them by default, so a redirect could forward both
+   the proof and the private address header to another origin. Refuse
+   them, require `application/json`, and read the size cap **plus one**
+   byte — reading exactly the cap does not prove the response ended.
+4. The endpoint and the network's Ed25519 **public** key are pinned in
+   ReleaseCore. A receipt is verified against that pinned key before the
+   CLI writes it: payload digest matches the payload, key id is the
+   pinned one, signature verifies, run and bundle match what was sent,
+   the entry URL is https on the pinned origin, and every reported check
+   passed. An unverified receipt is never written down.
+5. A stable release publishes without any environment variable. The
+   override stays for development, and the review prints the endpoint
+   actually resolved.
+6. Idempotence by bundle digest, on both sides. A lost response and a
+   retry return the original entry and the original receipt: same
+   digest and same bytes is `200`, first acceptance `201`, same digest
+   with different bytes `409`, same participant and run with a different
+   bundle `409`. The CLI's receipt write converges the same way.
+7. The wire is the four-member submission already fixed above, and the
+   server treats `run_id` and `bundle_digest` as assertions to check
+   against the signed bundle rather than as inputs to trust.
+8. The exact submission bytes are stored and never served. A public
+   address returning the file mapping is a bundle download however it is
+   wrapped, and 0038 defers that. `entry_url` is the verified detail
+   page.
+9. Only Campaign digests the active release admits are accepted. This is
+   the anti-spam boundary and it is deliberate: v0.1 is not a generic
+   proof-hosting service.
+10. Withdrawal is implemented rather than promised: `techtree withdraw`
+    signs a canonical request with the same participant key that signed
+    the run, the server verifies it against the accepted entry and
+    appends a `withdrawn` event. The entry stays, marked withdrawn. A
+    public promise with no executable path would be worse than neither.
+
+### Four questions the chief put to the founder, and the answers
+
+**Server-side verification depth: the eight checks that exist**, plus
+the new content scan and DataPolicy check — not a second full
+implementation of the offline verifier. The eight are the substance:
+file digests against the signed manifest, envelope digests, signatures,
+key identity, admitted Campaign, recomputed counts, committed membership
+in order. What they omit is linkage and proof-grade bookkeeping that the
+participant's own offline check already covers. Two independent
+implementations of all 339 that disagree by one check would reject
+honest submissions, and the canonical encoder alone needed a hundred-file
+cross-check to get right. The decision records which checks the server
+does not run, so the gap is stated rather than implied.
+
+**The network key id is the sha256 of the public key**, as every other
+key id in this protocol is. A receipt naming a key it does not carry is
+then caught for free. Rotation is a new key and therefore a new id, and
+ReleaseCore pins which one this release trusts.
+
+**A run is addressed by its bundle digest**, `/runs/sha256:…`, so the URL
+is derivable from the proof itself and two people publishing the same
+bundle land on the same page. A row identifier would exist only inside
+our database; a sequence number in the URL would read as a rank.
+
+**The staged publication runs against a throwaway local instance** of the
+deployed build, over https, with the packaged wheel. Nothing is deployed
+and no public surface is touched before Gate 2. The Fly deployment is
+proven by the post-publish smoke check that is already a ticket.
+
+### One thing stated honestly rather than promised
+
+Removal of a volunteered address means removal from the active system
+and from any future use. It is **not** a claim of erasure from database
+backups, which this release does not implement and will not imply. Per-row
+encryption with the key destroyed on removal would make the stronger
+claim true; until that exists the copy says the weaker one.
+
+### Two questions kept separate
+
+*Offline proof verification* asks whether a signed report overclaims
+relative to its own grade and rights. It never demands agreement with a
+later build's publication rules — that is the regression already fixed,
+and it would have invalidated every certification proof this release
+rests on.
+
+*Server admission* applies the current policy independently, to
+immutable proof facts. Old proofs stay valid; the publication service
+still gets to decide what it admits today.
