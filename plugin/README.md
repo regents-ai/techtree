@@ -1,5 +1,12 @@
 # Techtree for Hermes
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-lightgrey)](https://www.python.org/downloads/) [![host Hermes ≥ 0.20.1](https://img.shields.io/badge/host%20Hermes-%E2%89%A5%200.20.1-lightgrey)](https://techtree.sh/start)
+
+![The pinned installation guide at techtree.sh/start](docs/assets/start-page.png)
+
+*The pinned installation guide at techtree.sh/start — the only supported way
+in.*
+
 ## Give this repository to your Hermes agent
 
 Paste this into Hermes:
@@ -11,13 +18,36 @@ Paste this into Hermes:
 > plugin is enabled, tell me when to restart Hermes, then continue with
 > Techtree Doctor and the Hello World Climb.
 
-Techtree Climb v0.1 is a proof of concept for a stack of three independent
-parts: Prime Intellect's Verifiers as the evaluation engine, Nous Research's
-Hermes as the agent host, and Techtree as the campaign kernel and evidence
-layer. What it demonstrates is that the three pin together tightly enough for a
-controlled comparison to run end to end and leave a receipt that verifies
-offline. It is a development release, and nothing here is a measurement anyone
-should cite.
+> [!IMPORTANT]
+> Techtree Climb v0.1 is a proof of concept for a stack of three independent
+> parts: Prime Intellect's Verifiers as the evaluation engine,
+> Nous Research's Hermes as the agent host, and
+> Techtree as the campaign kernel and evidence layer.
+> What it demonstrates is that the three pin together tightly enough for a
+> controlled comparison to run end to end and leave a receipt that verifies
+> offline. It is a development release, and nothing here is a measurement
+> anyone should cite.
+
+```text
+        you
+         │  one pasted prompt
+         ▼
+   Hermes (operator) ······ techtree-hermes      ◀ this repository
+         │  fixed argv · one JSON envelope
+         ▼
+   Techtree CLI ··········· techtree-python
+         │  pinned engine, detached runs
+         ▼
+   Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
+         │  model calls, paid by the participant
+         ▼
+   subject: hermes-agent + pinned model, in a pinned container
+         │
+         ▼
+   signed report · proof that verifies offline
+
+   techtree-ash ─ the read-only site: pinned guide, catalog, published objects
+```
 
 ## The other two repositories
 
@@ -35,6 +65,14 @@ are each pinned to an exact version, and the release is only as reproducible as
 those pins. Those are the seams of the stack, and they are worth knowing about
 before anyone leans on a result.
 
+| Layer | What | Pin |
+| --- | --- | --- |
+| Evaluation engine | Prime Intellect's Verifiers | pinned to an exact commit |
+| Agent host | Nous Research's Hermes, the operator | host Hermes 0.20.1 or newer |
+| Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
+| Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
+| Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
+
 Techtree runs a neutral agent and a Skill-enabled agent against the
 same toy tasks, shows the measured difference, and creates a signed
 local receipt you can verify offline.
@@ -42,10 +80,11 @@ local receipt you can verify offline.
 This plugin is the operator surface for that: it lets Hermes inspect what a
 Climb measures, prepare a run, start it, follow it, and read the result.
 
-Techtree uploads none of your Episodes, Traces, receipts, proof bundles, or
-Skill proposals, and publishes nothing. Model inference is still sent to the
-model provider you configured, under that provider's policies — a comparison
-that runs locally is not a comparison that runs without the network.
+> [!NOTE]
+> Techtree uploads none of your Episodes, Traces, receipts, proof bundles, or
+> Skill proposals, and publishes nothing. Model inference is still sent to the
+> model provider you configured, under that provider's policies — a comparison
+> that runs locally is not a comparison that runs without the network.
 
 The evaluated agent is never the Hermes you are talking to. It is a separate,
 pinned agent in a container that receives only what the Climb declares.
@@ -57,6 +96,12 @@ revision. It shows how the mechanism works. It is not a measure of broad
 capability.
 
 ## Install
+
+> [!WARNING]
+> Starting a comparison spends model tokens against your own provider credit.
+> Nothing paid starts on its own: installing the plugin, installing the
+> Techtree CLI, and starting a run that spends are three separate approvals,
+> and each one waits for you to answer.
 
 Install only from the exact pinned guide at
 [techtree.sh/start](https://techtree.sh/start). The guide reads the install
@@ -123,27 +168,27 @@ rest of the plugin's suite in the Techtree repository, as
 
 In any session:
 
-```text
-/techtree setup      is Techtree installed, and is this machine ready?
-/techtree climbs     what this build offers
-/techtree demo       prepare Techtree Hello World, stopping before it spends
-/techtree status     how a run is going
-/techtree cancel     stop a run
-/techtree result     the finished result
-/techtree verify     check a local proof, offline
-/techtree improve    what a finished run says about itself
-```
+| Command | What it does |
+| --- | --- |
+| `/techtree setup` | is Techtree installed, and is this machine ready? |
+| `/techtree climbs` | what this build offers |
+| `/techtree demo` | prepare Techtree Hello World, stopping before it spends |
+| `/techtree status` | how a run is going |
+| `/techtree cancel` | stop a run |
+| `/techtree result` | the finished result |
+| `/techtree verify` | check a local proof, offline |
+| `/techtree improve` | what a finished run says about itself |
 
 In a terminal, where Techtree's own rendered output belongs:
 
-```text
-hermes techtree doctor            is this machine ready to run a Climb?
-hermes techtree demo              prepare Techtree Hello World
-hermes techtree status <run>      how a run is progressing
-hermes techtree watch <run>       follow a run until it ends
-hermes techtree result <run>      the finished report for a run
-hermes techtree verify <path>     check a local proof, offline
-```
+| Command | What it does |
+| --- | --- |
+| `hermes techtree doctor` | is this machine ready to run a Climb? |
+| `hermes techtree demo` | prepare Techtree Hello World |
+| `hermes techtree status <run>` | how a run is progressing |
+| `hermes techtree watch <run>` | follow a run until it ends |
+| `hermes techtree result <run>` | the finished report for a run |
+| `hermes techtree verify <path>` | check a local proof, offline |
 
 Everything this plugin adds to your terminal sits under the one word
 `techtree`, so nothing here takes a name of its own alongside Hermes' own
