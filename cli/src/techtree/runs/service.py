@@ -193,7 +193,7 @@ class RunCancellation:
 
 @dataclass(frozen=True)
 class RunLogs:
-    """A bounded, scrubbed window onto one run's worker log."""
+    """A bounded window onto one run's worker log, line for line as written."""
 
     run_id: str
     lines: list[str]
@@ -526,7 +526,7 @@ class RunService:
         return report
 
     def logs(self, run_id: str, *, tail: int = DEFAULT_LOG_TAIL) -> RunLogs:
-        """Return the last ``tail`` lines of the worker log, scrubbed."""
+        """Return the last ``tail`` lines of the worker log, as they were written."""
         return self._read_log(
             run_id,
             path=self._runs.worker_log_path(run_id),
@@ -537,7 +537,7 @@ class RunService:
     def variant_logs(
         self, run_id: str, variant: VariantName, *, tail: int = DEFAULT_LOG_TAIL
     ) -> RunLogs:
-        """Return one variant's evaluation log, scrubbed. Spec section 6.20.
+        """Return one variant's evaluation log, as written. Spec section 6.20.
 
         The engine's own ``eval.log`` is the answer, never the child's captured
         stdout. With rich output disabled the pinned CLI dumps every trace to

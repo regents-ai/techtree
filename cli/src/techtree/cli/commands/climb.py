@@ -71,7 +71,7 @@ from techtree.cli.commands.run import build_run_service
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
-from techtree.cli.output import human_console
+from techtree.cli.output import human_console, render_pairs
 from techtree.drafts.source import CampaignSource
 from techtree.drafts.store import DraftStore, utc_now
 from techtree.errors import (
@@ -948,8 +948,7 @@ def _render_show(data: object, console: Console) -> None:
     console.print(summary.summary)
     console.print()
 
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Climb", summary.reference),
             ("Status", summary.status),
@@ -970,12 +969,12 @@ def _render_show(data: object, console: Console) -> None:
             ("Allowed change", phrase(summary.mutation_kind)),
             ("Proof grade", phrase(summary.proof_grade)),
         ],
+        console,
     )
 
     console.print()
     console.print("Data rights")
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Candidate skills", summary.candidate_skill_visibility),
             (
@@ -989,28 +988,29 @@ def _render_show(data: object, console: Console) -> None:
             ("Training use", phrase(summary.data_policy.raw_episode_training_use)),
             ("Uplift report", phrase(summary.data_policy.uplift_report_visibility)),
         ],
+        console,
     )
     console.print(PUBLICATION_TERMS_LINE)
 
     console.print()
     console.print("This machine")
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Host platform", summary.compatibility.host_platform),
             ("Engine", phrase(summary.compatibility.engine_status.value)),
             ("Runs here", "yes" if summary.compatibility.compatible else "no"),
         ],
+        console,
     )
 
     console.print()
     console.print("Technical IDs")
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Campaign digest", abbreviated_digest(summary.campaign_spec_digest)),
             ("Data policy digest", abbreviated_digest(data.data_policy_digest)),
         ],
+        console,
     )
     console.print(
         "  Shortened to fit. Run this command with --json for the complete digests."
@@ -1022,8 +1022,7 @@ def _render_prepare(data: object, console: Console) -> None:
     if not isinstance(data, ClimbPreparePayload):
         return
 
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Draft", data.draft_id),
             ("Climb", data.climb_reference),
@@ -1033,6 +1032,7 @@ def _render_prepare(data: object, console: Console) -> None:
             ("Candidate", data.candidate_label),
             ("Skill content digest", data.skill_root_digest),
         ],
+        console,
     )
 
     console.print()
@@ -1042,8 +1042,7 @@ def _render_prepare(data: object, console: Console) -> None:
 
     console.print()
     console.print("The comparison")
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Allowed difference", ", ".join(data.comparison.allowed_differences)),
             ("Found difference", ", ".join(data.comparison.differences)),
@@ -1053,12 +1052,12 @@ def _render_prepare(data: object, console: Console) -> None:
             ("Estimated episodes", str(data.estimated_episodes)),
             ("Proof grade", phrase(data.proof_grade)),
         ],
+        console,
     )
 
     console.print()
     console.print("Data rights")
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Candidate ownership", data.candidate_ownership),
             ("Public release", phrase(data.candidate_public_release)),
@@ -1071,6 +1070,7 @@ def _render_prepare(data: object, console: Console) -> None:
                 else "not required",
             ),
         ],
+        console,
     )
     console.print(data.policy_acceptance.summary)
     console.print(PUBLICATION_TERMS_LINE)
@@ -1081,8 +1081,7 @@ def _render_start(data: object, console: Console) -> None:
     if not isinstance(data, ClimbStartPayload):
         return
 
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Run", data.run_id),
             ("Draft", data.draft_id),
@@ -1093,6 +1092,7 @@ def _render_start(data: object, console: Console) -> None:
             ("Approved", phrase(data.policy_acknowledgement_method)),
             ("Approved by", phrase(data.approved_by)),
         ],
+        console,
     )
 
 
@@ -1122,15 +1122,6 @@ def phrase(value: str) -> str:
     underscore in it.
     """
     return value.replace("_", " ")
-
-
-def _print_pairs(console: Console, pairs: list[tuple[str, str]]) -> None:
-    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
-    table.add_column("label", no_wrap=True)
-    table.add_column("value", overflow="fold")
-    for label, value in pairs:
-        table.add_row(label, value)
-    console.print(table)
 
 
 # ---------------------------------------------------------------------------

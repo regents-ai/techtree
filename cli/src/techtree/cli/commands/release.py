@@ -31,6 +31,7 @@ from rich.table import Table
 from techtree.canonical import validate_digest
 from techtree.cli.context import cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.output import render_pairs
 from techtree.errors import VerificationError
 from techtree.models.base import Digest, JsonValue, NonEmptyString, ProtocolModel
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
@@ -268,22 +269,23 @@ def _render_info(data: object, console: Console) -> None:
     if not isinstance(data, ReleaseInfoPayload):
         return
 
-    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
-    table.add_column("field", no_wrap=True)
-    table.add_column("value", overflow="fold")
-    table.add_row("Release", data.release_id)
-    table.add_row("CLI version", data.cli_version)
-    table.add_row("Installed package", data.package_version)
-    table.add_row(
-        "Source commit",
-        data.source_commit or "not stamped: this is a source checkout",
+    render_pairs(
+        [
+            ("Release", data.release_id),
+            ("CLI version", data.cli_version),
+            ("Installed package", data.package_version),
+            (
+                "Source commit",
+                data.source_commit or "not stamped: this is a source checkout",
+            ),
+            ("Protocol", data.protocol_version),
+            ("ReleaseCore", data.release_core_digest),
+            ("Engine", data.engine_digest),
+            ("Catalog", data.catalog_digest),
+            ("Introductory Climb", data.intro_climb_reference),
+        ],
+        console,
     )
-    table.add_row("Protocol", data.protocol_version)
-    table.add_row("ReleaseCore", data.release_core_digest)
-    table.add_row("Engine", data.engine_digest)
-    table.add_row("Catalog", data.catalog_digest)
-    table.add_row("Introductory Climb", data.intro_climb_reference)
-    console.print(table)
 
 
 def _render_verification(data: object, console: Console) -> None:

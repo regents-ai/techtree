@@ -30,6 +30,12 @@ from techtree.cli.app import (
     hoist_global_options,
     main,
 )
+from techtree.cli.commands.proof import ProofVerificationPayload
+from techtree.cli.commands.proof import _renderer as proof_renderer
+from techtree.cli.commands.release import ReleaseInfoPayload
+from techtree.cli.commands.release import _render_info as render_release_info
+from techtree.cli.commands.skill import StarterSkillPayload
+from techtree.cli.commands.skill import _render as render_starter_skill
 from techtree.cli.context import CliContext, build_cli_context
 from techtree.cli.invoke import (
     CommandResult,
@@ -38,7 +44,14 @@ from techtree.cli.invoke import (
     not_implemented_error,
     success_envelope,
 )
-from techtree.cli.output import json_stdout, render_next_actions, shell_display
+from techtree.cli.output import (
+    DataRenderer,
+    json_stdout,
+    render_human,
+    render_next_actions,
+    render_pairs,
+    shell_display,
+)
 from techtree.constants import CLI_SCHEMA_VERSION
 from techtree.doctor.service import DoctorReport, DoctorService
 from techtree.errors import (
@@ -53,6 +66,7 @@ from techtree.errors import (
     TechtreeError,
     ValidationError,
 )
+from techtree.identity.models import VerificationMessage
 from techtree.models.cli import (
     MAX_NEXT_ACTIONS,
     CheckStatus,
@@ -328,6 +342,193 @@ def test_a_displayed_command_is_quoted_but_the_vector_is_the_contract() -> None:
 
     assert displayed.startswith("techtree climb prepare --skill ")
     assert "'/tmp/a skill; rm -rf /'" in displayed
+
+
+# ---------------------------------------------------------------------------
+# How human output is drawn
+#
+# Weight and dimming only reach a terminal, so these tests use a console that
+# has been told it is one. The bytes a pipe receives are checked here too,
+# because that is the rendering another program reads.
+# ---------------------------------------------------------------------------
+
+#: What Rich writes for the weights and the one colour used below.
+BOLD = "\x1b[1m"
+DIM = "\x1b[2m"
+GREEN = "\x1b[32m"
+
+
+def watched(width: int = 100) -> tuple[io.StringIO, Console]:
+    """A console that believes a person is looking at it."""
+    buffer = io.StringIO()
+    return buffer, Console(
+        file=buffer,
+        width=width,
+        force_terminal=True,
+        markup=False,
+        highlight=False,
+        emoji=False,
+    )
+
+
+def piped(width: int = 100) -> tuple[io.StringIO, Console]:
+    """A console writing where no person is looking, as a redirect does."""
+    buffer = io.StringIO()
+    return buffer, Console(
+        file=buffer, width=width, markup=False, highlight=False, emoji=False
+    )
+
+
+def test_the_line_a_next_step_is_typed_from_is_the_one_that_stands_out() -> None:
+    """A step is a label, a command and a reason; only one is retyped."""
+    step = NextAction(
+        id="run_doctor",
+        label="Check that this machine is ready",
+        reason="Doctor reports what would block a run.",
+        cli=["techtree", "doctor"],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=False,
+    )
+    buffer, console = watched()
+
+    render_next_actions([step], console)
+    text = buffer.getvalue()
+
+    assert f"{BOLD}techtree doctor" in text
+    assert f"{DIM}Doctor reports what would block a run." in text
+    assert f"{BOLD}Check that this machine is ready" not in text
+    assert f"{DIM}Check that this machine is ready" not in text
+
+
+def test_a_labelled_fact_dims_the_label_and_leaves_the_value_alone() -> None:
+    buffer, console = watched()
+
+    render_pairs([("ReleaseCore", "sha256:0123456789ab")], console)
+    text = buffer.getvalue()
+
+    assert f"{DIM}ReleaseCore" in text
+    assert f"{DIM}sha256:0123456789ab" not in text
+    assert "sha256:0123456789ab" in text
+
+
+def test_a_labelled_value_is_folded_whole_rather_than_cut_short() -> None:
+    """A digest or a path that was shortened could not be copied out again."""
+    value = "/Users/somebody/.techtree/cache/skills/" + "a" * 64 + "/SKILL.md"
+    buffer, console = piped(width=40)
+
+    render_pairs([("Skill file", value)], console)
+
+    assert value in "".join(buffer.getvalue().split())
+
+
+DIGEST = "sha256:" + "0" * 64
+
+RELEASE_INFO = ReleaseInfoPayload(
+    release_id="release_2026_01",
+    cli_version="0.1.0",
+    package_version="0.1.0",
+    source_commit=None,
+    protocol_version="v1",
+    release_core_digest=DIGEST,
+    engine_digest=DIGEST,
+    catalog_digest=DIGEST,
+    intro_climb_reference="hello-world-climb@1",
+)
+
+STARTER_SKILL = StarterSkillPayload(
+    release_id="release_2026_01",
+    skill_root_digest=DIGEST,
+    skill_path="/somewhere/SKILL.md",
+    skill_name="hello-world",
+    skill_purpose="An introductory Skill, incomplete on purpose.",
+    candidate_label="starter",
+    file_count=1,
+    total_bytes=512,
+    origin="cache",
+    intro_climb_reference="hello-world-climb@1",
+)
+
+PROOF = ProofVerificationPayload(
+    target="run_" + "0" * 32,
+    kind="bundle",
+    verified=True,
+    summary=[
+        VerificationMessage(
+            id="bundle_integrity",
+            status="passed",
+            code="proof_bundle_invalid",
+            detail="every file still matches",
+        )
+    ],
+    checks=[],
+)
+
+
+@pytest.mark.parametrize(
+    ("render", "payload", "label", "value"),
+    [
+        (render_release_info, RELEASE_INFO, "Release", "release_2026_01"),
+        (render_starter_skill, STARTER_SKILL, "Skill", "hello-world"),
+    ],
+)
+def test_the_commands_that_list_labelled_facts_all_draw_them_the_same_way(
+    render: DataRenderer, payload: object, label: str, value: str
+) -> None:
+    """One renderer, so moving between two commands shows no seam."""
+    buffer, console = watched()
+
+    render(payload, console)
+    text = buffer.getvalue()
+
+    assert f"{DIM}{label}" in text
+    assert f"{DIM}{value}" not in text
+    assert value in text
+
+
+def test_a_proof_verdict_is_coloured_like_a_check_and_never_dimmed() -> None:
+    """The proof summary resembles the labelled-facts table and is not one.
+
+    Its left column carries the outcome rather than the name of a value, so
+    dimming it would put the quietest weight on the one word a reader opened
+    the command for. It takes Doctor's colours instead, so the two surfaces
+    read the same way.
+    """
+    buffer, console = watched()
+
+    proof_renderer(every_check=False)(PROOF, console)
+    text = buffer.getvalue()
+
+    assert f"{DIM}PASSED" not in text
+    assert f"{GREEN}PASSED" in text
+
+
+def test_a_failure_a_person_reads_is_framed_where_it_cannot_be_missed() -> None:
+    buffer, console = watched()
+
+    render_human(_missing_run(), console)
+    text = buffer.getvalue()
+
+    assert "Error: there is no run here" in text
+    assert "Code: not_found" in text
+    assert "╭" in text and "╰" in text
+
+
+def test_a_failure_that_was_redirected_is_the_same_two_plain_lines() -> None:
+    """Box-drawing is text, not colour, and would reach whatever reads this."""
+    buffer, console = piped()
+
+    render_human(_missing_run(), console)
+
+    assert buffer.getvalue() == ("\nError: there is no run here\nCode: not_found\n")
+
+
+def _missing_run() -> CliEnvelope[None]:
+    """An envelope carrying nothing but one failure."""
+    return failure_envelope(
+        command="run status",
+        error=NotFoundError("there is no run here", next_actions=[]),
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -43,6 +43,7 @@ from typing import Annotated, Final, Literal
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 from techtree.cli.context import cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
@@ -386,12 +387,7 @@ def _render(data: object, console: Console, *, every_check: bool) -> None:
 
     console.print(f"Proof: {data.target}")
     console.print()
-    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
-    table.add_column("status", no_wrap=True)
-    table.add_column("detail", overflow="fold")
-    for message in data.summary:
-        table.add_row(message.status.upper(), message.detail)
-    console.print(table)
+    _render_summary(data.summary, console)
 
     headings = _grouped(data.checks)
     _render_counts(headings, len(data.checks), console)
@@ -404,6 +400,37 @@ def _render(data: object, console: Console, *, every_check: bool) -> None:
     failures = [message for message in data.checks if message.status == "failed"]
     if failures:
         _render_failures(failures, len(data.checks), console)
+
+
+#: The colours Doctor already gives a check outcome, so a reader who has read
+#: one of the two surfaces can read the other without learning a second
+#: vocabulary. A warning is not a failure and must not look like one.
+_STATUS_STYLE: Final[dict[str, str]] = {
+    "passed": "green",
+    "warning": "yellow",
+    "failed": "red",
+}
+
+
+def _render_summary(summary: Sequence[VerificationMessage], console: Console) -> None:
+    """Print each headline verdict beside what it is a verdict about.
+
+    This is not the labelled-facts table it resembles. The left column holds
+    the outcome rather than the name of a value, and an outcome is the thing a
+    reader is looking for, not the word that says which value follows. So it
+    keeps its own renderer and carries the same colours Doctor gives its own
+    checks, because a reader who has seen one of them should be able to read
+    the other at a glance.
+    """
+    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
+    table.add_column("status", no_wrap=True)
+    table.add_column("detail", overflow="fold")
+    for message in summary:
+        table.add_row(
+            Text(message.status.upper(), style=_STATUS_STYLE[message.status]),
+            message.detail,
+        )
+    console.print(table)
 
 
 def _render_counts(

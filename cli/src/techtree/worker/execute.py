@@ -19,10 +19,10 @@ work it interrupted, and a handler that wrote a file could tear it.
 
 Every exit is terminal for the run and specific for the caller. A cancelled run
 exits 130, the shell's convention for interruption. A typed failure exits its
-own documented code. Anything else is a defect: the message is scrubbed before
-it is stored, the run is recorded as failed, and the process exits 5. In no
-case does a raw traceback reach ``RunState.error``, which is a protocol-visible
-field that a host agent will read back.
+own documented code. Anything else is a defect: the message is flattened onto
+one line before it is stored, the run is recorded as failed, and the process
+exits 5. In no case does a raw traceback reach ``RunState.error``, which is a
+protocol-visible field that a host agent will read back.
 """
 
 from __future__ import annotations

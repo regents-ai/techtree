@@ -10,10 +10,12 @@ nothing. A dead worker on a nonterminal run shows up as exactly that — not as
 a failure the CLI invented on the reader's behalf.
 
 *Logs are untrusted output.* A worker writes whatever it writes, including
-whatever a library it called wrote. Every line is passed through the secret
-scrubber before it is shown, in bounded and followed reading alike, and the
-response never contains the log's path: handing an agent a filename is handing
-it an invitation to read something else.
+whatever a library it called wrote, and what it wrote is what a reader gets:
+decisions document 0036 removed the filter that used to rewrite a line on its
+way out, so a line arrives exactly as the tool printed it. Two things are still
+true of every reading, bounded and followed alike. What comes back is a window
+rather than the file, and the response never contains the log's path: handing
+an agent a filename is handing it an invitation to read something else.
 
 *Cancelling is a mutation and is treated as one.* A person is asked; a program
 must pass ``--confirm``. Possession of a run identifier is not intent to stop
@@ -40,7 +42,7 @@ from rich.table import Table
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
-from techtree.cli.output import human_console
+from techtree.cli.output import human_console, render_pairs
 from techtree.drafts.store import DraftStore
 from techtree.errors import TechtreeError, UsageError, VerificationError
 from techtree.identity.models import VerificationResult
@@ -205,7 +207,7 @@ class RunStatusPayload(ProtocolModel):
 
 
 class RunLogsPayload(ProtocolModel):
-    """A bounded, scrubbed window onto one run's worker log."""
+    """A bounded window onto one run's worker log, line for line as written."""
 
     run_id: NonEmptyString
     lines: list[str]
@@ -493,7 +495,7 @@ def _follow_log(
     *,
     shown: list[str],
 ) -> None:
-    """Print new lines as they arrive, scrubbing each one.
+    """Print new lines as they arrive, each exactly as the worker wrote it.
 
     ``Ctrl-C`` leaves the run alone: following a log is reading, and reading
     has never been a way to cancel anything.
@@ -930,7 +932,7 @@ def _render_status(data: object, console: Console) -> None:
         rows.append(("Cancellation", "requested"))
     if data.error is not None:
         rows.append(("Error", data.error.message))
-    _print_pairs(console, rows)
+    render_pairs(rows, console)
 
     if data.variant_progress:
         console.print()
@@ -1012,13 +1014,13 @@ def _render_logs(data: object, console: Console) -> None:
 def _render_cancel(data: object, console: Console) -> None:
     if not isinstance(data, RunCancelPayload):
         return
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Run", data.run_id),
             ("Phase", data.phase.value),
             ("Worker", "running" if data.worker_alive else "stopped"),
         ],
+        console,
     )
 
 
@@ -1054,21 +1056,12 @@ def _render_result_paths(data: RunResultPayload, console: Console) -> None:
     itself, so it prints paths relative to the run directory rather than the
     absolute ones: the run identifier is what a caller already has.
     """
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Run", data.report.run_id),
             ("Report", "report/uplift.json"),
             ("Proof bundle", f"{BUNDLE_DIRECTORY}/"),
             ("Signed report", f"{BUNDLE_DIRECTORY}/{REPORT_FILENAME}"),
         ],
+        console,
     )
-
-
-def _print_pairs(console: Console, pairs: list[tuple[str, str]]) -> None:
-    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
-    table.add_column("label", no_wrap=True)
-    table.add_column("value", overflow="fold")
-    for label, value in pairs:
-        table.add_row(label, value)
-    console.print(table)

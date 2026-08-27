@@ -53,6 +53,7 @@ from techtree.cli.commands.climb import (
 from techtree.cli.commands.run import build_run_service
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.output import render_pairs
 from techtree.drafts.store import DraftStore
 from techtree.fs import atomic_write_bytes, ensure_private_directory
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
@@ -562,14 +563,14 @@ def _render_context(data: object, console: Console) -> None:
         return
     improvement = data.context
 
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Run", improvement.source_run_id),
             ("Skill being revised", improvement.parent_skill_digest),
             ("Tasks included", str(len(improvement.examples))),
             ("Written to", data.relative_path),
         ],
+        console,
     )
     console.print()
     console.print(improvement.objective)
@@ -599,8 +600,7 @@ def _render_skill_source(data: object, console: Console) -> None:
     if not isinstance(data, UpliftSkillSourcePayload):
         return
 
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Run", data.source_run_id),
             ("Skill", data.skill_name),
@@ -609,6 +609,7 @@ def _render_skill_source(data: object, console: Console) -> None:
             ("Entry file digest", data.entrypoint_digest),
             ("Files in this Skill", str(data.file_count)),
         ],
+        console,
     )
 
     console.print()
@@ -622,8 +623,7 @@ def _render_prepare(data: object, console: Console) -> None:
     if not isinstance(data, UpliftPreparePayload):
         return
 
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Draft", data.draft_id),
             ("From run", data.source_run_id),
@@ -633,6 +633,7 @@ def _render_prepare(data: object, console: Console) -> None:
             ("Candidate skill", data.candidate_skill_digest),
             ("Candidate", data.candidate_label),
         ],
+        console,
     )
 
     console.print()
@@ -642,8 +643,7 @@ def _render_prepare(data: object, console: Console) -> None:
 
     console.print()
     console.print("The comparison")
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Allowed difference", ", ".join(data.allowed_differences)),
             ("Found difference", ", ".join(data.differences)),
@@ -652,12 +652,12 @@ def _render_prepare(data: object, console: Console) -> None:
             ("Controlled", "yes" if data.controlled else "no"),
             ("Estimated episodes", str(data.estimated_episodes)),
         ],
+        console,
     )
 
     console.print()
     console.print("Data rights")
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Candidate ownership", data.candidate_ownership),
             ("Public release", phrase(data.candidate_public_release)),
@@ -670,6 +670,7 @@ def _render_prepare(data: object, console: Console) -> None:
                 else "not required",
             ),
         ],
+        console,
     )
     console.print(data.policy_acceptance.summary)
     console.print(PUBLICATION_TERMS_LINE)
@@ -679,8 +680,7 @@ def _render_start(data: object, console: Console) -> None:
     """Print what was started and where it can be followed."""
     if not isinstance(data, UpliftStartPayload):
         return
-    _print_pairs(
-        console,
+    render_pairs(
         [
             ("Run", data.run_id),
             ("Draft", data.draft_id),
@@ -691,13 +691,5 @@ def _render_start(data: object, console: Console) -> None:
             ("Approved", phrase(data.policy_acknowledgement_method)),
             ("Approved by", phrase(data.approved_by)),
         ],
+        console,
     )
-
-
-def _print_pairs(console: Console, pairs: list[tuple[str, str]]) -> None:
-    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
-    table.add_column("label", no_wrap=True)
-    table.add_column("value", overflow="fold")
-    for label, value in pairs:
-        table.add_row(label, value)
-    console.print(table)

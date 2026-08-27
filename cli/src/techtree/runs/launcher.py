@@ -26,8 +26,8 @@ filter the ambient one.
 
 *The log is the run's, and private.* ``worker.log`` is opened ``0600`` in
 append mode and given to the child as both stdout and stderr, so anything the
-worker prints — including anything a library prints — lands in one bounded,
-scrubbable place instead of on the caller's terminal.
+worker prints — including anything a library prints — lands in one file the
+run owns instead of on the caller's terminal.
 """
 
 from __future__ import annotations

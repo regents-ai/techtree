@@ -46,10 +46,10 @@ from typing import Annotated, Final, Literal
 
 import typer
 from rich.console import Console
-from rich.table import Table
 
 from techtree.cli.context import cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.output import render_pairs
 from techtree.constants import (
     STARTER_SKILL_CANDIDATE_LABEL,
     STARTER_SKILL_NAME,
@@ -205,19 +205,17 @@ def _render(data: object, console: Console) -> None:
     """Print where the Skill is and what it was verified against."""
     if not isinstance(data, StarterSkillPayload):
         return
-    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
-    table.add_column("label", no_wrap=True)
-    table.add_column("value", overflow="fold")
-    for label, value in [
-        ("Release", data.release_id),
-        ("Skill", data.skill_name),
-        ("Purpose", data.skill_purpose),
-        ("Candidate label", data.candidate_label),
-        ("Skill content digest", data.skill_root_digest),
-        ("Skill file", data.skill_path),
-        ("Files", str(data.file_count)),
-        ("Size", f"{data.total_bytes} bytes"),
-        ("Obtained", data.origin.replace("_", " ")),
-    ]:
-        table.add_row(label, value)
-    console.print(table)
+    render_pairs(
+        [
+            ("Release", data.release_id),
+            ("Skill", data.skill_name),
+            ("Purpose", data.skill_purpose),
+            ("Candidate label", data.candidate_label),
+            ("Skill content digest", data.skill_root_digest),
+            ("Skill file", data.skill_path),
+            ("Files", str(data.file_count)),
+            ("Size", f"{data.total_bytes} bytes"),
+            ("Obtained", data.origin.replace("_", " ")),
+        ],
+        console,
+    )

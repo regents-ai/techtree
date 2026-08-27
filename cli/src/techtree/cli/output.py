@@ -27,11 +27,19 @@ from collections.abc import Callable
 from typing import Any
 
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from techtree.canonical import canonical_json_text
 from techtree.cli.context import CliContext
-from techtree.models.cli import CliEnvelope, CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliEnvelope,
+    CliError,
+    CliMessage,
+    MessageLevel,
+    NextAction,
+)
 
 __all__ = [
     "DataRenderer",
@@ -40,6 +48,7 @@ __all__ = [
     "json_stdout",
     "render_human",
     "render_next_actions",
+    "render_pairs",
     "shell_display",
     "stderr_log",
     "write_envelope",
@@ -133,8 +142,7 @@ def render_human(
 
     if envelope.error is not None:
         console.print()
-        console.print(f"Error: {envelope.error.message}", style="red")
-        console.print(f"Code: {envelope.error.code}")
+        _render_error(envelope.error, console)
 
     render_next_actions(envelope.next_actions, console)
 
@@ -160,15 +168,31 @@ def render_next_actions(actions: list[NextAction], console: Console) -> None:
     # One step is not a list, so it is not numbered like one.
     numbered = len(actions) > 1
     for position, action in enumerate(actions, start=1):
-        lines = [action.label]
-        if action.cli is not None:
-            lines.append(shell_display(action.cli))
-        if action.reason is not None:
-            lines.append(action.reason)
-        if action.requires_user_confirmation:
-            lines.append("Requires confirmation by a person before it runs.")
-        table.add_row(f"{position}." if numbered else "", "\n".join(lines))
+        table.add_row(f"{position}." if numbered else "", _step_text(action))
 
+    console.print(table)
+
+
+def render_pairs(pairs: list[tuple[str, str]], console: Console) -> None:
+    """Render labelled facts as one two-column table.
+
+    Almost every command that shows a person what it found shows it this way:
+    a short label on the left and the value beside it. They were built one at a
+    time and drifted apart, and a reader moving between two commands should not
+    have to notice that they are looking at the same thing drawn differently.
+
+    The label is dimmed and the value is not, because the value is what the
+    reader came for and the label is only there to say which value it is.
+
+    The value column folds rather than truncates, for the reason given where
+    next actions do the same: a folded digest or path can still be copied out
+    of a narrow terminal and a shortened one cannot.
+    """
+    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
+    table.add_column("label", no_wrap=True, style="dim")
+    table.add_column("value", overflow="fold")
+    for label, value in pairs:
+        table.add_row(label, value)
     console.print(table)
 
 
@@ -193,3 +217,64 @@ def stderr_log(message: str) -> None:
 def _render_message(message: CliMessage, console: Console) -> None:
     prefix = _LEVEL_PREFIX[message.level]
     console.print(f"{prefix}{message.text}", style=_LEVEL_STYLE[message.level] or None)
+
+
+def _step_text(action: NextAction) -> Text:
+    """Return one next step with the line a person types set apart.
+
+    A step is up to three lines that used to look alike: what it is, the
+    command, and why. The command is the only one of them anybody retypes, so
+    it is the one the eye should land on, and the reason is the one a reader
+    who already knows why can pass over. Weight says that without moving
+    anything or changing a word, which is what was wanted here: the ordering
+    and the wording are settled elsewhere and this changes neither.
+
+    The styles are carried by a :class:`~rich.text.Text` rather than by a
+    marked-up string. Nothing this console prints is read for markup, so a
+    label or a path that happens to contain square brackets is drawn as the
+    characters it is made of and cannot choose a colour for itself.
+    """
+    step = Text(action.label)
+    if action.cli is not None:
+        step.append("\n")
+        step.append(shell_display(action.cli), style="bold")
+    if action.reason is not None:
+        step.append("\n")
+        step.append(action.reason, style="dim")
+    if action.requires_user_confirmation:
+        step.append("\nRequires confirmation by a person before it runs.")
+    return step
+
+
+def _render_error(error: CliError, console: Console) -> None:
+    """Draw a failure so that it cannot be scrolled past, when somebody is there.
+
+    The message and the code were two ordinary lines among all the other
+    ordinary lines a command prints, which is what a reader skimming a long
+    response goes straight past. A frame around them says which part went
+    wrong before any of the words have been read.
+
+    The frame is drawn only for a terminal. Box-drawing characters are not
+    colour: they are ordinary text and they survive a pipe, so framing a
+    redirected response would push decoration into whatever reads it next.
+    Redirected output stays the two plain lines it has always been, and the
+    words are the same either way.
+
+    The frame is drawn around the words rather than across the terminal.
+    Nothing else in this product draws a box at all, so one that ran the full
+    width would be by far the loudest thing on the screen, and a missing run
+    identifier does not warrant that. Sized to its own contents it still marks
+    the failure at a glance without shouting over the response it belongs to.
+    """
+    message = Text(f"Error: {error.message}", style="red")
+    code = Text(f"Code: {error.code}")
+    if not console.is_terminal:
+        console.print(message)
+        console.print(code)
+        return
+
+    framed = Text()
+    framed.append_text(message)
+    framed.append("\n")
+    framed.append_text(code)
+    console.print(Panel.fit(framed, border_style="red"))
