@@ -6,16 +6,18 @@
   "release_packaging": "Release records, audits and approval packets. Shipped nowhere the science depends on.",
   "scientific — re-certified (0025, addendum A1.4)": "A change to the scientific configuration, sanctioned by decision 0025 and certified by the three re-certification runs of Gate-1 addendum 1 §A1.4.",
   "scientific — re-certified (0029, four canonical runs)": "A change to the scientific configuration or to what enforces it, sanctioned by decision 0029 and certified by the recertification attached to it: four canonical runs against the regenerated Campaign, the live turn-conformance probe, and a real worker-SIGKILL injection.",
+  "scientific — re-certified (engine move, three certification runs)": "A change to the scientific configuration, or to what the evaluation child is handed and what its evidence is checked against, made when the embedded Verifiers engine moved from the pre-release development revision to the released one. Certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json under recertification_runs.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 93,
+ "commit_count": 121,
  "counts_by_class": {
-  "documentation": 90,
-  "non_scientific_copy": 46,
-  "release_packaging": 115,
+  "documentation": 119,
+  "non_scientific_copy": 81,
+  "release_packaging": 136,
   "scientific — re-certified (0025, addendum A1.4)": 6,
   "scientific — re-certified (0029, four canonical runs)": 14,
-  "test_only": 168
+  "scientific — re-certified (engine move, three certification runs)": 28,
+  "test_only": 279
  },
  "entries": [
   {
@@ -3529,9 +3531,1801 @@
    "commit_subject": "release: rebuild the claims ledger against the lineage we actually certified",
    "path": "release/product-claim-evidence-matrix.md",
    "rationale": "A release record. Shipped nowhere the science depends on."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "425372ce62db7b442a722f6ea8468fac27fd993c",
+   "commit_subject": "release: regenerate the acceptance records against the frozen build",
+   "path": "release/fresh-install-report.json",
+   "rationale": "The acceptance records re-observed against the frozen build. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "425372ce62db7b442a722f6ea8468fac27fd993c",
+   "commit_subject": "release: regenerate the acceptance records against the frozen build",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "The acceptance records re-observed against the frozen build. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "425372ce62db7b442a722f6ea8468fac27fd993c",
+   "commit_subject": "release: regenerate the acceptance records against the frozen build",
+   "path": "release/post-certification-change-classification.json",
+   "rationale": "The acceptance records re-observed against the frozen build. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "425372ce62db7b442a722f6ea8468fac27fd993c",
+   "commit_subject": "release: regenerate the acceptance records against the frozen build",
+   "path": "release/wheel-inspection.json",
+   "rationale": "The acceptance records re-observed against the frozen build. A release record."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "80effdfec9001e2d256b85e71dd5829616b810d1",
+   "commit_subject": "release: the Gate-2 approval packet",
+   "path": "release/founder-release-approval-packet.md",
+   "rationale": "The Gate-2 founder approval packet. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "6118c20fef30e3357b43a85078f959e6d0ef2126",
+   "commit_subject": "release: two findings from the freeze that a packet reader needs",
+   "path": "release/founder-release-approval-packet.md",
+   "rationale": "Two freeze findings added to the Gate-2 packet. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "2476042d643ad13060da077110e7e2722afbe1c9",
+   "commit_subject": "docs: decision 0035 — v0.1 is a proof of concept for the stack; public-readiness tidy-up",
+   "path": "CLAUDE.md",
+   "rationale": "The proof-of-concept framing of decision 0035. Documents only."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "2476042d643ad13060da077110e7e2722afbe1c9",
+   "commit_subject": "docs: decision 0035 — v0.1 is a proof of concept for the stack; public-readiness tidy-up",
+   "path": "docs/agent-handoff.md",
+   "rationale": "The proof-of-concept framing of decision 0035. Documents only."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "2476042d643ad13060da077110e7e2722afbe1c9",
+   "commit_subject": "docs: decision 0035 — v0.1 is a proof of concept for the stack; public-readiness tidy-up",
+   "path": "docs/decisions/0035-proof-of-concept-framing.md",
+   "rationale": "The proof-of-concept framing of decision 0035. Documents only."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "2476042d643ad13060da077110e7e2722afbe1c9",
+   "commit_subject": "docs: decision 0035 — v0.1 is a proof of concept for the stack; public-readiness tidy-up",
+   "path": "docs/product-architecture.md",
+   "rationale": "The proof-of-concept framing of decision 0035. Documents only."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "2476042d643ad13060da077110e7e2722afbe1c9",
+   "commit_subject": "docs: decision 0035 — v0.1 is a proof of concept for the stack; public-readiness tidy-up",
+   "path": "docs/v0.1-remaining-tickets.md",
+   "rationale": "The proof-of-concept framing of decision 0035. Documents only."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "docs/verifiers-pin-0.3.1.md",
+   "rationale": "The released-engine preflight findings: the authority the engine move is executed against. A document."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "docs/verifiers-pin.md",
+   "rationale": "The superseded pin document, marked superseded. A document."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "release/build-info.json",
+   "rationale": "The build record follows the regenerated ReleaseCore. It records digests; it is not one of them."
+  },
+  {
+   "change": "added",
+   "classification": "release_packaging",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "release/public-visibility-review.md",
+   "rationale": "A public-visibility review, added in the same commit. A release record."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "release/release-core.json",
+   "rationale": "The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/constants.py",
+   "rationale": "PINNED_VERIFIERS_REVISION moves from 7e1c47d2 to b2e4e815. This one constant is what the engine bundle, the taskset package and every validation are pinned to, so it is the engine move itself. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+   "rationale": "The shipped Campaign. Compared field by field against its parent, exactly two pointers differ and both name the engine that moved: /taskset/ref/package/digest and /taskset/validation_receipt_digest. The budget contract, the execution contract, the subject model and sampling, the runtime image digests, the mutation contract and the scoring contract are byte-identical. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/catalog/catalog.json",
+   "rationale": "The catalog re-addresses the Campaign, the validation receipt and the validation evidence at their new digests. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+   "rationale": "The Climb names the new Campaign digest and nothing else changes. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/catalog/taskset-validations/hello-world-climb.json",
+   "rationale": "The TasksetValidationReceipt, re-run under the released engine: engine digest, validator revision, normalized-evidence digest and taskset lock digest (2edd60bc -> 8bed6f7c) all move. Task membership does not: the fingerprint records all 36 committed task hashes byte-identical and in the same order, and the membership digest 56f697fb recomputed from those hashes. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/catalog/validation-evidence/hello-world-climb.json",
+   "rationale": "The normalized validation evidence behind that receipt, re-produced under the released validator. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/engines/default/engine.json",
+   "rationale": "The engine descriptor: verifiers revision, verifiers version and the taskset package source digest. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/engines/default/packages/procedure-transfer-v1/procedure_transfer_v1/taskset.py",
+   "rationale": "Read hunk by hunk, the diff is a module docstring: it re-points two sentences at the new pinned commit and the new pin document. No prompt, no task, no reward and no scoring line changes. It is classified scientific anyway, and deliberately, because this file is the only changed file inside the digested package tree, so this docstring is the whole reason the taskset package source digest moved from 14d9646d to f42a0d5e — and the Campaign names that digest. A docstring that moves a certified coordinate is a scientific change to the record even though it is not one to the measurement."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/engines/default/pyproject.toml",
+   "rationale": "The engine environment pins the released verifiers revision. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/engines/default/uv.lock",
+   "rationale": "The resolved lock for that environment. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/resources/release/release-core.json",
+   "rationale": "The packaged ReleaseCore names the moved engine and catalog digests. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/tasksets/verifiers_cli.py",
+   "rationale": "The whole of Techtree's contact with the upstream validate command: the pinned argv gains --run.name, the four files a validation must leave behind move to configs/resolved/validate.json and logs/validate.log, and a reused run directory is now refused. This is what produces the TasksetValidationReceipt, whose digest is a certified coordinate and did move. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/verifiers/child.py",
+   "rationale": "The child invocation gains --run.name so the validation's resolved document lands somewhere findable. Argv handed to the evaluation child is scientific. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/verifiers/compiler.py",
+   "rationale": "The compiled variant configuration is emitted as JSON rather than TOML, and its media type with it. This is the document the evaluation child is handed. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/verifiers/config.py",
+   "rationale": "The locked-down dashboard setting changes from Literal[False] to Literal[None], and the emitted document writes that null explicitly while every other unset optional stays absent. Measured against the released engine, an omitted key resolves to a dashboard that is on with log lines suppressed, which is the failure the lock-down exists to prevent. This changes what the evaluation child is configured to do. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/verifiers/models.py",
+   "rationale": "The compiled configuration's filename becomes input.json, because the engine picks its parser from the extension. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/verifiers/outputs.py",
+   "rationale": "Prose about where the dry run writes. Classified with the engine move rather than exempted from it, because the same module's evidence contract is rewritten two commits later in 72e5dc8."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "src/techtree/verifiers/verify.py",
+   "rationale": "The comparison against the engine now uses the document Techtree actually wrote rather than the model behind it, and a declared key the engine's answer omits now counts as a disagreement. This changes which configurations a run is allowed to start under. The engine move. The embedded Verifiers engine goes from the pre-release development revision 7e1c47d2 to the released 0.3.1 at b2e4e815, and every certified digest that names it moves with it: engine 874cbae0 -> 29b1bbb8, taskset package 14d9646d -> f42a0d5e, validation receipt 080895d5 -> 4944bd71, Campaign ad393bc0 -> ebf029ab, Climb ac76d787 -> a3a5e9c5, catalog ae300ef6 -> 10a7fcc5. Scientific, and certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/fixtures/catalog/complete/campaigns/synthetic.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/fixtures/catalog/complete/catalog.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/fixtures/catalog/complete/climbs/synthetic-closed.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/fixtures/catalog/complete/climbs/synthetic-development.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/fixtures/catalog/complete/climbs/synthetic-open.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/fixtures/catalog/complete/taskset-validations/synthetic.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/fixtures/catalog/complete/validation-evidence/synthetic.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/campaign.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/cli-envelope.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/climb.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/comparison-execution.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/experiment-baseline.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/experiment-candidate.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/fake-uplift-report.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/improvement-context.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/real-episode-receipt.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/real-uplift-report.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/golden/taskset-validation-receipt.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/integration/test_engine_install.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/integration/test_eval_compile.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/integration/test_real_executor_cancel.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/integration/test_real_executor_parallel.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/integration/test_real_variant_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/integration/test_taskset_validation.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/preflight/engine_environment.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/preflight/test_procedure_transfer_taskset.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/preflight/test_verifiers_contract.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/preflight/test_verifiers_eval_contract.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/preflight/verifiers_probe.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/unit/test_variant_schedule.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/unit/test_verifiers_child.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/unit/test_verifiers_compiler.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/unit/test_verifiers_config.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "commit_subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off",
+   "path": "tests/unit/test_verifiers_verify.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "1a7a54235b44c9794894d435c3f5657bf57260c4",
+   "commit_subject": "docs: decision 0034 — the certified example result published on the verified-run page",
+   "path": "docs/decisions/0034-published-example-result.md",
+   "rationale": "A decisions document."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "fe0a2754daeab1bbedc35f718b3c515aa9ba88c3",
+   "commit_subject": "cli: name the executor field after the executor (techtree-python-dnp)",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "One CLI payload field is renamed development_only -> fake_executor on the start and status envelopes, because the old name collided with the proof grade. The value is still read off the run request's executor_kind and nothing branches differently. Presentation naming, not measurement."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "fe0a2754daeab1bbedc35f718b3c515aa9ba88c3",
+   "commit_subject": "cli: name the executor field after the executor (techtree-python-dnp)",
+   "path": "src/techtree/cli/commands/run.py",
+   "rationale": "One CLI payload field is renamed development_only -> fake_executor on the start and status envelopes, because the old name collided with the proof grade. The value is still read off the run request's executor_kind and nothing branches differently. Presentation naming, not measurement."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "fe0a2754daeab1bbedc35f718b3c515aa9ba88c3",
+   "commit_subject": "cli: name the executor field after the executor (techtree-python-dnp)",
+   "path": "tests/integration/test_cli_flow.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "fe0a2754daeab1bbedc35f718b3c515aa9ba88c3",
+   "commit_subject": "cli: name the executor field after the executor (techtree-python-dnp)",
+   "path": "tests/integration/test_fake_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "fe0a2754daeab1bbedc35f718b3c515aa9ba88c3",
+   "commit_subject": "cli: name the executor field after the executor (techtree-python-dnp)",
+   "path": "tests/integration/test_run_variant_view.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "9e4dbfe721de3c7dccdc0f33cb07c01c57c66e6d",
+   "commit_subject": "tests: the guided path is exercised against a real CLI, and the samples match the rebuilt release",
+   "path": "tests/plugin/contract/test_release_copy.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "9e4dbfe721de3c7dccdc0f33cb07c01c57c66e6d",
+   "commit_subject": "tests: the guided path is exercised against a real CLI, and the samples match the rebuilt release",
+   "path": "tests/plugin/fixtures/cli/release-info.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "9e4dbfe721de3c7dccdc0f33cb07c01c57c66e6d",
+   "commit_subject": "tests: the guided path is exercised against a real CLI, and the samples match the rebuilt release",
+   "path": "tests/plugin/fixtures/cli/release-verify.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "9e4dbfe721de3c7dccdc0f33cb07c01c57c66e6d",
+   "commit_subject": "tests: the guided path is exercised against a real CLI, and the samples match the rebuilt release",
+   "path": "tests/plugin/integration/test_demo_first_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "9e4dbfe721de3c7dccdc0f33cb07c01c57c66e6d",
+   "commit_subject": "tests: the guided path is exercised against a real CLI, and the samples match the rebuilt release",
+   "path": "tests/plugin/unit/test_assets.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "9e4dbfe721de3c7dccdc0f33cb07c01c57c66e6d",
+   "commit_subject": "tests: the guided path is exercised against a real CLI, and the samples match the rebuilt release",
+   "path": "tests/plugin/unit/test_commands.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "9e4dbfe721de3c7dccdc0f33cb07c01c57c66e6d",
+   "commit_subject": "tests: the guided path is exercised against a real CLI, and the samples match the rebuilt release",
+   "path": "tests/plugin/unit/test_tools.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "bb7f995e4ec2fb59e9f537ab7c0b3e4867e6e850",
+   "commit_subject": "docs: the proof-of-concept frame, guarded on every surface that states it (decision 0035)",
+   "path": "README.md",
+   "rationale": "README prose. A document."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "bb7f995e4ec2fb59e9f537ab7c0b3e4867e6e850",
+   "commit_subject": "docs: the proof-of-concept frame, guarded on every surface that states it (decision 0035)",
+   "path": "tests/contract/test_release_copy.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "bb7f995e4ec2fb59e9f537ab7c0b3e4867e6e850",
+   "commit_subject": "docs: the proof-of-concept frame, guarded on every surface that states it (decision 0035)",
+   "path": "tests/plugin/unit/test_assets.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "docs/verifiers-eval.md",
+   "rationale": "The engine pin documents. Documents only."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "docs/verifiers-pin-0.3.1.md",
+   "rationale": "The engine pin documents. Documents only."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/receipts/observed.py",
+   "rationale": "The resolved configuration a receipt is checked against is read as JSON rather than TOML. This is the evidence input to the observed-configuration check. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/runs/service.py",
+   "rationale": "One import and one constant, so a variant's evaluation log is read at logs/attempt_1/eval.log. Classified with the engine move rather than exempted from it, because the constant it follows is the same EVAL_LOG_PATH that outputs.py digests as one of the three required pieces of a variant's evidence. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/uplift/service.py",
+   "rationale": "The real uplift report reads the engine's resolved configuration from its new nested path. That document is what the receipt's observed-configuration check compares against, so where it is read from is scientific. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/verifiers/child.py",
+   "rationale": "The evaluation invocation gains --no-serve and --run.name. Without --no-serve the released engine hosts the rollouts through an elastic env-server worker pool, which is not the one child, one process group, one cancellation path that decision 0029's supervision depends on. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/verifiers/compiler.py",
+   "rationale": "output_dir now names the group directory and the plan names the run directory beneath it, because --output-dir stopped naming the run. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/verifiers/models.py",
+   "rationale": "RunPaths splits the group directory from the run directory the invocation pins. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/verifiers/outputs.py",
+   "rationale": "The evidence contract itself: the resolved configuration and the evaluation log move into subdirectories, the resolved config's media type becomes JSON, and logs/latest is deliberately not followed, required or digested. This is exactly what a run records as evidence. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "src/techtree/verifiers/verify.py",
+   "rationale": "A new verdict, rollouts_run_in_process, fails a run unless the engine confirms it resolved no worker pool, and the dry run carries the same flags the run does so it is found before anything is spent. A new pass/fail verdict on a run is scientific. The second half of the engine move, on the paid path neither gate exercises. Certified by the same three certification executions: all three ran after this commit and under the released engine, and without it a run either writes its evidence into a randomly-suffixed directory Techtree never reads or hosts its rollouts through an elastic worker pool."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/fixtures/receipts/replacement.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/fixtures/receipts/staged.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/fixtures/receipts/support.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/integration/test_eval_compile.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/integration/test_executor_selection.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/integration/test_real_concurrent_comparison.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/integration/test_real_variant_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/integration/test_receipts_from_recorded_evidence.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/preflight/test_verifiers_eval_contract.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/unit/test_observed_configuration.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/unit/test_verifiers_child.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/unit/test_verifiers_compiler.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/unit/test_verifiers_outputs.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "72e5dc844b459efd1e7d2802c977e4345ba168ec",
+   "commit_subject": "verifiers: a real evaluation writes where Techtree looks, and runs in process",
+   "path": "tests/unit/test_verifiers_verify.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "scientific — re-certified (engine move, three certification runs)",
+   "commit": "c0ac65ada6feb98b2f84a08a6c6af49210d76c57",
+   "commit_subject": "receipts: not set, spelled two ways, is not a sampling disagreement",
+   "path": "src/techtree/receipts/observed.py",
+   "rationale": "The receipt's sampling-agreement check stops treating two spellings of 'not set' as a disagreement: a knob the engine resolved to null and a knob the rollouts do not mention are the same fact. Nothing is narrowed — a knob with a value on one side and not the other still differs, and two different values still differ — but this is a verification guard that decides whether a receipt is issued, so it is scientific. Certified by the three certification executions: the released engine grew two nullable knobs the rollouts do not mention, so without this commit every one of those runs would have failed the check rather than producing the verified receipts recorded in the fingerprint."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "c0ac65ada6feb98b2f84a08a6c6af49210d76c57",
+   "commit_subject": "receipts: not set, spelled two ways, is not a sampling disagreement",
+   "path": "tests/unit/test_observed_configuration.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "d59024887d50e1c0b6f6142243d4d446ef3a6761",
+   "commit_subject": "cli: two warning codes doing three jobs become two doing two (techtree-python-e3r)",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "Two CLI warning codes doing three jobs become two doing two: fake_executor_run states which executor ran, development_only_result states the report's proof grade. Which message is emitted under which name. No measured value."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "d59024887d50e1c0b6f6142243d4d446ef3a6761",
+   "commit_subject": "cli: two warning codes doing three jobs become two doing two (techtree-python-e3r)",
+   "path": "src/techtree/cli/commands/run.py",
+   "rationale": "Two CLI warning codes doing three jobs become two doing two: fake_executor_run states which executor ran, development_only_result states the report's proof grade. Which message is emitted under which name. No measured value."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "d59024887d50e1c0b6f6142243d4d446ef3a6761",
+   "commit_subject": "cli: two warning codes doing three jobs become two doing two (techtree-python-e3r)",
+   "path": "tests/integration/test_fake_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "d59024887d50e1c0b6f6142243d4d446ef3a6761",
+   "commit_subject": "cli: two warning codes doing three jobs become two doing two (techtree-python-e3r)",
+   "path": "tests/plugin/fixtures/cli/doctor.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "d59024887d50e1c0b6f6142243d4d446ef3a6761",
+   "commit_subject": "cli: two warning codes doing three jobs become two doing two (techtree-python-e3r)",
+   "path": "tests/plugin/unit/test_improvement_service.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The visibility-review remediation."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/acceptance/terminal-e2e.json",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/budget-contract-audit.json",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/destination-capture.json",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/fresh-install-report.json",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/limit-calibration.json",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/network-method-log.json",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/plugin-release-candidate.json",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "96c8640b47eb732529092fa1c4d05f9f12426167",
+   "commit_subject": "release: home paths redacted at the tip; visibility-review remediation recorded",
+   "path": "release/public-visibility-review.md",
+   "rationale": "The author's home directory replaced by /Users/redacted in committed release records. A release record, and only its text."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "docs/cli-json-contract.md",
+   "rationale": "Decision 0036 and the documents that describe it."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "docs/decisions/0036-no-secret-scrubbing.md",
+   "rationale": "Decision 0036 and the documents that describe it."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "docs/product-architecture.md",
+   "rationale": "Decision 0036 and the documents that describe it."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/cli/app.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. The unexpected-exception path calls stable_exception_message instead of sanitize_exception_message. What a person is told."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/cli/commands/run.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. Followed log lines are no longer rewritten on the way out."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/cli/invoke.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. The same rename on the CLI's internal-error path."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/engines/installer.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. The excerpt of a failing installer subprocess is repeated word for word. Engine installation is onboarding behaviour, outside the certified surface by decision 0023."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/errors.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. The scrubber and the details walker are deleted; stable_exception_message keeps only the whitespace flattening and the memory-address normalisation, which exist so a message does not vary between runs. Error codes, error types and exit codes are untouched. What a person and a machine are told, not what is measured."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/models/__init__.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. The SecretFinding model is unexported with the rules that produced it."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/models/skill.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. SecretFinding is deleted. It described a scan result, never a Skill byte: SkillArtifact, SkillFile and the digest computation are untouched, and the starter Skill's tree digest 596d1368 is unchanged."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/presentation/sanitize.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. ensure_no_secret_patterns is deleted from the presentation guard. The two guards that keep the benchmark clean stay: ensure_no_hidden_task_material still walks every string of the payload, and ensure_no_control_or_local_path still refuses control sequences and absolute local paths."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/runs/service.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. Exemption inside the runs area, reviewed line by line. The log reader stops rewriting each line and the scrub() helper is deleted. RunService reads a log for display here; it neither writes nor digests one. No state transition, no receipt, no digest and no report field is in the diff."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/skills/scanner.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. Exemption inside the Skill-mounting area, reviewed hunk by hunk. Every regex rule, the finding machinery and the blocking refusal are deleted. Every refusal that remains is about a file's shape — symlink, hidden file, size, file count, non-text bytes, case collision, missing entry point — and none reads the words. Nothing that is hashed changed: enumerate_files, the per-file digest and the tree digest are outside the diff, and a Skill that was accepted before is snapshotted to the same bytes. This is the same readiness scan the previous revision classified non-scientific at 7f5370c under decision 0023; what moved is which Skills are admitted, not what any admitted Skill measures."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/skills/service.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. Exemption inside the Skill-mounting area, reviewed line by line. One error code is deleted and the draft's warning list stops being extended with scan warnings. Replaying the deleted rules over the shipping Skills shows both the starter Skill and the improver Skill produce no finding and no warning, so no SubmissionDraft of the certified lineage changes a byte. The manifest builder, the digest computation and the controlled-comparison assertion are all outside the diff."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/uplift/context.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. Exemption inside the host-request-composition area, reviewed line by line, and the one exemption in this commit worth reading twice. Two published strings change: the revision constraint about credentials now says nothing checks for them, and 'provider secrets and credentials' is removed from prohibited_material because it had stopped being true. The _forbid guard loses its secret check and keeps its control-sequence and absolute-path check. This is the instruction text handed to the host agent that revises a SKILL.md. It is not measured, not signed, not proof and not uploaded, and Gate-1 §7c makes no measured-uplift claim for the guided revision, so it moves no certified coordinate. It is nonetheless the one non-scientific classification in this range that changes the bytes of a shipped artifact inside a declared scientific area after the last certification run, and it is named here rather than folded into the commit's summary. The founder walkthrough run recorded in the fingerprint was executed after this commit and carries a context built by this code."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "src/techtree/worker/execute.py",
+   "rationale": "Decision 0036, a founder ruling: Techtree ships no secret-shaped-string detection of any kind. Exemption inside the runs area, reviewed line by line. worker_log writes a line as it was composed and the unexpected-failure path calls stable_exception_message. The worker's control flow, its exit codes, its cancellation handling and what it records against the run are outside the diff. Decision 0036 states the consequence plainly and it is repeated here rather than softened: an error message, a worker log line or a run journal entry now carries whatever the underlying tool printed, verbatim, including a credential if a tool prints one. That is a privacy trade the founder ruled on, not a change to what a run computes, measures or scores."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/contract/test_cli_envelope.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "deleted",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/fixtures/skills/invalid-secret/SKILL.md",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "deleted",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/fixtures/skills/invalid-secret/notes.md",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/golden/improvement-context.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/integration/test_run_logs.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/integration/test_run_variant_view.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/integration/test_skill_prepare.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/contract/test_improver_skill_contract.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/fixtures/context/improvement-context.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/unit/test_assets.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/unit/test_bridge.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/unit/test_guards.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/unit/test_improvement_service.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/unit/test_llm.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/plugin/unit/test_models.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/unit/test_engine_install_marker.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/unit/test_errors.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/unit/test_improvement_context.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/unit/test_presentation_sanitize.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/unit/test_run_service.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/unit/test_skill_scanner.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "6fdab5e80aa789409e5dff52c8385dd74f0a0973",
+   "commit_subject": "errors, skills: remove all secret-shaped-string detection (decision 0036)",
+   "path": "tests/unit/test_starter_skill.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "a5b9c5a172601c36779965cad9c748b6a374de9d",
+   "commit_subject": "docs: README links the sibling repositories",
+   "path": "README.md",
+   "rationale": "README prose."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "c3b32a6fd779bb0733e1a090db185e4ea55db98e",
+   "commit_subject": "tests: the plugin registers exactly one CLI name (techtree)",
+   "path": "tests/plugin/integration/test_terminal_commands.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "c3b32a6fd779bb0733e1a090db185e4ea55db98e",
+   "commit_subject": "tests: the plugin registers exactly one CLI name (techtree)",
+   "path": "tests/plugin/unit/test_commands.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "c3b32a6fd779bb0733e1a090db185e4ea55db98e",
+   "commit_subject": "tests: the plugin registers exactly one CLI name (techtree)",
+   "path": "tests/plugin/unit/test_registration.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38478cad9ef76d5e2863129e49c886e01d1aa387",
+   "commit_subject": "release: the improver Skill no longer claims the context omits secrets",
+   "path": "release/build-info.json",
+   "rationale": "The skill-improver Skill, which lives in the plugin repository, stopped telling the model that the improvement context omits secrets — which stopped being true under decision 0036. Only the pinned digest moves here: skill_improver_digest e6bc16c4 -> d5a381be, and the ReleaseCore digest with it, fd46b579 -> bef3b9d4. This is a release contract, not a measured value: release/certified-scientific-fingerprint.json records the consequence in cross_check, where skill_improver_matches_gate1 is false and says so."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38478cad9ef76d5e2863129e49c886e01d1aa387",
+   "commit_subject": "release: the improver Skill no longer claims the context omits secrets",
+   "path": "release/release-core.json",
+   "rationale": "The skill-improver Skill, which lives in the plugin repository, stopped telling the model that the improvement context omits secrets — which stopped being true under decision 0036. Only the pinned digest moves here: skill_improver_digest e6bc16c4 -> d5a381be, and the ReleaseCore digest with it, fd46b579 -> bef3b9d4. This is a release contract, not a measured value: release/certified-scientific-fingerprint.json records the consequence in cross_check, where skill_improver_matches_gate1 is false and says so."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38478cad9ef76d5e2863129e49c886e01d1aa387",
+   "commit_subject": "release: the improver Skill no longer claims the context omits secrets",
+   "path": "release/release-inputs.json",
+   "rationale": "The skill-improver Skill, which lives in the plugin repository, stopped telling the model that the improvement context omits secrets — which stopped being true under decision 0036. Only the pinned digest moves here: skill_improver_digest e6bc16c4 -> d5a381be, and the ReleaseCore digest with it, fd46b579 -> bef3b9d4. This is a release contract, not a measured value: release/certified-scientific-fingerprint.json records the consequence in cross_check, where skill_improver_matches_gate1 is false and says so."
+  },
+  {
+   "change": "modified",
+   "classification": "release_packaging",
+   "commit": "38478cad9ef76d5e2863129e49c886e01d1aa387",
+   "commit_subject": "release: the improver Skill no longer claims the context omits secrets",
+   "path": "src/techtree/resources/release/release-core.json",
+   "rationale": "The packaged copy of the same release contract. The engine, catalog and starter-Skill digests it names are unchanged; only skill_improver_digest moves."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "38478cad9ef76d5e2863129e49c886e01d1aa387",
+   "commit_subject": "release: the improver Skill no longer claims the context omits secrets",
+   "path": "tests/contract/test_release_artifacts.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "38478cad9ef76d5e2863129e49c886e01d1aa387",
+   "commit_subject": "release: the improver Skill no longer claims the context omits secrets",
+   "path": "tests/plugin/fixtures/cli/release-verify.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "cc17607c1225b5bc1840f39c2e350089274a31a7",
+   "commit_subject": "doctor: say whether Hermes and its Techtree plugin are here, and what to do if not",
+   "path": "src/techtree/doctor/checks.py",
+   "rationale": "Doctor gains two host-agent observations — is Hermes here, is its Techtree plugin here — neither ever blocking and neither ever a fault. Onboarding readiness behaviour, which decision 0023 places outside the certified scientific surface."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "cc17607c1225b5bc1840f39c2e350089274a31a7",
+   "commit_subject": "doctor: say whether Hermes and its Techtree plugin are here, and what to do if not",
+   "path": "src/techtree/doctor/service.py",
+   "rationale": "Doctor gains two host-agent observations — is Hermes here, is its Techtree plugin here — neither ever blocking and neither ever a fault. Onboarding readiness behaviour, which decision 0023 places outside the certified scientific surface."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "cc17607c1225b5bc1840f39c2e350089274a31a7",
+   "commit_subject": "doctor: say whether Hermes and its Techtree plugin are here, and what to do if not",
+   "path": "tests/contract/test_cli_machine_mode.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "added",
+   "classification": "test_only",
+   "commit": "cc17607c1225b5bc1840f39c2e350089274a31a7",
+   "commit_subject": "doctor: say whether Hermes and its Techtree plugin are here, and what to do if not",
+   "path": "tests/unit/test_doctor_checks.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "The review and start-surface cost copy says a run spends model tokens on inference, and that only a provider charging for tokens turns that into money. The declared maximum is still read off the Campaign and the pre-run cost precondition is untouched. Wording."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "src/techtree/skills/service.py",
+   "rationale": "Exemption inside the Skill-mounting area, reviewed line by line. Two sentences on the approval screen — one warning and one word of a docstring. This is the same file the previous revision exempted at 942bad6 and for the same reason: the preparation service that renders the approval screen happens to live in the Skill-mounting module. Nothing reads, mounts, hashes or compares a Skill differently."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/contract/test_release_copy.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/integration/test_cli_flow.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/integration/test_draft_warnings.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/integration/test_fake_run.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/plugin/contract/test_release_copy.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/plugin/fixtures/cli/release-info.json",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/plugin/integration/test_one_turn_revision.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/plugin/unit/test_llm.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f17085dd0ad2e6da396b401b15bafc7c30309dbf",
+   "commit_subject": "copy: a run spends model tokens on inference, not money",
+   "path": "tests/plugin/unit/test_schemas.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "3a63bac4c046dc9649f32deed91d4cf5265171cc",
+   "commit_subject": "doctor: installed is not the same as switched on",
+   "path": "src/techtree/doctor/checks.py",
+   "rationale": "The plugin observation separates installed from switched on and carries the command that changes it. Onboarding readiness behaviour, decision 0023."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "3a63bac4c046dc9649f32deed91d4cf5265171cc",
+   "commit_subject": "doctor: installed is not the same as switched on",
+   "path": "tests/unit/test_doctor_checks.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "f1a4258123c514a7d735ae1f49f51700b29d65d5",
+   "commit_subject": "Say tokens, not paid, where the README describes what a comparison costs",
+   "path": "README.md",
+   "rationale": "README prose about what a comparison costs."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "f1a4258123c514a7d735ae1f49f51700b29d65d5",
+   "commit_subject": "Say tokens, not paid, where the README describes what a comparison costs",
+   "path": "tests/plugin/contract/test_readme_release_truth.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "21c4b85955bdb049befccb172d49b539d70bdc31",
+   "commit_subject": "beads: close the engine-move and scrubber tickets, open the CLI-review ones",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export. Engine-move and scrubber tickets closed, CLI-review tickets opened."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "Four defects the founder's Hermes agent found reading the CLI surface: --show-tasks was dropped whenever output was piped, an unanswerable confirmation reported itself as an internal error, cancel asked about runs that had already finished, and a regressions view said every task scored the same when the selection was simply empty. Rendering, prompting and which rows a reader gets. The machine envelope is unchanged and no measured value is in the diff."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "src/techtree/cli/commands/run.py",
+   "rationale": "Four defects the founder's Hermes agent found reading the CLI surface: --show-tasks was dropped whenever output was piped, an unanswerable confirmation reported itself as an internal error, cancel asked about runs that had already finished, and a regressions view said every task scored the same when the selection was simply empty. Rendering, prompting and which rows a reader gets. The machine envelope is unchanged and no measured value is in the diff."
+  },
+  {
+   "change": "added",
+   "classification": "non_scientific_copy",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "src/techtree/cli/confirm.py",
+   "rationale": "Four defects the founder's Hermes agent found reading the CLI surface: --show-tasks was dropped whenever output was piped, an unanswerable confirmation reported itself as an internal error, cancel asked about runs that had already finished, and a regressions view said every task scored the same when the selection was simply empty. Rendering, prompting and which rows a reader gets. The machine envelope is unchanged and no measured value is in the diff."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "src/techtree/presentation/compact.py",
+   "rationale": "Four defects the founder's Hermes agent found reading the CLI surface: --show-tasks was dropped whenever output was piped, an unanswerable confirmation reported itself as an internal error, cancel asked about runs that had already finished, and a regressions view said every task scored the same when the selection was simply empty. Rendering, prompting and which rows a reader gets. The machine envelope is unchanged and no measured value is in the diff."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "src/techtree/presentation/models.py",
+   "rationale": "Four defects the founder's Hermes agent found reading the CLI surface: --show-tasks was dropped whenever output was piped, an unanswerable confirmation reported itself as an internal error, cancel asked about runs that had already finished, and a regressions view said every task scored the same when the selection was simply empty. Rendering, prompting and which rows a reader gets. The machine envelope is unchanged and no measured value is in the diff."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "src/techtree/presentation/rich.py",
+   "rationale": "Four defects the founder's Hermes agent found reading the CLI surface: --show-tasks was dropped whenever output was piped, an unanswerable confirmation reported itself as an internal error, cancel asked about runs that had already finished, and a regressions view said every task scored the same when the selection was simply empty. Rendering, prompting and which rows a reader gets. The machine envelope is unchanged and no measured value is in the diff."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "tests/integration/test_run_cancel.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "tests/integration/test_run_result_compact.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "tests/integration/test_run_start_idempotency.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "tests/integration/test_run_variant_view.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "tests/unit/test_presentation_build.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "ebfa378ff6acd24b979464f40a0dbba32b84d953",
+   "commit_subject": "cli: four defects the founder's Hermes agent found reading the whole surface",
+   "path": "tests/unit/test_presentation_render.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "38877b632751e4dccaa0c1628a852a0f932a13e8",
+   "commit_subject": "docs: draft decision 0038, the public run log; renumber a colliding 0034",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "deleted",
+   "classification": "documentation",
+   "commit": "38877b632751e4dccaa0c1628a852a0f932a13e8",
+   "commit_subject": "docs: draft decision 0038, the public run log; renumber a colliding 0034",
+   "path": "docs/decisions/0034-published-example-result.md",
+   "rationale": "Draft decision 0038 and the renumbering of a colliding 0034 to 0037. Decisions documents."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "38877b632751e4dccaa0c1628a852a0f932a13e8",
+   "commit_subject": "docs: draft decision 0038, the public run log; renumber a colliding 0034",
+   "path": "docs/decisions/0037-published-example-result.md",
+   "rationale": "Draft decision 0038 and the renumbering of a colliding 0034 to 0037. Decisions documents."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "38877b632751e4dccaa0c1628a852a0f932a13e8",
+   "commit_subject": "docs: draft decision 0038, the public run log; renumber a colliding 0034",
+   "path": "docs/decisions/0038-public-run-log.md",
+   "rationale": "Draft decision 0038 and the renumbering of a colliding 0034 to 0037. Decisions documents."
+  },
+  {
+   "change": "added",
+   "classification": "documentation",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "docs/assets/proof-verify.svg",
+   "rationale": "A terminal image for the README. A document asset."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/cli/commands/climb.py",
+   "rationale": "Six command modules and the shared output module: one repeated label/value table becomes one render_pairs helper, and weight and colour are added where a reader needs them. Rendering only."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/cli/commands/proof.py",
+   "rationale": "Exemption inside the proof area, reviewed hunk by hunk. The only change is how the headline verdicts are drawn: the inline table becomes a named _render_summary that gives passed, warning and failed the same colours Doctor uses. The action() closure that builds the CommandResult — the envelope, the verified flag and the failed-check list the plugin reads as a contract — is not touched, and verification itself lives in techtree/identity, which is not in this commit."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/cli/commands/release.py",
+   "rationale": "Rendering only."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/cli/commands/run.py",
+   "rationale": "Rendering, plus the log docstring updated to say what decision 0036 left true."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/cli/commands/skill.py",
+   "rationale": "Rendering only."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/cli/commands/uplift.py",
+   "rationale": "Rendering only."
+  },
+  {
+   "change": "modified",
+   "classification": "non_scientific_copy",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/cli/output.py",
+   "rationale": "The shared render_pairs helper the six command modules now call."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/runs/launcher.py",
+   "rationale": "Exemption inside the runs area, reviewed against the full diff: the change is three words of the module docstring, dropping a reference to a scrubber decision 0036 deleted. Not one line of code. Prose inside a shipped module."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/runs/service.py",
+   "rationale": "Exemption inside the runs area, reviewed against the full diff: three docstrings and one dataclass docstring, all of them dropping the word scrubbed. Not one line of code. Prose inside a shipped module."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "src/techtree/worker/execute.py",
+   "rationale": "Exemption inside the runs area, reviewed against the full diff: one paragraph of the module docstring, saying the message is flattened rather than scrubbed. Not one line of code. Prose inside a shipped module."
+  },
+  {
+   "change": "modified",
+   "classification": "test_only",
+   "commit": "88dc5a1ff827470e9a8a64ff8006cdc783aabd14",
+   "commit_subject": "cli: weight and colour where a reader needs them, and drop a scrubber that is gone",
+   "path": "tests/contract/test_cli_envelope.py",
+   "rationale": "Test or fixture code. Not shipped in the wheel."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "42559430b152b04cb64d8d1ddc457aa30e761ea9",
+   "commit_subject": "docs: record the founder's three additions to the run-log draft",
+   "path": ".beads/interactions.jsonl",
+   "rationale": "The tracker's own export."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "42559430b152b04cb64d8d1ddc457aa30e761ea9",
+   "commit_subject": "docs: record the founder's three additions to the run-log draft",
+   "path": "docs/decisions/0038-public-run-log.md",
+   "rationale": "The founder's three additions to the run-log draft."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "a5ce257582ec2d928e9926c9873ec8882be4941c",
+   "commit_subject": "docs: README — badges, the proof-verify terminal image, stack diagram, command and configuration tables, money and privacy callouts",
+   "path": "README.md",
+   "rationale": "README prose, badges, tables and one image reference."
+  },
+  {
+   "change": "modified",
+   "classification": "documentation",
+   "commit": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de",
+   "commit_subject": "copy: the founder's sentence for what does not start on its own",
+   "path": "README.md",
+   "rationale": "One README sentence, in the founder's words."
   }
  ],
- "file_change_count": 439,
+ "file_change_count": 663,
  "mixed_content_disclosure": [
   {
    "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
@@ -3555,10 +5349,43 @@
    "honest_note": "The message says docs. The commit also adds the check-plugin target to the Makefile and refreshes docs/agent-handoff.md. Neither ships in the wheel; both are classified on their own lines above. Note also that this commit numbered the install-command decision 0031, colliding with the existing 0031; dea911c renumbered it to 0034.",
    "product_paths_carried": [],
    "subject": "docs: decision 0031 — the published install command pins the interpreter; one plugin gate"
+  },
+  {
+   "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "honest_note": "The message describes a configuration format and a dashboard setting. The commit is the engine move: it re-pins the embedded Verifiers engine to the released 0.3.1 and moves the engine, taskset-package, validation receipt, Campaign, Climb, catalog and ReleaseCore digests with it. It is the largest scientific change in the range and its subject line does not say so. History is not rewritten to tidy this up; it is disclosed here and classified in full under scientific_changes.engine_move.",
+   "product_paths_carried": [
+    "src/techtree/constants.py",
+    "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+    "src/techtree/resources/catalog/catalog.json",
+    "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+    "src/techtree/resources/catalog/taskset-validations/hello-world-climb.json",
+    "src/techtree/resources/catalog/validation-evidence/hello-world-climb.json",
+    "src/techtree/resources/engines/default/engine.json",
+    "src/techtree/resources/engines/default/packages/procedure-transfer-v1/procedure_transfer_v1/taskset.py",
+    "src/techtree/resources/engines/default/pyproject.toml",
+    "src/techtree/resources/engines/default/uv.lock",
+    "src/techtree/resources/release/release-core.json",
+    "src/techtree/tasksets/verifiers_cli.py",
+    "src/techtree/verifiers/child.py",
+    "src/techtree/verifiers/compiler.py",
+    "src/techtree/verifiers/config.py",
+    "src/techtree/verifiers/models.py",
+    "src/techtree/verifiers/outputs.py",
+    "src/techtree/verifiers/verify.py"
+   ],
+   "subject": "verifiers: the compiled config is JSON, and the dashboard can only be spelled off"
+  },
+  {
+   "commit": "38478cad9ef76d5e2863129e49c886e01d1aa387",
+   "honest_note": "The message says the improver Skill lost a claim. The Skill itself lives in the plugin repository and is not in this commit; what is in it is the consequence — the founder-approved skill_improver_digest moves, and the ReleaseCore digest moves with it. A reader scanning subjects would not expect the release contract to change in a copy commit. It is not scientific: no engine, catalog, Campaign, Climb, taskset or starter-Skill coordinate is touched. release/certified-scientific-fingerprint.json records the Gate-1 divergence in cross_check, where skill_improver_matches_gate1 is false.",
+   "product_paths_carried": [
+    "src/techtree/resources/release/release-core.json"
+   ],
+   "subject": "release: the improver Skill no longer claims the context omits secrets"
   }
  ],
  "non_scientific_assertion": {
-  "asserted": "No change in f0c2421..8d9068c touches the certified scientific surface. Everything in this increment is presentation, copy, prose inside a shipped module, tests, tracker exports, decision documents, one empty packaging marker, and release records.",
+  "asserted": "No change classified non-scientific in 8d9068c..5d793b6 touches the certified scientific surface. This increment is not free of scientific change and is not asserted to be: the engine move is in it, it is classified as scientific, and it is recorded under scientific_changes.engine_move rather than argued away here. What is asserted is the other half — that the remaining 196 file changes are presentation and copy, prose inside a shipped module, tests and fixtures, tracker exports, decision documents, README prose, one document asset and release records, and that none of them moves a measured value.",
   "checked_area_prefixes": {
    "Campaign": [
     "src/techtree/models/campaign.py",
@@ -3604,18 +5431,45 @@
    "receipts",
    "runs"
   ],
-  "increment": "f0c2421..8d9068c — the 28 commits and 73 file changes this revision adds. Earlier increments were asserted in their own revisions and are not restated here; their entries are unchanged above.",
-  "method": "Every file change in the increment was enumerated from git — `git rev-list --reverse` for the commits, then `git diff-tree --name-status -r` for each — not sampled, and each path was tested against the prefixes recorded above. A hit outside the named exemptions is a hard failure that stops this document from being written. Two paths in the increment sit inside a checked area and are exempted by name, each after reading its diff.",
+  "increment": "8d9068c..5d793b6 — the 28 commits and 224 file changes this revision adds, of which 28 are classified scientific and 196 are not. Earlier increments were asserted in their own revisions and are not restated here; their entries are unchanged above.",
+  "method": "Every file change in the increment was enumerated from git — `git rev-list --reverse` for the commits, then `git diff-tree --name-status -r` for each — not sampled, and each path was tested against the prefixes recorded above. Every path that hit a checked area was then read as a diff and classified on what the diff does, never on where the file lives. A hit that is classified non-scientific without being named as a reviewed exemption below is a hard failure that stops this document from being written. A hit that is classified scientific is not a failure; it is recorded under scientific_changes and must carry certification, which is what surface_hits lists.",
   "result": "pass",
   "reviewed_exemptions": {
-   "src/techtree/cli/commands/proof.py": "Commit a396ac5, reviewed hunk by hunk. Every changed region is the human rendering: the module docstring, the imports it needs, a new --checks display option, the render_data wiring, and _render itself. The action() closure that builds the CommandResult — the envelope, the verified flag and the failed-check list the plugin reads as a contract — is not touched. Verification itself lives in techtree/identity and is not in the range at all.",
-   "src/techtree/receipts/compare.py": "Reviewed line by line against 7c46058. The diff renames one private function to public and lifts one string literal into a constant of the same value. No check is added, removed or reordered; no comparison input or output changes.",
-   "src/techtree/skills/service.py": "Commit 942bad6, reviewed line by line. The diff replaces one hardcoded warning string with a call to a new private function that returns one of two strings, chosen by matching campaign.execution.order. Nothing reads, mounts, hashes or compares a Skill differently; the manifest builder, the digest computation and the controlled-comparison assertion are all outside the diff. The file is in the Skill-mounting area only because the preparation service that renders the approval screen lives in the same module."
+   "src/techtree/cli/commands/proof.py [88dc5a1]": "Reviewed hunk by hunk. The only change is how the headline verdicts are drawn: an inline table becomes a named _render_summary that gives passed, warning and failed the same three colours Doctor uses. The action() closure that builds the CommandResult — the envelope, the verified flag and the failed-check list the plugin reads as a contract — is not touched. Verification itself lives in techtree/identity and is not in this commit.",
+   "src/techtree/cli/commands/proof.py [a396ac5]": "Commit a396ac5, reviewed hunk by hunk. Every changed region is the human rendering: the module docstring, the imports it needs, a new --checks display option, the render_data wiring, and _render itself. The action() closure that builds the CommandResult — the envelope, the verified flag and the failed-check list the plugin reads as a contract — is not touched. Verification itself lives in techtree/identity and is not in the range at all.",
+   "src/techtree/receipts/compare.py [7c46058]": "Reviewed line by line against 7c46058. The diff renames one private function to public and lifts one string literal into a constant of the same value. No check is added, removed or reordered; no comparison input or output changes.",
+   "src/techtree/runs/launcher.py [88dc5a1]": "Reviewed against the full diff. Three words of the module docstring, dropping a reference to a scrubber decision 0036 deleted. Not one line of code.",
+   "src/techtree/runs/service.py [6fdab5e]": "Reviewed line by line. The log reader stops rewriting each line on the way out and the scrub() helper is deleted. RunService reads a log for display here; it neither writes nor digests one. No state transition, no receipt, no digest and no report field is in the diff.",
+   "src/techtree/runs/service.py [88dc5a1]": "Reviewed against the full diff. Four docstrings, each dropping the word scrubbed. Not one line of code.",
+   "src/techtree/skills/scanner.py [6fdab5e]": "Reviewed hunk by hunk. Every regex rule, the finding machinery and the blocking refusal are deleted. Every refusal that remains is about a file's shape — symlink, hidden file, size, file count, non-text bytes, case collision, missing entry point — and none reads the words. Nothing hashed changed: enumerate_files, the per-file digest and the tree digest are outside the diff, and a Skill accepted before is snapshotted to the same bytes. Replaying the deleted rules over the shipping Skills finds no match in either. This is the same readiness scan the previous revision classified non-scientific at 7f5370c under decision 0023; what moved is which Skills are admitted, not what an admitted Skill measures.",
+   "src/techtree/skills/service.py [6fdab5e]": "Reviewed line by line. One error code is deleted and the draft's warning list stops being extended with scan warnings. Because neither shipping Skill produces a finding under the deleted rules, no SubmissionDraft of the certified lineage changes a byte. The manifest builder, the digest computation and the controlled-comparison assertion are all outside the diff.",
+   "src/techtree/skills/service.py [942bad6]": "Commit 942bad6, reviewed line by line. The diff replaces one hardcoded warning string with a call to a new private function that returns one of two strings, chosen by matching campaign.execution.order. Nothing reads, mounts, hashes or compares a Skill differently; the manifest builder, the digest computation and the controlled-comparison assertion are all outside the diff. The file is in the Skill-mounting area only because the preparation service that renders the approval screen lives in the same module.",
+   "src/techtree/skills/service.py [f17085d]": "Reviewed line by line. Two sentences on the approval screen: one warning and one word of a docstring, saying a run spends model tokens on inference rather than money. Same file and same reason as the 942bad6 exemption above — the preparation service that renders the approval screen lives in the Skill-mounting module.",
+   "src/techtree/uplift/context.py [6fdab5e]": "Reviewed line by line, and the exemption in this range worth reading twice. Two published strings change: the revision constraint about credentials now says nothing checks for them, and 'provider secrets and credentials' leaves prohibited_material because it had stopped being true. The _forbid guard loses its secret check and keeps its control-sequence and absolute-path check. This is instruction text handed to the host agent that revises a SKILL.md. It is not measured, not signed, not proof and not uploaded; the Gate-1 packet §7c makes no measured-uplift claim for the guided revision; and it moves no certified coordinate. It is still the one non-scientific classification in this range that changes the bytes of a shipped artifact inside a declared scientific area after the last certification run, so it is named rather than folded into a commit summary. The founder walkthrough run in the fingerprint was executed after this commit and carries a context built by this code.",
+   "src/techtree/worker/execute.py [6fdab5e]": "Reviewed line by line. worker_log writes a line as composed and the unexpected-failure path calls stable_exception_message, which keeps only whitespace flattening and memory-address normalisation. The worker's control flow, exit codes, cancellation handling and what it records against the run are outside the diff. The honest consequence, which decision 0036 states and this document repeats rather than softens: a worker log line or a run journal entry now carries whatever the underlying tool printed, verbatim, including a credential if a tool prints one. That is a privacy trade the founder ruled on, not a change to what a run computes, measures or scores.",
+   "src/techtree/worker/execute.py [88dc5a1]": "Reviewed against the full diff. One paragraph of the module docstring. Not one line of code."
   },
-  "surface_hits": []
+  "reviewed_exemptions_note": "Keyed by path and the commit whose diff was read, because several files appear more than once. Each entry is one reviewed diff, not a standing waiver for the file.",
+  "surface_hits": [
+   "src/techtree/receipts/observed.py",
+   "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+   "src/techtree/resources/catalog/catalog.json",
+   "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+   "src/techtree/resources/catalog/taskset-validations/hello-world-climb.json",
+   "src/techtree/resources/catalog/validation-evidence/hello-world-climb.json",
+   "src/techtree/runs/service.py",
+   "src/techtree/uplift/service.py",
+   "src/techtree/verifiers/child.py",
+   "src/techtree/verifiers/compiler.py",
+   "src/techtree/verifiers/config.py",
+   "src/techtree/verifiers/models.py",
+   "src/techtree/verifiers/outputs.py",
+   "src/techtree/verifiers/verify.py"
+  ],
+  "surface_hits_note": "Paths inside a checked area that this revision classifies scientific. Each is certified by the three certification executions named in scientific_changes.engine_move.certification. The engine move also touches scientific files outside these prefixes — the pinned revision constant, the engine bundle, the taskset package and the taskset validator — and those are classified on the same evidence; the prefix list is a tripwire, not the definition of the surface."
  },
- "previous_anchor_commit": "f0c2421349db95858fb590cde88278b764312fb8",
- "release_source_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
+ "previous_anchor_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
+ "release_source_commit": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "0025": {
@@ -3682,10 +5536,10 @@
      2.5
     ]
    },
-   "certification": "release/certified-scientific-fingerprint.json (recertification_runs, recertification_pending.runs_attached), release/orphan-bound-analysis.json",
+   "certification": "release/orphan-bound-analysis.json — observed_this_recertification (the four canonical runs and the turn-conformance result) and kill_injection (the worker-SIGKILL evidence). release/certified-scientific-fingerprint.json no longer carries that evidence itself: the recertification_pending block this field used to name does not exist, and the block that replaced it, recertification, describes the later engine move instead. What the fingerprint does still say about decision 0029 is in recertification.what_was_not_re_executed_under_this_lineage.worker_sigkill_injection.",
    "contract": "docs/release/contracts/orphan-bound-fix.md",
    "enforcement_changes": "The Campaign's declared limits stopped being declarations. Turns, input tokens, output tokens and the rollout timeout are compiled into the evaluation, the derived total ceiling with them, and the spending maximum is a pre-run precondition; a child-local supervisor bounds each variant at the founder-predeclared 3600 seconds and tears its containers down when its parent is lost. Two declared values moved by formulas decision 0029 predeclared: the per-episode output ceiling 8000 → 16000, and the comparison maximum $1.00 → $2.50 against a computed bound of $2.42.",
-   "evidence": "Four canonical runs were executed against Campaign ad393bc0 — two baseline-vs-v1 stability comparisons, one baseline-vs-reference comparison, and one v1-vs-frozen-v2 comparison — every proof verifying offline, no episode of the 288 reaching any enforced limit and no variant reaching the supervisor deadline. The orphan bound is evidenced by a real worker-SIGKILL injection in which both supervision records read parent_lost and all four recorded containers were gone 0.545 s after the kill.",
+   "evidence": "Executed against the superseded Campaign sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7, not against the Campaign this wheel ships. Four canonical runs — two baseline-vs-v1 stability comparisons, one baseline-vs-reference comparison and one v1-vs-frozen-v2 comparison — every proof verifying offline, no episode of the 288 reaching any enforced limit and no variant reaching the supervisor deadline; plus a real worker-SIGKILL injection in which both supervision records read parent_lost and all four recorded containers were gone shortly after the kill. Those runs and that injection are recorded in release/orphan-bound-analysis.json and are read from there. What certifies decision 0029's contract under the lineage this wheel actually ships is the engine move's own recertification: the fingerprint records that the four enforced limits, the task count, the per-call sampling cap and the recorded provider prices — every input to the bound — are byte-identical across the move, so the computed bound is the same number, and the SIGKILL injection was deliberately not repeated for that reason.",
    "lineage": {
     "campaign": [
      "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
@@ -3703,8 +5557,104 @@
      "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
      "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"
     ]
-   }
+   },
+   "lineage_status": "Superseded. The lineage below is what decision 0029 produced and is kept as the record of what that change did. Nothing in it ships: the engine move replaced every one of these four digests, and the shipping values are in scientific_changes.engine_move.lineage and in release/certified-scientific-fingerprint.json.",
+   "superseded_by": "engine_move"
+  },
+  "engine_move": {
+   "authority": "docs/verifiers-pin-0.3.1.md",
+   "campaign_execution_limits_unchanged": true,
+   "campaign_field_changes": {
+    "/taskset/ref/package/digest": [
+     "sha256:14d9646d79fbcc1abddcac19d5dda9e50ee93df1269e4797e60182b54308384c",
+     "sha256:f42a0d5e968478af40c703645d247ef043f115f6801d3b497eca5fab47261a7c"
+    ],
+    "/taskset/validation_receipt_digest": [
+     "sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948",
+     "sha256:4944bd71caa1a295e03325b18a7af753d0d8fcf787189c89244209171cda1302"
+    ]
+   },
+   "campaign_fields_that_differ": [
+    "/taskset/ref/package/digest",
+    "/taskset/validation_receipt_digest"
+   ],
+   "certification": "release/certified-scientific-fingerprint.json — recertification (status, what_was_executed, turn_conformance_probe) and the three runs listed under recertification_runs: certification execution #1 run_c4758ddb5bba4023aa3530b47f4582e9, certification execution #2 run_55159aeb30c44982b8143f61b078a4db, certification execution #3 run_8f89ae9dea6541b187c74d86d119d8a6. Each is a controlled baseline-versus-starter-Skill comparison over the same 36 committed tasks against the Campaign this move produced, each proof verifying offline. Read the fingerprint for the per-run values; none is restated here.",
+   "certification_is_not": "The founder walkthrough run run_b3e25a431d3b43128deb31e99a0b6c68 is a real run of this same lineage and is not one of these three. The fingerprint holds it outside recertification_runs and records why: its run request acknowledges policy by host_agent_confirmation rather than by explicit CLI review, and it carries an improvement context derived from its own report. It is cited here as the separate thing it is — evidence that the shipping lineage runs end to end through Hermes — and never as a certification execution.",
+   "commits": {
+    "72e5dc844b459efd1e7d2802c977e4345ba168ec": "The paid path, which neither repository gate executes. The released engine groups runs under --output-dir instead of writing into it, and hosts rollouts through an elastic worker pool by default. Both are refused: the invocation pins --run.name and --no-serve, the evidence contract follows the files to their new paths, and a new verdict, rollouts_run_in_process, fails a run unless the engine confirms it resolved no pool.",
+    "8ee03a1ad64fc05eb800014a8b5502a559c184ff": "The move itself: the pinned revision, the engine bundle, the taskset package, the re-run validation, and every catalog document that names one of them.",
+    "c0ac65ada6feb98b2f84a08a6c6af49210d76c57": "The receipt's sampling-agreement check stops reading two spellings of 'not set' as a disagreement. The released engine grew two nullable sampling knobs the rollouts do not mention; an exact comparison called that a mismatch and failed a real paid run whose sampling was in fact identical on both sides."
+   },
+   "count": 28,
+   "lineage": {
+    "campaign": [
+     "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+     "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1"
+    ],
+    "catalog": [
+     "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
+     "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c"
+    ],
+    "climb": [
+     "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
+     "sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236"
+    ],
+    "engine": [
+     "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
+     "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b"
+    ],
+    "release_core": [
+     "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
+     "sha256:fd46b579d2f2c530d6e9741f489bfbab07c737bcf16eb92651cdbd82b80c2986"
+    ],
+    "verifiers_commit": [
+     "7e1c47d24d055aae587ee8259f77a3e8e193513a",
+     "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf"
+    ],
+    "verifiers_version": [
+     "0.3.1.dev21",
+     "0.3.1"
+    ]
+   },
+   "method": "The two Campaign documents were flattened to JSON pointers and compared field by field. Exactly two fields differ, both of them names of the engine that was moved. All 36 committed task hashes are byte-identical and in the same order, the membership digest is the same value, and recomputing that digest from the hashes reproduces it. The budget contract, the execution contract, the subject model and sampling, the runtime image digests, the mutation contract and the scoring contract are unchanged.",
+   "note": "The taskset package source digest moved because of one file, and that file's whole diff is a module docstring — two sentences re-pointed at the new pinned commit in resources/engines/default/packages/procedure-transfer-v1/procedure_transfer_v1/taskset.py. It is the only changed file inside the digested package tree, so it alone carries the package digest, and through the package digest the Campaign, the Climb and the catalog. The prompt, the tasks, the reward and the scoring are untouched, which is the same fact the fingerprint records from the other direction: all 36 committed task hashes byte-identical and in the same order.",
+   "ordering_evidence": "All three certification executions were run after every commit classified under this heading, and no commit after them is classified scientific. That ordering is not only wall-clock: under the released engine a run that lacked 72e5dc8 would write its evidence into a randomly-suffixed directory Techtree never reads, and a run that lacked c0ac65a would fail the receipt's sampling-agreement check. All three runs produced verified receipts, so all three carried both.",
+   "paths": [
+    "release/release-core.json",
+    "src/techtree/constants.py",
+    "src/techtree/receipts/observed.py",
+    "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+    "src/techtree/resources/catalog/catalog.json",
+    "src/techtree/resources/catalog/climbs/hello-world-climb.json",
+    "src/techtree/resources/catalog/taskset-validations/hello-world-climb.json",
+    "src/techtree/resources/catalog/validation-evidence/hello-world-climb.json",
+    "src/techtree/resources/engines/default/engine.json",
+    "src/techtree/resources/engines/default/packages/procedure-transfer-v1/procedure_transfer_v1/taskset.py",
+    "src/techtree/resources/engines/default/pyproject.toml",
+    "src/techtree/resources/engines/default/uv.lock",
+    "src/techtree/resources/release/release-core.json",
+    "src/techtree/runs/service.py",
+    "src/techtree/tasksets/verifiers_cli.py",
+    "src/techtree/uplift/service.py",
+    "src/techtree/verifiers/child.py",
+    "src/techtree/verifiers/compiler.py",
+    "src/techtree/verifiers/config.py",
+    "src/techtree/verifiers/models.py",
+    "src/techtree/verifiers/outputs.py",
+    "src/techtree/verifiers/verify.py"
+   ],
+   "release_core_note": "Read by hashing release/release-core.json at the parent of the engine-move commit and at the commit itself. The pair above is therefore what the engine move did to the release contract: sha256:c037f45… -> sha256:fd46b57…. release/certified-scientific-fingerprint.json records a different after value in engine_move.to.release_core_digest — sha256:bef3b9d… — which is the value at the freeze commit, not at the engine move. The difference is not the engine: it is commit 38478ca, twelve commits later, which moved skill_improver_digest and the ReleaseCore digest with it. Every other field of engine_move.to was checked against the artifacts at 8ee03a1 and is correct. Recorded here rather than corrected there, because this document does not edit the fingerprint.",
+   "sanctioned_commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+   "taskset_membership_task_count": 36,
+   "taskset_membership_unchanged": true,
+   "tickets": [
+    "techtree-python-0a8",
+    "techtree-python-5m9",
+    "techtree-python-0z0",
+    "techtree-python-syh"
+   ],
+   "what_moved": "The embedded Verifiers engine was moved from the pre-release development revision to the released one. That changed the engine bundle digest, the taskset package source digest, and — because the package digest and the validation receipt are named inside the Campaign — the Campaign, Climb and catalog digests with them."
   }
  },
- "verdict": "PASS — every scientific change in the range is sanctioned and certified, and the freeze increment adds none. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 §A1.4. The decision-0029 budget contract and the enforcement that makes it real are re-certified by the four canonical runs, the turn-conformance probe and the worker-SIGKILL injection. The 28 commits from f0c2421 to the freeze commit 8d9068c carry 73 file changes, none of them scientific: presentation and copy, prose inside a shipped module, tests, tracker exports, decision documents, one empty packaging marker, and release records."
+ "verdict": "PASS — every scientific change in the range is sanctioned and certified, and every non-scientific change was classified on its diff. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 §A1.4 and its lineage is twice superseded. The decision-0029 budget contract and the enforcement that makes it real are evidenced by the four canonical runs and the worker-SIGKILL injection in release/orphan-bound-analysis.json, executed against a Campaign this wheel no longer ships; every input to the bound they established is byte-identical under the shipping Campaign. The 28 commits from 8d9068c to the freeze commit 5d793b6 carry 224 file changes, of which 28 are scientific: the engine move off the pre-release development revision onto released Verifiers 0.3.1, together with the paid-path and receipt corrections the released engine required. Those are certified by three certification executions of the shipping Campaign, all three run after the last of them, each a controlled comparison over the same 36 committed tasks whose proof verifies offline. The remaining 196 file changes are not scientific: presentation and copy, prose inside a shipped module, tests and fixtures, tracker exports, decision documents, README prose, one document asset and release records. Ten file-and-commit pairs in the increment, across seven distinct files, sit inside a declared scientific area and are exempted by name after reading each diff; they are listed in non_scientific_assertion.reviewed_exemptions. Three disclosures a reader should not have to find for themselves. First, the taskset package digest — and through it the Campaign, Climb and catalog digests — moved because of a module docstring, which is recorded in scientific_changes.engine_move.note rather than left to be discovered. Second, this document ends at the freeze commit 5d793b6 because that is the commit the wheel in dist/ was built from and stamped with; two later commits exist in this repository and both touch only files under release/, so no product byte is outside this classification. Third, one value in release/certified-scientific-fingerprint.json is off: engine_move.to.release_core_digest is the ReleaseCore digest at the freeze commit rather than at the engine move, because a later copy commit moved it again. Every other field of that block was checked against the artifacts at the engine-move commit and is correct. The true pair is recorded in scientific_changes.engine_move.lineage.release_core with the reasoning in release_core_note; the fingerprint is not edited from here. Totals: documentation 119, non_scientific_copy 81, release_packaging 136, scientific — re-certified (0025, addendum A1.4) 6, scientific — re-certified (0029, four canonical runs) 14, scientific — re-certified (engine move, three certification runs) 28, test_only 279."
 }
