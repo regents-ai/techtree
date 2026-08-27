@@ -12,6 +12,18 @@ controlled comparison to run end to end and leave a receipt that verifies
 offline. It is a development release, and nothing here is a measurement anyone
 should cite.
 
+## The other two repositories
+
+- **[techtree-python](https://github.com/regents-ai/techtree-python)** — the
+  Techtree CLI and evaluation substrate: campaigns, detached runs, signed
+  comparison reports, and offline proof verification. Everything a comparison
+  measures and records happens there, on the participant's own machine.
+- **[techtree-hermes](https://github.com/regents-ai/techtree-hermes)** — the
+  Hermes plugin that gives that CLI a conversational operator: it explains,
+  prepares, asks for approval, and relays results. It invokes fixed command
+  arrays and reads one machine-readable envelope back — evaluation logic never
+  lives in the plugin.
+
 The evaluation engine, the agent host, and the container the subject runs in
 are each pinned to an exact version, and the release is only as reproducible as
 those pins. Those are the seams of the stack, and this site says so rather than
