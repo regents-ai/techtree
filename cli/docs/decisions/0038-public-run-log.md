@@ -1,7 +1,10 @@
 # 0038 — The public run log
 
-Status: **DRAFT, not binding.** Founder direction 2026-08-27; three
-sub-questions answered, the design below awaiting a ruling.
+Status: **binding** (founder ruling, 2026-08-27). Three sub-questions
+were answered on 2026-08-27, the design below was put to the founder,
+and he directed that it be built — "do the receipt upload, and the UI
+for it" — with the address schema in the additions section given in his
+own words. It stopped being a draft when the build started.
 
 ## What the founder asked for
 

@@ -65,7 +65,7 @@ import math
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from enum import StrEnum
-from typing import Final, Literal
+from typing import Literal
 
 from techtree.canonical import digest_object
 from techtree.constants import UPLIFT_SCHEMA_VERSION
@@ -73,6 +73,7 @@ from techtree.errors import VerificationError
 from techtree.ids import new_id
 from techtree.models.base import Digest, JsonValue
 from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
+from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import (
     EpisodeReceipt,
     EvidenceStatus,
@@ -106,13 +107,10 @@ __all__ = [
     "decide_uplift",
     "pair_task_rewards",
     "proof_grade_for",
+    "publication_eligible_for",
+    "publication_status_for",
     "summarize_receipts",
 ]
-
-#: What ``publication_eligible`` is in this push, and why. Upload does not
-#: exist: no route, no credential, no server. The flag says nothing about the
-#: science. Spec section 7.10.
-_PUBLICATION_ELIGIBLE: Final = False
 
 
 class LocalAttestation(StrEnum):
@@ -360,6 +358,56 @@ def summarize_receipts(
     return score, evidence
 
 
+def publication_status_for(data_policy: DataPolicy) -> PublicationStatus:
+    """Return where a fresh report stands with respect to being published.
+
+    Two of the five statuses can be true of a report that has just been
+    written, and which one it is comes from the rights statement the run
+    executed under rather than from anything the run did. A DataPolicy that
+    does not make the uplift report public is a policy under which publishing
+    it is not a thing anybody may choose: that is ``blocked``, decided once,
+    before anybody is offered anything. A policy that does make it public
+    leaves the choice open, and a choice nobody has made yet is
+    ``not_requested``.
+
+    The other three describe an attempt rather than a report. A run's
+    publication journal owns those, because it is the only record of an
+    attempt; nothing rewrites a signed report to say it was published, and the
+    proof it belongs to is what makes that impossible as well as wrong.
+    """
+    if data_policy.derived_artifacts.uplift_report == "public":
+        return PublicationStatus.NOT_REQUESTED
+    return PublicationStatus.BLOCKED
+
+
+def publication_eligible_for(
+    *,
+    grade: Literal["development_only", "P1"],
+    publication: PublicationStatus,
+) -> bool:
+    """Return whether this report may be published at all.
+
+    Until there was somewhere to publish to, this was a constant ``False``
+    whose comment said why: no route, no credential, no server. There is a
+    route now, so the flag has to answer the question it is named for, and
+    the answer has two halves and no third.
+
+    *The evidence has to be worth publishing.* A ``development_only`` report is
+    either invented numbers or a real comparison nothing sealed, and neither is
+    evidence of anything. Only a P1 report — signed receipts, a signed report,
+    the public key travelling with them, a controlled comparison and a valid
+    score — is eligible, which is the same bar decisions 0005 section 3.4 sets
+    for the grade itself.
+
+    *The rights have to permit it.* A report whose policy blocks publication is
+    not eligible however good the evidence is.
+
+    Both halves are also what the frozen model's own validator insists on, so
+    the computation cannot produce a report the model would refuse.
+    """
+    return grade == "P1" and publication is not PublicationStatus.BLOCKED
+
+
 def proof_grade_for(
     *,
     attestation: LocalAttestation,
@@ -395,6 +443,7 @@ def build_uplift_report(
     *,
     run_request: RunRequest,
     campaign: CampaignSpec,
+    data_policy: DataPolicy,
     taskset_validation_receipt_digest: Digest,
     baseline_manifest: ExperimentManifest,
     candidate_manifest: ExperimentManifest,
@@ -421,11 +470,17 @@ def build_uplift_report(
     ``score`` and ``evidence`` are passed in rather than derived from the
     receipt sets, which commit to receipts by digest and hold no statuses;
     :func:`summarize_receipts` computes them from the receipts themselves.
+
+    The DataPolicy is passed in whole rather than by digest because publication
+    eligibility is read off its terms. It is checked against the digest the
+    run's request names, so a report cannot cite a Campaign's rights statement
+    and be graded under a different one.
     """
     _require_reportable(comparison, score, run_request)
     _require_lineage(
         run_request=run_request,
         campaign=campaign,
+        data_policy=data_policy,
         baseline_manifest=baseline_manifest,
         candidate_manifest=candidate_manifest,
         baseline_receipt_set=baseline_receipt_set,
@@ -436,6 +491,7 @@ def build_uplift_report(
     grade = proof_grade_for(
         attestation=attestation, comparison=comparison.status, score=score
     )
+    publication = publication_status_for(data_policy)
     decision = (
         decide_uplift(campaign=campaign, comparison=comparison, primary=primary)
         if grade == "P1"
@@ -464,17 +520,20 @@ def build_uplift_report(
             score=score,
             evidence=evidence,
             comparison=comparison.status,
-            # Nothing was uploaded and nothing could have been: this push has
-            # no publication path at all, which is "not requested" rather than
-            # "blocked by a policy". Spec section 7.10.
-            publication=PublicationStatus.NOT_REQUESTED,
+            # Nothing has been uploaded: a report is written before anybody has
+            # been asked whether to publish it, so the only two answers
+            # available here are "nobody has asked" and "the rights forbid it".
+            # Spec section 7.10.
+            publication=publication,
         ),
         manifest_comparison=comparison.manifest_comparison,
         primary_result=primary,
         task_deltas=list(task_deltas),
         decision=decision,
         proof_grade=grade,
-        publication_eligible=_PUBLICATION_ELIGIBLE,
+        publication_eligible=publication_eligible_for(
+            grade=grade, publication=publication
+        ),
         created_at=created_at,
     )
 
@@ -508,6 +567,7 @@ def _require_lineage(
     *,
     run_request: RunRequest,
     campaign: CampaignSpec,
+    data_policy: DataPolicy,
     baseline_manifest: ExperimentManifest,
     candidate_manifest: ExperimentManifest,
     baseline_receipt_set: ReceiptSetManifest,
@@ -538,6 +598,14 @@ def _require_lineage(
             "DataPolicy",
             run_request.data_policy_digest,
             campaign.data_policy_digest,
+        ),
+        # The document itself, and not only the digest the Campaign names.
+        # Publication eligibility is read off these terms, so the terms have to
+        # be the ones this run was executed under.
+        (
+            "DataPolicy document",
+            run_request.data_policy_digest,
+            digest_object(data_policy),
         ),
     ):
         if expected != found:

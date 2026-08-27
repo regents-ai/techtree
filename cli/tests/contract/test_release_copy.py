@@ -469,6 +469,100 @@ BILLING_FRAMING: Final[re.Pattern[str]] = re.compile(
 )
 
 
+#: Decisions 0038, and a hard boundary. An address is asked for once, at
+#: publish time, it is optional, and nothing is promised for leaving one. The
+#: internal intention is to be able to recognise contributors later; an
+#: intention is not a commitment, and copy that implies somebody receives
+#: something of value in return for an address is a promise this project cannot
+#: keep.
+#:
+#: Each pattern bans a claim rather than a phrasing, and bans it in the
+#: affirmative only. The honest copy has to say that nothing is being offered
+#: in exchange, so a guard that could not tell the two apart would forbid the
+#: sentence it exists to require.
+#:
+#: The word "reward" cannot be banned on its own. It is the protocol's own name
+#: for what a Verifier scores, it appears on every result surface, and a ban on
+#: it would be a ban on describing the measurement. So the claim these patterns
+#: are looking for is always a *recipient getting something*, never the noun.
+FORBIDDEN_REWARD_PROMISE: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (
+        "somebody will receive something",
+        # The gap refuses a negation, because saying that nobody receives
+        # anything is exactly what the honest copy has to be able to say.
+        re.compile(
+            r"\b(you|participants?|contributors?|holders?)\b"
+            r"(?:(?!\b(?:not|never|cannot|won't)\b)[^.]){0,30}"
+            r"\b(will|'ll|shall|are\s+going\s+to|can\s+expect\s+to)\b"
+            r"(?:(?!\b(?:not|never)\b)[^.]){0,30}"
+            r"\b(receive|get|earn|be\s+paid|be\s+rewarded"
+            r"|be\s+compensated|qualify|benefit)\b",
+            re.I,
+        ),
+    ),
+    (
+        "eligibility for something of value",
+        re.compile(
+            r"\b(eligib\w+|qualif\w+|entitled|entitles?)\b[^.]{0,40}"
+            r"\b(reward|payment|payout|airdrop|token|points|allocation"
+            r"|distribution|compensation|bounty|prize|grant)s?\b"
+            r"|\b(reward|payment|payout|airdrop|token|points|allocation"
+            r"|distribution|compensation|bounty|prize|grant)s?\b[^.]{0,40}"
+            r"\b(eligib\w+|qualif\w+|entitled)\b",
+            re.I,
+        ),
+    ),
+    (
+        "an airdrop or a token distribution",
+        re.compile(
+            r"\bair[\s-]?drop(s|ped|ping)?\b"
+            r"|\btoken\s+(allocation|distribution|grant|reward|drop)s?\b"
+            r"|\b(reward|contributor|loyalty)\s+points\b",
+            re.I,
+        ),
+    ),
+    (
+        "paying for an address",
+        re.compile(
+            r"\b(pay|pays|paid|paying|compensate|compensates|compensated"
+            r"|reward|rewards|rewarded|rewarding)\b[^.]{0,40}"
+            r"\b(your|an|the)\s+(address|wallet)\b"
+            r"|\b(pay|pays|paid|paying|reward|rewards|rewarded|rewarding)\b"
+            r"\s+(you|participants?|contributors?)\b",
+            re.I,
+        ),
+    ),
+    (
+        "a promise or a guarantee of value",
+        re.compile(
+            r"\b(promise|promises|promised|guarantee|guarantees|guaranteed"
+            r"|entitle|entitles|entitled)\b[^.]{0,40}"
+            r"\b(reward|payment|payout|airdrop|token|points|share|stake"
+            r"|value|return|compensation)s?\b",
+            re.I,
+        ),
+    ),
+    (
+        "something given in return for an address",
+        re.compile(
+            r"\b(in\s+(return|exchange)\s+for|so\s+that\s+you\s+can\s+"
+            r"(claim|receive))\b[^.]{0,40}"
+            r"\b(you|your)\b[^.]{0,20}"
+            r"\b(receive|get|claim|earn|reward|payment)\b",
+            re.I,
+        ),
+    ),
+)
+
+#: The other half, the same way the money and clock bans have one. Removing the
+#: overclaim leaves the question free to say nothing about what leaving an
+#: address buys, which is how somebody ends up assuming it buys something. The
+#: block that asks for an address says outright that nothing is being offered.
+NOTHING_OFFERED_FRAMING: Final[re.Pattern[str]] = re.compile(
+    r"nothing\s+is\s+being\s+offered\s+in\s+exchange", re.I
+)
+
+
 def _released_campaign() -> CampaignSpec:
     """Return the Campaign this build ships, read from the catalog it ships in.
 
@@ -746,6 +840,91 @@ def test_no_copy_promises_a_run_is_over_by_a_certain_time(
     offenders = _offenders(pattern)
 
     assert not offenders, f"copy promises {described!r}: {offenders}"
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    FORBIDDEN_REWARD_PROMISE,
+    ids=[described for described, _ in FORBIDDEN_REWARD_PROMISE],
+)
+def test_no_copy_promises_anything_for_a_contributor_address(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    """Decisions 0038. An intention to recognise contributors is not a promise."""
+    offenders = _offenders(pattern)
+
+    assert not offenders, f"copy promises {described!r}: {offenders}"
+
+
+@pytest.mark.parametrize(
+    "claim",
+    [
+        "You will receive a reward for leaving an address.",
+        "Contributors will be paid later.",
+        "Participants can expect to earn a share of the network.",
+        "An address makes you eligible for the token distribution.",
+        "Leaving one qualifies you for a future airdrop.",
+        "Rewards are distributed to eligible addresses.",
+        "The airdrop goes to addresses left here.",
+        "Contributors receive reward points for each published run.",
+        "We pay contributors for an address.",
+        "Techtree rewards participants who leave one.",
+        "There is a token allocation for early contributors.",
+        "We guarantee a payout to everybody who leaves an address.",
+        "This entitles you to a share of future value.",
+        "In exchange for an address you get early access rewards.",
+    ],
+)
+def test_the_reward_guard_catches_the_promises_it_exists_for(claim: str) -> None:
+    """A guard nobody attacked is a guard nobody has tested.
+
+    Each of these is a different way of saying the one forbidden thing: that
+    somebody receives something of value for volunteering an address.
+    """
+    assert any(pattern.search(claim) for _, pattern in FORBIDDEN_REWARD_PROMISE), claim
+
+
+@pytest.mark.parametrize(
+    "permitted",
+    [
+        "The comparison is decided on the exact_match reward.",
+        "Wins, losses and ties are counted on the reward the Verifier scored.",
+        "This report is not publication eligible.",
+        "Its report is not publication eligible, and its result is not "
+        "comparable evidence.",
+        "Nothing is being offered in exchange today.",
+        "It is kept only so that contributors can be recognised later.",
+        "No reward is being offered for it.",
+        "You will not be paid for leaving one.",
+    ],
+)
+def test_the_honest_address_and_reward_wording_is_still_allowed(
+    permitted: str,
+) -> None:
+    """The guard must not punish the sentences the release is meant to use.
+
+    The protocol's own vocabulary for a scored outcome is "reward", the
+    existing publication-eligibility copy is on every result surface, and the
+    honest denial has to be sayable.
+    """
+    for described, pattern in FORBIDDEN_REWARD_PROMISE:
+        assert not pattern.search(permitted), (described, permitted)
+
+
+def test_the_address_question_says_that_nothing_is_offered() -> None:
+    """Removing an overclaim leaves a silence somebody fills in for themselves.
+
+    The question a person is asked has to carry the denial in the same block,
+    for the same reason the cost line carries the two things that do not
+    happen.
+    """
+    from techtree.cli.commands.publish import ADDRESS_QUESTION
+
+    assert NOTHING_OFFERED_FRAMING.search(ADDRESS_QUESTION), ADDRESS_QUESTION
+    assert "optional" in ADDRESS_QUESTION
+    assert "recognised later" in ADDRESS_QUESTION
+    for described, pattern in FORBIDDEN_REWARD_PROMISE:
+        assert not pattern.search(ADDRESS_QUESTION), described
 
 
 def test_the_review_says_what_is_checked_and_what_is_not() -> None:

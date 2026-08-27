@@ -253,9 +253,11 @@ def test_the_real_report_states_what_it_measured_and_grades_itself_honestly() ->
     assert report.statuses.score.value == "valid"
     assert report.statuses.evidence.value == "complete"
     assert report.statuses.comparison.value == "controlled_with_warnings"
-    # Nothing was uploaded and nothing could have been. Spec section 7.10.
+    # Nothing has been published: a report is written before anybody is asked.
+    # Sealed evidence under a policy that publishes the report is eligible to
+    # be, which is what publishing one later requires. Decisions 0038.
     assert report.statuses.publication.value == "not_requested"
-    assert report.publication_eligible is False
+    assert report.publication_eligible is True
 
 
 def test_the_real_receipt_is_a_verifiers_receipt_rather_than_a_fake_one() -> None:

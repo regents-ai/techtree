@@ -48,7 +48,7 @@
       "climb_digest": "sha256:8a98cf28affe2de98e3431db3b2a26b0a6dc60861fc9fb0f264d8ca044c217ba",
       "kind": "climb"
     },
-    "publication_eligible": false,
+    "publication_eligible": true,
     "run_id": "run_bc6bcf8a52493f173292f667c596bfb7",
     "schema_version": "techtree.uplift-report.v1alpha1",
     "statuses": {
@@ -182,10 +182,10 @@
     ],
     "taskset_validation_receipt_digest": "sha256:b0ff34a2b54a35ea85856babdf86b4a93c6ef86c9a7fc33d2c7fa230490e3c94"
   },
-  "payload_digest": "sha256:9c1b3347a453ece208fe56fe88999dc98715a54b33516f85968af37597c617b4",
+  "payload_digest": "sha256:1c62556a80f696a83572ec920c1b18de7410c9d55bb735ebc249c656223d7381",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "sha256:cb1636de7059dc2a939fb3e53590a8373911d5613540d1c00eeaf7d37a10d38f",
-    "signature": "VEq229sPrCItI1W6fDlFfEFSUvWThddPVCM/mYN9qsyNpQt+nfTw+khOVykSgv6PXNggRGnF4VkZAJWRV3XiAQ=="
+    "signature": "1m31Gr1K0Ik0AK9MUplhg4sDIoNrB+5bErdFXsmWzR/3+La4wXUe3KXH9hU/q3orru4/yohS13d0eyUQbGBqBg=="
   }
 }

@@ -52,6 +52,7 @@ from techtree.cli.commands.engine import (
     verify_engine_command,
 )
 from techtree.cli.commands.proof import verify_proof_command
+from techtree.cli.commands.publish import publish_proof_command
 from techtree.cli.commands.release import (
     info_release_command,
     verify_release_command,
@@ -338,6 +339,10 @@ def _proof_app() -> typer.Typer:
         "verify",
         help="Check a local proof offline, from the bytes the run stored.",
     )(verify_proof_command)
+    app.command(
+        "publish",
+        help="Publish a verified run's proof to the public run log.",
+    )(publish_proof_command)
     return app
 
 

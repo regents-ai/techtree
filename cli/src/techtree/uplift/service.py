@@ -384,6 +384,9 @@ class RealUpliftReportService:
         return build_uplift_report(
             run_request=request,
             campaign=campaign,
+            # The run's own staged copy of the rights statement it executed
+            # under, which is what decides whether its report may be published.
+            data_policy=inputs.source.data_policy,
             # The Campaign's own commitment. Every validation source in this
             # build is required to have validated against exactly this receipt
             # before a single episode is scored on the taskset, so it is the

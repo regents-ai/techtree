@@ -32,6 +32,16 @@ VALIDATION_EXECUTION_SCHEMA_VERSION: Final = "techtree.validation-execution.v1al
 EPISODE_RECEIPT_SCHEMA_VERSION: Final = "techtree.episode-receipt.v1alpha1"
 UPLIFT_SCHEMA_VERSION: Final = "techtree.uplift-report.v1alpha1"
 ENGINE_SCHEMA_VERSION: Final = "techtree.engine.v1alpha1"
+#: Decisions document 0038. The two documents that cross the one boundary this
+#: product opens: what a participant sends when they publish a run, and the
+#: countersigned record the network returns.
+PUBLICATION_SUBMISSION_SCHEMA_VERSION: Final = (
+    "techtree.publication-submission.v1alpha1"
+)
+PUBLICATION_RECEIPT_SCHEMA_VERSION: Final = "techtree.publication-receipt.v1alpha1"
+#: One line of a run's publication journal. Decisions 0038: publishing is
+#: recorded beside a completed run without touching a byte the run wrote.
+PUBLICATION_JOURNAL_SCHEMA_VERSION: Final = "techtree.publication-journal.v1alpha1"
 
 #: Decisions document 0003 A9. Go/OCI-style ``<os>/<arch>`` strings are the
 #: only host-platform spelling in the protocol. The tuple is ordered so that

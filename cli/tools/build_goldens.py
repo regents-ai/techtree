@@ -159,7 +159,10 @@ from techtree.receipts.execution import (
     VariantUsage,
     unavailable_cost,
 )
-from techtree.receipts.uplift import aggregate_primary_result
+from techtree.receipts.uplift import (
+    aggregate_primary_result,
+    publication_eligible_for,
+)
 from techtree.tasksets.membership import membership_digest
 from techtree.uplift.context import SkillImprovementContext
 from techtree.uplift.context import (
@@ -638,7 +641,9 @@ def build_fake_uplift_report(
         ],
         decision=UpliftDecision.DEVELOPMENT_ONLY,
         proof_grade="development_only",
-        publication_eligible=False,
+        publication_eligible=publication_eligible_for(
+            grade="development_only", publication=PublicationStatus.BLOCKED
+        ),
         created_at=FIXED_TIME,
     )
 
@@ -839,7 +844,12 @@ def build_real_uplift_report(
         task_deltas=deltas,
         decision=UpliftDecision.ACCEPTED,
         proof_grade="P1",
-        publication_eligible=False,
+        # Computed rather than stated, so the golden shows the shape a reader
+        # will actually meet: sealed evidence under a policy that publishes the
+        # report is eligible, and nobody has published it. Decisions 0038.
+        publication_eligible=publication_eligible_for(
+            grade="P1", publication=PublicationStatus.NOT_REQUESTED
+        ),
         created_at=FIXED_TIME,
     )
 

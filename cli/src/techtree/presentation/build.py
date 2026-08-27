@@ -66,6 +66,7 @@ from techtree.presentation.sanitize import (
     ensure_no_hidden_task_material,
     sanitize_label,
 )
+from techtree.publication.offer import publish_action
 from techtree.receipts.compare import (
     MODEL_REVISION_UNDISCOVERABLE,
     weaker_claim_warnings,
@@ -292,7 +293,15 @@ def build_uplift_presentation(
             recorded_evidence=recorded_evidence,
             derived=derived,
         ),
-        next_actions=_next_actions(report.run_id, report.proof_grade),
+        next_actions=_next_actions(
+            report.run_id,
+            report.proof_grade,
+            # Publishing is offered for a run whose proof was checked here and
+            # held together, and for no other run. A result nobody verified is
+            # not a result anybody should be invited to send anywhere.
+            verified=verification is not None and verification.verified,
+            publication_eligible=report.publication_eligible,
+        ),
     )
     ensure_no_hidden_task_material(payload)
     return payload
@@ -1138,7 +1147,13 @@ def _economics_caveat(
     )
 
 
-def _next_actions(run_id: str, proof_grade: str) -> list[NextAction]:
+def _next_actions(
+    run_id: str,
+    proof_grade: str,
+    *,
+    verified: bool,
+    publication_eligible: bool,
+) -> list[NextAction]:
     """Return the steps this build can actually carry out for this report.
 
     A development-only report is offered only the first of them. It has no
@@ -1146,6 +1161,13 @@ def _next_actions(run_id: str, proof_grade: str) -> list[NextAction]:
     invented numbers, so the three commands that would refuse it are not
     suggested: an action a caller cannot carry out is worse than one fewer
     suggestion.
+
+    Publishing is offered second, and only to a run whose proof was checked in
+    this very reading and held together. It goes above ``verify_proof`` for the
+    same reason it is only offered at all: the check has just been run and
+    passed, so re-running it is a step already taken, while publishing is the
+    step that has not been. The envelope carries three actions, so a position
+    here is a decision about what a reader is actually shown.
     """
     actions = [
         NextAction(
@@ -1160,6 +1182,9 @@ def _next_actions(run_id: str, proof_grade: str) -> list[NextAction]:
     ]
     if proof_grade == "development_only":
         return actions
+
+    if verified and publication_eligible:
+        actions.append(publish_action(run_id))
 
     # Ordered by usefulness, because the CLI envelope carries at most three and
     # truncates from the end. Checking that the result is real comes before

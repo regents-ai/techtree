@@ -39,6 +39,7 @@ from typing import Any, Final
 
 from fixtures.receipts.support import RecordedVariant, recorded_variant
 from techtree.canonical import digest_object
+from techtree.catalog.repository import EmbeddedCatalogRepository
 from techtree.constants import TASKSET_LOCK_SCHEMA_VERSION
 from techtree.engines.bundle import default_engine_digest
 from techtree.manifests.builder import (
@@ -56,6 +57,7 @@ from techtree.models.campaign import (
     TaskMembershipCommitment,
     TaskSelection,
 )
+from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EpisodeReceipt
 from techtree.models.experiment import (
     ExperimentConfiguration,
@@ -190,6 +192,7 @@ def recorded_report(
     return build_uplift_report(
         run_request=pair.request,
         campaign=pair.campaign,
+        data_policy=recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
         ),
@@ -219,6 +222,18 @@ def _receipt_set(
         experiment_manifest_digest=digest_object(pair.manifest(variant)),
         signed_receipts=[seal_receipt(receipt) for receipt in receipts[variant]],
         ordered_task_hashes=pair.ordered_task_hashes,
+    )
+
+
+def recorded_data_policy(campaign: CampaignSpec) -> DataPolicy:
+    """Return the rights statement one Campaign runs under.
+
+    Loaded from the packaged catalog by the digest the Campaign itself names,
+    so a fixture cannot pair a Campaign with a policy it was not executed
+    under — which is exactly what ``build_uplift_report`` refuses to do.
+    """
+    return EmbeddedCatalogRepository.packaged().load_data_policy(
+        campaign.data_policy_digest
     )
 
 

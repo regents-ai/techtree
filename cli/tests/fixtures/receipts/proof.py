@@ -83,7 +83,10 @@ from techtree.receipts.execution import (
     unavailable_cost,
 )
 from techtree.receipts.set import ReceiptSetManifest, build_receipt_set
-from techtree.receipts.uplift import aggregate_primary_result
+from techtree.receipts.uplift import (
+    aggregate_primary_result,
+    publication_eligible_for,
+)
 
 __all__ = [
     "PROOF_RUN_ID",
@@ -554,7 +557,13 @@ def _report(
         task_deltas=deltas,
         decision=decision,
         proof_grade=proof_grade,  # type: ignore[arg-type]
-        publication_eligible=False,
+        # Computed by the real code, so a fixture cannot hand the verifier a
+        # report whose eligibility flag disagrees with its own grade — which is
+        # exactly what the verifier recomputes and would refuse.
+        publication_eligible=publication_eligible_for(
+            grade=proof_grade,  # type: ignore[arg-type]
+            publication=PublicationStatus.NOT_REQUESTED,
+        ),
         created_at=_FIXTURE_INSTANT,
     )
 

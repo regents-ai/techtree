@@ -36,6 +36,8 @@ EXPECTED_SCHEMAS = {
     "episode-receipt",
     "evaluation-backend",
     "experiment-manifest",
+    "publication-receipt",
+    "publication-submission",
     "run-state",
     "skill-artifact",
     "submission-draft",

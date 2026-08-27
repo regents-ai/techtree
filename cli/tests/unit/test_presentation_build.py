@@ -17,7 +17,11 @@ import io
 import pytest
 from rich.console import Console
 
-from fixtures.receipts.pair import RecordedPair, recorded_pair
+from fixtures.receipts.pair import (
+    RecordedPair,
+    recorded_data_policy,
+    recorded_pair,
+)
 from fixtures.receipts.proof import execution_record as fixture_execution_record
 from techtree.canonical import canonical_json_bytes
 from techtree.identity.models import VerificationMessage, VerificationResult
@@ -185,6 +189,7 @@ def _report(
     return build_uplift_report(
         run_request=pair.request,
         campaign=pair.campaign,
+        data_policy=recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
         ),
@@ -855,11 +860,60 @@ def test_the_next_actions_only_name_commands_this_build_has(
 
     assert [action.id for action in payload.next_actions] == [
         "inspect_tasks",
+        "publish_run",
         "verify_proof",
         "improvement_context",
         "prepare_replacement",
     ]
     assert all(action.cli is not None for action in payload.next_actions)
+
+
+def test_publishing_is_offered_second_so_a_reader_is_actually_shown_it(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """The envelope carries three actions, so a position is what is shown.
+
+    Decisions 0038: a finished, verified result offers publishing. An offer
+    that lands fourth is an offer nobody is made, because the CLI truncates
+    from the end.
+    """
+    payload = build(report, receipts, verified())
+
+    publish = payload.next_actions[1]
+    assert publish.id == "publish_run"
+    assert publish.cli == ["techtree", "proof", "publish", payload.run_id]
+    # A host agent must ask rather than act: this is the one step that leaves
+    # the machine.
+    assert publish.requires_user_confirmation
+
+
+def test_a_result_whose_proof_was_not_checked_is_not_offered_publishing(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """``run result --no-verify`` verifies nothing, so it establishes nothing."""
+    payload = build(report, receipts, None)
+
+    assert "publish_run" not in [action.id for action in payload.next_actions]
+
+
+def test_a_result_whose_proof_failed_is_never_offered_publishing(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """The whole point of the product is that this cannot be published."""
+    payload = build(report, receipts, unverified())
+
+    assert "publish_run" not in [action.id for action in payload.next_actions]
+
+
+def test_an_ineligible_report_is_not_offered_publishing(
+    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+) -> None:
+    """Offering a command that would refuse is worse than offering nothing."""
+    ineligible = report.model_copy(update={"publication_eligible": False})
+
+    payload = build(ineligible, receipts, verified())
+
+    assert "publish_run" not in [action.id for action in payload.next_actions]
 
 
 def test_a_development_only_result_is_not_offered_a_proof_to_verify(

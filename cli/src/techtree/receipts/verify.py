@@ -21,7 +21,7 @@ The order is the specification's, and each step depends on the one before it:
  7. Verify the UpliftReport envelope signature.
  8. Recompute the paired aggregate from the receipts.
  9. Require the recomputed result to equal the report.
-10. Require publication to remain not_requested and ineligible.
+10. Require the report's publication fields to hold together.
 ```
 
 Two habits make those steps mean something.
@@ -101,7 +101,11 @@ from techtree.receipts.set import (
     ReceiptSetManifest,
     verify_receipt_set,
 )
-from techtree.receipts.uplift import aggregate_primary_result, pair_task_rewards
+from techtree.receipts.uplift import (
+    aggregate_primary_result,
+    pair_task_rewards,
+    publication_eligible_for,
+)
 
 __all__ = [
     "LocalProofVerifier",
@@ -687,27 +691,55 @@ def _check_execution_record(
 
 
 def _check_publication(report: UpliftReport, checks: _Checks) -> None:
-    """Require the report to remain unpublished and ineligible."""
-    unpublished = report.statuses.publication is PublicationStatus.NOT_REQUESTED
+    """Require the report's two publication fields to hold together.
+
+    A bundle is written before anybody has been asked whether to publish the
+    run, and it is never rewritten afterwards, so the status inside it is
+    always one of the two a fresh report can carry: nobody has asked, or the
+    rights forbid it. A bundle claiming its report was already published would
+    be a bundle somebody had edited after the fact.
+
+    Eligibility is the other half and it is recomputed rather than read. The
+    flag is a stored field in a signed document, and what it is supposed to be
+    follows from two other fields of the same document, so the check is the
+    same shape as the aggregate recomputation above it: work it out again from
+    the evidence, and compare.
+    """
+    status = report.statuses.publication
+    unpublished = status in (
+        PublicationStatus.NOT_REQUESTED,
+        PublicationStatus.BLOCKED,
+    )
     checks.record(
         "publication.not_requested",
         _PASSED if unpublished else _FAILED,
         PROOF_BUNDLE_INVALID,
-        "publication was never requested; nothing was uploaded"
+        f"nothing in this proof was published: publication is {status.value}"
         if unpublished
         else (
-            "this report's publication status is "
-            f"{report.statuses.publication.value}, and this release publishes "
-            "nothing"
+            f"this report's publication status is {status.value}, and a proof "
+            "bundle is written before anything could have been published"
         ),
     )
+
+    expected = publication_eligible_for(grade=report.proof_grade, publication=status)
+    agrees = report.publication_eligible == expected
     checks.record(
-        "publication.not_eligible",
-        _PASSED if not report.publication_eligible else _FAILED,
+        "publication.eligibility_recomputed",
+        _PASSED if agrees else _FAILED,
         PROOF_BUNDLE_INVALID,
-        "the report is not publication eligible"
-        if not report.publication_eligible
-        else "the report claims publication eligibility, which no local proof grants",
+        (
+            "the report may be published, which is what its grade and its "
+            "rights statement together allow"
+            if expected
+            else "the report may not be published, and does not claim it may"
+        )
+        if agrees
+        else (
+            f"the report says publication_eligible is "
+            f"{report.publication_eligible}, and its own proof grade and "
+            f"publication status make it {expected}"
+        ),
     )
 
 
@@ -881,8 +913,9 @@ def _explain(result: VerificationResult) -> list[VerificationMessage]:
             status=publication,
             code=PROOF_BUNDLE_INVALID,
             detail=(
-                "Not published: publication was never requested, nothing was "
-                "uploaded, and this report is not publication eligible."
+                "Not published: nothing in this proof was uploaded, and a "
+                "bundle is written before anybody could have been asked. "
+                "Whether it may be published is checked separately."
             ),
         ),
     ]

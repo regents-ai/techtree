@@ -279,6 +279,6 @@
     "unredacted local filesystem paths"
   ],
   "schema_version": "techtree.skill-improvement-context.v1",
-  "source_report_digest": "sha256:9c1b3347a453ece208fe56fe88999dc98715a54b33516f85968af37597c617b4",
+  "source_report_digest": "sha256:1c62556a80f696a83572ec920c1b18de7410c9d55bb735ebc249c656223d7381",
   "source_run_id": "run_bc6bcf8a52493f173292f667c596bfb7"
 }

@@ -122,7 +122,9 @@ def test_a_signed_run_reaches_p1_and_states_a_verdict(
     assert report.proof_grade == "P1"
     assert report.decision is UpliftDecision.ACCEPTED
     assert report.statuses.publication.value == "not_requested"
-    assert report.publication_eligible is False
+    # Sealed evidence under a policy that publishes the report: eligible, and
+    # nobody has published it. Decisions 0038.
+    assert report.publication_eligible is True
 
 
 def test_every_receipt_travels_signed(run: StagedRecordedRun) -> None:

@@ -14,7 +14,7 @@ cryptographic integrity      the files still match what was signed
 scientific validity          the documents describe one controlled comparison
 participant attestation      whose key vouched for them, and what that means
 independent reproduction     nobody has done it
-public publication           nothing was uploaded, and none was requested
+public publication           nothing was uploaded, and whether it may be
 ```
 
 A failed verification is a typed failure with exit code 11 and the failed
@@ -45,7 +45,8 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from techtree.cli.context import cli_context
+from techtree.cli.commands.publish import build_publication_service
+from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import DataRenderer
 from techtree.errors import NotFoundError, ValidationError, VerificationError
@@ -53,6 +54,7 @@ from techtree.identity.models import VerificationMessage, VerificationResult
 from techtree.ids import validate_id
 from techtree.models.base import JsonValue, NonEmptyString, ProtocolModel
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.publication.offer import publish_action
 from techtree.receipts.bundle import (
     BUNDLE_MANIFEST_FILENAME,
     PROOF_BUNDLE_INVALID,
@@ -131,7 +133,10 @@ def verify_proof_command(
             data=payload,
             messages=_messages(payload),
             warnings=_warnings(result),
-            next_actions=[_read_logs(target)],
+            next_actions=[
+                *_publication_offer(context, path, kind, verified=result.verified),
+                _read_logs(target),
+            ],
             error=None if result.verified else _failure(payload, result),
         )
 
@@ -231,6 +236,48 @@ def _warnings(result: VerificationResult) -> list[CliMessage]:
         )
         for message in result.warnings
     ]
+
+
+def _publication_offer(
+    context: CliContext,
+    path: Path,
+    kind: Literal["bundle", "report"],
+    *,
+    verified: bool,
+) -> list[NextAction]:
+    """Return the offer to publish, for the one case it belongs to.
+
+    Three things have to be true at once. The proof has to have verified here,
+    just now — a check that failed is never followed by an invitation to send
+    the thing that failed it. It has to be a bundle belonging to a run on this
+    machine, because publishing takes a run and a directory somebody was handed
+    on a memory stick is not one. And the report has to say it may be published,
+    because offering a command that would refuse is worse than offering nothing.
+    """
+    if not verified or kind != "bundle":
+        return []
+    run_id = _run_of(path, context.paths.runs_dir)
+    if run_id is None:
+        return []
+    if not build_publication_service(context).publication_eligible(run_id):
+        return []
+    return [publish_action(run_id)]
+
+
+def _run_of(bundle: Path, runs_dir: Path) -> str | None:
+    """Return the run a proof directory belongs to, if it belongs to one.
+
+    Read off the directory rather than off what the caller typed, so a bundle
+    named by its path and the same bundle named by its run identifier are
+    offered the same thing.
+    """
+    run_dir = bundle.parent
+    if run_dir.parent.resolve() != runs_dir.resolve():
+        return None
+    try:
+        return validate_id(run_dir.name, "run")
+    except ValidationError:
+        return None
 
 
 def _read_logs(target: str) -> NextAction:

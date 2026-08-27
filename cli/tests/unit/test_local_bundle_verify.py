@@ -197,8 +197,48 @@ def test_verification_reports_every_check_it_ran(bundle: Path) -> None:
 
     assert f"p1.{P1_REPORT_SIGNED}" in identifiers
     assert "publication.not_requested" in identifiers
+    assert "publication.eligibility_recomputed" in identifiers
     assert "linkage.report_campaign" in identifiers
     assert f"artifact.{REPORT_FILENAME}" in identifiers
+
+
+def test_a_p1_report_may_be_published_and_says_so(bundle: Path) -> None:
+    """Decisions 0038. Sealed evidence, a policy that publishes it: eligible.
+
+    The check is a recomputation rather than a reading, so this passes because
+    the flag agrees with the grade and the status beside it, not because the
+    flag says anything in particular.
+    """
+    result = verify_local_bundle(bundle)
+    recomputed = next(
+        message
+        for message in result.messages
+        if message.id == "publication.eligibility_recomputed"
+    )
+
+    assert recomputed.status == "passed"
+    assert "may be published" in recomputed.detail
+
+
+def test_an_edited_eligibility_flag_breaks_the_proof(bundle: Path) -> None:
+    """The tamper the recomputation exists to catch, and the reason it can.
+
+    The frozen model already refuses the overclaim — a development-only report
+    that said it was eligible would not parse. What it cannot refuse is the
+    other direction, a P1 report whose flag has been turned off, and that is
+    exactly the edit that would stop a run being publishable while leaving
+    every signature intact. So the flag is not read: it is worked out again
+    from the grade and the status beside it, and compared.
+    """
+
+    def deny_eligibility(document: dict[str, Any]) -> None:
+        document["payload"]["publication_eligible"] = False
+
+    rewrite(bundle / REPORT_FILENAME, deny_eligibility)
+    result = verify_local_bundle(bundle)
+
+    assert not result.verified
+    assert "publication.eligibility_recomputed" in failed(result)
 
 
 # ---------------------------------------------------------------------------

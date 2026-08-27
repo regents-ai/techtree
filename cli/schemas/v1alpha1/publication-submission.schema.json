@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "SubmittedFile": {
+      "additionalProperties": false,
+      "description": "One file of the proof directory, placed and carried verbatim.",
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "path": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "size": {
+          "exclusiveMinimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "digest",
+        "size",
+        "content"
+      ],
+      "title": "SubmittedFile",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/publication-submission.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Everything one publication sends, and nothing else.",
+  "properties": {
+    "bundle_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "contributor_address_unverified": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/SubmittedFile"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "run_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "schema_version": {
+      "const": "techtree.publication-submission.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_id",
+    "bundle_digest",
+    "files"
+  ],
+  "title": "PublicationSubmission",
+  "type": "object"
+}

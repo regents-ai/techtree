@@ -44,14 +44,21 @@ class Settings(StateModel):
     active_engine_digest: Digest | None = None
     log_level: str = "INFO"
     output_mode: OutputMode = "human"
+    #: Where ``techtree proof publish`` sends a proof bundle. Decisions 0038.
+    #: It is a setting rather than a value in the command because the address
+    #: of the public log is an operational fact about a deployment, and a build
+    #: that has not been told one refuses to publish rather than inventing
+    #: somewhere to send a run's evidence.
+    publication_endpoint: str | None = None
 
 
-#: Environment variable to settings field. Only these three are supported; an
+#: Environment variable to settings field. Only these four are supported; an
 #: unrecognized ``TECHTREE_*`` variable is ignored rather than guessed at.
 ENVIRONMENT_OVERRIDES: Final[dict[str, str]] = {
     "TECHTREE_ACTIVE_ENGINE_DIGEST": "active_engine_digest",
     "TECHTREE_LOG_LEVEL": "log_level",
     "TECHTREE_OUTPUT_MODE": "output_mode",
+    "TECHTREE_PUBLICATION_ENDPOINT": "publication_endpoint",
 }
 
 

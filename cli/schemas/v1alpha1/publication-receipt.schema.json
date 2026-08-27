@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "Base64String": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PublicKeyRef": {
+      "additionalProperties": false,
+      "description": "An Ed25519 public key in the form protocol documents carry it.",
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "public_key": {
+          "$ref": "#/$defs/Base64String"
+        }
+      },
+      "required": [
+        "algorithm",
+        "key_id",
+        "public_key"
+      ],
+      "title": "PublicKeyRef",
+      "type": "object"
+    },
+    "PublicationCheck": {
+      "additionalProperties": false,
+      "description": "One check the network ran on a submission, and how it came out.",
+      "properties": {
+        "detail": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "passed",
+        "detail"
+      ],
+      "title": "PublicationCheck",
+      "type": "object"
+    },
+    "SignatureEnvelope": {
+      "additionalProperties": false,
+      "description": "A detached Ed25519 signature over a digest string.",
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "signature": {
+          "$ref": "#/$defs/Base64String"
+        }
+      },
+      "required": [
+        "algorithm",
+        "key_id",
+        "signature"
+      ],
+      "title": "SignatureEnvelope",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/publication-receipt.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The network's countersigned record that it accepted one submission.",
+  "properties": {
+    "accepted_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "bundle_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/PublicationCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "entry_url": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "log_sequence": {
+      "minimum": 0,
+      "title": "Log Sequence",
+      "type": "integer"
+    },
+    "public_key": {
+      "$ref": "#/$defs/PublicKeyRef"
+    },
+    "run_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "schema_version": {
+      "const": "techtree.publication-receipt.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signature": {
+      "$ref": "#/$defs/SignatureEnvelope"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "run_id",
+    "log_sequence",
+    "bundle_digest",
+    "accepted_at",
+    "checks",
+    "entry_url",
+    "public_key",
+    "signature"
+  ],
+  "title": "PublicationReceipt",
+  "type": "object"
+}

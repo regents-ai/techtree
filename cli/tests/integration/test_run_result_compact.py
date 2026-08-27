@@ -203,6 +203,35 @@ def test_the_compact_result_offers_one_next_step_in_words(
 # ---------------------------------------------------------------------------
 
 
+def test_the_finished_result_offers_publishing(finished: dict[str, Any]) -> None:
+    """Decisions 0038: a finished, verified result offers publishing.
+
+    The envelope carries at most three actions, so this is also the check that
+    the offer is one of the three a caller is actually handed rather than one
+    that was thought of and then truncated away.
+    """
+    result = run_cli(finished["home"], "run", "result", finished["run_id"])
+    envelope = result.envelope()
+
+    offer = next(
+        action for action in envelope["next_actions"] if action["id"] == "publish_run"
+    )
+    assert offer["cli"] == ["techtree", "proof", "publish", finished["run_id"]]
+    assert offer["requires_user_confirmation"] is True
+
+
+def test_a_result_nobody_verified_offers_no_publishing(
+    finished: dict[str, Any],
+) -> None:
+    """``--no-verify`` checks nothing, so it establishes nothing to publish on."""
+    result = run_cli(
+        finished["home"], "run", "result", finished["run_id"], "--no-verify"
+    )
+
+    identifiers = [action["id"] for action in result.envelope()["next_actions"]]
+    assert "publish_run" not in identifiers
+
+
 def test_verifying_a_run_by_identifier(finished: dict[str, Any]) -> None:
     result = run_cli(finished["home"], "proof", "verify", finished["run_id"])
     envelope = result.envelope()
@@ -211,8 +240,14 @@ def test_verifying_a_run_by_identifier(finished: dict[str, Any]) -> None:
     assert envelope["ok"] is True
     assert envelope["data"]["verified"] is True
     assert envelope["data"]["kind"] == "bundle"
-    # Decision 0024 section 7: a verified proof still names one thing to do next.
-    assert [action["id"] for action in envelope["next_actions"]] == ["proof_checks"]
+    # Decision 0024 section 7: a verified proof still names something to do
+    # next. Decisions 0038 adds the offer to publish, for a verified run whose
+    # own report says it may be, and it comes first because it is the step the
+    # verification has just made available.
+    assert [action["id"] for action in envelope["next_actions"]] == [
+        "publish_run",
+        "proof_checks",
+    ]
 
 
 def test_verifying_a_bundle_directory_anywhere(

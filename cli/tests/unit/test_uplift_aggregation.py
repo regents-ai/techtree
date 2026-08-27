@@ -19,14 +19,20 @@ import dataclasses
 import math
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Final
+from typing import Final, Literal
 
 import pytest
 
-from fixtures.receipts.pair import RecordedPair, recorded_pair, trimmed_campaign
+from fixtures.receipts.pair import (
+    RecordedPair,
+    recorded_data_policy,
+    recorded_pair,
+    trimmed_campaign,
+)
 from techtree.canonical import digest_object
 from techtree.errors import VerificationError
 from techtree.models.campaign import CampaignSpec, ScoringSpec, VariantSchedule
+from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EvidenceStatus, ScoreStatus
 from techtree.models.uplift_report import (
     ComparisonStatus,
@@ -37,6 +43,7 @@ from techtree.models.uplift_report import (
     UpliftReport,
 )
 from techtree.receipts.compare import (
+    COMPARISON_INVALID,
     RealComparisonResult,
     compare_real_variants,
 )
@@ -49,6 +56,8 @@ from techtree.receipts.uplift import (
     decide_uplift,
     pair_task_rewards,
     proof_grade_for,
+    publication_eligible_for,
+    publication_status_for,
     summarize_receipts,
 )
 from techtree.verifiers.models import VariantName
@@ -435,9 +444,75 @@ def test_a_signed_report_carries_the_verdict_and_p1(
 
     assert report.proof_grade == "P1"
     assert report.decision is UpliftDecision.ACCEPTED
-    # Publication is absent from this push, not blocked by the science.
-    assert report.publication_eligible is False
+    # Sealed evidence over a policy that publishes the report: eligible, and
+    # nobody has asked yet.
+    assert report.publication_eligible is True
     assert report.statuses.publication is PublicationStatus.NOT_REQUESTED
+
+
+def test_the_rights_statement_decides_whether_publishing_is_a_choice(
+    pair: RecordedPair,
+) -> None:
+    """A policy that does not publish the report blocks it, before anybody asks.
+
+    Publication status is one of the two things a fresh report can carry, and
+    which one it is comes from the DataPolicy rather than from anything the run
+    did.
+    """
+    policy = recorded_data_policy(pair.campaign)
+    private = _policy_keeping_the_report_private(pair)
+
+    assert publication_status_for(policy) is PublicationStatus.NOT_REQUESTED
+    assert publication_status_for(private) is PublicationStatus.BLOCKED
+
+
+@pytest.mark.parametrize(
+    ("grade", "publication", "eligible"),
+    [
+        ("P1", PublicationStatus.NOT_REQUESTED, True),
+        ("P1", PublicationStatus.BLOCKED, False),
+        ("development_only", PublicationStatus.NOT_REQUESTED, False),
+        ("development_only", PublicationStatus.BLOCKED, False),
+    ],
+)
+def test_eligibility_needs_both_the_evidence_and_the_rights(
+    grade: str, publication: PublicationStatus, eligible: bool
+) -> None:
+    """Both halves, and no third. Neither one on its own is enough."""
+    assert (
+        publication_eligible_for(
+            grade=grade,  # type: ignore[arg-type]
+            publication=publication,
+        )
+        is eligible
+    )
+
+
+def test_the_computed_flag_can_never_produce_a_report_the_model_refuses(
+    pair: RecordedPair, controlled: RealComparisonResult
+) -> None:
+    """The frozen validator forbids two shapes; the computation cannot make them."""
+    grades: tuple[Literal["development_only", "P1"], ...] = ("P1", "development_only")
+    for grade in grades:
+        for publication in PublicationStatus:
+            eligible = publication_eligible_for(grade=grade, publication=publication)
+            assert not (eligible and grade == "development_only")
+            assert not (eligible and publication is PublicationStatus.BLOCKED)
+
+
+def test_a_report_cites_the_policy_its_run_was_executed_under(
+    pair: RecordedPair, controlled: RealComparisonResult
+) -> None:
+    """Eligibility is read off these terms, so they have to be the run's own."""
+    with pytest.raises(VerificationError) as raised:
+        _report(
+            pair,
+            controlled,
+            attestation=LocalAttestation.LOCAL_ED25519,
+            data_policy=_policy_keeping_the_report_private(pair),
+        )
+
+    assert raised.value.code == COMPARISON_INVALID
 
 
 def test_a_rejected_candidate_still_produces_a_valid_report(
@@ -562,12 +637,25 @@ def _receipt_set(pair: RecordedPair, variant: VariantName) -> ReceiptSetManifest
     )
 
 
+def _policy_keeping_the_report_private(pair: RecordedPair) -> DataPolicy:
+    """Return the run's policy with the uplift report made private."""
+    policy = recorded_data_policy(pair.campaign)
+    return policy.model_copy(
+        update={
+            "derived_artifacts": policy.derived_artifacts.model_copy(
+                update={"uplift_report": "private"}
+            )
+        }
+    )
+
+
 def _report(
     pair: RecordedPair,
     comparison: RealComparisonResult,
     *,
     attestation: LocalAttestation = LocalAttestation.UNATTESTED,
     campaign: CampaignSpec | None = None,
+    data_policy: DataPolicy | None = None,
     deltas: Sequence[TaskDelta] | None = None,
     score: ScoreStatus | None = None,
     candidate_receipt_set: ReceiptSetManifest | None = None,
@@ -580,6 +668,7 @@ def _report(
     return build_uplift_report(
         run_request=pair.request,
         campaign=campaign or pair.campaign,
+        data_policy=data_policy or recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
         ),

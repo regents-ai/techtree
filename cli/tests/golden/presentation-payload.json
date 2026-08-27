@@ -93,6 +93,20 @@
       "cli": [
         "techtree",
         "proof",
+        "publish",
+        "run_bc6bcf8a52493f173292f667c596bfb7"
+      ],
+      "hermes_args": null,
+      "hermes_tool": null,
+      "id": "publish_run",
+      "label": "Publish this run to the public run log",
+      "reason": "The proof just verified, so the run's own evidence travels with it. It shows what would be sent and asks before sending anything.",
+      "requires_user_confirmation": true
+    },
+    {
+      "cli": [
+        "techtree",
+        "proof",
         "verify",
         "run_bc6bcf8a52493f173292f667c596bfb7"
       ],

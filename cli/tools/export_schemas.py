@@ -41,6 +41,7 @@ from techtree.models.validation import (
     TasksetValidationReceipt,
     ValidationEvidence,
 )
+from techtree.publication.models import PublicationReceipt, PublicationSubmission
 
 #: Where the generated tree lives, relative to the repository root.
 SCHEMA_VERSION_DIRECTORY = "v1alpha1"
@@ -69,6 +70,8 @@ def schema_models() -> dict[str, type[BaseModel]]:
         "episode-receipt": EpisodeReceipt,
         "evaluation-backend": EvaluationBackendSpec,
         "experiment-manifest": ExperimentManifest,
+        "publication-receipt": PublicationReceipt,
+        "publication-submission": PublicationSubmission,
         "run-state": RunState,
         "skill-artifact": SkillArtifact,
         "submission-draft": SubmissionDraft,

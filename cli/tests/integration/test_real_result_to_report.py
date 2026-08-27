@@ -27,7 +27,11 @@ from pathlib import Path
 
 import pytest
 
-from fixtures.receipts.pair import RecordedPair, recorded_pair
+from fixtures.receipts.pair import (
+    RecordedPair,
+    recorded_data_policy,
+    recorded_pair,
+)
 from fixtures.receipts.staged import (
     RecordedEvidenceExecutor,
     StagedRecordedRun,
@@ -136,6 +140,7 @@ def test_the_recorded_probes_produce_a_complete_report() -> None:
     report = build_uplift_report(
         run_request=pair.request,
         campaign=pair.campaign,
+        data_policy=recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
         ),
@@ -189,7 +194,7 @@ def test_a_real_run_completes_end_to_end(tmp_path: Path) -> None:
     assert report.primary_result.baseline_mean == 0.0
     assert report.primary_result.candidate_mean == pytest.approx(24 / 36)
     assert report.primary_result.wins == 24
-    assert report.publication_eligible is False
+    assert report.publication_eligible is True
 
 
 def test_the_run_walks_every_phase_the_state_machine_defines(
