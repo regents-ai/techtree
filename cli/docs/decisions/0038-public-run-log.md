@@ -158,3 +158,64 @@ the copy guards with the others.
 A person can ask for the address to be removed, and removal means
 removal — it is not part of the append-only evidence, it is a detail
 somebody volunteered about themselves.
+
+## The wire contract, fixed here so the two halves cannot drift
+
+Both sides of this feature were built at once, from opposite ends, and
+they disagreed on four things: where a volunteered address travels, the
+schema version, the shape of the file set, and the shape of the receipt.
+Each disagreement would have made publishing fail outright. The contract
+is therefore written down once, here, and both implementations conform
+to it rather than to each other's reading.
+
+### The request
+
+`POST` to the configured run-log address, over `https` only, with no
+query string and no fragment: a submission travels in a request body and
+never in a URL.
+
+```json
+{
+  "schema_version": "techtree.publication-submission.v1alpha1",
+  "run_id": "run_<32 hex>",
+  "bundle_digest": "sha256:<64 hex>",
+  "files": { "<posix path inside the proof directory>": "<base64 of the file's bytes>" }
+}
+```
+
+`files` is a mapping and nothing else. It carries no per-file digest and
+no per-file size, deliberately: those would be claims the submitter
+wrote, and the receiving side must take every digest from the bundle's
+own signed manifest instead. The document has exactly these four
+members; a body carrying anything more is refused, because the bytes are
+stored and served back at a public address.
+
+The volunteered address travels in the `x-techtree-contributor-address`
+header, for that same reason, and is never echoed.
+
+### The response
+
+```json
+{
+  "schema_version": "techtree.publication-receipt.v1alpha1",
+  "id": "<the log's own identifier for this entry>",
+  "run_id": "run_<32 hex>",
+  "log_sequence": 7,
+  "bundle_digest": "sha256:<64 hex>",
+  "accepted_at": "<RFC 3339, UTC>",
+  "checks": [ { "id": "...", "passed": true, "detail": "..." } ],
+  "entry_url": "https://…/network/<digest>",
+  "public_key": { "algorithm": "ed25519", "key_id": "sha256:…", "public_key": "<base64>" },
+  "signature": { "algorithm": "ed25519", "key_id": "sha256:…", "signature": "<base64>" }
+}
+```
+
+The signature is over the canonical digest of the receipt's own payload,
+the same shape every signed document in this protocol uses. It is the
+countersignature the founder asked for: the participant signed the run,
+and the network signs that it accepted it. The network's public half is
+served at a stable address so a receipt can be checked by anybody,
+including somebody who does not trust either party.
+
+`checks` is the list the receiving side actually ran, not a constant. A
+receipt naming no check is refused by the participant's own CLI.
