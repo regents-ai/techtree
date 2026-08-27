@@ -139,6 +139,45 @@ Each of those is pinned to an exact version, and the release is only as
 reproducible as those pins. Say so if asked what the evidence rests on — it is
 how the release is put together, not an apology for it.
 
+## "My security scanner flagged this plugin. What are the five findings?"
+
+They are real, they are what the plugin genuinely does, and none of them is
+hidden or worked around. Say what each one is:
+
+**One deny-list, in `guards.py`.** Flagged HIGH, as privilege escalation. It is
+the list of command words — techtree, hermes, uv, bash, sh, curl, pip, docker,
+git, sudo, rm — that the plugin refuses to let a model-written summary tell
+someone to run. Commands shown to a person come from Techtree's own next
+actions, never from a sentence a model wrote. A deny-list has to name what it
+denies, so a scanner reading it sees the vocabulary and flags it. It is the
+block-list, not an action.
+
+**Three subprocess calls, in `bridge.py`.** Flagged MEDIUM, as execution. They
+are the entire boundary between this plugin and Techtree, and they are three
+because the plugin drives the CLI three different ways: one captures output and
+reads back a JSON answer, one asks the CLI its version and must not parse that
+as an answer, and one deliberately does not capture anything so Techtree's own
+rendered report reaches the terminal the person is looking at. Each builds a
+fixed argument array, runs no shell, and passes a named allowlist of
+environment variables rather than this process's own. There is no fourth.
+
+**One control-character filter, in `channels.py`.** Flagged MEDIUM, as
+obfuscation. It strips escape sequences and control bytes out of anything the
+plugin prints into a conversation, so borrowed output cannot redraw somebody's
+terminal. It is a sanitiser, and a scanner sees a control-byte pattern.
+
+## "Could you not just make the scanner stop flagging them?"
+
+Not honestly. Every one of them describes something the plugin really does: it
+runs processes, it filters control bytes, it holds a list of shell commands. A
+scanner that missed those would be a worse scanner, and the only way to quiet
+it is to write the same operations so the pattern-matcher stops recognising
+them. That is evasion, not a fix, and it would leave anyone reading the code a
+worse account of it than the scanner gives.
+
+So the verdict is caution, and it stays caution. What is owed instead is a
+straight answer about what each finding is — which is this.
+
 ## "Can I compare my result to someone else's?"
 
 No. Nothing here establishes comparability between two people's runs, there is
