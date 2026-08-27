@@ -206,9 +206,14 @@ the first one, and the digest beside it is stronger still.
 
 ## "Can I compare my result to someone else's?"
 
-No. Nothing here establishes comparability between two people's runs, there is
-no leaderboard, and no submission goes anywhere. A comparison is meaningful
-against the other side of the same run, and that is all.
+No. Nothing here establishes comparability between two people's runs and there
+is no leaderboard. A comparison is meaningful against the other side of the
+same run, and that is all.
+
+Somebody may publish a run to the public log, and that log exists — but it is
+a record of what was sent, in the order it arrived, and it ranks nothing. Two
+entries beside each other are two people's separate comparisons, not a
+standing. If someone reads the log as a scoreboard, correct it.
 
 ## "It says it worked — should I ship this Skill?"
 
