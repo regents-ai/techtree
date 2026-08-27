@@ -20,7 +20,8 @@ is nothing to fix locally, and a published build is the answer.
 Something the run needs is not ready — Docker not running, the evaluation
 engine not installed or unverified, evaluation credentials missing. The check
 names it. Preparing a comparison is refused until it is resolved, which is
-correct: a run started into a broken host wastes money and produces nothing.
+correct: a run started into a broken host wastes model tokens and produces
+nothing.
 
 ## The installed Techtree belongs to a different release
 

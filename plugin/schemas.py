@@ -3,7 +3,7 @@
 One schema per declared tool. The descriptions are written for the host agent
 that has to choose between them, so each says when the tool applies and what
 it takes: which tools are read-only, which change the host, and which spend
-real money on an evaluated run.
+model tokens on inference for an evaluated run.
 
 Four things never appear in a schema here: an API key, an executable path, an
 installation command, and an unbounded identifier. Anything the plugin runs is
@@ -213,9 +213,10 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "the exact field that changes between the two runs, the "
             "data-policy summary, how many episodes the comparison will run, "
             "and the most the Campaign declares it may cost. That maximum is a "
-            "ceiling and never a prediction of the bill: it names no price, "
-            "and nothing here spends money — that begins only when the user "
-            "approves the start. " + _PUBLICATION_NOTE + " Hello World "
+            "ceiling the Campaign states in US dollars and never a prediction "
+            "of the bill: it names no price, and nothing here spends a single "
+            "model token — that begins only when the user approves the "
+            "start. " + _PUBLICATION_NOTE + " Hello World "
             "demonstrates how the mechanism works; it is not a measure of "
             "broad capability."
         ),
@@ -223,19 +224,22 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     ),
     "techtree_climb_start": _schema(
         description=(
-            "Start a prepared draft running. This spends real money on model "
-            "calls and provisions Docker, so call it only after the user has "
-            "seen how many episodes will run, the data policy, and the Skill, "
-            "and has said yes. Nobody can tell them the price first: Techtree "
+            "Start a prepared draft running. This spends model tokens on "
+            "inference and provisions Docker, so call it only after the user "
+            "has seen how many episodes will run, the data policy, and the "
+            "Skill, and has said yes. Nobody can tell them what those tokens "
+            "will come to first: Techtree "
             "checks before a run that the Campaign's enforced limits cannot "
             "add up past the maximum it declares, and refuses one that could, "
             "but that maximum is a ceiling — it works out no figure for what "
             "this run will actually come to and keeps no running total while "
-            "one is under way, so what they agree to is whatever those "
-            "episodes come to at the provider they configured. Model inference "
+            "one is under way. Model inference "
             "goes to "
             "the model provider the user configured, under that provider's "
-            "policies; Techtree uploads nothing of its own. The run is "
+            "policies, and a provider that charges for tokens bills those "
+            "episodes to the account behind the credentials it was given; a "
+            "model the user runs themselves sends no bill. "
+            "Techtree uploads nothing of its own. The run is "
             "detached: this returns a run identifier immediately and never "
             "waits for the result."
         ),
@@ -365,15 +369,19 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     ),
     "techtree_uplift_start": _schema(
         description=(
-            "Start a prepared Skill-against-Skill comparison. This spends real "
-            "money on model calls, so call it only after the user has seen the "
+            "Start a prepared Skill-against-Skill comparison. This spends "
+            "model tokens on inference, so call it only after the user has "
+            "seen the "
             "Skill diff, the data policy, how many episodes will run, and the "
             "most the Campaign declares it may cost — which the prepared "
-            "revision reports, and which is a ceiling it declares and never a "
+            "revision reports, and which is a US-dollar ceiling it declares "
+            "and never a "
             "prediction of the bill — and has approved this second run "
             "specifically. As with the first run, that declared maximum is "
             "checked before anything starts, but no price is worked out in "
-            "advance and no running total is kept while the run goes. Returns "
+            "advance and no running total is kept while the run goes, and a "
+            "provider that charges for tokens bills this use to the user's "
+            "own account. Returns "
             "a run identifier immediately."
         ),
         properties={

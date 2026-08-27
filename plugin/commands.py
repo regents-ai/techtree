@@ -204,17 +204,20 @@ def _declared_maximum_line(answer: Mapping[str, Any]) -> str:
         return (
             "This Campaign declares no maximum, so there is no figure to hold "
             "it to. Techtree works out no figure for the bill first and keeps "
-            "no running total as it goes, so what it comes to is settled by "
-            "the model provider you configured."
+            "no running total as it goes. The tokens go to the model provider "
+            "you configured: a provider that charges for tokens bills them to "
+            "your own account, and a model you run yourself sends no bill."
         )
     return (
         f"The most this Campaign declares it may cost is ${maximum:.2f}. "
-        "Techtree checks before it starts that the limits the Campaign "
-        "enforces on each episode cannot add up past that, and refuses the "
-        "run if they could. That figure is a ceiling it declares and never "
-        "a prediction: Techtree works out no figure for the bill first and "
-        "keeps no running total as it goes, so what it comes to is settled by "
-        "the model provider you configured."
+        "Techtree checks before it starts that the limits the "
+        "Campaign enforces on each episode cannot add up past that, and "
+        "refuses the run if they could. That figure is a ceiling the Campaign "
+        "declares and never a prediction: Techtree works out no figure for the "
+        "bill first and keeps no running total as it goes. The tokens go to "
+        "the model provider you configured: a provider that charges for tokens "
+        "bills them to your own account, and a model you run yourself sends "
+        "no bill."
     )
 
 
@@ -233,7 +236,7 @@ def _slash_demo(services: Any, arguments: Sequence[str]) -> str:
             f"Episodes to run: {answer.get('estimated_episodes')}",
             f"Data policy: {answer.get('data_policy_digest')}",
             PUBLICATION_TERMS_LINE,
-            "Starting it spends real money on model calls, and needs your "
+            "Starting it spends model tokens on inference, and needs your "
             "explicit approval.",
             _declared_maximum_line(answer),
             "Next: review the Skill-only change, then approve the start.",

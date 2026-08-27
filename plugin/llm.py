@@ -44,12 +44,13 @@ A completion that wrote nothing is its own outcome
 --------------------------------------------------
 
 A model can reach the end of what it is allowed to write before it writes
-anything: the host answers, the provider charges, and no part of an answer
+anything: the host answers, the tokens are spent, and no part of an answer
 comes back. ``HostCompletionTruncatedError`` says so in its own words and with
 its own code, and it is the one failure the guided introduction does not count
 as its attempt — there is no candidate, so there is nothing the turn measured.
 Restoring the attempt is not a retry: nothing here asks again, and whether to
-spend a fresh one is a decision a person makes knowing it costs money.
+spend a fresh one is a decision a person makes knowing it spends more tokens
+at their provider.
 
 The line is exactly "nothing was produced". An answer the model did write and
 that cannot be used is still an answer, and spending an attempt on it is what
@@ -353,8 +354,9 @@ class OneShotHostLlm:
         except Exception as error:
             raise HostAnswerNeverArrivedError(
                 "The request was sent and no answer came back. Your attempt "
-                "has not been used. Your provider may still have charged for "
-                "it — each attempt costs money at your provider: "
+                "has not been used. The tokens may still have been spent at "
+                "your provider, and a provider that charges for tokens bills "
+                "them: "
                 f"{error}"
             ) from error
 
@@ -392,8 +394,8 @@ def _result_from(answer: Any, request: HostLlmRequest) -> HostLlmResult:
             raise HostCompletionTruncatedError(
                 "The model ran out of room before it wrote anything. Your "
                 "attempt has not been used. Raising your model's completion "
-                "limit makes this less likely — each attempt costs money at "
-                "your provider."
+                "limit makes this less likely — each attempt spends model "
+                "tokens on inference at your provider."
             )
         raise HostLlmError(
             "The Host Hermes model reached the configured generation limit "

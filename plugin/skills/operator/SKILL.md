@@ -1,6 +1,6 @@
 ---
 name: operator
-description: How to run a Techtree comparison for someone — what to show before spending their money, what the results do and do not prove, and which Skill is which. Load this before using any techtree_ tool.
+description: How to run a Techtree comparison for someone — what to show before spending their model tokens, what the results do and do not prove, and which Skill is which. Load this before using any techtree_ tool.
 ---
 
 # Operating Techtree
@@ -91,17 +91,20 @@ calls still go to the model provider they configured. Say both halves. A
 careful reader given only the first half will conclude that starting a run
 publishes their Skill and their numbers, and will be right to refuse.
 
-Starting a run spends real money on model calls. It happens only after the
+Starting a run spends model tokens on inference. It happens only after the
 person has seen those facts and said yes to *this* run. "Go ahead" from an
-earlier conversation is not consent for a second one.
+earlier conversation is not consent for a second one. Say where those tokens
+are spent as well as that they are: they go to the model provider the person
+configured, a provider that charges for tokens bills that use to their own
+account, and a model they run themselves sends no bill.
 
 Two things you cannot tell them, so do not try. **How much it will come to:**
 Techtree checks a Campaign's declared maximum before a run and refuses one
-whose enforced limits could add up past it, but that maximum is a ceiling — it
-works out no figure for the bill and keeps no running total while one is under
-way, so what they pay is whatever those episodes come to at the model provider
-they configured. **How long it will take:** no finishing time is published for
-a run.
+whose enforced limits could add up past it, but that maximum is a ceiling the
+Campaign states in US dollars — it works out no figure for the bill and keeps
+no running total while one is under way, so what those episodes come to is
+settled at the model provider they configured and nowhere else. **How long it
+will take:** no finishing time is published for a run.
 Say both plainly rather than offering a guess; a number you invented is the
 one they will hold you to.
 

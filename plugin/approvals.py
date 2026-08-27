@@ -7,10 +7,11 @@ happens by handing the host a fixed command and letting the host's own
 approval surface ask the human. The plugin's part is an install plan: an
 opaque identifier, a short life, and one argv nobody can edit.
 
-Starting a run spends money, so it happens on the host's own approval surface,
-where a person answers for themselves. The plugin prepares the immutable draft,
-says what starting it commits to, and marks the start as a step a human has to
-confirm. It never treats a model's say-so as acceptance.
+Starting a run spends model tokens on inference, so it happens on the host's
+own approval surface, where a person answers for themselves. The plugin
+prepares the immutable draft, says what starting it commits to, and marks the
+start as a step a human has to confirm. It never treats a model's say-so as
+acceptance.
 """
 
 from __future__ import annotations

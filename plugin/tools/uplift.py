@@ -253,7 +253,7 @@ def techtree_uplift_prepare(services: Any, args: dict[str, Any], **kwargs: Any) 
 
 @safe_tool
 def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
-    """Start a prepared Skill-against-Skill comparison. Spends real money."""
+    """Start a prepared Skill-against-Skill comparison. Spends model tokens."""
     channel = channel_of(args, kwargs)
     draft_id = require_draft_id(require_argument(args, "draft_id"))
     # Specification section 16 asks that no second run start without the

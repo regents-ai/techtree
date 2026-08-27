@@ -5,7 +5,7 @@
 Paste this into Hermes:
 
 > Read this repository's pinned Hello World installation instructions.
-> Explain the exact commands, the prerequisites, what spends money,
+> Explain the exact commands, the prerequisites, what spends model tokens,
 > and the privacy terms. Ask before installing the plugin, installing
 > the Techtree CLI, or starting a paid run. After the plugin is
 > enabled, tell me when to restart Hermes, then continue with Techtree

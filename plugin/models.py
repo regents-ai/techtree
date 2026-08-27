@@ -686,7 +686,7 @@ class PluginAction:
     """One next step offered back to the host conversation.
 
     Actions name a tool and its arguments so the operator agent does not have
-    to invent either. An action that costs money or changes the host is
+    to invent either. An action that spends model tokens or changes the host is
     marked, and the mark is what the conversation must surface.
     """
 

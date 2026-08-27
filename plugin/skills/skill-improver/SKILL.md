@@ -32,7 +32,7 @@ The caller provides:
 - A structured output schema.
 
 The context intentionally omits subject final replies, expected answers,
-hidden task fields, grader source, secrets, and private paths.
+hidden task fields, grader source, and private paths.
 
 ## Objective
 
