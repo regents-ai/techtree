@@ -43,14 +43,29 @@ def test_registration_registers_every_implemented_tool(ctx: RecordingContext) ->
 def test_registration_registers_implemented_commands_and_hooks(
     ctx: RecordingContext,
 ) -> None:
-    from techtree_hermes.commands import CLI_COMMAND_NAMES, SLASH_COMMANDS
+    from techtree_hermes.commands import SLASH_COMMANDS
     from techtree_hermes.hooks import SESSION_HOOKS
 
     techtree_hermes.register(ctx)
 
     assert set(ctx.commands) == set(SLASH_COMMANDS)
-    assert set(ctx.cli_commands) == set(CLI_COMMAND_NAMES)
     assert set(ctx.hooks) == set(SESSION_HOOKS)
+
+
+def test_registration_claims_exactly_one_terminal_command(
+    ctx: RecordingContext,
+) -> None:
+    """The host makes `hermes <name>` of every name registered here.
+
+    So there is one name, it is ours, and the verbs live beneath it. The list
+    is written out rather than compared to a constant on purpose: a bare verb
+    registered here would become `hermes doctor` or `hermes watch`, either
+    shadowed by Hermes's own command of that name or a top-level word taken
+    from everybody else, and it is this literal list that says so.
+    """
+    techtree_hermes.register(ctx)
+
+    assert list(ctx.cli_commands) == ["techtree"]
 
 
 def test_registration_refuses_a_tool_the_manifest_never_declared(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import dataclasses
 import json
 from collections.abc import Sequence
@@ -13,9 +14,11 @@ import pytest
 from techtree_hermes.approvals import InstallPlanStore
 from techtree_hermes.bootstrap import create_install_plan
 from techtree_hermes.commands import (
-    CLI_COMMAND_NAMES,
+    CLI_COMMAND,
+    CLI_VERB_NAMES,
     SLASH_USAGE,
-    build_cli_commands,
+    build_cli_command,
+    build_cli_verbs,
     handle_slash_command,
     parse_slash_args,
 )
@@ -462,8 +465,81 @@ def test_a_finished_run_is_pointed_at_its_result() -> None:
 # Terminal subcommands -----------------------------------------------------------------
 
 
-def test_the_terminal_commands_are_the_declared_ones() -> None:
-    assert set(build_cli_commands(_services())) == set(CLI_COMMAND_NAMES)
+def test_the_terminal_verbs_are_the_declared_ones() -> None:
+    assert set(build_cli_verbs(_services())) == set(CLI_VERB_NAMES)
+
+
+#: One example invocation per verb, and the Techtree argv it has to reach.
+TERMINAL_INVOCATIONS: tuple[tuple[list[str], list[str]], ...] = (
+    (["doctor"], ["doctor"]),
+    (["status", RUN_ID], ["run", "status", RUN_ID]),
+    (["watch", RUN_ID], ["run", "status", RUN_ID, "--watch"]),
+    (["result", RUN_ID], ["run", "result", RUN_ID]),
+    (["verify", "/tmp/proof"], ["proof", "verify", "/tmp/proof"]),
+)
+
+
+def _host_parser(services: PluginServices) -> argparse.ArgumentParser:
+    """A parser assembled the way the Hermes CLI assembles one.
+
+    The host adds a subparser named after the command, calls the plugin's
+    setup with it, and then makes the plugin's handler that subparser's
+    default. Building the same thing here is what lets these tests read the
+    surface a person actually types.
+    """
+    command = build_cli_command(services)
+    root = argparse.ArgumentParser(prog="hermes")
+    subparsers = root.add_subparsers(dest="command")
+    plugin_parser = subparsers.add_parser(CLI_COMMAND, help=command.help)
+    command.setup(plugin_parser)
+    plugin_parser.set_defaults(func=command.handler)
+    return root
+
+
+@pytest.mark.parametrize(("typed", "expected"), TERMINAL_INVOCATIONS)
+def test_every_verb_is_reachable_beneath_the_one_command(
+    typed: list[str], expected: list[str]
+) -> None:
+    """`hermes techtree <verb> …` dispatches to that verb, and nothing else."""
+    bridge = FakeBridge()
+    namespace = _host_parser(_services(bridge=bridge)).parse_args(["techtree", *typed])
+
+    assert namespace.func(namespace) == 0
+    assert bridge.human_calls == [expected]
+    assert bridge.calls == []
+
+
+def test_the_demo_verb_is_reachable_beneath_the_one_command(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`demo` answers in the terminal itself rather than through Techtree."""
+    bridge = FakeBridge()
+    namespace = _host_parser(_services(bridge=bridge)).parse_args(["techtree", "demo"])
+
+    assert namespace.func(namespace) == 0
+    assert capsys.readouterr().out.strip() != ""
+    assert bridge.human_calls == []
+
+
+def test_the_command_alone_prints_its_own_help(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`hermes techtree` with no verb is a question, not a crash."""
+    namespace = _host_parser(_services()).parse_args(["techtree"])
+
+    assert namespace.func(namespace) == 0
+
+    printed = capsys.readouterr().out
+    assert "hermes techtree" in printed
+    for verb in CLI_VERB_NAMES:
+        assert verb in printed
+
+
+def test_an_unknown_verb_is_refused_with_the_list_of_what_exists() -> None:
+    parser = _host_parser(_services())
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["techtree", "teleport"])
 
 
 @pytest.mark.parametrize(
@@ -481,7 +557,7 @@ def test_a_terminal_command_runs_techtrees_own_human_output(
 ) -> None:
     bridge = FakeBridge()
     services = _services(bridge=bridge)
-    command = build_cli_commands(services)[name]
+    command = build_cli_verbs(services)[name]
 
     code = command.handler(dataclasses.make_dataclass("N", namespace)(**namespace))
 
