@@ -19,6 +19,17 @@ controlled comparison to run end to end and leave a receipt that verifies
 offline. It is a development release, and nothing here is a measurement anyone
 should cite.
 
+## The other two repositories
+
+- **[techtree-python](https://github.com/regents-ai/techtree-python)** — the
+  Techtree CLI and evaluation substrate: campaigns, detached runs, signed
+  comparison reports, and offline proof verification. Everything a comparison
+  measures and records happens there, on the participant's own machine.
+- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the
+  read-only website at techtree.sh: the pinned installation guide, the campaign
+  catalog, the published protocol objects, and the docs. It serves
+  content-addressed release records over GET only and never receives anything.
+
 The evaluation engine, the agent host, and the container the subject runs in
 are each pinned to an exact version, and the release is only as reproducible as
 those pins. Those are the seams of the stack, and they are worth knowing about
