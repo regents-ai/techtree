@@ -2,52 +2,52 @@
  "checks": [
   {
    "check": "build_provenance_stamped",
-   "detail": "techtree/resources/release/build-provenance.json names source commit 8d9068cfca818d3ae39f7ea130a90f596b33d4f5, which is the release candidate commit and the commit this repository is at (8d9068cfca818d3ae39f7ea130a90f596b33d4f5)",
+   "detail": "techtree/resources/release/build-provenance.json names source commit 5d793b699ce75779269a67a7c2f0d9cc9c6b79de, which is the release candidate commit and the commit this repository is at (5d793b699ce75779269a67a7c2f0d9cc9c6b79de)",
    "result": "pass"
   },
   {
    "check": "build_provenance_is_not_committed",
-   "detail": "the stamp exists only inside the artifact: `git ls-tree 8d9068cf` returns nothing for src/techtree/resources/release/build-provenance.json, and .gitignore line 25 keeps it out of the tree",
+   "detail": "the stamp exists only inside the artifact: `git ls-tree 5d793b69` returns nothing for src/techtree/resources/release/build-provenance.json, and .gitignore line 25 keeps it out of the tree",
    "result": "pass"
   },
   {
    "check": "release_core_bytes_exact",
-   "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530)",
+   "detail": "techtree/resources/release/release-core.json is byte-identical to release/release-core.json (sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4)",
    "result": "pass"
   },
   {
    "check": "release_core_is_the_generated_document",
-   "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530), and `make generated-check` regenerated it into a throwaway tree without drift",
+   "detail": "the packaged ReleaseCore digest is the one release/build-info.json records for this generation (sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4), and `make generated-check` regenerated it into a throwaway tree without drift",
    "result": "pass"
   },
   {
    "check": "packaged_catalog_names_certified_campaign",
-   "detail": "catalog.json names campaign [\"sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7\"], written the way catalog.json holds it — as the prefixed key of its objects index",
+   "detail": "catalog.json names campaign [\"sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1\"], written the way catalog.json holds it — as the prefixed key of its objects index",
    "result": "pass"
   },
   {
    "check": "packaged_campaign_bytes_hash_to_certified_digest",
-   "detail": "the packaged campaign's own bytes hash to sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7, the digest the catalog files it under",
+   "detail": "the packaged campaign's own bytes hash to sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1, the digest the catalog files it under",
    "result": "pass"
   },
   {
    "check": "packaged_catalog_names_certified_climb",
-   "detail": "catalog.json names climb sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa, and the packaged climb's own bytes hash to sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
+   "detail": "catalog.json names climb sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236, and the packaged climb's own bytes hash to sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236",
    "result": "pass"
   },
   {
    "check": "packaged_catalog_index_is_the_release_coordinate",
-   "detail": "the packaged catalog.json hashes to sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386, which is the catalog_digest the packaged ReleaseCore names",
+   "detail": "the packaged catalog.json hashes to sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c, which is the catalog_digest the packaged ReleaseCore names",
    "result": "pass"
   },
   {
    "check": "packaged_campaign_budget_contract_is_enforced_shape",
-   "detail": "the shipped Campaign declares the decision-0029 budget contract — 44 model calls, 900000 input tokens, 16000 output tokens, 600s rollout timeout, $2.5 maximum — the values release/certified-scientific-fingerprint.json records as recertified",
+   "detail": "the shipped Campaign declares the decision-0029 budget contract — 44 model calls, 900000 input tokens, 16000 output tokens, 600s rollout timeout, $2.5 maximum — and those five values are the ones release/certified-scientific-fingerprint.json records as recertified. Only the values were compared: that file's own lineage digests name an older Campaign, Climb, catalog and engine than the ones this wheel ships, which is recorded under findings",
    "result": "pass"
   },
   {
    "check": "packaged_campaign_carries_no_development_placeholder",
-   "detail": "the shipped Campaign names the ratified subject model qwen/qwen3.7-flash on provider prime, not a development placeholder, and the build's own predicate agrees: check_live_campaign returns PASS and campaign_is_executable returns True for these bytes",
+   "detail": "the shipped Campaign names the ratified subject model qwen/qwen3.7-flash on provider prime, not a development placeholder, and the build's own predicate agrees: run against these bytes, check_live_campaign returns PASS — \"the Campaign names a real subject: qwen/qwen3.7-flash on python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff\" — and campaign_is_executable returns True",
    "result": "pass"
   },
   {
@@ -72,17 +72,17 @@
   },
   {
    "check": "no_absolute_build_paths",
-   "detail": "no member names the build directory, the operator's home, or any absolute path from this machine",
+   "detail": "no member names the build directory, the operator's home, or any absolute path from this machine: scanning every member for /Users/, /private/tmp/, /home/runner and this repository's own path returns nothing",
    "result": "pass"
   },
   {
    "check": "no_repository_scratch_or_run_artifacts",
-   "detail": "the wheel holds no git metadata, tracker database, cache, virtual environment, test tree, recorded run or coverage output; every member sits under techtree/ or techtree-0.1.0.dist-info/, and the 155 payload members are the package and its resources and nothing else. techtree/runs/ and techtree/drafts/ are the package's own source modules, not recorded output",
+   "detail": "the wheel holds no git metadata, tracker database, cache, virtual environment, test tree, recorded run or coverage output; every member sits under techtree/ or techtree-0.1.0.dist-info/, and the 156 payload members are the package and its resources and nothing else. techtree/runs/ and techtree/drafts/ are the package's own source modules, not recorded output",
    "result": "pass"
   },
   {
    "check": "no_credentials_or_private_keys",
-   "detail": "no member carries a private key block, a provider key, or a credential assignment with a value. The one string the scanner stopped on, secret = \"findings\" in techtree/skills/service.py, is a local boolean naming a scanner result code, not a credential",
+   "detail": "no member carries a private key block, a provider key, or a credential assignment with a value. The only credential-shaped strings in the wheel are environment variable names with no value beside them: PRIME_API_KEY, the credential_env the packaged Campaign names, and TECHTREE_MODEL_API_KEY in techtree/models/campaign.py",
    "result": "pass"
   },
   {
@@ -108,7 +108,13 @@
    "target": "techtree.worker.main:main"
   }
  },
- "findings": [],
+ "findings": [
+  {
+   "detail": "release/certified-scientific-fingerprint.json names campaign sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7, climb sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa, catalog sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386 and engine sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8. This wheel ships a later lineage: campaign sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1, climb sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236, catalog sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c, engine sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b. The budget contract that file certifies is byte-for-byte the same in the shipped Campaign — 44 model calls, 900000 input tokens, 16000 output tokens, 600s rollout timeout, $2.5 maximum — so the shipped bytes carry the recertified contract, but the fingerprint document has not been re-pointed at the digests this wheel actually contains. This inspection records the divergence and does not resolve it.",
+   "id": "certified_fingerprint_names_an_earlier_lineage",
+   "severity": "recorded finding — outside this inspection to resolve"
+  }
+ ],
  "packaged_lineage": {
   "campaign_budgets": {
    "maximum_input_tokens": 900000,
@@ -116,21 +122,21 @@
    "maximum_output_tokens": 16000,
    "maximum_usd": 2.5
   },
-  "campaign_digest": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+  "campaign_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
   "campaign_execution": {
    "max_concurrent": 4,
    "order": "parallel_variants",
    "retry_limit": 0,
    "timeout_seconds": 600
   },
-  "catalog_digest": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
-  "climb_digest": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
-  "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
+  "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
+  "climb_digest": "sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236",
+  "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
   "maximum_tested_host_hermes_version": "0.20.1",
   "minimum_host_hermes_version": "0.20.1",
-  "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
-  "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
-  "source_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
+  "release_core_digest": "sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4",
+  "skill_improver_digest": "sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678",
+  "source_commit": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de",
   "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
   "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
   "subject_hermes_version": "0.19.0",
@@ -140,23 +146,23 @@
  "schema_version": "techtree.wheel-inspection.v1",
  "verdict": "PASS",
  "wheel": {
-  "built_from": "a clean clone of commit 8d9068cfca818d3ae39f7ea130a90f596b33d4f5, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
-  "built_from_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
+  "built_from": "a clean clone of commit 5d793b699ce75779269a67a7c2f0d9cc9c6b79de, built with `uv build --wheel`. The commit is not asserted here: the build hook (tools/stamp_provenance.py) asked git which commit the packaged sources are and refused to write a stamp for anything else, and the stamp read back out of the wheel is the value recorded above (decision 0026 section 2).",
+  "built_from_commit": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de",
   "filename": "techtree-0.1.0-py3-none-any.whl",
-  "member_count": 160,
-  "member_count_note": "160 members: 155 payload plus the 5 dist-info files. One payload member more than the previous inspection of this package — techtree/py.typed now ships, the marker that tells a type checker reading an installed techtree that the package is typed (techtree-python-qgr).",
+  "member_count": 161,
+  "member_count_note": "161 members: 156 payload plus the 5 dist-info files. One payload member more than the previous inspection of this package — techtree/cli/confirm.py now ships. Comparing `git ls-tree -r` over src/techtree at the commit that inspection read (8d9068cfca818d3ae39f7ea130a90f596b33d4f5) and at this freeze commit shows that one file as the only difference between the two packaged source trees.",
   "path": "dist/techtree-0.1.0-py3-none-any.whl",
-  "payload_member_count": 155,
+  "payload_member_count": 156,
   "reproducible": {
-   "detail": "NOT re-observed by this inspection. The two-clean-clone double build of 8d9068cfca818d3ae39f7ea130a90f596b33d4f5 was performed by the orchestrating session before this record was written and was not repeated here, so this inspection makes no first-hand reproducibility claim. What this inspection did read for itself: the wheel in dist/ hashes to sha256:90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a, and the provenance stamp inside it names 8d9068cfca818d3ae39f7ea130a90f596b33d4f5.",
+   "detail": "NOT re-observed by this inspection. The two-clean-clone double build of 5d793b699ce75779269a67a7c2f0d9cc9c6b79de was performed by the orchestrating session before this record was written and was not repeated here, so this inspection makes no first-hand reproducibility claim. What this inspection did read for itself: the wheel in dist/ hashes to sha256:e486b3eaa477455566035f9b210db824e1bdda765b1ade0f44891da6b2c855c2, the provenance stamp inside it names 5d793b699ce75779269a67a7c2f0d9cc9c6b79de, and tools/verify_release_core.py — run against this wheel and the staged bootstrap document — passes all 26 checks, including bootstrap_cli_wheel_sha256 and bootstrap_cli_source_revision.",
    "result": "not_re_observed_here"
   },
-  "sha256": "sha256:90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a",
-  "size_bytes": 614618,
+  "sha256": "sha256:e486b3eaa477455566035f9b210db824e1bdda765b1ade0f44891da6b2c855c2",
+  "size_bytes": 627020,
   "stamped_provenance": {
    "member": "techtree/resources/release/build-provenance.json",
    "schema_version": "techtree.build-provenance.v1",
-   "source_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5"
+   "source_commit": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de"
   },
   "version": "0.1.0"
  }
