@@ -17,6 +17,18 @@ controlled comparison to run end to end and leave a receipt that verifies
 offline. It is a development release, and nothing here is a measurement anyone
 should cite.
 
+## The other two repositories
+
+- **[techtree-hermes](https://github.com/regents-ai/techtree-hermes)** — the
+  Hermes plugin that gives this CLI a conversational operator: it explains,
+  prepares, asks for approval, and relays results. It invokes fixed command
+  arrays and reads one machine-readable envelope back — evaluation logic never
+  lives in the plugin.
+- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the
+  read-only website at techtree.sh: the pinned installation guide, the campaign
+  catalog, the published protocol objects, and the docs. It serves
+  content-addressed release records over GET only and never receives anything.
+
 The evaluation engine, the agent host, and the container the subject runs in
 are each pinned to an exact version, and the release is only as reproducible as
 those pins. Those are the seams of the stack, and they are worth knowing about
