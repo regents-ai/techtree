@@ -90,3 +90,68 @@ Raw episodes, transcripts, participant display names, accounts, sorting
 by score, comparison between entries, reproduction attestations, and
 bundle download. `/proofs/<digest>` download and reproduction
 attestations remain techtree-python-8j2.9, for v0.2.
+
+## Founder additions, 2026-08-27
+
+Three, taken after the draft above.
+
+### The offer at the end of a run
+
+A finished, verified result offers publishing as one of its next actions,
+the way every other step in this product is offered: Techtree emits it,
+the host agent reads it, and a person answers. It carries
+`requires_user_confirmation`, so the agent asks rather than acts.
+
+The agent may then run the command on the person's behalf, through the
+same surface `climb start` already uses — `--yes --reviewed-on
+host-agent` records that the approval was given in the conversation. That
+path is built and trodden and there is no reason to invent a second one.
+
+The plugin's own guarantee is unchanged and must stay exactly as precise
+as it is: no plugin module can open a network connection. The CLI it
+invokes can, and only after a person has said yes. Copy that blurs those
+two is a copy defect.
+
+### The packet the server returns
+
+A **publication receipt**, signed by the network. It carries the log
+sequence, the bundle digest, when it was accepted, which checks ran and
+which passed, and the address the entry now lives at.
+
+The participant signed their run; the network countersigns that it
+accepted it. That symmetry is worth having on its own, and it is what a
+future reward could be required to present. It means the site holds a
+key of its own and publishes the public half at a stable address, so a
+receipt can be checked by anyone, including by somebody who does not
+trust us.
+
+The CLI writes the receipt into the run directory as a new file. A
+completed run's existing files are never modified; this is an addition,
+which is what append-only permits.
+
+### A voluntarily shared EVM address
+
+Asked for once, at publish time, optional, defaulting to no.
+
+**It is never public.** It is not on the feed, not on the detail page,
+not in any endpoint's response, and not in the submitted bundle. It is
+stored apart from the submission, keyed by the executor key, and the
+public log is unchanged by whether one was given.
+
+**It is recorded as unverified, because it is.** A string somebody typed
+is not proof of control of an account. The stored field says so in its
+name. When signing for an EVM address or an ENS name arrives, that is a
+different and verified kind alongside this one, not a repair of it.
+
+**Nothing may be promised for it.** The internal intention is to be able
+to reward participants later. That intention is not a commitment, and
+copy which implies somebody will receive something of value in return
+for an address is a promise this project cannot keep and should not
+make. The wording says what is true: an address can be left, it is kept
+for the possibility of recognising contributors later, and nothing is
+being offered in exchange today. This is a hard boundary and belongs in
+the copy guards with the others.
+
+A person can ask for the address to be removed, and removal means
+removal — it is not part of the append-only evidence, it is a detail
+somebody volunteered about themselves.
