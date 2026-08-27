@@ -244,8 +244,9 @@ src/techtree/
 │                       copying deeply and deciding nothing; compare.py proves the
 │                       two differ only at /agents/subject/harness/skills.
 ├── skills/             policy.py (what a Skill may be), scanner.py (refuses rather
-│                       than repairs: symlinks, hidden files, binaries, credential
-│                       shapes), archive.py (deterministic tar and a safe extractor),
+│                       than repairs, and only on shape: symlinks, hidden files,
+│                       binaries, size — never on what the Skill says),
+│                       archive.py (deterministic tar and a safe extractor),
 │                       service.py (directory → prepared submission, in an order
 │                       where nothing lands until every check passed),
 │                       starter.py (obtain the release's starter Skill and prove it).
@@ -304,8 +305,8 @@ src/techtree/
 │                       checking those files against the fingerprints the signed
 │                       record already committed — a file that is missing or altered
 │                       yields no number rather than a zero), sanitize.py (enforces
-│                       that no hidden answer, grader source, credential or private
-│                       path can appear).
+│                       that no hidden answer, grader source, control sequence or
+│                       private path can appear).
 │                       Everything the screen adds beyond the signed report — the
 │                       derived cost, the turn counts, the rate-limit tally — is
 │                       computed at render time. The signed report, the receipts and
@@ -473,7 +474,7 @@ constants.py         Frozen values. CLI_COMMAND ("techtree"), CLI_JSON_FLAGS
 bridge.py            THE only path into Techtree. argv arrays with shell=False, the
                      executable resolved by that one name on PATH, machine flags added
                      exactly once by the bridge, bounded output, exactly one valid JSON
-                     envelope accepted, envelope returned unchanged, stderr scrubbed.
+                     envelope accepted, envelope returned unchanged, stderr bounded.
                      `techtree --version` is deliberately not bridged (it is not an
                      envelope); release facts come from `release info`.
 models.py            Local models and deliberately unforgiving parsers: unknown schema
@@ -516,8 +517,9 @@ hooks.py             on_session_start and on_session_end. Local bookkeeping only
 state.py             What a conversation remembers: identifiers, digests, labels and
                      local proof paths. In memory, for the session. Never a key, never
                      Skill text, never anything from inside a run.
-errors.py            Plugin-local error codes and secret scrubbing. Techtree's own error
-                     taxonomy is preserved as-is rather than restated.
+errors.py            Plugin-local error codes. Techtree's own error taxonomy is
+                     preserved as-is rather than restated, and borrowed text is
+                     repeated word for word (decision 0036).
 doctor.py            The plugin's own read-only doctor: is this build sound, and is the
                      CLI present? Blocking vs warning; a missing CLI is a warning.
 services/
@@ -788,9 +790,9 @@ characters (one). Every one is a consequence of how the plugin works, so the
 answer is to explain them rather than to hide them: `/start` and the plugin's
 README name all five, and the person confirms the install after reading them.
 The installable tree carries no adversarial test fixture, which is why its
-tests live in `techtree-python` — a scanner that reads a synthetic private key
-written to prove a scrubber works cannot tell it from a real one, and verdicts
-it as dangerous.
+tests live in `techtree-python` — a scanner that reads a synthetic attack
+string written to prove a guard works cannot tell it from a real one, and
+verdicts it as dangerous.
 
 ### 4.4 What one comparison actually does
 
@@ -843,11 +845,11 @@ sequenceDiagram
     participant F as plugin state dir
 
     C->>P: uplift context (sanitized, digest-pinned)
-    Note over C: built by subtraction from the SIGNED record.<br/>No expected answer, grader source, credential,<br/>private path, or subject reply.
+    Note over C: built by subtraction from the SIGNED record.<br/>No expected answer, grader source,<br/>private path, or subject reply.
     P->>P: refuse the context if anything excluded is present
     P->>M: exactly ONE structured completion<br/>(skill-improver + verified Skill text + schema)
     M-->>P: one proposed SKILL.md
-    P->>P: guards: deny-list, size, secret shapes
+    P->>P: guards: deny-list, size, structure
     P->>F: write 0600 under 0700
     P->>C: uplift prepare --candidate-skill PATH
     C->>C: Techtree's own scanner, snapshot, digest, draft
@@ -917,7 +919,7 @@ graph LR
 | The Skill is the only difference | `manifests/compare.py` (declared) and `receipts/compare.py` (observed) |
 | The model never approves its own action | CLI `y`/`--yes`, Hermes's native surface, one `run.approved` event with an `actor` |
 | Nothing uploads | `verifiers/config.py` `push: Literal[False]`; no ingest route in ash; `tools/network_method_probe.py` |
-| No secret in any output | `errors.sanitize_details`, `verifiers/credentials.py`, `presentation/sanitize.py`, plugin `errors.scrub_text` |
+| No credential reaches a subprocess that has no business holding it | `verifiers/credentials.py`, `runs/launcher.py` and plugin `constants.CLI_ENVIRONMENT_ALLOWLIST` — allow-lists of variable *names*, never pattern matching. Decision 0036: Techtree does no secret-shaped-string detection, so an error message carries whatever the underlying tool printed |
 | Detached worker gets a small environment | `runs/launcher.py` allow-list — never loosen it |
 | Host agent gets a small environment | plugin `constants.CLI_ENVIRONMENT_ALLOWLIST` — the same ten names |
 | A displayed command is never executed | `cli/output.py` `shell_display` is display-only; `NextAction.cli` is an argv array |

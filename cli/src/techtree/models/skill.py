@@ -33,7 +33,6 @@ from techtree.models.campaign import ProgramRef, PublicContext
 __all__ = [
     "SKILL_ENTRY_FILE",
     "PolicyAcceptanceRequirement",
-    "SecretFinding",
     "SkillArtifact",
     "SkillFile",
     "SubmissionDraft",
@@ -70,15 +69,6 @@ class SkillFile(ProtocolModel):
         """Reject anything that is not a normalized relative POSIX path."""
         _check_relative_posix_path(self.path)
         return self
-
-
-class SecretFinding(ProtocolModel):
-    """Something the scanner found that looks like a credential."""
-
-    path: NonEmptyString
-    rule_id: NonEmptyString
-    line: int | None = Field(default=None, ge=1)
-    severity: Literal["warning", "blocking"]
 
 
 class SkillArtifact(ProtocolModel):

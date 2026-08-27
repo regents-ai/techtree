@@ -32,11 +32,15 @@ because it is the typed seat a later release can fill once something in the
 protocol can say which rewards make a reply safe to show; in this build it is
 always ``None`` and ``prohibited_material`` says so.
 
-*Nothing local leaks.* No filesystem path, no environment value, no credential,
-and no provider detail has a field to enter through, and every free-text field
-is run through the same sanitizer a rendering uses. A task is named by its
-position and its committed hash, which is the identifier the TasksetLock
-already commits to in public.
+*Nothing local leaks.* No filesystem path, no environment value, and no
+provider detail has a field to enter through, and every free-text field is
+checked for control sequences and absolute paths the same way a rendering is.
+A task is named by its position and its committed hash, which is the
+identifier the TasksetLock already commits to in public.
+
+One thing is not checked, by decision 0036: nothing here looks at a string and
+decides it is credential-shaped. An error summary carries whatever the engine
+printed, and ``prohibited_material`` no longer claims otherwise.
 
 The context is not signed, is not proof, and is not uploaded.
 """
@@ -59,7 +63,6 @@ from techtree.models.uplift_report import (
 )
 from techtree.presentation.sanitize import (
     ensure_no_control_or_local_path,
-    ensure_no_secret_patterns,
     sanitize_label,
 )
 
@@ -125,7 +128,7 @@ REVISION_CONSTRAINTS: Final[tuple[str, ...]] = (
     "The revision must not encode answers to specific tasks. It is measured on "
     "the same committed tasks, and a Skill that memorizes them measures nothing.",
     "The revision must not contain credentials, keys, tokens, or absolute local "
-    "paths. The scanner refuses a Skill that does.",
+    "paths. Nothing checks for them, so writing one in puts it in the record.",
     "The revision must differ from the Skill it replaces. An identical tree "
     "would compare a Skill against itself.",
 )
@@ -137,7 +140,6 @@ PROHIBITED_MATERIAL: Final[tuple[str, ...]] = (
     "hidden grader material",
     "sealed task content",
     "subject final replies",
-    "provider secrets and credentials",
     "private environment values",
     "unredacted local filesystem paths",
 )
@@ -516,12 +518,11 @@ def _free_text(context: SkillImprovementContext) -> list[tuple[str, str]]:
 def _forbid(label: str, value: str) -> None:
     """Refuse one string that carries material a context may not carry.
 
-    Refusing rather than quietly redacting is the same rule spec section 7.17
-    applies to a rendering, for the same reason: a context that swallowed a
-    leaked key would hide the fact that one reached this far.
+    Refusing rather than quietly editing is the same rule spec section 7.17
+    applies to a rendering, for the same reason: a context that swallowed
+    somebody's home directory would hide the fact that one reached this far.
     """
     try:
-        ensure_no_secret_patterns(value)
         ensure_no_control_or_local_path(value, field=label)
     except ValidationError as error:
         raise ValidationError(

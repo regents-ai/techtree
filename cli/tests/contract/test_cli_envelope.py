@@ -259,18 +259,21 @@ def test_a_registered_but_unbuilt_command_says_so_in_a_stable_way() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_a_secret_in_an_error_message_never_reaches_the_envelope(
+def test_a_failure_message_reaches_the_envelope_word_for_word(
     context: CliContext, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """Decision 0036: nothing between the raise and the envelope edits it."""
+
     def fail() -> CommandResult[None]:
-        raise ValidationError("rejected api_key=sk-live-abcdefghijklmnopqrstuvwxyz")
+        raise ValidationError("rejected by the index at pypi.corp.example/simple")
 
     with pytest.raises(typer.Exit):
         invoke_command(context, "climb start", fail)
 
-    rendered = json.dumps(emitted(capsys))
-    assert "sk-live-abcdefghijklmnopqrstuvwxyz" not in rendered
-    assert "[redacted]" in rendered
+    envelope = emitted(capsys)
+    assert envelope["error"]["message"] == (
+        "rejected by the index at pypi.corp.example/simple"
+    )
 
 
 def test_json_output_is_one_line_of_canonical_json(

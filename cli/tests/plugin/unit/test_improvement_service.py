@@ -298,13 +298,6 @@ def test_a_context_carrying_a_subject_reply_is_refused() -> None:
     assert raised.value.code == "improvement_context_forbidden_material"
 
 
-def test_a_context_carrying_a_credential_is_refused() -> None:
-    with pytest.raises(PluginError, match="credential"):
-        validate_context(
-            _context(objective="Use OPENAI_API_KEY=sk-live-abcdefghijklmnop")
-        )
-
-
 def test_a_context_carrying_a_private_path_is_refused() -> None:
     with pytest.raises(PluginError, match="private path"):
         validate_context(
@@ -360,18 +353,6 @@ def test_a_skill_that_does_not_match_the_context_is_refused(
     service = _service(bridge)
 
     with pytest.raises(PluginError, match="not the one this context pins"):
-        service.load_source_skill(service.get_context(RUN_ID))
-
-
-def test_a_skill_carrying_a_credential_is_never_read_out() -> None:
-    bridge = FakeBridge(
-        skill_source=_skill_source(
-            entrypoint_text=SKILL_TEXT + "\nOPENAI_API_KEY=sk-live-abcdefghijklmnop\n"
-        )
-    )
-    service = _service(bridge)
-
-    with pytest.raises(PluginError, match="credential"):
         service.load_source_skill(service.get_context(RUN_ID))
 
 

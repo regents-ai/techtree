@@ -9,9 +9,9 @@ rules follow, and both are tested here against a real run's real log.
 that asks for something outside them is told so rather than quietly given
 something else.
 
-*It is scrubbed.* Anything that looks like a credential is redacted on the way
-out, and the identifiers an operator actually needs — run identifiers, digests,
-task hashes — survive.
+*It is repeated word for word.* Decision 0036: nothing between the file and
+the reader edits a line, so what an operator reads is what the worker wrote —
+run identifiers, digests and task hashes included.
 
 The response never carries the log's path. Handing a host agent a filename is
 handing it an invitation to read something that is not this run's log.
@@ -126,42 +126,20 @@ def test_the_default_tail_is_two_hundred(
 
 
 # ---------------------------------------------------------------------------
-# Scrubbing
+# What a reader gets back
 # ---------------------------------------------------------------------------
 
 
-def test_a_bearer_token_never_reaches_the_reader(
+def test_a_line_is_returned_exactly_as_the_worker_wrote_it(
     finished: FinishedRun,
 ) -> None:
     home, paths, run_id = finished
-    _append(
-        paths,
-        run_id,
-        "calling out\nAuthorization: Bearer sk-live-abcdefghijklmnopqrstuvwx\n",
-    )
-
-    lines = run_cli(home, "run", "logs", run_id, "--tail", "5").data()["lines"]
-
-    joined = "\n".join(lines)
-    assert "sk-live-abcdefghijklmnopqrstuvwx" not in joined
-    assert "[redacted]" in joined
-
-
-def test_a_quoted_json_key_never_reaches_the_reader(
-    finished: FinishedRun,
-) -> None:
-    home, paths, run_id = finished
-    _append(
-        paths,
-        run_id,
-        '{"api_key": "sk-live-9876543210fedcba", "model_id": "development"}\n',
-    )
+    written = '{"model_id": "development", "index": "https://pypi.corp.example"}'
+    _append(paths, run_id, f"{written}\n")
 
     line = run_cli(home, "run", "logs", run_id, "--tail", "1").data()["lines"][0]
 
-    assert "sk-live-9876543210fedcba" not in line
-    assert "[redacted]" in line
-    assert "development" in line
+    assert line == written
 
 
 def test_the_identifiers_an_operator_needs_survive(

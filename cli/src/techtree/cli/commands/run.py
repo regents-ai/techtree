@@ -509,7 +509,7 @@ def _follow_log(
 
 
 def _new_log_lines(service: RunService, run_id: str) -> Iterator[str]:
-    """Yield each new log line, scrubbed, until the run ends."""
+    """Yield each new log line until the run ends."""
     path = service.worker_log_path(run_id)
     position = path.stat().st_size if path.exists() else 0
 
@@ -519,8 +519,7 @@ def _new_log_lines(service: RunService, run_id: str) -> Iterator[str]:
                 handle.seek(position)
                 fresh = handle.read()
                 position = handle.tell()
-            for line in fresh.splitlines():
-                yield service.scrub(line)
+            yield from fresh.splitlines()
         if is_terminal(service.status(run_id).state.phase):
             return
         time.sleep(_FOLLOW_INTERVAL_SECONDS)

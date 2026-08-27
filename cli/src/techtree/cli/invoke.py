@@ -45,7 +45,7 @@ from techtree.errors import (
     TechtreeError,
     error_to_cli_error,
     exit_code_for,
-    sanitize_exception_message,
+    stable_exception_message,
 )
 from techtree.models.cli import MAX_NEXT_ACTIONS, CliEnvelope, CliMessage, NextAction
 
@@ -205,7 +205,7 @@ def not_implemented_error(command: str) -> TechtreeError:
 
 def _internal(error: Exception) -> TechtreeError:
     return TechtreeError(
-        sanitize_exception_message(error),
+        stable_exception_message(error),
         code="internal_error",
         details={"exception_type": type(error).__name__},
     )

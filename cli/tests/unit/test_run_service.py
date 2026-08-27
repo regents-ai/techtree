@@ -453,44 +453,16 @@ def test_a_run_that_has_written_no_log_says_so(harness: RunHarness) -> None:
     assert raised.value.retryable is True
 
 
-def test_a_bearer_token_in_the_log_is_scrubbed(harness: RunHarness) -> None:
-    run_id = harness.start().state.run_id
-    _write_log(
-        harness,
-        run_id,
-        "GET /v1/x\nAuthorization: Bearer sk-live-abcdefghijklmnopqrstuvwxyz\n",
-    )
-
-    logs = harness.service.logs(run_id)
-
-    assert "sk-live-abcdefghijklmnopqrstuvwxyz" not in "\n".join(logs.lines)
-    assert "[redacted]" in "\n".join(logs.lines)
-
-
-def test_a_quoted_json_key_in_the_log_is_scrubbed(harness: RunHarness) -> None:
-    run_id = harness.start().state.run_id
-    _write_log(
-        harness,
-        run_id,
-        '{"api_key": "sk-live-0123456789abcdef", "model_id": "development"}\n',
-    )
-
-    line = harness.service.logs(run_id).lines[0]
-
-    assert "sk-live-0123456789abcdef" not in line
-    assert "[redacted]" in line
-    assert "development" in line
-
-
-def test_scrubbing_leaves_useful_diagnostics_alone(harness: RunHarness) -> None:
+def test_a_log_line_is_read_back_exactly_as_it_was_written(
+    harness: RunHarness,
+) -> None:
+    """Decision 0036: the log is a record, and a record is not edited."""
     run_id = harness.start().state.run_id
     digest = f"sha256:{'a' * 64}"
-    _write_log(harness, run_id, f"staged inputs for {run_id} at {digest}\n")
+    written = f'staged inputs for {run_id} at {digest}: {{"model_id": "development"}}'
+    _write_log(harness, run_id, f"{written}\n")
 
-    line = harness.service.logs(run_id).lines[0]
-
-    assert run_id in line
-    assert digest in line
+    assert harness.service.logs(run_id).lines == [written]
 
 
 # ---------------------------------------------------------------------------
@@ -662,24 +634,21 @@ def test_the_worker_records_a_controlled_failure_and_maps_its_code(
     assert state.error.code == "taskset_validation_invalid"
 
 
-def test_an_unexpected_failure_becomes_a_scrubbed_internal_error(
+def test_an_unexpected_failure_becomes_a_stable_internal_error(
     harness: RunHarness,
 ) -> None:
-    """Spec §8.10: no raw traceback, and no secret, reaches RunState.error."""
+    """Spec §8.10: no raw traceback reaches RunState.error, and no address."""
     run_id = harness.start().state.run_id
-    leaky = RuntimeError(
-        'boom while calling api_key="sk-live-0123456789abcdef" at 0x7fabcdef1234'
-    )
+    unexpected = RuntimeError("boom while calling the model at 0x7fabcdef1234")
 
-    code = _run_worker(harness, run_id, BreakingExecutor(leaky))
+    code = _run_worker(harness, run_id, BreakingExecutor(unexpected))
 
     state = harness.run_store.state(run_id)
     assert code == EXIT_UNEXPECTED
     assert state.phase is RunPhase.FAILED
     assert state.error is not None
     assert state.error.code == "internal_error"
-    assert "sk-live-0123456789abcdef" not in state.error.message
-    assert "[redacted]" in state.error.message
+    assert state.error.message == "boom while calling the model at 0x<address>"
     assert "Traceback" not in state.error.message
 
 

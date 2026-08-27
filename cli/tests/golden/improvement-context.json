@@ -4,7 +4,7 @@
     "The revision is an instruction Skill: Markdown and plain text files, with SKILL.md as its entry point.",
     "The revision changes only the Skill's own files. Nothing else about the experiment may differ, and nothing else will be allowed to.",
     "The revision must not encode answers to specific tasks. It is measured on the same committed tasks, and a Skill that memorizes them measures nothing.",
-    "The revision must not contain credentials, keys, tokens, or absolute local paths. The scanner refuses a Skill that does.",
+    "The revision must not contain credentials, keys, tokens, or absolute local paths. Nothing checks for them, so writing one in puts it in the record.",
     "The revision must differ from the Skill it replaces. An identical tree would compare a Skill against itself."
   ],
   "current_result": {
@@ -275,7 +275,6 @@
     "hidden grader material",
     "sealed task content",
     "subject final replies",
-    "provider secrets and credentials",
     "private environment values",
     "unredacted local filesystem paths"
   ],

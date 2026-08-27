@@ -55,7 +55,6 @@ from techtree.skills.service import PreparedDraft
 
 pytestmark = pytest.mark.integration
 
-INVALID_SECRET = SKILL_FIXTURES / "invalid-secret"
 INVALID_SYMLINK = SKILL_FIXTURES / "invalid-symlink"
 
 
@@ -259,23 +258,6 @@ def test_preparing_opens_no_socket_and_starts_no_process(
 # ---------------------------------------------------------------------------
 
 
-def test_a_skill_holding_a_credential_leaves_no_draft(
-    temp_techtree_home: Path,
-) -> None:
-    paths = paths_from_root(temp_techtree_home)
-    service, _ = preparation_service(paths)
-
-    with pytest.raises(ValidationError) as caught:
-        service.prepare(
-            climb_reference="synthetic-development",
-            skill_path=INVALID_SECRET,
-            candidate_label="leaky",
-        )
-
-    assert caught.value.code == "skill_secret_detected"
-    assert_no_draft(paths.drafts_dir)
-
-
 def test_a_skill_containing_a_symlink_leaves_no_draft(
     temp_techtree_home: Path,
 ) -> None:
@@ -292,27 +274,6 @@ def test_a_skill_containing_a_symlink_leaves_no_draft(
     assert caught.value.code == "skill_invalid"
     assert "symlink" in caught.value.message
     assert_no_draft(paths.drafts_dir)
-
-
-def test_no_refusal_repeats_the_credential_it_found(
-    temp_techtree_home: Path,
-) -> None:
-    paths = paths_from_root(temp_techtree_home)
-    service, _ = preparation_service(paths)
-    secret_body = (INVALID_SECRET / "notes.md").read_text("utf-8")
-
-    with pytest.raises(ValidationError) as caught:
-        service.prepare(
-            climb_reference="synthetic-development",
-            skill_path=INVALID_SECRET,
-            candidate_label="leaky",
-        )
-
-    reported = f"{caught.value.message} {json.dumps(caught.value.details)}"
-    for line in secret_body.splitlines():
-        stripped = line.strip()
-        if len(stripped) > 24:
-            assert stripped not in reported
 
 
 def test_a_label_that_is_not_a_name_is_refused(temp_techtree_home: Path) -> None:
@@ -505,11 +466,11 @@ def test_a_refused_preparation_reports_a_stable_code(cli_home: Path) -> None:
             "prepare",
             "synthetic-development",
             "--skill",
-            str(INVALID_SECRET),
+            str(INVALID_SYMLINK),
         ],
     )
 
     assert result.exit_code == EXIT_VALIDATION
     envelope = json.loads(result.stdout.splitlines()[-1])
     assert envelope["ok"] is False
-    assert envelope["error"]["code"] == "skill_secret_detected"
+    assert envelope["error"]["code"] == "skill_invalid"

@@ -226,17 +226,18 @@ understand, so it produces a proper envelope: `ok: false`, error code
 
 ## Redaction
 
-No envelope carries a secret. Specifically:
+No field Techtree fills carries a secret. Specifically:
 
-- No provider credential, API key, token, or password, in any field.
+- No provider credential, API key, token, or password, in any field Techtree
+  authors.
 - A subject's credential is named by an environment variable in the Campaign;
   the value is read at execution time and never copied into settings, a run
   directory, an envelope, or any protocol document.
-- Error messages pass through a scrubber on their way out. Anything shaped like
-  a secret assignment, a bearer value, a prefixed key, or a long opaque run is
-  replaced with `[redacted]`.
-- Digests and Verifiers task hashes survive redaction. They are identifiers an
-  operator needs to see, and they are not secrets.
+- An error message is not filtered. Decision 0036: nothing inspects a string
+  for credential shapes, so a message carries whatever the underlying tool
+  printed, word for word — including a credential, if the tool printed one.
+  What is still done to a message is flattening it onto one line and
+  normalising memory addresses so the same failure reads the same way twice.
 - Tracebacks are never part of the contract. Under `--debug` they go to stderr.
 
 ## How a host agent calls the CLI

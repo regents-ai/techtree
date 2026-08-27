@@ -1,20 +1,18 @@
-"""Skill policy, validation, and secret scanning. Spec sections 15.1 and 15.2.
+"""Skill policy and validation. Spec sections 15.1 and 15.2.
 
 The scanner is the boundary between a participant's working directory and an
 immutable scientific input, so these tests are written from the position that
 the directory is hostile until proven otherwise. Section 26 WP2 names the cases
 that have to fail — symlinks, devices, hidden files, oversized and overlarge
-skills, binary payloads, and credentials — and each of them appears here with
-the specific reason it is refused.
+skills, and binary payloads — and each of them appears here with the specific
+reason it is refused.
 
-Two properties are checked repeatedly and deliberately:
+Every case is about a file's shape. Decision 0036 removed the rules that read
+the words, so what a Skill *says* is never a reason to refuse it, and there is
+no test here asserting otherwise.
 
-* A refusal is a typed :class:`~techtree.errors.ValidationError` that says what
-  to fix.
-* No refusal, and no finding, ever repeats the text that triggered it.
-
-Every credential-shaped string in this file and in the fixtures is the letter
-``x`` with the word ``FAKE`` spelled inside it.
+One property is checked repeatedly and deliberately: a refusal is a typed
+:class:`~techtree.errors.ValidationError` that says what to fix.
 """
 
 from __future__ import annotations
@@ -36,7 +34,6 @@ from techtree.skills.scanner import (
     enumerate_files,
     media_type_for,
     resolve_skill_root,
-    scan_file_for_secrets,
     scan_skill,
     validate_file,
 )
@@ -44,12 +41,7 @@ from techtree.skills.scanner import (
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "skills"
 VALID = FIXTURES / "valid-procedure"
 INVALID_BINARY = FIXTURES / "invalid-binary"
-INVALID_SECRET = FIXTURES / "invalid-secret"
 INVALID_SYMLINK = FIXTURES / "invalid-symlink"
-
-#: The body of the fake private key in ``invalid-secret/notes.md``. Findings and
-#: error text are asserted never to contain it.
-FAKE_KEY_BODY = "xxxxxxxxxxFAKExxxxxxxxxxNOTxxxxxxxxxxAxxxxxxxxxxKEYxxxxxxxxxx"
 
 
 @pytest.fixture
@@ -188,7 +180,7 @@ def test_enumeration_does_not_descend_into_a_symlinked_directory(
 # ---------------------------------------------------------------------------
 
 
-def test_a_clean_skill_scans_with_sorted_files_and_no_findings(
+def test_a_clean_skill_scans_with_sorted_files(
     policy: SkillPolicy,
 ) -> None:
     result = scan_skill(VALID, policy)
@@ -201,8 +193,6 @@ def test_a_clean_skill_scans_with_sorted_files_and_no_findings(
         "glossary.txt",
         "reference/notes.md",
     ]
-    assert result.secret_findings == []
-    assert result.warnings == []
 
 
 def test_scanned_files_carry_size_media_type_and_content_digest(
@@ -524,116 +514,6 @@ def test_a_permissive_policy_can_admit_hidden_files(tmp_path: Path) -> None:
         ".notes.md",
         "SKILL.md",
     ]
-
-
-# ---------------------------------------------------------------------------
-# Secret scanning
-# ---------------------------------------------------------------------------
-
-
-BLOCKING_SAMPLES = [
-    ("private_key_block", "-----BEGIN PRIVATE KEY-----"),
-    ("private_key_block", "-----BEGIN OPENSSH PRIVATE KEY-----"),
-    ("authorization_header", "Authorization: Bearer xxxxFAKExxxxTOKENxxxx"),
-    ("authorization_header", "authorization = Basic xxxxFAKExxxxBASICxxxx"),
-    ("provider_token_prefix", "use sk-xxxxxxxxFAKExxxxxxxx when calling out"),
-    ("provider_token_prefix", "ghp_xxxxxxxxxxxxxxxxxxxxFAKExxxx"),
-    ("provider_token_prefix", "xoxb-xxxxxxxxxxFAKExxxx"),
-    ("aws_access_key_id", "AKIAXXXXXXXXXXXXFAKE"),
-    ("aws_secret_assignment", "aws_secret_access_key = xxxxFAKExxxx"),
-]
-
-
-@pytest.mark.parametrize(("rule_id", "line"), BLOCKING_SAMPLES)
-def test_credential_shapes_are_blocking(
-    tmp_path: Path, rule_id: str, line: str
-) -> None:
-    path = write(tmp_path / "notes.md", f"# Notes\n\n{line}\n")
-
-    findings = scan_file_for_secrets(path)
-
-    blocking = [item for item in findings if item.severity == "blocking"]
-    assert [item.rule_id for item in blocking] == [rule_id]
-    assert blocking[0].line == 3
-
-
-CLEAN_SAMPLES = [
-    "Never paste an API key into a skill file.",
-    # A Skill is prose about a procedure, and the Hello World task family is
-    # about returning a token, so these are the sentences it is written in.
-    "The final output must contain only that token: no reasoning, arithmetic",
-    "Return exactly one token: nothing else.",
-    "Authorization headers are set by the runtime, not by you.",
-    "sha256:9f2c0b1d5e4a3f6b8c7d0e1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e",
-]
-
-
-@pytest.mark.parametrize("line", CLEAN_SAMPLES)
-def test_ordinary_documentation_is_not_a_finding(tmp_path: Path, line: str) -> None:
-    path = write(tmp_path / "notes.md", f"# Notes\n\n{line}\n")
-
-    assert scan_file_for_secrets(path) == []
-
-
-def test_an_opaque_run_is_a_warning_and_does_not_block(
-    tmp_path: Path, policy: SkillPolicy
-) -> None:
-    directory = skill_dir(tmp_path)
-    write(directory / "notes.md", "# Notes\n\nBuild id AAAAbbbb" + "Zz09" * 10 + "\n")
-
-    result = scan_skill(directory, policy)
-
-    assert [item.rule_id for item in result.secret_findings] == ["high_entropy_string"]
-    assert [item.severity for item in result.secret_findings] == ["warning"]
-    assert result.warnings and "notes.md:3" in result.warnings[0]
-
-
-def test_a_blocking_finding_stops_the_scan(policy: SkillPolicy) -> None:
-    with pytest.raises(ValidationError) as caught:
-        scan_skill(INVALID_SECRET, policy)
-
-    assert "credential" in caught.value.message
-    findings = caught.value.details["findings"]
-    assert isinstance(findings, list)
-    assert {"path": "notes.md", "rule_id": "private_key_block", "line": 7} in findings
-
-
-def test_no_refusal_repeats_the_text_that_triggered_it(policy: SkillPolicy) -> None:
-    with pytest.raises(ValidationError) as caught:
-        scan_skill(INVALID_SECRET, policy)
-
-    assert FAKE_KEY_BODY not in error_text(caught.value)
-    assert "BEGIN PRIVATE KEY" not in error_text(caught.value)
-
-
-def test_a_finding_carries_no_matched_text(tmp_path: Path) -> None:
-    path = write(tmp_path / "notes.md", "AKIAXXXXXXXXXXXXFAKE\n")
-
-    findings = scan_file_for_secrets(path)
-
-    assert findings
-    for finding in findings:
-        assert "FAKE" not in json.dumps(
-            {
-                "path": finding.path,
-                "rule_id": finding.rule_id,
-                "line": finding.line,
-                "severity": finding.severity,
-            }
-        )
-
-
-def test_findings_report_the_relative_path_not_the_participants_directory(
-    tmp_path: Path, policy: SkillPolicy
-) -> None:
-    directory = skill_dir(tmp_path)
-    write(directory / "reference" / "keys.md", "AKIAXXXXXXXXXXXXFAKE\n")
-
-    with pytest.raises(ValidationError) as caught:
-        scan_skill(directory, policy)
-
-    assert str(tmp_path) not in error_text(caught.value)
-    assert "reference/keys.md" in error_text(caught.value)
 
 
 # ---------------------------------------------------------------------------

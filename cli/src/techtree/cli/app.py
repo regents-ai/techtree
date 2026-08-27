@@ -77,7 +77,7 @@ from techtree.errors import (
     TechtreeError,
     UsageError,
     exit_code_for,
-    sanitize_exception_message,
+    stable_exception_message,
 )
 from techtree.version import package_version
 
@@ -253,7 +253,7 @@ def main() -> None:
     except Exception as unexpected:
         _last_resort(
             TechtreeError(
-                sanitize_exception_message(unexpected),
+                stable_exception_message(unexpected),
                 code="internal_error",
                 details={"exception_type": type(unexpected).__name__},
             )

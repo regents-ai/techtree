@@ -12,7 +12,6 @@ from pathlib import Path
 import pytest
 from founder_skill_contract import check_skill_improver, describe
 from techtree_hermes.constants import PLUGIN_ROOT
-from techtree_hermes.errors import contains_secret_material
 from techtree_hermes.services.improvement import envelope_conflicts
 
 NAME = "skill-improver"
@@ -35,10 +34,6 @@ def test_the_fixture_says_plainly_that_it_is_not_the_founder_skill() -> None:
     assert "FIXTURE" in text
     assert "not the founder" in text.lower()
     assert BUNDLED.read_text("utf-8") != text, "the fixture was shipped as the Skill"
-
-
-def test_the_fixture_carries_no_credential() -> None:
-    assert not contains_secret_material(FIXTURE.read_text("utf-8"))
 
 
 @pytest.mark.parametrize(

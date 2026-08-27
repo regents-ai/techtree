@@ -337,26 +337,6 @@ def test_no_sealed_task_content_reaches_the_context(
     assert "BRANCH-" not in rendered
 
 
-def test_no_provider_secret_reaches_the_context(
-    pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
-) -> None:
-    """A value that looks like a credential stops the context being produced."""
-    with pytest.raises(ValidationError) as raised:
-        build(
-            pair,
-            receipts,
-            report,
-            task_public_projection=lambda *, task_hash, position: TaskPublicProjection(
-                task_label=f"task {position}",
-                public_prompt="use sk-live-0123456789abcdefghijklmnopqrstuvwxyz",
-            ),
-        )
-
-    assert raised.value.code == "improvement_context_forbidden_material"
-
-
 def test_no_private_environment_value_reaches_the_context(
     pair: RecordedPair,
     receipts: dict[VariantName, list[EpisodeReceipt]],

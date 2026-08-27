@@ -3,11 +3,11 @@
 Spec section 7.17.
 
 The evidence a run produces contains material that must not travel into a
-rendering. Some of it is obvious — a provider key in an error string, an
-absolute path naming somebody's home directory. Some of it is the whole point
-of the evaluation: the taskset's hidden expected answers and the grader that
-knows them. A presentation that leaked either would not be a cosmetic bug; it
-would be a contaminated benchmark.
+rendering. Some of it is obvious — an absolute path naming somebody's home
+directory. Some of it is the whole point of the evaluation: the taskset's
+hidden expected answers and the grader that knows them. A presentation that
+leaked either would not be a cosmetic bug; it would be a contaminated
+benchmark.
 
 So the rule here is that the payload's *shape* keeps hidden material out and
 these functions keep it out of the free text the shape still allows:
@@ -15,10 +15,13 @@ these functions keep it out of the free text the shape still allows:
 ```text
 may appear      task ordinal or public name, public prompt summary when the
                 policy allows it, score, delta
-never appears   hidden expected answer, grader source, provider key,
-                authorization header, absolute private path, a traceback
-                carrying environment values
+never appears   hidden expected answer, grader source, absolute private path,
+                a traceback carrying environment values
 ```
+
+Nothing here inspects a string for credential-shaped text. Decision 0036
+removed that from the whole project: a value's shape is not evidence of what
+it is, in either direction.
 
 One decision is worth stating because it was a decision and not an oversight.
 The engine's normalized output carries each rollout's *final reply* — what the
@@ -38,7 +41,7 @@ from typing import Final
 
 from pydantic import BaseModel
 
-from techtree.errors import ValidationError, sanitize_text
+from techtree.errors import ValidationError
 from techtree.presentation.models import UpliftPresentationPayload
 from techtree.verifiers.models import NormalizedExecutionError
 
@@ -46,7 +49,6 @@ __all__ = [
     "PRESENTATION_REDACTION_FAILED",
     "ensure_no_control_or_local_path",
     "ensure_no_hidden_task_material",
-    "ensure_no_secret_patterns",
     "sanitize_error_summary",
     "sanitize_label",
 ]
@@ -75,46 +77,29 @@ _ELLIPSIS: Final = "…"
 
 
 def sanitize_label(value: str, maximum: int = 120) -> str:
-    """Return one line of plain, bounded, secret-free text.
+    """Return one line of plain, bounded text.
 
     Applied to everything a person or another system supplied — a Climb title,
     a Skill name — because those are the fields that reach a rendering without
     having been through a protocol validator that cared what was in them.
+    Escape sequences and control characters go, whitespace is flattened, and
+    the result is truncated. The remaining words are left exactly as written.
     """
     flattened = _WHITESPACE_RUN.sub(" ", _CONTROL.sub(" ", _ANSI.sub("", value)))
-    scrubbed = sanitize_text(flattened).strip()
-    if len(scrubbed) <= maximum:
-        return scrubbed
-    return scrubbed[: maximum - 1].rstrip() + _ELLIPSIS
+    label = flattened.strip()
+    if len(label) <= maximum:
+        return label
+    return label[: maximum - 1].rstrip() + _ELLIPSIS
 
 
 def sanitize_error_summary(error: NormalizedExecutionError, maximum: int = 200) -> str:
-    """Summarize one recorded failure in one safe line.
+    """Summarize one recorded failure in one line.
 
-    The traceback is dropped rather than scrubbed. It is the field most likely
-    to carry an environment value, and its diagnostic worth is to somebody
-    reading the run directory, not to somebody reading a result.
+    The traceback is dropped rather than shortened. Its diagnostic worth is to
+    somebody reading the run directory, not to somebody reading a result.
     """
     summary = f"{error.type}: {error.message}" if error.message else error.type
     return sanitize_label(summary, maximum)
-
-
-def ensure_no_secret_patterns(value: str) -> None:
-    """Raise when a string carries something that looks like a credential.
-
-    The scrubber is the authority: if redacting the value would change it, the
-    value contains something that must not be shown. Raising rather than
-    quietly redacting is deliberate — a presentation that silently swallowed a
-    leaked key would hide the fact that one reached this far.
-    """
-    if sanitize_text(value) == value:
-        return
-    raise ValidationError(
-        "a value bound for a result rendering looks like a credential, so "
-        "nothing is rendered",
-        code=PRESENTATION_REDACTION_FAILED,
-        details={"length": len(value)},
-    )
 
 
 def ensure_no_control_or_local_path(value: str, *, field: str) -> None:
@@ -146,7 +131,6 @@ def ensure_no_hidden_task_material(payload: UpliftPresentationPayload) -> None:
     added later is covered the day it is added.
     """
     for path, value in _strings(payload, ""):
-        ensure_no_secret_patterns(value)
         ensure_no_control_or_local_path(value, field=path)
 
 

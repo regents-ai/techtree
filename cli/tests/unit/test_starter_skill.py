@@ -241,11 +241,11 @@ def test_a_skill_the_ordinary_policy_refuses_is_refused_here_too(
     temp_techtree_home: Path, service: StarterSkillService
 ) -> None:
     """There is no privileged path for a Skill because a release named it."""
-    secret_skill = SKILL_FIXTURES / "invalid-secret"
+    binary_skill = SKILL_FIXTURES / "invalid-binary"
 
     with pytest.raises(ValidationError) as raised:
         service.materialize(
-            release=release(tree_digest(secret_skill)), local_file=secret_skill
+            release=release(tree_digest(binary_skill)), local_file=binary_skill
         )
 
     assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED

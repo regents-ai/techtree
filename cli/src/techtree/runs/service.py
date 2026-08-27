@@ -58,7 +58,6 @@ from techtree.errors import (
     ValidationError,
     VerificationError,
     error_to_cli_error,
-    sanitize_text,
 )
 from techtree.ids import new_id
 from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
@@ -559,7 +558,7 @@ class RunService:
         )
 
     def _read_log(self, run_id: str, *, path: Path, tail: int, missing: str) -> RunLogs:
-        """Read the tail of one log file, scrubbing every line."""
+        """Read the tail of one log file, exactly as it was written."""
         if tail < MINIMUM_LOG_TAIL or tail > MAXIMUM_LOG_TAIL:
             raise UsageError(
                 f"--tail is between {MINIMUM_LOG_TAIL} and {MAXIMUM_LOG_TAIL} "
@@ -585,17 +584,9 @@ class RunService:
         lines = raw.splitlines()
         return RunLogs(
             run_id=run_id,
-            lines=[sanitize_text(line) for line in lines[-tail:]],
+            lines=lines[-tail:],
             truncated=len(lines) > tail,
         )
-
-    def scrub(self, line: str) -> str:
-        """Return one log line as it may be shown.
-
-        Exposed so that ``--follow`` sanitizes each line as it arrives through
-        exactly the same path a bounded read does.
-        """
-        return sanitize_text(line)
 
     def worker_log_path(self, run_id: str) -> Path:
         """Return the log file a follower reads.

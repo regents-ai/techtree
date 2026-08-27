@@ -227,13 +227,11 @@ def test_a_failing_command_returns_its_own_envelope(
 # Diagnostics ---------------------------------------------------------------------
 
 
-def test_stderr_is_scrubbed_of_bearer_tokens_and_quoted_keys(
+def test_stderr_is_repeated_word_for_word(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    noisy = (
-        "warning: Authorization: Bearer abc123DEF456ghi789 rejected; "
-        'config was {"api_key": "sk-live-abcdefghijklmnop"}'
-    )
+    """Decision 0036: what the CLI printed is what the diagnostic carries."""
+    noisy = "warning: the index at https://pypi.internal/simple refused the request"
     _fake_cli_printing(
         tmp_path,
         monkeypatch,
@@ -242,9 +240,7 @@ def test_stderr_is_scrubbed_of_bearer_tokens_and_quoted_keys(
 
     response = call_cli(["doctor"])
 
-    assert "abc123DEF456ghi789" not in response.stderr_excerpt
-    assert "sk-live-abcdefghijklmnop" not in response.stderr_excerpt
-    assert "redacted" in response.stderr_excerpt
+    assert response.stderr_excerpt == noisy
 
 
 def test_stderr_is_bounded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

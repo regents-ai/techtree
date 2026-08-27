@@ -95,7 +95,6 @@ __all__ = [
 _CLIMB_NOT_PREPARABLE: Final = "climb_not_preparable"
 _CANDIDATE_POLICY_VIOLATION: Final = "candidate_policy_violation"
 _SKILL_INVALID: Final = "skill_invalid"
-_SKILL_SECRET_DETECTED: Final = "skill_secret_detected"
 _SKILL_SNAPSHOT_FAILED: Final = "skill_snapshot_failed"
 _PUBLISHER_EVIDENCE_MISSING: Final = "publisher_validation_evidence_missing"
 
@@ -212,7 +211,7 @@ class SkillPreparationService:
                 candidate=candidate,
                 policy=self._build_policy_requirement(resolved.data_policy),
                 created_at=created_at,
-                warnings=self._warnings(resolved, scan),
+                warnings=self._warnings(resolved),
             )
             draft_digest = digest_object(draft)
 
@@ -307,7 +306,7 @@ class SkillPreparationService:
                 candidate=candidate,
                 policy=self._build_policy_requirement(data_policy),
                 created_at=created_at,
-                warnings=self._replacement_warnings(scan),
+                warnings=self._replacement_warnings(),
             )
             draft_digest = digest_object(draft)
 
@@ -420,12 +419,11 @@ class SkillPreparationService:
         try:
             return scan_skill(skill_path, self._policy)
         except ValidationError as error:
-            # The scanner already redacted anything secret-looking out of both
-            # the message and the details; only the code is added here.
-            secret = "findings" in error.details
+            # The scanner's own message and details are kept; only the code is
+            # added here, so a caller can branch on it.
             raise ValidationError(
                 error.message,
-                code=_SKILL_SECRET_DETECTED if secret else _SKILL_INVALID,
+                code=_SKILL_INVALID,
                 details=error.details,
             ) from error
 
@@ -572,7 +570,7 @@ class SkillPreparationService:
         selection = campaign.taskset.selection
         return selection.num_tasks * selection.num_rollouts * _VARIANTS
 
-    def _warnings(self, resolved: ResolvedClimb, scan: SkillScanResult) -> list[str]:
+    def _warnings(self, resolved: ResolvedClimb) -> list[str]:
         """Say everything a participant should know before confirming."""
         warnings: list[str] = []
 
@@ -608,10 +606,9 @@ class SkillPreparationService:
                 "Releasing the candidate skill publicly needs your separate consent."
             )
 
-        warnings.extend(scan.warnings)
         return warnings
 
-    def _replacement_warnings(self, scan: SkillScanResult) -> list[str]:
+    def _replacement_warnings(self) -> list[str]:
         """Say what a local Skill-against-Skill comparison is, and is not.
 
         None of the public warnings apply: there is no Climb to enter, nothing
@@ -636,7 +633,6 @@ class SkillPreparationService:
             "prepared from.",
             "Results are attested by this machine only. Nobody else has "
             "verified that this run happened as described.",
-            *scan.warnings,
         ]
 
 

@@ -249,29 +249,21 @@ def test_the_marker_says_which_engine_it_is_about(paths: TechtreePaths) -> None:
 
 
 # ---------------------------------------------------------------------------
-# What a failed uv step is allowed to quote back. WP11g S1.
+# What a failed uv step quotes back
 # ---------------------------------------------------------------------------
 #
 # Installation is the one step that runs a subprocess with the caller's own
 # environment, because uv needs their proxy, certificate and index settings to
-# reach a network they can reach. That makes uv's output the one text in this
-# package written by somebody else, and a private index URL carries its
-# credential inline. The excerpt is where that output becomes Techtree's, so
-# it is where the scrubbing has to happen.
-
-#: A private index, spelled the way uv reports one back.
-_INDEX_URL_WITH_TOKEN = "https://deploy:s3cr3t-p4ss@pypi.corp.example/simple"
+# reach a network they can reach. What uv printed is repeated word for word,
+# by decision 0036; the excerpt only decides how much of it to keep.
 
 
-def test_a_uv_excerpt_is_scrubbed_before_it_becomes_techtree_text() -> None:
+def test_a_uv_excerpt_repeats_what_uv_printed() -> None:
     excerpt = installer_excerpt(
-        f"  error: failed to fetch from {_INDEX_URL_WITH_TOKEN}\n"
+        "  error: failed to fetch from https://pypi.corp.example/simple\n"
     )
 
-    assert "s3cr3t-p4ss" not in excerpt
-    assert "deploy" not in excerpt
-    # The host survives, because which index refused them is the diagnosis.
-    assert "pypi.corp.example/simple" in excerpt
+    assert excerpt == "error: failed to fetch from https://pypi.corp.example/simple"
 
 
 def test_a_uv_excerpt_keeps_the_tail_where_the_reason_is() -> None:

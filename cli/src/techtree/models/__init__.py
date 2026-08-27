@@ -138,7 +138,6 @@ from techtree.models.run import (
 )
 from techtree.models.skill import (
     PolicyAcceptanceRequirement,
-    SecretFinding,
     SkillArtifact,
     SkillFile,
     SubmissionDraft,
@@ -253,7 +252,6 @@ __all__ = [
     "SamplingSpec",
     "ScoreStatus",
     "ScoringSpec",
-    "SecretFinding",
     "SignatureEnvelope",
     "SkillArtifact",
     "SkillFile",

@@ -143,14 +143,14 @@ def test_a_completion_that_wrote_nothing_says_so_in_its_own_words() -> None:
 # Typed failures ----------------------------------------------------------------
 
 
-def test_a_provider_failure_is_typed_and_scrubbed() -> None:
-    port = StubPort(error=RuntimeError("Bearer abc123DEF456ghi rejected"))
+def test_a_provider_failure_is_typed_and_quotes_the_provider() -> None:
+    port = StubPort(error=RuntimeError("the connection was reset"))
 
     with pytest.raises(HostLlmError) as raised:
         OneShotHostLlm(port).complete(_request())
 
     assert raised.value.code == "host_answer_never_arrived"
-    assert "abc123DEF456ghi" not in str(raised.value)
+    assert "the connection was reset" in str(raised.value)
 
 
 @pytest.mark.parametrize(

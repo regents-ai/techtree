@@ -5,42 +5,32 @@ what exactly is going to be snapshotted, and is any of it something we must
 refuse to copy?
 
 It refuses rather than repairs. A symlink is not resolved, a hidden file is not
-skipped, an oversized file is not truncated, and a file holding what looks like
-a credential is not stripped. Every one of those would produce a snapshot that
-differs from what the participant believes they submitted, and the snapshot is
-the scientific input to an experiment.
+skipped, and an oversized file is not truncated. Every one of those would
+produce a snapshot that differs from what the participant believes they
+submitted, and the snapshot is the scientific input to an experiment.
 
-Two rules govern secret handling and neither has an exception:
-
-* A finding names the rule, the file, and the line. It never carries the
-  matched text, and neither does the error raised for it, so nothing secret
-  reaches a log, an error envelope, or a support transcript.
-* A ``blocking`` finding stops the scan. Only ``warning`` findings are
-  returned, which is why :attr:`SkillScanResult.secret_findings` holds warnings
-  alone: anything blocking has already raised.
-
-The rules are deliberately conservative. They look for credential shapes that
-are hard to write by accident — key blocks, provider token prefixes, AWS keys,
-and an authorization header carrying a scheme and a value. A shape is what is
-matched, never a name: a Skill is prose about a procedure, and the words a
-procedure uses ("the final output must contain only that token: no reasoning")
-are not evidence of a credential.
+Every refusal here is about a file's *shape*: how big it is, how many there
+are, whether it is a regular file, whether it decodes as text. None of them
+reads the words. Decision 0036 removed the rules that did — a Skill is prose
+about a procedure, a procedure about security is prose about credentials, and
+refusing one on a regex blocked legitimate work in a product whose premise is
+that people bring their own Skills. What a Skill says is now the participant's
+business.
 """
 
 from __future__ import annotations
 
 import os
-import re
 import stat
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Final, Literal
+from typing import Final
 
 from techtree.canonical import sha256_digest_bytes
 from techtree.errors import NotFoundError, ValidationError
 from techtree.fs import realpath_within
-from techtree.models.base import Digest, JsonValue
-from techtree.models.skill import SKILL_ENTRY_FILE, SecretFinding
+from techtree.models.base import Digest
+from techtree.models.skill import SKILL_ENTRY_FILE
 from techtree.skills.policy import SkillPolicy
 
 __all__ = [
@@ -50,7 +40,6 @@ __all__ = [
     "enumerate_files",
     "media_type_for",
     "resolve_skill_root",
-    "scan_file_for_secrets",
     "scan_skill",
     "validate_file",
 ]
@@ -78,8 +67,6 @@ class SkillScanResult:
 
     root: Path
     files: list[ScannedFile]
-    secret_findings: list[SecretFinding] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -96,68 +83,6 @@ MEDIA_TYPES: Final[dict[str, str]] = {
     ".yaml": "application/yaml",
     ".yml": "application/yaml",
 }
-
-
-# ---------------------------------------------------------------------------
-# Secret rules
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class _SecretRule:
-    rule_id: str
-    pattern: re.Pattern[str]
-    severity: Literal["warning", "blocking"]
-
-
-_RULES: Final[tuple[_SecretRule, ...]] = (
-    _SecretRule(
-        rule_id="private_key_block",
-        pattern=re.compile(r"-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY(?: BLOCK)?-----"),
-        severity="blocking",
-    ),
-    _SecretRule(
-        rule_id="authorization_header",
-        pattern=re.compile(
-            r"(?i)\bauthorization\b\s*[:=]\s*[\"']?(?:bearer|basic|token)\s+\S+"
-        ),
-        severity="blocking",
-    ),
-    _SecretRule(
-        rule_id="provider_token_prefix",
-        pattern=re.compile(
-            r"\b(?:"
-            r"sk-[A-Za-z0-9_-]{16,}"
-            r"|(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{16,}"
-            r"|gh[pousr]_[A-Za-z0-9]{20,}"
-            r"|github_pat_[A-Za-z0-9_]{20,}"
-            r"|xox[abprs]-[A-Za-z0-9-]{10,}"
-            r"|glpat-[A-Za-z0-9_-]{16,}"
-            r"|AIza[A-Za-z0-9_-]{30,}"
-            r")\b"
-        ),
-        severity="blocking",
-    ),
-    _SecretRule(
-        rule_id="aws_access_key_id",
-        pattern=re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
-        severity="blocking",
-    ),
-    _SecretRule(
-        rule_id="aws_secret_assignment",
-        pattern=re.compile(
-            r"(?i)\baws_(?:secret_access_key|session_token)\b\s*[:=]\s*\S+"
-        ),
-        severity="blocking",
-    ),
-)
-
-#: A long unbroken run of key-ish characters. Digests, Verifiers task hashes,
-#: and hexadecimal fingerprints are exactly the identifiers a skill has a good
-#: reason to quote, so pure hexadecimal is excluded and the rest is a warning
-#: rather than a refusal.
-_OPAQUE_RUN = re.compile(r"(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+_-]{40,}={0,2}")
-_PURE_HEX = re.compile(r"[0-9a-fA-F]+")
 
 
 # ---------------------------------------------------------------------------
@@ -350,14 +275,8 @@ def media_type_for(path: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Secret scanning
+# Text decoding
 # ---------------------------------------------------------------------------
-
-
-def scan_file_for_secrets(path: Path) -> list[SecretFinding]:
-    """Find secret patterns without returning secret text."""
-    reported = str(path)
-    return _findings_for_text(_decode_text(path.read_bytes(), reported), reported)
 
 
 def _decode_text(data: bytes, reported_path: str) -> str:
@@ -376,48 +295,6 @@ def _decode_text(data: bytes, reported_path: str) -> str:
         ) from error
 
 
-def _findings_for_text(text: str, reported_path: str) -> list[SecretFinding]:
-    """Report at most one finding per line.
-
-    A credential usually matches several rules at once — an AWS secret is also
-    a secret assignment, and a key body is also an opaque run. One line, one
-    finding, named by the most specific rule that fired, is what a participant
-    can act on.
-    """
-    findings: list[SecretFinding] = []
-    for number, line in enumerate(text.splitlines(), start=1):
-        rule_id, severity = _classify_line(line)
-        if rule_id is None or severity is None:
-            continue
-        findings.append(
-            SecretFinding(
-                path=reported_path,
-                rule_id=rule_id,
-                line=number,
-                severity=severity,
-            )
-        )
-    return findings
-
-
-def _classify_line(
-    line: str,
-) -> tuple[str | None, Literal["warning", "blocking"] | None]:
-    """Return the most specific rule that fires on one line, if any."""
-    for rule in _RULES:
-        if rule.pattern.search(line):
-            return rule.rule_id, rule.severity
-    if _has_opaque_run(line):
-        return "high_entropy_string", "warning"
-    return None, None
-
-
-def _has_opaque_run(line: str) -> bool:
-    return any(
-        not _PURE_HEX.fullmatch(match.group(0)) for match in _OPAQUE_RUN.finditer(line)
-    )
-
-
 # ---------------------------------------------------------------------------
 # Whole-skill scan
 # ---------------------------------------------------------------------------
@@ -430,9 +307,8 @@ def scan_skill(
     """Perform complete validation and scanning.
 
     Raises :class:`~techtree.errors.ValidationError` for anything the policy
-    forbids and for any blocking secret finding. The findings attached to a
-    successful result are warnings, and the caller decides what to do with
-    them.
+    forbids: a shape the snapshot cannot carry, a size over the limit, or a
+    file that is not text.
     """
     root = resolve_skill_root(path)
     if root.is_symlink() and not policy.allow_symlinks:
@@ -450,7 +326,6 @@ def scan_skill(
         )
 
     files: list[ScannedFile] = []
-    findings: list[SecretFinding] = []
     total = 0
 
     for candidate in candidates:
@@ -467,8 +342,7 @@ def scan_skill(
                     "maximum_total_bytes": policy.maximum_total_bytes,
                 },
             )
-        reported = relative.as_posix()
-        findings.extend(_findings_for_text(_decode_text(data, reported), reported))
+        _decode_text(data, relative.as_posix())
         files.append(
             ScannedFile(
                 source_path=candidate,
@@ -481,13 +355,10 @@ def scan_skill(
 
     _require_entrypoint(files, root, policy)
     _reject_case_collisions(files)
-    _reject_blocking_findings(findings)
 
     return SkillScanResult(
         root=root,
         files=sorted(files, key=lambda item: item.relative_path.as_posix()),
-        secret_findings=findings,
-        warnings=_warnings_for(findings),
     )
 
 
@@ -521,30 +392,3 @@ def _reject_case_collisions(files: list[ScannedFile]) -> None:
                 details={"paths": [existing, posix]},
             )
         seen[folded] = posix
-
-
-def _reject_blocking_findings(findings: list[SecretFinding]) -> None:
-    blocking = [item for item in findings if item.severity == "blocking"]
-    if not blocking:
-        return
-    located: list[JsonValue] = [
-        {"path": item.path, "rule_id": item.rule_id, "line": item.line}
-        for item in blocking
-    ]
-    summary = ", ".join(
-        f"{item.path}:{item.line} ({item.rule_id})" for item in blocking
-    )
-    raise ValidationError(
-        "skill contains what looks like a credential and was not snapshotted; "
-        f"remove it and prepare again: {summary}",
-        details={"findings": located},
-    )
-
-
-def _warnings_for(findings: list[SecretFinding]) -> list[str]:
-    return [
-        f"{item.path}:{item.line} looks like an opaque credential "
-        f"({item.rule_id}); confirm it is not one before submitting"
-        for item in findings
-        if item.severity == "warning"
-    ]

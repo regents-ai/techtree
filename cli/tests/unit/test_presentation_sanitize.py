@@ -2,8 +2,9 @@
 
 The functions here are the last gate between a run's evidence and something a
 person or a gateway sees, so each test is a specific thing that must not get
-through: a credential, an escape sequence, a private path, a traceback carrying
-environment values.
+through: an escape sequence, a private path, a traceback carrying environment
+values. Credential-shaped text is deliberately not one of them — decision 0036
+removed every such check from this project.
 
 The payload walk is the part worth insisting on. It checks every string the
 payload holds rather than the fields somebody remembered to check, which is
@@ -14,7 +15,7 @@ from __future__ import annotations
 
 import pytest
 
-from techtree.errors import REDACTED, ValidationError
+from techtree.errors import ValidationError
 from techtree.models.cli import NextAction
 from techtree.presentation.models import (
     PRESENTATION_SCHEMA_VERSION,
@@ -26,7 +27,6 @@ from techtree.presentation.models import (
 from techtree.presentation.sanitize import (
     PRESENTATION_REDACTION_FAILED,
     ensure_no_hidden_task_material,
-    ensure_no_secret_patterns,
     sanitize_error_summary,
     sanitize_label,
 )
@@ -132,10 +132,6 @@ def test_a_label_keeps_ordinary_text_unchanged() -> None:
     assert sanitize_label("Techtree Hello World") == "Techtree Hello World"
 
 
-def test_a_label_redacts_something_that_looks_like_a_key() -> None:
-    assert REDACTED in sanitize_label("api_key=sk-abcdefghijklmnopqrstuvwxyz012345")
-
-
 def test_an_error_summary_drops_the_traceback() -> None:
     summary = sanitize_error_summary(
         NormalizedExecutionError(
@@ -156,42 +152,6 @@ def test_an_error_summary_is_bounded_and_flat() -> None:
 
     assert len(summary) <= 40
     assert "\n" not in summary
-
-
-# ---------------------------------------------------------------------------
-# Secrets
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "TECHTREE_MODEL_API_KEY=sk-1234567890abcdefghij",
-        "Authorization: Bearer abcdefghijklmnop",
-        # Long enough to be a password rather than the next word of a
-        # sentence, which is the line the scrubber draws on an unquoted value.
-        "password: hunter2hunter2",
-    ],
-)
-def test_a_credential_shaped_value_is_refused(value: str) -> None:
-    with pytest.raises(ValidationError) as raised:
-        ensure_no_secret_patterns(value)
-
-    assert raised.value.code == PRESENTATION_REDACTION_FAILED
-
-
-def test_an_error_about_a_credential_does_not_repeat_it() -> None:
-    secret = "sk-abcdefghijklmnopqrstuvwxyz"
-
-    with pytest.raises(ValidationError) as raised:
-        ensure_no_secret_patterns(f"api_key={secret}")
-
-    assert secret not in raised.value.message
-    assert secret not in str(raised.value.details)
-
-
-def test_a_digest_is_not_mistaken_for_a_secret() -> None:
-    ensure_no_secret_patterns(f"sha256:{'a' * 64}")
 
 
 # ---------------------------------------------------------------------------
@@ -226,21 +186,6 @@ def test_a_payload_naming_a_private_path_is_refused() -> None:
         )
 
     assert raised.value.code == PRESENTATION_REDACTION_FAILED
-
-
-def test_a_payload_carrying_a_credential_is_refused() -> None:
-    with pytest.raises(ValidationError):
-        ensure_no_hidden_task_material(
-            payload(
-                caveats=[
-                    PresentationCaveat(
-                        code="leak",
-                        severity="info",
-                        text="api_key=sk-abcdefghijklmnopqrstuvwxyz012345",
-                    )
-                ]
-            )
-        )
 
 
 def test_the_walk_reaches_a_nested_field() -> None:

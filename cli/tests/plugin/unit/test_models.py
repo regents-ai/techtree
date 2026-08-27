@@ -14,7 +14,6 @@ from techtree_hermes.errors import (
     BootstrapPlanError,
     CliEnvelopeError,
     PluginError,
-    scrub_text,
 )
 from techtree_hermes.models import (
     _RELEASE_CORE_DIGEST_FIELDS,
@@ -332,100 +331,26 @@ def test_a_plan_that_could_run_something_else_is_rejected(
         parse_bootstrap_install_plan({**VALID_PLAN, **mutation})
 
 
-# Scrubbing --------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("text", "leaked"),
-    [
-        ("Authorization: Bearer abc123DEF456ghi", "abc123DEF456ghi"),
-        ('{"api_key": "sk-live-secret-value"}', "sk-live-secret-value"),
-        ("OPENAI_API_KEY=sk-proj-abcdefghijklmnop", "sk-proj-abcdefghijklmnop"),
-        ("token ghp_abcdefghijklmnopqrstuvwxyz012345", "ghp_abcdefghijklmnop"),
-        (
-            "-----BEGIN PRIVATE KEY-----\nMIIBVgIBADAN\n-----END PRIVATE KEY-----",
-            "MIIBVgIBADAN",
-        ),
-        # WP11g S1: how a token actually reaches a log — an installer quoting
-        # the private index it was pointed at.
-        (
-            "uv sync --index-url https://build:hunter2token@pypi.internal/simple",
-            "hunter2token",
-        ),
-        (
-            "fatal: could not read from https://ci:p4ssw0rd@git.internal/x.git",
-            "p4ssw0rd",
-        ),
-    ],
-)
-def test_secrets_never_survive_scrubbing(text: str, leaked: str) -> None:
-    scrubbed = scrub_text(text)
-
-    assert leaked not in scrubbed
-    assert "redacted" in scrubbed
-
-
-def test_scrubbing_leaves_ordinary_diagnostics_alone() -> None:
-    message = "run run_0123456789abcdef0123456789abcdef failed: engine not verified"
-
-    assert scrub_text(message) == message
-
-
-def test_scrubbing_leaves_an_ordinary_url_alone() -> None:
-    """Only credentials go; the address an operator needs to read stays."""
-    for address in (
-        "fetched https://techtree.sh/releases/index.json",
-        "see https://github.com/regents-ai/techtree-hermes for the commit",
-        "listening on http://localhost:8080/health",
-    ):
-        assert scrub_text(address) == address
-
-
 # Borrowed error detail ------------------------------------------------------------
 
 
-def test_error_detail_is_scrubbed_before_it_can_be_relayed() -> None:
-    """WP11g S1: `details` is free-shaped and was relayed straight through."""
-    raw = json.dumps(
-        {
-            **VALID_ENVELOPE,
-            "ok": False,
-            "data": None,
-            "error": {
-                "code": "engine_install_failed",
-                "message": "the engine could not be installed",
-                "retryable": False,
-                "details": {
-                    "detail": (
-                        "uv sync --index-url "
-                        "https://build:hunter2token@pypi.internal/simple failed"
-                    ),
-                    "environment": ["TECHTREE_MODEL_API_KEY=sk-live-abcdefghijklmnop"],
-                    "nested": {"header": "Authorization: Bearer abc123DEF456ghi"},
-                    "exit_code": 2,
-                },
-            },
-        }
-    )
+def test_an_error_is_relayed_unchanged() -> None:
+    """Decision 0036: Techtree's own words about a failure are the ones relayed.
 
-    envelope = parse_cli_envelope(raw)
-
-    relayed = json.dumps(envelope["error"])
-    for leaked in ("hunter2token", "sk-live-abcdefghijklmnop", "abc123DEF456ghi"):
-        assert leaked not in relayed
-    assert "redacted" in relayed
-    # Structure and non-secret values survive, so the error stays diagnosable.
-    assert envelope["error"]["details"]["exit_code"] == 2
-    assert envelope["error"]["code"] == "engine_install_failed"
-
-
-def test_a_clean_error_is_relayed_unchanged() -> None:
-    """Scrubbing is not editing: an error with no credential in it is intact."""
+    ``details`` is free-shaped — built from whatever went wrong, often a
+    subprocess quoting its own command line back — and it crosses this
+    boundary exactly as it arrived.
+    """
     error = {
-        "code": "climb_not_found",
-        "message": "this build ships no Climb called 'nope@1'",
+        "code": "engine_install_failed",
+        "message": "the engine could not be installed",
         "retryable": False,
-        "details": {"reference": "nope@1", "available": ["hello-world-climb@1"]},
+        "details": {
+            "detail": "uv sync --index-url https://pypi.internal/simple failed",
+            "environment": ["TECHTREE_HOME=/tmp/techtree"],
+            "nested": {"header": "Accept: application/json"},
+            "exit_code": 2,
+        },
     }
     raw = json.dumps({**VALID_ENVELOPE, "ok": False, "data": None, "error": error})
 

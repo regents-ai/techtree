@@ -45,8 +45,7 @@ from techtree.errors import (
     TechtreeError,
     error_to_cli_error,
     exit_code_for,
-    sanitize_exception_message,
-    sanitize_text,
+    stable_exception_message,
 )
 from techtree.identity.service import IdentityService
 from techtree.identity.store import IdentityStore
@@ -140,12 +139,12 @@ def worker_log(message: str) -> None:
     """Write one operational line to the run's log.
 
     The worker's stdout *is* ``worker.log``, so this is the whole logging
-    apparatus. Every line goes through the scrubber on the way out rather
-    than on the way to a reader: a credential that reached the file would be
-    at rest on disk whether or not anything ever displayed it.
+    apparatus. A line is written as it was composed. Nothing filters it:
+    decision 0036 rules that the log is a record of what happened, and an
+    edited record is a worse record.
     """
     moment = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-    print(f"{moment} {sanitize_text(message)}", flush=True)
+    print(f"{moment} {message}", flush=True)
 
 
 def worker_paths() -> TechtreePaths:
@@ -339,8 +338,7 @@ def execute_run(
         return exit_code_for(error)
     except Exception as unexpected:
         worker_log(
-            f"run {run_id} failed unexpectedly: "
-            f"{sanitize_exception_message(unexpected)}"
+            f"run {run_id} failed unexpectedly: {stable_exception_message(unexpected)}"
         )
         handle_worker_failure(run_store=run_store, run_id=run_id, error=unexpected)
         return EXIT_UNEXPECTED
@@ -406,13 +404,13 @@ def handle_worker_failure(
     run_id: str,
     error: Exception,
 ) -> None:
-    """Record a scrubbed failure against the run, if it can still record one."""
+    """Record the failure against the run, if it can still record one."""
     if isinstance(error, TechtreeError):
         cli_error = error_to_cli_error(error)
     else:
         cli_error = error_to_cli_error(
             TechtreeError(
-                sanitize_exception_message(error),
+                stable_exception_message(error),
                 code="internal_error",
                 details={"exception_type": type(error).__name__},
             )

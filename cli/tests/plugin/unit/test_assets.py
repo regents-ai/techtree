@@ -121,8 +121,6 @@ def test_a_release_missing_its_skill_is_blocked(tmp_path: Path) -> None:
     [
         ("", "empty"),
         ("   \n\n ", "empty"),
-        ("# Skill\nOPENAI_API_KEY=sk-live-abcdefghijklmnop\n", "credential"),
-        ("# Skill\nAuthorization: Bearer abc123DEF456ghi\n", "credential"),
     ],
 )
 def test_an_unusable_skill_file_is_refused(
@@ -206,20 +204,6 @@ def test_a_snapshot_with_no_entrypoint_is_refused(tmp_path: Path) -> None:
         read_verified_skill(
             snapshot,
             expected_entrypoint_digest="sha256:" + "b" * 64,
-            root_digest="sha256:" + "a" * 64,
-        )
-
-
-def test_a_snapshot_carrying_a_credential_is_never_read_out(tmp_path: Path) -> None:
-    text = "# Subject Skill\nuse OPENAI_API_KEY=sk-live-abcdefghijklmnop\n"
-    snapshot = tmp_path / "skill"
-    snapshot.mkdir()
-    (snapshot / "SKILL.md").write_text(text, encoding="utf-8")
-
-    with pytest.raises(PluginError, match="credential"):
-        read_verified_skill(
-            snapshot,
-            expected_entrypoint_digest=f"sha256:{hashlib.sha256(text.encode()).hexdigest()}",
             root_digest="sha256:" + "a" * 64,
         )
 

@@ -179,17 +179,6 @@ def test_one_sides_evaluation_log_can_be_read_on_its_own(
     assert data["lines"] == ["rollout done: task=0 reward=0.000"]
 
 
-def test_a_variant_log_is_scrubbed_like_every_other_log(
-    comparison: RunningRun,
-) -> None:
-    paths, run_id = comparison
-    write_variant_log(paths, run_id, "PRIME_API_KEY=sk-should-never-be-shown\n")
-
-    data = run_cli(paths.root, "run", "logs", run_id, "--variant", "baseline").data()
-
-    assert "sk-should-never-be-shown" not in "\n".join(data["lines"])
-
-
 def test_a_variant_that_has_not_started_is_an_ordinary_answer(
     comparison: RunningRun,
 ) -> None:

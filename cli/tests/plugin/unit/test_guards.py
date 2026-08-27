@@ -16,7 +16,6 @@ from techtree_hermes.guards import (
     forbid_ansi,
     forbid_canonical_values,
     forbid_new_commands,
-    forbid_secret_patterns,
     forbid_unapproved_claims,
     validate_narrative,
     validate_revised_skill,
@@ -141,17 +140,12 @@ def test_saying_it_was_not_reproduced_is_fine() -> None:
     )
 
 
-# Control characters, secrets, unknown tasks, size -------------------------------------
+# Control characters, unknown tasks, size -----------------------------------------
 
 
 def test_escape_codes_are_refused() -> None:
     with pytest.raises(NarrativeRejectedError, match="control codes"):
         forbid_ansi("\x1b[31mred headline\x1b[0m")
-
-
-def test_credentials_are_refused() -> None:
-    with pytest.raises(NarrativeRejectedError, match="credential"):
-        forbid_secret_patterns("Set OPENAI_API_KEY=sk-live-abcdefghijklmnop first.")
 
 
 def test_a_narrative_may_not_name_a_task_that_was_not_in_the_comparison() -> None:
@@ -330,7 +324,6 @@ def test_a_revision_may_not_ship_commands() -> None:
         ("", "empty"),
         ("   \n", "empty"),
         ("# Skill\x00\n", "NUL"),
-        ("# Skill\nOPENAI_API_KEY=sk-live-abcdefghijklmnop\n", "credential"),
         ("# Skill\n\x1b[31mred\x1b[0m\n", "control codes"),
     ],
 )
