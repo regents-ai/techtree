@@ -182,6 +182,39 @@ defmodule TechtreeWeb.CoreComponents do
   end
 
   @doc """
+  Show one line of instruction meant for an agent rather than a shell.
+
+  It carries the same copy control a command does, because a reader hands it
+  over the same way. It is drawn differently on purpose: no prompt character in
+  front of it, prose rather than mono, and it wraps instead of running off the
+  side, because it is a sentence and a reader has to be able to read all of it.
+  """
+  attr :text, :string, required: true
+  attr :label, :string, required: true
+  attr :id, :string, required: true
+
+  def prompt_block(assigns) do
+    ~H"""
+    <div class="command command--prose">
+      <div class="command__head">
+        <p class="command__label">{@label}</p>
+        <button
+          id={@id}
+          class="command__copy"
+          type="button"
+          phx-hook="CopyCommand"
+          phx-update="ignore"
+          data-copy-value={@text}
+        >
+          <span data-copy-label>Copy</span>
+        </button>
+      </div>
+      <p class="command__block">{@text}</p>
+    </div>
+    """
+  end
+
+  @doc """
   A list of short facts, one per row.
   """
   slot :fact do

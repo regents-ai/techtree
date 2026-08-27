@@ -174,13 +174,15 @@ defmodule TechtreeWeb.InstallComponents do
 
       <h2 class="section">What a trial costs</h2>
       <p>
-        A trial runs the same tasks twice and makes real model calls both times, and
-        those calls are billed to the provider account you use. Techtree charges nothing
+        A trial runs the same tasks twice and spends model tokens on inference both
+        times. Those tokens go to the model provider you configured, and where that
+        provider charges for them they are billed to the provider account you use; a
+        model you run on your own hardware sends no bill. Techtree charges nothing
         and holds no balance.
       </p>
       <p>
-        Nothing that spends money starts on its own. Before each paid run you are shown
-        how many tasks will run, the most that run may cost, and exactly what is
+        Nothing that spends model tokens starts on its own. Before each paid run you are
+        shown how many tasks will run, the most that run may cost, and exactly what is
         changing, and it waits for you to say yes. The introductory Climb is small on
         purpose.
       </p>
@@ -365,7 +367,7 @@ defmodule TechtreeWeb.InstallComponents do
 
     Otherwise, use only the exact plugin commit and CLI version published by the
     active release. Explain the prerequisites, the expected Hermes scanner
-    findings, what may spend money, and what stays local.
+    findings, what may spend model tokens, and what stays local.
 
     Ask before:
     1. installing the Techtree plugin;

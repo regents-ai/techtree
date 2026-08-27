@@ -53,6 +53,32 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute text =~ "Prefer installing it yourself?"
     end
 
+    test "the hero hands an agent one line, copyable in one action", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
+
+      assert visible_text(html) =~
+               "Go to techtree.sh/download and set up Techtree and run the Hello World Climb."
+
+      assert live
+             |> element(
+               ~s|#copy-home-agent-line[data-copy-value="Go to techtree.sh/download and set up | <>
+                 ~s|Techtree and run the Hello World Climb."]|
+             )
+             |> has_element?()
+    end
+
+    test "the two ways in are separated, with the agent's line first", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      assert [{agent_at, _} | _] = :binary.matches(text, "Give this to your agent")
+      assert [{divider_at, _} | _] = :binary.matches(text, "Or install it yourself")
+
+      assert agent_at < divider_at,
+             "the line for the agent has to come before the divider that separates it " <>
+               "from the path for somebody typing"
+    end
+
     test "the page holds exactly the five regions it was given", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/")
 
@@ -154,6 +180,14 @@ defmodule TechtreeWeb.HomeLiveTest do
              )
              |> has_element?()
 
+      # The first thing to run afterwards, with the Climb it checks read from
+      # the same release record the install command came from.
+      assert live
+             |> element(
+               ~s|#copy-home-doctor[data-copy-value="techtree doctor --climb #{CatalogFixture.climb_reference()}"]|
+             )
+             |> has_element?()
+
       assert visible_text(html) =~ "macOS or Linux · Python 3.12"
       assert visible_text(html) =~ "Docker required"
 
@@ -172,6 +206,12 @@ defmodule TechtreeWeb.HomeLiveTest do
     assert text =~ "Improve a Skill."
     assert text =~ "No release is published on this channel yet."
     refute text =~ "Evidence graph"
+
+    # The line for the agent names no coordinate, so it survives; the half of
+    # the panel that would need one is not printed at all.
+    assert text =~ "Go to techtree.sh/download"
+    refute html =~ "copy-home-install"
+    refute html =~ "copy-home-doctor"
   end
 
   test "the source link is shown only when the release names one immutable revision",

@@ -478,6 +478,23 @@ strong {
   color: var(--ink-faint);
 }
 
+/* A line meant for an agent is a sentence, not a shell line: no prompt drawn
+   in front of it, prose rather than mono, and it wraps instead of scrolling out
+   of view. The accent on the frame is the only mark of which way in comes
+   first. */
+.command--prose {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--terminal-rule));
+}
+
+.command--prose .command__block {
+  overflow-x: visible;
+  font-family: var(--font-prose);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .command__copy {
   padding: 0.35rem 0.7rem;
   border: 1px solid var(--terminal-rule);
@@ -546,48 +563,42 @@ strong {
   font-size: 0.85rem;
 }
 
+/* The two ways in are one panel. A command is a left-aligned block wherever the
+   hero itself is centred, because a reader compares it against their own
+   terminal character by character. */
 .installer {
   margin-top: 2rem;
+  text-align: left;
 }
 
-/* The label doubles as the rule above the command: one line of copy, whether
-   it is a heading on a wide screen or the control that unfolds the block on a
-   narrow one. */
-.installer > summary {
-  padding: 0.85rem 0;
-  border-top: 1px solid var(--rule);
+.installer__caption {
+  margin-top: 0.65rem;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+
+/* One line, so a reader can see where the first way in ends and the second
+   begins without reading a word of either. */
+.installer__divider {
+  margin-top: 1.75rem;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
   color: var(--ink-faint);
-  cursor: pointer;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  list-style: none;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.installer > summary::-webkit-details-marker {
-  display: none;
-}
-
-.installer > summary::before {
-  content: "+";
-  color: var(--accent);
-}
-
-.installer[open] > summary::before {
-  content: "−";
-}
-
-.installer > summary::after {
+.installer__divider::before,
+.installer__divider::after {
   content: "";
   flex: 1;
   border-top: 1px solid var(--rule);
 }
 
-.installer__body {
+.installer__manual {
   padding-bottom: 0.5rem;
 }
 
@@ -1418,28 +1429,6 @@ strong {
 
 /* Responsive ------------------------------------------------------------- */
 
-@media (min-width: 56.25rem) {
-  .installer > summary {
-    cursor: default;
-    pointer-events: none;
-  }
-
-  .installer > summary::before {
-    content: "";
-  }
-
-  .installer:not([open]) > .installer__body {
-    display: block !important;
-  }
-
-  /* Where a browser hides a closed disclosure through its own pseudo-element
-     rather than through the child's display. */
-  .installer::details-content {
-    block-size: auto;
-    content-visibility: visible;
-  }
-}
-
 @media (max-width: 68.75rem) {
   .hero {
     min-height: auto;
@@ -1453,8 +1442,7 @@ strong {
     max-width: 42rem;
   }
 
-  .hero__actions,
-  .release-coordinate {
+  .hero__actions {
     justify-content: center;
   }
 
@@ -1602,10 +1590,6 @@ strong {
 
   .hero__actions .button {
     width: 100%;
-  }
-
-  .installer {
-    text-align: left;
   }
 
   .evidence-graph__canvas {

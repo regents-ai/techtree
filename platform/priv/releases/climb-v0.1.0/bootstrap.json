@@ -10,9 +10,9 @@
       "3.12",
       "techtree==0.1.0"
     ],
-    "source_revision": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
+    "source_revision": "38478cad9ef76d5e2863129e49c886e01d1aa387",
     "version": "0.1.0",
-    "wheel_sha256": "sha256:90a543ca7353e38b4fa3d8fb16a2c190d59308fc2c84222141ce8f38cc37b49a"
+    "wheel_sha256": "sha256:21de1a065c6f19c911edaa5b7f2e82e15dd63b41f5ed9675d54e82ed244748d3"
   },
   "hermes_plugin": {
     "doctor_argv": [
@@ -28,12 +28,12 @@
       "install",
       "regents-ai/techtree-hermes",
       "--ref",
-      "cc387bd3340d574924e93d216aaa1ab99df9d8c0",
+      "84c2cf832aade905874c2582facba4b70a068ac3",
       "--enable"
     ],
     "plugin_id": "techtree",
     "repository": "regents-ai/techtree-hermes",
-    "revision": "cc387bd3340d574924e93d216aaa1ab99df9d8c0"
+    "revision": "84c2cf832aade905874c2582facba4b70a068ac3"
   },
   "introductory_climb": {
     "host_prompt": "Set up Techtree and run the Hello World Climb.",

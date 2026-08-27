@@ -9,6 +9,16 @@ defmodule TechtreeWeb.HomeLive do
   where the work goes. Nothing on this page counts anything, and nothing on it
   moves: no activity, no totals, no claim about how many people have run
   anything.
+
+  Under the headline is the one install panel, and it holds two ways in, in
+  order. First the line a reader hands to their agent, because that is who sets
+  this up; it is copied in one action and it names no release coordinate, so it
+  is true for as long as this site is. Then, under a quiet divider, the path for
+  somebody who would rather type it: the pinned command this release publishes,
+  and the first thing to run once it has finished. Both of those come out of the
+  served release record. Neither is written into this page, and when no release
+  is being served the panel says so rather than printing a coordinate that
+  installs nothing.
   """
 
   use TechtreeWeb, :live_view
@@ -25,6 +35,12 @@ defmodule TechtreeWeb.HomeLive do
   # release below, and none of them is written into this page.
   @preview_label "Techtree v0.1 · development release"
 
+  # The line a reader hands to their agent, decided by the founder and written
+  # here once. It is an address on this site and the name of the introductory
+  # Climb — neither of which belongs to any one release — so unlike a command it
+  # is not read from the release record, and it stays true when the record moves.
+  @agent_line "Go to techtree.sh/download and set up Techtree and run the Hello World Climb."
+
   @impl true
   def mount(_params, _session, socket) do
     campaign = Query.list_climbs() |> List.first()
@@ -33,6 +49,7 @@ defmodule TechtreeWeb.HomeLive do
     {:ok,
      assign(socket,
        page_title: "Improve a Skill. Prove it worked.",
+       agent_line: @agent_line,
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
@@ -56,6 +73,8 @@ defmodule TechtreeWeb.HomeLive do
             another participant can verify or reproduce it in an identical Environment.
           </p>
 
+          <.installer release={@release} agent_line={@agent_line} />
+
           <div class="hero__actions">
             <a class="button button--primary" href={~p"/docs#install"}>
               <span class="button__mark" aria-hidden="true"></span> Install Techtree
@@ -66,8 +85,6 @@ defmodule TechtreeWeb.HomeLive do
           </div>
 
           <p class="hero__caption">No Techtree account, and nothing to upload.</p>
-
-          <.installer release={@release} />
         </div>
 
         <EvidenceComponents.graph
@@ -170,16 +187,28 @@ defmodule TechtreeWeb.HomeLive do
     """
   end
 
-  # The one installation on this page, rendered from the published contract or
-  # not rendered at all. On a narrow screen it is folded away behind its own
-  # label; the words inside it are the same either way.
+  # The one installation on this page: two ways in, one under the other, with
+  # the agent's line first because that is who does this.
+  #
+  # The half below the divider is the released one, and it is rendered from the
+  # served release record or not rendered at all. A stand-in coordinate is
+  # release state a reader may be told about; it is never handed over as
+  # something to run.
   attr :release, :map, default: nil
+  attr :agent_line, :string, required: true
 
   defp installer(assigns) do
     ~H"""
-    <details class="installer">
-      <summary>Install with CLI</summary>
-      <div class="installer__body">
+    <div class="installer">
+      <.prompt_block id="copy-home-agent-line" label="Give this to your agent" text={@agent_line} />
+      <p class="installer__caption">
+        It reads the pinned installation guide, and asks you before it installs anything,
+        runs anything, or spends anything.
+      </p>
+
+      <p class="installer__divider"><span>Or install it yourself</span></p>
+
+      <div class="installer__manual">
         <%= cond do %>
           <% is_nil(@release) -> %>
             <p class="release-state">No release is published on this channel yet.</p>
@@ -192,7 +221,13 @@ defmodule TechtreeWeb.HomeLive do
             <.command_block
               id="copy-home-install"
               argv={@release.install_argv}
-              label="Quick install"
+              label="Install the command-line tool"
+            />
+            <.command_block
+              :if={@release.introductory_reference}
+              id="copy-home-doctor"
+              argv={["techtree", "doctor", "--climb", @release.introductory_reference]}
+              label="Then check this machine"
             />
             <p class="compatibility">{ReleaseInfo.compatibility(@release)}</p>
             <p class="release-coordinate">
@@ -201,7 +236,7 @@ defmodule TechtreeWeb.HomeLive do
             </p>
         <% end %>
       </div>
-    </details>
+    </div>
     """
   end
 end

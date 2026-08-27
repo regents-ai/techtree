@@ -207,7 +207,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
                   "If the guide says no installable release is active, stop and tell me. " <>
                   "Otherwise, use only the exact plugin commit and CLI version published by " <>
                   "the active release. Explain the prerequisites, the expected Hermes scanner " <>
-                  "findings, what may spend money, and what stays local. Ask before: " <>
+                  "findings, what may spend model tokens, and what stays local. Ask before: " <>
                   "1. installing the Techtree plugin; 2. installing the Techtree CLI; or " <>
                   "3. starting a paid comparison. After the plugin is enabled, tell me when " <>
                   "Hermes must be restarted. Then run Techtree Doctor, obtain the Hello World " <>
