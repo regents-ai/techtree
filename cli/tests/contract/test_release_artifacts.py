@@ -319,7 +319,7 @@ STARTER_SKILL_TREE_DIGEST = (
 #: this one cannot read, so the value is recorded rather than recomputed — and
 #: the release document is where the two repositories agree on it.
 SKILL_IMPROVER_FILE_DIGEST = (
-    "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097"
+    "sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678"
 )
 
 #: The SHA-256 of the starter Skill's one file, which is what the website
