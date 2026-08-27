@@ -209,17 +209,17 @@ defmodule TechtreeWeb.ReleaseCopyTest do
                   "the active release. Explain the prerequisites, the expected Hermes scanner " <>
                   "findings, what may spend model tokens, and what stays local. Ask before: " <>
                   "1. installing the Techtree plugin; 2. installing the Techtree CLI; or " <>
-                  "3. starting a paid comparison. After the plugin is enabled, tell me when " <>
-                  "Hermes must be restarted. Then run Techtree Doctor, obtain the Hello World " <>
-                  "starter Skill, and prepare the comparison. Stop before spending until I " <>
-                  "approve it. Do not upload my local evaluation artifacts."
+                  "3. starting a comparison that spends tokens. After the plugin is enabled, " <>
+                  "tell me when Hermes must be restarted. Then run Techtree Doctor, obtain " <>
+                  "the Hello World starter Skill, and prepare the comparison. Stop before " <>
+                  "spending until I approve it. Do not upload my local evaluation artifacts."
 
   # The three promises inside the prompt that a rewrite must never lose: it asks
   # before it installs, it asks before it spends, and it never sends the
   # reader's own artifacts anywhere.
   @agent_prompt_promises [
     "Ask before: 1. installing the Techtree plugin; 2. installing the Techtree CLI; or " <>
-      "3. starting a paid comparison.",
+      "3. starting a comparison that spends tokens.",
     "Stop before spending until I approve it.",
     "Do not upload my local evaluation artifacts."
   ]

@@ -121,7 +121,7 @@ defmodule TechtreeWeb.DocsLive do
             <p>
               Preparation does not make model calls. It shows what will run, what may change,
               where model requests go, and the Campaign’s cost limit. Nothing that spends
-              model credits starts without explicit approval.
+              model tokens starts without explicit approval.
             </p>
           </header>
 
@@ -418,8 +418,8 @@ defmodule TechtreeWeb.DocsLive do
           <section id="validation" class="doc-section">
             <h2>Taskset validation and the recorded comparison</h2>
             <p>
-              Before paid evaluation, the taskset is checked without asking a model to solve
-              it. The published validation receipt establishes, for this taskset, that:
+              Before any tokens are spent, the taskset is checked without asking a model to
+              solve it. The published validation receipt establishes, for this taskset, that:
             </p>
             <ul class="doc-list">
               <li>the package loads;</li>
@@ -554,7 +554,7 @@ defmodule TechtreeWeb.DocsLive do
                   to check the exact subject, credential path, container image, and engine
                   required by Hello World.
                 </span>
-                Doctor does not start a paid comparison.
+                Doctor spends no tokens and starts no comparison.
               </:fact>
               <:fact term="techtree climb">
                 Browse and enter Climbs: <code>list</code>, <code>show</code>, <code>prepare</code>, <code>start</code>.
@@ -642,7 +642,7 @@ defmodule TechtreeWeb.DocsLive do
                 <p class="plain">installing the CLI;</p>
               </li>
               <li>
-                <p class="plain">starting the first paid comparison;</p>
+                <p class="plain">starting the first comparison, which spends model tokens;</p>
               </li>
               <li>
                 <p class="plain">
@@ -650,7 +650,7 @@ defmodule TechtreeWeb.DocsLive do
                 </p>
               </li>
               <li>
-                <p class="plain">starting the second paid comparison.</p>
+                <p class="plain">starting the second comparison, which spends them again.</p>
               </li>
             </ol>
             <p>
@@ -1025,7 +1025,7 @@ defmodule TechtreeWeb.DocsLive do
             />
             <p>
               It checks the release, local installation, Prime login, Docker, managed engine,
-              subject image, and Climb requirements without starting paid model inference.
+              subject image, and Climb requirements without spending model tokens.
             </p>
             <p>For the Hermes plugin:</p>
             <.command_block

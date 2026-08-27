@@ -181,7 +181,7 @@ defmodule TechtreeWeb.InstallComponents do
         and holds no balance.
       </p>
       <p>
-        Nothing that spends model tokens starts on its own. Before each paid run you are
+        Nothing that spends model tokens starts on its own. Before each run you are
         shown how many tasks will run, the most that run may cost, and exactly what is
         changing, and it waits for you to say yes. The introductory Climb is small on
         purpose.
@@ -372,7 +372,7 @@ defmodule TechtreeWeb.InstallComponents do
     Ask before:
     1. installing the Techtree plugin;
     2. installing the Techtree CLI; or
-    3. starting a paid comparison.
+    3. starting a comparison that spends tokens.
 
     After the plugin is enabled, tell me when Hermes must be restarted. Then run
     Techtree Doctor, obtain the Hello World starter Skill, and prepare the
