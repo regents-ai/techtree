@@ -99,7 +99,8 @@ capability.
 
 > [!WARNING]
 > Starting a comparison spends model tokens against your own provider credit.
-> Nothing paid starts on its own: installing the plugin, installing the
+> Nothing causing LLM token spend starts on its own: installing the plugin,
+> installing the
 > Techtree CLI, and starting a run that spends are three separate approvals,
 > and each one waits for you to answer.
 
