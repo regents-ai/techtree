@@ -19,6 +19,15 @@ defmodule TechtreeWeb.RunsLive.Index do
   the log rather than a hole punched in it, and a log that quietly dropped its
   withdrawn entries would be a log with gaps nothing explained.
 
+  The log did not open empty: this project's own certification runs went on it
+  first, through the same address as everybody else's. The page says so in one
+  sentence of its own. It is not said on a row, and it deliberately cannot be:
+  a row carries only what was signed, so a badge reading "ours" would be the
+  one unverifiable claim on a page whose whole point is that it has none. A
+  sentence the page makes about itself is a different kind of thing — a reader
+  can weigh who is saying it, which is exactly what they cannot do with a
+  label sitting on somebody's result.
+
   The page reads one keyset page at a time, twenty-five at a time, oldest link
   first — the same rule the read endpoint follows, so the two cannot disagree
   about what "the next page" means.
@@ -79,6 +88,12 @@ defmodule TechtreeWeb.RunsLive.Index do
           machine, and anyone can redo all of it themselves from the bundle they hold.
         </p>
       </.warning_callout>
+
+      <p :if={@entries != []} class="small quiet">
+        The first runs on this log are this project's own certification runs. They were
+        published the same way as everybody else's, and nothing on a row says which
+        those are, because nothing on a row is anybody's word for anything.
+      </p>
 
       <p :if={@entries == []} class="empty-state section">
         Nobody has published a run yet. This is where the first one will appear.

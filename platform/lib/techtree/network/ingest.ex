@@ -74,7 +74,9 @@ defmodule Techtree.Network.Ingest do
   The one exception to that last rule is the contributor address, which is not
   evidence — it is something a person volunteered about themselves. Removing it
   removes it from the active system and from any future use. It is not a claim
-  about database backups, which this release does not implement.
+  about database backups, which this release does not implement. It is keyed by
+  the address rather than by a publication, so the same address left with two
+  runs is one row carrying a count of two, and taking it away is one removal.
 
   It also never travels inside the submission. The bytes of a submission are
   stored, so an address written into them would be stored with the evidence
@@ -153,33 +155,32 @@ defmodule Techtree.Network.Ingest do
   Forget an address somebody left, because they asked for it back.
 
   It goes from the active system and from any future use. It is not a claim
-  about database backups.
+  about database backups. One address is one row however many publications
+  supplied it, so this is one removal and there is no second copy of it
+  anywhere to miss.
   """
   @spec forget_contributor_address(String.t()) :: :ok
   def forget_contributor_address(address) do
-    case Address.canonicalize(address) do
-      {:ok, canonical} ->
-        canonical
-        |> Network.find_contributor_addresses!(@internal)
-        |> Enum.each(&Network.forget_contributor_address!(&1, @internal))
-
-        :ok
-
-      {:error, _reason} ->
-        :ok
+    case contributor_address(address) do
+      nil -> :ok
+      record -> Network.forget_contributor_address!(record, @internal)
     end
+
+    :ok
   end
 
   @doc """
-  The addresses one publisher left, for an operator answering a question about
-  their own record. Nothing on the public surface calls this, and nothing else
-  in this application can.
+  The record for one address, for an operator answering a question about
+  somebody's own record. Nothing on the public surface calls this, and nothing
+  else in this application can.
   """
-  @spec contributor_addresses(String.t()) :: [ContributorAddress.t()]
-  def contributor_addresses(address) do
-    case Address.canonicalize(address) do
-      {:ok, canonical} -> Network.find_contributor_addresses!(canonical, @internal)
-      {:error, _reason} -> []
+  @spec contributor_address(String.t()) :: ContributorAddress.t() | nil
+  def contributor_address(address) do
+    with {:ok, canonical} <- Address.canonicalize(address),
+         {:ok, record} <- Network.get_contributor_address(canonical, @internal) do
+      record
+    else
+      _other -> nil
     end
   end
 
@@ -376,12 +377,13 @@ defmodule Techtree.Network.Ingest do
 
   defp remember(nil, _entry), do: :ok
 
+  # Keyed by the address, so a publisher who leaves the same address with a
+  # second run has one row with a count of two rather than a second row. The
+  # pointer moves to the publication that most recently supplied it, which is
+  # what a singular pointer beside a count can honestly mean.
   defp remember(address, entry) do
     Network.record_contributor_address!(
-      %{
-        participant_key_id: entry.participant_key_id,
-        contributor_address_unverified: address
-      },
+      %{address: address, publication_id: entry.id},
       @internal
     )
 

@@ -28,6 +28,13 @@ defmodule Techtree.Network.ConformanceTest do
   is what caught the last disagreement: the receipt was a flat document on one
   side and a signed envelope on the other, and either would have passed a test
   written against its own author's reading.
+
+  The same fixture is read a third time, backwards. This site builds
+  submissions of its own when it seeds the log with the certification runs, and
+  a submission built here that merely resembled the CLI's would be the wire
+  contract drifting from the inside. So the fixture is decoded back into a
+  proof directory, a submission is built from that directory by the code the
+  seeding uses, and the two are compared byte for byte.
   """
 
   use Techtree.DataCase, async: false
@@ -39,6 +46,7 @@ defmodule Techtree.Network.ConformanceTest do
   alias Techtree.Network.Bundle
   alias Techtree.Network.Key
   alias Techtree.Network.Receipt
+  alias Techtree.Network.Seed
   alias Techtree.NetworkFixture
 
   @conformance Path.expand(
@@ -73,6 +81,25 @@ defmodule Techtree.Network.ConformanceTest do
     assert entry.task_count == 36
     assert entry.verification_checks_passed == Bundle.check_count()
     assert entry.submission_bytes == submitted
+  end
+
+  test "the submission this site builds for a proof directory is the one techtree-python sends" do
+    submitted = File.read!(@conformance)
+
+    # The fixture carries every byte of the proof it was built from, so the
+    # directory can be rebuilt from it and the submission rebuilt from the
+    # directory, with nothing needed that is not committed. That is what makes
+    # this a conformance check rather than a comparison of two copies of the
+    # same string: the bytes go back through the shape and come out again.
+    directory = Path.join(tmp_dir(), "proof")
+
+    for {path, encoded} <- Jason.decode!(submitted)["files"] do
+      written = Path.join(directory, path)
+      File.mkdir_p!(Path.dirname(written))
+      File.write!(written, Base.decode64!(encoded))
+    end
+
+    assert Seed.submission(directory) == submitted
   end
 
   describe "against the schemas techtree-python exports" do
@@ -129,6 +156,16 @@ defmodule Techtree.Network.ConformanceTest do
                  entry
                )
     end
+  end
+
+  defp tmp_dir do
+    directory =
+      Path.join(System.tmp_dir!(), "techtree-conformance-#{System.unique_integer([:positive])}")
+
+    File.mkdir_p!(directory)
+    on_exit(fn -> File.rm_rf!(directory) end)
+
+    directory
   end
 
   # An envelope, checked against the schema's own two member lists rather than

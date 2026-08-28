@@ -64,7 +64,17 @@ defmodule Techtree.Network.PolicyTest do
 
   test "an address a person volunteered cannot even be read" do
     refute Ash.can?({ContributorAddress, :read}, nil)
-    refute Ash.can?({ContributorAddress, :for_address, %{}}, nil)
+    refute Ash.can?({ContributorAddress, :by_address, %{}}, nil)
+  end
+
+  test "no column of a volunteered address is public, so nothing could serialise one" do
+    for attribute <- Ash.Resource.Info.attributes(ContributorAddress) do
+      refute attribute.public?, "#{attribute.name} is public"
+    end
+  end
+
+  test "a volunteered address is keyed by the address itself" do
+    assert Ash.Resource.Info.primary_key(ContributorAddress) == [:address]
   end
 
   test "nothing on the log has a relationship to a volunteered address" do
