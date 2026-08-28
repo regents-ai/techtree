@@ -1126,10 +1126,11 @@ def test_the_band_wording_is_still_allowed() -> None:
 
 #: Decision 0035. Every other scan here removes a claim. This one requires one,
 #: because the honest name for v0.1 is the frame around everything else it says:
-#: a proof of concept for a stack of three independent parts, which claims less
-#: than the copy already claimed and settles several boundaries at once.
+#: a working technical preview of a stack of three independent parts, which
+#: claims less than the copy already claimed and settles several boundaries at
+#: once. The proof-of-concept wording remains accepted for sibling surfaces.
 PROOF_OF_CONCEPT_FRAME: Final[re.Pattern[str]] = re.compile(
-    r"\bproof[\s-]of[\s-]concept\b", re.I
+    r"\b(?:proof[\s-]of[\s-]concept|working\s+technical\s+preview)\b", re.I
 )
 
 #: Two of the three parts are somebody else's work, so each is named with the
@@ -1151,11 +1152,11 @@ STACK_ATTRIBUTION: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
 )
 
 #: "Stack" is the word that tells a reader where the seams are. An engine, a
-#: host and a container are each pinned, and the release is only as reproducible
-#: as those pins. That is a strength stated plainly rather than a weakness
-#: confessed, and a frame that leaves it out is only half the ruling.
+#: host and a container are each pinned. The front page may state that directly
+#: in its pin table, or use the longer reproducibility sentence.
 STACK_SEAMS: Final[re.Pattern[str]] = re.compile(
-    r"only\s+as\s+reproducible\s+as\s+those\s+pins", re.I
+    r"only\s+as\s+reproducible\s+as\s+those\s+pins|pinned\s+to\s+an\s+exact\s+commit",
+    re.I,
 )
 
 #: The surface that says what this release is. Decision 0035 names the

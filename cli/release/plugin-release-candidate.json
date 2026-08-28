@@ -1,11 +1,11 @@
 {
- "commit": "df5ead2b38316a8def7837ae0bedfe8c1d5c64a4",
+  "commit": "db827e714094c89514ea63d3ace1c97e6698589d",
  "plugin_doctor": "passed",
- "plugin_doctor_detail": "10 checks, all ok, run from this checkout as tools/plugin/plugin_doctor.py, which exits 0. The plugin's own suite and tooling live here now, so the doctor reads the plugin out of the sibling checkout and finds the pinned CLI on this project's PATH: Techtree CLI: techtree is at /Users/redacted/Documents/techtree-climb/techtree-python/.venv/bin/techtree.",
- "release_core_digest": "sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4",
+  "plugin_doctor_detail": "10 checks, all ok, run from the clean plugin checkout as tools/plugin/plugin_doctor.py. It registered 17 tools and 2 hooks, proved the runtime has no network access, and read the byte-identical ReleaseCore at sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1.",
+  "release_core_digest": "sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1",
  "release_core_is_byte_identical_to_python": true,
  "repository": "github.com/regents-ai/techtree-hermes",
  "version": "0.1.0",
- "wheel_sha256": "e486b3eaa477455566035f9b210db824e1bdda765b1ade0f44891da6b2c855c2",
- "worktree": "clean at the commit above"
+  "wheel_sha256": "5565e553f2e29a145711d5b13f6c03760a99b6c17d404e4a36768513a7660040",
+ "worktree": "candidate commit verified; the shared checkout currently has an uncommitted README change"
 }

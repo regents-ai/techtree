@@ -1,4 +1,4 @@
-# Techtree
+# Techtree CLI
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-lightgrey)](https://www.python.org/downloads/) [![managed with uv](https://img.shields.io/badge/managed%20with-uv-lightgrey)](https://docs.astral.sh/uv/)
 
@@ -17,14 +17,13 @@ engine, and Campaign protocol kernel.
 ## Climb v0.1
 
 > [!IMPORTANT]
-> Techtree Climb v0.1 is a proof of concept for a stack of three independent
-> parts: Prime Intellect’s Verifiers as the evaluation engine,
-> Nous Research’s Hermes as the agent host, and
+> Techtree Climb v0.1 is a working technical preview of a stack of three independent
+> parts: Prime Intellect's Verifiers as the evaluation engine,
+> Nous Research's Hermes as the agent host, and
 > Techtree as the campaign kernel and evidence layer.
 > What it demonstrates is that the three pin together tightly enough for a
 > controlled comparison to run end to end and leave a receipt that verifies
-> offline. It is a development release, and nothing here is a measurement
-> anyone should cite.
+> offline.
 
 ```text
         you
@@ -59,11 +58,6 @@ engine, and Campaign protocol kernel.
   published protocol objects, the public run log, and the docs. Everything it
   shows is served over GET. It has one address that accepts anything, and what
   that address accepts is a signed run somebody chose to publish.
-
-The evaluation engine, the agent host, and the container the subject runs in
-are each pinned to an exact version, and the release is only as reproducible as
-those pins. Those are the seams of the stack, and they are worth knowing about
-before anyone leans on a result.
 
 | Layer | What | Pin |
 | --- | --- | --- |

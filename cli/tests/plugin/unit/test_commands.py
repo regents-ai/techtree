@@ -255,7 +255,8 @@ def test_demo_says_starting_a_run_publishes_nothing() -> None:
 
     assert "terms this Climb sets for a published result" in answer
     assert "Nothing is published unless you publish a finished run yourself" in answer
-    assert "never the episodes" in answer
+    assert "complete proof bundle" in answer
+    assert "Episodes and Traces remain local" in answer
     assert "model calls still go to the model provider you configured" in answer
 
 

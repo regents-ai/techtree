@@ -342,8 +342,10 @@ def test_the_disclosure_says_what_the_log_is_and_is_not() -> None:
     assert "no leaderboard" in text
     assert "It is not deleted." in text
     assert "nothing is offered in exchange" in text
-    assert "never the episodes" not in text  # the disclosure says it in full below
-    assert "does not send the episodes" in text
+    assert "complete proof bundle" in text
+    assert "Episodes and Traces remain local" in text
+    assert "Skill name public automatically" in text
+    assert "public GitHub repository URL" in text
 
 
 def test_the_offer_is_declared_to_the_host_the_way_the_start_is() -> None:

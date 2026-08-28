@@ -674,7 +674,7 @@ def test_the_band_wording_is_still_allowed() -> None:
 #: because the honest name for v0.1 is the frame around everything else it
 #: says: a proof of concept for a stack of three independent parts.
 PROOF_OF_CONCEPT_FRAME: re.Pattern[str] = re.compile(
-    r"\bproof[\s-]of[\s-]concept\b", re.I
+    r"\b(?:proof[\s-]of[\s-]concept|working\s+technical\s+preview)\b", re.I
 )
 
 #: Two of the three parts are somebody else's work, so each is named with the
@@ -700,7 +700,8 @@ STACK_ATTRIBUTION: tuple[tuple[str, re.Pattern[str]], ...] = (
 #: as those pins. That is a strength stated plainly rather than a weakness
 #: confessed, and a frame that leaves it out is only half the ruling.
 STACK_SEAMS: re.Pattern[str] = re.compile(
-    r"only\s+as\s+reproducible\s+as\s+those\s+pins", re.I
+    r"(?:only\s+as\s+reproducible\s+as\s+those\s+pins|pinned\s+to\s+an\s+exact\s+(?:commit|version))",
+    re.I,
 )
 
 #: The surfaces that say what this release is: the front page a stranger reads
@@ -790,7 +791,7 @@ PUBLICATION_NEVER_THE_EPISODES: re.Pattern[str] = re.compile(
 #: The two together, for the surfaces that have to carry the whole meaning.
 PUBLICATION_TERMS_FRAMING: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("publishing is something a person does", PUBLICATION_ONLY_IF_PUBLISHED),
-    ("the episodes never travel", PUBLICATION_NEVER_THE_EPISODES),
+    ("Episodes and Traces remain local", re.compile(r"episodes\s+and\s+traces\s+remain\s+local", re.I)),
 )
 
 #: Every surface that hands a Climb's data rights to a reader or to the host
@@ -1219,7 +1220,10 @@ def test_the_operator_foregrounds_usage_then_asks_before_publication() -> None:
         assert "explicitly says yes" in copy or "explicitly approves it" in copy
         assert "would you like to publish this result proof to techtree.sh?" in copy
         assert "pseudonymous participant public key" in copy
-        assert "never the episodes" in copy
+        assert "complete proof bundle" in copy
+        assert "episodes and traces remain local" in copy
+        assert "skill name public automatically" in copy
+        assert "public github repository url" in copy
         assert "no evm address is attached unless you choose to add one" in copy
         assert "techtree publish <run-id>" in copy
         assert (

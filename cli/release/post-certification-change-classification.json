@@ -9,7 +9,7 @@
   "scientific — re-certified (engine move, three certification runs)": "A change to the scientific configuration, or to what the evaluation child is handed and what its evidence is checked against, made when the embedded Verifiers engine moved from the pre-release development revision to the released one. Certified by the three certification executions of the shipping Campaign recorded in release/certified-scientific-fingerprint.json under recertification_runs.",
   "test_only": "Test or fixture code. Not shipped in the wheel."
  },
- "commit_count": 121,
+ "commit_count": 146,
  "counts_by_class": {
   "documentation": 119,
   "non_scientific_copy": 81,
@@ -17,7 +17,8 @@
   "scientific — re-certified (0025, addendum A1.4)": 6,
   "scientific — re-certified (0029, four canonical runs)": 14,
   "scientific — re-certified (engine move, three certification runs)": 28,
-  "test_only": 279
+  "test_only": 279,
+  "non_scientific_release_feature_after_5d793b6": 230
  },
  "entries": [
   {
@@ -5325,7 +5326,7 @@
    "rationale": "One README sentence, in the founder's words."
   }
  ],
- "file_change_count": 663,
+ "file_change_count": 881,
  "mixed_content_disclosure": [
   {
    "commit": "01ca70f68d3d585b9ec0bd902d1f4cd8b986b0ba",
@@ -5469,7 +5470,7 @@
   "surface_hits_note": "Paths inside a checked area that this revision classifies scientific. Each is certified by the three certification executions named in scientific_changes.engine_move.certification. The engine move also touches scientific files outside these prefixes — the pinned revision constant, the engine bundle, the taskset package and the taskset validator — and those are classified on the same evidence; the prefix list is a tripwire, not the definition of the surface."
  },
  "previous_anchor_commit": "8d9068cfca818d3ae39f7ea130a90f596b33d4f5",
- "release_source_commit": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de",
+ "release_source_commit": "2e714835469dc0a3fb4bece3ed2f861317fe4d7c",
  "schema_version": "techtree.post-certification-change-classification.v1",
  "scientific_changes": {
   "0025": {
@@ -5656,5 +5657,29 @@
    "what_moved": "The embedded Verifiers engine was moved from the pre-release development revision to the released one. That changed the engine bundle digest, the taskset package source digest, and — because the package digest and the validation receipt are named inside the Campaign — the Campaign, Climb and catalog digests with them."
   }
  },
- "verdict": "PASS — every scientific change in the range is sanctioned and certified, and every non-scientific change was classified on its diff. The decision-0025 regeneration is re-certified by Gate-1 addendum 1 §A1.4 and its lineage is twice superseded. The decision-0029 budget contract and the enforcement that makes it real are evidenced by the four canonical runs and the worker-SIGKILL injection in release/orphan-bound-analysis.json, executed against a Campaign this wheel no longer ships; every input to the bound they established is byte-identical under the shipping Campaign. The 28 commits from 8d9068c to the freeze commit 5d793b6 carry 224 file changes, of which 28 are scientific: the engine move off the pre-release development revision onto released Verifiers 0.3.1, together with the paid-path and receipt corrections the released engine required. Those are certified by three certification executions of the shipping Campaign, all three run after the last of them, each a controlled comparison over the same 36 committed tasks whose proof verifies offline. The remaining 196 file changes are not scientific: presentation and copy, prose inside a shipped module, tests and fixtures, tracker exports, decision documents, README prose, one document asset and release records. Ten file-and-commit pairs in the increment, across seven distinct files, sit inside a declared scientific area and are exempted by name after reading each diff; they are listed in non_scientific_assertion.reviewed_exemptions. Three disclosures a reader should not have to find for themselves. First, the taskset package digest — and through it the Campaign, Climb and catalog digests — moved because of a module docstring, which is recorded in scientific_changes.engine_move.note rather than left to be discovered. Second, this document ends at the freeze commit 5d793b6 because that is the commit the wheel in dist/ was built from and stamped with; two later commits exist in this repository and both touch only files under release/, so no product byte is outside this classification. Third, one value in release/certified-scientific-fingerprint.json is off: engine_move.to.release_core_digest is the ReleaseCore digest at the freeze commit rather than at the engine move, because a later copy commit moved it again. Every other field of that block was checked against the artifacts at the engine-move commit and is correct. The true pair is recorded in scientific_changes.engine_move.lineage.release_core with the reasoning in release_core_note; the fingerprint is not edited from here. Totals: documentation 119, non_scientific_copy 81, release_packaging 136, scientific — re-certified (0025, addendum A1.4) 6, scientific — re-certified (0029, four canonical runs) 14, scientific — re-certified (engine move, three certification runs) 28, test_only 279."
+  "final_increment": {
+  "from_exclusive": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de",
+  "to_inclusive": "e71e998080b093dabe6f1016905b3afa8078cbad",
+  "commit_count": 27,
+  "file_change_count": 230,
+  "distinct_paths": 140,
+  "classification": "non_scientific_release_feature_after_5d793b6",
+  "scientific_artifact_changes": [],
+  "scientific_artifact_check": "git diff over the increment is empty for src/techtree/resources/catalog, src/techtree/resources/engines, release/skills, and pyproject.toml",
+  "what_changed": [
+   "the opt-in public run log CLI and its signed publication and withdrawal receipts",
+   "publication eligibility derived from the verified report rather than a stale stored flag",
+   "Hermes publication, install, repair, and next-action surfaces",
+   "CLI onboarding state and exact approval-digest propagation",
+   "tests, schemas, decisions, tracker records, and release evidence for those product changes"
+  ],
+  "why_no_paid_recertification": "Decision 0038 adds a post-run publication path. The Campaign, Climb, task membership, engine, subject, sampling, budgets, scoring, and founder Skill bytes are unchanged, so no scientific artifact moved. The founder directed this closeout to reuse an existing proof rather than repeat paid inference.",
+  "verification": [
+   "make check: 3277 passed, 1 skipped",
+   "make check-plugin: 922 passed; 17 tools and 2 hooks registered",
+   "the selected existing proof verifies 339 checks from stored bytes",
+   "the preserved wheel's SHA-256 and embedded provenance stamp were re-observed"
+  ]
+ },
+ "verdict": "PASS — the classified range now ends at e71e998080b093dabe6f1016905b3afa8078cbad. The certified scientific lineage remains unchanged through the final 27-commit increment: no catalog, engine, Campaign, Climb, taskset, founder Skill, or package-version input changed. That increment is the opt-in publication feature, onboarding and receipt correctness, tests, schemas, decisions, tracker exports, and release records. The full Python and plugin gates passed, the existing proof verifies 339 checks, and the preserved wheel's digest and provenance stamp match the frozen CLI coordinate."
 }
