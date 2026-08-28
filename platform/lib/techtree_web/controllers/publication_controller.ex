@@ -118,19 +118,33 @@ defmodule TechtreeWeb.PublicationController do
   One published run, as everything this site is willing to say about it.
   """
   def show(conn, %{"bundle_digest" => digest}) do
-    with true <- Digest.valid?(digest),
-         {:ok, entry} <- Query.get_entry(digest) do
-      bytes = Projection.entry(entry, origin())
-
-      ExactResponse.send_exact(
-        conn,
-        bytes,
-        "application/json",
-        Digest.hash_bytes(bytes),
-        :no_store
-      )
+    if Digest.valid?(digest) do
+      show_valid_digest(conn, digest)
     else
-      _other ->
+      ExactResponse.send_error(
+        conn,
+        400,
+        :publication_digest_invalid,
+        "the publication fingerprint in the path is not a digest",
+        false
+      )
+    end
+  end
+
+  defp show_valid_digest(conn, digest) do
+    case Query.get_entry(digest) do
+      {:ok, entry} ->
+        bytes = Projection.entry(entry, origin())
+
+        ExactResponse.send_exact(
+          conn,
+          bytes,
+          "application/json",
+          Digest.hash_bytes(bytes),
+          :no_store
+        )
+
+      :error ->
         ExactResponse.send_error(
           conn,
           404,
