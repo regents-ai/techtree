@@ -105,9 +105,12 @@ put the two headline values first: overall elapsed time and total tokens
 spent. Read them from `completion_summary` exactly as returned; if one is
 missing, say it is unavailable. You may optionally break each down into the
 baseline and candidate values. Then ask: “Would you like to publish this
-result proof to techtree.sh? It includes the result and its pseudonymous
-participant public key, but never the episodes; no EVM address is attached
-unless you choose to add one.”
+result proof to techtree.sh? It uploads the complete proof bundle — manifests,
+signed report and receipts, cited documents, and any optional execution record
+— while Episodes and Traces remain local. The published entry makes the Skill
+name public automatically, and includes an optional public GitHub repository
+URL when supplied. It includes the result and its pseudonymous participant
+public key; no EVM address is attached unless you choose to add one.”
 
 The question is only an opt-in offer. Do not call `techtree_publish_run` until
 the person explicitly approves it. If the result has no `publication_offer`,
@@ -120,11 +123,13 @@ the address in chat.
 
 ## "Where did my data go?"
 
-Nothing is uploaded unless they publish a run themselves. The Skill, the
-episodes, the report and the proof stay on the machine that ran them until
-somebody chooses otherwise, and publishing a finished run sends the run's proof
-— the signed report and its receipts — and never the episodes. The prompts and
-the replies are not in the proof directory at all, so there is no version of
+Nothing is uploaded unless they publish a run themselves. The Skill, Episodes
+and Traces stay on the machine that ran them until somebody chooses otherwise,
+and publishing a finished run uploads the complete proof bundle — manifests,
+signed report and receipts, cited documents, and any optional execution record
+— while Episodes and Traces remain local. The network returns a separate signed
+publication receipt; it is not the uploaded proof bundle. The prompts and the
+replies are not in the proof directory at all, so there is no version of
 publishing that sends them.
 
 Model inference is different and must be said in the same breath: the tasks

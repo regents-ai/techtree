@@ -184,10 +184,11 @@ def _slash_climbs(services: Any, arguments: Sequence[str]) -> str:
 #: model calls do.
 PUBLICATION_TERMS_LINE = (
     "These are the terms this Climb sets for a published result. Nothing is "
-    "published unless you publish a finished run yourself, and what travels "
-    "then is the run's proof — the signed report and its receipts — and never "
-    "the episodes. Your Skill and your episodes stay on this machine, and "
-    "model calls still go to the model provider you configured."
+    "published unless you publish a finished run yourself. Publishing uploads "
+    "the complete proof bundle — manifests, signed report and receipts, cited "
+    "documents, and any optional execution record — while Episodes and Traces "
+    "remain local. Your Skill stays on this machine, and model calls still go "
+    "to the model provider you configured."
 )
 
 

@@ -1,4 +1,4 @@
-# Techtree for Hermes
+# Techtree Hermes Plugin
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-lightgrey)](https://www.python.org/downloads/) [![host Hermes ≥ 0.20.1](https://img.shields.io/badge/host%20Hermes-%E2%89%A5%200.20.1-lightgrey)](https://techtree.sh/start)
 
@@ -19,14 +19,13 @@ Paste this into Hermes:
 > Techtree Doctor and the Hello World Climb.
 
 > [!IMPORTANT]
-> Techtree Climb v0.1 is a proof of concept for a stack of three independent
+> Techtree Climb v0.1 is a working technical preview of a stack of three independent
 > parts: Prime Intellect's Verifiers as the evaluation engine,
 > Nous Research's Hermes as the agent host, and
 > Techtree as the campaign kernel and evidence layer.
 > What it demonstrates is that the three pin together tightly enough for a
 > controlled comparison to run end to end and leave a receipt that verifies
-> offline. It is a development release, and nothing here is a measurement
-> anyone should cite.
+> offline.
 
 ```text
         you
@@ -61,11 +60,6 @@ Paste this into Hermes:
   shows is served over GET. It has one address that accepts anything, and what
   that address accepts is a signed run somebody chose to publish.
 
-The evaluation engine, the agent host, and the container the subject runs in
-are each pinned to an exact version, and the release is only as reproducible as
-those pins. Those are the seams of the stack, and they are worth knowing about
-before anyone leans on a result.
-
 | Layer | What | Pin |
 | --- | --- | --- |
 | Evaluation engine | Prime Intellect's Verifiers | pinned to an exact commit |
@@ -82,9 +76,10 @@ This plugin is the operator surface for that: it lets Hermes inspect what a
 Climb measures, prepare a run, start it, follow it, and read the result.
 
 > [!NOTE]
-> Techtree uploads nothing unless you publish a run yourself, and what travels
-> then is the run's proof — the signed report and its receipts — and never your
-> Episodes or Traces. Model inference is still sent to the model provider you
+> Techtree uploads nothing unless you publish a run yourself. Publishing uploads
+> the complete proof bundle — manifests, signed report and receipts, cited
+> documents, and any optional execution record — while Episodes and Traces
+> remain local. Model inference is still sent to the model provider you
 > configured, under that provider's policies — a comparison that runs locally
 > is not a comparison that runs without the network.
 

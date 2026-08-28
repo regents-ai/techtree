@@ -44,8 +44,11 @@ Read the publication terms with their plain meaning beside them. They are the
 terms the Climb sets for a published result — entering requires releasing the
 candidate Skill, and the uplift report is public. Nothing is published unless
 the person publishes a finished run themselves, and what travels then is the
-run's proof — the signed report and its receipts — and never the episodes.
-Their Skill and their episodes stay on their machine, and model calls still go
+complete proof bundle — manifests, signed report and receipts, cited documents,
+and any optional execution record — while Episodes and Traces remain local.
+The published entry also makes the Skill name public automatically and includes
+an optional public GitHub repository URL when supplied. Their Skill text and
+episodes stay on their machine, and model calls still go
 to the model provider they configured. The terms without that sentence read as
 a plan to publish their work the moment a run starts, and someone who refuses
 on that basis has read them correctly.
@@ -67,8 +70,9 @@ Publishing is offered only when Techtree offers it, which is only for a run
 whose proof was checked in that very reading and held together. Relay the
 offer; never compose one.
 
-Say what publishing does before asking: the run's proof travels — the signed
-report and its receipts — and the episodes do not; the log records arrivals in
+Say what publishing does before asking: the complete proof bundle travels —
+manifests, signed report and receipts, cited documents, and any optional
+execution record — while Episodes and Traces remain local; the log records arrivals in
 order and ranks nothing; a published entry can be withdrawn afterwards, which
 is recorded, and it is not deleted; and no Ethereum address is sent this way,
 with nothing offered in exchange for one.

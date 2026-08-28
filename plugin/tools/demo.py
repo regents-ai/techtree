@@ -141,10 +141,11 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                     "the episode count, and the Skill, and start only if the "
                     "user agrees. The data rights are the terms this Climb "
                     "sets for a published result. Nothing is published "
-                    "unless the user publishes a finished run themselves, and "
-                    "what travels then is the run's proof — the signed report "
-                    "and its receipts — and never the episodes. Their Skill "
-                    "and their episodes stay on their machine, and model calls "
+                    "unless the user publishes a finished run themselves. "
+                    "Publishing uploads the complete proof bundle — manifests, "
+                    "signed report and receipts, cited documents, and any "
+                    "optional execution record — while Episodes and Traces "
+                    "remain local. Their Skill stays on their machine, and model calls "
                     "still go to the model provider they configured."
                 ),
                 "tool": "techtree_climb_start",

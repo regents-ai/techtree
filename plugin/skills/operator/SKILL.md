@@ -86,9 +86,10 @@ The data rights need one sentence beside them, every time. A Climb's policy
 describes a result that has been published: entering requires releasing the
 candidate Skill, and the uplift report is public. Those are the terms the
 Climb sets for a published result. Nothing is published unless the person
-publishes a finished run themselves, and what travels then is the run's proof
-— the signed report and its receipts — and never the episodes. Their Skill and
-their episodes stay on their machine, and model calls still go to the model
+publishes a finished run themselves. Publishing uploads the complete proof
+bundle — manifests, signed report and receipts, cited documents, and any
+optional execution record — while Episodes and Traces remain local. Their Skill
+stays on their machine, and model calls still go to the model
 provider they configured. Say both halves. A careful reader given only the
 first half will conclude that starting a run publishes their Skill and their
 numbers, and will be right to refuse.
@@ -165,9 +166,13 @@ time and total tokens spent. Read those values exactly as Techtree returned
 them, saying "unavailable" when a value is absent rather than working one out;
 you may optionally break each headline down into the baseline and candidate
 values. Then ask this, or wording substantively identical to it:
-“Would you like to publish this result proof to techtree.sh? It includes the
-result and its pseudonymous participant public key, but never the episodes; no
-EVM address is attached unless you choose to add one.” This is an offer, not
+“Would you like to publish this result proof to techtree.sh? It uploads the
+complete proof bundle — manifests, signed report and receipts, cited documents,
+and any optional execution record — while Episodes and Traces remain local. The
+published entry makes the Skill name public automatically, and includes an
+optional public GitHub repository URL when supplied. It includes the result and
+its pseudonymous participant public key; no EVM address is attached unless you
+choose to add one.” This is an offer, not
 approval: do not call `techtree_publish_run` in the same response or until the
 person explicitly says yes. If there is no
 `publication_offer` (including an unverified result), do not ask to publish;
@@ -189,11 +194,13 @@ Put the offer to the person and let them answer. Hermes asks before
 `techtree_publish_run` runs, and what they are owed while they decide is the
 whole of what publishing does:
 
-- it sends the run's proof files — the signed report, the per-episode
-  receipts, and the documents they cite;
-- it does not send the episodes. A receipt carries a task's digest and its
-  score, and the prompts and the replies are not in the proof directory at
-  all;
+- it uploads the complete proof bundle — its manifests, signed report and
+  receipts, cited documents, and any optional execution record — while
+  Episodes and Traces remain local;
+- the published entry makes the Skill name public automatically, and includes
+  an optional public GitHub repository URL when supplied;
+- the network returns a separate signed publication receipt acknowledging
+  acceptance; it is not the uploaded proof bundle;
 - the log lists entries in the order they arrive and ranks nothing. There is
   no leaderboard, and two entries beside each other are two separate
   comparisons rather than a standing;
@@ -246,10 +253,11 @@ files can be measured, but the revision step will not restructure it, and the
 one attempt a person gets is spent on that one file.
 
 Publishing is a step somebody takes, never one that happens on its own.
-Nothing is published unless the person publishes a finished run themselves,
-and what travels then is the run's proof — the signed report and its receipts
-— and never the episodes. The Skill and the episodes stay on the machine that
-made them, and the tasks still go to the model provider the person configured,
+Nothing is published unless the person publishes a finished run themselves.
+Publishing uploads the complete proof bundle — manifests, signed report and
+receipts, cited documents, and any optional execution record — while Episodes
+and Traces remain local. The Skill stays on the machine that made it, and the
+tasks still go to the model provider the person configured,
 under that provider's terms. There is still no leaderboard and no way to set
 one person's result beside another's: the log records arrivals in order and
 ranks nothing, and a comparison is meaningful against the other side of its
@@ -272,8 +280,8 @@ Do not work around it.
 - Report the result Techtree rendered; never a verdict it did not compute.
 - Never claim independent reproduction.
 - Nothing is published unless the person publishes a run themselves, and then
-  the proof travels and never the episodes; model inference still goes to the
-  provider.
+  the complete proof bundle travels while Episodes and Traces remain local;
+  model inference still goes to the provider.
 - Offer publishing only when Techtree offered it, and let the person answer.
 - One revision proposal, after a valid finished run, with the diff shown.
 - A tie usually means both sides failed that task, not that they drew.

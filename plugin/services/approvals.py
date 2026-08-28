@@ -302,11 +302,14 @@ def run_approved_event(
 #: says the plugin publishes, or that says nothing anywhere can — is a copy
 #: defect, and the release copy guard catches it.
 PUBLICATION_DISCLOSURE: Final[tuple[str, ...]] = (
-    "This sends the run's proof files to the public run log: the signed "
-    "report, the per-episode receipts, and the documents they cite.",
-    "It does not send the episodes. A receipt carries a task's digest and its "
-    "score, and the prompts and the replies are not in the proof directory at "
-    "all.",
+    "This uploads the complete proof bundle to the public run log: its "
+    "manifests, signed report and receipts, cited documents, and any optional "
+    "execution record.",
+    "Episodes and Traces remain local. The network returns a separate signed "
+    "publication receipt acknowledging acceptance; it is not the uploaded "
+    "proof bundle.",
+    "The published entry makes the Skill name public automatically, and an "
+    "optional public GitHub repository URL is included when supplied.",
     "The log lists entries in the order they arrive and ranks nothing. There "
     "is no leaderboard, and two entries beside each other are two separate "
     "comparisons rather than a standing.",
