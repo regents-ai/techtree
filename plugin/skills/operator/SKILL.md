@@ -159,6 +159,24 @@ was built to measure; it is the tool working.
 science, and attestation separately. Offer it whenever someone asks whether
 they can trust a number.
 
+When a completed result is verified and carries Techtree's `publication_offer`,
+foreground the two headline values in `completion_summary`: overall elapsed
+time and total tokens spent. Read those values exactly as Techtree returned
+them, saying "unavailable" when a value is absent rather than working one out;
+you may optionally break each headline down into the baseline and candidate
+values. Then ask this, or wording substantively identical to it:
+“Would you like to publish this result proof to techtree.sh? It includes the
+result and its pseudonymous participant public key, but never the episodes; no
+EVM address is attached unless you choose to add one.” This is an offer, not
+approval: do not call `techtree_publish_run` in the same response or until the
+person explicitly says yes. If there is no
+`publication_offer` (including an unverified result), do not ask to publish;
+follow Techtree's next action, normally checking the proof offline. The
+plugin never takes or sends an EVM address. If the person wants to attach one,
+give them Techtree's exact terminal command for that run, `techtree publish
+<run-id>` with the actual run ID substituted, and let the terminal prompt
+handle it; do not solicit the address in chat.
+
 ## Offering to publish
 
 A finished run whose proof verified is offered one more thing: publishing it

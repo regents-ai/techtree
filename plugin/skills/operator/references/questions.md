@@ -98,6 +98,26 @@ person's provider account is the only place the real number lives.
 
 Never estimate a cost yourself, and never quote a price before a run.
 
+## "What happens after the run finishes?"
+
+For a completed result that Techtree verified and offered for publication,
+put the two headline values first: overall elapsed time and total tokens
+spent. Read them from `completion_summary` exactly as returned; if one is
+missing, say it is unavailable. You may optionally break each down into the
+baseline and candidate values. Then ask: “Would you like to publish this
+result proof to techtree.sh? It includes the result and its pseudonymous
+participant public key, but never the episodes; no EVM address is attached
+unless you choose to add one.”
+
+The question is only an opt-in offer. Do not call `techtree_publish_run` until
+the person explicitly approves it. If the result has no `publication_offer`,
+or its proof did not verify, do not ask to publish; use the next action Techtree
+gave, such as checking the proof offline. The plugin never takes or sends an
+EVM address. If the person wants to attach one, give them Techtree's exact
+terminal command for that run, `techtree publish <run-id>` with the actual run
+ID substituted, and let the terminal prompt handle it rather than soliciting
+the address in chat.
+
 ## "Where did my data go?"
 
 Nothing is uploaded unless they publish a run themselves. The Skill, the

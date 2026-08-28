@@ -75,6 +75,7 @@ class PresentationService:
             "reproduction": REPRODUCTION_STATEMENT,
             "outcome": describe_outcome(payload),
             "usage": usage_summary(payload),
+            "completion_summary": completion_summary(result_envelope),
             "result_label": FIRST_RESULT_LABEL,
         }
 
@@ -194,6 +195,73 @@ def usage_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "derived_cost": payload.get("derived_cost"),
         "cost_unavailable_reason": payload.get("cost_unavailable_reason"),
     }
+
+
+def completion_summary(result_envelope: Mapping[str, Any]) -> dict[str, Any]:
+    """Return headline completion totals from the signed execution record.
+
+    The overall elapsed time is the record's own value, not a sum or a new
+    clock reading. A total token count is meaningful only when both variants
+    reported one, so a partial record keeps the total explicitly unavailable.
+    The side values remain available here and in ``usage`` for a reader who
+    wants the breakdown.
+    """
+    data = result_envelope.get("data")
+    payload = data.get("presentation") if isinstance(data, Mapping) else None
+    record = data.get("execution_record") if isinstance(data, Mapping) else None
+    if not isinstance(record, Mapping):
+        return {
+            "elapsed_seconds": None,
+            "total_tokens": None,
+            "baseline_seconds": (
+                payload.get("baseline_seconds")
+                if isinstance(payload, Mapping)
+                else None
+            ),
+            "candidate_seconds": (
+                payload.get("candidate_seconds")
+                if isinstance(payload, Mapping)
+                else None
+            ),
+            "baseline_tokens": (
+                payload.get("baseline_tokens")
+                if isinstance(payload, Mapping)
+                else None
+            ),
+            "candidate_tokens": (
+                payload.get("candidate_tokens")
+                if isinstance(payload, Mapping)
+                else None
+            ),
+        }
+
+    baseline = record.get("baseline")
+    candidate = record.get("candidate")
+    baseline = baseline if isinstance(baseline, Mapping) else {}
+    candidate = candidate if isinstance(candidate, Mapping) else {}
+    baseline_usage = baseline.get("usage")
+    candidate_usage = candidate.get("usage")
+    baseline_usage = baseline_usage if isinstance(baseline_usage, Mapping) else {}
+    candidate_usage = candidate_usage if isinstance(candidate_usage, Mapping) else {}
+    baseline_tokens = _token_total(baseline_usage.get("total_tokens"))
+    candidate_tokens = _token_total(candidate_usage.get("total_tokens"))
+    return {
+        "elapsed_seconds": record.get("elapsed_seconds"),
+        "total_tokens": (
+            baseline_tokens + candidate_tokens
+            if baseline_tokens is not None and candidate_tokens is not None
+            else None
+        ),
+        "baseline_seconds": baseline.get("elapsed_seconds"),
+        "candidate_seconds": candidate.get("elapsed_seconds"),
+        "baseline_tokens": baseline_tokens,
+        "candidate_tokens": candidate_tokens,
+    }
+
+
+def _token_total(value: Any) -> int | None:
+    """Return a recorded token total, never treating a malformed value as zero."""
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 def forbidden_second_result_words(text: str) -> list[str]:

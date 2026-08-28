@@ -107,6 +107,7 @@ def tool_result(
         "next_action",
         "next_actions",
         "publication_offer",
+        "completion_summary",
         "error",
     ):
         if key in payload:
