@@ -65,7 +65,10 @@ __all__ = [
     "PUBLICATION_RESPONSE_TOO_LARGE",
     "PUBLICATION_TRANSPORT_FAILED",
     "PUBLICATION_TRANSPORT_REDIRECTED",
+    "SKILL_GITHUB_URL_HEADER",
+    "SKILL_NAME_HEADER",
     "HttpsPublicationTransport",
+    "PublicationMetadataTransport",
     "PublicationTransport",
     "resolved_endpoint",
     "validated_endpoint",
@@ -93,6 +96,12 @@ _TIMEOUT_SECONDS: Final = 120.0
 #: run log serves a stored submission back at a public address.
 CONTRIBUTOR_ADDRESS_HEADER: Final = "x-techtree-contributor-address"
 
+#: Public descriptive metadata travels beside the fixed proof body. The
+#: receiving side may store these headers with the immutable log entry, while
+#: the submission document itself remains the four-member contract.
+SKILL_NAME_HEADER: Final = "x-techtree-skill-name"
+SKILL_GITHUB_URL_HEADER: Final = "x-techtree-skill-github-url"
+
 #: Enough for a proof bundle several times over, and small enough that a
 #: misconfigured address answering with something enormous is refused rather
 #: than read into memory.
@@ -104,6 +113,22 @@ class PublicationTransport(Protocol):
 
     def submit(
         self, *, endpoint: str, body: bytes, contributor_address: str | None
+    ) -> bytes:
+        """Return the response body, or raise a typed failure."""
+        ...
+
+
+class PublicationMetadataTransport(Protocol):
+    """Transport seam extended with optional public Skill metadata headers."""
+
+    def submit(
+        self,
+        *,
+        endpoint: str,
+        body: bytes,
+        contributor_address: str | None,
+        skill_name: str | None = None,
+        skill_github_url: str | None = None,
     ) -> bytes:
         """Return the response body, or raise a typed failure."""
         ...
@@ -147,7 +172,13 @@ class HttpsPublicationTransport:
     """The real request: one POST, one response, no redirects followed."""
 
     def submit(
-        self, *, endpoint: str, body: bytes, contributor_address: str | None
+        self,
+        *,
+        endpoint: str,
+        body: bytes,
+        contributor_address: str | None,
+        skill_name: str | None = None,
+        skill_github_url: str | None = None,
     ) -> bytes:
         """POST ``body`` to ``endpoint`` and return the response bytes."""
         headers = {
@@ -157,6 +188,10 @@ class HttpsPublicationTransport:
         }
         if contributor_address is not None:
             headers[CONTRIBUTOR_ADDRESS_HEADER] = contributor_address
+        if skill_name is not None:
+            headers[SKILL_NAME_HEADER] = skill_name
+        if skill_github_url is not None:
+            headers[SKILL_GITHUB_URL_HEADER] = skill_github_url
         request = urllib.request.Request(
             validated_endpoint(endpoint),
             data=body,

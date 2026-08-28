@@ -39,6 +39,10 @@ from cryptography.x509.oid import NameOID
 
 from fixtures.publication import COORDINATES, ENDPOINT, PINNED_ENDPOINT
 from techtree.errors import TechtreeError, ValidationError
+from techtree.publication.address import (
+    SKILL_GITHUB_URL_INVALID,
+    canonical_skill_github_url,
+)
 from techtree.publication.transport import (
     MAX_RESPONSE_BYTES,
     PUBLICATION_ENDPOINT_INVALID,
@@ -99,6 +103,30 @@ def test_the_pinned_address_is_used_when_nothing_overrides_it() -> None:
     assert resolved_endpoint(COORDINATES, ENDPOINT) == ENDPOINT
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://github.com/owner/repo",
+        "https://www.github.com/owner/repo",
+        "https://github.com/owner/repo/",
+        "https://github.com/owner/repo.git",
+        "https://github.com/owner/repo?tab=readme",
+        "https://github.com/owner/repo/issues",
+    ],
+)
+def test_a_skill_github_url_must_be_the_canonical_repository_shape(url: str) -> None:
+    with pytest.raises(ValidationError) as raised:
+        canonical_skill_github_url(url)
+
+    assert raised.value.code == SKILL_GITHUB_URL_INVALID
+
+
+def test_a_skill_github_url_is_kept_in_its_canonical_spelling() -> None:
+    assert canonical_skill_github_url("https://github.com/Owner/repo_name") == (
+        "https://github.com/Owner/repo_name"
+    )
+
+
 # ---------------------------------------------------------------------------
 # The exchange, against a server that misbehaves on purpose
 # ---------------------------------------------------------------------------
@@ -123,6 +151,7 @@ class LocalRunLog:
     #: Every path the server was asked for, so a test can prove a redirect was
     #: not followed rather than only that it was reported.
     requested: list[str]
+    headers: list[dict[str, str]]
 
 
 @pytest.fixture
@@ -133,10 +162,12 @@ def run_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[LocalRu
 
     answer = Answer()
     requested: list[str] = []
+    received_headers: list[dict[str, str]] = []
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_POST(self) -> None:
             requested.append(self.path)
+            received_headers.append(dict(self.headers.items()))
             self.send_response(answer.status)
             if answer.location is not None:
                 self.send_header("Location", answer.location)
@@ -159,6 +190,7 @@ def run_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[LocalRu
             url=f"https://localhost:{server.server_address[1]}/api/v1/publications",
             answer=answer,
             requested=requested,
+            headers=received_headers,
         )
     finally:
         server.shutdown()
@@ -170,6 +202,25 @@ def _submit(run_log: LocalRunLog, *, address: str | None = None) -> bytes:
     """Make the real request the real way."""
     return HttpsPublicationTransport().submit(
         endpoint=run_log.url, body=b'{"hello":true}', contributor_address=address
+    )
+
+
+def test_skill_metadata_travels_in_headers_beside_the_fixed_body(
+    run_log: LocalRunLog,
+) -> None:
+    HttpsPublicationTransport().submit(
+        endpoint=run_log.url,
+        body=b'{"schema_version":"example"}',
+        contributor_address=None,
+        skill_name="Branch Code v1",
+        skill_github_url="https://github.com/example/branch-code",
+    )
+
+    assert len(run_log.headers) == 1
+    assert run_log.headers[0]["X-Techtree-Skill-Name"] == "Branch Code v1"
+    assert (
+        run_log.headers[0]["X-Techtree-Skill-Github-Url"]
+        == "https://github.com/example/branch-code"
     )
 
 

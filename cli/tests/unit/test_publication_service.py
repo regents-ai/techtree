@@ -21,6 +21,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -132,6 +133,53 @@ def service(
         transport=transport,  # type: ignore[arg-type]
         clock=lambda: datetime(2026, 8, 27, 9, 0, tzinfo=UTC),
     )
+
+
+def test_publication_plan_reads_the_prepared_skill_name_only_when_digests_match(
+    tmp_path: Path,
+) -> None:
+    """The public label comes from the prepared artifact, not free CLI text."""
+    from fixtures.drafts.support import prepare_draft
+
+    store, prepared, prepared_paths = prepare_draft(tmp_path / "prepared")
+    draft_dir = prepared_paths.draft_dir(prepared.draft.id)
+    run_root = tmp_path / "runs" / PROOF_RUN_ID
+    inputs = run_root / "inputs"
+    inputs.mkdir(parents=True)
+    shutil.copy2(draft_dir / "draft.json", inputs / "draft.json")
+
+    _, candidate = store.get_manifests(prepared.draft.id)
+    proof = run_root / "proof"
+    proof.mkdir()
+    (proof / "candidate-experiment.json").write_bytes(canonical_json_bytes(candidate))
+
+    publication = service(tmp_path / "runs", StubTransport())
+    assert publication._skill_name(PROOF_RUN_ID, proof) == (
+        prepared.draft.skill_artifact.name
+    )
+
+
+def test_a_draft_skill_that_disagrees_with_the_candidate_manifest_has_no_name(
+    tmp_path: Path,
+) -> None:
+    from fixtures.drafts.support import prepare_draft
+
+    store, prepared, prepared_paths = prepare_draft(tmp_path / "prepared")
+    draft_dir = prepared_paths.draft_dir(prepared.draft.id)
+    run_root = tmp_path / "runs" / PROOF_RUN_ID
+    inputs = run_root / "inputs"
+    inputs.mkdir(parents=True)
+    draft_document = json.loads((draft_dir / "draft.json").read_text())
+    draft_document["skill_artifact"]["root_digest"] = "sha256:" + "f" * 64
+    (inputs / "draft.json").write_text(json.dumps(draft_document))
+
+    _, candidate = store.get_manifests(prepared.draft.id)
+    proof = run_root / "proof"
+    proof.mkdir()
+    (proof / "candidate-experiment.json").write_bytes(canonical_json_bytes(candidate))
+
+    publication = service(tmp_path / "runs", StubTransport())
+    assert publication._skill_name(PROOF_RUN_ID, proof) is None
 
 
 def answering(**overrides: object) -> StubTransport:

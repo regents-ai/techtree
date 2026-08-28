@@ -159,6 +159,34 @@ A person can ask for the address to be removed, and removal means
 removal — it is not part of the append-only evidence, it is a detail
 somebody volunteered about themselves.
 
+## Founder amendment, 2026-08-28 — public Skill metadata
+
+The master run feed names the Campaign and the comparison it records:
+`No Skill vs. <Skill name>`. When the Skill has a public GitHub repository,
+the feed shows a small GitHub mark and the detail page links to it.
+
+The Campaign name is not supplied by the participant. The receiving site
+resolves it from the Campaign digest against the active catalog and stores
+that verified title with the immutable log entry.
+
+The Skill name is read by the CLI from the run's prepared Skill artifact. A
+publisher may also pass one optional `--github-url`. These are intentionally
+public descriptive metadata, not evidence that the repository exists or is
+owned by the publisher. The CLI shows them in the publication review before
+approval. Both are strictly shaped rather than free prose: the name uses the
+existing Skill-label grammar and the URL is a canonical HTTPS GitHub
+repository URL.
+
+They travel beside the proof body in `x-techtree-skill-name` and
+`x-techtree-skill-github-url`. The proof document remains the fixed four-member
+document below; its digest, the bundle digest, the receipt and the contributor
+address privacy boundary do not change. A retry returns the metadata recorded
+by the first accepted publication and never rewrites it.
+
+The Hello World starter Skill's full `SKILL.md` is already a release object
+served byte-for-byte under its content digest. Public pages link to that object
+rather than copying its text into a second source of truth.
+
 ## The wire contract, fixed here so the two halves cannot drift
 
 Both sides of this feature were built at once, from opposite ends, and

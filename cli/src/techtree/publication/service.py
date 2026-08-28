@@ -42,15 +42,17 @@ name is the case that is genuinely wrong, and that is the one it refuses.
 from __future__ import annotations
 
 import base64
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Final
+from typing import Final, TypeVar, cast
 
+from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
-from techtree.canonical import canonical_json_bytes
+from techtree.canonical import canonical_json_bytes, sha256_digest_bytes
 from techtree.constants import (
     PUBLICATION_JOURNAL_SCHEMA_VERSION,
     PUBLICATION_SUBMISSION_SCHEMA_VERSION,
@@ -65,14 +67,21 @@ from techtree.errors import (
 )
 from techtree.fs import fsync_directory, open_exclusive
 from techtree.identity.models import VerificationResult
+from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import Digest, ObjectEnvelope
+from techtree.models.experiment import ExperimentManifest
+from techtree.models.skill import SkillArtifact, SubmissionDraft
 from techtree.models.uplift_report import PublicationStatus, UpliftReport
 from techtree.publication.journal import PublicationJournal, PublicationJournalEntry
 from techtree.publication.models import (
     PublicationReceiptPayload,
     PublicationSubmission,
 )
-from techtree.publication.transport import PublicationTransport, resolved_endpoint
+from techtree.publication.transport import (
+    PublicationMetadataTransport,
+    PublicationTransport,
+    resolved_endpoint,
+)
 from techtree.publication.verify import (
     PUBLICATION_RECEIPT_INVALID,
     verify_publication_receipt,
@@ -110,6 +119,15 @@ PUBLICATION_NOT_ELIGIBLE: Final = "publication_not_eligible"
 PUBLICATION_RECEIPT_CONFLICT: Final = "publication_receipt_conflict"
 RUN_ALREADY_PUBLISHED: Final = "run_already_published"
 
+_INPUTS_DIRECTORY: Final = "inputs"
+_DRAFT_FILENAME: Final = "draft.json"
+_SKILL_DIRECTORY: Final = "skill"
+_SKILL_ARTIFACT_FILENAME: Final = "artifact.json"
+_CANDIDATE_MANIFEST_FILENAME: Final = "candidate-experiment.json"
+_SKILL_NAME_PATTERN: Final = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}\Z")
+
+_ModelT = TypeVar("_ModelT", bound=BaseModel)
+
 
 @dataclass(frozen=True)
 class PublicationPlan:
@@ -134,6 +152,11 @@ class PublicationPlan:
     byte_count: int
     report: UpliftReport
     verification: VerificationResult
+    #: The candidate Skill's prepared public label, when the run still carries
+    #: its immutable inputs and that label's root digest matches the verified
+    #: candidate experiment. Older runs predate publication metadata and leave
+    #: this absent rather than inventing a name.
+    skill_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -236,12 +259,17 @@ class PublicationService:
             byte_count=sum(len(data) for data in stored.values()),
             report=report,
             verification=verification,
+            skill_name=self._skill_name(run_id, directory),
         )
 
     # -- publishing ---------------------------------------------------------
 
     def publish(
-        self, plan: PublicationPlan, *, contributor_address: str | None = None
+        self,
+        plan: PublicationPlan,
+        *,
+        contributor_address: str | None = None,
+        skill_github_url: str | None = None,
     ) -> PublicationOutcome:
         """Send the planned submission, record what happened, and return it.
 
@@ -258,7 +286,7 @@ class PublicationService:
         self._record(journal, plan, status=PublicationStatus.PENDING)
 
         try:
-            envelope = self._submit(plan, contributor_address)
+            envelope = self._submit(plan, contributor_address, skill_github_url)
             path = self._write_receipt(plan.run_id, envelope)
         except TechtreeError as error:
             self._record(
@@ -330,14 +358,29 @@ class PublicationService:
         return canonical_json_bytes(submission)
 
     def _submit(
-        self, plan: PublicationPlan, contributor_address: str | None
+        self,
+        plan: PublicationPlan,
+        contributor_address: str | None,
+        skill_github_url: str | None,
     ) -> ObjectEnvelope[PublicationReceiptPayload]:
         """Send one submission and return the receipt it came back with."""
-        response = self._transport.submit(
-            endpoint=plan.endpoint,
-            body=self.submission_bytes(plan.run_id),
-            contributor_address=contributor_address,
-        )
+        body = self.submission_bytes(plan.run_id)
+        if plan.skill_name is None and skill_github_url is None:
+            # Keep compatibility with transports supplied by callers that
+            # predate the optional metadata headers.
+            response = self._transport.submit(
+                endpoint=plan.endpoint,
+                body=body,
+                contributor_address=contributor_address,
+            )
+        else:
+            response = cast(PublicationMetadataTransport, self._transport).submit(
+                endpoint=plan.endpoint,
+                body=body,
+                contributor_address=contributor_address,
+                skill_name=plan.skill_name,
+                skill_github_url=skill_github_url,
+            )
         return self._receipt(response, plan)
 
     def _receipt(
@@ -434,6 +477,66 @@ class PublicationService:
 
     def _run_dir(self, run_id: str) -> Path:
         return self._runs_dir / run_id
+
+    def _skill_name(self, run_id: str, directory: Path) -> str | None:
+        """Read a verified candidate Skill's public name from run inputs.
+
+        The proof verifies the candidate experiment, while the prepared Skill
+        artifact remains in the run's immutable inputs. The candidate manifest
+        is the bridge between them: only a draft artifact whose root digest is
+        exactly the candidate reference may contribute a public name. Metadata
+        is descriptive and optional, so an old or incomplete run simply has no
+        name rather than making its otherwise valid proof unpublishable.
+        """
+        inputs = self._run_dir(run_id) / _INPUTS_DIRECTORY
+        try:
+            draft = self._load_json_model(inputs / _DRAFT_FILENAME, SubmissionDraft)
+            candidate = self._load_json_model(
+                directory / _CANDIDATE_MANIFEST_FILENAME, ExperimentManifest
+            )
+            skill = draft.skill_artifact
+            subject = candidate.configuration.agents.get("subject")
+            if subject is None or len(subject.harness.skills) != 1:
+                return None
+            if subject.harness.skills[0].digest != skill.root_digest:
+                return None
+            if skill_content_digest(skill.files) != skill.root_digest:
+                return None
+
+            # The copied artifact is part of the immutable prepared input. If
+            # present, require it to agree with the draft before exposing its
+            # label; this catches a stale or hand-edited input tree without
+            # affecting runs created before this metadata existed.
+            stored = inputs / _SKILL_DIRECTORY / _SKILL_ARTIFACT_FILENAME
+            if stored.is_file():
+                stored_skill = self._load_json_model(stored, SkillArtifact)
+                if stored_skill != skill:
+                    return None
+
+            files = inputs / _SKILL_DIRECTORY / "files"
+            if files.is_dir():
+                for entry in skill.files:
+                    raw = (files / entry.path).read_bytes()
+                    if (
+                        len(raw) != entry.size
+                        or sha256_digest_bytes(raw) != entry.digest
+                    ):
+                        return None
+
+            if _SKILL_NAME_PATTERN.fullmatch(skill.name) is None:
+                return None
+            return skill.name
+        except (OSError, PydanticValidationError, KeyError, TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _load_json_model(path: Path, model: type[_ModelT]) -> _ModelT:
+        """Load a strict protocol model from its exact stored JSON bytes."""
+        raw = path.read_bytes()
+        # The concrete model types are supplied by the two callers above. A
+        # tiny helper keeps both paths on model_validate_json rather than
+        # decoding to an untyped mapping first.
+        return model.model_validate_json(raw)
 
     def _bundle_dir(self, run_id: str) -> Path:
         directory = proof_bundle_dir(self._run_dir(run_id))

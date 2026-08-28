@@ -52,6 +52,8 @@ from techtree.publication.service import (
 #: stored submission back at a public address, so it goes beside one.
 SENT: Final[list[bytes]] = []
 SENT_ADDRESSES: Final[list[str | None]] = []
+SENT_SKILL_NAMES: Final[list[str | None]] = []
+SENT_SKILL_GITHUB_URLS: Final[list[str | None]] = []
 
 
 class RecordingTransport(StubTransport):
@@ -63,11 +65,19 @@ class RecordingTransport(StubTransport):
     """
 
     def submit(
-        self, *, endpoint: str, body: bytes, contributor_address: str | None
+        self,
+        *,
+        endpoint: str,
+        body: bytes,
+        contributor_address: str | None,
+        skill_name: str | None = None,
+        skill_github_url: str | None = None,
     ) -> bytes:
         """Record the request where the test can read it, then answer."""
         SENT.append(body)
         SENT_ADDRESSES.append(contributor_address)
+        SENT_SKILL_NAMES.append(skill_name)
+        SENT_SKILL_GITHUB_URLS.append(skill_github_url)
         return super().submit(
             endpoint=endpoint, body=body, contributor_address=contributor_address
         )
@@ -81,6 +91,8 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     write_proof(signed_proof(root), root / "runs" / PROOF_RUN_ID)
     SENT.clear()
     SENT_ADDRESSES.clear()
+    SENT_SKILL_NAMES.clear()
+    SENT_SKILL_GITHUB_URLS.clear()
     monkeypatch.setattr(publish_module, "HttpsPublicationTransport", RecordingTransport)
     # The release pins a real key whose private half nobody in this repository
     # holds, so a test that wants a receipt to verify has to publish against
@@ -318,6 +330,38 @@ def test_a_machine_publishing_without_the_option_sends_no_address(
     invoke(home, "--json", "publish", PROOF_RUN_ID, "--yes")
 
     assert SENT_ADDRESSES == [None]
+
+
+def test_a_canonical_github_url_travels_as_public_metadata_header(home: Path) -> None:
+    result = invoke(
+        home,
+        "--json",
+        "publish",
+        PROOF_RUN_ID,
+        "--yes",
+        "--github-url",
+        "https://github.com/example/branch-code",
+    )
+
+    assert result.exit_code == EXIT_OK
+    assert SENT_SKILL_NAMES == [None]
+    assert SENT_SKILL_GITHUB_URLS == ["https://github.com/example/branch-code"]
+
+
+def test_an_invalid_github_url_is_refused_before_anything_is_sent(home: Path) -> None:
+    result = invoke(
+        home,
+        "--json",
+        "publish",
+        PROOF_RUN_ID,
+        "--yes",
+        "--github-url",
+        "https://github.com/example/branch-code/",
+    )
+
+    assert result.exit_code != EXIT_OK
+    assert "skill_github_url_invalid" in result.stdout
+    assert SENT == []
 
 
 def test_a_mistyped_address_stops_the_publication(home: Path) -> None:

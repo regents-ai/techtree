@@ -56,7 +56,10 @@ from techtree.errors import UsageError
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.uplift_report import PublicationStatus
-from techtree.publication.address import canonical_contributor_address
+from techtree.publication.address import (
+    canonical_contributor_address,
+    canonical_skill_github_url,
+)
 from techtree.publication.coordinates import packaged_publication_coordinates
 from techtree.publication.service import (
     PublicationPlan,
@@ -132,6 +135,11 @@ class PublicationPayload(ProtocolModel):
     #: ``x-techtree-contributor-address`` request header and into nothing
     #: else.
     contributor_address_sent: bool
+    #: Metadata read from the verified prepared Skill and optionally supplied
+    #: at publication time. These are headers beside, never members of, the
+    #: fixed four-member proof submission.
+    skill_name: NonEmptyString | None = None
+    skill_github_url: NonEmptyString | None = None
 
 
 def publish_run_command(
@@ -177,12 +185,27 @@ def publish_run_command(
             ),
         ),
     ] = None,
+    github_url: Annotated[
+        str | None,
+        typer.Option(
+            "--github-url",
+            metavar="URL",
+            help=(
+                "An optional canonical https://github.com/owner/repo URL for "
+                "the Skill. It is public descriptive metadata, not proof of "
+                "ownership."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Publish a verified run's proof to the public run log."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[PublicationPayload]:
         service = build_publication_service(context)
+        skill_github_url = (
+            canonical_skill_github_url(github_url) if github_url is not None else None
+        )
         plan = service.plan(run_id)
         # The order a person meets this in is the order it is written in: what
         # would be sent, then the one optional question, then the answer that
@@ -192,12 +215,18 @@ def publish_run_command(
             context, plan, assume_yes=yes, reviewed_on=reviewed_on
         )
         if asking:
-            _show_what_would_be_sent(context, plan)
+            _show_what_would_be_sent(
+                context, plan, skill_github_url=skill_github_url
+            )
         contributor = _contributor_address(context, typed=address, asking=asking)
         if asking:
             _require_publication_confirmation(context, plan)
 
-        outcome = service.publish(plan, contributor_address=contributor)
+        outcome = service.publish(
+            plan,
+            contributor_address=contributor,
+            skill_github_url=skill_github_url,
+        )
         receipt = outcome.receipt
         payload = PublicationPayload(
             run_id=outcome.run_id,
@@ -211,6 +240,8 @@ def publish_run_command(
             accepted_at=receipt.accepted_at,
             receipt_path=str(outcome.receipt_path),
             contributor_address_sent=outcome.contributor_address_sent,
+            skill_name=plan.skill_name,
+            skill_github_url=skill_github_url,
         )
         return CommandResult(
             data=payload,
@@ -301,10 +332,15 @@ def _require_an_answer_is_possible(
     return True
 
 
-def _show_what_would_be_sent(context: CliContext, plan: PublicationPlan) -> None:
+def _show_what_would_be_sent(
+    context: CliContext,
+    plan: PublicationPlan,
+    *,
+    skill_github_url: str | None,
+) -> None:
     """Print the review, before anything is asked about it."""
     console = human_console(no_color=context.no_color)
-    for line in publication_review_lines(plan):
+    for line in publication_review_lines(plan, skill_github_url=skill_github_url):
         console.print(line)
 
 
@@ -346,7 +382,9 @@ def _require_publication_confirmation(
         )
 
 
-def publication_review_lines(plan: PublicationPlan) -> list[str]:
+def publication_review_lines(
+    plan: PublicationPlan, *, skill_github_url: str | None = None
+) -> list[str]:
     """Return what a person reads before they answer.
 
     Exactly what would leave this machine, in the order somebody would ask it:
@@ -358,6 +396,8 @@ def publication_review_lines(plan: PublicationPlan) -> list[str]:
         "",
         f"{plan.file_count} files, {plan.byte_count} bytes, to {plan.endpoint}",
         f"Proof {plan.bundle_digest}",
+        f"Skill {plan.skill_name or 'candidate Skill'}",
+        f"GitHub {skill_github_url or 'none'}",
         "",
         _WHAT_TRAVELS,
         "",

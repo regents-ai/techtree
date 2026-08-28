@@ -37,14 +37,32 @@ from techtree.publication.keccak import keccak256
 
 __all__ = [
     "CONTRIBUTOR_ADDRESS_INVALID",
+    "SKILL_GITHUB_URL_INVALID",
     "canonical_contributor_address",
+    "canonical_skill_github_url",
     "eip55_checksum",
 ]
 
 #: Stable error code for "that is not an address anybody could have meant".
 CONTRIBUTOR_ADDRESS_INVALID: Final = "contributor_address_invalid"
 
+#: Stable error code for an optional public Skill repository URL that is not a
+#: canonical GitHub repository address.
+SKILL_GITHUB_URL_INVALID: Final = "skill_github_url_invalid"
+
 _ADDRESS_PATTERN: Final = re.compile(r"\A0x[0-9a-fA-F]{40}\Z")
+
+# GitHub user and organization names are at most 39 characters and contain
+# alphanumerics or dashes (never at either edge). Repository names are at most
+# 100 characters and may also contain dots and underscores. The URL is
+# deliberately narrower than what a browser might accept: one spelling, no
+# redirects, no .git suffix, and no extra path or URL components.
+_GITHUB_OWNER_PATTERN: Final = re.compile(
+    r"\A[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\Z"
+)
+_GITHUB_REPOSITORY_PATTERN: Final = re.compile(
+    r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,99}\Z"
+)
 
 #: A digest nibble of eight or more uppercases the hexadecimal character it
 #: sits beside. EIP-55, in the one sentence it amounts to.
@@ -83,6 +101,59 @@ def canonical_contributor_address(typed: str) -> str:
             details={"reason": "checksum"},
         )
     return trimmed.lower()
+
+
+def canonical_skill_github_url(typed: str) -> str:
+    """Return a canonical GitHub repository URL, or refuse it.
+
+    This is descriptive metadata, not proof that a repository exists or that
+    its publisher controls it. Keeping the accepted form strict prevents a
+    public link from silently becoming a redirect, a different host, or a
+    clone URL with credentials and query data attached.
+    """
+    from urllib.parse import urlsplit
+
+    if typed != typed.strip():
+        raise ValidationError(
+            "a Skill GitHub URL has no surrounding whitespace",
+            code=SKILL_GITHUB_URL_INVALID,
+            details={"reason": "whitespace"},
+        )
+
+    try:
+        parts = urlsplit(typed)
+        # Accessing ``port`` validates a malformed explicit port and may raise
+        # ValueError even when the rest of the URL can be split.
+        port = parts.port
+    except ValueError:
+        parts = None
+        port = None
+
+    path_parts = parts.path.split("/") if parts is not None else []
+    if (
+        parts is None
+        or parts.scheme != "https"
+        or parts.netloc != "github.com"
+        or parts.username is not None
+        or parts.password is not None
+        or port is not None
+        or parts.query
+        or parts.fragment
+        or "?" in typed
+        or "#" in typed
+        or len(path_parts) != 3
+        or path_parts[0]
+        or not _GITHUB_OWNER_PATTERN.fullmatch(path_parts[1])
+        or not _GITHUB_REPOSITORY_PATTERN.fullmatch(path_parts[2])
+        or path_parts[2].lower().endswith(".git")
+    ):
+        raise ValidationError(
+            "a Skill GitHub URL must be exactly https://github.com/owner/repo, "
+            "with no .git suffix, query, fragment, credentials, or extra path",
+            code=SKILL_GITHUB_URL_INVALID,
+            details={"reason": "shape"},
+        )
+    return typed
 
 
 def eip55_checksum(address: str) -> str:
