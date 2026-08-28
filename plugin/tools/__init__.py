@@ -101,7 +101,14 @@ def tool_result(
         "limit_bytes": limit,
         "channel": channel.value,
     }
-    for key in ("run_id", "draft_id", "next_action", "next_actions", "error"):
+    for key in (
+        "run_id",
+        "draft_id",
+        "next_action",
+        "next_actions",
+        "publication_offer",
+        "error",
+    ):
         if key in payload:
             reduced[key] = payload[key]
     return json.dumps(reduced, ensure_ascii=False, sort_keys=True, default=str)
@@ -163,6 +170,7 @@ from .demo import (  # noqa: E402
     techtree_demo_prepare,
 )
 from .proof import techtree_proof_verify  # noqa: E402
+from .publish import techtree_publish_run  # noqa: E402
 from .run import (  # noqa: E402
     techtree_run_cancel,
     techtree_run_result,
@@ -189,6 +197,7 @@ TOOL_HANDLERS: Mapping[str, ServiceHandler] = MappingProxyType(
         "techtree_run_cancel": techtree_run_cancel,
         "techtree_run_result": techtree_run_result,
         "techtree_proof_verify": techtree_proof_verify,
+        "techtree_publish_run": techtree_publish_run,
         "techtree_uplift_context": techtree_uplift_context,
         "techtree_uplift_propose": techtree_uplift_propose,
         "techtree_uplift_prepare": techtree_uplift_prepare,

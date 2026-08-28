@@ -140,10 +140,12 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                     "worked out first. Show the policy, the declared maximum, "
                     "the episode count, and the Skill, and start only if the "
                     "user agrees. The data rights are the terms this Climb "
-                    "sets for a published result. Nothing is published from "
-                    "this build: the user's Skill, the episodes and the report "
-                    "stay on their machine, and model calls still go to the "
-                    "model provider they configured."
+                    "sets for a published result. Nothing is published "
+                    "unless the user publishes a finished run themselves, and "
+                    "what travels then is the run's proof — the signed report "
+                    "and its receipts — and never the episodes. Their Skill "
+                    "and their episodes stay on their machine, and model calls "
+                    "still go to the model provider they configured."
                 ),
                 "tool": "techtree_climb_start",
                 "requires_user_confirmation": True,

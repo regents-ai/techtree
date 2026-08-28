@@ -22,6 +22,7 @@ from ..state import (
 )
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import require_run_id
+from .publish import publication_offer
 
 
 @safe_tool
@@ -80,6 +81,14 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
         save_session(services, session)
 
     payload: dict[str, Any] = {**envelope, "reproduction": REPRODUCTION_STATEMENT}
+    # Techtree offers publishing on a result whose proof it checked in this
+    # very reading and found sound. The offer is relayed here so a host agent
+    # meets it beside the numbers, and it is read out of the envelope rather
+    # than composed: a result nobody verified carries no offer, so there is
+    # none to relay.
+    offer = publication_offer(envelope, run_id)
+    if offer is not None:
+        payload["publication_offer"] = offer
     if is_gateway_safe_required(channel):
         # Techtree's envelope carries the whole report and every per-task row,
         # which on a real Climb is several times what a phone's answer may

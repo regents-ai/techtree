@@ -12,9 +12,12 @@ run or trust.
 
 from __future__ import annotations
 
+import base64
+import binascii
+import hashlib
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Final, Literal
@@ -31,6 +34,13 @@ from .errors import (
 # Value patterns --------------------------------------------------------------
 
 DIGEST_PATTERN: Final = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+#: An https address with a host, an optional path, and nothing after it.
+#: Matched rather than parsed: ``urllib`` is what a plugin module may not
+#: import at all, because importing it is how this runtime would stop being
+#: unable to open a connection, and the doctor proves that by reading the
+#: imports rather than by trusting anybody.
+HTTPS_ADDRESS_PATTERN: Final = re.compile(r"^https://[^/?#\s]+(?:/[^?#\s]*)?$")
 #: Where a machine that does not hold the starter Skill's bytes may obtain
 #: them. HTTPS only, and no userinfo in the authority: this coordinate is
 #: copied verbatim into the plugin, the website, approval packets and support
@@ -112,6 +122,22 @@ class DemoSessionState:
 
 # Release --------------------------------------------------------------------
 
+#: The coordinates a publication travels to, and the key its answer is checked
+#: against. Nested, unlike everything else here, because the key is three
+#: values that only mean anything together — an algorithm, the digest that
+#: names the key, and the key itself.
+PUBLICATION_FIELDS: Final = (
+    "submission_endpoint",
+    "public_log_url",
+    "network_key",
+)
+
+NETWORK_KEY_FIELDS: Final = (
+    "algorithm",
+    "key_id",
+    "public_key",
+)
+
 RELEASE_CORE_FIELDS: Final = (
     "schema_version",
     "release_id",
@@ -126,9 +152,14 @@ RELEASE_CORE_FIELDS: Final = (
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",
     "subject_hermes_version",
+    "publication",
 )
 
-_RELEASE_CORE_STRING_FIELDS: Final = RELEASE_CORE_FIELDS
+#: Every field but the nested one. ``publication`` is an object and is checked
+#: on its own terms below.
+_RELEASE_CORE_STRING_FIELDS: Final = tuple(
+    name for name in RELEASE_CORE_FIELDS if name != "publication"
+)
 
 _RELEASE_CORE_DIGEST_FIELDS: Final = (
     "engine_digest",
@@ -144,6 +175,43 @@ _RELEASE_CORE_VERSION_FIELDS: Final = (
     "maximum_tested_host_hermes_version",
     "subject_hermes_version",
 )
+
+
+@dataclass(frozen=True)
+class NetworkKey:
+    """The key a publication receipt is checked against. Section 6.6.
+
+    The plugin never checks one — publishing is a command a person runs, and
+    nothing here opens a network connection. It carries the key because a
+    release document is a whole thing, and a reader of this module should be
+    able to see what a release says rather than what this plugin happens to
+    use.
+    """
+
+    algorithm: Literal["ed25519"]
+    key_id: str
+    public_key: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the key as JSON-ready values in declaration order."""
+        return {name: getattr(self, name) for name in NETWORK_KEY_FIELDS}
+
+
+@dataclass(frozen=True)
+class PublicationCoordinates:
+    """Where a published run goes, and where it can then be read."""
+
+    submission_endpoint: str
+    public_log_url: str
+    network_key: NetworkKey
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the coordinates as JSON-ready values in declaration order."""
+        return {
+            "submission_endpoint": self.submission_endpoint,
+            "public_log_url": self.public_log_url,
+            "network_key": self.network_key.to_dict(),
+        }
 
 
 @dataclass(frozen=True)
@@ -173,10 +241,18 @@ class ReleaseCore:
     minimum_host_hermes_version: str
     maximum_tested_host_hermes_version: str
     subject_hermes_version: str
+    publication: PublicationCoordinates
 
     def to_dict(self) -> dict[str, Any]:
         """Return the release as JSON-ready values in declaration order."""
-        return {name: getattr(self, name) for name in RELEASE_CORE_FIELDS}
+        return {
+            name: (
+                self.publication.to_dict()
+                if name == "publication"
+                else getattr(self, name)
+            )
+            for name in RELEASE_CORE_FIELDS
+        }
 
 
 def parse_release_core(raw: bytes) -> ReleaseCore:
@@ -242,7 +318,70 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
     if not CLIMB_REFERENCE_PATTERN.match(decoded["intro_climb_reference"]):
         raise invalid("field 'intro_climb_reference' is not a pinned slug@version")
 
-    return ReleaseCore(**decoded)
+    publication = _parse_publication(decoded["publication"], invalid)
+    return ReleaseCore(**{**decoded, "publication": publication})
+
+
+def _parse_publication(
+    value: object, invalid: Callable[[str], PluginError]
+) -> PublicationCoordinates:
+    """Return the publication coordinates, or refuse the release document.
+
+    Held to the same standard as everything above it: exactly the fields
+    named, each one a non-empty string, the two addresses plain ``https``
+    with nothing after the path, and the key identified by the digest of its
+    own bytes. That last rule is what makes a receipt naming a key it does
+    not carry catchable without looking anything up.
+    """
+    if not isinstance(value, dict):
+        raise invalid("field 'publication' is not a JSON object")
+
+    unknown = sorted(set(value) - set(PUBLICATION_FIELDS))
+    if unknown:
+        raise invalid(f"publication has unknown fields {unknown}")
+    missing = sorted(set(PUBLICATION_FIELDS) - set(value))
+    if missing:
+        raise invalid(f"publication is missing fields {missing}")
+
+    for name in ("submission_endpoint", "public_log_url"):
+        address = value[name]
+        if not isinstance(address, str) or not address:
+            raise invalid(f"publication field {name!r} is not a non-empty string")
+        if not HTTPS_ADDRESS_PATTERN.match(address):
+            raise invalid(f"publication field {name!r} is not a plain https address")
+
+    key = value["network_key"]
+    if not isinstance(key, dict):
+        raise invalid("publication field 'network_key' is not a JSON object")
+    unknown = sorted(set(key) - set(NETWORK_KEY_FIELDS))
+    if unknown:
+        raise invalid(f"network_key has unknown fields {unknown}")
+    missing = sorted(set(NETWORK_KEY_FIELDS) - set(key))
+    if missing:
+        raise invalid(f"network_key is missing fields {missing}")
+    for name in NETWORK_KEY_FIELDS:
+        if not isinstance(key[name], str) or not key[name]:
+            raise invalid(f"network_key field {name!r} is not a non-empty string")
+    if key["algorithm"] != "ed25519":
+        raise invalid(f"network_key algorithm {key['algorithm']!r} is not 'ed25519'")
+    if not DIGEST_PATTERN.match(key["key_id"]):
+        raise invalid("network_key field 'key_id' is not a sha256 digest")
+
+    try:
+        material = base64.b64decode(key["public_key"], validate=True)
+    except (ValueError, binascii.Error) as error:
+        raise invalid("network_key field 'public_key' is not base64") from error
+    computed = "sha256:" + hashlib.sha256(material).hexdigest()
+    if computed != key["key_id"]:
+        raise invalid("network_key identifier is not the digest of its own key")
+
+    return PublicationCoordinates(
+        submission_endpoint=value["submission_endpoint"],
+        public_log_url=value["public_log_url"],
+        network_key=NetworkKey(
+            algorithm="ed25519", key_id=key["key_id"], public_key=key["public_key"]
+        ),
+    )
 
 
 # CLI boundary ---------------------------------------------------------------

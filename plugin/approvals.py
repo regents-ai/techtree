@@ -276,3 +276,103 @@ def run_approved_event(
         "policy_acknowledgement_method": POLICY_ACKNOWLEDGEMENT_METHOD,
         "approved_at": (now or datetime.now(UTC)).isoformat(),
     }
+
+
+# Publishing a finished run --------------------------------------------------------
+#
+# Decisions document 0038, founder additions of 2026-08-27. This is the third
+# approval the plugin surfaces, and the only one whose consequence is public.
+#
+# The shape is deliberately the same as starting a run, because the situation
+# is the same: something a person has to be shown before they can meaningfully
+# agree to it, shown in a conversation rather than at a terminal, and then
+# carried out on their behalf. What differs is what is at stake — a published
+# entry is withdrawn rather than deleted — so the disclosure below is longer
+# than the one for a run, and every line of it is a fact about what the log
+# does rather than a reassurance about it.
+
+#: What a person is told before they answer the offer to publish. Read out
+#: verbatim; it is not a summary of a longer document somewhere else.
+#:
+#: The last line is the one that is easiest to get wrong and the most
+#: expensive to have got wrong. The plugin's guarantee is about the plugin: no
+#: module of it can open a connection, which the doctor proves by reading every
+#: runtime import rather than by promising. The Techtree CLI is a separate
+#: program and it does reach the run log. A sentence that merges the two — that
+#: says the plugin publishes, or that says nothing anywhere can — is a copy
+#: defect, and the release copy guard catches it.
+PUBLICATION_DISCLOSURE: Final[tuple[str, ...]] = (
+    "This sends the run's proof files to the public run log: the signed "
+    "report, the per-episode receipts, and the documents they cite.",
+    "It does not send the episodes. A receipt carries a task's digest and its "
+    "score, and the prompts and the replies are not in the proof directory at "
+    "all.",
+    "The log lists entries in the order they arrive and ranks nothing. There "
+    "is no leaderboard, and two entries beside each other are two separate "
+    "comparisons rather than a standing.",
+    "A published entry can be withdrawn afterwards, which is recorded as an "
+    "event of its own. It is not deleted.",
+    "No Ethereum address is sent this way. The command asks a person at a "
+    "terminal whether they want to leave one, nothing is offered in exchange "
+    "for it, and somebody who wants to leave one runs the command themselves "
+    "rather than typing it into a tool call.",
+    "This plugin reaches no network. The Techtree CLI it runs is what talks "
+    "to the run log, and it does so only after the person has said yes.",
+)
+
+#: The audit event kind for a publication a person agreed to. An ordinary
+#: event recording what happened, the same as ``run.approved`` and for the same
+#: reason: it is a fact, not an acceptance artifact anybody has to verify.
+PUBLICATION_APPROVED_EVENT: Final = "publication.approved"
+
+
+def publish_arguments(run_id: str) -> list[str]:
+    """Build the exact publish arguments for a run a person already agreed to.
+
+    The same two flags ``climb start`` uses, for the same reason and with the
+    same chain behind them:
+
+    1. Techtree offers publishing as a next action on a run whose proof it has
+       just verified, and the plugin relays that offer with the disclosure
+       above rather than composing an offer of its own.
+    2. Hermes asks the person, on its own approval surface, because the tool
+       that publishes is declared as one a human must confirm.
+    3. Only then does Hermes dispatch the call, and the plugin passes ``--yes``
+       to say the review already happened.
+
+    ``--yes`` is the case where nobody can answer a prompt, and a tool call is
+    that case. It is not a way around the question, because the question was
+    asked somewhere a model cannot answer it.
+
+    ``--reviewed-on host-agent`` says where it was asked. Without it the
+    publication would record ``explicit_cli_review`` — true of the flag the
+    command line saw and false about the person, who answered in a
+    conversation. It is the whole of what "the approval was recorded" means
+    here, so it is never optional and never conditional.
+
+    Raises:
+        ApprovalRequiredError: when there is no run to publish.
+    """
+    if not run_id:
+        raise ApprovalRequiredError(
+            "a run cannot be published without a run to publish"
+        )
+    return [run_id, "--yes", "--reviewed-on", REVIEWED_ON_HOST_AGENT]
+
+
+def publication_approved_event(
+    *, run_id: str, now: datetime | None = None
+) -> dict[str, Any]:
+    """Return the audit fact that a human agreed to publish this exact run.
+
+    Recorded because it happened, at the moment the approved call arrives. The
+    actor is the one form this plugin can honestly report: the person answered
+    Hermes's own approval surface, and the plugin saw the call arrive after it.
+    """
+    return {
+        "kind": PUBLICATION_APPROVED_EVENT,
+        "run_id": run_id,
+        "actor": APPROVAL_ACTOR,
+        "reviewed_on": REVIEWED_ON_HOST_AGENT,
+        "approved_at": (now or datetime.now(UTC)).isoformat(),
+    }

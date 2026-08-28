@@ -1,7 +1,12 @@
 """Checking a local proof. Specification section 7.11.
 
-Entirely local and entirely offline: nothing is uploaded, and no remote URL is
-fetched or accepted.
+The check itself is entirely local and entirely offline. It reads stored bytes,
+recomputes digests and signatures from them, and fetches nothing; no remote URL
+is fetched or accepted.
+
+A check that passes may carry Techtree's offer to publish the run, and that
+offer is relayed with the answer so a host agent can put it to the person.
+Relayed, not composed: the offer exists only when Techtree put it there.
 """
 
 from __future__ import annotations
@@ -9,8 +14,9 @@ from __future__ import annotations
 from typing import Any
 
 from ..errors import PluginError
-from . import channel_of, passthrough, safe_tool
+from . import channel_of, passthrough, safe_tool, tool_result
 from .arguments import require_local_path, require_run_id
+from .publish import publication_offer
 
 
 @safe_tool
@@ -32,4 +38,13 @@ def techtree_proof_verify(services: Any, args: dict[str, Any], **kwargs: Any) ->
         if run_id
         else require_local_path(str(proof_path), "proof_path")
     )
-    return passthrough(services.bridge.invoke(["proof", "verify", target]), channel)
+    envelope = services.bridge.invoke(["proof", "verify", target])
+
+    # Only a run has something to publish. A bundle somebody was handed on a
+    # memory stick is checkable here and is not this machine's run, and
+    # Techtree offers nothing for it — so there is nothing to read and nothing
+    # is invented.
+    offer = publication_offer(envelope, target) if run_id else None
+    if offer is None:
+        return passthrough(envelope, channel)
+    return tool_result({**envelope, "publication_offer": offer}, channel)

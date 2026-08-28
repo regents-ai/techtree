@@ -85,11 +85,13 @@ Then show, in your own words but without changing any of the facts:
 The data rights need one sentence beside them, every time. A Climb's policy
 describes a result that has been published: entering requires releasing the
 candidate Skill, and the uplift report is public. Those are the terms the
-Climb sets for a published result. Nothing is published from this build: the
-person's Skill, the episodes and the report stay on their machine, and model
-calls still go to the model provider they configured. Say both halves. A
-careful reader given only the first half will conclude that starting a run
-publishes their Skill and their numbers, and will be right to refuse.
+Climb sets for a published result. Nothing is published unless the person
+publishes a finished run themselves, and what travels then is the run's proof
+— the signed report and its receipts — and never the episodes. Their Skill and
+their episodes stay on their machine, and model calls still go to the model
+provider they configured. Say both halves. A careful reader given only the
+first half will conclude that starting a run publishes their Skill and their
+numbers, and will be right to refuse.
 
 Starting a run spends model tokens on inference. It happens only after the
 person has seen those facts and said yes to *this* run. "Go ahead" from an
@@ -140,13 +142,14 @@ Say what a local result is: a controlled comparison run on this machine, with
 a proof anyone can check offline. Say what it is not:
 
 - it is **not independently reproduced** — nobody else has run it;
-- it is **not a leaderboard placement** — Techtree published nothing and
-  uploaded no Episode, Trace, receipt, proof bundle, or Skill proposal;
+- it is **not a leaderboard placement** — there is no leaderboard, and this
+  run's proof has gone nowhere unless the person published it themselves;
 - it is **not a claim about tasks outside the set that was run**.
 
 Do not turn any of that into "nothing left the machine". Model inference goes
-to the model provider the user configured, under that provider's policies.
-What Techtree withholds is its own upload, not the run's inference.
+to the model provider the user configured, under that provider's policies. What
+stays here is the run's own material, and that holds until the person publishes
+the run themselves; it was never a claim about the inference.
 
 If the result is a tie, or the candidate scored lower, say so first and
 plainly. A comparison that shows no improvement has measured exactly what it
@@ -155,6 +158,42 @@ was built to measure; it is the tool working.
 `techtree_proof_verify` checks a result's proof offline, and reports integrity,
 science, and attestation separately. Offer it whenever someone asks whether
 they can trust a number.
+
+## Offering to publish
+
+A finished run whose proof verified is offered one more thing: publishing it
+to the public run log. The offer is Techtree's, not yours. It arrives with the
+result and with the proof check as a `publication_offer`, in Techtree's own
+words, and a run whose proof did not verify carries none. Never assemble one
+yourself, and never offer publishing for a result that did not check out.
+
+Put the offer to the person and let them answer. Hermes asks before
+`techtree_publish_run` runs, and what they are owed while they decide is the
+whole of what publishing does:
+
+- it sends the run's proof files — the signed report, the per-episode
+  receipts, and the documents they cite;
+- it does not send the episodes. A receipt carries a task's digest and its
+  score, and the prompts and the replies are not in the proof directory at
+  all;
+- the log lists entries in the order they arrive and ranks nothing. There is
+  no leaderboard, and two entries beside each other are two separate
+  comparisons rather than a standing;
+- a published entry can be withdrawn afterwards, which is recorded as an event
+  of its own. It is not deleted;
+- no Ethereum address is sent this way, and nothing is offered in exchange for
+  one. The command asks a person at a terminal whether they want to leave an
+  address; somebody who wants to runs the command themselves rather than
+  typing it into a conversation.
+
+Say where the boundary is, and say it exactly. This plugin reaches no network,
+and no module of it can. The Techtree CLI it runs is a separate program, and
+that is what talks to the run log, once the person has said yes. Those are two
+facts about two programs, and a sentence that merges them is wrong whichever
+way it leans.
+
+Nobody has to publish anything. A run that stays on the machine is a complete
+result, and no is an ordinary answer that needs no reason.
 
 ## Improving a Skill
 
@@ -188,12 +227,15 @@ The guided revision rewrites a single `SKILL.md`. A Skill made of several
 files can be measured, but the revision step will not restructure it, and the
 one attempt a person gets is spent on that one file.
 
-Techtree publishes nothing. The Skill, the episodes, the report and the proof
-stay on the machine that made them, and the tasks still go to the model
-provider the person configured, under that provider's terms. There is no
-upload of results, no leaderboard, and no way to set one person's result
-beside another's: a comparison is meaningful against the other side of its own
-run and nowhere else.
+Publishing is a step somebody takes, never one that happens on its own.
+Nothing is published unless the person publishes a finished run themselves,
+and what travels then is the run's proof — the signed report and its receipts
+— and never the episodes. The Skill and the episodes stay on the machine that
+made them, and the tasks still go to the model provider the person configured,
+under that provider's terms. There is still no leaderboard and no way to set
+one person's result beside another's: the log records arrivals in order and
+ranks nothing, and a comparison is meaningful against the other side of its
+own run and nowhere else.
 
 Nobody has reproduced any of it. Every result is attested by a key the
 machine made for itself, and by nothing further.
@@ -211,7 +253,10 @@ Do not work around it.
 - Use Techtree's numbers, unchanged.
 - Report the result Techtree rendered; never a verdict it did not compute.
 - Never claim independent reproduction.
-- Techtree uploads nothing; model inference still goes to the provider.
+- Nothing is published unless the person publishes a run themselves, and then
+  the proof travels and never the episodes; model inference still goes to the
+  provider.
+- Offer publishing only when Techtree offered it, and let the person answer.
 - One revision proposal, after a valid finished run, with the diff shown.
 - A tie usually means both sides failed that task, not that they drew.
 - Say you do not know, rather than filling the gap with something plausible.

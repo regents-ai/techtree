@@ -100,14 +100,21 @@ Never estimate a cost yourself, and never quote a price before a run.
 
 ## "Where did my data go?"
 
-Nothing is uploaded by Techtree. The Skill, the episodes, the report and the
-proof stay on the machine that ran them, and no part of this build has anywhere
-to send them.
+Nothing is uploaded unless they publish a run themselves. The Skill, the
+episodes, the report and the proof stay on the machine that ran them until
+somebody chooses otherwise, and publishing a finished run sends the run's proof
+— the signed report and its receipts — and never the episodes. The prompts and
+the replies are not in the proof directory at all, so there is no version of
+publishing that sends them.
 
 Model inference is different and must be said in the same breath: the tasks
 were sent to the model provider the person configured, under that provider's
 terms. A claim that the work is purely local, offered without that sentence, is
 false — always pair the two.
+
+If they published and want it undone: an entry can be withdrawn, which is
+recorded as an event of its own, and it is not deleted. Say that plainly rather
+than implying it can be taken back.
 
 ## "Why do two different things both say 'development'?"
 

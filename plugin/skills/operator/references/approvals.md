@@ -1,6 +1,6 @@
 # Approvals
 
-Three things in Techtree need a person to say yes. None of them can be granted
+Four things in Techtree need a person to say yes. None of them can be granted
 by an agent, and none of them carry over from one occasion to the next.
 
 ## Installing Techtree
@@ -27,11 +27,13 @@ the one the preparation step returned, never one you assembled.
 
 Read the publication terms with their plain meaning beside them. They are the
 terms the Climb sets for a published result — entering requires releasing the
-candidate Skill, and the uplift report is public. Nothing is published from
-this build: the person's Skill, the episodes and the report stay on their
-machine, and model calls still go to the model provider they configured. The
-terms without that sentence read as a plan to publish their work, and someone
-who refuses on that basis has read them correctly.
+candidate Skill, and the uplift report is public. Nothing is published unless
+the person publishes a finished run themselves, and what travels then is the
+run's proof — the signed report and its receipts — and never the episodes.
+Their Skill and their episodes stay on their machine, and model calls still go
+to the model provider they configured. The terms without that sentence read as
+a plan to publish their work the moment a run starts, and someone who refuses
+on that basis has read them correctly.
 
 ## Starting a run
 
@@ -43,6 +45,23 @@ frozen and nothing else is startable.
 
 A second comparison needs its own approval. Show the difference between the
 two Skills, show the policy again, and ask again.
+
+## Publishing a finished run
+
+Publishing is offered only when Techtree offers it, which is only for a run
+whose proof was checked in that very reading and held together. Relay the
+offer; never compose one.
+
+Say what publishing does before asking: the run's proof travels — the signed
+report and its receipts — and the episodes do not; the log records arrivals in
+order and ranks nothing; a published entry can be withdrawn afterwards, which
+is recorded, and it is not deleted; and no Ethereum address is sent this way,
+with nothing offered in exchange for one.
+
+The person answers at the approval surface, and the plugin then runs the
+command on their behalf with the flags that record where they answered. The
+plugin itself reaches no network. The Techtree CLI it runs is what talks to
+the run log, and only after the yes.
 
 ## What is never an approval
 

@@ -49,20 +49,23 @@ _PATH_NOTE: Final = (
 #: releasing the candidate Skill, and the uplift report is public. Beside
 #: raw-episode terms that prohibit upload outright, that reads as a plan to
 #: publish somebody's Skill and their numbers, and two agents stopped and
-#: refused to start a run over exactly that. Nothing in this build can publish
-#: anything. So the terms are reported unchanged and this is reported with
-#: them.
+#: refused to start a run over exactly that. Starting a run publishes nothing;
+#: publishing a finished one is a separate step the person takes afterwards
+#: (decisions 0038). So the terms are reported unchanged and this is reported
+#: with them.
 #:
 #: The last clause is not decoration. Decision 0013 section 1.4: a sentence
 #: about what stays on the machine is read as a claim that nothing goes
 #: anywhere, and model calls do.
 _PUBLICATION_NOTE: Final = (
     "The data rights a Climb declares are the terms it sets for a published "
-    "result. Nothing is published from this build: the user's Skill, the "
-    "episodes and the report stay on their machine, and model calls still go "
-    "to the model provider they configured. Read the terms out with that "
-    "beside them, or a careful reader will take them for a plan to publish "
-    "their Skill."
+    "result. Nothing is published unless the user publishes a finished run "
+    "themselves, and what travels then is the run's proof — the signed report "
+    "and its receipts — and never the episodes. Their Skill and their "
+    "episodes stay on their machine, and model calls still go to the model "
+    "provider they configured. Read the terms out with that beside them, or a "
+    "careful reader will take them for a plan to publish their Skill the "
+    "moment a run starts."
 )
 
 
@@ -239,7 +242,8 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "policies, and a provider that charges for tokens bills those "
             "episodes to the account behind the credentials it was given; a "
             "model the user runs themselves sends no bill. "
-            "Techtree uploads nothing of its own. The run is "
+            "Starting a run publishes nothing; publishing a finished one is a "
+            "separate step the user takes afterwards. The run is "
             "detached: this returns a run identifier immediately and never "
             "waits for the result."
         ),
@@ -303,6 +307,28 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             {"required": ["run_id"], "not": {"required": ["proof_path"]}},
             {"required": ["proof_path"], "not": {"required": ["run_id"]}},
         ],
+    ),
+    "techtree_publish_run": _schema(
+        description=(
+            "Publish a finished run's proof to the public run log. REQUIRES "
+            "USER CONFIRMATION, and offer it only when Techtree itself has "
+            "offered it: a verified result and a passing proof check each "
+            "carry a 'publish_run' next action, and a run whose proof did not "
+            "verify is never offered. Before asking, say what travels and what "
+            "does not. It sends the run's proof files — the signed report, the "
+            "per-episode receipts, and the documents they cite. It does not "
+            "send the episodes: a receipt carries a task's digest and its "
+            "score, and the prompts and the replies are not in the proof "
+            "directory at all. The log lists entries in the order they arrive "
+            "and ranks nothing; there is no leaderboard and no comparison "
+            "between two people's entries. A published entry can be withdrawn "
+            "afterwards, which is recorded, and it is not deleted. No Ethereum "
+            "address is sent this way, and nothing is offered in exchange for "
+            "one. This plugin reaches no network; the Techtree CLI it runs is "
+            "what talks to the run log, and only after the person has said yes."
+        ),
+        properties={"run_id": _run_id("The verified run to publish.")},
+        required=["run_id"],
     ),
     "techtree_uplift_context": _schema(
         description=(

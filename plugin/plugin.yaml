@@ -18,10 +18,13 @@
 #   container itself; an evaluation Techtree performs starts one, on this
 #   machine, after the approval that starts the run.
 #
-# * It reaches the network, and a paid model provider, only through a plan a
-#   person has confirmed. Installing the Techtree CLI and starting a
-#   comparison are separate approvals, and neither is a value a model can
-#   supply.
+# * It opens no connection itself, and no module of it can: nothing here
+#   imports a networking module, and the plugin doctor proves that by reading
+#   every runtime import rather than by asserting it. What can reach a network
+#   is the `techtree` command this plugin runs, which is a separate program.
+#   It does so only through a plan a person has confirmed: installing the
+#   Techtree CLI, starting a comparison, and publishing a finished run are
+#   three separate approvals, and none of them is a value a model can supply.
 #
 # * It gives that command a short, named list of environment variables and
 #   nothing else. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `constants.py`;
@@ -57,6 +60,7 @@ provides_tools:
   - techtree_run_cancel
   - techtree_run_result
   - techtree_proof_verify
+  - techtree_publish_run
   - techtree_uplift_context
   - techtree_uplift_propose
   - techtree_uplift_prepare

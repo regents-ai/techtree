@@ -46,7 +46,7 @@ Paste this into Hermes:
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the read-only site: pinned guide, catalog, published objects
+   techtree-ash ─ the site: pinned guide, catalog, published objects, run log
 ```
 
 ## The other two repositories
@@ -55,10 +55,11 @@ Paste this into Hermes:
   Techtree CLI and evaluation substrate: campaigns, detached runs, signed
   comparison reports, and offline proof verification. Everything a comparison
   measures and records happens there, on the participant's own machine.
-- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the
-  read-only website at techtree.sh: the pinned installation guide, the campaign
-  catalog, the published protocol objects, and the docs. It serves
-  content-addressed release records over GET only and never receives anything.
+- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the website
+  at techtree.sh: the pinned installation guide, the campaign catalog, the
+  published protocol objects, the public run log, and the docs. Everything it
+  shows is served over GET. It has one address that accepts anything, and what
+  that address accepts is a signed run somebody chose to publish.
 
 The evaluation engine, the agent host, and the container the subject runs in
 are each pinned to an exact version, and the release is only as reproducible as
@@ -81,10 +82,11 @@ This plugin is the operator surface for that: it lets Hermes inspect what a
 Climb measures, prepare a run, start it, follow it, and read the result.
 
 > [!NOTE]
-> Techtree uploads none of your Episodes, Traces, receipts, proof bundles, or
-> Skill proposals, and publishes nothing. Model inference is still sent to the
-> model provider you configured, under that provider's policies — a comparison
-> that runs locally is not a comparison that runs without the network.
+> Techtree uploads nothing unless you publish a run yourself, and what travels
+> then is the run's proof — the signed report and its receipts — and never your
+> Episodes or Traces. Model inference is still sent to the model provider you
+> configured, under that provider's policies — a comparison that runs locally
+> is not a comparison that runs without the network.
 
 The evaluated agent is never the Hermes you are talking to. It is a separate,
 pinned agent in a container that receives only what the Climb declares.
@@ -215,7 +217,11 @@ machine where Techtree was never installed.
 
 Every scientific thing this plugin can cause happens by running the `techtree`
 command with a fixed list of arguments and reading back one JSON answer. There
-is no second path: no shell, no imported Techtree code, no network of its own.
+is no second path: no shell and no imported Techtree code. This plugin reaches
+no network either — no module of it imports a networking library, and the
+plugin doctor proves that by reading every runtime import rather than by
+promising it. The Techtree CLI it runs is what talks to the run log, and only
+after the person has said yes.
 The plugin adds the machine-output flags itself, so an answer is never coloured
 or half-interactive, and it accepts exactly one well-formed answer — anything
 else is treated as the two sides disagreeing about the contract rather than
