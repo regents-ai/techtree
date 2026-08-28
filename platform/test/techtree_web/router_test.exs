@@ -32,8 +32,51 @@ defmodule TechtreeWeb.RouterTest do
     assert writes == ["post /api/v1/publications"]
   end
 
-  test "the routing table is exactly the published surface" do
+  # Previews of work heading for `/`, compiled only where `dev_routes` is set:
+  # this suite and the development server, never a release. Founder ruling
+  # 2026-08-28 - they are for him to look at and they are not v0.1 routes.
+  @previews ["get /crown", "get /prism"]
+
+  test "the previews are exactly the two the founder asked for" do
     paths = @routes |> Enum.map(&"#{&1.verb} #{&1.path}") |> Enum.sort()
+
+    assert Enum.sort(@previews) == Enum.filter(paths, &(&1 in @previews)),
+           "a preview named here is missing, or one is here that should not be"
+  end
+
+  test "every preview is declared inside the guard that keeps it out of a release" do
+    """
+    Read off the source rather than the routing table, and deliberately.
+
+    This suite sets `dev_routes`, so a preview left in the published scope by
+    mistake compiles in exactly as one behind the guard does, and the table
+    cannot tell them apart. What decides whether a release publishes a route
+    is where its `live` line sits in the file, so that is what is checked.
+    """
+
+    source = File.read!("lib/techtree_web/router.ex")
+
+    [_before, guarded] =
+      String.split(source, "if Application.compile_env(:techtree, :dev_routes) do", parts: 2)
+
+    for preview <- @previews do
+      path = preview |> String.split(" ") |> List.last()
+      declaration = ~s(live "#{path}")
+
+      assert String.contains?(guarded, declaration),
+             "#{path} is not declared inside the dev_routes guard"
+
+      assert source |> String.split(declaration) |> length() == 2,
+             "#{path} is declared more than once, so one of them escapes the guard"
+    end
+  end
+
+  test "the routing table is exactly the published surface" do
+    paths =
+      @routes
+      |> Enum.map(&"#{&1.verb} #{&1.path}")
+      |> Enum.reject(&(&1 in @previews))
+      |> Enum.sort()
 
     assert paths == [
              "get /",

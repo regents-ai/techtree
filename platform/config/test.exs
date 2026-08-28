@@ -34,3 +34,10 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# The preview routes compile in, so the tests that exercise them can run. What
+# stops them reaching a release is not their absence here but the router test
+# beside them, which pins the published surface and enumerates the previews
+# separately: a preview that drifted into the published scope fails the pin,
+# and a new preview nobody declared fails the other half.
+config :techtree, dev_routes: true
