@@ -84,6 +84,10 @@ def _public_copy() -> dict[str, str]:
         # its reason is read out the same way the first one's is, so it is held
         # to the same boundaries.
         "tools/uplift.py": _string_literals(PLUGIN_ROOT / "tools" / "uplift.py"),
+        # The offer to publish is relayed from here, and the boundary between
+        # what this plugin does and what the command it runs does is stated
+        # here first. Decisions 0038.
+        "tools/publish.py": _string_literals(PLUGIN_ROOT / "tools" / "publish.py"),
         "README.md": (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8"),
     }
     operator = PLUGIN_ROOT / "skills" / "operator"
@@ -344,6 +348,7 @@ def test_the_scan_reads_every_public_surface() -> None:
         "commands.py",
         "tools/demo.py",
         "tools/uplift.py",
+        "tools/publish.py",
         "README.md",
         "skills/operator/SKILL.md",
     }
@@ -751,15 +756,38 @@ def test_the_frame_guard_catches_what_it_is_for() -> None:
 
 # The publication terms and the declared maximum ---------------------------------------
 
-#: Ticket q0l. A Climb's DataPolicy describes a result that has been published:
-#: entering requires releasing the candidate Skill, and the uplift report is
-#: public. Reported beside raw-episode terms that prohibit upload outright,
-#: those read as a plan to publish somebody's Skill and their numbers, and two
-#: agents stopped and refused to start a run over exactly that. Nothing in this
-#: build can publish anything. So the terms are reported unchanged and this is
-#: reported with them.
-PUBLICATION_TERMS_FRAMING: re.Pattern[str] = re.compile(
-    r"nothing\s+is\s+published\s+from\s+this\s+build", re.I
+#: Ticket q0l, amended by decisions 0038. A Climb's DataPolicy describes a
+#: result that has been published: entering requires releasing the candidate
+#: Skill, and the uplift report is public. Reported beside raw-episode terms
+#: that prohibit upload outright, those read as a plan to publish somebody's
+#: Skill and their numbers, and two agents stopped and refused to start a run
+#: over exactly that.
+#:
+#: The answer used to be that nothing in this build could publish anything.
+#: That answer expired on 2026-08-27: `techtree publish` exists, and a claim
+#: that outlived its truth is worse than no claim, because a reader trusts it.
+#: What is still true is the thing the reader actually needs — publishing is a
+#: separate act somebody performs on a finished run, so starting one publishes
+#: nothing — and the second half of it, which is what a published run does and
+#: does not carry.
+#:
+#: Both halves are required, because either one alone misleads. "Nothing is
+#: published unless you publish" without the rest leaves a reader to assume
+#: their episodes go too; "never the episodes" without the rest still sounds
+#: like something happens automatically.
+PUBLICATION_ONLY_IF_PUBLISHED: re.Pattern[str] = re.compile(
+    r"nothing\s+is\s+published\s+unless\s+"
+    r"(you|they|the\s+user|the\s+person|a\s+person|somebody)\s+publish",
+    re.I,
+)
+PUBLICATION_NEVER_THE_EPISODES: re.Pattern[str] = re.compile(
+    r"never\s+the\s+episodes", re.I
+)
+
+#: The two together, for the surfaces that have to carry the whole meaning.
+PUBLICATION_TERMS_FRAMING: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("publishing is something a person does", PUBLICATION_ONLY_IF_PUBLISHED),
+    ("the episodes never travel", PUBLICATION_NEVER_THE_EPISODES),
 )
 
 #: Every surface that hands a Climb's data rights to a reader or to the host
@@ -786,28 +814,39 @@ A_WRITTEN_DOLLAR_FIGURE: re.Pattern[str] = re.compile(r"\$\s?\d")
 
 
 @pytest.mark.parametrize("surface", PUBLICATION_SURFACES)
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    PUBLICATION_TERMS_FRAMING,
+    ids=lambda value: getattr(value, "pattern", value),
+)
 def test_the_publication_terms_are_never_shown_without_their_plain_meaning(
-    surface: str,
+    surface: str, described: str, pattern: re.Pattern[str]
 ) -> None:
-    """Ticket q0l. The terms describe a published result; this build has none."""
-    assert PUBLICATION_TERMS_FRAMING.search(PUBLIC_COPY[surface]), surface
+    """Ticket q0l, decisions 0038. The terms describe a result somebody published."""
+    assert pattern.search(PUBLIC_COPY[surface]), f"{surface} never says {described}"
 
 
 @pytest.mark.parametrize("tool", PUBLICATION_TOOLS)
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    PUBLICATION_TERMS_FRAMING,
+    ids=lambda value: getattr(value, "pattern", value),
+)
 def test_a_tool_that_reports_the_data_rights_says_what_they_mean_here(
-    tool: str,
+    tool: str, described: str, pattern: re.Pattern[str]
 ) -> None:
     """The host agent reads the raw terms out of the envelope, so its schema says."""
     description = all_tool_schemas()[tool]["description"]
 
-    assert PUBLICATION_TERMS_FRAMING.search(description), tool
+    assert pattern.search(description), f"{tool} never says {described}"
 
 
 def test_the_publication_truth_says_where_model_calls_still_go() -> None:
     """Decision 0013 s4. "It stays here" is heard as "nothing goes anywhere"."""
     from techtree_hermes.commands import PUBLICATION_TERMS_LINE
 
-    assert PUBLICATION_TERMS_FRAMING.search(PUBLICATION_TERMS_LINE)
+    for described, pattern in PUBLICATION_TERMS_FRAMING:
+        assert pattern.search(PUBLICATION_TERMS_LINE), described
     assert has_provider_qualification(PUBLICATION_TERMS_LINE)
     for described, pattern in FORBIDDEN_PRIVACY:
         assert not pattern.search(PUBLICATION_TERMS_LINE), described
@@ -815,10 +854,32 @@ def test_the_publication_truth_says_where_model_calls_still_go() -> None:
 
 def test_the_publication_guard_catches_a_review_that_only_states_the_terms() -> None:
     """The claim the two agents met, in the words they met it in."""
-    assert not PUBLICATION_TERMS_FRAMING.search(
+    bare = (
         "Public release required in order to enter this Climb. "
         "The uplift report is published."
     )
+
+    for _, pattern in PUBLICATION_TERMS_FRAMING:
+        assert not pattern.search(bare)
+
+
+def test_the_publication_guard_refuses_the_claim_that_went_stale() -> None:
+    """The sentence this guard used to require, which is now false.
+
+    Kept as a check rather than a memory. Until 2026-08-27 every one of these
+    surfaces was required to say that nothing is published from this build, and
+    that was true because there was no command that could. There is one now, so
+    the old wording would tell a reader that the feature they are being offered
+    does not exist.
+    """
+    stale = (
+        "These are the terms this Climb sets for a published result. Nothing "
+        "is published from this build: your Skill, the episodes and the report "
+        "stay on this machine."
+    )
+
+    for described, pattern in PUBLICATION_TERMS_FRAMING:
+        assert not pattern.search(stale), described
 
 
 def test_the_review_that_offers_the_first_paid_run_names_the_declared_maximum() -> None:
@@ -869,6 +930,209 @@ def test_no_copy_writes_a_dollar_figure_of_its_own() -> None:
     offenders = _offenders(A_WRITTEN_DOLLAR_FIGURE)
 
     assert not offenders, f"copy names a price of its own: {offenders}"
+
+
+# The one boundary that must stay exactly where it is ---------------------------------
+#
+# Decisions 0038, founder addition of 2026-08-27, in his own words: the
+# plugin's own guarantee is unchanged and must stay exactly as precise as it
+# is. No plugin module can open a network connection. The Techtree CLI it
+# invokes can, and only after a person has said yes. Copy that blurs those two
+# is a copy defect.
+#
+# Two facts about two programs, and there are two ways to get it wrong. Widen
+# the guarantee and a reader is told the product cannot publish, which is now
+# false and would make the feature they are being offered look like a lie.
+# Narrow it and the plugin is credited with an ability it does not have and
+# cannot be given without breaking the doctor's own check. So both halves are
+# required together, and the sentences that would merge them are banned.
+
+#: The plugin's half, in the words that are exactly true of the plugin.
+PLUGIN_HALF: re.Pattern[str] = re.compile(
+    r"plugin[^.]{0,20}reaches\s+no\s+network", re.I
+)
+
+#: The CLI's half, which is what stops the first half being read as "nothing
+#: can be published".
+CLI_HALF: re.Pattern[str] = re.compile(
+    r"CLI\s+it\s+runs[^.]{0,80}talks\s+to\s+the\s+run\s+log", re.I
+)
+
+#: Every surface that states the boundary. Each has to state both halves of it:
+#: a surface carrying one half is a surface that misleads in one direction.
+BOUNDARY_SURFACES: tuple[str, ...] = (
+    "schemas.py",
+    "approvals.py",
+    "README.md",
+    "skills/operator/SKILL.md",
+    "skills/operator/references/approvals.md",
+)
+
+#: The sentences that merge the two programs, in both directions.
+FORBIDDEN_BOUNDARY_BLUR: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "the plugin itself publishing",
+        re.compile(
+            r"\bplugin\b[^.]{0,60}\b(publishes|uploads|submits)\b(?!\s+nothing)", re.I
+        ),
+    ),
+    (
+        "publishing being impossible anywhere",
+        re.compile(
+            r"nothing\s+(in\s+this\s+build|here|anywhere)\s+can\s+(publish|upload)",
+            re.I,
+        ),
+    ),
+    (
+        "there being no route to publish through",
+        re.compile(r"\bno\s+(upload|publication)\s+path\b", re.I),
+    ),
+)
+
+
+@pytest.mark.parametrize("surface", BOUNDARY_SURFACES)
+def test_the_no_network_guarantee_names_the_program_it_is_true_of(
+    surface: str,
+) -> None:
+    """The plugin reaches no network. That is a fact about the plugin."""
+    assert PLUGIN_HALF.search(PUBLIC_COPY[surface]), surface
+
+
+@pytest.mark.parametrize("surface", BOUNDARY_SURFACES)
+def test_the_no_network_guarantee_never_travels_without_the_cli_half(
+    surface: str,
+) -> None:
+    """Said alone it reads as "nothing can be published", which is false."""
+    assert CLI_HALF.search(PUBLIC_COPY[surface]), surface
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    FORBIDDEN_BOUNDARY_BLUR,
+    ids=lambda value: getattr(value, "pattern", value),
+)
+def test_no_copy_merges_the_plugin_with_the_command_it_runs(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    offenders = _offenders(pattern)
+
+    assert not offenders, f"copy claims {described}: {offenders}"
+
+
+def test_the_boundary_guard_catches_a_sentence_that_merges_the_two() -> None:
+    """Both directions of the defect, in the words somebody would write them."""
+    too_wide = "Nothing in this build can publish a result anywhere."
+    too_narrow = "The plugin publishes your run to the public log."
+    half_only = "This plugin reaches no network, so a result never leaves this machine."
+
+    assert any(pattern.search(too_wide) for _, pattern in FORBIDDEN_BOUNDARY_BLUR)
+    assert any(pattern.search(too_narrow) for _, pattern in FORBIDDEN_BOUNDARY_BLUR)
+    assert PLUGIN_HALF.search(half_only)
+    assert not CLI_HALF.search(half_only)
+
+
+def test_the_boundary_guard_leaves_the_precise_wording_alone() -> None:
+    """The sentence the release actually uses passes every one of these."""
+    precise = (
+        "This plugin reaches no network. The Techtree CLI it runs is what "
+        "talks to the run log, and it does so only after the person has said "
+        "yes."
+    )
+
+    assert PLUGIN_HALF.search(precise)
+    assert CLI_HALF.search(precise)
+    for described, pattern in FORBIDDEN_BOUNDARY_BLUR:
+        assert not pattern.search(precise), described
+
+
+# What may still be said about uploading -----------------------------------------------
+#
+# Decisions 0038, ticket techtree-python-9ar. Four sentences were true of this
+# release until 2026-08-27 and are false now, and each of them is the kind a
+# person writes to be reassuring. They are banned here in the affirmative only:
+# saying that publishing exists and is somebody's own choice is the honest
+# copy, and a guard that could not tell the two apart would forbid the
+# sentences it exists to require.
+#
+# The list is shared with the Techtree repository's own scan by being the same
+# list written twice rather than imported: this suite reads a checkout that may
+# not be the one beside it, and a guard that silently stops running because an
+# import moved is not a guard.
+
+STALE_UPLOAD_CLAIMS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "there is no route to publish through",
+        re.compile(
+            r"\bno\s+(ingest|upload|publication)\s+(route|path|endpoint)s?\b", re.I
+        ),
+    ),
+    (
+        "the website is read-only",
+        re.compile(r"\bread[-\s]only\s+(web)?site\b", re.I),
+    ),
+    (
+        "the website accepts nothing",
+        re.compile(
+            r"never\s+receives\s+anything"
+            r"|receives?\s+no\s+(proof|submission|result)"
+            r"|accepts?\s+nothing",
+            re.I,
+        ),
+    ),
+    (
+        "nothing is uploaded, full stop",
+        re.compile(
+            r"nothing\s+uploads\b(?!\s+unless)"
+            r"|nothing\s+(is|was|gets|ever)\s+uploaded\b(?!\s+unless)"
+            r"|uploads?\s+nothing\b(?!\s+unless)"
+            r"|nothing\s+is\s+published\s+from\s+this\s+build",
+            re.I,
+        ),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    ("described", "pattern"),
+    STALE_UPLOAD_CLAIMS,
+    ids=lambda value: getattr(value, "pattern", value),
+)
+def test_no_copy_still_promises_that_nothing_can_be_uploaded(
+    described: str, pattern: re.Pattern[str]
+) -> None:
+    offenders = _offenders(pattern)
+
+    assert not offenders, f"copy still claims {described}: {offenders}"
+
+
+def test_the_stale_upload_guard_catches_every_sentence_it_was_written_for() -> None:
+    """The four, in the words they were found in on 2026-08-27."""
+    found = (
+        "The website is read-only and has no ingest route at all.",
+        "techtree-ash — the read-only website at techtree.sh.",
+        "It serves records over GET only and never receives anything.",
+        "Nothing is uploaded by Techtree.",
+        "Nothing is published from this build: your Skill stays here.",
+    )
+
+    for sentence in found:
+        assert any(pattern.search(sentence) for _, pattern in STALE_UPLOAD_CLAIMS), (
+            sentence
+        )
+
+
+def test_the_stale_upload_guard_leaves_the_true_sentences_alone() -> None:
+    true_now = (
+        "Nothing is uploaded unless they publish a run themselves.",
+        "Nothing is published unless the person publishes a finished run "
+        "themselves, and what travels then is the run's proof.",
+        "It has one address that accepts anything, and what that address "
+        "accepts is a signed run somebody chose to publish.",
+    )
+
+    for sentence in true_now:
+        for described, pattern in STALE_UPLOAD_CLAIMS:
+            assert not pattern.search(sentence), (described, sentence)
 
 
 # The verdict boundary -----------------------------------------------------------------

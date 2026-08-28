@@ -95,12 +95,18 @@ run after reviewing the diff.
 
 - **No accounts.** There is no Techtree account, no sign-in, no identity
   service. The only key involved is one this machine made for itself.
-- **No uploads.** No receipt, episode, trace, proof or Skill proposal leaves
-  the machine. `push=false` is spelled as a type the config cannot hold
-  otherwise (`verifiers/config.py`). The website is read-only and has no
-  ingest route at all.
-- **No leaderboards.** The Climb's leaderboard policy is `enabled: false`, and
-  `techtree-ash` runs no ranking of any kind.
+- **No uploads a person did not ask for.** Nothing leaves the machine unless
+  somebody runs `techtree publish` on a finished run, and what travels then is
+  that run's proof — the signed report and its receipts — and never the
+  episodes, which are not in the proof directory at all. `push=false` is
+  spelled as a type the config cannot hold otherwise
+  (`verifiers/config.py`), so the evaluation engine's own uploader is off in
+  every resolved configuration. The website has exactly one address that
+  accepts anything, and what it accepts is a signed publication or withdrawal.
+- **No leaderboards.** The Climb's leaderboard policy is `enabled: false`,
+  `techtree-ash` runs no ranking of any kind, and the public run log orders
+  entries by arrival and ranks nothing. Nothing establishes comparability
+  between two people's runs.
 - **No multi-file guided revision.** The guided revision proposes one
   `SKILL.md` (decision 0023 §4). Skills themselves are multi-file trees; the
   *guided* revision is not. Multi-file revision is deferred (ticket
@@ -145,7 +151,7 @@ The runtime never imports Techtree's Python package. The CLI's JSON envelope
 is the only boundary, and `tools/plugin/plugin_doctor.py` fails the build if
 either of those two facts stops being true.
 
-### 2.3 techtree-ash — the read-only website
+### 2.3 techtree-ash — the website
 
 | | |
 | --- | --- |
@@ -670,7 +676,7 @@ graph TB
         S["Techtree home:<br/>drafts, runs, receipts, proof, key"]
     end
     subgraph net["Off the machine"]
-        A["techtree-ash<br/>techtree.sh — read only"]
+        A["techtree-ash<br/>techtree.sh — reads, and one write address"]
         PR["model provider<br/>(prime, for the subject)"]
         HP["host model provider<br/>(one revision proposal)"]
     end
@@ -918,7 +924,7 @@ graph LR
 | Append-only history | `runs/events.py` — one `O_APPEND` write plus `fsync`; sequence discontinuity is fatal |
 | The Skill is the only difference | `manifests/compare.py` (declared) and `receipts/compare.py` (observed) |
 | The model never approves its own action | CLI `y`/`--yes`, Hermes's native surface, one `run.approved` event with an `actor` |
-| Nothing uploads | `verifiers/config.py` `push: Literal[False]`; no ingest route in ash; `tools/network_method_probe.py` |
+| Nothing uploads unless somebody publishes | `verifiers/config.py` `push: Literal[False]`; `publication/service.py` and `cli/commands/publish.py` — the one path off the machine, gated on a person's answer; the episodes are outside the proof directory it sends |
 | No credential reaches a subprocess that has no business holding it | `verifiers/credentials.py`, `runs/launcher.py` and plugin `constants.CLI_ENVIRONMENT_ALLOWLIST` — allow-lists of variable *names*, never pattern matching. Decision 0036: Techtree does no secret-shaped-string detection, so an error message carries whatever the underlying tool printed |
 | Detached worker gets a small environment | `runs/launcher.py` allow-list — never loosen it |
 | Host agent gets a small environment | plugin `constants.CLI_ENVIRONMENT_ALLOWLIST` — the same ten names |

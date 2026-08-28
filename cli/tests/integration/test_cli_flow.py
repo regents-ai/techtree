@@ -142,7 +142,10 @@ def test_setup_creates_the_local_signing_key_and_says_what_it_is_for(
 
     assert store.exists() is True
     assert store.verify_pair() is True
-    assert "not uploaded in this release" in notice["text"]
+    # Decisions 0038: a published proof carries the public half, so the notice
+    # says which half travels rather than implying that neither does.
+    assert "The private half never leaves the key directory." in notice["text"]
+    assert "The public half travels inside the proofs it signs" in notice["text"]
     assert store.load_public().key_id in notice["text"]
 
 

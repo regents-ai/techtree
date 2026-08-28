@@ -14,7 +14,7 @@ cryptographic integrity      the files still match what was signed
 scientific validity          the documents describe one controlled comparison
 participant attestation      whose key vouched for them, and what that means
 independent reproduction     nobody has done it
-public publication           nothing was uploaded, and whether it may be
+public publication           what this proof's own record says, and
 ```
 
 A failed verification is a typed failure with exit code 11 and the failed

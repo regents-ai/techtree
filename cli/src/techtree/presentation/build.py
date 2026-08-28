@@ -928,10 +928,12 @@ def _caveats(
             code="no_server_upload",
             severity="info",
             text=(
-                "Nothing was uploaded. The raw episodes stay on this machine, "
-                "and publication was never requested. Model inference was "
-                "still sent to the model provider this run used, under that "
-                "provider's policies."
+                "The raw episodes stay on this machine. They are not in the "
+                "proof directory and nothing sends them: publishing a run "
+                "sends its proof and never its episodes, and nothing is "
+                "published unless you publish this run yourself. Model "
+                "inference was still sent to the model provider this run "
+                "used, under that provider's policies."
             ),
         )
     )

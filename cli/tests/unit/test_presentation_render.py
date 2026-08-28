@@ -158,7 +158,7 @@ def payload(
             PresentationCaveat(
                 code="no_server_upload",
                 severity="info",
-                text="Nothing was uploaded.",
+                text="The raw episodes stay on this machine.",
             ),
         ],
         next_actions=[
@@ -327,7 +327,7 @@ def test_the_caveats_are_introduced_by_severity_in_words() -> None:
     text = rendered(payload())
 
     assert "Warning: The comparison is controlled with warnings." in text
-    assert "Note: Nothing was uploaded." in text
+    assert "Note: The raw episodes stay on this machine." in text
 
 
 def test_a_failed_verification_is_visible_in_the_badge() -> None:

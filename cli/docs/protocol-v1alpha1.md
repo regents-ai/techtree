@@ -57,7 +57,7 @@ cannot become the baseline a later report claims to have measured against.
 Nothing about proof, rights, or publication is relaxed because a comparison is
 local. A replacement run signs its receipts and its report, writes and verifies
 its own proof bundle, states the same P1 wording, asks for the DataPolicy to be
-accepted again before it starts, and uploads nothing.
+accepted again before it starts, and sends nowhere until somebody publishes it.
 
 ---
 

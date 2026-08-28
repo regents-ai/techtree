@@ -289,7 +289,9 @@ def test_the_human_verification_keeps_the_five_answers_apart(
     assert "Scientific comparison" in text
     assert "Participant attestation" in text
     assert "No independent reproduction" in text
-    assert "Not published" in text
+    # Decisions 0038: the fifth answer is what the proof's own record says,
+    # which is all a sealed bundle can say about publication either way.
+    assert "Publication was not requested when this proof was written" in text
 
 
 def test_a_tampered_proof_fails_with_the_documented_exit_code(

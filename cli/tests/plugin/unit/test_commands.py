@@ -243,12 +243,19 @@ def test_demo_says_so_when_a_campaign_declares_no_maximum() -> None:
     assert "$" not in answer
 
 
-def test_demo_says_the_publication_terms_do_not_apply_to_this_build() -> None:
-    """Ticket q0l: two readers took the Climb's terms for a plan to publish."""
+def test_demo_says_starting_a_run_publishes_nothing() -> None:
+    """Ticket q0l: two readers took the Climb's terms for a plan to publish.
+
+    Decisions 0038 changed what is true here without changing what those two
+    readers needed. Publishing exists now, and it is still not something that
+    happens by starting a run — so the review says who does it and what
+    travels when they do.
+    """
     answer = handle_slash_command("demo", _services(bridge=_demo_bridge(_PREPARED)))
 
     assert "terms this Climb sets for a published result" in answer
-    assert "Nothing is published from this build" in answer
+    assert "Nothing is published unless you publish a finished run yourself" in answer
+    assert "never the episodes" in answer
     assert "model calls still go to the model provider you configured" in answer
 
 

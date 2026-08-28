@@ -8,8 +8,9 @@ question whose answer was already assumed.
 The policy is a plain statement of permissions. It is immutable by digest:
 changing any permission produces a different policy, which produces a
 different ``CampaignSpec``, which is exactly the visibility the rule exists to
-create. Nothing here grants Techtree the ability to do anything — WP0–WP5
-upload no artifact regardless of what a policy allows.
+create. Nothing here grants Techtree the ability to do anything: a policy
+that permits something is not a command that does it, and the only thing that
+sends a run anywhere is a person running ``techtree publish``.
 
 Contradiction checks between a public Climb and its policy live in
 :mod:`techtree.models.climb`, where both objects are in scope.

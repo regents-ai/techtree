@@ -12,10 +12,14 @@ produced was signed with it.
 
 ## The retention promise
 
-Techtree keeps everything it produces on the machine that produced it. It does
-not upload your Episodes, Traces, receipts, proof bundles, or Skill proposals,
-and it has no code path that could: the CLI never writes to the network except
-to install the evaluation engine and to fetch the starter Skill. Model
+Techtree keeps everything it produces on the machine that produced it until
+you decide otherwise. Nothing is uploaded unless you publish a finished run
+yourself with `techtree publish`, and what travels then is that run's proof —
+the signed report and its receipts. Your Episodes and Traces are not in the
+proof directory at all, so no version of publishing sends them, and your Skill
+proposals are not sent either. Apart from that one command the CLI writes to
+the network only to install the evaluation engine and to fetch the starter
+Skill. Model
 inference is the exception, and it is not a small one — running a comparison
 sends prompts and completions to the model provider whose credentials you
 configured, under that provider's policies and retention, which Techtree
@@ -27,7 +31,9 @@ Techtree kept?* Everything below, all of it local, all of it removable with
 them, not us.
 
 Removing local data does not invalidate anything you have already shared. A
-proof bundle you copied elsewhere still verifies from its own bytes.
+proof bundle you copied elsewhere still verifies from its own bytes, and a run
+you published stays on the public log — `techtree withdraw` marks it withdrawn,
+which is recorded as an event, and it is not deleted.
 
 ## Upgrading, and runs made by an older version
 

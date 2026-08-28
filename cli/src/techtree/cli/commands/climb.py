@@ -30,7 +30,8 @@ because starting a run commits to both rights and work.
 section 2 makes it one gesture rather than two handles: the five things a
 person has to weigh — how much work this is, the most the Campaign declares it
 may cost, that the Skill is the only scientific change, where the model calls
-go, and what is never uploaded — are printed, the rights summary is printed
+go, and what an upload would and would not carry — are printed, the rights
+summary is printed
 under them, and the
 answer is a plain ``y``. An operator who cannot be asked passes ``--yes``
 instead, which is an explicit act by a person configuring a machine and never a
@@ -508,13 +509,27 @@ class RunApproval:
 #: reader can check it in. Decisions document 0019 section 3, statement 2.
 ONLY_CHANGE_LINE: Final = "The Skill is the only scientific change."
 
-#: What Techtree keeps to itself, and what it cannot. Decision 0013 section 1.4
-#: fixes both halves; they are two lines because a reader meets them as two
-#: facts, and the second is what stops the first from being read as "nothing
-#: leaves this machine".
-NO_UPLOAD_LINE: Final = (
-    "Techtree does not upload your episodes, traces, receipts, proof bundles, "
-    "or Skill proposals."
+#: What starting a run sends, and what a later choice would send. Decision 0013
+#: section 1.4 fixes both halves of the privacy claim; they are two lines
+#: because a reader meets them as two facts, and the model-calls line above is
+#: what stops this one from being read as "nothing leaves this machine".
+#:
+#: This line used to say that Techtree does not upload the participant's
+#: episodes, traces, receipts, proof bundles or Skill proposals, which was true
+#: because there was nowhere to send them. Decisions 0038 built ``techtree
+#: publish``, so the line says the two things that are true now: starting a run
+#: sends none of it, because publishing is a separate act on a finished run;
+#: and the episodes never travel even then, because they are not in the proof
+#: directory at all.
+#:
+#: It is deliberately not phrased as "nothing is uploaded". A sweeping negative
+#: is the sentence decision 0013 spent its length warning about, and stating
+#: what publishing actually carries tells a reader more than denying that
+#: anything does.
+PUBLICATION_STEP_LINE: Final = (
+    "Publishing is a separate step, taken after a run finishes and only if you "
+    "choose to: what travels then is the run's proof — the signed report and "
+    "its receipts — and never the episodes."
 )
 
 #: What a DataPolicy's publication terms mean in this build, shown wherever
@@ -525,19 +540,24 @@ NO_UPLOAD_LINE: Final = (
 #: report is public. Read on its own, next to the raw-episode terms that
 #: prohibit upload outright, that reads as a plan to publish somebody's Skill
 #: and their numbers — and two readers stopped and refused to start a run over
-#: exactly that. Nothing in this build can publish anything: there is no upload
-#: path, no result is publication-eligible, and every proof is graded
-#: development_only. So the terms are shown unchanged, and this is shown with
-#: them.
+#: exactly that.
+#:
+#: The answer used to be that nothing in this build could publish anything,
+#: which was true while there was no command that could. Decisions 0038 built
+#: one. What is still true, and is what those two readers actually needed, is
+#: that publishing is a separate act on a finished run: starting one publishes
+#: nothing at all, and a person who never runs ``techtree publish`` never sends
+#: anything.
 #:
 #: The last clause is not decoration. Decision 0013 section 1.4: a sentence
 #: about what stays here is read as a claim that nothing goes anywhere, and
 #: model calls do.
 PUBLICATION_TERMS_LINE: Final = (
     "These are the terms this Climb sets for a published result. Nothing is "
-    "published from this build: your Skill, the episodes and the report stay "
-    "on this machine, and model calls still go to the model provider you "
-    "configured."
+    "published unless you publish a finished run yourself, and what travels "
+    "then is the run's proof — the signed report and its receipts — and never "
+    "the episodes. Your Skill and your episodes stay on this machine, and "
+    "model calls still go to the model provider you configured."
 )
 
 
@@ -546,7 +566,8 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
 
     Decisions document 0019 section 2 fixes the list and the order: how much
     work this is, the most the Campaign declares it may cost, what is being
-    changed, where the model calls go, and what is never uploaded. Every value
+    changed, where the model calls go, and what an upload would carry. Every
+    value
     is read off the draft or the Campaign it was prepared against, so the
     review describes this run and cannot describe a different one.
 
@@ -567,7 +588,7 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
         ONLY_CHANGE_LINE,
         f"Model calls go to {campaign.subject.model.provider}, under that "
         "provider's policies.",
-        NO_UPLOAD_LINE,
+        PUBLICATION_STEP_LINE,
     ]
 
 

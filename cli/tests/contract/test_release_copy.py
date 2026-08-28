@@ -1212,17 +1212,36 @@ def test_the_frame_guard_catches_what_it_is_for() -> None:
 
 # The publication terms ---------------------------------------------------------------
 
-#: Ticket q0l. A DataPolicy's publication terms describe a result that has been
-#: published: entering a Climb requires releasing the candidate Skill, and the
-#: uplift report is public. Shown beside raw-episode terms that prohibit upload
-#: outright, they read as a plan to publish somebody's Skill and their numbers,
-#: and two readers stopped and refused to start a run over exactly that.
-#: Nothing in this build can publish anything — there is no upload path, no
-#: result is publication-eligible, and every proof is graded development_only.
-#: So the terms stay exactly as the policy states them, and the plain truth is
-#: shown with them.
-PUBLICATION_TERMS_FRAMING: Final[re.Pattern[str]] = re.compile(
-    r"nothing\s+is\s+published\s+from\s+this\s+build", re.I
+#: Ticket q0l, amended by decisions 0038. A DataPolicy's publication terms
+#: describe a result that has been published: entering a Climb requires
+#: releasing the candidate Skill, and the uplift report is public. Shown beside
+#: raw-episode terms that prohibit upload outright, they read as a plan to
+#: publish somebody's Skill and their numbers, and two readers stopped and
+#: refused to start a run over exactly that.
+#:
+#: The plain truth used to be that nothing in this build could publish
+#: anything: no upload path, nothing publication-eligible, every proof graded
+#: development_only. All three of those changed on 2026-08-27, and a guard that
+#: still demanded the old sentence would be a guard requiring a false
+#: statement — the worst kind, because the copy it protects is the copy a
+#: reader trusts most.
+#:
+#: What is still true, and is what those two readers needed, is that publishing
+#: is a separate act on a finished run. Both halves are required together: the
+#: first alone leaves a reader assuming their episodes travel too, and the
+#: second alone still sounds like something happens on its own.
+PUBLICATION_ONLY_IF_PUBLISHED: Final[re.Pattern[str]] = re.compile(
+    r"nothing\s+is\s+published\s+unless\s+"
+    r"(you|they|the\s+user|the\s+person|a\s+person|somebody)\s+publish",
+    re.I,
+)
+PUBLICATION_NEVER_THE_EPISODES: Final[re.Pattern[str]] = re.compile(
+    r"never\s+the\s+episodes", re.I
+)
+
+PUBLICATION_TERMS_FRAMING: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    ("publishing is something a person does", PUBLICATION_ONLY_IF_PUBLISHED),
+    ("the episodes never travel", PUBLICATION_NEVER_THE_EPISODES),
 )
 
 #: What makes a function a place where those terms are put in front of a
@@ -1280,7 +1299,8 @@ def test_the_publication_truth_says_where_model_calls_still_go() -> None:
     """Decision 0013 s4. "It stays here" is heard as "nothing goes anywhere"."""
     from techtree.cli.commands.climb import PUBLICATION_TERMS_LINE
 
-    assert PUBLICATION_TERMS_FRAMING.search(PUBLICATION_TERMS_LINE)
+    for described, pattern in PUBLICATION_TERMS_FRAMING:
+        assert pattern.search(PUBLICATION_TERMS_LINE), described
     assert has_provider_qualification(PUBLICATION_TERMS_LINE)
     for described, pattern in FORBIDDEN_PRIVACY:
         assert not pattern.search(PUBLICATION_TERMS_LINE), described
@@ -1288,10 +1308,59 @@ def test_the_publication_truth_says_where_model_calls_still_go() -> None:
 
 def test_the_publication_guard_catches_a_review_that_only_states_the_terms() -> None:
     """The claim the two readers met, in the words they met it in."""
-    assert not PUBLICATION_TERMS_FRAMING.search(
+    bare = (
         "Public release required in order to enter this Climb. "
         "The uplift report is published."
     )
+
+    for _, pattern in PUBLICATION_TERMS_FRAMING:
+        assert not pattern.search(bare)
+
+
+def test_the_publication_guard_refuses_the_claim_that_went_stale() -> None:
+    """The sentence this guard used to require, which is now false.
+
+    Kept as a check rather than a memory. Until 2026-08-27 every review that
+    showed a Climb's terms was required to say that nothing is published from
+    this build, and that was true because no command could. There is one now,
+    so the old wording would deny the feature a reader is being offered.
+    """
+    stale = (
+        "These are the terms this Climb sets for a published result. Nothing "
+        "is published from this build: your Skill, the episodes and the report "
+        "stay on this machine."
+    )
+
+    for described, pattern in PUBLICATION_TERMS_FRAMING:
+        assert not pattern.search(stale), described
+
+
+def test_the_review_a_person_reads_says_what_publishing_would_carry() -> None:
+    """Decisions 0038. The line replaced a promise that nothing is uploaded.
+
+    A sweeping negative was true while there was nowhere to send anything.
+    What a reader needs now is the two facts a negative cannot carry: that
+    publishing is a step somebody takes after a run finishes, and that the
+    episodes are not part of what it sends.
+    """
+    from techtree.cli.commands.climb import PUBLICATION_STEP_LINE
+
+    assert "separate step" in PUBLICATION_STEP_LINE
+    assert "only if you choose to" in PUBLICATION_STEP_LINE
+    assert PUBLICATION_NEVER_THE_EPISODES.search(PUBLICATION_STEP_LINE)
+    assert not NEEDS_PROVIDER_QUALIFICATION.search(PUBLICATION_STEP_LINE)
+
+
+def test_the_review_still_shows_the_publication_step_line() -> None:
+    """A line nobody prints tells nobody anything."""
+    source = (SOURCE_ROOT / "cli" / "commands" / "climb.py").read_text(encoding="utf-8")
+    review = next(
+        ast.get_source_segment(source, node) or ""
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.FunctionDef) and node.name == "review_lines"
+    )
+
+    assert "PUBLICATION_STEP_LINE" in review
 
 
 # The money a result reports ----------------------------------------------------------

@@ -627,10 +627,12 @@ class SkillPreparationService:
             "prepared from was carried out under. They still govern what "
             "happens to this run's material, and they are why acceptance is "
             "asked for again.",
-            "This comparison is local. No Climb wraps it, nothing is entered "
-            "anywhere, nothing is published, and nothing is uploaded. Model "
-            "inference still goes to the model provider you configured, under "
-            "that provider's policies.",
+            "This comparison is local. No Climb wraps it, and nothing is "
+            "entered anywhere. Nothing is published unless you publish this "
+            "run yourself once it has finished, and what travels then is the "
+            "run's proof — the signed report and its receipts — and never the "
+            "episodes. Model inference still goes to the model provider you "
+            "configured, under that provider's policies.",
             "This compares one Skill against another Skill, not against no "
             "Skill. The baseline is the version measured by the run this was "
             "prepared from.",

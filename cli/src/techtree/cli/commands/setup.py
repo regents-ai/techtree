@@ -7,8 +7,8 @@ it, settle the local signing key, and say what to do next.
 
 The signing key is created here rather than on first use, and it is announced
 rather than assumed: a person running setup is asking this machine to be made
-ready, which is the moment to tell them a key exists, what it is for, and that
-nothing uploads it.
+ready, which is the moment to tell them a key exists, what it is for, and
+where each half of it goes.
 
 It does not install the Hermes plugin. ``--hermes`` is reserved so that the
 name means one thing when it does exist, and until then it says so.
@@ -48,12 +48,19 @@ COMMAND = "setup"
 
 #: Spec section 7.5. Printed whenever setup settles this machine's identity,
 #: whether it made one or found one, because the sentence a person needs is
-#: what the key is for and where it goes — and the answer to the second half is
-#: "nowhere".
+#: what the key is for and where each half of it goes.
+#:
+#: The two halves used to be summarised as "the key is not uploaded", which was
+#: true and, since decisions 0038 built ``techtree publish``, is now the kind
+#: of sentence a reader could take further than it goes. A published proof
+#: carries the public half inside the envelopes it signs — that is what makes
+#: the signature checkable by somebody who does not trust us — so the notice
+#: says which half travels rather than implying neither does.
 LOCAL_SIGNING_KEY_NOTICE = (
     "Techtree keeps a local signing key, used only to detect changes to your "
-    "local receipts. The key is not uploaded in this release, and only its "
-    "public half ever leaves the key directory.\n"
+    "local receipts. The private half never leaves the key directory. The "
+    "public half travels inside the proofs it signs, which is what lets "
+    "anybody check one.\n"
     "Key: {key_id}"
 )
 

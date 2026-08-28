@@ -44,7 +44,7 @@ engine, and Campaign protocol kernel.
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the read-only site: pinned guide, catalog, published objects
+   techtree-ash ─ the site: pinned guide, catalog, published objects, run log
 ```
 
 ## The other two repositories
@@ -54,10 +54,11 @@ engine, and Campaign protocol kernel.
   prepares, asks for approval, and relays results. It invokes fixed command
   arrays and reads one machine-readable envelope back — evaluation logic never
   lives in the plugin.
-- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the
-  read-only website at techtree.sh: the pinned installation guide, the campaign
-  catalog, the published protocol objects, and the docs. It serves
-  content-addressed release records over GET only and never receives anything.
+- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the website
+  at techtree.sh: the pinned installation guide, the campaign catalog, the
+  published protocol objects, the public run log, and the docs. Everything it
+  shows is served over GET. It has one address that accepts anything, and what
+  that address accepts is a signed run somebody chose to publish.
 
 The evaluation engine, the agent host, and the container the subject runs in
 are each pinned to an exact version, and the release is only as reproducible as
@@ -293,8 +294,9 @@ is not there. `make typecheck-plugin` type-checks it.
   the allow-list in `src/techtree/runs/launcher.py`.
 - Displayed commands are argument vectors for a person or host to review. The
   CLI does not execute a model-authored shell string.
-- Local state is created under private Techtree directories. The website
-  release surface is read-only.
+- Local state is created under private Techtree directories. The website's
+  release surface is read-only; its one write address takes a signed
+  publication or withdrawal and nothing else.
 
 ## Generated files
 

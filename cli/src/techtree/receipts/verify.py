@@ -923,9 +923,11 @@ def _explain(result: VerificationResult) -> list[VerificationMessage]:
             status=publication,
             code=PROOF_BUNDLE_INVALID,
             detail=(
-                "Not published: nothing in this proof was uploaded, and a "
-                "bundle is written before anybody could have been asked. "
-                "Whether it may be published is checked separately."
+                "Publication was not requested when this proof was written, "
+                "which is the only answer a bundle can give: it is sealed "
+                "before anybody could have been asked. It is not a statement "
+                "about whether the run was published afterwards. Whether it "
+                "may be published is checked separately."
             ),
         ),
     ]

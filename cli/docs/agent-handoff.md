@@ -39,7 +39,8 @@ Rigor stays internal; the user experience stays almost trivial.
   installed techtree, and its doctor. That typecheck is deliberately
   outside techtree-python's own `make check`, which must pass in a
   clone with no sibling checkout at all.
-- **techtree-ash** — the read-only website (Elixir/Phoenix/Ash).
+- **techtree-ash** — the website (Elixir/Phoenix/Ash): reads, plus the one
+  write address that takes a signed publication or withdrawal.
   Serves the catalog and content-addressed objects (refuses drifted
   bytes), the agent-first install pages, and the BootstrapRelease
   behind an active-release pointer. GET/HEAD only; a 405 test locks
@@ -101,9 +102,10 @@ classify your change before you make it.
 - **The model never approves its own action.** Approval lives at the
   CLI y/N (or explicit --yes) and Hermes's native approval surface;
   one run.approved audit event records it.
-- **Nothing uploads.** No receipt, episode, trace, proof, or Skill
-  proposal leaves the machine; push=false everywhere; the website is
-  read-only.
+- **Nothing uploads unless somebody publishes.** No receipt, episode,
+  trace, proof or Skill proposal leaves the machine on its own;
+  push=false everywhere. `techtree publish` sends a finished run's
+  proof, after a person answers, and never its episodes.
 - **Secrets.** Never read .env. PRIME_API_KEY is never stored,
   logged, echoed, or passed through arguments. The worker environment
   scrub (runs/launcher.py) must never be loosened.

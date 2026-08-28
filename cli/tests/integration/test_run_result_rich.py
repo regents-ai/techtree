@@ -129,7 +129,10 @@ def test_the_result_states_the_limits_of_a_local_proof(
 
     flattened = flat(text)
 
-    assert "Nothing was uploaded." in flattened
+    # Decisions 0038: the caveat says what publishing would carry rather than
+    # promising that nothing can be sent, because now something can be.
+    assert "The raw episodes stay on this machine." in flattened
+    assert "never its episodes" in flattened
     assert "No external evidence service is required, used, or contacted." in flattened
 
 
