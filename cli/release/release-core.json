@@ -9,8 +9,8 @@
   "publication": {
     "network_key": {
       "algorithm": "ed25519",
-      "key_id": "sha256:75e4239e0aa1da598426d7e6ba9a1b77e3ff37026e0f273cb56c8264ed951ff0",
-      "public_key": "PoUGtObfjuMGWBWHIDeOu0mc2kp/g8+o3cysT1gAFKI="
+      "key_id": "sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966",
+      "public_key": "FbKdOrQUNLohljAE31P5ts99ynqvGpesCktW3aez0I4="
     },
     "public_log_url": "https://techtree.sh/runs",
     "submission_endpoint": "https://techtree.sh/api/v1/publications"

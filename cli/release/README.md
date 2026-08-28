@@ -65,35 +65,30 @@ keyed by a third number, the SHA-256 of the starter Skill *file*, because that
 is what the address returns and what a fetcher checks a response against
 before it builds anything.
 
-## The run log's key is not yet the founder's key
+## The run log's key
 
 `publication.network_key` is the public half of the key the run log
 countersigns publication receipts with. `techtree publish` checks every receipt
 against exactly this key before it writes one into a run directory, which is
 what makes a countersignature worth anything: a server that invented a key and
-signed with it would be refused, because the participant already knows which
-key to expect.
+signed with it is refused, because the participant already knows which key to
+expect.
 
-**The key committed today is a stand-in and must be replaced at freeze.** It
-was generated while this feature was built and its private half was never
-written down anywhere, so nothing can sign against it and every receipt it is
-checked against is refused. That is the correct behaviour for a release whose
-run log does not exist yet, and it is not the behaviour of a shipped release.
+The founder generated this key on 2026-08-27 and gave only the public half.
+Its identifier is the sha256 of the key's own 32 bytes, which is how every
+key identifier in this protocol is derived and why a receipt naming a key it
+does not carry is caught without looking anything up.
 
-At freeze the founder generates the real Ed25519 key, keeps the private half
-where the run log can sign with it, and replaces both members of
-`publication.network_key` in `release-inputs.json`:
+The private half lives in one place on the founder's machine, outside every
+repository, and in Fly's secrets as `TECHTREE_NETWORK_SIGNING_KEY`. It is in
+no file here and must never be. A release refuses to build if the block is
+missing, if the key is not 32 bytes, if it is all zeros, or if the identifier
+is not the digest of the key beside it.
 
-```text
-public_key   base64 of the 32 raw public-key bytes
-key_id       sha256:<hex>, the digest of those same 32 bytes
-```
+Rotation is a new key and therefore a new identifier, a new ReleaseCore and a
+new release. Receipts signed under an older key stay verifiable by anybody who
+kept that release's own coordinates, which is the point of pinning them.
 
-The identifier is derived and checked to be derived, so the two cannot be
-filled in inconsistently: a `key_id` that is not the digest of the `public_key`
-beside it fails validation and `make release-core` refuses to produce a
-document. The same is true of an absent `publication` block, an all-zero key, a
-key that is not 32 bytes, and an endpoint that is not a plain `https` address.
 
 ## What the release document does not say
 
