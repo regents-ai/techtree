@@ -191,14 +191,14 @@ defmodule TechtreeWeb.InstallComponents do
   end
 
   @doc """
-  The commands this release pins, taken from the published contract.
-  """
-  @doc """
   The one line a reader hands to an agent they already run. Single source —
   the homepage block and the docs quickstart both read it from here.
   """
   def agent_line, do: "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
 
+  @doc """
+  The commands this release pins, taken from the published contract.
+  """
   attr :instructions, :map, default: nil
 
   def pinned_commands(assigns) do
