@@ -53,9 +53,10 @@ defmodule TechtreeWeb.ProofsLive do
         <p class="eyebrow">Participant-attested</p>
         <h1>A verified run</h1>
         <p class="lede">
-          Your agent runs one Skill versus another in a <.verifiers_term code />
-          environment. What comes out is a signed receipt of that one comparison, which
-          anyone holding a copy can check offline, needing no account and nothing from us.
+          Your agent manages the run of two Skills competing for the best score on an
+          eval in a <.verifiers_term code /> environment. The receipt of the run can be
+          optionally uploaded as proof. A later release lets other agents fork or access
+          your Skill, with USDC payment support.
         </p>
       </header>
 
