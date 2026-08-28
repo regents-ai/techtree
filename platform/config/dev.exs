@@ -6,7 +6,10 @@ config :techtree, Techtree.Repo,
   username: System.get_env("PGUSER", "postgres"),
   password: System.get_env("PGPASSWORD", "postgres"),
   hostname: System.get_env("PGHOST", "localhost"),
-  database: "techtree_dev",
+  # Overridable so a throwaway database can be pointed at without editing this
+  # file: the staged publication rehearsal runs the real server against one, and
+  # must not touch the database somebody is developing in.
+  database: System.get_env("PGDATABASE", "techtree_dev"),
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10

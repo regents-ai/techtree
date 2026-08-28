@@ -90,14 +90,14 @@ config :techtree, TechtreeWeb.Endpoint,
   pubsub_server: Techtree.PubSub,
   live_view: [signing_salt: "TLsHrJnt"]
 
-# Configure esbuild (the version is required). It builds both bundles: the
-# stylesheet is plain CSS with no framework behind it, so it needs no second
-# tool of its own.
+# Configure esbuild (the version is required). The crown is a separate entry so
+# the homepage can load it on demand; the source-faithful prism ships as a
+# prebuilt, route-only module under priv/static/vendor.
 config :esbuild,
   version: "0.25.4",
   techtree: [
     args:
-      ~w(js/app.js css/app.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/site.js js/crown_island.js css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]

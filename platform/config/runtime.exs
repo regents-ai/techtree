@@ -16,6 +16,20 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
+# The channel this build serves, overridable at boot. It belongs here rather
+# than beside the default in `config.exs`, because that file is evaluated when
+# the project is compiled: an environment variable read there is read once, at
+# build time, and a later value is silently ignored.
+#
+# The staged publication rehearsal is why it exists. The release candidate
+# publishes the stable channel while development is the default, and rehearsing
+# a release should not mean editing a committed default for the occasion.
+if channel = System.get_env("TECHTREE_CATALOG_CHANNEL") do
+  config :techtree, Techtree.Catalog,
+    catalog_root: {:priv, "catalog"},
+    channel: channel
+end
+
 if System.get_env("PHX_SERVER") do
   config :techtree, TechtreeWeb.Endpoint, server: true
 end
