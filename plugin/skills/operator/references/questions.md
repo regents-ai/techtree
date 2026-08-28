@@ -157,13 +157,15 @@ how the release is put together, not an apology for it.
 They are real, they are what the plugin genuinely does, and none of them is
 hidden or worked around. Say what each one is:
 
-**One deny-list, in `cli/guards.py`.** Flagged HIGH, as privilege escalation. It is
-the list of command words — techtree, hermes, uv, bash, sh, curl, pip, docker,
-git, sudo, rm — that the plugin refuses to let a model-written summary tell
-someone to run. Commands shown to a person come from Techtree's own next
-actions, never from a sentence a model wrote. A deny-list has to name what it
-denies, so a scanner reading it sees the vocabulary and flags it. It is the
-block-list, not an action.
+**One deny-list, in `cli/guards.py`.** Flagged HIGH, as privilege escalation. It
+is a list of about a dozen command words — the package managers, the shells,
+the download tools, the version-control and administrative ones — that the
+plugin refuses to let a model-written summary tell someone to run. Commands
+shown to a person come from Techtree's own next actions, never from a sentence
+a model wrote. A deny-list has to name what it denies, so a scanner reading
+that file sees the vocabulary and flags it. It is the block-list, not an
+action. This page describes the list rather than repeating it, so that the
+document explaining the findings does not become one of them.
 
 **Three subprocess calls, in `cli/bridge.py`.** Flagged MEDIUM, as execution. They
 are the entire boundary between this plugin and Techtree, and they are three
