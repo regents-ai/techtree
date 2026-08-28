@@ -33,7 +33,7 @@ from typing import Any, cast
 import pytest
 import techtree_hermes
 from support import RecordingContext, RegisteredTool
-from techtree_hermes.schemas import all_tool_schemas
+from techtree_hermes.host.schemas import all_tool_schemas
 from techtree_hermes.services.container import PluginServices
 from techtree_hermes.tools import TOOL_HANDLERS
 

@@ -28,14 +28,14 @@ import json
 from typing import Any
 
 import pytest
-from techtree_hermes.approvals import (
+from techtree_hermes.cli.constants import PLUGIN_ROOT
+from techtree_hermes.cli.doctor import NETWORKING_MODULES
+from techtree_hermes.cli.errors import ApprovalRequiredError
+from techtree_hermes.services.approvals import (
     PUBLICATION_DISCLOSURE,
     REVIEWED_ON_HOST_AGENT,
     publish_arguments,
 )
-from techtree_hermes.constants import PLUGIN_ROOT
-from techtree_hermes.doctor import NETWORKING_MODULES
-from techtree_hermes.errors import ApprovalRequiredError
 from techtree_hermes.tools.publish import publication_offer
 from unit.test_tools import RUN_ID, FakeBridge, _call, _envelope, _services
 
@@ -273,7 +273,7 @@ def test_no_address_is_ever_sent_by_the_plugin() -> None:
 
 def test_the_publish_tool_takes_a_run_identifier_and_nothing_else() -> None:
     """Decided at the schema, so the host refuses the argument before we do."""
-    from techtree_hermes.schemas import all_tool_schemas
+    from techtree_hermes.host.schemas import all_tool_schemas
 
     schema = all_tool_schemas()["techtree_publish_run"]
 
@@ -292,7 +292,7 @@ def test_nothing_added_for_publishing_can_open_a_connection() -> None:
     files this feature added or changed, so a networking import arriving here
     fails in the test that names the reason rather than in a whole-tree scan.
     """
-    for name in ("tools/publish.py", "approvals.py"):
+    for name in ("tools/publish.py", "services/approvals.py"):
         source = (PLUGIN_ROOT / name).read_text(encoding="utf-8")
         tree = ast.parse(source, filename=name)
         imported = {
@@ -348,7 +348,7 @@ def test_the_disclosure_says_what_the_log_is_and_is_not() -> None:
 
 def test_the_offer_is_declared_to_the_host_the_way_the_start_is() -> None:
     """A tool that publishes is a tool a person confirms, and its schema says so."""
-    from techtree_hermes.schemas import all_tool_schemas
+    from techtree_hermes.host.schemas import all_tool_schemas
 
     description = all_tool_schemas()["techtree_publish_run"]["description"]
 

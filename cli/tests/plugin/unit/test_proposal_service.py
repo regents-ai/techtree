@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.diff import (
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.services.diff import (
     GATEWAY_DIFF_LINES,
     build_skill_diff,
     text_digest,
 )
-from techtree_hermes.errors import PluginError
-from techtree_hermes.models import ChannelKind, SkillRevisionOutput
+from techtree_hermes.services.models import ChannelKind, SkillRevisionOutput
 from techtree_hermes.services.proposal import (
     ProposalService,
     validate_replacement_response,
@@ -282,7 +282,7 @@ def test_the_default_staging_root_is_the_plugins_own(
 
 def test_the_staging_root_is_named_in_the_removal_documentation() -> None:
     """A location nobody documented is a location nobody can clean up."""
-    from techtree_hermes.constants import PLUGIN_ROOT
+    from techtree_hermes.cli.constants import PLUGIN_ROOT
 
     readme = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
 

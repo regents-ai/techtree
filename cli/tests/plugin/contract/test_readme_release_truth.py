@@ -2,7 +2,7 @@
 
 import re
 
-from techtree_hermes.constants import PLUGIN_ROOT
+from techtree_hermes.cli.constants import PLUGIN_ROOT
 
 README = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
 

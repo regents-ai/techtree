@@ -11,9 +11,9 @@ from types import MappingProxyType
 import pytest
 import techtree_hermes
 from support import RecordingContext
-from techtree_hermes.constants import TOOLSET_NAME
-from techtree_hermes.errors import PluginError
-from techtree_hermes.schemas import all_tool_schemas
+from techtree_hermes.cli.constants import TOOLSET_NAME
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.host.schemas import all_tool_schemas
 from techtree_hermes.tools import TOOL_HANDLERS
 
 
@@ -43,8 +43,8 @@ def test_registration_registers_every_implemented_tool(ctx: RecordingContext) ->
 def test_registration_registers_implemented_commands_and_hooks(
     ctx: RecordingContext,
 ) -> None:
-    from techtree_hermes.commands import SLASH_COMMANDS
-    from techtree_hermes.hooks import SESSION_HOOKS
+    from techtree_hermes.host.commands import SLASH_COMMANDS
+    from techtree_hermes.host.hooks import SESSION_HOOKS
 
     techtree_hermes.register(ctx)
 

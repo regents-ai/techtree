@@ -6,7 +6,8 @@ import re
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from techtree_hermes.approvals import (
+from techtree_hermes.cli.errors import ApprovalRequiredError, BootstrapPlanError
+from techtree_hermes.services.approvals import (
     DOCUMENTED_CONFIRMATION_KEYS,
     GUIDED_REVISION_DISCLOSURE,
     POLICY_ACKNOWLEDGEMENT_METHOD,
@@ -18,8 +19,7 @@ from techtree_hermes.approvals import (
     run_approved_event,
     start_arguments,
 )
-from techtree_hermes.errors import ApprovalRequiredError, BootstrapPlanError
-from techtree_hermes.models import PLAN_ID_PATTERN, BootstrapInstallPlan
+from techtree_hermes.services.models import PLAN_ID_PATTERN, BootstrapInstallPlan
 
 DIGEST = "sha256:" + "a" * 64
 RUN_ID = "run_" + "0" * 32
@@ -140,7 +140,7 @@ def test_a_forged_confirmation_field_is_simply_ignored() -> None:
 def test_a_documented_indicator_that_says_no_stops_the_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import techtree_hermes.approvals as approvals
+    import techtree_hermes.services.approvals as approvals
 
     monkeypatch.setattr(approvals, "DOCUMENTED_CONFIRMATION_KEYS", ("confirmed",))
 
@@ -192,7 +192,7 @@ def test_a_run_cannot_start_without_a_draft() -> None:
 
 def test_no_token_or_policy_digest_reaches_the_command_line() -> None:
     """The arguments that carried them are gone, not merely unused."""
-    import techtree_hermes.approvals as approvals
+    import techtree_hermes.services.approvals as approvals
 
     assert not hasattr(approvals, "policy_acceptance_args")
     for argument in start_arguments(DRAFT_ID):
@@ -247,7 +247,7 @@ def test_the_plugin_issues_no_approval_of_its_own() -> None:
     store a model can talk the plugin into consulting. Its absence is the
     property, so its absence is what is checked.
     """
-    import techtree_hermes.approvals as approvals
+    import techtree_hermes.services.approvals as approvals
 
     for removed in (
         "DisclosureStore",

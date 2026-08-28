@@ -20,7 +20,7 @@ from support import (
     platform_environment_names,
     print_envelope,
 )
-from techtree_hermes.bridge import (
+from techtree_hermes.cli.bridge import (
     build_cli_argv,
     call_cli,
     cli_environment,
@@ -29,13 +29,13 @@ from techtree_hermes.bridge import (
     resolve_techtree_binary,
     verify_cli_release,
 )
-from techtree_hermes.constants import CLI_ENVIRONMENT_ALLOWLIST, CLI_JSON_FLAGS
-from techtree_hermes.errors import (
+from techtree_hermes.cli.constants import CLI_ENVIRONMENT_ALLOWLIST, CLI_JSON_FLAGS
+from techtree_hermes.cli.errors import (
     CliEnvelopeError,
     CliInvocationError,
     CliNotInstalledError,
 )
-from techtree_hermes.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
 
 
 @pytest.fixture

@@ -14,13 +14,13 @@ from typing import Any
 
 import pytest
 from support import envelope, founder_result_payload, install_fake_cli
-from techtree_hermes.approvals import InstallPlanStore
-from techtree_hermes.bridge import CliBridge
-from techtree_hermes.release import load_embedded_release_core, release_core_digest
-from techtree_hermes.schemas import all_tool_schemas
+from techtree_hermes.cli.bridge import CliBridge
+from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.host.schemas import all_tool_schemas
+from techtree_hermes.host.state import SessionStore
+from techtree_hermes.services.approvals import InstallPlanStore
 from techtree_hermes.services.assets import ReleaseSkillProvider
 from techtree_hermes.services.container import PluginServices
-from techtree_hermes.state import SessionStore
 from techtree_hermes.tools import TOOL_HANDLERS
 
 CORE = load_embedded_release_core()
@@ -150,7 +150,7 @@ def test_nothing_in_the_released_flow_reaches_the_narration_code() -> None:
     ask a model to word a result would be a release defect whether or not any
     particular test happened to walk it.
     """
-    from techtree_hermes.constants import PLUGIN_ROOT
+    from techtree_hermes.cli.constants import PLUGIN_ROOT
 
     narration = (
         "build_presentation_input",

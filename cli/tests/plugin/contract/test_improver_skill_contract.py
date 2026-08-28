@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 from founder_skill_contract import check_skill_improver, describe
-from techtree_hermes.constants import PLUGIN_ROOT
+from techtree_hermes.cli.constants import PLUGIN_ROOT
 from techtree_hermes.services.improvement import envelope_conflicts
 
 NAME = "skill-improver"

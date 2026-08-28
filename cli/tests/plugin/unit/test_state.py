@@ -10,16 +10,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
-from techtree_hermes.errors import PluginError, PluginStateError
-from techtree_hermes.models import DemoStage
-from techtree_hermes.services.session import (
-    create_demo_session,
-    update_after_first_prepare,
-    update_after_first_result,
-    update_after_first_start,
-    update_after_second_start,
-)
-from techtree_hermes.state import (
+from techtree_hermes.cli.errors import PluginError, PluginStateError
+from techtree_hermes.host.state import (
     SessionStore,
     active_run_ids,
     latest_session,
@@ -29,6 +21,14 @@ from techtree_hermes.state import (
     reconcile_session_with_cli,
     save_session,
     session_payload,
+)
+from techtree_hermes.services.models import DemoStage
+from techtree_hermes.services.session import (
+    create_demo_session,
+    update_after_first_prepare,
+    update_after_first_result,
+    update_after_first_start,
+    update_after_second_start,
 )
 
 RUN_ID = "run_" + "0" * 32
@@ -89,7 +89,7 @@ def _status(**data: Any) -> dict[str, Any]:
 def _session_at(stage: DemoStage, **changes: Any) -> Any:
     from dataclasses import replace
 
-    from techtree_hermes.release import load_embedded_release_core
+    from techtree_hermes.cli.release import load_embedded_release_core
 
     session = create_demo_session(
         release=load_embedded_release_core(),

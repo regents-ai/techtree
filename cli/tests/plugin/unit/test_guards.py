@@ -9,7 +9,7 @@ if these fail, so these are written as attacks.
 from __future__ import annotations
 
 import pytest
-from techtree_hermes.guards import (
+from techtree_hermes.cli.guards import (
     GATEWAY_NARRATIVE_CHARACTERS,
     NarrativeRejectedError,
     bounded_narrative,
@@ -21,7 +21,7 @@ from techtree_hermes.guards import (
     validate_revised_skill,
     validate_revision_prose,
 )
-from techtree_hermes.models import ChannelKind, PresentationNarrative
+from techtree_hermes.services.models import ChannelKind, PresentationNarrative
 
 TASK_REFS = {"task-01", "task-02", "task-03"}
 

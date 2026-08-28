@@ -13,12 +13,12 @@ from collections.abc import Sequence
 from typing import Any
 
 import pytest
-from techtree_hermes.approvals import InstallPlanStore
-from techtree_hermes.models import DemoStage
-from techtree_hermes.release import load_embedded_release_core, release_core_digest
-from techtree_hermes.schemas import all_tool_schemas
+from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.host.schemas import all_tool_schemas
+from techtree_hermes.host.state import SessionStore
+from techtree_hermes.services.approvals import InstallPlanStore
 from techtree_hermes.services.container import PluginServices
-from techtree_hermes.state import SessionStore
+from techtree_hermes.services.models import DemoStage
 from techtree_hermes.tools import TOOL_HANDLERS
 
 CORE = load_embedded_release_core()
@@ -119,7 +119,7 @@ def _call(name: str, services: Any, args: dict[str, Any]) -> dict[str, Any]:
 
 def _current(services: Any) -> Any:
     """Return the session there must be one of."""
-    from techtree_hermes.state import latest_session
+    from techtree_hermes.host.state import latest_session
 
     session = latest_session(services)
     assert session is not None

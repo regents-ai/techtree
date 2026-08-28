@@ -9,9 +9,9 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from techtree_hermes.constants import MANIFEST_FILENAME, PLUGIN_ROOT
-from techtree_hermes.doctor import read_manifest
-from techtree_hermes.schemas import all_tool_schemas
+from techtree_hermes.cli.constants import MANIFEST_FILENAME, PLUGIN_ROOT
+from techtree_hermes.cli.doctor import read_manifest
+from techtree_hermes.host.schemas import all_tool_schemas
 
 MANIFEST = read_manifest(PLUGIN_ROOT / MANIFEST_FILENAME)
 SCHEMAS = all_tool_schemas()

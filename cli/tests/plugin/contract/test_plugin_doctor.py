@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.constants import MANIFEST_FILENAME, RELEASE_CORE_FILENAME
-from techtree_hermes.doctor import (
+from techtree_hermes.cli.constants import MANIFEST_FILENAME, RELEASE_CORE_FILENAME
+from techtree_hermes.cli.doctor import (
     DoctorReport,
     format_report,
     main,
@@ -38,7 +38,7 @@ def _check(report: DoctorReport, check_id: str) -> Any:
 @pytest.fixture
 def checkout(tmp_path: Path) -> Path:
     """A copy of this plugin that a test may damage."""
-    from techtree_hermes.constants import PLUGIN_ROOT
+    from techtree_hermes.cli.constants import PLUGIN_ROOT
 
     destination = tmp_path / "plugin"
     shutil.copytree(
@@ -196,7 +196,7 @@ def test_a_networking_import_blocks(checkout: Path) -> None:
 
 def test_no_relay_dependency_exists(checkout: Path) -> None:
     """Relay is deferred, and nothing here quietly reaches for it."""
-    from techtree_hermes.doctor import iter_runtime_modules
+    from techtree_hermes.cli.doctor import iter_runtime_modules
 
     for path in iter_runtime_modules(checkout):
         text = path.read_text(encoding="utf-8").lower()
@@ -205,7 +205,7 @@ def test_no_relay_dependency_exists(checkout: Path) -> None:
 
 
 def test_a_runtime_third_party_import_blocks(checkout: Path) -> None:
-    (checkout / "bridge.py").write_text("import requests\n", encoding="utf-8")
+    (checkout / "cli" / "bridge.py").write_text("import requests\n", encoding="utf-8")
 
     report = run_plugin_doctor(checkout, path_lookup=_all_executables)
 
@@ -216,7 +216,7 @@ def test_a_runtime_third_party_import_blocks(checkout: Path) -> None:
 
 def test_a_runtime_techtree_import_blocks(checkout: Path) -> None:
     """The CLI JSON envelope is the only boundary."""
-    (checkout / "bridge.py").write_text("import techtree\n", encoding="utf-8")
+    (checkout / "cli" / "bridge.py").write_text("import techtree\n", encoding="utf-8")
 
     report = run_plugin_doctor(checkout, path_lookup=_all_executables)
 

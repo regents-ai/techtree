@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.approvals import InstallPlanStore
-from techtree_hermes.bootstrap import create_install_plan
-from techtree_hermes.commands import (
+from techtree_hermes.cli.bootstrap import create_install_plan
+from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.host.commands import (
     CLI_COMMAND,
     CLI_VERB_NAMES,
     SLASH_USAGE,
@@ -22,12 +22,12 @@ from techtree_hermes.commands import (
     handle_slash_command,
     parse_slash_args,
 )
-from techtree_hermes.hooks import SESSION_HOOKS, build_session_hooks
-from techtree_hermes.models import DemoStage
-from techtree_hermes.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.host.hooks import SESSION_HOOKS, build_session_hooks
+from techtree_hermes.host.state import SessionStore, save_session
+from techtree_hermes.services.approvals import InstallPlanStore
 from techtree_hermes.services.container import PluginServices
+from techtree_hermes.services.models import DemoStage
 from techtree_hermes.services.session import create_demo_session
-from techtree_hermes.state import SessionStore, save_session
 
 CORE = load_embedded_release_core()
 PUBLISHED = dataclasses.replace(
@@ -575,7 +575,7 @@ def test_a_terminal_command_runs_techtrees_own_human_output(
 
 def test_watch_is_never_available_to_a_model() -> None:
     """No model-visible tool may hold an open watch."""
-    from techtree_hermes.schemas import all_tool_schemas
+    from techtree_hermes.host.schemas import all_tool_schemas
 
     for name, schema in all_tool_schemas().items():
         assert "watch" not in name
@@ -629,7 +629,7 @@ def test_session_end_touches_no_techtree_artifact() -> None:
 
 def test_a_hook_never_breaks_a_session(monkeypatch: pytest.MonkeyPatch) -> None:
     """Housekeeping that fails must not stop a session from starting."""
-    import techtree_hermes.hooks as hooks_module
+    import techtree_hermes.host.hooks as hooks_module
 
     def explode(services: Any, now: Any = None) -> int:
         raise RuntimeError("bookkeeping fell over")

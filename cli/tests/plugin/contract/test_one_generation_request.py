@@ -17,7 +17,7 @@ What these tests lock is everything on this side of that boundary:
   to disable — proved statically rather than asserted.
 
 What they cannot lock is what Hermes does inside the one call it is handed.
-That is stated in `llm.py`, recorded per attempt as a request count, and left
+That is stated in `services/llm.py`, recorded per attempt as a request count, and left
 to the host to account for. A test that claimed otherwise would be a test
 making a promise this repository cannot keep.
 """
@@ -30,10 +30,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.constants import PLUGIN_ROOT
-from techtree_hermes.errors import PluginError
-from techtree_hermes.llm import HostLlmError, HostLlmRequest, OneShotHostLlm
+from techtree_hermes.cli.constants import PLUGIN_ROOT
+from techtree_hermes.cli.errors import PluginError
 from techtree_hermes.services.improvement import ImprovementService
+from techtree_hermes.services.llm import HostLlmError, HostLlmRequest, OneShotHostLlm
 
 # The double that refuses to be asked twice ------------------------------------------
 
@@ -347,7 +347,7 @@ RETRY_SETTINGS = {"max_retries", "retry_policy", "num_retries", "backoff_factor"
 def test_no_runtime_module_configures_a_retry() -> None:
     """A retry setting appearing here would mean a client appeared with it.
 
-    Read through the parser, not as text: `llm.py` documents that there is no
+    Read through the parser, not as text: `services/llm.py` documents that there is no
     `max_retries` to set, and a scan that could not tell an explanation from a
     setting would forbid saying so.
     """
@@ -376,12 +376,12 @@ def test_only_one_place_calls_the_host_port() -> None:
         if "complete_structured(" in source.read_text(encoding="utf-8")
     ]
 
-    assert callers == ["llm.py"], callers
+    assert callers == ["services/llm.py"], callers
 
 
 def test_the_boundary_is_written_down_where_it_lives() -> None:
     """Decision 0015 s4 asks for the boundary documented, not just tested."""
-    documentation = (PLUGIN_ROOT / "llm.py").read_text(encoding="utf-8")
+    documentation = (PLUGIN_ROOT / "services" / "llm.py").read_text(encoding="utf-8")
     heading, _, rest = documentation.partition("Where the one-turn promise binds")
 
     assert heading, "llm.py no longer documents the provider boundary"
@@ -494,9 +494,9 @@ class _Case:
 @pytest.fixture
 def improvement_case() -> _Case:
     """A ready-to-propose session, with the founder Skill named by its release."""
-    from techtree_hermes.models import DemoSessionState, DemoStage
-    from techtree_hermes.release import load_embedded_release_core
+    from techtree_hermes.cli.release import load_embedded_release_core
     from techtree_hermes.services.assets import file_digest
+    from techtree_hermes.services.models import DemoSessionState, DemoStage
 
     improver = (PLUGIN_ROOT / "skills" / "skill-improver" / "SKILL.md").read_text(
         encoding="utf-8"

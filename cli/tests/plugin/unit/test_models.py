@@ -10,22 +10,22 @@ import json
 from typing import Any
 
 import pytest
-from techtree_hermes.errors import (
+from techtree_hermes.cli.errors import (
     BootstrapPlanError,
     CliEnvelopeError,
     PluginError,
 )
-from techtree_hermes.models import (
+from techtree_hermes.cli.release import (
+    load_embedded_release_core,
+    release_core_digest,
+    render_release_core,
+)
+from techtree_hermes.services.models import (
     _RELEASE_CORE_DIGEST_FIELDS,
     RELEASE_CORE_FIELDS,
     parse_bootstrap_install_plan,
     parse_cli_envelope,
     parse_release_core,
-)
-from techtree_hermes.release import (
-    load_embedded_release_core,
-    release_core_digest,
-    render_release_core,
 )
 
 VALID_RELEASE_CORE: dict[str, Any] = {

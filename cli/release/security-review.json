@@ -217,7 +217,7 @@
  "generated_on": "2026-08-23",
  "hardening_adopted_this_cycle": {
   "environment_allowlist": {
-   "applied_at": "techtree-plugin/bridge.py:81, at all three call sites (:194, :244, :281)",
+   "applied_at": "techtree-plugin/cli/bridge.py:81, at all three call sites (:194, :244, :281)",
    "canary_test": "tests/plugin/unit/test_bridge.py:352 test_a_secret_the_cli_has_no_business_seeing_never_arrives \u2014 a wallet key planted in the host session reaches neither the child's environment (:359) nor any envelope the plugin returns (:360). Four more tests hold the list itself, including :386, which proves the build is by exact name and not by prefix.",
    "credentials_deliberately_absent": "no provider credential is on the list. A run authenticates from Techtree's own configuration under HOME, the same way the certified worker does.",
    "measured_not_hardcoded": "what the platform itself adds to any child process is measured and subtracted, so an unaccounted-for variable is a test failure (test_bridge.py:320)",
@@ -234,11 +234,11 @@
     "TERM"
    ],
    "what": "the bridge used to hand the CLI child the host session's whole environment. It now builds one by name.",
-   "where": "techtree-plugin/constants.py:61-72 CLI_ENVIRONMENT_ALLOWLIST"
+   "where": "techtree-plugin/cli/constants.py:61-72 CLI_ENVIRONMENT_ALLOWLIST"
   },
   "manifest_capability_declaration": {
    "declaration": "techtree-plugin/plugin.yaml:26-41",
-   "enforcement": "techtree-plugin/doctor.py:55-57 defines the complete field set and :143 raises on any key outside it. Adding capabilities: or requires_env: to plugin.yaml is a hard parse failure, not a warning.",
+   "enforcement": "techtree-plugin/cli/doctor.py:55-57 defines the complete field set and :143 raises on any key outside it. Adding capabilities: or requires_env: to plugin.yaml is a hard parse failure, not a warning.",
    "tests": [
     "tests/plugin/unit/test_schemas.py:38 \u2014 the manifest declares no environment credentials",
     "tests/plugin/contract/test_plugin_doctor.py:164 \u2014 a manifest asking for a credential is rejected",
@@ -356,8 +356,8 @@
      "tests/plugin/contract/test_no_registration_side_effects.py:50-110 \u2014 the runtime seal: subprocess, os.exec/fork, socket, urllib.request.urlopen and http.client are all replaced by tripwires and register() must still complete"
     ],
     "enforced_by": [
-     "techtree-plugin/doctor.py:474-522 \u2014 _check_no_network, an AST walk over every runtime module against a networking module set, blocking",
-     "techtree-plugin/doctor.py:525-568 \u2014 _check_runtime_imports, same mechanism, blocking, and flags `import techtree` separately"
+     "techtree-plugin/cli/doctor.py:474-522 \u2014 _check_no_network, an AST walk over every runtime module against a networking module set, blocking",
+     "techtree-plugin/cli/doctor.py:525-568 \u2014 _check_runtime_imports, same mechanism, blocking, and flags `import techtree` separately"
     ],
     "limits_of_the_property": "both scans read literal import statements, so a dynamic importlib call would evade them, and the bundled skills/ directory is excluded from both. No such usage exists today; the property is enforced against static imports.",
     "property": "the plugin runtime imports only the standard library, opens no socket, and never imports Techtree's Python package. Its one route outward is a fixed-argv subprocess call to the pinned CLI."
@@ -526,7 +526,7 @@
   ],
   "implementations": [
    "src/techtree/errors.py:300 sanitize_text, :329 sanitize_details",
-   "techtree-plugin/errors.py:160 scrub_text, :176 scrub_borrowed"
+   "techtree-plugin/cli/errors.py:160 scrub_text, :176 scrub_borrowed"
   ],
   "method": "each of the seven contract cases was constructed and pushed through both scrubbers on 2026-08-23, and the output checked for the secret verbatim. Behaviour was measured, not inferred from the patterns.",
   "result": "seven of seven redact; five of seven have a test"
@@ -611,7 +611,7 @@
   },
   "no_arbitrary_package_index": "pypi.org is the only registry in either lock, and the only non-registry source in the engine lock is one git revision pinned by full SHA.",
   "no_auto_update": "no auto-update or self-update path exists in src/techtree",
-  "no_install_time_script_from_model_input": "the plugin's install-plan validator (techtree-plugin/models.py:520-571) rejects a plan carrying executable fields, requires argv to be an array, requires the installer to be the fixed executable, requires the argv to install exactly the pinned requirement, and refuses requires_confirmation: false outright.",
+  "no_install_time_script_from_model_input": "the plugin's install-plan validator (techtree-plugin/services/models.py:520-571) rejects a plan carrying executable fields, requires argv to be an array, requires the installer to be the fixed executable, requires the argv to install exactly the pinned requirement, and refuses requires_confirmation: false outright.",
   "no_shell_true": "`shell=True` appears nowhere in src/ or tools/. Every subprocess in the package is an argv array: doctor/checks.py:104, doctor/execution_checks.py:420, verifiers/supervisor.py:191, verifiers/image.py:71, verifiers/child.py:380, engines/runner.py:120, engines/installer.py:545, runs/launcher.py:188.",
   "plugin": {
    "commit": "d1d993e73160e7aa3f6739f0b871a425736a7605",

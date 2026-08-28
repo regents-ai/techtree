@@ -6,7 +6,8 @@ import json
 from typing import Any
 
 import pytest
-from techtree_hermes.channels import (
+from techtree_hermes.cli.errors import ChannelError
+from techtree_hermes.host.channels import (
     DOCUMENTED_CHANNEL_KEYS,
     TRUNCATION_NOTE,
     bounded_gateway_text,
@@ -14,8 +15,7 @@ from techtree_hermes.channels import (
     is_gateway_safe_required,
     resolve_channel,
 )
-from techtree_hermes.errors import ChannelError
-from techtree_hermes.models import ChannelKind
+from techtree_hermes.services.models import ChannelKind
 from techtree_hermes.tools import tool_result
 
 
@@ -39,7 +39,7 @@ def test_no_callback_field_is_invented() -> None:
 
 
 def test_a_documented_field_would_be_used(monkeypatch: pytest.MonkeyPatch) -> None:
-    import techtree_hermes.channels as channels
+    import techtree_hermes.host.channels as channels
 
     monkeypatch.setattr(channels, "DOCUMENTED_CHANNEL_KEYS", ("hermes_channel",))
 

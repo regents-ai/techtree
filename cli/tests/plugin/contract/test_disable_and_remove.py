@@ -25,7 +25,7 @@ from pathlib import Path
 import pytest
 import techtree_hermes
 from support import RecordingContext
-from techtree_hermes.constants import (
+from techtree_hermes.cli.constants import (
     PLUGIN_ROOT,
     PROPOSAL_STAGING_DIRNAME,
     plugin_state_home,
@@ -149,7 +149,7 @@ def test_a_staged_proposal_lives_under_the_documented_path_and_is_removed(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """The end-to-end claim: written where promised, gone when handed over."""
-    from techtree_hermes.models import SkillRevisionOutput
+    from techtree_hermes.services.models import SkillRevisionOutput
 
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
     service = ProposalService(bridge=None)

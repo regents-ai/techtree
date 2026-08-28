@@ -12,9 +12,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from techtree_hermes.errors import PluginError
-from techtree_hermes.models import ReleaseCore
-from techtree_hermes.release import load_embedded_release_core
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.cli.release import load_embedded_release_core
 from techtree_hermes.services.assets import (
     bundled_skill_digest,
     expected_founder_skill_digest,
@@ -27,6 +26,7 @@ from techtree_hermes.services.assets import (
     source_skill_reference,
     verify_founder_skill_digests,
 )
+from techtree_hermes.services.models import ReleaseCore
 
 CORE = load_embedded_release_core()
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "skills"

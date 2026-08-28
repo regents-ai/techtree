@@ -694,7 +694,7 @@ graph TB
 Three rules to hold onto:
 
 1. **The plugin never imports Techtree.** The CLI's JSON envelope is the only
-   boundary, and there are exactly three places in `bridge.py` that start the
+   boundary, and there are exactly three places in `cli/bridge.py` that start the
    command.
 2. **The website is never a runtime dependency.** The local scientific loop
    keeps working when `techtree.sh` is offline. The site is discovery,
@@ -932,7 +932,7 @@ graph LR
 | A cost is derived, never invented | `presentation/build.py` prices recorded tokens with `release/price-profile.json`, labels the figure derived-not-billed, prefers a provider-reported cost when one exists, and prices cached input at the full rate rather than assuming a discount |
 | A published-terms disclosure carries its own truth | the publication sentence travels with the DataPolicy on every surface (CLI reviews, plugin tools and relay, both operator Skill files, and the ash pages' shared `publication_note()` row), each locked by a copy guard |
 | The host agent adds no verdict | plugin `skills/operator/SKILL.md` — relay the measured difference, never a pass, a threshold Techtree did not declare, or a claim that a Skill works; five guard patterns, one per clause |
-| The agent-first path shows what the terminal shows | plugin `services/presentation.py` `COMPACT_PRESENTATION_FIELDS` (a deliberate whitelist) and `commands.py` `_slash_result`, with the compact channel's byte budget enforced so qualifications are counted, never silently dropped |
+| The agent-first path shows what the terminal shows | plugin `services/presentation.py` `COMPACT_PRESENTATION_FIELDS` (a deliberate whitelist) and `host/commands.py` `_slash_result`, with the compact channel's byte budget enforced so qualifications are counted, never silently dropped |
 | Copy claims stay true | copy-guard suites in all three repos (`tests/contract/test_release_copy.py`, `tests/plugin/contract/test_release_copy.py`, `test/techtree_web/release_copy_test.exs`) |
 | Generated files are not hand-edited | `make regenerate` / `make generated-check` over schemas, goldens, release, and the embedded catalog, engine and release resources |
 

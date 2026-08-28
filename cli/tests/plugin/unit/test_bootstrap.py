@@ -15,8 +15,7 @@ from typing import Any
 
 import pytest
 from support import FakeCli, envelope, install_fake_cli, print_envelope
-from techtree_hermes.approvals import InstallPlanStore
-from techtree_hermes.bootstrap import (
+from techtree_hermes.cli.bootstrap import (
     TERMINAL_TOOL,
     UV_DOCUMENTATION_URL,
     bootstrap_check,
@@ -26,14 +25,15 @@ from techtree_hermes.bootstrap import (
     manual_install_response,
     uv_prerequisite,
 )
-from techtree_hermes.bridge import CliBridge
-from techtree_hermes.constants import CLI_PYTHON_SERIES
-from techtree_hermes.errors import BootstrapPlanError
-from techtree_hermes.models import parse_bootstrap_install_plan
-from techtree_hermes.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.cli.bridge import CliBridge
+from techtree_hermes.cli.constants import CLI_PYTHON_SERIES
+from techtree_hermes.cli.errors import BootstrapPlanError
+from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.host.state import SessionStore
+from techtree_hermes.services.approvals import InstallPlanStore
 from techtree_hermes.services.assets import ReleaseSkillProvider
 from techtree_hermes.services.container import PluginServices
-from techtree_hermes.state import SessionStore
+from techtree_hermes.services.models import parse_bootstrap_install_plan
 
 CORE = load_embedded_release_core()
 DIGEST = release_core_digest(CORE)
@@ -357,7 +357,7 @@ def test_the_manual_response_shows_the_exact_command() -> None:
 
 def test_no_tool_argument_can_loosen_what_is_installed() -> None:
     """The installed coordinate comes from the release, never from a caller."""
-    from techtree_hermes.schemas import all_tool_schemas
+    from techtree_hermes.host.schemas import all_tool_schemas
 
     for name, schema in all_tool_schemas().items():
         for property_name in schema["properties"]:
@@ -478,7 +478,7 @@ def test_a_blocking_doctor_failure_stops_demo_preparation(
     )
     services = _services()
 
-    from techtree_hermes.bootstrap import doctor_summary
+    from techtree_hermes.cli.bootstrap import doctor_summary
 
     summary = doctor_summary(services)
 

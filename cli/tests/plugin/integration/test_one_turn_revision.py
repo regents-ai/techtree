@@ -15,15 +15,15 @@ from typing import Any
 
 import pytest
 from support import envelope, install_fake_cli
-from techtree_hermes.approvals import InstallPlanStore
-from techtree_hermes.bridge import CliBridge
-from techtree_hermes.constants import PLUGIN_ROOT
-from techtree_hermes.models import DemoSessionState, DemoStage
-from techtree_hermes.release import load_embedded_release_core, release_core_digest
-from techtree_hermes.schemas import all_tool_schemas
+from techtree_hermes.cli.bridge import CliBridge
+from techtree_hermes.cli.constants import PLUGIN_ROOT
+from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.host.schemas import all_tool_schemas
+from techtree_hermes.host.state import SessionStore, latest_session, save_session
+from techtree_hermes.services.approvals import InstallPlanStore
 from techtree_hermes.services.assets import ReleaseSkillProvider, file_digest
 from techtree_hermes.services.container import PluginServices
-from techtree_hermes.state import SessionStore, latest_session, save_session
+from techtree_hermes.services.models import DemoSessionState, DemoStage
 from techtree_hermes.tools import TOOL_HANDLERS
 
 #: The committed release leaves its skill-improver coordinate unchosen, and the

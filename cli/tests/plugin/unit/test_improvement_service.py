@@ -14,10 +14,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.constants import PLUGIN_ROOT
-from techtree_hermes.errors import PluginError
-from techtree_hermes.models import DemoSessionState, DemoStage, ReleaseCore
-from techtree_hermes.release import load_embedded_release_core
+from techtree_hermes.cli.constants import PLUGIN_ROOT
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.cli.release import load_embedded_release_core
 from techtree_hermes.services.assets import file_digest
 from techtree_hermes.services.improvement import (
     IMPROVER_SAFETY_ENVELOPE,
@@ -28,6 +27,7 @@ from techtree_hermes.services.improvement import (
     revision_output_schema,
     validate_context,
 )
+from techtree_hermes.services.models import DemoSessionState, DemoStage, ReleaseCore
 
 CORE = load_embedded_release_core()
 RUN_ID = "run_" + "0" * 32

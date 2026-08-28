@@ -10,10 +10,10 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from techtree_hermes.errors import PluginError
-from techtree_hermes.models import ChannelKind
-from techtree_hermes.narrative import FIRST_RESULT_LABEL, SECOND_RESULT_LABEL
-from techtree_hermes.release import load_embedded_release_core
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.cli.release import load_embedded_release_core
+from techtree_hermes.services.models import ChannelKind
+from techtree_hermes.services.narrative import FIRST_RESULT_LABEL, SECOND_RESULT_LABEL
 from techtree_hermes.services.presentation import (
     GATEWAY_ORDER,
     TERMINAL_ORDER,

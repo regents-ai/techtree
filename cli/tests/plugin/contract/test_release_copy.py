@@ -46,9 +46,9 @@ from pathlib import Path
 
 import pytest
 from support import founder_result_payload
-from techtree_hermes.constants import PLUGIN_ROOT
-from techtree_hermes.models import CliResponse, ReleaseCore
-from techtree_hermes.schemas import all_tool_schemas
+from techtree_hermes.cli.constants import PLUGIN_ROOT
+from techtree_hermes.host.schemas import all_tool_schemas
+from techtree_hermes.services.models import CliResponse, ReleaseCore
 
 # What counts as public copy -------------------------------------------------------
 
@@ -70,11 +70,13 @@ def _string_literals(source: Path) -> str:
 
 def _public_copy() -> dict[str, str]:
     copy = {
-        "schemas.py": _string_literals(PLUGIN_ROOT / "schemas.py"),
-        "commands.py": _string_literals(PLUGIN_ROOT / "commands.py"),
+        "host/schemas.py": _string_literals(PLUGIN_ROOT / "host" / "schemas.py"),
+        "host/commands.py": _string_literals(PLUGIN_ROOT / "host" / "commands.py"),
         # The guided-revision disclosure is read out to a person verbatim, so
         # it is public copy and is held to the same boundaries.
-        "approvals.py": _string_literals(PLUGIN_ROOT / "approvals.py"),
+        "services/approvals.py": _string_literals(
+            PLUGIN_ROOT / "services" / "approvals.py"
+        ),
         # A next action's reason is written for the host agent to act on and
         # relay, which makes it copy a person meets at second hand. The demo
         # tool is where the first paid step is offered, so its reasons say
@@ -344,8 +346,8 @@ def _offenders(
 def test_the_scan_reads_every_public_surface() -> None:
     """A guard nobody pointed at the copy guards nothing."""
     assert set(PUBLIC_COPY) >= {
-        "schemas.py",
-        "commands.py",
+        "host/schemas.py",
+        "host/commands.py",
         "tools/demo.py",
         "tools/uplift.py",
         "tools/publish.py",
@@ -462,7 +464,7 @@ def test_the_ban_is_the_exact_phrase_and_not_the_useful_one() -> None:
 def test_the_guided_revision_says_where_the_skill_text_goes() -> None:
     """WP11g S2: the host agent's provider sees the Skill and the context."""
     surfaces = {
-        "schemas.py": PUBLIC_COPY["schemas.py"],
+        "host/schemas.py": PUBLIC_COPY["host/schemas.py"],
         "skills/operator/SKILL.md": PUBLIC_COPY["skills/operator/SKILL.md"],
     }
 
@@ -488,7 +490,7 @@ def test_no_copy_promises_the_agent_will_improve_itself(
 
 def test_the_may_fail_framing_is_the_one_that_is_used() -> None:
     """Forbidding the overclaim is only half of it; the honest line has to be there."""
-    from techtree_hermes.approvals import GUIDED_REVISION_DISCLOSURE
+    from techtree_hermes.services.approvals import GUIDED_REVISION_DISCLOSURE
 
     assert MAY_FAIL_FRAMING.search(" ".join(GUIDED_REVISION_DISCLOSURE))
 
@@ -554,8 +556,8 @@ def test_the_surfaces_that_spend_money_say_no_price_is_worked_out() -> None:
         assert NO_PRICE_FRAMING.search(description), name
         assert NO_METER_FRAMING.search(description), name
 
-    assert NO_PRICE_FRAMING.search(PUBLIC_COPY["commands.py"])
-    assert NO_METER_FRAMING.search(PUBLIC_COPY["commands.py"])
+    assert NO_PRICE_FRAMING.search(PUBLIC_COPY["host/commands.py"])
+    assert NO_METER_FRAMING.search(PUBLIC_COPY["host/commands.py"])
     assert NO_PRICE_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
     assert NO_METER_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
 
@@ -574,7 +576,7 @@ def test_the_surfaces_that_spend_tokens_say_where_a_charge_lands() -> None:
     for name in ("techtree_climb_start", "techtree_uplift_start"):
         assert BILLING_FRAMING.search(schemas[name]["description"]), name
 
-    assert BILLING_FRAMING.search(PUBLIC_COPY["commands.py"])
+    assert BILLING_FRAMING.search(PUBLIC_COPY["host/commands.py"])
     assert BILLING_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
 
 
@@ -793,7 +795,7 @@ PUBLICATION_TERMS_FRAMING: tuple[tuple[str, re.Pattern[str]], ...] = (
 #: Every surface that hands a Climb's data rights to a reader or to the host
 #: agent that will read them out.
 PUBLICATION_SURFACES: tuple[str, ...] = (
-    "commands.py",
+    "host/commands.py",
     "tools/demo.py",
     "skills/operator/SKILL.md",
     "skills/operator/references/approvals.md",
@@ -843,7 +845,7 @@ def test_a_tool_that_reports_the_data_rights_says_what_they_mean_here(
 
 def test_the_publication_truth_says_where_model_calls_still_go() -> None:
     """Decision 0013 s4. "It stays here" is heard as "nothing goes anywhere"."""
-    from techtree_hermes.commands import PUBLICATION_TERMS_LINE
+    from techtree_hermes.host.commands import PUBLICATION_TERMS_LINE
 
     for described, pattern in PUBLICATION_TERMS_FRAMING:
         assert pattern.search(PUBLICATION_TERMS_LINE), described
@@ -889,7 +891,7 @@ def test_the_review_that_offers_the_first_paid_run_names_the_declared_maximum() 
     command surface renders it and writes none of its own. A Campaign that
     declares no maximum gets the sentence that says so.
     """
-    from techtree_hermes.commands import _declared_maximum_line
+    from techtree_hermes.host.commands import _declared_maximum_line
 
     declared = _declared_maximum_line({"campaign_maximum_usd": 2.5})
     undeclared = _declared_maximum_line({})
@@ -961,8 +963,8 @@ CLI_HALF: re.Pattern[str] = re.compile(
 #: Every surface that states the boundary. Each has to state both halves of it:
 #: a surface carrying one half is a surface that misleads in one direction.
 BOUNDARY_SURFACES: tuple[str, ...] = (
-    "schemas.py",
-    "approvals.py",
+    "host/schemas.py",
+    "services/approvals.py",
     "README.md",
     "skills/operator/SKILL.md",
     "skills/operator/references/approvals.md",
@@ -1231,12 +1233,15 @@ def test_the_verdict_guard_catches_a_skill_that_lost_the_instruction() -> None:
 
 def _relayed_text(payload: Mapping[str, object]) -> str:
     """Return what `/techtree result` shows for this payload."""
-    from techtree_hermes.approvals import InstallPlanStore
-    from techtree_hermes.commands import handle_slash_command
-    from techtree_hermes.release import load_embedded_release_core, release_core_digest
+    from techtree_hermes.cli.release import (
+        load_embedded_release_core,
+        release_core_digest,
+    )
+    from techtree_hermes.host.commands import handle_slash_command
+    from techtree_hermes.host.state import SessionStore
+    from techtree_hermes.services.approvals import InstallPlanStore
     from techtree_hermes.services.assets import ReleaseSkillProvider
     from techtree_hermes.services.container import PluginServices
-    from techtree_hermes.state import SessionStore
 
     core = load_embedded_release_core()
     services = PluginServices(
@@ -1472,8 +1477,8 @@ def test_the_phone_whitelist_is_still_a_whitelist() -> None:
 
 def test_the_phone_answer_still_fits_the_channel_it_is_read_in() -> None:
     """An answer over the budget is replaced whole, so it has to fit."""
-    from techtree_hermes.models import ChannelKind
-    from techtree_hermes.release import load_embedded_release_core
+    from techtree_hermes.cli.release import load_embedded_release_core
+    from techtree_hermes.services.models import ChannelKind
     from techtree_hermes.services.presentation import PresentationService
     from techtree_hermes.tools import tool_result
 
@@ -1498,8 +1503,8 @@ def test_the_phone_answer_still_fits_the_channel_it_is_read_in() -> None:
 
 def test_a_result_whose_qualifications_are_long_keeps_the_answer_whole() -> None:
     """The one part of a compact answer a run can make arbitrarily long."""
-    from techtree_hermes.models import ChannelKind
-    from techtree_hermes.release import load_embedded_release_core
+    from techtree_hermes.cli.release import load_embedded_release_core
+    from techtree_hermes.services.models import ChannelKind
     from techtree_hermes.services.presentation import PresentationService
     from techtree_hermes.tools import tool_result
 
@@ -1543,7 +1548,7 @@ def test_the_plugin_offers_the_python_this_release_actually_supports() -> None:
     """
     import tomllib
 
-    from techtree_hermes.constants import CLI_PYTHON_SERIES
+    from techtree_hermes.cli.constants import CLI_PYTHON_SERIES
 
     root = Path(__file__).resolve().parents[3]
     metadata = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))

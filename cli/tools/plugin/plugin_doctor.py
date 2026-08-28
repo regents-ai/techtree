@@ -17,7 +17,7 @@ from _plugin_package import PACKAGE_NAME, load_plugin_package
 def main() -> int:
     """Run the doctor over the plugin checkout beside this repository."""
     load_plugin_package()
-    doctor = import_module(f"{PACKAGE_NAME}.doctor")
+    doctor = import_module(f"{PACKAGE_NAME}.cli.doctor")
     return cast(int, doctor.main(sys.argv[1:]))
 
 

@@ -22,11 +22,11 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from techtree_hermes.bridge import RELEASE_INFO_ARGUMENTS
-from techtree_hermes.constants import CLI_COMMAND, CLI_JSON_FLAGS
-from techtree_hermes.errors import CliEnvelopeError
-from techtree_hermes.models import parse_cli_envelope
-from techtree_hermes.release import compare_cli_release, load_embedded_release_core
+from techtree_hermes.cli.bridge import RELEASE_INFO_ARGUMENTS
+from techtree_hermes.cli.constants import CLI_COMMAND, CLI_JSON_FLAGS
+from techtree_hermes.cli.errors import CliEnvelopeError
+from techtree_hermes.cli.release import compare_cli_release, load_embedded_release_core
+from techtree_hermes.services.models import parse_cli_envelope
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "cli"
 RECORDED = sorted(FIXTURES.glob("*.json"))

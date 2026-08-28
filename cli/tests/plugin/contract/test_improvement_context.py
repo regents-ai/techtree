@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.errors import PluginError
+from techtree_hermes.cli.errors import PluginError
 from techtree_hermes.services.improvement import (
     CONTEXT_FIELDS,
     public_prompts,

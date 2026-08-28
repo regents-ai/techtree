@@ -791,7 +791,7 @@
    "implementation": [
     "src/techtree/runs/service.py — the acceptance-surface table, _require_agreeing_approval, one run one approval",
     "src/techtree/cli/commands/run.py, src/techtree/cli/commands/uplift.py — the CLI review-and-approve surface",
-    "../techtree-plugin/approvals.py — the host-agent approval surface",
+    "../techtree-plugin/services/approvals.py — the host-agent approval surface",
     "../techtree-plugin/tools/run.py, ../techtree-plugin/services/proposal.py — tools declared as human-confirmed"
    ],
    "automated_test": [
@@ -906,8 +906,8 @@
     "src/techtree/uplift/source.py — VerifiedSourceSkill verifies every file of the tree but exposes only entrypoint_text to the host",
     "src/techtree/skills/starter.py — _stage_document stages a single SKILL.md",
     "src/techtree/uplift/context.py, src/techtree/uplift/service.py — the improvement context handed to the host model",
-    "../techtree-plugin/services/proposal.py, ../techtree-plugin/llm.py — exactly one host completion, no retry",
-    "../techtree-plugin/guards.py, ../techtree-plugin/diff.py — the structure, copied-case and narrative guards, and the diff shown before approval"
+    "../techtree-plugin/services/proposal.py, ../techtree-plugin/services/llm.py — exactly one host completion, no retry",
+    "../techtree-plugin/cli/guards.py, ../techtree-plugin/services/diff.py — the structure, copied-case and narrative guards, and the diff shown before approval"
    ],
    "automated_test": [
     "tests/unit/test_verified_source_skill.py::test_the_entrypoint_text_comes_back_with_what_it_was_verified_against",
@@ -959,8 +959,8 @@
    "claim": "One pinned plugin installs and verifies Techtree",
    "public_wording": "A person installs one pinned Hermes plugin; with explicit approval it installs and verifies Techtree. No Techtree account is required.",
    "implementation": [
-    "../techtree-plugin/bootstrap.py — the single-use install plan and its refusals",
-    "../techtree-plugin/release.py, ../techtree-plugin/release-core.json — the embedded ReleaseCore",
+    "../techtree-plugin/cli/bootstrap.py — the single-use install plan and its refusals",
+    "../techtree-plugin/cli/release.py, ../techtree-plugin/release-core.json — the embedded ReleaseCore",
     "src/techtree/release/bootstrap.py, src/techtree/release/checks.py, src/techtree/release/document.py",
     "src/techtree/cli/commands/setup.py, src/techtree/doctor/checks.py"
    ],
@@ -1018,7 +1018,7 @@
     "src/techtree/presentation/build.py — the payload built from the verified report; the proof grade is read, never hardcoded",
     "src/techtree/presentation/rich.py, src/techtree/presentation/compact.py — the two renderings",
     "src/techtree/presentation/sanitize.py — the payload-shape and free-text rules (no credential-shape inspection since decision 0036)",
-    "../techtree-plugin/narrative.py, ../techtree-plugin/guards.py, ../techtree-plugin/services/presentation.py"
+    "../techtree-plugin/services/narrative.py, ../techtree-plugin/cli/guards.py, ../techtree-plugin/services/presentation.py"
    ],
    "automated_test": [
     "tests/unit/test_presentation_build.py::test_the_same_report_builds_the_same_bytes",
@@ -1067,7 +1067,7 @@
    "implementation": [
     "src/techtree/skills/scanner.py — whole-tree enumeration, media types, per-file digests, shape refusals",
     "src/techtree/skills/policy.py — the frozen v0.1 instruction-Skill policy (suffixes, file count, file and total size, entrypoint, symlinks, hidden files)",
-    "../techtree-plugin/diff.py — the deterministic diff shown to the participant",
+    "../techtree-plugin/services/diff.py — the deterministic diff shown to the participant",
     "../techtree-plugin/services/proposal.py — scan, snapshot, diff, then approval"
    ],
    "automated_test": [
@@ -1093,7 +1093,7 @@
     "The next action offered was `start_second_comparison`, `requires_user_confirmation: true`, with the reason naming the diff, the policy and the declared maximum — the proposal prepared a comparison and started nothing.",
     "The superseded-lineage proposal the previous edition cited (`release/acceptance/terminal-e2e.json`, host call `a2e008cb1b5e138a-SJC`, on ReleaseCore `90cd8ad6…`, engine `874cbae0…`) is not carried. It is named here only so nothing cites it."
    ],
-   "limitation": "Mechanical scan only, and narrower than it was. The scanner checks structure, media types, per-file and total size, file count, entrypoint presence, hidden and symlinked paths, case-colliding paths and non-text bytes. **It no longer checks for credential shapes**: decision 0036 deleted the secret rule table outright, and with it the whole findings mechanism, so a Skill can no longer be refused for containing text that looks like a key. It never judged meaning and still does not. The copied-task-material check is not the scanner's — it is the plugin's copied-case guard in `../techtree-plugin/guards.py`, and the previous edition attributed it to the scanner. Decision 0023 §5 rules out an LLM-based semantic Skill scanner in v0.1.",
+   "limitation": "Mechanical scan only, and narrower than it was. The scanner checks structure, media types, per-file and total size, file count, entrypoint presence, hidden and symlinked paths, case-colliding paths and non-text bytes. **It no longer checks for credential shapes**: decision 0036 deleted the secret rule table outright, and with it the whole findings mechanism, so a Skill can no longer be refused for containing text that looks like a key. It never judged meaning and still does not. The copied-task-material check is not the scanner's — it is the plugin's copied-case guard in `../techtree-plugin/cli/guards.py`, and the previous edition attributed it to the scanner. Decision 0023 §5 rules out an LLM-based semantic Skill scanner in v0.1.",
    "gaps": [
     "**The scanner's verdict was not in the answer the person saw.** `evidence/plugin-uplift-propose.json` carries `scanner: null`, for the same reason as the missing request accounting: the plugin returned the bounded chat-shaped form because no caller passed `channel: \"terminal\"` (finding wp11f-5). The scan happened — Techtree's own scanner runs inside `uplift propose` and the draft it produced is in the run tree — but the claim as publicly worded is that Techtree *shows* the scan, and on this live path it did not.",
     "The public claim that a proposed Skill is checked for credentials no longer holds anywhere, and one shipped surface still implies it. The founder-frozen improver Skill (`../techtree-plugin/skills/skill-improver/SKILL.md`) still lists \"No secret-like values.\" among the requirements on `revised_skill_markdown`, in a list whose other entries (non-empty, no NUL characters, within the size limit) are all enforced. Nothing enforces that one. The CLI's own improvement context has already adopted the honest wording — \"The revision must not contain credentials, keys, tokens, or absolute local paths. Nothing checks for them, so writing one in puts it in the record\" — read in this refresh from a live run's `improvement/context.json`."
@@ -1172,7 +1172,7 @@
   "**The previous edition said the engine digest appears in every episode receipt.** It does not. All 432 receipts were read in this refresh and an `EpisodeReceipt` carries no engine digest at all. The engine digest is committed in the taskset lock, the validation receipt and the signed execution record.",
   "**The previous edition claimed three distinct executor keys, one per home.** The principle is right and the count was for a different set of runs. This lineage has two keys across six runs, because the three certification executions and the walkthrough all ran in one home.",
   "**The previous edition cited the resolved engine configuration as `run/config.toml`.** That path does not exist under Verifiers 0.3.1. Every citation now uses `run/configs/resolved/eval.json`, which is what the runs actually wrote.",
-  "**The previous edition attributed the copied-task-material check to the Skill scanner.** It is the plugin's copied-case guard (`../techtree-plugin/guards.py`), not the scanner. The scanner's policy is now purely shape: suffixes, file count, file and total size, entrypoint, symlinks, hidden files.",
+  "**The previous edition attributed the copied-task-material check to the Skill scanner.** It is the plugin's copied-case guard (`../techtree-plugin/cli/guards.py`), not the scanner. The scanner's policy is now purely shape: suffixes, file count, file and total size, entrypoint, symlinks, hidden files.",
   "**Five cited tests no longer exist**, all removed by decision 0036: `test_credential_shapes_are_blocking`, `test_a_blocking_finding_stops_the_scan`, `test_a_finding_carries_no_matched_text`, `test_findings_report_the_relative_path_not_the_participants_directory` (the scanner's whole findings mechanism went with the secret rule table) and `test_a_payload_carrying_a_credential_is_refused`. None is replaced by an equivalent, because no equivalent behaviour remains. The rows that cited them now carry gaps.",
   "**Four `techtree-ash` citations were written at a path that resolves only from the workspace root.** They are written `../techtree-ash/…` here, matching the convention already used for the plugin, and all four test names were located in the files during this refresh.",
   "**The previous edition said the durable evidence lives at `certification-evidence/`.** True of the superseded lineage, not of this one. There is no evidence archive for the runs this document cites; they live in the founder's live Techtree home and in a WP11f scratchpad. This is stated plainly in \"How to read this\" and is in the gap register.",

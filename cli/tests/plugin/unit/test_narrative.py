@@ -6,9 +6,9 @@ import json
 from typing import Any
 
 import pytest
-from techtree_hermes.errors import PluginError
-from techtree_hermes.models import ChannelKind
-from techtree_hermes.narrative import (
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.services.models import ChannelKind
+from techtree_hermes.services.narrative import (
     ALLOWED_FACTS,
     FORBIDDEN_CLAIMS,
     allowed_task_refs,

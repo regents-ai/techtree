@@ -12,10 +12,10 @@ local evaluation harness that runs the same toy task family with and without a
 Skill and produces a signed, offline-verifiable receipt of the difference. The
 plugin is MIT licensed (`LICENSE`). Its runtime imports only the Python
 standard library and never imports Techtree's Python package — `make doctor`
-fails the build if that stops being true (`doctor.py:528-565`, check id
+fails the build if that stops being true (`cli/doctor.py:528-565`, check id
 `runtime_imports`). It performs no networking of its own: every action it can
 cause is one invocation of the pinned `techtree` CLI with a fixed argument
-array, returning exactly one JSON envelope (`bridge.py`, `build_cli_argv`).
+array, returning exactly one JSON envelope (`cli/bridge.py`, `build_cli_argv`).
 Installation is pinned to an exact 40-character commit read from the active
 BootstrapRelease; branch names and floating versions are refused by
 documentation and by the install-plan validator alike (`README.md` "Install";
@@ -50,23 +50,23 @@ time, at registration, or during a run.
 | `tests/unit/test_tools.py:191` | CRITICAL | command separator plus recursive delete in a climb reference | Parametrised bad reference | Proves a reference that is not a reference never reaches argv — the direct test of the injection path a reviewer would worry about |
 | `README.md:217` | CRITICAL | literal recursive-delete shell line | Uninstall documentation | Real doc-hygiene issue. Being rewritten as prose (see §4) |
 | `tests/unit/test_guards.py:98` | HIGH | privileged container-prune command string | Parametrised input, same test as line 96 | Same guard, second shape |
-| `guards.py:86` | HIGH | alternation of command words | The plugin's own command-blocking guard. The word list *is* the guard: `techtree`, `hermes`, `uv`, `bash`, `sh`, `curl`, `pip`, `docker`, `git`, `sudo`, `rm` | A narrative surface may name no command; Techtree's own next actions are rendered from the payload, never from a sentence. Deleting the list deletes the protection |
+| `cli/guards.py:86` | HIGH | alternation of command words | The plugin's own command-blocking guard. The word list *is* the guard: `techtree`, `hermes`, `uv`, `bash`, `sh`, `curl`, `pip`, `docker`, `git`, `sudo`, `rm` | A narrative surface may name no command; Techtree's own next actions are rendered from the payload, never from a sentence. Deleting the list deletes the protection |
 | `scripts/typecheck.py:53` | HIGH | `subprocess.run` | Developer tooling — invokes `mypy` | Build-time type checking; not shipped in the runtime import graph |
 | `tests/contract/test_cli_envelopes.py:107` | HIGH | `subprocess.run` | Optional contract test against a real CLI | Skipped unless a CLI is on PATH; read-only commands only |
 | `tests/contract/test_no_registration_side_effects.py:156` | HIGH | `subprocess.run` | A deliberately failing call inside `test_the_tripwires_would_notice` | Proves the test's own seal is real: with process spawn, sockets and file writes replaced by tripwires, the tripwires must actually fire |
-| `bridge.py:167` | MEDIUM | `subprocess.run` | The one machine-mode CLI call | `shell=False`, fixed argv built by `build_cli_argv()`; arguments must be non-empty NUL-free literals and may not include the machine flags, which the bridge adds itself |
-| `bridge.py:216` | MEDIUM | `subprocess.run` | `techtree --version` | Two-element argv, no model input at all |
-| `bridge.py:253` | MEDIUM | `subprocess.run` | Human-output passthrough for a live run view | `shell=False`; each argument re-validated as a usable literal |
-| `channels.py:30` | MEDIUM | control-character class, read as obfuscation | A **stripper**, not an emitter: `[\x00-\x08\x0b-\x1f\x7f-\x9f]` | Removes ANSI escapes, NUL and the C1 range from answers before they are shown. It is the defence against terminal-escape injection, matched by a rule looking for it as an attack |
+| `cli/bridge.py:167` | MEDIUM | `subprocess.run` | The one machine-mode CLI call | `shell=False`, fixed argv built by `build_cli_argv()`; arguments must be non-empty NUL-free literals and may not include the machine flags, which the bridge adds itself |
+| `cli/bridge.py:216` | MEDIUM | `subprocess.run` | `techtree --version` | Two-element argv, no model input at all |
+| `cli/bridge.py:253` | MEDIUM | `subprocess.run` | Human-output passthrough for a live run view | `shell=False`; each argument re-validated as a usable literal |
+| `cli/channels.py:30` | MEDIUM | control-character class, read as obfuscation | A **stripper**, not an emitter: `[\x00-\x08\x0b-\x1f\x7f-\x9f]` | Removes ANSI escapes, NUL and the C1 range from answers before they are shown. It is the defence against terminal-escape injection, matched by a rule looking for it as an attack |
 
 On the MEDIUM subprocess band specifically: no executable path and no command
-can be supplied by the model. `schemas.py` states the rule in its module
+can be supplied by the model. `cli/schemas.py` states the rule in its module
 contract — "Four things never appear in a schema here: an API key, an
 executable path, an installation command, and an unbounded identifier. Anything
 the plugin runs is built from release data and the fixed CLI contract, never
 from these arguments" — and the schemas enforce it with bounded patterns
 (run ids, draft ids, plan ids, digests, a 64-character climb-reference grammar).
-The install path is validated independently in `models.py:520-571`: a plan
+The install path is validated independently in `cli/models.py:520-571`: a plan
 carrying executable fields is rejected, `argv` must be an array, the installer
 must be the fixed executable, the argv must install exactly the pinned
 requirement, and `requires_confirmation: false` is refused outright.
@@ -81,12 +81,12 @@ requirement, and `requires_confirmation: false` is refused outright.
   only routes to a model, and both are sealed in that test.
 - **Human approval is native and cannot be self-issued.** Installing the CLI
   and starting a paid run both go to the host's own approval surface.
-  `approvals.py` states the rule and the code holds it: "It never treats a
+  `cli/approvals.py` states the rule and the code holds it: "It never treats a
   model's say-so as acceptance." Plugin install, CLI install and paid run are
   three separate human decisions.
 - **One-completion rule.** One guided revision is one outbound generation
   request; an unusable answer or a transport failure spends the attempt and
-  returns a typed failure with no repair and no retry (`llm.py:11`, decision
+  returns a typed failure with no repair and no retry (`cli/llm.py:11`, decision
   0015 s4; `tests/contract/test_one_generation_request.py`, 13 tests). The
   plugin owns no HTTP client, proved statically. What Hermes does inside the
   single call it is handed is recorded per attempt and left to the host to
@@ -95,7 +95,7 @@ requirement, and `requires_confirmation: false` is refused outright.
   secret keys, env-var secrets, provider tokens, URL userinfo credentials and
   PEM blocks; `scrub_borrowed()` walks nested mappings and lists so a free-
   shaped error `details` object cannot smuggle a credential through
-  (`errors.py:160+`; ticket ndq.3.26, closed, both repositories).
+  (`cli/errors.py:160+`; ticket ndq.3.26, closed, both repositories).
 - **No upload path.** Verifiers push is disabled in every resolved
   configuration and the check is tested
   (`test_a_resolved_config_that_would_upload_fails_the_push_check`); the
@@ -139,11 +139,11 @@ ours to reduce, not to argue away.
    core and README only. We verified by local `file://` install that the
    restructured tree scans **CAUTION**, not dangerous, with five inherent
    findings — all listed above and all in shipped code:
-   - `guards.py:86` (HIGH) — the command-word list that *is* the guard
-   - `bridge.py:167` (MEDIUM) — the machine-mode CLI call
-   - `bridge.py:216` (MEDIUM) — the version probe
-   - `bridge.py:253` (MEDIUM) — the human-output passthrough
-   - `channels.py:30` (MEDIUM) — the control-character stripper
+   - `cli/guards.py:86` (HIGH) — the command-word list that *is* the guard
+   - `cli/bridge.py:167` (MEDIUM) — the machine-mode CLI call
+   - `cli/bridge.py:216` (MEDIUM) — the version probe
+   - `cli/bridge.py:253` (MEDIUM) — the human-output passthrough
+   - `cli/channels.py:30` (MEDIUM) — the control-character stripper
 2. **Rewriting the uninstall documentation** as prose that names the one
    directory the plugin can leave behind and tells the reader to inspect it,
    rather than offering a copy-pasteable recursive delete.
@@ -206,11 +206,11 @@ byte-identical to the tree of `0b0052fa` (git tree `dffe9e2e…` in both):
 
 | Location | Band | Rule | Family |
 |---|---|---|---|
-| `guards.py:86` | HIGH | privilege escalation | the command-word list that *is* the command-blocking guard |
-| `bridge.py:188` | MEDIUM | execution | the machine-mode CLI call |
-| `bridge.py:238` | MEDIUM | execution | the version probe |
-| `bridge.py:280` | MEDIUM | execution | the human-output passthrough |
-| `channels.py:30` | MEDIUM | obfuscation | the control-character stripper |
+| `cli/guards.py:86` | HIGH | privilege escalation | the command-word list that *is* the command-blocking guard |
+| `cli/bridge.py:188` | MEDIUM | execution | the machine-mode CLI call |
+| `cli/bridge.py:238` | MEDIUM | execution | the version probe |
+| `cli/bridge.py:280` | MEDIUM | execution | the human-output passthrough |
+| `cli/channels.py:30` | MEDIUM | obfuscation | the control-character stripper |
 
 The three bridge findings moved down the file when the environment allowlist
 was added; the calls themselves are the same three. The install decision was
@@ -224,7 +224,7 @@ triage, corroborated it, and raised two things worth doing anyway. Both are in
 
 1. **The CLI receives ten named variables and nothing else.** The bridge used
    to hand the child the host session's whole environment. It now builds one
-   by name — `CLI_ENVIRONMENT_ALLOWLIST` in `constants.py`: PATH, HOME,
+   by name — `CLI_ENVIRONMENT_ALLOWLIST` in `cli/constants.py`: PATH, HOME,
    TMPDIR, XDG_DATA_HOME, TECHTREE_HOME, TECHTREE_LOG_LEVEL, LANG, LC_ALL,
    LC_CTYPE, TERM — mirroring the scrub Techtree's own run launcher already
    performs on a worker. Model-provider credentials are deliberately absent: a

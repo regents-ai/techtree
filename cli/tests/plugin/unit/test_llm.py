@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from techtree_hermes.llm import (
+from techtree_hermes.services.llm import (
     MAX_REQUEST_CHARACTERS,
     HermesHostLlm,
     HostLlmError,
@@ -328,7 +328,7 @@ def test_a_host_without_a_model_says_so() -> None:
 
 def test_a_proposal_records_everything_it_was_made_from() -> None:
     """Decision 0007 R2's provenance, assembled from things actually read."""
-    from techtree_hermes.llm import build_revision_provenance, digest_document
+    from techtree_hermes.services.llm import build_revision_provenance, digest_document
 
     result = OneShotHostLlm(StubPort()).complete(_request(purpose="skill_revision"))
     context_digest = digest_document({"schema_version": "x", "source_run_id": "run_1"})
@@ -359,7 +359,7 @@ def test_a_proposal_records_everything_it_was_made_from() -> None:
 
 def test_a_proposal_cannot_record_a_commitment_the_request_never_made() -> None:
     """Decision 0010 fixes nine values; eight is a defect, not a variation."""
-    from techtree_hermes.llm import build_revision_provenance
+    from techtree_hermes.services.llm import build_revision_provenance
 
     result = OneShotHostLlm(StubPort()).complete(_request(purpose="skill_revision"))
 
@@ -376,7 +376,7 @@ def test_a_proposal_cannot_record_a_commitment_the_request_never_made() -> None:
 
 
 def test_a_context_digest_is_deterministic_and_specific() -> None:
-    from techtree_hermes.llm import digest_document
+    from techtree_hermes.services.llm import digest_document
 
     one = digest_document({"a": 1, "b": [2, 3]})
     same = digest_document({"b": [2, 3], "a": 1})
@@ -387,7 +387,7 @@ def test_a_context_digest_is_deterministic_and_specific() -> None:
 
 
 def test_a_revision_attempt_is_counted_from_one() -> None:
-    from techtree_hermes.llm import build_revision_provenance
+    from techtree_hermes.services.llm import build_revision_provenance
 
     result = OneShotHostLlm(StubPort()).complete(_request())
 

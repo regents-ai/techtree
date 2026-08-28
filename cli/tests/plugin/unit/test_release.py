@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from techtree_hermes.constants import PLUGIN_ROOT, RELEASE_CORE_FILENAME
-from techtree_hermes.errors import PluginError
-from techtree_hermes.release import (
+from techtree_hermes.cli.constants import PLUGIN_ROOT, RELEASE_CORE_FILENAME
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.cli.release import (
     compare_bootstrap_release,
     compare_cli_release,
     document_digest,

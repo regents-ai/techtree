@@ -83,7 +83,7 @@
           "states_the_number": false
         },
         {
-          "surface": "plugin disclosure (../techtree-plugin/schemas.py)",
+          "surface": "plugin disclosure (../techtree-plugin/host/schemas.py)",
           "states_the_number": false,
           "detail": "maxLength 4096 at :166, :254 and :310 is a filesystem-path length bound (../techtree-plugin/tools/arguments.py:25), not the sampling cap"
         }
@@ -220,7 +220,7 @@
         {
           "surface": "plugin",
           "states_the_number": false,
-          "detail": "../techtree-plugin/schemas.py:216 says only 'a Climb takes minutes, not seconds'."
+          "detail": "../techtree-plugin/host/schemas.py:216 says only 'a Climb takes minutes, not seconds'."
         }
       ],
       "discrepancies": [
@@ -391,7 +391,7 @@
         },
         {
           "surface": "plugin disclosure",
-          "path": "../techtree-plugin/schemas.py:132-139 and :185-189",
+          "path": "../techtree-plugin/host/schemas.py:132-139 and :185-189",
           "states_the_number": false,
           "rendered_text": "… how many tasks it runs, its cost bound, its proof grade … / … the episode and budget estimate …",
           "detail": "Promises a cost bound and a budget estimate that the underlying payload does not contain."
@@ -419,7 +419,7 @@
         {
           "id": "B9",
           "severity": "medium",
-          "statement": "../techtree-plugin/schemas.py:136 tells a host agent that `techtree_climb_inspect` shows the Climb's 'cost bound', and :186 that `techtree_demo_prepare` shows 'the episode and budget estimate'. The climb show payload (src/techtree/cli/commands/climb.py:813-846) carries no cost or budget field, and the prepare payload carries estimated_episodes only. The disclosure describes information the tool cannot produce.",
+          "statement": "../techtree-plugin/host/schemas.py:136 tells a host agent that `techtree_climb_inspect` shows the Climb's 'cost bound', and :186 that `techtree_demo_prepare` shows 'the episode and budget estimate'. The climb show payload (src/techtree/cli/commands/climb.py:813-846) carries no cost or budget field, and the prepare payload carries estimated_episodes only. The disclosure describes information the tool cannot produce.",
           "stop_condition_hit": false
         }
       ]

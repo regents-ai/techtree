@@ -16,23 +16,23 @@ from typing import Any
 
 import pytest
 from support import envelope, install_fake_cli
-from techtree_hermes.approvals import InstallPlanStore
-from techtree_hermes.bridge import CliBridge
-from techtree_hermes.constants import PLUGIN_ROOT
-from techtree_hermes.errors import PluginError
-from techtree_hermes.models import ChannelKind, DemoStage
-from techtree_hermes.narrative import (
+from techtree_hermes.cli.bridge import CliBridge
+from techtree_hermes.cli.constants import PLUGIN_ROOT
+from techtree_hermes.cli.errors import PluginError
+from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
+from techtree_hermes.host.state import SessionStore, latest_session, save_session
+from techtree_hermes.services.approvals import InstallPlanStore
+from techtree_hermes.services.assets import ReleaseSkillProvider, file_digest
+from techtree_hermes.services.container import PluginServices
+from techtree_hermes.services.models import ChannelKind, DemoStage
+from techtree_hermes.services.narrative import (
     FIRST_RESULT_LABEL,
     SAME_MEMBERSHIP_DISCLOSURE,
     SECOND_RESULT_ITERATION_LABEL,
     SECOND_RESULT_LABEL,
 )
-from techtree_hermes.release import load_embedded_release_core, release_core_digest
-from techtree_hermes.services.assets import ReleaseSkillProvider, file_digest
-from techtree_hermes.services.container import PluginServices
 from techtree_hermes.services.presentation import forbidden_second_result_words
 from techtree_hermes.services.session import ALLOWED_TRANSITIONS, require_transition
-from techtree_hermes.state import SessionStore, latest_session, save_session
 from techtree_hermes.tools import TOOL_HANDLERS
 
 #: The committed release leaves its skill-improver coordinate unchosen, and the
@@ -253,7 +253,7 @@ def journey(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
         sessions=SessionStore(),
         assets=ReleaseSkillProvider(),
     )
-    from techtree_hermes.models import DemoSessionState
+    from techtree_hermes.services.models import DemoSessionState
 
     save_session(
         container,
@@ -546,7 +546,7 @@ def test_a_result_that_did_not_verify_is_never_called_an_improvement(
         "    sys.exit(2)\n"
     )
     install_fake_cli(tmp_path / "bin", body=body, monkeypatch=monkeypatch)
-    from techtree_hermes.models import DemoSessionState
+    from techtree_hermes.services.models import DemoSessionState
 
     services = PluginServices(
         ctx=SimpleNamespace(llm=StubLlm()),

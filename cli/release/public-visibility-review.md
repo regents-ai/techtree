@@ -213,9 +213,9 @@ was moved out of it (see 5.2 for the history consequence).
 |---|---|
 | `src/techtree/skills/scanner.py:109-176` | The secret-detection rule table: PEM framing, provider token prefixes, `AKIA\|ASIA` and `aws_secret_access_key\|aws_session_token`. A detector has to spell what it detects. |
 | `src/techtree/errors.py`, `src/techtree/release/models.py` | `user:pass@host` URL patterns, used to reject a credential riding inside a release URL. |
-| `techtree-plugin/guards.py:44-136` | The deny-list of command words — `sudo`, `curl`, `chmod`, `rm`, `docker`, `pip`, `bash` — that a model-authored Skill is refused for containing. Hermes's own scanner reports this as privilege escalation; it is the list of what to refuse. |
-| `techtree-plugin/bridge.py` | The three places the plugin starts the Techtree CLI. Reported as execution; it is the entire plugin↔CLI boundary. |
-| `techtree-plugin/channels.py` | A control-character stripper. Reported as obfuscation; it is one regex removing terminal control codes. |
+| `techtree-plugin/cli/guards.py:44-136` | The deny-list of command words — `sudo`, `curl`, `chmod`, `rm`, `docker`, `pip`, `bash` — that a model-authored Skill is refused for containing. Hermes's own scanner reports this as privilege escalation; it is the list of what to refuse. |
+| `techtree-plugin/cli/bridge.py` | The three places the plugin starts the Techtree CLI. Reported as execution; it is the entire plugin↔CLI boundary. |
+| `techtree-plugin/host/channels.py` | A control-character stripper. Reported as obfuscation; it is one regex removing terminal control codes. |
 
 The last three are already documented for the public in
 `techtree-plugin/README.md` under "Install-time security scanning", which is the
