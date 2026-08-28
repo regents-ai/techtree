@@ -9,11 +9,12 @@ defmodule TechtreeWeb.MethodSurface do
   while a `405` says there is not one to find.
 
   **There is one exception, and this is where a reader learns it.**
-  `POST /api/v1/submissions` accepts a finished run somebody publishes. It is
-  the only address on this site that accepts anything at all, it accepts one
-  method, and everything about what happens to a body sent there is in
-  `Techtree.Network.Ingest`. Every other address, and every other method at that
-  one, refuses.
+  `POST /api/v1/publications` accepts the two documents a participant may send
+  about their own run: the finished run they are publishing, and the signed
+  request to withdraw one they published. It is the only address on this site
+  that accepts anything at all, it accepts one method, and everything about what
+  happens to a body sent there is in `Techtree.Network.Ingest`. Every other
+  address, and every other method at that one, refuses.
 
   So an address the routing table answers refuses every mutating method it does
   not answer, with `405` and an `Allow` header naming the methods it does. An
@@ -77,7 +78,7 @@ defmodule TechtreeWeb.MethodSurface do
 
   defp refusal(methods) do
     if "POST" in methods do
-      "this address accepts a published run, and nothing else"
+      "this address accepts one kind of signed document, and nothing else"
     else
       "this address publishes and does not accept anything"
     end

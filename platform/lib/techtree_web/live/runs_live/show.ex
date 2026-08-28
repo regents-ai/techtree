@@ -1,4 +1,4 @@
-defmodule TechtreeWeb.NetworkLive.Show do
+defmodule TechtreeWeb.RunsLive.Show do
   @moduledoc """
   One published run, task by task, with the coordinates it was pinned to and
   the checks this site ran on it.
@@ -8,19 +8,24 @@ defmodule TechtreeWeb.NetworkLive.Show do
   between. Every task both runs attempted is here with both rewards and the
   difference, in the order the campaign committed to before either run started.
   The coordinates come from the campaign this site publishes rather than from
-  the submission, so a run cannot describe the comparison it was in. And the
-  exact bytes are one link away, so the reader can redo every check on their
-  own machine.
+  the submission, so a run cannot describe the comparison it was in.
+
+  What the page does **not** offer is the submitted bytes. Those are stored,
+  immutably, and every field here was derived from them — but an address
+  returning the path-to-base64 file mapping hands over the whole bundle however
+  it is wrapped, and decision 0038 defers that. The bundle a reader can
+  check offline is the one the participant still holds, and the command that
+  checks it is on the page.
 
   The list of checks is the ingest's own list, read from the module that runs
   them, so a page cannot claim a check that does not exist and cannot fall
   behind one that was added.
 
-  A withdrawn entry keeps its address and shows nothing. Withdrawal is an
-  appended event rather than a deletion, so the row is still there and the
-  address still resolves; what changes is that this site stops presenting it.
-  Copies other people hold are theirs, and this page does not pretend
-  otherwise.
+  A withdrawn entry keeps its address and keeps its page. Withdrawal is an
+  appended event rather than a deletion, so the row is still there, the address
+  still resolves, and the page says at the top of it that the participant
+  withdrew it and when. Copies other people hold are theirs, and this page does
+  not pretend otherwise.
   """
 
   use TechtreeWeb, :live_view
@@ -31,7 +36,7 @@ defmodule TechtreeWeb.NetworkLive.Show do
   alias TechtreeWeb.CampaignFacts
 
   @impl true
-  def mount(%{"digest" => digest}, _session, socket) do
+  def mount(%{"bundle_digest" => digest}, _session, socket) do
     case Query.get_entry(digest) do
       {:ok, entry} ->
         {:ok, assign(socket, assigns_for(entry))}
@@ -42,37 +47,29 @@ defmodule TechtreeWeb.NetworkLive.Show do
   end
 
   @impl true
-  def render(%{withdrawn?: true} = assigns) do
-    ~H"""
-    <Layouts.page>
-      <p class="back-link"><a href={~p"/network"}>← Published runs</a></p>
-      <header class="page-heading">
-        <p class="eyebrow">Withdrawn</p>
-        <h1>This run was withdrawn</h1>
-        <p class="lede">
-          It was published here and is no longer shown. Nothing about it was deleted —
-          a withdrawal is recorded, not applied — and copies anybody already holds are
-          still theirs to check.
-        </p>
-      </header>
-    </Layouts.page>
-    """
-  end
-
   def render(assigns) do
     ~H"""
     <Layouts.page wide>
-      <p class="back-link"><a href={~p"/network"}>← Published runs</a></p>
+      <p class="back-link"><a href={~p"/runs"}>← Published runs</a></p>
+
+      <.warning_callout :if={@withdrawn?} title="Withdrawn by the participant">
+        <p>
+          {withdrawn_words(@entry.withdrawn_at)}. It was published here and the
+          participant has since asked for it to be marked withdrawn. Nothing about it was
+          deleted — a withdrawal is recorded, not applied — and copies anybody already
+          holds are still theirs to check.
+        </p>
+      </.warning_callout>
 
       <header class="page-heading page-heading--split">
         <div>
-          <p class="eyebrow">Published run · {arrived(@entry.inserted_at)}</p>
+          <p class="eyebrow">Published run · {arrived(@entry.accepted_at)}</p>
           <h1>{@entry.subject_harness} {@entry.subject_harness_version} on {@entry.subject_model}</h1>
           <p class="lede">
             {@entry.wins} of {@entry.task_count} tasks came out better with the Skill, {@entry.ties} came out the same, and {@entry.losses} came out worse.
           </p>
         </div>
-        <.digest value={@entry.executor_key_id} />
+        <.digest value={@entry.participant_key_id} />
       </header>
 
       <section class="section">
@@ -118,7 +115,12 @@ defmodule TechtreeWeb.NetworkLive.Show do
               href={object_url(@entry.data_policy_digest)}
             />
           </:fact>
+          <:fact term="Agent host">
+            {@entry.subject_harness} {@entry.subject_harness_version}
+          </:fact>
+          <:fact term="Model">{@entry.subject_model} · {@entry.subject_provider}</:fact>
           <:fact term="Run">{@entry.run_id}</:fact>
+          <:fact term="Log sequence">{@entry.log_sequence}</:fact>
         </.definition_list>
       </section>
 
@@ -171,21 +173,24 @@ defmodule TechtreeWeb.NetworkLive.Show do
       <section class="offline-verify">
         <div>
           <p class="eyebrow">Check it yourself</p>
-          <h2>The exact bytes this site was given.</h2>
+          <h2>Nothing above was taken on trust.</h2>
           <p class="small quiet">
-            Everything above was computed from these and nothing else, so the whole of it
-            can be redone on your own machine without asking this site for anything: <a href={"/api/v1/submissions/" <> @entry.bundle_digest}>fetch the receipt</a>.
+            Every number here was recomputed from the bundle this run was published with,
+            and the whole of that checking can be redone on your own machine against the
+            bundle the participant holds.
+            <a href={"/api/v1/publications/" <> @entry.bundle_digest}>What this site recorded</a>
+            is the same figures again, as data.
           </p>
         </div>
         <.command_block
-          id="copy-network-verify"
+          id="copy-runs-verify"
           argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
           label="Verify offline"
         />
       </section>
 
       <p class="small quiet section">
-        <a href={~p"/network"}>Every published run</a>
+        <a href={~p"/runs"}>Every published run</a>
         · <a href={~p"/proofs"}>What a finished comparison contains</a>
       </p>
     </Layouts.page>
@@ -237,5 +242,9 @@ defmodule TechtreeWeb.NetworkLive.Show do
     at
     |> DateTime.truncate(:second)
     |> Calendar.strftime("%Y-%m-%d %H:%M UTC")
+  end
+
+  defp withdrawn_words(at) do
+    "Withdrawn by the participant on " <> Calendar.strftime(at, "%-d %B %Y")
   end
 end

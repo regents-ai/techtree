@@ -94,7 +94,7 @@ defmodule TechtreeWeb.LocalProofLive do
         <h2>Sending it somewhere</h2>
         <p>
           A finished result goes nowhere unless you ask it to. If you want one on the
-          public <.link navigate={~p"/network"}>run log</.link>, publishing it is a
+          public <.link navigate={~p"/runs"}>run log</.link>, publishing it is a
           command you run yourself, and what travels is the receipt rather than the
           recordings. You can also just share the bundle: it can be checked wherever it
           lands. The model calls the run made are a separate matter and already

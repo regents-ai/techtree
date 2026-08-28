@@ -25,11 +25,18 @@ defmodule Techtree.Network.Key do
   — are the same bare `:error` with no detail, because a refusal that described
   the value would be a refusal that leaked part of it.
 
-  *The public half is published.* `GET /api/v1/network-key` serves it as the
-  three-member document every public key in this protocol is written as, so
-  anybody holding a receipt can fetch the key it names and check the signature
-  without asking this site for anything else. `TechtreeWeb.NetworkKeyController`
-  is that address and `Techtree.Network.Receipt` is what signs with the key.
+  *The public half is published, at its own fingerprint.*
+  `GET /api/v1/publication-keys/<key id>` serves it as the three-member document
+  every public key in this protocol is written as, so anybody holding a receipt
+  can fetch the key it names and check the signature without asking this site
+  for anything else. The key id is the SHA-256 of the public key itself, as
+  every other key id in this protocol is, which is what makes a receipt naming
+  a key it does not carry catchable for free — and what makes the address
+  derivable from the receipt rather than looked up.  Rotation is a new key and
+  therefore a new id and therefore a new address; the old one keeps answering
+  for as long as the old key is loaded and stops when it is not.
+  `TechtreeWeb.PublicationKeyController` is that address and
+  `Techtree.Network.Receipt` is what signs with the key.
 
   **A build with no key configured does not publish.** The publish address
   answers `503` and appends nothing, and the key address answers `503` too.

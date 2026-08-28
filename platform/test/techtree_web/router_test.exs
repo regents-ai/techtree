@@ -5,25 +5,31 @@ defmodule TechtreeWeb.RouterTest do
   read the table itself rather than trusting that nobody added a route, and
   they check the refusals a curious caller would actually attempt.
 
-  The table gained a write on 2026-08-27, and that is why this file changed.
-  `POST /api/v1/submissions` is where a participant publishes a finished run,
-  and it is named here, in `TechtreeWeb.MethodSurface`, and in the router's own
-  documentation, so that a reader who finds one finds the other two. A second
-  write appearing without those three changing together is the failure these
-  tests exist to catch.
+  The table carries exactly one write, and it is named here, in
+  `TechtreeWeb.MethodSurface`, and in the router's own documentation, so that a
+  reader who finds one finds the other two. `POST /api/v1/publications` is where
+  a participant publishes a finished run and where the same participant later
+  withdraws one — two documents at one address, told apart by what each declares
+  itself to be rather than by the URL. A second write appearing without those
+  three places changing together is the failure these tests exist to catch.
+
+  The path parameters are pinned as well. A run is addressed by its bundle
+  digest, a key by its own fingerprint, and a Climb by a slug the catalog can
+  resolve — and nothing else may become a path parameter without this list
+  being changed on purpose.
   """
 
   use TechtreeWeb.ConnCase, async: true
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "exactly one route is a write, and it is where a run is published" do
+  test "exactly one route is a write, and it is where a participant's own run goes" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
       |> Enum.map(&"#{&1.verb} #{&1.path}")
 
-    assert writes == ["post /api/v1/submissions"]
+    assert writes == ["post /api/v1/publications"]
   end
 
   test "the routing table is exactly the published surface" do
@@ -34,27 +40,28 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/bootstrap",
              "get /api/v1/catalog",
              "get /api/v1/climbs/:slug",
-             "get /api/v1/network-key",
              "get /api/v1/objects/:digest",
-             "get /api/v1/submissions/:digest",
+             "get /api/v1/publication-keys/:key_id",
+             "get /api/v1/publications",
+             "get /api/v1/publications/:bundle_digest",
              "get /campaigns",
              "get /campaigns/:slug",
              "get /climbs",
              "get /climbs/:slug",
              "get /docs",
              "get /healthz",
-             "get /network",
-             "get /network/:digest",
              "get /proofs",
              "get /proofs/local",
              "get /protocol",
+             "get /runs",
+             "get /runs/:bundle_digest",
              "get /skill.md",
              "get /start",
-             "post /api/v1/submissions"
+             "post /api/v1/publications"
            ]
   end
 
-  test "no route takes a path parameter other than a digest or a slug" do
+  test "no route takes a path parameter other than a digest, a fingerprint or a slug" do
     parameters =
       @routes
       |> Enum.flat_map(&Regex.scan(~r/:([a-z_]+)/, &1.path, capture: :all_but_first))
@@ -62,14 +69,18 @@ defmodule TechtreeWeb.RouterTest do
       |> Enum.uniq()
       |> Enum.sort()
 
-    assert parameters == ["digest", "slug"]
+    assert parameters == ["bundle_digest", "digest", "key_id", "slug"]
   end
 
-  test "no artifact, proof, run, or login route exists", %{conn: conn} do
+  test "no artifact, proof, bundle, or login route exists", %{conn: conn} do
     for path <- [
           "/api/v1/artifacts",
           "/api/v1/proofs",
           "/api/v1/runs",
+          "/api/v1/bundles",
+          "/api/v1/submissions",
+          "/api/v1/publication-withdrawals",
+          "/api/v1/network-key",
           "/api/v1/login",
           "/api/v1/skills",
           "/api/v1/receipts",
@@ -87,7 +98,8 @@ defmodule TechtreeWeb.RouterTest do
           "/campaigns",
           "/campaigns/hello-world-climb",
           "/proofs",
-          "/network",
+          "/runs",
+          "/runs/sha256:#{String.duplicate("a", 64)}",
           "/skill.md",
           "/start",
           "/climbs",
@@ -98,7 +110,9 @@ defmodule TechtreeWeb.RouterTest do
           "/api/v1/catalog",
           "/api/v1/bootstrap",
           "/api/v1/climbs/hello-world-climb",
-          "/api/v1/objects/sha256:#{String.duplicate("a", 64)}"
+          "/api/v1/objects/sha256:#{String.duplicate("a", 64)}",
+          "/api/v1/publications/sha256:#{String.duplicate("a", 64)}",
+          "/api/v1/publication-keys/sha256:#{String.duplicate("a", 64)}"
         ] do
       for refused <- [
             post(conn, path, %{}),
@@ -115,17 +129,15 @@ defmodule TechtreeWeb.RouterTest do
     end
   end
 
-  test "the one write address refuses every method but the one it answers", %{conn: conn} do
-    for refused <- [
-          put(conn, "/api/v1/submissions", %{}),
-          patch(conn, "/api/v1/submissions", %{}),
-          delete(conn, "/api/v1/submissions")
-        ] do
+  test "the one write address refuses every method but the ones it answers", %{conn: conn} do
+    path = "/api/v1/publications"
+
+    for refused <- [put(conn, path, %{}), patch(conn, path, %{}), delete(conn, path)] do
       assert refused.status == 405
-      assert get_resp_header(refused, "allow") == ["POST"]
+      assert get_resp_header(refused, "allow") == ["GET, HEAD, POST"]
 
       assert %{"error" => %{"message" => message}} = json_response(refused, 405)
-      assert message == "this address accepts a published run, and nothing else"
+      assert message == "this address accepts one kind of signed document, and nothing else"
     end
   end
 

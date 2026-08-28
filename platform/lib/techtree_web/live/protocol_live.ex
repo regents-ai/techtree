@@ -147,17 +147,21 @@ defmodule TechtreeWeb.ProtocolLive do
           <:fact term="Installation details">
             <a href="/api/v1/bootstrap">/api/v1/bootstrap</a>
           </:fact>
+          <:fact term="The published runs">
+            <a href="/api/v1/publications">/api/v1/publications</a>
+          </:fact>
           <:fact term="One published run">
-            <span class="digest">/api/v1/submissions/sha256:…</span>
+            <span class="digest">/api/v1/publications/sha256:…</span>
           </:fact>
           <:fact term="The key this site signs with">
-            <a href="/api/v1/network-key">/api/v1/network-key</a>
+            <span class="digest">/api/v1/publication-keys/sha256:…</span>
           </:fact>
         </.definition_list>
         <p class="small quiet">
-          Every one of these is a read. One address accepts something — <span class="digest">POST /api/v1/submissions</span>, where a person
-          publishes a finished run of their own — and everything else refuses.
-          There is no Techtree account to hold either way.
+          Every one of these is a read. One address accepts something — <span class="digest">POST /api/v1/publications</span>, where a person
+          publishes a finished run of their own, and where that same person later asks
+          for it to be marked withdrawn — and everything else refuses. There is no
+          Techtree account to hold either way.
         </p>
       </section>
 

@@ -2,18 +2,30 @@ defmodule TechtreeWeb.Router do
   @moduledoc """
   Every route this application answers.
 
-  All but one of them are `GET`. The exception is `POST /api/v1/submissions`,
-  where a participant publishes a finished run; it is the only route on this
-  site that accepts anything, and what is done with what it accepts is in
-  `Techtree.Network.Ingest`, which checks every property of a bundle before a
-  row exists. There is no route that uploads a file, authenticates anybody, or
-  ranks anything, and no route takes a path parameter other than a digest or a
+  All but one of them are `GET`. The exception is `POST /api/v1/publications`,
+  where a participant publishes a finished run and, later, withdraws one they
+  published. Two documents, one address: each declares what it is in a member
+  its own signature covers, so which one arrived is read off the document rather
+  than off the URL, and this site keeps the single write address decision 0038
+  allows it. What is done with either is in `Techtree.Network.Ingest`, which
+  checks every property of a bundle before a row exists and checks a withdrawal
+  against the key the entry already carries before an event is appended. There
+  is no route that uploads a file, authenticates anybody, or ranks anything, and
+  no route takes a path parameter other than a digest, a key fingerprint, or a
   slug the catalog can resolve. A request for anything else is a `404`, never a
   placeholder that appears to have worked.
 
-  `GET /api/v1/network-key` is the counterpart of that one write: the public
-  half of the key this site signs publication receipts with, at a fixed address
-  so that a receipt can be checked by anybody holding one.
+  A run is addressed by its bundle digest, at `/runs/<digest>` and at
+  `/api/v1/publications/<digest>`. That address is derivable from the proof
+  itself, two people publishing the same bundle land on the same page, and
+  nothing in it reads as a rank — a row identifier would exist only inside our
+  own database, and a log sequence in a URL would look like a position.
+
+  `GET /api/v1/publication-keys/:key_id` is the counterpart of that one write:
+  the public half of the key this site signs publication receipts with,
+  at the fingerprint of that key, so a receipt can be checked by anybody
+  holding one and the address can be derived from the receipt rather than
+  looked up.
 
   The endpoint also declares the live-page transport the public pages use.
   Nothing reachable through it can write: every catalog and network resource
@@ -46,11 +58,11 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
-  # The one pipeline in front of something that accepts a body.
-  pipeline :submissions do
+  # The one pipeline in front of the one address that accepts a body.
+  pipeline :publishing do
     plug :accepts, ["json"]
     plug :put_public_api_headers
-    plug TechtreeWeb.SubmissionRate
+    plug TechtreeWeb.PublicationRate
   end
 
   scope "/", TechtreeWeb do
@@ -62,8 +74,8 @@ defmodule TechtreeWeb.Router do
     live "/campaigns/:slug", CampaignsLive.Show
     live "/proofs", ProofsLive
     live "/proofs/local", LocalProofLive
-    live "/network", NetworkLive.Index
-    live "/network/:digest", NetworkLive.Show
+    live "/runs", RunsLive.Index
+    live "/runs/:bundle_digest", RunsLive.Show
     get "/skill.md", SkillController, :show
 
     # The addresses release documents already point at, unchanged.
@@ -86,17 +98,18 @@ defmodule TechtreeWeb.Router do
     get "/catalog", CatalogController, :index
     get "/climbs/:slug", ClimbController, :show
     get "/objects/:digest", ObjectController, :show
-    get "/submissions/:digest", SubmissionController, :show
-    get "/network-key", NetworkKeyController, :show
+    get "/publications", PublicationController, :index
+    get "/publications/:bundle_digest", PublicationController, :show
+    get "/publication-keys/:key_id", PublicationKeyController, :show
   end
 
   # The one address that accepts anything, on its own so that what stands in
   # front of it is visible here rather than buried in a pipeline everything
   # shares.
   scope "/api/v1", TechtreeWeb do
-    pipe_through :submissions
+    pipe_through :publishing
 
-    post "/submissions", SubmissionController, :create
+    post "/publications", PublicationController, :create
   end
 
   # An API response is data, never a document: nothing in it may be sniffed into

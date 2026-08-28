@@ -6,6 +6,15 @@
   "maximum_tested_host_hermes_version": "0.20.1",
   "minimum_host_hermes_version": "0.20.1",
   "protocol_version": "v1alpha1",
+  "publication": {
+    "network_key": {
+      "algorithm": "ed25519",
+      "key_id": "sha256:75e4239e0aa1da598426d7e6ba9a1b77e3ff37026e0f273cb56c8264ed951ff0",
+      "public_key": "PoUGtObfjuMGWBWHIDeOu0mc2kp/g8+o3cysT1gAFKI="
+    },
+    "public_log_url": "https://techtree.sh/runs",
+    "submission_endpoint": "https://techtree.sh/api/v1/publications"
+  },
   "release_id": "climb-v0.1.0",
   "schema_version": "techtree.release-core.v1",
   "skill_improver_digest": "sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678",

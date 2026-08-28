@@ -21,7 +21,31 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "reason",
+      "source": "kind",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "payload_digest",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "participant_signature",
       "type": "text"
     },
     {
@@ -56,16 +80,16 @@
           "global": null,
           "strategy": null
         },
-        "name": "network_withdrawals_submission_id_fkey",
+        "name": "network_publication_events_publication_entry_id_fkey",
         "on_delete": "nothing",
         "on_update": "nothing",
         "primary_key?": true,
         "schema": "public",
-        "table": "network_submissions"
+        "table": "network_publication_entries"
       },
       "scale": null,
       "size": null,
-      "source": "submission_id",
+      "source": "publication_entry_id",
       "type": "uuid"
     }
   ],
@@ -75,7 +99,7 @@
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "9936E0AC904409FE8E3F1645DF2F5910A36A2081457B19708B1420CA65CC2C2F",
+  "hash": "BEA03486582E656F47914B762CA6C0BF1D10E7403DE20AC85EDD900C1C37ED19",
   "identities": [],
   "multitenancy": {
     "attribute": null,
@@ -84,5 +108,5 @@
   },
   "repo": "Elixir.Techtree.Repo",
   "schema": null,
-  "table": "network_withdrawals"
+  "table": "network_publication_events"
 }

@@ -31,7 +31,6 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
-  alias Techtree.Network.Ingest
   alias Techtree.NetworkFixture
 
   @pages [
@@ -45,8 +44,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/climbs/hello-world-climb",
     "/proofs/local",
     "/protocol",
-    "/network",
-    "/network/" <> Techtree.NetworkFixture.bundle_digest()
+    "/runs",
+    "/runs/" <> Techtree.NetworkFixture.bundle_digest()
   ]
 
   @pages_without_catalog [
@@ -58,7 +57,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/climbs",
     "/proofs/local",
     "/protocol",
-    "/network"
+    "/runs"
   ]
 
   # The addresses that carry one of the two installation paths. Which page
@@ -150,6 +149,15 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # the one place the stand-in commands are shown, under a warning that says
   # what they are, so that the path can be read before it is real.
   @placeholder_coordinates ["0.0.0-placeholder", String.duplicate("0", 40)]
+
+  # A promise this release cannot keep about something somebody volunteered.
+  @promised_erasure [
+    ~r/\berased?\b[^.]{0,80}\b(address|backup)/i,
+    ~r/\b(address|it)\b[^.]{0,60}\berased\b/i,
+    ~r/\bfrom (every|all|our) backups?\b/i,
+    ~r/\bpermanently deleted\b/i,
+    ~r/\bgone (for good|forever)\b/i
+  ]
   @pages_that_get_you_running ["/", "/docs", "/campaigns", "/proofs"]
 
   # This release installs and runs at a terminal. Any page that hints at a
@@ -286,7 +294,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
       Importer.import!(CatalogFixture.root())
-      {:ok, _entry, :recorded} = Ingest.accept(NetworkFixture.submission())
+      {:ok, _entry, :recorded} = NetworkFixture.publish()
       :ok
     end
 
@@ -510,6 +518,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_uncertified_hosting(sources)
       refute_priced_claim(sources)
       refute_offered_publication(sources)
+      refute_promised_erasure(sources)
       require_never_disable(sources)
     end
 
@@ -640,9 +649,31 @@ defmodule TechtreeWeb.ReleaseCopyTest do
                  "two of them are somebody else's work"
       end
 
-      assert text =~ @stack_seams,
-             "#{label} does not say that the release is only as reproducible as the " <>
-               "versions it pins"
+      # Founder ruling 2026-08-27: the proofs page carries the frame and the
+      # attribution, but not the seams paragraph or the cite sentence.
+      if not String.ends_with?(label, " /proofs") and label != "/proofs" do
+        assert text =~ @stack_seams,
+               "#{label} does not say that the release is only as reproducible as the " <>
+                 "versions it pins"
+      end
+    end
+  end
+
+  # Founder ruling 2026-08-27, stated honestly rather than promised: removing a
+  # volunteered address removes it from the active system and from any future
+  # use. It is not a claim of erasure from database backups, which this release
+  # does not implement. Per-row encryption with the key destroyed on removal
+  # would make the stronger claim true; until that exists, no surface here may
+  # make it — and that includes the words the modules are written in, because a
+  # sentence in a module is a sentence somebody will copy onto a page.
+  defp refute_promised_erasure(sources) do
+    for {label, source} <- sources,
+        text = source |> String.replace(~r/\s+/, " ") |> String.downcase(),
+        pattern <- @promised_erasure do
+      refute text =~ pattern,
+             "#{label} matches #{inspect(pattern)}: removal here means removal from the " <>
+               "active system and from future use, and this release cannot keep a " <>
+               "promise about backups"
     end
   end
 

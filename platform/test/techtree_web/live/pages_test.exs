@@ -11,7 +11,6 @@ defmodule TechtreeWeb.PagesTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
-  alias Techtree.Network.Ingest
   alias Techtree.NetworkFixture
 
   @pages [
@@ -25,8 +24,8 @@ defmodule TechtreeWeb.PagesTest do
     "/climbs/hello-world-climb",
     "/proofs/local",
     "/protocol",
-    "/network",
-    "/network/" <> Techtree.NetworkFixture.bundle_digest()
+    "/runs",
+    "/runs/" <> Techtree.NetworkFixture.bundle_digest()
   ]
   @pages_without_catalog [
     "/",
@@ -37,7 +36,7 @@ defmodule TechtreeWeb.PagesTest do
     "/climbs",
     "/proofs/local",
     "/protocol",
-    "/network"
+    "/runs"
   ]
 
   # Two pages name protocol documents on purpose and say so: the protocol map,
@@ -49,15 +48,15 @@ defmodule TechtreeWeb.PagesTest do
     "/campaigns",
     "/campaigns/hello-world-climb",
     "/proofs",
-    "/network",
-    "/network/" <> Techtree.NetworkFixture.bundle_digest()
+    "/runs",
+    "/runs/" <> Techtree.NetworkFixture.bundle_digest()
   ]
 
   describe "with a release being served" do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
       Importer.import!(CatalogFixture.root())
-      {:ok, _entry, :recorded} = Ingest.accept(NetworkFixture.submission())
+      {:ok, _entry, :recorded} = NetworkFixture.publish()
       :ok
     end
 

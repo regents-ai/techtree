@@ -90,7 +90,7 @@ defmodule Techtree.MixProject do
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
       check: ["format --check-formatted", "compile --warnings-as-errors", "test"],
-      "assets.setup": ["esbuild.install --if-missing"],
+      "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
       "assets.build": ["compile", "esbuild techtree"],
       "assets.deploy": ["esbuild techtree --minify", "phx.digest"]
     ]

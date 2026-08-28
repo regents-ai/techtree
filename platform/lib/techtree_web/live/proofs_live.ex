@@ -13,7 +13,7 @@ defmodule TechtreeWeb.ProofsLive do
   named here as what would be there, never drawn as though it already is.
   Founder ruling 2026-08-26: this page is deliberately short. Publishing a
   finished run is now a thing somebody can do, and where those land is
-  `/network`; this page stays the one curated example.
+  `/runs`; this page stays the one curated example.
   """
 
   use TechtreeWeb, :live_view
@@ -59,7 +59,7 @@ defmodule TechtreeWeb.ProofsLive do
         </p>
       </header>
 
-      <.proof_of_concept class="doc-section" />
+      <.proof_of_concept class="doc-section" compact />
 
       <section :if={@example} class="example-result" aria-labelledby="example-title">
         <p class="eyebrow">Participant-attested · certified {@example.certified_on}</p>
@@ -98,7 +98,7 @@ defmodule TechtreeWeb.ProofsLive do
       >
         <p>
           A finished run stays on the machine that produced it unless its owner chooses
-          to publish it. Where published runs land is <.link navigate={~p"/network"}>the run log</.link>.
+          to publish it. Where published runs land is <.link navigate={~p"/runs"}>the run log</.link>.
         </p>
       </.warning_callout>
 

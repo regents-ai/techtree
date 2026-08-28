@@ -108,7 +108,9 @@ IPv6 only. `fly.toml` sets `ECTO_IPV6 = "true"` for that reason.
 `TECHTREE_NETWORK_SIGNING_KEY` is the private half of the key this site signs
 publication receipts with: 32 bytes of Ed25519 private key, base64 encoded. It
 is generated once, here, and never written into the repository. The public half
-is derived from it at runtime and served at `/api/v1/network-key`, so a receipt
+is derived from it at runtime and served at
+`/api/v1/publication-keys/<key id>`, where the key id is the SHA-256 of the
+public key itself — so the address is derivable from a receipt and a receipt
 can be checked by anybody. Replacing it invalidates every receipt already
 issued, so it is set once and left alone.
 

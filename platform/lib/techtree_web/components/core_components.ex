@@ -113,6 +113,11 @@ defmodule TechtreeWeb.CoreComponents do
   attr :class, :string, default: "section"
   attr :eyebrow, :string, default: nil
 
+  attr :compact, :boolean,
+    default: false,
+    doc: "Founder ruling 2026-08-27: the proofs page carries the frame without
+    the cite sentence or the seams paragraph."
+
   def proof_of_concept(assigns) do
     ~H"""
     <section class={@class} aria-labelledby="what-this-release-is">
@@ -126,10 +131,12 @@ defmodule TechtreeWeb.CoreComponents do
           Prime Intellect’s Verifiers as the evaluation engine, Nous Research’s Hermes as the
           agent host, and Techtree as the campaign kernel and evidence layer. What it
           demonstrates is that the three pin together tightly enough for a controlled
-          comparison to run end to end and leave a receipt that verifies offline. It is a
-          development release, and nothing it produces is a measurement anyone should cite.
+          comparison to run end to end and leave a receipt that verifies
+          offline.<span :if={not @compact}>
+            It is a development release, and nothing it produces is a measurement anyone
+            should cite.</span>
         </p>
-        <p class="small quiet">
+        <p :if={not @compact} class="small quiet">
           The evaluation engine, the agent host, and the container the agent under test runs
           in are each pinned to an exact version, and the release is only as reproducible as
           those pins. Those are the seams of the stack, and this site names them rather than

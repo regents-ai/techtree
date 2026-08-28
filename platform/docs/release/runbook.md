@@ -12,17 +12,28 @@ direction and has its own page: [rollback.md](rollback.md).
 | `GET /api/v1/catalog` | the exact catalog index of the active catalog release |
 | `GET /api/v1/climbs/:slug` | the Climb manifest bytes |
 | `GET /api/v1/objects/:digest` | the exact bytes filed under one content address |
-| `GET /api/v1/submissions/:digest` | the exact bytes of one published run |
-| `GET /api/v1/network-key` | the public half of the key this site countersigns receipts with |
+| `GET /api/v1/publications` | one keyset page of the run log, newest first |
+| `GET /api/v1/publications/:bundle_digest` | the verified projection of one published run |
+| `GET /api/v1/publication-keys/:key_id` | the public half of the key this site countersigns receipts with |
 | `GET /healthz` | whether a release is being served, and which one |
-| `POST /api/v1/submissions` | where a participant publishes a finished run |
+| `POST /api/v1/publications` | where a participant publishes a finished run, and later withdraws one |
 
-Every route but the last answers `GET` and `HEAD`, and answers the four
-mutating methods with `405` and an `Allow: GET, HEAD` header.
-`POST /api/v1/submissions` is the one address that accepts anything, added by
-decision 0038; it takes one method and returns a receipt this site signs. There
-is no login route and no route that uploads a file, and no second write may be
-added.
+Every route but the last answers `GET` and `HEAD`, and answers the four mutating
+methods with `405` and an `Allow: GET, HEAD` header. The one write was added by
+decision 0038 and takes two documents: a
+`techtree.publication-submission.v1alpha1`, which publishes a finished run, and
+a signed `techtree.publication-withdrawal.v1alpha1`, which withdraws one already
+published. Which arrived is read off the document rather than off the URL, so
+the site keeps one write address. Both are answered with a signed envelope this
+site countersigns. There is no login route, no route that uploads a file, and no
+address that returns the bytes a run was submitted with — a public address
+handing back the file mapping is the bundle itself however it is wrapped, and
+0038 defers that. No second write may be added.
+
+`GET /api/v1/publications` takes `?before_sequence=` and `?limit=`, twenty-five
+by default and at most a hundred. The order is arrival order, newest first, by
+log sequence and by nothing else. A log sequence is not a position and not a
+rank, and it may have gaps.
 
 ### The starter Skill
 

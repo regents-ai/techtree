@@ -157,6 +157,25 @@ defmodule Techtree.Release.CandidateTest do
       assert core["schema_version"] == "techtree.release-core.v1"
     end
 
+    test "the ReleaseCore points publishing at the addresses this site answers", %{core: core} do
+      publication = core["publication"]
+
+      # Where a run is sent, and where a person reads the log. Both are on the
+      # surface this application actually publishes; a pin at an address that
+      # answers nothing is a release that cannot publish.
+      assert publication["submission_endpoint"] == "https://techtree.sh/api/v1/publications"
+      assert publication["public_log_url"] == "https://techtree.sh/runs"
+
+      assert %{"algorithm" => "ed25519", "key_id" => key_id, "public_key" => public} =
+               publication["network_key"]
+
+      # The fingerprint is derived, not named. Every other key id in this
+      # protocol is the hash of its own key, and a receipt naming a key it does
+      # not carry is caught for free because of it.
+      assert key_id == Digest.hash_bytes(Base.decode64!(public))
+      assert byte_size(Base.decode64!(public)) == 32
+    end
+
     test "the checksums describe the bytes that are actually there", %{checksums: checksums} do
       recorded = checksums["files"]
 

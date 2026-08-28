@@ -1,4 +1,4 @@
-defmodule TechtreeWeb.NetworkLive.Index do
+defmodule TechtreeWeb.RunsLive.Index do
   @moduledoc """
   Every run somebody has published, in the order they arrived.
 
@@ -15,6 +15,14 @@ defmodule TechtreeWeb.NetworkLive.Index do
   digest was checked. There is no field here a submitter could write a sentence
   into, which is why there is nothing on this page to moderate.
 
+  A withdrawn run keeps its row and says so. Withdrawal is an event appended to
+  the log rather than a hole punched in it, and a log that quietly dropped its
+  withdrawn entries would be a log with gaps nothing explained.
+
+  The page reads one keyset page at a time, twenty-five at a time, oldest link
+  first — the same rule the read endpoint follows, so the two cannot disagree
+  about what "the next page" means.
+
   The page says what the checking was and what it was not. This site checked
   that a receipt is internally consistent and signed by the key it names. It
   did not watch the run and did not repeat it. Both halves are on the page,
@@ -27,11 +35,21 @@ defmodule TechtreeWeb.NetworkLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     assign(socket,
-       page_title: "Published runs",
-       entries: Query.list_entries()
-     )}
+    {:ok, assign(socket, page_title: "Published runs")}
+  end
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    options =
+      case Query.read_page_options(params) do
+        {:ok, options} -> options
+        {:error, _message} -> []
+      end
+
+    page = Query.page(options)
+
+    {:noreply,
+     assign(socket, entries: page.entries, next_before_sequence: page.next_before_sequence)}
   end
 
   @impl true
@@ -58,7 +76,7 @@ defmodule TechtreeWeb.NetworkLive.Index do
         <p class="small quiet">
           It is not a claim that the run happened. This site did not watch it and has
           not repeated it. Every entry stays the participant's own account of their own
-          machine, and anyone can fetch the exact bytes and redo all of it themselves.
+          machine, and anyone can redo all of it themselves from the bundle they hold.
         </p>
       </.warning_callout>
 
@@ -73,8 +91,12 @@ defmodule TechtreeWeb.NetworkLive.Index do
               <p class="eyebrow">{entry.subject_harness} {entry.subject_harness_version}</p>
               <h2 class="log__title">{entry.subject_model}</h2>
             </div>
-            <p class="log__when">{arrived(entry.inserted_at)}</p>
+            <p class="log__when">{arrived(entry.accepted_at)}</p>
           </div>
+
+          <p :if={entry.withdrawn_at} class="log__withdrawn">
+            {withdrawn_words(entry.withdrawn_at)}
+          </p>
 
           <dl class="log__facts">
             <div>
@@ -91,7 +113,7 @@ defmodule TechtreeWeb.NetworkLive.Index do
             </div>
             <div>
               <dt>Published by</dt>
-              <dd><.digest value={fingerprint(entry.executor_key_id)} /></dd>
+              <dd><.digest value={fingerprint(entry.participant_key_id)} /></dd>
             </div>
           </dl>
 
@@ -100,6 +122,12 @@ defmodule TechtreeWeb.NetworkLive.Index do
           </a>
         </article>
       </div>
+
+      <p :if={@next_before_sequence} class="section">
+        <a class="text-link" href={older_url(@next_before_sequence)}>
+          Runs published earlier <span aria-hidden="true">→</span>
+        </a>
+      </p>
 
       <p class="small quiet section">
         <a href={~p"/proofs"}>What a finished comparison contains</a>
@@ -111,12 +139,14 @@ defmodule TechtreeWeb.NetworkLive.Index do
 
   # A digest carries a colon, which the route sigil would escape into an
   # address a reader could not compare against the one they hold.
-  defp entry_url(entry), do: "/network/" <> entry.bundle_digest
+  defp entry_url(entry), do: "/runs/" <> entry.bundle_digest
+
+  defp older_url(sequence), do: "/runs?before_sequence=" <> Integer.to_string(sequence)
 
   # A publisher is named by the fingerprint of the key that signed their
   # bundle, shortened for reading rather than for comparing: the entry's own
-  # page carries the whole of it, and the exact bytes carry the key itself.
-  defp fingerprint("sha256:" <> hex), do: "sha256:" <> String.slice(hex, 0, 12) <> "\u2026"
+  # page carries the whole of it.
+  defp fingerprint("sha256:" <> hex), do: "sha256:" <> String.slice(hex, 0, 12) <> "…"
   defp fingerprint(key_id), do: key_id
 
   defp signed(delta) do
@@ -129,5 +159,9 @@ defmodule TechtreeWeb.NetworkLive.Index do
     at
     |> DateTime.truncate(:second)
     |> Calendar.strftime("%Y-%m-%d %H:%M UTC")
+  end
+
+  defp withdrawn_words(at) do
+    "Withdrawn by the participant on " <> Calendar.strftime(at, "%-d %B %Y")
   end
 end

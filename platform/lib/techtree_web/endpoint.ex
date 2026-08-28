@@ -2,9 +2,10 @@ defmodule TechtreeWeb.Endpoint do
   @moduledoc """
   Everything a request passes through before the routing table sees it.
 
-  This application publishes, and accepts exactly one thing at exactly one
-  address, and the pipeline is built so that this stays true by construction
-  rather than by nobody having added a route yet. There is no multipart parser,
+  This application publishes, and accepts two documents at exactly one address —
+  a finished run and a signed withdrawal of one — and the pipeline is built so
+  that this stays true by construction rather than by nobody having added a
+  route yet. There is no multipart parser,
   so a body of files is never read, never spooled to disk, and never held in
   memory on its way to a refusal. There is no method override, so a hidden
   parameter cannot turn a request into a verb the routing table does not
@@ -12,10 +13,10 @@ defmodule TechtreeWeb.Endpoint do
   a file opened directly in a browser is a document like any other.
 
   The one address that does take a body reads it through
-  `TechtreeWeb.SubmissionBody`, which keeps the exact bytes for the endpoint
-  that serves them back and stops an oversized body at the parser. Every other
-  address is unchanged by that: nothing is kept for one and no body is read for
-  one.
+  `TechtreeWeb.PublicationBody`, which keeps the exact bytes for the checks
+  that are made against a digest of them and stops an oversized body at the
+  parser. Every other address is unchanged by that: nothing is kept for one and
+  no body is read for one.
   """
 
   use Phoenix.Endpoint, otp_app: :techtree
@@ -76,7 +77,7 @@ defmodule TechtreeWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :json],
     pass: ["*/*"],
-    body_reader: {TechtreeWeb.SubmissionBody, :read_body, []},
+    body_reader: {TechtreeWeb.PublicationBody, :read_body, []},
     json_decoder: Phoenix.json_library()
 
   plug Plug.Head

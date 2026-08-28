@@ -12,66 +12,184 @@ defmodule Techtree.Network.Ingest do
   Nothing here decides whether a submission is good. That is
   `Techtree.Network.Bundle`'s job, and it happens first, in full, before a row
   exists. What is left for this module is the part that has to be true about
-  the log rather than about the bundle:
+  the log rather than about the bundle.
 
-  *Position is handed out by the database.* The log's order is arrival order, so
-  the position comes from a Postgres sequence rather than from counting rows.
-  Two submissions landing at the same instant get two positions.
+  ## The retry is the case this module is built around
 
-  *The same bundle is the same entry.* A proof's digest is a content address, so
-  sending the same proof twice is not two publications — the second call returns
-  the entry that already exists. That is what a content-addressed log means, not
-  a leniency about duplicates.
+  The window is small and it is certain to happen: the server accepts, the
+  response is lost on the way back, the participant's own command records the
+  publication as failed, and a person runs it again. If the second attempt made
+  a second row, the log would carry the same proof twice under two sequences,
+  and the receipt the participant finally wrote down would not be the one this
+  site had already issued.
+
+  So idempotence is by bundle digest, and it is enforced by the database rather
+  than by looking first. There is no "does this already exist" query in front of
+  the insert, deliberately: a check like that is correct until two requests run
+  it at the same moment, and then both of them insert. Instead every publication
+  takes the same path — build the whole row, insert it, and if the unique index
+  on `bundle_digest` refuses it, hand back the row that is already there. The
+  loser of a race and the retry of a lost response are the same code, so the
+  rare one is exercised by the common one.
+
+  Four outcomes, and they are the four the founder named:
+
+  * a bundle nobody has published is **recorded**, and the participant gets a
+    fresh receipt;
+  * the same bundle in the same document again is **existing**, and the
+    participant gets back the original receipt, byte for byte, including its
+    original log sequence and its original acceptance time;
+  * the same bundle in a *different* document is a **conflict**: this log
+    already stored one set of bytes under that digest and it will not quietly
+    swap them for another;
+  * the same participant and the same run under a *different* bundle is a
+    **conflict** too, on a unique index over the two of them together. One run
+    is published once. A second bundle for it is either a different run wearing
+    the same name or the same run rebuilt, and either way the participant has to
+    resolve it on their own machine rather than have this site pick.
+
+  A participant may send an `Idempotency-Key` header if their tooling likes to.
+  Nothing here reads one. The digest of the proof is the idempotence key, it is
+  derived from the bytes rather than chosen by the sender, and a header would
+  only add a second way to be wrong.
+
+  ## Everything else
+
+  *The log sequence is handed out by the database.* The log's order is arrival
+  order, so it comes from a Postgres sequence rather than from counting rows.
+  Two publications landing at the same instant get two sequences, and a
+  publication that loses the race has already taken one, so the sequence has
+  gaps. That is what a sequence is; a position would not be allowed to.
+
+  *The row is written whole.* Its identifier, its sequence, its acceptance time
+  and the receipt signed over all three go in together, so no reader can ever
+  see an entry that does not yet have the receipt it was issued.
 
   *A withdrawal is written, not applied.* Taking an entry off the log appends a
-  withdrawal row and writes the entry's `withdrawn_at` from it. The entry keeps
-  every column it had, and no resource here offers a destroy action that could
-  do otherwise.
+  `withdrawn` event carrying the participant's own signature over their own
+  withdrawal request, and writes the entry's `withdrawn_at` from it. The entry
+  keeps every column it had and keeps its place, and no resource here offers a
+  destroy action that could do otherwise.
 
   The one exception to that last rule is the contributor address, which is not
   evidence — it is something a person volunteered about themselves. Removing it
-  removes it.
+  removes it from the active system and from any future use. It is not a claim
+  about database backups, which this release does not implement.
 
   It also never travels inside the submission. The bytes of a submission are
-  stored and served back at a public address, so an address written into them
-  would be a public address by construction, however carefully everything
-  downstream avoided printing it. It arrives beside them instead, is checked
-  before anything else is done, and is written to a table nothing public can
-  read.
+  stored, so an address written into them would be stored with the evidence
+  however carefully everything downstream avoided printing it. It arrives beside
+  them instead, is checked before anything else is done, and is written to a
+  table nothing else in this application may read.
   """
 
+  alias Techtree.Canonical
+  alias Techtree.Catalog.Digest
   alias Techtree.Network
   alias Techtree.Network.Address
   alias Techtree.Network.Bundle
   alias Techtree.Network.ContributorAddress
-  alias Techtree.Network.Submission
-  alias Techtree.Network.Withdrawal
+  alias Techtree.Network.Error
+  alias Techtree.Network.Key
+  alias Techtree.Network.PublicationEntry
+  alias Techtree.Network.PublicationEvent
+  alias Techtree.Network.Receipt
+  alias Techtree.Network.WithdrawalRequest
   alias Techtree.Repo
 
   @internal [authorize?: false]
+
+  @typedoc """
+  What happened to a publication that was not refused.
+  """
+  @type outcome :: :recorded | :existing
 
   @doc """
   Check one submission and, if every check holds, append it to the log.
 
   Returns `{:ok, entry, :recorded}` for a new entry and `{:ok, entry, :existing}`
-  when this exact proof is already published.
+  when this exact proof, in this exact document, is already published. Either
+  way `entry.receipt_bytes` is the receipt to hand back.
 
   `:contributor_address` is the one thing a person may send that their machine
   did not sign. A wrong character in an address cannot be recovered from, so it
   is checked first and a submission carrying one that does not check out is
   refused rather than quietly published without it.
+
+  `:origin` is where this site answers, which the receipt needs so that it can
+  name the address the entry now lives at.
   """
-  @spec accept(binary(), keyword()) ::
-          {:ok, Submission.t(), :recorded | :existing} | {:error, Network.Error.t()}
-  def accept(raw, options \\ []) when is_binary(raw) do
+  @spec accept(binary(), Key.t(), keyword()) ::
+          {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
+  def accept(raw, %Key{} = key, options \\ []) when is_binary(raw) do
     with {:ok, address} <- volunteered(Keyword.get(options, :contributor_address)),
          {:ok, bundle} <- Bundle.verify(raw) do
-      case Network.get_submission_by_digest(Bundle.digest(bundle), @internal) do
-        {:ok, %Submission{} = existing} -> {:ok, existing, :existing}
-        _other -> {:ok, append(bundle, address), :recorded}
+      append(bundle, address, key, Keyword.get(options, :origin, ""))
+    end
+  end
+
+  @doc """
+  Take one published entry off the log, on the signed word of whoever published
+  it.
+
+  Returns `{:ok, entry, :recorded}` when this withdrawal was the one that
+  marked it, and `{:ok, entry, :existing}` when it was already withdrawn — a
+  retry of a lost response is not a second event.
+  """
+  @spec withdraw(binary()) :: {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
+  def withdraw(raw) when is_binary(raw) do
+    with {:ok, claimed} <- WithdrawalRequest.claimed_bundle_digest(raw),
+         {:ok, entry} <- entry_named(claimed),
+         {:ok, request} <- WithdrawalRequest.verify(raw, entry) do
+      if is_nil(entry.withdrawn_at) do
+        {:ok, mark_withdrawn(entry, request), :recorded}
+      else
+        {:ok, entry, :existing}
       end
     end
   end
+
+  @doc """
+  Forget an address somebody left, because they asked for it back.
+
+  It goes from the active system and from any future use. It is not a claim
+  about database backups.
+  """
+  @spec forget_contributor_address(String.t()) :: :ok
+  def forget_contributor_address(address) do
+    case Address.canonicalize(address) do
+      {:ok, canonical} ->
+        canonical
+        |> Network.find_contributor_addresses!(@internal)
+        |> Enum.each(&Network.forget_contributor_address!(&1, @internal))
+
+        :ok
+
+      {:error, _reason} ->
+        :ok
+    end
+  end
+
+  @doc """
+  The addresses one publisher left, for an operator answering a question about
+  their own record. Nothing on the public surface calls this, and nothing else
+  in this application can.
+  """
+  @spec contributor_addresses(String.t()) :: [ContributorAddress.t()]
+  def contributor_addresses(address) do
+    case Address.canonicalize(address) do
+      {:ok, canonical} -> Network.find_contributor_addresses!(canonical, @internal)
+      {:error, _reason} -> []
+    end
+  end
+
+  @doc """
+  Everything appended against one entry, oldest first.
+  """
+  @spec events(PublicationEntry.t()) :: [PublicationEvent.t()]
+  def events(%PublicationEntry{id: id}), do: Network.list_events_for_entry!(id, @internal)
+
+  # -- The volunteered address ----------------------------------------------
 
   defp volunteered(nil), do: {:ok, nil}
 
@@ -82,7 +200,7 @@ defmodule Techtree.Network.Ingest do
 
       {:error, :bad_checksum} ->
         {:error,
-         Network.Error.new(
+         Error.new(
            :contributor_address_invalid,
            "that address does not check out — one character of it is wrong, " <>
              "and an address with a wrong character in it cannot be recovered from"
@@ -90,91 +208,127 @@ defmodule Techtree.Network.Ingest do
 
       {:error, :malformed} ->
         {:error,
-         Network.Error.new(
+         Error.new(
            :contributor_address_invalid,
            "an address is 0x followed by exactly 40 hexadecimal characters"
          )}
     end
   end
 
-  @doc """
-  Take one published entry off the log by appending a withdrawal against it.
-  """
-  @spec withdraw(Submission.t(), atom()) :: Submission.t()
-  def withdraw(%Submission{} = submission, reason) do
-    {:ok, updated} =
-      Ash.transact([Submission, Withdrawal], fn ->
-        withdrawal =
-          Network.record_withdrawal!(%{submission_id: submission.id, reason: reason}, @internal)
+  # -- Appending -------------------------------------------------------------
 
-        Network.mark_submission_withdrawn!(
-          submission,
-          %{withdrawn_at: withdrawal.inserted_at},
+  defp append(%Bundle{} = bundle, address, key, origin) do
+    appended =
+      Ash.transact([PublicationEntry, PublicationEvent, ContributorAddress], fn ->
+        entry = Network.record_publication_entry!(attributes(bundle, key, origin), @internal)
+
+        Network.record_publication_event!(
+          %{
+            publication_entry_id: entry.id,
+            kind: :accepted,
+            payload_digest: entry.bundle_digest,
+            participant_signature: Bundle.participant_signature(bundle)
+          },
           @internal
         )
+
+        remember(address, entry)
+        entry
       end)
 
-    updated
+    case appended do
+      {:ok, entry} ->
+        {:ok, entry, :recorded}
+
+      {:error, refusal} ->
+        case conflict(bundle) do
+          {:ok, answer} -> answer
+          :unexplained -> raise refusal
+        end
+    end
   end
 
-  @doc """
-  Forget an address somebody left, because they asked for it back.
-  """
-  @spec forget_contributor_address(String.t()) :: :ok
-  def forget_contributor_address(address) do
-    case Network.get_contributor_address(address, @internal) do
-      {:ok, %ContributorAddress{} = record} ->
-        Network.forget_contributor_address!(record, @internal)
-        :ok
+  # A publication the database refused is one of exactly three things, and
+  # which one is answered by asking the log rather than by reading the error: a
+  # retry of a publication that already went through, the same digest carrying
+  # a different document, or a second bundle for a run that has already been
+  # published. Anything else is a defect, and a defect is raised rather than
+  # dressed up as a refusal.
+  defp conflict(%Bundle{} = bundle) do
+    digest = Bundle.digest(bundle)
+    sent = submission_digest(bundle.raw)
+
+    case Network.get_publication_entry_by_digest(digest, @internal) do
+      {:ok, %PublicationEntry{submission_digest: ^sent} = entry} ->
+        {:ok, {:ok, entry, :existing}}
+
+      {:ok, %PublicationEntry{} = entry} ->
+        {:ok,
+         {:error,
+          Error.new(
+            :publication_bytes_conflict,
+            "this log already holds a publication under that bundle digest, and " <>
+              "it is not the document you just sent; stored bytes are never rewritten",
+            %{"bundle_digest" => entry.bundle_digest, "log_sequence" => entry.log_sequence}
+          )}}
 
       _other ->
-        :ok
+        run_conflict(bundle)
     end
   end
 
-  @doc """
-  The address one publisher left, for an operator answering a question about
-  their own record. Nothing on the public surface calls this.
-  """
-  @spec contributor_address(String.t()) :: ContributorAddress.t() | nil
-  def contributor_address(address) do
-    case Network.get_contributor_address(address, @internal) do
-      {:ok, %ContributorAddress{} = record} -> record
-      _other -> nil
+  defp run_conflict(%Bundle{manifest: manifest}) do
+    key_id = get_in(manifest, ["payload", "executor_identity", "key_id"])
+    run_id = get_in(manifest, ["payload", "run_id"])
+
+    case Network.get_publication_entry_by_run(key_id, run_id, @internal) do
+      {:ok, %PublicationEntry{} = entry} ->
+        {:ok,
+         {:error,
+          Error.new(
+            :publication_run_conflict,
+            "this key has already published that run, under a different bundle; " <>
+              "one run is published once, and which bundle is the right one is " <>
+              "yours to settle rather than ours to guess",
+            %{
+              "run_id" => entry.run_id,
+              "bundle_digest" => entry.bundle_digest,
+              "log_sequence" => entry.log_sequence
+            }
+          )}}
+
+      _other ->
+        :unexplained
     end
   end
 
-  # -- Internals ------------------------------------------------------------
-
-  defp append(%Bundle{} = bundle, address) do
-    {:ok, submission} =
-      Ash.transact([Submission, ContributorAddress], fn ->
-        submission = Network.record_submission!(attributes(bundle), @internal)
-        remember(address, submission)
-        submission
-      end)
-
-    submission
-  end
-
-  defp attributes(%Bundle{manifest: manifest, report: report, campaign: campaign} = bundle) do
+  defp attributes(
+         %Bundle{manifest: manifest, report: report, campaign: campaign} = bundle,
+         key,
+         origin
+       ) do
     payload = manifest["payload"]
     identity = payload["executor_identity"]
     result = report["primary_result"]
     subject = get_in(campaign, ["agents", "subject"])
 
-    %{
-      sequence: next_sequence(),
+    entry = %{
+      id: Ash.UUID.generate(),
+      log_sequence: next_log_sequence(),
+      accepted_at: DateTime.utc_now(),
       bundle_digest: Bundle.digest(bundle),
+      submission_bytes: bundle.raw,
+      submission_digest: submission_digest(bundle.raw),
       run_id: payload["run_id"],
       campaign_spec_digest: payload["campaign_spec_digest"],
       data_policy_digest: payload["data_policy_digest"],
       climb_reference: bundle.climb_reference,
       # The bundle check already refused anything that is not a local Ed25519
       # key, so this is the one kind rather than whatever the document said.
-      executor_kind: :local_ed25519,
-      executor_key_id: identity["key_id"],
-      executor_public_key: identity["public_key"],
+      participant_kind: :local_ed25519,
+      participant_key_id: identity["key_id"],
+      participant_public_key: identity["public_key"],
+      subject_provider: get_in(subject, ["model", "provider"]),
       subject_model: get_in(subject, ["model", "model_id"]),
       subject_harness: get_in(subject, ["harness", "id"]),
       subject_harness_version: get_in(subject, ["harness", "version"]),
@@ -185,51 +339,93 @@ defmodule Techtree.Network.Ingest do
       losses: result["losses"],
       ties: result["ties"],
       task_count: length(report["task_deltas"]),
+      statuses: report["statuses"] || %{},
       decision: report["decision"],
       proof_grade: report["proof_grade"],
       verification_checks_run: Bundle.check_count(),
       verification_checks_passed: Bundle.check_count(),
       task_deltas: report["task_deltas"],
-      raw_payload: bundle.raw
+      network_key_id: key.key_id
     }
+
+    receipt = Receipt.issue(struct!(PublicationEntry, entry), origin, key)
+
+    entry
+    |> Map.put(:receipt_bytes, Receipt.encode(receipt))
+    |> Map.put(:receipt_digest, Receipt.payload_digest(receipt))
   end
 
-  # The log position is a database sequence rather than a count of rows,
+  # The log sequence is a database sequence rather than a count of rows,
   # because a count read inside one transaction is already stale in another.
-  defp next_sequence do
-    %{rows: [[sequence]]} = Repo.query!("SELECT nextval('network_submission_sequence')")
+  defp next_log_sequence do
+    %{rows: [[sequence]]} = Repo.query!("SELECT nextval('network_publication_sequence')")
     sequence
   end
 
-  defp remember(nil, _submission), do: :ok
+  # What tells a retry apart from a different document under the same digest.
+  # It is the canonical form rather than the raw bytes, because the same
+  # document written out with different whitespace is the same document, and a
+  # participant whose tooling re-serialises before retrying has not sent
+  # something else.
+  defp submission_digest(raw) do
+    case Jason.decode(raw) do
+      {:ok, document} -> document |> Canonical.encode!() |> Digest.hash_bytes()
+      _other -> Digest.hash_bytes(raw)
+    end
+  end
 
-  defp remember(address, submission) do
-    now = DateTime.utc_now()
-    seen = Network.get_contributor_address(address, @internal)
+  defp remember(nil, _entry), do: :ok
 
-    count =
-      case seen do
-        {:ok, %ContributorAddress{submission_count: count}} -> count + 1
-        _other -> 1
-      end
-
-    first =
-      case seen do
-        {:ok, %ContributorAddress{first_seen_at: at}} -> at
-        _other -> now
-      end
-
+  defp remember(address, entry) do
     Network.record_contributor_address!(
       %{
-        address: address,
-        submission_id: submission.id,
-        submission_count: count,
-        first_seen_at: first,
-        last_seen_at: now
+        participant_key_id: entry.participant_key_id,
+        contributor_address_unverified: address
       },
       @internal
     )
 
     :ok
+  end
+
+  # -- Withdrawing -----------------------------------------------------------
+
+  defp entry_named(digest) do
+    case Network.get_publication_entry_by_digest(digest, @internal) do
+      {:ok, %PublicationEntry{} = entry} ->
+        {:ok, entry}
+
+      _other ->
+        {:error,
+         Error.new(
+           :withdrawal_entry_missing,
+           "no run is published under that fingerprint",
+           %{"bundle_digest" => digest}
+         )}
+    end
+  end
+
+  defp mark_withdrawn(entry, %WithdrawalRequest{} = request) do
+    {:ok, updated} =
+      Ash.transact([PublicationEntry, PublicationEvent], fn ->
+        event =
+          Network.record_publication_event!(
+            %{
+              publication_entry_id: entry.id,
+              kind: :withdrawn,
+              payload_digest: request.payload_digest,
+              participant_signature: request.signature
+            },
+            @internal
+          )
+
+        Network.mark_publication_entry_withdrawn!(
+          entry,
+          %{withdrawn_at: event.inserted_at},
+          @internal
+        )
+      end)
+
+    updated
   end
 end

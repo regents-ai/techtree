@@ -65,14 +65,14 @@ config :techtree, Techtree.Catalog,
   catalog_root: {:priv, "catalog"},
   channel: "development"
 
-# The one address on this site that accepts anything. A proof bundle carries
+# The two addresses on this site that accept anything. A proof bundle carries
 # digests and scores and no transcripts, so a few hundred kilobytes is the
-# whole of one; the cap is generous by an order of magnitude and still small
+# whole of one; two mebibytes is generous by a factor of six and still small
 # enough that an oversized body is refused before it is read. The rate is per
 # caller, and low, because publishing a run is something a person does after a
 # run finishes rather than something a machine does in a loop.
 config :techtree, Techtree.Network,
-  maximum_body_bytes: 4_000_000,
+  maximum_body_bytes: 2_097_152,
   rate_limit: [limit: 10, window_seconds: 60]
 
 # The release artifacts this build publishes beside the bundle. Today that is
