@@ -112,6 +112,12 @@ vector from the active BootstrapRelease, links the exact 40-character plugin
 commit, and shows the command argument for argument. Do not copy a branch name,
 a floating package version, or an example placeholder into an install command.
 
+**Expect Hermes to refuse the first attempt.** It reads the source before
+installing anything, this plugin comes back at caution, and a community-source
+plugin at caution is refused rather than queried. That is not a fault and the
+step past it is a decision you make after reading what the scan found — see
+[Install-time security scanning](#install-time-security-scanning) below.
+
 Supported host: Hermes 0.20.1. The evaluated subject remains the separately
 pinned Hermes 0.19.0 named by the Campaign. The release this plugin belongs to
 is recorded in `release-core.json`.
@@ -149,11 +155,32 @@ for yourself before you approve anything.
   obfuscation. One pattern, matching terminal control codes, so they can be
   taken out of anything the plugin puts into a conversation.
 
-A caution verdict is yours to accept or refuse: Hermes stops and asks, and
-nothing is installed until a person answers. Read the findings and the code
-they name, then answer. Do not switch the scanning off — it is the one look
-at the source that happens before the code is on your machine, and this
-plugin has nothing to hide from it.
+### Hermes refuses this install the first time, and that is expected
+
+It does not stop and ask. A plugin from a community source that comes back at
+caution is refused outright, and the refusal names what would override it:
+
+```text
+Decision: BLOCKED — Blocked (community source + caution verdict, 5 findings).
+Use --force to override.
+```
+
+So installing is two deliberate steps rather than one. Run the pinned command
+from [techtree.sh/start](https://techtree.sh/start) first and read what the
+scan reports. If it is the five findings above, in the three files above, and
+you have looked at the code they name, run the same command again with
+`--force` appended.
+
+`--force` deserves a sentence of its own, because Hermes's own `--help`
+describes it only as "Remove existing plugin and reinstall" and says nothing
+about a security decision. Overriding the scan is its second job. It applies
+to the one install you run it on and to nothing else, and it leaves the
+scanning switched on for every plugin you install afterwards.
+
+Do not switch the scanning off. It is the one look at the source that happens
+before the code is on your machine, and this plugin has nothing to hide from
+it: everything the scan reports is described above, and the refusal itself is
+the scanner working rather than a fault to route around.
 
 ## What loading the plugin does
 

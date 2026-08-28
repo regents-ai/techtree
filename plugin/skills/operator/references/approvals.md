@@ -3,6 +3,21 @@
 Four things in Techtree need a person to say yes. None of them can be granted
 by an agent, and none of them carry over from one occasion to the next.
 
+## Installing this plugin
+
+Before any of the four, and before this Skill is ever loaded, somebody has to
+get the plugin onto the machine. Hermes reads its source first, this plugin
+comes back at caution with five findings, and **a community-source plugin at
+caution is refused rather than queried** — Hermes does not stop and ask.
+
+An agent that sees that refusal should say what it is: the scanner working,
+not a fault. The five findings are described in
+`references/questions.md`, and getting past the refusal is the person's own
+decision after reading them, taken by running the pinned command again with
+`--force`. Never suggest turning the scanning off, and never run the override
+on somebody's behalf without their answer — the refusal exists so a person
+sees the source before the code is on their machine.
+
 ## Installing Techtree
 
 The plugin never installs anything by itself. When Techtree is missing it

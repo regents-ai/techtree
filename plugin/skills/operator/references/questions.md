@@ -181,6 +181,23 @@ obfuscation. It strips escape sequences and control bytes out of anything the
 plugin prints into a conversation, so borrowed output cannot redraw somebody's
 terminal. It is a sanitiser, and a scanner sees a control-byte pattern.
 
+## "Hermes refused to install this. Is something wrong?"
+
+No. That is the scanner working, and it is worth saying so plainly before
+anything else, because a refusal reads like a verdict on the software.
+
+Hermes reads a plugin's source before installing it. This one comes back at
+caution, and a plugin from a community source at caution is refused rather
+than queried — it does not stop and ask. The refusal names the flag that
+overrides it.
+
+What is owed at that moment is the five findings and what each one is, which
+is the answer above. Then the decision is the person's: run the pinned command
+again with the override, having read them. Never offer to turn the scanning
+off, and never run the override for somebody who has not answered. The whole
+point of the refusal is that a person looks at the source before the code is
+on their machine.
+
 ## "Could you not just make the scanner stop flagging them?"
 
 Not honestly. Every one of them describes something the plugin really does: it
