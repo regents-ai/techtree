@@ -86,7 +86,11 @@ defmodule Techtree.Network.Projection do
       },
       "climb" => entry.climb_reference,
       "campaign_spec_digest" => entry.campaign_spec_digest,
+      "campaign_name" => entry.campaign_name,
       "data_policy_digest" => entry.data_policy_digest,
+      "skill_digest" => entry.skill_digest,
+      "skill_name" => entry.skill_name,
+      "skill_github_url" => entry.skill_github_url,
       "subject" => %{
         "harness" => entry.subject_harness,
         "harness_version" => entry.subject_harness_version,

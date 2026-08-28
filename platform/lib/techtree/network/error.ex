@@ -46,6 +46,8 @@ defmodule Techtree.Network.Error do
           | :submission_bundle_digest_mismatch
           | :submission_run_id_mismatch
           | :contributor_address_invalid
+          | :publication_skill_name_invalid
+          | :publication_skill_github_url_invalid
           | :publication_bytes_conflict
           | :publication_run_conflict
           | :withdrawal_malformed

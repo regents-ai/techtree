@@ -184,13 +184,24 @@ defmodule Techtree.Network.Bundle do
     {:declarations, "what the submission claims about the bundle is what the bundle says"}
   ]
 
-  defstruct [:raw, :manifest, :report, :campaign, :climb_reference, :data_policy]
+  defstruct [
+    :raw,
+    :manifest,
+    :report,
+    :campaign,
+    :campaign_name,
+    :candidate_skill_digest,
+    :climb_reference,
+    :data_policy
+  ]
 
   @type t :: %__MODULE__{
           raw: binary(),
           manifest: map(),
           report: map(),
           campaign: map(),
+          campaign_name: String.t() | nil,
+          candidate_skill_digest: String.t() | nil,
           climb_reference: String.t(),
           data_policy: map()
         }
@@ -231,7 +242,7 @@ defmodule Techtree.Network.Bundle do
          :ok <- signatures(envelopes, identity),
          :ok <- key_id(identity),
          {:ok, report} <- report(manifest, envelopes),
-         {:ok, campaign, reference} <- campaign(manifest),
+         {:ok, campaign, reference, campaign_name} <- campaign(manifest),
          :ok <- counts(report),
          :ok <- membership(report, campaign),
          {:ok, policy} <- data_policy(manifest, files),
@@ -243,6 +254,8 @@ defmodule Techtree.Network.Bundle do
          manifest: manifest,
          report: report,
          campaign: campaign,
+         campaign_name: campaign_name,
+         candidate_skill_digest: candidate_skill_digest(report, files),
          climb_reference: reference,
          data_policy: policy
        }}
@@ -694,7 +707,7 @@ defmodule Techtree.Network.Bundle do
       {:ok, climb} ->
         with {:ok, bytes, _entry} <- Query.object_bytes(digest),
              {:ok, campaign} when is_map(campaign) <- Jason.decode(bytes) do
-          {:ok, campaign, climb.reference}
+          {:ok, campaign, climb.reference, climb.title}
         else
           _other ->
             {:error,
@@ -706,6 +719,51 @@ defmodule Techtree.Network.Bundle do
         end
     end
   end
+
+  # The report commits to the candidate experiment by its artifact digest. The
+  # artifact bytes have already passed the signed manifest's digest and size
+  # checks above, so this is a projection of verified bytes rather than a
+  # submitter-provided metadata claim. Older or unusual proofs may not expose
+  # a usable skill entry; those remain publishable with a null projection.
+  defp candidate_skill_digest(report, files) do
+    report
+    |> Map.get("candidate_manifest_digest")
+    |> candidate_experiment(files)
+    |> case do
+      %{
+        "configuration" => %{
+          "agents" => %{"subject" => %{"harness" => %{"skills" => [skill | _]}}}
+        }
+      }
+      when is_map(skill) ->
+        case skill["digest"] do
+          digest when is_binary(digest) ->
+            if Digest.valid?(digest), do: digest
+
+          _other ->
+            nil
+        end
+
+      _other ->
+        nil
+    end
+  end
+
+  defp candidate_experiment(nil, _files), do: nil
+
+  defp candidate_experiment(digest, files) when is_binary(digest) do
+    files
+    |> Enum.find_value(fn {_path, bytes} ->
+      if Digest.hash_bytes(bytes) == digest do
+        case Jason.decode(bytes) do
+          {:ok, document} when is_map(document) -> document
+          _other -> nil
+        end
+      end
+    end)
+  end
+
+  defp candidate_experiment(_digest, _files), do: nil
 
   # -- 13. The counts --------------------------------------------------------
 

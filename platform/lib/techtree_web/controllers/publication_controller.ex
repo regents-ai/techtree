@@ -174,6 +174,8 @@ defmodule TechtreeWeb.PublicationController do
     accepted =
       Ingest.accept(bytes, key,
         contributor_address: volunteered(conn),
+        skill_name: header(conn, "x-techtree-skill-name"),
+        skill_github_url: header(conn, "x-techtree-skill-github-url"),
         origin: origin()
       )
 
@@ -228,6 +230,14 @@ defmodule TechtreeWeb.PublicationController do
     case get_req_header(conn, "x-techtree-contributor-address") do
       [address | _rest] -> address
       [] -> nil
+    end
+  end
+
+  defp header(conn, name) do
+    case get_req_header(conn, name) do
+      [value] -> value
+      [] -> nil
+      _values -> :multiple
     end
   end
 

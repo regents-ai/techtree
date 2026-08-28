@@ -129,6 +129,7 @@ defmodule Techtree.Network.PublicationEntry do
         :submission_digest,
         :run_id,
         :campaign_spec_digest,
+        :campaign_name,
         :data_policy_digest,
         :climb_reference,
         :participant_kind,
@@ -138,6 +139,9 @@ defmodule Techtree.Network.PublicationEntry do
         :subject_model,
         :subject_harness,
         :subject_harness_version,
+        :skill_digest,
+        :skill_name,
+        :skill_github_url,
         :baseline_mean,
         :candidate_mean,
         :absolute_delta,
@@ -222,6 +226,11 @@ defmodule Techtree.Network.PublicationEntry do
       public? true
     end
 
+    attribute :campaign_name, :string do
+      description "The verified title of the Campaign this run was of."
+      public? true
+    end
+
     attribute :data_policy_digest, :string do
       description "The data policy the run was carried out under."
       allow_nil? false
@@ -274,6 +283,21 @@ defmodule Techtree.Network.PublicationEntry do
     attribute :subject_harness_version, :string do
       description "The version of that agent host the Campaign pins."
       allow_nil? false
+      public? true
+    end
+
+    attribute :skill_digest, :string do
+      description "The content digest of the Skill in the verified candidate experiment."
+      public? true
+    end
+
+    attribute :skill_name, :string do
+      description "The public label supplied for the candidate Skill."
+      public? true
+    end
+
+    attribute :skill_github_url, :string do
+      description "The optional canonical HTTPS GitHub repository URL supplied for the Skill."
       public? true
     end
 

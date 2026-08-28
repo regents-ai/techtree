@@ -125,8 +125,9 @@ defmodule Techtree.Network.Ingest do
           {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
   def accept(raw, %Key{} = key, options \\ []) when is_binary(raw) do
     with {:ok, address} <- volunteered(Keyword.get(options, :contributor_address)),
+         {:ok, metadata} <- metadata(options),
          {:ok, bundle} <- Bundle.verify(raw) do
-      append(bundle, address, key, Keyword.get(options, :origin, ""))
+      append(bundle, address, metadata, key, Keyword.get(options, :origin, ""))
     end
   end
 
@@ -216,12 +217,82 @@ defmodule Techtree.Network.Ingest do
     end
   end
 
+  # These are public descriptive labels, not evidence. Keep the same narrow
+  # label grammar used by the Skill preparation path, and only accept a
+  # canonical repository URL so a projection never becomes a URL normalizer.
+  defp metadata(options) do
+    with {:ok, skill_name} <- skill_name(Keyword.get(options, :skill_name)),
+         {:ok, skill_github_url} <- skill_github_url(Keyword.get(options, :skill_github_url)) do
+      {:ok, %{skill_name: skill_name, skill_github_url: skill_github_url}}
+    end
+  end
+
+  defp skill_name(nil), do: {:ok, nil}
+
+  defp skill_name(value) when is_binary(value) do
+    if Regex.match?(~r/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$/, value) do
+      {:ok, value}
+    else
+      {:error,
+       Error.new(
+         :publication_skill_name_invalid,
+         "a Skill name is up to 64 letters, digits, spaces, dots, dashes, or underscores, and starts with a letter or digit",
+         %{"field" => "x-techtree-skill-name"}
+       )}
+    end
+  end
+
+  defp skill_name(_value), do: skill_name("")
+
+  defp skill_github_url(nil), do: {:ok, nil}
+
+  defp skill_github_url(value) when is_binary(value) do
+    valid? =
+      case URI.parse(value) do
+        %URI{
+          scheme: "https",
+          authority: "github.com",
+          host: "github.com",
+          port: 443,
+          userinfo: nil,
+          query: nil,
+          fragment: nil,
+          path: "/" <> path
+        } ->
+          not String.ends_with?(path, ".git") and
+            Regex.match?(
+              ~r/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/,
+              path
+            )
+
+        _other ->
+          false
+      end
+
+    if valid? do
+      {:ok, value}
+    else
+      {:error,
+       Error.new(
+         :publication_skill_github_url_invalid,
+         "a Skill repository URL is a canonical HTTPS GitHub URL of the form https://github.com/owner/repository",
+         %{"field" => "x-techtree-skill-github-url"}
+       )}
+    end
+  end
+
+  defp skill_github_url(_value), do: skill_github_url("")
+
   # -- Appending -------------------------------------------------------------
 
-  defp append(%Bundle{} = bundle, address, key, origin) do
+  defp append(%Bundle{} = bundle, address, metadata, key, origin) do
     appended =
       Ash.transact([PublicationEntry, PublicationEvent, ContributorAddress], fn ->
-        entry = Network.record_publication_entry!(attributes(bundle, key, origin), @internal)
+        entry =
+          Network.record_publication_entry!(
+            attributes(bundle, metadata, key, origin),
+            @internal
+          )
 
         Network.record_publication_event!(
           %{
@@ -305,6 +376,7 @@ defmodule Techtree.Network.Ingest do
 
   defp attributes(
          %Bundle{manifest: manifest, report: report, campaign: campaign} = bundle,
+         metadata,
          key,
          origin
        ) do
@@ -322,6 +394,7 @@ defmodule Techtree.Network.Ingest do
       submission_digest: submission_digest(bundle.raw),
       run_id: payload["run_id"],
       campaign_spec_digest: payload["campaign_spec_digest"],
+      campaign_name: bundle.campaign_name,
       data_policy_digest: payload["data_policy_digest"],
       climb_reference: bundle.climb_reference,
       # The bundle check already refused anything that is not a local Ed25519
@@ -333,6 +406,9 @@ defmodule Techtree.Network.Ingest do
       subject_model: get_in(subject, ["model", "model_id"]),
       subject_harness: get_in(subject, ["harness", "id"]),
       subject_harness_version: get_in(subject, ["harness", "version"]),
+      skill_digest: bundle.candidate_skill_digest,
+      skill_name: metadata.skill_name,
+      skill_github_url: metadata.skill_github_url,
       baseline_mean: result["baseline_mean"] / 1,
       candidate_mean: result["candidate_mean"] / 1,
       absolute_delta: result["absolute_delta"] / 1,

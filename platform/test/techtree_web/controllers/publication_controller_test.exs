@@ -24,6 +24,8 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
   use TechtreeWeb.ConnCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias Techtree.Canonical
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Importer
@@ -602,7 +604,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
       refute conn.resp_body =~ @address
       refute conn.resp_body =~ String.downcase(@address)
 
-      assert [_record] = Ingest.contributor_addresses(String.downcase(@address))
+      assert Ingest.contributor_address(@address).submission_count == 1
 
       for path <- [
             "/api/v1/publications",
@@ -618,17 +620,86 @@ defmodule TechtreeWeb.PublicationControllerTest do
     end
 
     test "with a character wrong takes the whole publication down with it", %{conn: conn} do
+      damaged = "0x5aAeb6053f3E94C9b9A09f33669435E7Ef1BeAed"
+
       conn =
         conn
-        |> put_req_header(
-          "x-techtree-contributor-address",
-          "0x5aAeb6053f3E94C9b9A09f33669435E7Ef1BeAed"
-        )
+        |> put_req_header("x-techtree-contributor-address", damaged)
         |> publish(NetworkFixture.submission())
 
       assert conn.status == 422
       assert %{"error" => %{"code" => "contributor_address_invalid"}} = json_response(conn, 422)
       assert Network.list_publication_entries!() == []
+
+      # A refusal that quoted the address back would put it in the one place
+      # this whole design keeps it out of, and would do it while telling
+      # somebody their address was wrong.
+      refute conn.resp_body =~ damaged
+      refute conn.resp_body =~ String.downcase(damaged)
+    end
+
+    test "is never written into a log line, published or refused", %{conn: conn} do
+      logged =
+        capture_log([level: :debug], fn ->
+          conn
+          |> put_req_header("x-techtree-contributor-address", @address)
+          |> publish(NetworkFixture.submission())
+
+          build_conn()
+          |> from_own_address()
+          |> put_req_header(
+            "x-techtree-contributor-address",
+            "0x5aAeb6053f3E94C9b9A09f33669435E7Ef1BeAed"
+          )
+          |> publish(NetworkFixture.submission())
+        end)
+
+      refute logged =~ @address
+      refute logged =~ String.downcase(@address)
+    end
+
+    # What a telemetry reporter would actually export is a metric's measurement
+    # and the tags that metric declares, so that is what is checked rather than
+    # the raw metadata: a request's own headers are on the `conn` an event
+    # carries whether anybody wants them or not, and the question worth asking
+    # is whether any of that becomes a dimension this build reports. A metric
+    # that grew a tag drawn from the request would fail this.
+    test "is in no dimension of any metric this build reports", %{conn: conn} do
+      metrics = TechtreeWeb.Telemetry.metrics()
+      collector = self()
+
+      handlers =
+        metrics
+        |> Enum.map(& &1.event_name)
+        |> Enum.uniq()
+        |> Enum.map(fn event ->
+          id = {__MODULE__, event, make_ref()}
+
+          :telemetry.attach(
+            id,
+            event,
+            fn name, measurements, metadata, _config ->
+              send(collector, {:reported, name, measurements, metadata})
+            end,
+            nil
+          )
+
+          id
+        end)
+
+      on_exit(fn -> Enum.each(handlers, &:telemetry.detach/1) end)
+
+      conn
+      |> put_req_header("x-techtree-contributor-address", @address)
+      |> publish(NetworkFixture.submission())
+
+      exported = exported_dimensions(metrics)
+
+      # A test that reported nothing would pass for the wrong reason.
+      refute exported == ""
+
+      refute exported =~ @address
+      refute exported =~ String.downcase(@address)
     end
   end
 
@@ -730,6 +801,25 @@ defmodule TechtreeWeb.PublicationControllerTest do
              |> from_own_address()
              |> publish(NetworkFixture.submission())
              |> Map.fetch!(:status) == 201
+    end
+  end
+
+  # Everything the reporters attached to these metrics would put on the wire:
+  # each metric's measurement, and the values of the tags it declares.
+  defp exported_dimensions(metrics) do
+    receive do
+      {:reported, name, measurements, metadata} ->
+        dimensions =
+          metrics
+          |> Enum.filter(&(&1.event_name == name))
+          |> Enum.map(fn metric ->
+            {Map.get(measurements, metric.measurement),
+             metadata |> metric.tag_values.() |> Map.take(metric.tags)}
+          end)
+
+        inspect(dimensions) <> exported_dimensions(metrics)
+    after
+      0 -> ""
     end
   end
 
