@@ -195,27 +195,70 @@ header, for that same reason, and is never echoed.
 
 ### The response
 
+**Amended 2026-08-27, after the flat shape below proved unbuildable.**
+The founder's ruling requires the client to check that "the payload
+digest matches the payload bytes", and a flat receipt has no payload
+digest and no structural way for two implementations to agree on which
+members a signature covers — which is the exact drift this contract
+exists to prevent. So the receipt is an envelope, the shape every other
+signed document in this protocol already uses.
+
 ```json
 {
-  "schema_version": "techtree.publication-receipt.v1alpha1",
-  "id": "<the log's own identifier for this entry>",
-  "run_id": "run_<32 hex>",
-  "log_sequence": 7,
-  "bundle_digest": "sha256:<64 hex>",
-  "accepted_at": "<RFC 3339, UTC>",
-  "checks": [ { "id": "...", "passed": true, "detail": "..." } ],
-  "entry_url": "https://…/network/<digest>",
-  "public_key": { "algorithm": "ed25519", "key_id": "sha256:…", "public_key": "<base64>" },
+  "payload": {
+    "schema_version": "techtree.publication-receipt.v1alpha1",
+    "id": "<the log's own identifier for this entry>",
+    "run_id": "run_<32 hex>",
+    "log_sequence": 7,
+    "bundle_digest": "sha256:<64 hex>",
+    "accepted_at": "<RFC 3339, UTC, Z-suffixed>",
+    "checks": [ { "id": "...", "passed": true, "detail": "..." } ],
+    "entry_url": "https://techtree.sh/runs/sha256:<64 hex>",
+    "public_key": { "algorithm": "ed25519", "key_id": "sha256:…", "public_key": "<base64>" }
+  },
+  "payload_digest": "sha256:<sha256 of the canonical bytes of payload alone>",
   "signature": { "algorithm": "ed25519", "key_id": "sha256:…", "signature": "<base64>" }
 }
 ```
 
-The signature is over the canonical digest of the receipt's own payload,
-the same shape every signed document in this protocol uses. It is the
-countersignature the founder asked for: the participant signed the run,
-and the network signs that it accepted it. The network's public half is
-served at a stable address so a receipt can be checked by anybody,
-including somebody who does not trust either party.
+The signature is over the ASCII digest string, not over the document.
+It is the countersignature the founder asked for: the participant signed
+the run, and the network signs that it accepted it. The public half is
+pinned in ReleaseCore, so a receipt is checked against the key the
+*release* names rather than against one the answer supplied — a server
+that invented a key and signed with it proves nothing.
+
+### Withdrawal
+
+By `POST` to the same address. This site gains exactly one write
+address, so the two documents are told apart by their schema version
+rather than by a second route.
+
+```json
+{
+  "payload": {
+    "schema_version": "techtree.publication-withdrawal.v1alpha1",
+    "bundle_digest": "sha256:<64 hex>",
+    "requested_at": "<RFC 3339, UTC, Z-suffixed>"
+  },
+  "payload_digest": "sha256:<canonical digest of payload>",
+  "signature": { "algorithm": "ed25519", "key_id": "sha256:…", "signature": "<base64>" }
+}
+```
+
+Three members and no fourth. No reason field, ever — nothing a submitter
+writes reaches the site. No public key either: the receiving side looks
+the participant's key up in the publication it already accepted and
+checks the signature's key id against it, and that lookup is the whole
+of the authorisation.
+
+The answer is an envelope carrying
+`techtree.publication-withdrawal-receipt.v1alpha1`, the bundle digest,
+when it was withdrawn, the entry URL and the network's public key.
+
+Every shape here is exported as a JSON Schema under
+`schemas/v1alpha1/`, so an implementation is built against a generated
+file rather than against this prose.
 
 `checks` is the list the receiving side actually ran, not a constant. A
 receipt naming no check is refused by the participant's own CLI.
