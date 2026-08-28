@@ -10,9 +10,9 @@
       "3.12",
       "techtree==0.1.0"
     ],
-    "source_revision": "801bdfa47fce82cfafb2ca922c558182de10a137",
+    "source_revision": "2e714835469dc0a3fb4bece3ed2f861317fe4d7c",
     "version": "0.1.0",
-    "wheel_sha256": "sha256:3d0def3bb2733af571f9b4e59f967f8878ecc648790ad42e3cd43e89421e1387"
+    "wheel_sha256": "sha256:5565e553f2e29a145711d5b13f6c03760a99b6c17d404e4a36768513a7660040"
   },
   "hermes_plugin": {
     "doctor_argv": [
