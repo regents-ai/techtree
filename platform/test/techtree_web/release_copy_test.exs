@@ -125,9 +125,13 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "May be published under these terms"
   ]
 
+  # Decision 0038: publishing exists and is a person's own choice, so the
+  # halves that must travel together changed. Nothing goes unless they send
+  # it, the recordings never go at all, and the model calls still leave. A
+  # passage carrying only the first of those is the one that misleads.
   @publishes_nothing [
-    "Nothing you produce is published.",
-    "stay on your machine, and there is nowhere on this site to send them"
+    "Nothing you produce is published unless you publish it yourself.",
+    "publishing a finished run sends its receipt to the public run log and never the recordings"
   ]
 
   @forbidden_name ~r/helloworldbench/i

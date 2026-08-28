@@ -55,8 +55,10 @@ defmodule TechtreeWeb.CampaignsLiveTest do
     text = visible_text(html)
 
     assert text =~ "Would be published as part of entering"
-    assert text =~ "Nothing you produce is published."
-    assert text =~ "stay on your machine, and there is nowhere on this site to send them"
+    assert text =~ "Nothing you produce is published unless you publish it yourself."
+
+    assert text =~
+             "publishing a finished run sends its receipt to the public run log and never the recordings"
   end
 
   test "what a run may spend is stated in calls and tokens, never in money", %{conn: conn} do

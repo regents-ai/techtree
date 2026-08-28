@@ -118,6 +118,9 @@ defmodule TechtreeWeb.CoreComponents do
     doc: "Founder ruling 2026-08-27: the proofs page carries the frame without
     the cite sentence or the seams paragraph."
 
+  slot :inner_block,
+    doc: "Optional page-specific evidence placed beside the shared release description."
+
   def proof_of_concept(assigns) do
     ~H"""
     <section class={@class} aria-labelledby="what-this-release-is">
@@ -125,23 +128,29 @@ defmodule TechtreeWeb.CoreComponents do
         <p :if={@eyebrow} class="eyebrow">{@eyebrow}</p>
         <h2 id="what-this-release-is">What v0.1 is</h2>
       </div>
-      <div class="what-this-is">
-        <p>
-          Techtree Climb v0.1 is a proof of concept for a stack of three independent parts:
-          Prime Intellect’s Verifiers as the evaluation engine, Nous Research’s Hermes as the
-          agent host, and Techtree as the campaign kernel and evidence layer. What it
-          demonstrates is that the three pin together tightly enough for a controlled
-          comparison to run end to end and leave a receipt that verifies
-          offline.<span :if={not @compact}>
-            It is a development release, and nothing it produces is a measurement anyone
-            should cite.</span>
-        </p>
-        <p :if={not @compact} class="small quiet">
-          The evaluation engine, the agent host, and the container the agent under test runs
-          in are each pinned to an exact version, and the release is only as reproducible as
-          those pins. Those are the seams of the stack, and this site names them rather than
-          leaving a reader to find them.
-        </p>
+      <div class={[
+        "proof-of-concept__body",
+        @inner_block != [] && "proof-of-concept__body--with-evidence"
+      ]}>
+        <div class="what-this-is">
+          <p>
+            Techtree Climb v0.1 is a proof of concept for a stack of three independent parts:
+            Prime Intellect’s Verifiers as the evaluation engine, Nous Research’s Hermes as the
+            agent host, and Techtree as the campaign kernel and evidence layer. What it
+            demonstrates is that the three pin together tightly enough for a controlled
+            comparison to run end to end and leave a receipt that verifies
+            offline.<span :if={not @compact}>
+              It is a development release, and nothing it produces is a measurement anyone
+              should cite.</span>
+          </p>
+          <p :if={not @compact} class="small quiet">
+            The evaluation engine, the agent host, and the container the agent under test runs
+            in are each pinned to an exact version, and the release is only as reproducible as
+            those pins. Those are the seams of the stack, and this site names them rather than
+            leaving a reader to find them.
+          </p>
+        </div>
+        {render_slot(@inner_block)}
       </div>
     </section>
     """
@@ -319,15 +328,23 @@ defmodule TechtreeWeb.CoreComponents do
 
   def proof_grade_words(other), do: plain_words(other)
 
-  # A Climb's terms describe a published result, and this build publishes
-  # nothing. Read alone, "is published as part of entering" tells someone
-  # their Skill will be taken; two agents refused to start a run over
-  # exactly that. Decision 0013 also forbids an unqualified "it stays here",
-  # because model calls do leave — so the sentence says both halves in the
-  # same breath. Written once, shown wherever the terms are.
-  @publication_note "Nothing you produce is published. " <>
-                      "Your Skill, the recordings of each attempt and the result summary " <>
-                      "stay on your machine, and there is nowhere on this site to send them. " <>
+  # A Climb's terms describe a published result. Read alone, "is published as
+  # part of entering" tells someone their Skill will be taken; two agents
+  # refused to start a run over exactly that. Decision 0013 also forbids an
+  # unqualified "it stays here", because model calls do leave — so the
+  # sentence says both halves in the same breath. Written once, shown wherever
+  # the terms are.
+  #
+  # Decision 0038 changed the first half. Publishing exists now, and it is
+  # something a person chooses one run at a time, so the sentence says nothing
+  # goes unless they send it rather than that nothing can. It also says what
+  # goes when they do, because "you can publish this" without "the receipt,
+  # not the recordings" is the sentence that would frighten the same two
+  # agents for the opposite reason.
+  @publication_note "Nothing you produce is published unless you publish it yourself. " <>
+                      "Your Skill and the recordings of each attempt stay on your " <>
+                      "machine; publishing a finished run sends its receipt to the " <>
+                      "public run log and never the recordings. " <>
                       "The agent still makes calls to the model provider you selected, under " <>
                       "that provider's policies."
 

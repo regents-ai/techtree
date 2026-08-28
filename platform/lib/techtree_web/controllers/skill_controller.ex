@@ -59,7 +59,8 @@ defmodule TechtreeWeb.SkillController do
 
     ## Data boundary
 
-    Techtree does not upload local recordings, result bundles, or submitted Skills.
+    Techtree sends nothing on its own. Publishing a finished run is a command you run,
+    and it sends that run's receipt; the recordings never travel.
     The agent under test still makes model calls, and those go to the model provider
     the campaign names, under that provider's policies. No Techtree account exists.
 

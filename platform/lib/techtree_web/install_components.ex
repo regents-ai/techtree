@@ -296,7 +296,8 @@ defmodule TechtreeWeb.InstallComponents do
   def disclosure(assigns) do
     ~H"""
     <p class="small quiet section">
-      Techtree does not upload your recordings, your results, or the work you submit. The
+      Techtree sends nothing on its own — publishing a finished run is a command you run,
+      a run at a time, and it sends that run’s receipt and never the recordings. The
       agent under test makes real model calls, and those are sent to the model provider you
       selected, under that provider’s policies. If you later take the guided revision of your
       Skill, that one request carries your Skill text and a sanitized summary of the run to

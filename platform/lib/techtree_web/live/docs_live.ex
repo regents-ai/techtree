@@ -250,7 +250,7 @@ defmodule TechtreeWeb.DocsLive do
 
           <section id="trust" class="doc-section">
             <h2>What leaves my machine?</h2>
-            <p>Techtree does not upload your local:</p>
+            <p>Techtree sends none of this anywhere on its own:</p>
             <ul class="doc-list">
               <li>Episodes;</li>
               <li>Traces;</li>
@@ -259,6 +259,12 @@ defmodule TechtreeWeb.DocsLive do
               <li>proof bundles; or</li>
               <li>saved Skill proposals.</li>
             </ul>
+            <p>
+              Publishing a run is the one thing that sends anything, you ask for it a run at
+              a time, and what travels is the run’s receipt — the signed report, the
+              per-task receipts and the documents they cite. The episodes and traces are
+              not in that directory and cannot travel with it.
+            </p>
             <p>
               This website has no account system and no route for submitting those artifacts.
             </p>
@@ -530,8 +536,10 @@ defmodule TechtreeWeb.DocsLive do
               public reproduction or attestation-import workflow.
             </p>
             <p>
-              This release uploads nothing, receives no proof submissions, and publishes no
-              participant results.
+              Publishing a finished run sends its receipt to the public run log, which is a
+              record of what was published and not a reproduction of it. The site checks
+              that a receipt is internally consistent and signed; it does not run the
+              comparison again and did not watch the original.
             </p>
           </section>
 
@@ -759,8 +767,9 @@ defmodule TechtreeWeb.DocsLive do
               returns the same result as one machine-readable envelope.
             </p>
             <p>
-              Techtree does not upload these local artifacts. Model inference still travels to
-              the configured providers as described above.
+              Techtree sends these local artifacts nowhere on its own. Publishing a finished
+              run sends its receipt, which carries none of them. Model inference still travels
+              to the configured providers as described above.
             </p>
           </section>
 
@@ -796,7 +805,9 @@ defmodule TechtreeWeb.DocsLive do
               <li>
                 <p class="plain"><strong>Public publication</strong></p>
                 <p>
-                  Was the result uploaded or published? For v0.1 local runs, the answer is no.
+                  Was the result published? A sealed bundle records that publication had not
+                  been requested when it was written, which is not a statement about what
+                  happened afterwards. The public run log is where a published run appears.
                 </p>
               </li>
             </ol>

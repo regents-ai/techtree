@@ -69,7 +69,11 @@ defmodule TechtreeWeb.DocsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
-      assert text =~ "Techtree does not upload your local:"
+      assert text =~ "Techtree sends none of this anywhere on its own"
+      # Decision 0038: the list is only half the answer now. Publishing is the
+      # one thing that sends anything, and the passage has to say what travels
+      # when somebody asks for it or the list reads as a promise it is not.
+      assert text =~ "Publishing a run is the one thing that sends anything"
       assert text =~ "This website has no account system and no route for submitting those"
       assert text =~ "A comparison still makes real model requests."
 

@@ -170,8 +170,13 @@ defmodule TechtreeWeb.StartLiveTest do
         assert text =~ "Docker Installed, and running before a trial starts."
         assert text =~ "a key from your model provider"
 
+        # Decision 0038: the promise is conditional now, and the condition is
+        # the half that matters. A page saying only "sends nothing" would be
+        # making the old claim in new words.
+        assert text =~ "Techtree sends nothing on its own"
+
         assert text =~
-                 "Techtree does not upload your recordings, your results, or the work you submit."
+                 "it sends that run\u2019s receipt and never the recordings"
 
         assert text =~
                  "The agent under test makes real model calls, and those are sent to the " <>

@@ -19,10 +19,12 @@ Changing bytes under these paths invalidates a release approval. If a change
 seems to need one of them, it almost certainly belongs somewhere else — or it
 is a release action, not a website change.
 
-The site is **read-only by contract**: every published route answers GET and
-HEAD only, and a test asserts a 405 with an `Allow` header for anything else.
-Do not add a form, a POST, an upload, or a write path of any kind. If a design
-seems to need one, it is the wrong design for this product.
+The site has **one write address, fixed by decision 0038**: `POST
+/api/v1/publications`, which takes a signed publication or a signed withdrawal
+and nothing else. Every other published route answers GET and HEAD only, and a
+test asserts a 405 with an `Allow` header for anything else. Do not add a
+second write, a form, a file upload, or any path a reader could post to from a
+page. If a design seems to need one, it is the wrong design for this product.
 
 ## The copy guards are rulings, not lint
 
@@ -36,8 +38,11 @@ could be — misled:
 - **Never say "nothing leaves your machine" unqualified.** Model calls do go
   to the provider. Say both halves in the same breath.
 - **State the publication terms with their plain meaning.** A Climb's terms
-  describe a *published* result; this release publishes nothing. The shared
-  `publication_note()` row must accompany the terms wherever they appear.
+  describe a *published* result, and starting a run publishes nothing: nothing
+  is published unless the participant publishes a finished run themselves, and
+  what travels then is that run's proof — the signed report and its receipts —
+  and never the episodes. The shared `publication_note()` row must accompany
+  the terms wherever they appear, and must say both halves.
 - **Never promise a run is time-bounded**, and never state an exact score
   where the calibrated band belongs — the one exception is the published
   example result, whose every number is computed from the signed report the
@@ -70,4 +75,5 @@ environment variables; see the README.
 
 One sentence, and every design decision should serve it: a reader lands on one
 page, hands one prompt to their agent, and ends up with a measured,
-locally-verifiable comparison — with nothing uploaded and no account anywhere.
+locally-verifiable comparison — with no account anywhere, and nothing sent
+unless they decide to publish it.

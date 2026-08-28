@@ -79,8 +79,8 @@ defmodule TechtreeWeb.LocalProofLive do
           and those go to the model provider you chose, under that provider’s
           policies. If you take the guided revision of your Skill, that one request
           carries your Skill text and a sanitized summary of the run to the provider
-          your own agent uses, which may be a different one. What never reaches this
-          site is the recordings, the result bundle, and the work you submitted.
+          your own agent uses, which may be a different one. The recordings never reach
+          this site at all; the receipt does, if you publish the run yourself.
         </p>
         <p class="section">
           Nothing has been reproduced by a third party. No claim is made that the same

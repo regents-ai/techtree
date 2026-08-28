@@ -4,11 +4,11 @@
 
 ![The Techtree homepage](docs/assets/homepage.png)
 
-*The front page this application serves, read-only, at `/`.*
+*The front page this application serves at `/`.*
 
-The read-only public surface for Techtree Climb: an onboarding and bootstrap
-registry, and a catalog of the public Climbs and the protocol objects they are
-built from.
+The public surface for Techtree Climb: an onboarding and bootstrap registry, a
+catalog of the public Climbs and the protocol objects they are built from, and
+the append-only log of the runs participants have published.
 
 > [!IMPORTANT]
 > Techtree Climb v0.1 is a proof of concept for a stack of three independent
@@ -38,7 +38,7 @@ built from.
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the read-only site: pinned guide, catalog, published objects   ◀ this repository
+   techtree-ash ─ the site: pinned guide, catalog, published objects, run log   ◀ this repository
 ```
 
 ## The other two repositories
@@ -67,10 +67,13 @@ letting a reader find them.
 | Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
 
 > [!NOTE]
-> This application does not run evaluations, accept Skills, receipts, or
-> reports, store Episodes or Traces, authenticate anyone, or run a leaderboard.
-> The local scientific loop in `techtree-python` keeps working when this site is
-> offline — the site is discovery and onboarding, never a runtime dependency.
+> This application does not run evaluations, accept Skills, store Episodes or
+> Traces, authenticate anyone, or run a leaderboard. It accepts one thing: a
+> signed proof a participant chose to publish, and the signed withdrawal of one
+> they published earlier. The run log orders entries by arrival and ranks
+> nothing. The local scientific loop in `techtree-python` keeps working when
+> this site is offline — the site is discovery, onboarding and the log, never a
+> runtime dependency.
 
 ## What is implemented so far
 
@@ -98,16 +101,27 @@ GET /climbs                     the Climbs this release offers
 GET /climbs/:slug               one Climb in full
 GET /proofs/local               what a locally produced result claims
 GET /protocol                   the documents a trial is made of
+GET /runs                       the published runs, newest first
+GET /runs/:bundle_digest        one published run in full
 
 GET /healthz                    is a catalog being served, and which one
 GET /api/v1/bootstrap           the installation contract, exact bytes
 GET /api/v1/catalog             the generated catalog index, exact bytes
 GET /api/v1/climbs/:slug        one Climb summarized, with links to its objects
 GET /api/v1/objects/:digest     one protocol object, exact bytes
+GET /api/v1/publications        the run log, newest first
+GET /api/v1/publications/:digest  one published run
+GET /api/v1/publication-keys/:key_id  the public half of this site's own key
+
+POST /api/v1/publications       a signed publication, or a signed withdrawal
 ```
 
-Every route is a read. There is no route that creates, accepts, uploads,
-authenticates, or ranks anything.
+All but one route is a read. The exception is the single write address decision
+0038 allows: it takes a signed proof a participant chose to publish, or the
+signed withdrawal of one they published before, and the two are told apart by a
+member each document's own signature covers. There is no route that uploads a
+file, authenticates anybody, or ranks anything, and no second write may be
+added.
 
 Caching follows how immutable each address is. A content-addressed object may be
 kept forever; the catalog index and the installation contract are cached briefly
