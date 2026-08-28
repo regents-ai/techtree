@@ -19,6 +19,7 @@ defmodule TechtreeWeb.ClimbCopy do
           campaign_title: String.t(),
           task_family: String.t(),
           starter_skill: String.t(),
+          candidate_skill_label: String.t(),
           starter_note: String.t(),
           first_result_label: String.t(),
           second_result_label: String.t(),
@@ -33,6 +34,7 @@ defmodule TechtreeWeb.ClimbCopy do
       campaign_title: "Hello World Skill Uplift",
       task_family: "BranchCode v1",
       starter_skill: "hello-world-starter-v1",
+      candidate_skill_label: "hello-world-v1",
       starter_note:
         "The Hello World starter Skill is intentionally incomplete and calibrated " <>
           "to solve roughly two-thirds of the toy tasks. Individual runs may vary. " <>

@@ -3,12 +3,11 @@ defmodule TechtreeWeb.HomeLive do
   What Techtree is, what it produces, and how to install it — in that order.
 
   Five regions and no more: the claim and the evidence behind it, what this
-  release is (decision 0035 — a proof of concept for a stack of three
+  release is (decision 0035 — a working technical preview of a stack of three
   independent parts, two of them other people's work), the three steps that
   produce that evidence, the one campaign this release actually publishes, and
-  where the work goes. Nothing on this page counts anything, and nothing on it
-  moves: no activity, no totals, no claim about how many people have run
-  anything.
+  where the work goes. Nothing on this page invents activity or totals, and it
+  makes no claim about how many people have run anything.
 
   Under the headline is the one install panel, and it holds two ways in, in
   order. First the line a reader hands to their agent, because that is who sets
@@ -20,11 +19,10 @@ defmodule TechtreeWeb.HomeLive do
   is being served the panel says so rather than printing a coordinate that
   installs nothing.
 
-  Behind the headline sits one piece of decoration: a lattice of lit cubes, the
-  mark extruded, drawn on the same ground as the page and carrying no text, no
-  status and no number. Decision 0039 rules it in. It is not a second reading
-  of anything — the evidence graph in front of it stays the page's only data
-  layer — and a browser that cannot draw it simply does not.
+  Behind the headline sits one piece of decoration: the 13-block crown rendered
+  as edge-lit glass, drawn on the same ground as the page and carrying no text,
+  status or number. Decision 0039 rules it in. It rests when nobody is pointing
+  at it, and a browser that cannot draw it simply does not.
   """
 
   use TechtreeWeb, :live_view
@@ -47,10 +45,20 @@ defmodule TechtreeWeb.HomeLive do
   # is not read from the release record, and it stays true when the record moves.
   @agent_line "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
 
+  @crown_studies [
+    %{id: "1", label: "Graze"},
+    %{id: "2", label: "Orange"},
+    %{id: "3", label: "White"},
+    %{id: "4", label: "Titanium"}
+  ]
+  @crown_actions %{crown_1: "1", crown_2: "2", crown_3: "3", crown_4: "4"}
+
   @impl true
   def mount(_params, _session, socket) do
     campaign = Query.list_climbs() |> List.first()
     release = ReleaseInfo.current()
+    crown_variant = Map.get(@crown_actions, socket.assigns.live_action, "1")
+    crown_study? = Map.has_key?(@crown_actions, socket.assigns.live_action)
 
     {:ok,
      assign(socket,
@@ -61,7 +69,10 @@ defmodule TechtreeWeb.HomeLive do
        campaign_facts: CampaignFacts.for_climb(campaign),
        graph: EvidenceGraph.from_climb(campaign, release),
        preview_label: @preview_label,
-       release: release
+       release: release,
+       crown_studies: @crown_studies,
+       crown_variant: crown_variant,
+       crown_study?: crown_study?
      )}
   end
 
@@ -69,54 +80,95 @@ defmodule TechtreeWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <Layouts.page wide flush>
-      <section class="hero" aria-labelledby="hero-title">
-        <canvas
-          id="hero-lattice"
-          class="hero__lattice"
-          phx-hook="HeroLattice"
+      <section
+        class="hero"
+        data-crown-variant={@crown_variant}
+        data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
+        aria-labelledby="hero-title"
+      >
+        <div
+          id="hero-crown"
+          class="hero__optics"
+          phx-hook="Optics"
           phx-update="ignore"
+          data-optics-kind="crown"
+          data-optics-source={~p"/assets/js/crown_island.js"}
+          data-optics-pointer="viewport"
+          data-crown-variant={@crown_variant}
+          data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
           aria-hidden="true"
         >
-        </canvas>
+          <canvas
+            id="hero-crown-canvas"
+            class="hero__crown"
+            data-optics-canvas
+            data-crown-variant={@crown_variant}
+          >
+          </canvas>
+        </div>
+
+        <nav :if={@crown_study?} class="crown-studies" aria-label="Crown material studies">
+          <span>Material study</span>
+          <a
+            :for={study <- @crown_studies}
+            id={"crown-study-#{study.id}"}
+            href={"/crown/#{study.id}"}
+            data-crown-study={study.id}
+            class={["crown-studies__link", study.id == @crown_variant && "is-active"]}
+            aria-current={if(study.id == @crown_variant, do: "page")}
+          >
+            <b>{study.id}</b> {study.label}
+          </a>
+        </nav>
 
         <div class="hero__copy">
           <p class="eyebrow">{@preview_label}</p>
-          <h1 id="hero-title">Improve a Skill.<br />Prove it worked.</h1>
-          <p class="hero__lede">
-            Run a controlled baseline and candidate on your machine. Techtree keeps the
-            taskset, model, harness, tools, and budget fixed, then signs the result so
-            anyone holding a copy can check it offline, needing no account and nothing
-            from us.
+          <h1 id="hero-title" class="hero-title">
+            <span class="hero-title__line">Improve a Skill.</span>
+            <span class="hero-title__line">Prove it worked.</span>
+          </h1>
+          <p class="hero__mechanism">
+            <span>Same pinned agent. Same fixed tasks. One changed Skill.</span>
+            <span>Get a signed local receipt for the difference.</span>
           </p>
 
-          <.installer release={@release} agent_line={@agent_line} />
-
           <div class="hero__actions">
-            <a class="button button--primary" href={~p"/docs#install"}>
+            <.link class="button button--primary" navigate={~p"/docs#quickstart"}>
               <span class="button__mark" aria-hidden="true"></span> Install Techtree
-            </a>
-            <a class="text-link" href={~p"/proofs"}>
-              View a verified run <span aria-hidden="true">→</span>
+            </.link>
+            <a class="text-link" href={~p"/runs"}>
+              View published runs <span aria-hidden="true">→</span>
             </a>
           </div>
 
-          <p class="hero__caption">
-            No Techtree account, and nothing uploaded unless you publish it.
-          </p>
+          <.installer release={@release} agent_line={@agent_line} />
         </div>
 
+        <a
+          class="hero__more"
+          href="#what-this-release-is"
+          aria-label="Continue to the v0.1 release section"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 5 6 6 6-6" />
+            <path d="m6 12 6 6 6-6" />
+          </svg>
+        </a>
+      </section>
+
+      <.proof_of_concept
+        class="home-section proof-of-concept"
+        eyebrow="hermes + prime + nvidia agent stack"
+        title="v0.1 release - standing on giants"
+        nemo_roadmap
+      >
         <EvidenceComponents.graph
           :if={@graph != []}
           id="home-evidence-graph"
           nodes={@graph}
           compact
         />
-      </section>
-
-      <.proof_of_concept
-        class="home-section proof-of-concept"
-        eyebrow="A proof of concept, not a product"
-      />
+      </.proof_of_concept>
 
       <section class="home-section process" aria-labelledby="process-title">
         <div class="section-heading">
@@ -221,12 +273,8 @@ defmodule TechtreeWeb.HomeLive do
     ~H"""
     <div class="installer">
       <.prompt_block id="copy-home-agent-line" label="Give this to your agent" text={@agent_line} />
-      <p class="installer__caption">
-        It reads the pinned installation guide, and asks you before it installs anything,
-        runs anything, or spends anything.
-      </p>
 
-      <p class="installer__divider"><span>Or install it yourself</span></p>
+      <p class="installer__divider"><span>Or use the CLI directly</span></p>
 
       <div class="installer__manual">
         <%= cond do %>
@@ -249,7 +297,11 @@ defmodule TechtreeWeb.HomeLive do
               argv={["techtree", "doctor", "--climb", @release.introductory_reference]}
               label="Then check this machine"
             />
-            <p class="compatibility">{ReleaseInfo.compatibility(@release)}</p>
+            <p :if={@release.introductory_reference} class="installer__doctor-note">
+              Doctor checks prerequisites and prints the exact next action. These commands do not
+              start paid model inference.
+            </p>
+            <p class="compatibility">{hero_compatibility(@release)}</p>
             <p class="release-coordinate">
               <span>{ReleaseInfo.label(@release)}</span>
               <a href={~p"/docs#release"}>Release details</a>
@@ -258,5 +310,18 @@ defmodule TechtreeWeb.HomeLive do
       </div>
     </div>
     """
+  end
+
+  defp hero_compatibility(%{minimums: minimums}) do
+    [
+      "macOS or Linux",
+      "uv required",
+      if(minimums["docker_required"], do: "Docker required"),
+      minimums["python"] && "Python #{minimums["python"]} managed by uv",
+      minimums["hermes_version"] &&
+        "Hermes #{minimums["hermes_version"]}+ only for the plugin path"
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
   end
 end

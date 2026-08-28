@@ -38,6 +38,12 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert visible_text(html) =~ "Nobody has published a run yet"
     end
 
+    test "does not claim it opened with runs it has not got", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/runs")
+
+      refute visible_text(html) =~ "certification runs"
+    end
+
     test "a run nobody published is not found", %{conn: conn} do
       assert_error_sent 404, fn ->
         live(conn, "/runs/sha256:#{String.duplicate("a", 64)}")
@@ -61,6 +67,16 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert text =~ "+0.639"
       assert text =~ "P1"
       assert text =~ Calendar.strftime(entry.accepted_at, "%Y-%m-%d")
+    end
+
+    test "names the campaign and compares the baseline with the fallback Skill",
+         %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, ~p"/runs")
+
+      assert has_element?(live, "#run-entry-#{entry.log_sequence}")
+      assert visible_text(render(live)) =~ "Techtree Hello World"
+      assert visible_text(render(live)) =~ "No Skill vs. hello-world-v1"
+      refute has_element?(live, "#run-github-#{entry.log_sequence}")
     end
 
     test "names the publisher by a short form of their key's fingerprint",
@@ -94,6 +110,28 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute live |> element("select") |> has_element?()
       refute live |> element("[phx-click]") |> has_element?()
       refute html =~ "<form"
+    end
+
+    test "says once, of itself, that the log opened with this project's own runs",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/runs")
+      text = visible_text(html)
+
+      assert text =~ "own certification runs"
+
+      # It is one sentence the page makes about itself, so it is said once. A
+      # second copy of it beside every row is the badge this ruling refused.
+      assert length(String.split(text, "certification runs")) == 2
+    end
+
+    test "puts no label on a row saying whose run it is", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/runs")
+
+      rows = html |> LazyHTML.from_fragment() |> LazyHTML.query(".log__entry") |> LazyHTML.text()
+
+      for word <- ["certification", "ours", "official", "verified by us", "techtree's"] do
+        refute String.downcase(rows) =~ word, "a row is labelled #{inspect(word)}"
+      end
     end
 
     test "does not offer the bytes it was submitted with", %{conn: conn, entry: entry} do
@@ -194,6 +232,15 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert html =~ ~s|href="/campaigns/hello-world-climb"|
     end
 
+    test "shows campaign and Skill metadata on the detail page", %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, "/runs/#{entry.bundle_digest}")
+
+      assert has_element?(live, "#run-comparison")
+      assert visible_text(render(live)) =~ "Techtree Hello World"
+      assert visible_text(render(live)) =~ "No Skill vs. hello-world-v1"
+      refute has_element?(live, "#run-github")
+    end
+
     test "calls its place in the log a log sequence and never a position",
          %{conn: conn, entry: entry} do
       {:ok, _live, html} = live(conn, "/runs/#{entry.bundle_digest}")
@@ -232,6 +279,16 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute html =~ entry.submission_bytes
     end
 
+    test "makes the offline verification command specific to this run",
+         %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, "/runs/#{entry.bundle_digest}")
+
+      assert has_element?(
+               live,
+               ~s|#copy-runs-verify[data-copy-value="techtree proof verify #{entry.run_id}"]|
+             )
+    end
+
     test "a withdrawn entry keeps its page and is marked at the top of it",
          %{conn: conn, entry: entry, keys: keys} do
       {:ok, marked, :recorded} =
@@ -250,6 +307,31 @@ defmodule TechtreeWeb.RunsLiveTest do
     end
   end
 
+  describe "stored Skill metadata" do
+    setup :publish_a_run_with_metadata
+
+    test "shows the stored Skill name and canonical GitHub link on both pages",
+         %{conn: conn, entry: entry} do
+      github_url = "https://github.com/example/hello-world"
+
+      {:ok, index, _html} = live(conn, ~p"/runs")
+
+      assert has_element?(index, "#run-entry-#{entry.log_sequence}")
+      assert visible_text(render(index)) =~ "No Skill vs. branchcode"
+
+      assert has_element?(
+               index,
+               "#run-entry-#{entry.log_sequence} #run-github-#{entry.log_sequence}[href=\"#{github_url}\"]"
+             )
+
+      {:ok, detail, _html} = live(conn, "/runs/#{entry.bundle_digest}")
+
+      assert has_element?(detail, "#run-comparison")
+      assert visible_text(render(detail)) =~ "No Skill vs. branchcode"
+      assert has_element?(detail, "#run-github[href=\"#{github_url}\"]")
+    end
+  end
+
   defp shown(html) do
     ~r|/runs/(sha256:[0-9a-f]{64})|
     |> Regex.scan(html, capture: :all_but_first)
@@ -262,6 +344,20 @@ defmodule TechtreeWeb.RunsLiveTest do
     files = NetworkFixture.resign(NetworkFixture.files(), keys: keys)
 
     {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
+
+    {:ok, entry: entry, keys: keys}
+  end
+
+  defp publish_a_run_with_metadata(_context) do
+    keys = NetworkFixture.key_pair()
+    files = NetworkFixture.resign(NetworkFixture.files(), keys: keys)
+
+    {:ok, entry, :recorded} =
+      NetworkFixture.publish(
+        NetworkFixture.submission(files),
+        skill_name: "branchcode",
+        skill_github_url: "https://github.com/example/hello-world"
+      )
 
     {:ok, entry: entry, keys: keys}
   end

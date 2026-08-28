@@ -94,7 +94,8 @@ defmodule TechtreeWeb.ProofsLiveTest do
     test "the reader is told how to check a bundle they hold, offline", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/proofs")
 
-      assert visible_text(html) =~ "check it on their own machine"
+      assert visible_text(html) =~
+               "Only a run carries those. The bundle is signed on the machine that produced it, and anyone holding a copy can check it on their own machine, offline."
 
       assert live
              |> element(

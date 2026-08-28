@@ -1,10 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme={assigns[:theme]}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      id="theme-color"
+      name="theme-color"
+      content={if(assigns[:theme] == "orange", do: "#f4eee4", else: "#101010")}
+    />
     <meta
       name="description"
       content="Improve a Skill under controlled conditions and produce a checkable local result."
@@ -13,11 +18,21 @@
       {assigns[:page_title]}
     </.live_title>
     <link rel="icon" type="image/svg+xml" href={~p"/images/mark.svg"} />
-    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
-    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    <link
+      phx-track-static
+      rel="stylesheet"
+      href={~p"/assets/css/site.css"}
+    />
+    <script
+      defer
+      phx-track-static
+      type="text/javascript"
+      src={~p"/assets/js/site.js"}
+    >
     </script>
   </head>
   <body>
+    <.masthead :if={masthead_visible?(assigns)} current_path={request_path(assigns)} />
     {@inner_content}
   </body>
 </html>

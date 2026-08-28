@@ -41,6 +41,7 @@ defmodule TechtreeWeb.RunsLive.Index do
   use TechtreeWeb, :live_view
 
   alias Techtree.Network.Query
+  alias TechtreeWeb.ClimbCopy
 
   @impl true
   def mount(_params, _session, socket) do
@@ -100,14 +101,32 @@ defmodule TechtreeWeb.RunsLive.Index do
       </p>
 
       <div :if={@entries != []} class="log">
-        <article :for={entry <- @entries} class="log__entry">
+        <article :for={entry <- @entries} id={"run-entry-#{entry.log_sequence}"} class="log__entry">
           <div class="log__head">
             <div>
+              <p class="eyebrow log__campaign">{campaign_name(entry)}</p>
               <p class="eyebrow">{entry.subject_harness} {entry.subject_harness_version}</p>
               <h2 class="log__title">{entry.subject_model}</h2>
             </div>
             <p class="log__when">{arrived(entry.accepted_at)}</p>
           </div>
+
+          <p class="log__comparison">
+            No Skill vs. {skill_name(entry)}
+            <a
+              :if={github_url(entry)}
+              class="github-link github-link--small"
+              id={"run-github-#{entry.log_sequence}"}
+              href={github_url(entry)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={"View #{skill_name(entry)} on GitHub"}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 4.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+              </svg>
+            </a>
+          </p>
 
           <p :if={entry.withdrawn_at} class="log__withdrawn">
             {withdrawn_words(entry.withdrawn_at)}
@@ -155,6 +174,35 @@ defmodule TechtreeWeb.RunsLive.Index do
   # A digest carries a colon, which the route sigil would escape into an
   # address a reader could not compare against the one they hold.
   defp entry_url(entry), do: "/runs/" <> entry.bundle_digest
+
+  defp campaign_name(entry) do
+    copy = legacy_copy(entry)
+
+    present(Map.get(entry, :campaign_name)) || Map.get(copy, :campaign_title) ||
+      entry.climb_reference
+  end
+
+  defp skill_name(entry) do
+    copy = legacy_copy(entry)
+
+    present(Map.get(entry, :skill_name)) || Map.get(copy, :candidate_skill_label) ||
+      "the candidate Skill"
+  end
+
+  defp github_url(entry) do
+    case Map.get(entry, :skill_github_url) do
+      "https://github.com/" <> _ = url -> url
+      _other -> nil
+    end
+  end
+
+  defp legacy_copy(entry), do: ClimbCopy.for_reference(entry.climb_reference) || %{}
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 
   defp older_url(sequence), do: "/runs?before_sequence=" <> Integer.to_string(sequence)
 

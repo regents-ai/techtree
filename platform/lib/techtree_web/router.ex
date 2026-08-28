@@ -39,11 +39,14 @@ defmodule TechtreeWeb.Router do
   @content_security_policy "default-src 'none'; script-src 'self'; style-src 'self'; " <>
                              "img-src 'self' data:; font-src 'self'; connect-src 'self'; " <>
                              "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  @theme_cookie "techtree_theme"
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug :fetch_cookies
     plug :fetch_live_flash
+    plug :put_theme
     plug :put_root_layout, html: {TechtreeWeb.Layouts, :root}
     plug :protect_from_forgery
 
@@ -123,6 +126,20 @@ defmodule TechtreeWeb.Router do
     |> put_resp_header("referrer-policy", "no-referrer")
   end
 
+  defp put_theme(conn, _opts) do
+    theme =
+      case conn.request_path do
+        "/crown/2" -> "orange"
+        "/crown/4" -> "titanium"
+        _path -> saved_theme(conn.req_cookies[@theme_cookie])
+      end
+
+    assign(conn, :theme, theme)
+  end
+
+  defp saved_theme(value) when value in ["orange", "titanium"], do: value
+  defp saved_theme(_value), do: nil
+
   # Previews of work heading for `/`, and nothing a release publishes.
   #
   # Founder ruling 2026-08-28: these are for him to look at while the front
@@ -138,7 +155,10 @@ defmodule TechtreeWeb.Router do
     scope "/", TechtreeWeb do
       pipe_through :browser
 
-      live "/crown", HomeLive
+      live "/crown/1", HomeLive, :crown_1
+      live "/crown/2", HomeLive, :crown_2
+      live "/crown/3", HomeLive, :crown_3
+      live "/crown/4", HomeLive, :crown_4
       live "/prism", PrismLive
     end
   end

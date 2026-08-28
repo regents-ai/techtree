@@ -103,20 +103,20 @@ defmodule TechtreeWeb.CoreComponents do
   @doc """
   What this release is, written once and shown wherever a page says so.
 
-  Decision 0035: v0.1 is a proof of concept for a stack of three independent
+  Decision 0035: v0.1 is a working technical preview of a stack of three independent
   parts, and two of the three are other people's work. A page that says what
-  this release is has to name all three with the projects that made them, and
-  has to say where the seams are — the engine, the host and the container are
-  pinned, and the release is only as reproducible as those pins. Written in one
-  place so that two pages cannot drift into two different claims.
+  this release is has to name all three with the projects that made them.
+  Written in one place so that two pages cannot drift into two different claims.
   """
   attr :class, :string, default: "section"
   attr :eyebrow, :string, default: nil
+  attr :title, :string, default: "What v0.1 is"
 
   attr :compact, :boolean,
     default: false,
-    doc: "Founder ruling 2026-08-27: the proofs page carries the frame without
-    the cite sentence or the seams paragraph."
+    doc: "The proofs page carries the shared v0.1 frame without page-specific roadmap copy."
+
+  attr :nemo_roadmap, :boolean, default: false
 
   slot :inner_block,
     doc: "Optional page-specific evidence placed beside the shared release description."
@@ -126,7 +126,7 @@ defmodule TechtreeWeb.CoreComponents do
     <section class={@class} aria-labelledby="what-this-release-is">
       <div class="section-heading">
         <p :if={@eyebrow} class="eyebrow">{@eyebrow}</p>
-        <h2 id="what-this-release-is">What v0.1 is</h2>
+        <h2 id="what-this-release-is">{@title}</h2>
       </div>
       <div class={[
         "proof-of-concept__body",
@@ -134,20 +134,39 @@ defmodule TechtreeWeb.CoreComponents do
       ]}>
         <div class="what-this-is">
           <p>
-            Techtree Climb v0.1 is a proof of concept for a stack of three independent parts:
-            Prime Intellect’s Verifiers as the evaluation engine, Nous Research’s Hermes as the
-            agent host, and Techtree as the campaign kernel and evidence layer. What it
-            demonstrates is that the three pin together tightly enough for a controlled
-            comparison to run end to end and leave a receipt that verifies
-            offline.<span :if={not @compact}>
-              It is a development release, and nothing it produces is a measurement anyone
-              should cite.</span>
+            Techtree Climb v0.1 is a working technical preview of a stack of three independent parts:
+            <a
+              href="https://github.com/PrimeIntellect-ai/verifiers"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Prime Intellect’s Verifiers
+            </a>
+            as the evaluation engine,
+            <a
+              href="https://github.com/NousResearch/hermes-agent"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Nous Research’s Hermes
+            </a>
+            as the agent host, and Techtree as the campaign kernel and evidence layer.
           </p>
-          <p :if={not @compact} class="small quiet">
-            The evaluation engine, the agent host, and the container the agent under test runs
-            in are each pinned to an exact version, and the release is only as reproducible as
-            those pins. Those are the seams of the stack, and this site names them rather than
-            leaving a reader to find them.
+          <p>
+            What it demonstrates is that the three pin together tightly enough for a controlled comparison
+            to run end to end and leave a receipt that verifies
+            offline.
+          </p>
+          <p :if={@nemo_roadmap and not @compact} class="small quiet what-this-is__roadmap">
+            Support for NVIDIA’s
+            <a
+              href="https://github.com/NVIDIA-NeMo"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              NeMo Framework
+            </a>
+            coming in v0.2.
           </p>
         </div>
         {render_slot(@inner_block)}

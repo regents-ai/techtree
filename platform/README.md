@@ -11,14 +11,13 @@ catalog of the public Climbs and the protocol objects they are built from, and
 the append-only log of the runs participants have published.
 
 > [!IMPORTANT]
-> Techtree Climb v0.1 is a proof of concept for a stack of three independent
+> Techtree Climb v0.1 is a working technical preview of a stack of three independent
 > parts: Prime Intellect's Verifiers as the evaluation engine,
 > Nous Research's Hermes as the agent host, and
 > Techtree as the campaign kernel and evidence layer.
 > What it demonstrates is that the three pin together tightly enough for a
 > controlled comparison to run end to end and leave a receipt that verifies
-> offline. It is a development release, and nothing here is a measurement
-> anyone should cite.
+> offline.
 
 ```text
         you

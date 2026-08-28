@@ -34,6 +34,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   alias Techtree.Network.Bundle
   alias Techtree.Network.Query
   alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.ClimbCopy
 
   @impl true
   def mount(%{"bundle_digest" => digest}, _session, socket) do
@@ -63,11 +64,25 @@ defmodule TechtreeWeb.RunsLive.Show do
 
       <header class="page-heading page-heading--split">
         <div>
-          <p class="eyebrow">Published run · {arrived(@entry.accepted_at)}</p>
+          <p class="eyebrow">{@campaign_name} · {arrived(@entry.accepted_at)}</p>
           <h1>{@entry.subject_harness} {@entry.subject_harness_version} on {@entry.subject_model}</h1>
           <p class="lede">
             {@entry.wins} of {@entry.task_count} tasks came out better with the Skill, {@entry.ties} came out the same, and {@entry.losses} came out worse.
           </p>
+          <p id="run-comparison" class="run-comparison">No Skill vs. {@skill_name}</p>
+          <a
+            :if={@github_url}
+            id="run-github"
+            class="github-link"
+            href={@github_url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 4.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+            View this Skill on GitHub
+          </a>
         </div>
         <.digest value={@entry.participant_key_id} />
       </header>
@@ -184,7 +199,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </div>
         <.command_block
           id="copy-runs-verify"
-          argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
+          argv={["techtree", "proof", "verify", @entry.run_id]}
           label="Verify offline"
         />
       </section>
@@ -207,14 +222,47 @@ defmodule TechtreeWeb.RunsLive.Show do
     %{
       page_title: "A published run",
       entry: entry,
+      campaign_name: campaign_name(entry, climb),
+      skill_name: skill_name(entry, climb),
+      github_url: github_url(entry),
       withdrawn?: Query.withdrawn?(entry),
       checks: Bundle.checks(),
       tasks: Enum.map(entry.task_deltas, &task_row/1),
       published: CampaignFacts.for_climb(climb),
       slug: climb && climb.projection["slug"],
-      title: (climb && climb.title) || entry.climb_reference
+      title: campaign_name(entry, climb)
     }
   end
+
+  defp campaign_name(entry, climb) do
+    copy = climb && ClimbCopy.for_reference(climb.reference)
+
+    present(Map.get(entry, :campaign_name)) ||
+      (copy && copy.campaign_title) ||
+      (climb && climb.title) ||
+      entry.climb_reference
+  end
+
+  defp skill_name(entry, climb) do
+    copy = climb && ClimbCopy.for_reference(climb.reference)
+
+    present(Map.get(entry, :skill_name)) ||
+      (copy && copy.candidate_skill_label) ||
+      "the candidate Skill"
+  end
+
+  defp github_url(entry) do
+    case Map.get(entry, :skill_github_url) do
+      "https://github.com/" <> _ = url -> url
+      _other -> nil
+    end
+  end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 
   # A digest carries a colon, which the route sigil would escape into an
   # address a reader could not compare against the one they hold.

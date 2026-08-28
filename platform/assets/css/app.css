@@ -23,9 +23,17 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: dark light;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+}
+
+html[data-theme="orange"] {
+  color-scheme: light;
+}
+
+html[data-theme="titanium"] {
+  color-scheme: dark;
 }
 
 body,
@@ -78,39 +86,45 @@ svg {
   /* One surface. Panels are the same field, a shade apart, never a second
      material. */
   /* The exact ground the Regents platform stands on. */
-  --page: oklch(0.145 0 0);
-  --panel: oklch(0.185 0 0);
-  --panel-strong: oklch(0.22 0 0);
+  --page: light-dark(#f4eee4, oklch(0.145 0 0));
+  --panel: light-dark(#ebe0d2, oklch(0.185 0 0));
+  --panel-strong: light-dark(#dfd0bf, oklch(0.22 0 0));
 
-  --ink: #e5e3d2;
-  --ink-quiet: #aecacd;
-  --ink-faint: #7e9599;
-  --rule: #2d2d2d;
-  --rule-strong: #474747;
+  --ink: light-dark(#1b1916, #e5e3d2);
+  --ink-quiet: light-dark(#4b443c, #aecacd);
+  --ink-faint: light-dark(#71675c, #7e9599);
+  --rule: light-dark(#d2c4b4, #2d2d2d);
+  --rule-strong: light-dark(#9d8d7c, #474747);
 
   /* Titanium: the display voice. Titles and the mark wear it; the accent
      never does. */
-  --titanium: #c9d1d3;
+  --titanium: light-dark(#22201c, #c9d1d3);
 
   /* The one Techtree accent: tangerine, for highlights only. It marks what a
      reader may act on, and never doubles as a state. */
-  --accent: #ff5b19;
-  --accent-lift: #ff7440;
-  --accent-deep: #ff6a30;
-  --accent-ink: #161616;
+  --accent: light-dark(#d43808, #ff5b19);
+  --accent-lift: light-dark(#e64c16, #ff7440);
+  --accent-deep: light-dark(#a82904, #ff6a30);
+  --accent-ink: light-dark(#fff9f4, #161616);
 
   /* Platinum paper for the raised cards; charcoal for the terminal blocks. */
-  --paper: #e5e3d2;
+  --paper: light-dark(#fffaf3, #e5e3d2);
   --paper-ink: #161616;
-  --terminal: #101010;
-  --terminal-ink: #e5e3d2;
-  --terminal-rule: #343434;
+  --terminal: light-dark(#17130f, #101010);
+  --terminal-ink: light-dark(#fff7ed, #e5e3d2);
+  --terminal-rule: light-dark(#49382c, #343434);
 
   /* Reserved. Each of these says one thing about a state and nothing else. */
-  --complete: #3fb950;
-  --running: #e3b341;
-  --failed: #f85149;
-  --unavailable: #6e7772;
+  --complete: light-dark(#247d36, #3fb950);
+  --running: light-dark(#8a5c00, #e3b341);
+  --failed: light-dark(#b52d2a, #f85149);
+  --unavailable: light-dark(#66706a, #6e7772);
+
+  --hero-theme-background: light-dark(#c4380c, #46535e);
+  --theme-toggle-laser: light-dark(#fff8ef, #ff5b19);
+  --theme-toggle-laser-glow: light-dark(rgb(255 255 255 / 70%), rgb(255 91 25 / 72%));
+  --theme-toggle-cube-face: light-dark(rgb(83 20 5 / 42%), rgb(10 14 17 / 45%));
+  --theme-toggle-cube-edge: light-dark(rgb(255 239 224 / 86%), rgb(218 229 234 / 82%));
 
   --font-prose: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -265,13 +279,14 @@ strong {
   width: min(100% - 2rem, var(--page-width));
   min-height: var(--header-height);
   margin: 0 auto;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 1.25rem;
 }
 
 .masthead__name {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
@@ -295,23 +310,200 @@ strong {
 }
 
 .masthead__nav {
+  justify-self: center;
   display: flex;
   align-items: center;
-  gap: clamp(0.8rem, 3vw, 2rem);
-  font-size: 0.9rem;
+  gap: 0.65rem;
+  font-size: 0.82rem;
 }
 
-.masthead__nav a {
+.masthead__selector {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--rule-strong);
+  background: var(--panel);
+}
+
+.masthead__selector a {
+  width: 4.125rem;
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--ink-quiet);
   text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
 }
 
-.masthead__nav a:hover {
+.masthead__selector a + a {
+  border-left: 1px solid var(--rule-strong);
+}
+
+.masthead__selector a:hover {
+  background: var(--panel-strong);
   color: var(--ink);
 }
 
-.masthead__proof {
-  color: var(--ink) !important;
+.masthead__selector a[aria-current="page"] {
+  background: var(--panel-strong);
+  color: var(--ink);
+  box-shadow: inset 0 -2px var(--accent);
+}
+
+.masthead__github {
+  min-height: 2.75rem;
+  padding: 0 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--paper-ink) 16%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.masthead__github:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--paper) 88%, var(--accent));
+  color: var(--paper-ink);
+}
+
+.masthead__github:active {
+  transform: scale(0.97);
+}
+
+.masthead__github-mark,
+.masthead__github-star {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+
+.masthead__github-star {
+  color: var(--accent);
+}
+
+.masthead__github-count {
+  min-width: 1ch;
+  margin-left: 0.15rem;
+  margin-right: -0.15rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.theme-toggle {
+  justify-self: end;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--rule-strong) 82%, transparent);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  perspective: 5rem;
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1), border-color 140ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.theme-toggle:active {
+  transform: scale(0.97);
+}
+
+.theme-toggle__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  background: var(--hero-theme-background);
+  transform-style: preserve-3d;
+}
+
+.theme-toggle__laser {
+  position: absolute;
+  top: 0.12rem;
+  bottom: 0.12rem;
+  left: calc(50% - 0.055rem);
+  width: 0.11rem;
+  background: var(--theme-toggle-laser);
+  box-shadow: 0 0 0.28rem var(--theme-toggle-laser-glow);
+}
+
+.theme-toggle__cube {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.72rem;
+  height: 0.72rem;
+  transform-style: preserve-3d;
+  animation: theme-cube-spin 14s linear infinite;
+}
+
+.theme-toggle__face {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--theme-toggle-cube-edge);
+  background: var(--theme-toggle-cube-face);
+  box-shadow:
+    inset 0 0 0.18rem rgb(255 255 255 / 22%),
+    0 0 0.16rem color-mix(in srgb, var(--theme-toggle-cube-edge) 34%, transparent);
+  backface-visibility: visible;
+}
+
+.theme-toggle__face--front {
+  transform: translateZ(0.36rem);
+}
+
+.theme-toggle__face--back {
+  transform: rotateY(180deg) translateZ(0.36rem);
+}
+
+.theme-toggle__face--left {
+  transform: rotateY(-90deg) translateZ(0.36rem);
+}
+
+.theme-toggle__face--right {
+  transform: rotateY(90deg) translateZ(0.36rem);
+}
+
+.theme-toggle__face--top {
+  transform: rotateX(90deg) translateZ(0.36rem);
+}
+
+.theme-toggle__face--bottom {
+  transform: rotateX(-90deg) translateZ(0.36rem);
+}
+
+@keyframes theme-cube-spin {
+  from {
+    transform: translate3d(-50%, -50%, 0) rotateX(-19deg) rotateY(0deg);
+  }
+
+  to {
+    transform: translate3d(-50%, -50%, 0) rotateX(-19deg) rotateY(360deg);
+  }
 }
 
 .masthead__proof::after {
@@ -528,39 +720,180 @@ strong {
 /* Homepage --------------------------------------------------------------- */
 
 .hero {
+  position: relative;
+  left: 50%;
+  isolation: isolate;
+  width: 100vw;
   min-height: calc(100svh - var(--header-height));
-  padding: clamp(4rem, 9vh, 7rem) 0;
+  margin-left: -50vw;
+  padding-block: clamp(4rem, 9vh, 7rem);
+  padding-inline: max(1rem, calc((100vw - var(--page-width)) / 2));
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(25rem, 0.92fr);
   align-items: center;
   gap: clamp(3rem, 7vw, 7rem);
+  background: var(--hero-theme-background);
+  color: #f4f4ee;
+  --ink: #f4f4ee;
+  --ink-quiet: #d7e7e9;
+  --ink-faint: #a7bec2;
+  --rule: rgb(255 255 255 / 23%);
+  --rule-strong: rgb(255 255 255 / 42%);
+  --titanium: #d8dfe1;
+  --accent-deep: #ff7a45;
+}
+
+.hero[data-crown-theme-controlled="false"] {
+  background: #000;
+}
+
+.hero[data-crown-variant="2"] {
+  background: #c4380c;
+  --ink-faint: #ffd0bd;
+  --ink-quiet: #fff2eb;
+}
+
+.hero[data-crown-variant="2"] .button--primary {
+  background: #111;
+  color: #fff;
+}
+
+.hero[data-crown-variant="2"] .button--primary:hover {
+  background: #272727;
+}
+
+.hero[data-crown-variant="4"] {
+  background: #46535e;
+}
+
+.hero__optics {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.hero__optics[data-optics-ready="true"] {
+  opacity: 1;
+}
+
+.hero__crown {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.crown-studies {
+  position: absolute;
+  right: max(1rem, calc((100vw - var(--page-width)) / 2));
+  bottom: 1.25rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.crown-studies > span {
+  margin-right: 0.35rem;
+  color: var(--ink-faint);
+}
+
+.crown-studies__link {
+  padding: 0.48rem 0.58rem;
+  border: 1px solid var(--rule);
+  color: var(--ink-muted);
+  background: rgb(8 9 9 / 72%);
+  transition:
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.crown-studies__link:hover,
+.crown-studies__link.is-active {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.crown-studies__link:active {
+  transform: scale(0.97);
+}
+
+.crown-studies__link b {
+  color: var(--accent);
 }
 
 .hero__copy {
+  position: relative;
+  z-index: 1;
   max-width: 38rem;
 }
 
-.hero h1 {
+.hero-title {
   margin-top: 1.1rem;
-  font-size: clamp(4rem, 6.2vw, 4.75rem);
+  font-size: clamp(3.5rem, 4.75vw, 4.25rem);
 }
 
-.hero__lede {
-  max-width: var(--measure);
-  margin-top: 1.7rem;
+.hero-title__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.hero__mechanism {
+  max-width: 38rem;
+  margin-top: 1.25rem;
   color: var(--ink-quiet);
-  font-size: clamp(1.125rem, 1.6vw, 1.25rem);
-  line-height: 1.65;
+  font-size: clamp(0.95rem, 1.15vw, 1.05rem);
+  font-weight: 560;
+  line-height: 1.55;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 62%), 0 0 12px rgb(0 0 0 / 48%);
+  text-wrap: pretty;
+}
+
+.hero__mechanism span {
+  display: block;
 }
 
 .hero__actions {
   margin-top: 2rem;
 }
 
-.hero__caption {
-  margin-top: 1rem;
+.hero__more {
+  position: absolute;
+  bottom: 0.85rem;
+  left: 50%;
+  z-index: 2;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
   color: var(--ink-faint);
-  font-size: 0.85rem;
+  text-decoration: none;
+  transform: translateX(-50%);
+  transition: color 140ms ease;
+}
+
+.hero__more:hover {
+  color: var(--accent);
+}
+
+.hero__more svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
 }
 
 /* The two ways in are one panel. A command is a left-aligned block wherever the
@@ -569,12 +902,6 @@ strong {
 .installer {
   margin-top: 2rem;
   text-align: left;
-}
-
-.installer__caption {
-  margin-top: 0.65rem;
-  color: var(--ink-faint);
-  font-size: 0.85rem;
 }
 
 /* One line, so a reader can see where the first way in ends and the second
@@ -602,6 +929,7 @@ strong {
   padding-bottom: 0.5rem;
 }
 
+.installer__doctor-note,
 .compatibility,
 .release-coordinate,
 .release-state {
@@ -611,8 +939,13 @@ strong {
   line-height: 1.6;
 }
 
+.installer__doctor-note,
 .compatibility {
   margin-top: 0.65rem;
+}
+
+.installer__doctor-note {
+  max-width: 58ch;
 }
 
 .release-coordinate {
@@ -741,10 +1074,119 @@ strong {
   font-size: 0.9rem;
 }
 
-.what-this-is {
+.proof-of-concept__body {
   margin-top: 2rem;
+}
+
+.proof-of-concept__body--with-evidence {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(28rem, 1.22fr);
+  align-items: start;
+  gap: clamp(3rem, 7vw, 7rem);
+}
+
+.what-this-is {
   max-width: var(--measure);
   color: var(--ink-quiet);
+}
+
+.proof-of-concept__body > .evidence-graph {
+  width: 100%;
+  text-align: left;
+}
+
+/* Public VGPU comparison ----------------------------------------------- */
+
+.prism-demo {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+.prism-demo__canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.prism-demo[data-optics-ready="true"] .prism-demo__canvas {
+  opacity: 1;
+}
+
+/* The current VGPU renderer reads this invisible box as its camera target.
+   Keeping framing in CSS lets the source renderer stay untouched while the
+   triangle occupies the same right-hand field at every desktop width. */
+.prism-demo__frame {
+  position: absolute;
+  inset: 6% 8% 7% 39%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.prism-demo__copy {
+  position: absolute;
+  top: 50%;
+  left: clamp(2.5rem, 4.6vw, 6rem);
+  z-index: 2;
+  width: min(31rem, 38vw);
+  transform: translateY(-50%);
+  text-shadow: 0 1px 24px rgb(0 0 0 / 0.55);
+}
+
+.prism-demo__title {
+  width: clamp(11.75rem, 13.5vw, 17rem);
+  color: #fff;
+  line-height: 1;
+}
+
+.prism-demo__title svg {
+  width: 100%;
+  fill: currentColor;
+  overflow: visible;
+}
+
+.prism-demo__tagline {
+  max-width: 11em;
+  margin-top: clamp(1.5rem, 3vh, 2.5rem);
+  color: #f5f5f5;
+  font-size: clamp(2rem, 2.55vw, 3.25rem);
+  font-weight: 300;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+}
+
+.prism-demo__modes {
+  margin-top: clamp(1.8rem, 3.5vh, 3rem);
+  color: rgb(255 255 255 / 0.72);
+  font-size: clamp(0.9rem, 1.15vw, 1.25rem);
+  line-height: 1.4;
+}
+
+.prism-demo__modes span {
+  margin: 0 0.38em;
+  color: rgb(255 255 255 / 0.42);
+}
+
+.prism-demo__command {
+  width: min(100%, 34rem);
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(255 255 255 / 0.2);
+  color: rgb(255 255 255 / 0.78);
+  font-size: clamp(0.85rem, 1vw, 1.05rem);
+  line-height: 1.45;
 }
 
 /* Evidence graph --------------------------------------------------------- */
@@ -1452,6 +1894,55 @@ strong {
   font-size: 1.35rem;
 }
 
+.log__campaign {
+  color: var(--ink-quiet);
+}
+
+.log__comparison,
+.run-comparison {
+  margin-top: 0.7rem;
+  color: var(--ink-quiet);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  color: var(--ink-quiet);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-decoration: none;
+}
+
+.github-link:hover {
+  color: var(--ink);
+}
+
+.github-link svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}
+
+.github-link--small {
+  margin-top: 0;
+  vertical-align: -0.2rem;
+}
+
+.campaign-skill {
+  margin-top: 0.8rem;
+  color: var(--ink-quiet);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.campaign-skill a {
+  color: var(--ink);
+}
+
 .log__when {
   color: var(--ink-faint);
   font-family: var(--font-mono);
@@ -1564,10 +2055,11 @@ strong {
 
 @media (max-width: 68.75rem) {
   .hero {
-    min-height: auto;
-    padding: 5rem 0;
+    min-height: calc(100svh - var(--header-height));
+    padding-block: 5rem clamp(19rem, 42vw, 28rem);
     grid-template-columns: 1fr;
     justify-items: center;
+    align-items: start;
     text-align: center;
   }
 
@@ -1579,12 +2071,15 @@ strong {
     justify-content: center;
   }
 
-  .evidence-graph {
-    width: min(100%, 42rem);
-    text-align: left;
+  .proof-of-concept__body--with-evidence {
+    grid-template-columns: 1fr;
   }
 
-  .hero h1 {
+  .proof-of-concept__body > .evidence-graph {
+    width: min(100%, 42rem);
+  }
+
+  .hero-title {
     font-size: clamp(2.5rem, 5vw, 3rem);
   }
 
@@ -1599,13 +2094,67 @@ strong {
 }
 
 @media (max-width: 52rem) {
+  .prism-demo {
+    min-height: max(100svh, 44rem);
+  }
+
+  .prism-demo__frame {
+    inset: 1rem 1rem auto;
+    height: min(50vh, 26rem);
+  }
+
+  .prism-demo__copy {
+    top: auto;
+    bottom: clamp(2rem, 7vh, 4rem);
+    left: 50%;
+    width: min(100% - 2rem, 28rem);
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  .prism-demo__title {
+    width: clamp(9rem, 38vw, 12rem);
+    margin: 0 auto;
+  }
+
+  .prism-demo__tagline {
+    margin-inline: auto;
+    font-size: clamp(1.6rem, 7vw, 2.25rem);
+  }
+
+  .prism-demo__modes {
+    margin-top: 1.5rem;
+  }
+
+  .prism-demo__command {
+    width: min(100%, 23rem);
+    margin-inline: auto;
+  }
+
   .masthead__inner {
     width: min(100% - 1.25rem, var(--page-width));
+    padding-block: 0.6rem;
+    grid-template-areas:
+      "name theme"
+      "nav nav";
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem 1rem;
+  }
+
+  .masthead__name {
+    grid-area: name;
   }
 
   .masthead__nav {
-    gap: 0.85rem;
+    grid-area: nav;
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
     font-size: 0.8rem;
+  }
+
+  .theme-toggle {
+    grid-area: theme;
   }
 
   .page,
@@ -1615,15 +2164,11 @@ strong {
   }
 
   .hero {
-    padding: 4.5rem 0;
+    padding-block: 4.25rem clamp(18rem, 76vw, 24rem);
   }
 
-  .hero h1 {
-    font-size: clamp(2.5rem, 9vw, 3rem);
-  }
-
-  .hero__lede {
-    font-size: 1.125rem;
+  .hero-title {
+    font-size: clamp(2.25rem, 9vw, 3rem);
   }
 
   .process__steps,
@@ -1725,9 +2270,19 @@ strong {
   }
 }
 
+@media (max-width: 22rem) {
+  .hero-title__line {
+    white-space: normal;
+  }
+}
+
 @media (max-width: 36rem) {
-  .masthead__nav {
-    margin-left: auto;
+  .masthead__selector a {
+    padding-inline: 0.65rem;
+  }
+
+  .masthead__github {
+    padding-inline: 0.55rem;
   }
 
   .hero__actions {
@@ -1796,13 +2351,21 @@ strong {
 
   .button:active,
   .action:active,
-  .command__copy:active {
+  .command__copy:active,
+  .theme-toggle:active {
     transform: none;
+  }
+
+  .theme-toggle__cube {
+    animation: none;
+    transform: translate3d(-50%, -50%, 0) rotateX(-19deg) rotateY(28deg);
   }
 }
 
 @media print {
-  :root {
+  :root,
+  html[data-theme] {
+    color-scheme: light;
     --page: #fff;
     --panel: #fff;
     --panel-strong: #fff;
@@ -1815,6 +2378,8 @@ strong {
   }
 
   .masthead__nav,
+  .theme-toggle,
+  .hero__more,
   .command__copy,
   .notice,
   .docs-nav {

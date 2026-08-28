@@ -20,9 +20,11 @@ ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}-slim"
 FROM ${BUILDER_IMAGE} AS builder
 
 # git is needed by Hex for any git-sourced dependency; build-essential for the
-# native compilation picosat_elixir does.
+# native compilation picosat_elixir does; npm to fetch the one browser
+# dependency the stylesheet's companion bundle is built from. None of the three
+# survives into the runtime image.
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends build-essential git ca-certificates \
+  && apt-get install -y --no-install-recommends build-essential git ca-certificates npm \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -44,6 +46,13 @@ RUN mix deps.compile
 COPY priv priv
 COPY lib lib
 COPY assets assets
+
+# The browser dependency the hero canvas is drawn with, at the exact versions
+# the lockfile pins. It is bundled into the site's own JavaScript below, so the
+# served page still fetches nothing from anywhere but this site. Install scripts
+# are off: they exist to fetch a native renderer for running this library
+# outside a browser, which nothing here does.
+RUN npm --prefix assets ci --ignore-scripts
 
 # Bundles and minifies the two asset files, then writes the digested copies and
 # the cache manifest the endpoint serves them from.

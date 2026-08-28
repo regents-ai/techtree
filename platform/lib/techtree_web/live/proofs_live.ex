@@ -152,7 +152,7 @@ defmodule TechtreeWeb.ProofsLive do
             <p class="small quiet">
               Only a run carries those. The bundle is signed on the machine that
               produced it, and anyone holding a copy can check it on their own
-              machine, offline:
+              machine, offline.
             </p>
           </div>
           <.command_block

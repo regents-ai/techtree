@@ -3,7 +3,7 @@ defmodule TechtreeWeb.HomeLiveTest do
   The landing page answers "what is this?" before "who are you?", and every
   number on it comes from a document this release publishes.
 
-  Four regions, in one order, with one way in. What is checked here is the
+  Five regions, in one order, with one way in. What is checked here is the
   wording that was decided rather than written, the coordinates that must be
   read rather than typed, and the two things this page must never grow: an
   invented figure and a second installation path.
@@ -24,27 +24,103 @@ defmodule TechtreeWeb.HomeLiveTest do
     end
 
     test "the hero says what this is, in the words it was decided in", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
+      {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
       assert text =~ "Improve a Skill."
       assert text =~ "Prove it worked."
+      assert text =~ "Same pinned agent. Same fixed tasks. One changed Skill."
+      assert text =~ "Get a signed local receipt for the difference."
 
-      assert text =~
-               "Run a controlled baseline and candidate on your machine. Techtree keeps the " <>
-                 "taskset, model, harness, tools, and budget fixed, then signs the result so " <>
-                 "anyone holding a copy can check it offline, needing no account and " <>
-                 "nothing from us."
+      assert has_element?(
+               live,
+               "#hero-title > .hero-title__line",
+               "Improve a Skill."
+             )
+
+      assert has_element?(live, "#hero-title > .hero-title__line", "Prove it worked.")
 
       assert text =~ "Techtree v0.1 · development release"
+    end
+
+    test "the crown comparison route renders the same 13-cube homepage", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/crown/1")
+
+      assert visible_text(html) =~ "Improve a Skill."
+
+      assert has_element?(
+               live,
+               ~s|#hero-crown[phx-hook="Optics"][phx-update="ignore"][data-optics-kind="crown"][data-crown-variant="1"] canvas[data-optics-canvas]|
+             )
+
+      assert has_element?(live, "#crown-study-1[aria-current=page]")
+    end
+
+    test "the hero points to the release section below it", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/")
+
+      assert has_element?(
+               live,
+               ~s|a.hero__more[href="#what-this-release-is"][aria-label="Continue to the v0.1 release section"] svg|
+             )
+    end
+
+    test "the v0.1 section credits the agent stack and names the next integration",
+         %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      assert has_element?(
+               live,
+               ".proof-of-concept .eyebrow",
+               "hermes + prime + nvidia agent stack"
+             )
+
+      assert has_element?(
+               live,
+               "#what-this-release-is",
+               "v0.1 release - standing on giants"
+             )
+
+      assert has_element?(
+               live,
+               ~s|a[href="https://github.com/PrimeIntellect-ai/verifiers"]|,
+               "Prime Intellect’s Verifiers"
+             )
+
+      assert has_element?(
+               live,
+               ~s|a[href="https://github.com/NousResearch/hermes-agent"]|,
+               "Nous Research’s Hermes"
+             )
+
+      assert has_element?(
+               live,
+               ~s|.what-this-is__roadmap a[href="https://github.com/NVIDIA-NeMo"]|,
+               "NeMo Framework"
+             )
+
+      assert text =~ "Support for NVIDIA’s NeMo Framework coming in v0.2."
+    end
+
+    test "the hero omits the retired explanatory copy", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/")
+      text = visible_text(html)
+
+      refute text =~ "Run a controlled baseline and candidate on your machine."
+      refute text =~ "It reads the pinned installation guide"
+      refute text =~ "No Techtree account"
+
+      refute text =~
+               "Those are the seams of the stack, and this site names them rather than leaving a reader to find them."
     end
 
     test "there is one way in, and it is the same one for everybody", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert live |> element(~s|a.button--primary[href="/docs#install"]|) |> has_element?()
-      assert live |> element(~s|a[href="/proofs"]|, "View a verified run") |> has_element?()
+      assert live |> element(~s|a.button--primary[href="/docs#quickstart"]|) |> has_element?()
+      assert live |> element(~s|a[href="/runs"]|, "View published runs") |> has_element?()
 
       # The agent-and-human fork moved to the installation guide; the front
       # page no longer asks a reader to choose before they know what for.
@@ -73,7 +149,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       text = visible_text(html)
 
       assert [{agent_at, _} | _] = :binary.matches(text, "Give this to your agent")
-      assert [{divider_at, _} | _] = :binary.matches(text, "Or install it yourself")
+      assert [{divider_at, _} | _] = :binary.matches(text, "Or use the CLI directly")
 
       assert agent_at < divider_at,
              "the line for the agent has to come before the divider that separates it " <>
@@ -113,7 +189,14 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, "#home-evidence-graph")
+      assert has_element?(live, ".proof-of-concept #home-evidence-graph")
+      refute has_element?(live, ".hero #home-evidence-graph")
+
+      assert has_element?(
+               live,
+               ~s|#hero-crown[phx-hook="Optics"][data-optics-kind="crown"] canvas[data-optics-canvas]|
+             )
+
       assert text =~ CatalogFixture.campaign_digest()
       assert text =~ "prime · qwen/qwen3.7-flash"
       assert text =~ "36 tasks, fixed before either run"
@@ -167,7 +250,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
   describe "with a concrete release published" do
     @tag :tmp_dir
-    test "the install command, its label and the source link are read from the release",
+    test "the install command and its label are read from the release",
          %{conn: conn, tmp_dir: tmp_dir} do
       bundle = CatalogFixture.copy!(tmp_dir)
       CatalogFixture.rewrite_bootstrap!(bundle, &CatalogFixture.concrete_release/1)
@@ -190,14 +273,23 @@ defmodule TechtreeWeb.HomeLiveTest do
              )
              |> has_element?()
 
-      assert visible_text(html) =~ "macOS or Linux · Python 3.12"
-      assert visible_text(html) =~ "Docker required"
+      assert visible_text(html) =~
+               "macOS or Linux · uv required · Docker required · Python 3.12 managed by uv · " <>
+                 "Hermes 0.20.1+ only for the plugin path"
 
-      assert live
-             |> element(
-               ~s|a.masthead__source[href="https://github.com/regents-ai/techtree-hermes/tree/#{String.duplicate("a", 40)}"]|
-             )
-             |> has_element?()
+      assert visible_text(html) =~
+               "Doctor checks prerequisites and prints the exact next action. " <>
+                 "These commands do not start paid model inference."
+
+      text = visible_text(html)
+      assert {actions_at, _actions_length} = :binary.match(text, "View published runs")
+      assert {doctor_at, _doctor_length} = :binary.match(text, "Doctor checks prerequisites")
+      assert actions_at < doctor_at
+
+      assert html =~
+               ~s|class="masthead__github" href="https://github.com/regents-ai/techtree"|
+
+      assert html =~ ~s|aria-label="regents-ai/techtree on GitHub, 0 stars"|
     end
   end
 
@@ -216,17 +308,17 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute html =~ "copy-home-doctor"
   end
 
-  test "the source link is shown only when the release names one immutable revision",
-       %{conn: conn} do
+  test "the project source link does not depend on a published release", %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
 
-    {:ok, live, _html} = live(conn, ~p"/")
+    {:ok, _live, html} = live(conn, ~p"/")
 
-    refute live |> element("a.masthead__source") |> has_element?()
+    assert html =~
+             ~s|class="masthead__github" href="https://github.com/regents-ai/techtree" target="_blank"|
   end
 
-  test "every page carries the same three ways on", %{conn: conn} do
+  test "every page carries the same primary navigation in the decided order", %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
 
@@ -241,10 +333,15 @@ defmodule TechtreeWeb.HomeLiveTest do
           ~p"/proofs/local",
           ~p"/protocol"
         ] do
-      {:ok, _live, html} = live(conn, path)
+      {:ok, live, html} = live(conn, path)
 
-      assert html =~ ~s|href="/docs"|, "#{path} does not link to the documentation"
-      assert html =~ ~s|href="/proofs"|, "#{path} does not link to a proof"
+      assert html =~
+               ~r|<span class="masthead__selector">.*href="/runs"[^>]*>\s*Run\s*</a>.*href="/proofs"[^>]*>\s*Proofs\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
+
+      assert html =~ ~r|</nav>\s*<button id="site-theme-toggle"|s
+      assert html =~ ~s|class="theme-toggle__cube"|
+      assert html =~ ~s|class="theme-toggle__laser"|
+      assert has_element?(live, "main")
       assert html =~ "A Regents Labs project"
       refute html =~ ~s|>Sign in<|
     end

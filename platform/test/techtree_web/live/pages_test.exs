@@ -164,12 +164,16 @@ defmodule TechtreeWeb.PagesTest do
         refute markup =~ "<input"
         refute markup =~ ~s|type="file"|
 
-        # The one control on this site copies a command that is already on the
-        # page. Nothing may submit, and nothing may ask the server for anything.
+        # The local controls either copy a command already on the page or change
+        # the browser's color preference. Nothing submits or asks the server for
+        # anything.
         for [attributes] <-
               Regex.scan(~r/<button([^>]*)>/, markup, capture: :all_but_first) do
           assert attributes =~ ~s|type="button"|, "#{page} has a button that could submit"
-          assert attributes =~ "copycommand", "#{page} has a button that is not the copy control"
+
+          assert attributes =~ "copycommand" or attributes =~ "data-theme-toggle",
+                 "#{page} has a button that is not a local-only control"
+
           refute attributes =~ "phx-click"
         end
 
@@ -211,6 +215,16 @@ defmodule TechtreeWeb.PagesTest do
       assert html =~ ~s|name="viewport"|
       assert html =~ ~s|content="width=device-width, initial-scale=1"|
       assert html =~ ~s|name="color-scheme"|
+    end
+
+    test "a saved color theme is applied by the first server render", %{conn: conn} do
+      html =
+        conn
+        |> put_req_cookie("techtree_theme", "orange")
+        |> get("/")
+        |> html_response(200)
+
+      assert html =~ ~s|<html lang="en" data-theme="orange">|
     end
 
     test "pages are sent with a restrictive content policy and no framing", %{conn: conn} do

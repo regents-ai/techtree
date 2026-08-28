@@ -11,6 +11,7 @@ defmodule TechtreeWeb.CampaignsLiveTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
+  alias Techtree.Release.StarterSkill
 
   setup do
     CatalogFixture.use_bundle(CatalogFixture.root())
@@ -44,6 +45,14 @@ defmodule TechtreeWeb.CampaignsLiveTest do
     assert text =~ "A docker container, 2 cores, 4 GB"
     assert text =~ "No Skill in the baseline branch"
     assert text =~ "The candidate Skill is recorded when a participant prepares the run."
+
+    assert live
+           |> element("#campaign-starter-skill")
+           |> has_element?()
+
+    assert live
+           |> element("a[href=\"/api/v1/objects/#{StarterSkill.file_digest()}\"]")
+           |> has_element?()
 
     # Nothing here is a result, and no figure is invented for one.
     refute text =~ ~r/\+?\d+(\.\d+)?\s*%/

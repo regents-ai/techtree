@@ -1,15 +1,127 @@
-// The pages are read-only documents. This bundle keeps the live connection
-// that renders them, and offers one local convenience: putting a command the
-// active release already published onto the reader's clipboard. It never runs
-// that command, sends anything anywhere, or reads anything about the reader.
+// The pages are read-only documents. This bundle keeps the live connection,
+// copies published commands, remembers the reader's color preference, and
+// draws the crown behind the headline. It never runs a command or sends the
+// preference anywhere.
 
 import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
+import {Optics} from "./optics_controller"
+
+const THEME_COOKIE = "techtree_theme"
+const THEME_MAX_AGE = 60 * 60 * 24 * 365
+const THEMES = {
+  orange: {
+    crownVariant: "2",
+    name: "Orange",
+    nextName: "Titanium dark",
+    browserColor: "#f4eee4",
+  },
+  titanium: {
+    crownVariant: "4",
+    name: "Titanium",
+    nextName: "Orange light",
+    browserColor: "#101010",
+  },
+}
+const systemTheme = window.matchMedia("(prefers-color-scheme: light)")
+
+function readThemeCookie() {
+  const prefix = `${THEME_COOKIE}=`
+  const value = document.cookie
+    .split("; ")
+    .find(cookie => cookie.startsWith(prefix))
+    ?.slice(prefix.length)
+
+  return Object.hasOwn(THEMES, value) ? value : undefined
+}
+
+function writeThemeCookie(theme) {
+  const secure = window.location.protocol === "https:" ? "; Secure" : ""
+  document.cookie =
+    `${THEME_COOKIE}=${theme}; Path=/; Max-Age=${THEME_MAX_AGE}; SameSite=Lax${secure}`
+}
+
+let savedTheme = readThemeCookie()
+
+const resolvedTheme = () => savedTheme || (systemTheme.matches ? "orange" : "titanium")
+
+function previewRouteTheme() {
+  if (/^\/crown\/2\/?$/.test(window.location.pathname)) return "orange"
+  if (/^\/crown\/4\/?$/.test(window.location.pathname)) return "titanium"
+  return undefined
+}
+
+const pageTheme = () => previewRouteTheme() || resolvedTheme()
+
+function syncThemeControl(theme) {
+  const selected = THEMES[theme]
+  const orangeActive = theme === "orange"
+
+  document.querySelectorAll("[data-theme-toggle]").forEach(toggle => {
+    toggle.dataset.theme = theme
+    toggle.setAttribute("aria-pressed", String(orangeActive))
+    toggle.setAttribute(
+      "aria-label",
+      `Color theme: ${selected.name}. Activate ${selected.nextName} theme.`,
+    )
+    toggle.setAttribute("title", `Switch to ${selected.nextName}`)
+    const state = toggle.querySelector("[data-theme-toggle-state]")
+    if (state) state.textContent = `${selected.name} theme active`
+  })
+}
+
+function syncCrownTheme(theme) {
+  const variant = THEMES[theme].crownVariant
+  let changed = false
+
+  document.querySelectorAll('[data-optics-kind="crown"]').forEach(root => {
+    if (root.dataset.crownThemeControlled !== "true") return
+
+    const canvas = root.querySelector("[data-optics-canvas]")
+    const hero = root.closest(".hero")
+    changed ||= root.dataset.crownVariant !== variant || canvas?.dataset.crownVariant !== variant
+    root.dataset.crownVariant = variant
+    if (canvas) canvas.dataset.crownVariant = variant
+    if (hero) hero.dataset.crownVariant = variant
+  })
+
+  if (changed) {
+    document.dispatchEvent(new CustomEvent("techtree:themechange", {
+      detail: {theme, crownVariant: variant},
+    }))
+  }
+}
+
+function applyTheme(theme) {
+  const selected = THEMES[theme]
+  document.documentElement.dataset.theme = theme
+  document.querySelector("meta[name='theme-color']")?.setAttribute("content", selected.browserColor)
+  syncThemeControl(theme)
+  syncCrownTheme(theme)
+}
+
+document.addEventListener("click", event => {
+  if (!(event.target instanceof Element) || !event.target.closest("[data-theme-toggle]")) return
+
+  const activeTheme = document.documentElement.dataset.theme || pageTheme()
+  const theme = activeTheme === "orange" ? "titanium" : "orange"
+  savedTheme = theme
+  writeThemeCookie(theme)
+  applyTheme(theme)
+})
+
+systemTheme.addEventListener("change", () => {
+  if (!savedTheme && !previewRouteTheme()) applyTheme(pageTheme())
+})
+
+window.addEventListener("phx:page-loading-stop", () => applyTheme(pageTheme()))
+applyTheme(pageTheme())
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
-const Hooks = {}
+const Hooks = {Optics}
 
 Hooks.CopyCommand = {
   mounted() {

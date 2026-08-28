@@ -11,6 +11,7 @@ defmodule TechtreeWeb.CampaignsLive.Show do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias Techtree.Release.StarterSkill
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.EvidenceComponents
@@ -88,6 +89,10 @@ defmodule TechtreeWeb.CampaignsLive.Show do
         <section>
           <p class="eyebrow">Declared change</p>
           <h2>One Skill</h2>
+          <p :if={@copy} class="campaign-skill">
+            Starter Skill:
+            <a id="campaign-starter-skill" href={starter_skill_url()}>{@copy.starter_skill}</a>
+          </p>
           <p>{mutation_words(get_in(@facts, ["mutation_contract", "kind"]))}</p>
           <p>
             The candidate Skill is recorded when a participant prepares the run. Until
@@ -155,4 +160,6 @@ defmodule TechtreeWeb.CampaignsLive.Show do
 
   defp object_url(digest) when is_binary(digest), do: "/api/v1/objects/" <> digest
   defp object_url(_digest), do: nil
+
+  defp starter_skill_url, do: "/api/v1/objects/" <> StarterSkill.file_digest()
 end

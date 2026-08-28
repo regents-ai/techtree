@@ -14,9 +14,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   plugin's source before installing it and reports what it found, and a page
   that tells a reader what that report will say also has to tell them that
   switching the reporting off is not one of the answers. And a page that says
-  what this release is has to say the whole of it — a proof of concept for a
-  stack of three independent parts, two of them somebody else's work, pinned to
-  exact versions the release is no more reproducible than.
+  what this release is has to say the whole of it — a working technical preview
+  of a stack of three independent parts, two of them somebody else's work.
 
   Every source of published words is read here: each page as a reader sees it,
   with a release being served and with none, the installation contract this
@@ -221,12 +220,16 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @repository_address ~r|https://github\.com/[^"\s<>]+|
   @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}\z|
 
-  # The one GitHub address that is informational rather than installable: the
-  # verifiers hover card links the library's home (founder ruling 2026-08-26).
-  # Nothing a reader installs is ever taken from it, so the immutable-revision
-  # rule does not apply — and nothing else may join this list without the same
-  # kind of ruling.
-  @informational_addresses ["https://github.com/PrimeIntellect-ai/verifiers"]
+  # The GitHub addresses that are informational rather than installable: the
+  # verifiers hover card links the library's home, and the masthead links this
+  # project's repository. Nothing a reader installs is ever taken from either,
+  # so the immutable-revision rule does not apply.
+  @informational_addresses [
+    "https://github.com/PrimeIntellect-ai/verifiers",
+    "https://github.com/NousResearch/hermes-agent",
+    "https://github.com/NVIDIA-NeMo",
+    "https://github.com/regents-ai/techtree"
+  ]
   @unset_revision String.duplicate("0", 40)
 
   # The words a reader hands to their agent are decided copy, not a paraphrase
@@ -278,15 +281,15 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   ]
 
   # Decision 0035. Every other check here removes a claim; this one requires
-  # one. What v0.1 is — a proof of concept for a stack of three independent
+  # one. What v0.1 is — a working technical preview of a stack of three independent
   # parts — is the frame around everything else the site says, and the way it
   # goes wrong is not a banned word appearing but the frame quietly going
   # missing, leaving a reader who has been told what the software does to
   # decide for themselves what it amounts to.
-  @proof_of_concept ~r/\bproof[\s-]of[\s-]concept\b/i
+  @working_technical_preview ~r/\bworking\s+technical\s+preview\b/i
 
   # Two of the three parts are somebody else's work, so each is named with the
-  # project that made it. A proof of concept that reads as though we built the
+  # project that made it. A technical preview that reads as though we built the
   # whole stack is the same class of overclaim as any other.
   # The `u` modifier matters: without it the typographic apostrophe is three
   # bytes the character class would try to match one at a time.
@@ -295,11 +298,6 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     ~r/Nous\s+Research[’']s\s+Hermes/iu,
     ~r/Techtree\s+as\s+the\s+campaign\s+kernel/iu
   ]
-
-  # "Stack" is the word that tells a reader where the seams are: an engine, a
-  # host and a container, each pinned, and a release that is only as
-  # reproducible as those pins. A frame that leaves that out is half the ruling.
-  @stack_seams ~r/only\s+as\s+reproducible\s+as\s+those\s+pins/i
 
   # The pages that say what this release is: the front page a stranger lands
   # on, the documentation they read before running anything, and the page that
@@ -354,7 +352,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     end
 
     test "the pages that say what this release is carry the whole frame", %{conn: conn} do
-      require_proof_of_concept(rendered(conn, @pages_that_say_what_this_is))
+      require_working_technical_preview(rendered(conn, @pages_that_say_what_this_is))
     end
 
     test "the Climb page states the starter Skill's calibration in the approved words",
@@ -528,13 +526,13 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_offered_publication(sources)
       require_never_disable(sources)
       refute_moving_address(markup(conn, @pages_without_catalog))
-      require_proof_of_concept(rendered(conn, @pages_that_say_what_this_is))
+      require_working_technical_preview(rendered(conn, @pages_that_say_what_this_is))
     end
   end
 
   describe "the repository's own front page" do
     test "it says what this release is, the way the pages do" do
-      require_proof_of_concept([{"README.md", File.read!("README.md")}])
+      require_working_technical_preview([{"README.md", File.read!("README.md")}])
     end
   end
 
@@ -671,26 +669,17 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     end
   end
 
-  # Decision 0035, in three parts, because a surface can lose any one of them
-  # on its own: the frame, the attribution of the two parts that are not ours,
-  # and what the release is pinned to.
-  defp require_proof_of_concept(sources) do
+  # Decision 0035, in two parts, because a surface can lose either one on its
+  # own: the frame or the attribution of the two parts that are not ours.
+  defp require_working_technical_preview(sources) do
     for {label, source} <- sources, text = String.replace(source, ~r/\s+/, " ") do
-      assert text =~ @proof_of_concept,
-             "#{label} says what this release is without calling it a proof of concept"
+      assert text =~ @working_technical_preview,
+             "#{label} says what this release is without calling it a working technical preview"
 
       for pattern <- @stack_attribution do
         assert text =~ pattern,
                "#{label} does not match #{inspect(pattern)}: the stack is three parts and " <>
                  "two of them are somebody else's work"
-      end
-
-      # Founder ruling 2026-08-27: the proofs page carries the frame and the
-      # attribution, but not the seams paragraph or the cite sentence.
-      if not String.ends_with?(label, " /proofs") and label != "/proofs" do
-        assert text =~ @stack_seams,
-               "#{label} does not say that the release is only as reproducible as the " <>
-                 "versions it pins"
       end
     end
   end

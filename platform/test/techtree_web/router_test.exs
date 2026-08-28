@@ -39,9 +39,15 @@ defmodule TechtreeWeb.RouterTest do
   # fails the test below, which is the point: adding one is somebody saying
   # "this is a preview, not a route", rather than a route quietly becoming
   # exempt from the pin by being written in the right place.
-  @previews ["get /crown", "get /crown/:variant", "get /prism"]
+  @previews [
+    "get /crown/1",
+    "get /crown/2",
+    "get /crown/3",
+    "get /crown/4",
+    "get /prism"
+  ]
 
-  test "the previews are exactly the two the founder asked for" do
+  test "the previews are exactly the studies and reference the founder asked for" do
     paths = @routes |> Enum.map(&"#{&1.verb} #{&1.path}") |> Enum.sort()
 
     assert Enum.sort(@previews) == Enum.filter(paths, &(&1 in @previews)),
