@@ -57,6 +57,10 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         raise PluginError(
             "there is no guided comparison in this conversation to improve on",
             code="demo_session_not_found",
+            repair=(
+                "Run techtree_demo_prepare in this conversation, then finish "
+                "the first comparison before proposing a revision."
+            ),
         )
 
     host = _host_model(services)

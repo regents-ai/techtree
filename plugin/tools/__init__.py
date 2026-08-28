@@ -147,11 +147,17 @@ def safe_tool(handler: Any) -> Any:
     return call
 
 
-def require_argument(args: Mapping[str, Any], name: str) -> str:
+def require_argument(
+    args: Mapping[str, Any], name: str, *, repair: str | None = None
+) -> str:
     """Return a required string argument, or say which one was missing."""
     value = args.get(name)
     if not isinstance(value, str) or not value.strip():
-        raise PluginError(f"this tool needs {name!r}", code="tool_argument_missing")
+        raise PluginError(
+            f"this tool needs {name!r}",
+            code="tool_argument_missing",
+            repair=repair,
+        )
     return value.strip()
 
 

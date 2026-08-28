@@ -300,7 +300,7 @@ def install_cli_with_approval(
         }
 
     verification = verify_installation(services)
-    return {
+    response = {
         "installed": bool(verification["verified"]),
         "approval": "host_terminal",
         "command": command,
@@ -312,6 +312,14 @@ def install_cli_with_approval(
             else "The installation did not verify; Techtree was not confirmed."
         ),
     }
+    if verification["verified"]:
+        response["next_action"] = PluginAction(
+            id="inspect_climbs",
+            label="Browse the Climbs this build offers",
+            reason="Techtree is installed and belongs to this plugin's release.",
+            tool="techtree_climb_list",
+        ).to_dict()
+    return response
 
 
 def verify_installation(services: Any) -> dict[str, Any]:

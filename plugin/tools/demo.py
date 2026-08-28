@@ -160,7 +160,14 @@ def techtree_climb_prepare(services: Any, args: dict[str, Any], **kwargs: Any) -
     """Prepare any candidate Skill for a Climb. Free, and starts nothing."""
     channel = channel_of(args, kwargs)
     reference = require_climb_reference(require_argument(args, "reference"))
-    skill_path = require_local_path(require_argument(args, "skill_path"), "skill_path")
+    skill_path = require_local_path(
+        require_argument(
+            args,
+            "skill_path",
+            repair="Provide the local path to the candidate Skill as skill_path.",
+        ),
+        "skill_path",
+    )
     arguments = ["climb", "prepare", reference, "--skill", skill_path]
     label = args.get("label")
     if isinstance(label, str) and label:
