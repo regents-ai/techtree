@@ -129,11 +129,69 @@ defmodule TechtreeWeb.DocsLive do
 
           <section id="quickstart" class="doc-section">
             <h2>Quickstart</h2>
-            <InstallComponents.agent_prompt_block instructions={@instructions} />
-          </section>
+            <p>Two ways in. Both end at a measured comparison with a receipt.</p>
 
-          <section id="install" class="doc-section">
-            <h2>Installing manually</h2>
+            <h3>Already running Hermes?</h3>
+            <p>Paste one line into your agent:</p>
+            <.prompt_block
+              id="copy-docs-agent-line"
+              label="Give this to your agent"
+              text={InstallComponents.agent_line()}
+            />
+
+            <h3>No agent yet?</h3>
+            <p>
+              Paste this into your terminal — it is Nous Research’s own Hermes installer.
+              This release names Hermes {minimum(@release, "hermes_version")} as the tested
+              host version.
+            </p>
+            <.prompt_block
+              id="copy-docs-hermes-install"
+              label="Install the Hermes agent"
+              text="curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+            />
+            <InstallComponents.pinned_commands
+              :if={installable?(@release)}
+              instructions={@instructions}
+            />
+            <p :if={not installable?(@release)} class="small quiet">
+              The pinned plugin and command-line install commands appear here once an
+              installable release is active on this channel.
+            </p>
+
+            <h3>What your agent will set up for you</h3>
+            <p>
+              Handed the line above, the agent reads the pinned guide and takes care of the
+              rest: it installs the exact pinned plugin and command-line tool, prepares the
+              local layout, checks the machine, installs the evaluation engine, obtains the
+              starter Skill, and prepares the Hello World comparison. It asks before it
+              installs anything, runs anything, or spends anything — and a trial takes a
+              while, so it hands back a run identifier instead of making you wait.
+            </p>
+
+            <h3>What you should do yourself</h3>
+            <ul class="doc-list">
+              <li>Have Python {minimum(@release, "python")}, <code>uv</code>, and Docker
+                installed — and Docker running;</li>
+              <li>
+                sign in to your model-provider account once, so the evaluation can pay for
+                its own model calls:
+              </li>
+            </ul>
+            <.command_block
+              id="copy-docs-prime-login"
+              argv={["prime", "login"]}
+              label="Sign in to Prime"
+            />
+            <ul class="doc-list">
+              <li>approve the three moments that matter: installing the plugin, installing
+                the command-line tool, and starting the paid comparison;</li>
+              <li>read the install-time scan report before confirming, and leave the
+                scanning on;</li>
+              <li>restart Hermes once, when the agent tells you its tools need loading.</li>
+            </ul>
+
+            <h3 id="install">Installing manually</h3>
             <%= if installable?(@release) do %>
               <p>
                 This channel is serving a concrete, content-addressed release, so the exact
@@ -160,11 +218,6 @@ defmodule TechtreeWeb.DocsLive do
 
             <p>After installation, the direct terminal flow is:</p>
             <.command_block
-              id="copy-docs-prime-login"
-              argv={["prime", "login"]}
-              label="Sign in to Prime"
-            />
-            <.command_block
               id="copy-docs-setup"
               argv={["techtree", "setup"]}
               label="Prepare the local layout"
@@ -186,20 +239,6 @@ defmodule TechtreeWeb.DocsLive do
               next command for preparing Hello World. Each later command also prints its next
               valid action.
             </p>
-
-            <h3>Requirements</h3>
-            <p>The current release path requires:</p>
-            <ul class="doc-list">
-              <li>Python {minimum(@release, "python")};</li>
-              <li><code>uv</code>;</li>
-              <li>Docker running locally;</li>
-              <li>
-                an active Prime CLI configuration created with <code>prime login</code>;
-              </li>
-              <li>
-                Hermes {minimum(@release, "hermes_version")} for the agent-first plugin path.
-              </li>
-            </ul>
             <p>The direct CLI path does not require a host Hermes installation.</p>
             <p>The Hermes you talk to is an operator. It is not the agent being evaluated.</p>
           </section>

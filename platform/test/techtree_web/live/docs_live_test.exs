@@ -27,7 +27,7 @@ defmodule TechtreeWeb.DocsLiveTest do
       text = visible_text(html)
 
       assert text =~ "Get to a controlled first run."
-      assert text =~ "Give this to your Hermes agent"
+      assert text =~ "Give this to your agent"
       assert text =~ "Installing manually"
       assert text =~ "What leaves my machine?"
       assert text =~ "Climbs and Campaigns"
@@ -40,16 +40,16 @@ defmodule TechtreeWeb.DocsLiveTest do
       assert byte_offset(html, ~s|id="trust"|) < byte_offset(html, ~s|id="campaigns"|)
     end
 
-    test "the quickstart shows the same prompt the installation guide shows", %{conn: conn} do
-      {:ok, _live, docs_html} = live(conn, ~p"/docs")
-      {:ok, _live, start_html} = live(conn, ~p"/start")
+    test "the quickstart shows the same prompt the installation guide shows",
+         %{conn: conn} do
+      # Founder ruling 2026-08-27: the quickstart's paste is the one-line
+      # prompt, single-sourced from InstallComponents.agent_line/0 — the same
+      # line the homepage block copies. The long prompt lives on /start.
+      {:ok, _live, html} = live(conn, ~p"/docs")
 
-      prompt = prompt_text(docs_html)
-
-      assert prompt != nil
-      assert String.contains?(visible_text(start_html), prompt)
-      assert prompt =~ "Read the pinned Techtree installation guide at"
-      assert prompt =~ "Do not upload my local evaluation artifacts."
+      assert html =~ TechtreeWeb.InstallComponents.agent_line()
+      assert html =~ "What your agent will set up for you"
+      assert html =~ "What you should do yourself"
     end
 
     test "no held-out final test is claimed for v0.1", %{conn: conn} do
