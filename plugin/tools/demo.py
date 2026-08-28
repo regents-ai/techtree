@@ -9,16 +9,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..approvals import run_approved_event, start_arguments
-from ..bootstrap import doctor_summary
-from ..errors import PluginError
+from ..cli.bootstrap import doctor_summary
+from ..cli.errors import PluginError
+from ..host.state import save_session, session_payload
+from ..services.approvals import run_approved_event, start_arguments
 from ..services.assets import materialize_starter_skill
 from ..services.session import (
     create_demo_session,
     update_after_first_prepare,
     update_after_first_start,
 )
-from ..state import save_session, session_payload
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import (
     require_climb_reference,
@@ -210,7 +210,7 @@ def _draft_digest(envelope: Any) -> str | None:
 
 
 def _session_for_draft(services: Any, draft_id: str) -> Any:
-    from ..state import load_sessions
+    from ..host.state import load_sessions
 
     for session in load_sessions(services).values():
         if session.first_draft_id == draft_id:

@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from typing import Final
 
-from ..errors import PluginError
+from ..cli.errors import PluginError
 
 CODE_TOOL_ARGUMENT_INVALID: Final = "tool_argument_invalid"
 

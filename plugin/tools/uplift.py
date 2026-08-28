@@ -10,19 +10,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from ..approvals import run_approved_event, start_arguments
-from ..channels import is_gateway_safe_required
-from ..diff import build_skill_diff
-from ..errors import PluginError
-from ..llm import HermesHostLlm, NothingProducedError
+from ..cli.errors import PluginError
+from ..host.channels import is_gateway_safe_required
+from ..host.state import latest_session, save_session, session_payload
+from ..services.approvals import run_approved_event, start_arguments
+from ..services.diff import build_skill_diff
 from ..services.improvement import ImprovementService
+from ..services.llm import HermesHostLlm, NothingProducedError
 from ..services.proposal import ProposalService
 from ..services.session import (
     update_after_proposal,
     update_after_second_prepare,
     update_after_second_start,
 )
-from ..state import latest_session, save_session, session_payload
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import (
     require_draft_id,

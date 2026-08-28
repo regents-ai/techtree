@@ -22,9 +22,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from .constants import DEMO_SESSION_TTL_SECONDS
-from .errors import PluginError, PluginStateError
-from .models import DemoSessionState, DemoStage
+from ..cli.constants import DEMO_SESSION_TTL_SECONDS
+from ..cli.errors import PluginError, PluginStateError
+from ..services.models import DemoSessionState, DemoStage
 
 #: Phases the CLI reports that mean a run is over, and how it ended.
 _TERMINAL_PHASES = {

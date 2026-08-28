@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..approvals import InstallPlanStore
-from ..bridge import Bridge, CliBridge
-from ..constants import PLUGIN_ROOT
-from ..models import ReleaseCore
-from ..release import load_embedded_release_core, release_core_digest
-from ..state import SessionStore
+from ..cli.bridge import Bridge, CliBridge
+from ..cli.constants import PLUGIN_ROOT
+from ..cli.release import load_embedded_release_core, release_core_digest
+from ..host.state import SessionStore
+from .approvals import InstallPlanStore
 from .assets import ReleaseSkillProvider, SkillProvider
+from .models import ReleaseCore
 
 
 @dataclass(frozen=True)

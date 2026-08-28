@@ -26,21 +26,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from .commands import (
-    SLASH_ARGS_HINT,
-    SLASH_COMMANDS,
-    register_cli_subcommands,
-    slash_handler,
-)
-from .constants import (
+from .cli.constants import (
     PLUGIN_ROOT,
     SKILL_ENTRY_FILENAME,
     SKILLS_DIRNAME,
     TOOLSET_NAME,
 )
-from .errors import PluginError
-from .hooks import SESSION_HOOKS, build_session_hooks
-from .schemas import all_tool_schemas
+from .cli.errors import PluginError
+from .host.commands import (
+    SLASH_ARGS_HINT,
+    SLASH_COMMANDS,
+    register_cli_subcommands,
+    slash_handler,
+)
+from .host.hooks import SESSION_HOOKS, build_session_hooks
+from .host.schemas import all_tool_schemas
 from .services.container import PluginServices, build_services
 from .tools import TOOL_HANDLERS, bind
 

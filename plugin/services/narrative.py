@@ -17,8 +17,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
-from .channels import is_gateway_safe_required
-from .errors import PluginError
+from ..cli.errors import PluginError
+from ..host.channels import is_gateway_safe_required
 from .models import ChannelKind, PresentationNarrative
 
 CODE_NARRATIVE_INVALID: Final = "host_llm_output_invalid"

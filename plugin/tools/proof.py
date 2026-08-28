@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..errors import PluginError
+from ..cli.errors import PluginError
 from . import channel_of, passthrough, safe_tool, tool_result
 from .arguments import require_local_path, require_run_id
 from .publish import publication_offer

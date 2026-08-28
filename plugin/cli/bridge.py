@@ -39,6 +39,12 @@ from dataclasses import dataclass
 from shutil import which
 from typing import Any, Final, Protocol
 
+from ..services.models import (
+    CliInvocation,
+    CliResponse,
+    ReleaseCore,
+    parse_cli_envelope,
+)
 from .constants import (
     CLI_COMMAND,
     CLI_ENVIRONMENT_ALLOWLIST,
@@ -54,7 +60,6 @@ from .errors import (
     CliInvocationError,
     CliNotInstalledError,
 )
-from .models import CliInvocation, CliResponse, ReleaseCore, parse_cli_envelope
 from .release import compare_cli_release, release_core_digest
 
 #: The frozen read-only command that answers "which release is installed?".

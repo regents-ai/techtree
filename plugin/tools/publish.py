@@ -32,7 +32,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..approvals import (
+from ..services.approvals import (
     PUBLICATION_DISCLOSURE,
     publication_approved_event,
     publish_arguments,
@@ -83,7 +83,7 @@ def techtree_publish_run(services: Any, args: dict[str, Any], **kwargs: Any) -> 
     Every call is made with ``--yes --reviewed-on host-agent``, which is how
     the publication records that the agreement was given in a conversation
     rather than at a terminal. There is no other way to call it: the flags are
-    built by :func:`~techtree_hermes.approvals.publish_arguments` and nothing
+    built by :func:`~techtree_hermes.services.approvals.publish_arguments` and nothing
     in the arguments can change them, so a publication this plugin causes
     always carries the record of where it was approved.
 

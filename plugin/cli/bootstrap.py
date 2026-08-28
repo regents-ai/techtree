@@ -35,10 +35,16 @@ from datetime import UTC, datetime, timedelta
 from shutil import which
 from typing import Any, Final
 
-from .approvals import (
+from ..services.approvals import (
     INSTALL_PLAN_KIND,
     issue_local_plan_id,
     require_install_plan,
+)
+from ..services.models import (
+    INSTALLER_EXECUTABLE,
+    BootstrapInstallPlan,
+    PluginAction,
+    ReleaseCore,
 )
 from .bridge import PathLookup, read_cli_version, resolve_techtree_binary
 from .constants import (
@@ -54,12 +60,6 @@ from .errors import (
     CODE_UV_NOT_FOUND,
     BootstrapPlanError,
     PluginError,
-)
-from .models import (
-    INSTALLER_EXECUTABLE,
-    BootstrapInstallPlan,
-    PluginAction,
-    ReleaseCore,
 )
 
 #: The host tool that runs a command in front of the user, with the host's own

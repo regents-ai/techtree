@@ -27,18 +27,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, Literal, Protocol
 
-from ..constants import (
+from ..cli.constants import (
     MAX_STARTER_SKILL_BYTES,
     PLUGIN_ROOT,
     SKILL_ENTRY_FILENAME,
     SKILLS_DIRNAME,
 )
-from ..errors import (
+from ..cli.errors import (
     CODE_FOUNDER_SKILL_DIGEST_MISMATCH,
     CODE_FOUNDER_SKILL_MISSING,
     PluginError,
 )
-from ..models import ReleaseCore
+from .models import ReleaseCore
 
 #: Nothing usable came back about the pinned starter Skill, and Techtree did
 #: not say why in its own words.

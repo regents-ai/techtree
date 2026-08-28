@@ -31,10 +31,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
-from ..constants import PLUGIN_ROOT
-from ..errors import PluginError
-from ..guards import validate_revised_skill, validate_revision_prose
-from ..llm import (
+from ..cli.constants import PLUGIN_ROOT
+from ..cli.errors import PluginError
+from ..cli.guards import validate_revised_skill, validate_revision_prose
+from .assets import file_digest, load_verified_founder_skill
+from .llm import (
     REQUEST_COMMITMENT_FIELDS,
     HostLlmRequest,
     OneShotHostLlm,
@@ -42,14 +43,13 @@ from ..llm import (
     build_revision_provenance,
     digest_document,
 )
-from ..models import (
+from .models import (
     DemoSessionState,
     DemoStage,
     ReleaseCore,
     SkillRevisionOutput,
     SkillRevisionProvenance,
 )
-from .assets import file_digest, load_verified_founder_skill
 
 CODE_CONTEXT_INVALID: Final = "improvement_context_invalid"
 CODE_CONTEXT_FORBIDDEN: Final = "improvement_context_forbidden_material"

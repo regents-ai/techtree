@@ -34,9 +34,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
-from ..constants import proposal_staging_home
-from ..errors import PluginError
-from ..models import SkillRevisionOutput
+from ..cli.constants import proposal_staging_home
+from ..cli.errors import PluginError
+from .models import SkillRevisionOutput
 
 CODE_PROPOSAL_PREPARE_FAILED: Final = "skill_revision_prepare_failed"
 CODE_PROPOSAL_UNCHANGED: Final = "skill_revision_unchanged"

@@ -19,7 +19,7 @@ TOOLSET_NAME: Final = "techtree"
 
 # Repository layout ---------------------------------------------------------
 
-PLUGIN_ROOT: Final = Path(__file__).resolve().parent
+PLUGIN_ROOT: Final = Path(__file__).resolve().parent.parent
 MANIFEST_FILENAME: Final = "plugin.yaml"
 RELEASE_CORE_FILENAME: Final = "release-core.json"
 SKILLS_DIRNAME: Final = "skills"

@@ -134,18 +134,18 @@ places. Not one of them is an oversight waiting to be tidied away: each is
 part of how the plugin does its work, and each is a few lines you can read
 for yourself before you approve anything.
 
-- **The guard's own list of command words** — `guards.py`, reported as
+- **The guard's own list of command words** — `cli/guards.py`, reported as
   privilege escalation. It is the deny-list: the words the guard looks for in
   text a model wrote, so a proposed Skill that would have someone install a
   package, open a shell, or take administrator rights is refused. A list of
   what to refuse has to name the things it refuses.
-- **Three places the plugin starts the Techtree CLI** — `bridge.py`, reported
+- **Three places the plugin starts the Techtree CLI** — `cli/bridge.py`, reported
   as execution. Those three are the entire boundary between this plugin and
-  Techtree. Each starts the one command named in `constants.py`, with a fixed
+  Techtree. Each starts the one command named in `cli/constants.py`, with a fixed
   argument list, no shell, a named list of environment variables rather than
   everything the session holds, and one JSON answer read back. There is no
   fourth.
-- **The control-character stripper** — `channels.py`, reported as
+- **The control-character stripper** — `host/channels.py`, reported as
   obfuscation. One pattern, matching terminal control codes, so they can be
   taken out of anything the plugin puts into a conversation.
 
@@ -231,7 +231,7 @@ That command is also given a short, named list of environment variables and
 nothing else: where Techtree keeps its home, where its own authentication
 lives, and what the terminal can render. A Hermes session carries whatever the
 person who started it had exported, and almost none of it is Techtree's
-business. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `constants.py`, short
+business. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `cli/constants.py`, short
 enough to read in one go.
 
 The plugin and the installed Techtree also have to belong to the same release.
@@ -249,17 +249,23 @@ make plugin-release-core-cli      # in the techtree-python checkout
 plugin.yaml          what the host reads: name, tools, hooks
 release-core.json    the release this build is pinned to (generated)
 __init__.py          registration
-constants.py         fixed values; no mutable state
-errors.py            plugin-local errors and their stable codes
-models.py            local models and strict parsers
-schemas.py           the model-visible tool schemas
-release.py           the pinned release, its digest, and its cross-checks
-bridge.py            the only path from the plugin into Techtree
-doctor.py            the plugin's own doctor
-commands.py          `/techtree` and `hermes techtree ...` registries
-hooks.py             session lifecycle registry
-channels.py          how compact an answer has to be
-state.py             the identifiers a conversation keeps
+cli/constants.py     fixed values; no mutable state
+cli/errors.py        plugin-local errors and their stable codes
+services/models.py   local models and strict parsers
+host/schemas.py      the model-visible tool schemas
+cli/release.py       the pinned release, its digest, and its cross-checks
+cli/bridge.py        the only path from the plugin into Techtree
+cli/doctor.py        the plugin's own doctor
+cli/bootstrap.py     installation after a person has said yes
+cli/guards.py        checks on proposed Skills
+host/commands.py     `/techtree` and `hermes techtree ...` registries
+host/hooks.py        session lifecycle registry
+host/channels.py     how compact an answer has to be
+host/state.py        the identifiers a conversation keeps
+services/narrative.py fixed presentation wording
+services/diff.py     the deterministic Skill difference
+services/llm.py      the host model boundary
+services/approvals.py approval and plan records
 tools/               the tools the agent calls
 services/            the container assembled during registration
 skills/              bundled read-only operator Skills

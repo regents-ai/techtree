@@ -14,10 +14,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
-from ..channels import bounded_gateway_text, is_gateway_safe_required
-from ..errors import PluginError
-from ..models import ChannelKind, ReleaseCore
-from ..narrative import (
+from ..cli.errors import PluginError
+from ..host.channels import bounded_gateway_text, is_gateway_safe_required
+from .models import ChannelKind, ReleaseCore
+from .narrative import (
     FIRST_RESULT_LABEL,
     REPRODUCTION_STATEMENT,
     SAME_MEMBERSHIP_DISCLOSURE,

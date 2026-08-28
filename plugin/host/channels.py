@@ -21,8 +21,8 @@ import re
 from collections.abc import Mapping
 from typing import Any, Final
 
-from .errors import CODE_CHANNEL_INVALID, ChannelError
-from .models import ChannelKind
+from ..cli.errors import CODE_CHANNEL_INVALID, ChannelError
+from ..services.models import ChannelKind
 
 #: Control characters that never belong in an answer: the escape that starts
 #: an ANSI sequence, NUL, and the C1 range, plus the rest of C0 apart from the

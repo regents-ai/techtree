@@ -75,7 +75,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
-from .errors import (
+from ..cli.errors import (
     CODE_HOST_ANSWER_NEVER_ARRIVED,
     CODE_HOST_COMPLETION_TRUNCATED,
     CODE_HOST_LLM_ALREADY_COMPLETED,

@@ -23,10 +23,10 @@ import re
 from collections.abc import Iterable
 from typing import Final
 
-from .channels import bounded_gateway_text, is_gateway_safe_required
+from ..host.channels import bounded_gateway_text, is_gateway_safe_required
+from ..services.models import ChannelKind, PresentationNarrative
 from .constants import MAX_STARTER_SKILL_BYTES
 from .errors import PluginError
-from .models import ChannelKind, PresentationNarrative
 
 CODE_PRESENTATION_CLAIM_FORBIDDEN: Final = "presentation_claim_forbidden"
 CODE_PRESENTATION_TOO_LARGE: Final = "presentation_output_too_large"

@@ -25,12 +25,12 @@ from functools import wraps
 from types import MappingProxyType
 from typing import Any, Protocol
 
-from ..channels import (
+from ..cli.constants import MAX_TOOL_RESULT_BYTES
+from ..cli.errors import PluginError, safe_error_payload
+from ..host.channels import (
     resolve_channel,
 )
-from ..constants import MAX_TOOL_RESULT_BYTES
-from ..errors import PluginError, safe_error_payload
-from ..models import ChannelKind
+from ..services.models import ChannelKind
 
 #: Stable code for a result that will not fit in a model-visible answer.
 CODE_TOOL_RESULT_TOO_LARGE = "tool_result_too_large"

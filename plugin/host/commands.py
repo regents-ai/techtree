@@ -34,11 +34,11 @@ import json
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, NamedTuple, TypeGuard
 
+from ..cli.errors import PluginError
+from ..services.models import ChannelKind
+from ..tools import TOOL_HANDLERS
 from .channels import ensure_gateway_safe
-from .errors import PluginError
-from .models import ChannelKind
 from .state import active_run_ids, latest_session
-from .tools import TOOL_HANDLERS
 
 SLASH_COMMAND = "techtree"
 

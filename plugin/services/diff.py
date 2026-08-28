@@ -20,7 +20,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Any, Final
 
-from .channels import ensure_gateway_safe, is_gateway_safe_required
+from ..host.channels import ensure_gateway_safe, is_gateway_safe_required
 from .models import ChannelKind
 
 #: What a phone gets before the rest is left out, stated.

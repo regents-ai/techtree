@@ -27,7 +27,7 @@
 #   three separate approvals, and none of them is a value a model can supply.
 #
 # * It gives that command a short, named list of environment variables and
-#   nothing else. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `constants.py`;
+#   nothing else. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `cli/constants.py`;
 #   whatever else a host session is carrying stays out of the CLI's
 #   environment.
 #

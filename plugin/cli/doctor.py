@@ -29,6 +29,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, Literal
 
+from ..host.hooks import SESSION_HOOKS
+from ..host.schemas import all_tool_schemas
+from ..services.models import INSTALLER_EXECUTABLE
+from ..tools import TOOL_HANDLERS
 from .bridge import resolve_techtree_binary
 from .constants import (
     CLI_COMMAND,
@@ -42,11 +46,7 @@ from .constants import (
     SUPPORTED_HOOKS,
 )
 from .errors import PluginError
-from .hooks import SESSION_HOOKS
-from .models import INSTALLER_EXECUTABLE
 from .release import load_embedded_release_core, release_core_digest
-from .schemas import all_tool_schemas
-from .tools import TOOL_HANDLERS
 
 Status = Literal["pass", "warn", "fail"]
 
@@ -397,7 +397,7 @@ def _check_tool_schemas(
                 )
             ),
             blocking=True,
-            repair="Fix schemas.py; a released plugin must not ship this."
+            repair="Fix host/schemas.py; a released plugin must not ship this."
             if problems
             else None,
         )

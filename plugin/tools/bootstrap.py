@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..approvals import require_user_confirmed_tool_context
-from ..bootstrap import bootstrap_check, install_cli_with_approval
+from ..cli.bootstrap import bootstrap_check, install_cli_with_approval
+from ..services.approvals import require_user_confirmed_tool_context
 from . import channel_of, require_argument, safe_tool, tool_result
 
 

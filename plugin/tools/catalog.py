@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..bootstrap import doctor_summary
-from ..errors import PluginError
+from ..cli.bootstrap import doctor_summary
+from ..cli.errors import PluginError
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import require_climb_reference
 

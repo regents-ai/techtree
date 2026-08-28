@@ -157,7 +157,7 @@ how the release is put together, not an apology for it.
 They are real, they are what the plugin genuinely does, and none of them is
 hidden or worked around. Say what each one is:
 
-**One deny-list, in `guards.py`.** Flagged HIGH, as privilege escalation. It is
+**One deny-list, in `cli/guards.py`.** Flagged HIGH, as privilege escalation. It is
 the list of command words — techtree, hermes, uv, bash, sh, curl, pip, docker,
 git, sudo, rm — that the plugin refuses to let a model-written summary tell
 someone to run. Commands shown to a person come from Techtree's own next
@@ -165,7 +165,7 @@ actions, never from a sentence a model wrote. A deny-list has to name what it
 denies, so a scanner reading it sees the vocabulary and flags it. It is the
 block-list, not an action.
 
-**Three subprocess calls, in `bridge.py`.** Flagged MEDIUM, as execution. They
+**Three subprocess calls, in `cli/bridge.py`.** Flagged MEDIUM, as execution. They
 are the entire boundary between this plugin and Techtree, and they are three
 because the plugin drives the CLI three different ways: one captures output and
 reads back a JSON answer, one asks the CLI its version and must not parse that
@@ -174,7 +174,7 @@ rendered report reaches the terminal the person is looking at. Each builds a
 fixed argument array, runs no shell, and passes a named allowlist of
 environment variables rather than this process's own. There is no fourth.
 
-**One control-character filter, in `channels.py`.** Flagged MEDIUM, as
+**One control-character filter, in `host/channels.py`.** Flagged MEDIUM, as
 obfuscation. It strips escape sequences and control bytes out of anything the
 plugin prints into a conversation, so borrowed output cannot redraw somebody's
 terminal. It is a sanitiser, and a scanner sees a control-byte pattern.

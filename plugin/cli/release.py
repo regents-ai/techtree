@@ -27,9 +27,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Final
 
+from ..services.models import ReleaseCore, parse_release_core
 from .constants import PLUGIN_ROOT, RELEASE_CORE_FILENAME
 from .errors import CODE_PLUGIN_RELEASE_CORE_INVALID, PluginError
-from .models import ReleaseCore, parse_release_core
 
 # Mismatch codes ---------------------------------------------------------------
 # Returned rather than raised: a caller reports every disagreement it found at

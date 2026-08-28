@@ -9,17 +9,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..channels import is_gateway_safe_required
-from ..errors import PluginError
-from ..narrative import REPRODUCTION_STATEMENT
-from ..services.presentation import PresentationService
-from ..services.session import update_after_first_result
-from ..state import (
+from ..cli.errors import PluginError
+from ..host.channels import is_gateway_safe_required
+from ..host.state import (
     latest_session,
     reconcile_session_with_cli,
     save_session,
     session_payload,
 )
+from ..services.narrative import REPRODUCTION_STATEMENT
+from ..services.presentation import PresentationService
+from ..services.session import update_after_first_result
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import require_run_id
 from .publish import publication_offer

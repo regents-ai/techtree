@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, Final
 
-from .errors import (
+from ..cli.errors import (
     CODE_BOOTSTRAP_INSTALL_PLAN_MISSING,
     ApprovalRequiredError,
     BootstrapPlanError,

@@ -22,8 +22,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Final, Literal
 
-from .constants import SUPPORTED_CLI_SCHEMA, SUPPORTED_RELEASE_CORE_SCHEMA
-from .errors import (
+from ..cli.constants import SUPPORTED_CLI_SCHEMA, SUPPORTED_RELEASE_CORE_SCHEMA
+from ..cli.errors import (
     CODE_CLI_OUTPUT_INVALID,
     CODE_PLUGIN_RELEASE_CORE_INVALID,
     BootstrapPlanError,
