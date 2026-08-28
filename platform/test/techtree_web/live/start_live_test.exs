@@ -35,8 +35,43 @@ defmodule TechtreeWeb.StartLiveTest do
          %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start")
 
-      assert ("hermes plugins install regents-ai/techtree-hermes --ref " <>
-                String.duplicate("0", 40) <> " --enable") in commands(html)
+      install =
+        "hermes plugins install regents-ai/techtree-hermes --ref " <>
+          String.duplicate("0", 40) <> " --enable"
+
+      assert install in commands(html)
+      assert (install <> " --force") in commands(html)
+    end
+
+    test "the guide tells the truth about the refusal before offering the override",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/start")
+      text = visible_text(html)
+
+      install =
+        "hermes plugins install regents-ai/techtree-hermes --ref " <>
+          String.duplicate("0", 40) <> " --enable"
+
+      assert text =~ "Expect Hermes to refuse the first attempt."
+      assert text =~ "A community-source plugin at caution is refused rather than queried."
+      assert text =~ "It does not stop and ask."
+      assert text =~ "run the same pinned command again with --force appended"
+
+      assert text =~
+               ~s|Hermes’s own help describes --force only as “Remove existing plugin and reinstall”|
+
+      assert text =~ "Never turn the scanning off."
+
+      primary_at = html |> :binary.match(install) |> elem(0)
+      review_at = html |> :binary.match("Expect Hermes to refuse the first attempt.") |> elem(0)
+      override_at = html |> :binary.match(install <> " --force") |> elem(0)
+
+      assert primary_at < review_at
+      assert review_at < override_at
+
+      assert text =~ "the command-line tool command above is the one it runs"
+      refute text =~ "the third command is the one it runs"
+      refute text =~ "installs nothing until a person confirms"
     end
 
     test "the agent path says the agent asks first and hands back a run identifier",

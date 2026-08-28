@@ -11,11 +11,13 @@ defmodule TechtreeWeb.InstallComponents do
   someone else in a link and so a page that loads without a live connection
   still switches.
 
-  No command here is written into the page. Every one of them comes from the
-  installation contract this site publishes, and when that contract says its
-  coordinates are stand-ins, the page says so above them. The address of the
-  pinned plugin is held to the same rule: it is shown only once the contract
-  names a real revision, and never as a branch or a stand-in.
+  No release coordinate here is written into the page. The pinned commands
+  come from the installation contract this site publishes; the deliberate
+  second install step is that same pinned command with the override Hermes
+  names in its refusal. When the contract says its coordinates are stand-ins,
+  the page says so above them. The address of the pinned plugin is held to the
+  same rule: it is shown only once the contract names a real revision, and
+  never as a branch or a stand-in.
 
   One thing here is not a command and still has to be said: Hermes reads the
   plugin's source before installing it, and what it reports is not nothing. A
@@ -217,6 +219,23 @@ defmodule TechtreeWeb.InstallComponents do
         argv={plugin_install(@instructions)}
         label="Install and enable the Hermes plugin"
       />
+      <p>
+        <strong>Expect Hermes to refuse the first attempt.</strong>
+        A community-source plugin at caution is refused rather than queried.
+        It does not stop and ask. Read the five findings on this page. If they
+        are the five reviewed findings described here and you agree with what
+        the named code does, run the same pinned command again with --force appended.
+      </p>
+      <.command_block
+        argv={plugin_install_with_override(@instructions)}
+        label="After reviewing the findings, install with the override"
+      />
+      <p class="small quiet">
+        Hermes’s own help describes <code>--force</code> only as
+        “Remove existing plugin and reinstall” and does not say that overriding
+        this refusal is its second job. It applies to this one install. It does
+        not switch scanning off for this or any later plugin.
+      </p>
       <.command_block
         argv={plugin_doctor(@instructions)}
         label="Check the plugin is loaded"
@@ -229,7 +248,7 @@ defmodule TechtreeWeb.InstallComponents do
       <p class="small quiet">
         Once the plugin is enabled, Hermes has to be restarted once so its Techtree tools
         are loaded. The plugin then installs and checks the command-line tool for you —
-        the third command is the one it runs — and asks you before it does.
+        the command-line tool command above is the one it runs — and asks you before it does.
       </p>
 
       <p :if={@release_url} class="small">
@@ -282,10 +301,12 @@ defmodule TechtreeWeb.InstallComponents do
       </.definition_list>
 
       <p>
-        A caution verdict is yours to answer. Hermes stops, shows you the findings,
-        and installs nothing until a person confirms. Read them against the source
-        they name, and confirm if you agree with what they say. The plugin's own
-        README goes through the same five, in the same order.
+        Expect Hermes to refuse the first attempt. A community-source plugin at
+        caution is refused rather than queried. It does not stop and ask. Read the
+        findings against the source they name. If they are the five above and you
+        agree with what they say, run the same pinned command again with --force
+        appended. The plugin's own README goes through the same five, in the same
+        order.
       </p>
       <p>
         Never turn the scanning off. It is the one look at the source that happens
@@ -346,6 +367,7 @@ defmodule TechtreeWeb.InstallComponents do
   defp placeholder?(instructions), do: instructions["placeholder_release"] == true
 
   defp plugin_install(instructions), do: get_in(instructions, ["hermes_plugin", "install_argv"])
+  defp plugin_install_with_override(instructions), do: plugin_install(instructions) ++ ["--force"]
   defp plugin_doctor(instructions), do: get_in(instructions, ["hermes_plugin", "doctor_argv"])
   defp cli_install(instructions), do: get_in(instructions, ["cli", "install_argv"])
   defp host_prompt(instructions), do: get_in(instructions, ["introductory_climb", "host_prompt"])

@@ -720,6 +720,16 @@ defmodule TechtreeWeb.DocsLive do
               the report before approving installation. Never turn the scanning off.
             </p>
             <p>
+              <strong>Expect Hermes to refuse the first attempt.</strong>
+              A community-source plugin at caution is refused rather than queried. It does not
+              stop and ask. If the report is the five reviewed findings above and you agree with
+              what the named code does, run the same pinned command again with --force appended.
+              Hermes’s own help describes <code>--force</code>
+              only as
+              “Remove existing plugin and reinstall”; overriding this refusal is its second job,
+              and it does not switch scanning off.
+            </p>
+            <p>
               The plugin itself does not score tasks, generate receipts, or implement
               evaluation logic. It invokes fixed CLI argument arrays and reads one JSON
               envelope back.

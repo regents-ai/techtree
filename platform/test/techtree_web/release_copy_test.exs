@@ -197,9 +197,23 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @scan_section [
     "What the security scan will say",
     "This plugin comes back at caution, with five findings in three families.",
-    "A caution verdict is yours to answer.",
-    "Hermes stops, shows you the findings, and installs nothing until a person confirms.",
+    "Expect Hermes to refuse the first attempt.",
+    "A community-source plugin at caution is refused rather than queried.",
+    "It does not stop and ask.",
+    "run the same pinned command again with --force appended",
+    "Remove existing plugin and reinstall",
     "Never turn the scanning off."
+  ]
+
+  # Hermes 0.20.5 refuses a community-source plugin at caution. It does not
+  # present a scan-specific question. These are the three stale promises the
+  # plugin repository guards, plus the wording this site carried when the
+  # fresh-profile journey found the defect.
+  @scan_promises_question [
+    ~r/Hermes\s+stops\s+and\s+asks/iu,
+    ~r/nothing\s+is\s+installed\s+until\s+a\s+person\s+answers/iu,
+    ~r/verdict\s+is\s+yours\s+to\s+accept\s+or\s+refuse/iu,
+    ~r/installs\s+nothing\s+until\s+a\s+person\s+confirms/iu
   ]
 
   # A pinned address is the whole promise: what a reader reads today is what
@@ -428,6 +442,24 @@ defmodule TechtreeWeb.ReleaseCopyTest do
         end
 
       assert offering != [], "no page offered the install command, so nothing was checked"
+    end
+
+    test "no public source or rendered install page promises a scanner question Hermes never asks",
+         %{conn: conn} do
+      sources = page_sources() ++ rendered(conn, @install_paths)
+
+      for {label, source} <- sources, pattern <- @scan_promises_question do
+        refute source =~ pattern,
+               "#{label} promises a scan question that Hermes does not ask: #{inspect(pattern)}"
+      end
+    end
+
+    test "no published primary plugin command carries the scan override" do
+      for {label, source} <- bootstrap_sources(),
+          argv = source |> Jason.decode!() |> get_in(["hermes_plugin", "install_argv"]) do
+        refute Enum.any?(argv, &(&1 in ["--force", "-f"])),
+               "#{label} puts a scan override in the primary plugin install command"
+      end
     end
 
     test "the pages that describe privacy say where the model calls go", %{conn: conn} do

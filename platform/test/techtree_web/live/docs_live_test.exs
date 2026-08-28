@@ -116,6 +116,9 @@ defmodule TechtreeWeb.DocsLiveTest do
                "Hermes is expected to report caution with five reviewed findings in " <>
                  "three families"
 
+      assert text =~ "Expect Hermes to refuse the first attempt."
+      assert text =~ "It does not stop and ask."
+      assert text =~ "run the same pinned command again with --force appended"
       assert text =~ "Read the report before approving installation."
       assert text =~ "Never turn the scanning off."
     end
