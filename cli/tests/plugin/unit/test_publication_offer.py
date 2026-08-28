@@ -377,6 +377,10 @@ def test_the_offer_survives_an_answer_too_large_to_carry() -> None:
                 "ok": True,
                 "command": "run result",
                 "publication_offer": {"id": "publish_run"},
+                "completion_summary": {
+                    "elapsed_seconds": 42.5,
+                    "total_tokens": 579,
+                },
                 "filler": "x" * 200_000,
             }
         )
@@ -384,3 +388,7 @@ def test_the_offer_survives_an_answer_too_large_to_carry() -> None:
 
     assert reduced["truncated"] is True
     assert reduced["publication_offer"] == {"id": "publish_run"}
+    assert reduced["completion_summary"] == {
+        "elapsed_seconds": 42.5,
+        "total_tokens": 579,
+    }

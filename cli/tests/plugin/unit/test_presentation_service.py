@@ -76,6 +76,58 @@ def test_the_numbers_come_through_untouched() -> None:
     assert "not been independently reproduced" in result["reproduction"]
 
 
+def test_completion_summary_uses_record_headlines_and_keeps_side_values() -> None:
+    envelope = _envelope()
+    envelope["data"]["execution_record"] = {
+        "elapsed_seconds": 42.5,
+        "baseline": {
+            "elapsed_seconds": 17.25,
+            "usage": {"total_tokens": 123},
+        },
+        "candidate": {
+            "elapsed_seconds": 25.25,
+            "usage": {"total_tokens": 456},
+        },
+    }
+
+    result = _service().deterministic_only(
+        result_envelope=envelope, channel=ChannelKind.TERMINAL
+    )
+
+    assert result["completion_summary"] == {
+        "elapsed_seconds": 42.5,
+        "total_tokens": 579,
+        "baseline_seconds": 17.25,
+        "candidate_seconds": 25.25,
+        "baseline_tokens": 123,
+        "candidate_tokens": 456,
+    }
+
+
+def test_completion_summary_with_partial_usage_has_no_invented_total() -> None:
+    envelope = _envelope()
+    envelope["data"]["execution_record"] = {
+        "elapsed_seconds": 42.5,
+        "baseline": {
+            "elapsed_seconds": 17.25,
+            "usage": {"total_tokens": 123},
+        },
+        "candidate": {
+            "elapsed_seconds": 25.25,
+            "usage": {"total_tokens": None},
+        },
+    }
+
+    result = _service().deterministic_only(
+        result_envelope=envelope, channel=ChannelKind.TERMINAL
+    )
+
+    assert result["completion_summary"]["elapsed_seconds"] == 42.5
+    assert result["completion_summary"]["total_tokens"] is None
+    assert result["completion_summary"]["baseline_tokens"] == 123
+    assert result["completion_summary"]["candidate_tokens"] is None
+
+
 def test_a_composed_result_carries_no_model_written_words() -> None:
     """Decision 0009: no host-model presentation completion exists."""
     result = _service().deterministic_only(

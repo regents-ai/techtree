@@ -1203,6 +1203,47 @@ def test_the_operator_skill_forbids_a_verdict_of_the_agents_own(
     assert pattern.search(skill), f"the operator Skill no longer says: {described}"
 
 
+def test_the_operator_foregrounds_usage_then_asks_before_publication() -> None:
+    """A verified unpublished result has one fixed, approval-gated next step."""
+    skill = " ".join(PUBLIC_COPY["skills/operator/SKILL.md"].split()).lower()
+    questions = " ".join(
+        PUBLIC_COPY["skills/operator/references/questions.md"].split()
+    ).lower()
+
+    for copy in (skill, questions):
+        assert "overall elapsed time" in copy
+        assert "total tokens spent" in copy
+        assert "completion_summary" in copy
+        assert "publication_offer" in copy
+        assert "do not call `techtree_publish_run`" in copy
+        assert "explicitly says yes" in copy or "explicitly approves it" in copy
+        assert "would you like to publish this result proof to techtree.sh?" in copy
+        assert "pseudonymous participant public key" in copy
+        assert "never the episodes" in copy
+        assert "no evm address is attached unless you choose to add one" in copy
+        assert "techtree publish <run-id>" in copy
+        assert (
+            "do not solicit the address in chat" in copy
+            or "rather than soliciting the address in chat" in copy
+        )
+
+    usage = skill.index("foreground the two headline values")
+    question = skill.index("would you like to publish this result proof")
+    assert usage < question
+
+
+def test_the_operator_does_not_publish_without_the_offer_or_approval() -> None:
+    """Missing offer and missing human approval both keep publication closed."""
+    skill = " ".join(PUBLIC_COPY["skills/operator/SKILL.md"].split()).lower()
+
+    assert "if there is no `publication_offer`" in skill
+    assert "do not ask to publish" in skill
+    assert (
+        "do not call `techtree_publish_run` in the same response or until the "
+        "person explicitly says yes"
+    ) in skill
+
+
 def test_the_verdict_guard_catches_a_skill_that_lost_the_instruction() -> None:
     """The Skill as it read before ip5: numbers relayed, verdicts unmentioned."""
     without = (

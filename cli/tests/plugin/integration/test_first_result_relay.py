@@ -44,6 +44,18 @@ PRESENTATION = {
     "next_actions": [],
 }
 
+EXECUTION_RECORD = {
+    "elapsed_seconds": 42.5,
+    "baseline": {
+        "elapsed_seconds": 17.25,
+        "usage": {"total_tokens": 123},
+    },
+    "candidate": {
+        "elapsed_seconds": 25.25,
+        "usage": {"total_tokens": 456},
+    },
+}
+
 
 class CountingLlm:
     """Stands in for ctx.llm. Any call at all is a failure of the contract."""
@@ -66,7 +78,11 @@ def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
     answers = {
         "run result": envelope(
             command="run result",
-            data={"report": {"run_id": RUN_ID}, "presentation": PRESENTATION},
+            data={
+                "report": {"run_id": RUN_ID},
+                "presentation": PRESENTATION,
+                "execution_record": EXECUTION_RECORD,
+            },
         )
     }
     body = (
@@ -107,6 +123,19 @@ def test_the_result_is_relayed_whole(services: PluginServices) -> None:
     assert result["presentation"]["wins"] == 22
     assert result["order"][0] == "scores"
     assert "not been independently reproduced" in result["reproduction"]
+
+
+def test_the_result_has_deterministic_headline_completion_totals(
+    services: PluginServices,
+) -> None:
+    result = _result(services, channel="terminal")
+
+    assert result["completion_summary"]["elapsed_seconds"] == 42.5
+    assert result["completion_summary"]["total_tokens"] == 579
+    assert result["completion_summary"]["baseline_seconds"] == 17.25
+    assert result["completion_summary"]["candidate_seconds"] == 25.25
+    assert result["completion_summary"]["baseline_tokens"] == 123
+    assert result["completion_summary"]["candidate_tokens"] == 456
 
 
 def test_no_host_completion_is_ever_made(services: PluginServices) -> None:
