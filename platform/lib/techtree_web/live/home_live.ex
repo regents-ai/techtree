@@ -231,9 +231,11 @@ defmodule TechtreeWeb.HomeLive do
         </div>
         <div class="trust__grid">
           <p>
-            Techtree uploads nothing on its own. Your recordings, your result bundle and
-            the work you submit stay where they were made unless you publish a run
-            yourself, and publishing sends the receipt rather than the recordings. The
+            Techtree uploads nothing unless you publish a finished run yourself. Publishing
+            uploads the complete proof bundle — its index files, signed report and receipts,
+            cited documents, and any optional execution record — while Episodes and Traces
+            remain local. The network returns a separate signed publication receipt
+            acknowledging acceptance; it is not the uploaded proof bundle. The
             agent under test makes real model calls, and those go to the model provider
             you selected, under that provider’s policies.
           </p>

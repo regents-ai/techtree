@@ -95,9 +95,12 @@ defmodule TechtreeWeb.LocalProofLive do
         <p>
           A finished result goes nowhere unless you ask it to. If you want one on the
           public <.link navigate={~p"/runs"}>run log</.link>, publishing it is a
-          command you run yourself, and what travels is the receipt rather than the
-          recordings. You can also just share the bundle: it can be checked wherever it
-          lands. The model calls the run made are a separate matter and already
+          command you run yourself, and it uploads the complete proof bundle — its
+          index files, signed report and receipts, cited documents, and any optional
+          execution record — while Episodes and Traces remain local. The network returns
+          a separate signed publication receipt; it is not the uploaded proof bundle.
+          You can also just share the bundle: it can be checked wherever it lands. The
+          model calls the run made are a separate matter and already
           happened — they went to the model provider you configured, under that
           provider's policies.
         </p>

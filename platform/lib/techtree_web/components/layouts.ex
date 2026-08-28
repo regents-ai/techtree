@@ -47,7 +47,7 @@ defmodule TechtreeWeb.Layouts do
     ~H"""
     <header class="masthead">
       <div class="masthead__inner">
-        <.link class="masthead__name" navigate={~p"/"} aria-label="Techtree home">
+        <a class="masthead__name" href={~p"/"} aria-label="Techtree home">
           <span class="masthead__mark" aria-hidden="true">
             <svg viewBox="0 0 58 34" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
               <rect x="0" y="0" width="10" height="10" />
@@ -66,7 +66,7 @@ defmodule TechtreeWeb.Layouts do
             </svg>
           </span>
           <span>Techtree</span>
-        </.link>
+        </a>
         <nav class="masthead__nav" aria-label="Primary">
           <span class="masthead__selector">
             <a href={~p"/runs"} aria-current={current_section(@current_path, "/runs")}>Run</a>

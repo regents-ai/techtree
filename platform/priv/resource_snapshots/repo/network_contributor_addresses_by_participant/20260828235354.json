@@ -9,20 +9,8 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "address",
+      "source": "participant_key_id",
       "type": "text"
-    },
-    {
-      "allow_nil?": false,
-      "default": "1",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "submission_count",
-      "type": "bigint"
     },
     {
       "allow_nil?": false,
@@ -33,8 +21,8 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "publication_id",
-      "type": "uuid"
+      "source": "contributor_address_unverified",
+      "type": "text"
     },
     {
       "allow_nil?": false,
@@ -45,19 +33,7 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "first_seen_at",
-      "type": "utc_datetime_usec"
-    },
-    {
-      "allow_nil?": false,
-      "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "last_seen_at",
+      "source": "inserted_at",
       "type": "utc_datetime_usec"
     }
   ],
@@ -66,10 +42,24 @@
   "create_table_options": null,
   "custom_indexes": [],
   "custom_statements": [],
-  "drop_table_opted_out": true,
   "has_create_action": true,
-  "hash": "F4A04B9F2B4898DC0DBE28358B2F5E70ED6987E574A65C2F868EC6E9F86DD258",
-  "identities": [],
+  "hash": "257284A5CFE3EEBC18E07A7DE1B831ED289C300DDB94A2C540C8C656AE37190D",
+  "identities": [
+    {
+      "all_tenants?": false,
+      "base_filter": null,
+      "index_name": "network_contributor_address_participant_key_idx",
+      "keys": [
+        {
+          "type": "atom",
+          "value": "participant_key_id"
+        }
+      ],
+      "name": "unique_participant_key",
+      "nils_distinct?": true,
+      "where": null
+    }
+  ],
   "multitenancy": {
     "attribute": null,
     "global": null,
@@ -77,5 +67,5 @@
   },
   "repo": "Elixir.Techtree.Repo",
   "schema": null,
-  "table": "network_contributor_addresses"
+  "table": "network_contributor_addresses_by_participant"
 }

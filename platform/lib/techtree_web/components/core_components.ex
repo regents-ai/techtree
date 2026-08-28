@@ -357,13 +357,15 @@ defmodule TechtreeWeb.CoreComponents do
   # Decision 0038 changed the first half. Publishing exists now, and it is
   # something a person chooses one run at a time, so the sentence says nothing
   # goes unless they send it rather than that nothing can. It also says what
-  # goes when they do, because "you can publish this" without "the receipt,
-  # not the recordings" is the sentence that would frighten the same two
+  # goes when they do, because "you can publish this" without naming the
+  # complete proof bundle is the sentence that would mislead the same two
   # agents for the opposite reason.
-  @publication_note "Nothing you produce is published unless you publish it yourself. " <>
-                      "Your Skill and the recordings of each attempt stay on your " <>
-                      "machine; publishing a finished run sends its receipt to the " <>
-                      "public run log and never the recordings. " <>
+  @publication_note "Nothing you produce is published unless you publish a finished run yourself. " <>
+                      "Publishing uploads the complete proof bundle — its index files, signed " <>
+                      "report and receipts, cited documents, and any optional execution record — " <>
+                      "while Episodes and Traces remain local. The network returns a separate " <>
+                      "signed publication receipt acknowledging acceptance; it is not the uploaded " <>
+                      "proof bundle. " <>
                       "The agent still makes calls to the model provider you selected, under " <>
                       "that provider's policies."
 

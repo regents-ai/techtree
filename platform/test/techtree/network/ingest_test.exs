@@ -733,16 +733,14 @@ defmodule Techtree.Network.IngestTest do
     @address "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
     @second_address "0xde709f2102306220921060314715629080e2fb77"
 
-    test "is stored apart from the log, keyed by the address itself, never on the entry" do
+    test "is stored apart from the log, keyed by the participant key, never on the entry" do
       {:ok, entry, :recorded} =
         NetworkFixture.publish(NetworkFixture.submission(), contributor_address: @address)
 
-      record = Ingest.contributor_address(@address)
+      assert [record] = Ingest.contributor_address(@address)
 
-      assert record.address == String.downcase(@address)
-      assert record.submission_count == 1
-      assert record.publication_id == entry.id
-      assert record.first_seen_at == record.last_seen_at
+      assert record.contributor_address_unverified == String.downcase(@address)
+      assert record.participant_key_id == entry.participant_key_id
 
       refute entry |> Map.from_struct() |> Map.values() |> Enum.any?(&(&1 == @address))
       refute entry.receipt_bytes =~ @address
@@ -750,42 +748,40 @@ defmodule Techtree.Network.IngestTest do
       refute entry.submission_bytes =~ String.downcase(@address)
     end
 
-    test "left again with a second run is one row counting two, pointing at the newer run" do
+    test "a second participant leaving the same address remains a separate record" do
       {:ok, first, :recorded} =
         NetworkFixture.publish(NetworkFixture.submission(), contributor_address: @address)
-
-      before = Ingest.contributor_address(@address)
 
       {:ok, second, :recorded} =
         NetworkFixture.publish(another_run(), contributor_address: @address)
 
-      record = Ingest.contributor_address(@address)
-
-      assert record.submission_count == 2
-      assert record.publication_id == second.id
-      refute record.publication_id == first.id
-      assert record.first_seen_at == before.first_seen_at
-      assert DateTime.compare(record.last_seen_at, before.last_seen_at) in [:gt, :eq]
+      records = Ingest.contributor_address(@address)
+      assert length(records) == 2
+      assert records |> Enum.map(& &1.participant_key_id) |> Enum.uniq() |> length() == 2
+      assert first.participant_key_id != second.participant_key_id
 
       assert length(Network.list_publication_entries!()) == 2
     end
 
-    test "spelled the other way is the same row, because case is not identity" do
+    test "spelled the other way retains the same unverified address" do
       NetworkFixture.publish(NetworkFixture.submission(), contributor_address: @address)
 
       NetworkFixture.publish(another_run(),
         contributor_address: String.downcase(@address)
       )
 
-      assert Ingest.contributor_address(@address).submission_count == 2
+      assert Enum.all?(
+               Ingest.contributor_address(@address),
+               &(&1.contributor_address_unverified == String.downcase(@address))
+             )
     end
 
-    test "is one row per address and not one per publisher" do
+    test "keeps separate records for separate participant keys" do
       NetworkFixture.publish(NetworkFixture.submission(), contributor_address: @address)
       NetworkFixture.publish(another_run(), contributor_address: @second_address)
 
-      assert Ingest.contributor_address(@address).submission_count == 1
-      assert Ingest.contributor_address(@second_address).submission_count == 1
+      assert length(Ingest.contributor_address(@address)) == 1
+      assert length(Ingest.contributor_address(@second_address)) == 1
     end
 
     test "is refused, with the submission, when a character of it is wrong" do
@@ -815,10 +811,10 @@ defmodule Techtree.Network.IngestTest do
       NetworkFixture.publish(NetworkFixture.submission(), contributor_address: @address)
       NetworkFixture.publish(another_run(), contributor_address: @address)
 
-      assert Ingest.contributor_address(@address).submission_count == 2
+      assert length(Ingest.contributor_address(@address)) == 2
 
       assert :ok = Ingest.forget_contributor_address(String.downcase(@address))
-      assert Ingest.contributor_address(@address) == nil
+      assert Ingest.contributor_address(@address) == []
       assert length(Network.list_publication_entries!()) == 2
     end
 
@@ -826,15 +822,13 @@ defmodule Techtree.Network.IngestTest do
       NetworkFixture.publish(NetworkFixture.submission(), contributor_address: @address)
 
       assert {:error, _forbidden} = Network.list_contributor_addresses()
-      assert {:error, _forbidden} = Network.get_contributor_address(String.downcase(@address))
+      assert {:error, _forbidden} = Network.find_contributor_addresses(String.downcase(@address))
     end
   end
 
   # A second real publication by a second participant: the same proof, signed
   # again under a key made here, which is a different bundle and therefore a
-  # different entry. It is what a second person leaving the same address looks
-  # like, and what this table is unable to tell apart from one person doing it
-  # twice — correctly, because nobody proved control of the address either way.
+  # different entry.
   defp another_run do
     NetworkFixture.files()
     |> NetworkFixture.resign()

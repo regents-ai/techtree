@@ -90,22 +90,51 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute text =~ entry.participant_key_id
     end
 
-    test "says what this site checked and what it did not", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+    test "says what Techtree verifies and what remains participant-attested", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/runs")
       text = visible_text(html)
 
+      assert text =~ "Every comparison submitted for publication, newest first."
+
+      assert text =~
+               "This is a record, not a leaderboard. There are no rankings or preferred results."
+
+      assert text =~ "What Techtree verifies"
+      assert text =~ "the files match their recorded hashes"
+      assert text =~ "the signatures verify against the included key"
+      assert text =~ "the reported scores match the task results in the bundle"
       assert text =~ "internally consistent and signed by the key it names"
-      assert text =~ "not a claim that the run happened"
-      assert text =~ "did not watch it and has not repeated it"
+      assert text =~ "It does not prove the run happened as described."
+      assert text =~ "Techtree did not observe these runs or reproduce them."
+      assert text =~ "participant’s attestation"
+      assert has_element?(live, ".runs-index__intro .callout p strong", "not")
+
+      assert has_element?(
+               live,
+               ~s|.runs-index__intro[aria-labelledby="runs-index-title"] #runs-index-title|,
+               "Published comparisons"
+             )
+
+      assert has_element?(
+               live,
+               ".runs-index__verification-list > li",
+               "the files match their recorded hashes;"
+             )
+
+      assert has_element?(live, ".runs-index__log > article.log__entry")
     end
 
-    test "carries no rank, no position and nothing to reorder it by", %{conn: conn} do
+    test "rows carry no rank or position and nothing can reorder them", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/runs")
-      text = html |> visible_text() |> String.downcase()
+      rows = html |> LazyHTML.from_fragment() |> LazyHTML.query(".log__entry") |> LazyHTML.text()
+      row_text = String.downcase(rows)
 
       for word <- ["rank", "leaderboard", "position", "sort by", "#1", "top "] do
-        refute text =~ word, "the log says #{inspect(word)}"
+        refute row_text =~ word, "a run row says #{inspect(word)}"
       end
+
+      assert visible_text(html) =~
+               "This is a record, not a leaderboard. There are no rankings or preferred results."
 
       refute live |> element("select") |> has_element?()
       refute live |> element("[phx-click]") |> has_element?()
@@ -237,7 +266,20 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert has_element?(live, "#run-comparison")
       assert visible_text(render(live)) =~ "Techtree Hello World"
-      assert visible_text(render(live)) =~ "No Skill vs. hello-world-v1"
+      assert visible_text(render(live)) =~ "hello-world-v1 vs baseline"
+
+      assert has_element?(
+               live,
+               "#run-subtitle",
+               "hermes-agent 0.19.0 on qwen/qwen3.7-flash"
+             )
+
+      assert has_element?(
+               live,
+               "#run-outcome",
+               "#{entry.wins} of #{entry.task_count} tasks improved, #{entry.ties} equal, #{entry.losses} worse."
+             )
+
       refute has_element?(live, "#run-github")
     end
 
@@ -327,7 +369,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, detail, _html} = live(conn, "/runs/#{entry.bundle_digest}")
 
       assert has_element?(detail, "#run-comparison")
-      assert visible_text(render(detail)) =~ "No Skill vs. branchcode"
+      assert visible_text(render(detail)) =~ "branchcode vs baseline"
       assert has_element?(detail, "#run-github[href=\"#{github_url}\"]")
     end
   end

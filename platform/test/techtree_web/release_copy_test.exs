@@ -129,8 +129,9 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # it, the recordings never go at all, and the model calls still leave. A
   # passage carrying only the first of those is the one that misleads.
   @publishes_nothing [
-    "Nothing you produce is published unless you publish it yourself.",
-    "publishing a finished run sends its receipt to the public run log and never the recordings"
+    "Nothing you produce is published unless you publish a finished run yourself.",
+    "the complete proof bundle",
+    "a separate signed publication receipt"
   ]
 
   @forbidden_name ~r/helloworldbench/i
@@ -212,7 +213,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     ~r/Hermes\s+stops\s+and\s+asks/iu,
     ~r/nothing\s+is\s+installed\s+until\s+a\s+person\s+answers/iu,
     ~r/verdict\s+is\s+yours\s+to\s+accept\s+or\s+refuse/iu,
-    ~r/installs\s+nothing\s+until\s+a\s+person\s+confirms/iu
+    ~r/installs\s+nothing\s+until\s+a\s+person\s+confirms/iu,
+    ~r/Hermes\s+must\s+ask\s+before:\s*installing\s+the\s+plugin/iu
   ]
 
   # A pinned address is the whole promise: what a reader reads today is what

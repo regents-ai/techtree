@@ -276,7 +276,7 @@ defmodule TechtreeWeb.InstallComponents do
         found. This plugin comes back at caution, with five findings in three
         families. Not one of them is an oversight waiting to be tidied away: each is
         part of how the plugin does its work, and each is a few lines you can read
-        for yourself before you answer.
+        for yourself before you decide whether to override the refusal.
       </p>
 
       <.definition_list>
@@ -323,8 +323,11 @@ defmodule TechtreeWeb.InstallComponents do
   def disclosure(assigns) do
     ~H"""
     <p class="small quiet section">
-      Techtree sends nothing on its own — publishing a finished run is a command you run,
-      a run at a time, and it sends that run’s receipt and never the recordings. The
+      Techtree uploads nothing unless you publish a finished run yourself. Publishing uploads
+      the complete proof bundle — its index files, signed report and receipts, cited documents,
+      and any optional execution record — while Episodes and Traces remain local. The network
+      returns a separate signed publication receipt acknowledging acceptance; it is not the
+      uploaded proof bundle. The
       agent under test makes real model calls, and those are sent to the model provider you
       selected, under that provider’s policies. If you later take the guided revision of your
       Skill, that one request carries your Skill text and a sanitized summary of the run to

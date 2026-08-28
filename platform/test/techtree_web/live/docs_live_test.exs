@@ -71,9 +71,10 @@ defmodule TechtreeWeb.DocsLiveTest do
 
       assert text =~ "Techtree sends none of this anywhere on its own"
       # Decision 0038: the list is only half the answer now. Publishing is the
-      # one thing that sends anything, and the passage has to say what travels
-      # when somebody asks for it or the list reads as a promise it is not.
-      assert text =~ "Publishing a run is the one thing that sends anything"
+      # explicit opt-in, and the passage must name the complete proof bundle
+      # and the separate network receipt.
+      assert text =~ "the complete proof bundle"
+      assert text =~ "separate signed publication"
       assert text =~ "This website has no account system and no route for submitting those"
       assert text =~ "A comparison still makes real model requests."
 
@@ -121,6 +122,7 @@ defmodule TechtreeWeb.DocsLiveTest do
       assert text =~ "run the same pinned command again with --force appended"
       assert text =~ "Read the report before approving installation."
       assert text =~ "Never turn the scanning off."
+      refute text =~ "Hermes must ask before: installing the plugin"
     end
 
     test "stand-in coordinates are described but never offered", %{conn: conn} do

@@ -299,10 +299,10 @@ defmodule TechtreeWeb.DocsLive do
               <li>saved Skill proposals.</li>
             </ul>
             <p>
-              Publishing a run is the one thing that sends anything, you ask for it a run at
-              a time, and what travels is the run’s receipt — the signed report, the
-              per-task receipts and the documents they cite. The episodes and traces are
-              not in that directory and cannot travel with it.
+              Publishing a finished run uploads the complete proof bundle — its index files,
+              signed report and receipts, cited documents, and any optional execution record —
+              while Episodes and Traces remain local. The network returns a separate signed
+              publication receipt acknowledging acceptance; it is not the uploaded proof bundle.
             </p>
             <p>
               This website has no account system and no route for submitting those artifacts.
@@ -575,10 +575,11 @@ defmodule TechtreeWeb.DocsLive do
               public reproduction or attestation-import workflow.
             </p>
             <p>
-              Publishing a finished run sends its receipt to the public run log, which is a
-              record of what was published and not a reproduction of it. The site checks
-              that a receipt is internally consistent and signed; it does not run the
-              comparison again and did not watch the original.
+              Publishing a finished run uploads its complete proof bundle to the public run log,
+              which is a record of what was published and not a reproduction of it. The network
+              returns a separate signed publication receipt acknowledging acceptance. The site
+              checks the uploaded proof bundle and receipt for internal consistency and
+              signatures; it does not run the comparison again and did not watch the original.
             </p>
           </section>
 
@@ -682,9 +683,6 @@ defmodule TechtreeWeb.DocsLive do
             </ul>
             <p>Hermes must ask before:</p>
             <ol class="steps">
-              <li>
-                <p class="plain">installing the plugin;</p>
-              </li>
               <li>
                 <p class="plain">installing the CLI;</p>
               </li>
@@ -817,8 +815,11 @@ defmodule TechtreeWeb.DocsLive do
             </p>
             <p>
               Techtree sends these local artifacts nowhere on its own. Publishing a finished
-              run sends its receipt, which carries none of them. Model inference still travels
-              to the configured providers as described above.
+              run uploads the complete proof bundle — its index files, signed report and receipts,
+              cited documents, and any optional execution record — while Episodes and Traces
+              remain local. The network returns a separate signed publication receipt; it is not
+              the uploaded proof bundle. Model inference still travels to the configured
+              providers as described above.
             </p>
           </section>
 

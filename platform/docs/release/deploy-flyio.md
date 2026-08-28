@@ -163,7 +163,7 @@ being able to do this early.
     curl -s https://techtree-sh.fly.dev/healthz
 
 `/healthz` must now be 200 and name channel `development`, catalog digest
-`sha256:ae300ef6…`, import status `complete`.
+`sha256:10a7fcc5…`, import status `complete`.
 
 ### 8. Allocate the addresses DNS will point at
 
@@ -255,7 +255,7 @@ Expected before Gate 2:
 
 | Check | Expected |
 | --- | --- |
-| `/healthz` | 200, channel `development`, catalog `sha256:ae300ef6…`, status `complete` |
+| `/healthz` | 200, channel `development`, catalog `sha256:10a7fcc5…`, status `complete` |
 | `/api/v1/catalog` | 200, `application/json` |
 | `/api/v1/bootstrap` | `ETag` and body digest both `sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` — the placeholder |
 | `POST /api/v1/bootstrap` | `405` with `Allow: GET, HEAD` |
@@ -289,7 +289,7 @@ In the repository:
 
     mix run scripts/sync_catalog.exs \
       --source ../techtree-python/src/techtree/resources/catalog \
-      --source-revision a3ea8c585a44bfe9a626aa209f6f18fc65772163 \
+      --source-revision 2e714835469dc0a3fb4bece3ed2f861317fe4d7c \
       --generator-version 0.1.0 \
       --bootstrap priv/bootstrap/stable.json
 
@@ -298,7 +298,7 @@ In the repository:
     shasum -a 256 priv/catalog/bootstrap.json
 
 The last command must print
-`f8a7adf65f0e6ce50eab933419d4f830aad894204fcc690e25105d5f9db61e62`.
+`d3fdb91588e897253af6e7c6c2bdc1fadc2b346d2e924c85f6e02c1393843191`.
 
 `priv/catalog` is generated, not committed, so this replaces the development
 bundle in your working tree. Re-run the same command with `--bootstrap
@@ -341,8 +341,8 @@ The import prints the catalog digest and `on channel stable`.
 | Check | Expected |
 | --- | --- |
 | health check | passing again |
-| `/healthz` | 200, channel `stable`, catalog `sha256:ae300ef6…`, status `complete` |
-| `/api/v1/bootstrap` | `ETag` and body digest both `sha256:f8a7adf65f0e6ce…` — the stable floor |
+| `/healthz` | 200, channel `stable`, catalog `sha256:10a7fcc5…`, status `complete` |
+| `/api/v1/bootstrap` | `ETag` and body digest both `sha256:d3fdb91588e897253af6e7c6c2bdc1fadc2b346d2e924c85f6e02c1393843191` — the stable floor |
 | the document itself | `"channel": "stable"`, `"placeholder_release": true`, `"version": "0.0.0-placeholder"` |
 | the pages | unchanged, still saying this is not a real release yet |
 
@@ -363,16 +363,41 @@ no floor leaves nothing to roll back to.
 
 The candidate is `priv/releases/climb-v0.1.0/`, on channel `stable`. Its
 bootstrap release is
-`sha256:39677295829348ec97c0243277efa7dfddce2b77c0e6c5a42d5113a34733892d`, and
-this build has never staged it.
+`sha256:3fdadeeb3f435fe08232e401c38751345b4809e9b1bb4202c892b43464c73c76`.
+The current production image already carries these candidate bytes, but the
+database has not staged them and the `stable` pointer still serves the floor.
 
-### 13. Build the bundle that carries the candidate — founder approval required
+The verified candidate coordinates are:
+
+| Coordinate | Value |
+| --- | --- |
+| ReleaseCore | `sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1` |
+| Catalog | `sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c` |
+| CLI source | `2e714835469dc0a3fb4bece3ed2f861317fe4d7c` |
+| CLI wheel | `sha256:5565e553f2e29a145711d5b13f6c03760a99b6c17d404e4a36768513a7660040` |
+| Hermes plugin | `db827e714094c89514ea63d3ace1c97e6698589d` |
+| Publication key | `sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966` |
+| Starter file | `sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c` |
+| Starter tree | `sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b` |
+
+For this candidate, the current image is already deployed and healthy:
+`registry.fly.io/techtree-sh:deployment-01M15B6RT0RZX6S4S60W21H3RM` (Fly release
+v10). Do not deploy from a dirty worktree. After public coordinates are
+approved, activation is the import/pointer step in 15; it is not another image
+deploy.
+
+### 13. Build or verify the bundle that carries the candidate — founder approval required
+
+For the currently verified production image, this step is already complete and
+may be skipped. The image carries the candidate bootstrap and ReleaseCore bytes
+listed above. Re-run the repository commands below only when deliberately
+re-cutting the candidate before a future deploy.
 
 In the repository:
 
     mix run scripts/sync_catalog.exs \
       --source ../techtree-python/src/techtree/resources/catalog \
-      --source-revision a3ea8c585a44bfe9a626aa209f6f18fc65772163 \
+      --source-revision 2e714835469dc0a3fb4bece3ed2f861317fe4d7c \
       --generator-version 0.1.0 \
       --bootstrap priv/releases/climb-v0.1.0/bootstrap.json
 
@@ -380,11 +405,15 @@ In the repository:
 
     shasum -a 256 priv/catalog/bootstrap.json
 
-The last command must print `39677295…`. The approved bytes are copied, never
+The last command must print `3fdadeeb…`. The approved bytes are copied, never
 rewritten; a different digest here means something regenerated them and the
 approval no longer covers what is about to ship.
 
-### 14. Deploy that image
+### 14. Deploy that image (not required for the currently verified image)
+
+The current production image already carries the exact candidate and is healthy;
+skip this step for the activation described here. If a future re-cut changes
+any digest, deploy that new image only after the candidate is re-verified.
 
     flyctl deploy --app techtree-sh --remote-only --ha=false
 
@@ -404,16 +433,17 @@ The import stages the candidate and publishes it in the same transaction, which
 is the activation. On any failure the floor keeps serving.
 
 If the candidate is already staged from an earlier attempt and only the pointer
-needs to move, that is the explicit form:
+needs to move, that is the explicit form (the current database has not staged it,
+so use the import command above today):
 
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:39677295829348ec97c0243277efa7dfddce2b77c0e6c5a42d5113a34733892d")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:3fdadeeb3f435fe08232e401c38751345b4809e9b1bb4202c892b43464c73c76", "stable")'
 
 ### 16. Verify what is published
 
     curl -sD- https://techtree.sh/api/v1/bootstrap -o bootstrap.json
     shasum -a 256 bootstrap.json
 
-`ETag` and body digest must both be `sha256:39677295…`, and must equal the
+`ETag` and body digest must both be `sha256:3fdadeeb…`, and must equal the
 digest in `priv/releases/climb-v0.1.0/checksums.json`. `/healthz` must still
 name channel `stable`. Then re-run the whole of step 12; the 405 and the
 redirect must be unchanged.
@@ -424,14 +454,15 @@ The stable floor stays staged forever, so going back is one command:
 
     flyctl ssh console --app techtree-sh
     /app/bin/techtree eval 'Techtree.Release.list_bootstrap_releases()'
-    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:f8a7adf65f0e6ce50eab933419d4f830aad894204fcc690e25105d5f9db61e62")'
+    /app/bin/techtree eval 'Techtree.Release.publish_bootstrap("sha256:d3fdb91588e897253af6e7c6c2bdc1fadc2b346d2e924c85f6e02c1393843191", "stable")'
 
 Nothing is deleted, nothing is rewritten, and nothing on anyone's machine is
 touched. The full reasoning is in [rollback.md](rollback.md).
 
 Note that a later `import_catalog()` publishes whatever bootstrap the deployed
-image carries, and would undo this. After a rollback, redeploy the image built
-in step 12b before importing again.
+image carries, and would undo this. After a rollback, do not run
+`import_catalog()` on the current candidate image unless reactivation is
+intended and approved; the pointer rollback itself needs no image change.
 
 ## The channel variable
 

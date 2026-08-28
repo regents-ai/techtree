@@ -24,8 +24,8 @@ defmodule Techtree.Network do
   evidence, it is never public, and it can be removed on request. It is stored
   here because the ingest is what receives it, and nothing else in this
   application may read it — that resource forbids reads as well as writes. It
-  is keyed by the address itself, so one address is one row however many
-  publications supplied it, and asking for it back is one removal.
+  is keyed by the participant key, not by the address: two participants who
+  type the same address remain separate records.
   """
 
   use Ash.Domain, otp_app: :techtree
@@ -56,7 +56,11 @@ defmodule Techtree.Network do
 
     resource Techtree.Network.ContributorAddress do
       define :list_contributor_addresses, action: :read
-      define :get_contributor_address, action: :by_address, args: [:address]
+
+      define :find_contributor_addresses,
+        action: :for_address,
+        args: [:contributor_address_unverified]
+
       define :record_contributor_address, action: :record
       define :forget_contributor_address, action: :forget
     end

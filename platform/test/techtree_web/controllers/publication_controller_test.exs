@@ -604,7 +604,8 @@ defmodule TechtreeWeb.PublicationControllerTest do
       refute conn.resp_body =~ @address
       refute conn.resp_body =~ String.downcase(@address)
 
-      assert Ingest.contributor_address(@address).submission_count == 1
+      assert [record] = Ingest.contributor_address(@address)
+      assert record.contributor_address_unverified == String.downcase(@address)
 
       for path <- [
             "/api/v1/publications",

@@ -59,8 +59,11 @@ defmodule TechtreeWeb.SkillController do
 
     ## Data boundary
 
-    Techtree sends nothing on its own. Publishing a finished run is a command you run,
-    and it sends that run's receipt; the recordings never travel.
+    Techtree uploads nothing unless you publish a finished run yourself. Publishing uploads
+    the complete proof bundle — its manifests, signed report and receipts, cited documents,
+    and any optional execution record — while Episodes and Traces remain local. The network
+    returns a separate signed publication receipt acknowledging acceptance; it is not the
+    uploaded proof bundle.
     The agent under test still makes model calls, and those go to the model provider
     the campaign names, under that provider's policies. No Techtree account exists.
 

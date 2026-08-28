@@ -213,8 +213,8 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, _live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "Techtree uploads nothing on its own"
-      assert text =~ "publishing sends the receipt rather than the recordings"
+      assert text =~ "Techtree uploads nothing unless you publish a finished run yourself"
+      assert text =~ "the complete proof bundle"
       assert text =~ "go to the model provider you selected, under that provider’s policies"
       assert text =~ "attested by the participant who produced it"
       assert text =~ "Nobody else watched the run"
@@ -316,6 +316,14 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert html =~
              ~s|class="masthead__github" href="https://github.com/regents-ai/techtree" target="_blank"|
+  end
+
+  test "the landing page leaves every primary tab neutral", %{conn: conn} do
+    {:ok, _live, html} = live(conn, ~p"/")
+
+    refute html =~ ~s|aria-current="page"|
+    assert html =~ ~s|<a class="masthead__name" href="/" aria-label="Techtree home">|
+    refute html =~ ~s|<a class="masthead__name" data-phx-link|
   end
 
   test "every page carries the same primary navigation in the decided order", %{conn: conn} do

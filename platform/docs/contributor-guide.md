@@ -40,8 +40,9 @@ could be — misled:
 - **State the publication terms with their plain meaning.** A Climb's terms
   describe a *published* result, and starting a run publishes nothing: nothing
   is published unless the participant publishes a finished run themselves, and
-  what travels then is that run's proof — the signed report and its receipts —
-  and never the episodes. The shared `publication_note()` row must accompany
+  publishing uploads the complete proof bundle — manifests, signed report and
+  receipts, cited documents, and any optional execution record — while Episodes
+  and Traces remain local. The shared `publication_note()` row must accompany
   the terms wherever they appear, and must say both halves.
 - **Never promise a run is time-bounded**, and never state an exact score
   where the calibrated band belongs — the one exception is the published

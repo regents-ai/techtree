@@ -65,11 +65,13 @@ defmodule TechtreeWeb.RunsLive.Show do
       <header class="page-heading page-heading--split">
         <div>
           <p class="eyebrow">{@campaign_name} · {arrived(@entry.accepted_at)}</p>
-          <h1>{@entry.subject_harness} {@entry.subject_harness_version} on {@entry.subject_model}</h1>
-          <p class="lede">
-            {@entry.wins} of {@entry.task_count} tasks came out better with the Skill, {@entry.ties} came out the same, and {@entry.losses} came out worse.
+          <h1 id="run-comparison">{@skill_name} vs baseline</h1>
+          <p id="run-subtitle" class="run-comparison">
+            {@entry.subject_harness} {@entry.subject_harness_version} on {@entry.subject_model}
           </p>
-          <p id="run-comparison" class="run-comparison">No Skill vs. {@skill_name}</p>
+          <p id="run-outcome" class="lede">
+            {@entry.wins} of {@entry.task_count} tasks improved, {@entry.ties} equal, {@entry.losses} worse.
+          </p>
           <a
             :if={@github_url}
             id="run-github"
