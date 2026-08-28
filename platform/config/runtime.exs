@@ -30,6 +30,19 @@ if channel = System.get_env("TECHTREE_CATALOG_CHANNEL") do
     channel: channel
 end
 
+# The public hostname, honoured wherever it is set rather than only in a
+# release. A staged rehearsal serves the real log's addresses from a local
+# port: the submission travels to an overridden endpoint, while the receipt it
+# answers with has to name the log's real address, because the participant's
+# CLI checks that against the origin its release pins and refuses anything
+# else. Refusing is the pin doing its job, so the rehearsal has to satisfy it
+# rather than route around it.
+if config_env() != :prod do
+  if host = System.get_env("PHX_HOST") do
+    config :techtree, TechtreeWeb.Endpoint, url: [host: host, port: 443, scheme: "https"]
+  end
+end
+
 if System.get_env("PHX_SERVER") do
   config :techtree, TechtreeWeb.Endpoint, server: true
 end

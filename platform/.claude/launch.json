@@ -2,10 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "techtree-ash",
-      "runtimeExecutable": "env",
-      "runtimeArgs": ["PGUSER=sean", "mix", "phx.server"],
-      "port": 4000
+      "name": "staged",
+      "runtimeExecutable": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/staged/serve.sh",
+      "runtimeArgs": [],
+      "port": 4443,
+      "url": "https://localhost:4443",
+      "autoPort": false
     }
   ]
 }
