@@ -41,6 +41,11 @@ from fixtures.publication import (
     network_signed,
     receipt_for,
 )
+from fixtures.publication.conformance import (
+    CONFORMANCE_RUN_ID,
+    FIXTURE_PATH,
+    materialize_proof,
+)
 from fixtures.receipts.proof import (
     PROOF_RUN_ID,
     RecordedProof,
@@ -88,7 +93,12 @@ from techtree.publication.service import (
 )
 from techtree.publication.transport import PUBLICATION_ENDPOINT_INVALID
 from techtree.publication.verify import PUBLICATION_RECEIPT_INVALID
-from techtree.receipts.bundle import BUNDLE_MANIFEST_FILENAME, PROOF_BUNDLE_INVALID
+from techtree.receipts.bundle import (
+    BUNDLE_DIRECTORY,
+    BUNDLE_MANIFEST_FILENAME,
+    PROOF_BUNDLE_INVALID,
+    REPORT_FILENAME,
+)
 
 # ---------------------------------------------------------------------------
 # A run with a proof in it
@@ -811,3 +821,37 @@ def _submission(runs_dir: Path) -> PublicationSubmission:
     return PublicationSubmission.model_validate_json(
         service(runs_dir, StubTransport()).submission_bytes(PROOF_RUN_ID)
     )
+
+
+def test_a_report_written_before_publishing_existed_is_still_publishable(
+    tmp_path: Path,
+) -> None:
+    """The defect the staged rehearsal found, and the reason it is one.
+
+    Every report signed before publishing existed stores
+    ``publication_eligible: false``, because the build that wrote it had
+    nowhere to publish to. Reading that flag here refused every run that
+    exists - including the certification runs this release rests on - with a
+    message naming the grade and the status as the reason, when those two are
+    exactly what make it eligible.
+
+    So eligibility is decided the way the report's own rules decide it, from
+    the grade and the rights statement. The offline verifier had the same bug
+    from the other direction and was fixed the same way.
+
+    The bundle here is the conformance fixture, which is a real signed proof
+    from before the flag was computed. A freshly built one cannot stand in for
+    it: it stores the new answer, so it would pass whatever this code did.
+    """
+    runs = tmp_path / "runs"
+    directory = runs / CONFORMANCE_RUN_ID / BUNDLE_DIRECTORY
+    directory.parent.mkdir(parents=True)
+    materialize_proof(FIXTURE_PATH.read_bytes(), directory)
+
+    stored = json.loads((directory / REPORT_FILENAME).read_text(encoding="utf-8"))
+    assert stored["payload"]["publication_eligible"] is False
+    assert stored["payload"]["proof_grade"] == "P1"
+
+    plan = service(runs, StubTransport()).plan(CONFORMANCE_RUN_ID)
+
+    assert plan.run_id == CONFORMANCE_RUN_ID

@@ -84,6 +84,7 @@ from techtree.receipts.bundle import (
     LocalProofBundleManifest,
     proof_bundle_dir,
 )
+from techtree.receipts.uplift import publication_eligible_for
 from techtree.receipts.verify import LocalProofVerifier
 from techtree.release.models import PublicationCoordinates
 
@@ -190,11 +191,24 @@ class PublicationService:
             )
 
         report = self._report(directory, run_id)
-        if not report.publication_eligible:
+        # Decided from the report's own grade and rights, never from the flag
+        # stored beside them. That flag records what the build that WROTE the
+        # report allowed, which is a fact about that build: every report signed
+        # before publishing existed stores ``false``, so reading it here refused
+        # every run that exists, including the certification runs. The offline
+        # verifier had the same bug from the other direction and was fixed the
+        # same way.
+        if not publication_eligible_for(
+            grade=report.proof_grade, publication=report.statuses.publication
+        ):
             raise PolicyError(
-                f"run {run_id}'s report is not eligible to be published: it is "
-                f"graded {report.proof_grade} and its publication status is "
-                f"{report.statuses.publication.value}",
+                f"run {run_id}'s report may not be published: "
+                + (
+                    "its rights statement blocks publication"
+                    if report.statuses.publication is PublicationStatus.BLOCKED
+                    else f"it is graded {report.proof_grade}, and only a P1 "
+                    "report is evidence of anything"
+                ),
                 code=PUBLICATION_NOT_ELIGIBLE,
                 details={
                     "run_id": run_id,
