@@ -269,6 +269,7 @@ def test_a_declared_host_agent_review_is_what_the_run_records(
     assert started.data()["policy_acknowledgement_method"] == "host_agent_confirmation"
     assert started.data()["approved_by"] == "human_via_hermes"
     request = RunStore(paths).get_request(run_id)
+    assert started.data()["draft_digest"] == request.draft_digest
     assert request.policy_acknowledgement.method == "host_agent_confirmation"
     assert request.policy_acknowledgement.data_policy_digest == (
         draft.draft.data_policy_digest

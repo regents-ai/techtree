@@ -298,7 +298,10 @@ class PublicationService:
             directory = self._bundle_dir(run_id)
         except NotFoundError:
             return False
-        return self._report(directory, run_id).publication_eligible
+        report = self._report(directory, run_id)
+        return publication_eligible_for(
+            grade=report.proof_grade, publication=report.statuses.publication
+        )
 
     # -- the request --------------------------------------------------------
 

@@ -290,6 +290,18 @@ def test_a_start_without_a_draft_is_refused() -> None:
     assert bridge.calls == []
 
 
+def test_a_missing_skill_path_says_how_to_repair_the_call() -> None:
+    result = _call(
+        "techtree_climb_prepare",
+        _services(bridge=FakeBridge()),
+        {"reference": "hello-world-climb@1"},
+    )
+
+    assert result["ok"] is False
+    assert result["code"] == "tool_argument_missing"
+    assert "skill_path" in result["next_actions"][0]["label"]
+
+
 def test_a_start_names_a_draft_and_nothing_a_model_could_widen() -> None:
     """Decision 0019 s2: no token, no policy digest, no argument but the draft."""
     schema = all_tool_schemas()["techtree_climb_start"]
@@ -437,6 +449,18 @@ def test_the_uplift_trio_bridges_the_committed_commands() -> None:
         "--candidate-skill",
         "/tmp/skill-v2",
     ]
+
+
+def test_a_missing_guided_session_says_how_to_start_one() -> None:
+    result = _call(
+        "techtree_uplift_propose",
+        _services(bridge=FakeBridge()),
+        {"source_run_id": RUN_ID},
+    )
+
+    assert result["ok"] is False
+    assert result["code"] == "demo_session_not_found"
+    assert "techtree_demo_prepare" in result["next_actions"][0]["label"]
 
 
 def _demo_bridge() -> FakeBridge:

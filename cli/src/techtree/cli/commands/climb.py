@@ -230,6 +230,7 @@ class ClimbStartPayload(ProtocolModel):
 
     run_id: NonEmptyString
     draft_id: NonEmptyString
+    draft_digest: Digest
     phase: RunPhase
     worker_pid: int | None
     campaign_spec_digest: Digest
@@ -713,6 +714,7 @@ def _start_payload(
     return ClimbStartPayload(
         run_id=status.state.run_id,
         draft_id=draft.id,
+        draft_digest=request.draft_digest,
         phase=status.state.phase,
         worker_pid=status.state.worker_pid,
         campaign_spec_digest=draft.campaign_spec_digest,
@@ -760,7 +762,7 @@ def _show_next_actions(compatibility: CompatibilityResult) -> list[NextAction]:
         return [_install_engine()]
     if compatibility.engine_status is EngineCompatibilityStatus.INSTALLED_UNVERIFIED:
         return [_verify_engine()]
-    return [_check_environment()]
+    return [_get_starter_skill()]
 
 
 def _unknown_climb_actions(error: NotFoundError) -> list[NextAction]:
@@ -814,6 +816,21 @@ def _verify_engine() -> NextAction:
         label="Check that the installed evaluation engine is intact",
         reason="A result is only worth as much as the engine that produced it.",
         cli=["techtree", "engine", "verify"],
+        hermes_tool=None,
+        hermes_args=None,
+        requires_user_confirmation=False,
+    )
+
+
+def _get_starter_skill() -> NextAction:
+    return NextAction(
+        id="get_starter_skill",
+        label="Get the pinned starter Skill",
+        reason=(
+            "The starter Skill is the candidate used for the introductory "
+            "Climb, and its next step is the exact prepare command."
+        ),
+        cli=["techtree", "skill", "starter"],
         hermes_tool=None,
         hermes_args=None,
         requires_user_confirmation=False,

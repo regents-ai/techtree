@@ -852,6 +852,9 @@ def test_a_report_written_before_publishing_existed_is_still_publishable(
     assert stored["payload"]["publication_eligible"] is False
     assert stored["payload"]["proof_grade"] == "P1"
 
-    plan = service(runs, StubTransport()).plan(CONFORMANCE_RUN_ID)
+    publisher = service(runs, StubTransport())
+    assert publisher.publication_eligible(CONFORMANCE_RUN_ID) is True
+
+    plan = publisher.plan(CONFORMANCE_RUN_ID)
 
     assert plan.run_id == CONFORMANCE_RUN_ID

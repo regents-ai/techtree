@@ -175,7 +175,12 @@ def _answers(prepared: dict[str, Any] | None = None) -> dict[str, dict[str, Any]
         ),
         "uplift start": envelope(
             command="uplift start",
-            data={"run_id": SECOND_RUN_ID, "draft_id": DRAFT_ID, "phase": "created"},
+            data={
+                "run_id": SECOND_RUN_ID,
+                "draft_id": DRAFT_ID,
+                "draft_digest": DRAFT_DIGEST,
+                "phase": "created",
+            },
         ),
     }
 
@@ -750,5 +755,6 @@ def test_the_second_run_approval_names_the_exact_draft(
     approval = started["approval"]
     assert approval["kind"] == "run.approved"
     assert approval["draft_id"] == draft_id
+    assert approval["draft_digest"] == DRAFT_DIGEST
     assert approval["actor"] == "human_via_hermes"
     datetime.fromisoformat(approval["approved_at"])

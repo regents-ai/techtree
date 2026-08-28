@@ -39,6 +39,7 @@ from dataclasses import dataclass
 from typing import Final, Protocol
 
 from techtree.catalog.repository import EmbeddedCatalogRepository, climb_reference
+from techtree.engines.registry import EngineRegistry
 from techtree.errors import NotFoundError, PolicyError, PrerequisiteError, UsageError
 from techtree.models.base import Digest
 from techtree.models.catalog import (
@@ -54,6 +55,7 @@ from techtree.models.engine import normalize_host_platform
 from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
 from techtree.models.validation import ValidationEvidence
 from techtree.paths import TechtreePaths
+from techtree.settings import resolved_settings
 
 __all__ = [
     "CLIMB_LIST_STATUSES",
@@ -108,10 +110,9 @@ class EngineStatusSource(Protocol):
 class InstalledEngineStatus:
     """Answers the engine question from what the filesystem can prove.
 
-    An engine directory that exists is an engine that was installed. Whether
-    its contents still hash to the digest they were installed under is a
-    question only the managed engine subsystem can answer, so this reports
-    ``installed_unverified`` and lets the caller decide what that is worth.
+    The managed engine registry owns the installation marker and its verified
+    bit, so compatibility reads that same record instead of guessing from a
+    directory that may have been left by an interrupted install.
     """
 
     def __init__(self, paths: TechtreePaths) -> None:
@@ -119,8 +120,13 @@ class InstalledEngineStatus:
 
     def status_for(self, engine_digest: Digest) -> EngineCompatibilityStatus:
         """Return whether that engine bundle is installed on this host."""
-        if not self._paths.engine_dir(engine_digest).is_dir():
+        status = EngineRegistry(self._paths, resolved_settings(self._paths)).status(
+            engine_digest
+        )
+        if not status.installed:
             return EngineCompatibilityStatus.NOT_INSTALLED
+        if status.verified:
+            return EngineCompatibilityStatus.VERIFIED
         return EngineCompatibilityStatus.INSTALLED_UNVERIFIED
 
 

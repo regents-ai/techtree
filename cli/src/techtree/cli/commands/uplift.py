@@ -168,6 +168,7 @@ class UpliftStartPayload(ProtocolModel):
 
     run_id: NonEmptyString
     draft_id: NonEmptyString
+    draft_digest: Digest
     phase: RunPhase
     worker_pid: int | None
     campaign_spec_digest: Digest
@@ -468,9 +469,11 @@ def start_uplift_command(
             policy_acknowledgement=approval.acknowledgement,
             approved_by=approval.actor,
         )
+        request = service.request(status.state.run_id)
         payload = UpliftStartPayload(
             run_id=status.state.run_id,
             draft_id=draft.id,
+            draft_digest=request.draft_digest,
             phase=status.state.phase,
             worker_pid=status.state.worker_pid,
             campaign_spec_digest=draft.campaign_spec_digest,

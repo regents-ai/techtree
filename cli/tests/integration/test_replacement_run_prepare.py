@@ -476,6 +476,7 @@ def test_the_cli_exports_a_context_and_prepares_a_replacement(
 
     started = run_cli(home, "uplift", "start", payload["draft_id"], "--yes")
     assert started.exit_code == 0, started.stderr
+    assert started.data()["draft_digest"] == payload["draft_digest"]
     assert started.data()["policy_acknowledgement_method"] == "explicit_cli_review"
     assert started.data()["approved_by"] == "operator_via_flag"
 

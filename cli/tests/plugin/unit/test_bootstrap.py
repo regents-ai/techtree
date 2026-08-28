@@ -425,6 +425,7 @@ def test_an_installed_release_that_matches_verifies(
     assert result["verification"]["version"] == PUBLISHED.cli_version
     assert result["verification"]["release"]["compatible"] is True
     assert result["verification"]["doctor"]["can_prepare_demo"] is True
+    assert result["next_action"]["tool"] == "techtree_climb_list"
 
 
 def test_an_installed_release_that_differs_is_rejected(

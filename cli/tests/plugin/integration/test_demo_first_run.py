@@ -97,7 +97,12 @@ def _answers() -> dict[str, dict[str, Any]]:
             },
         ),
         "climb start": envelope(
-            command="climb start", data={"run_id": RUN_ID, "phase": "created"}
+            command="climb start",
+            data={
+                "run_id": RUN_ID,
+                "draft_digest": DRAFT_DIGEST,
+                "phase": "created",
+            },
         ),
         "run status": envelope(
             command="run status",
@@ -185,6 +190,7 @@ def test_the_whole_first_run_sequence(services: PluginServices) -> None:
         },
     )
     assert started["data"]["run_id"] == RUN_ID
+    assert started["approval"]["draft_digest"] == DRAFT_DIGEST
     assert _current(services).stage is DemoStage.FIRST_RUN_ACTIVE
 
     status = _call("techtree_run_status", services, {"run_id": RUN_ID})

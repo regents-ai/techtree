@@ -27,6 +27,7 @@ import json
 import shutil
 import sys
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -45,6 +46,7 @@ from techtree.catalog.service import (
 from techtree.cli.app import create_app
 from techtree.cli.commands.climb import abbreviated_digest
 from techtree.constants import SUBJECT_IMAGE
+from techtree.engines.registry import EngineRegistry
 from techtree.errors import (
     EXIT_NOT_FOUND,
     EXIT_OK,
@@ -54,7 +56,9 @@ from techtree.errors import (
     VerificationError,
 )
 from techtree.models.catalog import ClimbSummary, EngineCompatibilityStatus
+from techtree.models.engine import EngineInstallation
 from techtree.paths import TechtreePaths, paths_from_root
+from techtree.settings import Settings
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_ROOT = REPOSITORY_ROOT / "tests" / "fixtures" / "catalog"
@@ -525,7 +529,16 @@ def test_an_installed_engine_is_a_warning_rather_than_a_block(
     resolved = CatalogService(
         repository(catalog_root), SUPPORTED_HOST, InstalledEngineStatus(paths)
     ).get_climb("synthetic-open@1")
-    paths.engine_dir(resolved.publisher_validation.engine_digest).mkdir(parents=True)
+    engine_digest = resolved.publisher_validation.engine_digest
+    EngineRegistry(paths, Settings()).record(
+        EngineInstallation(
+            digest=engine_digest,
+            installed_at=datetime.now(UTC),
+            python_executable=str(paths.engine_dir(engine_digest) / ".venv/bin/python"),
+            descriptor_digest=engine_digest,
+            verified=False,
+        )
+    )
 
     compatibility = CatalogService(
         repository(catalog_root), SUPPORTED_HOST, InstalledEngineStatus(paths)
@@ -533,6 +546,32 @@ def test_an_installed_engine_is_a_warning_rather_than_a_block(
 
     assert compatibility.compatible is True
     assert [issue.code for issue in compatibility.issues] == ["engine_not_verified"]
+
+
+def test_a_verified_engine_clears_the_engine_next_step(
+    catalog_root: Path, paths: TechtreePaths
+) -> None:
+    resolved = CatalogService(
+        repository(catalog_root), SUPPORTED_HOST, InstalledEngineStatus(paths)
+    ).get_climb("synthetic-open@1")
+    engine_digest = resolved.publisher_validation.engine_digest
+    EngineRegistry(paths, Settings()).record(
+        EngineInstallation(
+            digest=engine_digest,
+            installed_at=datetime.now(UTC),
+            python_executable=str(paths.engine_dir(engine_digest) / ".venv/bin/python"),
+            descriptor_digest=engine_digest,
+            verified=True,
+        )
+    )
+
+    compatibility = CatalogService(
+        repository(catalog_root), SUPPORTED_HOST, InstalledEngineStatus(paths)
+    ).compatibility(resolved)
+
+    assert compatibility.engine_status is EngineCompatibilityStatus.VERIFIED
+    assert compatibility.compatible is True
+    assert compatibility.issues == []
 
 
 def test_an_unsupported_host_is_named_rather_than_guessed_at(

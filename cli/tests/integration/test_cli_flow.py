@@ -156,9 +156,16 @@ def test_list_shows_the_development_climb(flow: dict[str, Any]) -> None:
     assert entries[0]["task_count"] == EXPECTED_TASK_COUNT
     assert entries[0]["status"] == "development"
     assert entries[0]["compatibility"]["compatible"] is True
-    # The catalog reports what the filesystem can prove on its own; proving the
-    # contents still hash to the digest belongs to `techtree engine verify`.
-    assert entries[0]["compatibility"]["engine_status"] == "installed_unverified"
+    assert entries[0]["compatibility"]["engine_status"] == "verified"
+
+
+def test_a_verified_climb_moves_to_the_starter_skill_instead_of_looping(
+    flow: dict[str, Any],
+) -> None:
+    [next_action] = flow["shown"].envelope()["next_actions"]
+
+    assert next_action["id"] == "get_starter_skill"
+    assert next_action["cli"] == ["techtree", "skill", "starter"]
 
 
 def test_show_reports_the_campaign_and_the_data_policy(
