@@ -1604,3 +1604,59 @@ def test_the_operator_skill_never_says_this_build_cannot_do_the_journey() -> Non
         for claim, pattern in STALE_INCAPACITY:
             found = pattern.search(text)
             assert found is None, f"{path} still says {claim}: {found.group(0)!r}"
+
+
+# What the install-time scan actually does ---------------------------------------------
+
+#: Sentences that describe a scan Hermes does not perform. It reads a plugin's
+#: source, and a community-source plugin at caution is REFUSED rather than
+#: queried — no prompt, on a terminal or off one, verified against Hermes
+#: 0.20.5 on a fresh profile. Copy promising a question sends somebody looking
+#: for one, and the step they actually have to take is a decision they should
+#: be told about in advance.
+SCAN_ASKS_A_QUESTION: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (
+        "Hermes stops and asks about the verdict",
+        re.compile(r"Hermes\s+stops\s+and\s+asks", re.IGNORECASE),
+    ),
+    (
+        "nothing installs until somebody answers the scan",
+        re.compile(
+            r"nothing\s+is\s+installed\s+until\s+a\s+person\s+answers", re.IGNORECASE
+        ),
+    ),
+    (
+        "the verdict is offered as a choice at install time",
+        re.compile(r"verdict\s+is\s+yours\s+to\s+accept\s+or\s+refuse", re.IGNORECASE),
+    ),
+)
+
+#: What has to be said instead, wherever the scan is described at length.
+SCAN_REFUSES: Final[tuple[str, ...]] = (
+    "refused",
+    "--force",
+)
+
+
+def test_no_surface_says_the_scan_stops_and_asks() -> None:
+    """It refuses. A reader told to expect a question waits for one.
+
+    Found by installing the pinned commit into a fresh Hermes profile: the
+    scan reports caution and Hermes then refuses outright, with no prompt on a
+    terminal or off one. The README said a person would be asked and that
+    nothing installs until they answer, which would have left a new user
+    stuck at the first step of the published guide with no idea that the step
+    past it exists.
+    """
+    for path, text in PUBLIC_COPY.items():
+        for claim, pattern in SCAN_ASKS_A_QUESTION:
+            found = pattern.search(text)
+            assert found is None, f"{path} says {claim}: {found.group(0)!r}"
+
+
+def test_the_readme_says_the_install_is_refused_and_what_to_do() -> None:
+    """Naming the refusal is not enough on its own; the way past it is owed."""
+    readme = PUBLIC_COPY["README.md"]
+
+    for required in SCAN_REFUSES:
+        assert required in readme, f"the README never mentions {required!r}"
