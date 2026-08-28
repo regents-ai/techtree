@@ -44,11 +44,15 @@ class Settings(StateModel):
     active_engine_digest: Digest | None = None
     log_level: str = "INFO"
     output_mode: OutputMode = "human"
-    #: Where ``techtree proof publish`` sends a proof bundle. Decisions 0038.
-    #: It is a setting rather than a value in the command because the address
-    #: of the public log is an operational fact about a deployment, and a build
-    #: that has not been told one refuses to publish rather than inventing
-    #: somewhere to send a run's evidence.
+    #: A development override for where ``techtree publish`` and ``techtree
+    #: withdraw`` send a request. Decisions 0038's founder ruling of 2026-08-27
+    #: made the real address a release coordinate, pinned in the ReleaseCore the
+    #: wheel carries, so that a stable release publishes with nothing
+    #: configured. This stays for the case it is actually for: pointing the CLI
+    #: at a throwaway local instance while the run log is being built. It moves
+    #: the address and nothing else — the network key a receipt is checked
+    #: against is never overridable, because a key a person can point elsewhere
+    #: is the removal of the only thing that makes a receipt mean anything.
     publication_endpoint: str | None = None
 
 

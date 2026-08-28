@@ -89,6 +89,12 @@ def test_the_release_names_no_artifact_of_its_own() -> None:
     Which commit a CLI wheel was built from is stamped into that wheel and
     reported by ``techtree release info``. The plugin compares the coordinates
     both documents hold, and this is the roster of them.
+
+    ``publication`` joined the roster with decision 0038: where a published run
+    goes, where it can be read, and the key its answer is checked against. The
+    plugin checks none of that - publishing is a command a person runs and
+    nothing here opens a connection - but a release document is a whole thing
+    and this test is the roster of what one is.
     """
     assert set(json.loads(EMBEDDED_PATH.read_bytes())) == {
         "schema_version",
@@ -98,6 +104,7 @@ def test_the_release_names_no_artifact_of_its_own() -> None:
         "engine_digest",
         "catalog_digest",
         "intro_climb_reference",
+        "publication",
         "starter_skill_digest",
         "starter_skill_object_url",
         "skill_improver_digest",

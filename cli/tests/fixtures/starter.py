@@ -17,6 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
+from fixtures.publication import COORDINATES
 from techtree.canonical import sha256_digest_bytes
 from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import Digest
@@ -73,4 +74,5 @@ def release_pinning(starter: Digest, object_url: str | None = None) -> ReleaseCo
         minimum_host_hermes_version="0.19.0",
         maximum_tested_host_hermes_version="0.19.3",
         subject_hermes_version="0.19.0",
+        publication=COORDINATES,
     )

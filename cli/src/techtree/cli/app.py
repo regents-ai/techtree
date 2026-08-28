@@ -8,7 +8,9 @@ envelope and one documented exit code.
 
 ``climb``, ``skill``, ``run``, ``engine``, ``proof``, ``release`` and
 ``uplift`` are registered with their real names even where this build
-implements only some of what each will eventually hold. A name
+implements only some of what each will eventually hold. ``publish`` and
+``withdraw`` are commands rather than groups, because each is one thing a
+person does and neither has a second member to hold. A name
 that exists and answers ``not_implemented`` is discoverable and scriptable; a
 name that does not exist yet is indistinguishable from a typo. The reserved
 namespaces — ``program``, ``blueprint``, ``forge``, ``verify``, ``trace``,
@@ -52,7 +54,7 @@ from techtree.cli.commands.engine import (
     verify_engine_command,
 )
 from techtree.cli.commands.proof import verify_proof_command
-from techtree.cli.commands.publish import publish_proof_command
+from techtree.cli.commands.publish import publish_run_command
 from techtree.cli.commands.release import (
     info_release_command,
     verify_release_command,
@@ -71,6 +73,7 @@ from techtree.cli.commands.uplift import (
     skill_source_uplift_command,
     start_uplift_command,
 )
+from techtree.cli.commands.withdraw import withdraw_run_command
 from techtree.cli.context import build_cli_context
 from techtree.cli.invoke import emit_boundary_failure, failure_envelope
 from techtree.cli.output import write_envelope
@@ -234,6 +237,19 @@ def create_app() -> typer.Typer:
         doctor_command
     )
     app.command("setup", help="Prepare this machine to run a Climb.")(setup_command)
+    # Publishing and withdrawing are top-level commands rather than members of
+    # ``proof`` (decisions 0038's founder ruling of 2026-08-27). ``proof`` is
+    # where a person checks evidence offline; these two are the only commands in
+    # Techtree that send anything anywhere, and burying them one level down made
+    # them read as a variation on checking a proof.
+    app.command(
+        "publish",
+        help="Publish a verified run's proof to the public run log.",
+    )(publish_run_command)
+    app.command(
+        "withdraw",
+        help="Withdraw a published entry from the public run log.",
+    )(withdraw_run_command)
 
     app.add_typer(_climb_app(), name="climb")
     app.add_typer(_skill_app(), name="skill")
@@ -339,10 +355,6 @@ def _proof_app() -> typer.Typer:
         "verify",
         help="Check a local proof offline, from the bytes the run stored.",
     )(verify_proof_command)
-    app.command(
-        "publish",
-        help="Publish a verified run's proof to the public run log.",
-    )(publish_proof_command)
     return app
 
 

@@ -29,11 +29,16 @@ from pydantic import ValidationError as PydanticValidationError
 
 from fixtures.publication import (
     ADDRESS,
+    COORDINATES,
     ENDPOINT,
     ENTRY_URL,
     LOG_SEQUENCE,
+    NETWORK_KEY,
+    PINNED_ENDPOINT,
+    PUBLIC_LOG_URL,
     RefusingTransport,
     StubTransport,
+    network_signed,
     receipt_for,
 )
 from fixtures.receipts.proof import (
@@ -42,32 +47,47 @@ from fixtures.receipts.proof import (
     signed_proof,
     write_proof,
 )
-from techtree.canonical import canonical_json_bytes
+from techtree.canonical import (
+    canonical_json_bytes,
+    digest_object,
+    sha256_digest_bytes,
+)
+from techtree.crypto import (
+    load_private_key,
+    public_key_bytes,
+    public_key_to_base64,
+    sign_digest,
+)
 from techtree.errors import (
     ConflictError,
     NotFoundError,
     PolicyError,
-    PrerequisiteError,
     TechtreeError,
     ValidationError,
     VerificationError,
 )
+from techtree.models.base import ObjectEnvelope, PublicKeyRef
 from techtree.models.uplift_report import PublicationStatus, UpliftDecision
 from techtree.publication.journal import (
     PUBLICATION_JOURNAL_FILENAME,
     PublicationJournal,
 )
-from techtree.publication.models import PublicationCheck, PublicationSubmission
+from techtree.publication.models import (
+    PublicationCheck,
+    PublicationReceiptPayload,
+    PublicationSubmission,
+)
 from techtree.publication.service import (
-    PUBLICATION_ENDPOINT_NOT_CONFIGURED,
     PUBLICATION_NOT_ELIGIBLE,
     PUBLICATION_PROOF_NOT_FOUND,
+    PUBLICATION_RECEIPT_CONFLICT,
     PUBLICATION_RECEIPT_FILENAME,
-    PUBLICATION_RECEIPT_INVALID,
     RUN_ALREADY_PUBLISHED,
     PublicationPlan,
     PublicationService,
 )
+from techtree.publication.transport import PUBLICATION_ENDPOINT_INVALID
+from techtree.publication.verify import PUBLICATION_RECEIPT_INVALID
 from techtree.receipts.bundle import BUNDLE_MANIFEST_FILENAME, PROOF_BUNDLE_INVALID
 
 # ---------------------------------------------------------------------------
@@ -93,13 +113,23 @@ def service(
     runs_dir: Path,
     transport: object,
     *,
-    endpoint: str | None = ENDPOINT,
+    endpoint_override: str | None = ENDPOINT,
 ) -> PublicationService:
     return PublicationService(
         runs_dir=runs_dir,
-        endpoint=endpoint,
+        coordinates=COORDINATES,
+        endpoint_override=endpoint_override,
         transport=transport,  # type: ignore[arg-type]
         clock=lambda: datetime(2026, 8, 27, 9, 0, tzinfo=UTC),
+    )
+
+
+def answering(**overrides: object) -> StubTransport:
+    """Return a transport answering with a receipt built from ``overrides``."""
+    return StubTransport(
+        answer=lambda submission: canonical_json_bytes(
+            network_signed(receipt_for(submission, **overrides))  # type: ignore[arg-type]
+        )
     )
 
 
@@ -286,14 +316,46 @@ def test_a_report_that_may_not_be_published_is_not(
     assert transport.bodies == []
 
 
-def test_a_build_with_no_run_log_configured_refuses_to_guess(
+def test_a_build_with_nothing_configured_publishes_to_the_pinned_address(
     proof: RecordedProof, runs_dir: Path
 ) -> None:
-    """There is no default address, and inventing one is the one wrong answer."""
-    with pytest.raises(PrerequisiteError) as raised:
-        service(runs_dir, StubTransport(), endpoint=None).plan(PROOF_RUN_ID)
+    """A stable release publishes out of the box. Decisions 0038's founder ruling.
 
-    assert raised.value.code == PUBLICATION_ENDPOINT_NOT_CONFIGURED
+    The address is a release coordinate rather than a setting, so a wheel
+    somebody installed and never configured still knows where the run log is.
+    """
+    plan = service(runs_dir, StubTransport(), endpoint_override=None).plan(PROOF_RUN_ID)
+
+    assert plan.endpoint == PINNED_ENDPOINT
+
+
+def test_a_development_override_wins_over_the_pinned_address(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """The override is for a throwaway local instance, and it is what is used."""
+    transport = StubTransport()
+    publisher = service(runs_dir, transport, endpoint_override=ENDPOINT)
+
+    plan = publisher.plan(PROOF_RUN_ID)
+    publisher.publish(plan)
+
+    assert plan.endpoint == ENDPOINT
+    assert transport.endpoints == [ENDPOINT]
+
+
+def test_an_override_that_is_not_an_address_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """A person can get the override wrong; nothing else here can."""
+    transport = StubTransport()
+
+    with pytest.raises(ValidationError) as raised:
+        service(
+            runs_dir, transport, endpoint_override="http://techtree.example/log"
+        ).plan(PROOF_RUN_ID)
+
+    assert raised.value.code == PUBLICATION_ENDPOINT_INVALID
+    assert transport.bodies == []
 
 
 # ---------------------------------------------------------------------------
@@ -397,11 +459,7 @@ def test_a_receipt_for_a_different_submission_is_refused(
     proof: RecordedProof, runs_dir: Path
 ) -> None:
     """A receipt that names another bundle is not this run's evidence of anything."""
-    transport = StubTransport(
-        answer=lambda submission: canonical_json_bytes(
-            receipt_for(submission, bundle_digest="sha256:" + "0" * 63 + "1")
-        )
-    )
+    transport = answering(bundle_digest="sha256:" + "0" * 63 + "1")
     publisher = service(runs_dir, transport)
 
     with pytest.raises(ValidationError) as raised:
@@ -415,19 +473,14 @@ def test_a_receipt_reporting_a_failed_check_is_refused(
     proof: RecordedProof, runs_dir: Path
 ) -> None:
     """A log that says it did not accept a submission has not accepted it."""
-    transport = StubTransport(
-        answer=lambda submission: canonical_json_bytes(
-            receipt_for(
-                submission,
-                checks=[
-                    PublicationCheck(
-                        id="bundle.signature",
-                        passed=False,
-                        detail="a signature did not verify here",
-                    )
-                ],
+    transport = answering(
+        checks=[
+            PublicationCheck(
+                id="bundle.signature",
+                passed=False,
+                detail="a signature did not verify here",
             )
-        )
+        ]
     )
     publisher = service(runs_dir, transport)
 
@@ -533,3 +586,228 @@ def test_the_plan_says_what_a_person_is_shown(
     )
     assert plan.endpoint == ENDPOINT
     assert plan.bundle_digest.startswith("sha256:")
+
+
+# ---------------------------------------------------------------------------
+# The countersignature
+#
+# Requiring a receipt to carry a key and a signature proves nothing: a server
+# that wanted to lie would invent a key and sign its own invention with it. What
+# these hold is that the key is the pinned one, that the signature is over the
+# payload that arrived, and that the entry address is on the log this release
+# names. Decisions 0038's founder ruling of 2026-08-27.
+# ---------------------------------------------------------------------------
+
+
+def _unverified(envelope: object) -> StubTransport:
+    """Return a transport answering with these exact envelope bytes."""
+    return StubTransport(answer=lambda _submission: canonical_json_bytes(envelope))
+
+
+def _refuses(runs_dir: Path, transport: StubTransport) -> ValidationError:
+    """Publish through a transport that answers badly, and return the refusal."""
+    publisher = service(runs_dir, transport)
+    with pytest.raises(ValidationError) as raised:
+        publisher.publish(publisher.plan(PROOF_RUN_ID))
+    assert not (runs_dir / PROOF_RUN_ID / PUBLICATION_RECEIPT_FILENAME).exists()
+    assert raised.value.code == PUBLICATION_RECEIPT_INVALID
+    return raised.value
+
+
+def test_a_receipt_nobody_signed_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """A receipt with no signature is a claim with nothing behind it."""
+    payload = receipt_for(_submission(runs_dir))
+    envelope = ObjectEnvelope[PublicationReceiptPayload](
+        payload=payload, payload_digest=digest_object(payload), signature=None
+    )
+
+    error = _refuses(runs_dir, _unverified(envelope))
+
+    assert error.details["check"] == "receipt.signature_present"
+
+
+def test_a_receipt_signed_by_another_key_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """The attack the pin exists for: a key the answering server made up."""
+    impostor = load_private_key(bytes(range(100, 132)))
+    payload = receipt_for(_submission(runs_dir))
+    digest = digest_object(payload)
+    envelope = ObjectEnvelope[PublicationReceiptPayload](
+        payload=payload,
+        payload_digest=digest,
+        signature=sign_digest(
+            impostor,
+            digest,
+            key_id=sha256_digest_bytes(public_key_bytes(impostor)),
+        ),
+    )
+
+    error = _refuses(runs_dir, _unverified(envelope))
+
+    assert error.details["check"] == "receipt.signature_key"
+
+
+def test_a_receipt_that_names_the_pinned_key_and_signs_with_another_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """Naming the right key is not the same as being signed by it."""
+    impostor = load_private_key(bytes(range(100, 132)))
+    payload = receipt_for(_submission(runs_dir))
+    digest = digest_object(payload)
+    envelope = ObjectEnvelope[PublicationReceiptPayload](
+        payload=payload,
+        payload_digest=digest,
+        signature=sign_digest(impostor, digest, key_id=NETWORK_KEY.key_id),
+    )
+
+    error = _refuses(runs_dir, _unverified(envelope))
+
+    assert error.details["check"] == "receipt.signature"
+
+
+def test_a_receipt_edited_after_it_was_signed_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """The envelope carries the digest it was signed under and never recomputes it.
+
+    So a payload changed afterwards keeps a digest that no longer describes it,
+    and recomputing here is what catches it.
+    """
+    signed = network_signed(receipt_for(_submission(runs_dir)))
+    envelope = ObjectEnvelope[PublicationReceiptPayload](
+        payload=receipt_for(_submission(runs_dir), log_sequence=1),
+        payload_digest=signed.payload_digest,
+        signature=signed.signature,
+    )
+
+    error = _refuses(runs_dir, _unverified(envelope))
+
+    assert error.details["check"] == "receipt.payload_digest"
+
+
+def test_a_receipt_carrying_a_key_it_does_not_name_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """The identifier is the digest of the key, so this is caught for free."""
+    other = load_private_key(bytes(range(100, 132)))
+    carried = PublicKeyRef(
+        algorithm="ed25519",
+        key_id=NETWORK_KEY.key_id,
+        public_key=public_key_to_base64(other.public_key()),
+    )
+
+    error = _refuses(runs_dir, answering(public_key=carried))
+
+    assert error.details["check"] == "receipt.carried_key"
+
+
+def test_an_entry_on_another_origin_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """An address somewhere else is a link the answering server chose."""
+    error = _refuses(
+        runs_dir, answering(entry_url="https://elsewhere.example/runs/sha256:x")
+    )
+
+    assert error.details["check"] == "receipt.entry_url"
+
+
+def test_an_entry_on_the_pinned_log_over_plain_http_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """The right host over the wrong scheme is still the wrong address."""
+    insecure = ENTRY_URL.replace("https://", "http://")
+
+    error = _refuses(runs_dir, answering(entry_url=insecure))
+
+    assert error.details["check"] == "receipt.entry_url"
+
+
+def test_a_receipt_that_verifies_is_written_as_the_envelope_that_arrived(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """What is filed is the signed document, not this build's reading of it.
+
+    A stored payload without its digest and signature could not be checked again
+    by anybody, which is the whole reason the network signs one.
+    """
+    publisher = service(runs_dir, StubTransport())
+
+    outcome = publisher.publish(publisher.plan(PROOF_RUN_ID))
+
+    stored = ObjectEnvelope[PublicationReceiptPayload].model_validate_json(
+        outcome.receipt_path.read_bytes()
+    )
+    assert stored.signature is not None
+    assert stored.signature.key_id == NETWORK_KEY.key_id
+    assert stored.payload_digest == digest_object(stored.payload)
+    assert stored.payload.entry_url.startswith(PUBLIC_LOG_URL)
+
+
+# ---------------------------------------------------------------------------
+# The crash window
+#
+# The run log accepts a submission, the answer is lost on the way back, the CLI
+# records a failure, and the person runs the command again. Decisions 0038
+# requires the second attempt to converge rather than to leave a run holding two
+# records of one publication.
+# ---------------------------------------------------------------------------
+
+
+def test_a_retry_after_a_lost_answer_converges_on_the_same_receipt(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """The exact window: receipt written, process dead before the journal said so.
+
+    Reconstructed rather than mocked — the receipt file is left exactly where a
+    crash would have left it, and the journal is truncated to the pending line
+    it would have ended on.
+    """
+    publisher = service(runs_dir, StubTransport())
+    first = publisher.publish(publisher.plan(PROOF_RUN_ID))
+    written = first.receipt_path.read_bytes()
+    _truncate_journal_to_pending(runs_dir / PROOF_RUN_ID)
+
+    retried = service(runs_dir, StubTransport())
+    outcome = retried.publish(retried.plan(PROOF_RUN_ID))
+
+    assert outcome.receipt_path.read_bytes() == written
+    assert outcome.status is PublicationStatus.PUBLISHED
+    assert retried.status(PROOF_RUN_ID) is PublicationStatus.PUBLISHED
+
+
+def test_a_second_different_receipt_for_one_run_is_refused(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """Two receipts for one run cannot both be its record, so neither replaces the
+    other."""
+    publisher = service(runs_dir, StubTransport())
+    publisher.publish(publisher.plan(PROOF_RUN_ID))
+    written = (runs_dir / PROOF_RUN_ID / PUBLICATION_RECEIPT_FILENAME).read_bytes()
+    _truncate_journal_to_pending(runs_dir / PROOF_RUN_ID)
+
+    retried = service(runs_dir, answering(log_sequence=LOG_SEQUENCE + 1))
+    with pytest.raises(ConflictError) as raised:
+        retried.publish(retried.plan(PROOF_RUN_ID))
+
+    assert raised.value.code == PUBLICATION_RECEIPT_CONFLICT
+    assert (
+        runs_dir / PROOF_RUN_ID / PUBLICATION_RECEIPT_FILENAME
+    ).read_bytes() == written
+
+
+def _truncate_journal_to_pending(run_dir: Path) -> None:
+    """Leave the journal ending on its pending line, as a crash would have."""
+    journal = run_dir / PUBLICATION_JOURNAL_FILENAME
+    lines = journal.read_bytes().splitlines(keepends=True)
+    journal.write_bytes(lines[0])
+
+
+def _submission(runs_dir: Path) -> PublicationSubmission:
+    """Return the submission this run would send, for building an answer to it."""
+    return PublicationSubmission.model_validate_json(
+        service(runs_dir, StubTransport()).submission_bytes(PROOF_RUN_ID)
+    )

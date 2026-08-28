@@ -39,6 +39,15 @@ PUBLICATION_SUBMISSION_SCHEMA_VERSION: Final = (
     "techtree.publication-submission.v1alpha1"
 )
 PUBLICATION_RECEIPT_SCHEMA_VERSION: Final = "techtree.publication-receipt.v1alpha1"
+#: Decisions 0038: a published entry is withdrawn, never deleted. The request
+#: is signed by the same participant key that signed the run, and the network
+#: answers with a countersigned record that the entry is now marked withdrawn.
+PUBLICATION_WITHDRAWAL_SCHEMA_VERSION: Final = (
+    "techtree.publication-withdrawal.v1alpha1"
+)
+PUBLICATION_WITHDRAWAL_RECEIPT_SCHEMA_VERSION: Final = (
+    "techtree.publication-withdrawal-receipt.v1alpha1"
+)
 #: One line of a run's publication journal. Decisions 0038: publishing is
 #: recorded beside a completed run without touching a byte the run wrote.
 PUBLICATION_JOURNAL_SCHEMA_VERSION: Final = "techtree.publication-journal.v1alpha1"

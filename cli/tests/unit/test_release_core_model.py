@@ -9,20 +9,26 @@ the schema admits the real spelling and nothing that only looks like one.
 
 from __future__ import annotations
 
+import base64
 from typing import Any
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
+from fixtures.publication import COORDINATES, NETWORK_KEY
+from techtree.canonical import sha256_digest_bytes
 from techtree.errors import ValidationError
 from techtree.release.document import (
     document_digest,
     is_canonical_document,
+    packaged_release_core_bytes,
     parse_release_core,
     render_document,
     render_release_core,
 )
 from techtree.release.models import (
+    PinnedNetworkKey,
+    PublicationCoordinates,
     ReleaseCore,
     ReleaseInputs,
     object_url_digest,
@@ -50,6 +56,7 @@ def coordinates() -> dict[str, Any]:
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": "0.19.3",
         "subject_hermes_version": "0.19.0",
+        "publication": COORDINATES,
     }
 
 
@@ -252,6 +259,7 @@ def founder_inputs() -> dict[str, Any]:
         "skill_improver_digest": REAL_DIGEST,
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": "0.19.3",
+        "publication": COORDINATES,
     }
 
 
@@ -269,3 +277,120 @@ def test_release_inputs_hold_only_chosen_values() -> None:
         ReleaseInputs.model_validate(
             {**founder_inputs(), "cli_version": "0.0.0-placeholder"}
         )
+
+
+# ---------------------------------------------------------------------------
+# The publication coordinates
+#
+# Decisions 0038's founder ruling of 2026-08-27 pins three things in the release:
+# where a run is published, where it is then read, and the public half of the key
+# that countersigns the answer. Requiring a receipt to carry a key and a
+# signature proves nothing on its own — a server that wanted to lie would invent
+# a key and sign with it — so what makes the countersignature worth having is
+# that the participant already knew which key to expect.
+# ---------------------------------------------------------------------------
+
+
+def publication(**overrides: Any) -> dict[str, Any]:
+    """Return one complete set of publication coordinates."""
+    return {
+        "submission_endpoint": "https://techtree.sh/api/v1/publications",
+        "public_log_url": "https://techtree.sh/runs",
+        "network_key": NETWORK_KEY.model_dump(),
+        **overrides,
+    }
+
+
+def test_a_release_that_pins_no_publication_is_not_a_release() -> None:
+    """The field is required, so a build cannot ship not knowing where it sends."""
+    fields = coordinates()
+    del fields["publication"]
+
+    with pytest.raises(PydanticValidationError):
+        ReleaseCore(**fields)
+
+
+def test_release_inputs_that_pin_no_publication_are_refused() -> None:
+    """The founder-owned half is where the three values are chosen."""
+    fields = founder_inputs()
+    del fields["publication"]
+
+    with pytest.raises(PydanticValidationError):
+        ReleaseInputs.model_validate(fields)
+
+
+def test_a_key_identifier_is_the_digest_of_the_key_it_carries() -> None:
+    """Derived, as every key identifier in this protocol is."""
+    key = PinnedNetworkKey.model_validate(NETWORK_KEY.model_dump())
+
+    assert key.key_id == sha256_digest_bytes(
+        base64.b64decode(key.public_key, validate=True)
+    )
+
+
+def test_a_key_that_names_one_key_and_carries_another_is_refused() -> None:
+    """A receipt naming a key it does not carry is then caught for free."""
+    with pytest.raises(PydanticValidationError):
+        PinnedNetworkKey.model_validate(
+            {**NETWORK_KEY.model_dump(), "key_id": "sha256:" + "9" * 64}
+        )
+
+
+def test_an_all_zero_public_key_is_not_a_key_somebody_chose() -> None:
+    """The same rule the digests follow: no spelling means "not decided yet"."""
+    zeros = base64.b64encode(bytes(32)).decode("ascii")
+
+    with pytest.raises(PydanticValidationError):
+        PinnedNetworkKey.model_validate(
+            {
+                "algorithm": "ed25519",
+                "key_id": sha256_digest_bytes(bytes(32)),
+                "public_key": zeros,
+            }
+        )
+
+
+def test_a_public_key_of_the_wrong_length_is_refused() -> None:
+    short = bytes(range(16))
+
+    with pytest.raises(PydanticValidationError):
+        PinnedNetworkKey.model_validate(
+            {
+                "algorithm": "ed25519",
+                "key_id": sha256_digest_bytes(short),
+                "public_key": base64.b64encode(short).decode("ascii"),
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "http://techtree.sh/api/v1/publications",
+        "https://techtree.sh/api/v1/publications?token=1",
+        "https://techtree.sh/api/v1/publications#top",
+        "https://user:token@techtree.sh/api/v1/publications",
+        "https://nothing.invalid/api/v1/publications",
+        "techtree.sh/api/v1/publications",
+    ],
+)
+def test_an_endpoint_that_is_not_a_plain_https_address_is_refused(
+    address: str,
+) -> None:
+    """A submission travels in a body, so no pinned address may carry a query."""
+    with pytest.raises(PydanticValidationError):
+        PublicationCoordinates.model_validate(publication(submission_endpoint=address))
+
+
+def test_the_committed_release_pins_the_coordinates_this_product_publishes_to() -> None:
+    """The values a person would check against the founder ruling, as bytes."""
+    core = parse_release_core(packaged_release_core_bytes())
+
+    assert core.publication.submission_endpoint == (
+        "https://techtree.sh/api/v1/publications"
+    )
+    assert core.publication.public_log_url == "https://techtree.sh/runs"
+    assert core.publication.network_key.algorithm == "ed25519"
+    assert core.publication.network_key.key_id == sha256_digest_bytes(
+        base64.b64decode(core.publication.network_key.public_key, validate=True)
+    )

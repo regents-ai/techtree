@@ -24,6 +24,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import CampaignSpec
 from techtree.models.catalog import CatalogIndex, ClimbSummary, CompatibilityResult
 from techtree.models.cli import CliEnvelope
@@ -41,7 +42,12 @@ from techtree.models.validation import (
     TasksetValidationReceipt,
     ValidationEvidence,
 )
-from techtree.publication.models import PublicationReceipt, PublicationSubmission
+from techtree.publication.models import (
+    PublicationReceiptPayload,
+    PublicationSubmission,
+    WithdrawalReceiptPayload,
+    WithdrawalRequest,
+)
 
 #: Where the generated tree lives, relative to the repository root.
 SCHEMA_VERSION_DIRECTORY = "v1alpha1"
@@ -70,8 +76,14 @@ def schema_models() -> dict[str, type[BaseModel]]:
         "episode-receipt": EpisodeReceipt,
         "evaluation-backend": EvaluationBackendSpec,
         "experiment-manifest": ExperimentManifest,
-        "publication-receipt": PublicationReceipt,
+        # The three signed documents travel in the envelope every other signed
+        # document in this protocol travels in, so the published schema is the
+        # envelope: a consumer validating one has to be told where the digest
+        # and the signature are, not only what the payload holds.
+        "publication-receipt": ObjectEnvelope[PublicationReceiptPayload],
         "publication-submission": PublicationSubmission,
+        "publication-withdrawal": ObjectEnvelope[WithdrawalRequest],
+        "publication-withdrawal-receipt": ObjectEnvelope[WithdrawalReceiptPayload],
         "run-state": RunState,
         "skill-artifact": SkillArtifact,
         "submission-draft": SubmissionDraft,

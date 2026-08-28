@@ -59,6 +59,60 @@
       "title": "PublicationCheck",
       "type": "object"
     },
+    "PublicationReceiptPayload": {
+      "additionalProperties": false,
+      "description": "What the network countersigns when it accepts one submission.\n\nThe payload of an :class:`~techtree.models.base.ObjectEnvelope`, so the\ndigest the network signs is the digest of exactly these members and the two\nhalves of this feature need not agree about anything else.",
+      "properties": {
+        "accepted_at": {
+          "$ref": "#/$defs/UtcDateTime"
+        },
+        "bundle_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/PublicationCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "entry_url": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "log_sequence": {
+          "minimum": 0,
+          "title": "Log Sequence",
+          "type": "integer"
+        },
+        "public_key": {
+          "$ref": "#/$defs/PublicKeyRef"
+        },
+        "run_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "schema_version": {
+          "const": "techtree.publication-receipt.v1alpha1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "run_id",
+        "log_sequence",
+        "bundle_digest",
+        "accepted_at",
+        "checks",
+        "entry_url",
+        "public_key"
+      ],
+      "title": "PublicationReceiptPayload",
+      "type": "object"
+    },
     "SignatureEnvelope": {
       "additionalProperties": false,
       "description": "A detached Ed25519 signature over a digest string.",
@@ -91,59 +145,29 @@
   "$id": "https://schemas.techtree.dev/v1alpha1/publication-receipt.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "The network's countersigned record that it accepted one submission.",
   "properties": {
-    "accepted_at": {
-      "$ref": "#/$defs/UtcDateTime"
+    "payload": {
+      "$ref": "#/$defs/PublicationReceiptPayload"
     },
-    "bundle_digest": {
+    "payload_digest": {
       "$ref": "#/$defs/Digest"
     },
-    "checks": {
-      "items": {
-        "$ref": "#/$defs/PublicationCheck"
-      },
-      "title": "Checks",
-      "type": "array"
-    },
-    "entry_url": {
-      "$ref": "#/$defs/NonEmptyString"
-    },
-    "id": {
-      "$ref": "#/$defs/NonEmptyString"
-    },
-    "log_sequence": {
-      "minimum": 0,
-      "title": "Log Sequence",
-      "type": "integer"
-    },
-    "public_key": {
-      "$ref": "#/$defs/PublicKeyRef"
-    },
-    "run_id": {
-      "$ref": "#/$defs/NonEmptyString"
-    },
-    "schema_version": {
-      "const": "techtree.publication-receipt.v1alpha1",
-      "title": "Schema Version",
-      "type": "string"
-    },
     "signature": {
-      "$ref": "#/$defs/SignatureEnvelope"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SignatureEnvelope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [
-    "schema_version",
-    "id",
-    "run_id",
-    "log_sequence",
-    "bundle_digest",
-    "accepted_at",
-    "checks",
-    "entry_url",
-    "public_key",
-    "signature"
+    "payload",
+    "payload_digest"
   ],
-  "title": "PublicationReceipt",
+  "title": "ObjectEnvelope[PublicationReceiptPayload]",
   "type": "object"
 }

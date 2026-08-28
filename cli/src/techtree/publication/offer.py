@@ -28,7 +28,7 @@ def publish_action(run_id: str) -> NextAction:
             "The proof just verified, so the run's own evidence travels with "
             "it. It shows what would be sent and asks before sending anything."
         ),
-        cli=["techtree", "proof", "publish", run_id],
+        cli=["techtree", "publish", run_id],
         hermes_tool=None,
         hermes_args=None,
         requires_user_confirmation=True,

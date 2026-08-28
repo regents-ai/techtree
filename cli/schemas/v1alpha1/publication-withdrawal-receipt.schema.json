@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "Base64String": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PublicKeyRef": {
+      "additionalProperties": false,
+      "description": "An Ed25519 public key in the form protocol documents carry it.",
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "public_key": {
+          "$ref": "#/$defs/Base64String"
+        }
+      },
+      "required": [
+        "algorithm",
+        "key_id",
+        "public_key"
+      ],
+      "title": "PublicKeyRef",
+      "type": "object"
+    },
+    "SignatureEnvelope": {
+      "additionalProperties": false,
+      "description": "A detached Ed25519 signature over a digest string.",
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "signature": {
+          "$ref": "#/$defs/Base64String"
+        }
+      },
+      "required": [
+        "algorithm",
+        "key_id",
+        "signature"
+      ],
+      "title": "SignatureEnvelope",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "WithdrawalReceiptPayload": {
+      "additionalProperties": false,
+      "description": "The network's countersigned record that an entry is marked withdrawn.\n\nThe entry itself stays: withdrawal is an appended event, not a deletion, so\nwhat comes back names where the entry still lives rather than saying it is\ngone.",
+      "properties": {
+        "bundle_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "entry_url": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "public_key": {
+          "$ref": "#/$defs/PublicKeyRef"
+        },
+        "schema_version": {
+          "const": "techtree.publication-withdrawal-receipt.v1alpha1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "withdrawn_at": {
+          "$ref": "#/$defs/UtcDateTime"
+        }
+      },
+      "required": [
+        "schema_version",
+        "bundle_digest",
+        "entry_url",
+        "withdrawn_at",
+        "public_key"
+      ],
+      "title": "WithdrawalReceiptPayload",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/publication-withdrawal-receipt.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "payload": {
+      "$ref": "#/$defs/WithdrawalReceiptPayload"
+    },
+    "payload_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "signature": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SignatureEnvelope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "payload",
+    "payload_digest"
+  ],
+  "title": "ObjectEnvelope[WithdrawalReceiptPayload]",
+  "type": "object"
+}

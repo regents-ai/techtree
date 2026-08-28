@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 
+from fixtures.publication import COORDINATES
 from techtree.release.checks import (
     RELEASE_COORDINATE_MISMATCH,
     RELEASE_CORE_DIGEST_MISMATCH,
@@ -50,6 +51,7 @@ def bound_core(**overrides: Any) -> ReleaseCore:
         "minimum_host_hermes_version": "0.19.0",
         "maximum_tested_host_hermes_version": "0.19.3",
         "subject_hermes_version": "0.19.0",
+        "publication": COORDINATES,
     }
     return ReleaseCore(**{**fields, **overrides})
 

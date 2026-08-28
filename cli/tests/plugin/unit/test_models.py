@@ -42,12 +42,27 @@ VALID_RELEASE_CORE: dict[str, Any] = {
     "minimum_host_hermes_version": "0.20.0",
     "maximum_tested_host_hermes_version": "0.20.0",
     "subject_hermes_version": "0.20.0",
+    "publication": {
+        "submission_endpoint": "https://log.example/api/v1/publications",
+        "public_log_url": "https://log.example/runs",
+        # The identifier is the digest of the key beside it, which is the
+        # rule the parser enforces and the reason a receipt naming a key it
+        # does not carry is caught without looking anything up.
+        "network_key": {
+            "algorithm": "ed25519",
+            "key_id": (
+                "sha256:630dcd2966c4336691125448bbb25b4ff412a49c"
+                "732db2c8abc1b8581bd710dd"
+            ),
+            "public_key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        },
+    },
 }
 
 #: The digest the release above is published under, taken over its one stored
 #: spelling. A change here means the release document contract changed.
 RELEASE_DIGEST_GOLDEN = (
-    "sha256:c69d8e48e00bdf378be715cdf2f03ff1ea8f1cb48fa165e51ad31136c92bada8"
+    "sha256:c8489a50547fdfe52fadb6d2e75ad76177c1d31a0b3f2dbb2df181a7d4295bda"
 )
 
 VALID_ENVELOPE: dict[str, Any] = {

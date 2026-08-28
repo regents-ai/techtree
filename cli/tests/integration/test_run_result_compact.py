@@ -216,7 +216,7 @@ def test_the_finished_result_offers_publishing(finished: dict[str, Any]) -> None
     offer = next(
         action for action in envelope["next_actions"] if action["id"] == "publish_run"
     )
-    assert offer["cli"] == ["techtree", "proof", "publish", finished["run_id"]]
+    assert offer["cli"] == ["techtree", "publish", finished["run_id"]]
     assert offer["requires_user_confirmation"] is True
 
 

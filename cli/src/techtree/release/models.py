@@ -26,25 +26,32 @@ document whose every coordinate was chosen.
 
 from __future__ import annotations
 
+import base64
 import re
-from typing import Annotated, Final, Literal
+from typing import Annotated, Final, Literal, Self
 
-from pydantic import AfterValidator, StringConstraints
+from pydantic import AfterValidator, StringConstraints, model_validator
 
+from techtree.canonical import sha256_digest_bytes
 from techtree.constants import DIGEST_PREFIX
-from techtree.models.base import Digest, NonEmptyString, ProtocolModel
+from techtree.crypto import ED25519_PUBLIC_KEY_BYTES
+from techtree.models.base import Digest, NonEmptyString, ProtocolModel, PublicKeyRef
 
 __all__ = [
     "BUILD_INFO_SCHEMA_VERSION",
     "CONCRETE_DIGEST_LENGTH",
     "CONCRETE_DIGEST_PATTERN",
     "OBJECT_URL_PATTERN",
+    "PLAIN_HTTPS_URL_PATTERN",
     "RELEASE_CORE_SCHEMA_VERSION",
     "RELEASE_ID_PATTERN",
     "RELEASE_INPUTS_SCHEMA_VERSION",
     "VERSION_PATTERN",
     "ConcreteDigest",
     "ObjectUrl",
+    "PinnedNetworkKey",
+    "PlainHttpsUrl",
+    "PublicationCoordinates",
     "ReleaseCore",
     "ReleaseId",
     "ReleaseInputs",
@@ -144,6 +151,89 @@ def object_url_digest(url: str) -> Digest:
     return found.group()
 
 
+#: A published address with nothing after its path. Every URL a release pins is
+#: read by a machine and printed to a person, so it is ``https`` and it carries
+#: no query string and no fragment: a submission travels in a request body and
+#: never in a URL, and an address that could carry one would be a place a proof
+#: or a volunteered address could end up in somebody's access log.
+PLAIN_HTTPS_URL_PATTERN: Final = r"^https://[^\s/@?#]+(?:/[^\s?#]*)?$"
+
+type PlainHttpsUrl = Annotated[
+    str,
+    StringConstraints(pattern=PLAIN_HTTPS_URL_PATTERN),
+    AfterValidator(_require_resolvable_host),
+]
+
+
+class PinnedNetworkKey(PublicKeyRef):
+    """The public half of the key the run log countersigns receipts with.
+
+    Requiring a receipt to carry a key and a signature proves nothing on its
+    own: a server that wanted to lie would invent a key, sign with it, and hand
+    both to the participant. What makes a countersignature worth having is that
+    the participant already knows which key to expect, so the key is pinned in
+    the release rather than learned from the answer.
+
+    The identifier is the digest of the public key and is checked to be, as
+    every other key identifier in this protocol is (decisions 0038, founder
+    ruling of 2026-08-27). A derived identifier cannot name one key and carry
+    another, so a receipt that names a key it does not carry is caught without
+    anybody writing a check for it. Rotation is a new key and therefore a new
+    identifier, and a release pins exactly the one it trusts.
+
+    Only the public half ever reaches this repository. Nothing here can sign,
+    and nothing here is a place a private key could be put.
+    """
+
+    @model_validator(mode="after")
+    def _check_the_identifier_is_the_digest_of_the_key(self) -> Self:
+        """Reject a key whose identifier was assigned rather than derived."""
+        raw = base64.b64decode(self.public_key, validate=True)
+        if len(raw) != ED25519_PUBLIC_KEY_BYTES:
+            raise ValueError(
+                f"an Ed25519 public key is {ED25519_PUBLIC_KEY_BYTES} raw bytes"
+            )
+        if not any(raw):
+            raise ValueError(
+                "an all-zero public key names no key; it is the spelling of a "
+                "coordinate nobody has chosen yet, and a release pins only "
+                "coordinates somebody chose"
+            )
+        derived = sha256_digest_bytes(raw)
+        if self.key_id != derived:
+            raise ValueError(
+                f"a network key identifier is the digest of the key it carries: "
+                f"this one says {self.key_id} and carries {derived}"
+            )
+        return self
+
+
+class PublicationCoordinates(ProtocolModel):
+    """Where a run is published, where it is then read, and who countersigns.
+
+    All three are release coordinates rather than settings, for one reason each
+    (decisions 0038, founder ruling of 2026-08-27).
+
+    ``submission_endpoint`` is pinned because a stable release has to be able to
+    publish with nothing configured. An address that only arrived from the
+    environment meant a published wheel could not publish out of the box, and a
+    person who had to set a variable before publishing would be a person who
+    could set it to the wrong thing.
+
+    ``public_log_url`` is pinned because a receipt names where the entry now
+    lives, and an entry address the participant did not already expect is an
+    address the answering server chose. The receipt's address is checked to be
+    on this origin before the receipt is written down.
+
+    ``network_key`` is pinned because a countersignature is only worth the
+    prior knowledge of which key made it.
+    """
+
+    submission_endpoint: PlainHttpsUrl
+    public_log_url: PlainHttpsUrl
+    network_key: PinnedNetworkKey
+
+
 class ReleaseCore(ProtocolModel):
     """The frozen coordinates of one Climb release. Spec section 6.6.
 
@@ -174,6 +264,7 @@ class ReleaseCore(ProtocolModel):
     minimum_host_hermes_version: Version
     maximum_tested_host_hermes_version: Version
     subject_hermes_version: Version
+    publication: PublicationCoordinates
 
 
 class ReleaseInputs(ProtocolModel):
@@ -199,3 +290,4 @@ class ReleaseInputs(ProtocolModel):
     skill_improver_digest: ConcreteDigest
     minimum_host_hermes_version: Version
     maximum_tested_host_hermes_version: Version
+    publication: PublicationCoordinates

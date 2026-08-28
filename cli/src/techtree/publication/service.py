@@ -24,6 +24,19 @@ the run directory is touched.
 *The attempt is recorded before it is made.* The pending line goes down first, so
 a process that dies mid-request leaves a run that says an attempt was started
 rather than a run that says nothing happened.
+
+*Nothing is written down that has not been checked against the pinned key.* The
+receipt is verified against the network key the release pins — not against the
+key the receipt itself carries — before it becomes a file. An unverified receipt
+is not weaker evidence; it is no evidence, and filing one would put something in
+a run directory that looks exactly like proof of publication and is not.
+
+*A retry converges rather than conflicting.* The failure this is for is real and
+narrow: the run log accepts a submission, the answer is lost on the way back, the
+CLI records a failure, and the person quite reasonably runs the command again.
+The log answers the second attempt with the same entry, so the receipt write
+finds the same bytes already there and succeeds. Different bytes under the same
+name is the case that is genuinely wrong, and that is the one it refuses.
 """
 
 from __future__ import annotations
@@ -46,7 +59,6 @@ from techtree.errors import (
     ConflictError,
     NotFoundError,
     PolicyError,
-    PrerequisiteError,
     TechtreeError,
     ValidationError,
     VerificationError,
@@ -56,8 +68,15 @@ from techtree.identity.models import VerificationResult
 from techtree.models.base import Digest, ObjectEnvelope
 from techtree.models.uplift_report import PublicationStatus, UpliftReport
 from techtree.publication.journal import PublicationJournal, PublicationJournalEntry
-from techtree.publication.models import PublicationReceipt, PublicationSubmission
-from techtree.publication.transport import PublicationTransport, validated_endpoint
+from techtree.publication.models import (
+    PublicationReceiptPayload,
+    PublicationSubmission,
+)
+from techtree.publication.transport import PublicationTransport, resolved_endpoint
+from techtree.publication.verify import (
+    PUBLICATION_RECEIPT_INVALID,
+    verify_publication_receipt,
+)
 from techtree.receipts.bundle import (
     BUNDLE_MANIFEST_FILENAME,
     PROOF_BUNDLE_INVALID,
@@ -66,13 +85,13 @@ from techtree.receipts.bundle import (
     proof_bundle_dir,
 )
 from techtree.receipts.verify import LocalProofVerifier
+from techtree.release.models import PublicationCoordinates
 
 __all__ = [
-    "PUBLICATION_ENDPOINT_NOT_CONFIGURED",
     "PUBLICATION_NOT_ELIGIBLE",
     "PUBLICATION_PROOF_NOT_FOUND",
+    "PUBLICATION_RECEIPT_CONFLICT",
     "PUBLICATION_RECEIPT_FILENAME",
-    "PUBLICATION_RECEIPT_INVALID",
     "RUN_ALREADY_PUBLISHED",
     "PublicationOutcome",
     "PublicationPlan",
@@ -85,8 +104,9 @@ PUBLICATION_RECEIPT_FILENAME: Final = "publication-receipt.json"
 #: Stable error codes this module reports.
 PUBLICATION_PROOF_NOT_FOUND: Final = "publication_proof_not_found"
 PUBLICATION_NOT_ELIGIBLE: Final = "publication_not_eligible"
-PUBLICATION_ENDPOINT_NOT_CONFIGURED: Final = "publication_endpoint_not_configured"
-PUBLICATION_RECEIPT_INVALID: Final = "publication_receipt_invalid"
+#: Two different receipts, under one name, for one run. Not a retry: a retry
+#: brings back the same entry and therefore the same bytes.
+PUBLICATION_RECEIPT_CONFLICT: Final = "publication_receipt_conflict"
 RUN_ALREADY_PUBLISHED: Final = "run_already_published"
 
 
@@ -120,7 +140,7 @@ class PublicationOutcome:
     """What one completed publication produced."""
 
     run_id: str
-    receipt: PublicationReceipt
+    receipt: PublicationReceiptPayload
     receipt_path: Path
     status: PublicationStatus
     #: Whether an address was sent with this submission. The address itself is
@@ -135,12 +155,14 @@ class PublicationService:
         self,
         *,
         runs_dir: Path,
-        endpoint: str | None,
+        coordinates: PublicationCoordinates,
+        endpoint_override: str | None,
         transport: PublicationTransport,
         clock: Callable[[], datetime],
     ) -> None:
         self._runs_dir = runs_dir
-        self._endpoint = endpoint
+        self._coordinates = coordinates
+        self._endpoint_override = endpoint_override
         self._transport = transport
         self._clock = clock
 
@@ -195,7 +217,7 @@ class PublicationService:
         return PublicationPlan(
             run_id=run_id,
             bundle_digest=self._bundle_digest(directory, run_id),
-            endpoint=self._configured_endpoint(run_id),
+            endpoint=self.endpoint,
             file_count=len(stored),
             byte_count=sum(len(data) for data in stored.values()),
             report=report,
@@ -222,14 +244,15 @@ class PublicationService:
         self._record(journal, plan, status=PublicationStatus.PENDING)
 
         try:
-            receipt = self._submit(plan, contributor_address)
-            path = self._write_receipt(plan.run_id, receipt)
+            envelope = self._submit(plan, contributor_address)
+            path = self._write_receipt(plan.run_id, envelope)
         except TechtreeError as error:
             self._record(
                 journal, plan, status=PublicationStatus.FAILED, error_code=error.code
             )
             raise
 
+        receipt = envelope.payload
         self._record(
             journal,
             plan,
@@ -291,24 +314,28 @@ class PublicationService:
 
     def _submit(
         self, plan: PublicationPlan, contributor_address: str | None
-    ) -> PublicationReceipt:
+    ) -> ObjectEnvelope[PublicationReceiptPayload]:
         """Send one submission and return the receipt it came back with."""
         response = self._transport.submit(
-            endpoint=validated_endpoint(plan.endpoint),
+            endpoint=plan.endpoint,
             body=self.submission_bytes(plan.run_id),
             contributor_address=contributor_address,
         )
         return self._receipt(response, plan)
 
-    def _receipt(self, response: bytes, plan: PublicationPlan) -> PublicationReceipt:
-        """Parse the response, and refuse a receipt for something else.
+    def _receipt(
+        self, response: bytes, plan: PublicationPlan
+    ) -> ObjectEnvelope[PublicationReceiptPayload]:
+        """Parse the answer and refuse everything that is not this run's receipt.
 
-        A receipt that names another run or another bundle is not this run's
-        evidence of anything, whatever else it is, and writing it into this run
-        directory would put a false record beside a true one.
+        Parsing is here; the checks are in :mod:`techtree.publication.verify`,
+        because they are about the network's word rather than about this run
+        directory, and the withdrawal path needs the same ones.
         """
         try:
-            receipt = PublicationReceipt.model_validate_json(response)
+            envelope = ObjectEnvelope[PublicationReceiptPayload].model_validate_json(
+                response
+            )
         except PydanticValidationError as error:
             raise ValidationError(
                 "the run log answered with something that is not a publication "
@@ -317,40 +344,42 @@ class PublicationService:
                 details={"run_id": plan.run_id},
             ) from error
 
-        if receipt.run_id != plan.run_id or receipt.bundle_digest != plan.bundle_digest:
-            raise ValidationError(
-                "the run log's receipt is for a different submission than the "
-                "one that was sent",
-                code=PUBLICATION_RECEIPT_INVALID,
-                details={
-                    "run_id": plan.run_id,
-                    "receipt_run_id": receipt.run_id,
-                    "receipt_bundle_digest": receipt.bundle_digest,
-                },
-            )
-        if receipt.failed_checks:
-            raise ValidationError(
-                f"the run log accepted nothing: {receipt.failed_checks[0].detail}",
-                code=PUBLICATION_RECEIPT_INVALID,
-                details={
-                    "run_id": plan.run_id,
-                    "failed_checks": [check.id for check in receipt.failed_checks],
-                },
-            )
-        return receipt
+        verify_publication_receipt(
+            envelope,
+            coordinates=self._coordinates,
+            run_id=plan.run_id,
+            bundle_digest=plan.bundle_digest,
+        )
+        return envelope
 
-    def _write_receipt(self, run_id: str, receipt: PublicationReceipt) -> Path:
-        """Write the receipt into the run directory as a new file.
+    def _write_receipt(
+        self, run_id: str, receipt: ObjectEnvelope[PublicationReceiptPayload]
+    ) -> Path:
+        """Write the receipt into the run directory, converging on a retry.
 
-        Created with ``O_EXCL``, so a second publication of the same run reports
-        a conflict rather than replacing a record. Nothing that was already in
-        the run directory is opened for writing at all.
+        Created with ``O_EXCL``, so nothing that is already there is opened for
+        writing. What is found there decides the answer: the same bytes mean the
+        run log answered the same way twice, which is what a retry after a lost
+        response looks like and is a success; different bytes under the same name
+        are two different records of one publication, and there is no version of
+        that which is safe to resolve by choosing one.
         """
         path = self._run_dir(run_id) / PUBLICATION_RECEIPT_FILENAME
         data = canonical_json_bytes(receipt)
-        with open_exclusive(path) as handle:
-            handle.write(data)
-            handle.flush()
+        try:
+            with open_exclusive(path) as handle:
+                handle.write(data)
+                handle.flush()
+        except ConflictError as error:
+            if path.read_bytes() == data:
+                return path
+            raise ConflictError(
+                f"run {run_id} already holds a different publication receipt, so "
+                "this one was not written: two receipts for one run cannot both "
+                "be its record",
+                code=PUBLICATION_RECEIPT_CONFLICT,
+                details={"run_id": run_id, "path": str(path)},
+            ) from error
         fsync_directory(path.parent)
         return path
 
@@ -458,20 +487,12 @@ class PublicationService:
             for path, data in self._proof_files(directory).items()
         }
 
-    def _configured_endpoint(self, run_id: str) -> str:
-        """Return where to publish, or refuse to guess.
+    @property
+    def endpoint(self) -> str:
+        """Return the address this service publishes to, override first.
 
-        There is no default address and there will not be one. A build that has
-        not been told where the public log is cannot invent somewhere to send a
-        proof bundle, and quietly doing nothing would be worse than saying so.
+        Whichever wins is what the plan carries and what the review prints, so
+        somebody agreeing to a publication is agreeing to the address it is
+        actually going to.
         """
-        if self._endpoint is None:
-            raise PrerequisiteError(
-                "this build has not been told where the public run log is, so "
-                "there is nowhere to publish to. Set publication_endpoint in "
-                "the Techtree settings file, or TECHTREE_PUBLICATION_ENDPOINT "
-                "in the environment",
-                code=PUBLICATION_ENDPOINT_NOT_CONFIGURED,
-                details={"run_id": run_id},
-            )
-        return self._endpoint
+        return resolved_endpoint(self._coordinates, self._endpoint_override)

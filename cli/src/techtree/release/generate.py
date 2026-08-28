@@ -145,6 +145,12 @@ def build_release_core(inputs: ReleaseInputs, sources: ReleaseSources) -> Releas
         catalog_digest=document_digest(sources.catalog_index_bytes()),
         intro_climb_reference=reference,
         subject_hermes_version=campaign.subject.harness.version,
+        # Where a run is published, where it is then read, and the public half
+        # of the key that countersigns the answer. None of the three can be
+        # derived from this source tree — they are facts about a deployment and
+        # about a key the founder generates — so they arrive with the founder's
+        # other decisions and are copied through unchanged. Decisions 0038.
+        publication=inputs.publication,
         **values,
     )
 

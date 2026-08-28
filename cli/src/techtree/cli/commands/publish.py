@@ -1,4 +1,4 @@
-"""``techtree proof publish``. Decisions document 0038.
+"""``techtree publish``. Decisions document 0038.
 
 This is the one command in Techtree that sends anything anywhere, and every
 decision in it is about making that fact impossible to arrive at by accident.
@@ -23,10 +23,16 @@ records that the person answered in the conversation, which is the same surface
 
 *The address question is asked once, and promises nothing.* It defaults to no,
 what is typed is checked and canonicalised before it goes anywhere, and it
-travels in a request header, beside the submission and never inside it, and is
-written down nowhere. The wording says what is true: an address can be left, it
-is kept in case contributors can be recognised later, and nothing is being
-offered in exchange today.
+travels in the ``x-techtree-contributor-address`` request header — beside the
+submission and never inside it, because the run log serves a stored submission
+back at a public address — and it is written down nowhere. The wording says what
+is true: an address can be left, it is kept in case contributors can be
+recognised later, and nothing is being offered in exchange today.
+
+*Nothing is written down that was not checked.* The receipt the run log answers
+with is verified against the network key this release pins — not against the key
+the receipt carries, which a server that wanted to lie would simply invent —
+before it becomes a file. An unverified receipt is not written at all.
 
 The run's own files are not touched. The countersigned receipt is a new file in
 the run directory and the outcome goes into a publication journal of the run's
@@ -51,6 +57,7 @@ from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateT
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
 from techtree.models.uplift_report import PublicationStatus
 from techtree.publication.address import canonical_contributor_address
+from techtree.publication.coordinates import packaged_publication_coordinates
 from techtree.publication.service import (
     PublicationPlan,
     PublicationService,
@@ -62,11 +69,15 @@ __all__ = [
     "NOTHING_IS_OFFERED",
     "PUBLICATION_CONFIRMATION_REQUIRED",
     "PUBLISH_COMMAND",
-    "ProofPublicationPayload",
-    "publish_proof_command",
+    "PublicationPayload",
+    "publish_run_command",
 ]
 
-PUBLISH_COMMAND: Final = "proof publish"
+#: The command's own name, in the envelope and in every message about it.
+#: Decisions 0038's founder ruling makes it a top-level command: ``proof`` keeps
+#: ``verify`` and nothing else, and nothing has been released, so this is a hard
+#: cut with no alias.
+PUBLISH_COMMAND: Final = "publish"
 
 #: Stable error code for "nobody said to publish this".
 PUBLICATION_CONFIRMATION_REQUIRED: Final = "publication_confirmation_required"
@@ -103,8 +114,8 @@ _WHAT_TRAVELS: Final = (
 )
 
 
-class ProofPublicationPayload(ProtocolModel):
-    """What ``proof publish`` returns once the log has accepted a run."""
+class PublicationPayload(ProtocolModel):
+    """What ``techtree publish`` returns once the log has accepted a run."""
 
     run_id: NonEmptyString
     bundle_digest: Digest
@@ -117,12 +128,13 @@ class ProofPublicationPayload(ProtocolModel):
     accepted_at: UtcDateTime
     receipt_path: NonEmptyString
     #: Whether an address was sent. The address is not here, and is not
-    #: anywhere else this machine can be read: it went into a request header
-    #: and into nothing else.
+    #: anywhere else this machine can be read: it went into the
+    #: ``x-techtree-contributor-address`` request header and into nothing
+    #: else.
     contributor_address_sent: bool
 
 
-def publish_proof_command(
+def publish_run_command(
     ctx: typer.Context,
     run_id: Annotated[
         str,
@@ -169,7 +181,7 @@ def publish_proof_command(
     """Publish a verified run's proof to the public run log."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[ProofPublicationPayload]:
+    def action() -> CommandResult[PublicationPayload]:
         service = build_publication_service(context)
         plan = service.plan(run_id)
         # The order a person meets this in is the order it is written in: what
@@ -187,7 +199,7 @@ def publish_proof_command(
 
         outcome = service.publish(plan, contributor_address=contributor)
         receipt = outcome.receipt
-        payload = ProofPublicationPayload(
+        payload = PublicationPayload(
             run_id=outcome.run_id,
             bundle_digest=plan.bundle_digest,
             endpoint=plan.endpoint,
@@ -225,10 +237,16 @@ def build_publication_service(context: CliContext) -> PublicationService:
     The transport is the only substitutable part and it is chosen here, at the
     edge, so that everything below it is the same code whether it is a test or
     a person running it.
+
+    The address is the pinned one unless a development override is set, and the
+    pinned network key is never overridable: an address a person can point
+    somewhere else is a convenience, and a key a person can point somewhere else
+    is the removal of the only thing that makes a receipt mean anything.
     """
     return PublicationService(
         runs_dir=context.paths.runs_dir,
-        endpoint=context.settings.publication_endpoint,
+        coordinates=packaged_publication_coordinates(),
+        endpoint_override=context.settings.publication_endpoint,
         transport=HttpsPublicationTransport(),
         clock=utc_now,
     )
@@ -367,14 +385,14 @@ def _verify_proof(run_id: str) -> NextAction:
 
 
 def _render(data: object, console: Console) -> None:
-    if not isinstance(data, ProofPublicationPayload):
+    if not isinstance(data, PublicationPayload):
         return
 
     render_pairs(
         [
             ("Run", data.run_id),
             ("Entry", data.entry_url),
-            ("Position", str(data.log_sequence)),
+            ("Log sequence", str(data.log_sequence)),
             ("Accepted", data.accepted_at.isoformat()),
             ("Sent", f"{data.file_count} files, {data.byte_count} bytes"),
             ("Proof", data.bundle_digest),

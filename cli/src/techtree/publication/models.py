@@ -1,6 +1,6 @@
 """What is sent, and what comes back. Decisions document 0038.
 
-Two documents cross the one boundary this package opens, and they are separate
+Four documents cross the one boundary this package opens, and they are separate
 objects because they are made by different parties and prove different things.
 
 A :class:`PublicationSubmission` is what the participant sends: the proof
@@ -18,15 +18,32 @@ feature cannot drift. Both of those shapes are refusals rather than
 preferences, and each is written into the model below beside the field it
 constrains.
 
-A :class:`PublicationReceipt` is what the network sends back: where the entry
-landed in the log, which bundle it accepted, when, and which of its own checks
-it ran. The participant signed their run and the network countersigns that it
-accepted it, which is what makes an accepted entry checkable by somebody who
-trusts neither party's word about the other.
+A :class:`PublicationReceiptPayload` is what the network sends back: where the
+entry landed in the log, which bundle it accepted, when, and which of its own
+checks it ran. The participant signed their run and the network countersigns
+that it accepted it, which is what makes an accepted entry checkable by somebody
+who trusts neither party's word about the other.
 
-The one field that is neither is the contributor address. It is optional, it is
-volunteered, and its name says it is unverified, because a string somebody typed
-is not proof of control of an account. It travels in the
+It travels inside an :class:`~techtree.models.base.ObjectEnvelope`, which is how
+every other signed document in this protocol travels: payload, the digest of the
+payload's canonical bytes, and a detached signature over that digest. An earlier
+draft carried the signature flat beside the fields it covered, and that shape
+cannot say which members the digest was taken over — two implementations would
+have had to agree on it by reading the same paragraph the same way, which is
+exactly the drift decisions 0038's wire contract exists to prevent. The envelope
+answers it structurally: the digest is over ``payload`` and over nothing else.
+
+A :class:`WithdrawalRequest` is the participant asking that a published entry be
+marked withdrawn, signed with the same key that signed the run. It carries no
+free text: nothing a submitter writes appears on the site, and a reason field
+would be the one string that did. A :class:`WithdrawalReceiptPayload` is the
+network's countersigned record that the entry is now marked withdrawn — the
+entry stays where it is, because a published entry is withdrawn and never
+deleted. Both travel in the same envelope, for the same reason.
+
+The one field that is none of them is the contributor address. It is optional,
+it is volunteered, and its name says it is unverified, because a string somebody
+typed is not proof of control of an account. It travels in the
 ``x-techtree-contributor-address`` header, beside the submission and never
 inside it, because the run log serves a stored submission back at a public
 address. It is kept nowhere on this machine.
@@ -44,14 +61,15 @@ from techtree.models.base import (
     NonEmptyString,
     ProtocolModel,
     PublicKeyRef,
-    SignatureEnvelope,
     UtcDateTime,
 )
 
 __all__ = [
     "PublicationCheck",
-    "PublicationReceipt",
+    "PublicationReceiptPayload",
     "PublicationSubmission",
+    "WithdrawalReceiptPayload",
+    "WithdrawalRequest",
 ]
 
 
@@ -110,26 +128,33 @@ class PublicationCheck(ProtocolModel):
     detail: NonEmptyString
 
 
-class PublicationReceipt(ProtocolModel):
-    """The network's countersigned record that it accepted one submission."""
+class PublicationReceiptPayload(ProtocolModel):
+    """What the network countersigns when it accepts one submission.
+
+    The payload of an :class:`~techtree.models.base.ObjectEnvelope`, so the
+    digest the network signs is the digest of exactly these members and the two
+    halves of this feature need not agree about anything else.
+    """
 
     schema_version: Literal["techtree.publication-receipt.v1alpha1"]
     id: NonEmptyString
     run_id: NonEmptyString
     #: Where this entry sits in the log. The log is ordered by arrival and by
-    #: nothing else, so this is a position in time rather than a rank.
+    #: nothing else, so this is a position in time rather than a rank, and it
+    #: may have gaps.
     log_sequence: int = Field(ge=0)
     bundle_digest: Digest
     accepted_at: UtcDateTime
     checks: list[PublicationCheck]
     #: Where the entry can now be read.
     entry_url: NonEmptyString
-    #: The network's own key and its signature over this receipt's digest. They
-    #: are carried so that the receipt can be checked later by anybody holding
-    #: the network's published public half, including by somebody who was not
-    #: party to the exchange.
+    #: The network's own key, carried so that the receipt can be checked later
+    #: by anybody holding the network's published public half, including by
+    #: somebody who was not party to the exchange. The participant's own CLI
+    #: does not learn the key from here — it checks this against the key the
+    #: release pins, because a key learned from the answer proves nothing about
+    #: who wrote the answer.
     public_key: PublicKeyRef
-    signature: SignatureEnvelope
 
     @model_validator(mode="after")
     def _check_the_receipt_reports_its_own_checks(self) -> Self:
@@ -145,3 +170,40 @@ class PublicationReceipt(ProtocolModel):
     def failed_checks(self) -> list[PublicationCheck]:
         """Return every check the network ran and did not pass."""
         return [check for check in self.checks if not check.passed]
+
+
+class WithdrawalRequest(ProtocolModel):
+    """The participant asking that one published entry be marked withdrawn.
+
+    Three members and no fourth. There is no reason field and there will not be
+    one: decisions 0038 settled that nothing a submitter writes appears on the
+    site, and a free-text reason attached to a public entry is exactly that.
+
+    The bundle digest is the whole of the subject, because a run is addressed on
+    the log by its bundle digest. ``requested_at`` makes the request a dated
+    statement rather than a bare assertion, and the signature over the payload's
+    digest is what proves it came from the key that signed the run. Nothing here
+    carries a public key: the network already holds the participant's, inside
+    the bundle it accepted, and looking the key up there rather than believing
+    one that arrived with the request is the point.
+    """
+
+    schema_version: Literal["techtree.publication-withdrawal.v1alpha1"]
+    bundle_digest: Digest
+    requested_at: UtcDateTime
+
+
+class WithdrawalReceiptPayload(ProtocolModel):
+    """The network's countersigned record that an entry is marked withdrawn.
+
+    The entry itself stays: withdrawal is an appended event, not a deletion, so
+    what comes back names where the entry still lives rather than saying it is
+    gone.
+    """
+
+    schema_version: Literal["techtree.publication-withdrawal-receipt.v1alpha1"]
+    bundle_digest: Digest
+    #: Where the entry, now marked withdrawn, can still be read.
+    entry_url: NonEmptyString
+    withdrawn_at: UtcDateTime
+    public_key: PublicKeyRef

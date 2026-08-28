@@ -881,7 +881,7 @@ def test_publishing_is_offered_second_so_a_reader_is_actually_shown_it(
 
     publish = payload.next_actions[1]
     assert publish.id == "publish_run"
-    assert publish.cli == ["techtree", "proof", "publish", payload.run_id]
+    assert publish.cli == ["techtree", "publish", payload.run_id]
     # A host agent must ask rather than act: this is the one step that leaves
     # the machine.
     assert publish.requires_user_confirmation

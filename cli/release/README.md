@@ -47,9 +47,12 @@ means "not chosen yet" validates, so a document that parses is a document
 somebody finished.
 
 ```text
-release_id                 climb-v0.1.0
-cli_version                0.1.0
-starter_skill_object_url   https://techtree.sh/api/v1/objects/sha256:2aff2707…
+release_id                            climb-v0.1.0
+cli_version                           0.1.0
+starter_skill_object_url              https://techtree.sh/api/v1/objects/sha256:2aff2707…
+publication.submission_endpoint       https://techtree.sh/api/v1/publications
+publication.public_log_url            https://techtree.sh/runs
+publication.network_key.key_id        sha256:75e4239e…
 ```
 
 `starter_skill_digest` is the ordered content-tree digest of
@@ -61,6 +64,36 @@ here because a reader cannot tell which is which by looking. The object URL is
 keyed by a third number, the SHA-256 of the starter Skill *file*, because that
 is what the address returns and what a fetcher checks a response against
 before it builds anything.
+
+## The run log's key is not yet the founder's key
+
+`publication.network_key` is the public half of the key the run log
+countersigns publication receipts with. `techtree publish` checks every receipt
+against exactly this key before it writes one into a run directory, which is
+what makes a countersignature worth anything: a server that invented a key and
+signed with it would be refused, because the participant already knows which
+key to expect.
+
+**The key committed today is a stand-in and must be replaced at freeze.** It
+was generated while this feature was built and its private half was never
+written down anywhere, so nothing can sign against it and every receipt it is
+checked against is refused. That is the correct behaviour for a release whose
+run log does not exist yet, and it is not the behaviour of a shipped release.
+
+At freeze the founder generates the real Ed25519 key, keeps the private half
+where the run log can sign with it, and replaces both members of
+`publication.network_key` in `release-inputs.json`:
+
+```text
+public_key   base64 of the 32 raw public-key bytes
+key_id       sha256:<hex>, the digest of those same 32 bytes
+```
+
+The identifier is derived and checked to be derived, so the two cannot be
+filled in inconsistently: a `key_id` that is not the digest of the `public_key`
+beside it fails validation and `make release-core` refuses to produce a
+document. The same is true of an absent `publication` block, an all-zero key, a
+key that is not 32 bytes, and an endpoint that is not a plain `https` address.
 
 ## What the release document does not say
 
@@ -82,7 +115,9 @@ commit, or one packaged file differing from that commit, and there is no wheel.
 1. Edit `release-inputs.json`. Every value in it is a decision, not a
    derivation: the release identifier, the published CLI version, the
    introductory Climb, the two Skill artifacts, the address the starter Skill
-   is published at, and the host Hermes range that has actually been tested.
+   is published at, the host Hermes range that has actually been tested, and
+   the publication coordinates — including the run log's real public key, which
+   the section above says how to fill in.
 2. Run `make release-core`. It rewrites the four generated files from the
    inputs and from this source tree, and prints the ReleaseCore digest.
 3. Run `make check`. The drift check regenerates everything in a throwaway copy

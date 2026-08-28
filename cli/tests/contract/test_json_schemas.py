@@ -38,6 +38,8 @@ EXPECTED_SCHEMAS = {
     "experiment-manifest",
     "publication-receipt",
     "publication-submission",
+    "publication-withdrawal",
+    "publication-withdrawal-receipt",
     "run-state",
     "skill-artifact",
     "submission-draft",

@@ -52,6 +52,7 @@ from typing import Final
 from techtree.publication.service import PublicationService
 from techtree.publication.transport import HttpsPublicationTransport
 from techtree.receipts.verify import LocalProofVerifier
+from techtree.release.document import packaged_release_core_bytes, parse_release_core
 
 __all__ = [
     "CONFORMANCE_RUN_ID",
@@ -95,9 +96,10 @@ def submission_for_proof(proof_directory: Path, *, run_id: str) -> bytes:
     pointed the service at somebody's real run directory would be one edit away
     from writing into it.
 
-    The service is built with no endpoint and a transport that is never
-    reached. Building a submission is not sending one: nothing in this module
-    opens a socket, and there is nowhere for it to open one to.
+    The service is built with this build's own release coordinates and a
+    transport that is never reached. Building a submission is not sending one:
+    the coordinates are the address a publication *would* go to and nothing in
+    this module opens a socket to it, or to anywhere else.
     """
     with tempfile.TemporaryDirectory() as scratch:
         runs_dir = Path(scratch) / "runs"
@@ -105,7 +107,8 @@ def submission_for_proof(proof_directory: Path, *, run_id: str) -> bytes:
         shutil.copytree(proof_directory, runs_dir / run_id / "proof")
         service = PublicationService(
             runs_dir=runs_dir,
-            endpoint=None,
+            coordinates=parse_release_core(packaged_release_core_bytes()).publication,
+            endpoint_override=None,
             transport=HttpsPublicationTransport(),
             clock=lambda: _FIXED_INSTANT,
         )
