@@ -158,11 +158,6 @@ defmodule TechtreeWeb.CoreComponents do
             </a>
             as the agent host, and Techtree as the campaign kernel and evidence layer.
           </p>
-          <p>
-            What it demonstrates is that the three pin together tightly enough for a controlled comparison
-            to run end to end and leave a receipt that verifies
-            offline.
-          </p>
           <p :if={@nemo_roadmap and not @compact} class="small quiet what-this-is__roadmap">
             Support for NVIDIA’s
             <a

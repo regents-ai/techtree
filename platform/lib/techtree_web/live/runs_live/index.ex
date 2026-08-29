@@ -45,7 +45,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Published proofs")}
+    {:ok, assign(socket, page_title: "Published Skill Capsules")}
   end
 
   @impl true
@@ -70,10 +70,12 @@ defmodule TechtreeWeb.RunsLive.Index do
         <section class="runs-index__intro" aria-labelledby="runs-index-title">
           <header class="page-heading runs-index__heading">
             <p class="eyebrow">Participant-attested</p>
-            <h1 id="runs-index-title">Published proofs</h1>
+            <h1 id="runs-index-title">Published Skill Capsules</h1>
             <p class="runs-index__lede">
-              Proofs of controlled agent improvement. Each proof binds a published Climb, a paired task result, and the
-              participant-controlled key that signed it. Techtree checks the bundle’s integrity
+              Proofs of controlled agent improvement. Each proof binds a published task, a paired
+              Skill result, and the participant-controlled key that signed it, with task scoring
+              produced through the <.verifiers_term label="verifiers" />
+              tool. Techtree checks the bundle’s integrity
               and internal consistency. It does not claim to have witnessed or independently
               reproduced the run. This is a record, not a leaderboard.
             </p>
@@ -94,7 +96,7 @@ defmodule TechtreeWeb.RunsLive.Index do
             <span>Attestation</span>
             <span>Published</span>
           </div>
-          <ol class="runs-table" aria-label="Published proofs, newest first">
+          <ol class="runs-table" aria-label="Published Skill Capsules, newest first">
             <li
               :for={entry <- @entries}
               id={"run-entry-#{entry.log_sequence}"}

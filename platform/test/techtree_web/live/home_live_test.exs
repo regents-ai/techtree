@@ -139,6 +139,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, ".home-section.trust")
       assert text =~ "v0.1 release"
       refute text =~ "standing on giants"
+      refute text =~ "What it demonstrates is that the three pin together tightly enough"
       assert text =~ "Run. Improve. Prove."
       assert text =~ "Published by this release"
       assert text =~ "Your work stays local."

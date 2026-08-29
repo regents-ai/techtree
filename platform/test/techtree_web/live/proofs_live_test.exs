@@ -20,7 +20,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
     assert text =~ "not independently attested"
     assert text =~ "does not establish generalization beyond the Climb"
     assert text =~ "Nobody else reproduced it"
-    assert has_element?(live, ~s|a[href="/results"]|, "Browse published proofs")
+    assert has_element?(live, ~s|a[href="/results"]|, "Browse Published Skill Capsules")
   end
 
   test "keeps the exact checks in a collapsed reference", %{conn: conn} do

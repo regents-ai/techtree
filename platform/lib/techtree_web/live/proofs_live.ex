@@ -89,7 +89,7 @@ defmodule TechtreeWeb.ProofsLive do
       </details>
 
       <p class="small quiet section">
-        <a href={~p"/results"}>Browse published proofs</a>
+        <a href={~p"/results"}>Browse Published Skill Capsules</a>
         · <a href={~p"/docs#proof-limits"}>Operate the verifier</a>
       </p>
     </Layouts.page>

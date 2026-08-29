@@ -58,7 +58,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.page wide>
-      <p class="back-link"><a href={~p"/results"}>← Published proofs</a></p>
+      <p class="back-link"><a href={~p"/results"}>← Published Skill Capsules</a></p>
 
       <.warning_callout :if={@withdrawn?} title="Withdrawn by the participant">
         <p>

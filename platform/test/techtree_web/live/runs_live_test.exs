@@ -97,17 +97,27 @@ defmodule TechtreeWeb.RunsLiveTest do
       text = visible_text(html)
 
       assert text =~ "Proofs of controlled agent improvement."
+      assert text =~ "Each proof binds a published task, a paired Skill result"
+      assert text =~ "with task scoring"
       assert text =~ "Techtree checks the bundle’s integrity and internal consistency."
       assert text =~ "does not claim to have witnessed or independently reproduced the run."
       assert text =~ "This is a record, not a leaderboard."
       assert has_element?(live, ~s|a[href="/proofs"]|, "How verification works")
+      assert has_element?(live, ".runs-index__lede .hoverdef__term", "verifiers")
+
+      assert has_element?(
+               live,
+               ~s|.runs-index__lede .hoverdef__card a[href="https://github.com/PrimeIntellect-ai/verifiers"]|,
+               "GitHub"
+             )
+
       refute text =~ "the files match their recorded hashes"
       refute text =~ "It does not prove the Test happened as described."
 
       assert has_element?(
                live,
                ~s|.runs-index__intro[aria-labelledby="runs-index-title"] #runs-index-title|,
-               "Published proofs"
+               "Published Skill Capsules"
              )
 
       assert has_element?(live, ".runs-table > li.runs-table__row")
