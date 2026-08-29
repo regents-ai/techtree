@@ -252,6 +252,23 @@ defmodule TechtreeWeb.HomeLiveTest do
              ~r/if \(Number\.isInteger\(cached\)\) \{\s*showGitHubStars\(cached\)\s*return/s
   end
 
+  test "the mobile crown responds to scroll and touch without overriding reduced motion" do
+    javascript = File.read!(Path.expand("../../../assets/js/optics_controller.js", __DIR__))
+
+    assert javascript =~
+             ~s|root.dataset.opticsKind === "crown" && !finePointer.matches && !motion.matches|
+
+    assert javascript =~
+             ~s|window.addEventListener("scroll", aimCrownFromScroll, {passive: true})|
+
+    assert javascript =~
+             ~s|pointerHost.addEventListener("pointerdown", onPointerMove, {passive: true, capture: viewportPointer})|
+
+    assert javascript =~ ~s|if (touchDriven) mobileAimX = x|
+    assert javascript =~ ~s|window.removeEventListener("scroll", aimCrownFromScroll)|
+    assert javascript =~ ~s|pointerHost.removeEventListener("pointerdown", onPointerMove|
+  end
+
   test "the landing page leaves every primary tab neutral", %{conn: conn} do
     {:ok, _live, html} = live(conn, ~p"/")
 

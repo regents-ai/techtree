@@ -6,6 +6,7 @@ const MAX_DEVICE_PIXEL_RATIO = 1.5
 const MAX_DRAWING_BUFFER_PIXELS = 1_500_000
 const EASING_FRAME_LIMIT = 24
 const scriptLoads = new Map()
+const clampUnit = value => Math.min(1, Math.max(0, value))
 
 function drawingBufferSize(width, height) {
   const ratio = Math.min(MAX_DEVICE_PIXEL_RATIO, Math.max(1, window.devicePixelRatio || 1))
@@ -81,6 +82,7 @@ export function createOpticsController(root) {
   let easingFrames = 0
   let confirming = false
   let release
+  let mobileAimX = 0.5
 
   const active = () => mounted && awake && onscreen && visible && !retired
 
@@ -157,6 +159,21 @@ export function createOpticsController(root) {
     if (moved && !last) schedule()
   }
 
+  const mobileCrownActive = () =>
+    root.dataset.opticsKind === "crown" && !finePointer.matches && !motion.matches
+
+  const aimCrownFromScroll = () => {
+    if (!renderer || !mobileCrownActive()) return
+
+    const bounds = canvas.getBoundingClientRect()
+    const travel = window.innerHeight + bounds.height
+    if (travel <= 0) return
+
+    renderer.aim(mobileAimX, clampUnit((window.innerHeight - bounds.top) / travel))
+    easingFrames = 0
+    invalidate()
+  }
+
   const start = async () => {
     if (starting || renderer || !active()) return
     starting = true
@@ -194,7 +211,8 @@ export function createOpticsController(root) {
       renderer = loaded
       rendererVariant = opticsVariant(root, canvas)
       starting = false
-      invalidate()
+      if (mobileCrownActive()) aimCrownFromScroll()
+      else invalidate()
     } catch (_error) {
       if (started === generation) retire()
     }
@@ -223,15 +241,21 @@ export function createOpticsController(root) {
       sync()
     }
     const onPointerMove = event => {
-      if (!renderer || event.isPrimary === false || motion.matches || !finePointer.matches) return
+      if (!renderer || event.isPrimary === false || motion.matches) return
+
+      const touchDriven = event.pointerType === "touch" || !finePointer.matches
+      if (touchDriven && root.dataset.opticsKind !== "crown") return
+
       const bounds = canvas.getBoundingClientRect()
       const width = viewportPointer ? document.documentElement.clientWidth : bounds.width
       const left = viewportPointer ? 0 : bounds.left
       if (width <= 0 || bounds.height <= 0) return
-      renderer.aim(
-        (event.clientX - left) / width,
-        (event.clientY - bounds.top) / bounds.height,
-      )
+
+      const x = clampUnit((event.clientX - left) / width)
+      const y = clampUnit((event.clientY - bounds.top) / bounds.height)
+      if (touchDriven) mobileAimX = x
+
+      renderer.aim(x, y)
       easingFrames = 0
       invalidate()
     }
@@ -273,6 +297,8 @@ export function createOpticsController(root) {
     resizeObserver.observe(canvas)
     intersectionObserver.observe(root)
     document.addEventListener("visibilitychange", onVisibility)
+    window.addEventListener("scroll", aimCrownFromScroll, {passive: true})
+    pointerHost.addEventListener("pointerdown", onPointerMove, {passive: true, capture: viewportPointer})
     pointerHost.addEventListener("pointermove", onPointerMove, {passive: true, capture: viewportPointer})
     if (viewportPointer) window.addEventListener("blur", onPointerLeave)
     else pointerHost.addEventListener("pointerleave", onPointerLeave, {passive: true})
@@ -283,6 +309,8 @@ export function createOpticsController(root) {
       resizeObserver.disconnect()
       intersectionObserver.disconnect()
       document.removeEventListener("visibilitychange", onVisibility)
+      window.removeEventListener("scroll", aimCrownFromScroll)
+      pointerHost.removeEventListener("pointerdown", onPointerMove, {capture: viewportPointer})
       pointerHost.removeEventListener("pointermove", onPointerMove, {capture: viewportPointer})
       if (viewportPointer) window.removeEventListener("blur", onPointerLeave)
       else pointerHost.removeEventListener("pointerleave", onPointerLeave)
