@@ -23,8 +23,20 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert text =~ "Improve a Skill."
       assert text =~ "Prove it worked."
-      assert text =~ "Same pinned agent. Same fixed tasks. One changed Skill."
-      assert text =~ "Get a signed local receipt for the difference."
+      assert text =~ "Opinionated Stack for Agent Skill Uplift."
+      assert text =~ "Built on Prime Intellect and NVIDIA NeMo."
+
+      assert has_element?(
+               live,
+               ".hero__mechanism > span",
+               "Opinionated Stack for Agent Skill Uplift."
+             )
+
+      assert has_element?(
+               live,
+               ".hero__mechanism > span",
+               "Built on Prime Intellect and NVIDIA NeMo."
+             )
 
       assert has_element?(
                live,

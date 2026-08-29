@@ -102,8 +102,8 @@ defmodule TechtreeWeb.HomeLive do
             <span class="hero-title__line">Prove it worked.</span>
           </h1>
           <p class="hero__mechanism">
-            <span>Same pinned agent. Same fixed tasks. One changed Skill.</span>
-            <span>Get a signed local receipt for the difference.</span>
+            <span>Opinionated Stack for Agent Skill Uplift.</span>
+            <span>Built on Prime Intellect and NVIDIA NeMo.</span>
           </p>
 
           <.installer release={@release} agent_line={@agent_line} />
