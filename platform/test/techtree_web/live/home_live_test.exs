@@ -240,6 +240,18 @@ defmodule TechtreeWeb.HomeLiveTest do
              ~s|class="masthead__github" href="https://github.com/regents-ai/techtree" target="_blank"|
   end
 
+  test "the project source link refreshes GitHub stars and formats large counts compactly" do
+    javascript = File.read!(Path.expand("../../../assets/js/app.js", __DIR__))
+
+    assert javascript =~ ~s|notation: "compact"|
+    assert javascript =~ ~s|maximumFractionDigits: 1|
+    assert javascript =~ "window.setInterval(syncGitHubStars, GITHUB_STAR_REFRESH_MS)"
+    assert javascript =~ ~s|cache: "no-store"|
+
+    refute javascript =~
+             ~r/if \(Number\.isInteger\(cached\)\) \{\s*showGitHubStars\(cached\)\s*return/s
+  end
+
   test "the landing page leaves every primary tab neutral", %{conn: conn} do
     {:ok, _live, html} = live(conn, ~p"/")
 

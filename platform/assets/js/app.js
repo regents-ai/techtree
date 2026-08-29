@@ -10,17 +10,32 @@ import {LiveSocket} from "phoenix_live_view"
 import {Optics, createOpticsController} from "./optics_controller"
 
 const GITHUB_STAR_CACHE = "techtree-github-stars"
+const GITHUB_STAR_REFRESH_MS = 2 * 60 * 1000
+const githubStarFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  compactDisplay: "short",
+  maximumFractionDigits: 1,
+})
+
+function formatGitHubStars(count) {
+  if (count < 1000) return count.toLocaleString("en-US")
+
+  return githubStarFormatter
+    .format(count)
+    .replace(/[KMBT]$/, suffix => suffix.toLowerCase())
+}
 
 function showGitHubStars(count) {
   if (!Number.isInteger(count) || count < 0) return
 
   document.querySelectorAll("[data-github-stars]").forEach(node => {
-    node.textContent = count.toLocaleString()
+    node.textContent = formatGitHubStars(count)
   })
 
   document.querySelectorAll("[data-github-stars-link]").forEach(link => {
     const noun = count === 1 ? "star" : "stars"
-    link.setAttribute("aria-label", `regents-ai/techtree on GitHub, ${count} ${noun}`)
+    const exactCount = count.toLocaleString("en-US")
+    link.setAttribute("aria-label", `regents-ai/techtree on GitHub, ${exactCount} ${noun}`)
   })
 }
 
@@ -35,7 +50,6 @@ async function syncGitHubStars() {
 
   if (Number.isInteger(cached)) {
     showGitHubStars(cached)
-    return
   }
 
   const link = document.querySelector("[data-github-stars-link]")
@@ -45,6 +59,7 @@ async function syncGitHubStars() {
   try {
     const response = await fetch(`https://api.github.com/repos/${repository}`, {
       headers: {Accept: "application/vnd.github+json"},
+      cache: "no-store",
     })
 
     if (!response.ok) return
@@ -65,6 +80,8 @@ async function syncGitHubStars() {
 }
 
 syncGitHubStars()
+const githubStarRefresh = window.setInterval(syncGitHubStars, GITHUB_STAR_REFRESH_MS)
+window.addEventListener("pagehide", () => window.clearInterval(githubStarRefresh), {once: true})
 
 const THEME_COOKIE = "techtree_theme"
 const THEME_MAX_AGE = 60 * 60 * 24 * 365
