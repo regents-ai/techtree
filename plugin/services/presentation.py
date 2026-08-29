@@ -224,9 +224,7 @@ def completion_summary(result_envelope: Mapping[str, Any]) -> dict[str, Any]:
                 else None
             ),
             "baseline_tokens": (
-                payload.get("baseline_tokens")
-                if isinstance(payload, Mapping)
-                else None
+                payload.get("baseline_tokens") if isinstance(payload, Mapping) else None
             ),
             "candidate_tokens": (
                 payload.get("candidate_tokens")
