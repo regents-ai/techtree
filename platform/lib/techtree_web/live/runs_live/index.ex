@@ -45,7 +45,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Published Results")}
+    {:ok, assign(socket, page_title: "Published proofs")}
   end
 
   @impl true
@@ -70,16 +70,18 @@ defmodule TechtreeWeb.RunsLive.Index do
         <section class="runs-index__intro" aria-labelledby="runs-index-title">
           <header class="page-heading runs-index__heading">
             <p class="eyebrow">Participant-attested</p>
-            <h1 id="runs-index-title">Published Results</h1>
+            <h1 id="runs-index-title">Published proofs</h1>
             <p class="runs-index__lede">
-              Browse published Skill comparisons, newest first. This is a record, not a
-              leaderboard.
+              Proofs of controlled agent improvement. Each proof binds a published Climb, a paired task result, and the
+              participant-controlled key that signed it. Techtree checks the bundle’s integrity
+              and internal consistency. It does not claim to have witnessed or independently
+              reproduced the run. This is a record, not a leaderboard.
             </p>
           </header>
         </section>
 
         <p :if={@entries == []} class="runs-index__empty empty-state">
-          Nobody has published a Result yet. This is where the first one will appear.
+          Nobody has published a proof yet. This is where the first one will appear.
         </p>
 
         <div :if={@entries != []} class="runs-index__table-frame">
@@ -87,12 +89,12 @@ defmodule TechtreeWeb.RunsLive.Index do
             <span>Skill comparison</span>
             <span title="Change in score, shown on a 0–100 scale">Uplift</span>
             <span>Climb</span>
-            <span>Test setup</span>
+            <span>Run setup</span>
             <span>Tasks</span>
             <span>Attestation</span>
             <span>Published</span>
           </div>
-          <ol class="runs-table" aria-label="Published Results, newest first">
+          <ol class="runs-table" aria-label="Published proofs, newest first">
             <li
               :for={entry <- @entries}
               id={"run-entry-#{entry.log_sequence}"}
@@ -139,7 +141,8 @@ defmodule TechtreeWeb.RunsLive.Index do
               </div>
               <div class="runs-table__cell runs-table__proof">
                 <span title={proof_grade_words(entry.proof_grade)}>{entry.proof_grade}</span>
-                <small>participant-signed</small>
+                <small>participant-attested</small>
+                <small>not independently reproduced</small>
               </div>
               <div class="runs-table__cell runs-table__published">
                 <time
@@ -155,18 +158,18 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p :if={@next_before_sequence} class="runs-index__pagination">
           <a class="text-link" href={older_url(@next_before_sequence)}>
-            Results published earlier <span aria-hidden="true">→</span>
+            Proofs published earlier <span aria-hidden="true">→</span>
           </a>
         </p>
 
         <p :if={@entries != []} class="runs-index__provenance small quiet">
-          The first entries are Techtree’s own certification Results. They use the same format,
-          checks, and ordering as every other published Result.
+          The first entries are Techtree’s own certification proofs. They use the same format,
+          checks, and ordering as every other published proof.
         </p>
 
         <p class="runs-index__footer small quiet">
-          <a href={~p"/proofs"}>What verification establishes</a>
-          · <a href={~p"/climbs"}>The Climbs behind these Results</a>
+          <a href={~p"/proofs"}>How verification works</a>
+          · <a href={~p"/climbs"}>The Climbs behind these proofs</a>
         </p>
       </div>
     </Layouts.page>

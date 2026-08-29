@@ -35,7 +35,7 @@ defmodule TechtreeWeb.RunsLiveTest do
     test "the log says so rather than showing an empty frame", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/results")
 
-      assert visible_text(html) =~ "Nobody has published a Result yet"
+      assert visible_text(html) =~ "Nobody has published a proof yet"
     end
 
     test "does not claim it opened with runs it has not got", %{conn: conn} do
@@ -83,12 +83,12 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute has_element?(live, "#run-github-#{entry.log_sequence}")
     end
 
-    test "keeps the publisher fingerprint off the scan-first Results list",
+    test "keeps the publisher fingerprint off the scan-first proofs list",
          %{conn: conn, entry: entry} do
       {:ok, _live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "P1 participant-signed"
+      assert text =~ "P1 participant-attested not independently reproduced"
       refute text =~ entry.participant_key_id
     end
 
@@ -96,16 +96,18 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "Browse published Skill comparisons, newest first."
+      assert text =~ "Proofs of controlled agent improvement."
+      assert text =~ "Techtree checks the bundle’s integrity and internal consistency."
+      assert text =~ "does not claim to have witnessed or independently reproduced the run."
       assert text =~ "This is a record, not a leaderboard."
-      assert has_element?(live, ~s|a[href="/proofs"]|, "What verification establishes")
+      assert has_element?(live, ~s|a[href="/proofs"]|, "How verification works")
       refute text =~ "the files match their recorded hashes"
       refute text =~ "It does not prove the Test happened as described."
 
       assert has_element?(
                live,
                ~s|.runs-index__intro[aria-labelledby="runs-index-title"] #runs-index-title|,
-               "Published Results"
+               "Published proofs"
              )
 
       assert has_element?(live, ".runs-table > li.runs-table__row")
@@ -135,16 +137,16 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "own certification Results"
+      assert text =~ "own certification proofs"
 
       # It is one sentence the page makes about itself, so it is said once. A
       # second copy of it beside every row is the badge this ruling refused.
-      assert length(String.split(text, "certification Results")) == 2
+      assert length(String.split(text, "certification proofs")) == 2
 
       assert {run_at, _run_length} = :binary.match(text, "hello-world-v1 vs No Skill")
 
       assert {provenance_at, _provenance_length} =
-               :binary.match(text, "own certification Results")
+               :binary.match(text, "own certification proofs")
 
       assert run_at < provenance_at
     end
@@ -249,9 +251,10 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
       text = visible_text(html)
 
-      assert text =~ "36 tasks, fixed before either Test"
+      assert text =~ "36 tasks, fixed before either run"
       assert text =~ "44 model calls"
       assert text =~ entry.campaign_spec_digest
+      assert text =~ entry.skill_digest
       assert text =~ entry.data_policy_digest
       assert text =~ entry.run_id
       assert text =~ "prime"
@@ -294,10 +297,22 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       count = Techtree.Network.Bundle.check_count()
 
-      assert text =~ "#{count} of #{count} passed"
-      assert text =~ "Verification passed."
-      assert text =~ "See exactly what that establishes."
+      assert text =~ "#{count} checks passed"
+      assert text =~ "Bundle verification passed."
+      assert text =~ "How verification works."
       refute text =~ "the submission is small enough to be a proof bundle"
+    end
+
+    test "filters task evidence by outcome", %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
+
+      assert has_element?(live, ~s|button[phx-value-filter="better"]|, "Better #{entry.wins}")
+      assert task_row_count(render(live)) == entry.wins + entry.ties + entry.losses
+
+      live |> element(~s|button[phx-value-filter="better"]|) |> render_click()
+
+      assert has_element?(live, ~s|button[phx-value-filter="better"][aria-pressed="true"]|)
+      assert task_row_count(render(live)) == entry.wins
     end
 
     test "offers the verified projection and never the submitted bytes",
@@ -368,6 +383,8 @@ defmodule TechtreeWeb.RunsLiveTest do
     |> List.flatten()
     |> Enum.uniq()
   end
+
+  defp task_row_count(html), do: length(Regex.scan(~r/<li class="tasks__row">/, html))
 
   defp publish_a_run(_context) do
     keys = NetworkFixture.key_pair()

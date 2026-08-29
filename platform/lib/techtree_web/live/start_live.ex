@@ -49,7 +49,7 @@ defmodule TechtreeWeb.StartLive do
 
       <p class="small quiet section">
         After setup, <a href={~p"/climbs"}>read the Climb contract</a>
-        or <a href={~p"/results"}>browse completed Results</a>.
+        or <a href={~p"/results"}>browse published proofs</a>.
       </p>
     </Layouts.page>
     """

@@ -1,5 +1,8 @@
 import Config
 
+config :techtree,
+  deployed_source_revision: System.get_env("TECHTREE_SOURCE_REVISION", "development")
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration

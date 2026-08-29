@@ -13,11 +13,18 @@
 ARG ELIXIR_VERSION=1.19.5
 ARG OTP_VERSION=28.2
 ARG DEBIAN_VERSION=trixie-20260803
+ARG TECHTREE_SOURCE_REVISION
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}-slim"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}-slim"
 
 FROM ${BUILDER_IMAGE} AS builder
+
+ARG TECHTREE_SOURCE_REVISION
+RUN case "$TECHTREE_SOURCE_REVISION" in \
+      [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;; \
+      *) echo "TECHTREE_SOURCE_REVISION must be the clean 40-character git revision" >&2; exit 1 ;; \
+    esac
 
 # git is needed by Hex for any git-sourced dependency; build-essential for the
 # native compilation picosat_elixir does; npm to fetch the one browser
@@ -67,6 +74,10 @@ COPY rel rel
 RUN mix release
 
 FROM ${RUNNER_IMAGE}
+
+ARG TECHTREE_SOURCE_REVISION
+ENV TECHTREE_SOURCE_REVISION=$TECHTREE_SOURCE_REVISION
+LABEL org.opencontainers.image.revision=$TECHTREE_SOURCE_REVISION
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates \

@@ -47,10 +47,18 @@ defmodule TechtreeWeb.RunsLive.Show do
   end
 
   @impl true
+  def handle_event("filter_tasks", %{"filter" => filter}, socket) do
+    task_filter =
+      if filter in ~w(all better same worse), do: String.to_existing_atom(filter), else: :all
+
+    {:noreply, assign(socket, task_filter: task_filter)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.page wide>
-      <p class="back-link"><a href={~p"/results"}>← Published Results</a></p>
+      <p class="back-link"><a href={~p"/results"}>← Published proofs</a></p>
 
       <.warning_callout :if={@withdrawn?} title="Withdrawn by the participant">
         <p>
@@ -86,13 +94,16 @@ defmodule TechtreeWeb.RunsLive.Show do
       </header>
 
       <section class="section">
-        <p class="eyebrow">The result</p>
+        <p class="eyebrow">The proof</p>
         <h2>What the signed summary says</h2>
         <.definition_list>
           <:fact term="Without the Skill">{result_score(@entry.baseline_mean)}</:fact>
           <:fact term="With the Skill">{result_score(@entry.candidate_mean)}</:fact>
           <:fact term="Difference">{result_difference(@entry)}</:fact>
           <:fact term="Conclusion">{@entry.decision}</:fact>
+          <:fact term="Changed Skill">
+            <.digest value={@entry.skill_digest} />
+          </:fact>
           <:fact term="What it may be presented as">
             {proof_grade_words(@entry.proof_grade)}
           </:fact>
@@ -100,15 +111,15 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <section class="section">
-        <p class="eyebrow">Held fixed before either Test</p>
-        <h2>The Test conditions</h2>
+        <p class="eyebrow">Held fixed before either run</p>
+        <h2>Comparison conditions</h2>
         <.definition_list>
           <:fact term="Climb">
             <a :if={@slug} href={~p"/climbs/#{@slug}"}>{@title}</a>
             <span :if={is_nil(@slug)}>{@entry.climb_reference}</span>
           </:fact>
           <:fact term="Tasks">
-            {CampaignFacts.membership_words(@published.membership) || "Not published"}
+            {comparison_membership_words(@published.membership)}
           </:fact>
           <:fact term="Ceiling">
             {CampaignFacts.budget_words(@published.budget) || "Not published"}
@@ -146,18 +157,30 @@ defmodule TechtreeWeb.RunsLive.Show do
 
       <section class="section">
         <p class="eyebrow">
-          {@entry.verification_checks_passed} of {@entry.verification_checks_run} passed
+          {@entry.verification_checks_run} checks passed
         </p>
-        <h2>Verification passed.</h2>
+        <h2>Bundle verification passed.</h2>
         <p>
           The published bundle passed every required check.
-          <a href={~p"/proofs"}>See exactly what that establishes.</a>
+          <a href={~p"/proofs"}>How verification works.</a>
         </p>
       </section>
 
       <section class="section">
         <p class="eyebrow">{@entry.task_count} tasks</p>
         <h2>Task by task</h2>
+        <div class="tasks__filters" aria-label="Filter task outcomes">
+          <button
+            :for={{filter, label, count} <- task_filters(@entry)}
+            type="button"
+            class="tasks__filter"
+            aria-pressed={to_string(@task_filter == filter)}
+            phx-click="filter_tasks"
+            phx-value-filter={filter}
+          >
+            {label} {count}
+          </button>
+        </div>
         <div class="tasks">
           <p class="tasks__row tasks__head" aria-hidden="true">
             <span>Task</span>
@@ -166,7 +189,7 @@ defmodule TechtreeWeb.RunsLive.Show do
             <span class="tasks__number">Change</span>
           </p>
           <ol>
-            <li :for={task <- @tasks} class="tasks__row">
+            <li :for={task <- filtered_tasks(@tasks, @task_filter)} class="tasks__row">
               <span class="tasks__task">{task.hash}</span>
               <span class="tasks__number">
                 <span class="offscreen">Without the Skill</span>{task.baseline}
@@ -185,7 +208,7 @@ defmodule TechtreeWeb.RunsLive.Show do
       <section class="offline-verify">
         <div>
           <p class="eyebrow">Check it yourself</p>
-          <h2>Verify this Result offline.</h2>
+          <h2>Verify this proof offline.</h2>
           <p class="small quiet">
             <a href={"/api/v1/publications/" <> @entry.bundle_digest}>View the recorded data</a>
             or run the verifier against the participant’s bundle.
@@ -199,8 +222,8 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <p class="small quiet section">
-        <a href={~p"/results"}>Every published Result</a>
-        · <a href={~p"/proofs"}>What a finished comparison contains</a>
+        <a href={~p"/results"}>Every published proof</a>
+        · <a href={~p"/proofs"}>How verification works</a>
       </p>
     </Layouts.page>
     """
@@ -214,13 +237,14 @@ defmodule TechtreeWeb.RunsLive.Show do
       end
 
     %{
-      page_title: "A published Result",
+      page_title: "A published proof",
       entry: entry,
       campaign_name: campaign_name(entry, climb),
       skill_name: skill_name(entry, climb),
       github_url: github_url(entry),
       withdrawn?: Query.withdrawn?(entry),
       tasks: Enum.map(entry.task_deltas, &task_row/1),
+      task_filter: :all,
       published: CampaignFacts.for_climb(climb),
       slug: climb && climb.projection["slug"],
       title: campaign_name(entry, climb)
@@ -269,8 +293,34 @@ defmodule TechtreeWeb.RunsLive.Show do
       hash: delta["task_hash"],
       baseline: result_score(baseline),
       candidate: result_score(candidate),
-      delta: human_difference(candidate - baseline, baseline, candidate)
+      delta: human_difference(candidate - baseline, baseline, candidate),
+      outcome: task_outcome(candidate, baseline)
     }
+  end
+
+  defp task_outcome(candidate, baseline) when candidate > baseline, do: :better
+  defp task_outcome(candidate, baseline) when candidate < baseline, do: :worse
+  defp task_outcome(_candidate, _baseline), do: :same
+
+  defp filtered_tasks(tasks, :all), do: tasks
+  defp filtered_tasks(tasks, outcome), do: Enum.filter(tasks, &(&1.outcome == outcome))
+
+  defp task_filters(entry) do
+    [
+      {:all, "All", entry.task_count},
+      {:better, "Better", entry.wins},
+      {:same, "Same", entry.ties},
+      {:worse, "Worse", entry.losses}
+    ]
+  end
+
+  defp comparison_membership_words(membership) do
+    membership
+    |> CampaignFacts.membership_words()
+    |> case do
+      nil -> "Not published"
+      words -> String.replace(words, "Test", "run")
+    end
   end
 
   defp number(value) when is_integer(value), do: to_string(value)

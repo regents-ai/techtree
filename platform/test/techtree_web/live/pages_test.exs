@@ -60,6 +60,14 @@ defmodule TechtreeWeb.PagesTest do
       :ok
     end
 
+    test "initial HTML identifies its deployed source and omits disconnect copy", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/results")
+
+      assert html =~ ~s|<meta name="techtree-revision" content="development"/>|
+      refute visible_text(html) =~ "The connection to the site dropped"
+      refute html =~ "The connection to the site dropped"
+    end
+
     test "the local results page states the caveat outright", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/proofs/local")
       text = visible_text(html)
@@ -165,17 +173,19 @@ defmodule TechtreeWeb.PagesTest do
         refute markup =~ "<input"
         refute markup =~ ~s|type="file"|
 
-        # The local controls either copy a command already on the page or change
-        # the browser's color preference. Nothing submits or asks the server for
-        # anything.
+        # Most controls are local-only. The proof detail's task filters ask the
+        # LiveView to show a subset of evidence but submit no data.
         for [attributes] <-
               Regex.scan(~r/<button([^>]*)>/, markup, capture: :all_but_first) do
           assert attributes =~ ~s|type="button"|, "#{page} has a button that could submit"
 
-          assert attributes =~ "copycommand" or attributes =~ "data-theme-toggle",
+          assert attributes =~ "copycommand" or attributes =~ "data-theme-toggle" or
+                   attributes =~ ~s|phx-click="filter_tasks"|,
                  "#{page} has a button that is not a local-only control"
 
-          refute attributes =~ "phx-click"
+          if attributes =~ "phx-click" do
+            assert attributes =~ ~s|phx-click="filter_tasks"|
+          end
         end
 
         # Nothing on the page invites a reader to identify themselves.

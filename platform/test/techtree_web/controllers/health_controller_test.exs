@@ -14,6 +14,8 @@ defmodule TechtreeWeb.HealthControllerTest do
     assert body["status"] == "unavailable"
     assert body["catalog_import_status"] == "none"
     assert body["channel"] == "development"
+    assert body["deployed_source_revision"] == "development"
+    assert get_resp_header(conn, "x-techtree-revision") == ["development"]
   end
 
   describe "with a release being served" do
@@ -33,8 +35,10 @@ defmodule TechtreeWeb.HealthControllerTest do
       assert body["channel"] == "development"
       assert body["catalog_digest"] == release.catalog_digest
       assert body["source_revision"] == release.source_revision
+      assert body["deployed_source_revision"] == "development"
       assert body["climb_count"] == 1
       assert get_resp_header(conn, "cache-control") == ["no-store"]
+      assert get_resp_header(conn, "x-techtree-revision") == ["development"]
     end
 
     test "health describes the catalog, never the machine", %{conn: conn} do

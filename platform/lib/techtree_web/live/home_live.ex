@@ -44,6 +44,7 @@ defmodule TechtreeWeb.HomeLive do
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
        graph: EvidenceGraph.from_climb(campaign, release),
+       release: release,
        preview_label: @preview_label,
        crown_studies: @crown_studies,
        crown_variant: crown_variant,
@@ -107,20 +108,14 @@ defmodule TechtreeWeb.HomeLive do
             <span>Get a signed local receipt for the difference.</span>
           </p>
 
-          <div class="installer">
-            <.prompt_block
-              id="copy-home-agent-line"
-              label="Give this to your agent"
-              text={@agent_line}
-            />
-          </div>
+          <.installer release={@release} agent_line={@agent_line} />
 
           <div class="hero__actions">
             <.link class="button button--primary" navigate={~p"/start"}>
               <span class="button__mark" aria-hidden="true"></span> Start your first Climb
             </.link>
             <a class="text-link" href={~p"/results"}>
-              View published Results <span aria-hidden="true">→</span>
+              View published proofs <span aria-hidden="true">→</span>
             </a>
           </div>
         </div>
@@ -240,5 +235,62 @@ defmodule TechtreeWeb.HomeLive do
       </section>
     </Layouts.page>
     """
+  end
+
+  attr :release, :map, default: nil
+  attr :agent_line, :string, required: true
+
+  defp installer(assigns) do
+    ~H"""
+    <div class="installer">
+      <.prompt_block id="copy-home-agent-line" label="Give this to your agent" text={@agent_line} />
+
+      <p class="installer__divider"><span>Or use the CLI directly</span></p>
+
+      <div class="installer__manual">
+        <%= cond do %>
+          <% is_nil(@release) -> %>
+            <p class="release-state">No release is published on this channel yet.</p>
+          <% not @release.installable? -> %>
+            <p class="release-state">
+              This channel publishes stand-in coordinates, so there is no command to copy yet.
+            </p>
+          <% @release.introductory_reference -> %>
+            <.command_block
+              id="copy-home-cli"
+              lines={[
+                {:command, @release.install_argv},
+                {:comment, "Doctor checks prerequisites and prints the exact next action."},
+                {:command, ["techtree", "doctor", "--climb", @release.introductory_reference]}
+              ]}
+              label="Install, then check this machine"
+            />
+            <p class="installer__doctor-note">
+              These commands do not start paid model inference.
+            </p>
+            <p class="compatibility">{hero_compatibility(@release)}</p>
+            <p class="release-coordinate">
+              <span>{ReleaseInfo.label(@release)}</span>
+              <a href={~p"/docs#release"}>Release details</a>
+            </p>
+          <% true -> %>
+            <p class="release-state">This release does not name an introductory Climb.</p>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp hero_compatibility(%{minimums: minimums}) do
+    [
+      "macOS or Linux",
+      "uv required",
+      if(minimums["docker_required"], do: "Docker required"),
+      minimums["python"] && "Python #{minimums["python"]} managed by uv",
+      minimums["hermes_version"] &&
+        "Hermes #{minimums["hermes_version"]}+ only for the plugin path"
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
   end
 end

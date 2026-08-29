@@ -14,12 +14,14 @@ defmodule TechtreeWeb.HealthController do
   use TechtreeWeb, :controller
 
   alias Techtree.Catalog.Query
+  alias Techtree.BuildInfo
 
   @doc """
   Report whether a catalog release is being served.
   """
   def show(conn, _params) do
-    summary = Query.health_summary()
+    summary =
+      Map.put(Query.health_summary(), :deployed_source_revision, BuildInfo.source_revision())
 
     conn
     |> put_resp_header("cache-control", "no-store")

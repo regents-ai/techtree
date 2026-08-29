@@ -22,9 +22,6 @@ defmodule TechtreeWeb.Layouts do
   def page(assigns) do
     ~H"""
     <main class={["page", @wide && "page--wide", @flush && "page--flush"]}>
-      <p class="notice" role="status" data-markdown-skip>
-        The connection to the site dropped. The page will reconnect on its own.
-      </p>
       {render_slot(@inner_block)}
     </main>
 
@@ -70,9 +67,6 @@ defmodule TechtreeWeb.Layouts do
         <nav class="masthead__nav" aria-label="Primary">
           <span class="masthead__selector">
             <a href={~p"/results"} aria-current={current_section(@current_path, "/results")}>
-              Results
-            </a>
-            <a href={~p"/proofs"} aria-current={current_section(@current_path, "/proofs")}>
               Proofs
             </a>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>

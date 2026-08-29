@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.HomeLiveTest do
   @moduledoc """
-  The landing page explains why Techtree exists and gives an agent one way in.
+  The landing page explains why Techtree exists and gives both installation paths.
   """
 
   use TechtreeWeb.ConnCase, async: false
@@ -59,16 +59,39 @@ defmodule TechtreeWeb.HomeLiveTest do
              )
     end
 
-    test "the page keeps release, installation, and proof teaching on their own routes",
+    test "the page keeps release and proof teaching on their own routes",
          %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
       assert has_element?(live, ~s|a[href="/start"]|, "Start your first Climb")
       assert has_element?(live, "#copy-home-agent-line")
-      refute text =~ "Or use the CLI directly"
+      assert text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
       refute text =~ "What verification establishes"
+    end
+
+    @tag :tmp_dir
+    test "the manual path is one copyable release-derived block", %{conn: conn, tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+      CatalogFixture.rewrite_bootstrap!(bundle, &CatalogFixture.concrete_release/1)
+      CatalogFixture.use_bundle(bundle)
+      Importer.import!(bundle)
+
+      {:ok, live, html} = live(conn, ~p"/")
+      release = TechtreeWeb.ReleaseInfo.current()
+
+      expected =
+        Enum.join(release.install_argv, " ") <>
+          "\n# Doctor checks prerequisites and prints the exact next action.\n" <>
+          "techtree doctor --climb #{release.introductory_reference}"
+
+      assert has_element?(live, "#copy-home-cli")
+      assert html =~ ~s|data-copy-value="#{expected}"|
+
+      assert has_element?(live, ".installer__manual .command", "Install, then check this machine")
+      refute has_element?(live, "#copy-home-install")
+      refute has_element?(live, "#copy-home-doctor")
     end
 
     test "the hero omits the retired explanatory copy", %{conn: conn} do
@@ -83,15 +106,13 @@ defmodule TechtreeWeb.HomeLiveTest do
                "Those are the seams of the stack, and this site names them rather than leaving a reader to find them."
     end
 
-    test "there is one way in, and it is the same one for everybody", %{conn: conn} do
+    test "the agent path stays first and the route actions stay stable", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
       assert live |> element(~s|a.button--primary[href="/start"]|) |> has_element?()
-      assert live |> element(~s|a[href="/results"]|, "View published Results") |> has_element?()
+      assert live |> element(~s|a[href="/results"]|, "View published proofs") |> has_element?()
 
-      # The agent-and-human fork moved to the installation guide; the front
-      # page no longer asks a reader to choose before they know what for.
       refute text =~ "My agent is installing"
       refute text =~ "I’m installing"
       refute text =~ "Give this to your Hermes agent"
@@ -207,7 +228,9 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, path)
 
       assert html =~
-               ~r|<span class="masthead__selector">.*href="/results"[^>]*>\s*Results\s*</a>.*href="/proofs"[^>]*>\s*Proofs\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
+               ~r|<span class="masthead__selector">.*href="/results"[^>]*>\s*Proofs\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
+
+      refute html =~ ~s|href="/proofs">Proofs</a>|
 
       assert html =~ ~r|</nav>\s*<button id="site-theme-toggle"|s
       assert html =~ ~s|class="theme-toggle__cube"|

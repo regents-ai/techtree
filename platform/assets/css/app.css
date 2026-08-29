@@ -546,21 +546,6 @@ strong {
   background: var(--accent);
 }
 
-.notice {
-  display: none;
-  margin: 1rem 0;
-  border: 1px solid var(--running);
-  padding: 0.7rem 0.9rem;
-  color: var(--running);
-  font-size: 0.85rem;
-}
-
-.phx-error .notice,
-.phx-client-error .notice,
-.phx-server-error .notice {
-  display: block;
-}
-
 /* Actions and commands --------------------------------------------------- */
 
 .button,
@@ -2251,6 +2236,38 @@ strong {
   color: var(--complete);
   font-family: var(--font-mono);
   font-size: 0.72rem;
+}
+
+.verification-summary {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.verification-summary li {
+  line-height: 1.5;
+}
+
+.tasks__filters {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.tasks__filter {
+  border: 1px solid var(--rule);
+  padding: 0.45rem 0.7rem;
+  background: transparent;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.tasks__filter[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--ink);
 }
 
 .tasks {
