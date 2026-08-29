@@ -118,7 +118,19 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert has_element?(
                live,
                ".runs-index__verification-list > li",
-               "the files match their recorded hashes;"
+               "the files match their recorded hashes"
+             )
+
+      assert has_element?(
+               live,
+               ".runs-index__verification-list > li",
+               "the signatures verify against the included key"
+             )
+
+      assert has_element?(
+               live,
+               ".runs-index__verification-list > li",
+               "the reported scores match the task results in the bundle"
              )
 
       assert has_element?(live, ".runs-index__log > article.log__entry")
