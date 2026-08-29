@@ -2,9 +2,8 @@
 
 **Improve a Skill. Prove it worked.**
 
-Same pinned agent. Same fixed tasks. One changed Skill. Techtree runs a
-controlled comparison on your machine and produces a signed local receipt for
-the difference.
+Opinionated Stack for Agent Skill Uplift.
+Built on Prime Intellect and NVIDIA NeMo.
 
 [![The Techtree homepage](docs/assets/techtree-home.png)](https://techtree.sh/)
 
