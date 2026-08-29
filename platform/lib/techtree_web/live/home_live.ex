@@ -268,7 +268,6 @@ defmodule TechtreeWeb.HomeLive do
               id="copy-home-cli"
               lines={[
                 {:command, @release.install_argv},
-                {:comment, "Doctor checks prerequisites and prints the exact next action."},
                 {:command, ["techtree", "doctor", "--climb", @release.introductory_reference]}
               ]}
               label="Install, then check this machine"

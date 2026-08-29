@@ -85,11 +85,12 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       expected =
         Enum.join(release.install_argv, " ") <>
-          "\n# Doctor checks prerequisites and prints the exact next action.\n" <>
+          "\n" <>
           "techtree doctor --climb #{release.introductory_reference}"
 
       assert has_element?(live, "#copy-home-cli")
       assert html =~ ~s|data-copy-value="#{expected}"|
+      refute html =~ "Doctor checks prerequisites"
 
       assert has_element?(live, ".installer__manual .command", "Install, then check this machine")
       refute has_element?(live, "#copy-home-install")
