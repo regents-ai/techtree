@@ -1,8 +1,9 @@
 # Founder release approval packet — Climb v0.1
 
-Status: release candidate ready for the final operator rehearsal. This packet is
-not an approval. Nothing has been pushed, made public, tagged, deployed,
-activated, or published to PyPI.
+Status: v0.1.1 release candidate ready for final approval. This packet is not an
+approval. The existing v0.1.0 release and public result remain live; the v0.1.1
+commits have not been pushed or tagged, the wheel has not been uploaded to
+PyPI, and the Ash commit has not been deployed.
 
 The final approval must use the exact phrase in
 `docs/spec/closeout-helloworld/FOUNDER_APPROVAL_PHRASES.md` and the SHA-256 of
@@ -13,12 +14,12 @@ this file as committed.
 | Coordinate | Value |
 |---|---|
 | Release | `climb-v0.1.0` |
-| Python source | `2e714835469dc0a3fb4bece3ed2f861317fe4d7c` |
-| Wheel | `techtree-0.1.0-py3-none-any.whl`, `sha256:5565e553f2e29a145711d5b13f6c03760a99b6c17d404e4a36768513a7660040` |
-| Hermes plugin | `db827e714094c89514ea63d3ace1c97e6698589d` |
-| Ash candidate records | `a7d3797aea202f09efd3dcbbe9d94ab937796888` |
-| ReleaseCore | `sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1` |
-| Bootstrap | `sha256:3fdadeeb3f435fe08232e401c38751345b4809e9b1bb4202c892b43464c73c76` |
+| Python wheel source | `614daffbcbd294be4646adfdec26f95337c4f7ed` |
+| Wheel | `techtree-0.1.1-py3-none-any.whl`, `sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce` |
+| Hermes plugin | `ca22ee782f5572b179c665c2c2a33120171f0158` |
+| Ash candidate | `38f265b5fb1afeeeb9a6ce65ea8731f24a9b86d3` |
+| ReleaseCore | `sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa` |
+| Bootstrap | `sha256:f288817ef25f1e06de0547eff1445cb387fb222005082d9bd445e10f93db0a58` |
 | Campaign | `sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1` |
 | Climb | `sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236` |
 | Catalog | `sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c` |
@@ -39,11 +40,12 @@ onboarding path. It changes no Campaign, Climb, task membership, engine,
 subject, sampling, budget, scoring, or founder Skill byte. The complete path
 classification is in `release/post-certification-change-classification.json`.
 
-Per the founder's instruction on 2026-08-28, this finish uses an existing
-verified proof instead of paying to repeat unchanged inference. The selected
-proof is `run_0d3e7fc4d24a406b8ae9de74f4edca34`; it passed 339 checks offline
-without fetching anything. It is participant-attested and grade P1, not
-independently reproduced or platform-witnessed.
+Per the founder's instruction on 2026-08-28, this finish does not pay to repeat
+unchanged inference. The existing verification anchor is
+`run_0d3e7fc4d24a406b8ae9de74f4edca34`; it passed 339 checks offline without
+fetching anything. It is participant-attested and grade P1, not independently
+reproduced or platform-witnessed. A later full Hermes journey supplied the live
+publication evidence below.
 
 Gate 1 approved the starter Skill. On 2026-08-28 the founder separately
 approved the shipping improver Skill bytes
@@ -63,34 +65,39 @@ unverified, stored privately, and absent from public projections. Withdrawal
 appends status and does not erase the accepted entry. Raw bundle download and
 public reproduction import are not part of v0.1.
 
-An earlier staged HTTPS rehearsal exercised admission, countersigning,
-idempotence, arrival order, all 36 task rows, address privacy, and the absence
-of raw-bundle routes. It is supporting evidence, not the final receipt for the
-candidate above.
+Automated and staged checks exercised admission, countersigning, idempotence,
+arrival order, all 36 task rows, address privacy, and the absence of raw-bundle
+routes. The full Hermes journey then published a real proof through the live
+endpoint.
 
-The final selected payload shown by the candidate CLI is:
+The successful live publication is:
 
-- run: `run_0d3e7fc4d24a406b8ae9de74f4edca34`
+- run: `run_86bb7176135d49e3a0577630e952c7f3`
 - files: 84
 - bytes: 238,376
-- proof digest: `sha256:a96bc70b67505832f2836694f0887b49991f7eda7fd7f6b87865d4ce24762c57`
+- proof digest: `sha256:e8ef7cb4f906a3ca75310415dbeed2302d8e9d195ce7ed044d83ba7f4480ac91`
+- receipt payload digest: `sha256:0cc5a2c89d295fad5596845c4c35ba67ca96f86f2b0eb1fdaf23ead46a4b150a`
+- entry identifier: `72e151ba-205b-4385-9844-750222d7a105`
+- log sequence: 1
+- admission checks: 17 passed
 - contributor address: none
+- GitHub URL: none
 - endpoint: `https://techtree.sh/api/v1/publications`
 
-The preview was aborted at the confirmation prompt, so this exact payload has
-not left the machine. Final publication requires the founder/operator to start
-the staged Ash endpoint with the founder-held signing key whose public half
-matches the pinned network key, then explicitly approve this payload. No final
-receipt or entry identifier is claimed until that succeeds.
+The receipt is signed by the pinned network key. It was issued while v0.1.0's
+viewing route was active. The v0.1.1 ReleaseCore and Ash candidate move public
+viewing to `https://techtree.sh/results/<proof-digest>` and intentionally keep
+no `/runs` alias. The publication endpoint is unchanged. No further paid run,
+signer rehearsal, or proof upload is required.
 
 ## Verification
 
 | Check | Result |
 |---|---|
-| Python full gate | 3,277 passed, 1 skipped; generated artifacts matched |
-| Plugin full gate | 922 passed; format, types, Doctor, 17 tools and 2 hooks passed |
-| Ash full gate | 6 doctests and 475 tests passed on the repinned shared tree |
-| Ash receipt and candidate checks | 24 passed after repinning |
+| Python full gate | 3,289 passed, 1 skipped, 298 deselected; generated artifacts matched |
+| Plugin full gate | 927 passed; format, types, Doctor, 17 tools and 2 hooks passed |
+| Ash full gate | 6 doctests and 478 tests passed at `38f265b5fb1afeeeb9a6ce65ea8731f24a9b86d3` |
+| Focused release checks | 99 Ash tests passed after the final route and release re-pin |
 | Frozen wheel inspection | The preserved wheel's digest and provenance stamp match the candidate |
 | Fresh wheel install | Python 3.12; all 169 package files matched the wheel |
 | Cross-repository release gate | 26 of 26 passed |
@@ -100,9 +107,8 @@ The wheel contains 174 members: 169 package payload files and five packaging
 metadata files. Its embedded provenance stamp names the Python source commit
 above.
 
-The separate visual task was idle when the final Ash gate ran. Its uncommitted
-shared-tree work is not included in the Ash candidate-record commit above; if
-that task changes the tree again, rerun this gate before approval.
+The Ash candidate includes the completed public-route, result-page, header, and
+release-pin work. Its full gate passed after those changes.
 
 ## Limits on claims
 
@@ -112,17 +118,15 @@ that task changes the tree again, rerun this gate before approval.
 - The proof establishes integrity and internal consistency, not honest
   execution or independent reproduction.
 - Model calls go to Prime; “nothing leaves the laptop” is false.
-- The release is a proof of concept for the Verifiers/Hermes/Techtree stack,
-  not a benchmark, production evaluation suite, or validated uplift claim.
+- The release is a working technical preview of the
+  Verifiers/Hermes/Techtree stack, not a benchmark, production evaluation
+  suite, or validated uplift claim.
 
 ## Remaining authority boundary
 
-Before final approval: complete the founder-key staged receipt replay and record
-the receipt identifiers here.
+No additional technical rehearsal is required before final approval.
 
-Even after those checks, no push, public visibility change, tag, deploy,
-activation, PyPI upload, or public publication is authorized until the founder
-supplies the exact final release approval phrase with this committed packet's
-digest. That phrase's historical `Not authorized` list predates decision 0038;
-publication of the exact reviewed proof is therefore kept as a separate,
-payload-specific consent boundary rather than inferred from Gate 2.
+No v0.1.1 push, tag, deploy, activation, or PyPI upload is authorized until the
+founder supplies the exact final release approval phrase with this committed
+packet's digest. The live proof publication above was separately and explicitly
+approved; it is evidence, not implied authority for any further upload.

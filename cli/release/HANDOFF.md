@@ -1,23 +1,25 @@
 # Handoff — finishing Climb v0.1
 
-Updated 2026-08-28 after the final CLI/Hermes fixes and release re-pin. This
-supersedes every older coordinate and scanner statement formerly in this file.
+Updated 2026-08-28 after the final CLI/Hermes fixes, public-route change, and
+v0.1.1 release re-pin. This supersedes every older coordinate and scanner
+statement formerly in this file.
 
 ## Current candidate
 
 | Repository/artifact | Coordinate |
 |---|---|
-| techtree-python | `2e714835469dc0a3fb4bece3ed2f861317fe4d7c` |
-| CLI wheel | `sha256:5565e553f2e29a145711d5b13f6c03760a99b6c17d404e4a36768513a7660040` |
-| techtree-plugin | `db827e714094c89514ea63d3ace1c97e6698589d` |
-| techtree-ash release records | `a7d3797aea202f09efd3dcbbe9d94ab937796888` |
-| ReleaseCore | `sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1` |
-| Bootstrap | `sha256:3fdadeeb3f435fe08232e401c38751345b4809e9b1bb4202c892b43464c73c76` |
+| techtree-python wheel source | `614daffbcbd294be4646adfdec26f95337c4f7ed` |
+| CLI wheel | `techtree-0.1.1-py3-none-any.whl`, `sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce` |
+| techtree-plugin | `ca22ee782f5572b179c665c2c2a33120171f0158` |
+| techtree-ash | `38f265b5fb1afeeeb9a6ce65ea8731f24a9b86d3` |
+| ReleaseCore | `sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa` |
+| Bootstrap | `sha256:f288817ef25f1e06de0547eff1445cb387fb222005082d9bd445e10f93db0a58` |
 | Catalog | `sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c` |
 | Network key | `sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966` |
 
-Nothing has been pushed, made public, tagged, deployed, activated, or uploaded
-to PyPI.
+The existing v0.1.0 release and public result remain live. The v0.1.1 refreeze
+commits above have not been pushed or tagged, the wheel has not been uploaded
+to PyPI, and the Ash commit has not been deployed.
 
 ## What is finished
 
@@ -33,6 +35,8 @@ to PyPI.
 - Ash rejects a malformed publication digest as a 400 and keeps a valid unknown
   digest as a 404. The candidate bootstrap and checksums name the final Python,
   wheel, plugin, ReleaseCore, catalog, and founder-approved Skill bytes.
+- Public result pages live only at `/results`; `/runs` is not retained as an
+  alias. The publication submission endpoint remains `/api/v1/publications`.
 - The preserved wheel carries the frozen source stamp and digest. A fresh Python
   3.12 tool install matched all 169 package files byte for byte.
 - The public run log implementation covers verified admission, signed receipts,
@@ -41,17 +45,17 @@ to PyPI.
 
 ## Verification already completed
 
-- Python: 3,277 passed, 1 skipped; generated artifacts matched.
-- Plugin: 922 passed; format, types, and Doctor passed.
-- Ash: 6 doctests and 475 tests passed on the repinned shared tree; 24 focused
-  candidate and receipt-route tests also passed.
+- Python: 3,289 passed, 1 skipped, and 298 deselected; generated artifacts
+  matched.
+- Plugin: 927 passed; format, types, and Doctor passed.
+- Ash: 6 doctests and 478 tests passed at the committed candidate; 99 focused
+  release tests also passed.
 - Cross-repository release gate: 26 of 26 passed.
 - Catalog verification: five objects and one public Climb passed.
 - Selected existing proof: 339 of 339 offline checks passed.
 
-The separate visual task was idle when the final Ash gate passed. Its visual
-files remain uncommitted and must not be overwritten or staged from this release
-work. Rerun the gate only if that task changes the tree again.
+The Ash commit includes the completed public-route, result-page, header, and
+release-pin work. Its final full gate passed after those changes.
 
 ## Existing proof selected for the final receipt
 
@@ -68,36 +72,31 @@ scientific artifact changed. Do not start a paid run.
 | Endpoint | `https://techtree.sh/api/v1/publications` |
 
 The CLI displayed this payload and was interrupted at its final confirmation,
-so it has not left the machine. It excludes prompts, replies, episodes, traces,
-and worker logs.
+so this particular proof remains local. It excludes prompts, replies, episodes,
+traces, and worker logs. Do not start another paid run: the separate live Hermes
+run below completed the end-to-end publication path.
 
-## The only remaining rehearsal
+## Publication rehearsal is complete
 
-The server currently reachable on port 4010 has no network signing key and
-correctly returns `network_key_unavailable`. It cannot produce an acceptable
-receipt. Do not substitute an ephemeral key: the CLI will reject a receipt that
-does not match the ReleaseCore's pinned public key.
+The full Hermes journey later produced and published
+`run_86bb7176135d49e3a0577630e952c7f3`. Ash accepted 84 proof files totaling
+238,376 bytes, verified all 17 admission checks, and returned a signed receipt:
 
-The founder/operator must start the staged Ash server behind trusted local HTTPS
-with `PHX_HOST=techtree.sh`, `TECHTREE_BOOTSTRAP_CHANNEL=stable`, and the real
-`TECHTREE_NETWORK_SIGNING_KEY` in that operator shell. Point the CLI at that
-trusted HTTPS address with `TECHTREE_PUBLICATION_ENDPOINT`; the pinned network
-key remains non-overridable. The chief must never read or copy the private key.
+| Field | Value |
+|---|---|
+| Proof digest | `sha256:e8ef7cb4f906a3ca75310415dbeed2302d8e9d195ce7ed044d83ba7f4480ac91` |
+| Receipt payload digest | `sha256:0cc5a2c89d295fad5596845c4c35ba67ca96f86f2b0eb1fdaf23ead46a4b150a` |
+| Entry identifier | `72e151ba-205b-4385-9844-750222d7a105` |
+| Log sequence | 1 |
+| Network key | `sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966` |
+| Contributor address | none |
+| GitHub URL | none |
 
-After the endpoint is ready and the founder has explicitly approved the exact
-payload above, run:
-
-```sh
-TECHTREE_PUBLICATION_ENDPOINT=https://<trusted-local-host>/api/v1/publications \
-  uv run techtree publish run_0d3e7fc4d24a406b8ae9de74f4edca34 \
-  --yes --reviewed-on host-agent
-```
-
-Then verify the returned receipt with the CLI, repeat the identical command to
-confirm the same receipt and one log entry, and record the receipt digest,
-entry identifier, and final Ash full-gate result in
-`release/founder-release-approval-packet.md`. These are one rehearsal, not new
-feature work.
+That signed v0.1.0 receipt records the viewing route in force when it was issued.
+The v0.1.1 ReleaseCore and Ash candidate deliberately move public viewing to
+`https://techtree.sh/results/<proof-digest>` without retaining `/runs` as an
+alias. The submission endpoint is unchanged. No further signer rehearsal or
+proof upload is required for the v0.1.1 release.
 
 ## Protected release boundary
 
@@ -105,9 +104,7 @@ The founder has approved the shipping improver Skill bytes
 `sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678`.
 That does not authorize release publication.
 
-No push, public visibility change, tag, deploy, activation, PyPI upload, or
-public release is authorized until the exact final phrase from
+No v0.1.1 push, tag, deploy, activation, or PyPI upload is authorized until the
+exact final phrase from
 `docs/spec/closeout-helloworld/FOUNDER_APPROVAL_PHRASES.md` is received with the
-committed approval packet's digest. Publishing the selected proof also requires
-its own exact payload consent because the historical Gate-2 phrase explicitly
-did not authorize uploading proof bundles.
+committed approval packet's digest.
