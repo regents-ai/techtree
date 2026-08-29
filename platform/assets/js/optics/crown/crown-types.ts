@@ -158,9 +158,10 @@ export const CROWN_VARIANTS = {
   },
   2: {
     ...GRAZE_LIGHT,
-    // After the shared ACES + sRGB presentation pass, this is the hero's
-    // #c4380c surface color rather than a visibly inset canvas rectangle.
-    backgroundColor: [0.413106, 0.04653, 0.009823, 1],
+    // Orange and Titanium share one slate hero field. The cool opposing-color
+    // squares in scene.ts distinguish this Orange study from Titanium's orange
+    // squares without introducing a second surface behind the crown.
+    backgroundColor: [0.061575, 0.077282, 0.092116, 1],
     absorption: [1, 0.82, 0.42],
     glassDispersion: 0.02,
     reflectionStrength: 0.7,

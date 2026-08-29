@@ -120,7 +120,7 @@ svg {
   --failed: light-dark(#b52d2a, #f85149);
   --unavailable: light-dark(#66706a, #6e7772);
 
-  --hero-theme-background: light-dark(#c4380c, #46535e);
+  --hero-theme-background: #46535e;
   --theme-toggle-laser: light-dark(#fff8ef, #ff5b19);
   --theme-toggle-laser-glow: light-dark(rgb(255 255 255 / 70%), rgb(255 91 25 / 72%));
   --theme-toggle-cube-face: light-dark(rgb(83 20 5 / 42%), rgb(10 14 17 / 45%));
@@ -754,7 +754,7 @@ strong {
 }
 
 .hero[data-crown-variant="2"] {
-  background: #c4380c;
+  background: #46535e;
   --ink-faint: #ffd0bd;
   --ink-quiet: #fff2eb;
 }
