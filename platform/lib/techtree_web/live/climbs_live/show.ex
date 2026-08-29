@@ -8,8 +8,6 @@ defmodule TechtreeWeb.ClimbsLive.Show do
   alias Techtree.Catalog.Query
   alias TechtreeWeb.ClimbCopy
 
-  @instruction "Set up Techtree and run the Hello World Climb."
-
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
     case Query.get_climb_by_slug(slug) do
@@ -18,8 +16,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
          assign(socket,
            page_title: climb.title,
            climb: climb,
-           copy: ClimbCopy.for_reference(climb.reference),
-           instruction: @instruction
+           copy: ClimbCopy.for_reference(climb.reference)
          )}
 
       {:error, _error} ->
@@ -41,7 +38,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
         <dl class="climb-contract__facts">
           <div>
             <dt>Question</dt>
-            <dd>{purpose_words(@climb.projection["purpose"])}</dd>
+            <dd>{(@copy && @copy.question) || purpose_words(@climb.projection["purpose"])}</dd>
           </div>
           <div>
             <dt>Changed</dt>
@@ -49,33 +46,37 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           </div>
           <div>
             <dt>Tasks</dt>
-            <dd>{@climb.projection["task_count"]}</dd>
+            <dd>{@climb.projection["task_count"]}, fixed before either Run</dd>
+          </div>
+          <div>
+            <dt>Input</dt>
+            <dd>{(@copy && @copy.input) || "Defined by the published task set."}</dd>
+          </div>
+          <div>
+            <dt>Expected output</dt>
+            <dd>{(@copy && @copy.output) || "Defined by the published scorer."}</dd>
+          </div>
+          <div>
+            <dt>Scoring</dt>
+            <dd>{(@copy && @copy.scoring) || "Defined by the published Climb."}</dd>
           </div>
           <div>
             <dt>Held fixed</dt>
-            <dd>
-              {@climb.projection["subject_harness"]} {@climb.projection["subject_harness_version"]}, {@climb.projection[
-                "subject_model"
-              ]["provider"]} {@climb.projection["subject_model"]["model_id"]}
-            </dd>
+            <dd>{(@copy && @copy.held_fixed) || held_fixed_words(@climb)}</dd>
           </div>
         </dl>
 
-        <section class="climb-contract__start" aria-labelledby="climb-setup-instruction">
-          <h2 id="climb-setup-instruction">{@instruction}</h2>
-          <button
-            id="copy-climb-setup-instruction"
-            class="setup-page__copy"
-            type="button"
-            phx-hook="CopyCommand"
-            phx-update="ignore"
-            data-copy-value={@instruction}
-          >
-            <span data-copy-label>Copy</span>
-          </button>
-        </section>
+        <p class="small quiet section">
+          <a href={~p"/results"}>Browse Results from published Climbs</a>
+        </p>
       </article>
     </Layouts.page>
     """
+  end
+
+  defp held_fixed_words(climb) do
+    "#{climb.projection["subject_harness"]} #{climb.projection["subject_harness_version"]}, " <>
+      "#{climb.projection["subject_model"]["provider"]} " <>
+      climb.projection["subject_model"]["model_id"]
   end
 end

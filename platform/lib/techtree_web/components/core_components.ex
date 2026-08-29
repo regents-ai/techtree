@@ -156,18 +156,26 @@ defmodule TechtreeWeb.CoreComponents do
             >
               Nous Research’s Hermes
             </a>
-            as the agent host, and Techtree as the campaign kernel and evidence layer.
+            as the agent host, and Techtree as the comparison and evidence layer.
           </p>
           <p :if={@nemo_roadmap and not @compact} class="small quiet what-this-is__roadmap">
-            Support for NVIDIA’s
+            Support for NVIDIA
             <a
-              href="https://github.com/NVIDIA-NeMo"
+              href="https://github.com/NVIDIA/NeMo-Fabric"
               target="_blank"
               rel="noopener noreferrer"
             >
-              NeMo Framework
+              NeMo Fabric
             </a>
-            coming in v0.2.
+            and
+            <a
+              href="https://github.com/NVIDIA/NeMo-Relay"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              NeMo Relay
+            </a>
+            is planned for v0.2.
           </p>
         </div>
         {render_slot(@inner_block)}
@@ -350,7 +358,7 @@ defmodule TechtreeWeb.CoreComponents do
 
   def proof_grade_words("P1"),
     do:
-      "P1 — participant-signed on the machine that produced it and internally checkable. Not independently repeated."
+      "Participant-signed on the machine that produced it and internally checkable. Not independently repeated."
 
   def proof_grade_words(other), do: plain_words(other)
 

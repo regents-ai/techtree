@@ -1283,6 +1283,13 @@ strong {
   font-size: 1.05rem;
 }
 
+.trust__summary {
+  max-width: var(--measure);
+  margin-top: 2.5rem;
+  color: var(--ink-quiet);
+  font-size: 1.05rem;
+}
+
 .trust__links {
   margin-top: 2.5rem;
   display: flex;
@@ -2545,6 +2552,58 @@ strong {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   overflow-wrap: anywhere;
+}
+
+.tasks__task strong,
+.tasks__task code {
+  display: block;
+}
+
+.tasks__task strong {
+  color: var(--ink);
+  font-size: 0.74rem;
+}
+
+.tasks__task code {
+  margin-top: 0.12rem;
+  color: var(--ink-faint);
+  font-size: 0.62rem;
+}
+
+/* Error pages ----------------------------------------------------------- */
+
+.error-page {
+  width: min(100% - 2rem, 56rem);
+  min-height: 100vh;
+  margin-inline: auto;
+  padding-block: clamp(2rem, 8vw, 7rem);
+  display: grid;
+  align-content: center;
+  gap: 1.25rem;
+}
+
+.error-page__name {
+  width: fit-content;
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.error-page h1 {
+  max-width: 14ch;
+  font-size: clamp(2.4rem, 8vw, 5.5rem);
+}
+
+.error-page > p:not(.eyebrow) {
+  max-width: var(--measure);
+  color: var(--ink-quiet);
+  font-size: 1.05rem;
+}
+
+.error-page nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
 }
 
 .tasks__number {

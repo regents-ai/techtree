@@ -16,6 +16,11 @@ defmodule TechtreeWeb.ClimbCopy do
   @type t :: %{
           subtitle: String.t(),
           scope: String.t(),
+          question: String.t(),
+          input: String.t(),
+          output: String.t(),
+          scoring: String.t(),
+          held_fixed: String.t(),
           campaign_title: String.t(),
           task_family: String.t(),
           starter_skill: String.t(),
@@ -31,10 +36,17 @@ defmodule TechtreeWeb.ClimbCopy do
       subtitle: "A toy Skill-uplift Climb",
       scope:
         "A toy introductory demonstration of the mechanism, not a measure of broad capability.",
+      question:
+        "Does adding the Hello World Skill improve exact-match scores across 36 fixed tasks?",
+      input: "A short lowercase string for each task.",
+      output: "One exact answer token and no additional text.",
+      scoring: "Exact match: each task is 0 or 1, then the 36 task values are averaged.",
+      held_fixed:
+        "Task membership and order, model, Hermes harness, runtime, tools, sampling, and budget.",
       campaign_title: "Hello World Skill Uplift",
       task_family: "BranchCode v1",
       starter_skill: "hello-world-starter-v1",
-      candidate_skill_label: "hello-world-v1",
+      candidate_skill_label: "Hello World Skill",
       starter_note:
         "The Hello World starter Skill is intentionally incomplete and calibrated " <>
           "to solve roughly two-thirds of the toy tasks. Individual runs may vary. " <>

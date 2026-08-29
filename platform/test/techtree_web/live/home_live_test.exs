@@ -70,7 +70,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, "#copy-home-agent-line")
       assert text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
-      refute text =~ "What verification establishes"
+      assert has_element?(live, ~s|a[href="/proofs"]|, "What verification establishes")
     end
 
     @tag :tmp_dir
@@ -120,7 +120,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       text = visible_text(html)
 
       assert live |> element(~s|a.button--primary[href="/start"]|) |> has_element?()
-      assert live |> element(~s|a[href="/results"]|, "View published proofs") |> has_element?()
+      assert live |> element(~s|a[href="/results"]|, "View published Results") |> has_element?()
 
       refute text =~ "My agent is installing"
       refute text =~ "I’m installing"
@@ -133,15 +133,15 @@ defmodule TechtreeWeb.HomeLiveTest do
       text = visible_text(html)
 
       assert has_element?(live, "#what-this-release-is")
-      assert has_element?(live, "#home-evidence-graph")
-      assert has_element?(live, ".home-section.process")
+      refute has_element?(live, "#home-evidence-graph")
+      refute has_element?(live, ".home-section.process")
       assert has_element?(live, ".home-section.featured")
       assert has_element?(live, ".home-section.trust")
       assert text =~ "v0.1 release"
       refute text =~ "standing on giants"
       refute text =~ "What it demonstrates is that the three pin together tightly enough"
-      assert text =~ "Run. Improve. Prove."
-      assert text =~ "Published by this release"
+      refute text =~ "Run. Improve. Prove."
+      assert text =~ "Introductory Climb"
       assert text =~ "Your work stays local."
     end
 
@@ -150,7 +150,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, "#home-evidence-graph")
+      refute has_element?(live, "#home-evidence-graph")
       refute has_element?(live, ".hero-result")
 
       assert has_element?(

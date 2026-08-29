@@ -6,11 +6,8 @@ defmodule TechtreeWeb.HomeLive do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
-  alias Techtree.Network.Query, as: NetworkQuery
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
-  alias TechtreeWeb.EvidenceComponents
-  alias TechtreeWeb.EvidenceGraph
   alias TechtreeWeb.ReleaseInfo
 
   # The milestone this preview is, said once. It is not an install coordinate:
@@ -34,7 +31,6 @@ defmodule TechtreeWeb.HomeLive do
   def mount(_params, _session, socket) do
     campaign = Query.list_climbs() |> List.first()
     release = ReleaseInfo.current()
-    proofs = published_proofs(campaign)
     crown_variant = Map.get(@crown_actions, socket.assigns.live_action, "1")
     crown_study? = Map.has_key?(@crown_actions, socket.assigns.live_action)
 
@@ -45,7 +41,6 @@ defmodule TechtreeWeb.HomeLive do
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
-       graph: EvidenceGraph.from_climb(campaign, release, proofs),
        release: release,
        preview_label: @preview_label,
        crown_studies: @crown_studies,
@@ -53,11 +48,6 @@ defmodule TechtreeWeb.HomeLive do
        crown_study?: crown_study?
      )}
   end
-
-  defp published_proofs(%{projection: %{"campaign_spec_digest" => digest}}),
-    do: NetworkQuery.for_campaign(digest)
-
-  defp published_proofs(_campaign), do: []
 
   @impl true
   def render(assigns) do
@@ -123,7 +113,7 @@ defmodule TechtreeWeb.HomeLive do
               <span class="button__mark" aria-hidden="true"></span> Start your first Climb
             </.link>
             <a class="text-link" href={~p"/results"}>
-              View published proofs <span aria-hidden="true">→</span>
+              View published Results <span aria-hidden="true">→</span>
             </a>
           </div>
         </div>
@@ -145,46 +135,16 @@ defmodule TechtreeWeb.HomeLive do
         eyebrow="hermes + prime + nvidia agent stack"
         title="v0.1 release"
         nemo_roadmap
-      >
-        <EvidenceComponents.graph
-          :if={@graph != []}
-          id="home-evidence-graph"
-          nodes={@graph}
-          compact
-        />
-      </.proof_of_concept>
-
-      <section class="home-section process" aria-labelledby="process-title">
-        <div class="section-heading">
-          <p class="eyebrow">One controlled difference</p>
-          <h2 id="process-title">Run. Improve. Prove.</h2>
-        </div>
-        <div class="process__steps">
-          <article>
-            <span>01</span>
-            <h3>Run</h3>
-            <p>Resolve a pinned campaign and record the baseline.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <h3>Improve</h3>
-            <p>Change one declared Skill under a fixed budget and validation rule.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <h3>Prove</h3>
-            <p>Sign the comparison, read the outcome of every task, and check the receipt offline.</p>
-          </article>
-        </div>
-      </section>
+      />
 
       <section :if={@campaign} class="home-section featured" aria-labelledby="featured-title">
         <div>
-          <p class="eyebrow">Published by this release</p>
-          <h2 id="featured-title">
-            {(@campaign_copy && @campaign_copy.campaign_title) || @campaign.title}
-          </h2>
-          <p>{@campaign.summary}</p>
+          <p class="eyebrow">Introductory Climb</p>
+          <h2 id="featured-title">{@campaign.title}</h2>
+          <p>
+            {(@campaign_copy && @campaign_copy.scope) ||
+              "A fixed comparison that changes one Skill and nothing else."}
+          </p>
         </div>
         <dl class="featured__facts">
           <div>
@@ -213,32 +173,13 @@ defmodule TechtreeWeb.HomeLive do
           <p class="eyebrow">Where the work goes</p>
           <h2 id="trust-title">Your work stays local.</h2>
         </div>
-        <div class="trust__grid">
-          <p>
-            Techtree uploads nothing unless you publish a finished run yourself. Publishing
-            uploads the complete proof bundle — its index files, signed report and receipts,
-            cited documents, and any optional execution record — while Episodes and Traces
-            remain local. The network returns a separate signed publication receipt
-            acknowledging acceptance; it is not the uploaded proof bundle. The
-            agent under test makes real model calls, and those go to the model provider
-            you selected, under that provider’s policies.
-          </p>
-          <p>
-            A result signed on your machine is internally consistent and attested by the
-            participant who produced it. Nobody else watched the run, and this site never
-            receives it.
-          </p>
-          <p class="trust__stack">
-            The agent inside the experiment is Hermes, Nous Research’s open agent, at a
-            pinned version. Every task is scored by Prime Intellect’s
-            <.verifiers_term label="Verifiers" />, pinned
-            just as exactly. Techtree fixes the conditions and signs the comparison.
-          </p>
-        </div>
+        <p class="trust__summary">
+          Techtree does not observe the Run. Your work stays local unless you choose to publish
+          the finished Result bundle. Model calls still go to the provider selected by the Climb,
+          under that provider’s policies.
+        </p>
         <p class="trust__links">
-          <a href={~p"/docs#trust"}>What leaves my machine?</a>
-          <span aria-hidden="true">·</span>
-          <a href={~p"/proofs#local-results"}>What a local result claims</a>
+          <a href={~p"/proofs"}>What verification establishes <span aria-hidden="true">→</span></a>
         </p>
       </section>
     </Layouts.page>

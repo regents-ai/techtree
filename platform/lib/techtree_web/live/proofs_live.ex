@@ -28,7 +28,7 @@ defmodule TechtreeWeb.ProofsLive do
         <p class="eyebrow">Verifier reference</p>
         <h1>How verification works</h1>
         <p class="lede">
-          Techtree checks a published proof’s integrity, controlled comparison, score
+          Techtree checks a published Result bundle’s integrity, controlled comparison, score
           consistency, and publication policy. Verification makes the bundle internally
           checkable; it is not independent observation of the run.
         </p>
@@ -68,7 +68,7 @@ defmodule TechtreeWeb.ProofsLive do
       <section class="offline-verify">
         <div>
           <p class="eyebrow">Check it yourself</p>
-          <h2>Verify a proof offline.</h2>
+          <h2>Verify a Result offline.</h2>
           <p class="small quiet">
             Anyone holding the participant’s bundle can run the same verifier on their own
             machine.
@@ -89,8 +89,8 @@ defmodule TechtreeWeb.ProofsLive do
       </details>
 
       <p class="small quiet section">
-        <a href={~p"/results"}>Browse Published Skill Capsules</a>
-        · <a href={~p"/docs#proof-limits"}>Operate the verifier</a>
+        <a href={~p"/results"}>Browse Results</a>
+        · <a href={~p"/docs#verify"}>Operate the verifier</a>
       </p>
     </Layouts.page>
     """

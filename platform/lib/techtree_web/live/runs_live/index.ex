@@ -45,7 +45,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Published Skill Capsules")}
+    {:ok, assign(socket, page_title: "Published Results")}
   end
 
   @impl true
@@ -70,33 +70,32 @@ defmodule TechtreeWeb.RunsLive.Index do
         <section class="runs-index__intro" aria-labelledby="runs-index-title">
           <header class="page-heading runs-index__heading">
             <p class="eyebrow">Participant-attested</p>
-            <h1 id="runs-index-title">Published Skill Capsules</h1>
+            <h1 id="runs-index-title">Published Results</h1>
             <p class="runs-index__lede">
-              Proofs of controlled agent improvement. Each proof binds a published task, a paired
-              Skill result, and the participant-controlled key that signed it, with task scoring
-              produced through the <.verifiers_term label="verifiers" />
-              tool. Techtree checks the bundle’s integrity
-              and internal consistency. It does not claim to have witnessed or independently
-              reproduced the run. This is a record, not a leaderboard.
+              Every comparison submitted for publication, newest first. Each Result is
+              participant-attested and internally checked, but not independently reproduced.
+              This is a record, not a leaderboard.
             </p>
           </header>
         </section>
 
         <p :if={@entries == []} class="runs-index__empty empty-state">
-          Nobody has published a proof yet. This is where the first one will appear.
+          Nobody has published a Result yet. This is where the first one will appear.
         </p>
 
         <div :if={@entries != []} class="runs-index__table-frame">
           <div class="runs-table__header" aria-hidden="true">
             <span>Skill comparison</span>
-            <span title="Change in score, shown on a 0–100 scale">Uplift</span>
+            <span title="Candidate score minus baseline score, in percentage points">
+              Score change
+            </span>
             <span>Climb</span>
             <span>Run setup</span>
             <span>Tasks</span>
             <span>Attestation</span>
             <span>Published</span>
           </div>
-          <ol class="runs-table" aria-label="Published Skill Capsules, newest first">
+          <ol class="runs-table" aria-label="Published Results, newest first">
             <li
               :for={entry <- @entries}
               id={"run-entry-#{entry.log_sequence}"}
@@ -138,13 +137,12 @@ defmodule TechtreeWeb.RunsLive.Index do
               </div>
               <div class="runs-table__cell runs-table__tasks">
                 <span title={task_words(entry)}>
-                  {entry.wins} / {entry.ties} / {entry.losses}
+                  {entry.wins} better · {entry.ties} same · {entry.losses} worse
                 </span>
               </div>
               <div class="runs-table__cell runs-table__proof">
-                <span title={proof_grade_words(entry.proof_grade)}>{entry.proof_grade}</span>
-                <small>participant-attested</small>
-                <small>not independently reproduced</small>
+                <span title={proof_grade_words(entry.proof_grade)}>Participant-attested</span>
+                <small>Not independently reproduced</small>
               </div>
               <div class="runs-table__cell runs-table__published">
                 <time
@@ -160,13 +158,13 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p :if={@next_before_sequence} class="runs-index__pagination">
           <a class="text-link" href={older_url(@next_before_sequence)}>
-            Proofs published earlier <span aria-hidden="true">→</span>
+            Earlier Results <span aria-hidden="true">→</span>
           </a>
         </p>
 
         <p :if={@entries != []} class="runs-index__provenance small quiet">
-          The first entries are Techtree’s own certification proofs. They use the same format,
-          checks, and ordering as every other published proof.
+          The first entries are Techtree’s own release-check Results. They use the same format,
+          checks, and ordering as every other published Result.
         </p>
 
         <p class="runs-index__footer small quiet">
@@ -214,16 +212,16 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   defp uplift_value(entry) do
     if normalized_score?(entry.baseline_mean) and normalized_score?(entry.candidate_mean) do
-      uplift_percent(entry.absolute_delta)
+      score_points(entry.absolute_delta)
     else
       signed_delta(entry.absolute_delta)
     end
   end
 
-  defp uplift_percent(delta) do
+  defp score_points(delta) do
     percent = Float.round(delta * 100, 1)
 
-    if percent > 0, do: "+#{percent}%", else: "#{percent}%"
+    if percent > 0, do: "+#{percent} pts", else: "#{percent} pts"
   end
 
   defp signed_delta(delta) do
@@ -234,7 +232,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   defp normalized_score?(score), do: score >= 0 and score <= 1
 
-  defp uplift_words(entry), do: "#{uplift_value(entry)} score uplift"
+  defp uplift_words(entry), do: "#{uplift_value(entry)} score change"
 
   defp task_words(entry) do
     "#{entry.wins} better, #{entry.ties} same, #{entry.losses} worse"

@@ -37,7 +37,8 @@ defmodule TechtreeWeb.Router do
   use TechtreeWeb, :router
 
   @content_security_policy "default-src 'none'; script-src 'self'; style-src 'self'; " <>
-                             "img-src 'self' data:; font-src 'self'; connect-src 'self'; " <>
+                             "img-src 'self' data:; font-src 'self'; " <>
+                             "connect-src 'self' https://api.github.com; " <>
                              "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   @theme_cookie "techtree_theme"
 
@@ -73,6 +74,7 @@ defmodule TechtreeWeb.Router do
 
     live "/", HomeLive
     live "/docs", DocsLive
+    live "/research", ResearchLive
     live "/proofs", ProofsLive
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show

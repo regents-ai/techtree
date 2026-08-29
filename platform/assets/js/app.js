@@ -1,13 +1,70 @@
 // The pages are read-only documents. This bundle keeps the live connection,
 // copies published commands, remembers the reader's color preference, and
-// draws the crown behind the headline. It never runs a command or sends the
-// preference anywhere.
+// draws the crown behind the headline, and reads the repository's public star
+// count. It never runs a command or sends the color preference anywhere.
 
 import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
 import {Optics, createOpticsController} from "./optics_controller"
+
+const GITHUB_STAR_CACHE = "techtree-github-stars"
+
+function showGitHubStars(count) {
+  if (!Number.isInteger(count) || count < 0) return
+
+  document.querySelectorAll("[data-github-stars]").forEach(node => {
+    node.textContent = count.toLocaleString()
+  })
+
+  document.querySelectorAll("[data-github-stars-link]").forEach(link => {
+    const noun = count === 1 ? "star" : "stars"
+    link.setAttribute("aria-label", `regents-ai/techtree on GitHub, ${count} ${noun}`)
+  })
+}
+
+async function syncGitHubStars() {
+  let cached
+
+  try {
+    cached = JSON.parse(window.sessionStorage.getItem(GITHUB_STAR_CACHE))
+  } catch (_error) {
+    cached = null
+  }
+
+  if (Number.isInteger(cached)) {
+    showGitHubStars(cached)
+    return
+  }
+
+  const link = document.querySelector("[data-github-stars-link]")
+  const repository = link?.dataset.githubRepository
+  if (!repository) return
+
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repository}`, {
+      headers: {Accept: "application/vnd.github+json"},
+    })
+
+    if (!response.ok) return
+    const payload = await response.json()
+    const count = payload.stargazers_count
+    if (!Number.isInteger(count)) return
+
+    try {
+      window.sessionStorage.setItem(GITHUB_STAR_CACHE, JSON.stringify(count))
+    } catch (_error) {
+      // The public count can still render when storage is unavailable.
+    }
+
+    showGitHubStars(count)
+  } catch (_error) {
+    // Keep the server-rendered fallback when GitHub is unavailable.
+  }
+}
+
+syncGitHubStars()
 
 const THEME_COOKIE = "techtree_theme"
 const THEME_MAX_AGE = 60 * 60 * 24 * 365

@@ -58,7 +58,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.page wide>
-      <p class="back-link"><a href={~p"/results"}>← Published Skill Capsules</a></p>
+      <p class="back-link"><a href={~p"/results"}>← Published Results</a></p>
 
       <.warning_callout :if={@withdrawn?} title="Withdrawn by the participant">
         <p>
@@ -75,7 +75,7 @@ defmodule TechtreeWeb.RunsLive.Show do
           <h1 id="run-comparison">{@skill_name} vs No Skill</h1>
           <p id="run-outcome" class="lede">
             <strong>{result_difference(@entry)}</strong>
-            score difference · {@entry.wins} better, {@entry.ties} same, {@entry.losses} worse.
+            · {@entry.wins} better, {@entry.ties} same, {@entry.losses} worse.
           </p>
           <a
             :if={@github_url}
@@ -94,17 +94,15 @@ defmodule TechtreeWeb.RunsLive.Show do
       </header>
 
       <section class="section">
-        <p class="eyebrow">The proof</p>
+        <p class="eyebrow">The Result</p>
         <h2>What the signed summary says</h2>
         <.definition_list>
           <:fact term="Without the Skill">{result_score(@entry.baseline_mean)}</:fact>
           <:fact term="With the Skill">{result_score(@entry.candidate_mean)}</:fact>
           <:fact term="Difference">{result_difference(@entry)}</:fact>
-          <:fact term="Conclusion">{@entry.decision}</:fact>
-          <:fact term="Changed Skill">
-            <.digest value={@entry.skill_digest} />
-          </:fact>
-          <:fact term="What it may be presented as">
+          <:fact term="Conclusion">{decision_words(@entry.decision)}</:fact>
+          <:fact term="Changed Skill">{@skill_name}</:fact>
+          <:fact term="Attestation">
             {proof_grade_words(@entry.proof_grade)}
           </:fact>
         </.definition_list>
@@ -147,9 +145,11 @@ defmodule TechtreeWeb.RunsLive.Show do
                 href={object_url(@entry.data_policy_digest)}
               />
             </:fact>
+            <:fact term="Skill fingerprint"><.digest value={@entry.skill_digest} /></:fact>
             <:fact term="Model">{@entry.subject_model} · {@entry.subject_provider}</:fact>
             <:fact term="Result ID">{@entry.run_id}</:fact>
             <:fact term="Log sequence">{@entry.log_sequence}</:fact>
+            <:fact term="Protocol grade">{@entry.proof_grade}</:fact>
             <:fact term="Publisher key"><.digest value={@entry.participant_key_id} /></:fact>
           </.definition_list>
         </details>
@@ -159,9 +159,9 @@ defmodule TechtreeWeb.RunsLive.Show do
         <p class="eyebrow">
           {@entry.verification_checks_run} checks passed
         </p>
-        <h2>Bundle verification passed.</h2>
+        <h2>Result verification passed.</h2>
         <p>
-          The published bundle passed every required check.
+          The published Result bundle passed every required check.
           <a href={~p"/proofs"}>How verification works.</a>
         </p>
       </section>
@@ -190,7 +190,10 @@ defmodule TechtreeWeb.RunsLive.Show do
           </p>
           <ol>
             <li :for={task <- filtered_tasks(@tasks, @task_filter)} class="tasks__row">
-              <span class="tasks__task">{task.hash}</span>
+              <span class="tasks__task" title={task.hash}>
+                <strong>{task.label}</strong>
+                <code>{task.short_hash}</code>
+              </span>
               <span class="tasks__number">
                 <span class="offscreen">Without the Skill</span>{task.baseline}
               </span>
@@ -208,22 +211,21 @@ defmodule TechtreeWeb.RunsLive.Show do
       <section class="offline-verify">
         <div>
           <p class="eyebrow">Check it yourself</p>
-          <h2>Verify this proof offline.</h2>
+          <h2>Verify this Result offline.</h2>
           <p class="small quiet">
             <a href={"/api/v1/publications/" <> @entry.bundle_digest}>View the recorded data</a>
-            or run the verifier against the participant’s bundle.
+            or run the verifier against a copy of the participant’s Result bundle.
           </p>
         </div>
         <.command_block
           id="copy-runs-verify"
-          argv={["techtree", "proof", "verify", @entry.run_id]}
+          argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
           label="Verify offline"
         />
       </section>
 
       <p class="small quiet section">
-        <a href={~p"/results"}>Every published proof</a>
-        · <a href={~p"/proofs"}>How verification works</a>
+        <a href={~p"/results"}>All Results</a> · <a href={~p"/proofs"}>How verification works</a>
       </p>
     </Layouts.page>
     """
@@ -236,14 +238,19 @@ defmodule TechtreeWeb.RunsLive.Show do
         {:error, _reason} -> nil
       end
 
+    skill_name = skill_name(entry, climb)
+
     %{
-      page_title: "A published proof",
+      page_title: "#{skill_name} vs No Skill",
       entry: entry,
       campaign_name: campaign_name(entry, climb),
-      skill_name: skill_name(entry, climb),
+      skill_name: skill_name,
       github_url: github_url(entry),
       withdrawn?: Query.withdrawn?(entry),
-      tasks: Enum.map(entry.task_deltas, &task_row/1),
+      tasks:
+        entry.task_deltas
+        |> Enum.with_index(1)
+        |> Enum.map(fn {delta, index} -> task_row(delta, index) end),
       task_filter: :all,
       published: CampaignFacts.for_climb(climb),
       slug: climb && climb.projection["slug"],
@@ -255,8 +262,8 @@ defmodule TechtreeWeb.RunsLive.Show do
     copy = climb && ClimbCopy.for_reference(climb.reference)
 
     present(Map.get(entry, :campaign_name)) ||
-      (copy && copy.campaign_title) ||
       (climb && climb.title) ||
+      (copy && copy.campaign_title) ||
       entry.climb_reference
   end
 
@@ -285,12 +292,14 @@ defmodule TechtreeWeb.RunsLive.Show do
   # address a reader could not compare against the one they hold.
   defp object_url(digest), do: "/api/v1/objects/" <> digest
 
-  defp task_row(delta) do
+  defp task_row(delta, index) do
     baseline = delta["baseline_reward"]
     candidate = delta["candidate_reward"]
 
     %{
       hash: delta["task_hash"],
+      label: "Task " <> String.pad_leading(Integer.to_string(index), 2, "0"),
+      short_hash: short_digest(delta["task_hash"]),
       baseline: result_score(baseline),
       candidate: result_score(candidate),
       delta: human_difference(candidate - baseline, baseline, candidate),
@@ -337,17 +346,34 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   defp result_score(value), do: number(value)
 
-  defp result_difference(entry) do
-    human_difference(entry.absolute_delta, entry.baseline_mean, entry.candidate_mean)
-  end
-
   defp human_difference(delta, baseline, candidate)
        when baseline >= 0 and baseline <= 1 and candidate >= 0 and candidate <= 1 do
-    percent = Float.round(delta * 100.0, 1)
-    if percent > 0, do: "+#{percent}%", else: "#{percent}%"
+    points = Float.round(delta * 100.0, 1)
+    if points > 0, do: "+#{points} pts", else: "#{points} pts"
   end
 
   defp human_difference(delta, _baseline, _candidate), do: signed(delta)
+
+  defp result_difference(%{
+         baseline_mean: baseline,
+         candidate_mean: candidate,
+         absolute_delta: delta
+       })
+       when baseline >= 0 and baseline <= 1 and candidate >= 0 and candidate <= 1 do
+    points = Float.round(delta * 100.0, 1)
+
+    if points > 0,
+      do: "+#{points} percentage points",
+      else: "#{points} percentage points"
+  end
+
+  defp result_difference(entry), do: signed(entry.absolute_delta)
+
+  defp short_digest("sha256:" <> digest), do: "sha256:" <> String.slice(digest, 0, 10) <> "…"
+  defp short_digest(digest), do: digest
+
+  defp decision_words("accepted"), do: "Skill accepted"
+  defp decision_words(decision), do: decision |> String.replace("_", " ") |> String.capitalize()
 
   defp arrived(at) do
     at

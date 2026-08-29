@@ -16,7 +16,7 @@
     />
     <meta
       name="description"
-      content="Improve a Skill under controlled conditions and produce a checkable local result."
+      content={page_description(assigns)}
     />
     <.live_title default="Techtree" suffix=" · Techtree">
       {assigns[:page_title]}
@@ -54,7 +54,11 @@
       >
       </canvas>
     </div>
-    <.masthead :if={masthead_visible?(assigns)} current_path={request_path(assigns)} />
+    <.masthead
+      :if={masthead_visible?(assigns)}
+      current_path={request_path(assigns)}
+      theme={assigns[:theme] || "orange"}
+    />
     {@inner_content}
   </body>
 </html>

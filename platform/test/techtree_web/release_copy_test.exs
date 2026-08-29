@@ -35,6 +35,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pages [
     "/",
     "/docs",
+    "/research",
     "/proofs",
     "/start",
     "/climbs/hello-world-climb",
@@ -45,6 +46,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pages_without_catalog [
     "/",
     "/docs",
+    "/research",
     "/proofs",
     "/start",
     "/results"
@@ -177,11 +179,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # so the immutable-revision rule does not apply.
   @informational_addresses [
     "https://github.com/PrimeIntellect-ai/verifiers",
-    "https://github.com/PrimeIntellect-ai/verifiers?utm_source=chatgpt.com",
     "https://github.com/NousResearch/hermes-agent",
     "https://github.com/NVIDIA-NeMo",
-    "https://github.com/NVIDIA/NeMo-Fabric?utm_source=chatgpt.com",
-    "https://github.com/NVIDIA/NeMo-Relay?utm_source=chatgpt.com",
+    "https://github.com/NVIDIA/NeMo-Fabric",
+    "https://github.com/NVIDIA/NeMo-Relay",
     "https://github.com/regents-ai/techtree"
   ]
   @unset_revision String.duplicate("0", 40)
@@ -202,7 +203,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @stack_attribution [
     ~r/Prime\s+Intellect[’']s\s+Verifiers/iu,
     ~r/Nous\s+Research[’']s\s+Hermes/iu,
-    ~r/Techtree\s+as\s+the\s+campaign\s+kernel/iu
+    ~r/Techtree\s+as\s+the\s+(?:campaign\s+kernel|comparison)\s+and\s+evidence\s+layer/iu
   ]
 
   # The pages that say what this release is: the front page a stranger lands

@@ -16,6 +16,7 @@ defmodule TechtreeWeb.PagesTest do
   @pages [
     "/",
     "/docs",
+    "/research",
     "/proofs",
     "/start",
     "/climbs/hello-world-climb",
@@ -25,6 +26,7 @@ defmodule TechtreeWeb.PagesTest do
   @pages_without_catalog [
     "/",
     "/docs",
+    "/research",
     "/proofs",
     "/start",
     "/results"
@@ -41,10 +43,10 @@ defmodule TechtreeWeb.PagesTest do
     "/results/" <> Techtree.NetworkFixture.bundle_digest()
   ]
 
-  # Docs is now the founder-supplied research and proof reference. It may use
+  # Research carries the long-form method and roadmap. It may use
   # the technical terms and bare library name that the shorter product pages
   # deliberately avoid.
-  @product_pages List.delete(@pages, "/docs")
+  @product_pages List.delete(@pages, "/research")
 
   describe "with a release being served" do
     setup do
@@ -226,7 +228,8 @@ defmodule TechtreeWeb.PagesTest do
 
       assert get_resp_header(conn, "content-security-policy") == [
                "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; " <>
-                 "font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; " <>
+                 "font-src 'self'; connect-src 'self' https://api.github.com; base-uri 'none'; " <>
+                 "form-action 'none'; " <>
                  "frame-ancestors 'none'"
              ]
 

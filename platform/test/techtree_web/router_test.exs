@@ -92,6 +92,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /docs",
              "get /healthz",
              "get /proofs",
+             "get /research",
              "get /results",
              "get /results/:bundle_digest",
              "get /skill.md",
@@ -135,6 +136,7 @@ defmodule TechtreeWeb.RouterTest do
     for path <- [
           "/",
           "/docs",
+          "/research",
           "/proofs",
           "/results",
           "/results/sha256:#{String.duplicate("a", 64)}",

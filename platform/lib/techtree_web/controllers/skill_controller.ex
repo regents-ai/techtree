@@ -65,7 +65,7 @@ defmodule TechtreeWeb.SkillController do
     returns a separate signed publication receipt acknowledging acceptance; it is not the
     uploaded proof bundle.
     The agent under test still makes model calls, and those go to the model provider
-    the campaign names, under that provider's policies. No Techtree account exists.
+    the Climb names, under that provider's policies. No Techtree account exists.
 
     Documentation: https://techtree.sh/docs
     """

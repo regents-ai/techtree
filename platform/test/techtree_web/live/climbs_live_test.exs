@@ -6,8 +6,6 @@ defmodule TechtreeWeb.ClimbsLiveTest do
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
 
-  @instruction "Set up Techtree and run the Hello World Climb."
-
   describe "one Climb" do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
@@ -15,27 +13,25 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       :ok
     end
 
-    test "shows a concise test contract and one setup instruction", %{conn: conn} do
+    test "shows a concise test contract without repeating setup", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/climbs/hello-world-climb")
       text = visible_text(html)
 
       assert text =~ "Techtree Hello World"
-      assert text =~ "Does one added component make the agent better?"
+      assert text =~ "Does adding the Hello World Skill improve exact-match scores"
       assert text =~ "One skill is added. Nothing else may differ."
-      assert text =~ "Tasks 36"
-      assert text =~ "hermes-agent 0.19.0"
-      assert text =~ @instruction
-
-      assert has_element?(
-               live,
-               ~s|#copy-climb-setup-instruction[data-copy-value="#{@instruction}"]|,
-               "Copy"
-             )
+      assert text =~ "Tasks 36, fixed before either Run"
+      assert text =~ "model, Hermes harness, runtime, tools, sampling, and budget"
+      assert text =~ "Expected output"
+      assert text =~ "Scoring"
+      refute text =~ "Set up Techtree and run the Hello World Climb."
+      refute has_element?(live, "#copy-climb-setup-instruction")
 
       refute text =~ "Two documents, two jobs"
       refute text =~ "What this asks of you"
       refute text =~ "Integrity details"
       refute text =~ "BranchCode"
+      assert has_element?(live, ~s|a[href="/results"]|, "Browse Results from published Climbs")
     end
 
     test "a slug that names nothing is not found", %{conn: conn} do
