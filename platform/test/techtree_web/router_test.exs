@@ -92,7 +92,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /docs",
              "get /healthz",
              "get /proofs",
-             "get /research",
              "get /results",
              "get /results/:bundle_digest",
              "get /skill.md",
@@ -136,7 +135,6 @@ defmodule TechtreeWeb.RouterTest do
     for path <- [
           "/",
           "/docs",
-          "/research",
           "/proofs",
           "/results",
           "/results/sha256:#{String.duplicate("a", 64)}",
@@ -187,10 +185,12 @@ defmodule TechtreeWeb.RouterTest do
           "/climbs/no-such-climb/edit",
           "/proofs/local",
           "/protocol",
+          "/research",
           "/upload"
         ] do
       assert post(conn, path, %{}).status == 404
       assert delete(conn, path).status == 404
+      assert get(conn, path).status == 404
       assert get_resp_header(post(conn, path, %{}), "allow") == []
     end
   end

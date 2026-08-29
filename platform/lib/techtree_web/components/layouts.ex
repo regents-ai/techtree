@@ -163,9 +163,6 @@ defmodule TechtreeWeb.Layouts do
   defp description_for_path("/docs"),
     do: "Install, operate, verify, publish, and integrate Techtree."
 
-  defp description_for_path("/research"),
-    do: "Read Techtree's controlled-comparison method, proof boundary, and research roadmap."
-
   defp description_for_path("/climbs/" <> _slug),
     do: "Inspect the fixed task contract for a published Techtree Climb."
 

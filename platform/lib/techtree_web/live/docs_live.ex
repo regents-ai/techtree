@@ -48,6 +48,32 @@ defmodule TechtreeWeb.DocsLive do
                 {"Troubleshooting", "#troubleshooting"}
               ]}
             />
+            <.docs_group
+              title="Research"
+              links={[
+                {"The question", "#research"},
+                {"The controlled comparison", "#comparison"},
+                {"The proof bundle", "#proof-bundle"},
+                {"The trust boundary", "#trust-boundary"},
+                {"Hello World", "#hello-world"}
+              ]}
+            />
+            <.docs_group
+              title="Where this goes"
+              links={[
+                {"Beyond the model", "#beyond-model"},
+                {"Environments in v0.2", "#environments"},
+                {"The agent stack", "#agent-stack"},
+                {"Regents and the network", "#regents"}
+              ]}
+            />
+            <.docs_group
+              title="Research reference"
+              links={[
+                {"Give this to your agent", "#research-start"},
+                {"The 17 verifier checks", "#verifier-checks"}
+              ]}
+            />
           </nav>
         </aside>
 
@@ -63,7 +89,7 @@ defmodule TechtreeWeb.DocsLive do
               machine-readable interfaces.
             </p>
             <p>
-              For the research method and roadmap, read <.link navigate={~p"/research"}>Research</.link>.
+              For the research method and roadmap, read <a href="#research">Research</a>.
               For the claim boundary, read <.link navigate={~p"/proofs"}>Verify</.link>.
             </p>
           </header>
@@ -209,6 +235,8 @@ defmodule TechtreeWeb.DocsLive do
               Source and issue tracking live at <a href="https://github.com/regents-ai/techtree">github.com/regents-ai/techtree</a>.
             </p>
           </section>
+
+          <TechtreeWeb.ResearchContent.sections />
         </article>
       </div>
     </Layouts.page>

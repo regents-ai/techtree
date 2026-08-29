@@ -74,7 +74,6 @@ defmodule TechtreeWeb.Router do
 
     live "/", HomeLive
     live "/docs", DocsLive
-    live "/research", ResearchLive
     live "/proofs", ProofsLive
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show

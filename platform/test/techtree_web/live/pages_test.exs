@@ -16,7 +16,6 @@ defmodule TechtreeWeb.PagesTest do
   @pages [
     "/",
     "/docs",
-    "/research",
     "/proofs",
     "/start",
     "/climbs/hello-world-climb",
@@ -26,7 +25,6 @@ defmodule TechtreeWeb.PagesTest do
   @pages_without_catalog [
     "/",
     "/docs",
-    "/research",
     "/proofs",
     "/start",
     "/results"
@@ -43,10 +41,10 @@ defmodule TechtreeWeb.PagesTest do
     "/results/" <> Techtree.NetworkFixture.bundle_digest()
   ]
 
-  # Research carries the long-form method and roadmap. It may use
+  # Docs carries the long-form method and roadmap. It may use
   # the technical terms and bare library name that the shorter product pages
   # deliberately avoid.
-  @product_pages List.delete(@pages, "/research")
+  @product_pages List.delete(@pages, "/docs")
 
   describe "with a release being served" do
     setup do

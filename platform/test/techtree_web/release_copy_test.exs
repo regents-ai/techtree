@@ -35,7 +35,6 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pages [
     "/",
     "/docs",
-    "/research",
     "/proofs",
     "/start",
     "/climbs/hello-world-climb",
@@ -46,7 +45,6 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pages_without_catalog [
     "/",
     "/docs",
-    "/research",
     "/proofs",
     "/start",
     "/results"
