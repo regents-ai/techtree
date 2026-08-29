@@ -20,7 +20,7 @@ defmodule TechtreeWeb.StartLive do
        page_title: @instruction,
        instruction: @instruction,
        setup_paths: @setup_paths,
-       setup_lines: setup_lines(release)
+       setup_commands: setup_commands(release)
      )}
   end
 
@@ -31,14 +31,19 @@ defmodule TechtreeWeb.StartLive do
       <section class="setup-page" aria-labelledby="setup-instruction">
         <h1 id="setup-instruction" class="setup-page__instruction">{@instruction}</h1>
         <p class="setup-page__paths">{@setup_paths}</p>
-        <div :if={@setup_lines} class="setup-page__plan">
+        <div :if={@setup_commands} class="setup-page__plans">
           <.command_block
-            id="copy-setup-instruction"
-            label="Copy the complete setup"
-            lines={@setup_lines}
+            id="copy-setup-cli"
+            label="CLI setup"
+            lines={@setup_commands.cli}
+          />
+          <.command_block
+            id="copy-setup-hermes"
+            label="Hermes plugin setup"
+            lines={@setup_commands.hermes}
           />
         </div>
-        <p :if={!@setup_lines} class="release-state">
+        <p :if={!@setup_commands} class="release-state">
           No concrete release is available to install yet.
         </p>
       </section>
@@ -46,7 +51,7 @@ defmodule TechtreeWeb.StartLive do
     """
   end
 
-  defp setup_lines(%{
+  defp setup_commands(%{
          installable?: true,
          install_argv: [_ | _] = install_argv,
          plugin_install_argv: [_ | _] = plugin_install_argv,
@@ -54,19 +59,23 @@ defmodule TechtreeWeb.StartLive do
          introductory_reference: introductory_reference
        })
        when is_binary(introductory_reference) do
-    [
-      {:comment, @instruction},
-      {:comment, "CLI"},
-      {:command, install_argv},
-      {:command, ["techtree", "doctor", "--climb", introductory_reference]},
-      {:comment, "Hermes plugin"},
-      {:command, plugin_install_argv},
-      {:command, plugin_doctor_argv},
-      {:comment, "In a fresh Hermes session, enter:"},
-      {:command, ["/techtree", "setup"]},
-      {:comment, @approval_boundary}
-    ]
+    %{
+      cli: [
+        {:comment, @instruction},
+        {:command, install_argv},
+        {:command, ["techtree", "doctor", "--climb", introductory_reference]},
+        {:comment, @approval_boundary}
+      ],
+      hermes: [
+        {:comment, @instruction},
+        {:command, plugin_install_argv},
+        {:command, plugin_doctor_argv},
+        {:comment, "In a fresh Hermes session, enter:"},
+        {:command, ["/techtree", "setup"]},
+        {:comment, @approval_boundary}
+      ]
+    }
   end
 
-  defp setup_lines(_release), do: nil
+  defp setup_commands(_release), do: nil
 end

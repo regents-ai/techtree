@@ -577,8 +577,10 @@ strong {
   font-size: clamp(0.9rem, 2vw, 1.05rem);
 }
 
-.setup-page__plan {
+.setup-page__plans {
   width: min(100%, 56rem);
+  display: grid;
+  gap: 1rem;
 }
 
 .climb-contract {

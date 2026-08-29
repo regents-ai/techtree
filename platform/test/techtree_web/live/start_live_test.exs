@@ -19,17 +19,22 @@ defmodule TechtreeWeb.StartLiveTest do
   end
 
   @tag :tmp_dir
-  test "Start presents both release-derived setup paths in one copyable block", %{conn: conn} do
+  test "Start presents two independently copyable release-derived setup paths", %{conn: conn} do
     {:ok, live, html} = live(conn, ~p"/start")
     release = ReleaseInfo.current()
 
-    expected =
+    expected_cli =
       [
         "# #{@instruction}",
-        "# CLI",
         Enum.join(release.install_argv, " "),
         "techtree doctor --climb #{release.introductory_reference}",
-        "# Hermes plugin",
+        "# Follow Doctor's exact next action. Ask before starting paid model inference."
+      ]
+      |> Enum.join("\n")
+
+    expected_hermes =
+      [
+        "# #{@instruction}",
         Enum.join(release.plugin_install_argv, " "),
         Enum.join(release.plugin_doctor_argv, " "),
         "# In a fresh Hermes session, enter:",
@@ -38,12 +43,17 @@ defmodule TechtreeWeb.StartLiveTest do
       ]
       |> Enum.join("\n")
 
-    escaped_expected = expected |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+    escaped_cli = expected_cli |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
+    escaped_hermes =
+      expected_hermes |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
 
     assert visible_text(html) =~ @instruction
     assert visible_text(html) =~ @setup_paths
-    assert has_element?(live, "#copy-setup-instruction", "Copy")
-    assert html =~ ~s|data-copy-value="#{escaped_expected}"|
+    assert has_element?(live, "#copy-setup-cli", "Copy")
+    assert has_element?(live, "#copy-setup-hermes", "Copy")
+    assert html =~ ~s|data-copy-value="#{escaped_cli}"|
+    assert html =~ ~s|data-copy-value="#{escaped_hermes}"|
 
     refute html =~ "My agent is installing"
     refute html =~ "I’m installing"
