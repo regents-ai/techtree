@@ -143,7 +143,7 @@ defmodule TechtreeWeb.HomeLive do
       <.proof_of_concept
         class="home-section proof-of-concept"
         eyebrow="hermes + prime + nvidia agent stack"
-        title="v0.1 release - standing on giants"
+        title="v0.1 release"
         nemo_roadmap
       >
         <EvidenceComponents.graph

@@ -945,7 +945,7 @@ strong {
 
 .hero__more {
   position: absolute;
-  bottom: 0.85rem;
+  top: calc(100svh - var(--header-height) - 3.6rem);
   left: 50%;
   z-index: 2;
   width: 2.75rem;

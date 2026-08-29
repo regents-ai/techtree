@@ -130,7 +130,8 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, ".home-section.process")
       assert has_element?(live, ".home-section.featured")
       assert has_element?(live, ".home-section.trust")
-      assert text =~ "v0.1 release - standing on giants"
+      assert text =~ "v0.1 release"
+      refute text =~ "standing on giants"
       assert text =~ "Run. Improve. Prove."
       assert text =~ "Published by this release"
       assert text =~ "Your work stays local."
