@@ -198,9 +198,11 @@ Hooks.CopyCommand = {
   mounted() {
     this.el.addEventListener("click", async () => {
       const label = this.el.querySelector("[data-copy-label]")
+      const visibleCopy = this.el.closest(".command")?.querySelector(".command__block")
+      const copyValue = visibleCopy?.textContent ?? this.el.dataset.copyValue
 
       try {
-        await navigator.clipboard.writeText(this.el.dataset.copyValue)
+        await navigator.clipboard.writeText(copyValue)
         label.textContent = "Copied"
         this.el.classList.add("is-copied")
 
