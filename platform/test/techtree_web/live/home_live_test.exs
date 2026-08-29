@@ -46,9 +46,24 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(live, "#hero-title > .hero-title__line", "Prove it worked.")
 
-      assert has_element?(live, ~s|section.hero[data-hero-stage="loading"]|)
+      assert has_element?(live, "section.hero")
+      refute has_element?(live, "section.hero[data-hero-stage]")
 
       assert text =~ "Techtree v0.1 · development release"
+    end
+
+    test "the copy renders immediately while only the GPU visuals fade in", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/")
+      css = File.read!("assets/css/app.css")
+      javascript = File.read!("assets/js/app.js")
+
+      assert has_element?(live, ".hero__copy")
+      refute css =~ "hero-reveal-failsafe"
+      refute javascript =~ "heroFallback"
+      refute javascript =~ "hero.dataset.heroStage"
+      assert javascript =~ "siteBackgroundController?.mount()"
+      assert css =~ ~s|.site-background[data-optics-ready="true"] .site-background__canvas|
+      assert css =~ "transition: opacity 180ms"
     end
 
     test "the crown comparison route renders the same 13-cube homepage", %{conn: conn} do

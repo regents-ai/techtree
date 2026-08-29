@@ -55,7 +55,6 @@ defmodule TechtreeWeb.HomeLive do
     <Layouts.page wide flush>
       <section
         class="hero"
-        data-hero-stage="loading"
         data-crown-variant={@crown_variant}
         data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
         aria-labelledby="hero-title"

@@ -190,61 +190,7 @@ applyTheme(pageTheme())
 
 const siteBackground = document.querySelector("#site-background")
 const siteBackgroundController = siteBackground && createOpticsController(siteBackground)
-const hero = document.querySelector(".hero[data-hero-stage]")
-const heroCrown = hero?.querySelector('[data-optics-kind="crown"]')
-const opticsSettled = root =>
-  !root || root.dataset.opticsReady === "true" || root.dataset.opticsFailed === "true"
-
-let siteBackgroundStarted = false
-const startSiteBackground = () => {
-  if (siteBackgroundStarted) return
-  siteBackgroundStarted = true
-  siteBackgroundController?.mount()
-}
-
-if (!heroCrown || !navigator.gpu) {
-  startSiteBackground()
-} else if (opticsSettled(heroCrown)) {
-  startSiteBackground()
-} else {
-  const crownObserver = new MutationObserver(() => {
-    if (!opticsSettled(heroCrown)) return
-    crownObserver.disconnect()
-    startSiteBackground()
-  })
-  crownObserver.observe(heroCrown, {
-    attributes: true,
-    attributeFilter: ["data-optics-ready", "data-optics-failed"],
-  })
-  window.setTimeout(() => {
-    crownObserver.disconnect()
-    startSiteBackground()
-  }, 1200)
-}
-
-if (hero) {
-  const revealHero = () => {
-    hero.dataset.heroStage = "ready"
-    heroObserver?.disconnect()
-    window.clearTimeout(heroFallback)
-  }
-  const heroReady = () =>
-    !navigator.gpu || (opticsSettled(heroCrown) && opticsSettled(siteBackground))
-  const heroObserver = new MutationObserver(() => {
-    if (heroReady()) revealHero()
-  })
-  const heroFallback = window.setTimeout(revealHero, 2800)
-
-  for (const root of [heroCrown, siteBackground]) {
-    if (!root) continue
-    heroObserver.observe(root, {
-      attributes: true,
-      attributeFilter: ["data-optics-ready", "data-optics-failed"],
-    })
-  }
-
-  if (heroReady()) revealHero()
-}
+siteBackgroundController?.mount()
 window.addEventListener("pagehide", () => siteBackgroundController?.destroy(), {once: true})
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

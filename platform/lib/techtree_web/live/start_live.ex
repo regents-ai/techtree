@@ -5,18 +5,22 @@ defmodule TechtreeWeb.StartLive do
 
   use TechtreeWeb, :live_view
 
+  alias TechtreeWeb.ReleaseInfo
+
   @instruction "Set up Techtree and run the Hello World Climb."
-  @setup_paths "Use the Techtree CLI or Hermes plugin."
-  @copy_instruction "#{@instruction} #{@setup_paths}"
+  @setup_paths "Choose the Techtree CLI or Hermes plugin path below."
+  @approval_boundary "Follow Doctor's exact next action. Ask before starting paid model inference."
 
   @impl true
   def mount(_params, _session, socket) do
+    release = ReleaseInfo.current()
+
     {:ok,
      assign(socket,
        page_title: @instruction,
        instruction: @instruction,
        setup_paths: @setup_paths,
-       copy_instruction: @copy_instruction
+       setup_lines: setup_lines(release)
      )}
   end
 
@@ -27,18 +31,42 @@ defmodule TechtreeWeb.StartLive do
       <section class="setup-page" aria-labelledby="setup-instruction">
         <h1 id="setup-instruction" class="setup-page__instruction">{@instruction}</h1>
         <p class="setup-page__paths">{@setup_paths}</p>
-        <button
-          id="copy-setup-instruction"
-          class="setup-page__copy"
-          type="button"
-          phx-hook="CopyCommand"
-          phx-update="ignore"
-          data-copy-value={@copy_instruction}
-        >
-          <span data-copy-label>Copy</span>
-        </button>
+        <div :if={@setup_lines} class="setup-page__plan">
+          <.command_block
+            id="copy-setup-instruction"
+            label="Copy the complete setup"
+            lines={@setup_lines}
+          />
+        </div>
+        <p :if={!@setup_lines} class="release-state">
+          No concrete release is available to install yet.
+        </p>
       </section>
     </Layouts.page>
     """
   end
+
+  defp setup_lines(%{
+         installable?: true,
+         install_argv: [_ | _] = install_argv,
+         plugin_install_argv: [_ | _] = plugin_install_argv,
+         plugin_doctor_argv: [_ | _] = plugin_doctor_argv,
+         introductory_reference: introductory_reference
+       })
+       when is_binary(introductory_reference) do
+    [
+      {:comment, @instruction},
+      {:comment, "CLI"},
+      {:command, install_argv},
+      {:command, ["techtree", "doctor", "--climb", introductory_reference]},
+      {:comment, "Hermes plugin"},
+      {:command, plugin_install_argv},
+      {:command, plugin_doctor_argv},
+      {:comment, "In a fresh Hermes session, enter:"},
+      {:command, ["/techtree", "setup"]},
+      {:comment, @approval_boundary}
+    ]
+  end
+
+  defp setup_lines(_release), do: nil
 end

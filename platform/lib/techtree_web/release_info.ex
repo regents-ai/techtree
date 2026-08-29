@@ -22,6 +22,8 @@ defmodule TechtreeWeb.ReleaseInfo do
           installable?: boolean(),
           introductory_reference: String.t() | nil,
           minimums: map(),
+          plugin_doctor_argv: [String.t()],
+          plugin_install_argv: [String.t()],
           repository_url: String.t() | nil,
           source_revision: String.t() | nil,
           starter_skill: map(),
@@ -83,6 +85,7 @@ defmodule TechtreeWeb.ReleaseInfo do
 
   defp describe(instructions, digest) do
     cli = Map.get(instructions, "cli", %{})
+    hermes_plugin = Map.get(instructions, "hermes_plugin", %{})
 
     %{
       channel: instructions["channel"],
@@ -91,6 +94,8 @@ defmodule TechtreeWeb.ReleaseInfo do
       installable?: instructions["placeholder_release"] == false,
       introductory_reference: get_in(instructions, ["introductory_climb", "reference"]),
       minimums: Map.get(instructions, "minimums", %{}),
+      plugin_doctor_argv: Map.get(hermes_plugin, "doctor_argv", []),
+      plugin_install_argv: Map.get(hermes_plugin, "install_argv", []),
       repository_url: repository_url(instructions),
       source_revision: cli["source_revision"],
       starter_skill: Map.get(instructions, "starter_skill", %{}),
