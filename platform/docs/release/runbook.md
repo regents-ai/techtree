@@ -196,30 +196,26 @@ must return `2aff2707…` and `content-type: text/markdown; charset=utf-8`.
 ## Current production pointer state
 
 Verified live on 2026-08-28. The app serves `stable`, the catalog import is
-complete, and the rollback floor is the active bootstrap release:
+complete, and the v0.1.0 release is the active bootstrap release:
 
 | | |
 | --- | --- |
 | Channel | `stable` |
-| Active bootstrap digest | `sha256:d3fdb91588e897253af6e7c6c2bdc1fadc2b346d2e924c85f6e02c1393843191` |
+| Active bootstrap digest | `sha256:3fdadeeb3f435fe08232e401c38751345b4809e9b1bb4202c892b43464c73c76` |
 | Active catalog digest | `sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c` |
 | Catalog source revision | `2e714835469dc0a3fb4bece3ed2f861317fe4d7c` |
 | Catalog import status | `complete` |
-| Active CLI | `0.0.0-placeholder` |
-| Active plugin revision | forty zeros |
-| Candidate bootstrap | `sha256:3fdadeeb3f435fe08232e401c38751345b4809e9b1bb4202c892b43464c73c76` |
-| Candidate state | carried by the current image; not staged or active |
+| Active CLI | `0.1.0` |
+| Active plugin revision | `db827e714094c89514ea63d3ace1c97e6698589d` |
+| Rollback floor | `sha256:d3fdb91588e897253af6e7c6c2bdc1fadc2b346d2e924c85f6e02c1393843191` |
+| Release state | staged and active on `stable` |
 
-The candidate is present in the deployed image and has passed release
-verification, but it is not yet in the database. Naming it directly to
-`publish` therefore refuses with `bootstrap_release_missing` and moves
-nothing. After public coordinates are approved, run `import_catalog()` on the
-existing image; that stages the candidate and moves the `stable` pointer in one
-transaction. No new deploy is needed for this activation.
+The rollback floor remains staged on `stable`. Rolling back is a pointer move
+to those already imported bytes; it does not require rebuilding the release.
 
 The image verified for this state is
-`registry.fly.io/techtree-sh:deployment-01M15B6RT0RZX6S4S60W21H3RM` (Fly release
-v10).
+`registry.fly.io/techtree-sh:deployment-01M15DF3M7QW26HD69NSSAADZV` (Fly release
+v12).
 
 `mix techtree.bootstrap.list` prints this table for whatever database it is
 pointed at, newest first, marking the published release with `*`.
