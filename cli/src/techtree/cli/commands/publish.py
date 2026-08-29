@@ -215,9 +215,7 @@ def publish_run_command(
             context, plan, assume_yes=yes, reviewed_on=reviewed_on
         )
         if asking:
-            _show_what_would_be_sent(
-                context, plan, skill_github_url=skill_github_url
-            )
+            _show_what_would_be_sent(context, plan, skill_github_url=skill_github_url)
         contributor = _contributor_address(context, typed=address, asking=asking)
         if asking:
             _require_publication_confirmation(context, plan)

@@ -791,7 +791,10 @@ PUBLICATION_NEVER_THE_EPISODES: re.Pattern[str] = re.compile(
 #: The two together, for the surfaces that have to carry the whole meaning.
 PUBLICATION_TERMS_FRAMING: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("publishing is something a person does", PUBLICATION_ONLY_IF_PUBLISHED),
-    ("Episodes and Traces remain local", re.compile(r"episodes\s+and\s+traces\s+remain\s+local", re.I)),
+    (
+        "Episodes and Traces remain local",
+        re.compile(r"episodes\s+and\s+traces\s+remain\s+local", re.I),
+    ),
 )
 
 #: Every surface that hands a Climb's data rights to a reader or to the host

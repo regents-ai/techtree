@@ -60,9 +60,7 @@ _ADDRESS_PATTERN: Final = re.compile(r"\A0x[0-9a-fA-F]{40}\Z")
 _GITHUB_OWNER_PATTERN: Final = re.compile(
     r"\A[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?\Z"
 )
-_GITHUB_REPOSITORY_PATTERN: Final = re.compile(
-    r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,99}\Z"
-)
+_GITHUB_REPOSITORY_PATTERN: Final = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,99}\Z")
 
 #: A digest nibble of eight or more uppercases the hexadecimal character it
 #: sits beside. EIP-55, in the one sentence it amounts to.

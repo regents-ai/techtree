@@ -31,8 +31,8 @@ def main() -> int:
     arguments = parser.parse_args()
 
     load_plugin_package()
-    release = import_module(f"{PACKAGE_NAME}.release")
-    errors = import_module(f"{PACKAGE_NAME}.errors")
+    release = import_module(f"{PACKAGE_NAME}.cli.release")
+    errors = import_module(f"{PACKAGE_NAME}.cli.errors")
 
     try:
         core: Any = release.load_embedded_release_core()
@@ -55,8 +55,8 @@ def main() -> int:
 
 def _compare_with_installed_cli(core: Any) -> int:
     """Run the frozen read-only release command and report any disagreement."""
-    bridge = import_module(f"{PACKAGE_NAME}.bridge")
-    errors = import_module(f"{PACKAGE_NAME}.errors")
+    bridge = import_module(f"{PACKAGE_NAME}.cli.bridge")
+    errors = import_module(f"{PACKAGE_NAME}.cli.errors")
 
     try:
         result = cast(dict[str, Any], bridge.verify_cli_release(core))
