@@ -67,7 +67,10 @@ defmodule TechtreeWeb.Layouts do
         <nav class="masthead__nav" aria-label="Primary">
           <span class="masthead__selector">
             <a href={~p"/results"} aria-current={current_section(@current_path, "/results")}>
-              Proofs
+              Results
+            </a>
+            <a href={~p"/proofs"} aria-current={current_section(@current_path, "/proofs")}>
+              Verify
             </a>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
           </span>
