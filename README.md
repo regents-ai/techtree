@@ -3,7 +3,7 @@
 **Improve a Skill. Prove it worked.**
 
 Opinionated Stack for Agent Skill Uplift.
-Built on Prime Intellect and NVIDIA NeMo.
+Built on [Prime Intellect verifiers](https://github.com/PrimeIntellect-ai/verifiers) and [NVIDIA NeMo Framework](https://github.com/nvidia-nemo).
 
 [![The Techtree homepage](docs/assets/techtree-home.png)](https://techtree.sh/)
 
