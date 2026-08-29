@@ -68,6 +68,19 @@ defmodule TechtreeWeb.PagesTest do
       refute html =~ "The connection to the site dropped"
     end
 
+    test "every page mounts the theme-aware vGPU background with a solid fallback", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/results")
+
+      assert html =~
+               ~s|id="site-background" class="site-background" data-optics-kind="background" data-optics-source="/assets/js/background_island.js"|
+
+      assert html =~
+               ~s|id="site-background-canvas" class="site-background__canvas" data-optics-canvas|
+
+      assert html =~ ~s|data-background-theme="orange"|
+      assert html =~ ~s|data-background-preset="1"|
+    end
+
     test "the local results page states the caveat outright", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/proofs/local")
       text = visible_text(html)

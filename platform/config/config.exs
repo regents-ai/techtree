@@ -97,7 +97,7 @@ config :esbuild,
   version: "0.25.4",
   techtree: [
     args:
-      ~w(js/site.js js/crown_island.js css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/site.js js/crown_island.js js/background_island.js css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]

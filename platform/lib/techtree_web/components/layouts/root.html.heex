@@ -36,6 +36,24 @@
     </script>
   </head>
   <body>
+    <div
+      id="site-background"
+      class="site-background"
+      data-optics-kind="background"
+      data-optics-source={~p"/assets/js/background_island.js"}
+      data-background-theme={assigns[:theme]}
+      data-background-preset="1"
+      aria-hidden="true"
+    >
+      <canvas
+        id="site-background-canvas"
+        class="site-background__canvas"
+        data-optics-canvas
+        data-background-theme={assigns[:theme]}
+        data-background-preset="1"
+      >
+      </canvas>
+    </div>
     <.masthead :if={masthead_visible?(assigns)} current_path={request_path(assigns)} />
     {@inner_content}
   </body>

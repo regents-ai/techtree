@@ -7,7 +7,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
-import {Optics} from "./optics_controller"
+import {Optics, createOpticsController} from "./optics_controller"
 
 const THEME_COOKIE = "techtree_theme"
 const THEME_MAX_AGE = 60 * 60 * 24 * 365
@@ -72,24 +72,38 @@ function syncThemeControl(theme) {
 
 function syncCrownTheme(theme) {
   const variant = THEMES[theme].crownVariant
-  let changed = false
 
   document.querySelectorAll('[data-optics-kind="crown"]').forEach(root => {
     if (root.dataset.crownThemeControlled !== "true") return
 
     const canvas = root.querySelector("[data-optics-canvas]")
     const hero = root.closest(".hero")
-    changed ||= root.dataset.crownVariant !== variant || canvas?.dataset.crownVariant !== variant
     root.dataset.crownVariant = variant
     if (canvas) canvas.dataset.crownVariant = variant
     if (hero) hero.dataset.crownVariant = variant
   })
 
-  if (changed) {
-    document.dispatchEvent(new CustomEvent("techtree:themechange", {
-      detail: {theme, crownVariant: variant},
-    }))
-  }
+}
+
+function requestedBackgroundPreset() {
+  const value = new URLSearchParams(window.location.search).get("bg") || "1"
+  return /^(?:[1-9]|10)$/.test(value) ? value : "1"
+}
+
+function syncBackground(theme) {
+  const preset = requestedBackgroundPreset()
+
+  document.querySelectorAll("[data-optics-kind]").forEach(root => {
+    const canvas = root.querySelector("[data-optics-canvas]")
+    root.dataset.backgroundPreset = preset
+    if (canvas) canvas.dataset.backgroundPreset = preset
+
+    if (root.dataset.opticsKind !== "background") return
+    root.dataset.backgroundTheme = theme
+    if (canvas) canvas.dataset.backgroundTheme = theme
+  })
+
+  return preset
 }
 
 function applyTheme(theme) {
@@ -98,6 +112,10 @@ function applyTheme(theme) {
   document.querySelector("meta[name='theme-color']")?.setAttribute("content", selected.browserColor)
   syncThemeControl(theme)
   syncCrownTheme(theme)
+  const backgroundPreset = syncBackground(theme)
+  document.dispatchEvent(new CustomEvent("techtree:themechange", {
+    detail: {theme, crownVariant: selected.crownVariant, backgroundPreset},
+  }))
 }
 
 document.addEventListener("click", event => {
@@ -112,6 +130,18 @@ document.addEventListener("click", event => {
 
 window.addEventListener("phx:page-loading-stop", () => applyTheme(pageTheme()))
 applyTheme(pageTheme())
+
+const siteBackground = document.querySelector("#site-background")
+const siteBackgroundController = siteBackground && createOpticsController(siteBackground)
+const startSiteBackground = () => siteBackgroundController?.mount()
+if (document.querySelector('[data-optics-kind="crown"]')) {
+  // Let the hero's larger scene claim its device first. The page field is
+  // still useful below the fold, but does not need to race the crown at load.
+  window.setTimeout(startSiteBackground, 1400)
+} else {
+  startSiteBackground()
+}
+window.addEventListener("pagehide", () => siteBackgroundController?.destroy(), {once: true})
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 

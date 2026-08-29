@@ -48,6 +48,15 @@ function loadRenderer(kind, source, module) {
   return pending
 }
 
+function opticsVariant(root, canvas) {
+  if (root.dataset.opticsKind === "crown") {
+    return `${canvas.dataset.crownVariant || ""}:${canvas.dataset.backgroundPreset || "1"}`
+  }
+  if (root.dataset.opticsKind === "background") {
+    return `${canvas.dataset.backgroundTheme || "orange"}:${canvas.dataset.backgroundPreset || "1"}`
+  }
+}
+
 export function createOpticsController(root) {
   const canvas = root.querySelector("[data-optics-canvas]")
   const viewportPointer = root.dataset.opticsPointer === "viewport"
@@ -183,7 +192,7 @@ export function createOpticsController(root) {
       }
 
       renderer = loaded
-      rendererVariant = canvas.dataset.crownVariant
+      rendererVariant = opticsVariant(root, canvas)
       starting = false
       invalidate()
     } catch (_error) {
@@ -237,12 +246,24 @@ export function createOpticsController(root) {
       invalidate()
     }
     const onThemeChange = event => {
-      if (root.dataset.opticsKind !== "crown") return
-      const variant = event.detail?.crownVariant
-      if (!variant || rendererVariant === variant) return
+      const kind = root.dataset.opticsKind
+      const theme = event.detail?.theme
+      const crownVariant = event.detail?.crownVariant
+      const backgroundPreset = event.detail?.backgroundPreset || "1"
+      if (kind === "crown" && crownVariant) {
+        root.dataset.crownVariant = crownVariant
+        canvas.dataset.crownVariant = crownVariant
+      } else if (kind === "background" && theme) {
+        root.dataset.backgroundTheme = theme
+        canvas.dataset.backgroundTheme = theme
+      } else {
+        return
+      }
+      root.dataset.backgroundPreset = backgroundPreset
+      canvas.dataset.backgroundPreset = backgroundPreset
 
-      root.dataset.crownVariant = variant
-      canvas.dataset.crownVariant = variant
+      const variant = opticsVariant(root, canvas)
+      if (rendererVariant === variant) return
       retired = false
       delete root.dataset.opticsFailed
       retreat()

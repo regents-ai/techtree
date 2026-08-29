@@ -33,6 +33,7 @@ import crownGlassBackWgsl from "./shaders/crown-glass-back"
 import crownGlassFrontWgsl from "./shaders/crown-glass-front"
 import crownLightWgsl from "./shaders/crown-light"
 import presentWgsl from "./shaders/present"
+import {backgroundWgsl} from "../background/shader"
 
 const BLOOM_LEVELS = 4
 type BloomTargets = readonly [Target, Target, Target, Target]
@@ -47,12 +48,14 @@ export interface PrismScene {
   readonly bloomDownsample: readonly [Effect, Effect, Effect, Effect]
   readonly bloomUpsample: readonly [Effect, Effect, Effect]
   readonly present: Effect
+  readonly background: Effect
   readonly glassBack: Draw
   readonly glassFront: Draw
   readonly light: Draw
   readonly crown: Geometry
   readonly lightSheet: Geometry
   readonly variant: CrownVariant
+  readonly backgroundPreset: number
   readonly environmentRotation: Float32Array
   readonly sceneSampler: ReturnType<typeof sampler>
   orbit: Vec2
@@ -66,6 +69,7 @@ export function createScene(
   gpu: Gpu,
   output: readonly [number, number],
   variant: CrownVariant,
+  backgroundPreset: number,
   label: string,
 ): PrismScene {
   const aspect = output[0] / Math.max(1, output[1])
@@ -92,6 +96,7 @@ export function createScene(
       bloomUpsampleEffect("half"),
     ],
     present: effect(gpu, presentWgsl, {label: `${label}.present`}),
+    background: effect(gpu, backgroundWgsl, {label: `${label}.background`}),
     light: draw(gpu, {
       shader: crownLightWgsl,
       geometry: lightSheet,
@@ -118,6 +123,7 @@ export function createScene(
     crown,
     lightSheet,
     variant,
+    backgroundPreset,
     environmentRotation: rotationMatrix(CROWN_VARIANTS[variant].environmentRotation),
     sceneSampler: sampler(gpu, {
       minFilter: "linear",
@@ -187,6 +193,7 @@ export async function prepareScene(scene: PrismScene, output: Surface): Promise<
   bind(scene)
   await Promise.all([
     scene.light.compile(scene.sceneTargets[0]),
+    scene.background.compile(scene.sceneTargets[0]),
     scene.copyToBack.compile(scene.sceneTargets[1]),
     scene.glassBack.compile(scene.sceneTargets[1]),
     scene.copyToFront.compile(scene.sceneTargets[0]),
@@ -204,6 +211,7 @@ export function presentScene(scene: PrismScene, output: Surface): void {
   bind(scene)
   frame(scene.gpu, current => {
     current.pass({target: readTarget, clear: background}, pass => {
+      pass.draw(scene.background)
       pass.draw(scene.light)
     })
     current.pass({target: writeTarget, clear: background}, pass => {
@@ -230,6 +238,18 @@ function bind(scene: PrismScene): void {
   const [readTarget, writeTarget] = scene.sceneTargets!
   const bloomTargets = scene.bloomTargets!
   const material = CROWN_VARIANTS[scene.variant]
+  const antiColor = scene.variant === "2"
+    ? [0.02, 0.18, 0.24, 1]
+    : [0.62, 0.075, 0.018, 1]
+  scene.background.set({
+    params: {
+      baseColor: material.backgroundColor,
+      antiColor,
+      resolution: scene.outputSize,
+      preset: scene.backgroundPreset,
+      intensity: scene.variant === "2" ? 0.085 : 0.095,
+    },
+  })
   scene.light.set({
     params: {
       viewProjection: scene.view.viewProjection,

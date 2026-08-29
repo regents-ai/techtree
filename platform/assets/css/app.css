@@ -148,6 +148,27 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.site-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.site-background__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+body > [data-phx-main] {
+  position: relative;
+  z-index: 1;
+}
+
 h1,
 h2,
 h3 {
@@ -989,6 +1010,16 @@ strong {
 
 .section-heading h2 {
   margin-top: 0.7rem;
+}
+
+@media (min-width: 64rem) {
+  .home-section.proof-of-concept .section-heading {
+    max-width: none;
+  }
+
+  .home-section.proof-of-concept #what-this-release-is {
+    white-space: nowrap;
+  }
 }
 
 .section-heading__nowrap {
