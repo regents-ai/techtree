@@ -1,10 +1,10 @@
-# Handoff — finishing Climb v0.1
+# Handoff — Climb v0.1.1 released
 
-Updated 2026-08-28 after the final CLI/Hermes fixes, public-route change, and
-v0.1.1 release re-pin. This supersedes every older coordinate and scanner
-statement formerly in this file.
+Updated 2026-08-29 after the final CLI/Hermes fixes, public-route change,
+v0.1.1 release re-pin, and public release. This supersedes every older
+coordinate and scanner statement formerly in this file.
 
-## Current candidate
+## Released coordinates
 
 | Repository/artifact | Coordinate |
 |---|---|
@@ -17,9 +17,38 @@ statement formerly in this file.
 | Catalog | `sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c` |
 | Network key | `sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966` |
 
-The existing v0.1.0 release and public result remain live. The v0.1.1 refreeze
-commits above have not been pushed or tagged, the wheel has not been uploaded
-to PyPI, and the Ash commit has not been deployed.
+The v0.1.1 commits above are public. Tag `v0.1.1` points to the frozen wheel
+source, PyPI serves the wheel at the digest above, and the stable site bootstrap
+publishes the v0.1.1 CLI and Hermes coordinates.
+
+## Public release verification
+
+- Trusted-publishing workflow run `33269935072` rebuilt the tagged wheel,
+  matched its approved digest, and published it to PyPI.
+- A clean Python 3.12 container installed `techtree==0.1.1` without a package
+  cache. `techtree --version` returned `0.1.1`, and offline release verification
+  passed.
+- An isolated Hermes home installed the public plugin commit. Plugin Doctor
+  passed runtime discovery, manifest parsing, import, and registration for 17
+  tools and 2 hooks.
+- Fly release v41 (`QgDeJ3o11V2D7fmzmRnkpyx43`) deployed image
+  `registry.fly.io/techtree-sh:deployment-01M17EVQ91HDADX2XCA7XN19F8`.
+- The live bootstrap body and ETag both match
+  `sha256:5def3b256aafab0a31b37d23f0eddb1cb033b90da251f3b3932fed62928c1e3f`.
+  It names CLI 0.1.1 and Hermes commit
+  `ca22ee782f5572b179c665c2c2a33120171f0158`.
+- The stable pointer was moved back to the prior v0.1.0 bootstrap, verified by
+  body digest and ETag, then moved forward and re-verified on v0.1.1.
+- `/`, `/start`, `/results`, `/proofs`, `/docs`, the introductory Climb, and
+  both published Result details returned 200. `/runs` returned 404, and the
+  public pages had no browser errors or horizontal overflow at representative
+  desktop and mobile widths.
+
+The first post-approval image still carried the previously generated v0.1.0
+bootstrap in `priv/catalog`; importing it therefore left v0.1.0 active. The
+public contract did not change during that attempt. The catalog was regenerated
+from the frozen CLI source with the approved v0.1.1 bootstrap, verified, and
+deployed as Fly v41 before activation.
 
 ## What is finished
 
@@ -101,13 +130,9 @@ The v0.1.1 ReleaseCore and Ash candidate deliberately move public viewing to
 alias. The submission endpoint is unchanged. No further signer rehearsal or
 proof upload is required for the v0.1.1 release.
 
-## Protected release boundary
+## Protected release boundary — completed
 
-The founder has approved the shipping improver Skill bytes
-`sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678`.
-That does not authorize release publication.
-
-No v0.1.1 push, tag, deploy, activation, or PyPI upload is authorized until the
-exact final phrase from
-`docs/spec/closeout-helloworld/FOUNDER_APPROVAL_PHRASES.md` is received with the
-committed approval packet's digest.
+The founder approved the shipping improver Skill bytes
+`sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678`
+and explicitly authorized the corrected v0.1.1 release on 2026-08-29. The
+release actions and public verification are recorded above.
