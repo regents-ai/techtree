@@ -1,11 +1,11 @@
 {
-  "commit": "db827e714094c89514ea63d3ace1c97e6698589d",
+  "commit": "ca22ee76c6875b164aee0630972a969ca8a536a7",
  "plugin_doctor": "passed",
-  "plugin_doctor_detail": "10 checks, all ok, run from the clean plugin checkout as tools/plugin/plugin_doctor.py. It registered 17 tools and 2 hooks, proved the runtime has no network access, and read the byte-identical ReleaseCore at sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1.",
-  "release_core_digest": "sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1",
+  "plugin_doctor_detail": "10 checks, all ok, run from the clean plugin checkout as tools/plugin/plugin_doctor.py. It registered 17 tools and 2 hooks, proved the runtime has no network access, and read the byte-identical ReleaseCore at sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa.",
+  "release_core_digest": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa",
  "release_core_is_byte_identical_to_python": true,
  "repository": "github.com/regents-ai/techtree-hermes",
  "version": "0.1.0",
-  "wheel_sha256": "5565e553f2e29a145711d5b13f6c03760a99b6c17d404e4a36768513a7660040",
- "worktree": "candidate commit verified; the shared checkout currently has an uncommitted README change"
+  "wheel_sha256": "51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce",
+ "worktree": "candidate commit verified; the plugin checkout is clean"
 }

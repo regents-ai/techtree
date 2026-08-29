@@ -1,10 +1,10 @@
 {
-  "expected_release_core_digest": "sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1",
+  "expected_release_core_digest": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa",
   "failures": [],
   "host": {
     "architecture": "arm64",
     "docker": "Docker version 29.7.2, build a7dcaa6",
-    "hermes": "Hermes Agent v0.20.5 (2026.8.19) · upstream baa344de",
+    "hermes": "Hermes Agent v0.20.5 (2026.8.19) · upstream ac6c8028",
     "operating_system": "macOS",
     "python": "Python 3.12.12"
   },
@@ -14,23 +14,23 @@
         {
           "argv": ["techtree", "--version"],
           "exit_code": 0,
-          "reported_version": "0.1.0",
+          "reported_version": "0.1.1",
           "result": "pass"
         },
         {
           "argv": ["techtree", "release", "info", "--json"],
           "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
-          "cli_version": "0.1.0",
+          "cli_version": "0.1.1",
           "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
           "exit_code": 0,
-          "release_core_digest": "sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1",
+          "release_core_digest": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa",
           "release_id": "climb-v0.1.0",
           "result": "pass",
-          "source_commit": "2e714835469dc0a3fb4bece3ed2f861317fe4d7c",
+          "source_commit": "614daffbcbd294be4646adfdec26f95337c4f7ed",
           "warnings": []
         },
         {
-          "argv": ["techtree", "release", "verify", "--expected", "sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1", "--json"],
+          "argv": ["techtree", "release", "verify", "--expected", "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa", "--json"],
           "checks": 12,
           "exit_code": 0,
           "failed": 0,
@@ -65,7 +65,7 @@
           "warnings": ["active_engine"]
         }
       ],
-      "install_argv": ["uv", "tool", "install", "--reinstall", "--python", "3.12", "--find-links", "<candidate-dist>", "techtree==0.1.0"],
+      "install_argv": ["uv", "tool", "install", "--no-cache", "--python", "3.12", "--find-links", "<candidate-dist>", "techtree==0.1.1"],
       "install_exit_code": 0,
       "installed_bytes_match_wheel": {
         "members_compared": 169,
@@ -74,7 +74,7 @@
       },
       "isolation": "fresh UV tool and executable directories plus a fresh Techtree --home; no existing Techtree executable or state was reused",
       "label": "published command with its Python pin",
-      "proposed_public_argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.0"],
+      "proposed_public_argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.1"],
       "result": "pass"
     }
   ],
@@ -85,7 +85,7 @@
       "severity": "pass"
     },
     {
-      "detail": "The preserved wheel was inspected directly; its provenance stamp names 2e714835469dc0a3fb4bece3ed2f861317fe4d7c and its SHA-256 matches the frozen release coordinate.",
+      "detail": "Two independent clean builds produced the same wheel bytes; its provenance stamp names 614daffbcbd294be4646adfdec26f95337c4f7ed and its SHA-256 matches the frozen release coordinate.",
       "id": "reproducible_build_verified",
       "severity": "pass"
     },
@@ -96,7 +96,7 @@
     }
   ],
   "published_install_argv": {
-    "argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.0"],
+    "argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.1"],
     "matches_pinned_leg": true,
     "pins_the_declared_python": true
   },
@@ -104,8 +104,8 @@
   "uv_version": "uv 0.12.5 (Homebrew 2026-08-14 aarch64-apple-darwin)",
   "verdict": "PASS — the published install command, with Python 3.12 pinned, installed the final candidate wheel in isolated tool and state directories; release verification and Doctor passed.",
   "wheel": {
-    "built_from_commit": "2e714835469dc0a3fb4bece3ed2f861317fe4d7c",
-    "path": "dist/techtree-0.1.0-py3-none-any.whl",
-    "sha256": "sha256:5565e553f2e29a145711d5b13f6c03760a99b6c17d404e4a36768513a7660040"
+    "built_from_commit": "614daffbcbd294be4646adfdec26f95337c4f7ed",
+    "path": "dist/techtree-0.1.1-py3-none-any.whl",
+    "sha256": "sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce"
   }
 }
