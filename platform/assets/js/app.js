@@ -43,7 +43,7 @@ function writeThemeCookie(theme) {
 
 let savedTheme = readThemeCookie()
 
-const resolvedTheme = () => savedTheme || "titanium"
+const resolvedTheme = () => savedTheme || "orange"
 
 function previewRouteTheme() {
   if (/^\/crown\/2\/?$/.test(window.location.pathname)) return "orange"

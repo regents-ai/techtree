@@ -227,8 +227,19 @@ defmodule TechtreeWeb.PagesTest do
       assert html =~ ~s|<html lang="en" data-theme="orange">|
     end
 
-    test "titanium is the default regardless of system preference", %{conn: conn} do
+    test "orange is the default regardless of system preference", %{conn: conn} do
       html = conn |> get("/") |> html_response(200)
+
+      assert html =~ ~s|<html lang="en" data-theme="orange">|
+      assert html =~ ~s|<meta name="color-scheme" content="light">|
+    end
+
+    test "a saved titanium choice overrides the orange default", %{conn: conn} do
+      html =
+        conn
+        |> put_req_cookie("techtree_theme", "titanium")
+        |> get("/")
+        |> html_response(200)
 
       assert html =~ ~s|<html lang="en" data-theme="titanium">|
       assert html =~ ~s|<meta name="color-scheme" content="dark">|

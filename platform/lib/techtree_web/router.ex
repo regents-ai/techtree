@@ -138,7 +138,7 @@ defmodule TechtreeWeb.Router do
   end
 
   defp saved_theme(value) when value in ["orange", "titanium"], do: value
-  defp saved_theme(_value), do: "titanium"
+  defp saved_theme(_value), do: "orange"
 
   # Previews of work heading for `/`, and nothing a release publishes.
   #
