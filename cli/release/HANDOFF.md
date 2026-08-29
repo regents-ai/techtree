@@ -11,9 +11,9 @@ statement formerly in this file.
 | techtree-python wheel source | `614daffbcbd294be4646adfdec26f95337c4f7ed` |
 | CLI wheel | `techtree-0.1.1-py3-none-any.whl`, `sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce` |
 | techtree-plugin | `ca22ee782f5572b179c665c2c2a33120171f0158` |
-| techtree-ash | `3211712e4b821009cee3250c0c92fda803fdb9a9` |
+| techtree-ash | `d617b3d6cea0dc2c1873502792ddebfd062c49f6` |
 | ReleaseCore | `sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa` |
-| Bootstrap | `sha256:f288817ef25f1e06de0547eff1445cb387fb222005082d9bd445e10f93db0a58` |
+| Bootstrap | `sha256:5def3b256aafab0a31b37d23f0eddb1cb033b90da251f3b3932fed62928c1e3f` |
 | Catalog | `sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c` |
 | Network key | `sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966` |
 
@@ -48,15 +48,17 @@ to PyPI, and the Ash commit has not been deployed.
 - Python: 3,289 passed, 1 skipped, and 298 deselected; generated artifacts
   matched.
 - Plugin: 927 passed; format, types, and Doctor passed.
-- Ash: 6 doctests and 479 tests passed at the committed candidate; 99 focused
+- Ash: 6 doctests and 417 tests passed at the committed candidate; 45 focused
   release tests also passed.
 - Cross-repository release gate: 26 of 26 passed.
 - Catalog verification: five objects and one public Climb passed.
 - Selected existing proof: 339 of 339 offline checks passed.
 
 The Ash commit includes the completed public-route, result-page, header,
-restored agent setup prompt, Orange default, and release-pin work. Its final
-full gate passed after those changes.
+restored agent setup prompt, Orange default, and release-pin work. The final
+coordinate correction replaces a nonexistent plugin SHA with the exact frozen
+plugin commit named above; no plugin or wheel byte changed. Its final full gate
+passed after those changes.
 
 ## Existing proof selected for the final receipt
 
