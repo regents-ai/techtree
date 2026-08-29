@@ -511,62 +511,6 @@ defmodule TechtreeWeb.DocsLive do
               evaluation logic. It invokes fixed CLI argument arrays and reads one JSON
               envelope back.
             </p>
-
-            <h3>Experimental guided revision</h3>
-            <p>
-              After a completed first comparison, the Hermes flow may offer one experimental
-              revision. The model configured for Host Hermes receives:
-            </p>
-            <ul class="doc-list">
-              <li>the verified source Skill;</li>
-              <li>the founder-pinned Skill-improver instructions;</li>
-              <li>a sanitized summary of the measured run; and</li>
-              <li>a strict required response shape.</li>
-            </ul>
-            <p>
-              It does not receive hidden expected answers, grader source, private environment
-              values, unredacted local paths, or the evaluated subject’s final replies.
-            </p>
-            <p>The host may make exactly one proposal request.</p>
-            <p>
-              If that request fails, reaches its generation limit, or returns an unusable
-              Skill:
-            </p>
-            <ul class="doc-list">
-              <li>the attempt is still used;</li>
-              <li>the provider may still charge for it;</li>
-              <li>Techtree does not retry automatically.</li>
-            </ul>
-            <p>When a proposal is usable:</p>
-            <ol class="steps">
-              <li>
-                <p class="plain">the plugin performs preliminary guards;</p>
-              </li>
-              <li>
-                <p class="plain">Techtree runs the ordinary Skill scanner;</p>
-              </li>
-              <li>
-                <p class="plain">Techtree snapshots and fingerprints the proposed Skill;</p>
-              </li>
-              <li>
-                <p class="plain">the exact Skill diff is shown;</p>
-              </li>
-              <li>
-                <p class="plain">the second Campaign and cost limit are shown;</p>
-              </li>
-              <li>
-                <p class="plain">the user must approve again; and</p>
-              </li>
-              <li>
-                <p class="plain">
-                  Skill v1 and Skill v2 are evaluated under the same task membership and
-                  scientific configuration.
-                </p>
-              </li>
-            </ol>
-            <p>
-              The second receipt proves only the result of that same-benchmark comparison.
-            </p>
           </section>
 
           <section id="artifacts" class="doc-section">

@@ -86,29 +86,6 @@ defmodule TechtreeWeb.DocsLiveTest do
       assert text =~ "No Techtree account is required."
     end
 
-    test "the guided revision says what is sent and what is never sent", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/docs")
-      text = visible_text(html)
-
-      for sent <- [
-            "the verified source Skill;",
-            "the founder-pinned Skill-improver instructions;",
-            "a sanitized summary of the measured run; and",
-            "a strict required response shape."
-          ] do
-        assert text =~ sent
-      end
-
-      assert text =~
-               "It does not receive hidden expected answers, grader source, private environment " <>
-                 "values, unredacted local paths, or the evaluated subject’s final replies."
-
-      assert text =~
-               "The sanitized summary excludes hidden expected answers, grader source, " <>
-                 "private environment values, unredacted local paths, and the evaluated " <>
-                 "subject’s final replies."
-    end
-
     test "the install-time report is described with its verdict and left switched on",
          %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/docs")
@@ -181,6 +158,8 @@ defmodule TechtreeWeb.DocsLiveTest do
       assert text =~ "Experimental"
       assert text =~ "A proposal may be unusable. A valid proposal may improve, tie, or regress."
       assert text =~ "Techtree does not automatically retry the proposal."
+      refute text =~ "Experimental guided revision"
+      refute text =~ "The host may make exactly one proposal request."
     end
 
     test "machine mode is stated the way an agent needs it", %{conn: conn} do
