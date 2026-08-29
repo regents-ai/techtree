@@ -33,20 +33,20 @@ defmodule TechtreeWeb.RunsLiveTest do
 
   describe "with nothing published" do
     test "the log says so rather than showing an empty frame", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
 
-      assert visible_text(html) =~ "Nobody has published a run yet"
+      assert visible_text(html) =~ "Nobody has published a Result yet"
     end
 
     test "does not claim it opened with runs it has not got", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
 
       refute visible_text(html) =~ "certification runs"
     end
 
     test "a run nobody published is not found", %{conn: conn} do
       assert_error_sent 404, fn ->
-        live(conn, "/runs/sha256:#{String.duplicate("a", 64)}")
+        live(conn, "/results/sha256:#{String.duplicate("a", 64)}")
       end
     end
   end
@@ -56,97 +56,74 @@ defmodule TechtreeWeb.RunsLiveTest do
 
     test "shows when, the agent, the model, the counts, the difference and the grade",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
       assert text =~ "hermes-agent 0.19.0"
       assert text =~ "qwen/qwen3.7-flash"
-      assert text =~ "#{entry.wins} better"
-      assert text =~ "#{entry.ties} same"
-      assert text =~ "#{entry.losses} worse"
-      assert text =~ "+0.639"
+
+      assert has_element?(
+               live,
+               ~s|.runs-table__tasks span[title="#{entry.wins} better, #{entry.ties} same, #{entry.losses} worse"]|,
+               "#{entry.wins} / #{entry.ties} / #{entry.losses}"
+             )
+
+      assert text =~ "+63.9%"
       assert text =~ "P1"
-      assert text =~ Calendar.strftime(entry.accepted_at, "%Y-%m-%d")
+      assert text =~ Calendar.strftime(entry.accepted_at, "%d %b")
     end
 
     test "names the campaign and compares the baseline with the fallback Skill",
          %{conn: conn, entry: entry} do
-      {:ok, live, _html} = live(conn, ~p"/runs")
+      {:ok, live, _html} = live(conn, ~p"/results")
 
       assert has_element?(live, "#run-entry-#{entry.log_sequence}")
       assert visible_text(render(live)) =~ "Techtree Hello World"
-      assert visible_text(render(live)) =~ "No Skill vs. hello-world-v1"
+      assert visible_text(render(live)) =~ "hello-world-v1 vs No Skill"
       refute has_element?(live, "#run-github-#{entry.log_sequence}")
     end
 
-    test "names the publisher by a short form of their key's fingerprint",
+    test "keeps the publisher fingerprint off the scan-first Results list",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      "sha256:" <> hex = entry.participant_key_id
-
-      assert text =~ "sha256:" <> String.slice(hex, 0, 12)
+      assert text =~ "P1 participant-signed"
       refute text =~ entry.participant_key_id
     end
 
-    test "says what Techtree verifies and what remains participant-attested", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/runs")
+    test "keeps the index focused on browsing and links to the proof boundary", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "Every comparison submitted for publication, newest first."
-
-      assert text =~
-               "This is a record, not a leaderboard. There are no rankings or preferred results."
-
-      assert text =~ "What Techtree verifies"
-      assert text =~ "the files match their recorded hashes"
-      assert text =~ "the signatures verify against the included key"
-      assert text =~ "the reported scores match the task results in the bundle"
-      assert text =~ "internally consistent and signed by the key it names"
-      assert text =~ "It does not prove the run happened as described."
-      assert text =~ "Techtree did not observe these runs or reproduce them."
-      assert text =~ "participant’s attestation"
-      assert has_element?(live, ".runs-index__intro .callout p strong", "not")
+      assert text =~ "Browse published Skill comparisons, newest first."
+      assert text =~ "This is a record, not a leaderboard."
+      assert has_element?(live, ~s|a[href="/proofs"]|, "What verification establishes")
+      refute text =~ "the files match their recorded hashes"
+      refute text =~ "It does not prove the Test happened as described."
 
       assert has_element?(
                live,
                ~s|.runs-index__intro[aria-labelledby="runs-index-title"] #runs-index-title|,
-               "Published comparisons"
+               "Published Results"
              )
 
-      assert has_element?(
-               live,
-               ".runs-index__verification-list > li",
-               "the files match their recorded hashes"
-             )
-
-      assert has_element?(
-               live,
-               ".runs-index__verification-list > li",
-               "the signatures verify against the included key"
-             )
-
-      assert has_element?(
-               live,
-               ".runs-index__verification-list > li",
-               "the reported scores match the task results in the bundle"
-             )
-
-      assert has_element?(live, ".runs-index__log > article.log__entry")
+      assert has_element?(live, ".runs-table > li.runs-table__row")
     end
 
     test "rows carry no rank or position and nothing can reorder them", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/runs")
-      rows = html |> LazyHTML.from_fragment() |> LazyHTML.query(".log__entry") |> LazyHTML.text()
+      {:ok, live, html} = live(conn, ~p"/results")
+
+      rows =
+        html |> LazyHTML.from_fragment() |> LazyHTML.query(".runs-table__row") |> LazyHTML.text()
+
       row_text = String.downcase(rows)
 
       for word <- ["rank", "leaderboard", "position", "sort by", "#1", "top "] do
         refute row_text =~ word, "a run row says #{inspect(word)}"
       end
 
-      assert visible_text(html) =~
-               "This is a record, not a leaderboard. There are no rankings or preferred results."
+      assert visible_text(html) =~ "This is a record, not a leaderboard."
 
       refute live |> element("select") |> has_element?()
       refute live |> element("[phx-click]") |> has_element?()
@@ -155,20 +132,28 @@ defmodule TechtreeWeb.RunsLiveTest do
 
     test "says once, of itself, that the log opened with this project's own runs",
          %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "own certification runs"
+      assert text =~ "own certification Results"
 
       # It is one sentence the page makes about itself, so it is said once. A
       # second copy of it beside every row is the badge this ruling refused.
-      assert length(String.split(text, "certification runs")) == 2
+      assert length(String.split(text, "certification Results")) == 2
+
+      assert {run_at, _run_length} = :binary.match(text, "hello-world-v1 vs No Skill")
+
+      assert {provenance_at, _provenance_length} =
+               :binary.match(text, "own certification Results")
+
+      assert run_at < provenance_at
     end
 
     test "puts no label on a row saying whose run it is", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
 
-      rows = html |> LazyHTML.from_fragment() |> LazyHTML.query(".log__entry") |> LazyHTML.text()
+      rows =
+        html |> LazyHTML.from_fragment() |> LazyHTML.query(".runs-table__row") |> LazyHTML.text()
 
       for word <- ["certification", "ours", "official", "verified by us", "techtree's"] do
         refute String.downcase(rows) =~ word, "a row is labelled #{inspect(word)}"
@@ -176,7 +161,7 @@ defmodule TechtreeWeb.RunsLiveTest do
     end
 
     test "does not offer the bytes it was submitted with", %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
 
       refute html =~ "/api/v1/submissions"
       refute html =~ Base.encode64(NetworkFixture.files()["data-policy.json"])
@@ -194,7 +179,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       # The setup is only worth anything if the results really do run downhill.
       assert Enum.map(entries, & &1.wins) == [23, 14, 7]
 
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
 
       assert shown(html) == Enum.reverse(arrived)
 
@@ -212,7 +197,7 @@ defmodule TechtreeWeb.RunsLiveTest do
           NetworkFixture.withdrawal(withdrawn.bundle_digest, keys[withdrawn.bundle_digest])
         )
 
-      {:ok, _live, html} = live(conn, ~p"/runs")
+      {:ok, _live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
       assert html =~ withdrawn.bundle_digest
@@ -227,12 +212,12 @@ defmodule TechtreeWeb.RunsLiveTest do
     test "reads one keyset page at a time, oldest link forward", %{conn: conn, entries: entries} do
       newest = List.last(entries)
 
-      {:ok, _live, html} = live(conn, "/runs?limit=1")
+      {:ok, _live, html} = live(conn, "/results?limit=1")
 
       assert shown(html) == [newest.bundle_digest]
       assert html =~ "before_sequence=#{newest.log_sequence}"
 
-      {:ok, _live, older} = live(conn, "/runs?limit=1&before_sequence=#{newest.log_sequence}")
+      {:ok, _live, older} = live(conn, "/results?limit=1&before_sequence=#{newest.log_sequence}")
 
       assert shown(older) == [Enum.at(entries, 1).bundle_digest]
     end
@@ -243,7 +228,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
     test "shows every task with both sides' rewards and the difference",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
       text = visible_text(html)
 
       assert text =~ "36 tasks"
@@ -255,41 +240,36 @@ defmodule TechtreeWeb.RunsLiveTest do
       first = hd(entry.task_deltas)
 
       assert text =~
-               "Without the Skill #{first["baseline_reward"]} With the Skill " <>
-                 "#{first["candidate_reward"]} Change +1.0"
+               "Without the Skill #{first["baseline_reward"] * 100.0}% With the Skill " <>
+                 "#{first["candidate_reward"] * 100.0}% Change +100.0%"
     end
 
     test "shows the coordinates the run pins, from the campaign this site publishes",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
       text = visible_text(html)
 
-      assert text =~ "36 tasks, fixed before either run"
+      assert text =~ "36 tasks, fixed before either Test"
       assert text =~ "44 model calls"
       assert text =~ entry.campaign_spec_digest
       assert text =~ entry.data_policy_digest
       assert text =~ entry.run_id
       assert text =~ "prime"
-      assert html =~ ~s|href="/campaigns/hello-world-climb"|
+      assert html =~ ~s|href="/climbs/hello-world-climb"|
     end
 
     test "shows campaign and Skill metadata on the detail page", %{conn: conn, entry: entry} do
-      {:ok, live, _html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
       assert has_element?(live, "#run-comparison")
       assert visible_text(render(live)) =~ "Techtree Hello World"
-      assert visible_text(render(live)) =~ "hello-world-v1 vs baseline"
-
-      assert has_element?(
-               live,
-               "#run-subtitle",
-               "hermes-agent 0.19.0 on qwen/qwen3.7-flash"
-             )
+      assert visible_text(render(live)) =~ "hello-world-v1 vs No Skill"
+      refute has_element?(live, "#run-subtitle")
 
       assert has_element?(
                live,
                "#run-outcome",
-               "#{entry.wins} of #{entry.task_count} tasks improved, #{entry.ties} equal, #{entry.losses} worse."
+               "+63.9% score difference · #{entry.wins} better, #{entry.ties} same, #{entry.losses} worse."
              )
 
       refute has_element?(live, "#run-github")
@@ -297,7 +277,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
     test "calls its place in the log a log sequence and never a position",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
       text = visible_text(html)
 
       assert text =~ "Log sequence #{entry.log_sequence}"
@@ -307,26 +287,22 @@ defmodule TechtreeWeb.RunsLiveTest do
       end
     end
 
-    test "lists the checks that ran, how many passed, and what none of them prove",
+    test "summarizes passed verification and links to its exact meaning",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
       text = visible_text(html)
 
       count = Techtree.Network.Bundle.check_count()
 
       assert text =~ "#{count} of #{count} passed"
-
-      for {_name, sentence} <- Techtree.Network.Bundle.checks() do
-        assert text =~ sentence
-      end
-
-      assert text =~ "None of them is a claim that the run happened"
-      assert text =~ "did not watch it and has not repeated it"
+      assert text =~ "Verification passed."
+      assert text =~ "See exactly what that establishes."
+      refute text =~ "the submission is small enough to be a proof bundle"
     end
 
     test "offers the verified projection and never the submitted bytes",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
 
       assert html =~ ~s|href="/api/v1/publications/#{entry.bundle_digest}"|
       refute html =~ "/api/v1/submissions"
@@ -335,7 +311,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
     test "makes the offline verification command specific to this run",
          %{conn: conn, entry: entry} do
-      {:ok, live, _html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
       assert has_element?(
                live,
@@ -348,7 +324,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, marked, :recorded} =
         Ingest.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
 
-      {:ok, _live, html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
       text = visible_text(html)
 
       assert text =~ "Withdrawn by the participant"
@@ -368,26 +344,26 @@ defmodule TechtreeWeb.RunsLiveTest do
          %{conn: conn, entry: entry} do
       github_url = "https://github.com/example/hello-world"
 
-      {:ok, index, _html} = live(conn, ~p"/runs")
+      {:ok, index, _html} = live(conn, ~p"/results")
 
       assert has_element?(index, "#run-entry-#{entry.log_sequence}")
-      assert visible_text(render(index)) =~ "No Skill vs. branchcode"
+      assert visible_text(render(index)) =~ "branchcode vs No Skill"
 
       assert has_element?(
                index,
                "#run-entry-#{entry.log_sequence} #run-github-#{entry.log_sequence}[href=\"#{github_url}\"]"
              )
 
-      {:ok, detail, _html} = live(conn, "/runs/#{entry.bundle_digest}")
+      {:ok, detail, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
       assert has_element?(detail, "#run-comparison")
-      assert visible_text(render(detail)) =~ "branchcode vs baseline"
+      assert visible_text(render(detail)) =~ "branchcode vs No Skill"
       assert has_element?(detail, "#run-github[href=\"#{github_url}\"]")
     end
   end
 
   defp shown(html) do
-    ~r|/runs/(sha256:[0-9a-f]{64})|
+    ~r|/results/(sha256:[0-9a-f]{64})|
     |> Regex.scan(html, capture: :all_but_first)
     |> List.flatten()
     |> Enum.uniq()

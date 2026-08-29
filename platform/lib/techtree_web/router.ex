@@ -15,7 +15,7 @@ defmodule TechtreeWeb.Router do
   slug the catalog can resolve. A request for anything else is a `404`, never a
   placeholder that appears to have worked.
 
-  A run is addressed by its bundle digest, at `/runs/<digest>` and at
+  A published result is addressed by its bundle digest, at `/results/<digest>` and at
   `/api/v1/publications/<digest>`. That address is derivable from the proof
   itself, two people publishing the same bundle land on the same page, and
   nothing in it reads as a rank — a row identifier would exist only inside our
@@ -77,8 +77,8 @@ defmodule TechtreeWeb.Router do
     live "/campaigns/:slug", CampaignsLive.Show
     live "/proofs", ProofsLive
     live "/proofs/local", LocalProofLive
-    live "/runs", RunsLive.Index
-    live "/runs/:bundle_digest", RunsLive.Show
+    live "/results", RunsLive.Index
+    live "/results/:bundle_digest", RunsLive.Show
     get "/skill.md", SkillController, :show
 
     # The addresses release documents already point at, unchanged.
@@ -138,7 +138,7 @@ defmodule TechtreeWeb.Router do
   end
 
   defp saved_theme(value) when value in ["orange", "titanium"], do: value
-  defp saved_theme(_value), do: nil
+  defp saved_theme(_value), do: "titanium"
 
   # Previews of work heading for `/`, and nothing a release publishes.
   #

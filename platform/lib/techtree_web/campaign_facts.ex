@@ -84,7 +84,7 @@ defmodule TechtreeWeb.CampaignFacts do
   """
   @spec membership_words(map()) :: String.t() | nil
   def membership_words(%{"mode" => "committed", "count" => count}) when is_integer(count),
-    do: "#{count} tasks, fixed before either run"
+    do: "#{count} tasks, fixed before either Test"
 
   def membership_words(%{"count" => count}) when is_integer(count), do: "#{count} tasks"
   def membership_words(_membership), do: nil

@@ -24,7 +24,7 @@ defmodule TechtreeWeb.CampaignsLiveTest do
     text = visible_text(html)
 
     assert text =~ "Hello World Skill Uplift"
-    assert text =~ "36 tasks, fixed before either run"
+    assert text =~ "36 tasks, fixed before either Test"
     assert text =~ "hermes-agent 0.19.0"
     assert text =~ "prime · qwen/qwen3.7-flash"
 

@@ -76,7 +76,9 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert payload["bundle_digest"] == NetworkFixture.bundle_digest()
       assert payload["run_id"] == NetworkFixture.report()["payload"]["run_id"]
       assert payload["log_sequence"] >= 1
-      assert payload["entry_url"] == Endpoint.url() <> "/runs/" <> NetworkFixture.bundle_digest()
+
+      assert payload["entry_url"] ==
+               Endpoint.url() <> "/results/" <> NetworkFixture.bundle_digest()
 
       assert get_resp_header(conn, "location") ==
                ["/api/v1/publications/#{NetworkFixture.bundle_digest()}"]
@@ -313,7 +315,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert [entry] = body["entries"]
       assert entry["log_sequence"] >= 1
       assert entry["bundle_digest"] == NetworkFixture.bundle_digest()
-      assert entry["entry_url"] == Endpoint.url() <> "/runs/" <> NetworkFixture.bundle_digest()
+      assert entry["entry_url"] == Endpoint.url() <> "/results/" <> NetworkFixture.bundle_digest()
       assert entry["subject"]["provider"] == "prime"
       assert entry["result"]["wins"] == 23
       assert entry["checks"] == %{"run" => Bundle.check_count(), "passed" => Bundle.check_count()}
@@ -493,7 +495,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
       assert payload["schema_version"] == "techtree.publication-withdrawal-receipt.v1alpha1"
       assert payload["bundle_digest"] == entry.bundle_digest
-      assert payload["entry_url"] == Endpoint.url() <> "/runs/" <> entry.bundle_digest
+      assert payload["entry_url"] == Endpoint.url() <> "/results/" <> entry.bundle_digest
       assert {:ok, _at, 0} = DateTime.from_iso8601(payload["withdrawn_at"])
       assert String.ends_with?(payload["withdrawn_at"], "Z")
 
@@ -513,7 +515,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
       refute is_nil(shown["withdrawn_at"])
       assert shown["result"]["wins"] == entry.wins
 
-      page = get(build_conn(), "/runs/#{entry.bundle_digest}")
+      page = get(build_conn(), "/results/#{entry.bundle_digest}")
 
       assert page.status == 200
       assert page.resp_body =~ "Withdrawn by the participant"
@@ -610,8 +612,8 @@ defmodule TechtreeWeb.PublicationControllerTest do
       for path <- [
             "/api/v1/publications",
             "/api/v1/publications/#{NetworkFixture.bundle_digest()}",
-            "/runs",
-            "/runs/#{NetworkFixture.bundle_digest()}"
+            "/results",
+            "/results/#{NetworkFixture.bundle_digest()}"
           ] do
         served = get(build_conn(), path)
 

@@ -16,7 +16,7 @@ defmodule TechtreeWeb.StartLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(page_title: "Install Techtree")
+     |> assign(page_title: "Install Techtree and complete your first Result")
      |> assign(instructions: instructions())}
   end
 
@@ -29,10 +29,10 @@ defmodule TechtreeWeb.StartLive do
   def render(assigns) do
     ~H"""
     <Layouts.page>
-      <h1>Install Techtree</h1>
+      <h1>Install Techtree and complete your first Result</h1>
       <p class="lede">
-        The pinned installation guide. Two ways in — pick whichever matches who is at the
-        keyboard.
+        Pick the agent-guided or direct CLI path. Both end with Doctor printing the exact
+        command for the Hello World Climb.
       </p>
 
       <InstallComponents.install focus={@focus} instructions={@instructions} path={~p"/start"} />
@@ -48,10 +48,8 @@ defmodule TechtreeWeb.StartLive do
       <InstallComponents.hermes_intro />
 
       <p class="small quiet section">
-        Each Climb states what happens to your recordings and to the work you submit.
-        <a href={~p"/climbs"}>Read the terms of a Climb</a>
-        if you would rather see
-        them before you install anything.
+        After setup, <a href={~p"/climbs"}>read the Climb contract</a>
+        or <a href={~p"/results"}>browse completed Results</a>.
       </p>
     </Layouts.page>
     """

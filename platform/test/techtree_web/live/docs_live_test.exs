@@ -1,10 +1,7 @@
 defmodule TechtreeWeb.DocsLiveTest do
   @moduledoc """
-  The documentation is checked for four things: that a reader meets a working
-  run before a concept, that what leaves the machine is answered on the way
-  past, that every command named here is one the tool actually has, and that
-  the page states the limits of v0.1 rather than letting a reader assume more
-  than was measured.
+  The documentation is the operating and integration reference. Installation
+  and proof-boundary teaching link to their dedicated routes.
   """
 
   use TechtreeWeb.ConnCase, async: false
@@ -22,34 +19,32 @@ defmodule TechtreeWeb.DocsLiveTest do
       :ok
     end
 
-    test "the quickstart comes before the concepts", %{conn: conn} do
+    test "the page leads with operations and routes newcomers to dedicated guides", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
-      assert text =~ "Get to a controlled first run."
-      assert text =~ "Give this to your agent"
-      assert text =~ "Installing manually"
-      assert text =~ "What leaves my machine?"
+      assert text =~ "Operate and integrate Techtree."
+      assert text =~ "Command reference, runtime behavior, local artifacts"
+      assert text =~ "Installation lives on Start"
+      assert text =~ "Open the installation guide"
       assert text =~ "Climbs and Campaigns"
       assert text =~ "Baseline and candidate"
       assert text =~ "Taskset validation and the recorded comparison"
-      assert text =~ "Proofs and reproduction"
+      assert text =~ "Operate the offline verifier"
+      refute text =~ "What v0.1 demonstrates"
+      refute text =~ "Evidence graph"
 
-      assert byte_offset(html, ~s|id="quickstart"|) < byte_offset(html, ~s|id="install"|)
-      assert byte_offset(html, ~s|id="install"|) < byte_offset(html, ~s|id="trust"|)
+      assert byte_offset(html, ~s|id="quickstart"|) < byte_offset(html, ~s|id="trust"|)
       assert byte_offset(html, ~s|id="trust"|) < byte_offset(html, ~s|id="campaigns"|)
     end
 
-    test "the quickstart shows the same prompt the installation guide shows",
+    test "the quickstart points to the single installation destination",
          %{conn: conn} do
-      # Founder ruling 2026-08-27: the quickstart's paste is the one-line
-      # prompt, single-sourced from InstallComponents.agent_line/0 — the same
-      # line the homepage block copies. The long prompt lives on /start.
-      {:ok, _live, html} = live(conn, ~p"/docs")
+      {:ok, live, html} = live(conn, ~p"/docs")
 
-      assert html =~ TechtreeWeb.InstallComponents.agent_line()
-      assert html =~ "What your agent will set up for you"
-      assert html =~ "What you should do yourself"
+      assert has_element?(live, ~s|#quickstart a[href="/start"]|)
+      refute html =~ "copy-docs-install"
+      refute html =~ "copy-docs-hermes-install"
     end
 
     test "no held-out final test is claimed for v0.1", %{conn: conn} do
@@ -59,6 +54,8 @@ defmodule TechtreeWeb.DocsLiveTest do
       assert text =~ "There is no held-out final test in v0.1"
       assert text =~ "Hello World uses one fixed 36-task membership for its recorded comparisons."
       assert text =~ "It is not a held-out generalization claim."
+      assert text =~ "upstream gold and setup validation passed for all 36 tasks"
+      refute text =~ "a known-wrong answer does not"
 
       # The sidebar and the section it points at both name the recorded
       # comparison. Nothing on the page offers a held-out split.
@@ -69,13 +66,17 @@ defmodule TechtreeWeb.DocsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
-      assert text =~ "Techtree sends none of this anywhere on its own"
+      assert text =~ "Techtree does not automatically upload your local"
       # Decision 0038: the list is only half the answer now. Publishing is the
       # explicit opt-in, and the passage must name the complete proof bundle
       # and the separate network receipt.
       assert text =~ "the complete proof bundle"
       assert text =~ "separate signed publication"
-      assert text =~ "This website has no account system and no route for submitting those"
+      assert text =~ "This website has no account system or browser upload form."
+
+      assert text =~
+               "only when you or your operator explicitly invokes the CLI publication action"
+
       assert text =~ "A comparison still makes real model requests."
 
       assert text =~
@@ -99,12 +100,12 @@ defmodule TechtreeWeb.DocsLiveTest do
       end
 
       assert text =~
-               "It does not receive hidden expected answers, grader source, provider " <>
-                 "credentials, local private paths, or the evaluated subject’s final replies."
+               "It does not receive hidden expected answers, grader source, private environment " <>
+                 "values, unredacted local paths, or the evaluated subject’s final replies."
 
       assert text =~
                "The sanitized summary excludes hidden expected answers, grader source, " <>
-                 "provider credentials, private filesystem paths, and the evaluated " <>
+                 "private environment values, unredacted local paths, and the evaluated " <>
                  "subject’s final replies."
     end
 
@@ -129,7 +130,6 @@ defmodule TechtreeWeb.DocsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
-      assert text =~ "No installable release is active on this channel yet."
       assert text =~ "No installable release coordinate is active on this channel yet."
       refute html =~ "techtree==0.0.0-placeholder"
       refute html =~ String.duplicate("0", 40)
@@ -249,19 +249,19 @@ defmodule TechtreeWeb.DocsLiveTest do
                  "draft, run directory, receipt, report, or proof bundle."
 
       assert live
-             |> element(~s|#copy-docs-prime-login[data-copy-value="prime login"]|)
+             |> element(~s|#copy-docs-prime-login-credential[data-copy-value="prime login"]|)
              |> has_element?()
     end
 
-    test "a proof is verified from one of three things, offline", %{conn: conn} do
+    test "the verifier is documented as an operation and the claim boundary is linked", %{
+      conn: conn
+    } do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
-      assert text =~ "You can verify a run ID, a proof-bundle directory, or a signed report file"
-      assert text =~ "makes no model request;"
-      assert text =~ "contacts no Techtree service;"
-      assert text =~ "fetches nothing from the network; and"
-      assert text =~ "writes nothing to the proof."
+      assert text =~ "Use the CLI to verify a completed Result by ID"
+      assert text =~ "The command makes no model request"
+      assert text =~ "Read what verification does and does not establish."
     end
 
     test "every command block can be copied", %{conn: conn} do
@@ -275,9 +275,11 @@ defmodule TechtreeWeb.DocsLiveTest do
 
       assert live
              |> element(
-               ~s|#copy-docs-proof-verify[data-copy-value="techtree proof verify path/to/result-bundle"]|
+               ~s|#copy-docs-proof-verify[data-copy-value="techtree proof verify RUN_ID"]|
              )
              |> has_element?()
+
+      assert html =~ ~s|data-copy-value="techtree proof verify RUN_ID"|
     end
   end
 
@@ -295,16 +297,12 @@ defmodule TechtreeWeb.DocsLiveTest do
     {:ok, live, html} = live(conn, ~p"/docs")
     text = visible_text(html)
 
-    assert live
-           |> element(
-             ~s|#copy-docs-install[data-copy-value="uv tool install --python 3.12 techtree==0.1.0"]|
-           )
-           |> has_element?()
+    assert live |> element(~s|#quickstart a[href="/start"]|) |> has_element?()
+    refute html =~ "copy-docs-install"
 
     assert text =~ release.digest
     assert text =~ release.source_revision
     assert text =~ "techtree doctor --climb hello-world-climb@1"
-    assert text =~ "macOS or Linux · Python 3.12, provided by the installer · Docker required"
 
     # The coordinates come out of the record, never out of this page.
     assert text =~ release.version
@@ -318,16 +316,6 @@ defmodule TechtreeWeb.DocsLiveTest do
     offset
   end
 
-  # The prompt as a reader sees it, taken from the block they copy.
-  defp prompt_text(html) do
-    case Regex.run(~r|<pre class="prompt__block"><code>(.*?)</code></pre>|s, html,
-           capture: :all_but_first
-         ) do
-      [prompt] -> prompt |> String.replace(~r/\s+/, " ") |> String.trim()
-      _other -> nil
-    end
-  end
-
   describe "the substrate credits" do
     setup do
       Techtree.CatalogFixture.use_bundle(Techtree.CatalogFixture.root())
@@ -335,23 +323,18 @@ defmodule TechtreeWeb.DocsLiveTest do
       :ok
     end
 
-    test "Verifiers is credited to Prime Intellect with the exact pinned version", %{conn: conn} do
+    test "Verifiers is credited to Prime Intellect", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = Phoenix.LiveViewTest.rendered_to_string(html)
 
       assert text =~ "Prime Intellect’s Verifiers"
-      # The pin is verifiers 0.3.1 (founder ruling 2026-08-26; the python-side
-      # switch from 0.3.1.dev21 lands with the same ruling). If the pin moves,
-      # this copy must move with it — that is what these lines are for.
-      assert text =~ "pinned at version 0.3.1"
       refute text =~ "dev21"
     end
 
-    test "Hermes is credited to Nous Research on the pages that name the stack", %{conn: conn} do
-      for page <- ["/", "/docs"] do
-        {:ok, _live, html} = live(conn, page)
-        assert html =~ "Nous Research", "#{page} does not credit Hermes to Nous Research"
-      end
+    test "Hermes is credited to Nous Research where the operator integration is documented",
+         %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/docs")
+      assert html =~ "Nous Research"
     end
 
     test "the page offers itself as Markdown through the copy control", %{conn: conn} do

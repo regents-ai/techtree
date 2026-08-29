@@ -94,7 +94,7 @@ defmodule TechtreeWeb.LocalProofLive do
         <h2>Sending it somewhere</h2>
         <p>
           A finished result goes nowhere unless you ask it to. If you want one on the
-          public <.link navigate={~p"/runs"}>run log</.link>, publishing it is a
+          public <.link navigate={~p"/results"}>Results log</.link>, publishing it is a
           command you run yourself, and it uploads the complete proof bundle — its
           index files, signed report and receipts, cited documents, and any optional
           execution record — while Episodes and Traces remain local. The network returns

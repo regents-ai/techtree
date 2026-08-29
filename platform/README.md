@@ -37,7 +37,7 @@ the append-only log of the runs participants have published.
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the site: pinned guide, catalog, published objects, run log   ◀ this repository
+   techtree-ash ─ the site: pinned guide, catalog, published objects, Results   ◀ this repository
 ```
 
 ## The other two repositories
@@ -69,8 +69,8 @@ letting a reader find them.
 > This application does not run evaluations, accept Skills, store Episodes or
 > Traces, authenticate anyone, or run a leaderboard. It accepts one thing: a
 > signed proof a participant chose to publish, and the signed withdrawal of one
-> they published earlier. The run log orders entries by arrival and ranks
-> nothing. The local scientific loop in `techtree-python` keeps working when
+> they published earlier. Results are ordered by arrival and never ranked.
+> The local scientific loop in `techtree-python` keeps working when
 > this site is offline — the site is discovery, onboarding and the log, never a
 > runtime dependency.
 
@@ -100,8 +100,8 @@ GET /climbs                     the Climbs this release offers
 GET /climbs/:slug               one Climb in full
 GET /proofs/local               what a locally produced result claims
 GET /protocol                   the documents a trial is made of
-GET /runs                       the published runs, newest first
-GET /runs/:bundle_digest        one published run in full
+GET /results                    published Results, newest first
+GET /results/:bundle_digest     one published Result in full
 
 GET /healthz                    is a catalog being served, and which one
 GET /api/v1/bootstrap           the installation contract, exact bytes

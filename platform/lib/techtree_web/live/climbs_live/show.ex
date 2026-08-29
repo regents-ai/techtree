@@ -41,13 +41,12 @@ defmodule TechtreeWeb.ClimbsLive.Show do
       </div>
 
       <p :if={@copy} class="plain quiet">{@copy.subtitle}</p>
-      <p class="lede">{@climb.summary}</p>
-      <p class="digest">{@climb.reference}</p>
+      <p class="lede">{(@copy && @copy.scope) || @climb.summary}</p>
 
       <.warning_callout :if={@climb.status == "development"} title="This Climb is in development">
         <p>
           It exists to exercise the machinery end to end. A result from it says that
-          the trial ran, and nothing about whether anything works better.
+          the Test completed, and nothing about whether anything works better.
         </p>
       </.warning_callout>
 
@@ -61,7 +60,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
             </p>
             <.digest value={fact(@facts, "climb_digest")} href={object_url(@facts, "climb_digest")} />
           </:side>
-          <:side title="The trial">
+          <:side title="The Test">
             <p :if={@copy}><strong>{@copy.campaign_title}</strong></p>
             <p>
               What is compared, on which tasks, under which conditions, and how the
@@ -83,10 +82,9 @@ defmodule TechtreeWeb.ClimbsLive.Show do
             {mutation_words(get_in(@facts, ["mutation_contract", "kind"]))}
           </:fact>
           <:fact term="Tasks">{fact(@facts, "task_count")}</:fact>
-          <:fact :if={@copy} term="Task family">{@copy.task_family}</:fact>
           <:fact term="Score">
             {plain(get_in(@facts, ["scoring", "primary_reward"]))}, averaged across tasks.
-            The change counts only if the new run scores above the old one.
+            The change counts only if the candidate scores above the baseline.
           </:fact>
           <%!-- The Campaign declares a per-episode timeout and this page used
           to quote it. Nothing enforces it in v0.1, so quoting it told a reader
@@ -94,7 +92,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           this release: the declared value stays in the document, and no public
           surface states it. Enforcement is a v0.2 candidate and gets the
           sentence back when it is true. --%>
-          <:fact term="Runs">{schedule_words(get_in(@facts, ["execution", "order"]))}</:fact>
+          <:fact term="Test order">{schedule_words(get_in(@facts, ["execution", "order"]))}</:fact>
         </.definition_list>
       </section>
 
@@ -132,61 +130,24 @@ defmodule TechtreeWeb.ClimbsLive.Show do
         </.definition_list>
         <p class="small quiet">
           These terms are the ones written in the rights document below, and the
-          command line asks you to accept them by name before a run starts.
+          command line asks you to accept them by name before a Test starts.
         </p>
       </section>
 
       <section class="section">
-        <h2>What a result may be called</h2>
-        <p>{proof_grade_words(fact(@facts, "proof_grade"))}</p>
-        <.definition_list :if={@copy}>
-          <:fact term="The result of a run">{@copy.first_result_label}</:fact>
-          <:fact term="The result of a guided second attempt">
-            {@copy.second_result_label}
-          </:fact>
-        </.definition_list>
-        <p :if={@copy}>{@copy.revision_note}</p>
+        <h2>Run this Climb</h2>
+        <p :if={@copy}>
+          <strong>{@copy.starter_skill}</strong> — {@copy.starter_note}
+        </p>
         <p>
-          A trial runs on your machine, and this site does not watch it happen. What
-          can be checked is that the documents are the ones named here, that only the
-          permitted thing differed between the two runs, and that the scores are the
-          ones the evaluation produced. <a href={~p"/proofs/local"}>How that check works</a>.
+          The installation and first-run walkthrough lives on <.link navigate={~p"/start"}>Start</.link>. This page remains the fixed Test contract.
         </p>
       </section>
 
-      <section class="section">
-        <h2>Entering</h2>
-        <ol class="steps">
-          <.next_step title="Read the Climb as your machine sees it.">
-            <.command_block argv={["techtree", "climb", "show", @climb.reference]} />
-          </.next_step>
-          <.next_step :if={@copy} title="Start from the published starter Skill.">
-            <p class="digest">{@copy.starter_skill}</p>
-            <p>{@copy.starter_note}</p>
-          </.next_step>
-          <.next_step title="Prepare your submission.">
-            <.command_block argv={[
-              "techtree",
-              "climb",
-              "prepare",
-              @climb.reference,
-              "--skill",
-              "path/to/skill"
-            ]} />
-            <p class="small quiet">
-              This checks your work against the rules above and tells you exactly what
-              to run to start, including the terms you are accepting.
-            </p>
-          </.next_step>
-          <.next_step title="Or ask your agent.">
-            <p class="digest">Run the {@climb.reference} Climb.</p>
-          </.next_step>
-        </ol>
-      </section>
-
-      <section class="section">
-        <h2>The documents behind this page</h2>
+      <details class="section integrity-details">
+        <summary>Integrity details</summary>
         <.definition_list>
+          <:fact term="Climb reference">{@climb.reference}</:fact>
           <:fact term="The invitation">
             <.protocol_badge name="ClimbManifest" />
             <.digest value={fact(@facts, "climb_digest")} href={object_url(@facts, "climb_digest")} />
@@ -217,7 +178,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           Each link returns the document exactly as it was generated. The address is
           its fingerprint, and the file is checked against it before it is sent.
         </p>
-      </section>
+      </details>
     </Layouts.page>
     """
   end

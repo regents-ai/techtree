@@ -129,7 +129,7 @@ const GRAZE_LIGHT = {
   angleBase: -0.065,
   angleRange: 0.075,
   rowConvergence: 0.032,
-  verticalTravel: 0.055,
+  verticalTravel: 0.11,
   dispersionStrength: 0.04,
   wedgeStrength: 0.14,
   spectralSamples: 32,
@@ -158,7 +158,9 @@ export const CROWN_VARIANTS = {
   },
   2: {
     ...GRAZE_LIGHT,
-    backgroundColor: [0.38, 0.035, 0.003, 1],
+    // After the shared ACES + sRGB presentation pass, this is the hero's
+    // #c4380c surface color rather than a visibly inset canvas rectangle.
+    backgroundColor: [0.413106, 0.04653, 0.009823, 1],
     absorption: [1, 0.82, 0.42],
     glassDispersion: 0.02,
     reflectionStrength: 0.7,
@@ -180,7 +182,9 @@ export const CROWN_VARIANTS = {
   },
   4: {
     ...GRAZE_LIGHT,
-    backgroundColor: [0.055, 0.065, 0.075, 1],
+    // After the shared ACES + sRGB presentation pass, this is the hero's
+    // #46535e surface color rather than a visibly inset canvas rectangle.
+    backgroundColor: [0.061575, 0.077282, 0.092116, 1],
     absorption: [0.45, 0.48, 0.52],
     spectralSamples: 20,
     beamHalfWidth: 0.044,

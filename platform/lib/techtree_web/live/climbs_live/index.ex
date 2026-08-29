@@ -26,13 +26,13 @@ defmodule TechtreeWeb.ClimbsLive.Index do
     <Layouts.page wide>
       <h1>Climbs</h1>
       <p class="lede">
-        Each Climb is one question, asked the same way every time it is run.
+        Each Climb is one question, asked the same way every time it is tested.
       </p>
 
       <p :if={@cards == []} class="section">
         No Climbs are published on this site at the moment. The command-line tool
-        ships with the Climbs it can run, so this page being empty does not stop a
-        trial on your own machine.
+        ships with the Climbs it can test, so this page being empty does not stop a
+        Test on your own machine.
       </p>
 
       <div :if={@cards != []} class="entries">
@@ -46,16 +46,15 @@ defmodule TechtreeWeb.ClimbsLive.Index do
 
           <p :if={card.copy} class="plain quiet">{card.copy.subtitle}</p>
 
-          <p>{card.climb.summary}</p>
+          <p>{(card.copy && card.copy.scope) || card.climb.summary}</p>
 
           <.definition_list>
             <:fact term="The question">{purpose_words(fact(card.climb, "purpose"))}</:fact>
-            <:fact :if={card.copy} term="The trial">{card.copy.campaign_title}</:fact>
+            <:fact :if={card.copy} term="The Test">{card.copy.campaign_title}</:fact>
             <:fact term="What may differ">
               {mutation_words(get_in(card.climb.projection, ["mutation_contract", "kind"]))}
             </:fact>
             <:fact term="Tasks">{fact(card.climb, "task_count")}</:fact>
-            <:fact :if={card.copy} term="Task family">{card.copy.task_family}</:fact>
             <:fact term="The agent under test">
               {fact(card.climb, "subject_harness")} {fact(card.climb, "subject_harness_version")}
             </:fact>

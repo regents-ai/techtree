@@ -69,7 +69,7 @@ defmodule Techtree.Network.Projection do
   """
   @spec entry_url(PublicationEntry.t(), String.t()) :: String.t()
   def entry_url(%PublicationEntry{bundle_digest: digest}, origin),
-    do: origin <> "/runs/" <> digest
+    do: origin <> "/results/" <> digest
 
   defp summary(%PublicationEntry{} = entry, origin) do
     %{

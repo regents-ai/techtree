@@ -130,7 +130,7 @@ defmodule Techtree.Network.Receipt do
     }
   end
 
-  defp entry_url(entry, origin), do: origin <> "/runs/" <> entry.bundle_digest
+  defp entry_url(entry, origin), do: origin <> "/results/" <> entry.bundle_digest
 
   # RFC 3339 in UTC with a `Z` on the end, which is what the schema requires and
   # what a microsecond-precision UTC timestamp already prints as.

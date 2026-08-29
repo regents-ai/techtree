@@ -57,7 +57,7 @@ defmodule Techtree.Release.CandidateTest do
       checksums: checksums
     } do
       assert bootstrap["cli"]["distribution"] == "techtree"
-      assert bootstrap["cli"]["version"] == "0.1.0"
+      assert bootstrap["cli"]["version"] == "0.1.1"
       assert bootstrap["cli"]["source_revision"] =~ ~r/\A[0-9a-f]{40}\z/
 
       assert bootstrap["cli"]["install_argv"] == [
@@ -66,7 +66,7 @@ defmodule Techtree.Release.CandidateTest do
                "install",
                "--python",
                bootstrap["minimums"]["python"],
-               "techtree==0.1.0"
+               "techtree==0.1.1"
              ]
 
       assert bootstrap["minimums"]["python"] == "3.12"
@@ -164,7 +164,7 @@ defmodule Techtree.Release.CandidateTest do
       # surface this application actually publishes; a pin at an address that
       # answers nothing is a release that cannot publish.
       assert publication["submission_endpoint"] == "https://techtree.sh/api/v1/publications"
-      assert publication["public_log_url"] == "https://techtree.sh/runs"
+      assert publication["public_log_url"] == "https://techtree.sh/results"
 
       assert %{"algorithm" => "ed25519", "key_id" => key_id, "public_key" => public} =
                publication["network_key"]

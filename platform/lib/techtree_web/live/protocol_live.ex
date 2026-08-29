@@ -147,10 +147,10 @@ defmodule TechtreeWeb.ProtocolLive do
           <:fact term="Installation details">
             <a href="/api/v1/bootstrap">/api/v1/bootstrap</a>
           </:fact>
-          <:fact term="The published runs">
+          <:fact term="The published Results">
             <a href="/api/v1/publications">/api/v1/publications</a>
           </:fact>
-          <:fact term="One published run">
+          <:fact term="One published Result">
             <span class="digest">/api/v1/publications/sha256:…</span>
           </:fact>
           <:fact term="The key this site signs with">

@@ -24,8 +24,8 @@ defmodule TechtreeWeb.PagesTest do
     "/climbs/hello-world-climb",
     "/proofs/local",
     "/protocol",
-    "/runs",
-    "/runs/" <> Techtree.NetworkFixture.bundle_digest()
+    "/results",
+    "/results/" <> Techtree.NetworkFixture.bundle_digest()
   ]
   @pages_without_catalog [
     "/",
@@ -36,7 +36,7 @@ defmodule TechtreeWeb.PagesTest do
     "/climbs",
     "/proofs/local",
     "/protocol",
-    "/runs"
+    "/results"
   ]
 
   # Two pages name protocol documents on purpose and say so: the protocol map,
@@ -48,8 +48,8 @@ defmodule TechtreeWeb.PagesTest do
     "/campaigns",
     "/campaigns/hello-world-climb",
     "/proofs",
-    "/runs",
-    "/runs/" <> Techtree.NetworkFixture.bundle_digest()
+    "/results",
+    "/results/" <> Techtree.NetworkFixture.bundle_digest()
   ]
 
   describe "with a release being served" do
@@ -203,11 +203,10 @@ defmodule TechtreeWeb.PagesTest do
       end
     end
 
-    test "long values are marked so that they wrap on a narrow screen", %{conn: conn} do
+    test "long fingerprints are marked so that they wrap on a narrow screen", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
 
       assert html =~ ~s|class="digest"|
-      assert html =~ ~s|class="command__block"|
     end
 
     test "the page frame declares a phone-friendly viewport", %{conn: conn} do
@@ -226,6 +225,13 @@ defmodule TechtreeWeb.PagesTest do
         |> html_response(200)
 
       assert html =~ ~s|<html lang="en" data-theme="orange">|
+    end
+
+    test "titanium is the default regardless of system preference", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      assert html =~ ~s|<html lang="en" data-theme="titanium">|
+      assert html =~ ~s|<meta name="color-scheme" content="dark">|
     end
 
     test "pages are sent with a restrictive content policy and no framing", %{conn: conn} do

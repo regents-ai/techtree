@@ -22,7 +22,7 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       assert text =~ "Does one added component make the agent better?"
       assert text =~ "One skill is added. Nothing else may differ."
       assert text =~ "Tasks 36"
-      assert text =~ "Task family BranchCode v1"
+      refute text =~ "BranchCode"
       assert text =~ "hermes-agent 0.19.0"
       assert text =~ "hello-world-climb@1"
     end
@@ -34,7 +34,7 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       assert text =~ "Techtree Hello World"
       assert text =~ "A toy Skill-uplift Climb"
       assert text =~ "Hello World Skill Uplift"
-      assert text =~ "BranchCode v1"
+      refute text =~ "BranchCode"
     end
 
     test "the card says this is a toy demonstration rather than a benchmark", %{conn: conn} do
@@ -87,7 +87,7 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       text = visible_text(html)
 
       assert text =~ "No Climbs are published on this site at the moment"
-      assert text =~ "does not stop a trial on your own machine"
+      assert text =~ "does not stop a Test on your own machine"
     end
   end
 
@@ -103,7 +103,7 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       text = visible_text(html)
 
       assert text =~ "The invitation"
-      assert text =~ "The trial"
+      assert text =~ "The Test"
       assert text =~ "ClimbManifest"
       assert text =~ "CampaignSpec"
     end
@@ -113,7 +113,7 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       text = visible_text(html)
 
       assert text =~ "Tasks 36"
-      assert text =~ "Task family BranchCode v1"
+      refute text =~ "BranchCode"
       assert text =~ "One skill is added. Nothing else may differ."
       assert text =~ "exact match"
       assert text =~ "Side by side, started together on one machine."
@@ -121,7 +121,7 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       assert text =~ "network restricted"
     end
 
-    test "carries every name this Climb is published under", %{conn: conn} do
+    test "carries the public names and references of the fixed contract", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
       text = visible_text(html)
 
@@ -130,9 +130,9 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       assert text =~ "Hello World Skill Uplift"
       assert text =~ "hello-world-climb@1"
       assert text =~ "hello-world-starter-v1"
-      assert text =~ "BranchCode v1"
-      assert text =~ "Hello World Uplift Receipt"
-      assert text =~ "Hello World — Iteration 2"
+      refute text =~ "BranchCode"
+      refute text =~ "Hello World Uplift Receipt"
+      refute text =~ "Hello World — Iteration 2"
       refute text =~ "HelloWorldBench"
     end
 
@@ -154,13 +154,13 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       assert text =~ "not a measure of broad capability"
     end
 
-    test "shows the rights and the limits of a local result", %{conn: conn} do
+    test "shows the rights without reteaching the proof boundary", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
       text = visible_text(html)
 
       assert text =~ "Stay on your machine. They are never uploaded."
-      assert text =~ "this site does not watch it happen"
-      assert text =~ "not evidence of anything"
+      refute text =~ "this site does not watch it happen"
+      refute text =~ "What a result may be called"
     end
 
     test "links every document by its fingerprint", %{conn: conn} do
@@ -175,12 +175,13 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       end
     end
 
-    test "the entry commands name this Climb exactly", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
+    test "the contract sends the first-run walkthrough to Start", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/climbs/hello-world-climb")
       text = visible_text(html)
 
-      assert text =~ "techtree climb show hello-world-climb@1"
-      assert text =~ "techtree climb prepare hello-world-climb@1 --skill path/to/skill"
+      assert has_element?(live, ~s|a[href="/start"]|, "Start")
+      assert text =~ "This page remains the fixed Test contract."
+      refute text =~ "techtree climb prepare"
     end
 
     test "a slug that names nothing is not found", %{conn: conn} do

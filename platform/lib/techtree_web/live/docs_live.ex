@@ -27,7 +27,6 @@ defmodule TechtreeWeb.DocsLive do
   import TechtreeWeb.PageCopy, only: [page_copy: 1]
 
   alias TechtreeWeb.CampaignFacts
-  alias TechtreeWeb.InstallComponents
   alias TechtreeWeb.ReleaseInfo
 
   @impl true
@@ -41,7 +40,6 @@ defmodule TechtreeWeb.DocsLive do
        campaign: campaign,
        campaign_facts: CampaignFacts.for_climb(campaign),
        climb_reference: release && release.introductory_reference,
-       instructions: instructions(),
        release: release
      )}
   end
@@ -57,10 +55,7 @@ defmodule TechtreeWeb.DocsLive do
             <.docs_group
               title="Start"
               links={[
-                {"What v0.1 is", "#what-this-release-is"},
-                {"Quickstart", "#quickstart"},
-                {"Install", "#install"},
-                {"Run Hello World", "#hello-world"},
+                {"Install Techtree", "/start"},
                 {"What leaves my machine?", "#trust"}
               ]}
             />
@@ -68,11 +63,10 @@ defmodule TechtreeWeb.DocsLive do
               title="Concepts"
               links={[
                 {"Climbs and Campaigns", "#campaigns"},
-                {"Subject and harness", "#subjects"},
+                {"Operator, subject, and scorer", "#subjects"},
                 {"Baseline and candidate", "#comparison"},
                 {"Taskset validation and the recorded comparison", "#validation"},
-                {"Evidence graph", "#evidence-graph"},
-                {"Proofs and reproduction", "#proofs"}
+                {"Proof bundles", "#proofs"}
               ]}
             />
             <.docs_group
@@ -87,8 +81,6 @@ defmodule TechtreeWeb.DocsLive do
               title="Trust"
               links={[
                 {"What leaves my machine?", "#trust"},
-                {"What a proof establishes", "#proof-limits"},
-                {"Evidence completeness", "#evidence"},
                 {"Model pinning", "#model-pinning"}
               ]}
             />
@@ -112,184 +104,31 @@ defmodule TechtreeWeb.DocsLive do
               <p class="eyebrow">Techtree v0.1</p>
               <.page_copy />
             </div>
-            <h1>Get to a controlled first run.</h1>
+            <h1>Operate and integrate Techtree.</h1>
             <p class="lede">
-              Use the pinned Hermes plugin or install the pinned command-line tool directly.
-              Check the machine, obtain the introductory Skill, and prepare the Hello World
-              comparison.
+              Command reference, runtime behavior, local artifacts, configuration, and
+              troubleshooting for the CLI and Hermes plugin.
             </p>
             <p>
-              Preparation does not make model calls. It shows what will run, what may change,
-              where model requests go, and the Campaign’s cost limit. Nothing causing LLM
-              token spend starts on its own.
+              New here? <.link navigate={~p"/start"}>Install and complete the first Climb</.link>.
+              For the claim boundary, read <.link navigate={~p"/proofs"}>Proofs</.link>.
             </p>
           </header>
 
-          <.proof_of_concept class="doc-section" />
-
           <section id="quickstart" class="doc-section">
-            <h2>Quickstart</h2>
-            <p>Two ways in. Both end at a measured comparison with a receipt.</p>
-
-            <h3>Already running Hermes?</h3>
-            <p>Paste one line into your agent:</p>
-            <.prompt_block
-              id="copy-docs-agent-line"
-              label="Give this to your agent"
-              text={InstallComponents.agent_line()}
-            />
-
-            <h3>No agent yet?</h3>
+            <h2>Installation lives on Start</h2>
             <p>
-              Paste this into your terminal — it is Nous Research’s own Hermes installer.
-              This release names Hermes {minimum(@release, "hermes_version")} as the tested
-              host version.
+              <.link navigate={~p"/start"}>Start</.link> carries the current release pins,
+              prerequisites, Doctor command, and exact next action.
             </p>
-            <.prompt_block
-              id="copy-docs-hermes-install"
-              label="Install the Hermes agent"
-              text="curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
-            />
-            <InstallComponents.pinned_commands
-              :if={installable?(@release)}
-              instructions={@instructions}
-            />
-            <p :if={not installable?(@release)} class="small quiet">
-              The pinned plugin and command-line install commands appear here once an
-              installable release is active on this channel.
-            </p>
-
-            <h3>What your agent will set up for you</h3>
-            <p>
-              Handed the line above, the agent reads the pinned guide and takes care of the
-              rest: it installs the exact pinned plugin and command-line tool, prepares the
-              local layout, checks the machine, installs the evaluation engine, obtains the
-              starter Skill, and prepares the Hello World comparison. It asks before it
-              installs anything, runs anything, or spends anything — and a trial takes a
-              while, so it hands back a run identifier instead of making you wait.
-            </p>
-
-            <h3>What you should do yourself</h3>
-            <ul class="doc-list">
-              <li>Have Python {minimum(@release, "python")}, <code>uv</code>, and Docker
-                installed — and Docker running;</li>
-              <li>
-                sign in to your model-provider account once, so the evaluation can pay for
-                its own model calls:
-              </li>
-            </ul>
-            <.command_block
-              id="copy-docs-prime-login"
-              argv={["prime", "login"]}
-              label="Sign in to Prime"
-            />
-            <ul class="doc-list">
-              <li>approve the three moments that matter: installing the plugin, installing
-                the command-line tool, and starting the paid comparison;</li>
-              <li>read the install-time scan report before confirming, and leave the
-                scanning on;</li>
-              <li>restart Hermes once, when the agent tells you its tools need loading.</li>
-            </ul>
-
-            <h3 id="install">Installing manually</h3>
-            <%= if installable?(@release) do %>
-              <p>
-                This channel is serving a concrete, content-addressed release, so the exact
-                command it publishes is the one shown here.
-              </p>
-              <.command_block
-                id="copy-docs-install"
-                argv={@release.install_argv}
-                label="Install the pinned command-line tool"
-              />
-              <p class="compatibility">{ReleaseInfo.compatibility(@release)}</p>
-            <% else %>
-              <p>No installable release is active on this channel yet.</p>
-              <p>
-                This page prints installation commands only when it is serving a concrete,
-                content-addressed release. Techtree never turns stand-in coordinates, branch
-                names, or placeholder versions into commands someone could run.
-              </p>
-              <p>
-                Once an installable release is active, its exact CLI and plugin commands will
-                appear here from the published release record.
-              </p>
-            <% end %>
-
-            <p>After installation, the direct terminal flow is:</p>
-            <.command_block
-              id="copy-docs-setup"
-              argv={["techtree", "setup"]}
-              label="Prepare the local layout"
-            />
-            <.command_block
-              :if={@climb_reference}
-              id="copy-docs-doctor"
-              argv={["techtree", "doctor", "--climb", @climb_reference]}
-              label="Check this machine"
-            />
-            <.command_block
-              id="copy-docs-skill-starter"
-              argv={["techtree", "skill", "starter"]}
-              label="Obtain the starter Skill"
-            />
-            <p>
-              <code>techtree skill starter</code>
-              verifies and materializes the Skill pinned by the release, then prints the exact
-              next command for preparing Hello World. Each later command also prints its next
-              valid action.
-            </p>
-            <p>The direct CLI path does not require a host Hermes installation.</p>
-            <p>The Hermes you talk to is an operator. It is not the agent being evaluated.</p>
-          </section>
-
-          <section id="hello-world" class="doc-section">
-            <h2>What the first run demonstrates</h2>
-            <p>Techtree Hello World reduces the experiment to four statements:</p>
-            <ol class="steps">
-              <li>
-                <p class="plain"><strong>Same agent and same tasks.</strong></p>
-                <p>
-                  Both branches use the same configured model, harness, runtime, task
-                  membership, tools, scorer, sampling, and budgets.
-                </p>
-              </li>
-              <li>
-                <p class="plain"><strong>The Skill is the only permitted change.</strong></p>
-                <p>
-                  The baseline mounts no tested Skill. The candidate mounts exactly one
-                  content-addressed Skill tree.
-                </p>
-              </li>
-              <li>
-                <p class="plain"><strong>Here is the measured difference.</strong></p>
-                <p>
-                  Prime Intellect’s Verifiers — pinned at version 0.3.1, down to the exact
-                  commit — records each task’s outcome and score.
-                  Techtree pairs the results and reports the baseline score, candidate score,
-                  wins, losses, ties, cost, timing, and validity.
-                </p>
-              </li>
-              <li>
-                <p class="plain">
-                  <strong>Here is the local receipt and how to verify it.</strong>
-                </p>
-                <p>
-                  Techtree writes a signed, participant-attested proof bundle that can be
-                  checked offline.
-                </p>
-              </li>
-            </ol>
-            <p>
-              Hello World is a synthetic introductory mechanism test. It is not a broad agent
-              benchmark and should not be used to make claims about general intelligence or
-              production capability.
-            </p>
+            <.link class="button button--primary" navigate={~p"/start"}>
+              Open the installation guide
+            </.link>
           </section>
 
           <section id="trust" class="doc-section">
             <h2>What leaves my machine?</h2>
-            <p>Techtree sends none of this anywhere on its own:</p>
+            <p>Techtree does not automatically upload your local:</p>
             <ul class="doc-list">
               <li>Episodes;</li>
               <li>Traces;</li>
@@ -299,13 +138,16 @@ defmodule TechtreeWeb.DocsLive do
               <li>saved Skill proposals.</li>
             </ul>
             <p>
-              Publishing a finished run uploads the complete proof bundle — its index files,
-              signed report and receipts, cited documents, and any optional execution record —
-              while Episodes and Traces remain local. The network returns a separate signed
-              publication receipt acknowledging acceptance; it is not the uploaded proof bundle.
+              Publishing is a separate, explicit action. It uploads the complete proof bundle —
+              its index files, signed report and receipts, cited documents, and any optional
+              execution record — while Episodes and Traces remain local. The network returns a
+              separate signed publication receipt acknowledging acceptance; it is not the
+              uploaded proof bundle.
             </p>
             <p>
-              This website has no account system and no route for submitting those artifacts.
+              This website has no account system or browser upload form. A finished run is
+              published only when you or your operator explicitly invokes the CLI publication
+              action.
             </p>
             <p>
               A comparison still makes real model requests. The baseline and candidate send
@@ -319,8 +161,9 @@ defmodule TechtreeWeb.DocsLive do
               evaluated subject.
             </p>
             <p>
-              The sanitized summary excludes hidden expected answers, grader source, provider
-              credentials, private filesystem paths, and the evaluated subject’s final replies.
+              The sanitized summary excludes hidden expected answers, grader source, private
+              environment values, unredacted local paths, and the evaluated subject’s final
+              replies.
             </p>
             <p>
               Hello World requires an active Prime CLI login. Techtree does not store, print,
@@ -366,7 +209,7 @@ defmodule TechtreeWeb.DocsLive do
           </section>
 
           <section id="subjects" class="doc-section">
-            <h2>Subject and harness</h2>
+            <h2>Operator, subject, and scorer</h2>
             <p>
               The subject is the agent system under evaluation. It is separate from the Hermes
               agent helping you operate Techtree.
@@ -467,15 +310,12 @@ defmodule TechtreeWeb.DocsLive do
               solve it. The published validation receipt establishes, for this taskset, that:
             </p>
             <ul class="doc-list">
-              <li>the package loads;</li>
-              <li>task identities are unique;</li>
-              <li>membership is deterministic;</li>
-              <li>each task’s own expected answer scores correctly;</li>
-              <li>a known-wrong answer does not;</li>
-              <li>the scorer is available; and</li>
-              <li>
-                required validation work completed without missing tasks or timeouts.
-              </li>
+              <li>upstream gold and setup validation passed for all 36 tasks;</li>
+              <li>two independent inspections produced the same ordered task hashes;</li>
+              <li>all task hashes are distinct;</li>
+              <li>the ordered hashes match the committed membership;</li>
+              <li>the task count is the expected 36; and</li>
+              <li>validation recorded no errors, invalid tasks, missing tasks, or timeouts.</li>
             </ul>
             <p :if={CampaignFacts.validation_words(@campaign_facts.validation)}>
               For Hello World, the published receipt reports <strong>{CampaignFacts.validation_words(@campaign_facts.validation)}</strong>.
@@ -504,82 +344,22 @@ defmodule TechtreeWeb.DocsLive do
             </p>
           </section>
 
-          <section id="evidence-graph" class="doc-section">
-            <h2>Evidence graph</h2>
-            <p>
-              The graph on this site is an index over published evidence and declared state.
-              It is not decorative artwork and it is not a live view into your machine.
-            </p>
-            <p>A node may represent:</p>
-            <ul class="doc-list">
-              <li>a published Campaign;</li>
-              <li>taskset validation;</li>
-              <li>a declared baseline or candidate;</li>
-              <li>a completed comparison;</li>
-              <li>a signed local receipt; or</li>
-              <li>an explicitly unavailable or unexecuted step.</li>
-            </ul>
-            <p>
-              A completed node is shown only when the corresponding published object or
-              recorded evidence exists. A declared branch that has not run must say so.
-            </p>
-            <p>
-              This site does not receive your local run artifacts, so it cannot automatically
-              add your private runs to the public graph.
-            </p>
-          </section>
-
           <section id="proofs" class="doc-section">
-            <h2>Proofs and reproduction</h2>
+            <h2>Operate the offline verifier</h2>
             <p>
-              When a comparison finishes, Techtree creates a local proof bundle containing the
-              signed comparison report, signed per-task receipts, the resolved, frozen
-              description of what will run, membership commitments, and the references needed
-              to verify the result from stored bytes.
-            </p>
-            <p>The bundle is signed with a private key kept on your machine.</p>
-            <p>
-              You can verify a run ID, a proof-bundle directory, or a signed report file:
+              Use the CLI to verify a completed Result by ID, bundle directory, or signed report.
+              The command makes no model request, contacts no Techtree service, and does not
+              modify the proof.
             </p>
             <.command_block
               id="copy-docs-proof-verify"
-              argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
+              argv={["techtree", "proof", "verify", "RUN_ID"]}
               label="Verify offline"
             />
-            <p>Verification:</p>
-            <ul class="doc-list">
-              <li>makes no model request;</li>
-              <li>contacts no Techtree service;</li>
-              <li>fetches nothing from the network; and</li>
-              <li>writes nothing to the proof.</li>
-            </ul>
             <p>
-              A copied bundle can therefore be checked on another machine with the Techtree
-              CLI installed.
-            </p>
-            <p>
-              A verified bundle establishes that the stored files, fingerprints, signatures,
-              task membership, and reported aggregation agree with one another. It is an
-              attestation by the participant-controlled key that produced it.
-            </p>
-            <p>It does not establish that:</p>
-            <ul class="doc-list">
-              <li>the participant’s machine behaved honestly;</li>
-              <li>an independent party witnessed the computation;</li>
-              <li>the result generalizes beyond the Campaign; or</li>
-              <li>somebody else reproduced the result.</li>
-            </ul>
-            <p>
-              A reproduction would require another executor to run the same scientific
-              contract and record a separately attributable result. v0.1 does not provide a
-              public reproduction or attestation-import workflow.
-            </p>
-            <p>
-              Publishing a finished run uploads its complete proof bundle to the public run log,
-              which is a record of what was published and not a reproduction of it. The network
-              returns a separate signed publication receipt acknowledging acceptance. The site
-              checks the uploaded proof bundle and receipt for internal consistency and
-              signatures; it does not run the comparison again and did not watch the original.
+              <.link navigate={~p"/proofs"}>
+                Read what verification does and does not establish.
+              </.link>
             </p>
           </section>
 
@@ -745,8 +525,8 @@ defmodule TechtreeWeb.DocsLive do
               <li>a strict required response shape.</li>
             </ul>
             <p>
-              It does not receive hidden expected answers, grader source, provider credentials,
-              local private paths, or the evaluated subject’s final replies.
+              It does not receive hidden expected answers, grader source, private environment
+              values, unredacted local paths, or the evaluated subject’s final replies.
             </p>
             <p>The host may make exactly one proposal request.</p>
             <p>
@@ -820,72 +600,6 @@ defmodule TechtreeWeb.DocsLive do
               remain local. The network returns a separate signed publication receipt; it is not
               the uploaded proof bundle. Model inference still travels to the configured
               providers as described above.
-            </p>
-          </section>
-
-          <section id="proof-limits" class="doc-section">
-            <h2>What a proof establishes</h2>
-            <p>The offline verifier keeps five questions separate.</p>
-            <ol class="steps">
-              <li>
-                <p class="plain"><strong>Cryptographic integrity</strong></p>
-                <p>Do the stored files still match their fingerprints and signatures?</p>
-              </li>
-              <li>
-                <p class="plain"><strong>Scientific validity</strong></p>
-                <p>
-                  Do the documents describe one internally consistent controlled comparison,
-                  with the expected task membership and permitted mutation?
-                </p>
-              </li>
-              <li>
-                <p class="plain"><strong>Participant attestation</strong></p>
-                <p>
-                  Which local key vouched for the stored bytes, and what bounded claim does
-                  that signature support?
-                </p>
-              </li>
-              <li>
-                <p class="plain"><strong>Independent reproduction</strong></p>
-                <p>
-                  Has a separately attributable executor reproduced this result? For v0.1, the
-                  answer is no.
-                </p>
-              </li>
-              <li>
-                <p class="plain"><strong>Public publication</strong></p>
-                <p>
-                  Was the result published? A sealed bundle records that publication had not
-                  been requested when it was written, which is not a statement about what
-                  happened afterwards. The public run log is where a published run appears.
-                </p>
-              </li>
-            </ol>
-            <p>
-              A proof that passes these checks is internally consistent and
-              participant-attested. It is not proof that the machine was honest or that an
-              independent party witnessed the execution.
-            </p>
-          </section>
-
-          <section id="evidence" class="doc-section">
-            <h2>Evidence completeness</h2>
-            <p>A Campaign declares which evidence a valid result must contain.</p>
-            <p>Missing evidence stays missing:</p>
-            <ul class="doc-list">
-              <li>a missing task is not treated as zero;</li>
-              <li>a missing reward is not guessed;</li>
-              <li>a partial comparison is not silently aggregated;</li>
-              <li>a missing artifact is not replaced by a placeholder; and</li>
-              <li>a failed proof check is not reduced to a warning.</li>
-            </ul>
-            <p>
-              If a required episode does not complete, Techtree does not issue a valid uplift
-              claim for that comparison.
-            </p>
-            <p>
-              The website follows the same rule: it does not draw a completed evidence node
-              for a document that does not exist.
             </p>
           </section>
 
@@ -1008,71 +722,76 @@ defmodule TechtreeWeb.DocsLive do
           </section>
 
           <section id="release" class="doc-section">
-            <h2>Release coordinates</h2>
-            <%= if installable?(@release) do %>
-              <p>
-                These coordinates are generated from the active release record, not written
-                into this page.
-              </p>
-              <.definition_list>
-                <:fact term="Channel">{@release.channel}</:fact>
-                <:fact term="CLI version">{@release.version}</:fact>
-                <:fact term="CLI source revision">
-                  <.digest value={@release.source_revision} />
-                </:fact>
-                <:fact term="Release record fingerprint">
-                  <.digest value={@release.digest} />
-                </:fact>
-                <:fact :if={@release.repository_url} term="Pinned plugin commit">
-                  <a href={@release.repository_url}>{@release.repository_url}</a>
-                </:fact>
-                <:fact :if={minimum(@release, "hermes_version")} term="Minimum Hermes">
-                  {minimum(@release, "hermes_version")}
-                </:fact>
-                <:fact :if={minimum(@release, "python")} term="Minimum Python">
-                  {minimum(@release, "python")}
-                </:fact>
-                <:fact :if={minimum(@release, "uv")} term="Minimum uv">
-                  {minimum(@release, "uv")}
-                </:fact>
-                <:fact :if={@climb_reference} term="Introductory Climb">
-                  {@climb_reference}
-                </:fact>
-                <:fact :if={starter(@release, "file_digest")} term="Starter Skill file">
-                  <.digest value={starter(@release, "file_digest")} />
-                </:fact>
-                <:fact :if={starter(@release, "tree_digest")} term="Starter Skill tree">
-                  <.digest value={starter(@release, "tree_digest")} />
-                </:fact>
-              </.definition_list>
-            <% else %>
-              <p>No installable release coordinate is active on this channel yet.</p>
-              <p>
-                When an installable release is activated, this section is generated from the
-                active release record rather than written by hand.
-              </p>
-            <% end %>
+            <h2>Release integrity</h2>
+            <details class="integrity-details">
+              <summary>Integrity details</summary>
+              <%= if installable?(@release) do %>
+                <p>
+                  These coordinates are generated from the active release record, not written
+                  into this page.
+                </p>
+                <.definition_list>
+                  <:fact term="Channel">{@release.channel}</:fact>
+                  <:fact term="CLI version">{@release.version}</:fact>
+                  <:fact term="CLI source revision">
+                    <.digest value={@release.source_revision} />
+                  </:fact>
+                  <:fact term="Release record fingerprint">
+                    <.digest value={@release.digest} />
+                  </:fact>
+                  <:fact :if={@release.repository_url} term="Pinned plugin commit">
+                    <a href={@release.repository_url}>{@release.repository_url}</a>
+                  </:fact>
+                  <:fact :if={minimum(@release, "hermes_version")} term="Minimum Hermes">
+                    {minimum(@release, "hermes_version")}
+                  </:fact>
+                  <:fact :if={minimum(@release, "python")} term="Minimum Python">
+                    {minimum(@release, "python")}
+                  </:fact>
+                  <:fact :if={minimum(@release, "uv")} term="Minimum uv">
+                    {minimum(@release, "uv")}
+                  </:fact>
+                  <:fact :if={@climb_reference} term="Introductory Climb">
+                    {@climb_reference}
+                  </:fact>
+                  <:fact :if={starter(@release, "file_digest")} term="Starter Skill file">
+                    <.digest value={starter(@release, "file_digest")} />
+                  </:fact>
+                  <:fact :if={starter(@release, "tree_digest")} term="Starter Skill tree">
+                    <.digest value={starter(@release, "tree_digest")} />
+                  </:fact>
+                </.definition_list>
+              <% else %>
+                <p>No installable release coordinate is active on this channel yet.</p>
+                <p>
+                  When an installable release is activated, this section is generated from the
+                  active release record rather than written by hand.
+                </p>
+              <% end %>
 
-            <p>Do not install from:</p>
-            <ul class="doc-list">
-              <li><code>main</code>;</li>
-              <li><code>latest</code>;</li>
-              <li>a shortened commit;</li>
-              <li>an unpinned package range;</li>
-              <li>a command copied from an old post; or</li>
-              <li>a placeholder coordinate.</li>
-            </ul>
-            <p>The active release record and the installed CLI’s own answers are the authorities:</p>
-            <.command_block
-              id="copy-docs-release-info"
-              argv={["techtree", "release", "info"]}
-              label="What release is installed"
-            />
-            <.command_block
-              id="copy-docs-release-verify"
-              argv={["techtree", "release", "verify"]}
-              label="Check the installed release"
-            />
+              <p>Do not install from:</p>
+              <ul class="doc-list">
+                <li><code>main</code>;</li>
+                <li><code>latest</code>;</li>
+                <li>a shortened commit;</li>
+                <li>an unpinned package range;</li>
+                <li>a command copied from an old post; or</li>
+                <li>a placeholder coordinate.</li>
+              </ul>
+              <p>
+                The active release record and the installed CLI’s own answers are the authorities:
+              </p>
+              <.command_block
+                id="copy-docs-release-info"
+                argv={["techtree", "release", "info"]}
+                label="What release is installed"
+              />
+              <.command_block
+                id="copy-docs-release-verify"
+                argv={["techtree", "release", "verify"]}
+                label="Check the installed release"
+              />
+            </details>
           </section>
 
           <section id="troubleshooting" class="doc-section">
@@ -1141,13 +860,6 @@ defmodule TechtreeWeb.DocsLive do
       <a :for={{label, href} <- @links} href={href}>{label}</a>
     </div>
     """
-  end
-
-  defp instructions do
-    case Query.bootstrap_instructions() do
-      {:ok, instructions} -> instructions
-      {:error, _error} -> nil
-    end
   end
 
   defp installable?(%{installable?: true}), do: true

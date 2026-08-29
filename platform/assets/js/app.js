@@ -25,8 +25,6 @@ const THEMES = {
     browserColor: "#101010",
   },
 }
-const systemTheme = window.matchMedia("(prefers-color-scheme: light)")
-
 function readThemeCookie() {
   const prefix = `${THEME_COOKIE}=`
   const value = document.cookie
@@ -45,7 +43,7 @@ function writeThemeCookie(theme) {
 
 let savedTheme = readThemeCookie()
 
-const resolvedTheme = () => savedTheme || (systemTheme.matches ? "orange" : "titanium")
+const resolvedTheme = () => savedTheme || "titanium"
 
 function previewRouteTheme() {
   if (/^\/crown\/2\/?$/.test(window.location.pathname)) return "orange"
@@ -110,10 +108,6 @@ document.addEventListener("click", event => {
   savedTheme = theme
   writeThemeCookie(theme)
   applyTheme(theme)
-})
-
-systemTheme.addEventListener("change", () => {
-  if (!savedTheme && !previewRouteTheme()) applyTheme(pageTheme())
 })
 
 window.addEventListener("phx:page-loading-stop", () => applyTheme(pageTheme()))
