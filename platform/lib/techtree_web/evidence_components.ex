@@ -50,7 +50,18 @@ defmodule TechtreeWeb.EvidenceComponents do
                 <dd>{value}</dd>
               <% end %>
             </dl>
-            <a class="digest evidence-node__digest" href={node.href}>{node.digest}</a>
+            <a
+              :if={node.digest && node.href}
+              class="digest evidence-node__digest"
+              href={node.href}
+            >
+              {node.digest}
+            </a>
+            <div :if={node.links != []} class="evidence-node__links">
+              <a :for={{label, href} <- node.links} class="text-link" href={href}>
+                {label} <span aria-hidden="true">→</span>
+              </a>
+            </div>
           </div>
         </details>
       </div>

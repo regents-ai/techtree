@@ -1303,6 +1303,7 @@ strong {
 }
 
 .evidence-node--root,
+.evidence-node--checkpoint,
 .evidence-node--merge {
   grid-column: 1 / -1;
   width: min(100%, 17rem);
@@ -1319,6 +1320,23 @@ strong {
   bottom: -0.9rem;
   height: 0.9rem;
   border-left: 1px solid var(--rule-strong);
+}
+
+.evidence-node--checkpoint::before,
+.evidence-node--checkpoint::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  height: 0.9rem;
+  border-left: 1px solid var(--rule-strong);
+}
+
+.evidence-node--checkpoint::before {
+  top: -0.9rem;
+}
+
+.evidence-node--checkpoint::after {
+  bottom: -0.9rem;
 }
 
 .evidence-node--left::before,
@@ -1447,6 +1465,16 @@ strong {
 .evidence-node__digest {
   display: block;
   margin-top: 0.8rem;
+}
+
+.evidence-node__links {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.evidence-node__links .text-link {
+  font-size: 0.72rem;
 }
 
 /* Documentation ---------------------------------------------------------- */
@@ -2683,6 +2711,7 @@ strong {
 
   .evidence-node,
   .evidence-node--root,
+  .evidence-node--checkpoint,
   .evidence-node--merge {
     width: 100%;
     grid-column: 1;

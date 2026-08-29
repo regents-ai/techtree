@@ -6,6 +6,7 @@ defmodule TechtreeWeb.HomeLive do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias Techtree.Network.Query, as: NetworkQuery
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.EvidenceComponents
@@ -33,6 +34,7 @@ defmodule TechtreeWeb.HomeLive do
   def mount(_params, _session, socket) do
     campaign = Query.list_climbs() |> List.first()
     release = ReleaseInfo.current()
+    proofs = published_proofs(campaign)
     crown_variant = Map.get(@crown_actions, socket.assigns.live_action, "1")
     crown_study? = Map.has_key?(@crown_actions, socket.assigns.live_action)
 
@@ -43,7 +45,7 @@ defmodule TechtreeWeb.HomeLive do
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
-       graph: EvidenceGraph.from_climb(campaign, release),
+       graph: EvidenceGraph.from_climb(campaign, release, proofs),
        release: release,
        preview_label: @preview_label,
        crown_studies: @crown_studies,
@@ -51,6 +53,11 @@ defmodule TechtreeWeb.HomeLive do
        crown_study?: crown_study?
      )}
   end
+
+  defp published_proofs(%{projection: %{"campaign_spec_digest" => digest}}),
+    do: NetworkQuery.for_campaign(digest)
+
+  defp published_proofs(_campaign), do: []
 
   @impl true
   def render(assigns) do

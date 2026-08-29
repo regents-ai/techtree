@@ -40,6 +40,10 @@ defmodule Techtree.Network do
       define :list_publication_entries, action: :read
       define :get_publication_entry_by_digest, action: :get_by_digest, args: [:bundle_digest]
 
+      define :list_publication_entries_for_campaign,
+        action: :for_campaign,
+        args: [:campaign_spec_digest]
+
       define :get_publication_entry_by_run,
         action: :get_by_run,
         args: [:participant_key_id, :run_id]

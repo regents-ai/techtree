@@ -79,6 +79,20 @@ defmodule Techtree.Network.Query do
   end
 
   @doc """
+  The most recent published proofs for one Campaign, newest arrival first.
+
+  This is deliberately one filtered and bounded Ash read with a narrow
+  selection: the evidence graph needs only the receipt links and their
+  recomputed outcome counts, not the full publication resource. The extra row
+  tells the caller whether the displayed sample was capped.
+  """
+  @spec for_campaign(String.t()) :: %{entries: [PublicationEntry.t()], truncated?: boolean()}
+  def for_campaign(campaign_spec_digest) when is_binary(campaign_spec_digest) do
+    found = Network.list_publication_entries_for_campaign!(campaign_spec_digest)
+    %{entries: Enum.take(found, 12), truncated?: length(found) > 12}
+  end
+
+  @doc """
   Whether an entry has been withdrawn.
   """
   @spec withdrawn?(PublicationEntry.t()) :: boolean()

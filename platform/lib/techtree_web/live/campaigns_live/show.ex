@@ -11,6 +11,7 @@ defmodule TechtreeWeb.CampaignsLive.Show do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias Techtree.Network.Query, as: NetworkQuery
   alias Techtree.Release.StarterSkill
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
@@ -31,7 +32,12 @@ defmodule TechtreeWeb.CampaignsLive.Show do
            copy: copy,
            facts: climb.projection,
            published: CampaignFacts.for_climb(climb),
-           graph: EvidenceGraph.from_climb(climb, ReleaseInfo.current())
+           graph:
+             EvidenceGraph.from_climb(
+               climb,
+               ReleaseInfo.current(),
+               NetworkQuery.for_campaign(climb.projection["campaign_spec_digest"])
+             )
          )}
 
       {:error, _error} ->

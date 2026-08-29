@@ -107,6 +107,29 @@ defmodule Techtree.Network.PublicationEntry do
       filter expr(bundle_digest == ^arg(:bundle_digest))
     end
 
+    read :for_campaign do
+      description "Published proofs for one Campaign, newest arrival first."
+
+      argument :campaign_spec_digest, :string, allow_nil?: false
+
+      filter expr(campaign_spec_digest == ^arg(:campaign_spec_digest))
+
+      prepare build(
+                limit: 13,
+                sort: [log_sequence: :desc],
+                select: [
+                  :bundle_digest,
+                  :log_sequence,
+                  :proof_grade,
+                  :wins,
+                  :ties,
+                  :losses,
+                  :task_count,
+                  :withdrawn_at
+                ]
+              )
+    end
+
     read :get_by_run do
       description "One entry, by the participant and run it belongs to."
       get? true
