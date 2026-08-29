@@ -296,7 +296,7 @@ function pageAsMarkdown(root) {
           out += "`" + text(child) + "`"
         } else if (tag === "a") {
           const href = child.getAttribute("href") || ""
-          const absolute = href.startsWith("http") ? href : window.location.origin + href
+          const absolute = new URL(href, window.location.href).href
           out += "[" + text(child) + "](" + absolute + ")"
         } else if (tag === "strong" || tag === "b") {
           out += "**" + text(child) + "**"
@@ -346,7 +346,7 @@ function pageAsMarkdown(root) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n"
 }
 
-const docsRoot = () => document.querySelector("main")
+const docsRoot = () => document.querySelector("[data-markdown-root]") ?? document.querySelector("main")
 
 Hooks.CopyCommandPage = {
   mounted() {

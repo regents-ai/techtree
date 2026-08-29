@@ -23,20 +23,27 @@ defmodule TechtreeWeb.ProofsLiveTest do
     assert has_element?(live, ~s|a[href="/results"]|, "Browse Results")
   end
 
-  test "keeps the exact checks in a collapsed reference", %{conn: conn} do
+  test "explains the controlled comparison and shows every verifier check", %{conn: conn} do
     {:ok, live, _html} = live(conn, ~p"/proofs")
     count = Techtree.Network.Bundle.check_count()
 
-    assert has_element?(live, "details#verifier-reference:not([open])")
+    assert has_element?(live, "#comparison h2", "The controlled comparison")
+    assert has_element?(live, "#comparison", "Only the Skill may change.")
 
     assert has_element?(
              live,
-             "details#verifier-reference summary",
-             "Verifier reference: all #{count} checks"
+             ~s|#comparison a[href="https://github.com/PrimeIntellect-ai/verifiers"]|
            )
 
+    assert has_element?(
+             live,
+             ~s|#comparison a[href="https://github.com/NousResearch/hermes-agent"]|
+           )
+
+    assert has_element?(live, "#verifier-checks h2", "performs #{count} checks")
+
     for {_name, words} <- Techtree.Network.Bundle.checks() do
-      assert has_element?(live, "#verifier-reference .checks li", words)
+      assert has_element?(live, "#verifier-checks .checks li", words)
     end
   end
 
@@ -53,5 +60,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
     refute text =~ "USDC"
     refute has_element?(live, "#proof-evidence-graph")
     assert has_element?(live, ~s|a[href="/docs#verify"]|)
+    assert has_element?(live, ~s|a[href="/docs#method"]|, "Docs")
+    assert text =~ "copyable as Markdown to your agent"
   end
 end

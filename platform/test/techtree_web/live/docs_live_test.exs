@@ -8,8 +8,8 @@ defmodule TechtreeWeb.DocsLiveTest do
 
   @section_ids ~w(
     install first-climb hermes verify publish integration data-boundary troubleshooting
-    research comparison proof-bundle trust-boundary hello-world beyond-model environments
-    agent-stack regents research-start verifier-checks
+    method proof-bundle trust-boundary hello-world beyond-model environments agent-stack regents
+    research-start
   )
 
   setup do
@@ -22,13 +22,23 @@ defmodule TechtreeWeb.DocsLiveTest do
     {:ok, live, html} = live(conn, ~p"/docs")
     text = visible_text(html)
 
-    assert text =~ "Operate and integrate Techtree."
+    assert text =~ "Operation Guide and Mechanism Docs"
     assert text =~ "Install the released CLI"
+    assert text =~ "run your first A/B eval"
+    assert text =~ "publish it to our public dashboard"
+
+    assert text =~
+             "For the info on Prime Intellect’s verifiers mechanism, go to the section Method."
+
     assert text =~ "Use the machine interface"
     assert text =~ "Troubleshoot from the boundary inward"
     assert text =~ "Most agent improvements are anecdotes."
     assert text =~ "Did changing this one Skill make the agent better?"
-    assert text =~ "The offline verifier currently performs 17 checks"
+
+    assert has_element?(live, ".docs-nav__group > p", "CLI")
+    assert has_element?(live, ".docs-nav__group > p", "Method")
+    refute has_element?(live, ".docs-nav__group > p", "Integrate")
+    refute has_element?(live, ".docs-nav__group > p", "Research")
 
     for id <- @section_ids do
       assert has_element?(live, ~s|##{id}|)
@@ -55,8 +65,8 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "techtree publish RUN_ID"
     assert text =~ "GET /api/v1/bootstrap"
     assert text =~ "GET /api/v1/publications/:digest"
-    assert has_element?(live, ~s|a[href="#research"]|, "Research")
-    assert has_element?(live, ~s|a[href="/proofs"]|, "Verify")
+    assert has_element?(live, ~s|a[href="#method"]|, "Method.")
+    assert has_element?(live, ~s|a[href="/proofs"]|)
     assert has_element?(live, ~s|a[href="/results"]|, "Results")
   end
 
@@ -74,7 +84,7 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "Techtree is the research and proof engine"
     assert text =~ "x402-gated services"
 
-    assert html =~ ~r/id="troubleshooting".*id="research"/s
+    assert html =~ ~r/id="troubleshooting".*id="method"/s
   end
 
   test "research references and product destinations remain linked", %{conn: conn} do
@@ -95,25 +105,20 @@ defmodule TechtreeWeb.DocsLiveTest do
     refute html =~ "utm_source"
   end
 
-  test "all 17 verifier checks render", %{conn: conn} do
-    {:ok, live, _html} = live(conn, ~p"/docs")
-
-    [list_html] =
-      Regex.run(
-        ~r/<section id="verifier-checks".*?<ol.*?>(.*?)<\/ol>/s,
-        render(live),
-        capture: :all_but_first
-      )
-
-    assert length(Regex.scan(~r/<li>/, list_html)) == 17
-  end
-
-  test "the page offers itself as Markdown", %{conn: conn} do
-    {:ok, _live, html} = live(conn, ~p"/docs")
+  test "the page copies the complete combined article as Markdown", %{conn: conn} do
+    {:ok, live, html} = live(conn, ~p"/docs")
 
     assert html =~ ~s|phx-hook="CopyCommandPage"|
     assert html =~ ~s|phx-hook="CopyCommandPageView"|
     assert html =~ "Copy page as Markdown for agents"
     assert html =~ "View as Markdown"
+
+    assert has_element?(live, "article.docs-content[data-markdown-root] #install")
+    assert has_element?(live, "article.docs-content[data-markdown-root] #method")
+    assert has_element?(live, "article.docs-content[data-markdown-root] #research-start")
+
+    app_js = File.read!("assets/js/app.js")
+    assert app_js =~ ~s|document.querySelector("[data-markdown-root]")|
+    assert app_js =~ "new URL(href, window.location.href).href"
   end
 end

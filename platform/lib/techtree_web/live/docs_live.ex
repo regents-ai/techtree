@@ -41,7 +41,7 @@ defmodule TechtreeWeb.DocsLive do
               ]}
             />
             <.docs_group
-              title="Integrate"
+              title="CLI"
               links={[
                 {"Machine interface", "#integration"},
                 {"Data boundary", "#data-boundary"},
@@ -49,10 +49,9 @@ defmodule TechtreeWeb.DocsLive do
               ]}
             />
             <.docs_group
-              title="Research"
+              title="Method"
               links={[
-                {"The question", "#research"},
-                {"The controlled comparison", "#comparison"},
+                {"The question", "#method"},
                 {"The proof bundle", "#proof-bundle"},
                 {"The trust boundary", "#trust-boundary"},
                 {"Hello World", "#hello-world"}
@@ -68,29 +67,29 @@ defmodule TechtreeWeb.DocsLive do
               ]}
             />
             <.docs_group
-              title="Research reference"
+              title="Use it"
               links={[
-                {"Give this to your agent", "#research-start"},
-                {"The 17 verifier checks", "#verifier-checks"}
+                {"Give this to your agent", "#research-start"}
               ]}
             />
           </nav>
         </aside>
 
-        <article class="docs-content">
+        <article class="docs-content" data-markdown-root>
           <header class="docs-hero">
             <div class="docs-hero__top">
               <p class="eyebrow">Operator reference</p>
               <.page_copy />
             </div>
-            <h1>Operate and integrate Techtree.</h1>
+            <h1>Operation Guide and Mechanism Docs</h1>
             <p class="lede">
-              Install the released CLI, run the first Climb, verify a Result, and use the
-              machine-readable interfaces.
+              Install the released CLI, run your first A/B eval, verify a Result, and publish it
+              to our public dashboard.
             </p>
             <p>
-              For the research method and roadmap, read <a href="#research">Research</a>.
-              For the claim boundary, read <.link navigate={~p"/proofs"}>Verify</.link>.
+              For the info on Prime Intellect’s
+              <a href="https://github.com/PrimeIntellect-ai/verifiers"><code>verifiers</code></a>
+              mechanism, go to the section <a href="#method">Method.</a>
             </p>
           </header>
 
@@ -147,10 +146,11 @@ defmodule TechtreeWeb.DocsLive do
           </section>
 
           <section id="hermes" class="doc-section">
-            <h2>Use Hermes</h2>
+            <h2>
+              Use <a href="https://github.com/NousResearch/hermes-agent">Hermes</a>
+            </h2>
             <p>
-              The Hermes plugin is an operator interface over the same CLI. Give Hermes this
-              instruction:
+              The Hermes plugin is an operator interface over the same CLI. Give it this instruction:
             </p>
             <.prompt_block
               id="copy-docs-hermes"

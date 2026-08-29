@@ -8,8 +8,8 @@ defmodule TechtreeWeb.ResearchContent do
 
   def sections(assigns) do
     ~H"""
-    <section id="research" class="doc-section">
-      <p class="eyebrow">Research</p>
+    <section id="method" class="doc-section">
+      <p class="eyebrow">Method</p>
       <h2>Most agent improvements are anecdotes.</h2>
       <p class="lede">
         Someone changes a prompt or a Skill, runs a few examples, and says the agent feels
@@ -25,38 +25,6 @@ defmodule TechtreeWeb.ResearchContent do
         </strong>
       </p>
       <p>Techtree v0.1 is our first answer.</p>
-    </section>
-
-    <section id="comparison" class="doc-section">
-      <h2>The controlled comparison</h2>
-      <p>Techtree runs the same fixed tasks twice.</p>
-      <p>
-        The model stays the same. The Hermes harness stays the same. The runtime, tools,
-        scorer, task membership, sampling, and budget stay the same.
-      </p>
-      <p>Only the Skill may change.</p>
-      <pre class="docs-code"><code>Same agent
-    Same tasks
-    Same evaluation
-
-    Skill v1 → Skill v2</code></pre>
-      <p>
-        Prime Intellect’s
-        <a href="https://github.com/PrimeIntellect-ai/verifiers">
-          Verifiers
-        </a>
-        library runs and scores the tasks.
-        <a href="https://github.com/NousResearch/hermes-agent">Hermes</a>
-        is the agent harness. Techtree checks that the comparison stayed controlled and
-        packages the result into a signed proof bundle.
-      </p>
-      <p>
-        The result may be an uplift, a tie, a regression, a failed run, or an invalid
-        comparison. Techtree does not turn every attempt into a success.
-      </p>
-      <p>
-        The v0.1 code is open source at <a href="https://github.com/regents-ai/techtree">github.com/regents-ai/techtree</a>.
-      </p>
     </section>
 
     <section id="proof-bundle" class="doc-section">
@@ -272,29 +240,6 @@ defmodule TechtreeWeb.ResearchContent do
         <.link navigate={~p"/start"}>Start with Techtree</.link>
         · <.link navigate={~p"/results"}>Browse Results</.link>
       </p>
-    </section>
-
-    <section id="verifier-checks" class="doc-section">
-      <h2>The offline verifier currently performs 17 checks</h2>
-      <ol class="docs-numbered-list">
-        <li>The submission is small enough to be a proof bundle.</li>
-        <li>It contains the required four-member document.</li>
-        <li>It contains no extra files.</li>
-        <li>Every path is relative, safe, and unique.</li>
-        <li>Every embedded file is non-empty canonical base64.</li>
-        <li>The bundle contains a signed manifest of its files.</li>
-        <li>Every file matches the digest recorded in that manifest.</li>
-        <li>Every signed document matches its stated digest.</li>
-        <li>Every signature verifies under the included public key.</li>
-        <li>The participant fingerprint is derived from that key.</li>
-        <li>The bundle contains the signed result summary it commits to.</li>
-        <li>The named Climb is one published by this site.</li>
-        <li>Wins, losses, and ties recompute from the task results.</li>
-        <li>The tasks and their order match the Climb commitment.</li>
-        <li>The Climb’s policy permits publication.</li>
-        <li>The bundle contains no episode, transcript, or machine-local path.</li>
-        <li>The submission’s outer claims agree with the signed bundle.</li>
-      </ol>
     </section>
     """
   end

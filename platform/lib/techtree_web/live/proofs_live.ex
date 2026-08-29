@@ -65,6 +65,32 @@ defmodule TechtreeWeb.ProofsLive do
         </div>
       </section>
 
+      <section id="comparison" class="doc-section section">
+        <p class="eyebrow">Method</p>
+        <h2>The controlled comparison</h2>
+        <p>Techtree runs the same fixed tasks twice.</p>
+        <p>
+          The model stays the same. The
+          <a href="https://github.com/NousResearch/hermes-agent">Hermes</a>
+          harness stays the same. The runtime, tools, scorer, task membership, sampling, and
+          budget stay the same. Only the Skill may change.
+        </p>
+        <pre class="docs-code"><code>Same agent
+    Same tasks
+    Same evaluation
+
+    Skill v1 → Skill v2</code></pre>
+        <p>
+          Prime Intellect’s <a href="https://github.com/PrimeIntellect-ai/verifiers">Verifiers</a>
+          library runs and scores the tasks. Techtree checks that the comparison stayed
+          controlled and packages the Result into a signed proof bundle.
+        </p>
+        <p>
+          The Result may be an uplift, a tie, a regression, a failed Run, or an invalid
+          comparison. Techtree does not turn every attempt into a success.
+        </p>
+      </section>
+
       <section class="offline-verify">
         <div>
           <p class="eyebrow">Check it yourself</p>
@@ -81,12 +107,17 @@ defmodule TechtreeWeb.ProofsLive do
         />
       </section>
 
-      <details class="integrity-details section" id="verifier-reference">
-        <summary>Verifier reference: all {@check_count} checks</summary>
+      <section class="integrity-details section" id="verifier-checks">
+        <h2>The offline verifier currently performs {@check_count} checks</h2>
         <ol class="checks">
           <li :for={{_name, words} <- @checks}>{words}</li>
         </ol>
-      </details>
+      </section>
+
+      <p class="small quiet section">
+        For detailed information, read the <a href={~p"/docs#method"}>Docs</a>, copyable as
+        Markdown to your agent.
+      </p>
 
       <p class="small quiet section">
         <a href={~p"/results"}>Browse Results</a>
