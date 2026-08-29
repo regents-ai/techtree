@@ -263,9 +263,13 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, path)
 
       assert html =~
-               ~r|<span class="masthead__selector">.*href="/results"[^>]*>\s*Results\s*</a>.*href="/proofs"[^>]*>\s*Verify\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
+               ~r|<span class="masthead__selector">.*href="/start"[^>]*>\s*Start\s*</a>.*href="/results"[^>]*>\s*Results\s*</a>.*href="/proofs"[^>]*>\s*Verify\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
 
       refute html =~ ~r|href="/results"[^>]*>\s*Proofs\s*</a>|
+
+      if path == ~p"/start" do
+        assert html =~ ~r|href="/start" aria-current="page">\s*Start\s*</a>|
+      end
 
       assert html =~ ~r|</nav>\s*<button id="site-theme-toggle"|s
       assert html =~ ~s|class="theme-toggle__cube"|

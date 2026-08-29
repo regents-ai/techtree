@@ -70,6 +70,9 @@ defmodule TechtreeWeb.Layouts do
         </a>
         <nav class="masthead__nav" aria-label="Primary">
           <span class="masthead__selector">
+            <a href={~p"/start"} aria-current={current_section(@current_path, "/start")}>
+              Start
+            </a>
             <a href={~p"/results"} aria-current={current_section(@current_path, "/results")}>
               Results
             </a>
