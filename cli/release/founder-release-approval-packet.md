@@ -17,7 +17,7 @@ this file as committed.
 | Python wheel source | `614daffbcbd294be4646adfdec26f95337c4f7ed` |
 | Wheel | `techtree-0.1.1-py3-none-any.whl`, `sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce` |
 | Hermes plugin | `ca22ee782f5572b179c665c2c2a33120171f0158` |
-| Ash candidate | `b9f61b4d01a7cebc09b202283578153dfa340caf` |
+| Ash candidate | `3211712e4b821009cee3250c0c92fda803fdb9a9` |
 | ReleaseCore | `sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa` |
 | Bootstrap | `sha256:f288817ef25f1e06de0547eff1445cb387fb222005082d9bd445e10f93db0a58` |
 | Campaign | `sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1` |
@@ -96,7 +96,7 @@ signer rehearsal, or proof upload is required.
 |---|---|
 | Python full gate | 3,289 passed, 1 skipped, 298 deselected; generated artifacts matched |
 | Plugin full gate | 927 passed; format, types, Doctor, 17 tools and 2 hooks passed |
-| Ash full gate | 6 doctests and 478 tests passed at `b9f61b4d01a7cebc09b202283578153dfa340caf` |
+| Ash full gate | 6 doctests and 479 tests passed at `3211712e4b821009cee3250c0c92fda803fdb9a9` |
 | Focused release checks | 99 Ash tests passed after the final route and release re-pin |
 | Frozen wheel inspection | The preserved wheel's digest and provenance stamp match the candidate |
 | Fresh wheel install | Python 3.12; all 169 package files matched the wheel |
@@ -107,8 +107,9 @@ The wheel contains 174 members: 169 package payload files and five packaging
 metadata files. Its embedded provenance stamp names the Python source commit
 above.
 
-The Ash candidate includes the completed public-route, result-page, header, and
-release-pin work. Its full gate passed after those changes.
+The Ash candidate includes the completed public-route, result-page, header,
+restored agent setup prompt, Orange default, and release-pin work. Its full gate
+passed after those changes.
 
 ## Limits on claims
 

@@ -11,7 +11,7 @@ statement formerly in this file.
 | techtree-python wheel source | `614daffbcbd294be4646adfdec26f95337c4f7ed` |
 | CLI wheel | `techtree-0.1.1-py3-none-any.whl`, `sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce` |
 | techtree-plugin | `ca22ee782f5572b179c665c2c2a33120171f0158` |
-| techtree-ash | `b9f61b4d01a7cebc09b202283578153dfa340caf` |
+| techtree-ash | `3211712e4b821009cee3250c0c92fda803fdb9a9` |
 | ReleaseCore | `sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa` |
 | Bootstrap | `sha256:f288817ef25f1e06de0547eff1445cb387fb222005082d9bd445e10f93db0a58` |
 | Catalog | `sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c` |
@@ -48,14 +48,15 @@ to PyPI, and the Ash commit has not been deployed.
 - Python: 3,289 passed, 1 skipped, and 298 deselected; generated artifacts
   matched.
 - Plugin: 927 passed; format, types, and Doctor passed.
-- Ash: 6 doctests and 478 tests passed at the committed candidate; 99 focused
+- Ash: 6 doctests and 479 tests passed at the committed candidate; 99 focused
   release tests also passed.
 - Cross-repository release gate: 26 of 26 passed.
 - Catalog verification: five objects and one public Climb passed.
 - Selected existing proof: 339 of 339 offline checks passed.
 
-The Ash commit includes the completed public-route, result-page, header, and
-release-pin work. Its final full gate passed after those changes.
+The Ash commit includes the completed public-route, result-page, header,
+restored agent setup prompt, Orange default, and release-pin work. Its final
+full gate passed after those changes.
 
 ## Existing proof selected for the final receipt
 
