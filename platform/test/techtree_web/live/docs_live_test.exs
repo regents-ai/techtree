@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.DocsLiveTest do
   @moduledoc """
-  The documentation is the operating and integration reference. Installation
-  and proof-boundary teaching link to their dedicated routes.
+  The documentation is the operating and integration reference. Proof-boundary
+  teaching links to its dedicated route; setup stays on Start.
   """
 
   use TechtreeWeb.ConnCase, async: false
@@ -19,14 +19,12 @@ defmodule TechtreeWeb.DocsLiveTest do
       :ok
     end
 
-    test "the page leads with operations and routes newcomers to dedicated guides", %{conn: conn} do
+    test "the page leads with operations and keeps setup on Start", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/docs")
       text = visible_text(html)
 
       assert text =~ "Operate and integrate Techtree."
       assert text =~ "Command reference, runtime behavior, local artifacts"
-      assert text =~ "Installation lives on Start"
-      assert text =~ "Open the installation guide"
       assert text =~ "Climbs and Campaigns"
       assert text =~ "Baseline and candidate"
       assert text =~ "Taskset validation and the recorded comparison"
@@ -34,15 +32,15 @@ defmodule TechtreeWeb.DocsLiveTest do
       refute text =~ "What v0.1 demonstrates"
       refute text =~ "Evidence graph"
 
-      assert byte_offset(html, ~s|id="quickstart"|) < byte_offset(html, ~s|id="trust"|)
       assert byte_offset(html, ~s|id="trust"|) < byte_offset(html, ~s|id="campaigns"|)
     end
 
-    test "the quickstart points to the single installation destination",
+    test "the operating reference does not duplicate or link to the setup instruction",
          %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/docs")
+      {:ok, _live, html} = live(conn, ~p"/docs")
 
-      assert has_element?(live, ~s|#quickstart a[href="/start"]|)
+      refute html =~ ~s|href="/start"|
+      refute visible_text(html) =~ "Set up Techtree and run the Hello World Climb."
       refute html =~ "copy-docs-install"
       refute html =~ "copy-docs-hermes-install"
     end
@@ -98,7 +96,10 @@ defmodule TechtreeWeb.DocsLiveTest do
       assert text =~ "Expect Hermes to refuse the first attempt."
       assert text =~ "It does not stop and ask."
       assert text =~ "run the same pinned command again with --force appended"
-      assert text =~ "Read the report before approving installation."
+
+      assert text =~
+               "Read the scanner report and inspect the named code before approving installation."
+
       assert text =~ "Never turn the scanning off."
       refute text =~ "Hermes must ask before: installing the plugin"
     end
@@ -263,7 +264,7 @@ defmodule TechtreeWeb.DocsLiveTest do
   end
 
   @tag :tmp_dir
-  test "a real release drives the install step and the release coordinates", %{
+  test "a real release drives the release coordinates", %{
     conn: conn,
     tmp_dir: tmp_dir
   } do
@@ -273,10 +274,10 @@ defmodule TechtreeWeb.DocsLiveTest do
     Importer.import!(bundle)
 
     release = ReleaseInfo.current()
-    {:ok, live, html} = live(conn, ~p"/docs")
+    {:ok, _live, html} = live(conn, ~p"/docs")
     text = visible_text(html)
 
-    assert live |> element(~s|#quickstart a[href="/start"]|) |> has_element?()
+    refute html =~ ~s|href="/start"|
     refute html =~ "copy-docs-install"
 
     assert text =~ release.digest

@@ -1,13 +1,6 @@
 defmodule TechtreeWeb.DocsLive do
   @moduledoc """
-  The documentation: a working first run, then the ideas behind it.
-
-  The order is the whole design. A reader arrives wanting to run something, so
-  the first thing on the page is the words they hand their agent, then what to
-  type if they would rather type it, and then the answer to the question every
-  one of those commands raises — what leaves this machine. Concepts come after
-  all three, because a concept a reader has already seen working is a different
-  thing to read.
+  The operating and integration reference for Techtree.
 
   Every command shown here is either read from the published release or is a
   command this build's own command-line tool actually offers. Nothing on this
@@ -15,10 +8,6 @@ defmodule TechtreeWeb.DocsLive do
   does not exist. Where a release coordinate belongs, it is rendered from the
   release record this site serves; when that record says its coordinates are
   stand-ins, the page says so instead of printing one.
-
-  The words a reader hands to their agent are not written here. They are the
-  same component the installation guide shows, so the two pages cannot drift
-  into two different prompts.
   """
 
   use TechtreeWeb, :live_view
@@ -52,13 +41,6 @@ defmodule TechtreeWeb.DocsLive do
         <aside class="docs-nav" aria-label="Documentation sections" data-markdown-skip>
           <p class="docs-nav__version">Techtree v0.1</p>
           <nav>
-            <.docs_group
-              title="Start"
-              links={[
-                {"Install Techtree", "/start"},
-                {"What leaves my machine?", "#trust"}
-              ]}
-            />
             <.docs_group
               title="Concepts"
               links={[
@@ -109,21 +91,9 @@ defmodule TechtreeWeb.DocsLive do
               troubleshooting for the CLI and Hermes plugin.
             </p>
             <p>
-              New here? <.link navigate={~p"/start"}>Install and complete the first Climb</.link>.
               For the claim boundary, read <.link navigate={~p"/proofs"}>Proofs</.link>.
             </p>
           </header>
-
-          <section id="quickstart" class="doc-section">
-            <h2>Installation lives on Start</h2>
-            <p>
-              <.link navigate={~p"/start"}>Start</.link> carries the current release pins,
-              prerequisites, Doctor command, and exact next action.
-            </p>
-            <.link class="button button--primary" navigate={~p"/start"}>
-              Open the installation guide
-            </.link>
-          </section>
 
           <section id="trust" class="doc-section">
             <h2>What leaves my machine?</h2>
@@ -451,15 +421,10 @@ defmodule TechtreeWeb.DocsLive do
             <p>
               The pinned Hermes plugin gives the same local CLI a conversational front door.
             </p>
-            <p>The <a href={~p"/start"}>installation guide</a> contains:</p>
-            <ul class="doc-list">
-              <li>the exact plugin repository and commit;</li>
-              <li>the exact CLI version;</li>
-              <li>the expected installation commands;</li>
-              <li>the prerequisites;</li>
-              <li>the privacy boundary; and</li>
-              <li>the expected install-time scanner report.</li>
-            </ul>
+            <p>
+              The release coordinates below identify the exact plugin repository and commit
+              and the exact CLI version.
+            </p>
             <p>Hermes must ask before:</p>
             <ol class="steps">
               <li>
@@ -493,8 +458,8 @@ defmodule TechtreeWeb.DocsLive do
               <li>the control-character filter used to sanitize conversational output.</li>
             </ul>
             <p>
-              The installation guide explains the findings and points to the exact code. Read
-              the report before approving installation. Never turn the scanning off.
+              Read the scanner report and inspect the named code before approving installation.
+              Never turn the scanning off.
             </p>
             <p>
               <strong>Expect Hermes to refuse the first attempt.</strong>

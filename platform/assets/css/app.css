@@ -564,6 +564,13 @@ strong {
   text-wrap: balance;
 }
 
+.setup-page__paths {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+}
+
 .setup-page__copy {
   padding: 0;
   border: 0;
