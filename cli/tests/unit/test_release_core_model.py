@@ -295,7 +295,7 @@ def publication(**overrides: Any) -> dict[str, Any]:
     """Return one complete set of publication coordinates."""
     return {
         "submission_endpoint": "https://techtree.sh/api/v1/publications",
-        "public_log_url": "https://techtree.sh/runs",
+        "public_log_url": "https://techtree.sh/results",
         "network_key": NETWORK_KEY.model_dump(),
         **overrides,
     }
@@ -389,7 +389,7 @@ def test_the_committed_release_pins_the_coordinates_this_product_publishes_to() 
     assert core.publication.submission_endpoint == (
         "https://techtree.sh/api/v1/publications"
     )
-    assert core.publication.public_log_url == "https://techtree.sh/runs"
+    assert core.publication.public_log_url == "https://techtree.sh/results"
     assert core.publication.network_key.algorithm == "ed25519"
     assert core.publication.network_key.key_id == sha256_digest_bytes(
         base64.b64decode(core.publication.network_key.public_key, validate=True)

@@ -48,10 +48,10 @@ somebody finished.
 
 ```text
 release_id                            climb-v0.1.0
-cli_version                           0.1.0
+cli_version                           0.1.1
 starter_skill_object_url              https://techtree.sh/api/v1/objects/sha256:2aff2707…
 publication.submission_endpoint       https://techtree.sh/api/v1/publications
-publication.public_log_url            https://techtree.sh/runs
+publication.public_log_url            https://techtree.sh/results
 publication.network_key.key_id        sha256:75e4239e…
 ```
 

@@ -130,9 +130,11 @@ def test_a_missing_cli_produces_one_exact_plan() -> None:
         "install",
         "--python",
         "3.12",
-        "techtree==0.1.0",
+        f"techtree=={PUBLISHED.cli_version}",
     ]
-    assert plan["command"] == "uv tool install --python 3.12 techtree==0.1.0"
+    assert plan["command"] == (
+        f"uv tool install --python 3.12 techtree=={PUBLISHED.cli_version}"
+    )
     assert plan["requires_confirmation"] is True
     assert result["next_action"]["tool"] == "techtree_bootstrap_install"
     assert result["next_action"]["requires_user_confirmation"] is True
@@ -265,7 +267,14 @@ def test_installation_goes_through_the_hosts_own_terminal_approval(
     result = install_cli_with_approval(host, services, plan_id=plan.plan_id)
 
     assert host.dispatched == [
-        (TERMINAL_TOOL, {"command": "uv tool install --python 3.12 techtree==0.1.0"})
+        (
+            TERMINAL_TOOL,
+            {
+                "command": (
+                    f"uv tool install --python 3.12 techtree=={PUBLISHED.cli_version}"
+                )
+            },
+        )
     ]
     assert result["approval"] == "host_terminal"
     # Decision 0024 section 7: a verified installation says what comes next.
@@ -306,7 +315,9 @@ def test_a_host_without_a_terminal_gets_manual_instructions() -> None:
 
     assert result["installed"] is False
     assert result["approval"] == "manual"
-    assert result["plan"]["command"] == "uv tool install --python 3.12 techtree==0.1.0"
+    assert result["plan"]["command"] == (
+        f"uv tool install --python 3.12 techtree=={PUBLISHED.cli_version}"
+    )
 
 
 def test_a_refused_dispatch_never_becomes_a_direct_install() -> None:

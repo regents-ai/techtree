@@ -197,7 +197,7 @@ def test_this_build_carries_the_release_it_is_published_as() -> None:
     """Decisions 0026: the document is a contract, and every value in it is real."""
     core = parse_release_core(packaged_release_core_bytes())
     assert core.release_id == "climb-v0.1.0"
-    assert core.cli_version == "0.1.0"
+    assert core.cli_version == "0.1.1"
 
 
 def test_the_release_document_holds_the_contract_and_nothing_else() -> None:

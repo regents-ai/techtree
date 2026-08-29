@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "release/release-core.json": "sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1",
+    "release/release-core.json": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa",
     "release/release-core.schema.json": "sha256:583c8b09665eca0807d45de971791e7e17108686ba271897f61e3ca5e3b45c38",
-    "src/techtree/resources/release/release-core.json": "sha256:c92b602e8097a6498c49f52587a486f46f2cfd0a7adfe5cb082c5e98527e40a1"
+    "src/techtree/resources/release/release-core.json": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa"
   },
   "build_provenance": {
     "build_command": "uv build --wheel",
@@ -22,8 +22,8 @@
     "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
     "intro_climb_reference": "hello-world-climb@1",
     "protocol_version": "v1alpha1",
-    "pyproject_version": "0.1.0",
-    "release_inputs_digest": "sha256:9d335849072637299e96ca821909969a0c1858cf643823b8b10c1ba7e16d8a06"
+    "pyproject_version": "0.1.1",
+    "release_inputs_digest": "sha256:cdb1f19dab00d1075b239e400e1e7e00dcd4ef755fbc60ab9b7b832e02303b11"
   },
   "schema_version": "techtree.release-build-info.v1"
 }

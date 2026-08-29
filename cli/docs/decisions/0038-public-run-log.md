@@ -241,7 +241,7 @@ signed document in this protocol already uses.
     "bundle_digest": "sha256:<64 hex>",
     "accepted_at": "<RFC 3339, UTC, Z-suffixed>",
     "checks": [ { "id": "...", "passed": true, "detail": "..." } ],
-    "entry_url": "https://techtree.sh/runs/sha256:<64 hex>",
+    "entry_url": "https://techtree.sh/results/sha256:<64 hex>",
     "public_key": { "algorithm": "ed25519", "key_id": "sha256:…", "public_key": "<base64>" }
   },
   "payload_digest": "sha256:<sha256 of the canonical bytes of payload alone>",

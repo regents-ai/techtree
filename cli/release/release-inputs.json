@@ -1,5 +1,5 @@
 {
-  "cli_version": "0.1.0",
+  "cli_version": "0.1.1",
   "intro_climb_reference": "hello-world-climb@1",
   "maximum_tested_host_hermes_version": "0.20.1",
   "minimum_host_hermes_version": "0.20.1",
@@ -9,7 +9,7 @@
       "key_id": "sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966",
       "public_key": "FbKdOrQUNLohljAE31P5ts99ynqvGpesCktW3aez0I4="
     },
-    "public_log_url": "https://techtree.sh/runs",
+    "public_log_url": "https://techtree.sh/results",
     "submission_endpoint": "https://techtree.sh/api/v1/publications"
   },
   "release_id": "climb-v0.1.0",

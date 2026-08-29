@@ -143,7 +143,7 @@ def test_release_info_shows_the_installed_version_beside_the_named_one(
     """Two different statements: what is installed, and what the release names."""
     data = techtree("release", "info", "--json").envelope()["data"]
 
-    assert data["cli_version"] == "0.1.0"
+    assert data["cli_version"] == "0.1.1"
     assert data["package_version"] == data["cli_version"]
 
 

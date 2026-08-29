@@ -4,7 +4,7 @@ The founder chose to implement withdrawal rather than to promise it: a public
 promise with no executable path would be worse than neither. This is the path.
 
 *An entry is addressed by its bundle digest.* That is how the log addresses a
-run — ``/runs/sha256:…`` — so it is what a person copies off the page they are
+run — ``/results/sha256:…`` — so it is what a person copies off the page they are
 looking at, and it works whether or not the run is still on this machine.
 
 *The request is signed with the key that signed the run.* The identity store
