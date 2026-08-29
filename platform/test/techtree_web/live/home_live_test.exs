@@ -50,12 +50,12 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, "#crown-study-1[aria-current=page]")
     end
 
-    test "the hero points to the short why section below it", %{conn: conn} do
+    test "the hero points to the release section below it", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(
                live,
-               ~s|a.hero__more[href="#why-techtree"][aria-label="Continue to why Techtree exists"] svg|
+               ~s|a.hero__more[href="#what-this-release-is"][aria-label="Continue to the v0.1 release section"] svg|
              )
     end
 
@@ -65,7 +65,6 @@ defmodule TechtreeWeb.HomeLiveTest do
       text = visible_text(html)
 
       assert has_element?(live, ~s|a[href="/start"]|, "Start your first Climb")
-      assert has_element?(live, ~s|a[href="/proofs"]|, "Understand the proof boundary")
       assert has_element?(live, "#copy-home-agent-line")
       refute text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
@@ -99,15 +98,19 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute text =~ "Prefer installing it yourself?"
     end
 
-    test "the page holds only the hero and its why section", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
+    test "the lower homepage sections remain available below the hero", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
+      text = visible_text(html)
 
-      sections = Regex.scan(~r/<section[^>]*class="([^"]*)"/, html, capture: :all_but_first)
-
-      assert [["hero"], ["home-section process"]] =
-               Enum.reject(sections, fn [class] ->
-                 String.starts_with?(class, "evidence-graph")
-               end)
+      assert has_element?(live, "#what-this-release-is")
+      assert has_element?(live, "#home-evidence-graph")
+      assert has_element?(live, ".home-section.process")
+      assert has_element?(live, ".home-section.featured")
+      assert has_element?(live, ".home-section.trust")
+      assert text =~ "v0.1 release - standing on giants"
+      assert text =~ "Run. Improve. Prove."
+      assert text =~ "Published by this release"
+      assert text =~ "Your work stays local."
     end
 
     test "the hero gives an agent the copyable setup instruction instead of a Result",
@@ -115,7 +118,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      refute has_element?(live, "#home-evidence-graph")
+      assert has_element?(live, "#home-evidence-graph")
       refute has_element?(live, ".hero-result")
 
       assert has_element?(

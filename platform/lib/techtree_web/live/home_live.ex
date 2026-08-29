@@ -6,6 +6,11 @@ defmodule TechtreeWeb.HomeLive do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.EvidenceComponents
+  alias TechtreeWeb.EvidenceGraph
+  alias TechtreeWeb.ReleaseInfo
 
   # The milestone this preview is, said once. It is not an install coordinate:
   # the version, the fingerprint and the command all come from the published
@@ -27,6 +32,7 @@ defmodule TechtreeWeb.HomeLive do
   @impl true
   def mount(_params, _session, socket) do
     campaign = Query.list_climbs() |> List.first()
+    release = ReleaseInfo.current()
     crown_variant = Map.get(@crown_actions, socket.assigns.live_action, "1")
     crown_study? = Map.has_key?(@crown_actions, socket.assigns.live_action)
 
@@ -35,6 +41,9 @@ defmodule TechtreeWeb.HomeLive do
        page_title: "Improve a Skill. Prove it worked.",
        agent_line: @agent_line,
        campaign: campaign,
+       campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
+       campaign_facts: CampaignFacts.for_climb(campaign),
+       graph: EvidenceGraph.from_climb(campaign, release),
        preview_label: @preview_label,
        crown_studies: @crown_studies,
        crown_variant: crown_variant,
@@ -118,8 +127,8 @@ defmodule TechtreeWeb.HomeLive do
 
         <a
           class="hero__more"
-          href="#why-techtree"
-          aria-label="Continue to why Techtree exists"
+          href="#what-this-release-is"
+          aria-label="Continue to the v0.1 release section"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m6 5 6 6 6-6" />
@@ -128,21 +137,105 @@ defmodule TechtreeWeb.HomeLive do
         </a>
       </section>
 
-      <section id="why-techtree" class="home-section process" aria-labelledby="process-title">
+      <.proof_of_concept
+        class="home-section proof-of-concept"
+        eyebrow="hermes + prime + nvidia agent stack"
+        title="v0.1 release - standing on giants"
+        nemo_roadmap
+      >
+        <EvidenceComponents.graph
+          :if={@graph != []}
+          id="home-evidence-graph"
+          nodes={@graph}
+          compact
+        />
+      </.proof_of_concept>
+
+      <section class="home-section process" aria-labelledby="process-title">
         <div class="section-heading">
-          <p class="eyebrow">Why Techtree exists</p>
-          <h2 id="process-title">Make Skill improvements legible.</h2>
+          <p class="eyebrow">One controlled difference</p>
+          <h2 id="process-title">Run. Improve. Prove.</h2>
         </div>
-        <p class="lede">
-          Agents can change for many reasons. Techtree fixes the Test around one Skill change,
-          then makes the resulting comparison easy to inspect and share.
-        </p>
+        <div class="process__steps">
+          <article>
+            <span>01</span>
+            <h3>Run</h3>
+            <p>Resolve a pinned campaign and record the baseline.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Improve</h3>
+            <p>Change one declared Skill under a fixed budget and validation rule.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Prove</h3>
+            <p>Sign the comparison, read the outcome of every task, and check the receipt offline.</p>
+          </article>
+        </div>
+      </section>
+
+      <section :if={@campaign} class="home-section featured" aria-labelledby="featured-title">
+        <div>
+          <p class="eyebrow">Published by this release</p>
+          <h2 id="featured-title">
+            {(@campaign_copy && @campaign_copy.campaign_title) || @campaign.title}
+          </h2>
+          <p>{@campaign.summary}</p>
+        </div>
+        <dl class="featured__facts">
+          <div>
+            <dt>Tasks</dt>
+            <dd>{CampaignFacts.membership_words(@campaign_facts.membership) || "Not published"}</dd>
+          </div>
+          <div>
+            <dt>Harness</dt>
+            <dd>
+              {@campaign.projection["subject_harness"]}
+              {@campaign.projection["subject_harness_version"]}
+            </dd>
+          </div>
+          <div>
+            <dt>Checked</dt>
+            <dd>{CampaignFacts.validation_words(@campaign_facts.validation) || "Not published"}</dd>
+          </div>
+        </dl>
+        <a class="text-link" href={~p"/climbs/#{@campaign.projection["slug"]}"}>
+          Inspect the Climb <span aria-hidden="true">→</span>
+        </a>
+      </section>
+
+      <section class="home-section trust" aria-labelledby="trust-title">
+        <div class="section-heading">
+          <p class="eyebrow">Where the work goes</p>
+          <h2 id="trust-title">Your work stays local.</h2>
+        </div>
+        <div class="trust__grid">
+          <p>
+            Techtree uploads nothing unless you publish a finished run yourself. Publishing
+            uploads the complete proof bundle — its index files, signed report and receipts,
+            cited documents, and any optional execution record — while Episodes and Traces
+            remain local. The network returns a separate signed publication receipt
+            acknowledging acceptance; it is not the uploaded proof bundle. The
+            agent under test makes real model calls, and those go to the model provider
+            you selected, under that provider’s policies.
+          </p>
+          <p>
+            A result signed on your machine is internally consistent and attested by the
+            participant who produced it. Nobody else watched the run, and this site never
+            receives it.
+          </p>
+          <p class="trust__stack">
+            The agent inside the experiment is Hermes, Nous Research’s open agent, at a
+            pinned version. Every task is scored by Prime Intellect’s
+            <.verifiers_term label="Verifiers" />, pinned
+            just as exactly. Techtree fixes the conditions and signs the comparison.
+          </p>
+        </div>
         <p class="trust__links">
-          <a href={~p"/proofs"}>Understand the proof boundary</a>
+          <a href={~p"/docs#trust"}>What leaves my machine?</a>
           <span aria-hidden="true">·</span>
-          <a :if={@campaign} href={~p"/climbs/#{@campaign.projection["slug"]}"}>
-            Read the fixed Test contract
-          </a>
+          <a href={~p"/proofs/local"}>What a local result claims</a>
         </p>
       </section>
     </Layouts.page>
