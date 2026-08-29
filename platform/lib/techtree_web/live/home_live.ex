@@ -238,7 +238,7 @@ defmodule TechtreeWeb.HomeLive do
         <p class="trust__links">
           <a href={~p"/docs#trust"}>What leaves my machine?</a>
           <span aria-hidden="true">·</span>
-          <a href={~p"/proofs/local"}>What a local result claims</a>
+          <a href={~p"/proofs#local-results"}>What a local result claims</a>
         </p>
       </section>
     </Layouts.page>

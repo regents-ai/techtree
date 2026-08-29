@@ -169,7 +169,6 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p class="runs-index__footer small quiet">
           <a href={~p"/proofs"}>How verification works</a>
-          · <a href={~p"/climbs"}>The Climbs behind these proofs</a>
         </p>
       </div>
     </Layouts.page>

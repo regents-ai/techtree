@@ -55,15 +55,6 @@ defmodule TechtreeWeb.RouterTest do
   end
 
   test "every preview is declared inside the guard that keeps it out of a release" do
-    """
-    Read off the source rather than the routing table, and deliberately.
-
-    This suite sets `dev_routes`, so a preview left in the published scope by
-    mistake compiles in exactly as one behind the guard does, and the table
-    cannot tell them apart. What decides whether a release publishes a route
-    is where its `live` line sits in the file, so that is what is checked.
-    """
-
     source = File.read!("lib/techtree_web/router.ex")
 
     [_before, guarded] =
@@ -97,15 +88,10 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/publication-keys/:key_id",
              "get /api/v1/publications",
              "get /api/v1/publications/:bundle_digest",
-             "get /campaigns",
-             "get /campaigns/:slug",
-             "get /climbs",
              "get /climbs/:slug",
              "get /docs",
              "get /healthz",
              "get /proofs",
-             "get /proofs/local",
-             "get /protocol",
              "get /results",
              "get /results/:bundle_digest",
              "get /skill.md",
@@ -149,17 +135,12 @@ defmodule TechtreeWeb.RouterTest do
     for path <- [
           "/",
           "/docs",
-          "/campaigns",
-          "/campaigns/hello-world-climb",
           "/proofs",
           "/results",
           "/results/sha256:#{String.duplicate("a", 64)}",
           "/skill.md",
           "/start",
-          "/climbs",
           "/climbs/hello-world-climb",
-          "/proofs/local",
-          "/protocol",
           "/healthz",
           "/api/v1/catalog",
           "/api/v1/bootstrap",
@@ -196,7 +177,16 @@ defmodule TechtreeWeb.RouterTest do
   end
 
   test "an address this release does not publish stays a 404", %{conn: conn} do
-    for path <- ["/api/v1/nope", "/climbs/no-such-climb/edit", "/upload"] do
+    for path <- [
+          "/api/v1/nope",
+          "/campaigns",
+          "/campaigns/hello-world-climb",
+          "/climbs",
+          "/climbs/no-such-climb/edit",
+          "/proofs/local",
+          "/protocol",
+          "/upload"
+        ] do
       assert post(conn, path, %{}).status == 404
       assert delete(conn, path).status == 404
       assert get_resp_header(post(conn, path, %{}), "allow") == []

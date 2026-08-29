@@ -91,8 +91,7 @@ defmodule TechtreeWeb.DocsLive do
                 {"Exit codes", "#exit-codes"},
                 {"Configuration and environment variables", "#environment"},
                 {"Release coordinates", "#release"},
-                {"Troubleshooting", "#troubleshooting"},
-                {"Protocol documents", "/protocol"}
+                {"Troubleshooting", "#troubleshooting"}
               ]}
             />
           </nav>

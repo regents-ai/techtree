@@ -222,13 +222,9 @@ defmodule TechtreeWeb.HomeLiveTest do
           ~p"/",
           ~p"/docs",
           ~p"/results",
-          ~p"/campaigns",
-          ~p"/campaigns/hello-world-climb",
           ~p"/proofs",
           ~p"/start",
-          ~p"/climbs",
-          ~p"/proofs/local",
-          ~p"/protocol"
+          ~p"/climbs/hello-world-climb"
         ] do
       {:ok, live, html} = live(conn, path)
 

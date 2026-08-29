@@ -73,19 +73,14 @@ defmodule TechtreeWeb.Router do
 
     live "/", HomeLive
     live "/docs", DocsLive
-    live "/campaigns", CampaignsLive.Index
-    live "/campaigns/:slug", CampaignsLive.Show
     live "/proofs", ProofsLive
-    live "/proofs/local", LocalProofLive
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show
     get "/skill.md", SkillController, :show
 
     # The addresses release documents already point at, unchanged.
     live "/start", StartLive
-    live "/climbs", ClimbsLive.Index
     live "/climbs/:slug", ClimbsLive.Show
-    live "/protocol", ProtocolLive
   end
 
   scope "/", TechtreeWeb do

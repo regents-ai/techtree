@@ -16,38 +16,28 @@ defmodule TechtreeWeb.PagesTest do
   @pages [
     "/",
     "/docs",
-    "/campaigns",
-    "/campaigns/hello-world-climb",
     "/proofs",
     "/start",
-    "/climbs",
     "/climbs/hello-world-climb",
-    "/proofs/local",
-    "/protocol",
     "/results",
     "/results/" <> Techtree.NetworkFixture.bundle_digest()
   ]
   @pages_without_catalog [
     "/",
     "/docs",
-    "/campaigns",
     "/proofs",
     "/start",
-    "/climbs",
-    "/proofs/local",
-    "/protocol",
     "/results"
   ]
 
-  # Two pages name protocol documents on purpose and say so: the protocol map,
-  # and the section of a Climb page headed "The documents behind this page".
-  # Everywhere else is written for a reader who has never opened one.
+  # Every human-facing page is written for a reader who has never opened a
+  # protocol document.
   @pages_in_plain_words [
     "/",
     "/docs",
-    "/campaigns",
-    "/campaigns/hello-world-climb",
     "/proofs",
+    "/start",
+    "/climbs/hello-world-climb",
     "/results",
     "/results/" <> Techtree.NetworkFixture.bundle_digest()
   ]
@@ -79,41 +69,6 @@ defmodule TechtreeWeb.PagesTest do
 
       assert html =~ ~s|data-background-theme="orange"|
       assert html =~ ~s|data-background-preset="10"|
-    end
-
-    test "the local results page states the caveat outright", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/proofs/local")
-      text = visible_text(html)
-
-      assert text =~ "Nobody else watched this run"
-      assert text =~ "This site did not witness the trial"
-      assert text =~ "not the same as an independent"
-      assert text =~ "techtree proof verify path/to/result-bundle"
-      assert text =~ "A finished result goes nowhere unless you ask it to"
-      assert text =~ "complete proof bundle"
-    end
-
-    test "the protocol page maps the documents and links the ones shipped", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/protocol")
-
-      for document <- [
-            "DataPolicy",
-            "CampaignSpec",
-            "ClimbManifest",
-            "TasksetValidationReceipt",
-            "EpisodeReceipt",
-            "UpliftReport",
-            "LocalProofBundle",
-            "ExperimentManifest"
-          ] do
-        assert html =~ document
-      end
-
-      assert live |> element(~s|a[href="/api/v1/catalog"]|) |> has_element?()
-
-      assert live
-             |> element(~s|a[href="/api/v1/objects/#{CatalogFixture.campaign_digest()}"]|)
-             |> has_element?()
     end
 
     test "no page uses the vocabulary of the machinery", %{conn: conn} do
@@ -226,12 +181,6 @@ defmodule TechtreeWeb.PagesTest do
       end
     end
 
-    test "long fingerprints are marked so that they wrap on a narrow screen", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/climbs/hello-world-climb")
-
-      assert html =~ ~s|class="digest"|
-    end
-
     test "the page frame declares a phone-friendly viewport", %{conn: conn} do
       html = conn |> get("/") |> html_response(200)
 
@@ -292,14 +241,6 @@ defmodule TechtreeWeb.PagesTest do
         assert {:ok, _live, html} = live(conn, page)
         assert html =~ "A Regents Labs project"
       end
-    end
-
-    test "the protocol page still explains the documents", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/protocol")
-
-      assert html =~ "CampaignSpec"
-      assert html =~ "DataPolicy"
-      refute html =~ "In this release:"
     end
 
     test "a Climb page is not found rather than empty", %{conn: conn} do

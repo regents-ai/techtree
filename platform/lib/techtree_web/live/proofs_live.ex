@@ -34,7 +34,7 @@ defmodule TechtreeWeb.ProofsLive do
         </p>
       </header>
 
-      <section class="boundary section" aria-label="Verification boundary">
+      <section id="local-results" class="boundary section" aria-label="Verification boundary">
         <div class="boundary__side">
           <p class="boundary__title">What Techtree verifies</p>
           <h2>Internally checkable evidence</h2>
