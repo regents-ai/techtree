@@ -472,14 +472,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       {:ok, _live, html} = live(conn, ~p"/proofs")
       text = visible_text(html)
 
-      # This route owns the proof boundary and does not reteach a Climb or Result.
+      # This route owns the proof boundary and the one complete evidence graph.
       assert text =~ "What verification establishes"
       assert text =~ "Participant-attested"
       assert text =~ "Verification is not observation."
       assert text =~ "does not prove the machine behaved honestly"
       assert text =~ "techtree proof verify path/to/result-bundle"
-      refute text =~ CatalogFixture.campaign_digest()
-      refute text =~ "prime · qwen/qwen3.7-flash"
+      assert text =~ CatalogFixture.campaign_digest()
+      assert text =~ "prime · qwen/qwen3.7-flash"
     end
   end
 
