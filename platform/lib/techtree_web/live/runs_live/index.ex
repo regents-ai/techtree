@@ -85,7 +85,7 @@ defmodule TechtreeWeb.RunsLive.Index do
             </p>
             <ul class="runs-index__verification-list">
               <li>the files match their recorded hashes;</li>
-              <li>the signatures verify against the included key; and</li>
+              <li>the signatures verify against the included key</li>
               <li>the reported scores match the task results in the bundle.</li>
             </ul>
             <p>
