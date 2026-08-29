@@ -34,6 +34,8 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(live, "#hero-title > .hero-title__line", "Prove it worked.")
 
+      assert has_element?(live, ~s|section.hero[data-hero-stage="loading"]|)
+
       assert text =~ "Techtree v0.1 · development release"
     end
 

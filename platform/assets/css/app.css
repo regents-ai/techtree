@@ -844,6 +844,76 @@ strong {
   max-width: 38rem;
 }
 
+/* The copy joins the first complete GPU frame instead of flashing in before
+   the background and crown. Each beat is short enough to read as one reveal. */
+.hero__copy > .eyebrow,
+.hero-title,
+.hero__mechanism,
+.installer > .command--prose,
+.installer__divider,
+.installer__manual,
+.hero__actions {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition-delay: var(--hero-reveal-delay, 0ms);
+}
+
+.hero[data-hero-stage="loading"] .hero__copy > .eyebrow,
+.hero[data-hero-stage="loading"] .hero-title,
+.hero[data-hero-stage="loading"] .hero__mechanism,
+.hero[data-hero-stage="loading"] .installer > .command--prose,
+.hero[data-hero-stage="loading"] .installer__divider,
+.hero[data-hero-stage="loading"] .installer__manual,
+.hero[data-hero-stage="loading"] .hero__actions {
+  opacity: 0;
+  transform: translateY(0.5rem);
+  animation: hero-reveal-failsafe 220ms cubic-bezier(0.23, 1, 0.32, 1) 2800ms forwards;
+}
+
+@keyframes hero-reveal-failsafe {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-reveal-failsafe-reduced {
+  to {
+    opacity: 1;
+  }
+}
+
+.hero__copy > .eyebrow {
+  --hero-reveal-delay: 0ms;
+}
+
+.hero-title {
+  --hero-reveal-delay: 35ms;
+}
+
+.hero__mechanism {
+  --hero-reveal-delay: 70ms;
+}
+
+.installer > .command--prose {
+  --hero-reveal-delay: 105ms;
+}
+
+.installer__divider {
+  --hero-reveal-delay: 140ms;
+}
+
+.installer__manual {
+  --hero-reveal-delay: 175ms;
+}
+
+.hero__actions {
+  --hero-reveal-delay: 210ms;
+}
+
 .hero-title {
   margin-top: 1.1rem;
   font-size: clamp(3.5rem, 4.75vw, 4.25rem);
@@ -2820,6 +2890,27 @@ strong {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero__copy > .eyebrow,
+  .hero-title,
+  .hero__mechanism,
+  .installer > .command--prose,
+  .installer__divider,
+  .installer__manual,
+  .hero__actions,
+  .hero[data-hero-stage="loading"] .hero__copy > .eyebrow,
+  .hero[data-hero-stage="loading"] .hero-title,
+  .hero[data-hero-stage="loading"] .hero__mechanism,
+  .hero[data-hero-stage="loading"] .installer > .command--prose,
+  .hero[data-hero-stage="loading"] .installer__divider,
+  .hero[data-hero-stage="loading"] .installer__manual,
+  .hero[data-hero-stage="loading"] .hero__actions {
+    transform: none;
+    transition-duration: 160ms;
+    transition-delay: 0ms;
+    animation-name: hero-reveal-failsafe-reduced;
+    animation-duration: 160ms;
+  }
+
   html {
     scroll-behavior: auto;
   }
