@@ -86,8 +86,8 @@ function syncCrownTheme(theme) {
 }
 
 function requestedBackgroundPreset() {
-  const value = new URLSearchParams(window.location.search).get("bg") || "1"
-  return /^(?:[1-9]|10)$/.test(value) ? value : "1"
+  const value = new URLSearchParams(window.location.search).get("bg") || "10"
+  return /^(?:[1-9]|10)$/.test(value) ? value : "10"
 }
 
 function syncBackground(theme) {

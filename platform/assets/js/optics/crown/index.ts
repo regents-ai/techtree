@@ -82,8 +82,8 @@ export async function createPrismRenderer(
 ): Promise<PrismRenderer> {
   const gpu = await init()
   const variant = crownVariant(canvas.dataset.crownVariant)
-  const requestedPreset = Number.parseInt(canvas.dataset.backgroundPreset || "1", 10)
-  const backgroundPreset = requestedPreset >= 1 && requestedPreset <= 10 ? requestedPreset : 1
+  const requestedPreset = Number.parseInt(canvas.dataset.backgroundPreset || "10", 10)
+  const backgroundPreset = requestedPreset >= 1 && requestedPreset <= 10 ? requestedPreset : 10
   let disposed = false
   // A device this call created and could not finish equipping is still this call's
   // to release; the caller only ever learns that the renderer did not arrive.

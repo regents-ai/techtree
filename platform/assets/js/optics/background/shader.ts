@@ -1,7 +1,7 @@
 /**
  * A quiet procedural field for the page and the crown scene.
  *
- * The base remains the selected site color. Sparse isometric cells borrow the
+ * The base remains the selected site color. Sparse square cells borrow the
  * opposing theme color, then fade through one of ten spatial compositions.
  */
 export const backgroundWgsl = /* wgsl */ `
@@ -56,32 +56,17 @@ fn composition(uv: vec2f, preset: f32) -> f32 {
   return 1.0 - smoothstep(0.02, 0.48, diagonal);
 }
 
-fn cubeField(uv: vec2f, aspect: f32, preset: f32) -> vec2f {
+fn squareField(uv: vec2f, aspect: f32, preset: f32) -> vec2f {
   let scale = 8.0 + fract(preset * 0.381) * 5.0;
   let plane = vec2f((uv.x - 0.5) * aspect + 0.5, uv.y) * scale;
-  let row = floor(plane.y);
-  let stagger = fract(row * 0.5);
-  let grid = vec2f(plane.x + stagger, plane.y);
-  let cell = floor(grid);
-  let local = fract(grid) - vec2f(0.5);
-  let hexDistance = max(abs(local.y), dot(abs(local), vec2f(0.8660254, 0.5)));
-  let body = 1.0 - smoothstep(0.39, 0.43, hexDistance);
-
-  var face = 0.72;
-  if (local.y < -abs(local.x) * 0.57735) {
-    face = 1.0;
-  } else if (local.x > 0.0) {
-    face = 0.84;
-  }
-
-  let seamDistance = min(
-    abs(local.x),
-    min(abs(local.y - local.x * 0.57735), abs(local.y + local.x * 0.57735)),
-  );
-  let seams = 1.0 - smoothstep(0.012, 0.035, seamDistance);
-  let edge = 1.0 - smoothstep(0.012, 0.035, abs(hexDistance - 0.405));
+  let cell = floor(plane);
+  let local = fract(plane) - vec2f(0.5);
+  let squareDistance = max(abs(local.x), abs(local.y));
+  let body = 1.0 - smoothstep(0.36, 0.4, squareDistance);
+  let edge = 1.0 - smoothstep(0.012, 0.032, abs(squareDistance - 0.38));
+  let face = mix(0.76, 1.04, clamp((local.x - local.y) * 0.72 + 0.5, 0.0, 1.0));
   let occupancy = hash21(cell + vec2f(preset * 17.0, preset * 7.0));
-  return vec2f(body * step(occupancy, 0.58), mix(face, 1.18, max(seams, edge)));
+  return vec2f(body * step(occupancy, 0.58), mix(face, 1.18, edge));
 }
 
 @fragment
@@ -89,12 +74,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let safeResolution = max(params.resolution, vec2f(1.0));
   let aspect = safeResolution.x / safeResolution.y;
   let field = clamp(composition(uv, params.preset), 0.0, 1.0);
-  let cube = cubeField(uv, aspect, params.preset);
+  let square = squareField(uv, aspect, params.preset);
   let density = smoothstep(0.04, 0.96, field);
-  let cubeAmount = cube.x * density * params.intensity * cube.y;
+  let squareAmount = square.x * density * params.intensity * square.y;
   let baseGradient = 1.0 + (uv.y - 0.5) * 0.022 + (uv.x - 0.5) * 0.008;
   let base = clamp(params.baseColor.rgb * baseGradient, vec3f(0.0), vec3f(1.0));
-  let color = mix(base, params.antiColor.rgb, clamp(cubeAmount, 0.0, 0.26));
+  let color = mix(base, params.antiColor.rgb, clamp(squareAmount, 0.0, 0.26));
   return vec4f(color, 1.0);
 }
 `

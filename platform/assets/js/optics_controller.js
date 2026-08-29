@@ -50,10 +50,10 @@ function loadRenderer(kind, source, module) {
 
 function opticsVariant(root, canvas) {
   if (root.dataset.opticsKind === "crown") {
-    return `${canvas.dataset.crownVariant || ""}:${canvas.dataset.backgroundPreset || "1"}`
+    return `${canvas.dataset.crownVariant || ""}:${canvas.dataset.backgroundPreset || "10"}`
   }
   if (root.dataset.opticsKind === "background") {
-    return `${canvas.dataset.backgroundTheme || "orange"}:${canvas.dataset.backgroundPreset || "1"}`
+    return `${canvas.dataset.backgroundTheme || "orange"}:${canvas.dataset.backgroundPreset || "10"}`
   }
 }
 
@@ -249,7 +249,7 @@ export function createOpticsController(root) {
       const kind = root.dataset.opticsKind
       const theme = event.detail?.theme
       const crownVariant = event.detail?.crownVariant
-      const backgroundPreset = event.detail?.backgroundPreset || "1"
+      const backgroundPreset = event.detail?.backgroundPreset || "10"
       if (kind === "crown" && crownVariant) {
         root.dataset.crownVariant = crownVariant
         canvas.dataset.crownVariant = crownVariant

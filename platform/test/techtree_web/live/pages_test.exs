@@ -78,7 +78,7 @@ defmodule TechtreeWeb.PagesTest do
                ~s|id="site-background-canvas" class="site-background__canvas" data-optics-canvas|
 
       assert html =~ ~s|data-background-theme="orange"|
-      assert html =~ ~s|data-background-preset="1"|
+      assert html =~ ~s|data-background-preset="10"|
     end
 
     test "the local results page states the caveat outright", %{conn: conn} do

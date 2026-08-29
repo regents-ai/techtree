@@ -26,8 +26,8 @@ const THEMES = {
 } as const
 
 function backgroundPreset(value: string | undefined): number {
-  const parsed = Number.parseInt(value || "1", 10)
-  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : 1
+  const parsed = Number.parseInt(value || "10", 10)
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : 10
 }
 
 async function equip(
