@@ -863,61 +863,6 @@ strong {
   display: block;
 }
 
-.hero-result {
-  width: min(100%, 36rem);
-  margin-top: 1.6rem;
-  padding: 0.85rem 1rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.35rem 1.25rem;
-  border: 1px solid var(--rule);
-  background: rgb(12 15 17 / 64%);
-  backdrop-filter: blur(10px);
-}
-
-.hero-result__label,
-.hero-result__uplift span {
-  color: var(--ink-faint);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
-}
-
-.hero-result__comparison {
-  margin-top: 0.2rem;
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.hero-result__comparison span {
-  color: var(--ink-quiet);
-  font-weight: 500;
-}
-
-.hero-result__uplift {
-  text-align: right;
-}
-
-.hero-result__uplift strong,
-.hero-result__uplift span {
-  display: block;
-}
-
-.hero-result__uplift strong {
-  color: var(--accent-lift);
-  font: 750 1.2rem/1.1 var(--font-mono);
-}
-
-.hero-result > a {
-  grid-column: 1 / -1;
-  width: fit-content;
-  margin-top: 0.25rem;
-  color: var(--ink-quiet);
-  font-size: 0.72rem;
-}
-
 .hero__actions {
   margin-top: 2rem;
 }
@@ -2605,7 +2550,6 @@ strong {
   .hero__copy > .eyebrow,
   .hero-title,
   .hero__mechanism,
-  .hero-result,
   .installer > .command--prose,
   .installer__divider,
   .installer__manual,
@@ -2626,17 +2570,6 @@ strong {
 
   .hero__mechanism {
     order: 3;
-  }
-
-  .hero-result {
-    order: 5;
-    margin-top: 0.75rem;
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
-
-  .hero-result__uplift {
-    text-align: left;
   }
 
   .installer > .command--prose {

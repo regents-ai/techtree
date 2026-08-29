@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.HomeLiveTest do
   @moduledoc """
-  The landing page explains why Techtree exists and shows one concrete comparison.
+  The landing page explains why Techtree exists and gives an agent one way in.
   """
 
   use TechtreeWeb.ConnCase, async: false
@@ -66,6 +66,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(live, ~s|a[href="/start"]|, "Start your first Climb")
       assert has_element?(live, ~s|a[href="/proofs"]|, "Understand the proof boundary")
+      assert has_element?(live, "#copy-home-agent-line")
       refute text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
       refute text =~ "What verification establishes"
@@ -109,22 +110,31 @@ defmodule TechtreeWeb.HomeLiveTest do
                end)
     end
 
-    test "the concrete Result comes out of published evidence",
+    test "the hero gives an agent the copyable setup instruction instead of a Result",
          %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
       refute has_element?(live, "#home-evidence-graph")
-      assert has_element?(live, ".hero-result", "One concrete Result")
+      refute has_element?(live, ".hero-result")
 
       assert has_element?(
                live,
                ~s|#hero-crown[phx-hook="Optics"][data-optics-kind="crown"] canvas[data-optics-canvas]|
              )
 
-      assert text =~ "Instructional Skill vs No Skill"
-      assert text =~ "+63.9%"
-      refute text =~ "BranchCode"
+      assert text =~ "Give this to your agent"
+
+      assert text =~
+               "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
+
+      assert has_element?(
+               live,
+               ~s|#copy-home-agent-line[data-copy-value="Go to techtree.sh/start and set up Techtree and run the Hello World Climb."]|
+             )
+
+      refute text =~ "One concrete Result"
+      refute text =~ "Instructional Skill vs No Skill"
     end
 
     test "the page invents no activity and claims no independent checking", %{conn: conn} do
@@ -143,7 +153,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       end
 
       refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)\b/i
-      assert html =~ ~r/\+\d+(\.\d+)?%/
+      refute html =~ ~r/\+\d+(\.\d+)?%/
     end
   end
 
@@ -154,6 +164,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     assert text =~ "Improve a Skill."
     refute text =~ "Evidence graph"
     assert text =~ "Start your first Climb"
+    assert text =~ "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
     refute html =~ "copy-home-cli"
   end
 

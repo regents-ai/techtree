@@ -1,17 +1,20 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
-  Why Techtree exists, expressed through one concrete Skill comparison.
+  Why Techtree exists, followed by one copyable instruction for getting started.
   """
 
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
-  alias TechtreeWeb.ExampleResult
 
   # The milestone this preview is, said once. It is not an install coordinate:
   # the version, the fingerprint and the command all come from the published
   # release below, and none of them is written into this page.
   @preview_label "Techtree v0.1 · development release"
+
+  # This names a stable page and introductory Climb rather than a release
+  # coordinate, so it remains safe to hand to an agent as the release moves.
+  @agent_line "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
 
   @crown_studies [
     %{id: "1", label: "Graze"},
@@ -30,9 +33,8 @@ defmodule TechtreeWeb.HomeLive do
     {:ok,
      assign(socket,
        page_title: "Improve a Skill. Prove it worked.",
+       agent_line: @agent_line,
        campaign: campaign,
-       example:
-         ExampleResult.for_campaign(campaign && campaign.projection["campaign_spec_digest"]),
        preview_label: @preview_label,
        crown_studies: @crown_studies,
        crown_variant: crown_variant,
@@ -96,17 +98,13 @@ defmodule TechtreeWeb.HomeLive do
             <span>Get a signed local receipt for the difference.</span>
           </p>
 
-          <article :if={@example} class="hero-result" aria-label="One concrete Result">
-            <div>
-              <p class="hero-result__label">One concrete Result</p>
-              <p class="hero-result__comparison">Instructional Skill <span>vs No Skill</span></p>
-            </div>
-            <p class="hero-result__uplift">
-              <strong>+{example_uplift(@example)}%</strong>
-              <span>{@example.wins} better · {@example.ties} same · {@example.losses} worse</span>
-            </p>
-            <a href={~p"/proofs"}>Inspect the proof <span aria-hidden="true">→</span></a>
-          </article>
+          <div class="installer">
+            <.prompt_block
+              id="copy-home-agent-line"
+              label="Give this to your agent"
+              text={@agent_line}
+            />
+          </div>
 
           <div class="hero__actions">
             <.link class="button button--primary" navigate={~p"/start"}>
@@ -149,13 +147,5 @@ defmodule TechtreeWeb.HomeLive do
       </section>
     </Layouts.page>
     """
-  end
-
-  defp example_uplift(example) do
-    example.candidate_total
-    |> Kernel.-(example.baseline_total)
-    |> Kernel./(example.tasks)
-    |> Kernel.*(100)
-    |> Float.round(1)
   end
 end
