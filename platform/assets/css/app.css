@@ -1748,6 +1748,32 @@ strong {
   color: var(--accent);
 }
 
+.docs-code {
+  margin: 1.5rem 0;
+  padding: 1.25rem 1.4rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: clamp(0.82rem, 1.5vw, 0.95rem);
+  line-height: 1.6;
+}
+
+.docs-numbered-list {
+  margin: 1.25rem 0 0;
+  padding-left: 1.6rem;
+}
+
+.docs-numbered-list li {
+  padding-left: 0.35rem;
+  line-height: 1.65;
+}
+
+.docs-numbered-list li + li {
+  margin-top: 0.5rem;
+}
+
 .doc-section .boundary {
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;

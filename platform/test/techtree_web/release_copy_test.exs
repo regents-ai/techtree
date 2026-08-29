@@ -177,8 +177,11 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # so the immutable-revision rule does not apply.
   @informational_addresses [
     "https://github.com/PrimeIntellect-ai/verifiers",
+    "https://github.com/PrimeIntellect-ai/verifiers?utm_source=chatgpt.com",
     "https://github.com/NousResearch/hermes-agent",
     "https://github.com/NVIDIA-NeMo",
+    "https://github.com/NVIDIA/NeMo-Fabric?utm_source=chatgpt.com",
+    "https://github.com/NVIDIA/NeMo-Relay?utm_source=chatgpt.com",
     "https://github.com/regents-ai/techtree"
   ]
   @unset_revision String.duplicate("0", 40)

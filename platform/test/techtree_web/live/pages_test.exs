@@ -34,13 +34,17 @@ defmodule TechtreeWeb.PagesTest do
   # protocol document.
   @pages_in_plain_words [
     "/",
-    "/docs",
     "/proofs",
     "/start",
     "/climbs/hello-world-climb",
     "/results",
     "/results/" <> Techtree.NetworkFixture.bundle_digest()
   ]
+
+  # Docs is now the founder-supplied research and proof reference. It may use
+  # the technical terms and bare library name that the shorter product pages
+  # deliberately avoid.
+  @product_pages List.delete(@pages, "/docs")
 
   describe "with a release being served" do
     setup do
@@ -72,7 +76,7 @@ defmodule TechtreeWeb.PagesTest do
     end
 
     test "no page uses the vocabulary of the machinery", %{conn: conn} do
-      for page <- @pages do
+      for page <- @product_pages do
         {:ok, _live, html} = live(conn, page)
         body = html |> visible_text() |> String.downcase()
 
@@ -100,7 +104,7 @@ defmodule TechtreeWeb.PagesTest do
       # word ("verifiers is a library by Prime Intellect..."). A hover term
       # sits directly against its own card, so a bare occurrence is also fine
       # when the definition follows it immediately. Anything else is refused.
-      for page <- @pages do
+      for page <- @product_pages do
         {:ok, _live, html} = live(conn, page)
         body = html |> visible_text() |> String.downcase()
         parts = String.split(body, "verifiers", trim: false)
