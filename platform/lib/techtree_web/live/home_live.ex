@@ -272,32 +272,11 @@ defmodule TechtreeWeb.HomeLive do
               ]}
               label="Install, then check this machine"
             />
-            <p class="installer__doctor-note">
-              These commands do not start paid model inference.
-            </p>
-            <p class="compatibility">{hero_compatibility(@release)}</p>
-            <p class="release-coordinate">
-              <span>{ReleaseInfo.label(@release)}</span>
-              <a href={~p"/docs#release"}>Release details</a>
-            </p>
           <% true -> %>
             <p class="release-state">This release does not name an introductory Climb.</p>
         <% end %>
       </div>
     </div>
     """
-  end
-
-  defp hero_compatibility(%{minimums: minimums}) do
-    [
-      "macOS or Linux",
-      "uv required",
-      if(minimums["docker_required"], do: "Docker required"),
-      minimums["python"] && "Python #{minimums["python"]} managed by uv",
-      minimums["hermes_version"] &&
-        "Hermes #{minimums["hermes_version"]}+ only for the plugin path"
-    ]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join(" · ")
   end
 end

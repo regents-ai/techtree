@@ -93,6 +93,12 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute html =~ "Doctor checks prerequisites"
 
       assert has_element?(live, ".installer__manual .command", "Install, then check this machine")
+      refute has_element?(live, ".installer__doctor-note")
+      refute has_element?(live, ".compatibility")
+      refute has_element?(live, ".release-coordinate")
+      refute html =~ "These commands do not start paid model inference."
+      refute html =~ "macOS or Linux · uv required"
+      refute html =~ "Release details"
       refute has_element?(live, "#copy-home-install")
       refute has_element?(live, "#copy-home-doctor")
     end
