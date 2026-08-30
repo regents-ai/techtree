@@ -1,4 +1,4 @@
-"""Import the Hermes plugin package from the checkout beside this one.
+"""Import the Hermes plugin package from this monorepo or a sibling checkout.
 
 Hermes loads a plugin by path, so the plugin repository's own directory is the
 package. Its tests and its tooling live here instead, in the Techtree
@@ -21,24 +21,28 @@ from types import ModuleType
 
 PACKAGE_NAME = "techtree_hermes"
 
-#: This repository. The plugin is the sibling checkout beside it.
+#: The CLI repository root. In the monorepo, its parent is the repository root.
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
-#: The directory name the plugin repository is cloned into.
-PLUGIN_CHECKOUT_DIRNAME = "techtree-plugin"
+#: Supported layouts, in preference order: the monorepo and the frozen v0.1
+#: sibling-repository checkout.
+PLUGIN_CHECKOUT_CANDIDATES = (
+    REPOSITORY_ROOT.parent / "plugin",
+    REPOSITORY_ROOT.parent / "techtree-plugin",
+)
 
 
 def plugin_checkout() -> Path:
     """Return the plugin checkout, or say exactly what is missing and where."""
-    checkout = REPOSITORY_ROOT.parent / PLUGIN_CHECKOUT_DIRNAME
-    if not (checkout / "__init__.py").is_file():
-        raise FileNotFoundError(
-            f"no Hermes plugin checkout at {checkout}. The plugin's tests and "
-            f"tooling live in this repository and read the plugin itself from "
-            f"the checkout beside it. Clone the plugin repository to "
-            f"{checkout} and run this again."
-        )
-    return checkout
+    for checkout in PLUGIN_CHECKOUT_CANDIDATES:
+        if (checkout / "__init__.py").is_file():
+            return checkout
+
+    searched = ", ".join(str(path) for path in PLUGIN_CHECKOUT_CANDIDATES)
+    raise FileNotFoundError(
+        "no Hermes plugin checkout found. The plugin's tests and tooling read "
+        f"the plugin package from one of these locations: {searched}."
+    )
 
 
 def load_plugin_package() -> ModuleType:

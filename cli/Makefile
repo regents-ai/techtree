@@ -66,8 +66,9 @@ test-integration:
 # The Hermes plugin battery ---------------------------------------------------
 #
 # The plugin's unit, contract and integration tests live here, in tests/plugin,
-# and its repository tooling in tools/plugin. Both read the plugin itself out
-# of the checkout beside this one; every target below says so if it is missing.
+# and its repository tooling in tools/plugin. Both read the plugin itself from
+# this monorepo's plugin/ directory or the frozen sibling-repository layout;
+# every target below says so if it is missing.
 # The plugin checkout carries the runtime, the Skills and the release bytes and
 # nothing else, so an install-time scanner reads only what the plugin does.
 #
@@ -91,8 +92,8 @@ plugin-doctor:
 plugin-schemas:
 	$(RUN) python tools/plugin/export_tool_schemas.py
 
-# Everything that reads the sibling plugin checkout, in one target. Kept out of
-# `check`, which must pass in a clone that has no sibling checkout at all. The
+# Everything that reads the plugin checkout, in one target. Kept out of
+# `check`, which must pass in a standalone CLI clone with no plugin checkout. The
 # typecheck belongs here rather than nowhere: it is the only pass that reads the
 # plugin the way a host does, through an installed techtree, and it went red and
 # unnoticed for as long as it was a target nobody ran (techtree-python-qgr).

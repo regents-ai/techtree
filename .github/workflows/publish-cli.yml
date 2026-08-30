@@ -1,0 +1,57 @@
+name: Publish CLI to PyPI
+
+# Trusted publishing only. The workflow rebuilds the wheel from the approved
+# tag and refuses to publish unless its SHA-256 matches the founder's packet.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The approved monorepo release tag"
+        required: true
+        type: string
+      expected_sha256:
+        description: "The approved wheel SHA-256 (64 hex characters)"
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: astral-sh/setup-uv@v5
+      - name: Build the wheel from the approved tag
+        working-directory: cli
+        run: uv build --wheel
+      - name: Refuse to publish anything but the approved bytes
+        working-directory: cli
+        env:
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "The approved digest must be exactly 64 lowercase hexadecimal characters. Nothing was published."
+            exit 1
+          fi
+          built=$(sha256sum dist/*.whl | awk '{print $1}')
+          echo "built:    $built"
+          echo "approved: $EXPECTED_SHA256"
+          if [ "$built" != "$EXPECTED_SHA256" ]; then
+            echo "The freshly built wheel does not match the approved digest. Nothing was published."
+            exit 1
+          fi
+          stamped=$(python3 -c "import glob,json,zipfile; print(json.loads(zipfile.ZipFile(glob.glob('dist/*.whl')[0]).read('techtree/resources/release/build-provenance.json'))['source_commit'])")
+          if [ "$stamped" != "$(git rev-parse HEAD)" ]; then
+            echo "The wheel provenance does not name the checked-out commit. Nothing was published."
+            exit 1
+          fi
+      - name: Publish with trusted publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: cli/dist/

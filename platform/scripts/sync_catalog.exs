@@ -1,7 +1,7 @@
-# Copy a generated `techtree-python` catalog export into this repository.
+# Copy a generated CLI catalog export into the platform.
 #
 #     mix run scripts/sync_catalog.exs \
-#       --source ../techtree-python/src/techtree/resources/catalog \
+#       --source ../cli/src/techtree/resources/catalog \
 #       --source-revision <full-commit> \
 #       --generator-version <generator-version> \
 #       --bootstrap path/to/bootstrap.json

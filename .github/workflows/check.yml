@@ -1,0 +1,60 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  python:
+    name: CLI and Hermes plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Check CLI
+        working-directory: cli
+        run: make check
+      - name: Check plugin package
+        working-directory: plugin
+        run: make check
+      - name: Check CLI and plugin integration
+        working-directory: cli
+        run: make check-plugin
+
+  platform:
+    name: Public platform
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGHOST: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: 1.19.5
+          otp-version: 28.2
+      - name: Install dependencies
+        working-directory: platform
+        run: mix deps.get
+      - name: Build assets
+        working-directory: platform
+        run: mix assets.setup && mix assets.build
+      - name: Check platform
+        working-directory: platform
+        run: mix check

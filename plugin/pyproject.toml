@@ -4,8 +4,8 @@
 # code is standard library only and this project is never built or installed
 # as a distribution. Everything declared below is repository tooling: the
 # formatter, linter, and type checker that make up the gate. The plugin's test
-# battery runs from the Techtree repository beside this one, which is where its
-# suite and its tooling live.
+# battery runs from this monorepo's CLI directory, which is where its suite and
+# tooling live.
 
 [project]
 name = "techtree-hermes"
@@ -48,4 +48,3 @@ warn_unreachable = true
 # `make typecheck` gives the hyphenated checkout directory an importable name
 # and checks the package under it. Running mypy directly on this directory
 # cannot work: `techtree-hermes` is not a Python identifier.
-

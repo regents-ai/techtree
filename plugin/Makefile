@@ -9,7 +9,7 @@
 # catch — fake private keys, destructive command strings — which is exactly
 # what a scanner is right to refuse. So the plugin's unit, contract and
 # integration tests, and the tooling that runs them, live in the Techtree
-# repository beside this one, and run there with `make test-plugin`.
+# monorepo's CLI directory, and run there with `make check-plugin`.
 
 UV ?= uv
 RUN := $(UV) run
@@ -45,5 +45,5 @@ typecheck:
 
 check: format-check lint typecheck
 	@echo
-	@echo "The plugin's tests run from the Techtree repository beside this one:"
-	@echo "    make test-plugin        (in the techtree-python checkout)"
+	@echo "The plugin's tests run from the monorepo CLI directory:"
+	@echo "    make -C ../cli check-plugin"

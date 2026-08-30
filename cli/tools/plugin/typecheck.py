@@ -1,8 +1,8 @@
 """Type-check the Hermes plugin's tests and the tooling that runs them.
 
-Both import the plugin package, which is the sibling checkout's directory, and
-mypy identifies a package by its directory name: `techtree-plugin` is not a
-Python identifier. The checkout is therefore given an importable name through
+Both import the plugin package from this monorepo or a sibling checkout, and
+mypy identifies a package by its directory name: neither layout gives it the
+Python package name the tests use. The checkout is given that name through
 a temporary symbolic link, the passes run against that name, and the link is
 discarded. Nothing in either checkout is touched.
 

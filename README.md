@@ -2,23 +2,25 @@
 
 **Improve a Skill. Prove it worked.**
 
-Opinionated Stack for Agent Skill Uplift.
-Built on [Prime Intellect verifiers](https://github.com/PrimeIntellect-ai/verifiers) and [NVIDIA NeMo Framework](https://github.com/nvidia-nemo).
+Techtree runs a fixed evaluation twice—once without a Skill and once with the
+candidate Skill—then produces a signed result that can be verified offline.
+The public platform at [techtree.sh](https://techtree.sh/) lets participants
+optionally publish those results.
 
 [![The Techtree homepage](docs/assets/techtree-home.png)](https://techtree.sh/)
 
-> [!IMPORTANT]
-> **This repository is a placeholder for the future Techtree monorepo.** The
-> v0.1 source still lives in the three repositories below. Use their READMEs
-> for installation, development, and release instructions.
+## One repository, three components
 
-## Three repositories, one system
-
-| Component | Current source | What it does |
+| Component | Source | What it does |
 | --- | --- | --- |
-| **CLI and campaign kernel** | [`regents-ai/techtree-python`](https://github.com/regents-ai/techtree-python) | Runs pinned baseline and candidate evaluations, manages the local campaign lifecycle, signs receipts, and verifies proof bundles offline. |
-| **Hermes plugin** | [`regents-ai/techtree-hermes`](https://github.com/regents-ai/techtree-hermes) | Gives Nous Research's Hermes an approval-aware operator surface for Techtree. It explains each step, invokes the CLI with fixed arguments, and relays structured results; evaluation logic stays in the CLI. |
-| **Public platform** | [`regents-ai/techtree-ash`](https://github.com/regents-ai/techtree-ash) | Powers [techtree.sh](https://techtree.sh/): the pinned installation guide, campaign catalog, documentation, local-proof explanation, and public list of runs participants choose to publish. |
+| **CLI and campaign kernel** | [`cli/`](cli/) | Runs pinned baseline and candidate evaluations, manages the local campaign lifecycle, signs receipts, and verifies result bundles offline. |
+| **Hermes plugin** | [`plugin/`](plugin/) | Gives Hermes an approval-aware operator surface for Techtree. It explains each step, invokes the CLI with fixed arguments, and relays structured results; evaluation logic stays in the CLI. |
+| **Public platform** | [`platform/`](platform/) | Powers [techtree.sh](https://techtree.sh/): installation, campaign discovery, documentation, and the public list of results participants choose to publish. |
+
+Each component keeps its original README and remains independently buildable.
+The former `techtree-python`, `techtree-hermes`, and `techtree-ash`
+repositories remain frozen v0.1 snapshots. This monorepo is the source of truth
+for v0.2 development.
 
 ## How they work together
 
@@ -38,19 +40,19 @@ pinned evaluation environment
  executes the comparison and returns measurements
  │
  ▼
-signed local receipt
- verifies offline on any machine holding the proof bundle
+signed local result
+ verifies offline on any machine holding the result bundle
  │
- └── optional publish ──▶ techtree.sh published runs
+ └── optional publish ──▶ techtree.sh published results
 ```
 
 The CLI is the local source of truth for a run. The plugin is a conversational
 operator, not a second evaluation engine. The platform helps people discover,
 install, and inspect Techtree, but it is not required to run a comparison or
-verify a local proof.
+verify a local result.
 
-Publishing is optional. A published run sends its signed proof material to the
-platform; private Episodes and Traces stay on the participant's machine.
+Publishing is optional. A published run sends its signed result material to
+the platform; private Episodes and Traces stay on the participant's machine.
 
 ## Normal user flow
 
@@ -61,45 +63,49 @@ platform; private Episodes and Traces stay on the participant's machine.
    action.
 4. Run a Climb: Techtree holds the task set, model, harness, tools, and budget
    fixed while changing the declared Skill.
-5. Inspect the result and verify its signed proof locally, without a Techtree
+5. Inspect the result and verify its signed bundle locally, without a Techtree
    account or network connection.
-6. If desired, publish the signed run so others can inspect it on the platform.
+6. If desired, publish the signed result so others can inspect it on the
+   platform.
 
-## Work in the current repositories
+## Work in the monorepo
 
-Each component remains independently buildable and keeps its own detailed
-documentation:
+The root check runs every model-free component gate and the CLI/plugin
+integration suite:
+
+```sh
+make check
+```
+
+For component-specific setup and commands, use the original documentation:
 
 | Component | Documentation | Main check |
 | --- | --- | --- |
-| CLI | [`techtree-python` README](https://github.com/regents-ai/techtree-python#readme) | `make check` |
-| Hermes plugin | [`techtree-hermes` README](https://github.com/regents-ai/techtree-hermes#readme) | `make check` |
-| Public platform | [`techtree-ash` README](https://github.com/regents-ai/techtree-ash#readme) | `mix check` |
+| CLI | [`cli/README.md`](cli/README.md) | `make -C cli check` |
+| Hermes plugin | [`plugin/README.md`](plugin/README.md) | `make -C plugin check` |
+| Public platform | [`platform/README.md`](platform/README.md) | `cd platform && mix check` |
 
-The plugin's full integration suite is run from a sibling CLI checkout with
-`make test-plugin`. Release work continues in the component repositories until
-the monorepo migration is complete.
+The plugin's complete test suite is intentionally owned by the CLI and runs
+with `make -C cli check-plugin`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+repository workflow and [SECURITY.md](SECURITY.md) for private vulnerability
+reporting.
 
-## Planned monorepo
-
-After the frozen v0.1 release, the three repositories will move here with their
-full Git histories preserved:
+## Repository layout
 
 ```text
 techtree/
-├── cli/          # current techtree-python
-├── plugin/       # current techtree-hermes
-├── platform/     # current techtree-ash
+├── cli/          # Python CLI, campaign kernel, and plugin test suite
+├── plugin/       # Hermes plugin package and Skills
+├── platform/     # Ash/Phoenix public platform
+├── docs/         # shared architecture and migration records
 ├── README.md
 ├── CONTRIBUTING.md
 ├── AGENTS.md
 ├── SECURITY.md
 ├── LICENSE
 ├── CODEOWNERS
-├── Makefile
-└── .github/
+└── Makefile
 ```
 
-The component READMEs will remain at `cli/README.md`, `plugin/README.md`, and
-`platform/README.md`. Until those directories appear, follow the links above;
-this repository is an overview, not an installable build.
+Hermes installs the plugin from the `plugin/` subdirectory. The old plugin
+repository is a frozen v0.1 source, not an automatically updated mirror.

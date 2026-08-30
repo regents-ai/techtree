@@ -106,8 +106,8 @@ mypy_path = ["src"]
 # Verifiers build. That build belongs to the managed engine environment, never
 # to the ordinary package environment, so its types are not resolvable here.
 #
-# The Hermes plugin's suite imports the plugin package, which is a directory in
-# the sibling checkout whose name is not a Python identifier. It is checked by
+# The Hermes plugin's suite imports the plugin package from this monorepo or a
+# sibling checkout. Its directory name is not a Python identifier. It is checked by
 # `make typecheck-plugin`, which gives that directory an importable name first.
 exclude = [
   "^tests/plugin/",
@@ -118,7 +118,7 @@ exclude = [
 [tool.pytest.ini_options]
 minversion = "8.0"
 # The Hermes plugin's suite under tests/plugin is deliberately not here. It
-# reads the plugin out of the sibling checkout, so it is its own battery,
+# reads the plugin out of its own checkout, so it is its own battery,
 # `make test-plugin`, and this repository's own gate does not depend on a
 # second checkout being present.
 testpaths = ["tests/unit", "tests/contract", "tests/integration"]

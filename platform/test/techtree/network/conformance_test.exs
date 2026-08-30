@@ -7,12 +7,12 @@ defmodule Techtree.Network.ConformanceTest do
   agrees with this repository's reading of the wire contract. That is the one
   thing it was never in doubt about. The two halves of publishing were built at
   once from opposite ends and disagreed on four things, so the claim worth
-  testing is a different one: that the document `techtree-python`'s real
+  testing is a different one: that the document the CLI's real
   publishing path produces for a real 36-task run is accepted here, unmodified,
   byte for byte.
 
-  `techtree-python` writes that document to
-  `tests/fixtures/publication/conformance-submission.json` and this test reads
+  The CLI writes that document to
+  `cli/tests/fixtures/publication/conformance-submission.json` and this test reads
   it from there rather than from a copy kept here. A copy would agree with
   whatever it was copied from on the day it was copied, which is exactly the
   drift the wire contract in decision 0038 was written down to stop. If that
@@ -21,7 +21,7 @@ defmodule Techtree.Network.ConformanceTest do
 
   The same is done in the other direction for what this site sends back. The
   two receipts and the withdrawal request are exported as JSON Schemas in
-  `techtree-python/schemas/v1alpha1`, with `additionalProperties: false` and an
+  `cli/schemas/v1alpha1`, with `additionalProperties: false` and an
   explicit `required` list, so the member set of each document is fixed there
   rather than described here. These tests read those files and check the
   documents this site actually produces against them, member for member. That
@@ -50,11 +50,11 @@ defmodule Techtree.Network.ConformanceTest do
   alias Techtree.NetworkFixture
 
   @conformance Path.expand(
-                 "../../../../techtree-python/tests/fixtures/publication/conformance-submission.json",
+                 "../../../../cli/tests/fixtures/publication/conformance-submission.json",
                  __DIR__
                )
 
-  @schemas Path.expand("../../../../techtree-python/schemas/v1alpha1", __DIR__)
+  @schemas Path.expand("../../../../cli/schemas/v1alpha1", __DIR__)
 
   setup do
     CatalogFixture.use_bundle(CatalogFixture.root())
@@ -62,7 +62,7 @@ defmodule Techtree.Network.ConformanceTest do
     :ok
   end
 
-  test "the submission techtree-python builds for a real run is accepted here unmodified" do
+  test "the submission the CLI builds for a real run is accepted here unmodified" do
     submitted = File.read!(@conformance)
 
     assert {:ok, entry, :recorded} = NetworkFixture.publish(submitted)
@@ -83,7 +83,7 @@ defmodule Techtree.Network.ConformanceTest do
     assert entry.submission_bytes == submitted
   end
 
-  test "the submission this site builds for a proof directory is the one techtree-python sends" do
+  test "the submission this site builds for a proof directory is the one the CLI sends" do
     submitted = File.read!(@conformance)
 
     # The fixture carries every byte of the proof it was built from, so the
@@ -102,7 +102,7 @@ defmodule Techtree.Network.ConformanceTest do
     assert Seed.submission(directory) == submitted
   end
 
-  describe "against the schemas techtree-python exports" do
+  describe "against the schemas the CLI exports" do
     test "a publication receipt is the envelope its schema fixes" do
       {:ok, entry, :recorded} = NetworkFixture.publish()
       {:ok, key} = Key.load()

@@ -1,7 +1,0 @@
-{
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "embedded",
-  "dolt_database": "techtree_python",
-  "project_id": "b82d2a98-f625-4da9-8883-18ca414b2c69"
-}

@@ -1,9 +1,9 @@
 # Generate the golden fixture that pins this repository's canonical JSON
-# encoder to the one `techtree-python` signs with.
+# encoder to the one the CLI signs with.
 #
-#     uv run --project ../techtree-python python scripts/generate_canonical_fixture.py \
+#     uv run --project ../cli python scripts/generate_canonical_fixture.py \
 #       --proof "$HOME/Library/Application Support/techtree/runs/<run>/proof" \
-#       --golden ../techtree-python/tests/golden
+#       --golden ../cli/tests/golden
 #
 # Nothing here is hand-written. Every expected byte string in the fixture is
 # produced by the same encoder the protocol digests are taken over, so a
