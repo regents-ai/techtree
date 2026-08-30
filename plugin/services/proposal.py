@@ -1,0 +1,223 @@
+"""Staging a proposed Skill, and handing it to Techtree. Section 8.13.
+
+A model wrote this Skill, so nothing here trusts it. The plugin writes it to a
+file only it can read, hands the path to Techtree's ordinary preparation
+command, and lets Techtree do what it does for any candidate Skill: snapshot
+it, scan it, hash it, and build a draft. The plugin's copy is deleted as soon
+as Techtree owns one.
+
+That order matters for a reason worth stating: the scanner is Techtree's, and
+a plugin that pre-approved a Skill it generated would be marking its own
+homework. What this file does is plumbing — write it down, pass it over,
+clean up.
+
+Nothing about the proposal survives in the plugin. The draft Techtree returns
+is what a later turn refers to, and that draft is on disk in Techtree's own
+store, not in this process.
+
+Where "a file only it can read" is matters. It is not the shared OS temporary
+directory: a proposed Skill is the participant's content, a cleanup can fail,
+and a file orphaned in /tmp is one nobody was ever told to look for. It goes
+under the plugin's own state directory, at a path the README's removal
+section names, so that the worst case is a file at a documented address
+rather than a file at an unknowable one. When cleanup does fail, the answer
+says so instead of the failure being swallowed.
+"""
+
+from __future__ import annotations
+
+import os
+import stat
+import tempfile
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Final
+
+from ..cli.constants import proposal_staging_home
+from ..cli.errors import PluginError
+from .models import SkillRevisionOutput
+
+CODE_PROPOSAL_PREPARE_FAILED: Final = "skill_revision_prepare_failed"
+CODE_PROPOSAL_UNCHANGED: Final = "skill_revision_unchanged"
+
+#: What Techtree must tell us about a prepared replacement before anyone is
+#: asked to approve running it. Specification section 8.13.
+REQUIRED_REPLACEMENT_FIELDS: Final[tuple[str, ...]] = (
+    "draft_id",
+    "draft_digest",
+    "data_policy_digest",
+    "campaign_spec_digest",
+    "baseline_skill_digest",
+    "candidate_skill_digest",
+    "estimated_episodes",
+    "source_run_id",
+)
+
+_SKILL_FILENAME: Final = "SKILL.md"
+_DIRECTORY_MODE: Final = stat.S_IRWXU
+_FILE_MODE: Final = stat.S_IRUSR | stat.S_IWUSR
+
+
+def _ensure_private_directory(path: Path) -> None:
+    """Create ``path`` and every missing ancestor, each one 0700.
+
+    ``mkdir(parents=True)`` makes intermediate directories under the process
+    umask and leaves them there, so hardening only the leaf hardens the room
+    and not the corridor: the plugin's own state root would be created 0755
+    and never tightened. Each level this call creates is made private at
+    creation, and re-hardened afterwards so the result is exact whatever the
+    umask. A directory that already existed is left as its owner set it.
+    """
+    missing: list[Path] = []
+    cursor = path
+    while not cursor.exists():
+        missing.append(cursor)
+        if cursor.parent == cursor:
+            break
+        cursor = cursor.parent
+    for directory in reversed(missing):
+        directory.mkdir(mode=_DIRECTORY_MODE, exist_ok=True)
+        os.chmod(directory, _DIRECTORY_MODE)
+    if path.exists():
+        os.chmod(path, _DIRECTORY_MODE)
+
+
+@dataclass(frozen=True)
+class StagedSkill:
+    """A proposed Skill on disk, waiting to be handed over."""
+
+    directory: Path
+    entrypoint: Path
+
+    def remove(self) -> str | None:
+        """Delete the staged copy, and say so if it could not be deleted.
+
+        Returns None when nothing is left behind, and otherwise a sentence
+        naming the path that still exists. A swallowed cleanup failure leaves
+        participant content on disk with nobody aware of it, which is the
+        thing this file is careful about; the caller relays what comes back.
+        """
+        try:
+            self.entrypoint.unlink(missing_ok=True)
+            self.directory.rmdir()
+        except OSError as error:
+            return (
+                f"the staged copy of the proposed Skill could not be removed "
+                f"from {self.directory}: {error}"
+            )
+        return None
+
+
+class ProposalService:
+    """Writes a proposed Skill down, and hands it to Techtree to judge."""
+
+    def __init__(self, *, plugin_data_root: Path | None = None, bridge: Any) -> None:
+        self._root = plugin_data_root
+        self._bridge = bridge
+
+    @property
+    def staging_root(self) -> Path:
+        """Return the directory this service stages proposals in."""
+        return self._root or proposal_staging_home()
+
+    def write_temporary_skill(
+        self, *, demo_id: str, output: SkillRevisionOutput
+    ) -> StagedSkill:
+        """Write the proposed SKILL.md where only this user can read it."""
+        parent = self.staging_root
+        _ensure_private_directory(parent)
+        directory = Path(
+            tempfile.mkdtemp(prefix=f"techtree-proposal-{demo_id[:12]}-", dir=parent)
+        )
+        os.chmod(directory, _DIRECTORY_MODE)
+
+        entrypoint = directory / _SKILL_FILENAME
+        entrypoint.write_text(output.revised_skill_markdown, encoding="utf-8")
+        os.chmod(entrypoint, _FILE_MODE)
+        return StagedSkill(directory=directory, entrypoint=entrypoint)
+
+    def prepare_replacement_draft(
+        self, *, source_run_id: str, skill_path: Path, label: str = "revision"
+    ) -> dict[str, Any]:
+        """Invoke ordinary `techtree uplift prepare` and check what came back.
+
+        Techtree snapshots the Skill, scans it, hashes it, and creates the
+        second draft. Everything that decides whether this Skill may run is
+        Techtree's, and this never bypasses any of it.
+        """
+        envelope = self._bridge.invoke(
+            [
+                "uplift",
+                "prepare",
+                "--from-run",
+                source_run_id,
+                "--candidate-skill",
+                str(skill_path),
+                "--label",
+                label,
+            ]
+        )
+        if not envelope.get("ok"):
+            raise PluginError(
+                _message(envelope, "Techtree would not prepare the revised Skill"),
+                code=CODE_PROPOSAL_PREPARE_FAILED,
+            )
+
+        data = envelope.get("data")
+        if not isinstance(data, Mapping):
+            raise PluginError(
+                "Techtree's preparation carried no draft to start",
+                code=CODE_PROPOSAL_PREPARE_FAILED,
+            )
+
+        validate_replacement_response(data, source_run_id)
+        return dict(data)
+
+    def remove_temporary_skill(self, staged: StagedSkill) -> str | None:
+        """Delete the plugin's copy once Techtree has its own snapshot.
+
+        Returns None when the copy is gone, and otherwise the reason it is
+        not, for the caller to put in front of a person.
+        """
+        return staged.remove()
+
+
+def validate_replacement_response(
+    response: Mapping[str, Any], source_run_id: str
+) -> None:
+    """Check a prepared replacement says everything approval depends on.
+
+    Raises:
+        PluginError: when a field a person needs before approving is missing,
+            when the draft belongs to another run, or when the two Skills turn
+            out to be the same text after all.
+    """
+    missing = [name for name in REQUIRED_REPLACEMENT_FIELDS if not response.get(name)]
+    if missing:
+        raise PluginError(
+            f"this prepared comparison does not say {missing}, which a person "
+            "needs before approving it",
+            code=CODE_PROPOSAL_PREPARE_FAILED,
+        )
+
+    if response["source_run_id"] != source_run_id:
+        raise PluginError(
+            "this prepared comparison belongs to a different run",
+            code=CODE_PROPOSAL_PREPARE_FAILED,
+        )
+
+    if response["baseline_skill_digest"] == response["candidate_skill_digest"]:
+        raise PluginError(
+            "the revised Skill is identical to the one that was measured, so "
+            "there is nothing to compare",
+            code=CODE_PROPOSAL_UNCHANGED,
+            repair="Read the proposal's rationale; no change was actually made.",
+        )
+
+
+def _message(envelope: Mapping[str, Any], fallback: str) -> str:
+    error = envelope.get("error")
+    if isinstance(error, Mapping) and isinstance(error.get("message"), str):
+        return str(error["message"])
+    return fallback

@@ -1,0 +1,51 @@
+# Techtree Hermes operator plugin. Specification sections 7.3 and 7.4.
+#
+# Hermes loads this repository directory as a plugin package, so the runtime
+# code is standard library only and this project is never built or installed
+# as a distribution. Everything declared below is repository tooling: the
+# formatter, linter, and type checker that make up the gate. The plugin's test
+# battery runs from the Techtree repository beside this one, which is where its
+# suite and its tooling live.
+
+[project]
+name = "techtree-hermes"
+version = "0.1.0"
+description = "Controlled local agent Skill evaluation and uplift through Techtree"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license-files = ["LICENSE"]
+authors = [{ name = "Techtree" }]
+# Specification section 9.6: the plugin runtime carries no third-party
+# dependency beyond the documented Hermes environment.
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "mypy>=1.17,<2",
+  "ruff>=0.12,<1",
+]
+
+# The plugin is a loaded directory, not a wheel. Nothing here is packaged.
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP", "W"]
+# The repository directory is the plugin package, and both the checkout name
+# and the published repository name contain a hyphen. Hermes loads the plugin
+# by path, so the directory name is not ours to make into an identifier.
+ignore = ["N999"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+# `make typecheck` gives the hyphenated checkout directory an importable name
+# and checks the package under it. Running mypy directly on this directory
+# cannot work: `techtree-hermes` is not a Python identifier.
+
