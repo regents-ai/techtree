@@ -1,0 +1,13 @@
+[project]
+name = "techtree-preflight-subject"
+version = "0.1.0"
+description = "Named-subject fixture package used only by the Techtree eval preflight"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["techtree_preflight_subject"]

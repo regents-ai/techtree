@@ -1,0 +1,149 @@
+{
+  "campaign_spec_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1",
+  "configuration": {
+    "agents": {
+      "subject": {
+        "harness": {
+          "id": "hermes-agent",
+          "skills": [
+            {
+              "digest": "sha256:f059797eab10344b512bddd0084d8f2b83518d21a5a160583718e86e236b849f",
+              "media_type": "application/zip",
+              "relative_path": "candidate-skill.zip",
+              "size": 4096
+            }
+          ],
+          "use_bundled_skill": false,
+          "version": "0.19.0"
+        },
+        "model": {
+          "credential_env": "TECHTREE_MODEL_API_KEY",
+          "model_id": "development-placeholder",
+          "provider": "development",
+          "revision": null
+        },
+        "runtime": {
+          "cpu": 2.0,
+          "image": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
+          "image_platform_digests": {
+            "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",
+            "linux/arm64": "sha256:20eadabc42589e6543b24a64ab305b9895e9fcf6dbb2cadb14812f394ecdbadf"
+          },
+          "memory_gb": 4.0,
+          "network_policy": "restricted",
+          "supported_platforms": [
+            "linux/amd64",
+            "linux/arm64"
+          ],
+          "type": "docker"
+        },
+        "sampling": {
+          "max_tokens": 512,
+          "temperature": 0.0
+        },
+        "trainable": false
+      }
+    },
+    "budgets": {
+      "maximum_input_tokens": null,
+      "maximum_model_calls": null,
+      "maximum_output_tokens": null,
+      "maximum_usd": null
+    },
+    "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
+    "environment": {
+      "id": "single-agent"
+    },
+    "evaluation_backend": {
+      "attestation": "participant",
+      "executor_identity": null,
+      "kind": "local_techtree",
+      "provider_run_ref": null,
+      "schema_version": "techtree.evaluation-backend.v1alpha1",
+      "workspace_ref": null
+    },
+    "evidence": {
+      "runtime_evidence": "not_required",
+      "verifiers_episode": "required"
+    },
+    "execution": {
+      "max_concurrent": 1,
+      "order": "baseline_then_candidate",
+      "retry_limit": 0,
+      "timeout_seconds": 1800
+    },
+    "mutation_contract": {
+      "allowed_differences": [
+        "/agents/subject/harness/skills"
+      ],
+      "kind": "skill_insertion",
+      "maximum_skills": 1,
+      "minimum_skills": 1,
+      "target_agent": "subject"
+    },
+    "outcome_contract_digest": null,
+    "scoring": {
+      "aggregation": "mean",
+      "minimum_absolute_delta": 0.05,
+      "primary_reward": "reward",
+      "require_candidate_above_baseline": true
+    },
+    "taskset": {
+      "membership": {
+        "membership_digest": "sha256:e1ec7b463400ebcd7e7c388d384c4eb84a95add186041737a9f00c920c22699b",
+        "mode": "committed",
+        "ordered_task_hashes": [
+          "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
+          "sha256:f13f0e1a9e8c5c1fa7ee22b0bf16fe4f4c4f295830f002dc8f6c041ceea8bc6f",
+          "sha256:7382751baf5726771425c5f5b334f806efca1cfa0e1402d4021fb551faebcda8",
+          "sha256:6b934d6dc7dd6a4388b115659f8692b4c6f02a4fcc4a76469d7ff37b955c1e4b",
+          "sha256:96861527b5de3158782357f69610d89210c4951f5cbad26e1788557d2271364a",
+          "sha256:00762bfef7cc69cce110987ac209463d0cd0c329a86be0d558d2426edd99a6ef",
+          "sha256:9ca894dd9d22c8af2cc6d4e439eafe60561a119780845f1eb33be5286795f9e5",
+          "sha256:fd6726a063cf25adbd3e4793ac119ad62924e65f8e01e55a9693363be8e8daef",
+          "sha256:9eeed74698f6dde1f07a16701ca456c9255cfebbd562455946d51dd25d24b202",
+          "sha256:aeec0e9f474384198b2066ba8caa41596daa727ebf7a10aa7edb0ae98dcc4df9",
+          "sha256:b39ea2241332303b53f3ffb9fc12dfa25ace66aaa622b46466fae63035fb14c0",
+          "sha256:376fa59ae32b4d7b7ee9ef003d21eec0adb70d0c872672aef7c57114552ed8db",
+          "sha256:1b2de99b6bda9f670b9236b6879a2f37f1b4ec98fba73e57898b6afd4f1097e0",
+          "sha256:3512f8c4290ba90e558e9cc85f9d99fe3e18ec406b5a4d188da1be3797426852",
+          "sha256:9ea788992a0dc938497ff97ad196d25b21c8ec94c98c6fd149bcad44623ce68f",
+          "sha256:1b60f6c51856f50a1456739513e5e94f97a407be7391f473f39f147d513af932",
+          "sha256:0e38a939d3a0ae65e606a50b1c95a4b2dfc6810a264a5a157ff07bcbb96cda49",
+          "sha256:2368de2a2ed5fceae718086004cbde5b4893e2023d7c0849019186d44d682c9a",
+          "sha256:f7381bc2e26f3a761853c95fdc529a2995a6f4e989c4e289797dc17b9a1fe5c0",
+          "sha256:331ddd7dd1e56ccb23b6358980e142b0d0dd912646f9a546454e281e312a6fb5"
+        ]
+      },
+      "ref": {
+        "config": {
+          "num_tasks": 20
+        },
+        "id": "procedure-transfer-v1",
+        "kind": "verifiers",
+        "package": {
+          "digest": "sha256:8f1b2ede17f82b676bfbeb2570392915dd3f63cac9117782e45287634a98a7a9",
+          "kind": "embedded",
+          "name": "procedure-transfer-v1",
+          "revision": "1"
+        }
+      },
+      "selection": {
+        "num_rollouts": 1,
+        "num_tasks": 20,
+        "shuffle": false
+      },
+      "validation_receipt_digest": "sha256:b0ff34a2b54a35ea85856babdf86b4a93c6ef86c9a7fc33d2c7fa230490e3c94"
+    }
+  },
+  "configuration_digest": "sha256:0fa0563a5658b9930743f91c5ffbce617d60c3cc0bcf518ade77be54d9f51f50",
+  "created_at": "2026-01-01T00:00:00Z",
+  "id": "receipt_bc888043c00e2b1a8aff156f929efa7e",
+  "program_ref": null,
+  "public_context": {
+    "climb_digest": "sha256:8a98cf28affe2de98e3431db3b2a26b0a6dc60861fc9fb0f264d8ca044c217ba",
+    "kind": "climb"
+  },
+  "schema_version": "techtree.experiment.v1alpha1",
+  "variant": "candidate"
+}

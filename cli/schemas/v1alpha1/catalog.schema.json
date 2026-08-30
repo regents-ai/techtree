@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "CatalogClimbEntry": {
+      "additionalProperties": false,
+      "description": "One public Climb the package ships.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "path": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "reference": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "reference",
+        "digest",
+        "path"
+      ],
+      "title": "CatalogClimbEntry",
+      "type": "object"
+    },
+    "CatalogObjectLocation": {
+      "additionalProperties": false,
+      "description": "Where one content-addressed object lives, and what kind it is.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "campaign",
+            "data_policy",
+            "taskset_validation",
+            "validation_evidence"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "path": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "media_type"
+      ],
+      "title": "CatalogObjectLocation",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/catalog.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The generated map of everything the package ships.\n\nDecisions document 0003 A7. Path existence, digest verification, and the\nkind-matches-the-request check belong to the repository that loads these\nfiles; what can be decided from the document alone is decided here.",
+  "properties": {
+    "climbs": {
+      "items": {
+        "$ref": "#/$defs/CatalogClimbEntry"
+      },
+      "title": "Climbs",
+      "type": "array"
+    },
+    "objects": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CatalogObjectLocation"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/Digest"
+      },
+      "title": "Objects",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "techtree.catalog.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "climbs",
+    "objects"
+  ],
+  "title": "CatalogIndex",
+  "type": "object"
+}

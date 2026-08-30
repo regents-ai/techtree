@@ -1,0 +1,423 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "A content-addressed pointer to a stored byte stream.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "relative_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative Path"
+        },
+        "size": {
+          "exclusiveMinimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "digest",
+        "media_type",
+        "size"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "AttestationKind": {
+      "description": "Whose attestation the recorded result carries.",
+      "enum": [
+        "participant",
+        "platform",
+        "independent"
+      ],
+      "title": "AttestationKind",
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EvaluationBackendKind": {
+      "description": "Which system orchestrated the evaluation.",
+      "enum": [
+        "local_techtree",
+        "prime_lab",
+        "independent_reproducer"
+      ],
+      "title": "EvaluationBackendKind",
+      "type": "string"
+    },
+    "EvaluationBackendSpec": {
+      "additionalProperties": false,
+      "description": "The orchestrating backend and the attestation it carries.",
+      "properties": {
+        "attestation": {
+          "$ref": "#/$defs/AttestationKind"
+        },
+        "executor_identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "$ref": "#/$defs/EvaluationBackendKind"
+        },
+        "provider_run_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "techtree.evaluation-backend.v1alpha1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "workspace_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "attestation"
+      ],
+      "title": "EvaluationBackendSpec",
+      "type": "object"
+    },
+    "EvidenceStatus": {
+      "description": "How complete the supporting evidence is.",
+      "enum": [
+        "not_collected",
+        "complete",
+        "partial",
+        "invalid",
+        "development_only"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "ExperimentVariant": {
+      "description": "Which side of the comparison a manifest describes.",
+      "enum": [
+        "baseline",
+        "candidate"
+      ],
+      "title": "ExperimentVariant",
+      "type": "string"
+    },
+    "NamedTraceReceipt": {
+      "additionalProperties": false,
+      "description": "One named trace within an episode.",
+      "properties": {
+        "metrics": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "rewards": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Rewards",
+          "type": "object"
+        },
+        "role": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "task_hash": {
+          "$ref": "#/$defs/Digest"
+        },
+        "trace_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "trace_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "role",
+        "trace_id",
+        "trace_digest",
+        "task_hash",
+        "rewards",
+        "metrics",
+        "ok"
+      ],
+      "title": "NamedTraceReceipt",
+      "type": "object"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "ProgramRef": {
+      "additionalProperties": false,
+      "description": "A reserved pointer at a future ``ImprovementProgram``.\n\nThe program model itself is deferred (spec section 4.4). Only the pointer\nexists, so that artifacts written today can be attributed later without a\nschema break.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "title": "ProgramRef",
+      "type": "object"
+    },
+    "PublicContext": {
+      "additionalProperties": false,
+      "description": "The optional public Climb an execution artifact was produced under.",
+      "properties": {
+        "climb_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "kind": {
+          "const": "climb",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "climb_digest"
+      ],
+      "title": "PublicContext",
+      "type": "object"
+    },
+    "ScoreStatus": {
+      "description": "How much weight the recorded reward carries.",
+      "enum": [
+        "pending",
+        "valid",
+        "invalid",
+        "errored",
+        "missing",
+        "development_only"
+      ],
+      "title": "ScoreStatus",
+      "type": "string"
+    },
+    "SubjectRuntimeReceipt": {
+      "additionalProperties": false,
+      "description": "Where the subject agent actually executed, if it executed.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "not_executed",
+            "docker"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "platform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "resolved_image_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "SubjectRuntimeReceipt",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/episode-receipt.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The complete record of one scored episode.",
+  "properties": {
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "data_policy_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "episode_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "episode_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "evaluation_backend": {
+      "$ref": "#/$defs/EvaluationBackendSpec"
+    },
+    "evidence_status": {
+      "$ref": "#/$defs/EvidenceStatus"
+    },
+    "execution_backend": {
+      "enum": [
+        "fake",
+        "verifiers"
+      ],
+      "title": "Execution Backend",
+      "type": "string"
+    },
+    "experiment_manifest_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "named_traces": {
+      "additionalProperties": {
+        "items": {
+          "$ref": "#/$defs/NamedTraceReceipt"
+        },
+        "type": "array"
+      },
+      "title": "Named Traces",
+      "type": "object"
+    },
+    "outcome_contract_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "program_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProgramRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "public_context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PublicContext"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "run_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "schema_version": {
+      "const": "techtree.episode-receipt.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score_status": {
+      "$ref": "#/$defs/ScoreStatus"
+    },
+    "subject_runtime": {
+      "$ref": "#/$defs/SubjectRuntimeReceipt"
+    },
+    "task_hash": {
+      "$ref": "#/$defs/Digest"
+    },
+    "variant": {
+      "$ref": "#/$defs/ExperimentVariant"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "run_id",
+    "campaign_spec_digest",
+    "program_ref",
+    "public_context",
+    "data_policy_digest",
+    "outcome_contract_digest",
+    "evaluation_backend",
+    "subject_runtime",
+    "variant",
+    "experiment_manifest_digest",
+    "episode_id",
+    "episode_digest",
+    "task_hash",
+    "named_traces",
+    "score_status",
+    "evidence_status",
+    "execution_backend",
+    "artifacts"
+  ],
+  "title": "EpisodeReceipt",
+  "type": "object"
+}

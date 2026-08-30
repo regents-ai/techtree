@@ -1,0 +1,309 @@
+{
+ "campaign_budgets": {
+  "maximum_input_tokens": 900000,
+  "maximum_model_calls": 44,
+  "maximum_output_tokens": 16000,
+  "maximum_usd": 2.5
+ },
+ "campaign_execution": {
+  "max_concurrent": 4,
+  "order": "parallel_variants",
+  "retry_limit": 0,
+  "timeout_seconds": 600
+ },
+ "campaign_spec_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+ "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
+ "certified_scientific_code_commit": "1ad6ecf027b7a2b805bba27c7dd700b584501ec8",
+ "climb_digest": "sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236",
+ "cross_check": {
+  "gate1_skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+  "gate1_starter_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+  "note": "The Gate-1 packet \u00a71/\u00a78 names the first superseded lineage and Addendum 1 names the second; neither names the lineage recorded here, which is two moves later \u2014 the budget contract of decision 0029, and then the engine move. One coordinate the Gate-1 record names is still exactly what this wheel ships: the starter Skill's tree digest. One is not: the skill-improver file the packet approved has since been edited for copy, so the digest recorded above is not the digest the Gate-1 record names. That difference is stated here rather than reconciled, because the packet's bytes are never edited and the current lineage travels in the Gate-2 packet.",
+  "skill_improver_matches_gate1": false,
+  "source": "release/founder-skill-approval-addendum-1.md \u00a7A1.3/\u00a7A1.4",
+  "starter_skill_matches_gate1": true
+ },
+ "data_policy_digest": "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
+ "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
+ "engine_move": {
+  "campaign_execution_limits_unchanged": true,
+  "campaign_fields_that_differ": [
+   "/taskset/ref/package/digest",
+   "/taskset/validation_receipt_digest"
+  ],
+  "commit": "8ee03a1ad64fc05eb800014a8b5502a559c184ff",
+  "compared_against_commit": "2476042d643ad13060da077110e7e2722afbe1c9",
+  "from": {
+   "campaign_spec_digest": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+   "catalog_digest": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
+   "climb_digest": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
+   "data_policy_digest": "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
+   "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
+   "release_core_digest": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530",
+   "taskset_package_digest": "sha256:14d9646d79fbcc1abddcac19d5dda9e50ee93df1269e4797e60182b54308384c",
+   "taskset_validation_receipt_digest": "sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948",
+   "validation_evidence_digest": "sha256:9c4959d3b9217ab83c506ceb4219143aff74341be59b15c1de15d35c0cbdbed5",
+   "verifiers_commit": "7e1c47d24d055aae587ee8259f77a3e8e193513a",
+   "verifiers_version": "0.3.1.dev21"
+  },
+  "method": "The two Campaign documents were flattened to JSON pointers and compared field by field. Exactly two fields differ, both of them names of the engine that was moved. All 36 committed task hashes are byte-identical and in the same order, the membership digest is the same value, and recomputing that digest from the hashes reproduces it. The budget contract, the execution contract, the subject model and sampling, the runtime image digests, the mutation contract and the scoring contract are unchanged.",
+  "sources": [
+   "the packaged catalog inside dist/techtree-0.1.0-py3-none-any.whl",
+   "git show of the same catalog files at the parent of the engine-move commit",
+   "the campaign.json stored in the proof directory of a run executed under the superseded Campaign"
+  ],
+  "taskset_membership_digest": "sha256:56f697fb182cc31691c2e1fff20471acbd549a06e37232227c9491c03aa8f9aa",
+  "taskset_membership_digest_recomputed_from_the_hashes": "sha256:56f697fb182cc31691c2e1fff20471acbd549a06e37232227c9491c03aa8f9aa",
+  "taskset_membership_task_count": 36,
+  "taskset_membership_unchanged": true,
+  "to": {
+   "campaign_spec_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+   "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
+   "climb_digest": "sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236",
+   "data_policy_digest": "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
+   "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
+   "release_core_digest": "sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4",
+   "taskset_package_digest": "sha256:f42a0d5e968478af40c703645d247ef043f115f6801d3b497eca5fab47261a7c",
+   "taskset_validation_receipt_digest": "sha256:4944bd71caa1a295e03325b18a7af753d0d8fcf787189c89244209171cda1302",
+   "validation_evidence_digest": "sha256:991be5e42acbd48c6bd9aaf8e1f5a5a2478c0a0e4bf04ad4f2be84b702adee43",
+   "verifiers_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+   "verifiers_version": "0.3.1"
+  },
+  "what_moved": "The embedded Verifiers engine was moved from the pre-release development revision to the released one. That changed the engine bundle digest, the taskset package source digest, and \u2014 because the package digest and the validation receipt are named inside the Campaign \u2014 the Campaign, Climb and catalog digests with them."
+ },
+ "founder_walkthrough_run": {
+  "absolute_delta": 0.6388888888888888,
+  "bundle_payload_digest": "sha256:d0345d1709594f55f88d23db7bbeab08d74034c9c5cdd27dddf34c9580f6ff26",
+  "campaign_spec_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+  "candidate_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+  "comparison_controlled": true,
+  "completed_at": "2026-08-27T05:23:53.210615Z",
+  "cost_usd_all_input_at_uncached_rate": 0.1028,
+  "cost_usd_if_cached_input_free": 0.0708,
+  "decision": "accepted",
+  "episode_count": 72,
+  "episodes_reaching_a_limit": 0,
+  "execution_record_digest": "sha256:041719c976442895e9dd572c1f98582c101b5deba8b303e9f89752e4606d8a44",
+  "kind": "not_a_certification_execution",
+  "policy_acknowledgement_method": "host_agent_confirmation",
+  "proof_checks": 339,
+  "proof_grade": "P1",
+  "proof_verifies_offline": true,
+  "report_digest": "sha256:6b830389c426d773d6f72701f2dee8a626bfe5464b8a15517955c88f5ea151fc",
+  "role": "founder walkthrough through Hermes",
+  "run_id": "run_b3e25a431d3b43128deb31e99a0b6c68",
+  "score": "0/36 \u2192 23/36",
+  "stop_conditions": {
+   "agent_completed": 72
+  },
+  "taskset_lock_digest": "sha256:8bed6f7c7f8b1a703020db9fa0fe08b29e68df6abd0e8f06ffa229722c7d87e0",
+  "turn_conformance": "passed",
+  "usage": {
+   "cached_input_tokens": 1067904,
+   "input_tokens": 3119929,
+   "model_calls": 278,
+   "output_tokens": 70836
+  },
+  "wins_losses_ties": "23/0/13",
+  "worst_variant_seconds": 554.731926
+ },
+ "founder_walkthrough_run_note": "A real run of the shipping lineage and not a certification execution. It is the founder's own walkthrough through Hermes: its run request records policy acknowledgement by host_agent_confirmation rather than by explicit CLI review, and the run carries an improvement context derived from its own report. Its proof verifies offline like the others. It is held outside recertification_runs so that it cannot be counted as one.",
+ "gate1_addendum_1_digest": "sha256:568f3a5371543d546db3e19ec51a83ab43481af0b72d874633a76c3dca278842",
+ "gate1_approval_digest": "sha256:b3ea3ba12af27af878fd4061f4a115b35f772b7c2ca61e2d4fb82d4b5701da35",
+ "gate1_approval_record_digest": "sha256:bc01c93e2aeced2dea33830939c9e35a2196335b9690b7d2b69647b5c4b54ce1",
+ "lineage": "Regenerated for decisions document 0025 option A, regenerated again for the budget contract of decisions document 0029, and moved once more when the embedded Verifiers engine went from the pre-release development revision to the released one. The engine move is recorded under engine_move; the recertification against the Campaign it produced is recorded under recertification and recertification_runs.",
+ "note": "This file names the lineage the candidate wheel actually ships. The Campaign's declared execution limits are enforced end to end \u2014 turns, input tokens, output tokens and the rollout timeout are compiled into the evaluation, the derived total ceiling with them, and the spending maximum is checked as a pre-run precondition \u2014 and those limits are byte-identical to the ones certified under the superseded Campaign. The one scientific coordinate that moved between the two is the engine, and the one thing that had to survive it did: task membership is unchanged, all 36 committed task hashes byte-identical and in the same order. release/orphan-bound-analysis.json still names the superseded Campaign digest in its own header; the bound it computes is unchanged because every input to it is unchanged.",
+ "orphan_bound_analysis": "release/orphan-bound-analysis.json",
+ "packaged_release_core_digest": "sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4",
+ "purpose": "The scientific coordinates of the lineage this candidate wheel carries, read from the artifacts themselves at build time. Every value below is computed from a file in this repository, in the packaged wheel, in the plugin checkout, or in a run's own stored evidence; none is transcribed.",
+ "recertification": {
+  "authorised_by": "docs/decisions/0029-orphan-bound-fix.md",
+  "lineage": {
+   "campaign": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+   "catalog": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
+   "climb": "sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236",
+   "core": "sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4"
+  },
+  "note": "This block replaces the recertification_pending block of the previous revision. That block described a recertification that had not yet happened and named a lineage this wheel does not ship. Under the lineage recorded here the recertification has happened, so the document records what was done rather than what was owed.",
+  "status": "complete",
+  "superseded_lineage": {
+   "campaign": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+   "catalog": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386",
+   "climb": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa",
+   "core": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"
+  },
+  "ticket": "techtree-python-730",
+  "turn_conformance_probe": "Re-executed under this lineage. tools/verify_turn_conformance.py exits 0 on all four runs, 72 traces in 2 files each: every turn is one subject generation that produced a reply, which is what makes maximum_model_calls compile to max_turns.",
+  "what_was_executed": "Three certification executions of the shipping Campaign, each a controlled baseline-versus-starter-Skill comparison over the same 36 committed tasks, each proof verifying offline from stored bytes. They are listed under recertification_runs.",
+  "what_was_not_re_executed_under_this_lineage": {
+   "worker_sigkill_injection": "The orphan bound is evidenced by run_ba3998e2a0d94126bc7426d0c6b32aab, executed under the superseded Campaign and published in release/orphan-bound-analysis.json. It was not repeated here. What the bound is computed from \u2014 the four enforced limits, the task count, the per-call sampling cap and the recorded provider prices \u2014 is byte-identical between the two Campaigns, as engine_move.campaign_execution_limits_unchanged records, so the computed bound is the same number. The teardown behaviour it evidenced lives in the CLI, not in the engine that moved."
+  }
+ },
+ "recertification_run_count": 3,
+ "recertification_runs": [
+  {
+   "absolute_delta": 0.6388888888888888,
+   "bundle_payload_digest": "sha256:b438913636f778284d4d5ba5b6e4a2ab603fe3efe8f2e0811e548dcb26ac1c8f",
+   "campaign_spec_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+   "candidate_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+   "comparison_controlled": true,
+   "completed_at": "2026-08-26T22:44:07.718919Z",
+   "cost_usd_all_input_at_uncached_rate": 0.1149,
+   "cost_usd_if_cached_input_free": 0.0725,
+   "decision": "accepted",
+   "episode_count": 72,
+   "episodes_reaching_a_limit": 0,
+   "execution_record_digest": "sha256:efb59ff51c974c7186c46f37a6d551e351fee2ee20f543a47e32ca5f76fd6667",
+   "kind": "certification",
+   "proof_checks": 339,
+   "proof_grade": "P1",
+   "proof_verifies_offline": true,
+   "report_digest": "sha256:b8094b5548b16418d875eb274a58ea0a5635cc4e12c00df75ac4f2810ac03eb3",
+   "role": "certification execution #1",
+   "run_id": "run_c4758ddb5bba4023aa3530b47f4582e9",
+   "score": "0/36 \u2192 23/36",
+   "stop_conditions": {
+    "agent_completed": 72
+   },
+   "taskset_lock_digest": "sha256:8bed6f7c7f8b1a703020db9fa0fe08b29e68df6abd0e8f06ffa229722c7d87e0",
+   "turn_conformance": "passed",
+   "usage": {
+    "cached_input_tokens": 1413504,
+    "input_tokens": 3488044,
+    "model_calls": 310,
+    "output_tokens": 78732
+   },
+   "wins_losses_ties": "23/0/13",
+   "worst_variant_seconds": 525.584169
+  },
+  {
+   "absolute_delta": 0.6388888888888888,
+   "bundle_payload_digest": "sha256:bf7726737d82f41818304745d7c1caa1f04af9903897461746bd6e0a0d4f078f",
+   "campaign_spec_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+   "candidate_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+   "comparison_controlled": true,
+   "completed_at": "2026-08-26T23:53:23.641892Z",
+   "cost_usd_all_input_at_uncached_rate": 0.1446,
+   "cost_usd_if_cached_input_free": 0.0889,
+   "decision": "accepted",
+   "episode_count": 72,
+   "episodes_reaching_a_limit": 0,
+   "execution_record_digest": "sha256:f7ff694065850a38a334d949bdf726d3815709aace84add45bcc6023f102ea39",
+   "kind": "certification",
+   "proof_checks": 339,
+   "proof_grade": "P1",
+   "proof_verifies_offline": true,
+   "report_digest": "sha256:2736aa17e03da747db033a72399ae9fa02c3e51f70c1bd7d332f418982c256c4",
+   "role": "certification execution #2",
+   "run_id": "run_55159aeb30c44982b8143f61b078a4db",
+   "score": "0/36 \u2192 23/36",
+   "stop_conditions": {
+    "agent_completed": 72
+   },
+   "taskset_lock_digest": "sha256:8bed6f7c7f8b1a703020db9fa0fe08b29e68df6abd0e8f06ffa229722c7d87e0",
+   "turn_conformance": "passed",
+   "usage": {
+    "cached_input_tokens": 1857408,
+    "input_tokens": 4439466,
+    "model_calls": 387,
+    "output_tokens": 87937
+   },
+   "wins_losses_ties": "23/0/13",
+   "worst_variant_seconds": 614.535463
+  },
+  {
+   "absolute_delta": 0.6666666666666666,
+   "bundle_payload_digest": "sha256:cb496b91698c3d1ffa4ab98c7127047f6d63a59ed14ec18f2b2f6e0d5a36e7f9",
+   "campaign_spec_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+   "candidate_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+   "comparison_controlled": true,
+   "completed_at": "2026-08-27T00:04:43.841880Z",
+   "cost_usd_all_input_at_uncached_rate": 0.1143,
+   "cost_usd_if_cached_input_free": 0.0798,
+   "decision": "accepted",
+   "episode_count": 72,
+   "episodes_reaching_a_limit": 0,
+   "execution_record_digest": "sha256:dc9b9cbaabd1607fa5057e9987edf0171139ff46d37035efe6ddd3d5cda82bf1",
+   "kind": "certification",
+   "proof_checks": 339,
+   "proof_grade": "P1",
+   "proof_verifies_offline": true,
+   "report_digest": "sha256:8a9eb2acdf6371e6c22bd2dbd7302e9514a92e039dc9e29b1a32745465a65f4a",
+   "role": "certification execution #3",
+   "run_id": "run_8f89ae9dea6541b187c74d86d119d8a6",
+   "score": "0/36 \u2192 24/36",
+   "stop_conditions": {
+    "agent_completed": 72
+   },
+   "taskset_lock_digest": "sha256:8bed6f7c7f8b1a703020db9fa0fe08b29e68df6abd0e8f06ffa229722c7d87e0",
+   "turn_conformance": "passed",
+   "usage": {
+    "cached_input_tokens": 1149312,
+    "input_tokens": 3474447,
+    "model_calls": 308,
+    "output_tokens": 77087
+   },
+   "wins_losses_ties": "24/0/12",
+   "worst_variant_seconds": 532.363004
+  }
+ ],
+ "recertification_runs_note": "Executed against the Campaign this file names, in the founder's own Techtree home, through the real detached launcher and the real child-local supervisors. Every proof verifies offline: `techtree proof verify` reports 339 checks and no failure on each of the four runs under this lineage. Across the three certification executions no episode of the 216 reached any enforced limit and every episode stopped with agent_completed; the longest variant of any of the four runs took 614.5 seconds against a 3600-second supervisor deadline. A filesystem-wide search for stored runs finds exactly four whose proof campaign.json is this Campaign \u2014 the three above and the walkthrough. An earlier record in this project said five runs scoring 23, 23, 24, 23, 23; that count was wrong and is not carried forward. Every per-run value above is read from the run's own stored evidence: the report and bundle payload digests and the scores from the proof directory, the token usage and variant wall time from the signed comparison-execution record, the per-episode limit figures from the trace files whose digests that record names, and execution_record_digest from the run's own execution/real-execution-result.json, which is where the previous revision's value for that field also came from. The protocol records no dollar figure for a run: the two cost fields are computed from the recorded token counts and the rates in release/price-profile.json, and are not a bill.",
+ "recorded_for_ticket": "techtree-python-ndq.3.2",
+ "release_build_inputs": {
+  "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
+  "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
+  "intro_climb_reference": "hello-world-climb@1",
+  "protocol_version": "v1alpha1",
+  "pyproject_version": "0.1.0",
+  "release_inputs_digest": "sha256:b0f3814641634c62896276582a86a0127fa987599e6f3a774381e8f70393fac3"
+ },
+ "release_contract": "Decisions document 0026: the ReleaseCore is a contract of concrete coordinates and describes no artifact of its own. The commit a wheel was built from is stamped into that wheel by the build and reported by `techtree release info`.",
+ "release_core_digest": "sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4",
+ "release_source_witnesses": "The release-source commit is witnessed by the wheel's build-provenance stamp and the BootstrapRelease's cli.source_revision, never by this file: a repository file cannot name the commit that contains it (decision 0026's principle). The certified scientific code anchor remains certified_scientific_code_commit.",
+ "runtime_image_index_digest": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
+ "runtime_image_platform_digests": {
+  "linux/amd64": "sha256:78b39ef14d8e2b4d71f8dc304f1328c37df95fe0ef99477c2ae6bd3d03784553",
+  "linux/arm64": "sha256:20eadabc42589e6543b24a64ab305b9895e9fcf6dbb2cadb14812f394ecdbadf"
+ },
+ "runtime_supported_platforms": [
+  "linux/amd64",
+  "linux/arm64"
+ ],
+ "schema_version": "techtree.certified-science.v1",
+ "scorer_identity": {
+  "aggregation": "mean",
+  "carried_by": "the embedded verifiers package, whose source digest is the taskset_package digest above; no separate scorer digest exists in this protocol",
+  "primary_reward": "exact_match",
+  "separately_digested": false
+ },
+ "skill_improver_file_digest": "sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678",
+ "starter_skill_file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+ "starter_skill_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+ "subject_credential_env": "PRIME_API_KEY",
+ "subject_hermes_version": "0.19.0",
+ "subject_model_id": "qwen/qwen3.7-flash",
+ "subject_model_provider": "prime",
+ "subject_model_revision": null,
+ "subject_sampling": {
+  "max_tokens": 4096,
+  "temperature": 0
+ },
+ "taskset_lock_digest": "sha256:8bed6f7c7f8b1a703020db9fa0fe08b29e68df6abd0e8f06ffa229722c7d87e0",
+ "taskset_membership_digest": "sha256:56f697fb182cc31691c2e1fff20471acbd549a06e37232227c9491c03aa8f9aa",
+ "taskset_membership_task_count": 36,
+ "taskset_package": {
+  "digest": "sha256:f42a0d5e968478af40c703645d247ef043f115f6801d3b497eca5fab47261a7c",
+  "kind": "embedded",
+  "name": "procedure-transfer-v1",
+  "revision": "0.1.0"
+ },
+ "taskset_selection": {
+  "num_rollouts": 1,
+  "num_tasks": 36,
+  "shuffle": false
+ },
+ "taskset_validation_receipt_digest": "sha256:4944bd71caa1a295e03325b18a7af753d0d8fcf787189c89244209171cda1302",
+ "validation_evidence_digest": "sha256:991be5e42acbd48c6bd9aaf8e1f5a5a2478c0a0e4bf04ad4f2be84b702adee43",
+ "verifiers_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+ "verifiers_version": "0.3.1"
+}

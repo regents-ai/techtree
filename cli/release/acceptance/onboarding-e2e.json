@@ -1,0 +1,491 @@
+{
+ "acceptance": {
+  "10_starts_hello_world_only_after_the_paid_run_approval": {
+   "ce9_recheck": "pass \u2014 the WP11e P0 that told every user at the moment of approval that the run used a development fake executor and no model would be called is gone, and the run recorded fake_executor: false",
+   "declining_the_review": "exit 8, code policy_acceptance_required, nothing started",
+   "recorded_as": {
+    "approved_by": "human_via_hermes",
+    "fake_executor": false,
+    "policy_acknowledgement_method": "host_agent_confirmation"
+   },
+   "replayed_draft": "returned the same run identifier and started nothing new; one run directory per run",
+   "second_comparison_took_its_own_approval": true,
+   "verdict": "established"
+  },
+  "11_every_response_includes_the_useful_next_step": {
+   "chain_defect": "climb list -> climb show -> 'Check that the installed evaluation engine is intact', and that last step can never be satisfied. See finding wp11f-3. An agent following next steps never arrives at Hello World.",
+   "exceptions": [
+    "the plugin's CLI-install result gives its next step only as prose",
+    "techtree_climb_prepare's missing-argument refusal carries no repair",
+    "demo_session_not_found carries no repair"
+   ],
+   "responses_captured": 23,
+   "responses_with_a_machine_readable_next_step": 21,
+   "verdict": "partly established"
+  },
+  "12_no_main_latest_or_unpinned_coordinate": {
+   "commands_scanned": 18,
+   "floating_coordinates_found": 0,
+   "note": "Including the placeholder guide, whose stand-ins are pinned-shaped: a 40-character commit and an exact == version.",
+   "verdict": "established"
+  },
+  "1_one_pasted_instruction": {
+   "verdict": "partly established",
+   "why": "The one instruction exists and is published verbatim on the pinned guide, and the plugin README publishes a second wording. That a live Hermes agent given that prompt carries the journey out was not established and could not be from a throwaway home with no model."
+  },
+  "2_reads_the_pinned_github_release_instructions": {
+   "pinned_readme_blob": "b697a5560746aa880221ae55d681a11d80a722d8",
+   "start_page_sha256": "b648afd8dbaa73d76072064e787e1d21827323509501a50805da711ec853d099",
+   "verdict": "not established",
+   "why": "github.com/regents-ai/techtree-hermes answers 404. The live guide is reachable and was read, but declares itself a placeholder and publishes a 40-zero commit and version 0.0.0-placeholder. What was established is the substitute the contract allows before Gate 2: the pinned local candidate's instructions at df5ead2b. This point cannot close before publication."
+  },
+  "3_explains_prerequisites_commands_cost_provider_and_data_policy": {
+   "verdict": "established, with a defect",
+   "why": "The guide, the README and the operator Skill cover all five, and the CLI's own pre-spend review repeats all of it. The defect is in the operator Skill itself: see finding wp11f-1."
+  },
+  "4_asks_before_installing_anything": {
+   "evidence": {
+    "cli_install_gate": "requires_user_confirmation: true, dispatched to the host terminal",
+    "force_was_never_used": true,
+    "interactive_prompts_answered": [
+     "Install anyway? Only continue if you trust the source. [y/N]",
+     "Enable 'techtree' now? [y/N]"
+    ],
+    "non_interactive_plugin_install": "BLOCKED, exit 1, nothing installed",
+    "replayed_install_plan": "refused \u2014 'that installation plan was not offered by this session'"
+   },
+   "verdict": "established"
+  },
+  "5_installs_and_enables_the_exact_plugin_release": {
+   "evidence": {
+    "detached_head": true,
+    "enabled_in_config": true,
+    "install_metadata_pinned": true,
+    "installed_commit": "df5ead2b38316a8def7837ae0bedfe8c1d5c64a4",
+    "plugin_release_core_byte_identical_to_the_installed_cli": true,
+    "worktree_clean": true
+   },
+   "verdict": "established"
+  },
+  "6_tells_the_user_to_restart_once": {
+   "verdict": "established",
+   "why": "The guide and the README both say it, and Hermes' own line after enabling says to restart the gateway. No Techtree-authored runtime surface says it \u2014 the instruction lives only in the documents and in Hermes' own output."
+  },
+  "7_plugin_offers_the_pinned_cli_installation": {
+   "plan_argv": [
+    "uv",
+    "tool",
+    "install",
+    "--python",
+    "3.12",
+    "techtree==0.1.0"
+   ],
+   "requires_confirmation": true,
+   "verdict": "established"
+  },
+  "8_asks_before_installing_the_cli": {
+   "verdict": "established",
+   "why": "The plan is single-use, expires in fifteen minutes, and is looked up by opaque identifier rather than received, so the command that ran is the command that was offered. The plugin never runs an installer itself."
+  },
+  "9_runs_release_verification_and_doctor": {
+   "credential_check": "the active Prime CLI configuration holds a key the pinned evaluation client can use",
+   "doctor_climb_with_hermes_on_path": {
+    "checks": 14,
+    "ok": true,
+    "passed": 14
+   },
+   "doctor_for_evaluation": {
+    "checks": 11,
+    "ok": true,
+    "passed": 9,
+    "skipped": 1,
+    "warned": 1
+   },
+   "note": "The hermes_plugin check ran and passed here for the first time in a Techtree acceptance. WP11e's journey had no Hermes on its path, so it was skipped there.",
+   "plugin_check": "The Techtree plugin is installed and switched on for this Hermes",
+   "release_verify": {
+    "checks": 12,
+    "ok": true,
+    "passed": 9,
+    "skipped": 3
+   },
+   "verdict": "established"
+  }
+ },
+ "artifacts_outside_this_repository": {
+  "contains": [
+   "the journey home, Hermes home and uv tool directories",
+   "both run directories, their receipts and their proof bundles",
+   "the guided revision's request and response bodies",
+   "every plugin and CLI response captured during the journey"
+  ],
+  "note": "No live run directory, raw Episode, Trace, provider response body, hidden task answer, or credential is committed to this repository.",
+  "where": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11f-20260827"
+ },
+ "channel_default_observation": {
+  "and_nothing_tells_the_agent_to_pass_it": "the operator Skill never mentions the channel argument",
+  "consequence": "For a release whose framing dropped the phone client (decision 0024), the default answer an agent receives is still the phone-shaped one, and the record fields drop out silently.",
+  "not_a_stop_condition": "No surface claims a certified phone path. The public guide contains no reference to a phone, a mobile client, or iOS, and states that Hello World requires a host with a terminal and Docker.",
+  "what_happened": "The guided-revision proposal came back in the bounded, chat-shaped form, without its request accounting, its draft digest or its provenance.",
+  "why": "The plugin resolves the channel from an explicit tool argument first and a documented host field second. DOCUMENTED_CHANNEL_KEYS is empty because Hermes documents none, so an agent that does not pass channel: 'terminal' gets 'unknown', which is treated exactly like a phone."
+ },
+ "clean_machine": {
+  "docker_server_version": "29.7.2",
+  "hermes_host_version": "0.20.5 (2026.8.19)",
+  "hermes_on_path_by_a_single_symlink": "so the CLI's own hermes and hermes_plugin checks could run, which WP11e's journey could not exercise",
+  "home_root": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11f-20260827",
+  "honest_description": "Fresh HOME, HERMES_HOME, UV_TOOL_DIR, UV_TOOL_BIN_DIR, XDG_DATA_HOME and XDG_STATE_HOME under a scratchpad on the founder's existing Mac. Not a fresh operating system, and it does not pretend otherwise.",
+  "host": "Darwin 25.5.0 arm64",
+  "isolation_leak_found_and_corrected": "An earlier attempt put the whole of /Users/sean/.local/bin on the journey PATH to reach hermes. That directory also holds the founder's own globally installed techtree, and three doctor runs silently used it instead of the candidate \u2014 which is how an older build's check set (no hermes_plugin check) appeared and was briefly mistaken for a defect. Corrected by symlinking only hermes into a directory of its own; the affected artifacts are kept and named CONTAMINATED-*. Nothing in this record rests on them.",
+  "no_global_techtree_in_the_journey": "the journey's `techtree` resolves to the scratchpad's uv bin directory",
+  "primary_interpreter": "CPython 3.12.13, pinned by the plugin's own --python 3.12",
+  "prime_login": "represented, not performed \u2014 the operator's ~/.prime/config.json was copied into the journey home with a plain cp. Its contents were never read, printed, logged, or passed anywhere by this worker.",
+  "subject_image_already_cached": true,
+  "uv": "0.12.5"
+ },
+ "contract": "docs/release/contracts/wp11f.md",
+ "credentials": {
+  "no_credential_value_appears": "in this file, in any artifact this ticket produced, in the transcript, or in any tool argument",
+  "no_scrubber": "Decision 0036 removed all secret-shaped-string filtering from this project, deliberately. Nothing here was filtered afterwards and the transcript is not scrubbed. The rule this journey worked to is that a credential never entered the record in the first place.",
+  "where_a_credential_was_used": [
+   "the evaluation child, which reads it from the Prime CLI configuration under the journey HOME",
+   "the one guided-revision host call, whose shim read the Prime CLI configuration inside its own process and put the value straight into a request header"
+  ]
+ },
+ "inputs": {
+  "expected_release_core_digest": "sha256:bef3b9d4c987209c0fb580ed5eb349c096dca328efd7b0867f5a04d7bb763db4",
+  "no_checksum_sidecar": "dist/ holds the wheel and nothing else. There is no .sha256 sidecar beside it in this candidate, so a participant has nothing local to compare a download against; the digest lives only in the release record.",
+  "plugin_commit": "df5ead2b38316a8def7837ae0bedfe8c1d5c64a4",
+  "plugin_repository": "../techtree-plugin",
+  "repository_head_during_the_leg": "techtree-python was at 091e39a, one commit past the freeze commit 5d793b69 the wheel is stamped at. That commit is the release-record commit; the artifact under test is the frozen one.",
+  "wheel": "dist/techtree-0.1.0-py3-none-any.whl",
+  "wheel_digest_agrees_with_release_record": "release/plugin-release-candidate.json names the same wheel_sha256",
+  "wheel_sha256": "e486b3eaa477455566035f9b210db824e1bdda765b1ade0f44891da6b2c855c2",
+  "wheel_sha256_recomputed_here": true,
+  "wheel_stamp_read_from": "techtree/resources/release/build-provenance.json inside the wheel",
+  "wheel_stamped_source_commit": "5d793b699ce75779269a67a7c2f0d9cc9c6b79de"
+ },
+ "limitation_stated_plainly": {
+  "how_the_journey_was_driven": "Through the installed plugin's own tools and the installed CLI, with a minimal facade standing in for Hermes' PluginContext, and \u2014 for the one guided revision \u2014 for Hermes' host-model seam on the profile this release froze. The plugin's compose path, one-shot wrapper, guards, digests and CLI bridge are the installed plugin's own, unchanged.",
+  "the_leg_this_does_not_cover": "The founder walked the real-Hermes path himself on 2026-08-27 on a prior build of the same lineage, producing run_b3e25a431d3b43128deb31e99a0b6c68. That is the record for the leg this journey does not cover.",
+  "throwaway_hermes_home": "The founder's own Hermes was not touched and not restarted. Everything ran against a fresh HERMES_HOME under a scratchpad. That home has no model and no provider configured, so no live Hermes agent conversation was possible and none was held. The plugin-install and restart legs therefore establish that the pinned commit installs, that it is pinned, and that its sixteen tools load \u2014 and they establish NOTHING about the founder's own working Hermes."
+ },
+ "open_findings": [
+  {
+   "blocks_gate_2": true,
+   "id": "wp11f-1",
+   "priority": "P0",
+   "summary": "The operator Skill \u2014 the one document a Hermes agent is told to load before it touches any techtree_ tool \u2014 states unconditionally that this build cannot do the journey. Its 'What this build cannot do yet' section says Techtree Hello World stops before preparing a comparison because the starter Skill has not been chosen for this release, and that proposing a revision stops for the same reason. Its troubleshooting reference says the release coordinates have not been chosen, that it will not install Techtree, that it cannot prepare the guided introduction, and that there is nothing to fix locally. All of that is false of this candidate: both founder Skills are pinned by digest, the CLI installed, the introduction prepared, and both comparisons ran. An agent following its instructions faithfully tells the user the journey is impossible.",
+   "why_the_guards_missed_it": "The copy contract scans these surfaces for forbidden claims and required frames. Nothing encodes 'a claim about what this build cannot do must match whether the release has chosen its founder Skills'."
+  },
+  {
+   "id": "wp11f-2",
+   "priority": "P1",
+   "summary": "The pinned guide and the plugin README both tell the user, in advance, exactly what the install-time security scan will say: 'five findings in three families', and they enumerate all five. The scan actually reports six, in four families, and Hermes' own decision line says '6 findings'. The sixth is a HIGH privilege escalation on skills/operator/references/questions.md \u2014 the very document that explains the five. A user comparing the promise to the screen finds an unexplained HIGH finding at the moment they are being asked to trust the plugin."
+  },
+  {
+   "id": "wp11f-3",
+   "priority": "P1",
+   "summary": "The engine-verified state can never be reached. techtree setup and techtree engine verify both report the engine installed and verified, but a Climb's compatibility status is derived by a class that can only ever answer not_installed or installed_unverified. So climb list, climb show, climb inspect and demo prepare all warn 'The evaluation engine is installed but has not been checked since' forever, and all offer 'Check that the installed evaluation engine is intact' as the next step \u2014 a next action the user can never clear, on the main onboarding surface."
+  },
+  {
+   "id": "wp11f-4",
+   "priority": "P1",
+   "summary": "The guided introduction's session lives only in the memory of the Hermes process that created it. The first comparison takes about eleven minutes and the guide instructs a restart during onboarding, so an ordinary session end loses it. The run survives and recovers by run identifier exactly as the contract requires, but techtree_uplift_propose then refuses with demo_session_not_found and no repair, and the second half of the introduction becomes unreachable. Reproduced live. The store carries a seven-day expiry constant that never applies, which suggests persistence was intended."
+  },
+  {
+   "id": "wp11f-5",
+   "priority": "P1",
+   "summary": "Unless the caller passes channel: 'terminal', every plugin answer comes back in the bounded chat form, and the guided-revision proposal loses its request accounting, its draft digest and its provenance. Hermes documents no field the plugin can read (DOCUMENTED_CHANNEL_KEYS is empty), and the operator Skill never mentions the argument, so the default for an agent-driven call is the phone-shaped answer. Hit live: the proposal this journey received carried request_accounting: null."
+  },
+  {
+   "id": "wp11f-6",
+   "priority": "P2",
+   "summary": "The approval event both runs recorded carries draft_digest: null. The plugin reads it from data.draft_digest on the start envelope and the CLI does not put one there. That is the single field that makes 'a person approved this exact draft' checkable."
+  },
+  {
+   "id": "wp11f-7",
+   "priority": "P2",
+   "summary": "The published install command on techtree.sh/start is 'uv tool install techtree==0.0.0-placeholder', with no --python. The same page's prose promises 'the installer provides its own Python 3.12, whatever this machine has'. Only the plugin's generated plan actually names it. This is WP11e's techtree-python-vom surviving on the website surface."
+  },
+  {
+   "id": "wp11f-8",
+   "priority": "P2",
+   "summary": "techtree run status prints 'Progress  not started' while the table immediately below it shows episodes completing on both sides. The top-level progress field is never populated during running_variants."
+  },
+  {
+   "id": "wp11f-9",
+   "priority": "P2",
+   "summary": "The second comparison's result payload reports task_count: null, where the first reported 36. The reader of Iteration 2 is not told how many tasks it ran."
+  },
+  {
+   "id": "wp11f-10",
+   "priority": "P2",
+   "summary": "The plugin's CLI-install result is the only successful response with no machine-readable next_action; its next step exists only as a sentence at the end of a message. Two typed refusals \u2014 techtree_climb_prepare's missing-argument error and demo_session_not_found \u2014 carry no repair at all."
+  },
+  {
+   "id": "wp11f-11",
+   "priority": "note",
+   "summary": "dist/ carries no .sha256 sidecar beside the wheel, so a participant has nothing local to check a download against. The digest is recorded only in release/plugin-release-candidate.json."
+  },
+  {
+   "id": "wp11f-12",
+   "priority": "note",
+   "summary": "The published plugin install command ends in --enable, which skips the 'Enable techtree now?' confirmation. The install-anyway approval still fires, so no stop condition is met, but the guide's own command pre-answers one of the two questions a user would otherwise be asked."
+  }
+ ],
+ "performed_at": "2026-08-27T08:10Z\u201309:05Z",
+ "restart_question": {
+  "a_brand_new_hermes_process_needs_no_restart": true,
+  "asked_of_the_software_rather_than_the_documents": true,
+  "evidence": "hermes plugins doctor techtree --ci in a new process, with nothing restarted, reported OK and 16 tools and 2 hooks registered; hermes tools list in another new process showed the toolset enabled.",
+  "hermes_own_message_is_narrower": "'Restart the gateway for the plugin to take effect' names only the launchd-supervised gateway, not the chat session that actually needs restarting on this path",
+  "so_on_the_agent_first_path_a_restart_IS_required": "the session the user pasted the prompt into is exactly such a process, so the guide is right for this path",
+  "why": "Hermes runs plugin discovery once per process at startup (model_tools.py runs it at import; _ensure_plugins_discovered memoises). What needs restarting is any process that was already running when the plugin was enabled."
+ },
+ "runs": {
+  "first_comparison": {
+   "absolute_delta": 0.6388888888888888,
+   "baseline_model_turns": 239,
+   "baseline_score": 0,
+   "candidate_model_turns": 77,
+   "candidate_score": 0.6388888888888888,
+   "cost_provenance": "derived by Techtree from the run's own token counts at prices recorded 2026-08-20. The provider reported no figure (cost_provenance: unavailable).",
+   "cost_usd": 0.1168,
+   "decision": "accepted",
+   "derived_cost": {
+    "cached_input_tokens": 972288,
+    "input_tokens": 3544934,
+    "input_usd_per_mtok": 0.03,
+    "model_id": "qwen/qwen3.7-flash",
+    "output_tokens": 80182,
+    "output_usd_per_mtok": 0.13,
+    "prices_name_a_cached_rate": false,
+    "prices_recorded_on": "2026-08-20",
+    "usd": 0.11677167999999999
+   },
+   "every_rollout_completed": true,
+   "executor_key_id": "sha256:45224709003efd4ece9fb066b4920635e982c9b028a267f0c2ddd54f893ef661",
+   "losses": 0,
+   "outcome": "completed",
+   "proof_bundle_file_sha256": "sha256:50271dd189647ec85ca72095484289c1d5b0168496327b834391afbd965737c5",
+   "proof_bundle_payload_digest": "sha256:4c7f46a2677ecbed3a51566aabee56864435bc27165a9194aea8c6225a40ebad",
+   "proof_grade": "P1",
+   "proof_verify": {
+    "checks": 339,
+    "failures": 0,
+    "offline": true,
+    "verified": true
+   },
+   "report_sha256": "sha256:cc7ca29bdbb8c4a8ca31f56939a4294be3a133cb3c64525c752e787850798067",
+   "reproduces": "the certified stability pair exactly \u2014 0.000 -> 0.639, 23 wins, 0 losses, 13 ties, the same numbers WP11e measured on a clean machine",
+   "run_id": "run_618a27f7fde4465ebe02a6bf33b71f7c",
+   "task_count": 36,
+   "ties": 13,
+   "verification_status": "verified_offline",
+   "wins": 23
+  },
+  "guided_revision_host_completion": {
+   "candidate_skill_digest": "sha256:5e2e2f583f058f49d44bc37282c6c3c2d7771e2504083b6cf47412a6575b2d38",
+   "cost_provenance": "provider-reported, read from the response's own usage block",
+   "cost_usd": 0.0441,
+   "diff": {
+    "added_lines": 14,
+    "changed_lines": 19,
+    "diff_digest": "sha256:151d921d0b360eee78e67c2cf7702ca422e93c3ed2bbd84515d83e04417b742f",
+    "removed_lines": 5
+   },
+   "diff_summary": "The model proposed reducing each position-weighted product modulo 97 incrementally and keeping the running total reduced, rather than summing everything and reducing once at the end \u2014 mathematically identical, and it keeps every intermediate value small. It stated its own confidence as medium.",
+   "draft_id": "draft_5602c1912a104539bad52e8719484665",
+   "finish_reason": "stop",
+   "guards_fired": 0,
+   "host_profile": {
+    "max_completion_tokens": 32768,
+    "model": "z-ai/glm-5.2",
+    "provider_profile": "prime OpenAI-compatible https://api.pinference.ai/api/v1",
+    "structured_output": "json_schema, strict=true, no fallback",
+    "temperature": 0
+   },
+   "one_earlier_attempt_was_refused_at_the_provider_edge": {
+    "attempt_spent": false,
+    "cause": "this journey's own facade used a bare standard-library HTTP client, which the provider's edge rejects (Cloudflare 1010). A defect in the harness, not in the product.",
+    "corrected_by": "using the client stack this release already pins",
+    "cost_usd": 0.0,
+    "http_status": 403,
+    "tokens_generated": 0
+   },
+   "outbound_generation_requests": 1,
+   "outcome": "a usable proposal was returned",
+   "provider_response_id": "a319c0b7b9bceb36-SJC",
+   "repairs": 0,
+   "request_digest": "sha256:87bf0fd0c43c67a2d52eddb2bd50f4b7190cf9fe2757cc60dce78ca06c38b6b7",
+   "response_digest": "sha256:5b7f5b19ed446cd49d3ba3b5e04008344818aa2ffe90028b936e89572ae37f46",
+   "retries": 0,
+   "route": "the real plugin path: techtree_uplift_propose on the installed plugin",
+   "usage": {
+    "completion_tokens": 7921,
+    "prompt_tokens": 5112,
+    "reasoning_tokens": 5112
+   },
+   "wp11e_guard_defects_did_not_fire": [
+    "techtree-python-5f6",
+    "techtree-python-0mx"
+   ]
+  },
+  "second_comparison": {
+   "absolute_delta": 0.02777777777777779,
+   "baseline_model_turns": 75,
+   "baseline_score": 0.6388888888888888,
+   "candidate_model_turns": 79,
+   "candidate_score": 0.6666666666666666,
+   "cost_provenance": "derived by Techtree from the run's own token counts at prices recorded 2026-08-20. The provider reported no figure.",
+   "cost_usd": 0.058,
+   "decision": "accepted",
+   "derived_cost": {
+    "cached_input_tokens": 303744,
+    "input_tokens": 1758009,
+    "input_usd_per_mtok": 0.03,
+    "model_id": "qwen/qwen3.7-flash",
+    "output_tokens": 40386,
+    "output_usd_per_mtok": 0.13,
+    "prices_name_a_cached_rate": false,
+    "prices_recorded_on": "2026-08-20",
+    "usd": 0.05799045
+   },
+   "every_rollout_completed": true,
+   "executor_key_id": "sha256:45224709003efd4ece9fb066b4920635e982c9b028a267f0c2ddd54f893ef661",
+   "honest_reading": "The revision moved one task out of thirty-six: 0.639 -> 0.667, one win, no losses, thirty-five ties. The product said so plainly and added no verdict, and neither does this record. The same Skill scored 0.639 as the first comparison's candidate and 0.639 as the second's baseline, which is the two runs agreeing.",
+   "losses": 0,
+   "outcome": "completed",
+   "proof_bundle_file_sha256": "sha256:29e51fbc58d9080497d1fb33b51fbfa755f767d07e0b45b10f49acdef8408385",
+   "proof_bundle_payload_digest": "sha256:f4250b61c8312ab52c9920f84cbfec9c081694f7cd7df0c1003c556c3d360114",
+   "proof_grade": "P1",
+   "proof_verify": {
+    "checks": 339,
+    "failures": 0,
+    "offline": true,
+    "verified": true
+   },
+   "report_sha256": "sha256:07b10b6f81ab1e201d69bfc8592e435cb15b41798f2a1cbf8dc5eff817396a41",
+   "run_id": "run_4584be6d8e1248ce9495a51ce2059fee",
+   "task_count": null,
+   "ties": 35,
+   "verification_status": "verified_offline",
+   "wins": 1
+  }
+ },
+ "schema_version": "techtree.wp11f-onboarding-e2e.v1",
+ "scope": {
+  "certifies": "the exact local candidate artifacts named below, installed and driven from a fresh home on the founder's Mac",
+  "does_not_certify": "the public distribution path. github.com/regents-ai/techtree-hermes answers 404 and nothing is published to an index. techtree.sh/start is live but declares itself a placeholder, and the three commands it publishes name a 40-zero commit and a version called 0.0.0-placeholder. The public-coordinate repeat is WP11-postpublish."
+ },
+ "spend": {
+  "authorized_for_this_journey_usd": 1.5,
+  "every_leg_estimated_before_it_ran": true,
+  "hard_stops": {
+   "any_leg_over_0_30": false,
+   "any_paid_outcome_retried": false,
+   "budget_shortfall": false
+  },
+  "legs": [
+   {
+    "actual_provenance": "derived from the run's token counts at pinned prices",
+    "actual_usd": 0.1168,
+    "estimate_basis": "the prior journey's own pre-run estimate for the identical 72-episode comparison, which measured 0.1523",
+    "estimate_usd": 0.2383,
+    "leg": "first comparison (no Skill vs starter Skill)",
+    "within_ceiling": true
+   },
+   {
+    "actual_provenance": "provider-reported",
+    "actual_usd": 0.0441,
+    "estimate_basis": "the frozen profile's worst case from the prior journey",
+    "estimate_usd": 0.1816,
+    "leg": "one guided-revision host completion (z-ai/glm-5.2)",
+    "within_ceiling": true
+   },
+   {
+    "actual_provenance": "derived from the run's token counts at pinned prices",
+    "actual_usd": 0.058,
+    "estimate_basis": "twice the first comparison's Skill-bearing side, with headroom for a revision that performs worse",
+    "estimate_usd": 0.12,
+    "leg": "second comparison (Skill v1 vs Skill v2)",
+    "within_ceiling": true
+   },
+   {
+    "actual_provenance": "no tokens were generated; the request was rejected before the model",
+    "actual_usd": 0.0,
+    "estimate_usd": 0.0,
+    "leg": "guided-revision host call refused at the provider edge",
+    "within_ceiling": true
+   }
+  ],
+  "per_leg_ceiling_usd": 0.3,
+  "total_usd": 0.2189
+ },
+ "stop_conditions": {
+  "any_claim_of_a_certified_phone_path": false,
+  "any_surfaced_command_carried_main_latest_or_an_unpinned_coordinate": false,
+  "anything_installed_without_an_explicit_approval": false,
+  "budget_shortfall": false,
+  "conclusion": "none triggered"
+ },
+ "ticket": "techtree-python-ndq.3.6",
+ "verdict": "conditional pass \u2014 see open_findings",
+ "verdict_detail": "Every approval gate the contract names held: nothing installed without a person answering for it, no surfaced command carried a floating coordinate, the paid Hello World comparison reproduced the certified science exactly and its proof verified offline, the one guided revision completed end to end for the first time in this programme, and the second comparison ran on its own separate approval. What does not hold is what happens before any of that. The operator Skill \u2014 the one document a Hermes agent loads before it touches a Techtree tool \u2014 states unconditionally that this build stops before preparing a comparison and that its release coordinates have not been chosen. Both are false of this candidate, and an agent that believes them abandons the journey in its first reply.",
+ "who_performed_this": {
+  "approvals_given_by_the_operator": [
+   "install the plugin despite a caution security verdict",
+   "enable the plugin",
+   "install the CLI with the plugin's own pinned command",
+   "start the first paid comparison",
+   "make the one guided-revision host completion",
+   "start the second paid comparison"
+  ],
+  "operator": "an acceptance worker acting as the operator of this journey, per the WP11f execution contract. Every approval below is recorded as an operator approval and not a founder approval."
+ },
+ "wp11e_findings_rechecked": [
+  {
+   "evidence": "no fake-executor claim on the start surface; the run recorded fake_executor: false",
+   "priority": "P0",
+   "state": "fixed",
+   "ticket": "techtree-python-ce9"
+  },
+  {
+   "evidence": "the guided revision completed and no narrative guard rejected it",
+   "priority": "P1",
+   "state": "did not fire",
+   "ticket": "techtree-python-5f6"
+  },
+  {
+   "evidence": "the proposed Skill passed the scanner",
+   "priority": "P1",
+   "state": "did not fire",
+   "ticket": "techtree-python-0mx"
+  },
+  {
+   "evidence": "decision 0036 removed credential-shaped-text inspection from the whole project; the sanitizer says so and no longer does it",
+   "priority": "P2",
+   "state": "fixed",
+   "ticket": "techtree-python-cmo"
+  },
+  {
+   "evidence": "the README now says naming the Climb is what asks about the credential, and that --climb implies --for-evaluation",
+   "priority": "P2",
+   "state": "fixed",
+   "ticket": "techtree-python-g5m"
+  },
+  {
+   "evidence": "the plugin's plan names --python 3.12; the guide's published uv command does not, while its prose promises the installer provides its own Python 3.12",
+   "priority": "P2",
+   "state": "fixed in the plugin, still wrong on the website",
+   "ticket": "techtree-python-vom"
+  },
+  {
+   "evidence": "no worker was killed in this journey",
+   "priority": "P2",
+   "state": "not retested",
+   "ticket": "techtree-python-730"
+  }
+ ]
+}

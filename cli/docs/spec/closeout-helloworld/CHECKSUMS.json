@@ -1,0 +1,37 @@
+[
+  {
+    "path": "CHIEF_CLOSEOUT_DIRECTIVE.md",
+    "bytes": 12704,
+    "sha256": "a8edc70163b8a9b00a82bf293e5526cdf181cd55b439ded127af9b40d9627865"
+  },
+  {
+    "path": "FOUNDER_APPROVAL_PHRASES.md",
+    "bytes": 877,
+    "sha256": "442f6cc4ddc0147b71c2da27afebae0e4a4b5851f7812fa03e842121478c0ae8"
+  },
+  {
+    "path": "NAMING_AND_SCOPE_AMENDMENT.md",
+    "bytes": 3636,
+    "sha256": "7301aba2fd04b5098115a6c6e7a73a41092cef60c7e260cf73256f446b72ea99"
+  },
+  {
+    "path": "README.md",
+    "bytes": 904,
+    "sha256": "93aef06d2290afd6b396f2a634143be8a5ae7fb9f9d79fddb0db56dae76ea473"
+  },
+  {
+    "path": "RELEASE_COORDINATES_TEMPLATE.json",
+    "bytes": 4081,
+    "sha256": "7a45fbef3cddac105e686de38d7f27044714d472142aa746ff5a20afaa809bb1"
+  },
+  {
+    "path": "skills/hello-world-starter-v1/SKILL.md",
+    "bytes": 1497,
+    "sha256": "079912df46274a9b7baefc527ed4033f9f83939c8eeda5669869610f4eb0c988"
+  },
+  {
+    "path": "skills/skill-improver/SKILL.md",
+    "bytes": 4283,
+    "sha256": "a9c5ebe9fd51bf33cc80cd346dba977648dd10d8c0dcf2d6b06a26b5aa6f93e9"
+  }
+]

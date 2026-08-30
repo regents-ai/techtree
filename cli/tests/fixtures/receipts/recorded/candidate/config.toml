@@ -1,0 +1,85 @@
+model = "qwen/qwen3.7-flash"
+num_tasks = 36
+num_rollouts = 1
+shuffle = false
+max_concurrent = 2
+verbose = false
+rich = false
+server = false
+push = false
+output_dir = "/techtree-home/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/verifiers/candidate/run"
+
+[env]
+id = ""
+max_concurrent_agents = 1
+
+[env.taskset]
+id = "procedure-transfer-v1"
+
+[env.taskset.task]
+judges = []
+
+[env.taskset.task.stops]
+
+[env.taskset.task.metrics]
+
+[env.taskset.task.rewards]
+
+[env.timeout]
+
+[env.retries]
+max_retries = 0
+include = []
+exclude = []
+
+[env.interception]
+type = "elastic"
+multiplex = 32
+
+[env.subject]
+max_output_tokens = 8000
+
+[env.subject.harness]
+id = "hermes-agent"
+forward_env = []
+tool_timeout = 600.0
+skills = [
+    "/techtree-home/runs/run_6ce5e56a7dd341bca8bc6de1d6a60027/inputs/skill/files/sha256-596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+]
+version = "0.19.0"
+use_bundled_skill = false
+
+[env.subject.harness.env]
+
+[env.subject.runtime]
+allow = []
+block = [
+    "*",
+]
+type = "docker"
+image = "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff"
+workdir = "/app"
+cpu = 2.0
+memory = 4.0
+
+[env.subject.timeout]
+
+[env.subject.retries]
+max_retries = 0
+include = []
+exclude = []
+
+[serve.pool]
+type = "elastic"
+multiplex = 128
+
+[client]
+base_url = "https://api.pinference.ai/api/v1"
+api_key_var = "PRIME_API_KEY"
+type = "eval"
+
+[client.headers]
+
+[sampling]
+temperature = 0.0
+max_tokens = 512

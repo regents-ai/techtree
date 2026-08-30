@@ -1,0 +1,1365 @@
+{
+  "artifacts_outside_this_repository": {
+    "contains": [
+      "the two live run directories and their proof bundles",
+      "the host-completion request, response and approval record",
+      "the network observation log",
+      "every failure-injection home"
+    ],
+    "note": "No live run directory, raw Episode, Trace, provider response, hidden task answer, or credential is committed to any repository.",
+    "where": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e"
+  },
+  "attempt_3": {
+    "approval_and_second_comparison": {
+      "approval": {
+        "honest_note": "The person who confirmed was the acceptance worker acting as the operator of this journey, not the founder.",
+        "recorded_actor": "human_via_hermes",
+        "recorded_method": "host_agent_confirmation",
+        "route": "techtree_uplift_start on the installed plugin, which issued uplift start <draft> --yes --reviewed-on host-agent"
+      },
+      "baseline_mean": 0.667,
+      "candidate_mean": 0.667,
+      "comparison_state": "controlled_with_warnings",
+      "delta": 0.0,
+      "elapsed_seconds": {
+        "baseline": 354.8,
+        "candidate": 375.1
+      },
+      "episodes": 72,
+      "executor_key_id": "sha256:77b1857ee4f3aff90a30b8609b99965ce5287823f362391cc81421464f305b7a",
+      "honest_reading": "The revision did not change the score. It did not regress it either: every one of the 36 tasks landed on the same side it was already on. The model itself said its confidence was medium and listed 'this revision may not fix those cases' among its own expected trade-offs, which is what happened.",
+      "losses": 0,
+      "outcome": "completed",
+      "proof_bundle_file_sha256": "94456663da568c9c67cfe9871ca0addd39f4c7a2216b8b3fc7a8218aed410a59",
+      "proof_bundle_payload_digest": "sha256:cff0df22f9e935935577a0cd467e86eba8e13672c4f5d141da072f98265aeff4",
+      "proof_grade": "P1",
+      "proof_verify": {
+        "checks": 339,
+        "failed": 0,
+        "passed": 339
+      },
+      "report_sha256": "77c85b1b5d39b38e6c3ec7472a05954a880295cf9b036af24d3ed07eac886ef1",
+      "review_surface": {
+        "declared_limit_is_honest_about_itself": "The surface says the figure is a declared limit and nothing more, that nothing works out the cost in advance, and that nothing stops the run if it goes past.",
+        "declared_limit_usd": 1.0,
+        "declining_error_code": "policy_acceptance_required",
+        "declining_exit_code": 8,
+        "disclosures_present": 6,
+        "episodes_declared": 72
+      },
+      "run_id": "run_25506edf6a5f4bdb9b2276aea253f93d",
+      "threshold_met": false,
+      "ties": 36,
+      "wins": 0
+    },
+    "artifacts_outside_this_repository": "The reused run home, both proof bundles, the host completion's request and response bodies, the proposal, the approval records, the candidate Skill, the diff and the network log stay in the worker scratchpad at wp11e-recert/ for the chief's durable snapshot. Nothing live is committed.",
+    "bbu_status_after_this_attempt": "Not fixed and not re-triggered. The plugin at b4f6a5c5 changes the two no-answer messages so they say the attempt was billed and the turn is used; it does not change the spend rule, the error code, or the completion ceiling. Because the model answered this time, the new messages did not render and remain unobserved in the live path. The identical request that truncated on the previous attempt is on record, so the trigger is known to be live.",
+    "clean_machine": {
+      "home_root": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert",
+      "honest_description": "The 2026-08-20 re-leg's home, reused rather than rebuilt. It is a set of scrubbed-environment homes on the founder's existing Mac, not a fresh operating system, and does not claim to be. Reusing it is what let this attempt skip a fresh source comparison and stay well inside the authorization.",
+      "prime_login": "carried forward from the re-leg: the operator's ~/.prime/config.json was copied in with a plain cp. Its contents were never read, printed, logged or passed anywhere, and no credential value appears in any artifact from this attempt.",
+      "reused": true,
+      "what_was_carried_forward_unchanged": [
+        "the Techtree home and its run store",
+        "the source comparison run and its proof bundle",
+        "the copied Prime CLI configuration",
+        "the installed engine and the pinned subject image"
+      ],
+      "what_was_upgraded_in_place": [
+        "the installed CLI, replaced with the new wheel",
+        "the installed plugin, replaced at commit b4f6a5c5"
+      ]
+    },
+    "digest_pull_path": {
+      "asserted": true,
+      "moved_tag": "python:3.11-slim",
+      "moved_tag_resolved": false,
+      "pinned_digest_occurrences_in_the_run": 884,
+      "pinned_image": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff"
+    },
+    "doctor": {
+      "argv": [
+        "techtree",
+        "doctor",
+        "--climb",
+        "hello-world-climb@1"
+      ],
+      "checks": 13,
+      "credential_check": "the active Prime CLI configuration holds a key the pinned evaluation client can use",
+      "failed": 0,
+      "passed": 12,
+      "warned": 1,
+      "warning": "hermes was not found on PATH; Techtree does not need it, and the host-agent integration is not part of this build"
+    },
+    "findings": [
+      {
+        "caught_by": "techtree release info, which reported the stamped source commit of the build actually installed. The product told the truth about itself and that is how the stale install was noticed.",
+        "detail": "uv tool install --force reported a successful reinstall and left the previous build of the same version in place, because uv served the wheel from its own cache. --reinstall picked up the rebuilt wheel. This does not touch the published path, where every release carries its own version, but it does touch anyone rebuilding a wheel at a fixed version \u2014 including this acceptance journey, which would otherwise have certified the wrong build.",
+        "id": "uv-force-served-a-stale-cached-wheel",
+        "severity": "worth recording"
+      },
+      {
+        "detail": "hermes plugins install --force landed the plugin disabled; an earlier install of the same plugin into the same home enabled itself. An explicit hermes plugins enable was needed. Hermes' own behaviour, not Techtree's, and it says so clearly on screen.",
+        "id": "plugin-install-landed-disabled",
+        "severity": "worth recording"
+      }
+    ],
+    "guided_revision": {
+      "accounting": {
+        "invocations": 1,
+        "outbound_generation_requests": 1,
+        "repairs": 0,
+        "transport_retries": 0
+      },
+      "approval_surface_rendered_before_dispatch": true,
+      "approver": "the acceptance worker acting as the operator of this journey, per the WP11e execution contract. Recorded as an operator approval, not a founder approval.",
+      "cli_calls_the_plugin_made": [
+        [
+          "uplift",
+          "context"
+        ],
+        [
+          "uplift",
+          "skill-source"
+        ],
+        [
+          "uplift",
+          "context"
+        ],
+        [
+          "uplift",
+          "skill-source"
+        ],
+        [
+          "uplift",
+          "prepare"
+        ]
+      ],
+      "diff_summary": "Four changes, all inside the procedure and the output contract: write out each letter's position-weighted product before summing; add a re-verification step before formatting; renumber the formatting step; and say explicitly that the no-commentary rule binds the final returned token only, so internal working is allowed.",
+      "draft_id": "draft_28ac40d578094441a7fe1527ca961561",
+      "finish_reason": "stop",
+      "guards": {
+        "cli_skill_scanner_verdict": "accepted",
+        "judged_naturally": true,
+        "note": "The revision the model wrote contains the phrase 'Do not include reasoning, arithmetic, punctuation, Markdown, or commentary in the final returned token'. On the 2026-08-19 build the scanner's secret-assignment heuristic rejected the shipped Skill's own version of this sentence. It passes cleanly here, with no edit.",
+        "plugin_guards_verdict": "accepted",
+        "presentation_claim_forbidden_raised": false,
+        "secret_assignment_raised": false,
+        "workaround_applied": false
+      },
+      "host_profile": {
+        "frozen": true,
+        "max_completion_tokens": 32768,
+        "model": "z-ai/glm-5.2",
+        "note": "Unchanged from the attempt that truncated. Nothing about the profile was widened to make this attempt more likely to succeed.",
+        "repairs": 0,
+        "structured_output": "json_schema, strict=true, no fallback",
+        "temperature": 0,
+        "transport_retries": 0
+      },
+      "model_stated_confidence": "medium",
+      "outcome": "a usable proposal was returned",
+      "proposal_fields": [
+        "analysis_summary",
+        "change_rationale",
+        "confidence",
+        "expected_tradeoffs",
+        "revised_skill_markdown"
+      ],
+      "provider_response_id": "a2e008cb1b5e138a-SJC",
+      "request_body_byte_identical_to_the_attempt_that_truncated": true,
+      "request_digest": "sha256:3347f071df50dd5f98ea7645a30a9bfe2324385b0666973f28f0247fcd3a2217",
+      "request_identity_note": "The same bytes, to the same model, at temperature 0, produced a 32,768-token truncation with no content on 2026-08-20 08:0x and a complete 6,501-token structured answer on 2026-08-20 08:30. The failure bbu describes is a sampling outcome on this task family, not a property of the prompt \u2014 which is what makes it dangerous for a user who gets exactly one attempt.",
+      "response_digest": "sha256:30e1dc37c8d3eba2e1977bb1f705f77aa08a90c9daa2ceb9d6b1f54a99d269ac",
+      "route": "the real plugin path: techtree_uplift_propose on the installed plugin, over the installed CLI's JSON envelope",
+      "session_stage_after": "second_draft_prepared",
+      "snapshot": {
+        "baseline_manifest_digest": "sha256:55b7b8a7e2a4f17eaee2bf1657f14eccc200d311053347ac3bf8ac2b22edfcbc",
+        "baseline_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+        "candidate_manifest_digest": "sha256:78878c001e416e25341ba47347b8f722203b1b393f4cc5c4a12f6a94ff1e14c8",
+        "candidate_skill_bytes": 1966,
+        "candidate_skill_file_digest": "sha256:0beea6ecbc62bb0b8b17ffd2322b2b7d11f7b4b4c07cadf24282ec1e45468cb0",
+        "included_files": [
+          "SKILL.md"
+        ],
+        "source_kind": "manual"
+      },
+      "state_at_the_moment_of_approval": {
+        "cli_reads": 0,
+        "host_calls": 0,
+        "outbound_requests": 0
+      },
+      "tool_result_envelope": {
+        "bytes": 6086,
+        "code": "tool_result_too_large",
+        "limit_bytes": 3500,
+        "message": "The full answer is too large to return here. Nothing was lost: run the Techtree command yourself to see all of it.",
+        "note": "This is the envelope's size limit, not a failure. The draft was prepared and the next action was carried.",
+        "ok": true,
+        "truncated": true
+      },
+      "usage": {
+        "completion_tokens": 6501,
+        "cost_usd_provider_reported": 0.0376,
+        "prompt_tokens": 5133,
+        "reasoning_tokens": 3834
+      }
+    },
+    "inputs": {
+      "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "plugin_commit": "b4f6a5c5db960c5cf916a8f401ff2069e12504ba",
+      "plugin_repository": "../techtree-plugin",
+      "repository_head_during_the_leg": "techtree-python main was at 30252e1 (the re-leg evidence commit); the wheel this attempt installed is stamped 6c0b16a7, which is the last commit that changes product code. The leg certifies the wheel it installed and nothing later.",
+      "wheel": "dist/techtree-0.1.0-py3-none-any.whl",
+      "wheel_checksum_sidecar_agrees": true,
+      "wheel_checksum_sidecar_note": "techtree-python-oce is fixed in this artifact: the .sha256 sidecar names 20f4e747, which is the wheel beside it.",
+      "wheel_sha256": "20f4e747e9656512642d1bc09d292ac7183a3ec1e5d992d5f2fb9a0a4bb57883",
+      "wheel_sha256_recomputed_here": true,
+      "wheel_stamp_read_from": "techtree/resources/release/build-provenance.json inside the wheel",
+      "wheel_stamped_source_commit": "6c0b16a7e5be4409205ce737134e66af10b707f7"
+    },
+    "install": {
+      "argv_first_attempt": [
+        "uv",
+        "tool",
+        "install",
+        "--force",
+        "--python",
+        "3.12",
+        "--find-links",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
+        "techtree==0.1.0"
+      ],
+      "argv_first_attempt_result": "exit 0, reported 'Uninstalled 1 package / Installed 1 package', and left the OLD build in place: release info still read source_commit 7f5370c5. uv served the same-versioned wheel from its own cache.",
+      "argv_that_actually_installed_the_new_wheel": [
+        "uv",
+        "tool",
+        "install",
+        "--reinstall",
+        "--python",
+        "3.12",
+        "--find-links",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
+        "techtree==0.1.0"
+      ],
+      "only_member_rewritten_by_the_installer": "techtree-0.1.0.dist-info/RECORD",
+      "published_argv": [
+        "uv",
+        "tool",
+        "install",
+        "techtree==0.1.0"
+      ],
+      "release_info_source_commit": "6c0b16a7e5be4409205ce737134e66af10b707f7",
+      "release_verify": {
+        "failed": 0,
+        "passed": 9,
+        "skipped": 3
+      },
+      "release_verify_argv": [
+        "techtree",
+        "release",
+        "verify",
+        "--expected",
+        "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71"
+      ],
+      "release_verify_note": "Without --expected the release_core_digest check reports SKIPPED rather than PASSED and prints the bytes it found, which is correct and honest but changes the count to 8/0/4.",
+      "reported_version": "0.1.0",
+      "result": "pass",
+      "wheel_payload_members_compared": 156,
+      "wheel_payload_members_differing": 1
+    },
+    "no_upload_observation": {
+      "connections_to_techtree_sh": 0,
+      "installed_package_outbound_call_site": "a GET in techtree/skills/starter.py",
+      "installed_package_outbound_call_sites": 1,
+      "installed_package_post_put_patch_delete_sites": 0,
+      "method": "every established remote connection held by the journey's process tree, sampled every five seconds across the whole paid window, plus a static reading of the installed package's outbound surface",
+      "remote_peers": [
+        "104.18.8.113:443",
+        "104.18.9.113:443"
+      ],
+      "remote_peers_identified_as": "api.pinference.ai, the model provider",
+      "samples": 132,
+      "techtree_sh_address": "66.241.124.2"
+    },
+    "performed_at": "2026-08-20T08:24Z\u201308:40Z",
+    "plugin": {
+      "argv": [
+        "hermes",
+        "plugins",
+        "install",
+        "file:///Users/redacted/Documents/techtree-climb/techtree-plugin",
+        "--ref",
+        "b4f6a5c5db960c5cf916a8f401ff2069e12504ba",
+        "--force"
+      ],
+      "argv_note": "hermes is not on the journey PATH by design, so it was invoked by absolute path. A bare local path is still read by Hermes as owner/repo shorthand; file:// plus --ref is still the working form.",
+      "detached_head": true,
+      "enable_step_required": "This install landed disabled and needed an explicit `hermes plugins enable techtree`; the earlier install of the same plugin enabled itself. Enabling also declines the built-in-tool override, which Techtree does not ask for.",
+      "installed_at_commit": "b4f6a5c5db960c5cf916a8f401ff2069e12504ba",
+      "llm_py_byte_identical_to_the_repository": true,
+      "numeric_claims_heuristic_absent": true,
+      "release_core_byte_identical_to_the_installed_cli": true,
+      "release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71"
+    },
+    "purpose": "The final authorized guided-revision attempt. The two previous paid attempts each spent the one revision the introduction allows and returned no candidate \u2014 the first to two guard false-positives (5f6, 0mx), the second to a provider-side truncation (bbu). This attempt runs the same path on the fixed artifacts to find out whether the guided revision can complete end to end without a workaround.",
+    "source_run_reused": {
+      "cost_charged_to_this_attempt_usd": 0.0,
+      "improvement_context": "techtree uplift context exported 20 of the run's 36 tasks, with the objective and the stable failures and no hidden task material",
+      "integrity_rechecked_under_the_new_wheel_before_reuse": true,
+      "proof_verify": {
+        "checks": 339,
+        "failed": 0,
+        "passed": 339
+      },
+      "result_renders": "0.000 \u2192 0.667, 24 wins / 0 losses / 12 ties",
+      "run_id": "run_b804a28c81b444c9b9f2466ec0378faf",
+      "why": "It is the fresh clean-home comparison the 2026-08-20 re-leg already paid USD 0.1982 for. Reusing it saves this attempt a second ~USD 0.20 comparison and changes nothing the guided revision reads."
+    },
+    "spend": {
+      "authorized_for_this_leg_usd": 0.45,
+      "every_leg_estimated_before_it_ran": true,
+      "hard_stops": {
+        "any_comparison_over_0_30": false,
+        "any_host_call_over_0_30": false,
+        "any_paid_outcome_retried": false
+      },
+      "leg_total_usd": 0.0935,
+      "legs": [
+        {
+          "actual_provenance": "not performed \u2014 the 2026-08-20 re-leg's run was reused after its integrity was rechecked under the new wheel",
+          "actual_usd": 0.0,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.2,
+          "leg": "source comparison (baseline vs starter, 72 episodes)",
+          "within_ceiling": true
+        },
+        {
+          "actual_provenance": "provider-reported",
+          "actual_usd": 0.0376,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.1142,
+          "leg": "one guided-revision host completion (z-ai/glm-5.2)",
+          "within_ceiling": true,
+          "worst_case_usd": 0.1816
+        },
+        {
+          "actual_provenance": "computed from the run's signed execution record: 1,716,868 input and 34,065 output tokens over 152 model calls at the pinned prices",
+          "actual_usd": 0.0559,
+          "ceiling_usd": 0.3,
+          "conservative_estimate_usd": 0.085,
+          "estimate_usd": 0.065,
+          "leg": "comparison 2 (v1 vs v2, 72 episodes)",
+          "within_ceiling": true
+        }
+      ],
+      "per_comparison_ceiling_usd": 0.3,
+      "per_host_call_ceiling_usd": 0.3,
+      "programme_after_usd": 3.2321,
+      "programme_before_usd": 3.1386,
+      "programme_cap_usd": 10.0,
+      "programme_remaining_usd": 6.7679,
+      "remaining_of_this_leg_usd": 0.3565
+    },
+    "ticket": "techtree-python-ndq.3.5",
+    "verdict": "pass",
+    "verdict_detail": "The guided revision completed end to end through the real plugin path, with no workaround at any step: one host completion returned a usable proposal, the plugin's guards accepted it, the CLI's scanner accepted it, a draft was prepared, the diff and the six disclosures rendered, declining exited 8, approving started a real paid comparison, and that comparison finished and its proof verified offline. The comparison's own result is an honest no-change: 0.667 \u2192 0.667, 0 wins, 0 losses, 36 ties. What the journey was testing is the path, and the path works."
+  },
+  "clean_machine": {
+    "docker": {
+      "images_present_before_the_journey": 34,
+      "note": "The pinned subject image was already in the local cache from earlier work, so this journey did not exercise a cold pull. The digest-pull path itself is asserted below.",
+      "server_version": "29.7.2",
+      "subject_image": "python@sha256:90744cff8f32887f075c47d747a173ff333e9e98801667af93c357fa9f5e28ff",
+      "subject_image_already_cached": true
+    },
+    "hermes_home": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e/hermes-home",
+    "hermes_host_version": "0.20.1 (2026.8.13)",
+    "home": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e/home",
+    "honest_description": "Fresh HOME, HERMES_HOME, UV_TOOL_DIR and UV_TOOL_BIN_DIR under a scratchpad on the founder's existing Mac. This is not a fresh operating system and does not claim to be.",
+    "host": "Darwin 25.5.0 arm64",
+    "no_global_techtree": "command -v techtree with the operator's PATH removed exits 1, and python3.12 -c 'import techtree' raises ModuleNotFoundError",
+    "primary_interpreter": "CPython 3.12.13 (/opt/homebrew/bin/python3.12), pinned",
+    "techtree_home": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e/home/Library/Application Support/techtree",
+    "techtree_home_note": "v0.1 has no user-facing TECHTREE_HOME environment override. The Techtree home is derived from HOME (platformdirs) and can be overridden per command with --home. TECHTREE_HOME exists only as the variable the launcher hands its own detached worker.",
+    "uv_tool_bin_dir": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e/uv-bin",
+    "uv_tool_dir": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e/uv-tool"
+  },
+  "contract": "docs/release/contracts/wp11e.md",
+  "digest_pull_path": {
+    "asserted": true,
+    "evidence": "The Campaign pins the subject runtime as python@sha256:90744cff... with per-platform manifest digests. techtree doctor --climb reports 'the daemon holds the pinned subject image and serves it as linux/arm64, which the Campaign pins a manifest digest for'. Every container observed during both paid comparisons ran image id 90744cff. Nothing resolved the python:3.11-slim tag, which is the tag that has since moved."
+  },
+  "failure_matrix_no_paid_inference": [
+    {
+      "case": "uv absent",
+      "code": "environment_not_ready",
+      "exit": 4,
+      "how": "PATH without /opt/homebrew/bin",
+      "message": "uv was not found on PATH; installing the managed evaluation engine requires it",
+      "note": "With an engine already installed this is a warning and Doctor still exits 0, which is honest: uv is only needed to install an engine. With no engine it becomes blocking.",
+      "repair": "Install uv, then re-run Doctor \u2014 techtree doctor",
+      "repair_works": true,
+      "triggered": true
+    },
+    {
+      "case": "docker executable absent",
+      "code": "environment_not_ready",
+      "exit": 4,
+      "how": "PATH without /usr/local/bin",
+      "message": "docker was not found on PATH; an evaluated subject runs in a container on this host",
+      "repair": "Start Docker, then re-run Doctor \u2014 techtree doctor",
+      "repair_works": true,
+      "triggered": true
+    },
+    {
+      "case": "docker daemon stopped",
+      "code": "environment_not_ready",
+      "exit": 4,
+      "how": "DOCKER_HOST pointed at a socket that does not exist. The founder's Docker daemon was not stopped; this reproduces an unreachable daemon without touching a shared service.",
+      "message": "the Docker daemon did not answer; start Docker before running an evaluation",
+      "note": "The docker CLI itself panicked on the dead socket and Techtree passed its first stderr line through verbatim in a warning. That is honest reporting of somebody else's crash, and the blocking check underneath states the situation plainly.",
+      "repair": "Start Docker, then re-run Doctor \u2014 techtree doctor",
+      "repair_works": true,
+      "triggered": true
+    },
+    {
+      "case": "engine absent",
+      "code": "environment_not_ready",
+      "exit": 4,
+      "how": "a fresh home with no engine installed",
+      "message": "no managed evaluation engine is active; install one before running an evaluation",
+      "repair": "techtree engine install",
+      "repair_works": true,
+      "triggered": true
+    },
+    {
+      "case": "stale engine .installing marker",
+      "code": "engine_install_interrupted (warning)",
+      "exit": 0,
+      "how": "a marker file plus a half-built engine directory with no installed.json",
+      "message": "An earlier install of evaluation engine sha256:874cbae0... did not finish. What it left behind was removed and the engine was installed again.",
+      "repair": "techtree engine install",
+      "repair_works": true,
+      "triggered": true
+    },
+    {
+      "case": "Prime auth absent",
+      "code": "environment_not_ready (execution_model_credential)",
+      "exit": 4,
+      "how": "a separate journey home with no .prime directory. The operator's real configuration was never touched.",
+      "message": "no active Prime CLI configuration supplies PRIME_API_KEY. This credential pays for the evaluated subject's model calls; it is separate from whatever your own agent is signed in with.",
+      "repair": "Sign in to Prime, then re-run this check \u2014 prime login",
+      "repair_works": true,
+      "secret_leakage": "none \u2014 the variable is named, no value is shown",
+      "triggered": true
+    },
+    {
+      "case": "starter URL unavailable",
+      "code": "starter_skill_source_refused",
+      "exit": 4,
+      "gap": "the CLI attaches no machine-readable next action to this error",
+      "how": "techtree skill starter --from-url pointed at a 404 object address",
+      "message": "the starter Skill could not be fetched from <url>: Not Found",
+      "repair": "techtree skill starter --from-file <path> \u2014 verified working, and it still checks the digest",
+      "repair_works": true,
+      "retryable": true,
+      "triggered": true
+    },
+    {
+      "case": "starter digest mismatch",
+      "code": "starter_skill_digest_mismatch",
+      "detail": "names both the expected and the computed digest",
+      "exit": 11,
+      "gap": "the CLI attaches no machine-readable next action to this error",
+      "how": "a loopback HTTP server serving different Skill bytes",
+      "message": "what was obtained is not the starter Skill this release pins",
+      "repair": "fail closed; obtain the pinned bytes. Verified with --from-file.",
+      "repair_works": true,
+      "retryable": false,
+      "triggered": true
+    },
+    {
+      "case": "ReleaseCore mismatch",
+      "code": "release_not_verified",
+      "exit": 11,
+      "finding": "techtree release info reports the tampered digest honestly, so tampering is detectable \u2014 but nothing on the run path checks it. With the engine installed, climb prepare succeeded normally against a tampered ReleaseCore. ReleaseCore integrity is enforced only by explicitly running techtree release verify.",
+      "how": "a throwaway second installation whose embedded release-core.json had subject_hermes_version edited",
+      "message": "the stored bytes are not in the published spelling, so their digest is not the digest the generator would produce; regenerate rather than edit this file.",
+      "repair": "reinstall the release; the message says not to hand-edit",
+      "repair_works": true,
+      "sub_codes": [
+        "release_core_not_canonical",
+        "release_core_digest_mismatch",
+        "release_coordinate_mismatch"
+      ],
+      "triggered": true
+    },
+    {
+      "case": "plugin / CLI version mismatch",
+      "exit": 1,
+      "how": "a copy of the installed plugin whose release-core.json declares cli_version 0.1.1, kept in the canonical spelling",
+      "message": "the installed CLI disagrees about: release_core_digest, cli_version",
+      "mismatch_codes": [
+        "release_core_digest",
+        "cli_version"
+      ],
+      "note": "The unmodified installed plugin reports 'the installed CLI belongs to this release' and exits 0.",
+      "repair": "Reinstall the CLI version pinned by this plugin release.",
+      "repair_works": true,
+      "surface": "python scripts/verify_release_core.py --against-installed-cli",
+      "triggered": true
+    },
+    {
+      "case": "unwritable techtree home",
+      "code": "techtree_home_unusable",
+      "exit": 4,
+      "gap": "no machine-readable next action is attached, even though a chmod repair exists in the Doctor code for the writable-probe variant of this failure",
+      "how": "chmod 500 on the parent directory",
+      "message": "cannot create the Techtree home directory <path>: Permission denied",
+      "repair": "the message names the path and the reason; fixing the permission works",
+      "repair_works": true,
+      "triggered": true
+    },
+    {
+      "case": "tampered proof bundle",
+      "code": "proof_bundle_invalid",
+      "exit": 11,
+      "failed_checks": [
+        "artifact.receipts/baseline/0000.json",
+        "receipts/baseline/0000.json.present",
+        "p1.artifact_digests_verify",
+        "p1.receipts_signed"
+      ],
+      "how": "a copy of the first run's proof bundle with one byte changed in receipts/baseline/0000.json",
+      "message": "receipts/baseline/0000.json has changed since the bundle was written: committed sha256:9e966473..., stored sha256:29...",
+      "no_partial_valid_report": true,
+      "repair": "none, correctly \u2014 a tampered bundle is not repairable. The untampered copy verifies.",
+      "repair_works": true,
+      "triggered": true
+    }
+  ],
+  "failure_matrix_paid_path": [
+    {
+      "case": "terminal disconnects",
+      "code": "none \u2014 nothing failed",
+      "cost_usd": 0.0,
+      "how": "the initiating shell exited immediately after climb start returned",
+      "outcome": "the run continued; the worker was reparented to init; every later command reached it by run ID from a new process",
+      "triggered": true
+    },
+    {
+      "case": "provider auth fails",
+      "code": "model_credentials_missing",
+      "cost_usd": 0.0,
+      "detail": "The run stops before the taskset validation and before any container, so nothing was billed.",
+      "how": "a separate journey home whose .prime/config.json was deliberately emptied. The operator's real configuration was never touched.",
+      "no_partial_valid_report": true,
+      "phase": "failed",
+      "repair": "prime login",
+      "repair_works": true,
+      "retryable": false,
+      "run_id": "run_eea57d22bc254370b6138a34e766fa91",
+      "secret_leakage": "none, but the message is visibly broken: the worker's sanitizer replaces the word 'the' after 'credential:' with [redacted]. See techtree-python-cmo.",
+      "triggered": true
+    },
+    {
+      "asking_for_the_result": {
+        "code": "run_result_not_ready",
+        "retryable": true
+      },
+      "case": "worker process killed",
+      "code": "none \u2014 and that is the documented design. No terminal event is invented on a read.",
+      "cost_provenance": "estimated. No episode completed, so no provider usage was recorded in the signed record. Computed from the usage blocks that did reach traces.jsonl, scaled by this journey's measured cached-token ratio. Bounded above by USD 0.02.",
+      "cost_usd_estimated": 0.0111,
+      "findings": "The evaluation children are in their own sessions, so a dead worker orphans them and they keep spending. Four subject containers were also left running. There is no reconciliation command in v0.1. See techtree-python-730.",
+      "how": "SIGKILL to the detached worker 30 seconds into a live comparison",
+      "no_partial_valid_report": true,
+      "observed_state": {
+        "error": null,
+        "heartbeat_stale": true,
+        "human_rendering": "Worker: gone (pid 87934) / Heartbeat: 32s ago (stale)",
+        "phase": "running_variants",
+        "terminal": false,
+        "worker_alive": false
+      },
+      "run_id": "run_6cb6461a105f42e3b30b4eaf6e26c3c0",
+      "triggered": true
+    },
+    {
+      "case": "network fails after run start",
+      "code": "variant_execution_failed",
+      "cost_provenance": "estimated on the same basis as the worker-kill case. Bounded above by USD 0.01.",
+      "cost_usd_estimated": 0.0021,
+      "details_recorded": {
+        "exit_code": -9,
+        "variant": "baseline"
+      },
+      "exit": 10,
+      "how": "A true mid-run network cut needs a change to the host's /etc/hosts or firewall, which this worker will not make. The same failure mode was produced directly: one variant's evaluation child was killed 35 seconds into a live comparison, which is exactly what the product sees when the child dies after the run has started. Techtree does not parse provider HTTP status, so a mid-run provider or network failure reaches the user through this same code path.",
+      "message": "the baseline evaluation did not finish; a comparison needs both sides, so the pair failed and the partial evidence was kept",
+      "no_partial_valid_report": true,
+      "note": "two subject containers were again left running afterwards",
+      "phase": "failed",
+      "repair": "prepare and start a fresh comparison. The CLI's next action is techtree run logs, which is a diagnostic rather than a repair; no automatic retry is offered, which is correct.",
+      "repair_works": true,
+      "retryable": false,
+      "run_id": "run_8e170d30296f40fc9c05f272723e0666",
+      "sibling_variant_terminated": true,
+      "terminal": true,
+      "triggered": "by equivalent, and said so"
+    },
+    {
+      "case": "one required episode incomplete",
+      "codes_that_guard_it": [
+        "variant_execution_failed",
+        "variant_output_incomplete",
+        "episode_count_mismatch",
+        "task_membership_mismatch",
+        "reward_missing"
+      ],
+      "triggered": false,
+      "why_not": "Not honestly triggerable in a live journey. The product refuses on both sides before it can arise: if the evaluation child exits non-zero the pair fails first with variant_execution_failed, which was triggered; if it exits zero with nothing usable, the next stage refuses with variant_output_incomplete. Reaching episode_count_mismatch would mean deleting lines from a finished traces.jsonl by hand, which tests the receipt builder rather than the journey. Recorded as not triggerable rather than faked."
+    },
+    {
+      "case": "declared spend limit reached",
+      "triggered": false,
+      "why_not": "There is nothing to trigger. In v0.1 the Campaign's maximum_usd is declared and nothing more: no code path meters spend, compares it against the ceiling, or aborts. Only the token ceilings are handed to the engine. The CLI says this plainly on the review surface \u2014 'nothing here works out what the run will come to first, and nothing stops it if it goes past' \u2014 and decision 0025 forbids any wording that would suggest a meter. Recorded as not triggerable, which is the honest answer, rather than staged."
+    }
+  ],
+  "inputs": {
+    "all_inputs_verified_fresh": true,
+    "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+    "plugin_commit": "0670ff11c2572c7cc43da2a18efd68871924f470",
+    "plugin_repository": "../techtree-plugin",
+    "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+    "techtree_python_commit": "6727085 (contains a444c4d6)",
+    "wheel": "dist/techtree-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "9a8c02af1e2ecac643802c7d055469bec48c19cb800bb851fac578460e01cd27",
+    "wheel_stamped_source_commit": "a444c4d603a4094545cff8ae0d72f2197e26ce63"
+  },
+  "journey": [
+    {
+      "argv": [
+        "hermes",
+        "plugins",
+        "install",
+        "file:///Users/redacted/Documents/techtree-climb/techtree-plugin",
+        "--ref",
+        "0670ff11c2572c7cc43da2a18efd68871924f470",
+        "--enable"
+      ],
+      "argv_difference": "A file:// URL points at the local candidate repository instead of github.com/regents-ai/techtree-hermes, because that repository is not public before Gate 2. Hermes rejects a bare local path (it reads it as owner/repo shorthand and tries github.com), so file:// is the supported local form; it warns 'Using insecure/local URL scheme'. The --ref flag and the 40-character commit are exactly the pinned bootstrap argv.",
+      "detail": "Host Hermes 0.20.1. The plugin was installed into the fresh HERMES_HOME at the exact candidate commit and enabled.",
+      "name": "Hermes and plugin readiness",
+      "result": "pass",
+      "step": 1,
+      "verified": {
+        "byte_identical_to_cli_release_core": true,
+        "checkout_state": "detached HEAD",
+        "install_metadata_pinned": true,
+        "installed_commit": "0670ff11c2572c7cc43da2a18efd68871924f470",
+        "plugin_agrees_with_installed_cli": true,
+        "plugin_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71"
+      }
+    },
+    {
+      "detail": "No techtree executable is reachable and the package is not importable on the pinned interpreter before installation.",
+      "name": "CLI absent and isolated",
+      "result": "pass",
+      "step": 2
+    },
+    {
+      "approval": "given by this acceptance worker acting as the operator of the journey, recorded as an operator approval and not a founder approval",
+      "argv": [
+        "uv",
+        "tool",
+        "install",
+        "--python",
+        "3.12",
+        "--find-links",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
+        "techtree==0.1.0"
+      ],
+      "argv_difference": "--find-links points the same requested coordinate at the candidate wheel in dist/ instead of an index, because nothing is published. --python 3.12 pins the supported interpreter; without it uv chose 3.14.7 on this machine, which is outside the declared range (see open_findings).",
+      "name": "Explicit CLI install approval and install",
+      "published_argv": [
+        "uv",
+        "tool",
+        "install",
+        "techtree==0.1.0"
+      ],
+      "result": "pass",
+      "step": 3,
+      "verified": {
+        "installed_bytes_match_wheel": true,
+        "installed_interpreter": "CPython 3.12.13",
+        "reported_version": "0.1.0",
+        "wheel_members_compared": 155,
+        "wheel_members_differing": 0
+      }
+    },
+    {
+      "detail": "Interactive sign-in is impossible for an automated worker. The effect of prime login was reproduced by copying the operator's existing ~/.prime/config.json into the journey home's .prime/ with a plain cp. The file's contents were never read, printed, logged, or passed anywhere. No credential value appears in any artifact this ticket produced.",
+      "name": "prime login",
+      "result": "represented, not performed",
+      "step": 4
+    },
+    {
+      "credential_check_truthfulness": {
+        "with_a_placeholder_exported_in_the_terminal": "still fails, and explains why: 'PRIME_API_KEY is set in this terminal, but a run works in a separate background process that is not given this terminal's variables, so nothing exported here can reach it'. The WP11c/wdc false-green is fixed.",
+        "with_prime_config": "pass \u2014 'the active Prime CLI configuration holds a key the pinned evaluation client can use.'",
+        "without_prime_config": "fail \u2014 names PRIME_API_KEY, never a value, and offers prime login"
+      },
+      "detail": "techtree engine install then techtree setup installed, verified and activated engine sha256:874cbae0... techtree doctor --for-evaluation passes 10 of 10. techtree doctor --climb hello-world-climb@1 passes 13 of 13 and is the surface that carries the credential and image checks.",
+      "name": "Engine installation and truthful doctor",
+      "result": "pass",
+      "step": 5
+    },
+    {
+      "detail": "techtree skill starter fetched the object over https from techtree.sh and verified it against the digest the release pins.",
+      "name": "Starter Skill materialized from the live release address",
+      "result": "pass",
+      "step": 6,
+      "verified": {
+        "matches_release_core_starter_skill_digest": true,
+        "served_bytes_sha256": "2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+        "skill_content_tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+      }
+    },
+    {
+      "declining_the_review": "answering no exits 8 with code policy_acceptance_required and starts nothing",
+      "draft_id": "draft_b2069e492a1b4d319ccfdbf9447b7000",
+      "name": "Prepare Hello World and review the surface",
+      "result": "pass",
+      "review_surface_shows": {
+        "declared_spend_limit": "$1.00, described as a declared limit that nothing estimates against and nothing enforces",
+        "episodes": "72, the same tasks once for each side",
+        "no_techtree_upload": "'Techtree does not upload your episodes, traces, receipts, proof bundles, or Skill proposals.'",
+        "provider_disclosure": "'Model calls go to prime, under that provider's policies.'",
+        "same_agent_and_tasks": true,
+        "skill_only_change": "'The Skill is the only scientific change.'"
+      },
+      "step": 7
+    },
+    {
+      "argv_suffix": [
+        "--yes",
+        "--reviewed-on",
+        "cli"
+      ],
+      "honest_note": "This acceptance worker was the operator and answered for the run. --reviewed-on cli is the truthful surface: the review was rendered by the CLI and answered against the CLI.",
+      "name": "Explicit approval",
+      "recorded_as": {
+        "approved_by": "operator_via_flag",
+        "policy_acknowledgement_method": "explicit_cli_review"
+      },
+      "result": "pass",
+      "step": 8
+    },
+    {
+      "name": "Start and run ID",
+      "result": "pass",
+      "run_id": "run_719b335965704ecb84d2a57de9b61ccf",
+      "step": 9
+    },
+    {
+      "detail": "The initiating shell (pid 71038) exited. The worker (pid 71041) was reparented to init and kept running, having been launched with start_new_session=True.",
+      "name": "Close the initiating process",
+      "result": "pass",
+      "step": 10
+    },
+    {
+      "detail": "Every subsequent status call ran in a brand-new process with no relationship to the one that started the run, addressing it only by run ID.",
+      "name": "Recover by run ID from a new process",
+      "result": "pass",
+      "step": 11
+    },
+    {
+      "detail": "23 of 36 reproduces the certified stability pair (run_4bde1261 and run_f987eea8, both 0/36 -> 23/36, delta 0.6389) on a clean machine from the shipped artifacts.",
+      "measured": {
+        "baseline": "0.000",
+        "candidate": "0.639",
+        "delta": "+0.639",
+        "losses": 0,
+        "ties": 13,
+        "wins": 23
+      },
+      "name": "Deterministic result",
+      "result": "pass",
+      "step": 12
+    },
+    {
+      "checks": 339,
+      "failures": 0,
+      "name": "Verify the local proof",
+      "result": "pass",
+      "step": 13
+    },
+    {
+      "host_profile": {
+        "max_completion_tokens": 32768,
+        "model": "z-ai/glm-5.2",
+        "provider_profile": "prime OpenAI-compatible https://api.pinference.ai/api/v1",
+        "repairs": 0,
+        "retries": 0,
+        "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+        "structured_output": "json_schema, strict=true, no fallback",
+        "temperature": 0
+      },
+      "invocation_note": "The plugin exposes the guided revision only as a Hermes tool; there is no shell subcommand for it. It was driven non-interactively through the same harness the certified rehearsal used, with the plugin's own compose path, guards and CLI bridge unchanged, and only the Hermes host facade stood in. The host shim was modified in one respect for this ticket: it resolves the credential from the Prime CLI configuration instead of an environment variable, so no key value is ever passed or held by this worker.",
+      "name": "One guided revision",
+      "outcome": {
+        "code": "presentation_claim_forbidden",
+        "message": "the narrative states a signed delta; every number in a result comes from Techtree's own payload",
+        "retried": false,
+        "ticket": "techtree-python-5f6",
+        "turn_spent": true,
+        "what_actually_matched": [
+          {
+            "matched_text": "-97",
+            "pattern": "a signed delta",
+            "verdict": "false positive \u2014 the hyphen inside the ordinary phrase 'modulo-97'"
+          },
+          {
+            "matched_text": "36 tasks",
+            "pattern": "a counted outcome",
+            "verdict": "correct by design \u2014 the model restated a number that belongs to Techtree's payload"
+          }
+        ]
+      },
+      "request_accounting": {
+        "finish_reason": "stop",
+        "invocations": 1,
+        "outbound_generation_requests": 1,
+        "repairs": 0,
+        "request_digest": "sha256:f6fd2db220dcdb716fc35ccdb2631d0cfad9be9ae7c3221fef7366541ca8566b",
+        "response_digest": "sha256:c66130522b293576de92a714911325c5f99527098a705c7fe38696ca456d567c",
+        "response_id": "a2dd0620cffac52e-SJC",
+        "transport_retries": 0,
+        "usage": {
+          "input_tokens": 5128,
+          "output_tokens": 8841
+        }
+      },
+      "result": "executed and rejected \u2014 honest outcome, no retry",
+      "step": 14
+    },
+    {
+      "detail": "1 invocation, 1 outbound generation request, 0 transport retries, 0 repairs, counted at the provider boundary before the send.",
+      "name": "Confirm exactly one model request",
+      "result": "pass",
+      "step": 15
+    },
+    {
+      "baseline_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+      "candidate_skill_digest": "sha256:554fda5863b10b265b31fb0b1e93100556e0eca5c677c84863782a8553f73a95",
+      "controlled": true,
+      "draft_id": "draft_b3d658144baa4beea648d98d58fbb495",
+      "found_difference": [
+        "/agents/subject/harness/skills/0/digest",
+        "/agents/subject/harness/skills/0/size"
+      ],
+      "name": "Review the exact Skill diff and the second declared budget",
+      "result": "pass",
+      "second_declared_budget": "$1.00, worded identically to the first and equally honest about being declared-only",
+      "skill_v2_provenance": "The host's proposed revised SKILL.md, supplied through the CLI's own documented manual route (techtree uplift prepare --candidate-skill), because the plugin refused to hand the proposal over on account of its narrative. One further operator edit was needed: the CLI's Skill scanner blocked the model's bytes at SKILL.md:41 as a secret_assignment because the sentence contains 'that token: no reasoning'. The colon was removed and nothing else changed. Both facts are disclosed rather than smoothed; see open_findings.",
+      "step": 16
+    },
+    {
+      "name": "Explicit approval for the second comparison",
+      "recorded_as": {
+        "approved_by": "operator_via_flag",
+        "policy_acknowledgement_method": "explicit_cli_review"
+      },
+      "result": "pass",
+      "step": 17
+    },
+    {
+      "detail": "An honest negative result. The product reported it plainly rather than dressing it up. Note the v1 arm scored 0.667 here against 0.639 in the first comparison \u2014 ordinary run-to-run variance on the same Skill, worth knowing when reading a single delta.",
+      "measured": {
+        "baseline": "0.667",
+        "candidate": "0.639",
+        "delta": "-0.028",
+        "losses": 1,
+        "ties": 35,
+        "verdict_shown": "The Skill did not meet the Campaign's threshold",
+        "wins": 0
+      },
+      "name": "v1-vs-v2 run",
+      "result": "pass",
+      "run_id": "run_697a17f8b68a40bebc086d44775d0ec7",
+      "step": 18
+    },
+    {
+      "checks": 339,
+      "failures": 0,
+      "name": "Verify the second proof",
+      "result": "pass",
+      "step": 19
+    },
+    {
+      "detail": "see no_upload_observation",
+      "name": "Confirm no artifact upload",
+      "result": "pass",
+      "step": 20
+    }
+  ],
+  "no_upload_observation": {
+    "conclusion": "No mutation request to techtree.sh was observed, and the installed package contains no code path that could make one.",
+    "deliberate_techtree_sh_contact": "One GET of the starter object during step 6. It is a read of a content-addressed object, not a mutation, and it is the only contact with techtree.sh the product makes.",
+    "method": "A sampler recorded every established remote TCP peer held by the journey's process tree every 5 seconds for the whole journey, alongside a static audit of the installed package's outbound HTTP surface. This is the observation WP11e can reasonably make; the full three-method capture is WP11g.",
+    "remote_peers_observed": {
+      "104.18.8.113, 104.18.9.113": "api.pinference.ai \u2014 the model provider",
+      "151.101.128.223, 151.101.192.223": "Fastly, serving pypi.org and files.pythonhosted.org during engine installation"
+    },
+    "samples": 374,
+    "static_audit": {
+      "method": "GET",
+      "outbound_http_call_sites_in_the_installed_package": 1,
+      "post_put_patch_delete_call_sites": 0,
+      "purpose": "fetching the content-addressed starter Skill object, which the release publishes and the CLI verifies against a pinned digest",
+      "where": "techtree/skills/starter.py"
+    },
+    "techtree_sh_addresses": [
+      "66.241.124.2",
+      "2a09:8280:1::177:ed19:0"
+    ],
+    "techtree_sh_connections_observed": 0
+  },
+  "open_findings": [
+    {
+      "blocks_gate_2": true,
+      "priority": "P0",
+      "summary": "techtree climb start tells every user, at the moment they approve spending their own money, that the run uses the development fake executor and no model will be called. The flag is a hardcoded literal. The run then calls models and bills them. run status and run result are correct; only the start path is wrong.",
+      "ticket": "techtree-python-ce9"
+    },
+    {
+      "priority": "P1",
+      "summary": "The one guided revision the introduction allows was consumed by a narrative guard that reads the hyphen in 'modulo-97' as a signed delta. The revision itself was fine. A rejection spends the turn with no recourse.",
+      "ticket": "techtree-python-5f6"
+    },
+    {
+      "priority": "P1",
+      "summary": "The Skill scanner blocks the ordinary sentence 'that token: no reasoning' as a credential assignment. Every Skill written for this Climb is about returning a token, so this is a likely everyday refusal, not a corner case.",
+      "ticket": "techtree-python-0mx"
+    },
+    {
+      "priority": "P2",
+      "summary": "A killed worker orphans its evaluation children, which keep spending, and leaves subject containers running. No reconciliation command exists.",
+      "ticket": "techtree-python-730"
+    },
+    {
+      "priority": "P2",
+      "summary": "The worker sanitizer redacts the word 'the', so a signed-out user reads 'no credential: [redacted] Prime CLI configuration'.",
+      "ticket": "techtree-python-cmo"
+    },
+    {
+      "priority": "P2",
+      "summary": "The README says doctor --for-evaluation checks the credential and image. It does not; --climb does.",
+      "ticket": "techtree-python-g5m"
+    },
+    {
+      "priority": "P2",
+      "summary": "The published install argv lands on Python 3.14 on a machine whose default is 3.14, and the user's first doctor fails.",
+      "ticket": "techtree-python-vom"
+    },
+    {
+      "priority": "note",
+      "summary": "ReleaseCore integrity is not checked on the run path. A tampered ReleaseCore is caught only by explicitly running techtree release verify.",
+      "ticket": null
+    },
+    {
+      "priority": "note",
+      "summary": "Several typed errors carry no machine-readable repair action: techtree_home_unusable, starter_skill_source_refused, starter_skill_digest_mismatch. The human messages are honest and the repairs exist as flags; only the next_actions list is empty.",
+      "ticket": null
+    }
+  ],
+  "performed_at": "2026-08-19",
+  "re_leg": {
+    "artifacts_outside_this_repository": "The run directory, its proof bundle, the host completion's request and response bodies, the approval record and the network log stay in the worker scratchpad at wp11e-recert/ for the chief's durable snapshot. No run directory, raw episode, trace, provider response, hidden answer or credential is committed anywhere.",
+    "ce9_recheck": {
+      "development_fake_executor_wording_present": false,
+      "development_only_field_on_the_start_payload": false,
+      "no_model_claim_present": false,
+      "result": "pass \u2014 the false-red is gone and the replacement is true of this run",
+      "what_the_start_surface_said": [
+        {
+          "code": "paid_evaluation_run",
+          "text": "This run evaluates the agent for real and spends money on model calls with prime. What you pay is whatever that provider charges."
+        },
+        {
+          "code": "not_publication_eligible",
+          "text": "hello-world-climb@1 is a development Climb. Its report is not publication eligible, and its result is not comparable evidence."
+        }
+      ]
+    },
+    "clean_machine": {
+      "hermes_home": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/hermes-home",
+      "home": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/home",
+      "honest_description": "A second set of fresh homes on the founder's existing Mac, separate from the 2026-08-19 journey's. Not a fresh operating system and does not claim to be.",
+      "no_global_techtree": "command -v techtree exits 1 with the operator's PATH removed, and python3.12 -c 'import techtree' raises ModuleNotFoundError",
+      "primary_interpreter": "CPython 3.12.13, pinned with --python 3.12",
+      "prime_login": "represented, not performed \u2014 the operator's ~/.prime/config.json was copied in with a plain cp. Its contents were never read, printed, logged or passed anywhere, and no credential value appears in any artifact this leg produced.",
+      "subject_image_already_cached": true,
+      "uv_tool_bin_dir": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/uv-bin",
+      "uv_tool_dir": "/private/tmp/claude-501/-Users-sean-Documents-techtree-climb/89207c41-c503-40a5-b4b7-a2479c0fe461/scratchpad/wp11e-recert/uv-tool"
+    },
+    "deleted_heuristics_confirmed_absent_in_the_installed_artifacts": {
+      "cli_scanner_aws_secret_assignment": "present, as intended",
+      "cli_scanner_generic_secret_assignment": "absent",
+      "plugin_guards_numeric_claims": "absent"
+    },
+    "digest_pull_path": {
+      "asserted": true,
+      "evidence": "doctor --climb reports the daemon holds the pinned subject image and serves it as linux/arm64; the run's own execution record names python@sha256:90744cff\u2026 and every container observed during the comparison ran image id 90744cff. Nothing resolved the moved python:3.11-slim tag."
+    },
+    "doctor": {
+      "credential_check": "pass \u2014 'the active Prime CLI configuration holds a key the pinned evaluation client can use.'",
+      "for_evaluation": "9 pass, 1 warn, 0 fail",
+      "result": "pass",
+      "the_one_warning": "hermes is not on this journey's PATH, which the check reports as a warning and says Techtree does not need",
+      "with_climb": "12 pass, 1 warn, 0 fail"
+    },
+    "findings": [
+      {
+        "priority": "P1",
+        "summary": "The one guided revision was destroyed a second time. The host completion spent its whole 32,768-token ceiling on reasoning, returned no content, billed USD 0.1589, and the product counted the attempt as used. The typed code is host_llm_unavailable, which is untrue: the host answered and charged for it.",
+        "ticket": "techtree-python-bbu"
+      },
+      {
+        "priority": "P2",
+        "summary": "The wheel checksum sidecar in dist/ still names the previous wheel's digest. Local artifact today, but it is the thing whose output becomes half the published release coordinate.",
+        "ticket": "techtree-python-oce"
+      }
+    ],
+    "guided_revision": {
+      "cost_note": "The provider's own figure is the one charged and the one recorded. The frozen profile's arithmetic (USD 1.68/Mtok in, 5.28/Mtok out) gives 0.1816 for the same token counts; the difference is the provider's, not a discrepancy in the accounting.",
+      "cost_usd_computed_at_frozen_profile_prices": 0.1816,
+      "cost_usd_provider_reported": 0.1589,
+      "guards": {
+        "cli_skill_scanner_reached": false,
+        "plugin_narrative_guards_reached": false,
+        "why": "No candidate Skill and no narrative were ever produced, so neither guard had anything to judge. The two founder-deleted heuristics were confirmed absent from the exact installed artifacts by inspection instead: the plugin's guards.py carries no _NUMERIC_PATTERNS and no forbid_numeric_claims, and the installed techtree/skills/scanner.py carries no _SECRET_NAME, no _SECRET_ASSIGNMENT and no secret_assignment rule id. The narrow aws_secret_assignment rule is untouched, as intended."
+      },
+      "host_profile": {
+        "max_completion_tokens": 32768,
+        "model": "z-ai/glm-5.2",
+        "provider_profile": "prime OpenAI-compatible https://api.pinference.ai/api/v1",
+        "repairs": 0,
+        "retries": 0,
+        "skill_improver_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+        "structured_output": "json_schema, strict=true, no fallback",
+        "temperature": 0
+      },
+      "outcome": {
+        "code": "host_llm_unavailable",
+        "message": "the host model could not answer: the host answered with no content (finish_reason='length'); the attempt is spent and no candidate was proposed",
+        "retried": false,
+        "retryable": false,
+        "ticket": "techtree-python-bbu",
+        "turn_spent": true
+      },
+      "request_accounting": {
+        "completion_tokens": 32768,
+        "content_returned": false,
+        "finish_reason": "length",
+        "invocations": 1,
+        "model_answered": "z-ai/glm-5.2",
+        "outbound_generation_requests": 1,
+        "prompt_tokens": 5133,
+        "reasoning_tokens": 20943,
+        "repairs": 0,
+        "request_digest": "sha256:3347f071df50dd5f98ea7645a30a9bfe2324385b0666973f28f0247fcd3a2217",
+        "response_digest": "sha256:ae144ec3ec395d4a514b7f7612f2bddfe1835a9a19e9f139ae3e9bcd39342bd7",
+        "response_id": "a2ddb0d4cc9a98ce-SJC",
+        "transport_retries": 0
+      }
+    },
+    "inputs": {
+      "expected_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "plugin_commit": "f6ff4a3fd80e1553fffa39ecad9d23169337e832",
+      "plugin_repository": "../techtree-plugin",
+      "repository_moved_during_the_leg": "techtree-python main advanced to 6c0b16a7 (the mzy prepare-surface fix) while this leg was running. The leg certifies the wheel it installed, which is stamped 7f5370c5 and predates that commit.",
+      "wheel": "dist/techtree-0.1.0-py3-none-any.whl",
+      "wheel_label": "interim candidate, not the artifact WP11e certified",
+      "wheel_sha256": "949fc6288ef495ae3a5ee58ab32ec64de0850e9c695a6406d8fb6e3b263bbba6",
+      "wheel_stamped_source_commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452"
+    },
+    "install": {
+      "argv": [
+        "uv",
+        "tool",
+        "install",
+        "--python",
+        "3.12",
+        "--find-links",
+        "/Users/redacted/Documents/techtree-climb/techtree-python/dist",
+        "techtree==0.1.0"
+      ],
+      "only_member_rewritten_by_the_installer": "techtree-0.1.0.dist-info/RECORD",
+      "published_argv": [
+        "uv",
+        "tool",
+        "install",
+        "techtree==0.1.0"
+      ],
+      "release_info_source_commit": "7f5370c5273eadcadca93ce3dd3f9a0773497452",
+      "release_verify": {
+        "failed": 0,
+        "passed": 9,
+        "skipped": 3
+      },
+      "reported_version": "0.1.0",
+      "result": "pass",
+      "wheel_payload_members_compared": 155,
+      "wheel_payload_members_differing": 0
+    },
+    "mzy_observation": {
+      "note": "Expected. techtree-python-mzy was fixed in commit 6c0b16a7, which is later than the wheel this leg installed. Recorded so the two surfaces are not confused: the start surface is fixed in this wheel, the prepare surface is fixed in the tree but not in this wheel.",
+      "prepare_surface_still_says": "Nothing produced here is a public proof. Real execution is not part of this build."
+    },
+    "no_upload_observation": {
+      "conclusion": "No mutation request to techtree.sh was observed, and the installed package contains no code path that could make one.",
+      "deliberate_techtree_sh_contact": "One GET of the starter object during the Skill-materialization step, which succeeded and matched the pinned digest. The five-second sampler did not catch it \u2014 it is a sub-second read of a content-addressed object, not a mutation \u2014 which is why the observed connection count for that address is zero rather than one.",
+      "method": "The same sampler WP11e used: every established remote TCP peer held by the journey's process tree, every 5 seconds for the whole leg, alongside a static audit of the installed package's outbound HTTP surface.",
+      "remote_peers_observed": {
+        "104.18.8.113, 104.18.9.113": "api.pinference.ai \u2014 the model provider",
+        "151.101.64.223, 151.101.128.223": "Fastly, serving pypi.org during engine installation"
+      },
+      "samples": 375,
+      "static_audit": {
+        "method": "GET",
+        "outbound_http_call_sites_in_the_installed_package": 1,
+        "post_put_patch_delete_call_sites": 0,
+        "where": "techtree/skills/starter.py"
+      },
+      "techtree_sh_address": "66.241.124.2",
+      "techtree_sh_connections_observed": 0
+    },
+    "performed_at": "2026-08-20",
+    "plugin": {
+      "argv": [
+        "hermes",
+        "plugins",
+        "install",
+        "file:///Users/redacted/Documents/techtree-climb/techtree-plugin",
+        "--ref",
+        "f6ff4a3fd80e1553fffa39ecad9d23169337e832",
+        "--enable"
+      ],
+      "byte_identical_to_cli_release_core": true,
+      "checkout_state": "detached HEAD, clean",
+      "install_metadata_pinned": true,
+      "installed_commit": "f6ff4a3fd80e1553fffa39ecad9d23169337e832",
+      "plugin_release_core_digest": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71",
+      "result": "pass"
+    },
+    "proofs_verified_offline": [
+      {
+        "checks": 339,
+        "failures": 0,
+        "run_id": "run_b804a28c81b444c9b9f2466ec0378faf",
+        "verified": true
+      }
+    ],
+    "purpose": "Re-certify the guided-revision path on the fixed build after the founder-ruled deletion of the two heuristics that wrongly rejected it during the 2026-08-19 journey (techtree-python-5f6 and techtree-python-0mx), and confirm the honest start-surface warning that replaced the false 'no model will be called' claim (techtree-python-ce9). No workaround was permitted and none was used.",
+    "runs": {
+      "first_comparison": {
+        "cost_provenance": "computed from the run's own signed ComparisonExecutionRecord at the prices pinned in the certification evidence (input USD 0.03/Mtok, output USD 0.13/Mtok); the same method the durable ledger has used for every prior comparison. The product itself reports cost as unavailable and says so.",
+        "cost_usd": 0.1982,
+        "decision": "accepted",
+        "elapsed_seconds": 1261.3,
+        "executor_key_id": "sha256:77b1857ee4f3aff90a30b8609b99965ce5287823f362391cc81421464f305b7a",
+        "measured": {
+          "baseline": 0,
+          "candidate": 0.667,
+          "delta": 0.667,
+          "losses": 0,
+          "ties": 12,
+          "wins": 24
+        },
+        "outcome": "completed",
+        "proof_bundle_file_digest": "sha256:36332df5694e077507ba79aca3c33a0110aed939e12aec5029b2927caa3a6923",
+        "proof_bundle_payload_digest": "sha256:7e232a19e53f9757c3f9c8b36ec3dcdbd87f21ff40c6c07a7baeef6f6a5134d0",
+        "proof_grade": "P1",
+        "publication_eligible": false,
+        "report_digest": "sha256:626e65aeaa24e9b04fe0ed6bee20d78f25ee0bb93565e0491e32c6933bd615e9",
+        "run_id": "run_b804a28c81b444c9b9f2466ec0378faf",
+        "statuses": {
+          "comparison": "controlled_with_warnings",
+          "evidence": "complete",
+          "execution": "completed",
+          "publication": "not_requested",
+          "score": "valid"
+        },
+        "usage": {
+          "input_tokens": 6173902,
+          "model_calls": 527,
+          "output_tokens": 99822
+        }
+      }
+    },
+    "second_comparison": {
+      "performed": false,
+      "reason": "Two independent reasons, either of which alone is decisive. There was no revised Skill to compare, because the host completion produced none. And the leg's remaining authorization after the comparison and the host call was USD 0.0429, below what a 72-episode comparison costs on this machine. Nothing was substituted, hand-written or retried."
+    },
+    "spend": {
+      "authorized_for_this_leg_usd": 0.4,
+      "every_leg_estimated_before_it_ran": true,
+      "hard_stops": {
+        "any_comparison_over_0_30": false,
+        "any_host_call_over_0_30": false,
+        "any_paid_outcome_retried": false
+      },
+      "leg_total_usd": 0.3571,
+      "legs": [
+        {
+          "actual_provenance": "computed from the run's signed execution record",
+          "actual_usd": 0.1982,
+          "ceiling_usd": 0.3,
+          "conservative_estimate_usd": 0.2383,
+          "estimate_usd": 0.1523,
+          "leg": "comparison 1 (baseline vs starter, 72 episodes)",
+          "within_ceiling": true
+        },
+        {
+          "actual_provenance": "provider-reported",
+          "actual_usd": 0.1589,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.1142,
+          "leg": "one guided-revision host completion (z-ai/glm-5.2)",
+          "within_ceiling": true,
+          "worst_case_usd": 0.1816
+        },
+        {
+          "actual_provenance": "not performed \u2014 no candidate existed and the remaining authorization was short",
+          "actual_usd": 0.0,
+          "ceiling_usd": 0.3,
+          "estimate_usd": 0.07,
+          "leg": "comparison 2 (v1 vs v2)",
+          "within_ceiling": true
+        }
+      ],
+      "per_comparison_ceiling_usd": 0.3,
+      "per_host_call_ceiling_usd": 0.3,
+      "programme_after_usd": 3.1386,
+      "programme_before_usd": 2.7815,
+      "programme_cap_usd": 10.0,
+      "programme_remaining_usd": 6.8614,
+      "remaining_of_this_leg_usd": 0.0429
+    },
+    "ticket": "techtree-python-ndq.3.5",
+    "verdict": "fail \u2014 the guided revision did not complete, for a new reason",
+    "verdict_detail": "The three fixes this leg was called to check all hold. The guided revision still did not reach a second comparison: the one paid host completion exhausted its predeclared token ceiling inside its reasoning channel and returned no content, and the product spent the session's only attempt on it. The guards were never reached, so nothing about them was disproved \u2014 and nothing about them was proved either."
+  },
+  "runs": {
+    "first_comparison": {
+      "cost_provenance": "computed from the run's own signed ComparisonExecutionRecord at the prices pinned in the certification evidence (input USD 0.03/Mtok, output USD 0.13/Mtok); the same method the durable ledger used for every prior comparison. The product itself reports cost as unavailable and says so.",
+      "cost_usd": 0.1523,
+      "elapsed_seconds": 611.6,
+      "executor_key_id": "sha256:cbd2047a17bf3a714862af7a8575e491af97166b2f9a00b8c13e3e8929cbc3b0",
+      "outcome": "completed",
+      "proof_bundle_file_digest": "sha256:a7cbab9fd9344b00f0f4625a2b37a5f68c96571af589941c4d0546503d08464a",
+      "proof_bundle_payload_digest": "sha256:ddd5d7e93a446b103cdfd1aa7a8473a419cd8763f0ff94f64bf63c40a4b8a10a",
+      "report_digest": "sha256:728eaeec861d9078b8e60ef221f4f42d346c107a692b03039f5b87ed4ff6ecb5",
+      "run_id": "run_719b335965704ecb84d2a57de9b61ccf",
+      "usage": {
+        "input_tokens": 4733210,
+        "model_calls": 414,
+        "output_tokens": 79052
+      }
+    },
+    "second_comparison": {
+      "cost_provenance": "computed from the run's own signed ComparisonExecutionRecord at the prices pinned in the certification evidence (input USD 0.03/Mtok, output USD 0.13/Mtok); the same method the durable ledger used for every prior comparison. The product itself reports cost as unavailable and says so.",
+      "cost_usd": 0.065,
+      "elapsed_seconds": 321.5,
+      "executor_key_id": "sha256:cbd2047a17bf3a714862af7a8575e491af97166b2f9a00b8c13e3e8929cbc3b0",
+      "outcome": "completed",
+      "proof_bundle_file_digest": "sha256:f4f1f559f1679db543e3786b4883bfba7dcfe40da82bf5679e642449b5329f8c",
+      "proof_bundle_payload_digest": "sha256:fc98786963d4d7739c29d80db44bac4e0abcb4e6730c31ede5261ef8bb8ab360",
+      "report_digest": "sha256:795d62a8b86e0c19e2156ac2e60496d5a83bbbed4f7d05126d6ad1e33c30a709",
+      "run_id": "run_697a17f8b68a40bebc086d44775d0ec7",
+      "usage": {
+        "input_tokens": 1995359,
+        "model_calls": 176,
+        "output_tokens": 39260
+      }
+    }
+  },
+  "schema_version": "techtree.wp11e-terminal-e2e.v1",
+  "scope": {
+    "certifies": "the exact local candidate artifacts named below, installed and driven from fresh homes on the founder's Mac",
+    "does_not_certify": "the public distribution path. Nothing was installed from an index or from a public repository; the public-coordinate smoke is WP11-postpublish, after Gate 2."
+  },
+  "spend": {
+    "authorized_for_this_journey_usd": 1.5,
+    "hard_stops": {
+      "any_comparison_over_0_30": false,
+      "any_host_call_over_0_30": false,
+      "any_paid_outcome_retried": false
+    },
+    "legs": [
+      {
+        "actual_usd": 0.1523,
+        "ceiling_usd": 0.3,
+        "estimate_usd": 0.2383,
+        "leg": "first comparison (baseline vs starter)",
+        "within_ceiling": true
+      },
+      {
+        "actual_provenance": "provider-reported",
+        "actual_usd": 0.0553,
+        "ceiling_usd": 0.3,
+        "estimate_usd": 0.1142,
+        "leg": "one guided-revision host completion (z-ai/glm-5.2)",
+        "within_ceiling": true,
+        "worst_case_usd": 0.1816
+      },
+      {
+        "actual_usd": 0.065,
+        "ceiling_usd": 0.3,
+        "estimate_usd": 0.07,
+        "leg": "second comparison (v1 vs v2)",
+        "within_ceiling": true
+      },
+      {
+        "actual_provenance": "estimated, bounded above by 0.02",
+        "actual_usd": 0.0111,
+        "ceiling_usd": 0.3,
+        "estimate_usd": 0.05,
+        "leg": "failure injection: worker killed",
+        "within_ceiling": true
+      },
+      {
+        "actual_provenance": "estimated, bounded above by 0.01",
+        "actual_usd": 0.0021,
+        "ceiling_usd": 0.3,
+        "estimate_usd": 0.05,
+        "leg": "failure injection: evaluation child dies mid-run",
+        "within_ceiling": true
+      },
+      {
+        "actual_provenance": "no model call was made",
+        "actual_usd": 0.0,
+        "ceiling_usd": 0.3,
+        "estimate_usd": 0.0,
+        "leg": "failure injection: provider auth fails",
+        "within_ceiling": true
+      }
+    ],
+    "per_comparison_ceiling_usd": 0.3,
+    "per_host_call_ceiling_usd": 0.3,
+    "programme_cap_usd": 10.0,
+    "spent_before_this_ticket_usd": 2.4957
+  },
+  "ticket": "techtree-python-ndq.3.5",
+  "unsupported_interpreter_observation": {
+    "change_since_wp11b": "WP11b found that an unsupported interpreter passed silently. It no longer does \u2014 the CLI detects and refuses. What remains is that the published argv, with no --python, still lands a first-time user there. See techtree-python-vom.",
+    "cli_behaviour_there": "techtree doctor returns ok=false with 'Python 3.14.7 is outside the supported range >=3.12,<3.14'",
+    "note": "Recorded for honesty; this is not the certified journey, which ran on the pinned 3.12.",
+    "uv_left_to_choose": "installed onto CPython 3.14.7",
+    "wheel_metadata": "Requires-Python: <3.14,>=3.12 \u2014 correct"
+  },
+  "verdict": "conditional pass \u2014 see open_findings"
+}

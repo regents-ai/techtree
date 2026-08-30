@@ -1,0 +1,111 @@
+{
+  "expected_release_core_digest": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa",
+  "failures": [],
+  "host": {
+    "architecture": "arm64",
+    "docker": "Docker version 29.7.2, build a7dcaa6",
+    "hermes": "Hermes Agent v0.20.5 (2026.8.19) · upstream ac6c8028",
+    "operating_system": "macOS",
+    "python": "Python 3.12.12"
+  },
+  "installs": [
+    {
+      "commands": [
+        {
+          "argv": ["techtree", "--version"],
+          "exit_code": 0,
+          "reported_version": "0.1.1",
+          "result": "pass"
+        },
+        {
+          "argv": ["techtree", "release", "info", "--json"],
+          "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
+          "cli_version": "0.1.1",
+          "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
+          "exit_code": 0,
+          "release_core_digest": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa",
+          "release_id": "climb-v0.1.0",
+          "result": "pass",
+          "source_commit": "614daffbcbd294be4646adfdec26f95337c4f7ed",
+          "warnings": []
+        },
+        {
+          "argv": ["techtree", "release", "verify", "--expected", "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa", "--json"],
+          "checks": 12,
+          "exit_code": 0,
+          "failed": 0,
+          "passed": 9,
+          "result": "pass",
+          "skipped": 3,
+          "verified": true,
+          "warnings": []
+        },
+        {
+          "argv": ["techtree", "climb", "list", "--json"],
+          "climbs": ["hello-world-climb@1"],
+          "exit_code": 0,
+          "result": "pass"
+        },
+        {
+          "argv": ["techtree", "climb", "show", "hello-world-climb@1", "--json"],
+          "campaign_spec_digest": "sha256:ebf029abb266ca74c2def50eb23030511bab0e929c6bf4a68691f9b5afd554b1",
+          "climb_digest": "sha256:a3a5e9c5f9b40d4f08fad54852377e201fd0d6dd4acfa4c565a0edfac324a236",
+          "exit_code": 0,
+          "result": "pass",
+          "subject_model_id": "qwen/qwen3.7-flash"
+        },
+        {
+          "argv": ["techtree", "doctor", "--json"],
+          "blocking_failures": [],
+          "check_count": 9,
+          "exit_code": 0,
+          "passed": 8,
+          "python_version": "Python 3.12.12",
+          "result": "pass",
+          "warnings": ["active_engine"]
+        }
+      ],
+      "install_argv": ["uv", "tool", "install", "--no-cache", "--python", "3.12", "--find-links", "<candidate-dist>", "techtree==0.1.1"],
+      "install_exit_code": 0,
+      "installed_bytes_match_wheel": {
+        "members_compared": 169,
+        "members_differing": [],
+        "result": "pass"
+      },
+      "isolation": "fresh UV tool and executable directories plus a fresh Techtree --home; no existing Techtree executable or state was reused",
+      "label": "published command with its Python pin",
+      "proposed_public_argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.1"],
+      "result": "pass"
+    }
+  ],
+  "observations": [
+    {
+      "detail": "The published command's Python 3.12 pin was re-observed against the final candidate wheel. The earlier unpinned Python 3.14 failure remains recorded in decision 0034 and was not repeated because it is outside the published path.",
+      "id": "published_interpreter_pin_verified",
+      "severity": "pass"
+    },
+    {
+      "detail": "Two independent clean builds produced the same wheel bytes; its provenance stamp names 614daffbcbd294be4646adfdec26f95337c4f7ed and its SHA-256 matches the frozen release coordinate.",
+      "id": "reproducible_build_verified",
+      "severity": "pass"
+    },
+    {
+      "detail": "The fresh acceptance host was Hermes 0.20.5. This is an interoperability observation, not an expansion of the ReleaseCore's declared 0.20.1 host compatibility coordinate.",
+      "id": "newer_hermes_observed_outside_declared_range",
+      "severity": "note"
+    }
+  ],
+  "published_install_argv": {
+    "argv": ["uv", "tool", "install", "--python", "3.12", "techtree==0.1.1"],
+    "matches_pinned_leg": true,
+    "pins_the_declared_python": true
+  },
+  "schema_version": "techtree.fresh-install-report.v1",
+  "uv_version": "uv 0.12.5 (Homebrew 2026-08-14 aarch64-apple-darwin)",
+  "verdict": "PASS — the published install command, with Python 3.12 pinned, installed the final candidate wheel in isolated tool and state directories; release verification and Doctor passed.",
+  "wheel": {
+    "built_from_commit": "614daffbcbd294be4646adfdec26f95337c4f7ed",
+    "path": "dist/techtree-0.1.1-py3-none-any.whl",
+    "sha256": "sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce"
+  }
+}
