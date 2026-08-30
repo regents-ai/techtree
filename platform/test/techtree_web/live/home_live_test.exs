@@ -238,6 +238,9 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert html =~
              ~s|class="masthead__github" href="https://github.com/regents-ai/techtree" target="_blank"|
+
+    assert html =~ "Star on GitHub"
+    refute html =~ "masthead__github-mark"
   end
 
   test "the project source link refreshes GitHub stars and formats large counts compactly" do
@@ -250,6 +253,13 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     refute javascript =~
              ~r/if \(Number\.isInteger\(cached\)\) \{\s*showGitHubStars\(cached\)\s*return/s
+  end
+
+  test "the source button has 25 percent more space from the product tabs" do
+    css = File.read!(Path.expand("../../../assets/css/app.css", __DIR__))
+
+    assert css =~ ~r/\.masthead__nav\s*\{[^}]*gap: 0\.8125rem;/s
+    assert css =~ ~r/@media \(max-width: 52rem\).*?\.masthead__nav\s*\{[^}]*gap: 0\.625rem;/s
   end
 
   test "the mobile crown responds to scroll and touch without overriding reduced motion" do

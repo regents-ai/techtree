@@ -91,9 +91,7 @@ defmodule TechtreeWeb.Layouts do
             data-github-stars-link
             data-github-repository="regents-ai/techtree"
           >
-            <svg class="masthead__github-mark" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M8 0C3.58 0 0 3.64 0 8.13c0 3.59 2.29 6.64 5.47 7.72.4.08.55-.18.55-.39 0-.19-.01-.83-.01-1.51-2.01.38-2.53-.5-2.69-.96-.09-.23-.48-.96-.82-1.15-.28-.15-.68-.53-.01-.54.63-.01 1.08.59 1.23.83.72 1.23 1.87.88 2.33.67.07-.53.28-.88.51-1.08-1.78-.21-3.64-.91-3.64-4.02 0-.89.31-1.62.82-2.19-.08-.2-.36-1.04.08-2.16 0 0 .67-.22 2.2.84A7.4 7.4 0 0 1 8 3.89c.68 0 1.36.09 2 .27 1.53-1.06 2.2-.84 2.2-.84.44 1.12.16 1.96.08 2.16.51.57.82 1.3.82 2.19 0 3.12-1.87 3.81-3.65 4.02.29.25.54.74.54 1.5 0 1.08-.01 1.95-.01 2.22 0 .22.15.47.55.39A8.14 8.14 0 0 0 16 8.13C16 3.64 12.42 0 8 0Z" />
-            </svg>
+            <span class="masthead__github-label">Star on GitHub</span>
             <span class="masthead__github-count" data-github-stars>{@repository_stars}</span>
             <svg class="masthead__github-star" viewBox="0 0 16 16" aria-hidden="true">
               <path d="M8 1.15 9.9 5l4.25.62-3.08 3 .73 4.23L8 10.86l-3.8 2 .73-4.23-3.08-3L6.1 5 8 1.15Z" />
