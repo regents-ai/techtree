@@ -1,0 +1,10 @@
+{
+  "name": "techtree-assets",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Vendored browser dependencies for the Techtree site. esbuild bundles them from here into priv/static/assets, so the strict script-src 'self' policy holds and nothing is fetched at runtime.",
+  "license": "MIT",
+  "dependencies": {
+    "vgpu": "0.3.1"
+  }
+}

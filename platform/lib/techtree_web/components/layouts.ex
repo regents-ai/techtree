@@ -1,0 +1,175 @@
+defmodule TechtreeWeb.Layouts do
+  @moduledoc """
+  The frame every page is read inside: a name, the primary site sections, the
+  project source, a local color control, and one line at the bottom saying whose
+  project this is.
+  """
+
+  use TechtreeWeb, :html
+
+  embed_templates "layouts/*"
+
+  @repository_url "https://github.com/regents-ai/techtree"
+  @repository_stars 0
+
+  @doc """
+  Wrap one page.
+  """
+  attr :wide, :boolean, default: false, doc: "give the page the wider measure"
+  attr :flush, :boolean, default: false, doc: "let a page own its vertical rhythm"
+  slot :inner_block, required: true
+
+  def page(assigns) do
+    ~H"""
+    <main class={["page", @wide && "page--wide", @flush && "page--flush"]}>
+      {render_slot(@inner_block)}
+    </main>
+
+    <footer class="colophon">
+      <span class="colophon__mark" aria-hidden="true"></span>
+      <a href="https://regents.sh" rel="noopener noreferrer">A Regents Labs project</a>
+    </footer>
+    """
+  end
+
+  attr :current_path, :string, default: "/"
+  attr :theme, :string, default: "orange"
+
+  defp masthead(assigns) do
+    assigns =
+      assign(assigns,
+        repository_url: @repository_url,
+        repository_stars: @repository_stars,
+        theme_name: theme_name(assigns.theme),
+        next_theme_name: next_theme_name(assigns.theme),
+        orange_active?: assigns.theme == "orange"
+      )
+
+    ~H"""
+    <header class="masthead">
+      <div class="masthead__inner">
+        <a class="masthead__name" href={~p"/"} aria-label="Techtree home">
+          <span class="masthead__mark" aria-hidden="true">
+            <svg viewBox="0 0 58 34" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+              <rect x="0" y="0" width="10" height="10" />
+              <rect x="24" y="0" width="10" height="10" />
+              <rect x="48" y="0" width="10" height="10" />
+              <rect x="0" y="12" width="10" height="10" />
+              <rect x="12" y="12" width="10" height="10" />
+              <rect x="24" y="12" width="10" height="10" />
+              <rect x="36" y="12" width="10" height="10" />
+              <rect x="48" y="12" width="10" height="10" />
+              <rect x="0" y="24" width="10" height="10" />
+              <rect x="12" y="24" width="10" height="10" />
+              <rect x="24" y="24" width="10" height="10" />
+              <rect x="36" y="24" width="10" height="10" />
+              <rect x="48" y="24" width="10" height="10" />
+            </svg>
+          </span>
+          <span>Techtree</span>
+        </a>
+        <nav class="masthead__nav" aria-label="Primary">
+          <span class="masthead__selector">
+            <a href={~p"/start"} aria-current={current_section(@current_path, "/start")}>
+              Start
+            </a>
+            <a href={~p"/results"} aria-current={current_section(@current_path, "/results")}>
+              Results
+            </a>
+            <a href={~p"/proofs"} aria-current={current_section(@current_path, "/proofs")}>
+              Verify
+            </a>
+            <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
+          </span>
+          <a
+            class="masthead__github"
+            href={@repository_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={"regents-ai/techtree on GitHub, #{@repository_stars} stars"}
+            title="regents-ai/techtree on GitHub"
+            data-github-stars-link
+            data-github-repository="regents-ai/techtree"
+          >
+            <span class="masthead__github-label">Star on GitHub</span>
+            <span class="masthead__github-count" data-github-stars>{@repository_stars}</span>
+            <svg class="masthead__github-star" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 1.15 9.9 5l4.25.62-3.08 3 .73 4.23L8 10.86l-3.8 2 .73-4.23-3.08-3L6.1 5 8 1.15Z" />
+            </svg>
+          </a>
+        </nav>
+        <button
+          id="site-theme-toggle"
+          class="theme-toggle"
+          type="button"
+          aria-label={"Color theme: #{@theme_name}. Activate #{@next_theme_name} theme."}
+          aria-pressed={to_string(@orange_active?)}
+          title={"Switch to #{@next_theme_name}"}
+          data-theme-toggle
+        >
+          <span class="theme-toggle__stage" aria-hidden="true">
+            <span class="theme-toggle__laser"></span>
+            <span class="theme-toggle__cube">
+              <span class="theme-toggle__face theme-toggle__face--front"></span>
+              <span class="theme-toggle__face theme-toggle__face--back"></span>
+              <span class="theme-toggle__face theme-toggle__face--left"></span>
+              <span class="theme-toggle__face theme-toggle__face--right"></span>
+              <span class="theme-toggle__face theme-toggle__face--top"></span>
+              <span class="theme-toggle__face theme-toggle__face--bottom"></span>
+            </span>
+          </span>
+          <span class="offscreen" data-theme-toggle-state>{@theme_name} theme active</span>
+        </button>
+      </div>
+    </header>
+    """
+  end
+
+  defp masthead_visible?(assigns) do
+    case assigns[:conn] do
+      %Plug.Conn{request_path: "/prism"} -> false
+      _conn -> true
+    end
+  end
+
+  defp current_section(path, root) when is_binary(path) do
+    if path == root or String.starts_with?(path, root <> "/"), do: "page"
+  end
+
+  defp request_path(%{conn: %Plug.Conn{request_path: path}}), do: path
+  defp request_path(_assigns), do: "/"
+
+  defp theme_name("titanium"), do: "Titanium"
+  defp theme_name(_theme), do: "Orange"
+
+  defp next_theme_name("titanium"), do: "Orange"
+  defp next_theme_name(_theme), do: "Titanium"
+
+  defp page_description(assigns) do
+    assigns
+    |> request_path()
+    |> description_for_path()
+  end
+
+  defp description_for_path("/start"),
+    do: "Set up Techtree with the CLI or Hermes plugin and run the Hello World Climb."
+
+  defp description_for_path("/results"),
+    do: "Browse participant-attested Results from controlled Skill comparisons."
+
+  defp description_for_path("/proofs"),
+    do:
+      "Understand what Techtree verifies, what remains unproven, and how to check a Result offline."
+
+  defp description_for_path("/docs"),
+    do: "Install, operate, verify, publish, and integrate Techtree."
+
+  defp description_for_path("/climbs/" <> _slug),
+    do: "Inspect the fixed task contract for a published Techtree Climb."
+
+  defp description_for_path("/results/" <> _digest),
+    do: "Inspect one published Techtree Result and its task-level evidence."
+
+  defp description_for_path(_path),
+    do: "Improve a Skill under controlled conditions and produce a checkable local Result."
+end

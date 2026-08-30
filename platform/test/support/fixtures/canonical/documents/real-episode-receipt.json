@@ -1,0 +1,83 @@
+{
+  "payload": {
+    "artifacts": [
+      {
+        "digest": "sha256:31b51eec6c294195c9b746eb8b002021c65d4a57a46ba26164d0730b56d7a987",
+        "media_type": "application/toml",
+        "relative_path": null,
+        "size": 2048
+      },
+      {
+        "digest": "sha256:17f26da75c134a67d97b25913c333ade9bebf20a3142e413578052d27bae1118",
+        "media_type": "application/x-ndjson",
+        "relative_path": null,
+        "size": 262144
+      },
+      {
+        "digest": "sha256:924fcf9259522cd6ad3950ce4e22fcb1364ca27fd48b5be4b2880efa3d47eebd",
+        "media_type": "text/plain",
+        "relative_path": null,
+        "size": 16384
+      },
+      {
+        "digest": "sha256:8872842da87a0e9b2a56d4ed437fe9306abd2c3f3a3424856587b4cb27f6c34e",
+        "media_type": "application/x-ndjson",
+        "relative_path": null,
+        "size": 65536
+      }
+    ],
+    "campaign_spec_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1",
+    "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
+    "episode_digest": "sha256:2d565e9c04faf86eee1e2109aedf98d41c5b102297d5af24528e51cc09add015",
+    "episode_id": "episode_5869149432600cea179657733b163b52",
+    "evaluation_backend": {
+      "attestation": "participant",
+      "executor_identity": null,
+      "kind": "local_techtree",
+      "provider_run_ref": null,
+      "schema_version": "techtree.evaluation-backend.v1alpha1",
+      "workspace_ref": null
+    },
+    "evidence_status": "complete",
+    "execution_backend": "verifiers",
+    "experiment_manifest_digest": "sha256:756460a08406fa5f3b1db8616f453ba03991b0e37a9d527fa049945cb78060d9",
+    "id": "receipt_47bd13e7cf2e823779c833f246d644af",
+    "named_traces": {
+      "subject": [
+        {
+          "metrics": {},
+          "ok": true,
+          "rewards": {
+            "exact_match": 1.0
+          },
+          "role": "subject",
+          "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
+          "trace_digest": "sha256:56daabfe0e1d306ea4da80f15e23d91ac48b192618e3689b71cd2871baf24266",
+          "trace_id": "trace_862b0f88bb31eefee8760ac5f90ca273"
+        }
+      ]
+    },
+    "outcome_contract_digest": null,
+    "program_ref": null,
+    "public_context": {
+      "climb_digest": "sha256:8a98cf28affe2de98e3431db3b2a26b0a6dc60861fc9fb0f264d8ca044c217ba",
+      "kind": "climb"
+    },
+    "run_id": "run_bc6bcf8a52493f173292f667c596bfb7",
+    "schema_version": "techtree.episode-receipt.v1alpha1",
+    "score_status": "valid",
+    "subject_runtime": {
+      "kind": "docker",
+      "platform": "linux/arm64",
+      "resolved_image_digest": "sha256:9c058d4e72697f0f11074e22709c6d6a4b0292ad7dded77c793a7be717e460ab"
+    },
+    "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
+    "variant": "candidate"
+  },
+  "payload_digest": "sha256:d803696ef8f8001baaafbe5e8109820b18fca7bae5e48e9164b8ad4627a46fd5",
+  "signature": {
+    "algorithm": "ed25519",
+    "key_id": "sha256:cb1636de7059dc2a939fb3e53590a8373911d5613540d1c00eeaf7d37a10d38f",
+    "signature": "9lBeGN4c79ZA5SvZMkmZoEYjFK5/utMeakePjIDh01gwwyJeOKGgpY1ZpakbyVldFLPgTE4qdYr650ypZFlyCA=="
+  }
+}
