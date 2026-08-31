@@ -339,7 +339,9 @@ def test_nothing_is_carried_by_colour_alone() -> None:
 
 
 def test_the_full_list_has_a_flag_to_ask_for_it() -> None:
-    result = CliRunner().invoke(create_app(), ["proof", "verify", "--help"])
+    result = CliRunner(env={"FORCE_COLOR": None, "CLICOLOR_FORCE": None}).invoke(
+        create_app(), ["proof", "verify", "--help"]
+    )
 
     assert result.exit_code == 0
     assert "--checks" in result.stdout

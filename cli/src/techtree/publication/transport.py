@@ -246,7 +246,15 @@ def _response_bytes(response: http.client.HTTPResponse) -> bytes:
 
     # One byte past the cap. Reading exactly the cap and getting exactly the cap
     # back says the answer reached the limit, not that it stopped there.
-    raw = bytes(response.read(MAX_RESPONSE_BYTES + 1))
+    chunks: list[bytes] = []
+    remaining = MAX_RESPONSE_BYTES + 1
+    while remaining:
+        chunk = response.read(remaining)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    raw = b"".join(chunks)
     if len(raw) > MAX_RESPONSE_BYTES:
         raise TechtreeError(
             f"the run log's answer is longer than {MAX_RESPONSE_BYTES} bytes, "
