@@ -1,0 +1,60 @@
+{
+  "schema_version": "techtree.upstream-candidates.v1",
+  "recorded_on": "2026-08-31",
+  "selection_policy": "Test the newest official stable release first. Inspect the approved development fallback only if the stable candidate fails conformance.",
+  "selected_candidate": "verifiers-stable-0.3.1",
+  "selection_status": "proposed_for_adoption",
+  "final_adoption": "pending_founder_approval",
+  "candidates": [
+    {
+      "id": "verifiers-stable-0.3.1",
+      "channel": "official_stable",
+      "status": "proposed_for_adoption",
+      "status_history": [
+        "discovered",
+        "approved_for_spike",
+        "conformance_passed",
+        "proposed_for_adoption"
+      ],
+      "package": "verifiers",
+      "version": "0.3.1",
+      "python_requirement": ">=3.11,<3.14",
+      "source_repository": "https://github.com/PrimeIntellect-ai/verifiers",
+      "source_tag": "v0.3.1",
+      "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+      "release_url": "https://github.com/PrimeIntellect-ai/verifiers/releases/tag/v0.3.1",
+      "wheel_filename": "verifiers-0.3.1-py3-none-any.whl",
+      "wheel_url": "https://files.pythonhosted.org/packages/dd/1b/0e5e7edffde7076b9223ac50916cd6755848e83ef29e0f94950cf9f4c7e8/verifiers-0.3.1-py3-none-any.whl",
+      "wheel_size": 880325,
+      "wheel_sha256": "sha256:105cd114184625895b3d1a07ddc418f08a0ddadcd9cb20dad5acb763ccb01725",
+      "conformance": {
+        "result": "local_model_free_validation_passed",
+        "environment_manifest": "docs/v0.2/PRIME_CONFORMANCE_ENVIRONMENT.json",
+        "environment_manifest_sha256": "sha256:a50915c204b69f49b50ee73936da42f78c610083bcca0a54796bfd977fc5cb55"
+      }
+    },
+    {
+      "id": "verifiers-fallback-0.3.2.dev17",
+      "channel": "approved_development_fallback",
+      "status": "discovered",
+      "status_history": [
+        "discovered"
+      ],
+      "spike": {
+        "status": "not_run",
+        "reason": "stable_candidate_passed"
+      },
+      "package": "verifiers",
+      "version": "0.3.2.dev17",
+      "python_requirement": ">=3.11,<3.14",
+      "source_repository": "https://github.com/PrimeIntellect-ai/verifiers",
+      "source_tag": null,
+      "source_commit": "c51c094a4018471b7fdc873eb5cb55bbd5e956e1",
+      "source_url": "https://github.com/PrimeIntellect-ai/verifiers/commit/c51c094a4018471b7fdc873eb5cb55bbd5e956e1",
+      "wheel_filename": "verifiers-0.3.2.dev17-py3-none-any.whl",
+      "wheel_url": "https://files.pythonhosted.org/packages/83/ab/3bfcef0a0bfd32d9d5060b84ad50bafe453719f0d8ed6cfea8a2385253e5/verifiers-0.3.2.dev17-py3-none-any.whl",
+      "wheel_size": 886377,
+      "wheel_sha256": "sha256:68c23a7c48b0544f5e98fd7fee433e1e96c96b7713a3ac2215b856770481b035"
+    }
+  ]
+}

@@ -102,14 +102,15 @@ strict = true
 warn_unreachable = true
 files = ["src", "tests"]
 mypy_path = ["src"]
-# The preflight suite and the engine bundle packages import the pinned
-# Verifiers build. That build belongs to the managed engine environment, never
-# to the ordinary package environment, so its types are not resolvable here.
+# The conformance and preflight packages and the engine bundle packages import
+# pinned Verifiers builds. Those builds belong to isolated environments, never
+# to the ordinary package environment, so their types are not resolvable here.
 #
 # The Hermes plugin's suite imports the plugin package from this monorepo or a
 # sibling checkout. Its directory name is not a Python identifier. It is checked by
 # `make typecheck-plugin`, which gives that directory an importable name first.
 exclude = [
+  "^tests/conformance/",
   "^tests/plugin/",
   "^tests/preflight/",
   "^src/techtree/resources/engines/",

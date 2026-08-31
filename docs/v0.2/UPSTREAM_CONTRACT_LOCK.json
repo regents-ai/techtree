@@ -1,7 +1,7 @@
 {
   "schema_version": "techtree.upstream-contract-lock.v1",
   "status": "contract_spike_pending",
-  "approved_at": "2026-08-30",
+  "approved_at": null,
   "freeze_policy": {
     "frozen_after_commit": true,
     "replacement_requires_founder_decision": true,
@@ -9,15 +9,23 @@
     "replacement_requires_affected_conformance_rerun": true
   },
   "verifiers": {
-    "tracking_policy": "latest_founder_approved_before_lock",
+    "tracking_policy": "newest_official_stable_then_explicit_founder_adoption",
     "approval_scope": "v0.2_contract_spike_and_admission",
     "api_generation": "v1",
-    "package_version": "0.3.2.dev17",
+    "package_version": "0.3.1",
     "source_repository": "https://github.com/PrimeIntellect-ai/verifiers",
-    "source_commit": "c51c094a4018471b7fdc873eb5cb55bbd5e956e1",
-    "wheel_filename": "verifiers-0.3.2.dev17-py3-none-any.whl",
-    "wheel_sha256": "sha256:68c23a7c48b0544f5e98fd7fee433e1e96c96b7713a3ac2215b856770481b035",
-    "admission": "pending_conformance",
+    "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+    "wheel_filename": "verifiers-0.3.1-py3-none-any.whl",
+    "wheel_sha256": "sha256:105cd114184625895b3d1a07ddc418f08a0ddadcd9cb20dad5acb763ccb01725",
+    "admission": "proposed_for_adoption",
+    "candidate_record": "docs/v0.2/UPSTREAM_CANDIDATES.json",
+    "conformance_environment": "docs/v0.2/PRIME_CONFORMANCE_ENVIRONMENT.json",
+    "fallback_candidate": "verifiers==0.3.2.dev17",
+    "fallback_candidate_status": "discovered",
+    "fallback_spike": {
+      "status": "not_run",
+      "reason": "stable_candidate_passed"
+    },
     "historical_v0_1_engine_lock_unchanged": true
   },
   "prime_hosted_evaluations": {

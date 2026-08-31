@@ -1,0 +1,132 @@
+{
+  "schema_version": "techtree.prime-conformance-environment.v1",
+  "status": "local_conformance_passed",
+  "purpose": "Minimal deterministic environment for Techtree Prime Hosted integration. It tests infrastructure conformance and is not a benchmark.",
+  "proposed_coordinate": "techtree/techtree-v02-conformance",
+  "source_path": "cli/tests/conformance/prime_environment",
+  "publication": {
+    "status": "not_published",
+    "protected_action_required": true,
+    "owner": "@techtree",
+    "visibility": null,
+    "prime_environment_id": null,
+    "prime_environment_version_id": null
+  },
+  "package": {
+    "distribution": "techtree-v02-conformance",
+    "version": "0.1.0",
+    "python_requirement": ">=3.12,<3.14",
+    "project_tree_digest": "sha256:627f67e314a8935eb0c0e5ec4e914c97227fd1a103f0028a9ae409eec2e385cc",
+    "python_package_digest": "sha256:10031cb30fb2b7cf541f55925ea0cb84de0d4b4b9a3c243b06b1e12b6db42485",
+    "pyproject_digest": "sha256:b7f0bbe175c2dc5f59206c23e3624249d573e575f6cff66873d9ea0f0c95d9b0",
+    "lockfile_digest": "sha256:2f8059c367a194918d9bf343144dda48504722481c36a2bd329e0715aad1c05c",
+    "license": "MIT",
+    "license_digest": "sha256:6e38c30f0a33eda5e089358f4b2a32b56a5b1f3bd8b7da0c75719529f097b080",
+    "wheel": {
+      "filename": "techtree_v02_conformance-0.1.0-py3-none-any.whl",
+      "size": 4415,
+      "sha256": "sha256:de215e72ab80ce9fcbed8b8cb3044331be3afe7efba1a57c25763658d36422cd",
+      "build_backend": "hatchling==1.27.0",
+      "source_date_epoch": 1704067200
+    }
+  },
+  "evaluation_engine": {
+    "package": "verifiers",
+    "version": "0.3.1",
+    "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+    "wheel_sha256": "sha256:105cd114184625895b3d1a07ddc418f08a0ddadcd9cb20dad5acb763ccb01725"
+  },
+  "taskset": {
+    "id": "techtree-v02-conformance",
+    "class": "ConformanceTaskset",
+    "source_digest": "sha256:76431fee861e51730a53dfe01e3830ca041750eb0233fda0ddd981889faf9666",
+    "task_count": 4,
+    "membership_digest": "sha256:db8f55496cb787819d93ed15080c4fc27b27e1f476a18f72224a56cf73e19fe4",
+    "tasks": [
+      {
+        "position": 0,
+        "name": "amber-17",
+        "task_hash": "sha256:025dbcf1384cfc56ec9303c96363e23f3333e1b62916af020162256bfda53849"
+      },
+      {
+        "position": 1,
+        "name": "cobalt-29",
+        "task_hash": "sha256:240dfad007188a1bbd47c94b41693c618814970847372ad66667bde99085edd2"
+      },
+      {
+        "position": 2,
+        "name": "teal-43",
+        "task_hash": "sha256:3e70dbddf9599c563d89e08ff09ddba955f020d769d50ab5396947c88b2c0efb"
+      },
+      {
+        "position": 3,
+        "name": "titanium-61",
+        "task_hash": "sha256:8bdbd0d82355814cbdcbb1e3c6be247b8c771781e024a8df41b7470c0b72fc8d"
+      }
+    ]
+  },
+  "environment": {
+    "class": "SubjectEnv",
+    "config_class": "SubjectEnvConfig",
+    "seat": "subject",
+    "source_digest": "sha256:4aaf03f66a03cfd1f250bf1a338d0575fd925348c177d643ef5ac11de3db9b50"
+  },
+  "scorer": {
+    "function": "normalized_exact_match",
+    "kind": "deterministic_exact_match",
+    "normalization": "strip_outer_whitespace",
+    "case_sensitive": true,
+    "source_digest": "sha256:cbd23387d210b1f32be9ef932527a58a891b024fbf3ca2e38a11af9efe264ea5",
+    "judge_model": null
+  },
+  "constraints": {
+    "environment_network_client": false,
+    "environment_secrets": false,
+    "tools": false,
+    "customer_data": false,
+    "hidden_answers": false,
+    "performance_claim": false
+  },
+  "local_conformance": {
+    "method": "verifiers_validate",
+    "runtime": "subprocess",
+    "mode": "all",
+    "model_calls_requested": false,
+    "credentials_required": false,
+    "result": "passed",
+    "summary": {
+      "total": 4,
+      "recorded": 4,
+      "valid": 4,
+      "invalid": 0,
+      "error": 0,
+      "timeout": 0,
+      "missing": 0,
+      "valid_rate": 1.0,
+      "gold_valid": 4,
+      "setup_valid": 4
+    }
+  },
+  "future_paths": {
+    "local_model_run": {
+      "status": "not_run"
+    },
+    "prime_hosted_run": {
+      "status": "not_run",
+      "reason": "protected_action_required"
+    },
+    "provider_hosted_rerun": {
+      "status": "not_run",
+      "reason": "protected_action_required"
+    },
+    "fabric_hermes_run": {
+      "status": "not_run"
+    },
+    "relay_complete_run": {
+      "status": "not_run"
+    },
+    "relay_incomplete_run": {
+      "status": "not_run"
+    }
+  }
+}
