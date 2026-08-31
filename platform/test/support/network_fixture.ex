@@ -246,11 +246,10 @@ defmodule Techtree.NetworkFixture do
   @doc """
   One entry written straight through the create action the ingest uses.
 
-  This exists for exactly one test: the branch that refuses a submission whose
-  digest is already held under a different set of bytes. Every honest
-  submission carrying one bundle is the same four members over the same files,
-  so that state cannot be reached by sending anything — it can only be
-  arranged, and arranging it is what proves the branch answers.
+  This arranges database states that an honest submission cannot produce, such
+  as a digest held under different bytes or a row from a Climb absent from the
+  test catalog. Those states let a test isolate the read or refusal rule it is
+  about without weakening normal ingest.
   """
   @spec seed_entry(keyword()) :: struct()
   def seed_entry(overrides \\ []) do

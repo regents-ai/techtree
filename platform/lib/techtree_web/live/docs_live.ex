@@ -61,7 +61,7 @@ defmodule TechtreeWeb.DocsLive do
               title="Where this goes"
               links={[
                 {"Beyond the model", "#beyond-model"},
-                {"Environments in v0.2", "#environments"},
+                {"Planned execution portability", "#environments"},
                 {"The agent stack", "#agent-stack"},
                 {"Regents and the network", "#regents"}
               ]}
@@ -84,7 +84,7 @@ defmodule TechtreeWeb.DocsLive do
             <h1>Operation Guide and Mechanism Docs</h1>
             <p class="lede">
               Install the released CLI, run your first A/B eval, verify a Result, and publish it
-              to our public dashboard.
+              to the public Results log.
             </p>
             <p>
               For the info on Prime Intellect’s

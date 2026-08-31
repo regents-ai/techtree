@@ -25,7 +25,7 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "Operation Guide and Mechanism Docs"
     assert text =~ "Install the released CLI"
     assert text =~ "run your first A/B eval"
-    assert text =~ "publish it to our public dashboard"
+    assert text =~ "publish it to the public Results log"
 
     assert text =~
              "For the info on Prime Intellect’s verifiers mechanism, go to the section Method."
@@ -79,10 +79,19 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "The proof is participant-attested"
     assert text =~ "Techtree witnessed the run;"
     assert text =~ "another party reproduced it;"
-    assert text =~ "Environments in v0.2"
+    assert text =~ "Planned execution portability in v0.2"
+    assert text =~ "These paths are not available in v0.1"
+    assert text =~ "their exact upstream contracts are still being tested"
+    assert text =~ "local execution or Prime Hosted Evaluations"
+    assert text =~ "Fabric-backed Hermes and Codex subjects"
+    assert text =~ "Environment creation, automatic Skill optimization"
+    assert text =~ "The planned v0.2 agent stack"
     assert text =~ "NVIDIA NeMo Fabric"
     assert text =~ "Techtree is the research and proof engine"
     assert text =~ "x402-gated services"
+
+    refute text =~ "Environments in v0.2"
+    refute text =~ "turn them into qualified, content-addressed environments"
 
     assert html =~ ~r/id="troubleshooting".*id="method"/s
   end

@@ -83,6 +83,25 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute has_element?(live, "#run-github-#{entry.log_sequence}")
     end
 
+    test "does not infer a Techtree release from the Climb reference",
+         %{conn: conn, entry: entry} do
+      other_entry =
+        NetworkFixture.seed_entry(
+          log_sequence: entry.log_sequence + 1,
+          bundle_digest: "sha256:" <> String.duplicate("e", 64),
+          run_id: "run_from_another_climb",
+          climb_reference: "another-climb@1"
+        )
+
+      {:ok, live, html} = live(conn, "/results?release=v0.1")
+
+      assert has_element?(live, "#run-entry-#{entry.log_sequence}")
+      assert has_element?(live, "#run-entry-#{other_entry.log_sequence}")
+      refute has_element?(live, "#results-release-filter")
+      refute has_element?(live, ~s|a[href="/results?release=v0.1"]|)
+      refute visible_text(html) =~ "v0.1 Results"
+    end
+
     test "keeps the publisher fingerprint off the scan-first proofs list",
          %{conn: conn, entry: entry} do
       {:ok, _live, html} = live(conn, ~p"/results")

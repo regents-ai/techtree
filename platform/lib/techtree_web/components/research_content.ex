@@ -80,7 +80,7 @@ defmodule TechtreeWeb.ResearchContent do
     </section>
 
     <section id="hello-world" class="doc-section">
-      <h2>The introductory v0.1 benchmark</h2>
+      <h2>The introductory Hello World Climb</h2>
       <p>It is intentionally simple.</p>
       <p>
         It contains a Skill that clearly helps relative to the baseline. This makes it easy
@@ -143,44 +143,39 @@ defmodule TechtreeWeb.ResearchContent do
     </section>
 
     <section id="environments" class="doc-section">
-      <h2>Environments in v0.2</h2>
-      <p>Today, Techtree starts with a published benchmark.</p>
+      <h2>Planned execution portability in v0.2</h2>
       <p>
-        In v0.2, it will also help create environments from material people and agents
-        already produce:
+        These paths are not available in v0.1, and their exact upstream contracts
+        are still being tested. v0.2 is planned to make the same controlled-comparison
+        protocol portable across:
       </p>
       <ul class="doc-list">
-        <li>chat logs;</li>
-        <li>agent traces;</li>
-        <li>structured data;</li>
-        <li>documents;</li>
-        <li>repositories;</li>
-        <li>notebooks;</li>
-        <li>tool descriptions;</li>
-        <li>expected outcomes.</li>
+        <li>local execution or Prime Hosted Evaluations;</li>
+        <li>direct Hermes or Fabric-backed Hermes and Codex subjects;</li>
+        <li>native Verifiers evidence, optionally supplemented by NeMo Relay.</li>
       </ul>
       <p>
-        These materials are not benchmarks by themselves. Techtree will turn them into
-        qualified, content-addressed environments with explicit tasks, tools, verifier
-        logic, data policies, and development and proving splits.
+        Each admitted variant will be a separate immutable Campaign. Changing the
+        execution, subject, or evidence backend will never silently change what an
+        existing Campaign means.
       </p>
-      <p>The executable target will be a Prime-compatible Verifiers environment.</p>
       <p>
-        Then Techtree can use development evidence to propose a better Skill, freeze that
-        Skill, remove any temporary learning intervention, and compare Skill v1 with Skill
-        v2 on untouched held-out tasks.
+        One small deterministic Prime environment will validate the hosted path. It is
+        infrastructure conformance material, not an environment-authoring product or a
+        benchmark of model capability.
       </p>
-      <p>That produces a stronger claim than “the revision looked good”:</p>
       <p>
-        <strong>
-          Skill v2 performed better than Skill v1 under the original controlled evaluator.
-        </strong>
+        Environment creation, automatic Skill optimization, held-out proving workflows,
+        training, and a local control-plane dashboard remain later work.
       </p>
     </section>
 
     <section id="agent-stack" class="doc-section">
-      <h2>The agent stack</h2>
-      <p>Later releases will broaden the systems Techtree can study.</p>
+      <h2>The planned v0.2 agent stack</h2>
+      <p>
+        v0.2 is intended to broaden the systems Techtree can study without merging
+        their responsibilities.
+      </p>
       <p>
         <a href="https://github.com/NVIDIA/NeMo-Fabric">
           NVIDIA NeMo Fabric
