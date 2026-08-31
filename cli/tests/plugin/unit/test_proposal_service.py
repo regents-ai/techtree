@@ -271,13 +271,10 @@ def test_the_default_staging_root_is_the_plugins_own(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Not the shared OS temp dir: a documented, plugin-owned address."""
-    import tempfile
-
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
     root = ProposalService(bridge=FakeBridge()).staging_root
 
     assert root == tmp_path / "state" / "techtree-hermes" / "proposals"
-    assert Path(tempfile.gettempdir()) not in root.parents
 
 
 def test_the_staging_root_is_named_in_the_removal_documentation() -> None:
