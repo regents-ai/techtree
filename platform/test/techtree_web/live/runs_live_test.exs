@@ -225,6 +225,23 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert shown(older) == [Enum.at(entries, 1).bundle_digest]
     end
+
+    test "selects the preserved v0.1 proof family from the URL", %{conn: conn, entries: entries} do
+      {:ok, live, html} = live(conn, "/results?release=v0.1")
+
+      assert shown(html) == Enum.map(Enum.reverse(entries), & &1.bundle_digest)
+      assert has_element?(live, ~s|#results-release-v0-1[aria-current="page"]|)
+      refute has_element?(live, ~s|#results-release-all[aria-current="page"]|)
+    end
+
+    test "preserves the selected release while paging", %{conn: conn, entries: entries} do
+      {:ok, _live, html} = live(conn, "/results?release=v0.1&limit=1")
+
+      assert shown(html) == [List.last(entries).bundle_digest]
+
+      assert html =~
+               "release=v0.1&amp;before_sequence=#{List.last(entries).log_sequence}"
+    end
   end
 
   describe "one entry's own page" do

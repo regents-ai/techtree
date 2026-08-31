@@ -7,8 +7,12 @@ tasks, but a child must inherit the same work-package boundary and may not
 invent a second architecture.
 
 The seven tickets below are ordered dependencies. WP0 blocks WP1; WP1 blocks
-WP2, WP3, and WP4; WP2 blocks WP3 and WP6; WP3 and WP4 block WP5. The full
-release gate runs only after WP5 and WP6.
+WP2, WP3, and WP4; WP2 blocks WP3 and WP6; WP3 and WP4 block completion of
+WP5. The founder-approved v0.1 compatibility-family filter in
+`techtree-31k.13` is a narrow preparatory WP5 slice: it may land against the
+existing publication log, but it does not complete WP5 or authorize any v0.2
+rerun or evidence-facet write shape. The full release gate runs only after WP5
+and WP6.
 
 | Work | Bead |
 | --- | --- |
@@ -20,6 +24,7 @@ release gate runs only after WP5 and WP6.
 | WP4 | `techtree-31k.5` |
 | WP5 | `techtree-31k.6` |
 | WP6 | `techtree-31k.7` |
+| WP5 v0.1 compatibility filter | `techtree-31k.13` |
 
 The inherited maintenance tickets are `techtree-31k.8` through
 `techtree-31k.12`, in the same order as the maintenance list below.
@@ -190,8 +195,8 @@ Deliverables:
 - Show integrity, controlled-comparison validity, location, cumulative
   observation, trace coverage, model pin strength, Skill projection, and every
   rerun separately.
-- Add filters by Climb, Skill, harness, model, location, trace coverage, and
-  rerun kind without adding a “top” sort.
+- Add filters by proof compatibility family, Climb, Skill, harness, model,
+  location, trace coverage, and rerun kind without adding a “top” sort.
 
 Acceptance:
 

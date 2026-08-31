@@ -59,7 +59,11 @@ defmodule TechtreeWeb.RunsLive.Index do
     page = Query.page(options)
 
     {:noreply,
-     assign(socket, entries: page.entries, next_before_sequence: page.next_before_sequence)}
+     assign(socket,
+       entries: page.entries,
+       next_before_sequence: page.next_before_sequence,
+       release: Keyword.get(options, :release)
+     )}
   end
 
   @impl true
@@ -77,6 +81,25 @@ defmodule TechtreeWeb.RunsLive.Index do
               This is a record, not a leaderboard.
             </p>
           </header>
+
+          <nav id="results-release-filter" aria-label="Filter Results by release">
+            <span>Release:</span>
+            <.link
+              id="results-release-all"
+              patch={~p"/results"}
+              aria-current={current_release(@release, nil)}
+            >
+              All
+            </.link>
+            <.link
+              id="results-release-v0-1"
+              patch={~p"/results?release=v0.1"}
+              aria-current={current_release(@release, "v0.1")}
+              title="Preserved v0.1 proof family"
+            >
+              v0.1
+            </.link>
+          </nav>
         </section>
 
         <p :if={@entries == []} class="runs-index__empty empty-state">
@@ -157,7 +180,7 @@ defmodule TechtreeWeb.RunsLive.Index do
         </div>
 
         <p :if={@next_before_sequence} class="runs-index__pagination">
-          <a class="text-link" href={older_url(@next_before_sequence)}>
+          <a class="text-link" href={older_url(@next_before_sequence, @release)}>
             Earlier Results <span aria-hidden="true">→</span>
           </a>
         </p>
@@ -208,7 +231,12 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   defp present(_value), do: nil
 
-  defp older_url(sequence), do: "/results?before_sequence=" <> Integer.to_string(sequence)
+  defp older_url(sequence, nil), do: "/results?before_sequence=" <> Integer.to_string(sequence)
+
+  defp older_url(sequence, "v0.1"),
+    do: "/results?release=v0.1&before_sequence=" <> Integer.to_string(sequence)
+
+  defp current_release(selected, expected), do: if(selected == expected, do: "page")
 
   defp uplift_value(entry) do
     if normalized_score?(entry.baseline_mean) and normalized_score?(entry.candidate_mean) do

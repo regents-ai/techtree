@@ -325,6 +325,39 @@ defmodule TechtreeWeb.PublicationControllerTest do
       refute served.resp_body =~ Base.encode64(NetworkFixture.files()["data-policy.json"])
     end
 
+    test "the v0.1 release selector returns only the preserved proof family" do
+      other_digest = Digest.hash_bytes("other-v0.2-proof")
+
+      other =
+        NetworkFixture.seed_entry(
+          log_sequence: 1_000_000,
+          bundle_digest: other_digest,
+          submission_digest: Digest.hash_bytes("other-v0.2-submission"),
+          run_id: "other-v0.2-run",
+          participant_key_id: Digest.hash_bytes("other-v0.2-participant"),
+          climb_reference: "hello-world-climb@2"
+        )
+
+      all =
+        build_conn()
+        |> get("/api/v1/publications")
+        |> json_response(200)
+        |> Map.fetch!("entries")
+
+      assert Enum.any?(all, &(&1["bundle_digest"] == other.bundle_digest))
+      assert Enum.any?(all, &(&1["climb"] == "hello-world-climb@1"))
+
+      selected =
+        build_conn()
+        |> get("/api/v1/publications?release=v0.1")
+        |> json_response(200)
+        |> Map.fetch!("entries")
+
+      assert selected != []
+      assert Enum.all?(selected, &(&1["climb"] == "hello-world-climb@1"))
+      refute Enum.any?(selected, &(&1["bundle_digest"] == other.bundle_digest))
+    end
+
     test "the detail adds the tasks and the receipt it issued, and no bytes" do
       served = get(build_conn(), "/api/v1/publications/#{NetworkFixture.bundle_digest()}")
 
@@ -416,7 +449,13 @@ defmodule TechtreeWeb.PublicationControllerTest do
     end
 
     test "refuses a keyset that is not a log sequence" do
-      for query <- ["before_sequence=soon", "before_sequence=-1", "limit=0", "limit=many"] do
+      for query <- [
+            "before_sequence=soon",
+            "before_sequence=-1",
+            "limit=0",
+            "limit=many",
+            "release=v0.2"
+          ] do
         refused = get(build_conn(), "/api/v1/publications?" <> query)
 
         assert refused.status == 400, "#{query} was not refused"

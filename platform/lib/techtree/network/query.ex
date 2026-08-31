@@ -33,6 +33,9 @@ defmodule Techtree.Network.Query do
   alias Techtree.Network
   alias Techtree.Network.PublicationEntry
 
+  @v0_1 "v0.1"
+  @v0_1_climb_reference "hello-world-climb@1"
+
   @typedoc """
   One page of the log, and where the next one starts.
   """
@@ -48,12 +51,14 @@ defmodule Techtree.Network.Query do
   def page(options \\ []) do
     limit = Keyword.get(options, :limit, Network.default_page_size())
     before = Keyword.get(options, :before_sequence)
+    release = Keyword.get(options, :release)
 
     # One more than asked for, which is how a keyset page knows whether there
     # is another one without counting the whole log.
     found =
       PublicationEntry
       |> Ash.Query.for_read(:list_log, %{before_sequence: before})
+      |> filter_release(release)
       |> Ash.Query.limit(limit + 1)
       |> Ash.read!()
 
@@ -104,8 +109,9 @@ defmodule Techtree.Network.Query do
   @spec read_page_options(map()) :: {:ok, keyword()} | {:error, String.t()}
   def read_page_options(params) when is_map(params) do
     with {:ok, before} <- sequence(Map.get(params, "before_sequence")),
-         {:ok, limit} <- limit(Map.get(params, "limit")) do
-      {:ok, [before_sequence: before, limit: limit]}
+         {:ok, limit} <- limit(Map.get(params, "limit")),
+         {:ok, release} <- release(Map.get(params, "release")) do
+      {:ok, [before_sequence: before, limit: limit, release: release]}
     end
   end
 
@@ -133,4 +139,14 @@ defmodule Techtree.Network.Query do
   end
 
   defp limit(_value), do: {:error, "limit is a whole number of entries"}
+
+  defp release(nil), do: {:ok, nil}
+  defp release(@v0_1), do: {:ok, @v0_1}
+  defp release(_value), do: {:error, "release is v0.1 or omitted"}
+
+  defp filter_release(query, @v0_1) do
+    Ash.Query.filter(query, climb_reference == ^@v0_1_climb_reference)
+  end
+
+  defp filter_release(query, _release), do: query
 end
