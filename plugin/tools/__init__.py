@@ -142,8 +142,8 @@ def safe_tool(handler: Any) -> Any:
             return answer
         except PluginError as error:
             return failed(error)
-        except Exception as error:  # a defect here must not break the session
-            return failed(PluginError(f"the {handler.__name__} tool failed: {error}"))
+        except Exception:  # a defect here must not break the session
+            return failed(PluginError("Techtree could not answer that."))
 
     return call
 

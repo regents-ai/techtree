@@ -296,6 +296,22 @@ def test_status_with_nothing_to_report_says_so() -> None:
     assert "No run to report on" in handle_slash_command("status", _services())
 
 
+def test_unexpected_slash_failures_do_not_expose_internal_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_diagnostic = "private session path /srv/secret-token"
+
+    def explode(_store: SessionStore) -> Any:
+        raise RuntimeError(private_diagnostic)
+
+    monkeypatch.setattr(SessionStore, "latest", explode)
+
+    answer = handle_slash_command("status", _services())
+
+    assert answer == "That did not work: Techtree could not answer that."
+    assert private_diagnostic not in answer
+
+
 def test_cancel_needs_to_be_told_what_to_stop() -> None:
     bridge = FakeBridge()
 

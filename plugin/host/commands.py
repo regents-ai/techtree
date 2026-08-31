@@ -91,8 +91,8 @@ def handle_slash_command(raw_args: str, services: Any) -> str:
         text = _SLASH_ACTIONS[subcommand](services, arguments)
     except PluginError as error:
         text = f"That did not work: {error}"
-    except Exception as error:  # a defect must not break the session
-        text = f"That did not work: {error}"
+    except Exception:  # a defect must not break the session
+        text = "That did not work: Techtree could not answer that."
     # Sanitised, not shortened. Stripping what a display would obey is a
     # safety control; cutting the answer at a guessed length was not, and is
     # gone.

@@ -145,6 +145,24 @@ def test_every_handler_answers_with_json_even_when_it_fails(name: str) -> None:
         assert "ok" in parsed
 
 
+def test_unexpected_tool_failures_do_not_expose_internal_diagnostics() -> None:
+    private_diagnostic = "private provider path /srv/secret-token"
+
+    class ExplodingBridge(FakeBridge):
+        def invoke(self, arguments: Sequence[str]) -> dict[str, Any]:
+            raise RuntimeError(private_diagnostic)
+
+    result = _call(
+        "techtree_climb_list", _services(bridge=ExplodingBridge()), {}
+    )
+
+    assert result["ok"] is False
+    assert result["code"] == "plugin_unexpected_error"
+    assert result["message"] == "Techtree could not answer that."
+    assert result["retryable"] is False
+    assert private_diagnostic not in json.dumps(result)
+
+
 @pytest.mark.parametrize("name", sorted(TOOL_HANDLERS))
 def test_no_handler_emits_escape_codes(name: str) -> None:
     """Gateway-safe: a tool answer is text, never a terminal instruction."""
