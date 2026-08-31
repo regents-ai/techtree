@@ -56,6 +56,8 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :filtered_tasks, filtered_tasks(assigns.tasks, assigns.task_filter))
+
     ~H"""
     <Layouts.page wide>
       <p class="back-link"><a href={~p"/results"}>← Published Results</a></p>
@@ -172,6 +174,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         <div class="tasks__filters" aria-label="Filter task outcomes">
           <button
             :for={{filter, label, count} <- task_filters(@entry)}
+            id={"task-filter-#{filter}"}
             type="button"
             class="tasks__filter"
             aria-pressed={to_string(@task_filter == filter)}
@@ -181,15 +184,21 @@ defmodule TechtreeWeb.RunsLive.Show do
             {label} {count}
           </button>
         </div>
-        <div class="tasks">
+        <p id="task-filter-status" class="offscreen" aria-live="polite">
+          {filter_status(@task_filter, length(@filtered_tasks))}
+        </p>
+        <div id="task-results" class="tasks">
           <p class="tasks__row tasks__head" aria-hidden="true">
             <span>Task</span>
             <span class="tasks__number">Without</span>
             <span class="tasks__number">With</span>
             <span class="tasks__number">Change</span>
           </p>
+          <p :if={@filtered_tasks == []} class="empty-state tasks__empty">
+            {empty_filter_words(@task_filter)}
+          </p>
           <ol>
-            <li :for={task <- filtered_tasks(@tasks, @task_filter)} class="tasks__row">
+            <li :for={task <- @filtered_tasks} class="tasks__row">
               <span class="tasks__task" title={task.hash}>
                 <strong>{task.label}</strong>
                 <code>{task.short_hash}</code>
@@ -313,6 +322,20 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   defp filtered_tasks(tasks, :all), do: tasks
   defp filtered_tasks(tasks, outcome), do: Enum.filter(tasks, &(&1.outcome == outcome))
+
+  defp filter_status(filter, count) do
+    "#{filter_label(filter)} #{count} #{if(count == 1, do: "task", else: "tasks")} shown."
+  end
+
+  defp filter_label(:all), do: "All"
+  defp filter_label(:better), do: "Better"
+  defp filter_label(:same), do: "Same"
+  defp filter_label(:worse), do: "Worse"
+
+  defp empty_filter_words(:better), do: "No tasks were better."
+  defp empty_filter_words(:same), do: "No tasks were the same."
+  defp empty_filter_words(:worse), do: "No tasks were worse."
+  defp empty_filter_words(:all), do: "No tasks are available."
 
   defp task_filters(entry) do
     [

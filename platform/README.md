@@ -96,10 +96,10 @@ lib/techtree/catalog/
 ```text
 GET /                           what Techtree Climb is
 GET /start                      the two supported ways to run a Climb
-GET /climbs                     the Climbs this release offers
 GET /climbs/:slug               one Climb in full
-GET /proofs/local               what a locally produced result claims
-GET /protocol                   the documents a trial is made of
+GET /proofs                     what verification establishes
+GET /docs                       operating and mechanism documentation
+GET /skill.md                   the released starter Skill
 GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
 
@@ -198,10 +198,11 @@ release serving exactly what it was serving.
 
 ## The pages
 
-Plain documents: a serif measure of about 40 characters wide, three type sizes,
-high contrast in both light and dark, no animation, and a print stylesheet. The
-markup is semantic and the stylesheet is hand-written CSS with no framework and
-no remote fonts, so a page is readable on a phone, in a reader, and on paper.
+Plain documents with high contrast in both light and dark, a print stylesheet,
+and reduced-motion support. Decorative WebGPU visuals are optional; the markup
+and content render without them. The stylesheet is hand-written CSS with no
+framework or remote fonts, so a page is readable on a phone, in a reader, and
+on paper.
 
 Every page renders completely on the first response; the live connection only
 keeps it current. Nothing on the site collects anything about a reader.

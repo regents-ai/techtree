@@ -72,7 +72,7 @@ of Skill uplift. It runs the same pinned agent on the same tasks twice, changes
 only the declared Skill, shows the measured difference, and creates a signed
 local receipt with an offline proof check.
 
-The repository contains the real evaluation path: managed engine installation,
+The CLI component contains the real evaluation path: managed engine installation,
 containerized subject runs, append-only run records, signed receipts and
 reports, local proof verification, and one guided single-`SKILL.md` revision
 flow. The release candidate remains inactive until the release gates in
@@ -162,7 +162,7 @@ make check            # format-check, lint, typecheck, test, generated-check, v0
 make test-integration
 ```
 
-`make check` and `make test-integration` are the repository gates. The
+`make check` and `make test-integration` are the CLI component gates. The
 scientific environment is separate: the managed engine under
 `src/techtree/resources/engines/default/` has its own pinned dependencies and
 lock file, and the ordinary package never depends on Verifiers, Hermes, or

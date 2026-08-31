@@ -224,6 +224,14 @@ defmodule TechtreeWeb.CoreComponents do
         >
           <span data-copy-label>Copy</span>
         </button>
+        <span
+          class="offscreen"
+          data-copy-status
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+        </span>
       </div>
       <pre class="command__block"><code>{@command}</code></pre>
     </div>
@@ -257,6 +265,14 @@ defmodule TechtreeWeb.CoreComponents do
         >
           <span data-copy-label>Copy</span>
         </button>
+        <span
+          class="offscreen"
+          data-copy-status
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+        </span>
       </div>
       <p class="command__block">{@text}</p>
     </div>

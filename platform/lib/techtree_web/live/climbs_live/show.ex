@@ -66,9 +66,10 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           </div>
         </dl>
 
-        <p class="small quiet section">
-          <a href={~p"/results"}>Browse Results from published Climbs</a>
-        </p>
+        <div class="actions section">
+          <.link class="button button--primary" navigate={~p"/start"}>Set up Techtree</.link>
+          <a class="text-link" href={~p"/results"}>Browse Results from published Climbs</a>
+        </div>
       </article>
     </Layouts.page>
     """

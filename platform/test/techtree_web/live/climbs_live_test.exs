@@ -31,6 +31,8 @@ defmodule TechtreeWeb.ClimbsLiveTest do
       refute text =~ "What this asks of you"
       refute text =~ "Integrity details"
       refute text =~ "BranchCode"
+      assert has_element?(live, ~s|a.button[href="/start"]|, "Set up Techtree")
+      refute visible_text(html) =~ "Run this Climb"
       assert has_element?(live, ~s|a[href="/results"]|, "Browse Results from published Climbs")
     end
 

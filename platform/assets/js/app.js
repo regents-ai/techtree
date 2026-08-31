@@ -7,6 +7,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
+import {mountCommandCopyButton, mountPageCopyButton} from "./copy_feedback.mjs"
 import {Optics, createOpticsController} from "./optics_controller"
 
 const GITHUB_STAR_CACHE = "techtree-github-stars"
@@ -216,23 +217,9 @@ const Hooks = {Optics}
 
 Hooks.CopyCommand = {
   mounted() {
-    this.el.addEventListener("click", async () => {
-      const label = this.el.querySelector("[data-copy-label]")
+    mountCommandCopyButton(this, () => {
       const visibleCopy = this.el.closest(".command")?.querySelector(".command__block")
-      const copyValue = visibleCopy?.textContent ?? this.el.dataset.copyValue
-
-      try {
-        await navigator.clipboard.writeText(copyValue)
-        label.textContent = "Copied"
-        this.el.classList.add("is-copied")
-
-        window.setTimeout(() => {
-          label.textContent = "Copy"
-          this.el.classList.remove("is-copied")
-        }, 1800)
-      } catch (_error) {
-        label.textContent = "Select the text"
-      }
+      return visibleCopy?.textContent ?? this.el.dataset.copyValue
     })
   },
 }
@@ -313,20 +300,7 @@ const docsRoot = () => document.querySelector("[data-markdown-root]") ?? documen
 
 Hooks.CopyCommandPage = {
   mounted() {
-    this.el.addEventListener("click", async () => {
-      const label = this.el.querySelector("[data-copy-label]")
-      try {
-        await navigator.clipboard.writeText(pageAsMarkdown(docsRoot()))
-        label.textContent = "Copied"
-        this.el.classList.add("is-copied")
-        window.setTimeout(() => {
-          label.textContent = "Copy page"
-          this.el.classList.remove("is-copied")
-        }, 1800)
-      } catch (_error) {
-        label.textContent = "Select the text"
-      }
-    })
+    mountPageCopyButton(this, () => pageAsMarkdown(docsRoot()))
   },
 }
 
