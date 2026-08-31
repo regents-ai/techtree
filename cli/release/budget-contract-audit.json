@@ -1,0 +1,731 @@
+{
+  "schema_version": "techtree.budget-contract-audit.v1",
+  "ticket": "techtree-python-iy0",
+  "contract": "docs/release/contracts/wp11-budget.md",
+  "binding_decisions": ["0006", "0016", "0017", "0023 item 3.1"],
+  "audited_at": "2026-08-14",
+  "audit_kind": "read_only_audit_no_product_change",
+  "campaign_under_audit": {
+    "path": "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+    "file_digest": "sha256:5aef3fb7c16c39b96f570f675ed3721737ea3ca19c955a9242c73aa24b3d5f9e",
+    "digest_recomputed_by_this_audit": true,
+    "catalog_entry": "src/techtree/resources/catalog/catalog.json:15",
+    "catalog_file_digest": "sha256:468e8ab16dc872cd2cef3f1b7409b2a113ca9fd27362234c9a6ea5008dfbd814",
+    "release_core_catalog_digest": "release/release-core.json (catalog_digest) — matches the recomputed catalog file digest",
+    "climb_pointer": "src/techtree/resources/catalog/climbs/hello-world-climb.json:1 (campaign_spec_digest = sha256:5aef3fb7…)",
+    "generator": "tools/build_fixture_catalog.py (the packaged-catalog publisher; `make fixture-catalog`, drift-checked by `make generated-check`)",
+    "note": "The shipped Campaign names provider 'development' / model 'development-placeholder'. The certification runs did NOT execute this Campaign; see certified_vs_released."
+  },
+  "method": {
+    "manifest_read": "canonical JSON bytes of the packaged Campaign, digest recomputed",
+    "resolved_runtime_read": "both variants compiled through techtree.verifiers.compiler.compile_variant_config / compile_plans against the packaged Campaign, TOML bytes emitted and parsed",
+    "symmetry_proof": "the two emitted TOML documents were compared field by field after normalising output_dir and removing the skill list; they were equal",
+    "run_artifact_read": "ATTEMPTED AND FAILED — see could_not_verify"
+  },
+  "fields": [
+    {
+      "field": "per_call_output_cap",
+      "protocol_name": "agents.subject.sampling.max_tokens",
+      "manifest_value": 4096,
+      "expected_by_contract": 4096,
+      "matches_contract": true,
+      "resolved_source": {
+        "model": "src/techtree/models/campaign.py:221 (SamplingSpec.max_tokens, int >= 1)",
+        "generator": "tools/build_fixture_catalog.py:180 (SUBJECT_MAX_OUTPUT_TOKENS = 4096) applied at :370-371",
+        "manifest_to_runtime": "src/techtree/verifiers/compiler.py:148-151 — SamplingToml(max_tokens=subject.sampling.max_tokens)",
+        "resolved_value_observed": 4096,
+        "resolved_matches_manifest": true,
+        "emitted_toml": "[sampling] temperature = 0.0 / max_tokens = 4096 — identical bytes in both variants"
+      },
+      "symmetric": {
+        "status": "symmetric",
+        "why": "Both variants are compiled from ExperimentManifests built by copying the one Campaign, and the only field the mutation contract permits to differ is the subject skill list.",
+        "code": [
+          "src/techtree/manifests/builder.py:93-118 — build_experiment_configuration deep-copies the Campaign's agents into the baseline; build_candidate_manifest replaces only harness.skills",
+          "src/techtree/manifests/builder.py:302-380 — assert_manifest_matches_campaign re-checks every agent field with the skill list set aside",
+          "src/techtree/verifiers/compiler.py:349-385 — compile_plans passes the SAME campaign object to both compilations",
+          "src/techtree/receipts/compare.py:426-431 — check 'declared_sampling' fails the comparison if the two manifests' sampling differs",
+          "src/techtree/receipts/compare.py:777-825 — check 'observed_matches_declared_<variant>' fails if the engine's resolved sampling differs from the declared sampling, per variant",
+          "src/techtree/models/campaign.py:336-350 — MutationContract rejects any allowed_differences other than exactly /agents/subject/harness/skills"
+        ]
+      },
+      "evidence": [
+        "tests/unit/test_verifiers_compiler.py:181 test_the_only_difference_between_the_two_documents_is_the_skill_list — compiles both variants and asserts the parsed TOML documents are equal apart from the skill list (synthetic Campaign)",
+        "tests/integration/test_eval_compile.py:137 test_both_variants_of_the_shipped_campaign_compile and :156 test_the_shipped_campaign_compiles_to_the_same_bytes_every_time — run against the PACKAGED Campaign",
+        "tests/unit/test_manifest_compare.py:275 test_changed_sampling_is_rejected",
+        "THIS AUDIT: compiled the packaged Campaign directly; both variants emitted max_tokens = 4096 and were byte-equal apart from the skill list",
+        "docs/decisions/0017-cap-ratification-and-freeze.md:38-41 — chief's episode-budget confirmation states 4096 identically for both arms",
+        "release/founder-skill-approval-draft.md:85-99 — canonical runs recorded with 'zero cap-killed episodes'"
+      ],
+      "fail_closed": {
+        "status": "fail_closed",
+        "paths": [
+          "src/techtree/verifiers/verify.py:208-232 verify_compiled_config — any declared value the engine resolves differently fails check 'resolved_config_matches_compiled'",
+          "src/techtree/runs/real.py:602-611 — a variant whose dry-run checks fail raises ValidationError(code=variant_execution_not_usable) and nothing is executed",
+          "src/techtree/receipts/compare.py:426-431 and :777-825 — a sampling disagreement makes the comparison INVALID",
+          "src/techtree/receipts/uplift.py:482-503 _require_reportable — an uncontrolled comparison raises VerificationError(code=comparison_invalid); no UpliftReport is written",
+          "src/techtree/receipts/uplift.py:305-318 decide_uplift — an uncontrolled comparison decides INVALID"
+        ],
+        "caveat": "A call that reaches the 4096 ceiling is not itself a failure. The harness truncates and may recover (docs/decisions/0017:27-35 records two such baseline calls, longest 4098). An episode KILLED by the cap surfaces as a missing/failed episode and fails the run through the evidence and score checks, not through a dedicated budget check."
+      },
+      "copy_surfaces": [
+        {
+          "surface": "website (techtree-ash)",
+          "states_the_number": false,
+          "detail": "sampling is not in the catalog projection at all — ../techtree-ash/lib/techtree/catalog/importer.ex:280-300 takes only provider and model_id from the subject"
+        },
+        {
+          "surface": "CLI review / disclosure (src/techtree/cli/commands/climb.py:499-516)",
+          "states_the_number": false
+        },
+        {
+          "surface": "CLI climb show (src/techtree/cli/commands/climb.py:813-846)",
+          "states_the_number": false
+        },
+        {
+          "surface": "plugin disclosure (../techtree-plugin/host/schemas.py)",
+          "states_the_number": false,
+          "detail": "maxLength 4096 at :166, :254 and :310 is a filesystem-path length bound (../techtree-plugin/tools/arguments.py:25), not the sampling cap"
+        }
+      ],
+      "discrepancies": [
+        {
+          "id": "B1",
+          "severity": "low",
+          "statement": "No public copy surface states the per-call output cap. The contract asks that public copy state the actual limits; for this limit no surface states anything, so no surface states a WRONG number.",
+          "stop_condition_hit": false
+        },
+        {
+          "id": "B2",
+          "severity": "low",
+          "statement": "No automated test asserts that the PACKAGED Campaign's max_tokens is 4096. tests/integration/test_eval_compile.py exercises the shipped Campaign but asserts taskset id, task count, push/rich/shuffle/rollouts and output_dir only. The value is held by the committed campaign bytes, its digest, and `make generated-check` against tools/build_fixture_catalog.py:180.",
+          "stop_condition_hit": false
+        }
+      ]
+    },
+    {
+      "field": "per_episode_max_model_calls",
+      "protocol_name": "budgets.maximum_model_calls",
+      "manifest_value": null,
+      "implemented": false,
+      "resolved_source": {
+        "model": "src/techtree/models/campaign.py:390-396 (BudgetSpec.maximum_model_calls, PositiveInt | None)",
+        "manifest_to_runtime": "NONE. The field is declared in the protocol and is read by no code path. Repository-wide search for maximum_model_calls finds only the model definition, the fixture builders, and the module re-export.",
+        "resolved_value_observed": "absent from the compiled configuration",
+        "resolved_matches_manifest": true,
+        "note": "manifest is null and the runtime applies nothing, so manifest and runtime agree — both are 'no limit'."
+      },
+      "symmetric": {
+        "status": "symmetric_vacuously",
+        "why": "Unset on both sides; budgets are compared for equality between the two manifests.",
+        "code": [
+          "src/techtree/manifests/builder.py:302-348 — assert_manifest_matches_campaign compares 'budget' (campaign.budgets vs configuration.budgets)",
+          "src/techtree/receipts/compare.py:443-448 — check 'declared_execution_contract' compares (execution, scoring, evidence, budgets) between the two manifests"
+        ]
+      },
+      "evidence": [
+        "Model calls ARE measured per variant and recorded: src/techtree/receipts/execution.py:515-545 (_usage sums model_calls across every normalized trace) and are carried in ComparisonExecutionRecord via VariantUsage (src/techtree/receipts/execution.py:213).",
+        "docs/decisions/0017-cap-ratification-and-freeze.md:37-49 — 'Episode-budget confirmation': the chief ruled not to add a call/turn knob, on the stated ground that the 600-second timeout already bounds the episode. See discrepancy B4."
+      ],
+      "fail_closed": {
+        "status": "not_applicable_no_ceiling",
+        "detail": "There is no ceiling, therefore no breach and no fail-closed path. A runaway call chain is not detected or stopped by the shipped Campaign."
+      },
+      "copy_surfaces": [
+        {
+          "surface": "all",
+          "states_the_number": false,
+          "detail": "No public surface discloses that there is no per-episode call ceiling."
+        }
+      ],
+      "discrepancies": [
+        {
+          "id": "B3",
+          "severity": "medium",
+          "statement": "budgets.maximum_model_calls is part of the frozen protocol schema and is enforced nowhere. A Campaign that set it would be silently ignored. In the release Campaign it is null, so the release is unaffected in fact — but the field is a dead knob in a shipped scientific schema.",
+          "stop_condition_hit": false
+        }
+      ]
+    },
+    {
+      "field": "per_episode_max_turns",
+      "protocol_name": "env.subject.max_turns (Verifiers config surface); no Campaign field exists",
+      "manifest_value": null,
+      "implemented": false,
+      "resolved_source": {
+        "model": "src/techtree/verifiers/config.py:190-199 — SubjectAgentToml declares max_turns (int | None, default None)",
+        "manifest_to_runtime": "NONE. src/techtree/verifiers/compiler.py:152-170 constructs SubjectAgentToml without max_turns, so it is always None and is dropped from the emitted TOML by exclude_none (src/techtree/verifiers/config.py:277-292).",
+        "resolved_value_observed": "key absent from the compiled TOML for both variants (verified by this audit)",
+        "resolved_matches_manifest": true
+      },
+      "symmetric": {
+        "status": "symmetric_vacuously",
+        "why": "Unset on both sides by construction — the compiler never sets it for either variant."
+      },
+      "evidence": [
+        "docs/decisions/0017-cap-ratification-and-freeze.md:40-41 — 'No separate max_turns or max_total_tokens knob exists.' The audit confirms this is accurate.",
+        "THIS AUDIT: compiled both variants of the packaged Campaign; env.subject.max_turns is absent from both documents.",
+        "tests/fixtures/verifiers/support.py:122-140 — the certification fixture's own note records the failure mode this guards: with no output ceiling, five of thirty-six rollouts ran to ninety-one turns and one exhausted the model's context and produced no reward, failing the whole variant."
+      ],
+      "fail_closed": {
+        "status": "not_applicable_no_ceiling"
+      },
+      "copy_surfaces": [
+        {"surface": "all", "states_the_number": false}
+      ],
+      "discrepancies": []
+    },
+    {
+      "field": "per_episode_timeout",
+      "protocol_name": "execution.timeout_seconds",
+      "manifest_value": 600,
+      "resolved_source": {
+        "model": "src/techtree/models/campaign.py:365-372 (ExecutionSpec.timeout_seconds, int >= 1)",
+        "generator": "tools/build_fixture_catalog.py:406-411",
+        "manifest_to_runtime": "NONE. The value is copied into the ExperimentManifest (src/techtree/manifests/builder.py:112) and compared between the variants, but it is not emitted into the Verifiers configuration and is not used to bound anything.",
+        "resolved_value_observed": "no timeout key of any kind in the compiled TOML (verified by this audit; EvalToml at src/techtree/verifiers/config.py:227-241 models no timeout field, and EnvToml at :212-224 models no timeout field)",
+        "resolved_matches_manifest": false,
+        "detail": "Repository-wide search: campaign.execution.timeout_seconds is read at src/techtree/manifests/builder.py:112 (copy), src/techtree/manifests/builder.py:340 (equality check) and tests/fixtures/verifiers/support.py:267 (copy). No call site passes it to a wait, a deadline, or the engine. The timeouts that do exist (src/techtree/runs/real.py:306-317, src/techtree/verifiers/child.py:307-320, src/techtree/engines/*, src/techtree/tasksets/*) are Techtree's own dry-run, normalize, install and validate timeouts and are unrelated to the Campaign field."
+      },
+      "symmetric": {
+        "status": "symmetric_but_inert",
+        "why": "Both variants declare 600 and both are bound by nothing.",
+        "code": [
+          "src/techtree/manifests/builder.py:340 — 'execution plan' equality between Campaign and manifest",
+          "src/techtree/receipts/compare.py:443-448 — 'declared_execution_contract' equality between the two manifests"
+        ]
+      },
+      "evidence": [
+        "THIS AUDIT: compiled both variants; the emitted TOML top-level keys are exactly ['client','env','max_concurrent','model','num_rollouts','num_tasks','output_dir','push','rich','sampling','shuffle'] — no timeout.",
+        "docs/verifiers-eval.md:270-276 — the pinned engine's env config type DOES accept a 'timeout' field; Techtree's allow-list (src/techtree/verifiers/config.py:212-224) does not model it, so the Campaign's value cannot reach it.",
+        "ComparisonExecutionRecord records elapsed_seconds per variant (src/techtree/receipts/execution.py:245) — observation, not enforcement."
+      ],
+      "fail_closed": {
+        "status": "no_enforcement",
+        "detail": "Nothing measures an episode against 600 seconds, so nothing can breach it and nothing fails closed. An episode may run indefinitely as far as the Campaign contract is concerned."
+      },
+      "copy_surfaces": [
+        {
+          "surface": "website (techtree-ash)",
+          "path": "../techtree-ash/lib/techtree_web/live/climbs_live/show.ex:91-96",
+          "states_the_number": true,
+          "rendered_text": "One after the other, on the same machine. Each run may take up to 600 seconds.",
+          "number_matches_manifest": true,
+          "number_matches_enforced_behavior": false
+        },
+        {
+          "surface": "CLI",
+          "states_the_number": false
+        },
+        {
+          "surface": "plugin",
+          "states_the_number": false,
+          "detail": "../techtree-plugin/host/schemas.py:216 says only 'a Climb takes minutes, not seconds'."
+        }
+      ],
+      "discrepancies": [
+        {
+          "id": "B4",
+          "severity": "high",
+          "statement": "The Campaign's per-episode timeout of 600 seconds is declared, copied, compared and displayed — and enforced by nothing. It is never emitted into the Verifiers configuration and never used as a deadline anywhere in the codebase.",
+          "stop_condition_hit": true,
+          "stop_condition": "wp11-budget.md 'any limit whose resolved value differs from the manifest'",
+          "consequences": [
+            "Decision 0017's Episode-budget confirmation (docs/decisions/0017:37-49) declines to add a call or turn knob explicitly because 'the timeout already provides' the guard. That premise is false: with max_turns, max_total_tokens, max_output_tokens, maximum_model_calls all unset and the timeout inert, the shipped Campaign places NO bound on a single episode.",
+            "The website tells a reader 'Each run may take up to 600 seconds', which a reader will take as a limit the system holds to. It is a declared value, not an enforced one."
+          ]
+        }
+      ]
+    },
+    {
+      "field": "per_episode_total_token_ceiling",
+      "protocol_name": "budgets.maximum_output_tokens / budgets.maximum_input_tokens (Campaign); env.subject.max_output_tokens / max_input_tokens / max_total_tokens (engine surface)",
+      "manifest_value": {"maximum_output_tokens": null, "maximum_input_tokens": null},
+      "implemented": true,
+      "set_in_release_campaign": false,
+      "resolved_source": {
+        "model": "src/techtree/models/campaign.py:390-396 (BudgetSpec)",
+        "manifest_to_runtime": "src/techtree/verifiers/compiler.py:166-167 — SubjectAgentToml(max_output_tokens=campaign.budgets.maximum_output_tokens, max_input_tokens=campaign.budgets.maximum_input_tokens). The mechanism EXISTS and works; the release Campaign leaves both null, so both keys are dropped from the emitted TOML.",
+        "resolved_value_observed": "env.subject.max_output_tokens, max_input_tokens and max_total_tokens all absent from both compiled documents (verified by this audit)",
+        "resolved_matches_manifest": true,
+        "note": "max_total_tokens is modelled at src/techtree/verifiers/config.py:198 and is never set by the compiler under any Campaign — there is no Campaign field that reaches it."
+      },
+      "symmetric": {
+        "status": "symmetric",
+        "why": "One budgets object feeds both compilations; budgets equality is checked between Campaign and each manifest and between the two manifests.",
+        "code": [
+          "src/techtree/verifiers/compiler.py:349-385 (one campaign, both variants)",
+          "src/techtree/manifests/builder.py:302-348 ('budget' equality)",
+          "src/techtree/receipts/compare.py:443-448 ('declared_execution_contract' includes budgets)"
+        ]
+      },
+      "evidence": [
+        "THIS AUDIT: compiled both variants of the packaged Campaign; no token-ceiling key is emitted.",
+        "tests/fixtures/verifiers/support.py:122-140 — LOCAL_MAXIMUM_OUTPUT_TOKENS = 8000, with the recorded reason: the first real run left it unset and watched the subject loop to ninety-one turns and exhaust its context, producing no reward and failing the whole variant under spec section 6.17.",
+        "docs/decisions/0016-sampling-cap-change.md:28-29 — 'env.subject.max_output_tokens: 8000 remains the outer bound'.",
+        "tests/fixtures/receipts/recorded/{baseline,candidate}/campaign.json:1 — the recorded real-run Campaign carries maximum_output_tokens 8000."
+      ],
+      "fail_closed": {
+        "status": "not_applicable_in_release_campaign",
+        "detail": "When the ceiling IS set the pinned harness enforces it per rollout and a rollout that produces no reward fails the variant, which fails the comparison (src/techtree/receipts/uplift.py:482-503). In the release Campaign it is unset, so there is nothing to breach."
+      },
+      "copy_surfaces": [
+        {"surface": "all", "states_the_number": false}
+      ],
+      "discrepancies": [
+        {
+          "id": "B5",
+          "severity": "high",
+          "statement": "The per-episode output-token ceiling of 8000 that decision 0016 calls 'the outer bound', and that the certification runs actually ran under, is NOT present in the released Campaign — budgets.maximum_output_tokens is null.",
+          "stop_condition_hit": true,
+          "stop_condition": "wp11-budget.md 'the released Campaign's values are the certified values'",
+          "consequences": [
+            "Decision 0016 item 1 reasons that raising the per-call cap to 4096 is safe partly because 8000 'remains the outer bound'. In the shipped Campaign that outer bound does not exist.",
+            "Combined with B4 (inert timeout) and B3 (dead call ceiling), a participant running the released Hello World Campaign has no episode budget of any kind."
+          ]
+        }
+      ]
+    },
+    {
+      "field": "variant_concurrency",
+      "protocol_name": "execution.max_concurrent (with execution.order and execution.retry_limit)",
+      "manifest_value": {"max_concurrent": 1, "order": "baseline_then_candidate", "retry_limit": 0, "num_rollouts": 1},
+      "resolved_source": {
+        "model": "src/techtree/models/campaign.py:365-372",
+        "generator": "tools/build_fixture_catalog.py:406-411",
+        "manifest_to_runtime": [
+          "src/techtree/verifiers/compiler.py:321-346 divide_concurrency — under a sequential schedule each variant receives the whole allowance (only one runs at a time); under a parallel schedule the Campaign-wide bound is halved",
+          "src/techtree/verifiers/compiler.py:349-385 compile_plans — divides once and compiles each variant with its own permit count",
+          "src/techtree/verifiers/compiler.py:169 — env.max_concurrent_agents is pinned to 1 for both variants",
+          "src/techtree/verifiers/compiler.py:172 — top-level max_concurrent = the variant's permits"
+        ],
+        "resolved_value_observed": {"baseline": {"max_concurrent": 1, "max_concurrent_agents": 1}, "candidate": {"max_concurrent": 1, "max_concurrent_agents": 1}},
+        "resolved_matches_manifest": true
+      },
+      "symmetric": {
+        "status": "symmetric",
+        "why": "Both variants receive the same permit count from one division of one Campaign-wide bound, and the executor re-checks the division.",
+        "code": [
+          "src/techtree/verifiers/compiler.py:337-338 — sequential: (max_concurrent, max_concurrent) — the same number for both sides",
+          "src/techtree/verifiers/compiler.py:345-346 — parallel: floor/remainder split of the Campaign-wide bound",
+          "src/techtree/runs/variants.py:170-190 require_concurrency_budget — refuses a pair whose two halves together exceed the Campaign bound",
+          "src/techtree/runs/real.py:566-575 — the check is applied on every real run before anything is written",
+          "src/techtree/receipts/execution.py:283 and :481-505 — the ComparisonExecutionRecord carries campaign_max_concurrent and each variant's permits"
+        ]
+      },
+      "evidence": [
+        "tests/unit/test_verifiers_compiler.py:346-359 — divide_concurrency behaviour for both schedules, including refusing a parallel schedule with one permit",
+        "tests/integration/test_eval_compile.py:188-216 test_the_campaign_concurrency_bound_is_divided_between_the_plans — against the PACKAGED Campaign",
+        "THIS AUDIT: compile_plans over the packaged Campaign returned max_concurrent 1 for both plans",
+        "docs/decisions/0017-cap-ratification-and-freeze.md:39-41 — 'max_concurrent 1, num_rollouts 1'"
+      ],
+      "fail_closed": {
+        "status": "fail_closed",
+        "paths": [
+          "src/techtree/runs/variants.py:180-190 — ValidationError(code=variant_concurrency_exceeded) before any child starts",
+          "src/techtree/verifiers/compiler.py:332-344 — a Campaign bound below 1, or a parallel schedule below 2, is refused with manifest_not_compilable",
+          "src/techtree/verifiers/config.py:242-255 — EvalToml refuses max_concurrent_agents > max_concurrent",
+          "src/techtree/verifiers/compiler.py:138-143 — a variant with fewer than one permit is refused"
+        ]
+      },
+      "copy_surfaces": [
+        {
+          "surface": "website (techtree-ash)",
+          "path": "../techtree-ash/lib/techtree_web/live/climbs_live/show.ex:91-96 with :236-238",
+          "states_the_number": false,
+          "rendered_text": "One after the other, on the same machine.",
+          "detail": "The schedule is described in words and is correct for 'baseline_then_candidate'. max_concurrent is projected at ../techtree-ash/lib/techtree/catalog/importer.ex:303-309 and never rendered."
+        },
+        {"surface": "CLI", "states_the_number": false},
+        {"surface": "plugin", "states_the_number": false}
+      ],
+      "discrepancies": [
+        {
+          "id": "B6",
+          "severity": "medium",
+          "statement": "The canonical certification runs did not use this value. The derived Campaign the Gate-1 packet names for the insertion runs (b9e3f00c…) declares order 'parallel_variants' and max_concurrent 4, not sequential and 1. See certified_vs_released.",
+          "stop_condition_hit": true,
+          "stop_condition": "wp11-budget.md 'the released Campaign's values are the certified values'"
+        }
+      ]
+    },
+    {
+      "field": "comparison_cost_ceiling",
+      "protocol_name": "budgets.maximum_usd",
+      "manifest_value": null,
+      "resolved_source": {
+        "model": "src/techtree/models/campaign.py:390-396 (BudgetSpec.maximum_usd, PositiveFloat | None)",
+        "generator": "tools/build_fixture_catalog.py:422-427",
+        "manifest_to_runtime": "src/techtree/cli/commands/climb.py:519-527 _cost_line — the ONLY code that reads maximum_usd. It renders one of two sentences. There is no enforcement anywhere: no pre-run estimate is computed, no running total is compared against the ceiling, and no run is stopped for crossing one.",
+        "resolved_value_observed": "no cost field of any kind in the compiled configuration",
+        "resolved_matches_manifest": true
+      },
+      "symmetric": {
+        "status": "symmetric_vacuously",
+        "why": "Unset; budgets equality is checked between the two manifests (src/techtree/receipts/compare.py:443-448)."
+      },
+      "evidence": [
+        "Actual cost IS recorded after the fact, with explicit provenance: src/techtree/receipts/execution.py:124-200 (CostProvenance, VariantCost, TotalCost) and :303-322 (total takes the weakest provenance of the two sides).",
+        "release/founder-skill-approval-draft.md:309-316 — the spend ledger, USD 1.9717 of the 3.00 programme cap.",
+        "docs/decisions/0006-evaluation-model-and-budget.md:37-42 — 'The live Campaign's BudgetSpec sets maximum_usd: 1.00 per run … Workers estimate cost before the first real run and abort if an estimate exceeds the per-run cap.'"
+      ],
+      "fail_closed": {
+        "status": "no_enforcement",
+        "detail": "Even if maximum_usd were set, no code path compares spend against it or aborts. The USD 1.00 per-run ceiling and the USD 3.00 programme cap are governance controls exercised by the operator, not product behaviour."
+      },
+      "copy_surfaces": [
+        {
+          "surface": "CLI review (the approval surface for both `climb start` and `uplift start`)",
+          "path": "src/techtree/cli/commands/climb.py:519-527",
+          "states_the_number": false,
+          "rendered_text": "This comparison sets no spending ceiling, so what it costs is whatever your model provider charges for the episodes above.",
+          "number_matches_manifest": true,
+          "detail": "Truthful for the released Campaign. The '$X.XX' branch at :527 is unreachable for this Climb."
+        },
+        {
+          "surface": "result copy",
+          "path": "src/techtree/presentation/build.py:108-112 (HELD_FIXED_LINE)",
+          "states_the_number": false,
+          "rendered_text": "… the same reward, and the same spending ceiling.",
+          "detail": "Printed on every result. True but hollow: the shared ceiling is 'none'."
+        },
+        {
+          "surface": "plugin disclosure",
+          "path": "../techtree-plugin/host/schemas.py:132-139 and :185-189",
+          "states_the_number": false,
+          "rendered_text": "… how many tasks it runs, its cost bound, its proof grade … / … the episode and budget estimate …",
+          "detail": "Promises a cost bound and a budget estimate that the underlying payload does not contain."
+        },
+        {
+          "surface": "website (techtree-ash)",
+          "states_the_number": false,
+          "detail": "No budget or cost field is projected or rendered anywhere."
+        }
+      ],
+      "discrepancies": [
+        {
+          "id": "B7",
+          "severity": "high",
+          "statement": "The released Campaign sets no spending ceiling (maximum_usd null), while decision 0006:37-39 states that 'the live Campaign's BudgetSpec sets maximum_usd: 1.00 per run … a hard per-run ceiling'. The certified runs did run under 1.00; the shipped Campaign does not.",
+          "stop_condition_hit": true,
+          "stop_condition": "wp11-budget.md 'the released Campaign's values are the certified values'"
+        },
+        {
+          "id": "B8",
+          "severity": "medium",
+          "statement": "maximum_usd is a display-only field. Nothing estimates cost before a run and nothing aborts on a breach, so decision 0006's 'estimate before the first real run and abort if an estimate exceeds the per-run cap' has no implementation in the product. Decision 0017:83-90 requires four separate values wherever costs appear (typical observed cost, pre-run estimate, hard authorized ceiling, actual provider-reported cost); the CLI presents none of the first three and the plugin promises a bound and an estimate that do not exist.",
+          "stop_condition_hit": false
+        },
+        {
+          "id": "B9",
+          "severity": "medium",
+          "statement": "../techtree-plugin/host/schemas.py:136 tells a host agent that `techtree_climb_inspect` shows the Climb's 'cost bound', and :186 that `techtree_demo_prepare` shows 'the episode and budget estimate'. The climb show payload (src/techtree/cli/commands/climb.py:813-846) carries no cost or budget field, and the prepare payload carries estimated_episodes only. The disclosure describes information the tool cannot produce.",
+          "stop_condition_hit": false
+        }
+      ]
+    }
+  ],
+  "certified_vs_released": {
+    "as_of": "2026-08-14. Superseded twice since: by decision 0025, which regenerated the released Campaign so that it carried the certified derived contract, and by decision 0029, which changed that contract. The current state is in enforcement_refresh_0029 below; this section is left as the 2026-08-14 reading.",
+    "summary": "The Gate-1 packet's canonical runs did NOT execute the released Campaign. They executed a Campaign derived from it by a test fixture, whose budget contract differs on three of the seven audited fields.",
+    "released_campaign": {
+      "digest": "sha256:5aef3fb7c16c39b96f570f675ed3721737ea3ca19c955a9242c73aa24b3d5f9e",
+      "sampling.max_tokens": 4096,
+      "execution.order": "baseline_then_candidate",
+      "execution.max_concurrent": 1,
+      "execution.timeout_seconds": 600,
+      "execution.retry_limit": 0,
+      "budgets.maximum_output_tokens": null,
+      "budgets.maximum_input_tokens": null,
+      "budgets.maximum_model_calls": null,
+      "budgets.maximum_usd": null,
+      "subject.model": "development / development-placeholder"
+    },
+    "certified_derived_campaign": {
+      "digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+      "matches_packet_reference": "release/founder-skill-approval-draft.md:89 — 'insertion runs on derived campaign b9e3f00c…'",
+      "reproduced_by_this_audit": true,
+      "reproduction": "tests/fixtures/verifiers/support.py::local_campaign(schedule=VariantSchedule.PARALLEL) over the packaged Campaign; digest_object() of the result equals b9e3f00c…",
+      "sampling.max_tokens": 4096,
+      "execution.order": "parallel_variants",
+      "execution.max_concurrent": 4,
+      "execution.timeout_seconds": 600,
+      "execution.retry_limit": 0,
+      "budgets.maximum_output_tokens": 8000,
+      "budgets.maximum_input_tokens": null,
+      "budgets.maximum_model_calls": null,
+      "budgets.maximum_usd": 1.0,
+      "subject.model": "prime / qwen/qwen3.7-flash",
+      "constants": [
+        "tests/fixtures/verifiers/support.py:119 LOCAL_BUDGET_USD = 1.00",
+        "tests/fixtures/verifiers/support.py:140 LOCAL_MAXIMUM_OUTPUT_TOKENS = 8000",
+        "tests/fixtures/verifiers/support.py:147 LOCAL_MAX_CONCURRENT = 4",
+        "tests/fixtures/verifiers/support.py:110-111 SUBJECT_MODEL_PROVIDER / SUBJECT_MODEL_ID"
+      ]
+    },
+    "sequential_variant_of_the_derived_campaign": {
+      "digest": "sha256:48c414b406b58a522f6edcd308df88433096f159317e50a71153fbef51cff120",
+      "note": "local_campaign(schedule=SEQUENTIAL) — max_concurrent 1, order baseline_then_candidate, but still maximum_output_tokens 8000 and maximum_usd 1.00. Recomputed by this audit; it is not the digest the packet names."
+    },
+    "delta": [
+      {"field": "sampling.max_tokens", "released": 4096, "certified": 4096, "same": true},
+      {"field": "execution.timeout_seconds", "released": 600, "certified": 600, "same": true},
+      {"field": "execution.retry_limit", "released": 0, "certified": 0, "same": true},
+      {"field": "budgets.maximum_model_calls", "released": null, "certified": null, "same": true},
+      {"field": "budgets.maximum_input_tokens", "released": null, "certified": null, "same": true},
+      {"field": "execution.max_concurrent", "released": 1, "certified": 4, "same": false},
+      {"field": "execution.order", "released": "baseline_then_candidate", "certified": "parallel_variants", "same": false},
+      {"field": "budgets.maximum_output_tokens", "released": null, "certified": 8000, "same": false},
+      {"field": "budgets.maximum_usd", "released": null, "certified": 1.0, "same": false}
+    ],
+    "replacement_campaign": {
+      "packet_reference": "release/founder-skill-approval-draft.md:90 — 'the replacement run on derived campaign f2f04ae5…'",
+      "reproduced_by_this_audit": false,
+      "reason": "derive_skill_replacement_campaign requires the source run record, and no run artifacts exist locally.",
+      "inherited_by_construction": "src/techtree/uplift/derive.py:145-149 copies execution, scoring, evidence and budgets verbatim from the source Campaign, and :114 copies the subject's sampling verbatim, so f2f04ae5 carries whatever budget contract its source derived Campaign carried."
+    }
+  },
+  "lineage_512_to_4096": {
+    "finding": "docs/decisions/0016-sampling-cap-change.md:6-20 — max_tokens 512 interacted with the subject model's reasoning tokens (billed against completion_tokens) to kill long call chains. Per call the at-cap risk was symmetric (2.41% vs 2.42%); per episode it fell 4.8:1 against the BASELINE, because a no-Skill episode takes ~10.9 calls against ~2.3 with the Skill. Three of six paid comparisons died this way; USD 0.5037 of certification spend bought no comparison.",
+    "decision": "docs/decisions/0016:22-49 — raise the cap identically on both variants, one symmetric change; new Campaign digest and full downstream cascade; post-change certification restarts; pre-change and post-change runs never share a stability set; every pre-change run becomes disclosed diagnostic evidence; programme cap rises USD 2.00 → 3.00.",
+    "value_chosen": "4096, justified at tools/build_fixture_catalog.py:159-180: eight times the observed ceiling of an uninterrupted call (501 tokens) and eight times the worst observed reasoning burst (512); half of the harness's own max_output_tokens of 8000; the median call is 143 tokens and is unaffected.",
+    "ratification": "docs/decisions/0017-cap-ratification-and-freeze.md:8-15 — 0016 ratified; a changed scientific configuration creates a new artifact lineage and never retroactively repairs the old one. Amber item at :27-35: two individual baseline CALLS reached 4096 (longest 4098) and the harness recovered; no episode was killed post-change; the cap is not raised again.",
+    "freeze": "docs/decisions/0017:59-71 — the Python scientific tree is frozen at campaign 5aef3fb7, engine 874cbae0, membership 56f697fb, starter 596d1368, improver e6bc16c4.",
+    "pre_change_campaign_digest": {
+      "recorded_anywhere_in_the_repository": false,
+      "recomputed_by_this_audit": "sha256:449940f184a59e6b7fc3541326bccebb655eefee22160bb904094de1867098eb",
+      "method": "the released campaign bytes with \"max_tokens\":4096 replaced by \"max_tokens\":512 — a one-byte-shorter document",
+      "confidence": "conditional. It is the correct digest ONLY IF the cap change was the sole byte change, as decision 0016 item 1 requires. This audit cannot run git and no pre-change campaign artifact is committed, so the assumption is unverified."
+    },
+    "released_values_are_the_certified_values": {
+      "verdict": "NO, not for three of the seven fields",
+      "detail": "The per-call cap 4096, the timeout 600 and retry_limit 0 are identical between the released Campaign and the certified derived Campaign. Variant concurrency, the per-episode output-token ceiling and the comparison cost ceiling are not."
+    },
+    "pre_change_artifacts_retained_in_the_tree": [
+      "tests/fixtures/receipts/recorded/{baseline,candidate}/campaign.json:1 and the matching experiment.json — a real pre-change run at max_tokens 512, max_concurrent 4, parallel_variants, maximum_output_tokens 8000, maximum_usd 1.00, model qwen/qwen3.7-flash. Correctly retained as historical evidence; not release data.",
+      "tests/fixtures/receipts/recorded/{baseline,candidate}/normalized-episodes.jsonl — 36 episodes each, all recording sampling max_tokens 512.",
+      "tests/fixtures/catalog/build_complete.py:367 and tools/build_goldens.py:351 — max_tokens 512 in the SYNTHETIC fixture catalog and the golden generator. These describe a deliberately synthetic Campaign (tests/fixtures/catalog/build_complete.py:1-24) and are not the packaged catalog."
+    ]
+  },
+  "could_not_verify": [
+    {
+      "item": "Canonical run artifacts",
+      "detail": "No stored artifacts exist for any of the five canonical run IDs in the Gate-1 packet §4 (run_d94094506aec…, run_a6c608b91032…, run_6ff833ca9417…, run_9f2a5025bba8…, run_e29f17818181…). The certification home resolves to /Users/redacted/Library/Application Support/techtree (src/techtree/paths.py, platformdirs, APPLICATION_NAME 'techtree'); its runs/ directory exists and is empty. The project-local runs/ directory is also empty. A Spotlight search for each run ID and for comparison_execution_record.json returned nothing outside the packet text and agent transcripts. TECHTREE_HOME is unset.",
+      "consequence": "Every per-field 'resolved runtime value' in this audit was obtained by compiling the committed Campaign through the product's own compiler, not by reading a stored run's input.toml. The canonical runs' actual compiled configurations, resolved configs, ComparisonExecutionRecords and UpliftReports were not inspected.",
+      "specifically_unchecked": [
+        "which schedule the five canonical runs actually used (the packet names derived campaign b9e3f00c…, which is the PARALLEL derivation, for the insertion runs)",
+        "the recorded per-episode call counts and maximum episode totals decision 0017:97-101 requires the packet to carry",
+        "the two 4096-ceiling baseline calls decision 0017:27-35 says the packet carries data for"
+      ]
+    },
+    {
+      "item": "Pre-change Campaign bytes",
+      "detail": "No pre-change campaign artifact is committed and this audit does not run git, so the recomputed pre-change digest is conditional on decision 0016's 'one symmetric change, no other difference' having held byte-for-byte."
+    },
+    {
+      "item": "Derived replacement Campaign f2f04ae5…",
+      "detail": "Not reproducible without the source run record."
+    },
+    {
+      "item": "Upstream harness default limits",
+      "detail": "The pinned Hermes harness may apply internal defaults for turns or episode duration. Techtree neither sets nor records them, and the pinned engine is not vendored in this repository, so whether any default bound exists behind the unset knobs was not established. This does not change the finding that the CAMPAIGN's declared timeout reaches nothing."
+    },
+    {
+      "item": "Gate-1 packet cap-lineage section",
+      "detail": "Decision 0017:92-101 requires the Gate-1 packet to carry a sampling-cap correction lineage section (old digest + 512, failure IDs/arms/costs, 0016, new digest + 4096, regeneration report, post-change canonical IDs) with two explicit statements. release/founder-skill-approval-draft.md contains no such section: it never states the pre-change campaign digest, never states 512 or 4096, and carries neither explicit statement. §4 classifies the runs pre/post change and §6 gives the incomplete-run cost, which covers part of the requirement. Reported as a finding for WP11h rather than fixed here."
+    }
+  ],
+  "stop_conditions": {
+    "any_asymmetry_between_variants": {
+      "hit": false,
+      "detail": "Every audited limit binds both variants identically. Proven by construction (one Campaign, one budgets object, one execution object, one division of the concurrency bound), re-checked at three independent points (manifest postcondition, declared-to-declared comparison, declared-to-observed comparison), and demonstrated directly: the two compiled TOML documents for the released Campaign are equal apart from the skill list."
+    },
+    "any_limit_whose_resolved_value_differs_from_the_manifest": {
+      "hit": true,
+      "fields": ["per_episode_timeout"],
+      "detail": "B4 — execution.timeout_seconds 600 resolves to no bound at all."
+    },
+    "any_public_copy_stating_a_different_number": {
+      "hit": false,
+      "detail": "No public surface states a number that contradicts the manifest. The website's '600 seconds' matches the manifest but not enforced behaviour (B4); the plugin promises a cost bound and a budget estimate that do not exist, without stating a number (B9)."
+    },
+    "released_values_are_the_certified_values": {
+      "hit": true,
+      "fields": ["variant_concurrency", "per_episode_total_token_ceiling", "comparison_cost_ceiling"],
+      "detail": "B5, B6, B7 — the certified derived Campaign b9e3f00c… carries max_concurrent 4 / parallel, maximum_output_tokens 8000 and maximum_usd 1.00; the released Campaign carries 1 / sequential, null and null."
+    }
+  },
+  "discrepancy_index": [
+    {"id": "B1", "severity": "low", "field": "per_call_output_cap", "one_line": "No public copy states the 4096 per-call cap."},
+    {"id": "B2", "severity": "low", "field": "per_call_output_cap", "one_line": "No automated test asserts the packaged Campaign's cap is 4096."},
+    {"id": "B3", "severity": "medium", "field": "per_episode_max_model_calls", "one_line": "budgets.maximum_model_calls is a shipped protocol field that no code enforces."},
+    {"id": "B4", "severity": "high", "field": "per_episode_timeout", "one_line": "The 600-second per-episode timeout is declared and displayed but enforced nowhere; decision 0017 relied on it as the episode budget."},
+    {"id": "B5", "severity": "high", "field": "per_episode_total_token_ceiling", "one_line": "The 8000 per-episode output-token ceiling decision 0016 calls the outer bound is absent from the released Campaign."},
+    {"id": "B6", "severity": "medium", "field": "variant_concurrency", "one_line": "The certified runs used max_concurrent 4 / parallel; the release ships 1 / sequential."},
+    {"id": "B7", "severity": "high", "field": "comparison_cost_ceiling", "one_line": "The USD 1.00 per-run ceiling decision 0006 fixes and the certified runs used is null in the released Campaign."},
+    {"id": "B8", "severity": "medium", "field": "comparison_cost_ceiling", "one_line": "maximum_usd is display-only; no pre-run estimate and no abort-on-breach exist, and decision 0017's four-value economics presentation is not met."},
+    {"id": "B9", "severity": "medium", "field": "comparison_cost_ceiling", "one_line": "The plugin disclosure promises a cost bound and a budget estimate the CLI payload does not contain."},
+    {"id": "B10", "severity": "medium", "field": "packet", "one_line": "The Gate-1 packet carries no sampling-cap correction lineage section, which decision 0017:92-101 requires."}
+  ],
+  "enforcement_refresh_0029": {
+    "refreshed_at": "2026-08-20",
+    "ticket": "techtree-python-730",
+    "binding_decision": "docs/decisions/0029-orphan-bound-fix.md",
+    "specification": "docs/release/contracts/orphan-bound-fix.md",
+    "limit_selection": "release/limit-calibration.json — 731 successful canonical episodes, the predeclared formulas applied",
+    "kind": "product_change_recorded_by_this_refresh",
+    "summary": "The 2026-08-14 audit found declared limits that limited nothing. Decision 0029 made every one of them real and regenerated the Campaign around what the measured episodes actually need. Every field this audit lists as declared is now carried to a place that enforces it, and the spending maximum is a precondition the run is refused on rather than a number on a screen. The two values that could not survive being enforced unchanged were changed by predeclared formula, not by judgement: the output ceiling, because a measured episode had already reached it, and the spending maximum, because the enforced token limits can amount to more than the old one.",
+    "campaign_under_refresh": {
+      "path": "src/techtree/resources/catalog/campaigns/hello-world-climb.json",
+      "file_digest": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7",
+      "previous_file_digest": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89",
+      "generator": "tools/build_fixture_catalog.py (the source of truth; the JSON is generated, never hand-edited, and `make generated-check` compares the two)",
+      "metadata_version_unchanged": "1 — decision 0029 asks for a new Campaign digest, which this is; the metadata version field was not part of the change the decision authorises."
+    },
+    "every_declared_field_now_enforced": [
+      {
+        "field": "per_episode_max_model_calls",
+        "protocol_name": "budgets.maximum_model_calls",
+        "was": null,
+        "now": 44,
+        "enforced_by": "compiler -> Verifiers",
+        "mechanism": "src/techtree/verifiers/compiler.py:157,192 compiles it to env.subject.max_turns; the pinned build enforces it as RolloutLimits.max_turns between turns.",
+        "chosen_by": "ceil(1.25 x 35 observed maximum turns), predeclared in decision 0029",
+        "mapping_conformance": "One Verifiers model turn is one subject model generation that produced a reply; provider-rejected exchanges are neither counted nor billed. Checked on all 731 successful canonical episodes: replying generations equalled Trace.num_turns in 731 of 731, zero disagreements (release/limit-calibration.json, turn_conformance; tools/verify_turn_conformance.py).",
+        "closes": "B3"
+      },
+      {
+        "field": "per_episode_input_token_ceiling",
+        "protocol_name": "budgets.maximum_input_tokens",
+        "was": null,
+        "now": 900000,
+        "enforced_by": "compiler -> Verifiers",
+        "mechanism": "src/techtree/verifiers/compiler.py:155,193 compiles it to env.subject.max_input_tokens; enforced against Trace.num_input_tokens.",
+        "chosen_by": "1.5 x 571016 observed maximum, rounded up to a clean number; no measured episode came within a third of it"
+      },
+      {
+        "field": "per_episode_output_token_ceiling",
+        "protocol_name": "budgets.maximum_output_tokens",
+        "was": 8000,
+        "now": 16000,
+        "enforced_by": "compiler -> Verifiers",
+        "mechanism": "src/techtree/verifiers/compiler.py:156,194 compiles it to env.subject.max_output_tokens; enforced against Trace.num_output_tokens.",
+        "why_it_moved": "8000 was reached by a successful canonical episode (post1 baseline, task sha256:e08bb7c7a18a…, 25 turns, stop_condition max_output_tokens, 8212 tokens after the one-turn overshoot). Decision 0029 forbids leaving a cap a measured run reached and forbids raising one quietly; the change is this new Campaign version.",
+        "chosen_by": "1.5 x 8212 = 12318, rounded to a clean 16000",
+        "closes": "B5"
+      },
+      {
+        "field": "per_episode_total_token_ceiling",
+        "protocol_name": "derived, not declared",
+        "was": "never set",
+        "now": 916000,
+        "enforced_by": "compiler -> Verifiers",
+        "mechanism": "src/techtree/verifiers/compiler.py:158-162,195 derives maximum_input_tokens + maximum_output_tokens into env.subject.max_total_tokens. A Campaign exposes three publisher decisions and the total is their sum (decision 0029, chief resolution 1), so it is not a fourth field and cannot drift from the two it is made of.",
+        "verified": "compiled from the shipped Campaign: max_turns 44, max_input_tokens 900000, max_output_tokens 16000, max_total_tokens 916000, timeout.rollout 600.0"
+      },
+      {
+        "field": "per_episode_timeout",
+        "protocol_name": "execution.timeout_seconds",
+        "was": 600,
+        "now": 600,
+        "enforced_by": "compiler -> Verifiers",
+        "mechanism": "src/techtree/verifiers/compiler.py:199 compiles it to env.subject.timeout.rollout (src/techtree/verifiers/config.py:192-203 TimeoutToml), which the pinned build applies to the agent solve stage. The value did not move; its standing did.",
+        "scope": "one subject rollout, not the whole variant. The variant's own bound is the supervisor's, below.",
+        "margin": "the longest solve any measured canonical episode took was 376.2 s",
+        "closes": "B4"
+      },
+      {
+        "field": "comparison_cost_ceiling",
+        "protocol_name": "budgets.maximum_usd",
+        "was": 1.0,
+        "now": 2.5,
+        "enforced_by": "preflight",
+        "mechanism": "src/techtree/verifiers/budget.py::require_cost_bound, called from src/techtree/runs/real.py:243-255 require_bounded_campaign at real.py:365 — after the credential check and before the first container. The most the comparison can cost under the enforced token limits is computed at the prices this release recorded, and a Campaign that could amount to more than it declares is refused with code campaign_cost_bound_exceeded.",
+        "why_it_moved": "The bound computed from the enforced limits is $2.42, which is above the old $1.00, so the old maximum would have refused the Campaign this build ships. Raising it is a new Campaign version, which is what this is. It remains a ceiling and not a price: every canonical comparison measured so far settled between $0.16 and $0.20.",
+        "closes": "B7, and the pre-run half of B8"
+      },
+      {
+        "field": "every_declared_field",
+        "protocol_name": "the four above",
+        "enforced_by": "preflight",
+        "mechanism": "src/techtree/verifiers/budget.py::require_executable_budget refuses a public Campaign that leaves any of execution.timeout_seconds, maximum_model_calls, maximum_input_tokens or maximum_output_tokens empty, with code campaign_budget_not_enforced. No declared field can be decorative again without a test failing first (tests/unit/test_verifiers_budget.py::test_the_shipped_campaign_declares_limits_the_engine_can_be_held_to)."
+      },
+      {
+        "field": "variant_wall_clock",
+        "protocol_name": "not a Campaign field (decision 0029, chief resolution 2)",
+        "was": "unbounded",
+        "now": 1800,
+        "enforced_by": "supervisor",
+        "mechanism": "src/techtree/verifiers/child.py:128 VARIANT_HARD_DEADLINE_SECONDS = 1800.0, passed to the child-local supervisor process that wraps each managed eval: hard monotonic deadline, SIGTERM to the eval's own process group then SIGKILL after a 20 s grace (inner grace < the outer 30 s, invariant-tested).",
+        "margin": "the longest measured variant took 1261.3 s, 70.1% of the deadline"
+      },
+      {
+        "field": "orphaned_execution",
+        "protocol_name": "not a Campaign field",
+        "was": "unbounded — a hard-killed worker left its evaluation children spending",
+        "now": "bounded by the same supervisor",
+        "enforced_by": "supervisor",
+        "mechanism": "parent-liveness pipe: the worker holds the write end, so its death (SIGKILL included) is EOF on the read end and the supervisor signals the eval group immediately. Reason recorded as parent_lost in the private 0600 supervision record (techtree.eval-supervision.v1)."
+      }
+    ],
+    "cost_bound": {
+      "formula": "tasks x variants x ((I + C) x input_price + (O + S) x output_price) / 1e6",
+      "implementation": "src/techtree/verifiers/budget.py::calculate_release_cost_bound",
+      "inputs": {
+        "tasks": 36,
+        "variants_per_comparison": 2,
+        "maximum_input_tokens_I": 900000,
+        "context_window_C": 131072,
+        "maximum_output_tokens_O": 16000,
+        "sampling_cap_S": 4096,
+        "input_usd_per_mtok": 0.03,
+        "output_usd_per_mtok": 0.13,
+        "price_profile": "release/price-profile.json, prices recorded 2026-08-20"
+      },
+      "why_the_overshoot_terms": "The pinned build checks its caps between turns, so the turn that crosses one still completes: at most a whole context window in and one sampled reply out. A bound that ignored that would be a figure that is usually right.",
+      "computed_bound_usd": 2.41521408,
+      "computed_bound_usd_rounded_up": 2.42,
+      "declared_maximum_usd": 2.5,
+      "fits": true,
+      "headroom_usd": 0.08,
+      "observed_actual_cost_per_comparison_usd": "0.16 to 0.20 across the canonical runs; the bound is deliberately pessimistic and is not an expected price",
+      "honest_form_of_the_claim": "Token exposure is protocol-bounded; the dollar figure uses provider pricing recorded at release time."
+    },
+    "lineage": {
+      "campaign_spec_digest": {"from": "sha256:b9e3f00c7a74e474a3715613084620183ae0386dbf0edcee4adde5e4cd39de89", "to": "sha256:ad393bc0fc36df108c0b93e3a0cc35bc175b34fb00788f3306dbee707d467eb7"},
+      "climb_digest": {"from": "sha256:93c03b3ad61d5330429f7804c5e2e6e55a9b6e8eac613ce6a791f84bd9c03d2b", "to": "sha256:ac76d7876dafbdc3bcddf4884dfa75831eff3a1ad461de517d4f04ef29a3e4fa"},
+      "catalog_digest": {"from": "sha256:62714b7782eb461fa62654455ffcbf74b3efce3555065f83b11f6ffa41cbf903", "to": "sha256:ae300ef6ba97233f5bef86b8281ed34a02db91114d8d78c79324ce68f721d386"},
+      "release_core_digest": {"from": "sha256:90cd8ad6976c1db55708a172601464e8cf01b8e658cb40398a594ab15daeec71", "to": "sha256:c037f4578134185cc22717908bce58749bbb5086536fc955881a2b831abd8530"},
+      "unchanged": {
+        "engine_digest": "sha256:874cbae03d39358297685e55963d08f455cc5ca2255c928dd5f2ffdd98e69bd8",
+        "taskset_membership_digest": "sha256:56f697fb182cc31691c2e1fff20471acbd549a06e37232227c9491c03aa8f9aa",
+        "taskset_validation_receipt_digest": "sha256:080895d53a967d634c35f10412acd585df899fac589798c5bf5f0d335968b948",
+        "validation_evidence_digest": "sha256:9c4959d3b9217ab83c506ceb4219143aff74341be59b15c1de15d35c0cbdbed5",
+        "data_policy_digest": "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9",
+        "starter_skill_file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+        "skill_improver_file_digest": "sha256:e6bc16c4d6740a0c3528c7009c78dc3036084fdd218a4934f602234a6dce7097",
+        "subject": "prime / qwen/qwen3.7-flash, revision null, sampling temperature 0.0 max_tokens 4096",
+        "execution": "parallel_variants, max_concurrent 4, retry_limit 0",
+        "note": "The scientific coordinates other than the budget contract did not move. What changed is what the run is held to."
+      }
+    },
+    "discrepancy_disposition": [
+      {"id": "B3", "status": "closed", "detail": "maximum_model_calls compiles to max_turns and is checked by require_executable_budget."},
+      {"id": "B4", "status": "closed", "detail": "execution.timeout_seconds compiles to the rollout timeout and is checked by require_executable_budget."},
+      {"id": "B5", "status": "closed", "detail": "The released Campaign carries a per-episode output ceiling again, now 16000, and it reaches the engine."},
+      {"id": "B6", "status": "closed_by_decision_0025", "detail": "The released Campaign has carried parallel_variants / max_concurrent 4 since the 0025 regeneration; this change does not touch it."},
+      {"id": "B7", "status": "closed", "detail": "maximum_usd is declared (2.50) and is a precondition rather than a display value."},
+      {"id": "B8", "status": "partly_closed", "detail": "The pre-run half is closed: a bound is computed and the run is refused if it does not fit. The mid-run half stands: nothing meters spend while a run is under way and nothing ends one part-way through over money. Public copy says so — src/techtree/cli/commands/climb.py::_cost_line, guarded by tests/contract/test_release_copy.py."},
+      {"id": "B9", "status": "open", "detail": "Plugin disclosure wording is tracked as techtree-python-l67 with the CLI copy."},
+      {"id": "B1", "status": "open_unchanged"},
+      {"id": "B2", "status": "closed", "detail": "tests/unit/test_verifiers_budget.py now asserts the packaged Campaign's limits and its cost bound directly."},
+      {"id": "B10", "status": "open_unchanged"}
+    ],
+    "still_not_true_and_still_said_so": [
+      "Nothing counts what a run has spent while it is under way.",
+      "Nothing ends a run part-way through because of money.",
+      "No finishing time is published for a comparison; what is bounded is the episode and the variant."
+    ],
+    "recertification": "PENDING. This is a new budget contract and a new Campaign digest, so the comparisons that establish this Campaign's results are re-run against it rather than inherited: two baseline-vs-v1 stability comparisons, one baseline-vs-reference, one v1-vs-frozen-v2 (re-executed, never re-proposed), plus the live turn-conformance probe and the worker-SIGKILL injection (decision 0029 section 'Recertification'). Until those land, release/certified-scientific-fingerprint.json carries the recertification_pending note."
+  }
+}

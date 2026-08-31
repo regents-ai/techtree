@@ -1,0 +1,7 @@
+name: branch-code
+summary: Apply a short written instruction to a code branch.
+reading_order:
+  - SKILL.md
+  - reference/notes.md
+  - data/examples.json
+credential_env: TECHTREE_MODEL_API_KEY

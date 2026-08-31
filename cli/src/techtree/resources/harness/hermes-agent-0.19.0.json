@@ -1,0 +1,69 @@
+{
+  "harness_id": "hermes-agent",
+  "harness_version": "0.19.0",
+  "recorded_from": "the WP6c paid probes of 2026-08-13 and the WP11 acceptance comparison, which offered an identical surface",
+  "schema_version": "techtree.harness-conformance.v1alpha1",
+  "skill_index_tool": "skill_manage",
+  "tools": [
+    {
+      "name": "delegate_task",
+      "parameters_digest": "sha256:13eead2bbea0ffda081c86cca20b52b7e1bdb8fa8de0a4aa4cdb8036c578b4bc"
+    },
+    {
+      "name": "execute_code",
+      "parameters_digest": "sha256:95906f90716a48b6ab95738056315ab1d565e31894b2e3f9508ba03c32d7a76b"
+    },
+    {
+      "name": "memory",
+      "parameters_digest": "sha256:3ddbf0c04cc580177048062b57a7dba80c72284243a6b7cdc7a60d1b13c03307"
+    },
+    {
+      "name": "patch",
+      "parameters_digest": "sha256:be197048bc5ffffafdb754e9c424df2a7f29a4a43c757f892467ffdefc442f30"
+    },
+    {
+      "name": "process",
+      "parameters_digest": "sha256:f4c9f9214c8ad482b275a6b8a0cb756319e21d4ac1bfaa1fe7f281d31ee8301f"
+    },
+    {
+      "name": "read_file",
+      "parameters_digest": "sha256:cb38b632732acc596fd5f5d3f0b33644c0ad5b3354ac01e82b1b238c7f3b7122"
+    },
+    {
+      "name": "search_files",
+      "parameters_digest": "sha256:853033131cf11f9db86cf043b6ba8b23445f328baa9d11072ce8a82de81da6cf"
+    },
+    {
+      "name": "session_search",
+      "parameters_digest": "sha256:9092600f7504b88a1bbb6348c957aec52ac387c7a02f50605e96c65ebc3f8ebe"
+    },
+    {
+      "name": "skill_manage",
+      "parameters_digest": "sha256:9b3b5fa010e839f04430999946d7c8d3a0fee425740e337c77af12799177e56d"
+    },
+    {
+      "name": "skill_view",
+      "parameters_digest": "sha256:2baab7037c7ec14eb9e9476d31d2a49844158d0161420307dd0e6d28e77c8fb5"
+    },
+    {
+      "name": "skills_list",
+      "parameters_digest": "sha256:d577f592e050f14fc397ac2f9865984beaa09dccf56caeacef2ff99e6aa9204c"
+    },
+    {
+      "name": "terminal",
+      "parameters_digest": "sha256:439982c1434ccdc7b7f5b968fb2d4474a8557483528e5a1bbc6dc703f23108a8"
+    },
+    {
+      "name": "todo",
+      "parameters_digest": "sha256:0ee6425f020b1f539ee1e74ad011b0ab7255cf4643be34ce1b651ee7f0213b1e"
+    },
+    {
+      "name": "vision_analyze",
+      "parameters_digest": "sha256:59f8105711073175ad5cf040d2c97c3bfbf359793fbb26a3fcaaea7d17dee013"
+    },
+    {
+      "name": "write_file",
+      "parameters_digest": "sha256:90cce6e84b9b53a665d4dd69060eea52b3fe99fbe0b6642e17fef86fd441d9e3"
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "CandidateSkillPolicy": {
+      "additionalProperties": false,
+      "description": "Who owns the submitted skill and whether it can be published.",
+      "properties": {
+        "ownership": {
+          "enum": [
+            "participant",
+            "account",
+            "shared"
+          ],
+          "title": "Ownership",
+          "type": "string"
+        },
+        "public_release": {
+          "enum": [
+            "required_for_climb",
+            "allowed",
+            "prohibited",
+            "consent_required"
+          ],
+          "title": "Public Release",
+          "type": "string"
+        },
+        "training_use": {
+          "$ref": "#/$defs/Permission"
+        }
+      },
+      "required": [
+        "ownership",
+        "public_release",
+        "training_use"
+      ],
+      "title": "CandidateSkillPolicy",
+      "type": "object"
+    },
+    "DataOwner": {
+      "additionalProperties": false,
+      "description": "Who owns the artifacts a Campaign produces.",
+      "properties": {
+        "account_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "enum": [
+            "participant",
+            "account",
+            "shared"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "DataOwner",
+      "type": "object"
+    },
+    "DerivedArtifactPolicy": {
+      "additionalProperties": false,
+      "description": "What may happen to everything computed from the episodes.",
+      "properties": {
+        "aggregate_scores": {
+          "$ref": "#/$defs/Visibility"
+        },
+        "anonymized_product_analytics": {
+          "$ref": "#/$defs/Permission"
+        },
+        "redacted_trace_projection": {
+          "$ref": "#/$defs/Visibility"
+        },
+        "uplift_report": {
+          "$ref": "#/$defs/Visibility"
+        }
+      },
+      "required": [
+        "aggregate_scores",
+        "uplift_report",
+        "redacted_trace_projection",
+        "anonymized_product_analytics"
+      ],
+      "title": "DerivedArtifactPolicy",
+      "type": "object"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "Permission": {
+      "enum": [
+        "allowed",
+        "prohibited",
+        "consent_required"
+      ],
+      "type": "string"
+    },
+    "RawEpisodePolicy": {
+      "additionalProperties": false,
+      "description": "What may happen to raw episode transcripts.",
+      "properties": {
+        "local_retention": {
+          "enum": [
+            "allowed",
+            "prohibited",
+            "required"
+          ],
+          "title": "Local Retention",
+          "type": "string"
+        },
+        "public_release": {
+          "$ref": "#/$defs/Permission"
+        },
+        "reproduction_access": {
+          "$ref": "#/$defs/Permission"
+        },
+        "server_upload": {
+          "$ref": "#/$defs/Permission"
+        },
+        "training_use": {
+          "$ref": "#/$defs/Permission"
+        }
+      },
+      "required": [
+        "local_retention",
+        "server_upload",
+        "public_release",
+        "reproduction_access",
+        "training_use"
+      ],
+      "title": "RawEpisodePolicy",
+      "type": "object"
+    },
+    "RevocationPolicy": {
+      "additionalProperties": false,
+      "description": "What a participant can withdraw later, and what stays published.",
+      "properties": {
+        "future_use_revocable": {
+          "title": "Future Use Revocable",
+          "type": "boolean"
+        },
+        "immutable_published_proofs_remain": {
+          "title": "Immutable Published Proofs Remain",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "future_use_revocable",
+        "immutable_published_proofs_remain"
+      ],
+      "title": "RevocationPolicy",
+      "type": "object"
+    },
+    "Visibility": {
+      "enum": [
+        "public",
+        "private",
+        "prohibited"
+      ],
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/data-policy.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The complete rights statement a Campaign runs under.",
+  "properties": {
+    "candidate_skill": {
+      "$ref": "#/$defs/CandidateSkillPolicy"
+    },
+    "derived_artifacts": {
+      "$ref": "#/$defs/DerivedArtifactPolicy"
+    },
+    "id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "owner": {
+      "$ref": "#/$defs/DataOwner"
+    },
+    "raw_episodes": {
+      "$ref": "#/$defs/RawEpisodePolicy"
+    },
+    "revocation": {
+      "$ref": "#/$defs/RevocationPolicy"
+    },
+    "schema_version": {
+      "const": "techtree.data-policy.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "owner",
+    "raw_episodes",
+    "derived_artifacts",
+    "candidate_skill",
+    "revocation"
+  ],
+  "title": "DataPolicy",
+  "type": "object"
+}

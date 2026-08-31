@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "development",
+      "runtimeExecutable": "mix",
+      "runtimeArgs": ["phx.server"],
+      "port": 4000,
+      "url": "http://localhost:4000",
+      "autoPort": false
+    }
+  ]
+}

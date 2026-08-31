@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "AttestationKind": {
+      "description": "Whose attestation the recorded result carries.",
+      "enum": [
+        "participant",
+        "platform",
+        "independent"
+      ],
+      "title": "AttestationKind",
+      "type": "string"
+    },
+    "EvaluationBackendKind": {
+      "description": "Which system orchestrated the evaluation.",
+      "enum": [
+        "local_techtree",
+        "prime_lab",
+        "independent_reproducer"
+      ],
+      "title": "EvaluationBackendKind",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/evaluation-backend.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The orchestrating backend and the attestation it carries.",
+  "properties": {
+    "attestation": {
+      "$ref": "#/$defs/AttestationKind"
+    },
+    "executor_identity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "kind": {
+      "$ref": "#/$defs/EvaluationBackendKind"
+    },
+    "provider_run_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "techtree.evaluation-backend.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "workspace_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "attestation"
+  ],
+  "title": "EvaluationBackendSpec",
+  "type": "object"
+}

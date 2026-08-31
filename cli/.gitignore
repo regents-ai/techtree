@@ -1,0 +1,31 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.DS_Store
+.idea/
+.vscode/
+tmp/
+
+# A Techtree home created in the repo root (e.g. --home .) must never be staged
+/runs/
+/cache/
+/drafts/
+/engines/
+/config.toml
+
+# The build stamps the source commit into the wheel it is producing. That
+# record belongs to one artifact, never to the tree it was built from.
+/src/techtree/resources/release/build-provenance.json
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/

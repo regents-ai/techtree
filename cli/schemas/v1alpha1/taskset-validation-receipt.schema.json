@@ -1,0 +1,246 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "A content-addressed pointer to a stored byte stream.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "relative_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative Path"
+        },
+        "size": {
+          "exclusiveMinimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "digest",
+        "media_type",
+        "size"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "UpstreamValidationSummary": {
+      "additionalProperties": false,
+      "description": "What the upstream validator reported, in aggregate.",
+      "properties": {
+        "error": {
+          "minimum": 0,
+          "title": "Error",
+          "type": "integer"
+        },
+        "invalid": {
+          "minimum": 0,
+          "title": "Invalid",
+          "type": "integer"
+        },
+        "missing": {
+          "minimum": 0,
+          "title": "Missing",
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "all",
+            "gold",
+            "setup"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "recorded": {
+          "minimum": 0,
+          "title": "Recorded",
+          "type": "integer"
+        },
+        "timeout": {
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        },
+        "valid": {
+          "minimum": 0,
+          "title": "Valid",
+          "type": "integer"
+        },
+        "valid_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Valid Rate"
+        }
+      },
+      "required": [
+        "mode",
+        "total",
+        "recorded",
+        "valid",
+        "invalid",
+        "error",
+        "timeout",
+        "missing"
+      ],
+      "title": "UpstreamValidationSummary",
+      "type": "object"
+    },
+    "ValidationCheck": {
+      "additionalProperties": false,
+      "description": "One mechanical check and what it found.",
+      "properties": {
+        "detail": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "warning",
+            "not_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "detail"
+      ],
+      "title": "ValidationCheck",
+      "type": "object"
+    },
+    "ValidationMethod": {
+      "additionalProperties": false,
+      "description": "How the validation was performed, in reproducible terms.",
+      "properties": {
+        "kind": {
+          "const": "verifiers_validate",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "const": "all",
+          "title": "Mode",
+          "type": "string"
+        },
+        "runtime": {
+          "const": "subprocess",
+          "title": "Runtime",
+          "type": "string"
+        },
+        "validator_revision": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "kind",
+        "mode",
+        "runtime",
+        "validator_revision"
+      ],
+      "title": "ValidationMethod",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/taskset-validation-receipt.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Is this taskset mechanically valid and internally consistent?\n\nDecisions document 0003 A1 removed the identifier, creation time, raw\nartifact list, durations, absolute paths, and tracebacks that the original\nshape carried. Every one of those varies between two correct runs of the\nsame validation, which meant the publisher's receipt and a participant's\nreceipt could never be equal even when they agreed completely. They now\nare, and that equality is the check.",
+  "properties": {
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/ValidationCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "engine_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "method": {
+      "$ref": "#/$defs/ValidationMethod"
+    },
+    "normalized_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schema_version": {
+      "const": "techtree.taskset-validation.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "valid",
+        "invalid",
+        "errored"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "taskset_lock_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "upstream_summary": {
+      "$ref": "#/$defs/UpstreamValidationSummary"
+    }
+  },
+  "required": [
+    "schema_version",
+    "taskset_lock_digest",
+    "engine_digest",
+    "method",
+    "status",
+    "upstream_summary",
+    "checks",
+    "normalized_evidence"
+  ],
+  "title": "TasksetValidationReceipt",
+  "type": "object"
+}

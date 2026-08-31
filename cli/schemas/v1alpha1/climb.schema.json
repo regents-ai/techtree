@@ -1,0 +1,250 @@
+{
+  "$defs": {
+    "CandidateConstraints": {
+      "additionalProperties": false,
+      "description": "How many skills a candidate submits, and in which format.",
+      "properties": {
+        "format": {
+          "const": "techtree-instruction-skill-v1",
+          "title": "Format",
+          "type": "string"
+        },
+        "max_skills": {
+          "minimum": 1,
+          "title": "Max Skills",
+          "type": "integer"
+        },
+        "min_skills": {
+          "minimum": 0,
+          "title": "Min Skills",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min_skills",
+        "max_skills",
+        "format"
+      ],
+      "title": "CandidateConstraints",
+      "type": "object"
+    },
+    "CandidatePolicy": {
+      "additionalProperties": false,
+      "description": "What participants submit and whether it becomes public.",
+      "properties": {
+        "constraints": {
+          "$ref": "#/$defs/CandidateConstraints"
+        },
+        "required_mutation": {
+          "const": "skill_insertion",
+          "title": "Required Mutation",
+          "type": "string"
+        },
+        "skill_visibility": {
+          "enum": [
+            "public",
+            "private"
+          ],
+          "title": "Skill Visibility",
+          "type": "string"
+        }
+      },
+      "required": [
+        "required_mutation",
+        "skill_visibility",
+        "constraints"
+      ],
+      "title": "CandidatePolicy",
+      "type": "object"
+    },
+    "ClimbMetadata": {
+      "additionalProperties": false,
+      "description": "Public identity and schedule.",
+      "properties": {
+        "closes_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UtcDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "opens_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UtcDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "slug": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "status": {
+          "enum": [
+            "open",
+            "closed",
+            "development"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "title": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "slug",
+        "version",
+        "title",
+        "summary",
+        "status"
+      ],
+      "title": "ClimbMetadata",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "LeaderboardPolicy": {
+      "additionalProperties": false,
+      "description": "Whether results are ranked publicly, and on what evidence.",
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "evidence_required": {
+          "enum": [
+            "not_required",
+            "complete",
+            "complete_or_partial"
+          ],
+          "title": "Evidence Required",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "evidence_required"
+      ],
+      "title": "LeaderboardPolicy",
+      "type": "object"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PublicationPolicy": {
+      "additionalProperties": false,
+      "description": "What Techtree publishes about a completed run.",
+      "properties": {
+        "proof_grade": {
+          "enum": [
+            "development_only",
+            "P1"
+          ],
+          "title": "Proof Grade",
+          "type": "string"
+        },
+        "public_trace_projection": {
+          "enum": [
+            "redacted",
+            "none"
+          ],
+          "title": "Public Trace Projection",
+          "type": "string"
+        },
+        "raw_episode_visibility": {
+          "enum": [
+            "private",
+            "prohibited"
+          ],
+          "title": "Raw Episode Visibility",
+          "type": "string"
+        },
+        "report_visibility": {
+          "enum": [
+            "public",
+            "private"
+          ],
+          "title": "Report Visibility",
+          "type": "string"
+        }
+      },
+      "required": [
+        "report_visibility",
+        "raw_episode_visibility",
+        "public_trace_projection",
+        "proof_grade"
+      ],
+      "title": "PublicationPolicy",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/climb.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A public invitation to run one Campaign.",
+  "properties": {
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "candidate_policy": {
+      "$ref": "#/$defs/CandidatePolicy"
+    },
+    "kind": {
+      "const": "Climb",
+      "title": "Kind",
+      "type": "string"
+    },
+    "leaderboard": {
+      "$ref": "#/$defs/LeaderboardPolicy"
+    },
+    "metadata": {
+      "$ref": "#/$defs/ClimbMetadata"
+    },
+    "publication": {
+      "$ref": "#/$defs/PublicationPolicy"
+    },
+    "schema_version": {
+      "const": "techtree.climb.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "metadata",
+    "campaign_spec_digest",
+    "candidate_policy",
+    "publication",
+    "leaderboard"
+  ],
+  "title": "ClimbManifest",
+  "type": "object"
+}

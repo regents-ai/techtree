@@ -1,0 +1,298 @@
+{
+  "$defs": {
+    "CliError": {
+      "additionalProperties": false,
+      "description": "The machine-safe projection of a failure.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "details": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Details",
+          "type": "object"
+        },
+        "message": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "details"
+      ],
+      "title": "CliError",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "JsonScalar": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JsonScalar"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "RunPhase": {
+      "description": "Where a run currently is.",
+      "enum": [
+        "created",
+        "validating_taskset",
+        "running_baseline",
+        "running_candidate",
+        "running_variants",
+        "building_receipts",
+        "verifying_comparison",
+        "building_report",
+        "completed",
+        "failed",
+        "cancel_requested",
+        "cancelled"
+      ],
+      "title": "RunPhase",
+      "type": "string"
+    },
+    "RunProgress": {
+      "additionalProperties": false,
+      "description": "How far through the current phase the worker is.",
+      "properties": {
+        "current": {
+          "minimum": 0,
+          "title": "Current",
+          "type": "integer"
+        },
+        "label": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "current",
+        "total",
+        "label"
+      ],
+      "title": "RunProgress",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "VariantProgress": {
+      "additionalProperties": false,
+      "description": "How far one side of a concurrent comparison has got. Spec section 3.3.\n\n``RunProgress`` measures one position in one phase, which is all a\nsequential run has to report. When both variants are in flight there are two\npositions at once, and each carries its own episode counts and its own\nlifecycle, so they are projected side by side rather than flattened.",
+      "properties": {
+        "completed": {
+          "minimum": 0,
+          "title": "Completed",
+          "type": "integer"
+        },
+        "errored": {
+          "minimum": 0,
+          "title": "Errored",
+          "type": "integer"
+        },
+        "running": {
+          "minimum": 0,
+          "title": "Running",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "running",
+            "completed",
+            "failed",
+            "cancelled"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        },
+        "variant": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ],
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "variant",
+        "completed",
+        "total",
+        "running",
+        "errored",
+        "state"
+      ],
+      "title": "VariantProgress",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/run-state.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What is currently true of a run, rewritten as it advances.",
+  "properties": {
+    "cancel_requested_at": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UtcDateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CliError"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "heartbeat_at": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UtcDateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "phase": {
+      "$ref": "#/$defs/RunPhase"
+    },
+    "progress": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunProgress"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "run_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "updated_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "variant_progress": {
+      "additionalProperties": {
+        "$ref": "#/$defs/VariantProgress"
+      },
+      "title": "Variant Progress",
+      "type": "object"
+    },
+    "worker_pid": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Worker Pid"
+    },
+    "worker_started_at": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UtcDateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "run_id",
+    "phase",
+    "sequence",
+    "updated_at",
+    "worker_pid",
+    "worker_started_at",
+    "heartbeat_at",
+    "cancel_requested_at",
+    "error",
+    "progress",
+    "result_digest"
+  ],
+  "title": "RunState",
+  "type": "object"
+}

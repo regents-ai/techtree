@@ -1,0 +1,567 @@
+{
+  "$defs": {
+    "AttestationKind": {
+      "description": "Whose attestation the recorded result carries.",
+      "enum": [
+        "participant",
+        "platform",
+        "independent"
+      ],
+      "title": "AttestationKind",
+      "type": "string"
+    },
+    "ComparisonStatus": {
+      "description": "Whether the two manifests differed only where permitted.",
+      "enum": [
+        "pending",
+        "controlled",
+        "controlled_with_warnings",
+        "invalid",
+        "development_only"
+      ],
+      "title": "ComparisonStatus",
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EvaluationBackendKind": {
+      "description": "Which system orchestrated the evaluation.",
+      "enum": [
+        "local_techtree",
+        "prime_lab",
+        "independent_reproducer"
+      ],
+      "title": "EvaluationBackendKind",
+      "type": "string"
+    },
+    "EvaluationBackendSpec": {
+      "additionalProperties": false,
+      "description": "The orchestrating backend and the attestation it carries.",
+      "properties": {
+        "attestation": {
+          "$ref": "#/$defs/AttestationKind"
+        },
+        "executor_identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "$ref": "#/$defs/EvaluationBackendKind"
+        },
+        "provider_run_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "techtree.evaluation-backend.v1alpha1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "workspace_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "attestation"
+      ],
+      "title": "EvaluationBackendSpec",
+      "type": "object"
+    },
+    "EvidenceStatus": {
+      "description": "How complete the supporting evidence is.",
+      "enum": [
+        "not_collected",
+        "complete",
+        "partial",
+        "invalid",
+        "development_only"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "ExecutionStatus": {
+      "description": "How the run itself ended.",
+      "enum": [
+        "completed",
+        "partial",
+        "failed",
+        "cancelled"
+      ],
+      "title": "ExecutionStatus",
+      "type": "string"
+    },
+    "JsonDifference": {
+      "additionalProperties": false,
+      "description": "One JSON Pointer at which two configurations disagree.",
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pointer": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "pointer",
+        "baseline",
+        "candidate"
+      ],
+      "title": "JsonDifference",
+      "type": "object"
+    },
+    "JsonScalar": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JsonScalar"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "ManifestComparison": {
+      "additionalProperties": false,
+      "description": "Whether the candidate differs from the baseline only where permitted.",
+      "properties": {
+        "allowed_differences": {
+          "items": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Allowed Differences",
+          "type": "array"
+        },
+        "baseline_configuration_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "candidate_configuration_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "controlled": {
+          "title": "Controlled",
+          "type": "boolean"
+        },
+        "differences": {
+          "items": {
+            "$ref": "#/$defs/JsonDifference"
+          },
+          "title": "Differences",
+          "type": "array"
+        },
+        "violations": {
+          "items": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Violations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "baseline_configuration_digest",
+        "candidate_configuration_digest",
+        "differences",
+        "allowed_differences",
+        "controlled",
+        "violations"
+      ],
+      "title": "ManifestComparison",
+      "type": "object"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PrimaryUpliftResult": {
+      "additionalProperties": false,
+      "description": "The headline comparison on the primary reward.",
+      "properties": {
+        "absolute_delta": {
+          "title": "Absolute Delta",
+          "type": "number"
+        },
+        "baseline_mean": {
+          "title": "Baseline Mean",
+          "type": "number"
+        },
+        "candidate_mean": {
+          "title": "Candidate Mean",
+          "type": "number"
+        },
+        "losses": {
+          "minimum": 0,
+          "title": "Losses",
+          "type": "integer"
+        },
+        "relative_delta": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Relative Delta"
+        },
+        "reward_name": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "ties": {
+          "minimum": 0,
+          "title": "Ties",
+          "type": "integer"
+        },
+        "wins": {
+          "minimum": 0,
+          "title": "Wins",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reward_name",
+        "baseline_mean",
+        "candidate_mean",
+        "absolute_delta",
+        "relative_delta",
+        "wins",
+        "losses",
+        "ties"
+      ],
+      "title": "PrimaryUpliftResult",
+      "type": "object"
+    },
+    "ProgramRef": {
+      "additionalProperties": false,
+      "description": "A reserved pointer at a future ``ImprovementProgram``.\n\nThe program model itself is deferred (spec section 4.4). Only the pointer\nexists, so that artifacts written today can be attributed later without a\nschema break.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "title": "ProgramRef",
+      "type": "object"
+    },
+    "PublicContext": {
+      "additionalProperties": false,
+      "description": "The optional public Climb an execution artifact was produced under.",
+      "properties": {
+        "climb_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "kind": {
+          "const": "climb",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "climb_digest"
+      ],
+      "title": "PublicContext",
+      "type": "object"
+    },
+    "PublicationStatus": {
+      "description": "Where the report stands with respect to being published.",
+      "enum": [
+        "not_requested",
+        "blocked",
+        "pending",
+        "published",
+        "failed"
+      ],
+      "title": "PublicationStatus",
+      "type": "string"
+    },
+    "ScoreStatus": {
+      "description": "How much weight the recorded reward carries.",
+      "enum": [
+        "pending",
+        "valid",
+        "invalid",
+        "errored",
+        "missing",
+        "development_only"
+      ],
+      "title": "ScoreStatus",
+      "type": "string"
+    },
+    "TaskDelta": {
+      "additionalProperties": false,
+      "description": "What one task contributed to the comparison.",
+      "properties": {
+        "baseline_reward": {
+          "title": "Baseline Reward",
+          "type": "number"
+        },
+        "candidate_reward": {
+          "title": "Candidate Reward",
+          "type": "number"
+        },
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "task_hash": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "task_hash",
+        "baseline_reward",
+        "candidate_reward",
+        "delta"
+      ],
+      "title": "TaskDelta",
+      "type": "object"
+    },
+    "UpliftDecision": {
+      "description": "The verdict on the scientific comparison contract.",
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive",
+        "invalid",
+        "development_only"
+      ],
+      "title": "UpliftDecision",
+      "type": "string"
+    },
+    "UpliftStatuses": {
+      "additionalProperties": false,
+      "description": "The five independent statuses of a report.",
+      "properties": {
+        "comparison": {
+          "$ref": "#/$defs/ComparisonStatus"
+        },
+        "evidence": {
+          "$ref": "#/$defs/EvidenceStatus"
+        },
+        "execution": {
+          "$ref": "#/$defs/ExecutionStatus"
+        },
+        "publication": {
+          "$ref": "#/$defs/PublicationStatus"
+        },
+        "score": {
+          "$ref": "#/$defs/ScoreStatus"
+        }
+      },
+      "required": [
+        "execution",
+        "score",
+        "evidence",
+        "comparison",
+        "publication"
+      ],
+      "title": "UpliftStatuses",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/uplift-report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The complete result of one baseline-versus-candidate comparison.",
+  "properties": {
+    "baseline_manifest_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "candidate_manifest_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "created_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "data_policy_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "decision": {
+      "$ref": "#/$defs/UpliftDecision"
+    },
+    "evaluation_backend": {
+      "$ref": "#/$defs/EvaluationBackendSpec"
+    },
+    "id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "manifest_comparison": {
+      "$ref": "#/$defs/ManifestComparison"
+    },
+    "outcome_contract_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "primary_result": {
+      "$ref": "#/$defs/PrimaryUpliftResult"
+    },
+    "program_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProgramRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "proof_grade": {
+      "enum": [
+        "development_only",
+        "P1"
+      ],
+      "title": "Proof Grade",
+      "type": "string"
+    },
+    "public_context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PublicContext"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "publication_eligible": {
+      "title": "Publication Eligible",
+      "type": "boolean"
+    },
+    "run_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "schema_version": {
+      "const": "techtree.uplift-report.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "statuses": {
+      "$ref": "#/$defs/UpliftStatuses"
+    },
+    "task_deltas": {
+      "items": {
+        "$ref": "#/$defs/TaskDelta"
+      },
+      "title": "Task Deltas",
+      "type": "array"
+    },
+    "taskset_validation_receipt_digest": {
+      "$ref": "#/$defs/Digest"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "run_id",
+    "campaign_spec_digest",
+    "program_ref",
+    "public_context",
+    "data_policy_digest",
+    "outcome_contract_digest",
+    "evaluation_backend",
+    "taskset_validation_receipt_digest",
+    "baseline_manifest_digest",
+    "candidate_manifest_digest",
+    "statuses",
+    "manifest_comparison",
+    "primary_result",
+    "task_deltas",
+    "decision",
+    "proof_grade",
+    "publication_eligible",
+    "created_at"
+  ],
+  "title": "UpliftReport",
+  "type": "object"
+}

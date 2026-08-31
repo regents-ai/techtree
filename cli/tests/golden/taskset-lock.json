@@ -1,0 +1,42 @@
+{
+  "engine_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92",
+  "membership_digest": "sha256:e1ec7b463400ebcd7e7c388d384c4eb84a95add186041737a9f00c920c22699b",
+  "ordered_task_hashes": [
+    "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
+    "sha256:f13f0e1a9e8c5c1fa7ee22b0bf16fe4f4c4f295830f002dc8f6c041ceea8bc6f",
+    "sha256:7382751baf5726771425c5f5b334f806efca1cfa0e1402d4021fb551faebcda8",
+    "sha256:6b934d6dc7dd6a4388b115659f8692b4c6f02a4fcc4a76469d7ff37b955c1e4b",
+    "sha256:96861527b5de3158782357f69610d89210c4951f5cbad26e1788557d2271364a",
+    "sha256:00762bfef7cc69cce110987ac209463d0cd0c329a86be0d558d2426edd99a6ef",
+    "sha256:9ca894dd9d22c8af2cc6d4e439eafe60561a119780845f1eb33be5286795f9e5",
+    "sha256:fd6726a063cf25adbd3e4793ac119ad62924e65f8e01e55a9693363be8e8daef",
+    "sha256:9eeed74698f6dde1f07a16701ca456c9255cfebbd562455946d51dd25d24b202",
+    "sha256:aeec0e9f474384198b2066ba8caa41596daa727ebf7a10aa7edb0ae98dcc4df9",
+    "sha256:b39ea2241332303b53f3ffb9fc12dfa25ace66aaa622b46466fae63035fb14c0",
+    "sha256:376fa59ae32b4d7b7ee9ef003d21eec0adb70d0c872672aef7c57114552ed8db",
+    "sha256:1b2de99b6bda9f670b9236b6879a2f37f1b4ec98fba73e57898b6afd4f1097e0",
+    "sha256:3512f8c4290ba90e558e9cc85f9d99fe3e18ec406b5a4d188da1be3797426852",
+    "sha256:9ea788992a0dc938497ff97ad196d25b21c8ec94c98c6fd149bcad44623ce68f",
+    "sha256:1b60f6c51856f50a1456739513e5e94f97a407be7391f473f39f147d513af932",
+    "sha256:0e38a939d3a0ae65e606a50b1c95a4b2dfc6810a264a5a157ff07bcbb96cda49",
+    "sha256:2368de2a2ed5fceae718086004cbde5b4893e2023d7c0849019186d44d682c9a",
+    "sha256:f7381bc2e26f3a761853c95fdc529a2995a6f4e989c4e289797dc17b9a1fe5c0",
+    "sha256:331ddd7dd1e56ccb23b6358980e142b0d0dd912646f9a546454e281e312a6fb5"
+  ],
+  "resolved_package_digest": "sha256:8f1b2ede17f82b676bfbeb2570392915dd3f63cac9117782e45287634a98a7a9",
+  "schema_version": "techtree.taskset-lock.v1alpha1",
+  "task_count": 20,
+  "taskset_ref": {
+    "config": {
+      "num_tasks": 20
+    },
+    "id": "procedure-transfer-v1",
+    "kind": "verifiers",
+    "package": {
+      "digest": "sha256:8f1b2ede17f82b676bfbeb2570392915dd3f63cac9117782e45287634a98a7a9",
+      "kind": "embedded",
+      "name": "procedure-transfer-v1",
+      "revision": "1"
+    }
+  }
+}

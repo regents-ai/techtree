@@ -1,0 +1,922 @@
+"""What the two channels draw. Spec sections 7.15 and 7.16.
+
+Both renderers are pure functions of one payload, so both are tested the way a
+reader meets them: by rendering and reading the text.
+
+Three properties matter more than the layout.
+
+*Nothing is carried by colour alone.* Every outcome has a word, every caveat
+has its severity in words, and a terminal with no colour loses only decoration.
+
+*The gateway rendering is bounded and free of escape sequences.* A phone
+message with an ANSI sequence in it is a broken message, and a twenty-row table
+in one is unreadable.
+
+*Neither channel drops a warning.* Room is made by cutting the table, never by
+cutting a qualification.
+"""
+
+from __future__ import annotations
+
+import io
+import re
+
+import pytest
+from rich.console import Console
+
+from techtree.models.cli import NextAction
+from techtree.presentation.build import (
+    FIRST_RESULT_LABEL,
+    SECOND_RESULT_LABEL,
+    decision_headline,
+    efficiency_sentence,
+    solved_line,
+)
+from techtree.presentation.compact import (
+    UNVERIFIED_HEADLINE,
+    render_uplift_markdown,
+)
+from techtree.presentation.models import (
+    PRESENTATION_SCHEMA_VERSION,
+    DerivedCost,
+    EconomicsSource,
+    PresentationCaveat,
+    SkillSummary,
+    TaskDisplay,
+    TaskResultRow,
+    UpliftPresentationPayload,
+)
+from techtree.presentation.rich import render_uplift_console
+from techtree.receipts.execution import CostProvenance
+
+ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def rows(count: int) -> list[TaskResultRow]:
+    """Return a mixed table: one regression, several wins, the rest ties."""
+    built: list[TaskResultRow] = []
+    for position in range(count):
+        if position == 0:
+            baseline, candidate, outcome = 1.0, 0.0, "loss"
+        elif position % 2 == 1:
+            baseline, candidate, outcome = 0.0, 1.0, "win"
+        else:
+            baseline, candidate, outcome = 0.0, 0.0, "tie"
+        built.append(
+            TaskResultRow(
+                position=position,
+                task_label=f"task {position + 1:02d} · abcdef{position:02d}",
+                baseline_score=baseline,
+                candidate_score=candidate,
+                delta=candidate - baseline,
+                outcome=outcome,  # type: ignore[arg-type]
+            )
+        )
+    return built
+
+
+def payload(
+    *,
+    task_count: int = 20,
+    comparison_label: str = "Hello World Uplift Receipt",
+    change_label: str = "No tested Skill → Skill v1",
+    decision: str = "accepted",
+    proof_grade: str = "P1",
+    verification_status: str = "verified_offline",
+    economics_source: EconomicsSource = "unavailable",
+    baseline_tokens: int | None = None,
+    candidate_tokens: int | None = None,
+    baseline_seconds: float | None = None,
+    candidate_seconds: float | None = None,
+    cost_usd: float | None = None,
+    cost_provenance: CostProvenance = CostProvenance.UNAVAILABLE,
+    derived_cost: DerivedCost | None = None,
+    counted: bool = True,
+    baseline_model_turns: int | None = None,
+    candidate_model_turns: int | None = None,
+    baseline_rate_limited_calls: int | None = None,
+    candidate_rate_limited_calls: int | None = None,
+    every_rollout_completed: bool | None = None,
+) -> UpliftPresentationPayload:
+    table = rows(task_count)
+    return UpliftPresentationPayload(
+        schema_version=PRESENTATION_SCHEMA_VERSION,
+        run_id="run_" + "0" * 32,
+        campaign_title="Techtree Hello World",
+        comparison_label=comparison_label,
+        change_label=change_label,
+        baseline_skill=SkillSummary(
+            label="No tested Skill", root_digest=None, file_count=0, total_bytes=0
+        ),
+        candidate_skill=SkillSummary(
+            label="branch-code-v1",
+            root_digest=f"sha256:{'a' * 64}",
+            file_count=2,
+            total_bytes=3072,
+        ),
+        baseline_score=0.05,
+        candidate_score=0.45,
+        absolute_delta=0.4,
+        relative_delta=8.0,
+        wins=sum(1 for row in table if row.outcome == "win"),
+        losses=sum(1 for row in table if row.outcome == "loss"),
+        ties=sum(1 for row in table if row.outcome == "tie"),
+        task_rows=table,
+        baseline_tasks_scored_full=(
+            sum(1 for row in table if row.baseline_score == 1.0) if counted else None
+        ),
+        candidate_tasks_scored_full=(
+            sum(1 for row in table if row.candidate_score == 1.0) if counted else None
+        ),
+        baseline_tokens=baseline_tokens,
+        candidate_tokens=candidate_tokens,
+        baseline_seconds=baseline_seconds,
+        candidate_seconds=candidate_seconds,
+        baseline_model_turns=baseline_model_turns,
+        candidate_model_turns=candidate_model_turns,
+        baseline_rate_limited_calls=baseline_rate_limited_calls,
+        candidate_rate_limited_calls=candidate_rate_limited_calls,
+        every_rollout_completed=every_rollout_completed,
+        economics_source=economics_source,
+        cost_usd=cost_usd,
+        cost_provenance=cost_provenance,
+        derived_cost=derived_cost,
+        cost_unavailable_reason=(
+            None
+            if cost_usd is not None or derived_cost is not None
+            else "This run wrote no signed execution record."
+        ),
+        decision=decision,
+        proof_grade=proof_grade,
+        verification_status=verification_status,
+        caveats=[
+            PresentationCaveat(
+                code="comparison_controlled_with_warnings",
+                severity="warning",
+                text="The comparison is controlled with warnings.",
+            ),
+            PresentationCaveat(
+                code="no_server_upload",
+                severity="info",
+                text="The raw episodes stay on this machine.",
+            ),
+        ],
+        next_actions=[
+            NextAction(
+                id="verify_proof",
+                label="Verify this run's local proof",
+                reason=None,
+                cli=["techtree", "proof", "verify", "run_" + "0" * 32],
+                hermes_tool=None,
+                hermes_args=None,
+                requires_user_confirmation=False,
+            )
+        ],
+    )
+
+
+def rendered(
+    value: UpliftPresentationPayload,
+    *,
+    show_tasks: TaskDisplay = TaskDisplay.CHANGED,
+    color: bool = False,
+    width: int = 100,
+) -> str:
+    output = io.StringIO()
+    console = Console(
+        file=output,
+        width=width,
+        no_color=not color,
+        force_terminal=color,
+        highlight=False,
+        emoji=False,
+        markup=False,
+    )
+    render_uplift_console(value, console, show_tasks=show_tasks)
+    return output.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# The terminal
+# ---------------------------------------------------------------------------
+
+
+def test_the_header_says_what_was_compared_and_how_much_it_is_worth() -> None:
+    text = rendered(payload())
+    lines = text.splitlines()
+
+    assert lines[0] == "Techtree Hello World"
+    assert lines[1] == "Hello World Uplift Receipt"
+    assert lines[2] == "[P1 · local proof verified offline]"
+
+
+def test_the_outcomes_are_words_rather_than_colours() -> None:
+    text = rendered(payload(), show_tasks=TaskDisplay.ALL)
+
+    assert "WIN" in text
+    assert "LOSS" in text
+    assert "TIE" in text
+
+
+def test_a_coloured_rendering_says_the_same_words() -> None:
+    """Colour is decoration: stripping it loses nothing a reader needs."""
+    plain = rendered(payload())
+    coloured = ANSI.sub("", rendered(payload(), color=True))
+
+    assert coloured == plain
+
+
+def test_no_escape_sequence_survives_a_plain_console() -> None:
+    assert ANSI.search(rendered(payload())) is None
+
+
+def test_the_same_payload_renders_the_same_bytes() -> None:
+    assert rendered(payload()) == rendered(payload())
+
+
+def test_regressions_are_shown_first() -> None:
+    text = rendered(payload(), show_tasks=TaskDisplay.ALL)
+    body = text[text.index("Task ") :]
+
+    assert body.index("LOSS") < body.index("WIN")
+
+
+@pytest.mark.parametrize(
+    ("show", "expected"),
+    [
+        (TaskDisplay.ALL, 20),
+        (TaskDisplay.CHANGED, 11),
+        (TaskDisplay.REGRESSIONS, 1),
+        (TaskDisplay.NONE, 0),
+    ],
+)
+def test_the_reader_chooses_how_much_of_the_table_to_see(
+    show: TaskDisplay, expected: int
+) -> None:
+    text = rendered(payload(), show_tasks=show)
+
+    assert len(re.findall(r"task \d\d · ", text)) == expected
+
+
+def test_an_empty_selection_says_why_it_is_empty_and_not_something_false() -> None:
+    """A selection with nothing in it is not the same fact as an unchanged run.
+
+    The shipped example run solved twenty-three of thirty-six tasks and
+    regressed on none. Asking it for its regressions used to answer "every task
+    scored the same on both sides", three lines under a headline saying the run
+    improved.
+    """
+    improved = payload().model_copy(
+        update={
+            "task_rows": [row for row in payload().task_rows if row.outcome != "loss"]
+        }
+    )
+
+    text = rendered(improved, show_tasks=TaskDisplay.REGRESSIONS)
+
+    assert "No task scored worse with the Skill than without it." in text
+    assert "Every task scored the same" not in text
+
+
+def test_a_run_where_nothing_moved_still_says_so() -> None:
+    unchanged = payload().model_copy(
+        update={
+            "task_rows": [row for row in payload().task_rows if row.outcome == "tie"]
+        }
+    )
+
+    assert "Every task scored the same on both sides." in rendered(unchanged)
+
+
+def test_a_filtered_table_says_that_it_is_filtered() -> None:
+    text = rendered(payload(), show_tasks=TaskDisplay.REGRESSIONS)
+
+    assert "Showing 1 of 20 tasks" in text
+
+
+def test_the_headline_says_what_was_established_rather_than_that_it_passed() -> None:
+    """techtree-python-637. The bar here is a baseline of zero, beaten by any margin."""
+    text = rendered(payload())
+
+    assert "Result  Improved on this development task family" in text
+    assert "Not broad-capability evidence" in text
+    assert "threshold" not in text
+    assert "Accepted" not in text
+
+
+def test_a_rejected_result_is_described_by_the_bar_it_fell_under() -> None:
+    """A rejection may still have moved the score, so it claims no direction."""
+    assert decision_headline(payload(decision="rejected")) == (
+        "Did not clear the bar this Climb declared"
+    )
+    assert decision_headline(payload(decision="development_only")).startswith(
+        "Development-only"
+    )
+
+
+def test_what_changed_names_both_sides_and_says_the_rest_was_held_fixed() -> None:
+    text = rendered(payload())
+
+    assert "What changed" in text
+    assert "branch-code-v1" in text
+    assert "No tested Skill → Skill v1" in text
+    assert "Everything else was the same on both sides" in text
+
+
+def test_the_caveats_are_introduced_by_severity_in_words() -> None:
+    text = rendered(payload())
+
+    assert "Warning: The comparison is controlled with warnings." in text
+    assert "Note: The raw episodes stay on this machine." in text
+
+
+def test_a_failed_verification_is_visible_in_the_badge() -> None:
+    text = rendered(payload(verification_status="verification_failed"))
+
+    assert "LOCAL PROOF DID NOT VERIFY" in text.splitlines()[2]
+
+
+def test_efficiency_says_it_was_not_recorded_rather_than_showing_zero() -> None:
+    """An unknown number is said to be unknown, never drawn as a zero."""
+    text = rendered(payload())
+
+    assert "Turns    not recorded for this run" in text
+    assert "Tokens   not recorded for this run" in text
+    assert "Time     not recorded for this run" in text
+    assert "Cost     unavailable" in text
+    assert "Source   nothing recorded it" in text
+    assert "$" not in text
+
+
+def test_the_terminal_leads_with_the_count_a_person_reads_in() -> None:
+    """techtree-python-of9. The mean stays, underneath, as the detail."""
+    lines = [line for line in rendered(payload()).splitlines() if line.strip()]
+
+    assert lines[3] == "Result  Improved on this development task family"
+    assert lines[4] == "        Solved 10 of 20 · 10 still failing · 1 regression"
+    assert lines[5] == "        Not broad-capability evidence"
+    assert lines[6] == "Tasks   1 of 20 → 10 of 20 (+9)"
+    assert "Change  +0.400 mean score" in "\n".join(lines)
+
+
+def test_the_headline_counts_the_iteration_rather_than_the_wins() -> None:
+    """techtree-python-e83. A tie here means the candidate failed the task too."""
+    text = rendered(payload(), show_tasks=TaskDisplay.NONE)
+
+    assert "Solved 10 of 20 · 10 still failing · 1 regression" in text
+    assert "WIN" not in text
+    assert "TIE" not in text
+
+
+def test_the_win_loss_and_tie_words_stay_in_the_per_task_table() -> None:
+    """techtree-python-e83. They are legible beside the scores that produced them."""
+    text = rendered(payload(), show_tasks=TaskDisplay.ALL)
+
+    assert "WIN" in text
+    assert "LOSS" in text
+    assert "TIE" in text
+
+
+def test_a_reward_with_no_count_reports_only_what_it_can_defend() -> None:
+    """techtree-python-e83. Never infer a count; show the ones that exist."""
+    text = rendered(payload(counted=False))
+
+    assert "Tasks   " not in text
+    assert "        1 regression" in text
+    assert "still failing" not in text
+    assert "Change  +0.400 mean score" in text
+
+
+def test_the_terminal_shows_turns_beside_time_and_says_what_was_saved() -> None:
+    """techtree-python-4y1. The measured saving, not four bare numbers."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_tokens=4_786_583,
+            candidate_tokens=825_609,
+            baseline_seconds=994.1,
+            candidate_seconds=391.2,
+            baseline_model_turns=410,
+            candidate_model_turns=73,
+            baseline_rate_limited_calls=4,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+        )
+    )
+    flat = _flat(text)
+
+    assert "Turns    baseline 410, candidate 73" in text
+    assert "Time     baseline 994.1s, candidate 391.2s" in text
+    # The honest unavailability first, then what was measured.
+    assert flat.index("Cost unavailable") < flat.index("On this controlled run")
+    assert (
+        "On this controlled run the Skill took 337 fewer model turns (82%), "
+        "used 3,960,974 fewer tokens (83%), and finished 602.9 seconds sooner "
+        "(61%)." in flat
+    )
+    assert "how busy the provider was" in flat
+
+
+def test_a_side_that_spent_more_is_said_to_have_spent_more() -> None:
+    """techtree-python-4y1. The sentence reports a measurement, not a hope."""
+    sentence = efficiency_sentence(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_model_turns=100,
+            candidate_model_turns=125,
+            baseline_rate_limited_calls=0,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+        )
+    )
+
+    assert sentence is not None
+    assert "took 25 more model turns (25%)" in sentence
+
+
+@pytest.mark.parametrize(
+    ("missing", "absent", "present"),
+    [
+        (
+            {
+                "baseline_model_turns": None,
+                "candidate_model_turns": None,
+                "baseline_rate_limited_calls": None,
+                "candidate_rate_limited_calls": None,
+                "every_rollout_completed": None,
+            },
+            "model turns",
+            "fewer tokens",
+        ),
+        ({"baseline_tokens": None}, "tokens", "fewer model turns"),
+        ({"candidate_seconds": None}, "seconds", "fewer model turns"),
+    ],
+    ids=["no_turns", "no_baseline_tokens", "no_candidate_clock"],
+)
+def test_a_measurement_only_one_side_recorded_produces_no_delta(
+    missing: dict[str, None], absent: str, present: str
+) -> None:
+    """techtree-python-4y1. Never a percentage worked out against a missing value."""
+    measured = {
+        "economics_source": "comparison_execution_record",
+        "baseline_tokens": 4_786_583,
+        "candidate_tokens": 825_609,
+        "baseline_seconds": 994.1,
+        "candidate_seconds": 391.2,
+        "baseline_model_turns": 410,
+        "candidate_model_turns": 73,
+        "baseline_rate_limited_calls": 4,
+        "candidate_rate_limited_calls": 0,
+        "every_rollout_completed": True,
+    }
+    sentence = efficiency_sentence(payload(**{**measured, **missing}))  # type: ignore[arg-type]
+
+    assert sentence is not None
+    assert absent not in sentence
+    assert present in sentence
+
+
+def test_a_difference_of_one_is_counted_in_the_singular() -> None:
+    """A saving of one turn is one turn, not one turns."""
+    sentence = efficiency_sentence(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_tokens=10,
+            candidate_tokens=9,
+            baseline_model_turns=100,
+            candidate_model_turns=99,
+            baseline_rate_limited_calls=0,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+        )
+    )
+
+    assert sentence is not None
+    assert "took 1 fewer model turn (1%)" in sentence
+    assert "used 1 fewer token (10%)" in sentence
+
+
+def test_a_run_that_recorded_nothing_comparable_gets_no_sentence() -> None:
+    """techtree-python-4y1. Silence beats a saving nothing measured."""
+    assert efficiency_sentence(payload()) is None
+
+
+def test_two_sides_that_spent_the_same_report_no_saving() -> None:
+    """techtree-python-4y1. A difference of nothing is not a finding."""
+    assert (
+        efficiency_sentence(
+            payload(
+                economics_source="comparison_execution_record",
+                baseline_seconds=391.2,
+                candidate_seconds=391.2,
+            )
+        )
+        is None
+    )
+
+
+def test_a_baseline_that_spent_nothing_gets_a_count_and_no_percentage() -> None:
+    """techtree-python-4y1. Nothing is divided by a zero baseline."""
+    sentence = efficiency_sentence(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_model_turns=0,
+            candidate_model_turns=12,
+            baseline_rate_limited_calls=0,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+        )
+    )
+
+    assert sentence is not None
+    assert "took 12 more model turns." in sentence
+    assert "%" not in sentence
+
+
+def test_a_derived_cost_is_drawn_with_everything_it_rests_on() -> None:
+    """techtree-python-nom. A figure worked out here never reads as a bill."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            derived_cost=DerivedCost(
+                usd=0.1809,
+                input_tokens=5_612_192,
+                output_tokens=96_583,
+                cached_input_tokens=2_244_480,
+                prices_name_a_cached_rate=False,
+                model_id="qwen/qwen3.7-flash",
+                input_usd_per_mtok=0.03,
+                output_usd_per_mtok=0.13,
+                prices_recorded_on="2026-08-20",
+            ),
+        )
+    )
+
+    assert "Cost     about $0.18, worked out here, not billed" in text
+    flat = _flat(text)
+    assert "Computed from 5,612,192 input and 96,583 output tokens" in flat
+    assert "Your provider's bill is what you actually pay." in flat
+    assert "2,244,480 of those input tokens came back from the provider's cache" in flat
+    assert "on the high side" in flat
+
+
+def test_a_cost_that_cannot_be_worked_out_says_what_is_missing() -> None:
+    """techtree-python-nom. "Unavailable" alone tells a reader nothing."""
+    text = rendered(payload())
+
+    assert "Cost     unavailable" in text
+    assert "This run wrote no signed execution record." in _flat(text)
+
+
+def _flat(text: str) -> str:
+    """Return one rendering with its line wrapping undone."""
+    return " ".join(text.split())
+
+
+def test_efficiency_shows_what_the_execution_record_recorded() -> None:
+    """Decisions 0007 R6: tokens, time and cost, from the signed record."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_tokens=1_186_432,
+            candidate_tokens=1_204_771,
+            baseline_seconds=612.0,
+            candidate_seconds=598.0,
+            cost_usd=4.1,
+            cost_provenance=CostProvenance.PROVIDER_REPORTED,
+        )
+    )
+
+    assert "Tokens   baseline 1,186,432, candidate 1,204,771" in text
+    assert "Time     baseline 612.0s, candidate 598.0s" in text
+    assert "Cost     $4.10, reported by the provider" in text
+    assert "Source   this run's signed execution record" in text
+
+
+@pytest.mark.parametrize(
+    ("provenance", "phrase"),
+    [
+        (CostProvenance.PROVIDER_REPORTED, "reported by the provider"),
+        (CostProvenance.COMPUTED_FROM_PINNED_PRICE, "computed from the pinned price"),
+        (CostProvenance.ESTIMATED, "estimated, not billed"),
+    ],
+)
+def test_every_cost_figure_is_shown_with_where_it_came_from(
+    provenance: CostProvenance, phrase: str
+) -> None:
+    """An estimate is never allowed to read as a figure the provider billed."""
+    text = rendered(
+        payload(
+            economics_source="comparison_execution_record",
+            cost_usd=4.1,
+            cost_provenance=provenance,
+        )
+    )
+
+    assert f"Cost     $4.10, {phrase}" in text
+    if provenance is not CostProvenance.PROVIDER_REPORTED:
+        assert "reported by the provider" not in text
+
+
+# ---------------------------------------------------------------------------
+# The gateway
+# ---------------------------------------------------------------------------
+
+
+def test_the_compact_rendering_carries_no_escape_sequences() -> None:
+    assert ANSI.search(render_uplift_markdown(payload())) is None
+    assert "\x1b" not in render_uplift_markdown(payload())
+
+
+def test_the_compact_rendering_leads_with_what_was_established() -> None:
+    """techtree-python-637 and e83, in the channel a line is quoted out of."""
+    lines = render_uplift_markdown(payload()).splitlines()
+
+    assert lines[0] == (
+        "**Improved on this development task family — Solved 10 of 20 · "
+        "10 still failing · 1 regression**"
+    )
+    assert lines[2] == "- Not broad-capability evidence"
+    assert "threshold" not in "\n".join(lines)
+    assert "win, " not in "\n".join(lines)
+
+
+def test_the_compact_rendering_is_bounded() -> None:
+    text = render_uplift_markdown(payload(task_count=40))
+
+    assert len(re.findall(r"task \d\d · ", text)) == 5
+    assert len(text.splitlines()) < 30
+
+
+@pytest.mark.parametrize(
+    ("show", "expected"),
+    [
+        (TaskDisplay.ALL, 20),
+        (TaskDisplay.CHANGED, 5),
+        (TaskDisplay.REGRESSIONS, 1),
+        (TaskDisplay.NONE, 0),
+    ],
+)
+def test_the_gateway_reader_chooses_how_much_of_the_table_to_see(
+    show: TaskDisplay, expected: int
+) -> None:
+    """techtree-python-fg1. The option a piped result advertises has to work."""
+    text = render_uplift_markdown(payload(), show_tasks=show)
+
+    assert len(re.findall(r"task \d\d · ", text)) == expected
+
+
+def test_asking_the_gateway_for_every_task_overrides_the_default_bound() -> None:
+    """The cap keeps an unasked-for message short; it does not refuse a reader."""
+    text = render_uplift_markdown(payload(task_count=40), show_tasks=TaskDisplay.ALL)
+
+    assert len(re.findall(r"task \d\d · ", text)) == 40
+    assert text.splitlines()[0].startswith("**")
+
+
+def test_the_gateway_shows_the_ties_only_when_every_task_was_asked_for() -> None:
+    everything = render_uplift_markdown(payload(), show_tasks=TaskDisplay.ALL)
+    changed = render_uplift_markdown(payload(), show_tasks=TaskDisplay.CHANGED)
+
+    assert "(TIE)" in everything
+    assert "(TIE)" not in changed
+
+
+def test_a_gateway_reader_who_wants_no_table_gets_no_heading_either() -> None:
+    text = render_uplift_markdown(payload(), show_tasks=TaskDisplay.NONE)
+
+    assert "Changed tasks" not in text
+    assert "Regressions" not in text
+    assert "All 20 tasks:" not in text
+    assert "(WIN)" not in text
+
+
+@pytest.mark.parametrize(
+    ("show", "heading"),
+    [
+        (TaskDisplay.ALL, "All 20 tasks:"),
+        (TaskDisplay.CHANGED, "Changed tasks (5 of 11 shown):"),
+        (TaskDisplay.REGRESSIONS, "Regressions (1 of 20 tasks):"),
+    ],
+)
+def test_the_gateway_heading_names_the_rows_it_is_printing(
+    show: TaskDisplay, heading: str
+) -> None:
+    """A heading that claims a ranking nothing performed is a heading that lies."""
+    text = render_uplift_markdown(payload(), show_tasks=show)
+
+    assert heading in text
+    assert "Largest changes" not in text
+
+
+def test_the_gateway_heading_stops_saying_rows_were_cut_when_they_were_not() -> None:
+    text = render_uplift_markdown(
+        payload(), show_tasks=TaskDisplay.CHANGED, maximum_task_rows=11
+    )
+
+    assert "Changed tasks (11 of 20 tasks):" in text
+    assert "shown" not in text
+
+
+def test_the_gateway_still_keeps_every_caveat_when_every_task_is_shown() -> None:
+    """The cap may cut a row; nothing may cut a qualification."""
+    text = render_uplift_markdown(payload(task_count=40), show_tasks=TaskDisplay.ALL)
+
+    assert "The comparison is controlled with warnings." in text
+    assert "- Proof: local P1, signature verified offline" in text
+
+
+def test_the_compact_rendering_stays_bounded_with_everything_on() -> None:
+    """Every line these tickets add, on one message, still fits a phone."""
+    text = render_uplift_markdown(
+        payload(
+            task_count=40,
+            economics_source="comparison_execution_record",
+            baseline_seconds=994.1,
+            candidate_seconds=391.2,
+            baseline_model_turns=406,
+            candidate_model_turns=73,
+            baseline_rate_limited_calls=4,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+            derived_cost=DerivedCost(
+                usd=0.1809,
+                input_tokens=5_612_192,
+                output_tokens=96_583,
+                cached_input_tokens=2_244_480,
+                prices_name_a_cached_rate=False,
+                model_id="qwen/qwen3.7-flash",
+                input_usd_per_mtok=0.03,
+                output_usd_per_mtok=0.13,
+                prices_recorded_on="2026-08-20",
+            ),
+        )
+    )
+
+    assert len(text.splitlines()) < 30
+
+
+def test_the_compact_rendering_carries_both_sides_counts_and_the_mean() -> None:
+    """techtree-python-of9. The movement, under the line that leads."""
+    text = render_uplift_markdown(payload())
+
+    assert "- Tasks: 1 of 20 → 10 of 20 (+9), mean 0.050 → 0.450 (+0.400)" in text
+
+
+def test_a_reward_with_no_count_still_carries_the_mean() -> None:
+    """techtree-python-e83. Nothing is rounded into a count that does not exist."""
+    text = render_uplift_markdown(payload(counted=False))
+
+    assert text.splitlines()[0] == (
+        "**Improved on this development task family — 1 regression**"
+    )
+    assert "- Tasks: mean 0.050 → 0.450 (+0.400)" in text
+
+
+def test_the_compact_rendering_carries_the_saving() -> None:
+    """techtree-python-4y1. The channel with the least room still carries it."""
+    text = render_uplift_markdown(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_tokens=4_786_583,
+            candidate_tokens=825_609,
+            baseline_seconds=994.1,
+            candidate_seconds=391.2,
+            baseline_model_turns=410,
+            candidate_model_turns=73,
+            baseline_rate_limited_calls=4,
+            candidate_rate_limited_calls=0,
+            every_rollout_completed=True,
+        )
+    )
+
+    assert (
+        "- Work: On this controlled run the Skill took 337 fewer model turns "
+        "(82%), used 3,960,974 fewer tokens (83%), and finished 602.9 seconds "
+        "sooner (61%)." in text
+    )
+    # The sentence carries both clocks, so the bare pair is not printed twice.
+    assert "- Time:" not in text
+
+
+def test_the_compact_rendering_shows_the_bare_clock_when_nothing_moved() -> None:
+    """Two sides that took the same time still say how long each one took."""
+    text = render_uplift_markdown(
+        payload(
+            economics_source="comparison_execution_record",
+            baseline_seconds=994.1,
+            candidate_seconds=994.1,
+        )
+    )
+
+    assert "- Time: baseline 994.1s, candidate 994.1s" in text
+    assert "- Work:" not in text
+
+
+def test_the_compact_rendering_shows_the_derived_cost_and_its_basis() -> None:
+    """techtree-python-nom. Provenance travels with the figure even here."""
+    text = render_uplift_markdown(
+        payload(
+            economics_source="comparison_execution_record",
+            derived_cost=DerivedCost(
+                usd=0.1809,
+                input_tokens=5_612_192,
+                output_tokens=96_583,
+                cached_input_tokens=0,
+                prices_name_a_cached_rate=False,
+                model_id="qwen/qwen3.7-flash",
+                input_usd_per_mtok=0.03,
+                output_usd_per_mtok=0.13,
+                prices_recorded_on="2026-08-20",
+            ),
+        )
+    )
+
+    assert "- Cost: about $0.18, worked out here, not billed" in text
+    assert "- Computed from 5,612,192 input and 96,583 output tokens" in text
+
+
+def test_the_compact_rendering_keeps_every_qualification() -> None:
+    """Room is made by cutting the table, never by cutting a warning."""
+    text = render_uplift_markdown(payload(task_count=40), maximum_task_rows=1)
+
+    assert "The comparison is controlled with warnings." in text
+
+
+def test_the_compact_rendering_names_the_proof_beside_the_numbers() -> None:
+    text = render_uplift_markdown(payload())
+
+    assert "- Proof: local P1, signature verified offline" in text
+    assert "- Raw episodes: retained locally; not uploaded" in text
+
+
+def test_the_compact_rendering_shows_the_regression_first() -> None:
+    text = render_uplift_markdown(payload())
+    body = text[text.index("Changed tasks") :]
+
+    assert body.index("LOSS") < body.index("WIN")
+
+
+def test_a_result_whose_proof_failed_says_so_before_the_numbers() -> None:
+    """The channel a number is most likely to be quoted out of."""
+    text = render_uplift_markdown(payload(verification_status="verification_failed"))
+
+    assert text.splitlines()[0] == UNVERIFIED_HEADLINE
+    assert "signature DID NOT verify" in text
+
+
+def test_a_development_only_result_is_not_dressed_up_as_a_verdict() -> None:
+    text = render_uplift_markdown(
+        payload(
+            decision="development_only",
+            proof_grade="development_only",
+            verification_status="not_verified",
+        )
+    )
+
+    assert text.startswith("**Development-only: this report states no verdict")
+    assert "signature not checked" in text
+
+
+def test_the_same_payload_renders_the_same_markdown() -> None:
+    assert render_uplift_markdown(payload()) == render_uplift_markdown(payload())
+
+
+@pytest.mark.parametrize(
+    "decision",
+    ["accepted", "rejected", "inconclusive", "invalid", "development_only"],
+)
+def test_both_channels_say_the_same_thing_about_the_iteration(decision: str) -> None:
+    """techtree-python-e83 and 637. One phrasing, built once, drawn twice."""
+    subject = payload(decision=decision)
+    headline = decision_headline(subject)
+    counts = solved_line(subject)
+
+    for text in (rendered(subject), render_uplift_markdown(subject)):
+        assert headline in text
+        assert counts in text
+        assert "Not broad-capability evidence" in text
+
+
+@pytest.mark.parametrize(
+    "label",
+    [FIRST_RESULT_LABEL, SECOND_RESULT_LABEL],
+    ids=["first_result", "second_result"],
+)
+def test_both_channels_name_the_climb_and_which_result_this_is(label: str) -> None:
+    """Decisions 0009: the same two names reach a terminal and a gateway.
+
+    A reader who sees only one of the two channels still has to be able to say
+    which Climb produced the numbers and whether this is the first receipt or
+    the second iteration. The rich renderer leads with both; the compact one
+    carries them on one line because it has only a handful to spend.
+    """
+    subject = payload(comparison_label=label)
+
+    terminal = rendered(subject).splitlines()
+    assert terminal[0] == "Techtree Hello World"
+    assert terminal[1] == label
+
+    gateway = render_uplift_markdown(subject)
+    assert f"- Techtree Hello World — {label}" in gateway
+    assert ANSI.search(gateway) is None

@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "JsonScalar": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JsonScalar"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PackageRef": {
+      "additionalProperties": false,
+      "description": "The source package a taskset is defined in.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "kind": {
+          "enum": [
+            "embedded",
+            "git",
+            "hub"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "revision": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "revision",
+        "digest"
+      ],
+      "title": "PackageRef",
+      "type": "object"
+    },
+    "TasksetRef": {
+      "additionalProperties": false,
+      "description": "Which taskset, from which package, with which configuration.",
+      "properties": {
+        "config": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Config",
+          "type": "object"
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "kind": {
+          "const": "verifiers",
+          "title": "Kind",
+          "type": "string"
+        },
+        "package": {
+          "$ref": "#/$defs/PackageRef"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "package",
+        "config"
+      ],
+      "title": "TasksetRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/taskset-lock.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What a taskset reference resolved to, pinned.",
+  "properties": {
+    "engine_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "membership_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "ordered_task_hashes": {
+      "items": {
+        "$ref": "#/$defs/Digest"
+      },
+      "title": "Ordered Task Hashes",
+      "type": "array"
+    },
+    "resolved_package_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "schema_version": {
+      "const": "techtree.taskset-lock.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "task_count": {
+      "minimum": 1,
+      "title": "Task Count",
+      "type": "integer"
+    },
+    "taskset_ref": {
+      "$ref": "#/$defs/TasksetRef"
+    }
+  },
+  "required": [
+    "schema_version",
+    "taskset_ref",
+    "engine_digest",
+    "resolved_package_digest",
+    "ordered_task_hashes",
+    "membership_digest",
+    "task_count"
+  ],
+  "title": "TasksetLock",
+  "type": "object"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "default",
+  "packages": [
+    {
+      "name": "procedure-transfer-v1",
+      "source_digest": "sha256:f42a0d5e968478af40c703645d247ef043f115f6801d3b497eca5fab47261a7c",
+      "version": "0.1.0"
+    }
+  ],
+  "python_version": "3.12",
+  "schema_version": "techtree.engine.v1alpha1",
+  "supported_hosts": [
+    "darwin/amd64",
+    "darwin/arm64",
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "verifiers_revision": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+  "verifiers_version": "0.3.1"
+}

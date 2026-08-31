@@ -1,0 +1,170 @@
+"""Where an answer goes, and what that changes. Sections 6.1, 7.8, 7.15."""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+import pytest
+from techtree_hermes.cli.errors import ChannelError
+from techtree_hermes.host.channels import (
+    DOCUMENTED_CHANNEL_KEYS,
+    TRUNCATION_NOTE,
+    bounded_gateway_text,
+    ensure_gateway_safe,
+    is_gateway_safe_required,
+    resolve_channel,
+)
+from techtree_hermes.services.models import ChannelKind
+from techtree_hermes.tools import tool_result
+
+
+def test_an_explicit_hint_is_believed() -> None:
+    assert resolve_channel("terminal") is ChannelKind.TERMINAL
+    assert resolve_channel("gateway") is ChannelKind.GATEWAY
+    assert resolve_channel(" Gateway ") is ChannelKind.GATEWAY
+
+
+def test_no_hint_means_unknown() -> None:
+    """The plugin never guesses from the operating system."""
+    assert resolve_channel(None) is ChannelKind.UNKNOWN
+    assert resolve_channel(None, {"platform": "darwin", "tty": True}) is (
+        ChannelKind.UNKNOWN
+    )
+
+
+def test_no_callback_field_is_invented() -> None:
+    """Hermes 0.20.0 hands a slash command the same way from a phone."""
+    assert DOCUMENTED_CHANNEL_KEYS == ()
+
+
+def test_a_documented_field_would_be_used(monkeypatch: pytest.MonkeyPatch) -> None:
+    import techtree_hermes.host.channels as channels
+
+    monkeypatch.setattr(channels, "DOCUMENTED_CHANNEL_KEYS", ("hermes_channel",))
+
+    assert channels.resolve_channel(None, {"hermes_channel": "gateway"}) is (
+        ChannelKind.GATEWAY
+    )
+    assert channels.resolve_channel(None, {"hermes_channel": "carrier pigeon"}) is (
+        ChannelKind.UNKNOWN
+    )
+
+
+@pytest.mark.parametrize("named", ["console", "sms", ""])
+def test_a_channel_that_does_not_exist_is_refused(named: str) -> None:
+    with pytest.raises(ChannelError):
+        resolve_channel(named)
+
+
+def test_unknown_is_treated_as_a_gateway() -> None:
+    assert is_gateway_safe_required(ChannelKind.UNKNOWN) is True
+    assert is_gateway_safe_required(ChannelKind.GATEWAY) is True
+    assert is_gateway_safe_required(ChannelKind.TERMINAL) is False
+
+
+# Making text safe ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "hostile",
+    [
+        "\x1b[31mred\x1b[0m",
+        "before\x00after",
+        "carriage\rreturn",
+        "\x9bcontrol sequence introducer",
+    ],
+)
+def test_control_characters_never_survive(hostile: str) -> None:
+    safe = ensure_gateway_safe(hostile)
+
+    assert "\x1b" not in safe
+    assert "\x00" not in safe
+    assert "\r" not in safe
+    assert "\x9b" not in safe
+
+
+def test_ordinary_text_is_left_alone() -> None:
+    text = "Run run_0123\tphase: completed\nProof: verified — 12 checks"
+
+    assert ensure_gateway_safe(text) == text
+
+
+def test_short_text_is_not_touched() -> None:
+    assert bounded_gateway_text("a short answer", 3500) == "a short answer"
+
+
+def test_long_text_is_cut_and_says_so() -> None:
+    """A caller that asks for a budget gets one, and is told where it cut.
+
+    There is no default any more. Every budget is now named by whoever wants
+    one, because the single number that used to serve them all was a guess
+    that quietly governed every answer the plugin gave.
+    """
+    long_text = "\n".join(f"line {number} of the answer" for number in range(1000))
+
+    bounded = bounded_gateway_text(long_text, 3500)
+
+    assert len(bounded) <= 3500
+    assert bounded.endswith(TRUNCATION_NOTE)
+    assert "line 0 of the answer" in bounded
+
+
+def test_a_cut_does_not_split_a_word() -> None:
+    digest = "sha256:" + "a" * 64
+    text = " ".join([digest] * 500)
+
+    bounded = bounded_gateway_text(text, 3500)
+    body = bounded[: -len(TRUNCATION_NOTE)]
+
+    for fragment in body.split():
+        assert fragment == digest
+
+
+# What a channel changes about a tool answer -------------------------------------------
+
+
+def _payload(size: int) -> dict[str, Any]:
+    return {"ok": True, "command": "climb list", "rows": ["x" * 100] * size}
+
+
+def test_a_terminal_may_receive_a_large_answer() -> None:
+    answer = json.loads(tool_result(_payload(100), ChannelKind.TERMINAL))
+
+    assert answer.get("truncated") is None
+    assert len(answer["rows"]) == 100
+
+
+def test_a_phone_receives_the_whole_answer() -> None:
+    """One budget, whatever is reading.
+
+    There used to be a far smaller one for anything not explicitly a terminal,
+    and no host documents a size at which it splits a message, so the number
+    was a guess. What it bought was answers that vanished at a threshold
+    nobody could point at. A host that splits a long message shows a split
+    message; that is the host's business.
+    """
+    answer = json.loads(tool_result(_payload(100), ChannelKind.GATEWAY))
+
+    assert answer.get("truncated") is None
+    assert len(answer["rows"]) == 100
+
+
+def test_an_unknown_channel_receives_the_whole_answer_too() -> None:
+    """Unknown was every call that did not say otherwise, which was most.
+
+    So the small budget was never really the phone's: it governed nearly every
+    answer the plugin gave, including in a terminal.
+    """
+    answer = json.loads(tool_result(_payload(100), ChannelKind.UNKNOWN))
+
+    assert answer.get("truncated") is None
+    assert len(answer["rows"]) == 100
+
+
+def test_a_capped_answer_still_carries_what_matters() -> None:
+    payload = {**_payload(100), "run_id": "run_" + "0" * 32}
+
+    answer = json.loads(tool_result(payload, ChannelKind.GATEWAY))
+
+    assert answer["run_id"] == "run_" + "0" * 32

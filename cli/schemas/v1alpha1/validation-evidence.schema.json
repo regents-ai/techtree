@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "ValidationEvidenceSummary": {
+      "additionalProperties": false,
+      "description": "Aggregate counts over the normalized task records.",
+      "properties": {
+        "error": {
+          "minimum": 0,
+          "title": "Error",
+          "type": "integer"
+        },
+        "invalid": {
+          "minimum": 0,
+          "title": "Invalid",
+          "type": "integer"
+        },
+        "missing": {
+          "minimum": 0,
+          "title": "Missing",
+          "type": "integer"
+        },
+        "timeout": {
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        },
+        "valid": {
+          "minimum": 0,
+          "title": "Valid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total",
+        "valid",
+        "invalid",
+        "error",
+        "timeout",
+        "missing"
+      ],
+      "title": "ValidationEvidenceSummary",
+      "type": "object"
+    },
+    "ValidationEvidenceTask": {
+      "additionalProperties": false,
+      "description": "The normalized per-task record the validator produced.",
+      "properties": {
+        "gold": {
+          "$ref": "#/$defs/ValidationTaskOutcome"
+        },
+        "position": {
+          "minimum": 0,
+          "title": "Position",
+          "type": "integer"
+        },
+        "setup": {
+          "$ref": "#/$defs/ValidationTaskOutcome"
+        },
+        "task_hash": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "position",
+        "task_hash",
+        "gold",
+        "setup"
+      ],
+      "title": "ValidationEvidenceTask",
+      "type": "object"
+    },
+    "ValidationMethod": {
+      "additionalProperties": false,
+      "description": "How the validation was performed, in reproducible terms.",
+      "properties": {
+        "kind": {
+          "const": "verifiers_validate",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "const": "all",
+          "title": "Mode",
+          "type": "string"
+        },
+        "runtime": {
+          "const": "subprocess",
+          "title": "Runtime",
+          "type": "string"
+        },
+        "validator_revision": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "kind",
+        "mode",
+        "runtime",
+        "validator_revision"
+      ],
+      "title": "ValidationMethod",
+      "type": "object"
+    },
+    "ValidationTaskOutcome": {
+      "additionalProperties": false,
+      "description": "One validator verdict for one task.",
+      "properties": {
+        "reason": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "valid": {
+          "title": "Valid",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "valid",
+        "reason"
+      ],
+      "title": "ValidationTaskOutcome",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/validation-evidence.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Deterministic normalized validator output. Decisions 0003 A1.\n\nNormalization has already removed elapsed times, wall-clock timestamps,\ntemporary paths, run identifiers, process identifiers, hostnames, absolute\noutput directories, log prefixes, and tracebacks from successful runs.\nWhat remains is the part two honest parties must agree on.",
+  "properties": {
+    "method": {
+      "$ref": "#/$defs/ValidationMethod"
+    },
+    "schema_version": {
+      "const": "techtree.validation-evidence.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/ValidationEvidenceSummary"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/ValidationEvidenceTask"
+      },
+      "title": "Tasks",
+      "type": "array"
+    },
+    "taskset_lock_digest": {
+      "$ref": "#/$defs/Digest"
+    }
+  },
+  "required": [
+    "schema_version",
+    "taskset_lock_digest",
+    "method",
+    "tasks",
+    "summary"
+  ],
+  "title": "ValidationEvidence",
+  "type": "object"
+}

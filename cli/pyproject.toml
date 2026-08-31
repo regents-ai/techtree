@@ -1,0 +1,137 @@
+[project]
+name = "techtree"
+version = "0.1.1"
+description = "Techtree Climb CLI, detached worker, managed Verifiers engine, and Campaign protocol kernel."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license-files = ["LICENSE"]
+authors = [{ name = "Techtree" }]
+keywords = ["techtree", "climb", "campaign", "verifiers", "evaluation"]
+classifiers = [
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+# Spec section 7.2. The ordinary package never depends on Verifiers, Hermes,
+# or NeMo Relay. Engine dependencies belong to the independently locked
+# managed engine under src/techtree/resources/engines/default/.
+dependencies = [
+  "cryptography>=45,<47",
+  "filelock>=3.18,<4",
+  "platformdirs>=4,<5",
+  "pydantic>=2.12,<3",
+  "rfc8785>=0.1,<1",
+  "rich>=14,<15",
+  "tomli-w>=1.2,<2",
+  "typer>=0.16,<1",
+]
+
+[project.scripts]
+techtree = "techtree.cli.app:main"
+techtree-worker = "techtree.worker.main:main"
+
+# Spec section 7.3.
+[dependency-groups]
+dev = [
+  # The build backend, so that the tests can exercise the build hook that
+  # stamps a wheel's source commit into it (decisions 0026).
+  "hatchling>=1.27,<2",
+  "mypy>=1.17,<2",
+  "pytest>=8,<9",
+  "pytest-cov>=6,<8",
+  "pytest-xdist>=3,<4",
+  "ruff>=0.12,<1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/techtree"]
+# Spec section 9.1 required package data.
+artifacts = [
+  "src/techtree/resources/catalog/**/*",
+  "src/techtree/resources/engines/**/*",
+  # Decisions 0007 R9: the pinned harness tool surface a comparison checks the
+  # Skill-index delta against.
+  "src/techtree/resources/harness/**/*",
+  # Spec section 9.6: the wheel contains the exact ReleaseCore, and decisions
+  # 0026: the build stamps this wheel's source commit in beside it.
+  "src/techtree/resources/release/**/*",
+]
+
+# Decisions 0026: the wheel is stamped with the commit its sources are, while
+# it is built. The hook refuses to build a wheel it cannot name a commit for.
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "tools/stamp_provenance.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/techtree",
+  "tools",
+  "schemas",
+  "release",
+  "tests",
+  "docs",
+  "Makefile",
+  "README.md",
+  "LICENSE",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests", "tools"]
+# Ruff formats Python blocks embedded in Markdown. Prose files here quote the
+# specification verbatim, so they are not Ruff's to rewrite.
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP", "W"]
+# The reference taskset deliberately exercises homoglyphs and unusual spaces,
+# so ambiguous-character warnings describe intended test data, not defects.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["techtree"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["src", "tests"]
+mypy_path = ["src"]
+# The preflight suite and the engine bundle packages import the pinned
+# Verifiers build. That build belongs to the managed engine environment, never
+# to the ordinary package environment, so its types are not resolvable here.
+#
+# The Hermes plugin's suite imports the plugin package from this monorepo or a
+# sibling checkout. Its directory name is not a Python identifier. It is checked by
+# `make typecheck-plugin`, which gives that directory an importable name first.
+exclude = [
+  "^tests/plugin/",
+  "^tests/preflight/",
+  "^src/techtree/resources/engines/",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+# The Hermes plugin's suite under tests/plugin is deliberately not here. It
+# reads the plugin out of its own checkout, so it is its own battery,
+# `make test-plugin`, and this repository's own gate does not depend on a
+# second checkout being present.
+testpaths = ["tests/unit", "tests/contract", "tests/integration"]
+addopts = [
+  "-ra",
+  "--strict-config",
+  "--strict-markers",
+  "-m",
+  "not integration and not preflight and not real_model",
+]
+markers = [
+  "integration: exercises real filesystem and subprocess flows; run with `make test-integration`",
+  "real_cli: the Hermes plugin's read-only contract tests against an installed Techtree CLI; run with `make test-plugin`",
+  "preflight: pinned-Verifiers compatibility checks; run with `make verifiers-preflight`",
+  "real_model: calls a paid model endpoint and provisions Docker; never runs unattended, run with `make real-model-run`",
+]

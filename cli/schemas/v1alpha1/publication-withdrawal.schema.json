@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "Base64String": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "SignatureEnvelope": {
+      "additionalProperties": false,
+      "description": "A detached Ed25519 signature over a digest string.",
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "signature": {
+          "$ref": "#/$defs/Base64String"
+        }
+      },
+      "required": [
+        "algorithm",
+        "key_id",
+        "signature"
+      ],
+      "title": "SignatureEnvelope",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "WithdrawalRequest": {
+      "additionalProperties": false,
+      "description": "The participant asking that one published entry be marked withdrawn.\n\nThree members and no fourth. There is no reason field and there will not be\none: decisions 0038 settled that nothing a submitter writes appears on the\nsite, and a free-text reason attached to a public entry is exactly that.\n\nThe bundle digest is the whole of the subject, because a run is addressed on\nthe log by its bundle digest. ``requested_at`` makes the request a dated\nstatement rather than a bare assertion, and the signature over the payload's\ndigest is what proves it came from the key that signed the run. Nothing here\ncarries a public key: the network already holds the participant's, inside\nthe bundle it accepted, and looking the key up there rather than believing\none that arrived with the request is the point.",
+      "properties": {
+        "bundle_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "requested_at": {
+          "$ref": "#/$defs/UtcDateTime"
+        },
+        "schema_version": {
+          "const": "techtree.publication-withdrawal.v1alpha1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "bundle_digest",
+        "requested_at"
+      ],
+      "title": "WithdrawalRequest",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/publication-withdrawal.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "payload": {
+      "$ref": "#/$defs/WithdrawalRequest"
+    },
+    "payload_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "signature": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SignatureEnvelope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "payload",
+    "payload_digest"
+  ],
+  "title": "ObjectEnvelope[WithdrawalRequest]",
+  "type": "object"
+}

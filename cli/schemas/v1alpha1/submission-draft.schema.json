@@ -1,0 +1,263 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PolicyAcceptanceRequirement": {
+      "additionalProperties": false,
+      "description": "The rights policy a participant is being asked to accept.\n\nDecisions document 0003 A5. This states what must be accepted; it does not\nrecord that anyone accepted it.",
+      "properties": {
+        "data_policy_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "summary": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "data_policy_digest",
+        "required",
+        "summary"
+      ],
+      "title": "PolicyAcceptanceRequirement",
+      "type": "object"
+    },
+    "ProgramRef": {
+      "additionalProperties": false,
+      "description": "A reserved pointer at a future ``ImprovementProgram``.\n\nThe program model itself is deferred (spec section 4.4). Only the pointer\nexists, so that artifacts written today can be attributed later without a\nschema break.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "title": "ProgramRef",
+      "type": "object"
+    },
+    "PublicContext": {
+      "additionalProperties": false,
+      "description": "The optional public Climb an execution artifact was produced under.",
+      "properties": {
+        "climb_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "kind": {
+          "const": "climb",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "climb_digest"
+      ],
+      "title": "PublicContext",
+      "type": "object"
+    },
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "A complete candidate skill, addressed by content.",
+      "properties": {
+        "archive_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/SkillFile"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "name": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "parent_skill_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "root_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "schema_version": {
+          "const": "techtree.skill.v1alpha1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_kind": {
+          "const": "manual",
+          "title": "Source Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "name",
+        "root_digest",
+        "archive_digest",
+        "files",
+        "source_kind",
+        "parent_skill_digest"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    },
+    "SkillFile": {
+      "additionalProperties": false,
+      "description": "One file inside a skill, addressed by content.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "path": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "media_type",
+        "size",
+        "digest"
+      ],
+      "title": "SkillFile",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/submission-draft.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Everything a participant is about to commit to, in one object.",
+  "properties": {
+    "baseline_manifest_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "candidate_manifest_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "created_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "data_policy_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "estimated_episodes": {
+      "minimum": 1,
+      "title": "Estimated Episodes",
+      "type": "integer"
+    },
+    "id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "included_files": {
+      "items": {
+        "$ref": "#/$defs/NonEmptyString"
+      },
+      "title": "Included Files",
+      "type": "array"
+    },
+    "outcome_contract_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "policy_acceptance": {
+      "$ref": "#/$defs/PolicyAcceptanceRequirement"
+    },
+    "program_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProgramRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "public_context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PublicContext"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schema_version": {
+      "const": "techtree.submission-draft.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "skill_artifact": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/NonEmptyString"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "campaign_spec_digest",
+    "program_ref",
+    "public_context",
+    "data_policy_digest",
+    "outcome_contract_digest",
+    "skill_artifact",
+    "baseline_manifest_digest",
+    "candidate_manifest_digest",
+    "included_files",
+    "estimated_episodes",
+    "policy_acceptance",
+    "warnings",
+    "created_at"
+  ],
+  "title": "SubmissionDraft",
+  "type": "object"
+}

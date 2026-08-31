@@ -1,0 +1,312 @@
+"""The terminal rendering. Spec section 7.15.
+
+This is the CLI's own renderer, and in the released product it is the whole
+terminal result path: a signed report becomes a neutral payload, and this draws
+it. No model is asked to explain a result, so nothing between the numbers and
+the reader can change one by drawing it.
+
+Four rules, and each one is about a reader rather than about a terminal.
+
+*Meaning is never carried by colour alone.* Every outcome is spelled ``WIN``,
+``LOSS`` or ``TIE``, every caveat is introduced by its severity in words, and a
+terminal with no colour at all loses nothing but decoration. ``NO_COLOR`` and
+``--no-color`` are honoured by the console the CLI builds, and Rich emits no
+escape sequences at all when stdout is not a terminal.
+
+*The rendering is deterministic.* No spinner, no progress animation, no clock,
+no dictionary iteration order: the same payload renders to the same bytes,
+which is what makes it testable at all.
+
+*The order is the order of trust.* What was compared, then the result, then the
+tasks, then what changed, then the caveats — so a reader who stops early stops
+having read the honest version. The caveats are never last-resort small print
+they can miss; a development-only or failed-verification result says so in the
+badge at the top as well.
+
+*Regressions come first.* A reader scanning a table wants the rows that moved
+the wrong way, then the ones that moved, then the rest.
+
+The payload's next actions are deliberately not drawn here. Every Techtree
+command ends with the same numbered next-steps block, rendered by the CLI from
+the envelope it returns, and a result that grew a second one of its own would
+be the only command in the product that answers that question twice.
+"""
+
+from __future__ import annotations
+
+from typing import Final
+
+from rich.console import Console
+from rich.table import Table
+
+from techtree.presentation.build import (
+    HELD_FIXED_LINE,
+    NOT_BROAD_CAPABILITY_LINE,
+    VERIFICATION_FAILED,
+    VERIFICATION_NOT_VERIFIED,
+    VERIFICATION_VERIFIED,
+    cost_explanation,
+    cost_summary,
+    decision_headline,
+    efficiency_sentence,
+    score_bars,
+    solved_line,
+    task_count_line,
+)
+from techtree.presentation.models import (
+    TaskDisplay,
+    UpliftPresentationPayload,
+    selected_task_rows,
+)
+
+__all__ = ["outcome_label", "render_uplift_console"]
+
+_SEVERITY_PREFIX: Final[dict[str, str]] = {
+    "info": "Note:",
+    "warning": "Warning:",
+    "error": "Error:",
+}
+
+_SEVERITY_STYLE: Final[dict[str, str]] = {
+    "info": "",
+    "warning": "yellow",
+    "error": "red",
+}
+
+_OUTCOME_LABEL: Final[dict[str, str]] = {
+    "win": "WIN",
+    "loss": "LOSS",
+    "tie": "TIE",
+}
+
+_VERIFICATION_BADGE: Final[dict[str, str]] = {
+    VERIFICATION_VERIFIED: "local proof verified offline",
+    VERIFICATION_FAILED: "LOCAL PROOF DID NOT VERIFY",
+    VERIFICATION_NOT_VERIFIED: "local proof not checked",
+}
+
+
+def outcome_label(outcome: str) -> str:
+    """Return the word a reader sees for one task's outcome."""
+    return _OUTCOME_LABEL[outcome]
+
+
+def render_uplift_console(
+    payload: UpliftPresentationPayload,
+    console: Console,
+    *,
+    show_tasks: TaskDisplay = TaskDisplay.CHANGED,
+) -> None:
+    """Render an accessible, side-by-side terminal result.
+
+    ``show_tasks`` is the reader's choice of how much of the per-task table to
+    print (spec section 7.21). It selects rows and nothing else: no filter here
+    can change a count, because the counts come from the payload.
+    """
+    _header(payload, console)
+    _primary(payload, console)
+    _tasks(payload, console, show_tasks)
+    _efficiency(payload, console)
+    _what_changed(payload, console)
+    _caveats(payload, console)
+
+
+def _header(payload: UpliftPresentationPayload, console: Console) -> None:
+    """Campaign, comparison, and the badge that says how much this is worth."""
+    console.print(payload.campaign_title)
+    console.print(payload.comparison_label)
+    console.print(
+        f"[{payload.proof_grade} · {_VERIFICATION_BADGE[payload.verification_status]}]"
+    )
+    console.print()
+
+
+def _primary(payload: UpliftPresentationPayload, console: Console) -> None:
+    """What was established, what is still failing, and the numbers under it.
+
+    The three lines at the top are the ones a reader repeats to somebody else,
+    so they are the three that have to be defensible on their own: what this
+    comparison showed, how much of the task family is still unsolved, and the
+    fact that none of it is evidence about broad capability.
+
+    Wins, losses and ties do not appear here. On this Climb the baseline scores
+    nothing on every task, so a tie means the candidate failed the task too,
+    and a headline of twenty-four wins and no losses would read as a clean
+    sweep over a run with twelve tasks still failing. The three words stay in
+    the per-task table below, where each one is beside the scores that produced
+    it.
+
+    The count leads the detail because it is the number a person reads a result
+    in. A mean of 0.667 and "24 of 36" are the same measurement, and only one
+    of them can be repeated to somebody over a table.
+    """
+    console.print(f"Result  {decision_headline(payload)}")
+    console.print(f"        {solved_line(payload)}")
+    console.print(f"        {NOT_BROAD_CAPABILITY_LINE}")
+    console.print()
+
+    counted = task_count_line(payload)
+    if counted is not None:
+        console.print(f"Tasks   {counted}")
+        console.print()
+
+    table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))
+    table.add_column("side", no_wrap=True)
+    table.add_column("bar", no_wrap=True)
+    for bar in score_bars(payload):
+        table.add_row(bar.label, bar.display)
+    console.print(table)
+    console.print()
+
+    console.print(
+        f"Change  {payload.absolute_delta:+.3f} mean score  ({_relative(payload)})"
+    )
+    console.print()
+
+
+def _relative(payload: UpliftPresentationPayload) -> str:
+    """Say what a relative change is, or why there is not one."""
+    if payload.relative_delta is None:
+        return "no relative change: the baseline scored nothing"
+    return f"{payload.relative_delta:+.1%} relative"
+
+
+def _tasks(
+    payload: UpliftPresentationPayload, console: Console, show: TaskDisplay
+) -> None:
+    """The per-task table, regressions first."""
+    if show is TaskDisplay.NONE:
+        return
+    rows = selected_task_rows(payload.task_rows, show)
+    if not rows:
+        console.print(_nothing_selected(show))
+        console.print()
+        return
+
+    table = Table(box=None, pad_edge=False, padding=(0, 2))
+    table.add_column("Task", no_wrap=True)
+    table.add_column("Baseline", justify="right", no_wrap=True)
+    table.add_column("Candidate", justify="right", no_wrap=True)
+    table.add_column("Change", justify="right", no_wrap=True)
+    table.add_column("Outcome", no_wrap=True)
+    for row in rows:
+        table.add_row(
+            row.task_label,
+            f"{row.baseline_score:.3f}",
+            f"{row.candidate_score:.3f}",
+            f"{row.delta:+.3f}",
+            outcome_label(row.outcome),
+        )
+    console.print(table)
+    if len(rows) != len(payload.task_rows):
+        console.print(
+            f"Showing {len(rows)} of {len(payload.task_rows)} tasks. "
+            "Use --show-tasks all for the rest."
+        )
+    console.print()
+
+
+def _nothing_selected(show: TaskDisplay) -> str:
+    """Say why the table is empty, in terms of what was asked for.
+
+    An empty selection and an unchanged comparison are not the same fact, and
+    one sentence cannot honestly stand for both. Asking a run that solved
+    twenty-three tasks to list its regressions finds none, and answering that
+    with "every task scored the same" contradicts the three lines directly
+    above it — the reader is told the run improved and then told it did not.
+    So each selection says what its own emptiness means.
+    """
+    if show is TaskDisplay.REGRESSIONS:
+        return "No task scored worse with the Skill than without it."
+    if show is TaskDisplay.ALL:
+        return "This run recorded no tasks."
+    return "Every task scored the same on both sides."
+
+
+def _efficiency(payload: UpliftPresentationPayload, console: Console) -> None:
+    """Turns, tokens, time and cost, each shown with the source it came from.
+
+    Decisions document 0007 R6 governs the cost line: a figure is never printed
+    without saying where it is from, because "$4.10" and "$4.10, estimated" are
+    different claims and only one of them is about money that was actually
+    charged.
+
+    The sentence under the numbers is there because two durations side by side
+    are not a finding. What the two sides did differently is legible in how
+    many times each had to go back to the model, and that is the half of the
+    comparison a different machine would reproduce.
+    """
+    seconds = _pair(payload.baseline_seconds, payload.candidate_seconds, unit="s")
+    console.print("Efficiency")
+    turns = _pair(payload.baseline_model_turns, payload.candidate_model_turns)
+    console.print(f"  Turns    {turns}")
+    console.print(
+        f"  Tokens   {_pair(payload.baseline_tokens, payload.candidate_tokens)}"
+    )
+    console.print(f"  Time     {seconds}")
+    console.print(f"  Cost     {cost_summary(payload)}")
+    for line in cost_explanation(payload):
+        console.print(f"           {line}")
+    console.print(f"  Source   {_ECONOMICS_SOURCE[payload.economics_source]}")
+    sentence = efficiency_sentence(payload)
+    if sentence is not None:
+        console.print(f"  {sentence}")
+    console.print()
+
+
+def _pair(
+    baseline: float | int | None, candidate: float | int | None, *, unit: str = ""
+) -> str:
+    """Return both sides of one measurement, or say it was not recorded."""
+    if baseline is None and candidate is None:
+        return "not recorded for this run"
+    return f"baseline {_number(baseline, unit)}, candidate {_number(candidate, unit)}"
+
+
+def _number(value: float | int | None, unit: str) -> str:
+    """Return one measurement, or the word for an absent one.
+
+    Whole counts are grouped. A token total is seven digits in a real run, and
+    seven ungrouped digits are a number a reader has to count rather than read.
+    """
+    if value is None:
+        return "unavailable"
+    if isinstance(value, float):
+        return f"{value:.1f}{unit}"
+    return f"{value:,}{unit}"
+
+
+def _what_changed(payload: UpliftPresentationPayload, console: Console) -> None:
+    """The one declared difference, and the statement that it is the only one."""
+    console.print("What changed")
+    console.print(f"  {payload.change_label}")
+    for side, skill in (
+        ("Baseline ", payload.baseline_skill),
+        ("Candidate", payload.candidate_skill),
+    ):
+        digest = "none" if skill.root_digest is None else skill.root_digest
+        console.print(f"  {side}  {skill.label}")
+        console.print(f"             {digest}")
+    console.print(f"  {HELD_FIXED_LINE}")
+    console.print("  Each of those was checked against what the run actually did.")
+    console.print()
+
+
+#: Where the numbers above came from, said in the reader's terms.
+_ECONOMICS_SOURCE: Final[dict[str, str]] = {
+    "comparison_execution_record": "this run's signed execution record",
+    "episode_receipts": "the run's receipts; no execution record was written",
+    "unavailable": "nothing recorded it",
+}
+
+
+def _caveats(payload: UpliftPresentationPayload, console: Console) -> None:
+    """Every caveat, in payload order, introduced by severity in words."""
+    if not payload.caveats:
+        return
+    console.print("What this does and does not prove")
+    for caveat in payload.caveats:
+        console.print(
+            f"  {_SEVERITY_PREFIX[caveat.severity]} {caveat.text}",
+            style=_SEVERITY_STYLE[caveat.severity] or None,
+        )

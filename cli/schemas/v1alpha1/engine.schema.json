@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EnginePackage": {
+      "additionalProperties": false,
+      "description": "One package shipped inside the engine bundle.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "source_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "version": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "source_digest"
+      ],
+      "title": "EnginePackage",
+      "type": "object"
+    },
+    "HostPlatform": {
+      "enum": [
+        "darwin/amd64",
+        "darwin/arm64",
+        "linux/amd64",
+        "linux/arm64"
+      ],
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/engine.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What one engine bundle is, without saying what it hashes to.",
+  "properties": {
+    "name": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "packages": {
+      "items": {
+        "$ref": "#/$defs/EnginePackage"
+      },
+      "title": "Packages",
+      "type": "array"
+    },
+    "python_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "schema_version": {
+      "const": "techtree.engine.v1alpha1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "supported_hosts": {
+      "items": {
+        "$ref": "#/$defs/HostPlatform"
+      },
+      "title": "Supported Hosts",
+      "type": "array"
+    },
+    "verifiers_revision": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "verifiers_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "python_version",
+    "verifiers_version",
+    "verifiers_revision",
+    "supported_hosts",
+    "packages"
+  ],
+  "title": "EngineDescriptor",
+  "type": "object"
+}
