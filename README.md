@@ -17,11 +17,6 @@ optionally publish those results.
 | **Hermes plugin** | [`plugin/`](plugin/) | Gives Hermes an approval-aware operator surface for Techtree. It explains each step, invokes the CLI with fixed arguments, and relays structured results; evaluation logic stays in the CLI. |
 | **Public platform** | [`platform/`](platform/) | Powers [techtree.sh](https://techtree.sh/): installation, campaign discovery, documentation, and the public list of results participants choose to publish. |
 
-Each component keeps its original README and remains independently buildable.
-The former `techtree-python`, `techtree-hermes`, and `techtree-ash`
-repositories remain frozen v0.1 snapshots. This monorepo is the source of truth
-for v0.2 development.
-
 ## How they work together
 
 ```text
@@ -54,7 +49,7 @@ verify a local result.
 Publishing is optional. A published run sends its signed result material to
 the platform; private Episodes and Traces stay on the participant's machine.
 
-## Normal user flow
+The normal user flow is:
 
 1. Start with the pinned guide at [techtree.sh/start](https://techtree.sh/start).
 2. Let the Hermes plugin explain the prerequisites and request approval before
