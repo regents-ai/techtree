@@ -1,0 +1,46 @@
+{
+  "schema_version": "techtree.upstream-contract-lock.v1",
+  "status": "contract_spike_pending",
+  "approved_at": "2026-08-30",
+  "freeze_policy": {
+    "frozen_after_commit": true,
+    "replacement_requires_founder_decision": true,
+    "replacement_requires_fixture_regeneration": true,
+    "replacement_requires_affected_conformance_rerun": true
+  },
+  "verifiers": {
+    "tracking_policy": "latest_founder_approved_before_lock",
+    "approval_scope": "v0.2_contract_spike_and_admission",
+    "api_generation": "v1",
+    "package_version": "0.3.2.dev17",
+    "source_repository": "https://github.com/PrimeIntellect-ai/verifiers",
+    "source_commit": "c51c094a4018471b7fdc873eb5cb55bbd5e956e1",
+    "wheel_filename": "verifiers-0.3.2.dev17-py3-none-any.whl",
+    "wheel_sha256": "sha256:68c23a7c48b0544f5e98fd7fee433e1e96c96b7713a3ac2215b856770481b035",
+    "admission": "pending_conformance",
+    "historical_v0_1_engine_lock_unchanged": true
+  },
+  "prime_hosted_evaluations": {
+    "cli_version": null,
+    "api_version": null,
+    "environment_id": null,
+    "environment_version_id": null,
+    "comparison_topology": null,
+    "provider_idempotency_contract": "unproven",
+    "admission": "pending_contract_spike"
+  },
+  "nemo_fabric": {
+    "runtime_version": null,
+    "schema_version": null,
+    "adapter_coordinates": [],
+    "admission": "pending_contract_spike"
+  },
+  "nemo_relay": {
+    "package_version": null,
+    "atof_version": null,
+    "atif_version": null,
+    "coverage_calculation_version": "relay-coverage-v1",
+    "coverage_profiles": [],
+    "admission": "pending_contract_spike"
+  }
+}
