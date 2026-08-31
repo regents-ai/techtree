@@ -17,6 +17,15 @@ Implement the work packages in this order:
 WP3 requires WP2. WP5 requires WP3 and WP4. WP6 requires WP2. WP3 and WP4
 may proceed in parallel after WP1 when they have separate owners and fixtures.
 
+Within WP0:
+
+1. `techtree-31k.1.1` restores the trustworthy planning and release-identity
+   baseline.
+2. `techtree-31k.1.2`, `.1.4`, `.1.6`, and `.1.7` may then proceed in parallel.
+3. `.1.3` follows the Verifiers/environment contract in `.1.2`.
+4. `.1.5` follows the Fabric descriptor and admission work in `.1.4`.
+5. `.1.8` closes only after every earlier child has supplied its exact evidence.
+
 Before production code begins:
 
 - reconcile every active v0.2 ticket to one work package;
@@ -27,5 +36,14 @@ Before production code begins:
 - add only sanitized deterministic fixtures under component-owned test paths;
 - commit the lock and decisions before production backend code; and
 - freeze the adopted upstream candidates for the release line.
+
+WP0 may commit internal documents, deterministic source, sanitized fixtures,
+and focused checks. Publishing the Prime environment, starting paid work,
+sending upstream communications, adopting the final lock, publishing a
+package, or deploying still requires a separate exact founder approval.
+
+Read-only Prime discovery on 2026-08-31 found no organization/team available
+to the current operator. The Prime contract spike may continue locally, but
+environment publication must stop until ownership is resolved.
 
 Do not create future module trees before their first executable caller exists.

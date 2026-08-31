@@ -4,7 +4,8 @@ This is the monorepo backlog for the binding
 [`v0.2 implementation contract`](../plan/v0.2.md). Each implementation ticket
 owns one work package. A ticket may be split into component-sized delivery
 tasks, but a child must inherit the same work-package boundary and may not
-invent a second architecture.
+invent a second architecture. The founder choices constraining WP0 are recorded
+in [`DECISION_LEDGER.md`](DECISION_LEDGER.md).
 
 The seven tickets below are ordered dependencies. WP0 blocks WP1; WP1 blocks
 WP2, WP3, and WP4; WP2 blocks WP3 and WP6; WP3 and WP4 block WP5. The full
@@ -24,7 +25,24 @@ release gate runs only after WP5 and WP6.
 The inherited maintenance tickets are `techtree-31k.8` through
 `techtree-31k.12`, in the same order as the maintenance list below.
 
-## V2-WP0 — Lock authority and upstream contracts
+WP0 is itself an epic with eight children:
+
+| Work | Bead | Primary ownership |
+| --- | --- | --- |
+| Recovery, retrospective, and release identity | `techtree-31k.1.1` | root docs and `platform/` |
+| Verifiers and deterministic environment contract | `techtree-31k.1.2` | `cli/` |
+| Prime Hosted contract spike | `techtree-31k.1.3` | `cli/` |
+| Fabric Hermes/Codex capability admission | `techtree-31k.1.4` | `cli/` and `plugin/` |
+| Relay, ATOF, ATIF, and coverage profiles | `techtree-31k.1.5` | `cli/` |
+| Machine contract and multi-plugin packaging map | `techtree-31k.1.6` | `cli/` and `plugin/` |
+| Publication, withdrawal, and privacy inheritance | `techtree-31k.1.7` | `cli/` and `platform/` |
+| Proposed lock and founder approval packet | `techtree-31k.1.8` | cross-component |
+
+`.1.1` establishes the corrected baseline. After it completes, `.1.2`, `.1.4`,
+`.1.6`, and `.1.7` may proceed in parallel. `.1.3` depends on `.1.2`; `.1.5`
+depends on `.1.4`; and `.1.8` depends on every earlier WP0 child.
+
+## V2-WP0 — Authority, discovery, conformance, and upstream contract lock
 
 Priority: P0  
 Type: decision and conformance  
@@ -32,16 +50,25 @@ Owner: cross-component
 
 Deliverables:
 
+- Document the two false-completion incidents and make evidence-backed
+  completion language a permanent ticket rule.
 - Audit the website, README, roadmap, and release-note sources for the binding
-  v0.2 release identity.
+  v0.2 release identity. Never infer a Techtree release from a Climb name.
 - Lock one execution-plan digest per Campaign and the generic compatibility
   rules.
 - Confirm that the v0.1 publication and withdrawal schemas are the inherited
-  write contract.
+  write contract. Withdrawal hides normal discovery while preserving the
+  direct page, immutable proof, receipt, and append-only tombstone.
 - Complete sanitized contract spikes for Verifiers, Prime Hosted Evaluations,
   Fabric, and Relay.
-- Replace every pending field in `UPSTREAM_CONTRACT_LOCK.json`, freeze it, and
-  record the founder approval that authorized each adopted coordinate.
+- Test the newest stable upstream release first. The already identified
+  `verifiers==0.3.2.dev17` is an allowed fallback spike candidate, not an
+  automatic release lock.
+- Record the `plugin/hermes/` and `plugin/codex/` target layout without moving
+  the current Hermes plugin or creating a shared runtime SDK in WP0.
+- Replace every pending field in `UPSTREAM_CONTRACT_LOCK.json`, prepare the
+  exact founder approval packet, and keep the lock proposed until that digest
+  is approved.
 - Populate `FABRIC_CAPABILITY_MATRIX.json` from descriptor claims, Techtree
   conformance evidence, and explicit release admission.
 
@@ -51,6 +78,8 @@ Acceptance:
 - Fixture responses contain no secret or private trace material.
 - Discovery of a newer upstream version does not alter the lock.
 - Every remaining v0.2 ticket links to exactly one work package.
+- Prime environment publication remains blocked until an organizational owner
+  is available or the founder explicitly approves personal ownership.
 
 ## V2-WP1 — Version the protocol and preserve v0.1 evidence
 
