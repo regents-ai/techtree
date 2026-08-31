@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "techtree",
+  "project_id": "2f212025-5957-40bd-b36d-708a190cf363"
+}
