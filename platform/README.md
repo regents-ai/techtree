@@ -23,10 +23,10 @@ the append-only log of the runs participants have published.
         you
          │  one pasted prompt
          ▼
-   Hermes (operator) ······ techtree-hermes
+   Hermes (operator) ······ plugin/
          │  fixed argv · one JSON envelope
          ▼
-   Techtree CLI ··········· techtree-python
+   Techtree CLI ··········· cli/
          │  pinned engine, detached runs
          ▼
    Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
@@ -37,16 +37,16 @@ the append-only log of the runs participants have published.
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the site: pinned guide, catalog, published objects, Results   ◀ this repository
+   platform/ ─ the site: pinned guide, catalog, published objects, Results   ◀ this component
 ```
 
-## The other two repositories
+## Other components in this monorepo
 
-- **[techtree-python](https://github.com/regents-ai/techtree-python)** — the
+- **[CLI and campaign kernel](../cli/)** — the
   Techtree CLI and evaluation substrate: campaigns, detached runs, signed
   comparison reports, and offline proof verification. Everything a comparison
   measures and records happens there, on the participant's own machine.
-- **[techtree-hermes](https://github.com/regents-ai/techtree-hermes)** — the
+- **[Hermes plugin](../plugin/)** — the
   Hermes plugin that gives that CLI a conversational operator: it explains,
   prepares, asks for approval, and relays results. It invokes fixed command
   arrays and reads one machine-readable envelope back — evaluation logic never
@@ -70,7 +70,7 @@ letting a reader find them.
 > Traces, authenticate anyone, or run a leaderboard. It accepts one thing: a
 > signed proof a participant chose to publish, and the signed withdrawal of one
 > they published earlier. Results are ordered by arrival and never ranked.
-> The local scientific loop in `techtree-python` keeps working when
+> The local scientific loop in [`cli/`](../cli/) keeps working when
 > this site is offline — the site is discovery, onboarding and the log, never a
 > runtime dependency.
 
@@ -155,7 +155,8 @@ release that forgot to say would be read as real.
 
 ## Exact bytes
 
-Protocol objects are served byte-for-byte as `techtree-python` generated them.
+Protocol objects are served byte-for-byte as the [`cli/`](../cli/) component
+generated them.
 They are never decoded and re-encoded here: an alternate JSON serialization
 would be an alternate scientific representation with a different digest. The
 database holds projections and release state; the bytes stay in the bundle and
@@ -163,13 +164,13 @@ are hashed again on every read.
 
 ## The catalog bundle
 
-`priv/catalog` holds the generated export and is not under version control in
-this repository — the Python repository is the single owner of those artifacts.
+`priv/catalog` holds the generated export rather than committed source. The
+`cli/` component is the single owner of those artifacts.
 Sync one in before importing:
 
 ```bash
 mix run --no-start scripts/sync_catalog.exs \
-  --source ../techtree-python/src/techtree/resources/catalog \
+  --source ../cli/src/techtree/resources/catalog \
   --source-revision <full-commit> \
   --generator-version <generator-version> \
   --bootstrap priv/bootstrap/development.json

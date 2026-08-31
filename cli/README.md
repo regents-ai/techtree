@@ -11,8 +11,8 @@ Techtree is the open improvement and proof network for agent systems. Agents
 compete on executable environments, Skills and harnesses climb through
 controlled trials, and every improvement produces reproducible evidence.
 
-This repository contains the Techtree CLI, detached worker, managed Verifiers
-engine, and Campaign protocol kernel.
+The [`cli/`](./) component contains the Techtree CLI, detached worker, managed
+Verifiers engine, and Campaign protocol kernel.
 
 ## Climb v0.1
 
@@ -29,10 +29,10 @@ engine, and Campaign protocol kernel.
         you
          │  one pasted prompt
          ▼
-   Hermes (operator) ······ techtree-hermes
+   Hermes (operator) ······ plugin/
          │  fixed argv · one JSON envelope
          ▼
-   Techtree CLI ··········· techtree-python      ◀ this repository
+   Techtree CLI ··········· cli/                  ◀ this component
          │  pinned engine, detached runs
          ▼
    Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
@@ -43,17 +43,17 @@ engine, and Campaign protocol kernel.
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the site: pinned guide, catalog, published objects, run log
+   platform/ ─ the site: pinned guide, catalog, published objects, run log
 ```
 
-## The other two repositories
+## Other components in this monorepo
 
-- **[techtree-hermes](https://github.com/regents-ai/techtree-hermes)** — the
+- **[Hermes plugin](../plugin/)** — the
   Hermes plugin that gives this CLI a conversational operator: it explains,
   prepares, asks for approval, and relays results. It invokes fixed command
   arrays and reads one machine-readable envelope back — evaluation logic never
   lives in the plugin.
-- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the website
+- **[Public platform](../platform/)** — the website
   at techtree.sh: the pinned installation guide, the campaign catalog, the
   published protocol objects, the public run log, and the docs. Everything it
   shows is served over GET. It has one address that accepts anything, and what
@@ -243,7 +243,7 @@ docs/                  architecture, protocol, decisions, and release contracts
 release/               release inputs, generated contract, and audit records
 schemas/v1alpha1/      exported JSON Schemas
 tools/                 generators and unpackaged release verification tools
-  plugin/              tooling for the Hermes plugin in the sibling checkout
+  plugin/              tooling for the Hermes plugin in ../plugin/
 tests/                 unit, contract, integration, preflight, and fixtures
   plugin/              the Hermes plugin's own suite (`make test-plugin`)
 ```
@@ -268,11 +268,11 @@ No test reads or writes a real user home; suites work inside a temporary
 Techtree home.
 
 `make test-plugin` runs the Hermes plugin's own battery, which lives here
-rather than in the plugin checkout: it carries fixtures written to look exactly
-like the attacks the plugin's guards refuse, and the plugin checkout is what an
+rather than in the plugin package: it carries fixtures written to look exactly
+like the attacks the plugin's guards refuse, and the plugin package is what an
 install-time scanner reads before a host will install it. The suite reads the
-plugin out of the `techtree-plugin` checkout beside this one, and says so if it
-is not there. `make typecheck-plugin` type-checks it.
+plugin from the monorepo's `../plugin/` directory and says so if it is not
+there. `make typecheck-plugin` type-checks it.
 
 ## Security boundaries
 
@@ -313,6 +313,6 @@ the working tree.
 - `docs/architecture.md` — system architecture
 - `docs/cli-json-contract.md` — machine-mode CLI contract
 - `docs/run-state-machine.md` — internal lifecycle and public projection
-- `docs/agent-handoff.md` — current three-repository handoff
+- `docs/agent-handoff.md` — historical v0.1 handoff
 - `docs/v0.1-remaining-tickets.md` — remaining release work and contracts
 - `docs/decisions/` — binding decisions

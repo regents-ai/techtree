@@ -7,11 +7,11 @@
 *The pinned installation guide at techtree.sh/start — the only supported way
 in.*
 
-## Give this repository to your Hermes agent
+## Give this plugin to your Hermes agent
 
 Paste this into Hermes:
 
-> Read this repository's pinned Hello World installation instructions.
+> Read this plugin directory's pinned Hello World installation instructions.
 > Explain the exact commands, the prerequisites, what spends model tokens,
 > and the privacy terms. Ask before installing the plugin, installing
 > the Techtree CLI, or starting a run that spends tokens. After the
@@ -31,10 +31,10 @@ Paste this into Hermes:
         you
          │  one pasted prompt
          ▼
-   Hermes (operator) ······ techtree-hermes      ◀ this repository
+   Hermes (operator) ······ plugin/               ◀ this component
          │  fixed argv · one JSON envelope
          ▼
-   Techtree CLI ··········· techtree-python
+   Techtree CLI ··········· cli/
          │  pinned engine, detached runs
          ▼
    Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
@@ -45,16 +45,16 @@ Paste this into Hermes:
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the site: pinned guide, catalog, published objects, run log
+   platform/ ─ the site: pinned guide, catalog, published objects, run log
 ```
 
-## The other two repositories
+## Other components in this monorepo
 
-- **[techtree-python](https://github.com/regents-ai/techtree-python)** — the
+- **[CLI and campaign kernel](../cli/)** — the
   Techtree CLI and evaluation substrate: campaigns, detached runs, signed
   comparison reports, and offline proof verification. Everything a comparison
   measures and records happens there, on the participant's own machine.
-- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the website
+- **[Public platform](../platform/)** — the website
   at techtree.sh: the pinned installation guide, the campaign catalog, the
   published protocol objects, the public run log, and the docs. Everything it
   shows is served over GET. It has one address that accepts anything, and what
@@ -226,7 +226,7 @@ has stopped.
 ## Check the plugin
 
 ```bash
-make plugin-doctor      # in the techtree-python checkout
+make -C ../cli plugin-doctor
 ```
 
 Reports whether this build is sound — its manifest, its tool descriptions, its
@@ -258,11 +258,11 @@ enough to read in one go.
 
 The plugin and the installed Techtree also have to belong to the same release.
 Both carry the identical `release-core.json`, published under the SHA-256 of
-the file itself, so agreement can be checked with `shasum` in either
-repository — or by asking the installed CLI what release it belongs to:
+the file itself, so agreement can be checked with `shasum` in either component
+directory — or by asking the installed CLI what release it belongs to:
 
 ```bash
-make plugin-release-core-cli      # in the techtree-python checkout
+make -C ../cli plugin-release-core-cli
 ```
 
 ## Repository layout
@@ -293,10 +293,10 @@ services/            the container assembled during registration
 skills/              bundled read-only operator Skills
 ```
 
-That is the whole checkout: what the plugin is, and nothing about how it is
-built. Its tests and its repository tooling live in the Techtree repository,
-under `tests/plugin/` and `tools/plugin/`, because a suite that proves the
-guards work has to carry the attacks they catch, and this is the directory an
+That is the whole plugin package: what the plugin is, and nothing about how it
+is built. Its tests and tooling live under `../cli/tests/plugin/` and
+`../cli/tools/plugin/`, because a suite that proves the guards work has to carry
+the attacks they catch, while this directory remains exactly what an
 install-time scanner reads.
 
 ## Development
@@ -314,11 +314,10 @@ The full test battery — unit, contract, and integration, including the
 contract tests that talk to a real Techtree CLI with read-only commands — is:
 
 ```bash
-make test-plugin      # in the techtree-python checkout
+make -C ../cli test-plugin
 ```
 
-It reads the plugin out of the checkout beside it, so keep the two clones side
-by side.
+It reads this plugin directly from the monorepo's `plugin/` directory.
 
 ## What it remembers
 
