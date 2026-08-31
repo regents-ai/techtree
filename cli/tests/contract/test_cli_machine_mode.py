@@ -75,6 +75,7 @@ def techtree(repository_root: Path, techtree_home: Path) -> Any:
         if not name.startswith("TECHTREE_")
         and name not in {"FORCE_COLOR", "CLICOLOR_FORCE"}
     }
+    environment["NO_COLOR"] = "1"
 
     def run(*arguments: str, home_option: bool = True) -> Invocation:
         argv = ["uv", "run", "techtree"]

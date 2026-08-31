@@ -39,12 +39,12 @@ from cryptography.x509.oid import NameOID
 
 from fixtures.publication import COORDINATES, ENDPOINT, PINNED_ENDPOINT
 from techtree.errors import TechtreeError, ValidationError
+from techtree.publication import transport as publication_transport
 from techtree.publication.address import (
     SKILL_GITHUB_URL_INVALID,
     canonical_skill_github_url,
 )
 from techtree.publication.transport import (
-    MAX_RESPONSE_BYTES,
     PUBLICATION_ENDPOINT_INVALID,
     PUBLICATION_RESPONSE_NOT_JSON,
     PUBLICATION_RESPONSE_TOO_LARGE,
@@ -295,6 +295,7 @@ def test_a_json_answer_with_parameters_on_its_type_is_still_json(
 
 def test_an_answer_that_does_not_end_inside_the_cap_is_refused(
     run_log: LocalRunLog,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """One byte over, which is the case reading exactly the cap cannot see.
 
@@ -303,18 +304,25 @@ def test_an_answer_that_does_not_end_inside_the_cap_is_refused(
     what tells the two apart, and this is the answer that only the second
     reading refuses.
     """
-    run_log.answer.body = b"x" * (MAX_RESPONSE_BYTES + 1)
+    limit = 1024
+    monkeypatch.setattr(publication_transport, "MAX_RESPONSE_BYTES", limit)
+    run_log.answer.body = b"x" * (limit + 1)
 
     with pytest.raises(TechtreeError) as raised:
         _submit(run_log)
 
     assert raised.value.code == PUBLICATION_RESPONSE_TOO_LARGE
-    assert raised.value.details["limit"] == MAX_RESPONSE_BYTES
+    assert raised.value.details["limit"] == limit
 
 
-def test_an_answer_exactly_at_the_cap_is_read_whole(run_log: LocalRunLog) -> None:
+def test_an_answer_exactly_at_the_cap_is_read_whole(
+    run_log: LocalRunLog,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The boundary from the other side: at the cap is not over it."""
-    run_log.answer.body = b"y" * MAX_RESPONSE_BYTES
+    limit = 1024
+    monkeypatch.setattr(publication_transport, "MAX_RESPONSE_BYTES", limit)
+    run_log.answer.body = b"y" * limit
 
     assert _submit(run_log) == run_log.answer.body
 

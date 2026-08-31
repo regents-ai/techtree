@@ -24,6 +24,7 @@ is the one place more detail is always the right answer.
 from __future__ import annotations
 
 import io
+import re
 
 import pytest
 from rich.console import Console
@@ -37,6 +38,8 @@ from techtree.cli.commands.proof import (
     _renderer,
 )
 from techtree.identity.models import VerificationMessage, VerificationStatus
+
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 # ---------------------------------------------------------------------------
 # The checks a real bundle runs, in the shapes their identifiers really take
@@ -339,9 +342,7 @@ def test_nothing_is_carried_by_colour_alone() -> None:
 
 
 def test_the_full_list_has_a_flag_to_ask_for_it() -> None:
-    result = CliRunner(env={"FORCE_COLOR": None, "CLICOLOR_FORCE": None}).invoke(
-        create_app(), ["proof", "verify", "--help"]
-    )
+    result = CliRunner().invoke(create_app(), ["proof", "verify", "--help"])
 
     assert result.exit_code == 0
-    assert "--checks" in result.stdout
+    assert "--checks" in ANSI.sub("", result.stdout)
