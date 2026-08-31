@@ -17,6 +17,34 @@ optionally publish those results.
 | **Hermes plugin** | [`plugin/`](plugin/) | Gives Hermes an approval-aware operator surface for Techtree. It explains each step, invokes the CLI with fixed arguments, and relays structured results; evaluation logic stays in the CLI. |
 | **Public platform** | [`platform/`](platform/) | Powers [techtree.sh](https://techtree.sh/): installation, campaign discovery, documentation, and the public list of results participants choose to publish. |
 
+## Quickstart
+
+To run the released Hello World Climb, use the
+[pinned guide at techtree.sh/start](https://techtree.sh/start). It is the source
+for the exact plugin commit, CLI version, prerequisites, and approval steps.
+Techtree Doctor checks the machine and prints the next action before a run can
+start paid model inference.
+
+To work on the monorepo, install
+[uv](https://docs.astral.sh/uv/) with Python 3.12, Erlang and Elixir, and
+PostgreSQL 14 or newer, then run:
+
+```sh
+git clone https://github.com/regents-ai/techtree.git
+cd techtree
+
+make -C cli install
+make -C plugin install
+cd platform
+mix setup
+cd ..
+
+make check
+```
+
+The full check is model-free: it does not start inference, publish a result,
+deploy the platform, or release a package.
+
 ## How they work together
 
 ```text
@@ -102,5 +130,4 @@ techtree/
 └── Makefile
 ```
 
-Hermes installs the plugin from the `plugin/` subdirectory. The old plugin
-repository is a frozen v0.1 source, not an automatically updated mirror.
+Hermes installs the plugin directly from the [`plugin/`](plugin/) subdirectory.
