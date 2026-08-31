@@ -73,7 +73,7 @@ def techtree(repository_root: Path, techtree_home: Path) -> Any:
         name: value
         for name, value in os.environ.items()
         if not name.startswith("TECHTREE_")
-        and name not in {"FORCE_COLOR", "CLICOLOR_FORCE"}
+        and name not in {"FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS", "GITHUB_ACTIONS"}
     }
     environment["NO_COLOR"] = "1"
 
