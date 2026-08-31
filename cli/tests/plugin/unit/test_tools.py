@@ -152,9 +152,7 @@ def test_unexpected_tool_failures_do_not_expose_internal_diagnostics() -> None:
         def invoke(self, arguments: Sequence[str]) -> dict[str, Any]:
             raise RuntimeError(private_diagnostic)
 
-    result = _call(
-        "techtree_climb_list", _services(bridge=ExplodingBridge()), {}
-    )
+    result = _call("techtree_climb_list", _services(bridge=ExplodingBridge()), {})
 
     assert result["ok"] is False
     assert result["code"] == "plugin_unexpected_error"
