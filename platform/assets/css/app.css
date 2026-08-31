@@ -242,6 +242,22 @@ summary:focus-visible {
   outline-offset: 3px;
 }
 
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.7rem 0.9rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-weight: 650;
+  transform: translateY(calc(-100% - 1rem));
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 code,
 kbd,
 samp,
@@ -779,6 +795,8 @@ strong {
 }
 
 .command__copy {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   padding: 0.35rem 0.7rem;
   border: 1px solid var(--terminal-rule);
   background: transparent;
@@ -2433,6 +2451,7 @@ strong {
 }
 
 .tasks__filter {
+  min-height: 2.75rem;
   border: 1px solid var(--rule);
   padding: 0.45rem 0.7rem;
   background: transparent;
@@ -2450,6 +2469,10 @@ strong {
 .tasks {
   margin-top: 1rem;
   border-top: 1px solid var(--rule);
+}
+
+.tasks__empty {
+  margin-top: 1rem;
 }
 
 .tasks__row {
@@ -2760,12 +2783,6 @@ strong {
   }
 }
 
-@media (max-width: 22rem) {
-  .hero-title__line {
-    white-space: normal;
-  }
-}
-
 @media (max-width: 36rem) {
   .climb-contract__facts > div {
     grid-template-columns: 1fr;
@@ -2863,10 +2880,6 @@ strong {
     margin-top: 1.5rem;
     flex-direction: column;
     align-items: center;
-  }
-
-  .hero__actions .button--primary {
-    display: none;
   }
 
   .hero__actions .text-link {
@@ -2998,6 +3011,36 @@ strong {
   }
 }
 
+@media (max-width: 22rem) {
+  .masthead__nav {
+    gap: 0.4rem;
+  }
+
+  .masthead__selector {
+    flex: 1 1 auto;
+  }
+
+  .masthead__selector a {
+    width: auto;
+    min-width: 0;
+    padding-inline: 0.45rem;
+    flex: 1 1 0;
+  }
+
+  .masthead__github {
+    flex: 0 0 2.75rem;
+    padding-inline: 0;
+  }
+
+  .masthead__github-count {
+    display: none;
+  }
+
+  .hero-title__line {
+    white-space: normal;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -3042,6 +3085,7 @@ strong {
 
   .masthead__nav,
   .theme-toggle,
+  .skip-link,
   .hero__more,
   .command__copy,
   .notice,
@@ -3158,6 +3202,7 @@ strong {
 }
 
 .pagecopy__main {
+  min-height: 2.75rem;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -3212,6 +3257,7 @@ strong {
 }
 
 .pagecopy__item {
+  min-height: 2.75rem;
   display: block;
   width: 100%;
   padding: 0.55rem 0.7rem;

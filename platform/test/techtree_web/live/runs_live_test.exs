@@ -33,9 +33,10 @@ defmodule TechtreeWeb.RunsLiveTest do
 
   describe "with nothing published" do
     test "the log says so rather than showing an empty frame", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/results")
+      {:ok, live, html} = live(conn, ~p"/results")
 
       assert visible_text(html) =~ "Nobody has published a Result yet"
+      assert has_element?(live, ~s|.runs-index__empty a[href="/start"]|, "Start your first Climb")
     end
 
     test "does not claim it opened with runs it has not got", %{conn: conn} do
@@ -71,6 +72,10 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert text =~ "+63.9 pts"
       refute text =~ "P1"
       assert text =~ Calendar.strftime(entry.accepted_at, "%d %b")
+
+      for label <- ["Score change", "Climb", "Run setup", "Tasks", "Attestation", "Published"] do
+        assert has_element?(live, ".runs-table__cell .offscreen", label)
+      end
     end
 
     test "names the campaign and compares the baseline with the fallback Skill",
@@ -315,6 +320,18 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert has_element?(live, ~s|button[phx-value-filter="better"][aria-pressed="true"]|)
       assert task_row_count(render(live)) == entry.wins
+
+      assert has_element?(
+               live,
+               "#task-filter-status[aria-live=polite]",
+               "Better #{entry.wins} tasks shown."
+             )
+
+      live |> element(~s|button[phx-value-filter="worse"]|) |> render_click()
+
+      assert task_row_count(render(live)) == 0
+      assert has_element?(live, "#task-filter-status", "Worse 0 tasks shown.")
+      assert has_element?(live, "#task-results .tasks__empty", "No tasks were worse.")
     end
 
     test "offers the verified projection and never the submitted bytes",

@@ -80,7 +80,9 @@ defmodule TechtreeWeb.RunsLive.Index do
         </section>
 
         <p :if={@entries == []} class="runs-index__empty empty-state">
-          Nobody has published a Result yet. This is where the first one will appear.
+          Nobody has published a Result yet.
+          <.link navigate={~p"/start"}>Start your first Climb</.link>
+          to create one locally.
         </p>
 
         <div :if={@entries != []} class="runs-index__table-frame">
@@ -124,27 +126,31 @@ defmodule TechtreeWeb.RunsLive.Index do
                 </span>
               </div>
               <div class="runs-table__cell runs-table__uplift">
-                <strong aria-label={uplift_words(entry)}>
-                  {uplift_value(entry)}
-                </strong>
+                <span class="offscreen">Score change</span>
+                <strong>{uplift_value(entry)}</strong>
               </div>
               <div class="runs-table__cell runs-table__campaign" title={campaign_name(entry)}>
+                <span class="offscreen">Climb</span>
                 {campaign_name(entry)}
               </div>
               <div class="runs-table__cell runs-table__runtime">
+                <span class="offscreen">Run setup</span>
                 <span title={entry.subject_model}>{entry.subject_model}</span>
                 <small>{entry.subject_harness} {entry.subject_harness_version}</small>
               </div>
               <div class="runs-table__cell runs-table__tasks">
+                <span class="offscreen">Tasks</span>
                 <span title={task_words(entry)}>
                   {entry.wins} better · {entry.ties} same · {entry.losses} worse
                 </span>
               </div>
               <div class="runs-table__cell runs-table__proof">
+                <span class="offscreen">Attestation</span>
                 <span title={proof_grade_words(entry.proof_grade)}>Participant-attested</span>
                 <small>Not independently reproduced</small>
               </div>
               <div class="runs-table__cell runs-table__published">
+                <span class="offscreen">Published</span>
                 <time
                   datetime={DateTime.to_iso8601(entry.accepted_at)}
                   title={arrived(entry.accepted_at)}
@@ -231,8 +237,6 @@ defmodule TechtreeWeb.RunsLive.Index do
   end
 
   defp normalized_score?(score), do: score >= 0 and score <= 1
-
-  defp uplift_words(entry), do: "#{uplift_value(entry)} score change"
 
   defp task_words(entry) do
     "#{entry.wins} better, #{entry.ties} same, #{entry.losses} worse"

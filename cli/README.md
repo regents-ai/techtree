@@ -11,8 +11,9 @@ Techtree is the open improvement and proof network for agent systems. Agents
 compete on executable environments, Skills and harnesses climb through
 controlled trials, and every improvement produces reproducible evidence.
 
-This repository contains the Techtree CLI, detached worker, managed Verifiers
-engine, and Campaign protocol kernel.
+This component contains the Techtree CLI, detached worker, managed Verifiers
+engine, and Campaign protocol kernel. It lives beside the Hermes plugin and
+public platform in the Techtree monorepo.
 
 ## Climb v0.1
 
@@ -29,10 +30,10 @@ engine, and Campaign protocol kernel.
         you
          │  one pasted prompt
          ▼
-   Hermes (operator) ······ techtree-hermes
+   Hermes (operator) ······ plugin/
          │  fixed argv · one JSON envelope
          ▼
-   Techtree CLI ··········· techtree-python      ◀ this repository
+   Techtree CLI ··········· cli/                 ◀ this component
          │  pinned engine, detached runs
          ▼
    Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
@@ -43,17 +44,17 @@ engine, and Campaign protocol kernel.
          ▼
    signed report · proof that verifies offline
 
-   techtree-ash ─ the site: pinned guide, catalog, published objects, run log
+   platform/ ─ the site: pinned guide, catalog, published objects, run log
 ```
 
-## The other two repositories
+## The other two components
 
-- **[techtree-hermes](https://github.com/regents-ai/techtree-hermes)** — the
+- **[Hermes plugin](../plugin/README.md)** — the
   Hermes plugin that gives this CLI a conversational operator: it explains,
   prepares, asks for approval, and relays results. It invokes fixed command
   arrays and reads one machine-readable envelope back — evaluation logic never
   lives in the plugin.
-- **[techtree-ash](https://github.com/regents-ai/techtree-ash)** — the website
+- **[Public platform](../platform/README.md)** — the website
   at techtree.sh: the pinned installation guide, the campaign catalog, the
   published protocol objects, the public run log, and the docs. Everything it
   shows is served over GET. It has one address that accepts anything, and what
@@ -72,7 +73,7 @@ of Skill uplift. It runs the same pinned agent on the same tasks twice, changes
 only the declared Skill, shows the measured difference, and creates a signed
 local receipt with an offline proof check.
 
-The repository contains the real evaluation path: managed engine installation,
+The CLI component contains the real evaluation path: managed engine installation,
 containerized subject runs, append-only run records, signed receipts and
 reports, local proof verification, and one guided single-`SKILL.md` revision
 flow. The release candidate remains inactive until the release gates in
@@ -162,7 +163,7 @@ make check            # format-check, lint, typecheck, test, generated-check
 make test-integration
 ```
 
-`make check` and `make test-integration` are the repository gates. The
+`make check` and `make test-integration` are the CLI component gates. The
 scientific environment is separate: the managed engine under
 `src/techtree/resources/engines/default/` has its own pinned dependencies and
 lock file, and the ordinary package never depends on Verifiers, Hermes, or
@@ -243,7 +244,7 @@ docs/                  architecture, protocol, decisions, and release contracts
 release/               release inputs, generated contract, and audit records
 schemas/v1alpha1/      exported JSON Schemas
 tools/                 generators and unpackaged release verification tools
-  plugin/              tooling for the Hermes plugin in the sibling checkout
+  plugin/              tooling and tests for the monorepo's plugin/ component
 tests/                 unit, contract, integration, preflight, and fixtures
   plugin/              the Hermes plugin's own suite (`make test-plugin`)
 ```
@@ -268,11 +269,10 @@ No test reads or writes a real user home; suites work inside a temporary
 Techtree home.
 
 `make test-plugin` runs the Hermes plugin's own battery, which lives here
-rather than in the plugin checkout: it carries fixtures written to look exactly
-like the attacks the plugin's guards refuse, and the plugin checkout is what an
-install-time scanner reads before a host will install it. The suite reads the
-plugin out of the `techtree-plugin` checkout beside this one, and says so if it
-is not there. `make typecheck-plugin` type-checks it.
+rather than in the plugin component: it carries fixtures written to look exactly
+like the attacks the plugin's guards refuse, and `plugin/` is what an install-time
+scanner reads before a host will install it. The suite reads that monorepo
+component directly. `make typecheck-plugin` type-checks it.
 
 ## Security boundaries
 
@@ -313,6 +313,6 @@ the working tree.
 - `docs/architecture.md` — system architecture
 - `docs/cli-json-contract.md` — machine-mode CLI contract
 - `docs/run-state-machine.md` — internal lifecycle and public projection
-- `docs/agent-handoff.md` — current three-repository handoff
+- `docs/agent-handoff.md` — historical three-repository handoff
 - `docs/v0.1-remaining-tickets.md` — remaining release work and contracts
 - `docs/decisions/` — binding decisions

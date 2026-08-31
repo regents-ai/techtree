@@ -25,6 +25,14 @@ defmodule TechtreeWeb.PageCopy do
       >
         <span data-copy-label>Copy page</span>
       </button>
+      <span
+        class="offscreen"
+        data-copy-status
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+      </span>
       <details>
         <summary aria-label="More ways to take this page">⌄</summary>
         <div class="pagecopy__menu">
@@ -38,6 +46,14 @@ defmodule TechtreeWeb.PageCopy do
             <span data-copy-label>Copy page</span>
             <small>Copy page as Markdown for agents</small>
           </button>
+          <span
+            class="offscreen"
+            data-copy-status
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+          </span>
           <button
             type="button"
             class="pagecopy__item"

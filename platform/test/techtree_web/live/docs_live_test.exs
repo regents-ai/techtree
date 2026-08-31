@@ -112,6 +112,14 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert html =~ ~s|phx-hook="CopyCommandPageView"|
     assert html =~ "Copy page as Markdown for agents"
     assert html =~ "View as Markdown"
+    assert has_element?(live, "#copy-page + [data-copy-status][role=status][aria-atomic=true]")
+
+    assert has_element?(
+             live,
+             "#copy-page-menu + [data-copy-status][role=status][aria-atomic=true]"
+           )
+
+    refute has_element?(live, "button [data-copy-status]")
 
     assert has_element?(live, "article.docs-content[data-markdown-root] #install")
     assert has_element?(live, "article.docs-content[data-markdown-root] #method")

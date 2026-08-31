@@ -52,6 +52,18 @@ defmodule TechtreeWeb.StartLiveTest do
     assert visible_text(html) =~ @setup_paths
     assert has_element?(live, "#copy-setup-cli", "Copy")
     assert has_element?(live, "#copy-setup-hermes", "Copy")
+
+    assert has_element?(
+             live,
+             "#copy-setup-cli + [data-copy-status][role=status][aria-live=polite]"
+           )
+
+    assert has_element?(
+             live,
+             "#copy-setup-hermes + [data-copy-status][role=status][aria-live=polite]"
+           )
+
+    refute has_element?(live, "button [data-copy-status]")
     assert html =~ ~s|data-copy-value="#{escaped_cli}"|
     assert html =~ ~s|data-copy-value="#{escaped_hermes}"|
 

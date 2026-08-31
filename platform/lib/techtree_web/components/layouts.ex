@@ -21,7 +21,7 @@ defmodule TechtreeWeb.Layouts do
 
   def page(assigns) do
     ~H"""
-    <main class={["page", @wide && "page--wide", @flush && "page--flush"]}>
+    <main id="main-content" class={["page", @wide && "page--wide", @flush && "page--flush"]}>
       {render_slot(@inner_block)}
     </main>
 

@@ -262,6 +262,29 @@ defmodule TechtreeWeb.HomeLiveTest do
     assert css =~ ~r/@media \(max-width: 52rem\).*?\.masthead__nav\s*\{[^}]*gap: 0\.625rem;/s
   end
 
+  test "small-screen controls keep the primary action and usable hit targets" do
+    css = File.read!(Path.expand("../../../assets/css/app.css", __DIR__))
+
+    phone_breakpoints = :binary.matches(css, "@media (max-width: 36rem)")
+    {narrow_breakpoint, _length} = :binary.match(css, "@media (max-width: 22rem)")
+
+    assert phone_breakpoints != []
+    assert narrow_breakpoint > phone_breakpoints |> List.last() |> elem(0)
+
+    assert css =~
+             ~r/@media \(max-width: 22rem\).*?\.masthead__selector a\s*\{[^}]*width: auto;[^}]*flex: 1 1 0;/s
+
+    assert css =~
+             ~r/@media \(max-width: 22rem\).*?\.masthead__github-count\s*\{[^}]*display: none;/s
+
+    refute css =~
+             ~r/@media \(max-width: 36rem\).*?\.hero__actions \.button--primary\s*\{[^}]*display: none;/s
+
+    assert css =~ ~r/\.command__copy\s*\{[^}]*min-height: 2\.75rem;/s
+    assert css =~ ~r/\.tasks__filter\s*\{[^}]*min-height: 2\.75rem;/s
+    assert css =~ ~r/\.pagecopy__main\s*\{[^}]*min-height: 2\.75rem;/s
+  end
+
   test "the mobile crown responds to scroll and touch without overriding reduced motion" do
     javascript = File.read!(Path.expand("../../../assets/js/optics_controller.js", __DIR__))
 
@@ -314,6 +337,11 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert html =~ ~s|class="theme-toggle__cube"|
       assert html =~ ~s|class="theme-toggle__laser"|
       assert has_element?(live, "main")
+
+      assert html =~
+               ~r|<a class="skip-link" href="#main-content">\s*Skip to main content\s*</a>|
+
+      assert has_element?(live, "main#main-content")
       assert html =~ "A Regents Labs project"
       refute html =~ ~s|>Sign in<|
     end
