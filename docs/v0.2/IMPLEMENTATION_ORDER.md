@@ -42,8 +42,10 @@ and focused checks. Publishing the Prime environment, starting paid work,
 sending upstream communications, adopting the final lock, publishing a
 package, or deploying still requires a separate exact founder approval.
 
-Read-only Prime discovery on 2026-08-31 found no organization/team available
-to the current operator. The Prime contract spike may continue locally, but
-environment publication must stop until ownership is resolved.
+The founder selected the Prime organization account `@techtree`, displayed
+locally as Regents Labs, for the conformance environment. The intended
+coordinate is `techtree/techtree-v02-conformance`. This resolves ownership but
+does not authorize publishing it; publication still requires an exact approval
+packet.
 
 Do not create future module trees before their first executable caller exists.

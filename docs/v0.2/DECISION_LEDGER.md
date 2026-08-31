@@ -64,12 +64,15 @@ automatically without a proven, locked provider idempotency guarantee.
 
 ## Prime owner status
 
-Read-only `prime teams list` discovery on 2026-08-31 returned no available
-organization/team for the current operator. No personal account is selected as
-a fallback. The proposed environment name remains
-`<organization>/techtree-v02-conformance`; publication is blocked until an
-organization exists or the founder explicitly approves temporary personal
-ownership.
+The founder selected the Prime organization account `@techtree`, displayed
+locally as Regents Labs. The proposed environment coordinate is therefore
+`techtree/techtree-v02-conformance`. The organization slug and private local
+display label may enter the approval packet; team IDs, user IDs, account email,
+and other provider-internal identifiers may not enter project fixtures or
+public evidence.
+
+This resolves ownership but does not authorize publication. Publishing the
+environment still requires its own exact protected-action approval packet.
 
 ## Ticket and completion discipline
 

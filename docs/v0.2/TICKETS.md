@@ -78,8 +78,9 @@ Acceptance:
 - Fixture responses contain no secret or private trace material.
 - Discovery of a newer upstream version does not alter the lock.
 - Every remaining v0.2 ticket links to exactly one work package.
-- Prime environment publication remains blocked until an organizational owner
-  is available or the founder explicitly approves personal ownership.
+- The Prime environment owner is the `@techtree` organization account,
+  displayed locally as Regents Labs. Publication remains blocked until its
+  exact protected-action packet is approved.
 
 ## V2-WP1 — Version the protocol and preserve v0.1 evidence
 
