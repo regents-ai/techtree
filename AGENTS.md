@@ -20,3 +20,11 @@ frozen v0.1 release artifacts unless a release task explicitly replaces them.
 Keep the three component READMEs useful from their own directories. When a
 change crosses components, update the contract producer and consumer together
 and verify the integration through `make -C cli check-plugin`.
+
+Track work in the monorepo's Beads database with `bd`. Use `bd ready` for
+unblocked work and `bd show <id>` before implementation. Claim the ticket with
+`bd update <id> --claim` before changing code. The v0.2 epic is
+`techtree-31k`; its binding plan and ticket mapping are in
+`docs/plan/v0.2.md` and `docs/v0.2/TICKETS.md`. Export the tracker to
+`.beads/issues.jsonl` after changing tickets so collaborators can reconstruct
+the current issue set.

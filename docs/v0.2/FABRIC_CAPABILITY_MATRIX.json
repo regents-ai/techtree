@@ -1,0 +1,28 @@
+{
+  "schema_version": "techtree.fabric-capability-matrix.v1",
+  "status": "contract_spike_pending",
+  "support_rule": [
+    "descriptor_claimed",
+    "techtree_conformance_passed",
+    "release_admitted"
+  ],
+  "admitted_adapters": [],
+  "candidate_adapters": [
+    {
+      "adapter_id": "hermes",
+      "descriptor_claims_captured": false,
+      "techtree_conformance_passed": false,
+      "release_admitted": false
+    },
+    {
+      "adapter_id": "codex",
+      "descriptor_claims_captured": false,
+      "techtree_conformance_passed": false,
+      "release_admitted": false,
+      "known_unsupported_requirements": [
+        "tools.enabled",
+        "tools.blocked"
+      ]
+    }
+  ]
+}

@@ -31,3 +31,11 @@ a package.
 Use focused commits and explain user-visible behavior in the pull request.
 Deployment and release instructions live with the component they affect and
 are run only with explicit founder approval.
+
+## Issue tracking
+
+This monorepo uses Beads rather than GitHub Issues. Run `bd ready` to find
+unblocked work and `bd show <id>` to read its contract. Claim a ticket with
+`bd update <id> --claim` before implementation. The v0.2 roadmap begins at
+`techtree-31k` and is documented in
+[`docs/v0.2/TICKETS.md`](docs/v0.2/TICKETS.md).

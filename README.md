@@ -45,6 +45,13 @@ make check
 The full check is model-free: it does not start inference, publish a result,
 deploy the platform, or release a package.
 
+## Roadmap
+
+Techtree v0.2 is the execution-provenance and subject-portability release. Its
+binding scope, work packages, and release gates are in the
+[v0.2 implementation contract](docs/plan/v0.2.md); the actionable backlog is
+in the [v0.2 ticket ledger](docs/v0.2/TICKETS.md).
+
 ## How they work together
 
 ```text
