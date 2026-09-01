@@ -36,7 +36,7 @@ def test_readme_describes_the_real_v01_path() -> None:
         assert claim not in README_PROSE
 
     for required in (
-        "The repository contains the real evaluation path",
+        "The CLI component contains the real evaluation path",
         "participant-attested",
         "has not been independently reproduced",
         "Release acceptance journeys use a pinned Python 3.12 interpreter",
