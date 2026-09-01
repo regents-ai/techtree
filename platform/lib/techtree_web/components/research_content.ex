@@ -150,7 +150,7 @@ defmodule TechtreeWeb.ResearchContent do
         protocol portable across:
       </p>
       <ul class="doc-list">
-        <li>local execution or Prime Hosted Evaluations;</li>
+        <li>local execution, with provider-hosted evaluation planned for a later release;</li>
         <li>direct Hermes or Fabric-backed Hermes and Codex subjects;</li>
         <li>native Verifiers evidence, optionally supplemented by NeMo Relay.</li>
       </ul>

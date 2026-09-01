@@ -82,7 +82,7 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "Planned execution portability in v0.2"
     assert text =~ "These paths are not available in v0.1"
     assert text =~ "their exact upstream contracts are still being tested"
-    assert text =~ "local execution or Prime Hosted Evaluations"
+    assert text =~ "local execution, with provider-hosted evaluation planned for a later release"
     assert text =~ "Fabric-backed Hermes and Codex subjects"
     assert text =~ "Environment creation, automatic Skill optimization"
     assert text =~ "The planned v0.2 agent stack"
