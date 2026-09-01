@@ -1,0 +1,20 @@
+def _create_hosted_evaluations(
+    config: HostedEvalConfig, environment_ids: Optional[list[str]] = None
+) -> dict[str, Any]:
+    client = APIClient()
+    payload = _build_hosted_evaluation_payload(config)
+
+    if environment_ids is not None:
+        payload["environment_ids"] = environment_ids
+
+    if client.config.team_id:
+        payload["team_id"] = client.config.team_id
+
+    created = client.post("/hosted-evaluations", json=payload)
+    evaluation_id = created.get("evaluation_id")
+    evaluation_ids = created.get("evaluation_ids")
+
+    if not evaluation_id and not evaluation_ids:
+        raise APIError(f"Failed to get evaluation ID from response: {created}")
+
+    return created

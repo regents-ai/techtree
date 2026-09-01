@@ -1,0 +1,11 @@
+def run_eval_cmd(
+    ctx: typer.Context,
+    environment: Optional[str] = typer.Argument(
+        None,
+        help="Environment name/slug or TOML config path",
+    ),
+    skip_upload: bool = typer.Option(
+        False,
+        "--skip-upload",
+        help="Skip uploading results to Prime Evals Hub (results are uploaded by default)",
+    ),

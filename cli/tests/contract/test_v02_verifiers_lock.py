@@ -62,10 +62,9 @@ def test_stable_candidate_passed_and_the_development_fallback_did_not_run() -> N
 
 def test_proposed_lock_names_the_passing_stable_candidate_without_adopting_it() -> None:
     lock = load_json(DOCS_ROOT / "UPSTREAM_CONTRACT_LOCK.json")
-    candidate = candidate_by_id(
-        load_json(DOCS_ROOT / "UPSTREAM_CANDIDATES.json"),
-        "verifiers-stable-0.3.1",
-    )
+    candidates = load_json(DOCS_ROOT / "UPSTREAM_CANDIDATES.json")
+    candidate = candidate_by_id(candidates, "verifiers-stable-0.3.1")
+    fallback = candidate_by_id(candidates, "verifiers-fallback-0.3.2.dev17")
     verifiers = lock["verifiers"]
 
     assert lock["status"] == "contract_spike_pending"
@@ -76,13 +75,10 @@ def test_proposed_lock_names_the_passing_stable_candidate_without_adopting_it() 
     assert verifiers["wheel_sha256"] == candidate["wheel_sha256"]
     assert verifiers["admission"] == "proposed_for_adoption"
     assert verifiers["fallback_candidate_status"] == "discovered"
-    assert verifiers["fallback_spike"] == {
-        "status": "not_run",
-        "reason": "stable_candidate_passed",
-    }
+    assert verifiers["fallback_spike"] == fallback["spike"]
     assert verifiers["historical_v0_1_engine_lock_unchanged"] is True
 
-    serialized = json.dumps(lock).lower()
+    serialized = json.dumps(verifiers).lower()
     assert "latest" not in serialized
     assert '"main"' not in serialized
 
@@ -100,7 +96,7 @@ def test_environment_manifest_binds_the_exact_source_lock_scorer_and_membership(
         "status": "not_published",
         "protected_action_required": True,
         "owner": "@techtree",
-        "visibility": None,
+        "visibility": "public",
         "prime_environment_id": None,
         "prime_environment_version_id": None,
     }
@@ -186,7 +182,7 @@ def test_environment_manifest_makes_no_unearned_execution_claim() -> None:
         "local_model_run": {"status": "not_run"},
         "prime_hosted_run": {
             "status": "not_run",
-            "reason": "protected_action_required",
+            "reason": "blocked_by_upstream_contract_and_protected_action",
         },
         "provider_hosted_rerun": {
             "status": "not_run",

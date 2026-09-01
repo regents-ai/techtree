@@ -1,0 +1,64 @@
+    async def list_evaluations(
+        self,
+        env_name: Optional[str] = None,
+        suite_id: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 50,
+        *,
+        team_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """List evaluations with optional filters"""
+        params: Dict[str, Any] = {"skip": skip, "limit": limit}
+        if env_name:
+            params["environment_name"] = env_name
+        if suite_id:
+            params["suite_id"] = suite_id
+        if team_id:
+            params["team_id"] = team_id
+
+        response = await self.client.request("GET", "/evaluations/", params=params)
+        return response
+
+    async def get_evaluation(self, evaluation_id: str) -> Dict[str, Any]:
+        """Get evaluation details by ID"""
+        response = await self.client.request("GET", f"/evaluations/{evaluation_id}")
+        return response
+
+    async def update_evaluation(
+        self,
+        evaluation_id: str,
+        name: Optional[str] = None,
+        model_name: Optional[str] = None,
+        dataset: Optional[str] = None,
+        framework: Optional[str] = None,
+        task_type: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        metrics: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        payload = {
+            "name": name,
+            "model_name": model_name,
+            "dataset": dataset,
+            "framework": framework,
+            "task_type": task_type,
+            "description": description,
+            "tags": tags if tags is not None else [],
+            "metadata": metadata,
+            "metrics": metrics,
+        }
+        payload = {k: v for k, v in payload.items() if v is not None or k in ["tags"]}
+
+        response = await self.client.request("PUT", f"/evaluations/{evaluation_id}", json=payload)
+        return response
+
+    async def get_samples(
+        self, evaluation_id: str, page: int = 1, limit: int = 100
+    ) -> Dict[str, Any]:
+        """Get samples for an evaluation"""
+        params: Dict[str, Any] = {"page": page, "limit": limit}
+        response = await self.client.request(
+            "GET", f"/evaluations/{evaluation_id}/samples", params=params
+        )
+        return response

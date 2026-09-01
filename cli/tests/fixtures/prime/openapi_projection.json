@@ -1,0 +1,1338 @@
+{
+  "json_pointers": {
+    "paths": [
+      "/paths/~1api~1v1~1hosted-evaluations",
+      "/paths/~1api~1v1~1hosted-evaluations~1{evaluation_id}~1logs",
+      "/paths/~1api~1v1~1hosted-evaluations~1{evaluation_id}~1cancel",
+      "/paths/~1api~1v1~1evaluations~1",
+      "/paths/~1api~1v1~1evaluations~1{evaluation_id}",
+      "/paths/~1api~1v1~1evaluations~1{evaluation_id}~1samples"
+    ],
+    "schemas": [
+      "/components/schemas/CreateHostedEvaluationRequest",
+      "/components/schemas/CreateHostedEvaluationResponse",
+      "/components/schemas/GetHostedEvaluationLogsResponse",
+      "/components/schemas/CancelHostedEvaluationResponse",
+      "/components/schemas/GetEvaluationResponse",
+      "/components/schemas/ListEvaluationsResponse",
+      "/components/schemas/GetSamplesResponse",
+      "/components/schemas/EvaluationStatus"
+    ]
+  },
+  "paths": {
+    "/api/v1/evaluations/": {
+      "get": {
+        "description": "Get a list of evaluations owned by the authenticated user or their teams\n\nBy default, returns all evaluations the user has access to (personal + all teams).",
+        "operationId": "list_evaluations_api_v1_evaluations__get",
+        "parameters": [
+          {
+            "description": "Filter by specific team ID",
+            "in": "query",
+            "name": "team_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by specific team ID",
+              "title": "Team Id"
+            }
+          },
+          {
+            "description": "Filter by environment ID",
+            "in": "query",
+            "name": "environment_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environment ID",
+              "title": "Environment Id"
+            }
+          },
+          {
+            "description": "Filter by environment name",
+            "in": "query",
+            "name": "environment_name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environment name",
+              "title": "Environment Name"
+            }
+          },
+          {
+            "description": "Filter by suite ID",
+            "in": "query",
+            "name": "suite_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by suite ID",
+              "title": "Suite Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListEvaluationsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Evaluations",
+        "tags": [
+          "evals"
+        ]
+      },
+      "post": {
+        "description": "Create a new evaluation\n\nThis endpoint supports:\n- Environment evaluations: Provide environments\n- Prime RL evaluations: Provide run_id\n- Suite evaluations: Provide suite_id\n\nOwnership:\n- If team_id is provided in request, the evaluation will be owned by the team\n- Otherwise, the evaluation will be owned by the authenticated user",
+        "operationId": "create_evaluation_api_v1_evaluations__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEvaluationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateEvaluationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Evaluation",
+        "tags": [
+          "evals"
+        ]
+      }
+    },
+    "/api/v1/evaluations/{evaluation_id}": {
+      "delete": {
+        "operationId": "delete_evaluation_api_v1_evaluations__evaluation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Evaluation",
+        "tags": [
+          "evals"
+        ]
+      },
+      "get": {
+        "description": "Get detailed information about a specific evaluation.",
+        "operationId": "get_evaluation_api_v1_evaluations__evaluation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetEvaluationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Evaluation",
+        "tags": [
+          "evals"
+        ]
+      },
+      "put": {
+        "description": "Update an existing evaluation",
+        "operationId": "update_evaluation_api_v1_evaluations__evaluation_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEvaluationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEvaluationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Evaluation",
+        "tags": [
+          "evals"
+        ]
+      }
+    },
+    "/api/v1/evaluations/{evaluation_id}/samples": {
+      "get": {
+        "description": "Get samples for a specific evaluation",
+        "operationId": "get_samples_api_v1_evaluations__evaluation_id__samples_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetSamplesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Samples",
+        "tags": [
+          "evals"
+        ]
+      },
+      "post": {
+        "description": "Push evaluation samples\n\nThis endpoint can be called multiple times to stream samples as they're generated.",
+        "operationId": "push_samples_api_v1_evaluations__evaluation_id__samples_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSamplesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushSamplesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Samples",
+        "tags": [
+          "evals"
+        ]
+      }
+    },
+    "/api/v1/hosted-evaluations": {
+      "post": {
+        "description": "Create and start a hosted evaluation.",
+        "operationId": "create_hosted_evaluation_api_v1_hosted_evaluations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHostedEvaluationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateHostedEvaluationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Hosted Evaluation",
+        "tags": [
+          "hosted-evaluations"
+        ]
+      }
+    },
+    "/api/v1/hosted-evaluations/{evaluation_id}/cancel": {
+      "patch": {
+        "description": "Cancel a running hosted evaluation.",
+        "operationId": "cancel_hosted_evaluation_route_api_v1_hosted_evaluations__evaluation_id__cancel_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelHostedEvaluationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Hosted Evaluation Route",
+        "tags": [
+          "hosted-evaluations"
+        ]
+      }
+    },
+    "/api/v1/hosted-evaluations/{evaluation_id}/logs": {
+      "get": {
+        "description": "Get real-time logs from the sandbox running a hosted evaluation.",
+        "operationId": "get_hosted_evaluation_logs_route_api_v1_hosted_evaluations__evaluation_id__logs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evaluation_id",
+            "required": true,
+            "schema": {
+              "title": "Evaluation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetHostedEvaluationLogsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authorization failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request data"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Hosted Evaluation Logs Route",
+        "tags": [
+          "hosted-evaluations"
+        ]
+      }
+    }
+  },
+  "schema_version": "techtree.prime-openapi-projection.v1",
+  "schemas": {
+    "CancelHostedEvaluationResponse": {
+      "properties": {
+        "evaluation_id": {
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "success": {
+          "title": "Success",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "success",
+        "message",
+        "evaluation_id",
+        "status"
+      ],
+      "title": "CancelHostedEvaluationResponse",
+      "type": "object"
+    },
+    "CreateHostedEvaluationRequest": {
+      "description": "Request to create and start a hosted evaluation",
+      "properties": {
+        "environment_ids": {
+          "description": "List of environment IDs to evaluate",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Environment Ids",
+          "type": "array"
+        },
+        "eval_config": {
+          "$ref": "#/components/schemas/HostedEvalConfig",
+          "description": "Evaluation configuration"
+        },
+        "inference_model": {
+          "description": "Model ID for inference",
+          "title": "Inference Model",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional custom evaluation name",
+          "title": "Name"
+        },
+        "team_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional team ID to own the hosted evaluation",
+          "title": "Team Id"
+        }
+      },
+      "required": [
+        "environment_ids",
+        "inference_model",
+        "eval_config"
+      ],
+      "title": "CreateHostedEvaluationRequest",
+      "type": "object"
+    },
+    "CreateHostedEvaluationResponse": {
+      "description": "Response after creating a hosted evaluation",
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Error message if creation failed",
+          "title": "Error"
+        },
+        "evaluation_id": {
+          "description": "ID of the created evaluation",
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "evaluation_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "List of evaluation IDs if multiple environments were provided",
+          "title": "Evaluation Ids"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ID of the sandbox running the evaluation",
+          "title": "Sandbox Id"
+        },
+        "status": {
+          "description": "Current status of the evaluation",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evaluation_id",
+        "status"
+      ],
+      "title": "CreateHostedEvaluationResponse",
+      "type": "object"
+    },
+    "EvaluationStatus": {
+      "description": "Evaluation status enum",
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "PROCESSING",
+        "COMPLETED",
+        "FAILED",
+        "TIMEOUT",
+        "CANCELLED"
+      ],
+      "title": "EvaluationStatus",
+      "type": "string"
+    },
+    "GetEvaluationResponse": {
+      "description": "Response for getting evaluation details",
+      "properties": {
+        "avg_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Avg Score"
+        },
+        "chartData": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Histogram and statistics for visualization",
+          "title": "Chartdata"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Completed At"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dataset"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Description"
+        },
+        "detailedMetrics": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Detailed statistics for each detected metric",
+          "title": "Detailedmetrics"
+        },
+        "environment_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Environment Ids"
+        },
+        "environment_names": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Environment Names"
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Message"
+        },
+        "eval_config": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Eval Config"
+        },
+        "eval_type": {
+          "$ref": "#/components/schemas/EvaluationType"
+        },
+        "evaluation_id": {
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "framework": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Framework"
+        },
+        "inference_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Inference Model"
+        },
+        "is_hosted": {
+          "default": false,
+          "title": "Is Hosted",
+          "type": "boolean"
+        },
+        "is_public": {
+          "default": false,
+          "description": "Whether this evaluation is publicly shareable by link",
+          "title": "Is Public",
+          "type": "boolean"
+        },
+        "logs": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Logs"
+        },
+        "max_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Max Score"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metadata"
+        },
+        "metrics": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metrics"
+        },
+        "min_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Min Score"
+        },
+        "model_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model Name"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "rewardStats": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Reward statistics for backward compatibility",
+          "title": "Rewardstats"
+        },
+        "rubricInfo": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Rubric with detected metrics and weights",
+          "title": "Rubricinfo"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Run Id"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sandbox Id"
+        },
+        "show_on_leaderboard": {
+          "default": false,
+          "description": "Whether this public evaluation appears on environment leaderboards",
+          "title": "Show On Leaderboard",
+          "type": "boolean"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Started At"
+        },
+        "statistics": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Statistics format (totalResults, totalReward, avgReward)",
+          "title": "Statistics"
+        },
+        "status": {
+          "$ref": "#/components/schemas/EvaluationStatus"
+        },
+        "suite_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Suite Id"
+        },
+        "tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "task_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Task Type"
+        },
+        "team_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Team ID if evaluation is owned by a team",
+          "title": "Team Id"
+        },
+        "total_samples": {
+          "title": "Total Samples",
+          "type": "integer"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "User ID of evaluation owner",
+          "title": "User Id"
+        },
+        "version_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Version Id"
+        },
+        "viewer_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Viewer Url"
+        }
+      },
+      "required": [
+        "evaluation_id",
+        "name",
+        "status",
+        "eval_type",
+        "total_samples",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "GetEvaluationResponse",
+      "type": "object"
+    },
+    "GetHostedEvaluationLogsResponse": {
+      "properties": {
+        "evaluation_id": {
+          "description": "Evaluation ID",
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "logs": {
+          "description": "Sandbox logs",
+          "title": "Logs",
+          "type": "string"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sandbox ID",
+          "title": "Sandbox Id"
+        }
+      },
+      "required": [
+        "logs",
+        "evaluation_id"
+      ],
+      "title": "GetHostedEvaluationLogsResponse",
+      "type": "object"
+    },
+    "GetSamplesResponse": {
+      "description": "Response for getting evaluation samples",
+      "properties": {
+        "evaluation_id": {
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "integer"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        },
+        "samples": {
+          "items": {
+            "type": "object"
+          },
+          "title": "Samples",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "total_pages": {
+          "title": "Total Pages",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "evaluation_id",
+        "samples",
+        "total",
+        "page",
+        "limit",
+        "total_pages"
+      ],
+      "title": "GetSamplesResponse",
+      "type": "object"
+    },
+    "ListEvaluationsResponse": {
+      "description": "Response for listing evaluations",
+      "properties": {
+        "evaluations": {
+          "items": {
+            "$ref": "#/components/schemas/GetEvaluationResponse"
+          },
+          "title": "Evaluations",
+          "type": "array"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "integer"
+        },
+        "skip": {
+          "title": "Skip",
+          "type": "integer"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "evaluations",
+        "total",
+        "skip",
+        "limit"
+      ],
+      "title": "ListEvaluationsResponse",
+      "type": "object"
+    }
+  },
+  "source": {
+    "availability": "provider_retrievable",
+    "captured_at": "2026-08-31",
+    "raw_bytes_retained": true,
+    "raw_path": "cli/tests/fixtures/prime/openapi.json",
+    "sha256": "sha256:08d946cba60c050e3b56b250441aea591f95227a331ed24e111cb5b391c2c935",
+    "size_bytes": 295750,
+    "url": "https://api.primeintellect.ai/openapi.json"
+  }
+}

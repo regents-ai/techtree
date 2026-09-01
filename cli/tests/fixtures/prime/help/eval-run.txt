@@ -1,0 +1,133 @@
+Usage: prime eval run [-h] [--env-args ENV_ARGS] [--env-dir-path ENV_DIR_PATH]
+               [--provider {prime,openrouter,openai,anthropic,minimax,deepseek,glm,local,vllm}]
+               [--endpoints-path ENDPOINTS_PATH] [--model MODEL]
+               [--api-client-type {openai_completions,openai_chat_completions,openai_chat_completions_token,openai_responses,renderer,anthropic_messages,nemorl_chat_completions}]
+               [--api-key-var API_KEY_VAR] [--api-base-url API_BASE_URL]
+               [--header HEADER] [--header-from-state HEADER_FROM_STATE]
+               [--num-examples NUM_EXAMPLES]
+               [--rollouts-per-example ROLLOUTS_PER_EXAMPLE] [--shuffle]
+               [--shuffle-seed SHUFFLE_SEED] [--max-concurrent MAX_CONCURRENT]
+               [--max-tokens MAX_TOKENS] [--temperature TEMPERATURE]
+               [--sampling-args SAMPLING_ARGS] [--output-dir OUTPUT_DIR]
+               [--verbose] [--no-interleave-scoring]
+               [--state-columns STATE_COLUMNS] [--save-results]
+               [--resume [PATH]] [--independent-scoring] [--save-to-hf-hub]
+               [--hf-hub-dataset-name HF_HUB_DATASET_NAME]
+               [--extra-env-kwargs EXTRA_ENV_KWARGS] [--timeout TIMEOUT]
+               [--fullscreen] [--disable-tui] [--max-retries MAX_RETRIES]
+               [--disable-env-server] [--num-workers NUM_WORKERS]
+               [--abbreviated-summary] [--heartbeat-url HEARTBEAT_URL]
+               environment
+
+positional arguments:
+  environment      Environment module name or path to TOML config file.
+
+options:
+  -h, --help            show this help message and exit
+  --env-args ENV_ARGS, -a ENV_ARGS
+                        Environment module arguments as JSON object (e.g.,
+                        '{"key": "value", "num": 42}')
+  --env-dir-path ENV_DIR_PATH
+                        Path to environments directory
+  --provider {prime,openrouter,openai,anthropic,minimax,deepseek,glm,local,vllm}, -p {prime,openrouter,openai,anthropic,minimax,deepseek,glm,local,vllm}
+                        Inference provider shorthand. Resolves --api-base-url
+                        and --api-key-var automatically. Explicit --api-base-
+                        url / --api-key-var take precedence. Overrides
+                        endpoint registry when model is in registry. Falls
+                        back to 'prime' when model is not in registry.
+  --endpoints-path ENDPOINTS_PATH, -e ENDPOINTS_PATH
+                        Path to API endpoints TOML registry
+  --model MODEL, -m MODEL
+                        Name of model to evaluate
+  --api-client-type {openai_completions,openai_chat_completions,openai_chat_completions_token,openai_responses,renderer,anthropic_messages,nemorl_chat_completions}
+                        Which client type to use ('openai_completions',
+                        'openai_chat_completions',
+                        'openai_chat_completions_token', 'openai_responses',
+                        'renderer', 'anthropic_messages',
+                        'nemorl_chat_completions')
+  --api-key-var API_KEY_VAR, -k API_KEY_VAR
+                        Environment variable name for API key (overrides
+                        --provider)
+  --api-base-url API_BASE_URL, -b API_BASE_URL
+                        Base URL for API (overrides --provider)
+  --header HEADER       Extra HTTP header to pass to inference API. 'Name:
+                        Value'. Repeatable.
+  --header-from-state HEADER_FROM_STATE
+                        Per-request HTTP header whose value is read from the
+                        rollout state. 'Name: state_key' (e.g. 'X-Session-ID:
+                        trajectory_id'). Repeatable. Defaults to X-Session-
+                        ID=trajectory_id if unset.
+  --num-examples NUM_EXAMPLES, -n NUM_EXAMPLES
+                        Number of examples to evaluate
+  --rollouts-per-example ROLLOUTS_PER_EXAMPLE, -r ROLLOUTS_PER_EXAMPLE
+                        Number of rollouts per example
+  --shuffle             Shuffle the evaluation dataset before selecting
+                        examples
+  --shuffle-seed SHUFFLE_SEED
+                        Seed for --shuffle. Defaults to 0 when --shuffle is
+                        enabled.
+  --max-concurrent MAX_CONCURRENT, -c MAX_CONCURRENT
+                        Maximum number of concurrent requests
+  --max-tokens MAX_TOKENS, -t MAX_TOKENS
+                        Maximum number of tokens to generate (unset to use
+                        model default)
+  --temperature TEMPERATURE, -T TEMPERATURE
+                        Temperature for sampling
+  --sampling-args SAMPLING_ARGS, -S SAMPLING_ARGS
+                        Sampling arguments as JSON object. Keys here override
+                        --max-tokens/--temperature. Example:
+                        '{"enable_thinking": false, "max_tokens": 256}'
+  --output-dir OUTPUT_DIR, -o OUTPUT_DIR
+                        Custom output directory for evaluation results and
+                        logs
+  --verbose, -v         Verbose output
+  --no-interleave-scoring, -N
+                        Disable interleaving of scoring
+  --state-columns STATE_COLUMNS, -C STATE_COLUMNS
+                        Comma-separated list of state columns to save (e.g.,
+                        'turn,timing')
+  --save-results, -s    Save results to disk
+  --resume [PATH], -R [PATH]
+                        Resume from a previous run. Optionally provide a PATH;
+                        if omitted, auto-detect the latest incomplete matching
+                        run.
+  --independent-scoring, -i
+                        Score each rollout individually instead of scoring by
+                        group
+  --save-to-hf-hub, -H  Save dataset to Hugging Face Hub
+  --hf-hub-dataset-name HF_HUB_DATASET_NAME, -D HF_HUB_DATASET_NAME
+                        Name of dataset to save to Hugging Face Hub
+  --extra-env-kwargs EXTRA_ENV_KWARGS, -x EXTRA_ENV_KWARGS
+                        Extra environment as JSON object (e.g., '{"key":
+                        "value", "num": 42}'). Passed to environment
+                        constructor.
+  --timeout TIMEOUT     Per-rollout wall-clock timeout in seconds. Overrides
+                        timeout_seconds in --extra-env-kwargs.
+  --fullscreen, -f      Use fullscreen (alternate-screen) mode for the Rich
+                        live evaluation display
+  --disable-tui, -d     Disable Rich display; use normal logging and tqdm
+                        progress instead
+  --max-retries MAX_RETRIES
+                        Max retries for transient infrastructure errors
+                        (default: 3)
+  --disable-env-server  Do not start env servers when evaluating environments
+  --num-workers NUM_WORKERS, -w NUM_WORKERS
+                        Number of env server worker processes ("auto" =
+                        concurrency // 256, or an integer)
+  --abbreviated-summary, -A
+                        Abbreviated summary: show settings and stats only,
+                        skip example prompts/completions
+  --heartbeat-url HEARTBEAT_URL
+                        Heartbeat URL for uptime monitoring
+  --skip-upload               Skip uploading evaluation results to the platform.
+  --env-path PATH             Explicit path for upstream environment metadata.
+  --hosted                    Run the evaluation on the platform instead of locally.
+  stop EVAL_ID                Cancel a running hosted evaluation.
+  --poll-interval FLOAT       Polling interval in seconds for hosted evaluations.
+  --follow                    Follow hosted evaluation logs until completion.
+  --timeout-minutes INTEGER   Timeout in minutes for hosted evaluations.
+  --allow-sandbox-access      Allow sandbox read/write access for hosted evaluations.
+  --allow-instances-access    Allow instance creation and management for hosted evaluations.
+  --allow-tunnel-access       Allow tunnel creation and management for hosted evaluations.
+  --custom-secrets JSON       Custom sandbox secrets for hosted evaluations.
+  --eval-name TEXT            Custom name for the hosted evaluation.

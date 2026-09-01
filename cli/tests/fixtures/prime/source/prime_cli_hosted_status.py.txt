@@ -1,0 +1,11 @@
+class EvalStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    TIMEOUT = "TIMEOUT"
+    CANCELLED = "CANCELLED"
+
+    @classmethod
+    def terminal_statuses(cls) -> set["EvalStatus"]:
+        return {cls.COMPLETED, cls.FAILED, cls.TIMEOUT, cls.CANCELLED}

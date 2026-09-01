@@ -5,7 +5,7 @@ This file provides instructions and context for AI coding agents working on this
 ## Build & Test
 
 ```bash
-make check            # format, lint, typecheck, unit + contract tests, generated-check
+make check            # format, lint, typecheck, tests, generated-check, v0.2 preflight
 make test-integration # the integration battery
 make check-plugin     # the plugin: its tests, its typecheck, its doctor
 make regenerate       # rebuild every generated artifact, then re-run generated-check

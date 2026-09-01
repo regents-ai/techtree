@@ -1,0 +1,24 @@
+Usage: prime env inspect [OPTIONS] ENV_ID [SOURCE_PATH]
+
+  Inspect environment source without downloading the archive locally.
+
+Positional arguments:
+  ENV_ID         [required]
+  [SOURCE_PATH]
+
+Arguments:
+  ENV_ID         [required]
+  [SOURCE_PATH]
+
+Options:
+  -v, --version TEXT         Version to inspect  [default: latest]
+  -o, --output TEXT          Output format: table or json  [default: table]
+  --max-bytes INTEGER RANGE  Maximum file bytes to return when inspecting a
+                             file  [default: 100000; 1<=x<=500000]
+  --plain                    Use plain, terse outputs. USE THIS IF YOU ARE AI.
+  -h, --help                 Show this message and exit.
+
+  JSON output (--output json): . = {kind, path, version_id, entry?,
+  entries[]?, content?, truncated, total_bytes?} .entry? = {name, path,
+  is_directory, size?, modified_at?, content_hash?} .entries[] = {name, path,
+  is_directory, size?, modified_at?, content_hash?}

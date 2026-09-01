@@ -1,0 +1,18 @@
+Usage: prime eval samples [OPTIONS] EVAL_ID
+
+Positional arguments:
+  EVAL_ID  [required]
+
+Arguments:
+  EVAL_ID  [required]
+
+Options:
+  -p, --page INTEGER  Page number  [default: 1]
+  -n, --num INTEGER   Items per page  [default: 100]
+  -o, --output TEXT   json|pretty  [default: json]
+  --plain             Use plain, terse outputs. USE THIS IF YOU ARE AI.
+  -h, --help          Show this message and exit.
+
+  JSON output (--output json): .samples[] = sample object Common keys:
+  .samples[].example_id?, .samples[].input?, .samples[].output?,
+  .samples[].score? .total? = number .page? = number .limit? = number

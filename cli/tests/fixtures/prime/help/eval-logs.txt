@@ -1,0 +1,17 @@
+Usage: prime eval logs [OPTIONS] EVAL_ID
+
+  Get logs for a hosted evaluation.
+
+Positional arguments:
+  EVAL_ID  [required]
+
+Arguments:
+  EVAL_ID  [required]
+
+Options:
+  -n, --tail INTEGER     Number of lines to show  [default: 1000]
+  -f, --follow           Follow log output
+  --poll-interval FLOAT  Polling interval in seconds when following logs
+                         [default: 5.0]
+  --plain                Use plain, terse outputs. USE THIS IF YOU ARE AI.
+  -h, --help             Show this message and exit.

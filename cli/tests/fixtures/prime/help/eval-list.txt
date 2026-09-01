@@ -1,0 +1,16 @@
+Usage: prime eval list [OPTIONS]
+
+  List evaluations.
+
+Options:
+  -o, --output TEXT           table|json  [default: table]
+  -n, --num INTEGER           Items per page  [default: 20]
+  -p, --page INTEGER          Page number  [default: 1]
+  -e, --env, --env-name TEXT  Filter by environment (e.g., 'gsm8k' or
+                              'owner/gsm8k')
+  --plain                     Use plain, terse outputs. USE THIS IF YOU ARE
+                              AI.
+  -h, --help                  Show this message and exit.
+
+  JSON output (--output json): .evaluations[] = {evaluation_id|id,
+  environment_names[], model_name, status, metadata} .total = number

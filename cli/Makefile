@@ -33,7 +33,8 @@ GENERATED_PATHS := \
 	test-integration test-plugin typecheck-plugin plugin-doctor plugin-schemas \
 	plugin-founder-skills plugin-release-core plugin-release-core-cli \
 	real-model-run real-model-run-single schemas engine-bundle fixture-catalog goldens \
-	release-core regenerate generated-check verifiers-preflight check check-plugin clean
+	release-core regenerate generated-check verifiers-preflight check check-plugin clean \
+	v02-conformance-preflight
 
 install:
 	$(UV) sync
@@ -177,10 +178,16 @@ generated-check:
 	done; \
 	echo "generated-check: generated artifacts match the working tree"
 
+# The focused v0.2 environment gate is model-free and belongs to `check`.
+# Keep the broader legacy preflight collection opt-in because it includes
+# unrelated environments and can require their external dependencies.
+v02-conformance-preflight:
+	$(RUN) pytest -m preflight tests/preflight/test_v02_conformance_environment.py
+
 verifiers-preflight:
 	$(RUN) pytest -m preflight tests/preflight
 
-check: format-check lint typecheck test generated-check
+check: format-check lint typecheck test generated-check v02-conformance-preflight
 
 clean:
 	rm -rf .mypy_cache .pytest_cache .ruff_cache dist build htmlcov .coverage

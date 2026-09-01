@@ -8,7 +8,7 @@
     "status": "not_published",
     "protected_action_required": true,
     "owner": "@techtree",
-    "visibility": null,
+    "visibility": "public",
     "prime_environment_id": null,
     "prime_environment_version_id": null
   },
@@ -16,16 +16,16 @@
     "distribution": "techtree-v02-conformance",
     "version": "0.1.0",
     "python_requirement": ">=3.12,<3.14",
-    "project_tree_digest": "sha256:627f67e314a8935eb0c0e5ec4e914c97227fd1a103f0028a9ae409eec2e385cc",
+    "project_tree_digest": "sha256:d7cb169b7c182b9aaf9f380987d9acdc955bf2b394575a10c1b0b8fe93fce980",
     "python_package_digest": "sha256:10031cb30fb2b7cf541f55925ea0cb84de0d4b4b9a3c243b06b1e12b6db42485",
-    "pyproject_digest": "sha256:b7f0bbe175c2dc5f59206c23e3624249d573e575f6cff66873d9ea0f0c95d9b0",
+    "pyproject_digest": "sha256:80dad736a6efb5b1d5293d3dc492e0f603c48570d9917a4c90161d160347130b",
     "lockfile_digest": "sha256:2f8059c367a194918d9bf343144dda48504722481c36a2bd329e0715aad1c05c",
     "license": "MIT",
-    "license_digest": "sha256:6e38c30f0a33eda5e089358f4b2a32b56a5b1f3bd8b7da0c75719529f097b080",
+    "license_digest": "sha256:fbeca138d4291c4d7e95a532693d190e40e46217cd655b363bd7d8de588900f5",
     "wheel": {
       "filename": "techtree_v02_conformance-0.1.0-py3-none-any.whl",
-      "size": 4415,
-      "sha256": "sha256:de215e72ab80ce9fcbed8b8cb3044331be3afe7efba1a57c25763658d36422cd",
+      "size": 4413,
+      "sha256": "sha256:ceca3bf0a8af32dde48230bce59a89ee77b6d330f4c09d050d05c055f538a6e0",
       "build_backend": "hatchling==1.27.0",
       "source_date_epoch": 1704067200
     }
@@ -113,7 +113,7 @@
     },
     "prime_hosted_run": {
       "status": "not_run",
-      "reason": "protected_action_required"
+      "reason": "blocked_by_upstream_contract_and_protected_action"
     },
     "provider_hosted_rerun": {
       "status": "not_run",

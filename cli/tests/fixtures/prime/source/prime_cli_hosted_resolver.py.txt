@@ -1,0 +1,66 @@
+def _resolve_hosted_environment(
+    environment: str,
+    *,
+    env_dir_path: Optional[str],
+    env_path: Optional[str],
+) -> tuple[str, str]:
+    resolved = _resolve_environment_reference(environment, env_dir_path or DEFAULT_ENV_DIR_PATH)
+
+    platform_slug = resolved.platform_slug or resolved.upstream_slug
+    if platform_slug is None and env_path:
+        metadata = find_environment_metadata(
+            env_name=resolved.env_name,
+            env_path=Path(env_path),
+            module_name=resolved.env_name.replace("-", "_"),
+        )
+        owner = metadata.get("owner") if metadata else None
+        name = metadata.get("name") if metadata else None
+        if owner and name:
+            platform_slug = f"{owner}/{name}"
+
+    if platform_slug is None:
+        console.print(
+            "[red]Error:[/red] hosted evaluations require an upstream environment on the platform"
+        )
+        console.print(
+            "[yellow]Use an environment slug or publish the local environment "
+            "with `prime env push`.[/yellow]"
+        )
+        raise typer.Exit(1)
+
+    parts = _split_owner_and_name(platform_slug)
+    if parts is None:
+        console.print(f"[red]Error:[/red] invalid environment slug: {platform_slug}")
+        raise typer.Exit(1)
+
+    owner, env_name = parts
+    api_client = APIClient()
+    try:
+        response = api_client.get(f"/environmentshub/{owner}/{env_name}/@latest")
+    except APIError as exc:
+        message = str(exc).lower()
+        if "404" in message or "not found" in message:
+            console.print(
+                "[red]Error:[/red] hosted evaluations require an environment "
+                "that is published to the platform"
+            )
+            console.print(f"[yellow]Publish {platform_slug} with `prime env push` first.[/yellow]")
+            raise typer.Exit(1) from exc
+        raise
+
+    details = response.get("data", response)
+    environment_id = details.get("id")
+    if not environment_id:
+        console.print(f"[red]Error:[/red] could not resolve environment id for {platform_slug}")
+        raise typer.Exit(1)
+
+    if resolved.install_mode == "local" and resolved.recommend_push:
+        console.print(
+            "[yellow]Local environment code differs from the latest published version of "
+            f"{platform_slug}.[/yellow]"
+        )
+    console.print(
+        f"[dim]Hosted evaluations always use the latest published version of {platform_slug}.[/dim]"
+    )
+    console.print(f"[dim]Using hosted environment {platform_slug}@latest[/dim]")
+    return platform_slug, str(environment_id)

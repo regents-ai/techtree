@@ -1,0 +1,219 @@
+{
+  "artifacts": {
+    "prime_cli_source_archive": {
+      "availability": "public_source_archive",
+      "sha256": "sha256:b6f889bcd3ef7c6e38160ef095c5b29fd6edd06736c744e143b8d8b5c20293f1",
+      "size_bytes": 1111633,
+      "url": "https://github.com/PrimeIntellect-ai/prime/archive/a8ff1673a9980025afc2447ba778112d53f60f5a.tar.gz"
+    },
+    "prime_cli_wheel": {
+      "package": "prime",
+      "sha256": "sha256:f9abd5de637c471a43b163be58a954ba686e8c4395a5acfbcec2d3adb77a5228",
+      "size_bytes": 485665,
+      "source_commit": "a8ff1673a9980025afc2447ba778112d53f60f5a",
+      "source_repository": "https://github.com/PrimeIntellect-ai/prime",
+      "url": "https://files.pythonhosted.org/packages/5b/03/5277b1334c75069746d509585c83b0550777a571e2f8152bb4a0cb2ae945/prime-0.6.31-py3-none-any.whl",
+      "version": "0.6.31"
+    },
+    "prime_evals_wheel": {
+      "package": "prime-evals",
+      "sha256": "sha256:e5217f36d360baedf2c10dd49abe7be504932bf8249a35c9f7abad12d0c0299a",
+      "size_bytes": 13575,
+      "source_commit": null,
+      "source_commit_note": "The wheel is bound by its PyPI digest; the packaged prime_evals/evals.py differs from the downloaded repository archive, so no repository commit is asserted for this wheel.",
+      "source_repository": "https://github.com/PrimeIntellect-ai/prime",
+      "url": "https://files.pythonhosted.org/packages/e9/f8/41c4a4bc7a03ece28b1c4f39d45a5c362ebaa0895a161db83c591f10e6b6/prime_evals-0.2.3-py3-none-any.whl",
+      "version": "0.2.3"
+    },
+    "public_openapi": {
+      "availability": "provider_retrievable",
+      "captured_at": "2026-08-31",
+      "raw_path": "cli/tests/fixtures/prime/openapi.json",
+      "projection_path": "cli/tests/fixtures/prime/openapi_projection.json",
+      "projection_sha256": "sha256:149be7dad9b35abe600e0635656358c34609c229914b832dcdb5c1807ece09b1",
+      "raw_bytes_retained": true,
+      "sha256": "sha256:08d946cba60c050e3b56b250441aea591f95227a331ed24e111cb5b391c2c935",
+      "size_bytes": 295750,
+      "url": "https://api.primeintellect.ai/openapi.json"
+    }
+  },
+  "captured_at": "2026-08-31",
+  "help_snapshots": {
+    "prime_env_inspect": {
+      "command": "prime env inspect --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/env-inspect.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:b00183f07348c51811ba09ca150e851d56a0bb06c5eb87668f87cfdd17aa8091",
+      "size_bytes": 953
+    },
+    "prime_eval_get": {
+      "command": "prime eval get --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/eval-get.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:bb8b64cc5e285e5dc12c43328cdcfc42d15c3b2a8e9e2493f06688073b51db10",
+      "size_bytes": 479
+    },
+    "prime_eval_list": {
+      "command": "prime eval list --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/eval-list.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:33cee1116757c74105c6542baee4db12233a1436109ee913f4c4955e9c920fc1",
+      "size_bytes": 659
+    },
+    "prime_eval_logs": {
+      "command": "prime eval logs --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/eval-logs.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:e1ae83e9dccd1063482ae873e5c218ebdcda449b033865324100033e391beffd",
+      "size_bytes": 517
+    },
+    "prime_eval_run": {
+      "command": "prime eval run --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/eval-run.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:4662671e3a677b63924972e16f9e8f8692b14b80d4852e4a98fb8ff0466ca140",
+      "size_bytes": 8112
+    },
+    "prime_eval_samples": {
+      "command": "prime eval samples --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/eval-samples.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:c1210f76938bfc2fc7e3f2a086738811bb57713b67e3a9dbb6e3f0a998a6716c",
+      "size_bytes": 614
+    },
+    "prime_eval_stop": {
+      "command": "prime eval stop --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/eval-stop.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:d9000320258753cbb0c79d7d5014bae415dfcdf651e7933074d5300f8eb1748d",
+      "size_bytes": 273
+    },
+    "prime_teams_list": {
+      "command": "prime teams list --help --plain",
+      "normalization": "none; plain output captured exactly",
+      "path": "cli/tests/fixtures/prime/help/teams-list.txt",
+      "runner": "prime==0.6.31 wheel in isolated Python 3.12 environment",
+      "sha256": "sha256:71eda5f31fe68727ef4c6f3a2b5bab3a1c53d121f18f92ffe464dacf38cd3da6",
+      "size_bytes": 501
+    }
+  },
+  "isolated_resolution": {
+    "prime": "0.6.31",
+    "prime-evals": "0.2.3",
+    "verifiers": "0.2.0"
+  },
+  "openapi_projection": {
+    "path": "cli/tests/fixtures/prime/openapi_projection.json",
+    "sha256": "sha256:149be7dad9b35abe600e0635656358c34609c229914b832dcdb5c1807ece09b1",
+    "source_artifact": "public_openapi"
+  },
+  "purpose": "Bounded, sanitized evidence for the exact Prime Hosted contract spike. No hosted mutation or paid evaluation was performed.",
+  "sanitization": {
+    "account_email_persisted": false,
+    "credentials_persisted": false,
+    "machine_local_paths_persisted": false,
+    "paid_work_observed": false,
+    "private_trace_or_sample_content_persisted": false,
+    "protected_hosted_mutation_observed": false,
+    "provider_internal_ids_persisted": false,
+    "raw_transport_persisted": false
+  },
+  "schema_version": "techtree.prime-evidence-manifest.v2",
+  "source_snapshots": {
+    "prime_cli_api_client": {
+      "artifact": "prime_cli_wheel",
+      "line_end": 136,
+      "line_start": 70,
+      "member": "prime_cli/core/client.py",
+      "path": "cli/tests/fixtures/prime/source/prime_cli_api_client.py.txt",
+      "member_sha256": "sha256:a73b3db6e56348926b3395040e47d78f0b39cfa2ad6efd48a67f637e5f4073e8",
+      "member_size_bytes": 12813,
+      "excerpt_sha256": "sha256:887deef90390ec3be2d236ef6c9ec6422de8593d429ac917445d492e59b24048",
+      "excerpt_size_bytes": 2171
+    },
+    "prime_cli_eval_passthrough": {
+      "artifact": "prime_cli_wheel",
+      "line_end": 1008,
+      "line_start": 944,
+      "member": "prime_cli/verifiers_bridge.py",
+      "path": "cli/tests/fixtures/prime/source/prime_cli_eval_passthrough.py.txt",
+      "member_sha256": "sha256:f6e043415d33aeee98c62542ac43f37922f323648cb16322fbcffd856e68617a",
+      "member_size_bytes": 37955,
+      "excerpt_sha256": "sha256:fd2f4c728ba78fec4b4755a6f829a07d31b95c544a73ec4d386b269064636fa7",
+      "excerpt_size_bytes": 2519
+    },
+    "prime_cli_hosted_create": {
+      "artifact": "prime_cli_wheel",
+      "line_end": 584,
+      "line_start": 565,
+      "member": "prime_cli/commands/evals.py",
+      "path": "cli/tests/fixtures/prime/source/prime_cli_hosted_create.py.txt",
+      "member_sha256": "sha256:a113d2d23a06aa63e229f1cb3735cb2ecc51730058bff34d1c77703ca300d6ec",
+      "member_size_bytes": 68683,
+      "excerpt_sha256": "sha256:2bd42a0c216bb81bb99917aa0d9b0bd2c9f0e0abbe585c5884d0d31821c8d422",
+      "excerpt_size_bytes": 693
+    },
+    "prime_cli_hosted_resolver": {
+      "artifact": "prime_cli_wheel",
+      "line_end": 782,
+      "line_start": 717,
+      "member": "prime_cli/commands/evals.py",
+      "path": "cli/tests/fixtures/prime/source/prime_cli_hosted_resolver.py.txt",
+      "member_sha256": "sha256:a113d2d23a06aa63e229f1cb3735cb2ecc51730058bff34d1c77703ca300d6ec",
+      "member_size_bytes": 68683,
+      "excerpt_sha256": "sha256:c6869cfda3b8152ef585fe2b6aad0c3c7bfc014295a268d5495e690ed950cb51",
+      "excerpt_size_bytes": 2596
+    },
+    "prime_cli_hosted_status": {
+      "artifact": "prime_cli_wheel",
+      "line_end": 22,
+      "line_start": 12,
+      "member": "prime_cli/utils/hosted_eval.py",
+      "path": "cli/tests/fixtures/prime/source/prime_cli_hosted_status.py.txt",
+      "member_sha256": "sha256:6e3e0874b87348b259f03058bb37aaf95eb2dc392418d6a17ed2c5b0199bace5",
+      "member_size_bytes": 3517,
+      "excerpt_sha256": "sha256:7ed2812b42ef9fa0711ade7b176fdfc2cb6ac56fefb63f1ac4dff9208c4830d2",
+      "excerpt_size_bytes": 321
+    },
+    "prime_cli_run_options": {
+      "artifact": "prime_cli_wheel",
+      "line_end": 1412,
+      "line_start": 1402,
+      "member": "prime_cli/commands/evals.py",
+      "path": "cli/tests/fixtures/prime/source/prime_cli_run_options.py.txt",
+      "member_sha256": "sha256:a113d2d23a06aa63e229f1cb3735cb2ecc51730058bff34d1c77703ca300d6ec",
+      "member_size_bytes": 68683,
+      "excerpt_sha256": "sha256:99c53b33557045f0bb11ac687b3062f2190d78624997c638be614a1ccf981a10",
+      "excerpt_size_bytes": 347
+    },
+    "prime_evals_methods": {
+      "artifact": "prime_evals_wheel",
+      "line_end": 749,
+      "line_start": 686,
+      "member": "prime_evals/evals.py",
+      "path": "cli/tests/fixtures/prime/source/prime_evals_methods.py.txt",
+      "member_sha256": "sha256:abd0b7a5b20982a26878bf3ed6ee89ede7ce1dbf56a895b8a9090923a83f34d2",
+      "member_size_bytes": 29952,
+      "excerpt_sha256": "sha256:e880f801e8ae1e9b302a40727f6284c6fb0793c2157539c0692263bcaa4f235d",
+      "excerpt_size_bytes": 2332
+    },
+    "prime_evals_models": {
+      "artifact": "prime_evals_wheel",
+      "line_end": 111,
+      "line_start": 8,
+      "member": "prime_evals/models.py",
+      "path": "cli/tests/fixtures/prime/source/prime_evals_models.py.txt",
+      "member_sha256": "sha256:1ec1ce81cc4eec7076f878460881cc5f99f95cf621c02f0d07d637d284600871",
+      "member_size_bytes": 3966,
+      "excerpt_sha256": "sha256:c598318b33b49cb571bbe3083ffe8f9372498bc3b638f26027360e82699ff522",
+      "excerpt_size_bytes": 3309
+    }
+  }
+}

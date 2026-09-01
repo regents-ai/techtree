@@ -1,0 +1,65 @@
+def run_eval_passthrough(
+    environment: str,
+    passthrough_args: list[str],
+    *,
+    skip_upload: bool,
+    env_path: Optional[str],
+) -> None:
+    plugin = load_verifiers_prime_plugin(console=console)
+    config = Config()
+
+    if not config.api_key:
+        console.print(
+            "[red]No API key configured.[/red] "
+            "Run [bold]prime login[/bold] or [bold]prime config set-api-key[/bold]."
+        )
+        raise typer.Exit(1)
+
+    args, env, model, base_url = _add_default_inference_and_key_args(passthrough_args, config)
+    configured_base_url = (config.inference_url or "").strip().rstrip("/")
+    _validate_model(model, base_url, configured_base_url)
+    _preflight_inference_billing(model, base_url, configured_base_url)
+
+    env_dir_path = _env_dir_path_arg(args)
+    run_target = environment
+    upstream_slug: Optional[str] = None
+    env_name_for_upload: Optional[str] = None
+    resolved_env: Optional[ResolvedEnvironment] = None
+    config_envs: list[tuple[str, str]] = []
+
+    if _is_config_target(environment):
+        config_envs = _collect_eval_config_envs(Path(environment), env_dir_path)
+        for env_ref, ref_env_dir in config_envs:
+            _prepare_single_environment(plugin, env_ref, ref_env_dir)
+    else:
+        resolved_env = _prepare_single_environment(plugin, environment, env_dir_path)
+        run_target = resolved_env.env_name
+        upstream_slug = resolved_env.upstream_slug
+        env_name_for_upload = resolved_env.env_name
+        if resolved_env.env_display_id:
+            args.extend(
+                ["--header", f"{INTERNAL_ENV_DISPLAY_HEADER}: {resolved_env.env_display_id}"]
+            )
+
+    if not skip_upload and not _has_flag(args, "--save-results", "-s"):
+        args.append("-s")
+
+    job_target = env_name_for_upload
+    if job_target is None and config_envs:
+        job_target = _env_name_from_reference(config_envs[0][0])
+    if job_target is None:
+        job_target = Path(environment).stem
+    job_id = _build_job_id(job_target, model)
+    args.extend(["--header", f"X-PI-Job-Id: {job_id}"])
+
+    if config.team_id:
+        args.extend(["--header", f"X-Prime-Team-ID: {config.team_id}"])
+
+    console.print(f"[dim]Eval job_id: {job_id}[/dim]")
+    command = plugin.build_module_command(plugin.eval_module, [run_target, *args])
+    _run_command(command, env=env)
+
+    if skip_upload:
+        _print_environment_source_footer(resolved_env)
+        console.print("[dim]Skipped uploading evaluation results[/dim]")
+        return

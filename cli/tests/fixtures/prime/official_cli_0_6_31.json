@@ -1,0 +1,177 @@
+{
+  "api_generation": "v1",
+  "artifacts": {
+    "openapi_projection": "cli/tests/fixtures/prime/openapi_projection.json",
+    "prime_cli": "prime_cli_wheel",
+    "prime_cli_source": "prime_cli_source_archive",
+    "public_openapi": "public_openapi",
+    "public_sdk": "prime_evals_wheel"
+  },
+  "captured_at": "2026-08-31",
+  "evidence_manifest": "cli/tests/fixtures/prime/evidence_manifest.json",
+  "isolated_resolution": {
+    "prime": "0.6.31",
+    "prime-evals": "0.2.3",
+    "verifiers": "0.2.0"
+  },
+  "live_hosted_mutation_observed": false,
+  "operations": {
+    "account_team_discovery": {
+      "evidence_refs": [
+        "prime_teams_list"
+      ],
+      "machine_surface": "prime teams list --output json --plain",
+      "status": "shape_supported_response_unobserved"
+    },
+    "ambiguous_transport": {
+      "automatic_retry_after_ambiguous_create": false,
+      "evidence_refs": [
+        "prime_cli_hosted_create"
+      ],
+      "safe_policy": "local_intent_deduplication_and_manual_reconciliation_only",
+      "status": "unsupported_provider_idempotency"
+    },
+    "artifact_access": {
+      "evidence_refs": [
+        "prime_env_inspect",
+        "prime_eval_get",
+        "prime_eval_samples"
+      ],
+      "status": "unsupported"
+    },
+    "billing_principal": {
+      "evidence_refs": [
+        "prime_cli_hosted_create",
+        "openapi_hosted_create"
+      ],
+      "public_disclosure_default": "omitted",
+      "status": "not_exposed_as_safe_provider_record"
+    },
+    "environment_exact_read": {
+      "evidence_refs": [
+        "prime_env_inspect"
+      ],
+      "machine_surface": "prime env inspect techtree/techtree-v02-conformance --version <version> --output json --plain",
+      "status": "shape_supported_response_unobserved"
+    },
+    "evaluation_get": {
+      "evidence_refs": [
+        "prime_eval_get",
+        "prime_evals_models",
+        "prime_evals_methods",
+        "openapi_evaluation_get"
+      ],
+      "machine_surface": "prime eval get <evaluation-id> --output json --plain",
+      "status": "shape_supported_response_unobserved"
+    },
+    "evaluation_list": {
+      "evidence_refs": [
+        "prime_eval_list",
+        "prime_evals_models",
+        "prime_evals_methods",
+        "openapi_evaluation_list"
+      ],
+      "machine_surface": "prime eval list --output json --plain --num <n> --page <page>",
+      "status": "shape_supported_response_unobserved"
+    },
+    "fabric_custom_harness": {
+      "evidence_refs": [
+        "prime_eval_run"
+      ],
+      "status": "unproven"
+    },
+    "hosted_create": {
+      "evidence_refs": [
+        "prime_cli_hosted_create",
+        "prime_eval_run",
+        "openapi_hosted_create"
+      ],
+      "machine_surface": "prime eval run <environment> --hosted --skip-upload",
+      "status": "unsupported_machine_contract"
+    },
+    "hosted_environment_selection": {
+      "evidence_refs": [
+        "prime_cli_hosted_resolver",
+        "prime_eval_run"
+      ],
+      "machine_surface": "prime eval run <environment> --hosted --skip-upload",
+      "status": "unsupported_for_immutable_selection"
+    },
+    "logs": {
+      "evidence_refs": [
+        "prime_eval_logs",
+        "openapi_logs"
+      ],
+      "machine_surface": "prime eval logs <evaluation-id>",
+      "status": "unsupported_machine_contract"
+    },
+    "pagination": {
+      "evidence_refs": [
+        "prime_evals_methods",
+        "openapi_evaluation_list",
+        "openapi_samples"
+      ],
+      "status": "shape_supported_boundaries_unproven"
+    },
+    "samples_results": {
+      "evidence_refs": [
+        "prime_eval_samples",
+        "prime_evals_models",
+        "prime_evals_methods",
+        "openapi_samples"
+      ],
+      "machine_surface": "prime eval samples <evaluation-id> --output json --plain --num <n> --page <page>",
+      "status": "shape_supported_response_unobserved_with_openapi_drift"
+    },
+    "stop": {
+      "evidence_refs": [
+        "prime_eval_stop",
+        "openapi_stop"
+      ],
+      "machine_surface": "prime eval stop <evaluation-id>",
+      "status": "unsupported_machine_contract"
+    },
+    "terminal_failure": {
+      "evidence_refs": [
+        "prime_cli_hosted_status",
+        "openapi_status"
+      ],
+      "status": "source_proven_shape_live_behavior_unobserved"
+    },
+    "transport_safety": {
+      "evidence_refs": [
+        "prime_cli_api_client"
+      ],
+      "status": "unsupported_by_official_clients"
+    }
+  },
+  "paid_work_observed": false,
+  "purpose": "Bounded evidence index and explicit unsupported findings for the Prime Hosted Evaluations spike. This is not a hosted-run result.",
+  "runnable_commands": {
+    "hosted_evaluation": {
+      "command": "prime eval run <environment> --hosted --skip-upload",
+      "evidence_refs": [
+        "prime_cli_run_options",
+        "prime_eval_run",
+        "prime_cli_hosted_resolver"
+      ],
+      "status": "command_supported_contract_blocked"
+    },
+    "local_evaluation": {
+      "command": "prime eval run <environment> --skip-upload",
+      "evidence_refs": [
+        "prime_cli_run_options",
+        "prime_cli_eval_passthrough",
+        "prime_eval_run"
+      ],
+      "status": "command_supported"
+    }
+  },
+  "sanitization_manifest": "evidence_manifest.json",
+  "schema_version": "techtree.prime-hosted-fixture.v2",
+  "status_evidence": {
+    "hosted_cli": "prime_cli_hosted_status",
+    "provider": "openapi_status",
+    "terminal": "prime_cli_hosted_status"
+  }
+}

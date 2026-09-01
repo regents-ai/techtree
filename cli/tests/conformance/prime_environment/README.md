@@ -11,4 +11,3 @@ It contains no harness, tools, network client, secret, judge model, customer
 data, or hidden answer. Local WP0 conformance uses Verifiers' model-free
 `validate` command; publishing the package or running it against a model is a
 separate protected action.
-

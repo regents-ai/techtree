@@ -158,7 +158,7 @@ revoked credential can still fail at the provider’s first model call.
 ```bash
 make install          # uv sync
 make format           # rewrite formatting and apply safe lint fixes
-make check            # format-check, lint, typecheck, test, generated-check
+make check            # format-check, lint, typecheck, test, generated-check, v0.2 preflight
 make test-integration
 ```
 

@@ -1,0 +1,67 @@
+class APIClient:
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        require_auth: bool = True,
+        user_agent: Optional[str] = None,
+    ):
+        # Load config
+        self.config = Config()
+
+        # Use provided API key or fall back to config
+        self.api_key = api_key or self.config.api_key
+
+        # Store require_auth for lazy validation on request
+        self.require_auth = require_auth
+
+        # Setup client
+        self.base_url = self.config.base_url
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        # Set User-Agent (default to prime-cli if not provided)
+        headers["User-Agent"] = user_agent if user_agent else _default_user_agent()
+
+        self.client = httpx.Client(
+            headers=headers,
+            follow_redirects=True,
+            timeout=httpx.Timeout(30.0, connect=10.0),
+        )
+
+    def _check_auth_required(self) -> None:
+        if self.require_auth and not self.api_key:
+            raise APIError(
+                "No API key configured. Use command 'prime login' to configure your API key.",
+            )
+
+    def request(
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        json: Optional[Dict[str, Any]] = None,
+        timeout: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Make a request to the API"""
+        self._check_auth_required()
+
+        # Ensure endpoint starts with /api/v1/
+        if not endpoint.startswith("/"):
+            endpoint = f"/api/v1/{endpoint}"
+        else:
+            endpoint = f"/api/v1{endpoint}"
+
+        url = f"{self.base_url}{endpoint}"
+
+        try:
+            response = self.client.request(method, url, params=params, json=json, timeout=timeout)
+            response.raise_for_status()
+
+            if response.status_code == 204 and not response.content:
+                return {}
+
+            result = response.json()
+            if not isinstance(result, dict):
+                raise APIError("API response was not a dictionary")
+            return result

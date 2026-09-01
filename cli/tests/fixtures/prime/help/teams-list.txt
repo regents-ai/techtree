@@ -1,0 +1,13 @@
+Usage: prime teams list [OPTIONS]
+
+  List teams for the current user.
+
+Options:
+  --limit INTEGER    Maximum number of teams to list  [default: 100]
+  --offset INTEGER   Number of teams to skip  [default: 0]
+  -o, --output TEXT  Output format: table or json  [default: table]
+  --plain            Use plain, terse outputs. USE THIS IF YOU ARE AI.
+  -h, --help         Show this message and exit.
+
+  JSON output (--output json): .teams[] = {teamId, name, slug, role,
+  createdAt} .total_count = number

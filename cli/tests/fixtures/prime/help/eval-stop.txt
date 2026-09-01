@@ -1,0 +1,13 @@
+Usage: prime eval stop [OPTIONS] EVAL_ID
+
+  Stop a running hosted evaluation.
+
+Positional arguments:
+  EVAL_ID  [required]
+
+Arguments:
+  EVAL_ID  [required]
+
+Options:
+  --plain     Use plain, terse outputs. USE THIS IF YOU ARE AI.
+  -h, --help  Show this message and exit.

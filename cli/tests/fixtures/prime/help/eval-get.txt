@@ -1,0 +1,16 @@
+Usage: prime eval get [OPTIONS] EVAL_ID
+
+Positional arguments:
+  EVAL_ID  [required]
+
+Arguments:
+  EVAL_ID  [required]
+
+Options:
+  -o, --output TEXT  json|pretty  [default: json]
+  --plain            Use plain, terse outputs. USE THIS IF YOU ARE AI.
+  -h, --help         Show this message and exit.
+
+  JSON output (--output json): . = evaluation object from Prime Evals Common
+  keys: .evaluation_id? | .id, .environment_names[]?, .model_name?, .status?,
+  .metadata?, .metrics?

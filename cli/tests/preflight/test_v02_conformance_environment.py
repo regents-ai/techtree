@@ -42,6 +42,17 @@ def scrubbed_environment(home: Path, executable_dir: Path) -> dict[str, str]:
     }
 
 
+def uv_sync_environment(home: Path, venv: Path) -> dict[str, str]:
+    """Give uv only the state needed to build the throwaway environment."""
+    return {
+        "HOME": str(home),
+        "PATH": os.environ.get("PATH", ""),
+        "PYTHONNOUSERSITE": "1",
+        "UV_CACHE_DIR": str(home / ".cache" / "uv"),
+        "UV_PROJECT_ENVIRONMENT": str(venv),
+    }
+
+
 @pytest.fixture(scope="session")
 def conformance_python(
     tmp_path_factory: pytest.TempPathFactory,
@@ -50,7 +61,7 @@ def conformance_python(
     """Install the exact locked dependencies and built wheel into one venv."""
     root = tmp_path_factory.mktemp("v02-prime-conformance")
     venv = root / ".venv"
-    environment = {**os.environ, "UV_PROJECT_ENVIRONMENT": str(venv)}
+    environment = uv_sync_environment(root / "home", venv)
     check_engine_command(
         "uv",
         "sync",
@@ -74,6 +85,7 @@ def conformance_python(
         python,
         "--no-deps",
         built_wheel,
+        env=environment,
     )
     return python
 
@@ -204,6 +216,93 @@ def test_package_exports_the_fixed_taskset_and_subject_environment(
     assert resolved["config"] == "SubjectEnvConfig"
     assert "subject" in resolved["seats"]
     assert "agent" not in resolved["seats"]
+
+
+def test_pinned_environment_runs_subject_once_and_scores_decorated_reward(
+    conformance_python: Path,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Probe both executable hooks in the installed, pinned environment."""
+    root = tmp_path_factory.mktemp("v02-prime-hook-probe")
+    probe = """
+import asyncio
+import json
+
+import verifiers.v1 as vf
+from verifiers.v1.graph import MessageNode
+from verifiers.v1.trace import AgentInfo, Trace, TraceTask
+from verifiers.v1.types import AssistantMessage
+
+from techtree_v02_conformance.env import SubjectEnv
+from techtree_v02_conformance.taskset import ConformanceData, ConformanceTask
+
+
+class RecordingSubject:
+    def __init__(self):
+        self.calls = []
+
+    async def run(self, task):
+        self.calls.append(task)
+
+
+class RecordingAgents:
+    def __init__(self, subject):
+        self.subject = subject
+
+
+task = ConformanceTask(ConformanceData(
+    idx=0, name="amber-17", prompt="x", answer="AMBER-17"
+))
+
+
+def trace_for(reply):
+    return Trace(
+        task=TraceTask(type=type(task).__name__, data=task.data),
+        agent=AgentInfo(config=vf.AgentConfig()),
+        nodes=[
+            MessageNode(
+                message=AssistantMessage(content=reply),
+                sampled=True,
+            )
+        ],
+    )
+
+
+async def main():
+    subject = RecordingSubject()
+    task_marker = object()
+    await object.__new__(SubjectEnv).run(task_marker, RecordingAgents(subject))
+
+    replies = {
+        "correct": "AMBER-17",
+        "incorrect": "amber-17",
+        "whitespace": "\\n AMBER-17 \\t",
+    }
+    scores = {}
+    for label, reply in replies.items():
+        trace = trace_for(reply)
+        await task.score(trace)
+        scores[label] = trace.rewards["exact_match"].score
+    print(json.dumps({
+        "calls": len(subject.calls),
+        "same_task": subject.calls[0] is task_marker,
+        "scores": scores,
+    }, sort_keys=True))
+
+
+asyncio.run(main())
+"""
+    result = check_engine_command(
+        conformance_python,
+        "-c",
+        probe,
+        env=scrubbed_environment(root / "home", conformance_python.parent),
+    )
+    assert json.loads(result) == {
+        "calls": 1,
+        "same_task": True,
+        "scores": {"correct": 1.0, "incorrect": 0.0, "whitespace": 1.0},
+    }
 
 
 def test_real_task_membership_matches_the_committed_manifest(

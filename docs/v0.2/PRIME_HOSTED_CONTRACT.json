@@ -1,0 +1,135 @@
+{
+  "schema_version": "techtree.prime-hosted-contract.v1",
+  "status": "contract_captured_with_release_blockers",
+  "captured_at": "2026-08-31",
+  "candidate_selection": {
+    "policy": "newest_official_stable",
+    "candidate": "prime==0.6.31",
+    "source_commit": "a8ff1673a9980025afc2447ba778112d53f60f5a",
+    "wheel_sha256": "sha256:f9abd5de637c471a43b163be58a954ba686e8c4395a5acfbcec2d3adb77a5228",
+    "public_sdk": "prime-evals==0.2.3",
+    "public_sdk_wheel_sha256": "sha256:e5217f36d360baedf2c10dd49abe7be504932bf8249a35c9f7abad12d0c0299a",
+    "api_generation": "v1",
+    "admission": "blocked_by_upstream_contract"
+  },
+  "owner": {
+    "account_type": "organization",
+    "organization_slug": "techtree",
+    "private_operator_label_recorded_outside_approval_packet": false,
+    "provider_internal_identifiers_recorded": false
+  },
+  "environment": {
+    "coordinate": "techtree/techtree-v02-conformance",
+    "requested_visibility": "public",
+    "source_manifest": "docs/v0.2/PRIME_CONFORMANCE_ENVIRONMENT.json",
+    "prime_environment_id": null,
+    "prime_environment_version_id": null,
+    "publication_status": "not_published"
+  },
+  "fixture": {
+    "path": "cli/tests/fixtures/prime/official_cli_0_6_31.json",
+    "sha256": "sha256:af78e61d99a3ca3243c5b75f537bc2bda26a35ee8bbb86cfe04b2c0c767d7fe9",
+    "evidence_manifest": "cli/tests/fixtures/prime/evidence_manifest.json",
+    "evidence_manifest_sha256": "sha256:ad31c5625e06a60199247f514e8db67c84f5dde2ab59d7ef8ab8b10e8225ca72",
+    "openapi_projection": "cli/tests/fixtures/prime/openapi_projection.json",
+    "openapi_projection_sha256": "sha256:149be7dad9b35abe600e0635656358c34609c229914b832dcdb5c1807ece09b1",
+    "raw_transport_digest": null,
+    "raw_transport_persisted": false
+  },
+  "supported_machine_reads": [],
+  "confirmed_release_blockers": [
+    {
+      "id": "prime_hosted_immutable_environment_selection",
+      "status": "unsupported",
+      "finding": "Prime CLI 0.6.31 discards an explicit environment version on the hosted path and resolves @latest."
+    },
+    {
+      "id": "prime_hosted_structured_mutations",
+      "status": "unsupported",
+      "finding": "Hosted create, logs, and stop have no structured CLI output and are absent from the public prime-evals SDK."
+    },
+    {
+      "id": "prime_hosted_provider_idempotency",
+      "status": "unproven",
+      "finding": "No provider idempotency key or replay guarantee exists in the supported surface."
+    },
+    {
+      "id": "prime_hosted_transport_integrity",
+      "status": "unsupported",
+      "finding": "The supported clients do not expose bounded raw response bytes or a caller-controlled redirect policy."
+    },
+    {
+      "id": "prime_hosted_status_and_pagination_schema_drift",
+      "status": "unproven",
+      "finding": "No sanitized runtime response envelope was captured; the public OpenAPI also adds PROCESSING beyond the hosted CLI enum and disagrees with the public SDK on the samples completion field."
+    },
+    {
+      "id": "prime_hosted_estimate_and_billing_binding",
+      "status": "unproven",
+      "finding": "The hosted surface exposes neither a plan-bound estimate nor a safe provider-returned billing-principal label."
+    }
+  ],
+  "comparison_topology": {
+    "status": "unproven",
+    "source_observation": "One create response may contain one evaluation_id or an evaluation_ids array.",
+    "required_before_admission": "A protected conformance run must prove arm identity, exact environment version, task pairing, and partial-creation recovery."
+  },
+  "result_availability": {
+    "read_shape": "source_shape_only_response_unobserved",
+    "pagination_schema": "unproven_due_to_public_sdk_openapi_drift",
+    "terminal_completeness": "unproven",
+    "logs_are_score_truth": false
+  },
+  "cancellation": {
+    "request_surface": "human_cli_only",
+    "terminal_confirmation": "unproven"
+  },
+  "idempotency": {
+    "provider_contract": "unproven",
+    "local_intent_deduplication_only": true,
+    "automatic_retry_after_ambiguous_submission": false
+  },
+  "protected_action_packets": {
+    "publish_environment": {
+      "status": "prepared_but_not_requested",
+      "intent_digest": "sha256:b7702ee60314a5a1ab86073a13ebd030ac3c23639a1c6c20c9ab7643130dd368",
+      "intent": {
+        "action_kind": "publish_prime_conformance_environment",
+        "exact_upstream_coordinates": {
+          "verifiers": "0.3.1",
+          "prime_cli": "0.6.31"
+        },
+        "environment_coordinate": "techtree/techtree-v02-conformance",
+        "environment_source_tree_digest": "sha256:d7cb169b7c182b9aaf9f380987d9acdc955bf2b394575a10c1b0b8fe93fce980",
+        "environment_wheel_sha256": "sha256:ceca3bf0a8af32dde48230bce59a89ee77b6d330f4c09d050d05c055f538a6e0",
+        "provider": "prime",
+        "private_billing_label": "Regents Labs",
+        "maximum_authorized_cost_usd": "0",
+        "network_effect": "Upload the deterministic environment package to Prime.",
+        "external_visibility": "public infrastructure conformance material; no benchmark claim",
+        "retry_policy": "manual reconciliation before any retry"
+      },
+      "action_taken": false,
+      "note": "Publication alone does not remove the hosted immutable-selection blocker."
+    },
+    "paid_hosted_conformance_run": {
+      "status": "blocked_not_ready_for_approval",
+      "intent_digest": null,
+      "action_taken": false,
+      "missing_before_exact_packet": [
+        "published immutable Prime environment version identifier",
+        "supported structured create, logs, and cancel surface",
+        "provider estimate and maximum-cost semantics",
+        "exact model and two-arm topology",
+        "provider idempotency guarantee or a proven reconciliation path"
+      ]
+    }
+  },
+  "external_effects": {
+    "environment_published": false,
+    "paid_run_started": false,
+    "provider_resource_mutated": false,
+    "upstream_issue_or_pull_request_sent": false,
+    "final_lock_adopted": false
+  }
+}
