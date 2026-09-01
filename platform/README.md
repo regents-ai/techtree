@@ -221,7 +221,10 @@ mix check   # formatting, warnings-as-errors, tests
 ```
 
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database
-connection when the local server does not use the Phoenix defaults.
+connection when the local server does not use the Phoenix defaults. If your
+server has no `postgres` role, set `PGUSER` to your own role, for example
+`PGUSER=$USER mix check` or `PGUSER=$USER make check-platform` from the
+monorepo root.
 
 ## Runtime configuration
 
