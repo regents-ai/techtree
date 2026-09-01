@@ -88,6 +88,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/publication-keys/:key_id",
              "get /api/v1/publications",
              "get /api/v1/publications/:bundle_digest",
+             "get /api/v1/publications/:bundle_digest/bundle",
              "get /climbs/:slug",
              "get /docs",
              "get /healthz",
@@ -147,6 +148,7 @@ defmodule TechtreeWeb.RouterTest do
           "/api/v1/climbs/hello-world-climb",
           "/api/v1/objects/sha256:#{String.duplicate("a", 64)}",
           "/api/v1/publications/sha256:#{String.duplicate("a", 64)}",
+          "/api/v1/publications/sha256:#{String.duplicate("a", 64)}/bundle",
           "/api/v1/publication-keys/sha256:#{String.duplicate("a", 64)}"
         ] do
       for refused <- [

@@ -110,6 +110,7 @@ GET /api/v1/climbs/:slug        one Climb summarized, with links to its objects
 GET /api/v1/objects/:digest     one protocol object, exact bytes
 GET /api/v1/publications        the run log, newest first
 GET /api/v1/publications/:digest  one published run
+GET /api/v1/publications/:digest/bundle  what was submitted, exact bytes
 GET /api/v1/publication-keys/:key_id  the public half of this site's own key
 
 POST /api/v1/publications       a signed publication, or a signed withdrawal
@@ -132,6 +133,7 @@ stranger, and whether retrying could help:
 ```text
 400  the digest in the path is not a digest
 404  the digest or slug names nothing this release ships
+410  the participant withdrew this run, so its submitted bytes are no longer served
 503  nothing is imported yet, or the stored bytes no longer match their digest
 ```
 

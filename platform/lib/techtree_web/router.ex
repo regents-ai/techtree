@@ -21,6 +21,14 @@ defmodule TechtreeWeb.Router do
   nothing in it reads as a rank — a row identifier would exist only inside our
   own database, and a log sequence in a URL would look like a position.
 
+  `GET /api/v1/publications/<digest>/bundle` is the child of that address, and
+  it answers with the exact bytes the participant submitted — the same bytes
+  this site verified, handed back without being parsed and written out again,
+  so that a reader can check the run offline against the participant's own
+  signatures rather than against our reading of them. Once the participant
+  withdraws the run that address answers `410 Gone`, while the entry, the event
+  that recorded the withdrawal and the receipt stay exactly where they were.
+
   `GET /api/v1/publication-keys/:key_id` is the counterpart of that one write:
   the public half of the key this site signs publication receipts with,
   at the fingerprint of that key, so a receipt can be checked by anybody
@@ -99,6 +107,7 @@ defmodule TechtreeWeb.Router do
     get "/objects/:digest", ObjectController, :show
     get "/publications", PublicationController, :index
     get "/publications/:bundle_digest", PublicationController, :show
+    get "/publications/:bundle_digest/bundle", PublicationController, :bundle
     get "/publication-keys/:key_id", PublicationKeyController, :show
   end
 

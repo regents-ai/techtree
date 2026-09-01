@@ -10,12 +10,11 @@ defmodule TechtreeWeb.RunsLive.Show do
   The coordinates come from the campaign this site publishes rather than from
   the submission, so a run cannot describe the comparison it was in.
 
-  What the page does **not** offer is the submitted bytes. Those are stored,
-  immutably, and every field here was derived from them — but an address
-  returning the path-to-base64 file mapping hands over the whole bundle however
-  it is wrapped, and decision 0038 defers that. The bundle a reader can
-  check offline is the one the participant still holds, and the command that
-  checks it is on the page.
+  What this page does **not** offer is the submitted bytes. Those are stored
+  immutably, every field here was derived from them, and they have an address
+  of their own on the API rather than a control on this page. The bundle a
+  reader is pointed at here is the one the participant still holds, and the
+  command that checks it is on the page.
 
   The list of checks is the ingest's own list, read from the module that runs
   them, so a page cannot claim a check that does not exist and cannot fall

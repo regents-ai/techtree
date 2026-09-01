@@ -33,15 +33,22 @@ defmodule Techtree.Network.PublicationEntry do
   built and hands back the receipt the winner stored. Nobody gets a second row
   and nobody gets a second receipt.
 
-  ## What is stored, and what is not served
+  ## What is stored, and how it is handed back
 
   `submission_bytes` is the exact bytes this site was handed. They are kept so
-  that every published field can be re-derived from them by anybody with access
-  to them, and they are **not** served: a public address returning the file
-  mapping hands over the whole bundle however it is wrapped in JSON, and
-  decision 0038 defers that. `submission_digest` is the digest of the canonical
-  form of that document, and it is the one thing that tells a lost-response
-  retry apart from a different submission wearing the same bundle digest.
+  that every published field can be re-derived from them, and they are served
+  back unaltered at `/api/v1/publications/<digest>/bundle` while the entry
+  stands, so that a reader can check the run against the participant's own
+  signatures instead of against our reading of them. They are never parsed and
+  written out again on the way out: a re-encoding is a different string of
+  bytes saying the same thing, and a signature can see that difference.
+  `submission_digest` is the digest of the canonical form of that document, and
+  it is the one thing that tells a lost-response retry apart from a different
+  submission wearing the same bundle digest.
+
+  A withdrawn entry keeps these bytes and stops handing them out. The row, the
+  appended withdrawal event and the receipt all stay; the download answers
+  `410 Gone`.
 
   `bundle_digest` is not the digest of those bytes: it is the bundle's own
   `payload_digest`, recomputed from the payload's canonical form, which is what
@@ -226,7 +233,7 @@ defmodule Techtree.Network.PublicationEntry do
     end
 
     attribute :submission_bytes, :binary do
-      description "The exact bytes this site was handed. Stored, never served."
+      description "The exact bytes this site was handed. Stored, and served back unaltered."
       allow_nil? false
       public? false
     end

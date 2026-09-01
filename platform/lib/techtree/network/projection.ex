@@ -4,11 +4,11 @@ defmodule Techtree.Network.Projection do
 
   This is a projection and not a bundle. Every member of it was recomputed from
   bytes that verified or copied out of a document whose signature was checked
-  first, and none of it is the submitted bytes themselves — a public address
-  returning the path-to-base64 file mapping hands over the whole bundle however
-  it is wrapped in JSON, and decision 0038 defers that to a later release.
-  The bytes are stored, immutably, and every field here is derived from them;
-  they are simply not served.
+  first, and none of it is the submitted bytes themselves. Those are stored
+  immutably, every field here is derived from them, and they are handed back
+  unaltered at their own address — the `/bundle` child of the entry's — rather
+  than folded into this document, so that what a reader checks signatures
+  against is what the participant signed and not our rendering of it.
 
   Two shapes, and the detail one is the list one with more in it, so a caller
   who has read a page of the log does not have to learn a second vocabulary to

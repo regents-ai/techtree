@@ -37,9 +37,10 @@ defmodule Techtree.Network.Receipt do
   is inside their own signed bundle.
 
   *`entry_url` is the verified detail page*, and it is addressed by the bundle
-  digest. It is deliberately not an address that returns the submitted bytes: a
-  public address returning the file mapping hands over the whole bundle however
-  it is wrapped in JSON, and 0038 defers that.
+  digest. It is deliberately not the address that returns the submitted bytes:
+  those have their own, the `/bundle` child of the entry's API address, and a
+  receipt names where a person reads the run rather than where a program
+  downloads it.
 
   *The signature is the countersignature.* A holder of a receipt checks it by
   canonicalizing `payload`, hashing it, comparing that to `payload_digest`, and

@@ -347,13 +347,18 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert %{"error" => %{"code" => "publication_missing"}} = json_response(served, 404)
     end
 
-    test "there is no address that returns the bytes that were submitted" do
-      for path <- [
+    test "the submitted bytes have exactly one address, and it is the entry's own child" do
+      served =
+        get(build_conn(), "/api/v1/publications/#{NetworkFixture.bundle_digest()}/bundle")
+
+      assert served.status == 200
+      assert served.resp_body =~ Base.encode64(NetworkFixture.files()["data-policy.json"])
+
+      for invented <- [
             "/api/v1/submissions/#{NetworkFixture.bundle_digest()}",
-            "/api/v1/publications/#{NetworkFixture.bundle_digest()}/bundle",
             "/api/v1/bundles/#{NetworkFixture.bundle_digest()}"
           ] do
-        assert get(build_conn(), path).status == 404
+        assert get(build_conn(), invented).status == 404
       end
     end
   end
@@ -612,6 +617,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
       for path <- [
             "/api/v1/publications",
             "/api/v1/publications/#{NetworkFixture.bundle_digest()}",
+            "/api/v1/publications/#{NetworkFixture.bundle_digest()}/bundle",
             "/results",
             "/results/#{NetworkFixture.bundle_digest()}"
           ] do
