@@ -1,0 +1,24 @@
+{
+  "actions": [
+    {
+      "id": "<redacted-provider-job-id>",
+      "name": "Integration Test",
+      "job_type": "TEST",
+      "trigger": "PUSH",
+      "status": "FAILED",
+      "started_at": "2026-09-01T21:13:46.087000",
+      "completed_at": "2026-09-01T21:14:41.976000",
+      "exit_code": 1,
+      "error_message": "Integration test failed. Check the logs for details.",
+      "created_at": "2026-09-01T21:13:46.098000",
+      "version": {
+        "id": "<redacted-provider-environment-version-id>",
+        "content_hash": "5a6139e4078a108b8b908baeae3ee7b4101c6e401461e2ffa516084b352e6aca",
+        "semantic_version": "0.1.0"
+      }
+    }
+  ],
+  "total": 1,
+  "limit": 20,
+  "offset": 0
+}

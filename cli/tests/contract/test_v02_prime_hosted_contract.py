@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shlex
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -14,12 +15,29 @@ CLI_ROOT = Path(__file__).parents[2]
 MONOREPO_ROOT = CLI_ROOT.parent
 DOCS_ROOT = MONOREPO_ROOT / "docs" / "v0.2"
 FIXTURE_ROOT = CLI_ROOT / "tests" / "fixtures" / "prime"
+RESPONSE_ROOT = FIXTURE_ROOT / "responses"
 FIXTURE_PATH = FIXTURE_ROOT / "official_cli_0_6_31.json"
 MANIFEST_PATH = FIXTURE_ROOT / "evidence_manifest.json"
 RAW_OPENAPI_PATH = FIXTURE_ROOT / "openapi.json"
 PROJECTION_PATH = FIXTURE_ROOT / "openapi_projection.json"
 CONTRACT_PATH = DOCS_ROOT / "PRIME_HOSTED_CONTRACT.json"
 LOCK_PATH = DOCS_ROOT / "UPSTREAM_CONTRACT_LOCK.json"
+CONFORMANCE_PYPROJECT = (
+    CLI_ROOT / "tests" / "conformance" / "prime_environment" / "pyproject.toml"
+)
+
+EVIDENCE_GROUPS = ("source_snapshots", "help_snapshots", "response_snapshots")
+
+#: Prime returns collision-resistant identifiers for its own environments,
+#: versions, teams, and jobs. They are provider-internal and are persisted
+#: nowhere, so this pattern rejects any bare token of their observed shape
+#: rather than the specific values that were seen.
+PROVIDER_ID_PATTERN = re.compile(r"(?<![0-9a-z])[0-9a-z]{24,25}(?![0-9a-z])")
+
+#: The upstream OpenAPI document is retained verbatim and bound by the digest
+#: the provider publishes. It predates every account action recorded here and
+#: contains ordinary camel-case words that the pattern would flag.
+PROVIDER_ID_SCAN_EXEMPT = {RAW_OPENAPI_PATH}
 
 OPENAPI_REFS = {
     "openapi_hosted_create": ("path", "/api/v1/hosted-evaluations", "post"),
@@ -59,12 +77,18 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def capture(ref: str, manifest: dict[str, Any]) -> str:
-    for group in ("source_snapshots", "help_snapshots"):
+    for group in EVIDENCE_GROUPS:
         if record := manifest[group].get(ref):
             relative_path = record.get("path")
             assert isinstance(relative_path, str)
             return (MONOREPO_ROOT / relative_path).read_text(encoding="utf-8")
     raise AssertionError(f"missing retained capture: {ref}")
+
+
+def response(ref: str, manifest: dict[str, Any]) -> dict[str, Any]:
+    document = json.loads(capture(ref, manifest))
+    assert isinstance(document, dict)
+    return document
 
 
 def has_option(text: str, option: str) -> bool:
@@ -98,7 +122,7 @@ def derive_statuses(
 ) -> dict[str, str]:
     t = {
         ref: capture(ref, manifest)
-        for group in ("help_snapshots", "source_snapshots")
+        for group in EVIDENCE_GROUPS
         for ref in manifest[group]
     }
     run = t["prime_eval_run"]
@@ -115,6 +139,14 @@ def derive_statuses(
     create = t["prime_cli_hosted_create"]
     client = t["prime_cli_api_client"]
     status = t["prime_cli_hosted_status"]
+    env_listing = response("prime_env_list_owned", manifest)
+    empty_env_listing = response("prime_env_list_owned_empty", manifest)
+    empty_eval_listing = response("prime_eval_list_empty", manifest)
+    env_status = response("prime_env_status_owned", manifest)
+    action_listing = response("prime_env_action_list_owned", manifest)
+    action_logs = t["prime_env_action_logs_owned"]
+    exact_version_listing = t["prime_env_inspect_owned"]
+    action = action_listing["actions"][0]
     fields = set(schema(projection, "GetSamplesResponse")["properties"])
     cli_statuses = set(re.findall(r'^\s+[A-Z]+ = "([A-Z]+)"$', status, re.M))
     api_statuses = set(schema(projection, "EvaluationStatus").get("enum", []))
@@ -137,8 +169,81 @@ def derive_statuses(
         "evaluation_list": claim(
             has_output(listing)
             and "async def list_evaluations" in methods
-            and has_keys(listing, "evaluations", "total"),
-            "shape_supported_response_unobserved",
+            and has_keys(listing, "evaluations", "total")
+            and set(empty_eval_listing) == {"evaluations", "total", "skip", "limit"}
+            and empty_eval_listing["evaluations"] == []
+            and empty_eval_listing["total"] == 0,
+            "supported_machine_read_observed_empty_collection",
+        ),
+        "environment_list": claim(
+            set(env_listing) == {"environments", "total", "page", "per_page"}
+            and set(empty_env_listing) == set(env_listing)
+            and empty_env_listing["environments"] == []
+            and empty_env_listing["total"] == 0
+            and env_listing["total"] == len(env_listing["environments"]) == 1
+            and set(env_listing["environments"][0])
+            == {
+                "environment",
+                "description",
+                "visibility",
+                "version",
+                "stars",
+                "updated_at",
+            },
+            "supported_machine_read_observed",
+        ),
+        "environment_status_read": claim(
+            set(env_status)
+            == {
+                "id",
+                "name",
+                "description",
+                "visibility",
+                "owner",
+                "latest_version",
+                "action",
+            }
+            and set(env_status["latest_version"])
+            == {"version_id", "semantic_version", "content_hash", "created_at"}
+            and env_status["visibility"] == "PUBLIC"
+            and env_status["latest_version"]["semantic_version"] == "0.1.0"
+            and env_status["id"].startswith("<redacted-")
+            and env_status["latest_version"]["version_id"].startswith("<redacted-"),
+            "supported_machine_read_observed_with_provider_ids_redacted",
+        ),
+        "environment_publication_action": claim(
+            env_status["action"]["status"] == action["status"] == "FAILED"
+            and action["name"] == "Integration Test"
+            and action["trigger"] == "PUSH"
+            and action["exit_code"] == 1
+            and action["version"]["semantic_version"] == "0.1.0"
+            and "AssertionError: pyproject.toml does not have tags" in action_logs
+            and contains(
+                action_logs,
+                "test_pyproject_has_metadata FAILED",
+                "test_install_and_import PASSED",
+                "test_readme_exists PASSED",
+                "1 failed, 3 passed",
+            ),
+            "hub_integration_test_failed_on_missing_tags_metadata",
+        ),
+        "environment_action_list": claim(
+            set(action_listing) == {"actions", "total", "limit", "offset"}
+            and action_listing["total"] == len(action_listing["actions"]) == 1
+            and action["id"].startswith("<redacted-")
+            and action["version"]["id"].startswith("<redacted-"),
+            "supported_machine_read_observed_with_provider_ids_redacted",
+        ),
+        "environment_action_logs": claim(
+            "test session starts" in action_logs
+            and not action_logs.lstrip().startswith("{"),
+            "provider_log_text_observed",
+        ),
+        "environment_exact_version_listing": claim(
+            "techtree/techtree-v02-conformance@0.1.0" in exact_version_listing
+            and contains(exact_version_listing, "pyproject.toml", "README.md")
+            and not exact_version_listing.lstrip().startswith("{"),
+            "human_output_only_observed",
         ),
         "samples_results": claim(
             has_output(samples)
@@ -174,8 +279,16 @@ def derive_statuses(
             "unproven",
         ),
         "pagination": claim(
-            "skip: int" in methods and "hasMore" in models and "total_pages" in fields,
-            "shape_supported_boundaries_unproven",
+            "skip: int" in methods
+            and "hasMore" in models
+            and "total_pages" in fields
+            #: Three observed listings, three different pagination envelopes.
+            and {"page", "per_page"} <= set(env_listing)
+            and {"skip", "limit"} <= set(empty_eval_listing)
+            and {"limit", "offset"} <= set(action_listing)
+            and not {"page", "per_page"} & set(empty_eval_listing)
+            and not {"page", "per_page", "skip"} & set(action_listing),
+            "shape_supported_boundaries_unproven_with_observed_envelope_divergence",
             "unproven",
         ),
         "ambiguous_transport": claim(
@@ -278,14 +391,26 @@ def test_all_claims_use_retained_evidence_and_recorded_eval_paths_are_guarded() 
             else capture(ref, manifest).strip()
         ), ref
 
-    for group, records in (
-        ("source_snapshots", manifest["source_snapshots"]),
-        ("help_snapshots", manifest["help_snapshots"]),
-    ):
-        for record in records.values():
+    for group in EVIDENCE_GROUPS:
+        for record in manifest[group].values():
             path = MONOREPO_ROOT / record["path"]
             assert path.is_file()
-            if group == "source_snapshots":
+            if group == "response_snapshots":
+                assert record["command"].startswith("prime --plain ")
+                assert record["size_bytes"] == path.stat().st_size
+                assert sha256_digest_bytes(path.read_bytes()) == record["sha256"]
+                assert record["content"] in {
+                    "verbatim_provider_response",
+                    "redacted_provider_response",
+                }
+                if record["content"] == "redacted_provider_response":
+                    assert record["redacted_fields"]
+                assert record["capture_order"] in {
+                    "before_the_environment_publication",
+                    "after_the_environment_publication",
+                    "not_recorded_relative_to_the_environment_publication",
+                }
+            elif group == "source_snapshots":
                 assert record["artifact"] in manifest["artifacts"]
                 assert record["member_sha256"].startswith("sha256:")
                 assert record["member_size_bytes"] >= record["excerpt_size_bytes"]
@@ -314,7 +439,42 @@ def test_all_claims_use_retained_evidence_and_recorded_eval_paths_are_guarded() 
     derived = derive_statuses(manifest, projection)
     assert {name: op["status"] for name, op in fixture["operations"].items()} == derived
     assert set(fixture["operations"]) == set(derived)
-    assert load_json(CONTRACT_PATH)["supported_machine_reads"] == []
+
+    contract = load_json(CONTRACT_PATH)
+    reads = contract["supported_machine_reads"]
+    assert reads
+    assert {read["operation"] for read in reads} == {
+        name
+        for name, status in derived.items()
+        if status.startswith("supported_machine_read_observed")
+    }
+    retained = {
+        record["path"]: record for record in manifest["response_snapshots"].values()
+    }
+    for read in reads:
+        record = retained[read["fixture"]]
+        observed = json.loads((MONOREPO_ROOT / read["fixture"]).read_text("utf-8"))
+        assert read["command"] == record["command"]
+        assert read["observed_envelope_keys"] == sorted(observed)
+        assert read["limits"]
+
+    #: The owned environment listing is a before-and-after pair around the one
+    #: publication, and it is the only read captured before it.
+    ordering = {
+        name: record["capture_order"]
+        for name, record in manifest["response_snapshots"].items()
+    }
+    assert ordering["prime_env_list_owned_empty"] == (
+        "before_the_environment_publication"
+    )
+    assert ordering["prime_env_list_owned"] == "after_the_environment_publication"
+    assert [
+        name
+        for name, order in ordering.items()
+        if order == "before_the_environment_publication"
+    ] == ["prime_env_list_owned_empty"]
+    assert response("prime_env_list_owned_empty", manifest)["total"] == 0
+    assert response("prime_env_list_owned", manifest)["total"] == 1
 
     commands = [
         record["command"]
@@ -348,6 +508,24 @@ def test_prime_blockers_and_protected_actions_remain_bound() -> None:
     assert derived["stop"] == "unsupported_machine_contract"
     assert derived["ambiguous_transport"] == "unsupported_provider_idempotency"
     assert derived["transport_safety"] == "unsupported_by_official_clients"
+    assert derived["pagination"] == (
+        "shape_supported_boundaries_unproven_with_observed_envelope_divergence"
+    )
+
+    #: The drift finding has to name every envelope that was actually seen, or
+    #: the machine-readable record understates what the capture found.
+    drift = next(
+        blocker["finding"]
+        for blocker in contract["confirmed_release_blockers"]
+        if blocker["id"] == "prime_hosted_status_and_pagination_schema_drift"
+    )
+    limits = fixture["operations"]["pagination"]["observed_limits"]
+    for envelope in ("page and per_page", "skip and limit", "limit and offset"):
+        assert envelope in drift
+        assert envelope in limits
+    assert "three observed list envelopes" in drift
+    assert "three observed list envelopes" in limits
+
     assert "@latest" in capture("prime_cli_hosted_resolver", manifest)
     assert "@latest" not in contract["environment"]["coordinate"]
     assert "@latest" not in lock["environment_coordinate"]
@@ -357,7 +535,9 @@ def test_prime_blockers_and_protected_actions_remain_bound() -> None:
     packets = contract["protected_action_packets"]
     publication = packets["publish_environment"]
     hosted_run = packets["paid_hosted_conformance_run"]
-    assert publication["status"] == "prepared_but_not_requested"
+    execution = publication["execution"]
+    published = environment["publication"]
+    assert publication["status"] == "approved_and_executed"
     assert publication["intent_digest"] == digest_object(publication["intent"])
     assert publication["intent"]["maximum_authorized_cost_usd"] == "0"
     assert (
@@ -367,8 +547,28 @@ def test_prime_blockers_and_protected_actions_remain_bound() -> None:
     assert (
         publication["intent"]["environment_wheel_sha256"]
         == environment["package"]["wheel"]["sha256"]
+        == execution["observed_wheel_sha256"]
+        == published["observed_wheel_sha256"]
     )
-    assert publication["action_taken"] is False
+    assert publication["action_taken"] is True
+    assert publication["executed_at"] == published["executed_at"] == "2026-09-01"
+    assert execution["command"] == published["command"]
+    assert execution["cost_usd_incurred"] == published["cost_usd"] == "0"
+    assert execution["evaluation_created"] is False
+    assert execution["model_call_made"] is False
+    assert execution["wheel_matches_approved_packet"] is True
+
+    #: The evidence manifest states the same provider action in its own words.
+    #: Bind the two so neither can be softened without the other.
+    observed = manifest["provider_actions_observed"]["environment_publication"]
+    assert observed["action_kind"] == publication["intent"]["action_kind"]
+    assert observed["executed_at"] == publication["executed_at"]
+    assert observed["cost_usd"] == execution["cost_usd_incurred"] == "0"
+    assert observed["evaluation_created"] == execution["evaluation_created"] is False
+    assert observed["model_call_made"] == execution["model_call_made"] is False
+    assert observed["founder_approved"] is True
+    assert execution["approved_by"] == "founder"
+    assert manifest["provider_actions_observed"]["hosted_evaluation_mutation"] is None
     assert hosted_run["status"] == "blocked_not_ready_for_approval"
     assert hosted_run["intent_digest"] is None
     assert hosted_run["action_taken"] is False
@@ -377,7 +577,128 @@ def test_prime_blockers_and_protected_actions_remain_bound() -> None:
         "supported structured create, logs, and cancel surface",
         "provider estimate and maximum-cost semantics",
     }.issubset(hosted_run["missing_before_exact_packet"])
-    assert all(value is False for value in contract["external_effects"].values())
+    assert contract["external_effects"] == {
+        "environment_published": True,
+        "paid_run_started": False,
+        "provider_resource_mutated": True,
+        "upstream_issue_or_pull_request_sent": False,
+        "final_lock_adopted": False,
+    }
+
+
+def test_publication_did_not_relax_any_prime_admission_ruling() -> None:
+    contract = load_json(CONTRACT_PATH)
+    lock = load_json(LOCK_PATH)["prime_hosted_evaluations"]
+    environment = load_json(DOCS_ROOT / "PRIME_CONFORMANCE_ENVIRONMENT.json")
+    fixture = load_json(FIXTURE_PATH)
+
+    assert contract["release_scope"] == {
+        "prime_hosted": "v0.2.x",
+        "v0_2_0_admission": "inadmissible",
+        "decided_at": "2026-09-01",
+        "decision": (
+            "Founder decision: Prime Hosted moves to v0.2.x, and the hosted gap "
+            "recorded in this document is inadmissible for v0.2.0."
+        ),
+        "plan_and_ticket_rescope": "tracked separately from this document",
+    }
+    assert contract["candidate_selection"]["admission"] == lock["admission"]
+    assert contract["candidate_selection"]["v0_2_0_admission"] == "inadmissible"
+    assert lock["v0_2_0_admission"] == "inadmissible"
+    assert contract["candidate_selection"]["release_scope"] == lock["release_scope"]
+
+    published = environment["publication"]
+    recorded = contract["environment"]
+    assert published["status"] == recorded["publication_status"] == "published"
+    assert lock["environment_publication_status"] == "published"
+    assert published["evaluation_or_model_call_performed"] is False
+    assert environment["future_paths"]["prime_hosted_run"]["status"] == "not_run"
+    assert fixture["environment_publication_observed"] is True
+    assert fixture["live_hosted_mutation_observed"] is False
+
+    #: The provider hands back its own identifiers on publication. None of them
+    #: is written down, here or anywhere else in the retained evidence.
+    assert recorded["prime_environment_id"] is None
+    assert recorded["prime_environment_version_id"] is None
+    assert published["prime_environment_id"] is None
+    assert published["prime_environment_version_id"] is None
+    assert lock["environment_id"] is None
+    assert lock["environment_version_id"] is None
+
+    #: The provider returns a content hash of its own. It is a digest rather
+    #: than an identifier, so it is retained, but it binds to nothing Techtree
+    #: computed and cannot stand in for an integrity check.
+    content_hash = recorded["provider_content_hash"]
+    assert content_hash == published["provider_content_hash"]
+    assert content_hash == lock["environment_provider_content_hash"]
+    assert recorded["provider_content_hash_algorithm_declared"] is False
+    assert recorded["provider_content_hash_matches_a_techtree_digest"] is False
+    assert f"sha256:{content_hash}" not in json.dumps(environment)
+
+    #: Publication proved the environment exists at 0.1.0. It proved nothing
+    #: about the hosted path, and it surfaced a failed provider action.
+    assert recorded["immutable_version_reference_available_to_hosted_run"] is False
+    assert recorded["observed_provider_action_status"] == "FAILED"
+    assert lock["environment_provider_action_status"] == "FAILED"
+    assert {blocker["id"] for blocker in contract["confirmed_release_blockers"]} == {
+        "prime_hosted_immutable_environment_selection",
+        "prime_hosted_structured_mutations",
+        "prime_hosted_provider_idempotency",
+        "prime_hosted_transport_integrity",
+        "prime_hosted_status_and_pagination_schema_drift",
+        "prime_hosted_estimate_and_billing_binding",
+        "prime_hosted_environment_hub_requires_non_standard_tags",
+    }
+
+
+def test_the_failed_hub_action_states_its_cause_and_stays_unfixed() -> None:
+    contract = load_json(CONTRACT_PATH)
+    environment = load_json(DOCS_ROOT / "PRIME_CONFORMANCE_ENVIRONMENT.json")
+    lock = load_json(LOCK_PATH)["prime_hosted_evaluations"]
+    published = environment["publication"]
+    recorded = contract["environment"]
+    blocker = next(
+        entry
+        for entry in contract["confirmed_release_blockers"]
+        if entry["id"] == "prime_hosted_environment_hub_requires_non_standard_tags"
+    )
+
+    #: The action failed for a known reason, and the reason is named rather
+    #: than described as unknown.
+    assert "tags" in blocker["finding"]
+    assert "PEP 621" in blocker["finding"]
+    assert recorded["observed_provider_action_note"] == blocker["finding"]
+    assert published["provider_action_note"] == blocker["finding"]
+    assert recorded["observed_provider_action_name"] == "Integration Test"
+    assert recorded["observed_provider_action_trigger"] == "PUSH"
+
+    #: Three of the hub's four checks passed, so the honest claim is narrow:
+    #: installable and importable, not hub-validated.
+    assert recorded["installable_and_importable_per_hub_test"] is True
+    assert published["installable_and_importable_per_hub_test"] is True
+    assert recorded["hub_validated"] is False
+    assert published["hub_validated"] is False
+    assert lock["environment_hub_validated"] is False
+    assert lock["environment_hub_validation_gap"] == (
+        "hub_integration_test_requires_non_standard_tags_metadata"
+    )
+
+    #: Fixing it means a new published version, which is a new protected
+    #: action. Nothing here may quietly change the tree that produced 0.1.0.
+    republish = contract["protected_action_packets"][
+        "republish_environment_with_hub_tags"
+    ]
+    assert republish["status"] == "required_not_prepared_not_requested"
+    assert republish["intent_digest"] is None
+    assert republish["action_taken"] is False
+    assert "founder approval" in republish["approval"]
+    assert "tags" in republish["required_change"]
+
+    pyproject = tomllib.loads(
+        (CONFORMANCE_PYPROJECT).read_text(encoding="utf-8"),
+    )
+    assert "tags" not in pyproject["project"]
+    assert pyproject["project"]["version"] == published["observed_semantic_version"]
 
 
 def test_retained_evidence_has_no_private_or_reusable_account_material() -> None:
@@ -400,3 +721,37 @@ def test_retained_evidence_has_no_private_or_reusable_account_material() -> None
     assert "Regents Labs" not in public
     assert json.dumps(contract).count("Regents Labs") == 1
     assert all(value is False for value in manifest["sanitization"].values())
+    assert manifest["sanitization"]["provider_internal_ids_persisted"] is False
+    assert (
+        manifest["sanitization"]["protected_hosted_evaluation_mutation_observed"]
+        is False
+    )
+
+
+def test_no_retained_file_carries_a_provider_internal_identifier() -> None:
+    scanned = [
+        path
+        for path in sorted(FIXTURE_ROOT.rglob("*"))
+        if path.is_file() and path not in PROVIDER_ID_SCAN_EXEMPT
+    ] + [
+        DOCS_ROOT / name
+        for name in (
+            "PRIME_CONTRACT.md",
+            "PRIME_HOSTED_CONTRACT.json",
+            "PRIME_CONFORMANCE_ENVIRONMENT.json",
+            "UPSTREAM_CONTRACT_LOCK.json",
+            "UPSTREAM_CANDIDATES.json",
+        )
+    ]
+    assert RAW_OPENAPI_PATH in PROVIDER_ID_SCAN_EXEMPT
+    assert set(RESPONSE_ROOT.iterdir()) <= set(scanned)
+    for path in scanned:
+        found = PROVIDER_ID_PATTERN.findall(path.read_text(encoding="utf-8"))
+        assert not found, f"{path}: {sorted(set(found))}"
+
+    #: The scan has to be able to fail, so prove it catches the shape it is for.
+    #: These are synthetic tokens of the observed length, not observed values.
+    assert PROVIDER_ID_PATTERN.search('"id": "a1b2c3d4e5f6g7h8j9k0m1n2"')
+    assert PROVIDER_ID_PATTERN.search("a1b2c3d4e5f6g7h8j9k0m1n2p")
+    assert not PROVIDER_ID_PATTERN.search(sha256_digest_bytes(b"prime"))
+    assert not PROVIDER_ID_PATTERN.search("<redacted-provider-environment-id>")

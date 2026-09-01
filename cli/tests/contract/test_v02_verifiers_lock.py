@@ -92,14 +92,22 @@ def test_environment_manifest_binds_the_exact_source_lock_scorer_and_membership(
     stable = candidate_by_id(candidates, "verifiers-stable-0.3.1")
 
     assert manifest["status"] == "local_conformance_passed"
-    assert manifest["publication"] == {
-        "status": "not_published",
-        "protected_action_required": True,
-        "owner": "@techtree",
-        "visibility": "public",
-        "prime_environment_id": None,
-        "prime_environment_version_id": None,
-    }
+    publication = manifest["publication"]
+    assert publication["status"] == "published"
+    assert publication["protected_action_required"] is True
+    assert publication["protected_action_approved_at"] == "2026-09-01"
+    assert publication["owner"] == "@techtree"
+    assert publication["visibility"] == "public"
+    assert publication["observed_visibility"] == "PUBLIC"
+    assert publication["observed_semantic_version"] == manifest["package"]["version"]
+    wheel = manifest["package"]["wheel"]
+    assert publication["observed_wheel_filename"] == wheel["filename"]
+    assert publication["observed_wheel_size"] == wheel["size"]
+    assert publication["observed_wheel_sha256"] == wheel["sha256"]
+    assert publication["cost_usd"] == "0"
+    assert publication["evaluation_or_model_call_performed"] is False
+    assert publication["prime_environment_id"] is None
+    assert publication["prime_environment_version_id"] is None
     assert "not a benchmark" in manifest["purpose"]
     assert manifest["evaluation_engine"]["version"] == stable["version"]
     assert manifest["evaluation_engine"]["source_commit"] == stable["source_commit"]

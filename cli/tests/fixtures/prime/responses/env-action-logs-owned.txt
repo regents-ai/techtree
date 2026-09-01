@@ -1,0 +1,71 @@
+Prime CLI version: 0.6.29
+Attempt 1 of 3...
+A new version of prime is available: 0.6.31 (installed: 0.6.29)
+Run: prime upgrade
+Set PRIME_DISABLE_VERSION_CHECK=1 to disable this check
+
+Pulling techtree/techtree-v02-conformance@5a6139e4078a...
+Downloading to techtree-v02-conformance-5a6139e4078a...
+✓ Environment pulled to techtree-v02-conformance-5a6139e4078a
+Created environment metadata at 
+techtree-v02-conformance-5a6139e4078a/.prime/.env-metadata.json
+
+Extracted files:
+  - README.md
+  - pyproject.toml
+  - techtree_v02_conformance
+README.md
+pyproject.toml
+techtree_v02_conformance
+Attempt 1 of 3...
+Using Python 3.12.14 environment at: /usr/local
+Resolved 6 packages in 227ms
+Prepared 3 packages in 76ms
+Installed 3 packages in 7ms
+ + iniconfig==2.3.0
+ + pluggy==1.6.0
+ + pytest==9.1.1
+Running test suite on techtree_v02_conformance...
+============================= test session starts ==============================
+platform linux -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0 -- 
+/usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace/test_suite
+plugins: anyio-4.14.2
+collecting ... collected 5 items / 1 deselected / 4 selected
+
+test_envs.py::test_pyproject_exists PASSED                               [ 25%]
+test_envs.py::test_pyproject_has_metadata FAILED                         [ 50%]
+test_envs.py::test_readme_exists PASSED                                  [ 75%]
+test_envs.py::test_install_and_import PASSED                             [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_pyproject_has_metadata __________________________
+
+    def test_pyproject_has_metadata():
+        try:
+            import tomllib
+        except ModuleNotFoundError:
+            import tomli as tomllib  # Python < 3.11
+    
+        with open(ENV_DIR / "pyproject.toml", "rb") as f:
+            pyproject = tomllib.load(f)
+        assert "name" in pyproject["project"], "pyproject.toml does not have a 
+name"
+        assert "version" in pyproject["project"], "pyproject.toml does not have 
+a version"
+        assert "description" in pyproject["project"], (
+            "pyproject.toml does not have a description"
+        )
+>       assert "tags" in pyproject["project"], "pyproject.toml does not have 
+tags"
+E       AssertionError: pyproject.toml does not have tags
+E       assert 'tags' in {'name': 'techtree-v02-conformance', 'version': 
+'0.1.0', 'description': 'Deterministic infrastructure-conformance environment 
+for Techtree v0.2', 'readme': 'README.md', ...}
+
+test_envs.py:58: AssertionError
+=========================== short test summary info ============================
+FAILED test_envs.py::test_pyproject_has_metadata - AssertionError: pyproject....
+================== 1 failed, 3 passed, 1 deselected in 16.18s ==================
+

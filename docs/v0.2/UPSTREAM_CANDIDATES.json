@@ -33,7 +33,7 @@
       "conformance": {
         "result": "local_model_free_validation_passed",
         "environment_manifest": "docs/v0.2/PRIME_CONFORMANCE_ENVIRONMENT.json",
-        "environment_manifest_sha256": "sha256:37aa464b51830983898dec9a83b46f73e0717fae486ef24d78412f4af1188a46"
+        "environment_manifest_sha256": "sha256:8c8c4d3f0f628c63065d84709a000572730a2ee074179e59ed5d2d1fff535842"
       },
       "component": "verifiers"
     },

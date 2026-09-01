@@ -1,7 +1,15 @@
 {
   "schema_version": "techtree.prime-hosted-contract.v1",
-  "status": "contract_captured_with_release_blockers",
+  "status": "contract_captured_with_release_blockers_and_environment_published",
   "captured_at": "2026-08-31",
+  "runtime_captured_at": "2026-09-01",
+  "release_scope": {
+    "prime_hosted": "v0.2.x",
+    "v0_2_0_admission": "inadmissible",
+    "decided_at": "2026-09-01",
+    "decision": "Founder decision: Prime Hosted moves to v0.2.x, and the hosted gap recorded in this document is inadmissible for v0.2.0.",
+    "plan_and_ticket_rescope": "tracked separately from this document"
+  },
   "candidate_selection": {
     "policy": "newest_official_stable",
     "candidate": "prime==0.6.31",
@@ -10,7 +18,9 @@
     "public_sdk": "prime-evals==0.2.3",
     "public_sdk_wheel_sha256": "sha256:e5217f36d360baedf2c10dd49abe7be504932bf8249a35c9f7abad12d0c0299a",
     "api_generation": "v1",
-    "admission": "blocked_by_upstream_contract"
+    "admission": "blocked_by_upstream_contract",
+    "v0_2_0_admission": "inadmissible",
+    "release_scope": "v0.2.x"
   },
   "owner": {
     "account_type": "organization",
@@ -21,22 +31,92 @@
   "environment": {
     "coordinate": "techtree/techtree-v02-conformance",
     "requested_visibility": "public",
+    "observed_visibility": "PUBLIC",
+    "observed_semantic_version": "0.1.0",
+    "observed_wheel_filename": "techtree_v02_conformance-0.1.0-py3-none-any.whl",
+    "observed_wheel_size_bytes": 4413,
+    "observed_wheel_sha256": "sha256:ceca3bf0a8af32dde48230bce59a89ee77b6d330f4c09d050d05c055f538a6e0",
+    "provider_content_hash": "5a6139e4078a108b8b908baeae3ee7b4101c6e401461e2ffa516084b352e6aca",
+    "provider_content_hash_algorithm_declared": false,
+    "provider_content_hash_matches_a_techtree_digest": false,
     "source_manifest": "docs/v0.2/PRIME_CONFORMANCE_ENVIRONMENT.json",
     "prime_environment_id": null,
     "prime_environment_version_id": null,
-    "publication_status": "not_published"
+    "provider_internal_identifier_policy": "Provider-internal identifiers are not persisted. The environment id, environment version id, and job id the provider returned are deliberately left null here and are replaced by documented placeholders in the retained response fixture.",
+    "publication_status": "published",
+    "published_at": "2026-09-01",
+    "observed_provider_action_status": "FAILED",
+    "observed_provider_action_note": "Prime's hub runs an Integration Test action on every push. For the published 0.1.0 version it collected four checks: pyproject present, README present, and install-and-import all passed, and test_pyproject_has_metadata failed with 'pyproject.toml does not have tags'. The hub requires a tags list under [project], which is not a PEP 621 field. The published version is therefore installable and importable but not hub-validated.",
+    "immutable_version_reference_available_to_hosted_run": false,
+    "observed_provider_action_name": "Integration Test",
+    "observed_provider_action_trigger": "PUSH",
+    "hub_validated": false,
+    "installable_and_importable_per_hub_test": true
   },
   "fixture": {
     "path": "cli/tests/fixtures/prime/official_cli_0_6_31.json",
-    "sha256": "sha256:af78e61d99a3ca3243c5b75f537bc2bda26a35ee8bbb86cfe04b2c0c767d7fe9",
+    "sha256": "sha256:d47b77a33bd86044a10175b4f11dd3a9774f725ec9265314ec96b2b1500c2535",
     "evidence_manifest": "cli/tests/fixtures/prime/evidence_manifest.json",
-    "evidence_manifest_sha256": "sha256:ad31c5625e06a60199247f514e8db67c84f5dde2ab59d7ef8ab8b10e8225ca72",
+    "evidence_manifest_sha256": "sha256:770cbdfa7cd70046c88ee26640fdcefa27023b1b48239f204b33be8a65119053",
     "openapi_projection": "cli/tests/fixtures/prime/openapi_projection.json",
     "openapi_projection_sha256": "sha256:149be7dad9b35abe600e0635656358c34609c229914b832dcdb5c1807ece09b1",
     "raw_transport_digest": null,
-    "raw_transport_persisted": false
+    "raw_transport_persisted": false,
+    "response_snapshots_directory": "cli/tests/fixtures/prime/responses"
   },
-  "supported_machine_reads": [],
+  "supported_machine_reads": [
+    {
+      "operation": "environment_action_list",
+      "command": "prime --plain env action list techtree/techtree-v02-conformance --output json",
+      "observed_envelope_keys": [
+        "actions",
+        "limit",
+        "offset",
+        "total"
+      ],
+      "fixture": "cli/tests/fixtures/prime/responses/env-action-list-owned.json",
+      "limits": "One action was observed. This envelope paginates with limit and offset, a third pagination shape in the same CLI. Provider-internal identifiers are redacted in the retained fixture and persisted nowhere."
+    },
+    {
+      "operation": "environment_list",
+      "command": "prime --plain env list --output json --mine",
+      "observed_envelope_keys": [
+        "environments",
+        "page",
+        "per_page",
+        "total"
+      ],
+      "fixture": "cli/tests/fixtures/prime/responses/env-list-owned.json",
+      "limits": "One owned environment was observed on one page; multi-page behavior is unproven."
+    },
+    {
+      "operation": "environment_status_read",
+      "command": "prime --plain env status techtree/techtree-v02-conformance --output json",
+      "observed_envelope_keys": [
+        "action",
+        "description",
+        "id",
+        "latest_version",
+        "name",
+        "owner",
+        "visibility"
+      ],
+      "fixture": "cli/tests/fixtures/prime/responses/env-status-owned.json",
+      "limits": "The response returns provider-internal identifiers, which are redacted in the retained fixture and persisted nowhere. The reported provider action was FAILED with no reason field."
+    },
+    {
+      "operation": "evaluation_list",
+      "command": "prime --plain eval list --output json -n 20",
+      "observed_envelope_keys": [
+        "evaluations",
+        "limit",
+        "skip",
+        "total"
+      ],
+      "fixture": "cli/tests/fixtures/prime/responses/eval-list-empty.json",
+      "limits": "Only the empty collection was observed, with total 0, so no evaluation record shape is admitted."
+    }
+  ],
   "confirmed_release_blockers": [
     {
       "id": "prime_hosted_immutable_environment_selection",
@@ -61,12 +141,17 @@
     {
       "id": "prime_hosted_status_and_pagination_schema_drift",
       "status": "unproven",
-      "finding": "No sanitized runtime response envelope was captured; the public OpenAPI also adds PROCESSING beyond the hosted CLI enum and disagrees with the public SDK on the samples completion field."
+      "finding": "No hosted evaluation response was observed. The public OpenAPI adds PROCESSING beyond the hosted CLI enum and disagrees with the public SDK on the samples completion field, and the three observed list envelopes disagree with each other: environments paginate with page and per_page, evaluations with skip and limit, and environment actions with limit and offset."
     },
     {
       "id": "prime_hosted_estimate_and_billing_binding",
       "status": "unproven",
       "finding": "The hosted surface exposes neither a plan-bound estimate nor a safe provider-returned billing-principal label."
+    },
+    {
+      "id": "prime_hosted_environment_hub_requires_non_standard_tags",
+      "status": "known_cause_fix_requires_new_protected_publication",
+      "finding": "Prime's hub runs an Integration Test action on every push. For the published 0.1.0 version it collected four checks: pyproject present, README present, and install-and-import all passed, and test_pyproject_has_metadata failed with 'pyproject.toml does not have tags'. The hub requires a tags list under [project], which is not a PEP 621 field. The published version is therefore installable and importable but not hub-validated."
     }
   ],
   "comparison_topology": {
@@ -75,8 +160,8 @@
     "required_before_admission": "A protected conformance run must prove arm identity, exact environment version, task pairing, and partial-creation recovery."
   },
   "result_availability": {
-    "read_shape": "source_shape_only_response_unobserved",
-    "pagination_schema": "unproven_due_to_public_sdk_openapi_drift",
+    "read_shape": "list_envelope_observed_empty_collection_only",
+    "pagination_schema": "unproven_due_to_public_sdk_openapi_drift_and_observed_envelope_divergence",
     "terminal_completeness": "unproven",
     "logs_are_score_truth": false
   },
@@ -91,7 +176,7 @@
   },
   "protected_action_packets": {
     "publish_environment": {
-      "status": "prepared_but_not_requested",
+      "status": "approved_and_executed",
       "intent_digest": "sha256:b7702ee60314a5a1ab86073a13ebd030ac3c23639a1c6c20c9ab7643130dd368",
       "intent": {
         "action_kind": "publish_prime_conformance_environment",
@@ -109,8 +194,25 @@
         "external_visibility": "public infrastructure conformance material; no benchmark claim",
         "retry_policy": "manual reconciliation before any retry"
       },
-      "action_taken": false,
-      "note": "Publication alone does not remove the hosted immutable-selection blocker."
+      "action_taken": true,
+      "note": "Publication alone does not remove the hosted immutable-selection blocker, and the published version's provider action reports FAILED.",
+      "executed_at": "2026-09-01",
+      "execution": {
+        "approved_by": "founder",
+        "prime_cli_version": "0.6.31",
+        "command": "SOURCE_DATE_EPOCH=1704067200 prime env push --path cli/tests/conformance/prime_environment --team techtree --visibility PUBLIC",
+        "source_tree": "the exact committed cli/tests/conformance/prime_environment tree",
+        "observed_wheel_filename": "techtree_v02_conformance-0.1.0-py3-none-any.whl",
+        "observed_wheel_size_bytes": 4413,
+        "observed_wheel_sha256": "sha256:ceca3bf0a8af32dde48230bce59a89ee77b6d330f4c09d050d05c055f538a6e0",
+        "wheel_matches_approved_packet": true,
+        "reported_wheel_sha256_matches_local_build": true,
+        "source_archive_also_uploaded": true,
+        "source_archive_note": "The CLI also uploaded an approximately 2.1 KB source archive of the same committed tree.",
+        "cost_usd_incurred": "0",
+        "evaluation_created": false,
+        "model_call_made": false
+      }
     },
     "paid_hosted_conformance_run": {
       "status": "blocked_not_ready_for_approval",
@@ -123,13 +225,23 @@
         "exact model and two-arm topology",
         "provider idempotency guarantee or a proven reconciliation path"
       ]
+    },
+    "republish_environment_with_hub_tags": {
+      "status": "required_not_prepared_not_requested",
+      "intent_digest": null,
+      "action_taken": false,
+      "required_change": "Add a tags list under [project] in cli/tests/conformance/prime_environment/pyproject.toml. That key is not a PEP 621 field and is required only by Prime's hub integration test.",
+      "consequence": "Editing the environment source tree changes its project tree digest and its wheel digest, so the change can only reach the hub as a new published semantic version.",
+      "approval": "a separate founder approval is required before any republish",
+      "source_tree_state": "unchanged; the committed tree still matches the published 0.1.0 tree and carries no tags field"
     }
   },
   "external_effects": {
-    "environment_published": false,
+    "environment_published": true,
     "paid_run_started": false,
-    "provider_resource_mutated": false,
+    "provider_resource_mutated": true,
     "upstream_issue_or_pull_request_sent": false,
     "final_lock_adopted": false
-  }
+  },
+  "external_effects_note": "The only provider mutation is the approved zero-cost environment publication. No hosted evaluation was created, read, cancelled, or paid for."
 }

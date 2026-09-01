@@ -1,0 +1,10 @@
+                 Source:                 
+ techtree/techtree-v02-conformance@0.1.0 
+                (path: /)                
+Type  Path                           Size
+dir   techtree_v02_conformance          -
+file  pyproject.toml            440 bytes
+file  README.md                 710 bytes
+
+Inspect a file with: prime env inspect techtree/techtree-v02-conformance@0.1.0 
+pyproject.toml

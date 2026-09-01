@@ -114,18 +114,136 @@
     "sha256": "sha256:149be7dad9b35abe600e0635656358c34609c229914b832dcdb5c1807ece09b1",
     "source_artifact": "public_openapi"
   },
-  "purpose": "Bounded, sanitized evidence for the exact Prime Hosted contract spike. No hosted mutation or paid evaluation was performed.",
+  "provider_actions_observed": {
+    "environment_publication": {
+      "action_kind": "publish_prime_conformance_environment",
+      "cost_usd": "0",
+      "evaluation_created": false,
+      "executed_at": "2026-09-01",
+      "founder_approved": true,
+      "model_call_made": false,
+      "record": "docs/v0.2/PRIME_HOSTED_CONTRACT.json"
+    },
+    "hosted_evaluation_mutation": null
+  },
+  "purpose": "Bounded, sanitized evidence for the exact Prime Hosted contract spike: the pinned official CLI and public SDK, the public OpenAPI document, plain CLI help, and the sanitized read-only responses observed on 2026-09-01. No hosted evaluation was created, read, cancelled, or paid for. The one provider mutation is the separately approved zero-cost publication recorded in provider_actions_observed.",
+  "response_snapshots": {
+    "prime_env_action_list_owned": {
+      "capture_order": "after_the_environment_publication",
+      "captured_at": "2026-09-01",
+      "command": "prime --plain env action list techtree/techtree-v02-conformance --output json",
+      "content": "redacted_provider_response",
+      "digest_covers": "retained_fixture_bytes",
+      "path": "cli/tests/fixtures/prime/responses/env-action-list-owned.json",
+      "redacted_fields": [
+        "actions[].id",
+        "actions[].version.id"
+      ],
+      "redaction_placeholder": "<redacted-provider-...-id>",
+      "runner": "uvx --from prime==0.6.31, authenticated @techtree team context",
+      "sanitization": "provider-internal identifiers replaced by documented placeholders; every other field is the observed value. The action id is the same value the status read returns as action.job_id, so it carries the same placeholder.",
+      "sha256": "sha256:22f22f16b389a0d675adfb71b322e136a950d3b500b371367509de5b952d38a0",
+      "size_bytes": 700
+    },
+    "prime_env_action_logs_owned": {
+      "capture_order": "after_the_environment_publication",
+      "captured_at": "2026-09-01",
+      "command": "prime --plain env action logs techtree/techtree-v02-conformance <action-id>",
+      "content": "verbatim_provider_response",
+      "digest_covers": "retained_fixture_bytes",
+      "path": "cli/tests/fixtures/prime/responses/env-action-logs-owned.txt",
+      "runner": "uvx --from prime==0.6.31, authenticated @techtree team context",
+      "sanitization": "none required; the retained bytes are the observed log and carry no provider-internal identifier. The /workspace paths in it are the hub's own runner, not a local machine.",
+      "sha256": "sha256:0261f20ff584ffc3be93235d7b23808dd7bc12e6c9a107eaf996df2913deb158",
+      "size_bytes": 2827
+    },
+    "prime_env_inspect_owned": {
+      "capture_order": "after_the_environment_publication",
+      "captured_at": "2026-09-01",
+      "command": "prime --plain env inspect techtree/techtree-v02-conformance@0.1.0",
+      "content": "verbatim_provider_response",
+      "digest_covers": "retained_fixture_bytes",
+      "path": "cli/tests/fixtures/prime/responses/env-inspect-owned.txt",
+      "runner": "uvx --from prime==0.6.31, authenticated @techtree team context",
+      "sanitization": "none required; the retained bytes are the observed response and carry no provider-internal identifier",
+      "sha256": "sha256:7659b422bcb7741e76340fb5a62416149f77526dbf6bd101d61f3bc8edc01a39",
+      "size_bytes": 390
+    },
+    "prime_env_list_owned": {
+      "capture_order": "after_the_environment_publication",
+      "capture_order_note": "The populated half of the before-and-after pair with prime_env_list_owned_empty.",
+      "captured_at": "2026-09-01",
+      "command": "prime --plain env list --output json --mine",
+      "content": "verbatim_provider_response",
+      "digest_covers": "retained_fixture_bytes",
+      "path": "cli/tests/fixtures/prime/responses/env-list-owned.json",
+      "runner": "uvx --from prime==0.6.31, authenticated @techtree team context",
+      "sanitization": "none required; the retained bytes are the observed response and carry no provider-internal identifier",
+      "sha256": "sha256:64ff45ddb246a512078d049262744476f913325d73899466ad37b8de54f3e47e",
+      "size_bytes": 361
+    },
+    "prime_env_list_owned_empty": {
+      "capture_order": "before_the_environment_publication",
+      "capture_order_note": "The owned environment listing was captured twice on the same day, once before the publication with total 0 and once after it with the published environment.",
+      "captured_at": "2026-09-01",
+      "command": "prime --plain env list --output json --mine -n 20",
+      "content": "verbatim_provider_response",
+      "digest_covers": "retained_fixture_bytes",
+      "path": "cli/tests/fixtures/prime/responses/env-list-owned-empty.json",
+      "runner": "uvx --from prime==0.6.31, authenticated @techtree team context",
+      "sanitization": "none required; the retained bytes are the observed response and carry no provider-internal identifier",
+      "sha256": "sha256:e8714aa51bdb2d584ca82ec4ebfbbc37d36297fab5e8249a6c84cde1029ab842",
+      "size_bytes": 70
+    },
+    "prime_env_status_owned": {
+      "capture_order": "after_the_environment_publication",
+      "captured_at": "2026-09-01",
+      "command": "prime --plain env status techtree/techtree-v02-conformance --output json",
+      "content": "redacted_provider_response",
+      "digest_covers": "retained_fixture_bytes",
+      "path": "cli/tests/fixtures/prime/responses/env-status-owned.json",
+      "redacted_fields": [
+        "id",
+        "latest_version.version_id",
+        "action.job_id"
+      ],
+      "redaction_placeholder": "<redacted-provider-...-id>",
+      "runner": "uvx --from prime==0.6.31, authenticated @techtree team context",
+      "sanitization": "provider-internal identifiers replaced by documented placeholders; every other field is the observed value",
+      "sha256": "sha256:cd73a56b051fd34852059e1aba5b79d02072fd409248cd109025bd50aeaf3f9d",
+      "size_bytes": 610
+    },
+    "prime_eval_list_empty": {
+      "capture_order": "not_recorded_relative_to_the_environment_publication",
+      "capture_order_note": "The capture log records no ordering for this read relative to the publication, and the ordering does not change its meaning: publishing an environment creates no evaluation.",
+      "captured_at": "2026-09-01",
+      "command": "prime --plain eval list --output json -n 20",
+      "content": "verbatim_provider_response",
+      "digest_covers": "retained_fixture_bytes",
+      "path": "cli/tests/fixtures/prime/responses/eval-list-empty.json",
+      "runner": "uvx --from prime==0.6.31, authenticated @techtree team context",
+      "sanitization": "none required; the retained bytes are the observed response and carry no provider-internal identifier",
+      "sha256": "sha256:e3e687658cff31571ade2754bec2434f79ddf72226a9f0ad9a63e544001c8f8d",
+      "size_bytes": 66
+    }
+  },
+  "runtime_captured_at": "2026-09-01",
   "sanitization": {
     "account_email_persisted": false,
     "credentials_persisted": false,
     "machine_local_paths_persisted": false,
     "paid_work_observed": false,
     "private_trace_or_sample_content_persisted": false,
-    "protected_hosted_mutation_observed": false,
+    "protected_hosted_evaluation_mutation_observed": false,
     "provider_internal_ids_persisted": false,
     "raw_transport_persisted": false
   },
-  "schema_version": "techtree.prime-evidence-manifest.v2",
+  "sanitization_notes": {
+    "protected_hosted_evaluation_mutation_observed": "No hosted evaluation was created, read, cancelled, or paid for. The zero-cost environment publication was a separate approved action and is recorded in provider_actions_observed.",
+    "provider_internal_ids_persisted": "The one response that returned provider-internal identifiers is retained with those fields replaced by documented placeholders.",
+    "raw_transport_persisted": "The retained responses are the CLI's re-serialized JSON output, not bounded raw HTTP response bytes or headers."
+  },
+  "schema_version": "techtree.prime-evidence-manifest.v3",
   "source_snapshots": {
     "prime_cli_api_client": {
       "artifact": "prime_cli_wheel",

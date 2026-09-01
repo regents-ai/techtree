@@ -1,0 +1,20 @@
+{
+  "id": "<redacted-provider-environment-id>",
+  "name": "techtree-v02-conformance",
+  "description": "Deterministic infrastructure-conformance environment for Techtree v0.2",
+  "visibility": "PUBLIC",
+  "owner": {
+    "type": "team",
+    "name": "techtree"
+  },
+  "latest_version": {
+    "version_id": "<redacted-provider-environment-version-id>",
+    "semantic_version": "0.1.0",
+    "content_hash": "5a6139e4078a108b8b908baeae3ee7b4101c6e401461e2ffa516084b352e6aca",
+    "created_at": "2026-09-01T21:13:43.676000"
+  },
+  "action": {
+    "status": "FAILED",
+    "job_id": "<redacted-provider-job-id>"
+  }
+}

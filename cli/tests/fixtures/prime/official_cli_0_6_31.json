@@ -8,6 +8,7 @@
     "public_sdk": "prime_evals_wheel"
   },
   "captured_at": "2026-08-31",
+  "environment_publication_observed": true,
   "evidence_manifest": "cli/tests/fixtures/prime/evidence_manifest.json",
   "isolated_resolution": {
     "prime": "0.6.31",
@@ -47,12 +48,83 @@
       "public_disclosure_default": "omitted",
       "status": "not_exposed_as_safe_provider_record"
     },
+    "environment_action_list": {
+      "evidence_refs": [
+        "prime_env_action_list_owned"
+      ],
+      "machine_surface": "prime env action list <owner>/<environment> --output json --plain",
+      "observed_envelope_keys": [
+        "actions",
+        "limit",
+        "offset",
+        "total"
+      ],
+      "observed_limits": "One action was observed. The envelope paginates with limit and offset, a third shape alongside the environment and evaluation listings. Provider-internal identifiers are redacted in the retained fixture.",
+      "status": "supported_machine_read_observed_with_provider_ids_redacted"
+    },
+    "environment_action_logs": {
+      "evidence_refs": [
+        "prime_env_action_logs_owned"
+      ],
+      "human_surface": "prime env action logs <owner>/<environment> <action-id>",
+      "observed_limits": "The observed output is the hub runner's plain log text with no structured mode, so it is read as diagnosis and never as a machine contract.",
+      "status": "provider_log_text_observed"
+    },
     "environment_exact_read": {
       "evidence_refs": [
         "prime_env_inspect"
       ],
       "machine_surface": "prime env inspect techtree/techtree-v02-conformance --version <version> --output json --plain",
       "status": "shape_supported_response_unobserved"
+    },
+    "environment_exact_version_listing": {
+      "evidence_refs": [
+        "prime_env_inspect_owned"
+      ],
+      "human_surface": "prime env inspect <owner>/<environment>@<semantic-version>",
+      "observed_limits": "An exact semantic version was addressable on this read path, but the observed output was human text. The JSON mode of this command was not observed, and the hosted run path still resolves @latest.",
+      "status": "human_output_only_observed"
+    },
+    "environment_list": {
+      "evidence_refs": [
+        "prime_env_list_owned",
+        "prime_env_list_owned_empty"
+      ],
+      "machine_surface": "prime env list --output json --plain --mine",
+      "observed_envelope_keys": [
+        "environments",
+        "page",
+        "per_page",
+        "total"
+      ],
+      "observed_limits": "One owned environment was observed on one page; multi-page behavior is unproven.",
+      "status": "supported_machine_read_observed"
+    },
+    "environment_publication_action": {
+      "evidence_refs": [
+        "prime_env_status_owned",
+        "prime_env_action_list_owned",
+        "prime_env_action_logs_owned"
+      ],
+      "observed_limits": "Prime's hub runs an Integration Test action on every push. For the published 0.1.0 version it collected four checks: pyproject present, README present, and install-and-import all passed, and test_pyproject_has_metadata failed with 'pyproject.toml does not have tags'. The hub requires a tags list under [project], which is not a PEP 621 field. The published version is therefore installable and importable but not hub-validated.",
+      "status": "hub_integration_test_failed_on_missing_tags_metadata"
+    },
+    "environment_status_read": {
+      "evidence_refs": [
+        "prime_env_status_owned"
+      ],
+      "machine_surface": "prime env status <owner>/<environment> --output json --plain",
+      "observed_envelope_keys": [
+        "action",
+        "description",
+        "id",
+        "latest_version",
+        "name",
+        "owner",
+        "visibility"
+      ],
+      "observed_limits": "The response returns provider-internal identifiers, which are redacted in the retained fixture and persisted nowhere. The reported provider action was FAILED with no reason field.",
+      "status": "supported_machine_read_observed_with_provider_ids_redacted"
     },
     "evaluation_get": {
       "evidence_refs": [
@@ -67,12 +139,20 @@
     "evaluation_list": {
       "evidence_refs": [
         "prime_eval_list",
+        "prime_eval_list_empty",
         "prime_evals_models",
         "prime_evals_methods",
         "openapi_evaluation_list"
       ],
       "machine_surface": "prime eval list --output json --plain --num <n> --page <page>",
-      "status": "shape_supported_response_unobserved"
+      "observed_envelope_keys": [
+        "evaluations",
+        "limit",
+        "skip",
+        "total"
+      ],
+      "observed_limits": "Only the empty collection was observed, so no evaluation record shape is admitted.",
+      "status": "supported_machine_read_observed_empty_collection"
     },
     "fabric_custom_harness": {
       "evidence_refs": [
@@ -107,11 +187,15 @@
     },
     "pagination": {
       "evidence_refs": [
+        "prime_env_list_owned",
+        "prime_env_action_list_owned",
+        "prime_eval_list_empty",
         "prime_evals_methods",
         "openapi_evaluation_list",
         "openapi_samples"
       ],
-      "status": "shape_supported_boundaries_unproven"
+      "status": "shape_supported_boundaries_unproven_with_observed_envelope_divergence",
+      "observed_limits": "The three observed list envelopes disagree with each other: environments paginate with page and per_page, evaluations with skip and limit, and environment actions with limit and offset."
     },
     "samples_results": {
       "evidence_refs": [
@@ -146,7 +230,7 @@
     }
   },
   "paid_work_observed": false,
-  "purpose": "Bounded evidence index and explicit unsupported findings for the Prime Hosted Evaluations spike. This is not a hosted-run result.",
+  "purpose": "Bounded evidence index, observed read shapes, and explicit unsupported findings for the Prime Hosted Evaluations spike. This is not a hosted-run result.",
   "runnable_commands": {
     "hosted_evaluation": {
       "command": "prime eval run <environment> --hosted --skip-upload",
@@ -167,8 +251,10 @@
       "status": "command_supported"
     }
   },
+  "runtime_captured_at": "2026-09-01",
+  "runtime_responses_observed": true,
   "sanitization_manifest": "evidence_manifest.json",
-  "schema_version": "techtree.prime-hosted-fixture.v2",
+  "schema_version": "techtree.prime-hosted-fixture.v3",
   "status_evidence": {
     "hosted_cli": "prime_cli_hosted_status",
     "provider": "openapi_status",
