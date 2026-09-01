@@ -8,9 +8,10 @@ to the component that owns the behavior:
 - `plugin/` owns the Hermes integration and Skills.
 - `platform/` owns techtree.sh, publication ingestion, and public result views.
 
-Read and follow a component's nested `AGENTS.md` before editing beneath it.
-The root instructions apply everywhere; nested instructions add component
-rules.
+The root instructions apply everywhere. Before editing `cli/`, also read
+`cli/CLAUDE.md`; before editing `platform/`, also read `platform/AGENTS.md`.
+`plugin/` has no separate instruction file. Do not invent duplicate component
+`AGENTS.md` files.
 
 Use `make check` for the full model-free repository gate. Real-model checks,
 publication, package release, pushing, and deployment require explicit founder
@@ -25,6 +26,7 @@ Track work in the monorepo's Beads database with `bd`. Use `bd ready` for
 unblocked work and `bd show <id>` before implementation. Claim the ticket with
 `bd update <id> --claim` before changing code. The v0.2 epic is
 `techtree-31k`; its binding plan and ticket mapping are in
-`docs/plan/v0.2.md` and `docs/v0.2/TICKETS.md`. Export the tracker to
+`docs/plan/v0.2.md` and `docs/v0.2/TICKETS.md`. Post-v0.2.0 work is governed by
+`docs/plan/techtree-market.md`. Export the tracker to
 `.beads/issues.jsonl` after changing tickets so collaborators can reconstruct
 the current issue set.

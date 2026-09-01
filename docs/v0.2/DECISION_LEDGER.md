@@ -7,6 +7,48 @@ Authority: founder answers to the WP0 grilling pass
 This ledger constrains WP0. It does not claim that any production Prime,
 Fabric, Relay, or Codex integration is implemented.
 
+## Roadmap adoption
+
+- `docs/plan/v0.2.md` is the binding v0.2.0 execution-provenance plan.
+  `docs/plan/techtree-market.md` is the binding plan for v0.2.x Techtree
+  Market, v0.3 Techtree Foundry and the first Skill Climb, and deferred v0.3.x
+  studies. Older roadmap text is context only.
+- All products and protocols use Techtree names, including Techtree Market,
+  Techtree Foundry, Techtree Climbs, Techtree Library, and
+  `techtree.market.*`. Regents Labs is only the company and operator.
+- Market runtime belongs in `platform/`. Local execution and proof verification
+  in `cli/` and `plugin/` remain platform-independent.
+- Payouts, Market, Foundry, optimization, and training are excluded from
+  v0.2.0. The first Skill Climb is v0.3 work.
+
+## v0.2 machine and publication contracts
+
+- v0.2 replaces `techtree.cli.v1` directly with `techtree.cli.v2`; there is no
+  v1 adapter or dual mode. Frozen v0.1 packages and proof bytes are unchanged.
+- Stable operation identifiers map to existing CLI handlers rather than a
+  second command hierarchy. Detailed append-only phases project into five
+  stable public states.
+- `run.wait` is bounded long-polling. v0.2 adds no daemon and no busy-polling.
+- `GET /api/v1/publications/:bundle_digest` returns
+  `techtree.published-result.v1`. Its `/bundle` child returns the exact stored
+  submission bytes without re-encoding. No `/api/v1/results` route is added.
+- Withdrawn entries retain metadata, tombstone, and receipt; their bundle
+  download returns `410 Gone`.
+- Prime Hosted is a hard release gate. If supported immutable selection and
+  machine-readable operations remain inadmissible, v0.2.0 stays blocked.
+
+## Future protected decisions
+
+- Signed Market records, authenticated mutations, payee control, payout
+  reconciliation, challenge authority, executable-artifact isolation,
+  private-data handling, and the x402 contract each require their stated
+  security gate before a pilot.
+- Proof Relay operators, cap, amount, chain/token, Safe, signers, challenge
+  policy, acceptance policy, spending ceiling, rollback, reconciliation, and
+  public-disclosure rules remain unresolved protected founder decisions. No
+  payment occurs without founder approval of one immutable `BountySpec` and
+  packet digest, expiry, and expected pre-action state.
+
 ## Product and ecosystem
 
 - v0.2 may publish and consume one exact deterministic Prime conformance
@@ -29,9 +71,9 @@ Fabric, Relay, or Codex integration is implemented.
 - Historical v0.1 compatibility means unchanged proof bytes and unchanged
   normalized verification semantics. A Climb name is never product-release
   provenance, and no replacement release selector is introduced by WP0.
-- Withdrawal removes a Result from normal discovery while preserving its
-  direct withdrawn page, immutable proof, immutable publication receipt, and
-  append-only tombstone.
+- Withdrawal removes a Result from normal discovery while preserving immutable
+  stored evidence, metadata, receipt, and append-only tombstone. Public bundle
+  download returns `410 Gone`.
 - A billing-principal label stays private by default. Public disclosure
   requires explicit participant opt-in in the publication intent.
 
