@@ -1,0 +1,87 @@
+{
+  "managed_environments": {
+    "count": 3,
+    "disposable": true,
+    "interpreter": "cpython-3.12",
+    "manager": "uv",
+    "roles": {
+      "adapters_only": "nemo-fabric plus both adapters, no harness",
+      "codex_harness": "nemo-fabric and the Codex adapter with its harness extra",
+      "hermes_harness": "nemo-fabric, the Hermes adapter and hermes-agent"
+    }
+  },
+  "observed": {
+    "adapter_host_interpreter_inside_managed_environment": true,
+    "codex_home_redirected_for_non_openai_provider": true,
+    "descriptor_provenance_source": "installed_package",
+    "harness_state_root_under_fabric_artifacts": ".fabric",
+    "hermes_home_redirected_by_adapter": true,
+    "operator_home_directory_named_in_process_environment": false,
+    "process_home_entries_created_by_lifecycle": 0,
+    "process_home_measurement": "Recursive entry count of the disposable directory supplied to the managed process as HOME, taken immediately before and immediately after each lifecycle. The operator's own home directory was never named in the process environment, so this measures the boundary that was given, not a delta against the operator's home."
+  },
+  "process_environment": {
+    "credential_variable_names_present": [],
+    "home_directory": "disposable, created per capture",
+    "host_harness_executables_reachable_on_path": [],
+    "model_key_value_kind": "placeholder, not a reusable credential",
+    "model_key_variable": "TECHTREE_WP04_PLACEHOLDER_KEY",
+    "variable_names": [
+      "HOME",
+      "PATH",
+      "TMPDIR"
+    ]
+  },
+  "purpose": "What the managed runtimes were actually given, and what the adapters do with it.",
+  "unresolved": {
+    "codex_fresh_home_network_fetch": {
+      "evidence_refs": [
+        "codex_fresh_home_plugin_cache"
+      ],
+      "finding": "Starting Codex against a fresh Fabric-owned home populated a plugin cache by fetching remote content during the run.",
+      "techtree_consequence": "A Fabric-Codex subject run is not hermetic as shipped; WP6 must pin or disable that fetch before a Codex comparison can claim reproducibility."
+    },
+    "codex_openai_provider_home_inheritance": {
+      "evidence_refs": [
+        "codex_adapter_inherited_env",
+        "codex_adapter_child_environment"
+      ],
+      "finding": "For an OpenAI provider coordinate the Codex adapter does not redirect CODEX_HOME. It passes the parent HOME, CODEX_HOME, OPENAI_API_KEY and XDG_* values straight through to the harness child process, so an operator's own Codex profile and stored login would be used unless the caller sets those values itself.",
+      "inherited_environment_names": [
+        "APPDATA",
+        "CODEX_HOME",
+        "CODEX_SQLITE_HOME",
+        "COMSPEC",
+        "DBUS_SESSION_BUS_ADDRESS",
+        "HOME",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "LOCALAPPDATA",
+        "NO_PROXY",
+        "OPENAI_API_KEY",
+        "PATH",
+        "PATHEXT",
+        "SHELL",
+        "SSL_CERT_DIR",
+        "SSL_CERT_FILE",
+        "SYSTEMROOT",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
+        "USERPROFILE",
+        "XDG_CACHE_HOME",
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+        "XDG_RUNTIME_DIR",
+        "http_proxy",
+        "https_proxy",
+        "no_proxy"
+      ],
+      "techtree_consequence": "Techtree must set an owned CODEX_HOME and HOME in environment.env for every Codex subject, and must not rely on the adapter to isolate them."
+    },
+    "host_configuration_trees": "Not measurable on this host: the operator's own Hermes and Codex sessions write to their configuration trees continuously, so tree equality across a capture window proves nothing. The boundary is proven by the environment the managed runtimes were given instead."
+  }
+}

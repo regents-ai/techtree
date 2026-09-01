@@ -1,8 +1,11 @@
 {
   "schema_version": "techtree.upstream-candidates.v1",
-  "recorded_on": "2026-08-31",
+  "recorded_on": "2026-09-01",
   "selection_policy": "Test the newest official stable release first. Inspect the approved development fallback only if the stable candidate fails conformance.",
-  "selected_candidate": "verifiers-stable-0.3.1",
+  "selected_candidate": {
+    "verifiers": "verifiers-stable-0.3.1",
+    "nemo_fabric": "nemo-fabric-stable-0.2.0"
+  },
   "selection_status": "proposed_for_adoption",
   "final_adoption": "pending_founder_approval",
   "candidates": [
@@ -31,7 +34,8 @@
         "result": "local_model_free_validation_passed",
         "environment_manifest": "docs/v0.2/PRIME_CONFORMANCE_ENVIRONMENT.json",
         "environment_manifest_sha256": "sha256:37aa464b51830983898dec9a83b46f73e0717fae486ef24d78412f4af1188a46"
-      }
+      },
+      "component": "verifiers"
     },
     {
       "id": "verifiers-fallback-0.3.2.dev17",
@@ -54,7 +58,115 @@
       "wheel_filename": "verifiers-0.3.2.dev17-py3-none-any.whl",
       "wheel_url": "https://files.pythonhosted.org/packages/83/ab/3bfcef0a0bfd32d9d5060b84ad50bafe453719f0d8ed6cfea8a2385253e5/verifiers-0.3.2.dev17-py3-none-any.whl",
       "wheel_size": 886377,
-      "wheel_sha256": "sha256:68c23a7c48b0544f5e98fd7fee433e1e96c96b7713a3ac2215b856770481b035"
+      "wheel_sha256": "sha256:68c23a7c48b0544f5e98fd7fee433e1e96c96b7713a3ac2215b856770481b035",
+      "component": "verifiers"
+    },
+    {
+      "id": "nemo-fabric-stable-0.2.0",
+      "component": "nemo_fabric",
+      "channel": "official_stable",
+      "status": "proposed_for_adoption",
+      "status_history": [
+        "discovered",
+        "approved_for_spike",
+        "conformance_captured",
+        "proposed_for_adoption"
+      ],
+      "python_requirement": ">=3.11",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "release_url": "https://github.com/NVIDIA/NeMo-Fabric/releases/tag/v0.2.0",
+      "newer_builds_seen_and_not_adopted": [
+        "0.2.0rc3",
+        "0.2.0a20260814"
+      ],
+      "packages": [
+        {
+          "package": "nemo-fabric",
+          "version": "0.2.0",
+          "role": "metapackage",
+          "wheel_filename": "nemo_fabric-0.2.0-py3-none-any.whl",
+          "wheel_sha256": "sha256:7b9805b02e71d37505ed2ae4f16af264dc20dac5ed2739b5efa0b677721f440e",
+          "wheel_size": 7692
+        },
+        {
+          "package": "nemo-fabric-runtime",
+          "version": "0.2.0",
+          "role": "python_sdk_and_native_core",
+          "wheel_filename": "nemo_fabric_runtime-0.2.0-cp311-abi3-macosx_11_0_arm64.whl",
+          "wheel_sha256": "sha256:2bfac9275c6f9ef1c5e34c647f1744fb0000bd0a0e86448441b8d6b38ae3a3c7",
+          "wheel_size": 2796801,
+          "platform_note": "0.2.0 publishes four platform wheels; this is the one the conformance host resolves"
+        },
+        {
+          "package": "nemo-fabric-adapter-contract",
+          "version": "0.2.0",
+          "role": "adapter_contract_models",
+          "wheel_filename": "nemo_fabric_adapter_contract-0.2.0-py3-none-any.whl",
+          "wheel_sha256": "sha256:3783f781432382adb2d782384dc1ab367093d0bcf7ff33c2857a93f831dd5921",
+          "wheel_size": 15736
+        },
+        {
+          "package": "nemo-fabric-adapters-common",
+          "version": "0.2.0",
+          "role": "shared_adapter_lifecycle",
+          "wheel_filename": "nemo_fabric_adapters_common-0.2.0-py3-none-any.whl",
+          "wheel_sha256": "sha256:b11448e83236a71ee0dfc1b7421ebf80cf9fca4ee8fc5414daf547c1859dfd5a",
+          "wheel_size": 24506
+        },
+        {
+          "package": "nemo-fabric-adapters-hermes",
+          "version": "0.2.0",
+          "role": "hermes_adapter",
+          "wheel_filename": "nemo_fabric_adapters_hermes-0.2.0-py3-none-any.whl",
+          "wheel_sha256": "sha256:d7c0c522a069545b6a0e49e3e84b320caddb11db02584a992486a8d938ac0ae0",
+          "wheel_size": 17582
+        },
+        {
+          "package": "nemo-fabric-adapters-codex",
+          "version": "0.2.0",
+          "role": "codex_adapter",
+          "wheel_filename": "nemo_fabric_adapters_codex-0.2.0-py3-none-any.whl",
+          "wheel_sha256": "sha256:86a21640ae7b3c31e8b123c2872a9a43113b91df4a87e8a81200acdc45af925b",
+          "wheel_size": 19880
+        }
+      ],
+      "harnesses": [
+        {
+          "adapter_id": "nvidia.fabric.hermes",
+          "package": "hermes-agent",
+          "version": "0.19.0",
+          "wheel_filename": "hermes_agent-0.19.0-py3-none-any.whl",
+          "wheel_sha256": "sha256:bd0bac012aee38a60894781f4597dc29ee7bedb3448540249921f10d3bef327f",
+          "installed_by_adapter": false,
+          "availability": "NVIDIA states that 0.20 and later are not installable from PyPI, and the index offered nothing above 0.19.0 when queried; neither observation proves what exists outside PyPI",
+          "availability_evidence_refs": [
+            "nemo_fabric_hermes_harness_supply",
+            "index_queries"
+          ]
+        },
+        {
+          "adapter_id": "nvidia.fabric.codex",
+          "package": "openai-codex",
+          "version": "0.144.4",
+          "wheel_filename": "openai_codex-0.144.4-py3-none-any.whl",
+          "wheel_sha256": "sha256:de1513a6e94b9a8d7728a3b74298bc1469428ade10ba0ef2d5db47dd1cb606f5",
+          "installed_by_adapter": true,
+          "availability": "pinned exactly by the adapter harness extra"
+        }
+      ],
+      "conformance": {
+        "result": "capability_admission_verified_lifecycle_terminated_at_invoke",
+        "lifecycle_terminal_status": "failed",
+        "lifecycle_error_stage": "invoke",
+        "model_turn_completed": false,
+        "capability_matrix": "docs/v0.2/FABRIC_CAPABILITY_MATRIX.json",
+        "contract_record": "docs/v0.2/FABRIC_CONTRACT.md",
+        "evidence_manifest": "cli/tests/fixtures/fabric/evidence_manifest.json",
+        "evidence_manifest_sha256": "sha256:e46501e82bf3e16cee8e04128d9748463623814a13545f4296cdb13abff3683b"
+      },
+      "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside any wheel names a commit, so the wheels are bound by their PyPI digests and by the repository and version their SBOM declares; the commit is asserted from the release tag, not from wheel contents."
     }
   ]
 }

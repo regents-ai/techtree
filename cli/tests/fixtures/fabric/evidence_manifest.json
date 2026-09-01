@@ -1,0 +1,285 @@
+{
+  "artifacts": {
+    "hermes_agent_wheel": {
+      "filename": "hermes_agent-0.19.0-py3-none-any.whl",
+      "package": "hermes-agent",
+      "retained": "not retained; bound by its PyPI digest",
+      "role": "newest Hermes Agent release installable from PyPI; the adapter never installs it",
+      "sha256": "sha256:bd0bac012aee38a60894781f4597dc29ee7bedb3448540249921f10d3bef327f",
+      "size_bytes": 10144439,
+      "url": "https://files.pythonhosted.org/packages/e5/30/c85be8290e9565dc3c7a9720e93f3e59e09b1b163487be4946c3aa848f80/hermes_agent-0.19.0-py3-none-any.whl",
+      "version": "0.19.0"
+    },
+    "nemo_fabric_adapter_contract_wheel": {
+      "filename": "nemo_fabric_adapter_contract-0.2.0-py3-none-any.whl",
+      "package": "nemo-fabric-adapter-contract",
+      "role": "adapter-side contract models",
+      "sha256": "sha256:3783f781432382adb2d782384dc1ab367093d0bcf7ff33c2857a93f831dd5921",
+      "size_bytes": 15736,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside the wheel names a commit, so this wheel is bound by its PyPI digest and by the repository and version its SBOM declares; the commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/43/98/d5abfa762254670684b19054ce3e3e8cd19df708464fdc2901a7b7aca166/nemo_fabric_adapter_contract-0.2.0-py3-none-any.whl",
+      "version": "0.2.0"
+    },
+    "nemo_fabric_adapters_codex_wheel": {
+      "filename": "nemo_fabric_adapters_codex-0.2.0-py3-none-any.whl",
+      "package": "nemo-fabric-adapters-codex",
+      "role": "Codex adapter and its shipped descriptor",
+      "sha256": "sha256:86a21640ae7b3c31e8b123c2872a9a43113b91df4a87e8a81200acdc45af925b",
+      "size_bytes": 19880,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside the wheel names a commit, so this wheel is bound by its PyPI digest and by the repository and version its SBOM declares; the commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/02/25/7e799d8a511cc62b7538fef3210b132c32487d0678fbc1f123080cabed98/nemo_fabric_adapters_codex-0.2.0-py3-none-any.whl",
+      "version": "0.2.0"
+    },
+    "nemo_fabric_adapters_common_wheel": {
+      "filename": "nemo_fabric_adapters_common-0.2.0-py3-none-any.whl",
+      "package": "nemo-fabric-adapters-common",
+      "role": "shared adapter lifecycle and Relay plumbing",
+      "sha256": "sha256:b11448e83236a71ee0dfc1b7421ebf80cf9fca4ee8fc5414daf547c1859dfd5a",
+      "size_bytes": 24506,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside the wheel names a commit, so this wheel is bound by its PyPI digest and by the repository and version its SBOM declares; the commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/e5/4f/d43966b62b77a60df4650d308c96cdd0bdfcc18fa5cb9e1bf8b51fe70129/nemo_fabric_adapters_common-0.2.0-py3-none-any.whl",
+      "version": "0.2.0"
+    },
+    "nemo_fabric_adapters_hermes_wheel": {
+      "filename": "nemo_fabric_adapters_hermes-0.2.0-py3-none-any.whl",
+      "package": "nemo-fabric-adapters-hermes",
+      "role": "Hermes Agent adapter and its shipped descriptor",
+      "sha256": "sha256:d7c0c522a069545b6a0e49e3e84b320caddb11db02584a992486a8d938ac0ae0",
+      "size_bytes": 17582,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside the wheel names a commit, so this wheel is bound by its PyPI digest and by the repository and version its SBOM declares; the commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/79/f2/b1230a2e0af9969ce42425b3acc29aa930199595e63cf20526c731d4d726/nemo_fabric_adapters_hermes-0.2.0-py3-none-any.whl",
+      "version": "0.2.0"
+    },
+    "nemo_fabric_runtime_wheel": {
+      "filename": "nemo_fabric_runtime-0.2.0-cp311-abi3-macosx_11_0_arm64.whl",
+      "package": "nemo-fabric-runtime",
+      "role": "Python SDK plus the native Rust core; four platform wheels are published for 0.2.0 and this is the one this host resolves",
+      "sha256": "sha256:2bfac9275c6f9ef1c5e34c647f1744fb0000bd0a0e86448441b8d6b38ae3a3c7",
+      "size_bytes": 2796801,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside the wheel names a commit, so this wheel is bound by its PyPI digest and by the repository and version its SBOM declares; the commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/03/f2/a42cc99737fd6927e98091f1856f757c785e6b5055c5e5d1ad22fddd8d56/nemo_fabric_runtime-0.2.0-cp311-abi3-macosx_11_0_arm64.whl",
+      "version": "0.2.0"
+    },
+    "nemo_fabric_sdk_wheel": {
+      "filename": "nemo_fabric-0.2.0-py3-none-any.whl",
+      "package": "nemo-fabric",
+      "role": "metapackage; carries no importable module, only dependency extras",
+      "sha256": "sha256:7b9805b02e71d37505ed2ae4f16af264dc20dac5ed2739b5efa0b677721f440e",
+      "size_bytes": 7692,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside the wheel names a commit, so this wheel is bound by its PyPI digest and by the repository and version its SBOM declares; the commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/56/f5/56ef95985c1edb884a997af31d00e6a4626e4dc58af9f3d0cca36d1c37f6/nemo_fabric-0.2.0-py3-none-any.whl",
+      "version": "0.2.0"
+    },
+    "openai_codex_wheel": {
+      "filename": "openai_codex-0.144.4-py3-none-any.whl",
+      "package": "openai-codex",
+      "retained": "not retained; bound by its PyPI digest",
+      "role": "exact Codex harness pinned by the adapter harness extra",
+      "sha256": "sha256:de1513a6e94b9a8d7728a3b74298bc1469428ade10ba0ef2d5db47dd1cb606f5",
+      "size_bytes": 76244,
+      "url": "https://files.pythonhosted.org/packages/17/35/5d2a13e38d91278019f18757ac10426d2649b7ec6f031818c792f64559e9/openai_codex-0.144.4-py3-none-any.whl",
+      "version": "0.144.4"
+    }
+  },
+  "captured_at": "2026-09-01",
+  "descriptors": {
+    "codex": {
+      "artifact": "nemo_fabric_adapters_codex_wheel",
+      "member": "nemo_fabric_adapters_codex-0.2.0.data/data/share/nemo-fabric/adapters/codex/codex.fabric-adapter.json",
+      "path": "cli/tests/fixtures/fabric/descriptors/codex.fabric-adapter.json",
+      "retained": "exact wheel member bytes",
+      "sha256": "sha256:aaf426c26677dc51389f2fa9d2fb10ba89b5c2cc821a00dfa185ad68aa752347",
+      "size_bytes": 3499
+    },
+    "hermes": {
+      "artifact": "nemo_fabric_adapters_hermes_wheel",
+      "member": "nemo_fabric_adapters_hermes-0.2.0.data/data/share/nemo-fabric/adapters/hermes/hermes.fabric-adapter.json",
+      "path": "cli/tests/fixtures/fabric/descriptors/hermes.fabric-adapter.json",
+      "retained": "exact wheel member bytes",
+      "sha256": "sha256:973c07a8d8786ff454dae1eeb76d7c65218d11c143093c65e14c572347c00100",
+      "size_bytes": 2507
+    }
+  },
+  "managed_environments": {
+    "disposable": true,
+    "interpreter": "cpython-3.12",
+    "manager": "uv",
+    "resolutions": {
+      "adapters_only": {
+        "nemo-fabric": "0.2.0",
+        "nemo-fabric-adapters-codex": "0.2.0",
+        "nemo-fabric-adapters-hermes": "0.2.0",
+        "nemo-fabric-runtime": "0.2.0"
+      },
+      "codex_harness": {
+        "nemo-fabric": "0.2.0",
+        "nemo-fabric-adapters-codex": "0.2.0",
+        "nemo-fabric-runtime": "0.2.0",
+        "nemo-relay-cli-bin": "0.7.3",
+        "openai-codex": "0.144.4",
+        "openai-codex-cli-bin": "0.144.4"
+      },
+      "hermes_harness": {
+        "hermes-agent": "0.19.0",
+        "nemo-fabric": "0.2.0",
+        "nemo-fabric-adapters-hermes": "0.2.0",
+        "nemo-fabric-runtime": "0.2.0"
+      }
+    }
+  },
+  "observations": {
+    "admission_matrix": {
+      "managed_environment": "adapters_only",
+      "method": "One Fabric plan and one Fabric Doctor per adapter per normalized control.",
+      "path": "cli/tests/fixtures/fabric/observed/admission_matrix.json",
+      "sha256": "sha256:0908c60f1881f5fcd5c4bad792c0dc047e4ecb1963a6ee6ed265f9622df9f6ce",
+      "size_bytes": 13941
+    },
+    "codex_fresh_home_plugin_cache": {
+      "managed_environment": "codex_harness",
+      "method": "The listing of the Codex home Fabric created empty for the run, after the run.",
+      "path": "cli/tests/fixtures/fabric/observed/codex_fresh_home_plugin_cache.json",
+      "sha256": "sha256:168500a89924047c824f50cbed48c1e867966ff185d273184712de3cf7a33891",
+      "size_bytes": 1950
+    },
+    "index_queries": {
+      "managed_environment": "none",
+      "method": "Read-only public package-index observations retained from candidate discovery.",
+      "path": "cli/tests/fixtures/fabric/observed/index_queries.json",
+      "sha256": "sha256:f6ac15ce42324a678d2a7821e8274266d93306c4b89cc3e2e476a0bca9520c48",
+      "size_bytes": 740
+    },
+    "isolation": {
+      "managed_environment": "all three",
+      "method": "The environment given to each managed runtime, and what the adapters did with it.",
+      "path": "cli/tests/fixtures/fabric/observed/isolation.json",
+      "sha256": "sha256:4b0d487cf1fde9fe89e78bf761e60a86d4c95e1af2d3171a90a40faab0e16d22",
+      "size_bytes": 3796
+    },
+    "lifecycle": {
+      "managed_environment": "hermes_harness, codex_harness and adapters_only",
+      "method": "One full start, invoke and stop per adapter against a closed loopback endpoint, plus the absent-harness and declared-requirement cases.",
+      "path": "cli/tests/fixtures/fabric/observed/lifecycle.json",
+      "sha256": "sha256:ee4faeee8ee73bf231e35d29b53aade53185897780342518d11b01d1536cc176",
+      "size_bytes": 8653
+    }
+  },
+  "purpose": "Bounded, sanitized evidence for the exact NeMo Fabric adapter capability spike. No subject run reached a model provider and no paid work was performed.",
+  "sanitization": {
+    "absolute_paths_persisted": false,
+    "credentials_persisted": false,
+    "host_harness_configuration_read_into_evidence": false,
+    "machine_local_paths_persisted": false,
+    "model_provider_response_persisted": false,
+    "paid_work_observed": false,
+    "private_trace_or_transcript_persisted": false
+  },
+  "schema_version": "techtree.fabric-evidence-manifest.v1",
+  "source_snapshots": {
+    "codex_adapter_child_environment": {
+      "artifact": "nemo_fabric_adapters_codex_wheel",
+      "excerpt_sha256": "sha256:b5aade73dbc5df2984384c733418b9989d8ff7141427db6d74038fafe8ae42f9",
+      "excerpt_size_bytes": 1534,
+      "line_end": 637,
+      "line_start": 602,
+      "member": "nemo_fabric_adapters/codex/adapter.py",
+      "member_sha256": "sha256:11403918e23a5a46ba27e4924058b23ce55c6100961138ce9ab23346108cf77b",
+      "member_size_bytes": 51642,
+      "path": "cli/tests/fixtures/fabric/source/codex_adapter_child_environment.txt",
+      "purpose": "How the Codex child environment is assembled, including the provider-conditional CODEX_HOME redirect."
+    },
+    "codex_adapter_inherited_env": {
+      "artifact": "nemo_fabric_adapters_codex_wheel",
+      "excerpt_sha256": "sha256:473fa519f03daaedea709484e126f50705fa8c3fc87ad3dfc54bc74ca247a4f6",
+      "excerpt_size_bytes": 577,
+      "line_end": 110,
+      "line_start": 78,
+      "member": "nemo_fabric_adapters/codex/adapter.py",
+      "member_sha256": "sha256:11403918e23a5a46ba27e4924058b23ce55c6100961138ce9ab23346108cf77b",
+      "member_size_bytes": 51642,
+      "path": "cli/tests/fixtures/fabric/source/codex_adapter_inherited_env.txt",
+      "purpose": "The environment names the Codex adapter passes to the harness child process."
+    },
+    "fabric_config_schema_version": {
+      "artifact": "nemo_fabric_runtime_wheel",
+      "excerpt_sha256": "sha256:70f8c38c5a024425a7e7ee947516057abdc2c8e4e5e04e26a30cd44cb92fae15",
+      "excerpt_size_bytes": 1023,
+      "line_end": 1046,
+      "line_start": 1022,
+      "member": "nemo_fabric/models.py",
+      "member_sha256": "sha256:a8eb553345e44538b32e802a40d58f5900299de2eed305938df3f159b85def37",
+      "member_size_bytes": 44754,
+      "path": "cli/tests/fixtures/fabric/source/fabric_config_schema_version.txt",
+      "purpose": "The typed agent configuration and its schema version literal."
+    },
+    "fabric_native_interface": {
+      "artifact": "nemo_fabric_runtime_wheel",
+      "excerpt_sha256": "sha256:a5ee65167722368a020ba619cf90c5d2369c0c42710b3403b8716d6e292f0ad2",
+      "excerpt_size_bytes": 909,
+      "line_end": 33,
+      "line_start": 1,
+      "member": "nemo_fabric/_native.pyi",
+      "member_sha256": "sha256:a5ee65167722368a020ba619cf90c5d2369c0c42710b3403b8716d6e292f0ad2",
+      "member_size_bytes": 909,
+      "path": "cli/tests/fixtures/fabric/source/fabric_native_interface.txt",
+      "purpose": "The whole native lifecycle surface the SDK calls."
+    },
+    "hermes_adapter_runtime_environment": {
+      "artifact": "nemo_fabric_adapters_hermes_wheel",
+      "excerpt_sha256": "sha256:1c54dd6071b4579bb5833fab203946a890e26b12a2776d9d211125df15fbd183",
+      "excerpt_size_bytes": 2364,
+      "line_end": 147,
+      "line_start": 95,
+      "member": "nemo_fabric_adapters/hermes/adapter.py",
+      "member_sha256": "sha256:b603686633f6e33055cecce4d8372c87ef4cb7179601023943e3f7d214244f20",
+      "member_size_bytes": 23523,
+      "path": "cli/tests/fixtures/fabric/source/hermes_adapter_runtime_environment.txt",
+      "purpose": "How the Hermes adapter redirects HOME and HERMES_HOME before importing the harness."
+    },
+    "nemo_fabric_hermes_harness_supply": {
+      "artifact": "nemo_fabric_sdk_wheel",
+      "excerpt_sha256": "sha256:dbb4d8a4839b7873ed1cf5e68dd1ec61a3a0ed7cd10ad9ae46b1e6f698ae2bcb",
+      "excerpt_size_bytes": 350,
+      "line_end": 108,
+      "line_start": 105,
+      "member": "nemo_fabric-0.2.0.dist-info/METADATA",
+      "member_sha256": "sha256:91daa481f9377f143025f189a9e725f3d27f978ad314b397327700dc0188efe2",
+      "member_size_bytes": 8110,
+      "path": "cli/tests/fixtures/fabric/source/nemo_fabric_hermes_harness_supply.txt",
+      "purpose": "NVIDIA's own statement that Hermes Agent 0.20 and later is not installable from PyPI."
+    }
+  },
+  "wheel_provenance": {
+    "binding": "pypi_digest_plus_sbom_repository_and_version",
+    "commit_binding": "asserted_from_release_tag_not_from_wheel_contents",
+    "sbom": {
+      "artifact": "nemo_fabric_runtime_wheel",
+      "declares_commit": false,
+      "declares_component": "fabric-python",
+      "declares_vcs_url": "https://github.com/NVIDIA/nemo-fabric",
+      "declares_version": "0.2.0",
+      "member": "nemo_fabric_runtime-0.2.0.dist-info/sboms/fabric-python.cyclonedx.json",
+      "member_sha256": "sha256:440b740cd57da7396cf4a8dd46b624099b5a563eefcc25d0985d64caeb77713b",
+      "member_size_bytes": 140634,
+      "not_retained_because": "the document embeds build-machine paths, so only these fields are recorded and the member is bound by its digest"
+    }
+  }
+}

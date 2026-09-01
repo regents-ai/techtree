@@ -36,7 +36,7 @@ def test_stable_candidate_passed_and_the_development_fallback_did_not_run() -> N
     stable = candidate_by_id(candidates, "verifiers-stable-0.3.1")
     fallback = candidate_by_id(candidates, "verifiers-fallback-0.3.2.dev17")
 
-    assert candidates["selected_candidate"] == stable["id"]
+    assert candidates["selected_candidate"]["verifiers"] == stable["id"]
     assert candidates["selection_status"] == "proposed_for_adoption"
     assert candidates["final_adoption"] == "pending_founder_approval"
     assert stable["status_history"] == [

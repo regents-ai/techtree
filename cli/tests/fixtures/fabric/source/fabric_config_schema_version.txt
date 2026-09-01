@@ -1,0 +1,25 @@
+class FabricConfig(FabricBaseModel):
+    """SDK-facing typed NeMo Fabric agent configuration.
+
+    NeMo Fabric-owned fields apply uniformly. Adapter-translated fields are
+    checked against the selected descriptor; refer to the [normalized
+    configuration compatibility
+    table](../../../sdk/python.mdx#normalized-configuration-compatibility).
+    """
+
+    schema_version: str = "fabric.agent/v1alpha1"
+    metadata: MetadataConfig
+    harness: HarnessConfig | None = None
+    workflow: WorkflowConfig | None = None
+    discovery: DiscoveryConfig | None = None
+    runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
+    environment: EnvironmentConfig | None = None
+    models: dict[str, ModelConfig] = Field(default_factory=dict)
+    instructions: InstructionsConfig | None = None
+    mcp: McpConfig | None = None
+    skills: SkillConfig | None = None
+    telemetry: TelemetryConfig | None = None
+    relay: RelayConfig | None = None
+    tools: ToolsConfig | None = None
+
+    @model_validator(mode="after")

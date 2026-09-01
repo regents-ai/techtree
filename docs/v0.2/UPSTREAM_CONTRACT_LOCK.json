@@ -67,10 +67,101 @@
     "admission": "blocked_by_upstream_contract"
   },
   "nemo_fabric": {
-    "runtime_version": null,
-    "schema_version": null,
-    "adapter_coordinates": [],
-    "admission": "pending_contract_spike"
+    "tracking_policy": "newest_official_stable_then_explicit_founder_adoption",
+    "approval_scope": "v0.2_contract_spike_and_admission",
+    "distribution": "nemo-fabric",
+    "distribution_version": "0.2.0",
+    "runtime_package": "nemo-fabric-runtime",
+    "runtime_version": "0.2.0",
+    "adapter_contract_version": "fabric.adapter/v1alpha2",
+    "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+    "source_tag": "v0.2.0",
+    "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+    "runtime_wheel_filename": "nemo_fabric_runtime-0.2.0-cp311-abi3-macosx_11_0_arm64.whl",
+    "runtime_wheel_sha256": "sha256:2bfac9275c6f9ef1c5e34c647f1744fb0000bd0a0e86448441b8d6b38ae3a3c7",
+    "runtime_wheel_platform_note": "0.2.0 publishes four platform wheels; this is the one the conformance host resolves",
+    "adapter_coordinates": [
+      {
+        "adapter_id": "nvidia.fabric.hermes",
+        "package": "nemo-fabric-adapters-hermes",
+        "version": "0.2.0",
+        "wheel_filename": "nemo_fabric_adapters_hermes-0.2.0-py3-none-any.whl",
+        "wheel_sha256": "sha256:d7c0c522a069545b6a0e49e3e84b320caddb11db02584a992486a8d938ac0ae0",
+        "descriptor": "cli/tests/fixtures/fabric/descriptors/hermes.fabric-adapter.json",
+        "descriptor_sha256": "sha256:973c07a8d8786ff454dae1eeb76d7c65218d11c143093c65e14c572347c00100",
+        "descriptor_discovery": "installed_package",
+        "harness_package": "hermes-agent",
+        "harness_version": "0.19.0",
+        "harness_wheel_sha256": "sha256:bd0bac012aee38a60894781f4597dc29ee7bedb3448540249921f10d3bef327f",
+        "harness_installed_by_adapter": false,
+        "admission": "conformance_captured_release_admission_pending"
+      },
+      {
+        "adapter_id": "nvidia.fabric.codex",
+        "package": "nemo-fabric-adapters-codex",
+        "version": "0.2.0",
+        "wheel_filename": "nemo_fabric_adapters_codex-0.2.0-py3-none-any.whl",
+        "wheel_sha256": "sha256:86a21640ae7b3c31e8b123c2872a9a43113b91df4a87e8a81200acdc45af925b",
+        "descriptor": "cli/tests/fixtures/fabric/descriptors/codex.fabric-adapter.json",
+        "descriptor_sha256": "sha256:aaf426c26677dc51389f2fa9d2fb10ba89b5c2cc821a00dfa185ad68aa752347",
+        "descriptor_discovery": "installed_package",
+        "harness_package": "openai-codex",
+        "harness_version": "0.144.4",
+        "harness_wheel_sha256": "sha256:de1513a6e94b9a8d7728a3b74298bc1469428ade10ba0ef2d5db47dd1cb606f5",
+        "harness_installed_by_adapter": true,
+        "admission": "conformance_captured_release_admission_pending"
+      }
+    ],
+    "supporting_packages": [
+      {
+        "package": "nemo-fabric",
+        "version": "0.2.0",
+        "wheel_sha256": "sha256:7b9805b02e71d37505ed2ae4f16af264dc20dac5ed2739b5efa0b677721f440e"
+      },
+      {
+        "package": "nemo-fabric-adapter-contract",
+        "version": "0.2.0",
+        "wheel_sha256": "sha256:3783f781432382adb2d782384dc1ab367093d0bcf7ff33c2857a93f831dd5921"
+      },
+      {
+        "package": "nemo-fabric-adapters-common",
+        "version": "0.2.0",
+        "wheel_sha256": "sha256:b11448e83236a71ee0dfc1b7421ebf80cf9fca4ee8fc5414daf547c1859dfd5a"
+      }
+    ],
+    "candidate_record": "docs/v0.2/UPSTREAM_CANDIDATES.json",
+    "capability_matrix": "docs/v0.2/FABRIC_CAPABILITY_MATRIX.json",
+    "capability_matrix_sha256": "sha256:76f7be91d155e315c5734cefc68a60b7c7205cf070d1550b9285e1b6ca76fa04",
+    "contract_record": "docs/v0.2/FABRIC_CONTRACT.md",
+    "contract_record_sha256": "sha256:b09c91d417c10193223fa4084724728a85486b6f1735f47c16fe7c8767cd1be8",
+    "fixture": "cli/tests/fixtures/fabric/fabric_capabilities_0_2_0.json",
+    "fixture_sha256": "sha256:c253db9eb10a0a5749db875e90acfb09e4844341f59c11f99565c2a7821dc8f4",
+    "evidence_manifest": "cli/tests/fixtures/fabric/evidence_manifest.json",
+    "evidence_manifest_sha256": "sha256:e46501e82bf3e16cee8e04128d9748463623814a13545f4296cdb13abff3683b",
+    "normalized_control_admission": "exact_to_descriptor_accepts",
+    "unsupported_controls_fail_before_execution": true,
+    "harness_presence_checked_by_fabric_doctor": false,
+    "runtime_cancellation": "declared_false_by_both_descriptors_untested",
+    "runtime_streaming": "declared_false_by_both_descriptors_untested",
+    "runtime_updates": "declared_false_by_both_descriptors_untested",
+    "runtime_service_handles": "declared_false_by_both_descriptors_untested",
+    "usage_accounting": "not_reported_on_runs_that_terminated_at_invoke",
+    "codex_openai_provider_environment_isolation": "caller_owned_home_and_codex_home_required",
+    "codex_fresh_home_hermeticity": "not_hermetic_remote_plugin_fetch_observed",
+    "hermes_harness_supply": "vendor_states_pypi_installable_only_up_to_0.19.0_index_consistent",
+    "admission": "blocked_pending_founder_release_admission_and_techtree_owned_gates",
+    "fabric_schema_version": "fabric.agent/v1alpha1",
+    "fabric_schema_version_note": "Named to match the FabricPlanReceipt field in docs/plan/v0.2.md. The value is the schema_version literal the Fabric agent configuration carries.",
+    "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside any wheel names a commit, so the wheels are bound by their PyPI digests and by the repository and version their SBOM declares; the commit is asserted from the release tag, not from wheel contents.",
+    "native_streaming_entry_point": "invoke_openai_stream_present_untested",
+    "doctor_refusal_shapes": "failing_check_except_tools_definitions_which_raises",
+    "lifecycle_conformance": {
+      "lifecycle_exercised": true,
+      "terminal_status": "failed",
+      "error_stage": "invoke",
+      "model_turn_completed": false,
+      "note": "The endpoint was a closed loopback port by design, so a classified invoke error is the intended outcome and not a successful subject run."
+    }
   },
   "nemo_relay": {
     "package_version": null,

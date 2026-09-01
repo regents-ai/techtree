@@ -1,0 +1,304 @@
+{
+  "adapters": {
+    "nvidia.fabric.codex": {
+      "adapter_kind": "python",
+      "adapter_package": "nemo-fabric-adapters-codex",
+      "adapter_version": "0.2.0",
+      "controls": {
+        "instructions.system": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "mcp": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        },
+        "mcp.auth.oauth2": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        },
+        "mcp.auth.service_account": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "mcp.tool_filters": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "models": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "models.base_url": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "models.temperature": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "runtime.max_turns": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "skills": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        },
+        "tools.blocked": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "tools.definitions": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "tools.enabled": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        }
+      },
+      "declared_requirements": {},
+      "declared_runtime_capabilities": {
+        "cancellation": false,
+        "service": false,
+        "streaming": false,
+        "updates": false
+      },
+      "descriptor": "cli/tests/fixtures/fabric/descriptors/codex.fabric-adapter.json",
+      "descriptor_claimed_controls": [
+        "models",
+        "models.base_url",
+        "instructions.system",
+        "mcp",
+        "mcp.auth.oauth2",
+        "skills"
+      ],
+      "descriptor_discovery": "installed_package",
+      "descriptor_sha256": "sha256:aaf426c26677dc51389f2fa9d2fb10ba89b5c2cc821a00dfa185ad68aa752347",
+      "harness_artifact": "openai_codex_wheel",
+      "harness_availability": "pinned exactly by the adapter harness extra and installed into the managed environment, never taken from the host",
+      "harness_installed_by_adapter": true,
+      "harness_package": "openai-codex",
+      "harness_version": "0.144.4",
+      "lifecycle_error_stage": "invoke",
+      "lifecycle_terminal_status": "failed",
+      "model_turn_completed": false,
+      "release_admitted": false,
+      "techtree_lifecycle_observed": "lifecycle exercised; invoke terminated in a classified error at a closed endpoint; no model turn"
+    },
+    "nvidia.fabric.hermes": {
+      "adapter_kind": "python",
+      "adapter_package": "nemo-fabric-adapters-hermes",
+      "adapter_version": "0.2.0",
+      "controls": {
+        "instructions.system": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "mcp": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        },
+        "mcp.auth.oauth2": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        },
+        "mcp.auth.service_account": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "mcp.tool_filters": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "models": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "models.base_url": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "models.temperature": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "runtime.max_turns": {
+          "descriptor_claimed": true,
+          "routed_to": null,
+          "techtree_conformance": "admitted"
+        },
+        "skills": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        },
+        "tools.blocked": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        },
+        "tools.definitions": {
+          "descriptor_claimed": false,
+          "routed_to": null,
+          "techtree_conformance": "rejected_before_execution"
+        },
+        "tools.enabled": {
+          "descriptor_claimed": true,
+          "routed_to": [
+            "harness_native"
+          ],
+          "techtree_conformance": "admitted"
+        }
+      },
+      "declared_requirements": {},
+      "declared_runtime_capabilities": {
+        "cancellation": false,
+        "service": false,
+        "streaming": false,
+        "updates": false
+      },
+      "descriptor": "cli/tests/fixtures/fabric/descriptors/hermes.fabric-adapter.json",
+      "descriptor_claimed_controls": [
+        "models",
+        "models.base_url",
+        "models.temperature",
+        "instructions.system",
+        "runtime.max_turns",
+        "tools.enabled",
+        "tools.blocked",
+        "mcp",
+        "mcp.auth.oauth2",
+        "skills"
+      ],
+      "descriptor_discovery": "installed_package",
+      "descriptor_sha256": "sha256:973c07a8d8786ff454dae1eeb76d7c65218d11c143093c65e14c572347c00100",
+      "harness_artifact": "hermes_agent_wheel",
+      "harness_availability": "0.19.0 provides every module the adapter imports. NVIDIA states that Hermes Agent 0.20 and later is not installable from PyPI, and the index offered nothing above 0.19.0 at capture time; neither observation proves what exists outside PyPI",
+      "harness_availability_evidence_refs": [
+        "nemo_fabric_hermes_harness_supply",
+        "index_queries"
+      ],
+      "harness_installed_by_adapter": false,
+      "harness_package": "hermes-agent",
+      "harness_version": "0.19.0",
+      "lifecycle_error_stage": "invoke",
+      "lifecycle_terminal_status": "failed",
+      "model_turn_completed": false,
+      "release_admitted": false,
+      "techtree_lifecycle_observed": "lifecycle exercised; invoke terminated in a classified error at a closed endpoint; no model turn"
+    }
+  },
+  "captured_at": "2026-09-01",
+  "evidence_manifest": "cli/tests/fixtures/fabric/evidence_manifest.json",
+  "fabric": {
+    "adapter_contract_version": "fabric.adapter/v1alpha2",
+    "channel": "official_stable",
+    "distribution": "nemo-fabric",
+    "distribution_version": "0.2.0",
+    "fabric_schema_version": "fabric.agent/v1alpha1",
+    "newer_prerelease_seen": "0.2.0rc3 and dated 0.2.0a builds; not adopted",
+    "runtime_package": "nemo-fabric-runtime",
+    "runtime_version": "0.2.0",
+    "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+    "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+    "source_tag": "v0.2.0"
+  },
+  "host_harness_installation_modified": false,
+  "model_provider_contacted": false,
+  "network_activity_during_runs": "The Codex harness fetched plugin content on first start. No model provider was contacted by any run.",
+  "paid_work_observed": false,
+  "purpose": "Bounded evidence index and explicit unsupported findings for the NeMo Fabric adapter capability spike. This is not a subject-run result.",
+  "reusable_credential_copied_into_managed_runtime": false,
+  "schema_version": "techtree.fabric-capability-fixture.v1",
+  "unresolved_for_release": {
+    "codex_fresh_home_network_fetch": {
+      "evidence_refs": [
+        "codex_fresh_home_plugin_cache"
+      ],
+      "finding": "Codex populated a plugin cache from the network on first start in a fresh Fabric-owned home, so the run is not hermetic as shipped.",
+      "kind": "observed"
+    },
+    "codex_home_inheritance": {
+      "evidence_refs": [
+        "codex_adapter_inherited_env",
+        "codex_adapter_child_environment"
+      ],
+      "finding": "For an OpenAI provider coordinate the Codex adapter passes the parent HOME, CODEX_HOME and OPENAI_API_KEY to the harness, so Techtree must supply owned values. Read from the adapter source; the OpenAI path itself was not run.",
+      "kind": "source_proven_path_not_executed"
+    },
+    "doctor_raises_instead_of_reporting_for_tool_definitions": {
+      "evidence_refs": [
+        "admission_matrix"
+      ],
+      "finding": "For tools.definitions both adapters made Doctor raise a FabricConfigError rather than return a report with a failing check, so a caller cannot collect that rejection alongside the other checks. Planning still refuses the control before execution, so nothing reaches spend, but Techtree must handle both shapes of refusal.",
+      "kind": "observed"
+    },
+    "harness_presence_unchecked_before_admission": {
+      "evidence_refs": [
+        "lifecycle"
+      ],
+      "finding": "Neither shipped descriptor declares requirements, so Fabric Doctor returns pass with no harness installed and the absence is only discovered at lifecycle start. Techtree must gate harness presence itself.",
+      "kind": "observed"
+    },
+    "hermes_agent_supply_above_0_19_0": {
+      "evidence_refs": [
+        "nemo_fabric_hermes_harness_supply",
+        "index_queries"
+      ],
+      "finding": "NVIDIA states that Hermes Agent 0.20 and later is not installable from PyPI, and the index offered nothing above 0.19.0 when queried. Neither observation proves what exists outside PyPI, so how Techtree would obtain a newer harness is unresolved.",
+      "kind": "vendor_stated_and_index_consistent_not_proven"
+    },
+    "no_usage_accounting": {
+      "evidence_refs": [
+        "lifecycle"
+      ],
+      "finding": "The normalized run result carried a null usage record, so Fabric supplies no token or cost accounting for a subject run. Observed only on runs that terminated at invoke.",
+      "kind": "observed_on_failed_invoke_only"
+    },
+    "streaming_updates_and_cancellation_declared_false": {
+      "evidence_refs": [
+        "admission_matrix",
+        "fabric_native_interface"
+      ],
+      "finding": "Both descriptors resolve with service, streaming, updates and cancellation declared false. This is a descriptor declaration, not an observed attempt: no cancellation, update or streaming call was made. The native surface does expose an invoke_openai_stream entry point, which this spike did not exercise.",
+      "kind": "declared_by_descriptor_untested"
+    }
+  }
+}

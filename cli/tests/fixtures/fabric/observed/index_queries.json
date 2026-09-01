@@ -1,0 +1,18 @@
+{
+  "purpose": "Read-only public index queries made during candidate discovery, retained as observations rather than as artifacts.",
+  "queries": {
+    "hermes_agent_releases": {
+      "observed_latest_version": "0.19.0",
+      "observed_recent_releases": [
+        "0.17.0",
+        "0.18.0",
+        "0.18.1",
+        "0.18.2",
+        "0.19.0"
+      ],
+      "retained_projection": "the five most recent release identifiers",
+      "supports": "No hermes-agent release above 0.19.0 was offered by the index at capture time, which is consistent with NVIDIA's statement retained as nemo_fabric_hermes_harness_supply. Neither observation proves what exists outside PyPI.",
+      "url": "https://pypi.org/pypi/hermes-agent/json"
+    }
+  }
+}

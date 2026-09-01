@@ -1,0 +1,277 @@
+{
+  "absent_harness": {
+    "nvidia.fabric.codex": {
+      "doctor_check_statuses": {
+        "adapter_descriptor": "pass",
+        "environment": "pass",
+        "resolution": "pass"
+      },
+      "doctor_status": "pass",
+      "harness_presence_checked_by_doctor": false,
+      "lifecycle": "failed_after_admission",
+      "lifecycle_error_type": "FabricRuntimeError",
+      "lifecycle_failure": {
+        "adapter_message": null,
+        "failure_code": "host_crashed",
+        "lifecycle_stage": "start",
+        "missing_module": "openai_codex"
+      }
+    },
+    "nvidia.fabric.hermes": {
+      "doctor_check_statuses": {
+        "adapter_descriptor": "pass",
+        "environment": "pass",
+        "resolution": "pass"
+      },
+      "doctor_status": "pass",
+      "harness_presence_checked_by_doctor": false,
+      "lifecycle": "failed_after_admission",
+      "lifecycle_error_type": "FabricRuntimeError",
+      "lifecycle_failure": {
+        "adapter_message": null,
+        "failure_code": "lifecycle_adapter_start_failed",
+        "lifecycle_stage": "start",
+        "missing_module": "hermes_cli"
+      }
+    }
+  },
+  "declared_requirement_enforcement": {
+    "declared_requirement": "binaries",
+    "descriptor_provenance_source": "explicit_local",
+    "doctor_status": "fail",
+    "requirement_checks": [
+      {
+        "message": "binary `techtree-wp04-absent-binary` was not found on PATH",
+        "name": "requirement.binary",
+        "status": "fail"
+      }
+    ]
+  },
+  "purpose": "Zero-spend Fabric lifecycles and the admission gaps found before and after them. Every run used a non-OpenAI provider coordinate pointed at a closed loopback port with a placeholder key, so no model provider was reached, no model turn completed and nothing was billed. Each run therefore terminated in a classified error at the invoke stage.",
+  "runs": {
+    "codex_harness_default_tools": {
+      "adapter_id": "nvidia.fabric.codex",
+      "adapter_kind": "python",
+      "adapter_runner": "persistent_local_host",
+      "artifact_kinds": [
+        "log"
+      ],
+      "environment_provider": "local",
+      "error": {
+        "code": "codex_turn_failed",
+        "retryable": false,
+        "stage": "invoke"
+      },
+      "event_kinds": [
+        "runtime_start",
+        "invocation_start",
+        "invocation_end",
+        "runtime_stop"
+      ],
+      "harness": "nvidia.fabric.codex",
+      "harness_state_root_prefixes": [
+        ".fabric"
+      ],
+      "harness_state_under_fabric_artifacts": [
+        ".fabric",
+        ".fabric/codex",
+        ".fabric/codex/custom-provider-home",
+        ".fabric/runtime-<id>",
+        ".fabric/runtime-<id>/invocation-<id>",
+        ".fabric/runtime-<id>/runtime-start-<id>"
+      ],
+      "host_command_tail": "-m nemo_fabric_adapters.codex.adapter",
+      "host_interpreter_inside_managed_environment": true,
+      "model_turn_completed": false,
+      "output_keys": [
+        "adapter",
+        "completed",
+        "events",
+        "harness",
+        "mode",
+        "response"
+      ],
+      "process_home_entries_after": 0,
+      "process_home_entries_before": 0,
+      "process_home_measurement": "Recursive entry count of the disposable directory supplied to this process as HOME, taken immediately before and immediately after the lifecycle. It is not a measurement of the operator's own home directory, which was never named in the process environment.",
+      "runtime_stop_metadata": [
+        {
+          "already_stopped": false,
+          "host_crashed": false
+        }
+      ],
+      "status": "failed",
+      "telemetry": [],
+      "tools_policy": "harness_default",
+      "usage": null
+    },
+    "hermes_empty_enabled_tools": {
+      "adapter_id": "nvidia.fabric.hermes",
+      "adapter_kind": "python",
+      "adapter_runner": "persistent_local_host",
+      "api_calls": 1,
+      "artifact_kinds": [
+        "log"
+      ],
+      "enabled_toolsets": [],
+      "environment_provider": "local",
+      "error": {
+        "code": "hermes_reported_failure",
+        "retryable": false,
+        "stage": "invoke"
+      },
+      "event_kinds": [
+        "runtime_start",
+        "invocation_start",
+        "invocation_end",
+        "runtime_stop"
+      ],
+      "harness": "nvidia.fabric.hermes",
+      "harness_state_root_prefixes": [
+        ".fabric"
+      ],
+      "harness_state_under_fabric_artifacts": [
+        ".fabric",
+        ".fabric/hermes",
+        ".fabric/hermes/runtimes",
+        ".fabric/runtime-<id>",
+        ".fabric/runtime-<id>/invocation-<id>",
+        ".fabric/runtime-<id>/runtime-start-<id>"
+      ],
+      "hermes_native_config_projection": {
+        "disabled_toolsets": [],
+        "mcp_servers": [],
+        "model_provider": "acme",
+        "plugins": [],
+        "skill_dirs": [],
+        "terminal_backend": "local"
+      },
+      "host_command_tail": "-m nemo_fabric_adapters.hermes.adapter",
+      "host_interpreter_inside_managed_environment": true,
+      "model_turn_completed": false,
+      "output_keys": [
+        "adapter",
+        "adapter_stdout",
+        "api_calls",
+        "base_url",
+        "completed",
+        "enabled_toolsets",
+        "harness",
+        "hermes_config_path",
+        "hermes_home",
+        "hermes_native_config",
+        "message_count",
+        "messages",
+        "mode",
+        "model",
+        "response"
+      ],
+      "process_home_entries_after": 0,
+      "process_home_entries_before": 0,
+      "process_home_measurement": "Recursive entry count of the disposable directory supplied to this process as HOME, taken immediately before and immediately after the lifecycle. It is not a measurement of the operator's own home directory, which was never named in the process environment.",
+      "runtime_stop_metadata": [
+        {
+          "already_stopped": false,
+          "host_crashed": false
+        }
+      ],
+      "status": "failed",
+      "telemetry": [],
+      "tools_policy": "empty_enabled_list",
+      "usage": null
+    },
+    "hermes_harness_default_tools": {
+      "adapter_id": "nvidia.fabric.hermes",
+      "adapter_kind": "python",
+      "adapter_runner": "persistent_local_host",
+      "api_calls": 1,
+      "artifact_kinds": [
+        "log"
+      ],
+      "enabled_toolsets": [
+        "browser",
+        "clarify",
+        "code_execution",
+        "computer_use",
+        "cronjob",
+        "delegation",
+        "file",
+        "image_gen",
+        "kanban",
+        "memory",
+        "session_search",
+        "skills",
+        "terminal",
+        "todo",
+        "tts",
+        "vision",
+        "web"
+      ],
+      "environment_provider": "local",
+      "error": {
+        "code": "hermes_reported_failure",
+        "retryable": false,
+        "stage": "invoke"
+      },
+      "event_kinds": [
+        "runtime_start",
+        "invocation_start",
+        "invocation_end",
+        "runtime_stop"
+      ],
+      "harness": "nvidia.fabric.hermes",
+      "harness_state_root_prefixes": [
+        ".fabric"
+      ],
+      "harness_state_under_fabric_artifacts": [
+        ".fabric",
+        ".fabric/hermes",
+        ".fabric/hermes/runtimes",
+        ".fabric/runtime-<id>",
+        ".fabric/runtime-<id>/invocation-<id>",
+        ".fabric/runtime-<id>/runtime-start-<id>"
+      ],
+      "hermes_native_config_projection": {
+        "disabled_toolsets": [],
+        "mcp_servers": [],
+        "model_provider": "acme",
+        "plugins": [],
+        "skill_dirs": [],
+        "terminal_backend": "local"
+      },
+      "host_command_tail": "-m nemo_fabric_adapters.hermes.adapter",
+      "host_interpreter_inside_managed_environment": true,
+      "model_turn_completed": false,
+      "output_keys": [
+        "adapter",
+        "adapter_stdout",
+        "api_calls",
+        "base_url",
+        "completed",
+        "enabled_toolsets",
+        "harness",
+        "hermes_config_path",
+        "hermes_home",
+        "hermes_native_config",
+        "message_count",
+        "messages",
+        "mode",
+        "model",
+        "response"
+      ],
+      "process_home_entries_after": 0,
+      "process_home_entries_before": 0,
+      "process_home_measurement": "Recursive entry count of the disposable directory supplied to this process as HOME, taken immediately before and immediately after the lifecycle. It is not a measurement of the operator's own home directory, which was never named in the process environment.",
+      "runtime_stop_metadata": [
+        {
+          "already_stopped": false,
+          "host_crashed": false
+        }
+      ],
+      "status": "failed",
+      "telemetry": [],
+      "tools_policy": "harness_default",
+      "usage": null
+    }
+  }
+}

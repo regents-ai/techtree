@@ -1,28 +1,198 @@
 {
   "schema_version": "techtree.fabric-capability-matrix.v1",
-  "status": "contract_spike_pending",
+  "status": "contract_spike_captured_admission_pending",
+  "recorded_on": "2026-09-01",
   "support_rule": [
     "descriptor_claimed",
     "techtree_conformance_passed",
     "release_admitted"
   ],
+  "support_rule_meaning": {
+    "descriptor_claimed": "The adapter's shipped descriptor lists the normalized control in config.accepts.",
+    "techtree_conformance_passed": "The capability-admission suite passed in a CLI-owned managed environment: every claimed control was admitted by Fabric plan and Doctor, and every unclaimed control was refused before any runtime started. It does not mean a subject run succeeded. See techtree_conformance_scope.",
+    "release_admitted": "A separate founder decision. Conformance evidence never sets this."
+  },
+  "techtree_conformance_scope": {
+    "capability_admission": "verified for every normalized control on both adapters",
+    "lifecycle": "exercised; invoke terminated in a classified error at a closed endpoint; no model turn",
+    "lifecycle_terminal_status": "failed",
+    "lifecycle_error_stage": "invoke",
+    "model_turn_completed": false,
+    "reward_or_comparison_semantics": "unobserved; no subject produced a result"
+  },
+  "runtime": {
+    "distribution": "nemo-fabric",
+    "distribution_version": "0.2.0",
+    "runtime_package": "nemo-fabric-runtime",
+    "runtime_version": "0.2.0",
+    "fabric_schema_version": "fabric.agent/v1alpha1",
+    "adapter_contract_version": "fabric.adapter/v1alpha2",
+    "descriptor_discovery": "installed_package",
+    "adapter_runner": "persistent_local_host"
+  },
+  "evidence": {
+    "contract_record": "docs/v0.2/FABRIC_CONTRACT.md",
+    "fixture": "cli/tests/fixtures/fabric/fabric_capabilities_0_2_0.json",
+    "fixture_sha256": "sha256:c253db9eb10a0a5749db875e90acfb09e4844341f59c11f99565c2a7821dc8f4",
+    "evidence_manifest": "cli/tests/fixtures/fabric/evidence_manifest.json",
+    "evidence_manifest_sha256": "sha256:e46501e82bf3e16cee8e04128d9748463623814a13545f4296cdb13abff3683b"
+  },
   "admitted_adapters": [],
   "candidate_adapters": [
     {
-      "adapter_id": "hermes",
-      "descriptor_claims_captured": false,
-      "techtree_conformance_passed": false,
-      "release_admitted": false
+      "adapter_id": "nvidia.fabric.hermes",
+      "adapter_package": "nemo-fabric-adapters-hermes",
+      "adapter_version": "0.2.0",
+      "descriptor": "cli/tests/fixtures/fabric/descriptors/hermes.fabric-adapter.json",
+      "descriptor_sha256": "sha256:973c07a8d8786ff454dae1eeb76d7c65218d11c143093c65e14c572347c00100",
+      "descriptor_claims_captured": true,
+      "techtree_conformance_passed": true,
+      "release_admitted": false,
+      "lifecycle_terminal_status": "failed",
+      "lifecycle_error_stage": "invoke",
+      "model_turn_completed": false,
+      "harness_package": "hermes-agent",
+      "harness_version": "0.19.0",
+      "harness_installed_by_adapter": false,
+      "descriptor_claimed_controls": [
+        "instructions.system",
+        "mcp",
+        "mcp.auth.oauth2",
+        "models",
+        "models.base_url",
+        "models.temperature",
+        "runtime.max_turns",
+        "skills",
+        "tools.blocked",
+        "tools.enabled"
+      ],
+      "techtree_admitted_controls": [
+        "instructions.system",
+        "mcp",
+        "mcp.auth.oauth2",
+        "models",
+        "models.base_url",
+        "models.temperature",
+        "runtime.max_turns",
+        "skills",
+        "tools.blocked",
+        "tools.enabled"
+      ],
+      "unsupported_controls": [
+        "mcp.auth.service_account",
+        "mcp.tool_filters",
+        "tools.definitions"
+      ],
+      "declared_runtime_capabilities": {
+        "cancellation": false,
+        "service": false,
+        "streaming": false,
+        "updates": false
+      },
+      "declared_requirements": {},
+      "release_admission_blockers": [
+        {
+          "id": "harness_presence_unchecked_before_admission",
+          "kind": "observed"
+        },
+        {
+          "id": "streaming_updates_and_cancellation_declared_false",
+          "kind": "declared_by_descriptor_untested"
+        },
+        {
+          "id": "doctor_raises_instead_of_reporting_for_tool_definitions",
+          "kind": "observed"
+        },
+        {
+          "id": "no_usage_accounting",
+          "kind": "observed_on_failed_invoke_only"
+        },
+        {
+          "id": "hermes_agent_supply_above_0_19_0",
+          "kind": "vendor_stated_and_index_consistent_not_proven"
+        }
+      ]
     },
     {
-      "adapter_id": "codex",
-      "descriptor_claims_captured": false,
-      "techtree_conformance_passed": false,
+      "adapter_id": "nvidia.fabric.codex",
+      "adapter_package": "nemo-fabric-adapters-codex",
+      "adapter_version": "0.2.0",
+      "descriptor": "cli/tests/fixtures/fabric/descriptors/codex.fabric-adapter.json",
+      "descriptor_sha256": "sha256:aaf426c26677dc51389f2fa9d2fb10ba89b5c2cc821a00dfa185ad68aa752347",
+      "descriptor_claims_captured": true,
+      "techtree_conformance_passed": true,
       "release_admitted": false,
-      "known_unsupported_requirements": [
-        "tools.enabled",
-        "tools.blocked"
+      "lifecycle_terminal_status": "failed",
+      "lifecycle_error_stage": "invoke",
+      "model_turn_completed": false,
+      "harness_package": "openai-codex",
+      "harness_version": "0.144.4",
+      "harness_installed_by_adapter": true,
+      "descriptor_claimed_controls": [
+        "instructions.system",
+        "mcp",
+        "mcp.auth.oauth2",
+        "models",
+        "models.base_url",
+        "skills"
+      ],
+      "techtree_admitted_controls": [
+        "instructions.system",
+        "mcp",
+        "mcp.auth.oauth2",
+        "models",
+        "models.base_url",
+        "skills"
+      ],
+      "unsupported_controls": [
+        "mcp.auth.service_account",
+        "mcp.tool_filters",
+        "models.temperature",
+        "runtime.max_turns",
+        "tools.blocked",
+        "tools.definitions",
+        "tools.enabled"
+      ],
+      "declared_runtime_capabilities": {
+        "cancellation": false,
+        "service": false,
+        "streaming": false,
+        "updates": false
+      },
+      "declared_requirements": {},
+      "release_admission_blockers": [
+        {
+          "id": "harness_presence_unchecked_before_admission",
+          "kind": "observed"
+        },
+        {
+          "id": "streaming_updates_and_cancellation_declared_false",
+          "kind": "declared_by_descriptor_untested"
+        },
+        {
+          "id": "doctor_raises_instead_of_reporting_for_tool_definitions",
+          "kind": "observed"
+        },
+        {
+          "id": "no_usage_accounting",
+          "kind": "observed_on_failed_invoke_only"
+        },
+        {
+          "id": "codex_home_inheritance",
+          "kind": "source_proven_path_not_executed"
+        },
+        {
+          "id": "codex_fresh_home_network_fetch",
+          "kind": "observed"
+        }
       ]
     }
+  ],
+  "techtree_owned_gates_required_before_any_subject_run": [
+    "verify_harness_presence_and_version_before_admission",
+    "supply_an_owned_home_and_codex_home_for_every_codex_subject",
+    "treat_a_started_subject_as_uncancellable_and_bound_it_by_timeout",
+    "derive_usage_from_techtree_evidence_because_fabric_reports_none",
+    "handle_both_shapes_of_refusal_because_doctor_raises_for_tool_definitions"
   ]
 }

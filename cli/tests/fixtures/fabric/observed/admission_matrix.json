@@ -1,0 +1,393 @@
+{
+  "baseline_doctor": {
+    "nvidia.fabric.codex": {
+      "checks": [
+        {
+          "message": "resolved installed_package adapter descriptor `nvidia.fabric.codex`",
+          "name": "adapter_descriptor",
+          "status": "pass"
+        },
+        {
+          "message": "selected resolution strategy `Preinstalled`",
+          "name": "resolution",
+          "status": "pass"
+        },
+        {
+          "message": "no environment configured; using caller-owned local context",
+          "name": "environment",
+          "status": "warn"
+        }
+      ],
+      "status": "warn"
+    },
+    "nvidia.fabric.hermes": {
+      "checks": [
+        {
+          "message": "resolved installed_package adapter descriptor `nvidia.fabric.hermes`",
+          "name": "adapter_descriptor",
+          "status": "pass"
+        },
+        {
+          "message": "selected resolution strategy `Preinstalled`",
+          "name": "resolution",
+          "status": "pass"
+        },
+        {
+          "message": "no environment configured; using caller-owned local context",
+          "name": "environment",
+          "status": "warn"
+        }
+      ],
+      "status": "warn"
+    }
+  },
+  "controls": {
+    "nvidia.fabric.codex": {
+      "instructions.system": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "mcp": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "probe",
+            "reason": "MCP server uses harness_native exposure and adapter accepts mcp",
+            "target": "harness_native"
+          }
+        ]
+      },
+      "mcp.auth.oauth2": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "probe",
+            "reason": "MCP server uses harness_native exposure and adapter accepts mcp",
+            "target": "harness_native"
+          }
+        ]
+      },
+      "mcp.auth.service_account": {
+        "doctor_failures": [
+          {
+            "message": "configuration at `mcp.servers.probe.authentication` cannot be implemented by the selected adapter: the adapter does not declare `mcp.auth.service_account` support",
+            "name": "config.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.codex` cannot implement configuration at `mcp.servers.probe.authentication`: the adapter does not declare `mcp.auth.service_account` support"
+      },
+      "mcp.tool_filters": {
+        "doctor_failures": [
+          {
+            "message": "configuration at `mcp.servers.probe.allowed_tools` cannot be implemented by the selected adapter: the adapter does not declare per-server MCP tool-filter support",
+            "name": "config.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.codex` cannot implement configuration at `mcp.servers.probe.allowed_tools`: the adapter does not declare per-server MCP tool-filter support"
+      },
+      "models": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "models.base_url": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "models.temperature": {
+        "doctor_failures": [
+          {
+            "message": "configuration at `models.default.temperature` cannot be implemented by the selected adapter: the adapter does not declare an equivalent native mapping",
+            "name": "config.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.codex` cannot implement configuration at `models.default.temperature`: the adapter does not declare an equivalent native mapping"
+      },
+      "runtime.max_turns": {
+        "doctor_failures": [
+          {
+            "message": "configuration at `runtime.max_turns` cannot be implemented by the selected adapter: the adapter does not declare an equivalent native mapping",
+            "name": "config.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.codex` cannot implement configuration at `runtime.max_turns`: the adapter does not declare an equivalent native mapping"
+      },
+      "skills": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "skills",
+            "reason": "selected adapter accepts NeMo Fabric skills config",
+            "target": "harness_native"
+          }
+        ]
+      },
+      "tools.blocked": {
+        "doctor_failures": [
+          {
+            "message": "Tools capability `tools.blocked` is configured but not executable: selected adapter does not explicitly declare blocked-tools policy support and NeMo Fabric-managed enforcement is not implemented",
+            "name": "capability.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.codex` cannot implement configuration at `tools.blocked`: selected adapter does not explicitly declare blocked-tools policy support and NeMo Fabric-managed enforcement is not implemented"
+      },
+      "tools.definitions": {
+        "doctor_failures": [
+          {
+            "message": "invalid tool definition for adapter `nvidia.fabric.codex` from InstalledPackage descriptor <managed-environment>/share/nemo-fabric/adapters/codex/codex.fabric-adapter.json at `tools.definitions.probe`: the resolved descriptor does not declare a tool_definition_schema",
+            "name": "FabricConfigError"
+          }
+        ],
+        "doctor_status": "raised",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.codex` cannot implement configuration at `tools.definitions`: the adapter does not consume normalized tool definitions"
+      },
+      "tools.enabled": {
+        "doctor_failures": [
+          {
+            "message": "Tools capability `tools.enabled` is configured but not executable: selected adapter does not explicitly declare enabled-tools selection support and NeMo Fabric-managed enforcement is not implemented",
+            "name": "capability.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.codex` cannot implement configuration at `tools.enabled`: selected adapter does not explicitly declare enabled-tools selection support and NeMo Fabric-managed enforcement is not implemented"
+      }
+    },
+    "nvidia.fabric.hermes": {
+      "instructions.system": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "mcp": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "probe",
+            "reason": "MCP server uses harness_native exposure and adapter accepts mcp",
+            "target": "harness_native"
+          }
+        ]
+      },
+      "mcp.auth.oauth2": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "probe",
+            "reason": "MCP server uses harness_native exposure and adapter accepts mcp",
+            "target": "harness_native"
+          }
+        ]
+      },
+      "mcp.auth.service_account": {
+        "doctor_failures": [
+          {
+            "message": "configuration at `mcp.servers.probe.authentication` cannot be implemented by the selected adapter: the adapter does not declare `mcp.auth.service_account` support",
+            "name": "config.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.hermes` cannot implement configuration at `mcp.servers.probe.authentication`: the adapter does not declare `mcp.auth.service_account` support"
+      },
+      "mcp.tool_filters": {
+        "doctor_failures": [
+          {
+            "message": "configuration at `mcp.servers.probe.allowed_tools` cannot be implemented by the selected adapter: the adapter does not declare per-server MCP tool-filter support",
+            "name": "config.unsupported"
+          }
+        ],
+        "doctor_status": "fail",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.hermes` cannot implement configuration at `mcp.servers.probe.allowed_tools`: the adapter does not declare per-server MCP tool-filter support"
+      },
+      "models": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "models.base_url": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "models.temperature": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "runtime.max_turns": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": []
+      },
+      "skills": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "skills",
+            "reason": "selected adapter accepts NeMo Fabric skills config",
+            "target": "harness_native"
+          }
+        ]
+      },
+      "tools.blocked": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "tools.blocked",
+            "reason": "selected adapter explicitly supports the NeMo Fabric blocked-tools policy",
+            "target": "harness_native"
+          }
+        ]
+      },
+      "tools.definitions": {
+        "doctor_failures": [
+          {
+            "message": "invalid tool definition for adapter `nvidia.fabric.hermes` from InstalledPackage descriptor <managed-environment>/share/nemo-fabric/adapters/hermes/hermes.fabric-adapter.json at `tools.definitions.probe`: the resolved descriptor does not declare a tool_definition_schema",
+            "name": "FabricConfigError"
+          }
+        ],
+        "doctor_status": "raised",
+        "plan": "rejected",
+        "rejection": "adapter `nvidia.fabric.hermes` cannot implement configuration at `tools.definitions`: the adapter does not consume normalized tool definitions"
+      },
+      "tools.enabled": {
+        "doctor_failures": [],
+        "doctor_status": "warn",
+        "plan": "admitted",
+        "routes": [
+          {
+            "name": "tools.enabled",
+            "reason": "selected adapter explicitly supports the NeMo Fabric enabled-tools selection",
+            "target": "harness_native"
+          }
+        ]
+      }
+    }
+  },
+  "purpose": "Per-control Fabric plan and Doctor outcomes for every normalized configuration control, captured in the adapters-only managed environment.",
+  "resolved_descriptor_canonical_sha256_meaning": "Digest of the descriptor as the Fabric runtime returned it in the run plan, serialized as canonical JSON. It differs from the descriptor file digest because the runtime fills in defaults the shipped file omits, notably the four runtime capability flags.",
+  "resolved_descriptors": {
+    "nvidia.fabric.codex": {
+      "adapter_kind": "python",
+      "config_accepts": [
+        "models",
+        "models.base_url",
+        "instructions.system",
+        "mcp",
+        "mcp.auth.oauth2",
+        "skills"
+      ],
+      "contract_version": "fabric.adapter/v1alpha2",
+      "declared_requirements": {},
+      "declared_runtime_capabilities": {
+        "cancellation": false,
+        "service": false,
+        "streaming": false,
+        "updates": false
+      },
+      "provenance_filenames": [
+        "codex.fabric-adapter.json"
+      ],
+      "provenance_sources": [
+        "installed_package"
+      ],
+      "resolution_strategy": "preinstalled",
+      "resolved_descriptor_canonical_sha256": "sha256:2349f70ef19835139ea3d57ff6378526d457932bfbf8ddbca110ed8cd87a8756",
+      "telemetry_providers": {
+        "native": {
+          "outputs": [
+            "otel"
+          ]
+        },
+        "relay": {
+          "integration_modes": [
+            "hooks",
+            "gateway"
+          ],
+          "outputs": [
+            "atif",
+            "otel",
+            "openinference"
+          ]
+        }
+      }
+    },
+    "nvidia.fabric.hermes": {
+      "adapter_kind": "python",
+      "config_accepts": [
+        "models",
+        "models.base_url",
+        "models.temperature",
+        "instructions.system",
+        "runtime.max_turns",
+        "tools.enabled",
+        "tools.blocked",
+        "mcp",
+        "mcp.auth.oauth2",
+        "skills"
+      ],
+      "contract_version": "fabric.adapter/v1alpha2",
+      "declared_requirements": {},
+      "declared_runtime_capabilities": {
+        "cancellation": false,
+        "service": false,
+        "streaming": false,
+        "updates": false
+      },
+      "provenance_filenames": [
+        "hermes.fabric-adapter.json"
+      ],
+      "provenance_sources": [
+        "installed_package"
+      ],
+      "resolution_strategy": "preinstalled",
+      "resolved_descriptor_canonical_sha256": "sha256:cda55538b63019191d413cfcd1dc4483cf885fc9f9a10058d4f25060f6fc64d2",
+      "telemetry_providers": {
+        "relay": {
+          "outputs": [
+            "atif",
+            "otel",
+            "openinference"
+          ]
+        }
+      }
+    }
+  }
+}

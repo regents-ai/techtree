@@ -1,0 +1,120 @@
+{
+  "contract_version": "fabric.adapter/v1alpha2",
+  "adapter_id": "nvidia.fabric.codex",
+  "adapter_kind": "python",
+  "runner": {
+    "module": "nemo_fabric_adapters.codex.adapter"
+  },
+  "model_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "provider": {"type": "string", "minLength": 1},
+      "model": {"type": "string", "minLength": 1},
+      "temperature": {"type": "number"},
+      "api_key_env": {"type": "string", "minLength": 1},
+      "base_url": {"type": "string", "minLength": 1},
+      "settings": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "required": ["provider", "model"],
+    "if": {
+      "properties": {"provider": {"const": "openai"}},
+      "required": ["provider"]
+    },
+    "else": {
+      "required": ["base_url", "api_key_env"]
+    },
+    "additionalProperties": false
+  },
+  "settings_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "sandbox": {
+        "type": "string",
+        "enum": ["read-only", "workspace-write", "danger-full-access"],
+        "default": "read-only",
+        "description": "Codex filesystem access level."
+      },
+      "approval_mode": {
+        "type": "string",
+        "enum": ["auto_review", "deny_all"],
+        "default": "auto_review",
+        "description": "Codex approval handling mode for escalated permission requests."
+      },
+      "developer_instructions": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Additional developer instructions for the Codex thread."
+      },
+      "personality": {
+        "type": "string",
+        "enum": ["none", "friendly", "pragmatic"],
+        "description": "Codex response personality."
+      },
+      "reasoning_effort": {
+        "type": "string",
+        "enum": ["none", "minimal", "low", "medium", "high", "xhigh"],
+        "description": "Codex reasoning effort for each turn."
+      },
+      "service_tier": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Codex service tier for the thread."
+      },
+      "output_schema": {
+        "type": "object",
+        "description": "JSON Schema that constrains the final assistant message for each turn."
+      },
+      "config_overrides": {
+        "type": "object",
+        "propertyNames": {
+          "pattern": "^[^.]+(?:\\.[^.]+)*$"
+        },
+        "additionalProperties": {},
+        "default": {},
+        "description": "Dotted Codex configuration keys mapped to JSON-compatible values."
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "extension_schemas": {
+    "run_error": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "status": {"type": "string"},
+        "sdk_error": {"type": "string"},
+        "jsonrpc_code": {"type": "integer"},
+        "timeout_seconds": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "config": {
+    "accepts": [
+      "models",
+      "models.base_url",
+      "instructions.system",
+      "mcp",
+      "mcp.auth.oauth2",
+      "skills"
+    ]
+  },
+  "telemetry": {
+    "providers": {
+      "relay": {
+        "outputs": ["atif", "otel", "openinference"],
+        "integration_modes": ["hooks", "gateway"]
+      },
+      "native": {
+        "outputs": ["otel"]
+      }
+    }
+  }
+}
