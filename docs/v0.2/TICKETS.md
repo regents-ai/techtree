@@ -317,13 +317,20 @@ They should be implemented independently after the owning contract is stable:
 - `techtree-python-aww` — distinguish credential shape checks from a provider
   authentication probe without leaking credentials or spending unexpectedly.
 
-Their monorepo ticket IDs are:
+Their monorepo ticket IDs, and the one work package each belongs to, are:
 
 - `techtree-31k.8` — multi-file starter fetch and revision context (WP2).
-- `techtree-31k.9` — duplicate plugin CLI reads (WP2).
-- `techtree-31k.10` — generic public task prompts (WP0).
+- `techtree-31k.9` — duplicate plugin CLI reads (WP1).
+- `techtree-31k.10` — generic public task prompts (WP1).
 - `techtree-31k.11` — receipt token and elapsed-time usage (WP1).
 - `techtree-31k.12` — credential shape versus authentication (WP2).
+
+`.9` and `.10` sat under WP2 and WP0 until WP0.8 reconciled them. Both are
+consumer-and-reader changes against the machine contract WP1 replaces, and WP0
+ships no production code. The full reconciliation, including `techtree-g34`
+under WP5 and `techtree-2qy` under WP4, is the table in section 5 of
+[`WP0_FOUNDER_PACKET.md`](WP0_FOUNDER_PACKET.md), where those five rows are
+marked proposed until the founder has seen them.
 
 ## Moved out of v0.2.0
 

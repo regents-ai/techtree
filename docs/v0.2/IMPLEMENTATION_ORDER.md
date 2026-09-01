@@ -25,15 +25,19 @@ Within WP0:
 2. `techtree-31k.1.2`, `.1.4`, `.1.6`, and `.1.7` may then proceed in parallel.
 3. `.1.3` follows the Verifiers/environment contract in `.1.2`.
 4. `.1.5` follows the Fabric descriptor and admission work in `.1.4`.
-5. `.1.8` depends on every other WP0 child and closes only after each has
-   supplied its exact evidence. It no longer carries a Prime stop/go, and today
-   only `.1.5` remains open ahead of it.
+5. `.1.8` depended on every other WP0 child and has now frozen the proposed
+   lock. Every field in `UPSTREAM_CONTRACT_LOCK.json` and
+   `FABRIC_CAPABILITY_MATRIX.json` is either evidence-backed or an explicit
+   status naming a numbered decision in
+   [`WP0_FOUNDER_PACKET.md`](WP0_FOUNDER_PACKET.md), which requests approval of
+   one exact lock digest and carries the sixteen open decisions. Adoption of
+   the lock waits on that packet.
 
 Before production code begins:
 
 - reconcile every active v0.2 ticket to one work package;
-- replace every pending field in `UPSTREAM_CONTRACT_LOCK.json` with tested
-  coordinates and record the founder decision authorizing them;
+- obtain the founder's approval of the lock digest recorded in
+  [`WP0_FOUNDER_PACKET.md`](WP0_FOUNDER_PACKET.md);
 - populate `FABRIC_CAPABILITY_MATRIX.json` from upstream descriptors,
   Techtree conformance evidence, and release admission;
 - add only sanitized deterministic fixtures under component-owned test paths;

@@ -67,8 +67,10 @@ def test_proposed_lock_names_the_passing_stable_candidate_without_adopting_it() 
     fallback = candidate_by_id(candidates, "verifiers-fallback-0.3.2.dev17")
     verifiers = lock["verifiers"]
 
-    assert lock["status"] == "contract_spike_pending"
-    assert lock["approved_at"] is None
+    assert lock["status"] == "proposed_awaiting_founder_approval_of_this_exact_digest"
+    assert lock["approval"]["status"] == "requested"
+    assert lock["approval"]["approved_at"] == "not_yet_approved"
+    assert lock["approval"]["packet"] == "docs/v0.2/WP0_FOUNDER_PACKET.md"
     assert verifiers["package_version"] == candidate["version"]
     assert verifiers["source_commit"] == candidate["source_commit"]
     assert verifiers["wheel_filename"] == candidate["wheel_filename"]

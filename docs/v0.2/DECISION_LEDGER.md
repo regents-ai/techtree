@@ -254,3 +254,10 @@ changing the shipped log meanwhile.
 - Non-protected WP0 work may be integrated after review and gates. The final
   upstream lock remains proposed until its exact digest receives founder
   approval.
+- WP0.8 froze the proposed lock on 2026-09-01. Every field in
+  `UPSTREAM_CONTRACT_LOCK.json` and `FABRIC_CAPABILITY_MATRIX.json` is now
+  either evidence-backed or an explicit status naming a numbered decision in
+  [`WP0_FOUNDER_PACKET.md`](WP0_FOUNDER_PACKET.md). That packet requests
+  approval of one exact lock digest and carries the sixteen decisions this
+  ledger and the WP0 contract documents left open. Adoption of the lock waits
+  on the packet; the decisions themselves are stated there, not restated here.

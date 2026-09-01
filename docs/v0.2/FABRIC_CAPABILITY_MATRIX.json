@@ -1,6 +1,6 @@
 {
   "schema_version": "techtree.fabric-capability-matrix.v1",
-  "status": "contract_spike_captured_admission_pending",
+  "status": "conformance_captured_release_admission_is_packet_decision_9",
   "recorded_on": "2026-09-01",
   "support_rule": [
     "descriptor_claimed",
@@ -10,7 +10,7 @@
   "support_rule_meaning": {
     "descriptor_claimed": "The adapter's shipped descriptor lists the normalized control in config.accepts.",
     "techtree_conformance_passed": "The capability-admission suite passed in a CLI-owned managed environment: every claimed control was admitted by Fabric plan and Doctor, and every unclaimed control was refused before any runtime started. It does not mean a subject run succeeded. See techtree_conformance_scope.",
-    "release_admitted": "A separate founder decision. Conformance evidence never sets this."
+    "release_admitted": "A separate founder decision. Conformance evidence never sets this. It is asked as packet decision 9 in docs/v0.2/WP0_FOUNDER_PACKET.md."
   },
   "techtree_conformance_scope": {
     "capability_admission": "verified for every normalized control on both adapters",

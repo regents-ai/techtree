@@ -622,8 +622,20 @@ def test_publication_did_not_relax_any_prime_admission_ruling() -> None:
     assert recorded["prime_environment_version_id"] is None
     assert published["prime_environment_id"] is None
     assert published["prime_environment_version_id"] is None
-    assert lock["environment_id"] is None
-    assert lock["environment_version_id"] is None
+    identity = lock["environment_identity"]
+    assert identity["provider_internal_identifiers"] == "withheld_by_policy"
+    assert identity["withheld_identifiers"] == [
+        "environment_id",
+        "environment_version_id",
+        "job_id",
+    ]
+    #: The lock records the public coordinate in their place, never an id.
+    assert identity["public_coordinate"] == "techtree/techtree-v02-conformance@0.1.0"
+    assert (
+        identity["published_wheel_sha256"]
+        == (lock["environment_published_wheel_sha256"])
+    )
+    assert identity["published_wheel_sha256"] == published["observed_wheel_sha256"]
 
     #: The provider returns a content hash of its own. It is a digest rather
     #: than an identifier, so it is retained, but it binds to nothing Techtree
