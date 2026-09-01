@@ -1,0 +1,290 @@
+{
+  "artifacts": {
+    "nemo_fabric_adapters_common_wheel": {
+      "filename": "nemo_fabric_adapters_common-0.2.0-py3-none-any.whl",
+      "package": "nemo-fabric-adapters-common",
+      "role": "the Fabric-side Relay plumbing: the observability version-3 validator and the Relay CLI gateway contract",
+      "sha256": "sha256:b11448e83236a71ee0dfc1b7421ebf80cf9fca4ee8fc5414daf547c1859dfd5a",
+      "size_bytes": 24506,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "Locked by WP0.4. The commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/e5/4f/d43966b62b77a60df4650d308c96cdd0bdfcc18fa5cb9e1bf8b51fe70129/nemo_fabric_adapters_common-0.2.0-py3-none-any.whl",
+      "version": "0.2.0"
+    },
+    "nemo_fabric_adapters_hermes_wheel": {
+      "filename": "nemo_fabric_adapters_hermes-0.2.0-py3-none-any.whl",
+      "package": "nemo-fabric-adapters-hermes",
+      "role": "the Hermes adapter's Relay plugin-configuration path",
+      "sha256": "sha256:d7c0c522a069545b6a0e49e3e84b320caddb11db02584a992486a8d938ac0ae0",
+      "size_bytes": 17582,
+      "source_commit": "810189732befa2a5a7feb139c935bbd4dfc400a2",
+      "source_commit_note": "Locked by WP0.4. The commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Fabric",
+      "source_tag": "v0.2.0",
+      "url": "https://files.pythonhosted.org/packages/79/f2/b1230a2e0af9969ce42425b3acc29aa930199595e63cf20526c731d4d726/nemo_fabric_adapters_hermes-0.2.0-py3-none-any.whl",
+      "version": "0.2.0"
+    },
+    "nemo_relay_cli_bin_wheel": {
+      "filename": "nemo_relay_cli_bin-0.7.3-py3-none-macosx_11_0_arm64.whl",
+      "package": "nemo-relay-cli-bin",
+      "retained": "not retained and never executed; bound by its PyPI digest",
+      "role": "the prebuilt Relay CLI the Codex harness extra pins and the Fabric Codex gateway would launch",
+      "sha256": "sha256:73a12cf7556ff9df7aeab137ae393bcf8a16375b84d7f20ca980b7401647aaaf",
+      "size_bytes": 11363529,
+      "source_repository": "https://github.com/NVIDIA/NeMo-Relay",
+      "url": "https://files.pythonhosted.org/packages/c5/c8/0ddaa75f3a6047d2e26c9604cc33b08aac52c52bf8d8edfc67d4553f4178/nemo_relay_cli_bin-0.7.3-py3-none-macosx_11_0_arm64.whl",
+      "version": "0.7.3"
+    },
+    "nemo_relay_plugin_wheel": {
+      "filename": "nemo_relay_plugin-0.8.2-py3-none-any.whl",
+      "package": "nemo-relay-plugin",
+      "role": "the dynamic worker plugin SDK; installed with the family, and no claim in this record derives from it",
+      "sha256": "sha256:3ba8ef4452a6c7173126771799be689fe8a6131c02f1d9261bc863d96571cb78",
+      "size_bytes": 41151,
+      "source_repository": "https://github.com/NVIDIA/NeMo-Relay",
+      "url": "https://files.pythonhosted.org/packages/7f/42/315afc7dec463a691bc64009e2836cee86bf05650349536e8177fd9fb2dc/nemo_relay_plugin-0.8.2-py3-none-any.whl",
+      "version": "0.8.2"
+    },
+    "nemo_relay_prior_generation_wheel": {
+      "filename": "nemo_relay-0.7.3-cp311-abi3-macosx_11_0_arm64.whl",
+      "package": "nemo-relay",
+      "role": "the Relay generation the Fabric Codex gateway band accepts; installed only to compare its config-version acceptance and Python surface against 0.8.2",
+      "sha256": "sha256:301dfc8334032ac52c09cc0b1421181e7c4df601abe7c82dfe51aa74ddbb3732",
+      "size_bytes": 9251369,
+      "source_repository": "https://github.com/NVIDIA/NeMo-Relay",
+      "source_tag": "0.7.3",
+      "url": "https://files.pythonhosted.org/packages/ed/9e/4eb80d2307cadcbb839dad2212a8d888667cd8c531ad0d8c0c1afc841181/nemo_relay-0.7.3-cp311-abi3-macosx_11_0_arm64.whl",
+      "version": "0.7.3"
+    },
+    "nemo_relay_wheel": {
+      "filename": "nemo_relay-0.8.2-cp311-abi3-macosx_11_0_arm64.whl",
+      "package": "nemo-relay",
+      "role": "Python bindings plus the native Relay runtime; seven platform wheels are published for 0.8.2 and this is the one this host resolves",
+      "sha256": "sha256:7d9e1572b5e3be79a3204cadf9096150627746b973893cac2c5a6323781fe9b5",
+      "size_bytes": 10202606,
+      "source_commit": "3b60fdfc57780ccd92a74b6cf1406aaa13d2f16c",
+      "source_commit_note": "The commit is the one the repository's 0.8.2 release tag resolves to. The wheel's own SBOM names an internal crate version of 0.8.0 and no commit, so the wheel is bound by its PyPI digest and the commit is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Relay",
+      "source_tag": "0.8.2",
+      "url": "https://files.pythonhosted.org/packages/bb/fe/6be007ba74b686e0e46ad83dcc5eb31d7cd345ab3b977c53d3f853320423/nemo_relay-0.8.2-cp311-abi3-macosx_11_0_arm64.whl",
+      "version": "0.8.2"
+    },
+    "nvidia_nat_atif_wheel": {
+      "filename": "nvidia_nat_atif-1.8.0-py3-none-any.whl",
+      "package": "nvidia-nat-atif",
+      "role": "the ATIF schema models, the ATOF event models, and the ATOF to ATIF converter",
+      "sha256": "sha256:38c97d6e506e8cc151a997bfd6cafa08b969e181b50b9302f28d2229a3b37829",
+      "size_bytes": 105633,
+      "source_commit": "3c44584ef5de2531e2ff548408f0e4658b755a69",
+      "source_commit_note": "The commit is the one the repository's v1.8.0 release tag resolves to. Nothing inside the wheel names a commit, so it is asserted from the release tag, not from wheel contents.",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Agent-Toolkit",
+      "source_tag": "v1.8.0",
+      "url": "https://files.pythonhosted.org/packages/f1/ee/a22d1b5d5d6f3d625f451f5185b7e32a6464058f2c7899f6d98c68f46aef/nvidia_nat_atif-1.8.0-py3-none-any.whl",
+      "version": "1.8.0"
+    }
+  },
+  "captured_at": "2026-09-01",
+  "captures": {
+    "atif_complete_derived": {
+      "derived_from": "atof_complete",
+      "media_type": "application/json",
+      "path": "cli/tests/fixtures/relay/atif/complete.derived.atif.json",
+      "retained": "canonical JSON rendering of nat.atof.scripts.atof_to_atif_converter.convert applied to atof_complete",
+      "sha256": "sha256:4b458e8e31772213da639c70462d19cc17ef7905767c28a222ab12ff4992932d",
+      "size_bytes": 1481
+    },
+    "atif_complete_native": {
+      "derived_from": "atof_complete",
+      "media_type": "application/json",
+      "path": "cli/tests/fixtures/relay/atif/complete.native.atif.json",
+      "retained": "exact bytes written by the Relay observability plugin's ATIF export",
+      "sha256": "sha256:540aad82026b9d6bfae0f5637ec17768b78c328a583b0ea5d5b5d54305352f92",
+      "size_bytes": 5946
+    },
+    "atof_complete": {
+      "event_count": 7,
+      "media_type": "application/x-ndjson",
+      "path": "cli/tests/fixtures/relay/atof/complete.atof.jsonl",
+      "retained": "exact bytes written by the Relay ATOF file sink",
+      "sha256": "sha256:ba99f4ac8a3c6ebd6675d75a91aa60f33a24caf7e21671c218e35e4944d84a17",
+      "size_bytes": 2813
+    }
+  },
+  "derived_record": {
+    "path": "cli/tests/fixtures/relay/relay_contract_0_8_2.json",
+    "sha256": "sha256:5de3436325ef9c71e01e9d4b7174edd22441484fc4f5cab0599d61be0af5de0a",
+    "size_bytes": 7299
+  },
+  "managed_environments": {
+    "disposable": true,
+    "interpreter": "cpython-3.12",
+    "manager": "uv",
+    "process_environment": "each run was started with an explicit environment carrying only a disposable HOME, a disposable TMPDIR, a PATH reaching no host harness executable, the probe's own output directory and closed loopback port, and one placeholder model-key variable",
+    "resolutions": {
+      "fabric_relay_plumbing": {
+        "nemo-fabric-adapter-contract": "0.2.0",
+        "nemo-fabric-adapters-codex": "0.2.0",
+        "nemo-fabric-adapters-common": "0.2.0",
+        "nemo-fabric-adapters-hermes": "0.2.0"
+      },
+      "relay_current": {
+        "jsonschema": "4.26.0",
+        "nemo-relay": "0.8.2",
+        "nemo-relay-plugin": "0.8.2",
+        "nvidia-nat-atif": "1.8.0"
+      },
+      "relay_prior_generation": {
+        "nemo-relay": "0.7.3"
+      }
+    }
+  },
+  "observations": {
+    "atif_projection_divergence": {
+      "path": "cli/tests/fixtures/relay/observed/atif_projection_divergence.json",
+      "sha256": "sha256:71707b2f08ba653d5a9d6aa9667060e1e210df49eb4b8ded16bb57f6dfc9c398",
+      "size_bytes": 3222,
+      "supports": "How the two ATIF projections differ from each other and from ATOF."
+    },
+    "config_version_matrix": {
+      "path": "cli/tests/fixtures/relay/observed/config_version_matrix.json",
+      "sha256": "sha256:88ce43539840628d99b74559f046ba924055355fc180914ca9abb8885d6c4ba0",
+      "size_bytes": 2253,
+      "supports": "Which observability config versions each locked producer accepts."
+    },
+    "delivery_diagnostics": {
+      "path": "cli/tests/fixtures/relay/observed/delivery_diagnostics.json",
+      "sha256": "sha256:86be2f19f202d9841680501cf07f0fd277a4718ae139ed0e884c4eb869f94fbe",
+      "size_bytes": 3862,
+      "supports": "Which delivery failures Relay reports and which it swallows."
+    },
+    "index_queries": {
+      "path": "cli/tests/fixtures/relay/observed/index_queries.json",
+      "sha256": "sha256:290b841935166444c4733eb68ba7badad2666d6185edf0e0682837c8c905ca7e",
+      "size_bytes": 2486,
+      "supports": "The public index observations behind the adopted coordinates."
+    },
+    "lifecycle": {
+      "path": "cli/tests/fixtures/relay/observed/lifecycle.json",
+      "sha256": "sha256:874cce11b9c15b2a6b076dd0965b5011f3166d78fe79fec234cd7b293ffe1ae9",
+      "size_bytes": 4491,
+      "supports": "One deterministic subject and each deliberate interruption of it."
+    }
+  },
+  "purpose": "Bounded, sanitized evidence for the exact NeMo Relay, ATOF and ATIF contract spike. No subject run reached a model provider and no paid work was performed.",
+  "sanitization": {
+    "absolute_paths_persisted": false,
+    "credentials_persisted": false,
+    "host_harness_configuration_read_into_evidence": false,
+    "host_relay_configuration_read_into_evidence": false,
+    "machine_local_paths_persisted": false,
+    "model_provider_response_persisted": false,
+    "paid_work_observed": false,
+    "private_trace_or_transcript_persisted": false
+  },
+  "sanitization_note": "The retained ATOF and ATIF captures are the spike's own synthetic subject: one placeholder model name, one echo tool, and one loopback address on a closed port. They contain no operator transcript, no model output and no credential.",
+  "schema_version": "techtree.relay-evidence-manifest.v1",
+  "source_snapshots": {
+    "fabric_hermes_relay_plugin_config": {
+      "artifact": "nemo_fabric_adapters_hermes_wheel",
+      "excerpt_sha256": "sha256:201c9ae8521682d1b7706bedc84a09c244d7baf9d356520c86c06e693c5934df",
+      "excerpt_size_bytes": 2576,
+      "line_end": 72,
+      "line_start": 15,
+      "member": "nemo_fabric_adapters/hermes/telemetry.py",
+      "member_sha256": "sha256:7c11ab0a782d947f95b63f278521c99dabdd92b57f401de9c557dc46e5a39653",
+      "member_size_bytes": 2978,
+      "path": "cli/tests/fixtures/relay/source/fabric_hermes_relay_plugin_config.txt",
+      "supports": "The Hermes Relay environment names, the rejection of ambient Relay configuration, the forced append mode on the ATOF file sink, and the documented direct ATIF/ATOF fallback when TOML initialization fails."
+    },
+    "fabric_relay_cli_version_contract": {
+      "artifact": "nemo_fabric_adapters_common_wheel",
+      "excerpt_sha256": "sha256:1660c4d22d273c89e1271d96f010666b7fecb1d72961a2a62743546f368a3fed",
+      "excerpt_size_bytes": 2910,
+      "line_end": 108,
+      "line_start": 21,
+      "member": "nemo_fabric_adapters/common/relay_gateway.py",
+      "member_sha256": "sha256:7328570aef62c2f01a4fa2b04d94aa4a4fef3f8d8f31dadf3fd57ddb038b6173",
+      "member_size_bytes": 7073,
+      "path": "cli/tests/fixtures/relay/source/fabric_relay_cli_version_contract.txt",
+      "supports": "The Codex gateway's Relay CLI band of >=0.7.2,<0.8.0, its rejection of pre-releases, and the gateway health and stop budgets."
+    },
+    "fabric_relay_observability_v3": {
+      "artifact": "nemo_fabric_adapters_common_wheel",
+      "excerpt_sha256": "sha256:ca0ce4265735f0dc3ca9cc799d5e7d532c155889c94e924ccfad52fe0698d21d",
+      "excerpt_size_bytes": 1712,
+      "line_end": 437,
+      "line_start": 392,
+      "member": "nemo_fabric_adapters/common/utils.py",
+      "member_sha256": "sha256:5f0139e182fc2d3e758c1c782b13ce0e2fc9627bc282bf7da75c27f3c65ef37f",
+      "member_size_bytes": 24074,
+      "path": "cli/tests/fixtures/relay/source/fabric_relay_observability_v3.txt",
+      "supports": "Fabric accepts only observability config version 3, and accepts a config that omits the version key."
+    },
+    "nat_atif_schema_version": {
+      "artifact": "nvidia_nat_atif_wheel",
+      "excerpt_sha256": "sha256:3f572323bc5f7d4f61f633e2025c55c0c92a254e81dac59247fd31857deae6bd",
+      "excerpt_size_bytes": 445,
+      "line_end": 50,
+      "line_start": 32,
+      "member": "nat/atif/trajectory.py",
+      "member_sha256": "sha256:5adf80f7cf9ebc0c9e89aa9c9d2e15c84ad1788967deeb61e40ae873f11b4fb6",
+      "member_size_bytes": 8529,
+      "path": "cli/tests/fixtures/relay/source/nat_atif_schema_version.txt",
+      "supports": "ATIF-v1.7 is the current schema version and the full set of versions the model accepts."
+    },
+    "nat_atof_event_envelope": {
+      "artifact": "nvidia_nat_atif_wheel",
+      "excerpt_sha256": "sha256:e2e18acded0311802488fc7d8d786331d209fc3bec601b4606bbf6ab68b5164a",
+      "excerpt_size_bytes": 1383,
+      "line_end": 142,
+      "line_start": 118,
+      "member": "nat/atof/events.py",
+      "member_sha256": "sha256:efc0b2de29c9b5a67ab85831e4ded2f3783bcdf67e3400c6641499a63bf4afc6",
+      "member_size_bytes": 12892,
+      "path": "cli/tests/fixtures/relay/source/nat_atof_event_envelope.txt",
+      "supports": "The ATOF common envelope and the 0.MINOR wire-version rule that pins atof_version 0.1."
+    },
+    "relay_atof_exporter_flush": {
+      "artifact": "nemo_relay_wheel",
+      "excerpt_sha256": "sha256:af120f4e70aae466dca09de587f5e36795df0d4b37e91a3744282970ff77f52e",
+      "excerpt_size_bytes": 1305,
+      "line_end": 1092,
+      "line_start": 1059,
+      "member": "nemo_relay/_native.pyi",
+      "member_sha256": "sha256:11559f03af316f68648bba78b591834534bafef8288874a25692e965ac118085",
+      "member_size_bytes": 92455,
+      "path": "cli/tests/fixtures/relay/source/relay_atof_exporter_flush.txt",
+      "supports": "The declared flush and shutdown semantics of the single-sink ATOF exporter, including that a stream timeout is logged and does not by itself return an error."
+    },
+    "relay_atof_sink_configuration": {
+      "artifact": "nemo_relay_wheel",
+      "excerpt_sha256": "sha256:be55e483a7341bf12a7942046507eeab8975303e07c96e8aa39cfa26037596fe",
+      "excerpt_size_bytes": 2045,
+      "line_end": 120,
+      "line_start": 55,
+      "member": "nemo_relay/observability.py",
+      "member_sha256": "sha256:8578a541162a1a89eb93e1c6f0b342591d2b15d1f316144a093c8c22bb892b05",
+      "member_size_bytes": 15493,
+      "path": "cli/tests/fixtures/relay/source/relay_atof_sink_configuration.txt",
+      "supports": "The two ATOF sink shapes, the file sink's append and overwrite modes, and the absence of any delivery-receipt or dropped-event field on either sink."
+    }
+  },
+  "wheel_provenance": {
+    "binding": "pypi_digest_plus_release_tag",
+    "commit_binding": "asserted_from_release_tag_not_from_wheel_contents",
+    "sbom": {
+      "artifact": "nemo_relay_wheel",
+      "declares_commit": false,
+      "declares_component": "nemo-relay-python",
+      "declares_vcs_url": "https://github.com/NVIDIA/NeMo-Relay",
+      "declares_version": "0.8.0",
+      "member": "nemo_relay-0.8.2.dist-info/sboms/nemo-relay-python.cyclonedx.json",
+      "member_sha256": "sha256:a93727a8d0ebe7f36cb9042e47786bfd36e3ff59e9d8fac9d400f48060ab1899",
+      "member_size_bytes": 475269,
+      "not_retained_because": "the document declares a version that does not match the distribution and embeds build-machine paths, so only these fields are recorded and the member is bound by its digest",
+      "version_matches_distribution": false
+    }
+  }
+}

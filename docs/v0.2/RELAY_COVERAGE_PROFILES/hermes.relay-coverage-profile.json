@@ -1,0 +1,210 @@
+{
+  "schema_version": "techtree.relay-coverage-profile.v1",
+  "calculation_version": "relay-coverage-v1",
+  "profile_id": "techtree.relay.hermes.v1",
+  "adapter_id": "nvidia.fabric.hermes",
+  "status": "draft_pending_wp3_implementation",
+  "release_admitted": false,
+  "drafted_on": "2026-09-01",
+  "authority": {
+    "observe_only": true,
+    "may_affect_score": false,
+    "may_affect_spend": false,
+    "may_affect_execution": false,
+    "statement": "This profile produces one trace_coverage evidence facet and nothing else. No value it computes may enter a reward, a comparison verdict, an estimate, an approval, or any execution decision."
+  },
+  "pinned_upstream": {
+    "relay_package": "nemo-relay",
+    "relay_version": "0.8.2",
+    "relay_installed_by_adapter": false,
+    "harness_declared_relay_range": "nemo-relay<1.0,>=0.5 under the hermes-agent nemo-relay extra",
+    "harness_package": "hermes-agent",
+    "harness_version": "0.19.0",
+    "fabric_adapter_package": "nemo-fabric-adapters-hermes",
+    "fabric_adapter_version": "0.2.0",
+    "atof_version": "0.1",
+    "atif_schema_version": "ATIF-v1.7",
+    "atif_schema_package": "nvidia-nat-atif",
+    "atif_schema_package_version": "1.8.0",
+    "observability_config_version": 3,
+    "observability_config_version_rationale": "The only version nemo-relay 0.8.2, nemo-relay 0.7.3 and the Fabric 0.2.0 validator all accept."
+  },
+  "integration": {
+    "mode": "in_process_plugin",
+    "declared_outputs": ["atif", "otel", "openinference"],
+    "declared_integration_modes": null,
+    "configuration_channel": "Fabric writes a Relay plugin TOML and points HERMES_NEMO_RELAY_PLUGINS_TOML at it",
+    "environment_names": [
+      "HERMES_NEMO_RELAY_PLUGINS_TOML",
+      "HERMES_NEMO_RELAY_ATIF_ENABLED",
+      "HERMES_NEMO_RELAY_ATOF_ENABLED"
+    ],
+    "ambient_configuration": "rejected by the adapter before the runtime starts",
+    "atof_sink": "file",
+    "atof_sink_mode": "append, forced by the adapter because Fabric finalizes the Relay session after every invocation",
+    "atof_filename_default": "events.atof.jsonl",
+    "atif_filename_template_default": "trajectory-{session_id}.atif.json",
+    "artifact_root_default": "<runtime base>/artifacts/relay/<runtime_id>",
+    "evidence_refs": ["fabric_hermes_relay_plugin_config", "relay_atof_sink_configuration"]
+  },
+  "expectation_sources": [
+    {
+      "source": "fabric_execution_receipt",
+      "supplies": "the invocation boundary",
+      "derives": [
+        {
+          "event_class": "root_agent_scope",
+          "required": true,
+          "cardinality": "exactly one start and one matching end per invocation_id",
+          "identity": "fabric_execution_receipt/agent/scope_start/0 and .../scope_end/0",
+          "atof_match": "the scope event whose category is agent and whose uuid is the ATIF session identity"
+        }
+      ]
+    },
+    {
+      "source": "verifiers_trace",
+      "supplies": "the ordered model requests and tool calls the rollout performed for one task",
+      "derives": [
+        {
+          "event_class": "llm_call",
+          "required": true,
+          "cardinality": "one start and one matching end per model request in the trace",
+          "identity": "verifiers_trace/llm/scope_start/<ordinal> and .../scope_end/<ordinal>",
+          "atof_match": "scope events whose category is llm, ordered by emission within the root scope"
+        },
+        {
+          "event_class": "tool_call",
+          "required": true,
+          "cardinality": "one start and one matching end per tool call in the trace",
+          "identity": "verifiers_trace/tool/scope_start/<ordinal> and .../scope_end/<ordinal>",
+          "atof_match": "scope events whose category is tool, ordered by emission within the root scope"
+        }
+      ]
+    },
+    {
+      "source": "native_harness_events",
+      "supplies": "the harness lifecycle log the Fabric normalized result carries",
+      "derives": [
+        {
+          "event_class": "harness_lifecycle_mark",
+          "required": false,
+          "cardinality": "zero or more",
+          "identity": "native_harness_events/<category>/mark/<ordinal>",
+          "atof_match": "mark events under the root scope",
+          "required_rationale": "Hermes emits harness marks at its own discretion. They are recorded when present and never counted against coverage when absent, because the profile cannot enumerate them in advance."
+        }
+      ]
+    }
+  ],
+  "calculation": {
+    "version": "relay-coverage-v1",
+    "authoritative_artifact": "atof",
+    "denominator": "the expected event identities this profile derives from the declared sources for the run being scored",
+    "denominator_rule": "The denominator is fixed before the ATOF stream is read. It may not be narrowed by anything observed in the stream, and an empty denominator is never complete.",
+    "steps": [
+      "Partition the ATOF stream by root agent scope uuid. The append-mode file may hold several invocations, so a file is never assumed to be one run.",
+      "Derive expected event identities from the declared sources for this invocation.",
+      "Correlate each ATOF event to at most one expected identity using the match rules above.",
+      "Record observed, missing, unexpected and unmatched identities.",
+      "Apply the status rules."
+    ],
+    "unexpected_rule": "An unexpected identity is recorded in unexpected_event_ids and is never a reason for incomplete; it does not change the calculated status.",
+    "correlation_keys": ["uuid", "parent_uuid", "category", "scope_category", "name"],
+    "pairing_rule": "A scope start and its end share one uuid. An unpaired start or end is a missing event, never a matched one."
+  },
+  "status_rules": {
+    "not_requested": "The Campaign selected native-only evidence. No Relay configuration was written, no plugin was registered, and no ATOF artifact exists. This is not a failure and no reason codes are emitted.",
+    "unavailable": [
+      "Relay was requested but the plugin never registered before the subject started.",
+      "Relay was requested but no ATOF artifact was produced.",
+      "Relay was requested but the harness fell back to its own direct ATIF/ATOF path, so the configuration Techtree wrote was not in force.",
+      "Relay was requested but the ordered teardown never ran, including a hard process death."
+    ],
+    "incomplete": [
+      "Any required expected identity is missing.",
+      "A scope start has no matching end, or an end has no matching start.",
+      "The root agent scope did not both open and close.",
+      "A delivery or teardown diagnostic was recorded.",
+      "The ATOF stream exceeded a size bound and was truncated."
+    ],
+    "complete_for_profile": {
+      "all_of": [
+        "Relay registered before the subject started.",
+        "The root agent scope opened and closed.",
+        "Every required expected identity from every declared source correlated to an observed ATOF event.",
+        "No required identity is missing.",
+        "No delivery or teardown diagnostic was recorded.",
+        "The ordered teardown ran to completion, flush and shutdown included.",
+        "This profile's digest and relay-coverage-v1 are both pinned in the evidence statement."
+      ],
+      "never": "complete_for_profile is calculated from the list above. It is never asserted by an operator, a configuration flag, or the presence of an ATOF file."
+    }
+  },
+  "teardown_order": [
+    "await the subject result",
+    "confirm quiescence when available",
+    "close the root scope",
+    "force-flush ATOF subscribers",
+    "clear and shut down Relay",
+    "inspect plugin and delivery diagnostics",
+    "hash ATOF",
+    "derive or collect ATIF",
+    "validate correlations",
+    "write the evidence statement"
+  ],
+  "teardown_constraints": [
+    "The ordered flush must run outside the subject's own event loop. The synchronous subscriber flush refuses inside a running loop; the exporter flush does not refuse and therefore gives no warning that queued delivery was never awaited.",
+    "Clearing the plugin configuration can raise a classified delivery failure. That raise is a diagnostic to record, not a run to discard.",
+    "A successful flush establishes nothing about durable or lossless delivery."
+  ],
+  "size_bounds": {
+    "observed_largest_single_event_bytes": 565,
+    "observed_size_measurement": "observed_seven_event_stream_bytes is the whole ATOF file on disk; observed_largest_single_event_bytes is its largest single JSON line in bytes, excluding the trailing newline.",
+    "observed_seven_event_stream_bytes": 2813,
+    "max_atof_bytes_per_invocation": 8388608,
+    "max_atof_events_per_invocation": 20000,
+    "max_single_event_bytes": 65536,
+    "on_exceeding": "Stop retaining further events, record the bound that was hit, and classify the run incomplete. A bound may never be raised to make a run look complete.",
+    "bounds_are_techtree_owned": "Relay 0.8.2 enforces none of these; every bound above is a Techtree limit."
+  },
+  "blind_spots": [
+    {
+      "id": "no_dropped_event_diagnostic",
+      "kind": "observed",
+      "statement": "Relay 0.8.2 exposes no dropped-event counter, queue depth or delivery receipt for ATOF, and a stream sink that cannot deliver reports nothing to the caller. Missing events are detectable only against this profile's declared expectations.",
+      "evidence_refs": ["delivery_diagnostics"]
+    },
+    {
+      "id": "hermes_direct_fallback_untested",
+      "kind": "declared_untested",
+      "statement": "The adapter records that Hermes 0.16 and later fall back to a direct ATIF/ATOF path when TOML initialization fails. That fallback was not exercised, and Techtree has no observed signal that distinguishes it from a configured run.",
+      "evidence_refs": ["fabric_hermes_relay_plugin_config"]
+    },
+    {
+      "id": "no_real_hermes_relay_run",
+      "kind": "unobserved",
+      "statement": "No Hermes subject ran under Relay in this spike. Every expectation above is derived from the Relay runtime's own behaviour and from the adapter source, not from an observed Hermes trajectory.",
+      "evidence_refs": ["lifecycle", "fabric_hermes_relay_plugin_config"]
+    },
+    {
+      "id": "multi_invocation_append_file",
+      "kind": "declared_untested",
+      "statement": "The adapter forces the ATOF file sink to append because Fabric finalizes the Relay session after every invocation. Multi-invocation partitioning is specified above but was not exercised.",
+      "evidence_refs": ["fabric_hermes_relay_plugin_config"]
+    },
+    {
+      "id": "atif_is_lossy",
+      "kind": "observed",
+      "statement": "Both ATIF projections dropped a refused model call that ATOF recorded, and the derived projection reported it as completed. ATIF is never a source of terminal status, failure class or coverage.",
+      "evidence_refs": ["atif_projection_divergence"]
+    }
+  ],
+  "privacy": {
+    "atof_retention": "private_local_archive",
+    "atif_retention": "private_local_archive",
+    "public_surface": "the coverage status, this profile's digest, the calculation version, and reason codes",
+    "raw_trace_publication": "forbidden",
+    "streaming_service": "none; the file sink is the only sink this profile uses",
+    "note": "The native ATIF file embeds the complete raw ATOF stream, so it carries no less private material than the ATOF file itself."
+  }
+}

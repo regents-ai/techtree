@@ -1,0 +1,59 @@
+{
+  "agent": {
+    "model_name": "placeholder-model",
+    "name": "unknown",
+    "version": "1.0.0"
+  },
+  "schema_version": "ATIF-v1.7",
+  "session_id": "atof-session",
+  "steps": [
+    {
+      "message": "{\"stage\":\"begin\"}",
+      "source": "system",
+      "step_id": 1,
+      "timestamp": "2026-09-01T22:12:06.086400+00:00"
+    },
+    {
+      "message": "",
+      "observation": {
+        "results": [
+          {
+            "content": "{\"echo\":\"hello\"}"
+          }
+        ]
+      },
+      "source": "system",
+      "step_id": 2,
+      "timestamp": "2026-09-01T22:12:06.087910+00:00"
+    },
+    {
+      "message": "hello",
+      "source": "user",
+      "step_id": 3,
+      "timestamp": "2026-09-01T22:12:06.088467+00:00"
+    },
+    {
+      "extra": {
+        "ancestry": {
+          "function_id": "01a05f07-8f48-7db1-9768-c5671d605985",
+          "function_name": "placeholder-provider",
+          "parent_id": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+          "parent_name": "techtree-subject"
+        },
+        "invocation": {
+          "end_timestamp": 1788300726.089,
+          "framework": "nat",
+          "invocation_id": "01a05f07-8f48-7db1-9768-c5671d605985",
+          "start_timestamp": 1788300726.088,
+          "status": "completed"
+        }
+      },
+      "llm_call_count": 1,
+      "message": "",
+      "model_name": "placeholder-model",
+      "source": "agent",
+      "step_id": 4,
+      "timestamp": "2026-09-01T22:12:06.089430+00:00"
+    }
+  ]
+}

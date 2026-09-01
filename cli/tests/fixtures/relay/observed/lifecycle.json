@@ -1,0 +1,82 @@
+{
+  "purpose": "What one deterministic subject produced under nemo-relay 0.8.2, and what each deliberate interruption removed from the ATOF stream.",
+  "subject": {
+    "description": "One agent scope containing one mark, one tool call that succeeds, and one LLM call pointed at a closed loopback port.",
+    "model_provider_contacted": false,
+    "model_turn_completed": false,
+    "llm_terminal_state": "refused_before_any_model_turn",
+    "llm_error": "RuntimeError: internal error: RuntimeError: provider endpoint refused: ConnectionRefusedError",
+    "expected_event_names_in_order": [
+      "techtree-subject",
+      "subject.start",
+      "echo",
+      "echo",
+      "placeholder-provider",
+      "placeholder-provider",
+      "techtree-subject"
+    ]
+  },
+  "complete": {
+    "route": "observability plugin, config version 3, one ATOF file sink plus ATIF file export",
+    "registration": "before the root scope opened",
+    "root_scope": "opened and closed",
+    "atof_event_count": 7,
+    "atof_bytes": 2813,
+    "largest_single_event_bytes": 565,
+    "size_measurement_note": "atof_bytes is the whole file on disk. largest_single_event_bytes is the largest single JSON line in that file measured in bytes and excluding its trailing newline.",
+    "atof_version": "0.1",
+    "validate_diagnostics": [],
+    "initialize_diagnostics": [],
+    "runtime_report_diagnostics": [],
+    "teardown": "returned",
+    "native_atif_written": true
+  },
+  "late_registration": {
+    "route": "manual AtofExporter",
+    "registration": "after the root scope opened",
+    "atof_event_count": 6,
+    "missing": ["root agent scope start"],
+    "observed_first_event": "subject.start",
+    "detectable_without_expectations": false,
+    "detection_rule": "the stream carries a scope end whose matching start is absent"
+  },
+  "missing_root_close": {
+    "route": "manual AtofExporter",
+    "registration": "before the root scope opened",
+    "root_scope": "opened, never closed",
+    "atof_event_count": 6,
+    "missing": ["root agent scope end"],
+    "observed_last_event": "placeholder-provider",
+    "detection_rule": "the root scope start has no matching end with the same uuid"
+  },
+  "no_flush": {
+    "route": "manual AtofExporter",
+    "description": "The file sink was read before any flush or shutdown was requested.",
+    "atof_event_count_before_shutdown": 7,
+    "atof_event_count_after_shutdown": 7,
+    "conclusion": "For a seven-event run the file sink had already written every event before the ordered flush ran. This is one observation at one size, not a durability or losslessness guarantee, and Techtree must not treat a written file as proof of complete delivery."
+  },
+  "flush_inside_event_loop": {
+    "description": "The ordered teardown was attempted from inside the subject's own asyncio event loop.",
+    "subscribers_flush": "RuntimeError: subscribers.flush() cannot block a running asyncio event loop; use 'await subscribers.flush_async()'",
+    "exporter_force_flush": "returned",
+    "atof_event_count": 7,
+    "consequence": "Techtree's teardown must run outside the subject's event loop, or await the async flush. The synchronous flush refuses; the exporter flush does not, so a caller that only calls the exporter flush gets no warning that queued subscriber delivery was never awaited."
+  },
+  "hard_death": {
+    "description": "The process called os._exit(9) immediately after the subject finished, with no flush, no shutdown and no teardown.",
+    "exit_status": 9,
+    "atof_event_count_on_disk": 7,
+    "native_atif_written": false,
+    "teardown_record_written": false,
+    "conclusion": "The raw file survived, but nothing in it says the run was abandoned. A truncated stream and a complete stream are indistinguishable from the bytes alone, which is why coverage is calculated against declared expectations and why a run with no teardown record is never complete_for_profile."
+  },
+  "unwritable_sink": {
+    "description": "An ATOF file sink whose output directory path traverses a regular file.",
+    "stage": "AtofExporter construction",
+    "raises": "RuntimeError",
+    "message_shape": "failed to open ATOF output file <path>: refusing unsafe observability directory component <name>: Not a directory (os error 20)",
+    "message_note": "The observed message embedded the absolute output path; the path is elided here and is not retained.",
+    "consequence": "A misconfigured sink fails before the subject starts, not silently at flush time."
+  }
+}

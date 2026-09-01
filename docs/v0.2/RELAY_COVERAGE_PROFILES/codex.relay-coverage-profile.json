@@ -1,0 +1,258 @@
+{
+  "schema_version": "techtree.relay-coverage-profile.v1",
+  "calculation_version": "relay-coverage-v1",
+  "profile_id": "techtree.relay.codex.v1",
+  "adapter_id": "nvidia.fabric.codex",
+  "status": "draft_blocked_by_upstream_version_conflict",
+  "release_admitted": false,
+  "drafted_on": "2026-09-01",
+  "authority": {
+    "observe_only": true,
+    "may_affect_score": false,
+    "may_affect_spend": false,
+    "may_affect_execution": false,
+    "statement": "This profile produces one trace_coverage evidence facet and nothing else. No value it computes may enter a reward, a comparison verdict, an estimate, an approval, or any execution decision."
+  },
+  "pinned_upstream": {
+    "relay_cli_package": "nemo-relay-cli-bin",
+    "relay_cli_version": "0.7.3",
+    "relay_cli_accepted_range": ">=0.7.2,<0.8.0",
+    "relay_cli_prereleases_rejected": true,
+    "relay_cli_installed_by": "the Codex harness extra, which pins nemo-relay-cli-bin==0.7.3",
+    "newest_stable_relay_rejected_by_this_adapter": "0.8.2",
+    "harness_package": "openai-codex",
+    "harness_version": "0.144.4",
+    "fabric_adapter_package": "nemo-fabric-adapters-codex",
+    "fabric_adapter_version": "0.2.0",
+    "atof_version": "0.1",
+    "atif_schema_version": "ATIF-v1.7",
+    "atif_schema_package": "nvidia-nat-atif",
+    "atif_schema_package_version": "1.8.0",
+    "observability_config_version": 3,
+    "observability_config_version_rationale": "Relay 0.7.3 accepts only version 3, and the Fabric validator accepts only version 3. Version 4, the default of the newest stable Relay, is refused on both sides of this path."
+  },
+  "version_conflict": {
+    "id": "codex_gateway_rejects_newest_stable_relay",
+    "kind": "observed",
+    "statement": "The Fabric 0.2.0 Codex adapter validates the Relay CLI against >=0.7.2,<0.8.0 and raises otherwise. The newest official stable Relay is 0.8.2, so the Codex Relay path and the Techtree-side Relay lock cannot both use the newest stable release.",
+    "consequence": "Either the Codex Relay path runs on a 0.7.x CLI that Techtree does not otherwise adopt, or Codex Relay evidence stays unavailable until an adapter release widens the band. This is a founder decision, not a Techtree-side workaround, and no compatibility shim may be written to hide it.",
+    "evidence_refs": [
+      "fabric_relay_cli_version_contract"
+    ]
+  },
+  "integration": {
+    "mode": "gateway",
+    "declared_outputs": [
+      "atif",
+      "otel",
+      "openinference"
+    ],
+    "declared_integration_modes": [
+      "hooks",
+      "gateway"
+    ],
+    "configuration_channel": "Fabric launches the nemo-relay CLI as a local gateway, rewrites the Codex model base URL to the gateway URL, and renders Relay hooks into the thread configuration",
+    "environment_names": [
+      "NEMO_RELAY_GATEWAY_URL",
+      "NEMO_RELAY_CONFIG_SCOPE"
+    ],
+    "gateway_bind": "a loopback port chosen by the adapter",
+    "gateway_health_check": "GET <gateway>/healthz, 10 second budget",
+    "gateway_stop": "terminate, then kill after 5 seconds, then raise if it still runs",
+    "ambient_configuration": "the gateway is started with NEMO_RELAY_CONFIG_SCOPE=user so ambient project configuration cannot reach it",
+    "adapter_failure_classes": [
+      "codex_relay_unavailable",
+      "codex_relay_configuration_failed"
+    ],
+    "atof_sink": "file",
+    "atof_filename_default": "events.atof.jsonl",
+    "atif_filename_template_default": "trajectory-{session_id}.atif.json",
+    "artifact_root_default": "<runtime base>/artifacts/relay/<runtime_id>",
+    "evidence_refs": [
+      "fabric_relay_cli_version_contract",
+      "relay_atof_sink_configuration"
+    ]
+  },
+  "expectation_sources": [
+    {
+      "source": "fabric_execution_receipt",
+      "supplies": "the invocation boundary and the gateway lifecycle",
+      "derives": [
+        {
+          "event_class": "root_agent_scope",
+          "required": true,
+          "cardinality": "exactly one start and one matching end per invocation_id",
+          "identity": "fabric_execution_receipt/agent/scope_start/0 and .../scope_end/0",
+          "atof_match": "the scope event whose category is agent and whose uuid is the ATIF session identity"
+        }
+      ]
+    },
+    {
+      "source": "verifiers_trace",
+      "supplies": "the ordered model requests the rollout performed for one task",
+      "derives": [
+        {
+          "event_class": "llm_call",
+          "required": true,
+          "cardinality": "one start and one matching end per model request in the trace",
+          "identity": "verifiers_trace/llm/scope_start/<ordinal> and .../scope_end/<ordinal>",
+          "atof_match": "scope events whose category is llm, ordered by emission within the root scope"
+        },
+        {
+          "event_class": "tool_call",
+          "required": false,
+          "cardinality": "zero or more",
+          "identity": "verifiers_trace/tool/scope_start/<ordinal> and .../scope_end/<ordinal>",
+          "atof_match": "scope events whose category is tool, ordered by emission within the root scope",
+          "required_rationale": "The gateway observes the model API boundary. A Codex tool call that never crosses that boundary may legitimately produce no ATOF event, so a missing tool event cannot by itself mean loss. Tool coverage on Codex is therefore recorded and reported, not required, until a real gateway run shows which tool activity reaches the gateway."
+        }
+      ]
+    },
+    {
+      "source": "native_harness_events",
+      "supplies": "the Codex hook stream and the Fabric relay_runtime record",
+      "derives": [
+        {
+          "event_class": "harness_lifecycle_mark",
+          "required": false,
+          "cardinality": "zero or more",
+          "identity": "native_harness_events/<category>/mark/<ordinal>",
+          "atof_match": "mark events under the root scope",
+          "required_rationale": "The Codex hook stream is emitted at the harness's own discretion and the Fabric relay_runtime record names paths rather than events, so no profile can enumerate these marks in advance. They are recorded when present and never counted against coverage when absent."
+        }
+      ]
+    }
+  ],
+  "calculation": {
+    "version": "relay-coverage-v1",
+    "authoritative_artifact": "atof",
+    "denominator": "the expected event identities this profile derives from the declared sources for the run being scored",
+    "denominator_rule": "The denominator is fixed before the ATOF stream is read. It may not be narrowed by anything observed in the stream, and an empty denominator is never complete.",
+    "steps": [
+      "Partition the ATOF stream by root agent scope uuid.",
+      "Derive expected event identities from the declared sources for this invocation.",
+      "Correlate each ATOF event to at most one expected identity using the match rules above.",
+      "Record observed, missing, unexpected and unmatched identities.",
+      "Apply the status rules."
+    ],
+    "unexpected_rule": "An unexpected identity is recorded in unexpected_event_ids and is never a reason for incomplete; it does not change the calculated status.",
+    "correlation_keys": [
+      "uuid",
+      "parent_uuid",
+      "category",
+      "scope_category",
+      "name"
+    ],
+    "pairing_rule": "A scope start and its end share one uuid. An unpaired start or end is a missing event, never a matched one."
+  },
+  "status_rules": {
+    "not_requested": "The Campaign selected native-only evidence. No gateway was launched, no Relay configuration was written, and no ATOF artifact exists. This is not a failure and no reason codes are emitted.",
+    "unavailable": [
+      "The Relay CLI could not be resolved or reported an unsupported version, so the adapter raised codex_relay_unavailable.",
+      "The Relay configuration could not be written, so the adapter raised codex_relay_configuration_failed.",
+      "The gateway never became ready inside its health budget.",
+      "Relay was requested but no ATOF artifact was produced.",
+      "Relay was requested but the ordered teardown never ran, including a hard process death."
+    ],
+    "incomplete": [
+      "Any required expected identity is missing.",
+      "A scope start has no matching end, or an end has no matching start.",
+      "The root agent scope did not both open and close.",
+      "A delivery or teardown diagnostic was recorded.",
+      "The gateway stopped before the subject finished.",
+      "The ATOF stream exceeded a size bound and was truncated."
+    ],
+    "complete_for_profile": {
+      "all_of": [
+        "The gateway started, became ready, and stopped cleanly.",
+        "Relay registered before the subject started.",
+        "The root agent scope opened and closed.",
+        "Every required expected identity from every declared source correlated to an observed ATOF event.",
+        "No required identity is missing.",
+        "No delivery or teardown diagnostic was recorded.",
+        "The ordered teardown ran to completion, flush and shutdown included.",
+        "This profile's digest and relay-coverage-v1 are both pinned in the evidence statement."
+      ],
+      "never": "complete_for_profile is calculated from the list above. It is never asserted by an operator, a configuration flag, or the presence of an ATOF file."
+    }
+  },
+  "teardown_order": [
+    "await the subject result",
+    "confirm quiescence when available",
+    "close the root scope",
+    "force-flush ATOF subscribers",
+    "clear and shut down Relay",
+    "stop the gateway and confirm it exited",
+    "inspect plugin and delivery diagnostics",
+    "hash ATOF",
+    "derive or collect ATIF",
+    "validate correlations",
+    "write the evidence statement"
+  ],
+  "teardown_constraints": [
+    "The ordered flush must run outside the subject's own event loop.",
+    "Clearing the plugin configuration can raise a classified delivery failure. That raise is a diagnostic to record, not a run to discard.",
+    "The gateway is a supervised child process. A gateway that will not stop after a kill is a teardown failure and makes the run incomplete.",
+    "A successful flush establishes nothing about durable or lossless delivery."
+  ],
+  "size_bounds": {
+    "observed_largest_single_event_bytes": 565,
+    "observed_size_measurement": "observed_seven_event_stream_bytes is the whole ATOF file on disk; observed_largest_single_event_bytes is its largest single JSON line in bytes, excluding the trailing newline.",
+    "observed_seven_event_stream_bytes": 2813,
+    "max_atof_bytes_per_invocation": 8388608,
+    "max_atof_events_per_invocation": 20000,
+    "max_single_event_bytes": 65536,
+    "max_gateway_log_bytes": 1048576,
+    "on_exceeding": "Stop retaining further events, record the bound that was hit, and classify the run incomplete. A bound may never be raised to make a run look complete.",
+    "bounds_are_techtree_owned": "Neither Relay nor the adapter enforces any of these; every bound above is a Techtree limit."
+  },
+  "blind_spots": [
+    {
+      "id": "no_dropped_event_diagnostic",
+      "kind": "observed",
+      "statement": "Relay exposes no dropped-event counter, queue depth or delivery receipt for ATOF, and a stream sink that cannot deliver reports nothing to the caller. Missing events are detectable only against this profile's declared expectations.",
+      "evidence_refs": [
+        "delivery_diagnostics"
+      ]
+    },
+    {
+      "id": "gateway_boundary_untested",
+      "kind": "declared_untested",
+      "statement": "The gateway observes the model API boundary. Which Codex activity reaches it, and whether tool calls appear as ATOF tool scopes at all, was not observed. The tool expectation is optional for exactly this reason.",
+      "evidence_refs": [
+        "fabric_relay_cli_version_contract"
+      ]
+    },
+    {
+      "id": "no_real_codex_relay_run",
+      "kind": "unobserved",
+      "statement": "No Codex subject ran under Relay in this spike. No gateway was launched and the Relay CLI was never executed, so every gateway expectation is read from the adapter source.",
+      "evidence_refs": [
+        "fabric_relay_cli_version_contract"
+      ]
+    },
+    {
+      "id": "relay_0_7_3_python_api_drift",
+      "kind": "declared_untested",
+      "statement": "This path requires the 0.7.3 Relay generation while the Hermes path is locked to 0.8.2, so Techtree may not assume one Relay client API across the two generations. No comparison of the two Python surfaces was retained as evidence, and none is claimed here.",
+      "evidence_refs": []
+    },
+    {
+      "id": "atif_is_lossy",
+      "kind": "observed",
+      "statement": "Both ATIF projections dropped a refused model call that ATOF recorded, and the derived projection reported it as completed. ATIF is never a source of terminal status, failure class or coverage.",
+      "evidence_refs": [
+        "atif_projection_divergence"
+      ]
+    }
+  ],
+  "privacy": {
+    "atof_retention": "private_local_archive",
+    "atif_retention": "private_local_archive",
+    "gateway_log_retention": "private_local_archive",
+    "public_surface": "the coverage status, this profile's digest, the calculation version, and reason codes",
+    "raw_trace_publication": "forbidden",
+    "streaming_service": "the gateway is a local, per-run, loopback-bound child process; it is never exposed beyond the run and no Techtree streaming service is introduced",
+    "note": "The native ATIF file embeds the complete raw ATOF stream, so it carries no less private material than the ATOF file itself."
+  }
+}

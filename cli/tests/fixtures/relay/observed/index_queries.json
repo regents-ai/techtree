@@ -1,0 +1,38 @@
+{
+  "purpose": "Public index observations behind the Relay, ATOF and ATIF coordinates. Each records what was seen, not what exists.",
+  "queried_on": "2026-09-01",
+  "index": "https://pypi.org/simple/",
+  "queries": {
+    "nemo_relay_family": {
+      "method": "the full PyPI simple index was enumerated and filtered for NVIDIA Relay distributions",
+      "observed_distributions": ["nemo-relay", "nemo-relay-cli-bin", "nemo-relay-plugin"],
+      "observed_latest_stable": "0.8.2",
+      "observed_recent_stable_releases": ["0.7.1", "0.7.2", "0.7.3", "0.8.0", "0.8.1", "0.8.2"],
+      "newer_builds_seen_and_not_adopted": [
+        "0.9.0-alpha.20260901 (repository tag; no PyPI release)"
+      ],
+      "supports": "nemo-relay==0.8.2 is the newest official stable release, so it is the candidate the selection policy tests first."
+    },
+    "atif_schema_package": {
+      "method": "the index was filtered for distributions naming ATIF",
+      "observed_distributions": ["nvidia-nat-atif", "harbor-atif2otel", "atif", "atif-make"],
+      "selected": "nvidia-nat-atif",
+      "selection_reason": "It is the NVIDIA-published subpackage carrying the ATIF schema models and the ATOF to ATIF converter, and it is the only NVIDIA-published distribution that ships an ATOF model package.",
+      "observed_latest_stable": "1.8.0",
+      "newer_builds_seen_and_not_adopted": ["1.9.0rc1", "1.9.0a20260811"],
+      "supports": "ATIF and ATOF have no standalone distribution; both live inside the NeMo Agent Toolkit's nvidia-nat-atif subpackage."
+    },
+    "hermes_relay_dependency": {
+      "method": "hermes-agent 0.19.0 release metadata was read from the index",
+      "observed_requirement": "nemo-relay<1.0,>=0.5; extra == \"nemo-relay\"",
+      "installed_by_default": false,
+      "supports": "The Hermes harness declares Relay as an optional extra over a wide range, so it does not by itself pin which Relay generation produces Hermes ATOF."
+    },
+    "codex_relay_dependency": {
+      "method": "the Codex adapter harness extra resolution recorded by the WP0.4 Fabric spike",
+      "observed_pin": "nemo-relay-cli-bin==0.7.3",
+      "supports": "The Codex harness environment already contains a 0.7.x Relay CLI, which is the band the Fabric gateway accepts."
+    }
+  },
+  "limits": "An index listing proves what the index offered when it was queried. It does not prove what exists outside PyPI, and no observation here is evidence about unreleased or privately distributed builds."
+}

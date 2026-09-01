@@ -1,0 +1,19 @@
+ATIF_VERSION = "ATIF-v1.7"
+
+
+class Trajectory(BaseModel):
+    """ATIF trajectory — the complete interaction history of an agent run."""
+
+    schema_version: Literal[
+        "ATIF-v1.0",
+        "ATIF-v1.1",
+        "ATIF-v1.2",
+        "ATIF-v1.3",
+        "ATIF-v1.4",
+        "ATIF-v1.5",
+        "ATIF-v1.6",
+        "ATIF-v1.7",
+    ] = Field(
+        default=ATIF_VERSION,
+        description="String defining ATIF compatibility",
+    )

@@ -1,0 +1,70 @@
+{
+  "purpose": "Which delivery failures Relay 0.8.2 reports to a caller, and which it swallows.",
+  "diagnostic_surfaces_available": [
+    "plugin.report() -> ConfigReport",
+    "plugin.clear() raising during teardown",
+    "OpenTelemetrySubscriber.runtime_diagnostics()"
+  ],
+  "config_report_shape": {
+    "declared_keys": ["diagnostics", "runtime_diagnostics"],
+    "observed_keys_on_every_call": ["diagnostics"],
+    "runtime_diagnostics_key_present": false,
+    "note": "The typed ConfigReport declares runtime_diagnostics as required, but every validate, initialize and report call in this spike returned a mapping carrying only diagnostics. Techtree must read the key defensively and must not treat its absence as an assertion that delivery succeeded."
+  },
+  "cases": {
+    "atof_file_sink": {
+      "sink": "file",
+      "outcome": "wrote every event",
+      "runtime_report_diagnostics": [],
+      "teardown": "returned"
+    },
+    "atof_stream_sink_closed_endpoint": {
+      "sink": "stream, http_post, closed loopback port, timeout 500ms",
+      "initialize_diagnostics": [],
+      "runtime_report_diagnostics": [],
+      "teardown": "returned",
+      "atof_file_sink_events_written": 7,
+      "finding": "A stream sink that cannot deliver produces no diagnostic anywhere a caller can read: not in the initialize report, not in the runtime report, and not as a teardown failure."
+    },
+    "atof_stream_sink_live_local_listener": {
+      "sink": "stream, http_post, a loopback listener inside the probe process",
+      "connections_observed": 7,
+      "events_emitted": 7,
+      "runtime_report_diagnostics": [],
+      "teardown": "returned",
+      "finding": "Delivery is attempted once per event, not batched. Together with the closed-endpoint case this establishes that the silence above is a swallowed failure and not an unattempted one."
+    },
+    "opentelemetry_endpoint_closed_via_plugin": {
+      "sink": "opentelemetry endpoint, type full, closed loopback port, timeout 500ms",
+      "initialize_diagnostics": [],
+      "runtime_report_diagnostics": [],
+      "teardown_raises": true,
+      "teardown_error_class": "RuntimeError",
+      "teardown_message_shape": "registration failed: plugin teardown failed: observability registration 'nemo-relay-plugin.v1.observability:1:opentelemetry.shutdown' reported a delivery failure: ... otel.traces_export_failed (1): export to endpoint <url> has not recovered",
+      "finding": "The OpenTelemetry path does surface delivery failure, but only by raising from plugin teardown. A caller that tears down without catching loses the run instead of recording the diagnostic."
+    },
+    "opentelemetry_subscriber_direct": {
+      "sink": "OpenTelemetrySubscriber, closed loopback port",
+      "force_flush": "raises RuntimeError naming the failed export",
+      "runtime_diagnostics": [
+        {
+          "code": "otel.traces_export_failed",
+          "count": 1,
+          "message_shape": "OpenTelemetry trace export to endpoint <url> ..."
+        }
+      ],
+      "finding": "Bounded, countable diagnostics exist for the direct OpenTelemetry subscriber only. There is no equivalent accessor on AtofExporter."
+    }
+  },
+  "dropped_event_diagnostics": {
+    "available_for_atof": false,
+    "available_for_opentelemetry": true,
+    "searched": [
+      "AtofExporter methods",
+      "the observability plugin ConfigReport",
+      "the plugin teardown path",
+      "the public nemo_relay module surface"
+    ],
+    "conclusion": "Relay 0.8.2 exposes no dropped-event counter, no queue-depth reading and no delivery receipt for ATOF. Techtree cannot ask Relay whether an ATOF event was dropped, so a Techtree Relay evidence statement may never claim lossless delivery. Missing events are found only by comparing observed event identities against the coverage profile's declared expectations."
+  }
+}

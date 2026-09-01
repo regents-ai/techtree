@@ -4,7 +4,8 @@
   "selection_policy": "Test the newest official stable release first. Inspect the approved development fallback only if the stable candidate fails conformance.",
   "selected_candidate": {
     "verifiers": "verifiers-stable-0.3.1",
-    "nemo_fabric": "nemo-fabric-stable-0.2.0"
+    "nemo_fabric": "nemo-fabric-stable-0.2.0",
+    "nemo_relay": "nemo-relay-stable-0.8.2"
   },
   "selection_status": "proposed_for_adoption",
   "final_adoption": "pending_founder_approval",
@@ -167,6 +168,102 @@
         "evidence_manifest_sha256": "sha256:e46501e82bf3e16cee8e04128d9748463623814a13545f4296cdb13abff3683b"
       },
       "source_commit_note": "The commit is the one the repository's v0.2.0 release tag resolves to. Nothing inside any wheel names a commit, so the wheels are bound by their PyPI digests and by the repository and version their SBOM declares; the commit is asserted from the release tag, not from wheel contents."
+    },
+    {
+      "id": "nemo-relay-stable-0.8.2",
+      "component": "nemo_relay",
+      "channel": "official_stable",
+      "status": "proposed_for_adoption",
+      "status_history": [
+        "discovered",
+        "approved_for_spike",
+        "conformance_captured",
+        "proposed_for_adoption"
+      ],
+      "python_requirement": ">=3.11",
+      "source_repository": "https://github.com/NVIDIA/NeMo-Relay",
+      "source_tag": "0.8.2",
+      "source_commit": "3b60fdfc57780ccd92a74b6cf1406aaa13d2f16c",
+      "release_url": "https://github.com/NVIDIA/NeMo-Relay/releases/tag/0.8.2",
+      "newer_builds_seen_and_not_adopted": [
+        "0.9.0-alpha.20260901 repository tag with no PyPI release"
+      ],
+      "packages": [
+        {
+          "package": "nemo-relay",
+          "version": "0.8.2",
+          "role": "python_bindings_and_native_runtime",
+          "wheel_filename": "nemo_relay-0.8.2-cp311-abi3-macosx_11_0_arm64.whl",
+          "wheel_sha256": "sha256:7d9e1572b5e3be79a3204cadf9096150627746b973893cac2c5a6323781fe9b5",
+          "wheel_size": 10202606,
+          "platform_note": "0.8.2 publishes seven platform wheels; this is the one the conformance host resolves"
+        },
+        {
+          "package": "nvidia-nat-atif",
+          "version": "1.8.0",
+          "role": "atof_and_atif_schema_models_and_converter",
+          "wheel_filename": "nvidia_nat_atif-1.8.0-py3-none-any.whl",
+          "wheel_sha256": "sha256:38c97d6e506e8cc151a997bfd6cafa08b969e181b50b9302f28d2229a3b37829",
+          "wheel_size": 105633,
+          "source_repository": "https://github.com/NVIDIA/NeMo-Agent-Toolkit",
+          "source_tag": "v1.8.0",
+          "source_commit": "3c44584ef5de2531e2ff548408f0e4658b755a69",
+          "note": "ATOF and ATIF have no standalone distribution; both ship inside this NeMo Agent Toolkit subpackage."
+        },
+        {
+          "package": "nemo-relay-plugin",
+          "version": "0.8.2",
+          "role": "dynamic_worker_plugin_sdk_not_used_by_any_finding",
+          "wheel_filename": "nemo_relay_plugin-0.8.2-py3-none-any.whl",
+          "wheel_sha256": "sha256:3ba8ef4452a6c7173126771799be689fe8a6131c02f1d9261bc863d96571cb78",
+          "wheel_size": 41151
+        }
+      ],
+      "formats": {
+        "atof_version": "0.1",
+        "atof_wire_format": "json_lines",
+        "atif_version": "ATIF-v1.7",
+        "observability_config_version": 3,
+        "observability_config_version_note": "The only version nemo-relay 0.8.2, nemo-relay 0.7.3 and the Fabric 0.2.0 adapter validator all accept."
+      },
+      "adapter_paths": [
+        {
+          "adapter_id": "nvidia.fabric.hermes",
+          "integration_mode": "in_process_plugin",
+          "relay_supplied_by": "techtree",
+          "relay_version": "0.8.2",
+          "harness_declared_relay_range": "nemo-relay<1.0,>=0.5 under the hermes-agent nemo-relay extra",
+          "harness_installs_relay": false,
+          "coverage_profile": "docs/v0.2/RELAY_COVERAGE_PROFILES/hermes.relay-coverage-profile.json",
+          "admission": "conformance_captured_release_admission_pending"
+        },
+        {
+          "adapter_id": "nvidia.fabric.codex",
+          "integration_mode": "gateway",
+          "relay_supplied_by": "the codex harness extra",
+          "relay_cli_package": "nemo-relay-cli-bin",
+          "relay_cli_version": "0.7.3",
+          "relay_cli_accepted_range": ">=0.7.2,<0.8.0",
+          "relay_cli_wheel_filename": "nemo_relay_cli_bin-0.7.3-py3-none-macosx_11_0_arm64.whl",
+          "relay_cli_wheel_sha256": "sha256:73a12cf7556ff9df7aeab137ae393bcf8a16375b84d7f20ca980b7401647aaaf",
+          "relay_cli_executed": false,
+          "coverage_profile": "docs/v0.2/RELAY_COVERAGE_PROFILES/codex.relay-coverage-profile.json",
+          "admission": "blocked_by_upstream_version_conflict",
+          "blocker": "Fabric 0.2.0 accepts a Relay CLI only in >=0.7.2,<0.8.0 and rejects every pre-release, so this candidate's 0.8.2 release cannot serve the Codex Relay path."
+        }
+      ],
+      "conformance": {
+        "result": "runtime_contract_captured_no_adapter_run_observed",
+        "model_provider_contacted": false,
+        "model_turn_completed": false,
+        "hermes_relay_run_observed": false,
+        "codex_relay_run_observed": false,
+        "contract_record": "docs/v0.2/RELAY_CONTRACT.md",
+        "fixture": "cli/tests/fixtures/relay/relay_contract_0_8_2.json",
+        "evidence_manifest": "cli/tests/fixtures/relay/evidence_manifest.json",
+        "evidence_manifest_sha256": "sha256:040e257cb149bd5c5fd8b38777c64b290131f0f98c414d583a038ef15de0fe74"
+      },
+      "source_commit_note": "The commit is the one the repository's 0.8.2 release tag resolves to. The wheel's own SBOM declares its internal crate at version 0.8.0 and names no commit, so the wheel is bound by its PyPI digest and the commit is asserted from the release tag, not from wheel contents."
     }
   ]
 }

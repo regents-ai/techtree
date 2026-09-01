@@ -1,0 +1,149 @@
+{
+  "schema_version": "techtree.relay-contract-record.v1",
+  "captured_on": "2026-09-01",
+  "relay": {
+    "package": "nemo-relay",
+    "version": "0.8.2",
+    "source_repository": "https://github.com/NVIDIA/NeMo-Relay",
+    "source_tag": "0.8.2",
+    "source_commit": "3b60fdfc57780ccd92a74b6cf1406aaa13d2f16c",
+    "python_requirement": ">=3.11",
+    "observability_config_version_pinned": 3,
+    "observability_config_versions_accepted": [3, 4],
+    "atof_version": "0.1",
+    "atof_wire_format": "json_lines",
+    "atof_event_kinds": ["scope", "mark"],
+    "atof_envelope_keys": [
+      "atof_version",
+      "attributes",
+      "category",
+      "category_profile",
+      "data",
+      "data_schema",
+      "kind",
+      "metadata",
+      "name",
+      "parent_uuid",
+      "scope_category",
+      "timestamp",
+      "uuid"
+    ],
+    "atof_sink_types": ["file", "stream"],
+    "atof_sink_used_by_techtree": "file",
+    "atif_schema_version": "ATIF-v1.7",
+    "atif_producers_observed": ["relay_native_plugin_export", "nat_atof_to_atif_converter"]
+  },
+  "atif_schema_source": {
+    "package": "nvidia-nat-atif",
+    "version": "1.8.0",
+    "source_repository": "https://github.com/NVIDIA/NeMo-Agent-Toolkit",
+    "source_tag": "v1.8.0",
+    "source_commit": "3c44584ef5de2531e2ff548408f0e4658b755a69",
+    "python_requirement": "<3.14,>=3.11",
+    "provides": ["nat.atof", "nat.atif", "nat.atof.scripts.atof_to_atif_converter"],
+    "converter_requires_extra": "full",
+    "converter_extra_dependency": "jsonschema"
+  },
+  "supported": {
+    "atof_file_sink": {
+      "observed": true,
+      "statement": "A configured file sink wrote every emitted event as one JSON object per line, with a stable envelope and an explicit atof_version on every event."
+    },
+    "registration_before_subject": {
+      "observed": true,
+      "statement": "An exporter registered before the root scope opened captured the root scope start; one registered afterwards did not."
+    },
+    "scope_pairing": {
+      "observed": true,
+      "statement": "A scope start and its end share one uuid, and every child event carries the parent uuid, so a run's hierarchy is reconstructable from the stream alone."
+    },
+    "session_identity": {
+      "observed": true,
+      "statement": "The plugin's ATIF export names the root agent scope uuid as both session_id and trajectory_id, which gives Techtree a correlation anchor between the ATOF stream and the ATIF projection."
+    },
+    "misconfiguration_fails_early": {
+      "observed": true,
+      "statement": "A file sink whose output path traverses a regular file raises at exporter construction, before the subject starts."
+    },
+    "config_version_refusal": {
+      "observed": true,
+      "statement": "An unsupported observability config version is refused with a typed diagnostic at validate time and raises at initialize time; it is never silently downgraded."
+    }
+  },
+  "unsupported_or_unobserved": {
+    "atof_dropped_event_diagnostic": {
+      "kind": "observed_absent",
+      "statement": "There is no dropped-event counter, queue-depth reading or delivery receipt for ATOF anywhere on the public surface. A stream sink pointed at a closed port delivered nothing and reported nothing, while the same sink pointed at a live listener made one connection per event, so the silence is a swallowed failure rather than an unattempted one.",
+      "evidence_refs": ["delivery_diagnostics"]
+    },
+    "runtime_diagnostics_key": {
+      "kind": "observed_absent",
+      "statement": "The typed ConfigReport declares a runtime_diagnostics list as required, but every observed report carried only diagnostics. The key must be read defensively and its absence proves nothing.",
+      "evidence_refs": ["delivery_diagnostics"]
+    },
+    "flush_durability": {
+      "kind": "unproven",
+      "statement": "A seven-event run had already reached the file before any flush was requested, and the same seven events survived an immediate process kill. Neither observation proves durability or losslessness at any larger size, and successful flush is never treated as proof of delivery.",
+      "evidence_refs": ["lifecycle"]
+    },
+    "atif_fidelity": {
+      "kind": "observed_defect",
+      "statement": "Two ATIF-v1.7 projections of one ATOF stream disagreed on step count, and both erased a refused model call that ATOF recorded with an error status; the derived projection reported that call as completed.",
+      "evidence_refs": ["atif_projection_divergence"]
+    },
+    "hermes_relay_run": {
+      "kind": "unobserved",
+      "statement": "No Hermes subject ran under Relay. The Hermes integration is read from the adapter source only.",
+      "evidence_refs": ["fabric_hermes_relay_plugin_config"]
+    },
+    "codex_relay_run": {
+      "kind": "unobserved",
+      "statement": "No Codex subject ran under Relay, no gateway was launched, and the Relay CLI was never executed.",
+      "evidence_refs": ["fabric_relay_cli_version_contract"]
+    },
+    "codex_gateway_version_band": {
+      "kind": "observed_conflict",
+      "statement": "The Fabric 0.2.0 Codex adapter accepts a Relay CLI only in >=0.7.2,<0.8.0 and rejects every pre-release, so the newest official stable Relay 0.8.2 cannot serve the Codex Relay path.",
+      "evidence_refs": ["fabric_relay_cli_version_contract", "index_queries"]
+    },
+    "sbom_version_binding": {
+      "kind": "observed_defect",
+      "statement": "The CycloneDX document inside the nemo-relay 0.8.2 wheel names its internal Rust crate at version 0.8.0 and embeds build-machine paths, so it binds neither the distribution version nor a commit. The wheel is bound by its PyPI digest, and the commit is asserted from the release tag.",
+      "evidence_refs": []
+    }
+  },
+  "size_observations": {
+    "atof_events_in_the_retained_run": 7,
+    "atof_bytes_in_the_retained_run": 2813,
+    "largest_single_event_bytes": 565,
+    "largest_single_event_bytes_note": "the largest single JSON line in the retained ATOF file, in bytes, excluding its trailing newline",
+    "native_atif_bytes": 5946,
+    "native_atif_embeds_raw_atof": true,
+    "stream_sink_requests_per_event": 1
+  },
+  "authority": {
+    "observe_only": true,
+    "may_affect_score": false,
+    "may_affect_spend": false,
+    "may_affect_execution": false,
+    "streaming_service_introduced": false,
+    "public_raw_trace_path_introduced": false
+  },
+  "conformance_scope": {
+    "model_provider_contacted": false,
+    "model_turn_completed": false,
+    "paid_work_observed": false,
+    "host_harness_installation_modified": false,
+    "host_relay_installation_modified": false,
+    "reusable_credential_copied_into_managed_runtime": false,
+    "statement": "Every lifecycle ran against a closed loopback port with a placeholder model key, so the model call is expected to fail. That failure is the intended outcome of a zero-spend probe and is not a successful subject run."
+  },
+  "release_admitted": false,
+  "release_admission_blockers": [
+    {"id": "codex_gateway_version_band", "kind": "observed_conflict"},
+    {"id": "atof_dropped_event_diagnostic", "kind": "observed_absent"},
+    {"id": "hermes_relay_run", "kind": "unobserved"},
+    {"id": "codex_relay_run", "kind": "unobserved"},
+    {"id": "atif_fidelity", "kind": "observed_defect"}
+  ]
+}

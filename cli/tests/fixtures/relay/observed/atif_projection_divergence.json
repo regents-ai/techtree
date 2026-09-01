@@ -1,0 +1,69 @@
+{
+  "purpose": "How the two available ATIF projections differ from each other and from the ATOF stream they were both built from.",
+  "shared_input": {
+    "path": "cli/tests/fixtures/relay/atof/complete.atof.jsonl",
+    "atof_event_count": 7,
+    "atof_version": "0.1"
+  },
+  "projections": {
+    "native": {
+      "producer": "nemo-relay 0.8.2 observability plugin, ATIF file export",
+      "path": "cli/tests/fixtures/relay/atif/complete.native.atif.json",
+      "schema_version": "ATIF-v1.7",
+      "step_count": 2,
+      "final_metrics": {"total_steps": 2},
+      "session_id_source": "the root agent scope uuid",
+      "trajectory_id_equals_session_id": true,
+      "embeds_raw_atof_events": true,
+      "embedded_event_count": 7,
+      "embedded_under": "extra.observed_events",
+      "carries_llm_failure": false
+    },
+    "derived": {
+      "producer": "nvidia-nat-atif 1.8.0, nat.atof.scripts.atof_to_atif_converter.convert",
+      "path": "cli/tests/fixtures/relay/atif/complete.derived.atif.json",
+      "schema_version": "ATIF-v1.7",
+      "step_count": 4,
+      "final_metrics": null,
+      "session_id_source": "the converter's own default literal",
+      "session_id_observed": "atof-session",
+      "agent_name_observed": "unknown",
+      "trajectory_id_present": false,
+      "embeds_raw_atof_events": false,
+      "carries_llm_failure": false,
+      "llm_invocation_status_observed": "completed"
+    }
+  },
+  "divergences": [
+    {
+      "id": "step_count",
+      "native": 2,
+      "derived": 4,
+      "meaning": "Two conforming ATIF-v1.7 documents built from one ATOF stream disagree on how many steps that stream contains. Step counts are therefore not a coverage denominator."
+    },
+    {
+      "id": "failure_erasure",
+      "atof_record": {
+        "event": "the llm scope end",
+        "metadata": {
+          "error.type": "internal_error",
+          "exception.type": "RuntimeError",
+          "otel.status_code": "ERROR",
+          "otel.status_description": "internal error: RuntimeError: provider endpoint refused: ConnectionRefusedError"
+        }
+      },
+      "native_atif_record": "the llm end is not represented as a step at all",
+      "derived_atif_record": "extra.invocation.status is 'completed'",
+      "meaning": "The refused call is visible in ATOF and invisible in both ATIF projections; the derived projection actively reports it as completed. No terminal status, failure class or reward may ever be read from ATIF."
+    },
+    {
+      "id": "identity_defaults",
+      "meaning": "The derived projection loses the agent name and the session identity that the native projection carries, because the converter has no access to the plugin configuration. Correlation must be carried by ATOF event uuids, not by ATIF identity fields."
+    },
+    {
+      "id": "privacy_surface",
+      "meaning": "The native ATIF file embeds the complete raw ATOF stream under extra.observed_events. An ATIF file is not a redacted summary and is treated as private local evidence exactly like the ATOF file."
+    }
+  ],
+  "consequence": "ATOF is the authoritative Relay artifact. ATIF is a lossy projection retained for interchange only, and coverage is calculated over ATOF event identities."
+}

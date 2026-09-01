@@ -1,0 +1,44 @@
+{
+  "purpose": "Which observability config versions each locked producer accepts, and the single value all three accept.",
+  "pinned_observability_config_version": 3,
+  "producers": {
+    "nemo_relay_0_8_2": {
+      "package": "nemo-relay",
+      "version": "0.8.2",
+      "default_observability_config_version": 4,
+      "accepted": [3, 4],
+      "rejected": [1, 2, 5],
+      "rejection_diagnostic_code": "observability.unsupported_config_version",
+      "rejection_message": "observability config version 5 is unsupported; use version 4 (or version 3 for trace-only compatibility)",
+      "version_3_restriction": {
+        "diagnostic_code": "observability.unsupported_value",
+        "field": "logs",
+        "message": "observability config version 3 is trace-only; use version 4 for OpenTelemetry logs or metrics",
+        "affects_atof": false,
+        "affects_atif": false
+      }
+    },
+    "nemo_relay_0_7_3": {
+      "package": "nemo-relay",
+      "version": "0.7.3",
+      "role": "the Relay generation the Fabric Codex gateway accepts",
+      "default_observability_config_version": 3,
+      "accepted": [3],
+      "rejected": [4],
+      "rejection_message": "observability config version 4 is unsupported; use version 3 and migrate OpenTelemetry and OpenInference exporters into opentelemetry.endpoints"
+    },
+    "nemo_fabric_adapters_common_0_2_0": {
+      "package": "nemo-fabric-adapters-common",
+      "version": "0.2.0",
+      "validator": "validate_relay_observability_v3",
+      "accepted": [3],
+      "accepts_absent_version_key": true,
+      "rejected": [1, 2, 4, 5],
+      "rejection_message": "unsupported NeMo Relay observability config version 4; expected version 3",
+      "evidence_ref": "fabric_relay_observability_v3"
+    }
+  },
+  "intersection": [3],
+  "consequence": "Techtree pins observability config version 3. It is the only value every locked producer accepts, and it constrains nothing Techtree needs: ATOF and ATIF are unaffected, and only the OpenTelemetry logs and metrics sections are refused under it.",
+  "method": "plugin.validate() and plugin.initialize() were called once per candidate version in each disposable environment; the Fabric row is read from the retained validator source, not executed."
+}

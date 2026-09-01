@@ -1,0 +1,46 @@
+def validate_relay_observability_v3(plugin_config: dict[str, Any]) -> None:
+    """Validate Fabric's Relay observability schema boundary without mutation."""
+
+    endpoint_types = {"full", "gen_ai", "openinference"}
+    legacy_flat_otel_fields = {
+        "attribute_mappings",
+        "capture_content",
+        "endpoint",
+        "header_env",
+        "headers",
+        "instrumentation_scope",
+        "mark_exclude_names",
+        "mark_projection",
+        "resource_attributes",
+        "semantic_selector",
+        "service_name",
+        "service_namespace",
+        "service_version",
+        "timeout_millis",
+        "transport",
+    }
+    for component in plugin_config.get("components") or []:
+        if not isinstance(component, dict) or component.get("kind") != "observability":
+            continue
+        config = component.get("config")
+        if not isinstance(config, dict):
+            raise ValueError(
+                "NeMo Relay observability component config must be an object"
+            )
+        if "version" in config:
+            version = config["version"]
+            if (
+                isinstance(version, bool)
+                or not isinstance(version, int)
+                or version != 3
+            ):
+                raise ValueError(
+                    "unsupported NeMo Relay observability config version "
+                    f"{version!r}; expected version 3"
+                )
+        if "openinference" in config:
+            raise ValueError(
+                "NeMo Relay observability config version 3 removed the standalone "
+                "openinference section; use an opentelemetry endpoint with type "
+                "'openinference'"
+            )

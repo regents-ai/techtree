@@ -1,0 +1,34 @@
+class AtofExporter:
+    """Single-sink exporter that writes or streams raw ATOF events."""
+
+    def __init__(self, config: AtofExporterConfig) -> None:
+        """Create an ATOF JSONL exporter from config."""
+        ...
+    @property
+    def path(self) -> str | None:
+        """Return the JSONL output path, or ``None`` for a stream sink."""
+        ...
+    def register(self, name: str) -> None:
+        """Register the exporter under ``name``."""
+        ...
+    def deregister(self, name: str) -> bool:
+        """Deregister ``name`` and return whether it existed."""
+        ...
+    def force_flush(self) -> None:
+        """Flush the exporter.
+
+        Outside subscriber and middleware callbacks, wait for queued
+        subscriber delivery, then flush the file sink or ask the stream sink
+        to drain up to its timeout. A stream timeout is logged and does not by
+        itself return an error.
+        """
+        ...
+    def shutdown(self) -> None:
+        """Flush the exporter and shut it down.
+
+        Outside subscriber and middleware callbacks, wait for queued
+        subscriber delivery, then flush the file sink or ask the stream sink
+        to drain and close up to its timeout. A stream timeout is logged and
+        does not by itself return an error.
+        """
+        ...

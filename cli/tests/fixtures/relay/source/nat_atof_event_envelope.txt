@@ -1,0 +1,25 @@
+class _EventBase(BaseModel):
+    """Common fields shared by all ATOF event types (spec §2)."""
+
+    atof_version: str = Field(default="0.1", description="ATOF wire-format version (spec §2, §5.6)")
+    uuid: str = Field(description="Unique span identifier (v7 UUID recommended)")
+    parent_uuid: str | None = Field(default=None, description="UUID of parent scope")
+    timestamp: str | int = Field(description="Wall-clock time: RFC 3339 string OR int epoch microseconds (spec §5.1)")
+    name: str = Field(description="Human-readable label")
+    data: Any | None = Field(default=None, description="Application-defined payload; opaque to ATOF")
+    data_schema: dict[str, Any] | None = Field(
+        default=None,
+        description=("Schema identifier {name, version} describing the shape of ``data``. "
+                     "Opaque to ATOF core; validation against the named schema is the "
+                     "consumer's responsibility (spec §2, §3)."),
+    )
+    metadata: dict[str, Any] | None = Field(default=None, description="Tracing/correlation envelope")
+
+    model_config = ConfigDict(extra="allow")
+
+    @field_validator("atof_version")
+    @classmethod
+    def _validate_atof_version(cls, v: str) -> str:
+        if not _ATOF_VERSION_PATTERN.match(v):
+            raise ValueError(f"atof_version must match '0.MINOR' (e.g., '0.1'), got '{v}'")
+        return v

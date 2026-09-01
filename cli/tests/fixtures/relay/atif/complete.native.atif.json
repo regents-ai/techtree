@@ -1,0 +1,203 @@
+{
+  "agent": {
+    "model_name": "placeholder-model",
+    "name": "techtree-conformance-subject",
+    "version": "0.0.0"
+  },
+  "extra": {
+    "nemo_relay": {
+      "session_instance_id": "01a05f07-8f45-79a1-ada1-35af0dc01324"
+    },
+    "observed_events": [
+      {
+        "atof_version": "0.1",
+        "attributes": [],
+        "category": "agent",
+        "category_profile": null,
+        "data": null,
+        "data_schema": null,
+        "kind": "scope",
+        "metadata": null,
+        "name": "techtree-subject",
+        "parent_uuid": "01a05f07-8f45-79a1-ada1-35af0dc01324",
+        "scope_category": "start",
+        "timestamp": "2026-09-01T22:12:06.086082+00:00",
+        "uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51"
+      },
+      {
+        "atof_version": "0.1",
+        "category": null,
+        "category_profile": null,
+        "data": {
+          "stage": "begin"
+        },
+        "data_schema": null,
+        "kind": "mark",
+        "metadata": null,
+        "name": "subject.start",
+        "parent_uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+        "timestamp": "2026-09-01T22:12:06.086400+00:00",
+        "uuid": "01a05f07-8f46-73a1-aef7-c430cc09622f"
+      },
+      {
+        "atof_version": "0.1",
+        "attributes": [],
+        "category": "tool",
+        "category_profile": {},
+        "data": {
+          "query": "hello"
+        },
+        "data_schema": null,
+        "kind": "scope",
+        "metadata": null,
+        "name": "echo",
+        "parent_uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+        "scope_category": "start",
+        "timestamp": "2026-09-01T22:12:06.087485+00:00",
+        "uuid": "01a05f07-8f47-7f70-8df5-9156377a2c7f"
+      },
+      {
+        "atof_version": "0.1",
+        "attributes": [],
+        "category": "tool",
+        "category_profile": {},
+        "data": {
+          "echo": "hello"
+        },
+        "data_schema": null,
+        "kind": "scope",
+        "metadata": {
+          "otel.status_code": "OK"
+        },
+        "name": "echo",
+        "parent_uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+        "scope_category": "end",
+        "timestamp": "2026-09-01T22:12:06.087910+00:00",
+        "uuid": "01a05f07-8f47-7f70-8df5-9156377a2c7f"
+      },
+      {
+        "atof_version": "0.1",
+        "attributes": [],
+        "category": "llm",
+        "category_profile": {
+          "model_name": "placeholder-model"
+        },
+        "data": {
+          "content": {
+            "base_url": "http://127.0.0.1:50763/v1/chat/completions",
+            "messages": [
+              {
+                "content": "hello",
+                "role": "user"
+              }
+            ],
+            "model": "placeholder-model"
+          },
+          "headers": {
+            "x-dynamo-session-id": "techtree-subject"
+          }
+        },
+        "data_schema": null,
+        "kind": "scope",
+        "metadata": null,
+        "name": "placeholder-provider",
+        "parent_uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+        "scope_category": "start",
+        "timestamp": "2026-09-01T22:12:06.088467+00:00",
+        "uuid": "01a05f07-8f48-7db1-9768-c5671d605985"
+      },
+      {
+        "atof_version": "0.1",
+        "attributes": [],
+        "category": "llm",
+        "category_profile": {
+          "model_name": "placeholder-model"
+        },
+        "data": null,
+        "data_schema": null,
+        "kind": "scope",
+        "metadata": {
+          "error.type": "internal_error",
+          "exception.type": "RuntimeError",
+          "otel.status_code": "ERROR",
+          "otel.status_description": "internal error: RuntimeError: provider endpoint refused: ConnectionRefusedError"
+        },
+        "name": "placeholder-provider",
+        "parent_uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+        "scope_category": "end",
+        "timestamp": "2026-09-01T22:12:06.089430+00:00",
+        "uuid": "01a05f07-8f48-7db1-9768-c5671d605985"
+      },
+      {
+        "atof_version": "0.1",
+        "attributes": [],
+        "category": "agent",
+        "category_profile": null,
+        "data": null,
+        "data_schema": null,
+        "kind": "scope",
+        "metadata": null,
+        "name": "techtree-subject",
+        "parent_uuid": "01a05f07-8f45-79a1-ada1-35af0dc01324",
+        "scope_category": "end",
+        "timestamp": "2026-09-01T22:12:06.089499+00:00",
+        "uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51"
+      }
+    ]
+  },
+  "final_metrics": {
+    "total_steps": 2
+  },
+  "schema_version": "ATIF-v1.7",
+  "session_id": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+  "steps": [
+    {
+      "message": "",
+      "observation": {
+        "results": [
+          {
+            "extra": {
+              "event_name": "echo",
+              "event_uuid": "01a05f07-8f47-7f70-8df5-9156377a2c7f",
+              "metadata": {
+                "otel.status_code": "OK"
+              },
+              "parent_event_uuid": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+              "tool_result": {
+                "echo": "hello"
+              }
+            }
+          }
+        ]
+      },
+      "source": "system",
+      "step_id": 1,
+      "timestamp": "2026-09-01T22:12:06.087910+00:00"
+    },
+    {
+      "extra": {
+        "ancestry": {
+          "function_id": "01a05f07-8f48-7db1-9768-c5671d605985",
+          "function_name": "placeholder-provider",
+          "parent_id": "01a05f07-8f46-73a1-aef7-c412f94a4a51",
+          "parent_name": "techtree-subject"
+        },
+        "llm_request": {
+          "base_url": "http://127.0.0.1:50763/v1/chat/completions",
+          "messages": [
+            {
+              "content": "hello",
+              "role": "user"
+            }
+          ],
+          "model": "placeholder-model"
+        }
+      },
+      "message": "hello",
+      "source": "user",
+      "step_id": 2,
+      "timestamp": "2026-09-01T22:12:06.088467+00:00"
+    }
+  ],
+  "trajectory_id": "01a05f07-8f46-73a1-aef7-c412f94a4a51"
+}
