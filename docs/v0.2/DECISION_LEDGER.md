@@ -36,6 +36,18 @@ Fabric, Relay, or Codex integration is implemented.
   download returns `410 Gone`.
 - Prime Hosted is a hard release gate. If supported immutable selection and
   machine-readable operations remain inadmissible, v0.2.0 stays blocked.
+- These machine-surface answers are written out in full in
+  [`MACHINE_CONTRACT.md`](MACHINE_CONTRACT.md): the eleven-field envelope, the
+  nine-field typed next action and its five retry classes, the eleven stable
+  operation identifiers against the handlers they describe, the exact
+  twelve-phase to five-state projection, and bounded `run.wait`. The document
+  is bound to the code by
+  [`cli/tests/contract/test_v02_machine_contract.py`](../../cli/tests/contract/test_v02_machine_contract.py),
+  and it records six points the plan left open, each with the reading taken and
+  why. WP0 froze the contract only; the producers move in WP1.
+- The `plugin/hermes/` and `plugin/codex/` target layout is recorded in
+  [`PLUGIN_LAYOUT.md`](PLUGIN_LAYOUT.md). Nothing moves in WP0, no shared
+  plugin runtime SDK exists, and the move plus the Codex package land in WP6.
 
 ## Future protected decisions
 
