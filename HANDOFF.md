@@ -35,37 +35,52 @@ the deferred v0.3.x study line.
 
 ## Integrated work
 
-WP0.1 and WP0.2 are closed. The reviewed WP0.3 commit
-`d80f641d2f2c4a1bfad49d7a25c189759164e9b0` is integrated into `main` as its
-own commit. It retains exact Prime/OpenAPI/source evidence, enforces
-`--skip-upload`, and accurately marks unobserved machine reads as unproven.
+WP0.1, WP0.2, WP0.3, WP0.4, WP0.6, and WP0.7 are closed; WP0.5 and WP0.8
+remain. The integrated Prime evidence retains exact Prime, OpenAPI, and source
+artifacts, enforces `--skip-upload`, and marks every still-unobserved machine
+read as unproven.
 
-WP0.3 remains in progress. Supported immutable Prime environment selection and
-bounded machine-readable runtime responses are unresolved. Prime Hosted is a
-hard v0.2.0 release gate: if the supported contract remains inadmissible, the
-release stays blocked.
+WP0.3 closed with its blockers recorded rather than resolved: four machine
+reads are observed and admitted as read shapes, the conformance environment is
+published, and six upstream blockers plus the hub `tags` gap stand unchanged.
+Supported immutable Prime environment selection and bounded machine-readable
+runtime responses remain unresolved upstream. On 2026-09-01 the founder
+recorded that gap as inadmissible and moved Prime Hosted Evaluations (WP4) to
+v0.2.x, so v0.2.0 ships with local execution only. The admission bar is
+unchanged; the release it belongs to is. The same decision approved and
+executed the zero-cost publication of
+`techtree/techtree-v02-conformance@0.1.0` as public — installable and
+importable, but not hub-validated. The responses WP4 still needs — evaluation
+get, samples, hosted logs, hosted stop, and hosted create — are re-homed to WP4
+in v0.2.x. See `docs/v0.2/DECISION_LEDGER.md`.
 
 The v0.2 machine contract is a direct move to `techtree.cli.v2`, with typed
 next actions, stable operation identifiers mapped to current handlers,
 detailed internal phases projected to five public states, and bounded
 `run.wait`. There is no v1 adapter, dual mode, daemon, or busy polling.
-This is a binding decision, not completed code. WP0.6 must still publish the
-exact operation-to-handler map, total phase-to-state projection, and
-`run.wait` wake, timeout, terminal, and reconciliation semantics before the
-contract can be called locked.
+This is a binding decision, not completed code. WP0.6 published the exact
+operation-to-handler map, the total phase-to-state projection, and the
+`run.wait` wake, timeout, terminal, and reconciliation semantics in
+`docs/v0.2/MACHINE_CONTRACT.md`, so the contract is frozen; the producers move
+in WP1.
 
 The publication contract keeps
-`GET /api/v1/publications/:bundle_digest`, adds
-`techtree.published-result.v1`, and adds exact stored bundle retrieval at the
-`/bundle` child route. Withdrawn metadata, tombstone, and receipt remain while
-bundle retrieval returns `410 Gone`. No `/api/v1/results` route is planned.
+`GET /api/v1/publications/:bundle_digest` and adds exact stored bundle
+retrieval at the `/bundle` child route, which WP0.7 shipped. Withdrawn
+metadata, tombstone, and receipt remain while bundle retrieval returns
+`410 Gone`. The metadata route still answers with the inherited
+`techtree.publication-entry.v1alpha1`; WP5 replaces it with
+`techtree.published-result.v1` in the same cutover as the evidence facets. No
+`/api/v1/results` route is planned.
 
 ## Remaining v0.2.0 order
 
-Use the Beads dependency graph rather than a false linear WP0 sequence.
-WP0.4–WP0.7 may proceed only as their dependencies allow. WP0.8 combines the
-Prime stop/go decision, final upstream lock, and exact founder approval packet.
-WP1 production protocol work waits for required WP0 contracts to freeze.
+Use the Beads dependency graph rather than a false linear WP0 sequence. WP0.8
+no longer carries a Prime stop/go; it is the final upstream lock and the exact
+founder approval packet, it depends on every other WP0 child, and today only
+WP0.5 remains open ahead of it. WP1 production protocol work waits for required
+WP0 contracts to freeze. WP4 is out of the v0.2.0 order, under the v0.2.x
+hosted-execution epic `techtree-k7t`.
 
 Do not pull Market, payouts, Foundry, optimization, the first Skill Climb, or
 training into v0.2.0.
@@ -75,6 +90,10 @@ training into v0.2.0.
 Do not publish a Prime environment, start paid inference, mutate provider
 resources, adopt a final upstream lock, release a package, deploy the platform,
 or move money without the specific founder authority required for that action.
+The one approval granted so far covers exactly one act: the executed zero-cost
+publication of `techtree/techtree-v02-conformance@0.1.0`. Republishing it —
+including for the hub `tags` metadata question open as `techtree-2qy` — needs
+its own packet.
 
 Proof Relay payment parameters remain unresolved protected decisions. Before
 payment, one packet must bind operators, participant cap, amount, chain/token,

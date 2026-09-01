@@ -4,18 +4,19 @@ The sole architecture authority is the
 [`v0.2 implementation contract`](../plan/v0.2.md). The
 [`ticket ledger`](TICKETS.md) is its actionable backlog, not a second design.
 
-Implement the work packages in this order:
+Implement the v0.2.0 work packages in this order:
 
 1. `V2-WP0` — authority, release identity, and upstream contract lock.
 2. `V2-WP1` — protocol, durable state, and historical readers.
 3. `V2-WP2` — Fabric-Hermes backend parity.
 4. `V2-WP3` — Relay evidence on Fabric-Hermes.
-5. `V2-WP4` — Prime Hosted Evaluations.
-6. `V2-WP5` — reruns, publication, and public evidence.
-7. `V2-WP6` — Codex subject and operator path.
+5. `V2-WP5` — publication and public evidence.
+6. `V2-WP6` — Codex subject and operator path.
 
-WP3 requires WP2. WP5 requires WP3 and WP4. WP6 requires WP2. WP3 and WP4
-may proceed in parallel after WP1 when they have separate owners and fixtures.
+WP3 requires WP2. WP5 requires WP3. WP6 requires WP2.
+
+`V2-WP4` — Prime Hosted Evaluations — is v0.2.x by founder decision of
+2026-09-01 and is not in the v0.2.0 order. It follows WP5.
 
 Within WP0:
 
@@ -24,7 +25,9 @@ Within WP0:
 2. `techtree-31k.1.2`, `.1.4`, `.1.6`, and `.1.7` may then proceed in parallel.
 3. `.1.3` follows the Verifiers/environment contract in `.1.2`.
 4. `.1.5` follows the Fabric descriptor and admission work in `.1.4`.
-5. `.1.8` closes only after every earlier child has supplied its exact evidence.
+5. `.1.8` depends on every other WP0 child and closes only after each has
+   supplied its exact evidence. It no longer carries a Prime stop/go, and today
+   only `.1.5` remains open ahead of it.
 
 Before production code begins:
 
@@ -38,14 +41,19 @@ Before production code begins:
 - freeze the adopted upstream candidates for the release line.
 
 WP0 may commit internal documents, deterministic source, sanitized fixtures,
-and focused checks. Publishing the Prime environment, starting paid work,
-sending upstream communications, adopting the final lock, publishing a
-package, or deploying still requires a separate exact founder approval.
+and focused checks. Starting paid work, sending upstream communications,
+adopting the final lock, publishing a package, or deploying still requires a
+separate exact founder approval.
 
-The founder selected the Prime organization account `@techtree`, displayed
-locally as Regents Labs, for the conformance environment. The intended
-coordinate is `techtree/techtree-v02-conformance`. This resolves ownership but
-does not authorize publishing it; publication still requires an exact approval
-packet.
+The conformance environment is published. The founder selected the Prime
+organization account `@techtree`, displayed locally as Regents Labs, approved
+the zero-cost publication packet, and it was executed on 2026-09-01:
+`techtree/techtree-v02-conformance@0.1.0` is public, wheel
+`sha256:ceca3bf0a8af32dde48230bce59a89ee77b6d330f4c09d050d05c055f538a6e0`, with
+no evaluation created and no paid run. Prime's hub Integration Test passes
+install and import and fails only on a non-standard `tags` metadata
+requirement; whether to republish for it is open as `techtree-2qy` and does not
+gate v0.2.0. Any further publication of that environment is a new protected
+action needing its own approval packet.
 
 Do not create future module trees before their first executable caller exists.

@@ -4,9 +4,10 @@ Techtree v0.2 is the execution-provenance and subject-portability release.
 
 Its public summary is:
 
-> v0.2 adds Prime-hosted comparisons, Fabric-backed Hermes and Codex subjects,
-> bounded Relay evidence, and provider reruns. Future releases will add
-> environment creation, optimization, and training.
+> v0.2.0 adds Fabric-backed Hermes and Codex subjects, bounded Relay evidence,
+> a direct CLI v2 machine contract, and machine-readable published Results.
+> Prime-hosted comparisons and provider reruns follow in v0.2.x. Future
+> releases will add environment creation, optimization, and training.
 
 This document fixes the target identity for planning and implementation. It is
 not a claim that v0.2 has shipped. The binding plan, decision ledger, and ticket
@@ -14,13 +15,19 @@ state determine what is approved, implemented, and releasable.
 
 ## Stable release matrix
 
-| Plane | Stable v0.2 support |
+| Plane | Stable v0.2.0 support |
 | --- | --- |
 | Evaluation | One exact founder-approved Prime Verifiers build |
-| Execution | Local Techtree and Prime Hosted Evaluations |
+| Execution | Local Techtree |
 | Subjects | Direct Hermes, Fabric-Hermes, and Fabric-Codex |
 | Operators | Hermes and Codex |
 | Evidence | Native Verifiers evidence and optional observe-only NeMo Relay evidence |
+
+Prime Hosted Evaluations are v0.2.x by founder decision of 2026-09-01, recorded
+in [`DECISION_LEDGER.md`](DECISION_LEDGER.md). v0.2.0 keeps the sanitized Prime
+contract evidence and the published `techtree/techtree-v02-conformance@0.1.0`
+environment, which is installable and importable but not hub-validated; it has
+no hosted execution backend, and no copy may imply one.
 
 Prime Agent, NemoClaw, Grok Build, Pi, and future hosts may have discovery
 records or preview admission work. They are not stable v0.2 dependencies.

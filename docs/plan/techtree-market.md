@@ -11,7 +11,10 @@ v0.2.0 execution-provenance release. The v0.2.0 contract remains
 [`v0.2.md`](v0.2.md). The release order is:
 
 1. v0.2.0 execution provenance and subject portability (`techtree-31k`).
-2. v0.2.x Techtree Market proof pilots (`techtree-33x`).
+2. v0.2.x Techtree Market proof pilots (`techtree-33x`), alongside v0.2.x
+   hosted execution (`techtree-k7t`), which carries the Prime Hosted
+   Evaluations work package moved out of v0.2.0 on 2026-09-01 and is specified
+   in [`v0.2.md`](v0.2.md).
 3. v0.3 Techtree Foundry and the first private Skill Climb (`techtree-8dj`).
 4. Deferred v0.3.x studies (`techtree-5t7`).
 
