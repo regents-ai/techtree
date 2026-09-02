@@ -36,6 +36,7 @@ import typer
 from rich.console import Console
 
 from techtree.canonical import validate_digest
+from techtree.cli.commands.climb import ReviewSurface
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
@@ -125,6 +126,18 @@ def withdraw_run_command(
             ),
         ),
     ] = False,
+    reviewed_on: Annotated[
+        ReviewSurface,
+        typer.Option(
+            "--reviewed-on",
+            help=(
+                "Where the person who agreed to withdraw answered. Pass "
+                "host-agent when what withdrawing does was shown in a "
+                "conversation and agreed there. Like --yes, and for the same "
+                "reason, it states what a person already did."
+            ),
+        ),
+    ] = ReviewSurface.CLI,
 ) -> None:
     """Withdraw a published run from the public run log."""
     context = cli_context(ctx)
@@ -132,6 +145,9 @@ def withdraw_run_command(
     def action() -> CommandResult[WithdrawalPayload | WithdrawalReviewPayload]:
         digest = validate_digest(bundle_digest)
         service = build_withdrawal_service(context)
+        _require_the_review_surface_was_answered(
+            digest, assume_yes=yes, reviewed_on=reviewed_on
+        )
         if not yes:
             if context.no_input:
                 return _withdrawal_review(digest, service.endpoint)
@@ -172,6 +188,31 @@ def build_withdrawal_service(context: CliContext) -> WithdrawalService:
     )
 
 
+def _require_the_review_surface_was_answered(
+    bundle_digest: Digest,
+    *,
+    assume_yes: bool,
+    reviewed_on: ReviewSurface,
+) -> None:
+    """Refuse a declared review surface that nobody answered on.
+
+    The same guard publishing makes, because it is the same kind of decision:
+    something a person has to be shown before they can agree to it, and
+    something a host agent may show in its own conversation instead. Naming a
+    surface without ``--yes`` would record where an answer was given that
+    nobody has given yet.
+    """
+    if assume_yes or reviewed_on is ReviewSurface.CLI:
+        return
+    raise UsageError(
+        "--reviewed-on says where an agreement was already given, so it goes "
+        "with --yes; without it what withdrawing does is shown here and "
+        "answered here",
+        code=WITHDRAWAL_CONFIRMATION_REQUIRED,
+        details={"bundle_digest": bundle_digest, "reviewed_on": reviewed_on.value},
+    )
+
+
 def _withdrawal_review(
     bundle_digest: Digest, endpoint: str
 ) -> CommandResult[WithdrawalPayload | WithdrawalReviewPayload]:
@@ -206,7 +247,12 @@ def _withdraw_when_agreed(bundle_digest: Digest) -> NextAction:
     return NextAction(
         operation=Operation.ACTION_EXECUTE,
         prepared_arguments=invocation(
-            "withdraw", arguments=[bundle_digest], options={"--yes": True}
+            "withdraw",
+            arguments=[bundle_digest],
+            options={
+                "--yes": True,
+                "--reviewed-on": ReviewSurface.HOST_AGENT.value,
+            },
         ),
         expected_state_digest=None,
         side_effect=SideEffect.PUBLIC_PUBLICATION,
@@ -215,8 +261,9 @@ def _withdraw_when_agreed(bundle_digest: Digest) -> NextAction:
         estimated_cost=None,
         data_egress=DataEgress.PUBLICATION_SERVICE,
         reason=(
-            "It marks the entry above withdrawn. The entry stays where it is "
-            "and the log records the withdrawal as another event."
+            "It marks the entry above withdrawn, recording which surface the "
+            "person who agreed answered on. The entry stays where it is and "
+            "the log records the withdrawal as another event."
         ),
     )
 
