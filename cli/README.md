@@ -241,7 +241,8 @@ src/techtree/          CLI package
   resources/           embedded catalog, release contract, and engine bundle
 docs/                  architecture, protocol, decisions, and release contracts
 release/               release inputs, generated contract, and audit records
-schemas/v1alpha1/      exported JSON Schemas
+schemas/               exported JSON Schemas, one directory per protocol version
+  v1alpha1/ v2/        the frozen v0.1 tree, and the documents v0.2 changes
 tools/                 generators and unpackaged release verification tools
   plugin/              tooling for the Hermes plugin in ../plugin/
 tests/                 unit, contract, integration, preflight, and fixtures

@@ -381,7 +381,7 @@ tools/
 ├── build_fixture_catalog.py   install the engine into a throwaway home and run the
 │                              real model-free validation to build the catalog
 ├── build_goldens.py           regenerate tests/golden/
-├── export_schemas.py          regenerate schemas/v1alpha1/
+├── export_schemas.py          regenerate schemas/v1alpha1/ and schemas/v2/
 ├── build_release_core.py      bind founder inputs + tree facts into release-core.json
 ├── verify_release_core.py     cross-repository gate: the ReleaseCore, the website's
 │                              bootstrap candidate and the built wheel must agree on
@@ -444,12 +444,15 @@ extending it, so treat this as a guide rather than an inventory:
 | `founder-approvals/`, `founder-skill-approval-draft.md`, `-addendum-1.md` | The Gate-1 packet and its append-only addendum. |
 | `network-method-log.json` | The instrumented no-upload evidence. |
 
-**Schemas.** `schemas/v1alpha1/` holds the exported JSON Schemas — campaign,
-climb, catalog, data-policy, skill-artifact, submission-draft, experiment
-manifest, taskset lock, taskset validation receipt, validation evidence,
-episode receipt, uplift report, run state, engine, evaluation backend, CLI
-envelope, climb summary, compatibility result. All generated; regenerate with
-`make schemas`, and `make generated-check` fails on drift.
+**Schemas.** One directory per protocol version. `schemas/v1alpha1/` holds
+the v0.1 exported JSON Schemas — campaign, climb, catalog, data-policy,
+skill-artifact, submission-draft, experiment manifest, taskset lock, taskset
+validation receipt, validation evidence, episode receipt, uplift report, run
+state, engine, evaluation backend, CLI envelope, climb summary, compatibility
+result — and its bytes are frozen, because published evidence is validated
+against them. `schemas/v2/` holds the documents v0.2 changes: the Campaign
+that binds a resolved execution plan, and the plan itself. All generated;
+regenerate with `make schemas`, and `make generated-check` fails on drift.
 
 ### 3.2 techtree-plugin
 

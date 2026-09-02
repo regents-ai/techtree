@@ -1,13 +1,17 @@
 """The published JSON Schemas. Spec sections 8, 24.1, 27.3.
 
-``schemas/v1alpha1`` is a contract with consumers who do not run this code. The
-tests here hold the parts of that contract a regeneration could break without
-anybody noticing: which files exist, that each is the schema of the model it
-claims, that the tree on disk matches what the exporter produces right now, and
-that the exporter is deterministic.
+``schemas/`` is a contract with consumers who do not run this code, one
+directory per protocol version: ``v1alpha1`` is v0.1 and its bytes are frozen,
+``v2`` holds the documents v0.2 changes. The tests here hold the parts of that
+contract a regeneration could break without anybody noticing: which files
+exist, that each is the schema of the model it claims, that the tree on disk
+matches what the exporter produces right now, and that the exporter is
+deterministic.
 
-They also enforce two protocol rules structurally rather than by review — no
-schema admits unknown fields, and none of them mentions Relay.
+They also enforce two protocol rules structurally rather than by review. No
+schema in either tree admits unknown fields. The Relay guard is narrower on
+purpose: it is a v0.1 ruling (decisions 0001) and it covers the frozen
+v1alpha1 tree, because v0.2 adds bounded Relay evidence in WP3.
 """
 
 from __future__ import annotations
@@ -21,6 +25,9 @@ from pydantic import BaseModel
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / "v1alpha1"
+#: The protocol v0.2 introduces. It holds only the documents whose shape
+#: changed, and it never rewrites the frozen v1alpha1 tree beside it.
+V2_SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / "v2"
 
 #: Spec section 8, extended by decisions 0003 A7 with the catalog, summary, and
 #: compatibility schemas, and by A1 with normalized validation evidence.
@@ -49,6 +56,13 @@ EXPECTED_SCHEMAS = {
     "taskset-validation-receipt",
     "uplift-report",
     "validation-evidence",
+}
+
+#: Plan v0.2: the Campaign gains its bound execution plan, and the plan is a
+#: document of its own.
+EXPECTED_V2_SCHEMAS = {
+    "campaign",
+    "execution-plan",
 }
 
 
@@ -81,6 +95,17 @@ def schema(name: str) -> dict[str, Any]:
     return document
 
 
+def v2_schema_text(name: str) -> str:
+    """Return the committed v2 schema file as text."""
+    return (V2_SCHEMA_DIRECTORY / f"{name}.schema.json").read_text(encoding="utf-8")
+
+
+def v2_schema(name: str) -> dict[str, Any]:
+    """Return the committed v2 schema file as a parsed document."""
+    document: dict[str, Any] = json.loads(v2_schema_text(name))
+    return document
+
+
 def test_every_expected_schema_is_committed() -> None:
     committed = {
         path.name.removesuffix(".schema.json")
@@ -104,7 +129,7 @@ def test_the_exporter_and_the_expected_list_agree() -> None:
 def test_the_committed_schema_matches_the_model(name: str) -> None:
     module = exporter()
     model: type[BaseModel] = module.schema_models()[name]
-    expected = module.schema_document(model, f"{name}.schema.json")
+    expected = module.schema_document(model, f"{name}.schema.json", "v1alpha1")
 
     assert schema(name) == expected
 
@@ -144,12 +169,104 @@ def test_no_schema_mentions_relay(name: str) -> None:
     assert "relay" not in schema_text(name).lower()
 
 
-def test_the_campaign_schema_has_no_public_policy_fields() -> None:
-    properties = set(schema("campaign")["properties"])
+# ---------------------------------------------------------------------------
+# The protocol v0.2 introduces
+# ---------------------------------------------------------------------------
 
-    assert properties.isdisjoint(
-        {"slug", "leaderboard", "publication", "candidate_policy", "status"}
+
+def test_every_expected_v2_schema_is_committed() -> None:
+    committed = {
+        path.name.removesuffix(".schema.json")
+        for path in V2_SCHEMA_DIRECTORY.glob("*.schema.json")
+    }
+
+    assert committed == EXPECTED_V2_SCHEMAS
+
+
+def test_no_unexpected_files_live_in_the_v2_schema_tree() -> None:
+    assert {path.name for path in V2_SCHEMA_DIRECTORY.iterdir()} == {
+        f"{name}.schema.json" for name in EXPECTED_V2_SCHEMAS
+    }
+
+
+def test_the_exporter_and_the_expected_v2_list_agree() -> None:
+    assert set(exporter().v2_schema_models()) == EXPECTED_V2_SCHEMAS
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_V2_SCHEMAS))
+def test_the_committed_v2_schema_matches_the_model(name: str) -> None:
+    module = exporter()
+    model: type[BaseModel] = module.v2_schema_models()[name]
+    expected = module.schema_document(model, f"{name}.schema.json", "v2")
+
+    assert v2_schema(name) == expected
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_V2_SCHEMAS))
+def test_each_v2_schema_declares_a_dialect_and_a_versioned_identifier(
+    name: str,
+) -> None:
+    document = v2_schema(name)
+
+    assert document["$schema"] == exporter().JSON_SCHEMA_DIALECT
+    assert document["$id"].endswith(f"/v2/{name}.schema.json")
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_V2_SCHEMAS))
+def test_each_v2_schema_is_deterministically_formatted(name: str) -> None:
+    text = v2_schema_text(name)
+    expected = json.dumps(
+        json.loads(text), indent=2, sort_keys=True, ensure_ascii=False
     )
+
+    assert text == f"{expected}\n"
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_V2_SCHEMAS))
+def test_no_v2_schema_admits_unknown_fields(name: str) -> None:
+    document = v2_schema(name)
+    objects = [document, *document.get("$defs", {}).values()]
+
+    for definition in objects:
+        if definition.get("type") == "object" and "properties" in definition:
+            assert definition["additionalProperties"] is False, definition.get("title")
+
+
+def test_the_v2_campaign_schema_requires_its_execution_plan_digest() -> None:
+    assert "execution_plan_digest" in v2_schema("campaign")["required"]
+
+
+def test_the_v2_campaign_schema_drops_what_the_plan_owns() -> None:
+    document = v2_schema("campaign")
+    harness = document["$defs"]["HarnessSpecV2"]["properties"]
+
+    assert "evaluation_backend" not in document["properties"]
+    assert set(harness).isdisjoint({"id", "version"})
+    assert (
+        "verifiers_episode"
+        not in (document["$defs"]["EvidenceRequirementsV2"]["properties"])
+    )
+
+
+def test_the_v1alpha1_campaign_schema_has_no_execution_plan_digest() -> None:
+    """The frozen tree gains nothing; published evidence validates against it."""
+    assert "execution_plan_digest" not in schema("campaign")["properties"]
+
+
+def test_the_execution_plan_schema_carries_all_four_planes() -> None:
+    properties = set(v2_schema("execution-plan")["properties"])
+
+    assert {"evaluation", "execution", "subject", "evidence"} <= properties
+
+
+def test_the_campaign_schema_has_no_public_policy_fields() -> None:
+    for properties in (
+        set(schema("campaign")["properties"]),
+        set(v2_schema("campaign")["properties"]),
+    ):
+        assert properties.isdisjoint(
+            {"slug", "leaderboard", "publication", "candidate_policy", "status"}
+        )
 
 
 def test_the_climb_schema_has_no_scientific_fields() -> None:
@@ -215,7 +332,18 @@ def test_regeneration_is_byte_stable(tmp_path: Path) -> None:
 
     for name, model in module.schema_models().items():
         destination = tmp_path / f"{name}.schema.json"
-        module.export_schema(model, destination)
-        module.export_schema(model, destination)
+        module.export_schema(model, destination, "v1alpha1")
+        module.export_schema(model, destination, "v1alpha1")
 
         assert destination.read_text(encoding="utf-8") == schema_text(name)
+
+
+def test_v2_regeneration_is_byte_stable(tmp_path: Path) -> None:
+    module = exporter()
+
+    for name, model in module.v2_schema_models().items():
+        destination = tmp_path / f"{name}.schema.json"
+        module.export_schema(model, destination, "v2")
+        module.export_schema(model, destination, "v2")
+
+        assert destination.read_text(encoding="utf-8") == v2_schema_text(name)

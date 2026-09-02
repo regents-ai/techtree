@@ -8,6 +8,10 @@ Amended 2026-09-01 by the founder's Prime decisions and by the publication
 envelope's real shipped state, both recorded in their own section below. Each
 amended bullet above says so where it stands.
 
+Amended 2026-09-02 by the chief's WP1.1 review decision on the two Campaign
+documents. That one is a lane working default awaiting founder confirmation,
+and says so where it stands.
+
 This ledger constrains WP0. It does not claim that any production Prime,
 Fabric, Relay, or Codex integration is implemented.
 
@@ -238,6 +242,50 @@ reverses a shipped v0.1 behaviour and 0038 needs an amendment; or it means only
 the filtered browsable surfaces WP5 adds, and the log is untouched. WP5 does
 not build those surfaces until the founder answers. Nothing here authorizes
 changing the shipped log meanwhile.
+
+## Decisions and amendments, 2026-09-02
+
+### 6. v0.2 introduces a second Campaign document
+
+Chief decision, 2026-09-02, on the WP1.1 review. **Lane working default,
+subject to founder confirmation before lock adoption.**
+
+v0.2 adds `techtree.campaign.v2` beside the frozen
+`techtree.campaign.v1alpha1` instead of adding the bound execution-plan digest
+to the Campaign that already exists. The two are siblings sharing a private
+non-document base; neither validates as the other.
+
+The reason is not preference. Proof verification re-derives the Campaign
+digest from the parsed document rather than trusting a stored one
+(`cli/src/techtree/receipts/verify.py`), so the v0.1 field list is part of
+every signature already issued. Any field added there — an optional one
+included, because canonicalization emits every declared field — invalidates
+signed evidence. Measured, not assumed: one added field breaks the frozen
+recorded fixtures at import time and moves the frozen proof's Campaign off
+`sha256:ebf029ab…`, the value `release/certified-scientific-fingerprint.json`
+and the platform's signed bundle both record.
+
+The v0.1 shape survives only as read-only history reached through
+`techtree.historical` (`techtree-i4e`), with its bytes and digests never
+rewritten. The live write path cuts over completely in `techtree-di5`: a v0.1
+verifier owned by the historical reader, a v0.2 verifier on the live path, and
+no code that writes or accepts both shapes. Until then the v2 document is
+protocol only.
+
+The v0.2 Campaign drops what the plan now owns, so no fact is stated twice:
+`evaluation_backend` (the plan's execution plane), the subject harness id and
+version (its subject plane), and `evidence.verifiers_episode` (its evidence
+plane). The v0.1 document keeps all three untouched.
+
+Naming: `techtree.campaign.v2` is the second version of an existing document;
+`techtree.execution-plan.v1` is a new document and starts at v1 despite
+arriving in the v2 protocol generation; `schemas/v1alpha1/` stays frozen and
+`schemas/v2/` holds only what changed. One unavoidable exception is recorded
+rather than hidden: factoring the shared fields into a base reorders the
+`required` array in `schemas/v1alpha1/campaign.schema.json`. Same set, no
+property or constraint changed, no document byte or digest moved.
+
+The long form is `cli/docs/decisions/0040-two-campaign-documents.md`.
 
 ## Ticket and completion discipline
 

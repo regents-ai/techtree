@@ -15,6 +15,13 @@ DIGEST_PREFIX: Final = "sha256:"
 CLI_SCHEMA_VERSION: Final = "techtree.cli.v1"
 CATALOG_SCHEMA_VERSION: Final = "techtree.catalog.v1alpha1"
 CAMPAIGN_SCHEMA_VERSION: Final = "techtree.campaign.v1alpha1"
+#: The v0.2 Campaign, which binds one resolved execution plan. It is the
+#: second version of a document v0.1 already had, so its literal says v2.
+CAMPAIGN_V2_SCHEMA_VERSION: Final = "techtree.campaign.v2"
+#: The plan itself. It is a new document rather than a new version of an old
+#: one, so it starts at v1 even though it arrives in the v2 protocol
+#: generation. Plan v0.2, "Four-plane execution model".
+EXECUTION_PLAN_SCHEMA_VERSION: Final = "techtree.execution-plan.v1"
 CLIMB_SCHEMA_VERSION: Final = "techtree.climb.v1alpha1"
 DATA_POLICY_SCHEMA_VERSION: Final = "techtree.data-policy.v1alpha1"
 EVALUATION_BACKEND_SCHEMA_VERSION: Final = "techtree.evaluation-backend.v1alpha1"

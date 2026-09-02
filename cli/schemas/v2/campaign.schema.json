@@ -1,11 +1,11 @@
 {
   "$defs": {
-    "AgentSpec": {
+    "AgentSpecV2": {
       "additionalProperties": false,
-      "description": "One named agent, complete.",
+      "description": "One named agent, complete, under the v0.2 Campaign.",
       "properties": {
         "harness": {
-          "$ref": "#/$defs/HarnessSpec"
+          "$ref": "#/$defs/HarnessSpecV2"
         },
         "model": {
           "$ref": "#/$defs/ModelSpec"
@@ -28,7 +28,7 @@
         "runtime",
         "trainable"
       ],
-      "title": "AgentSpec",
+      "title": "AgentSpecV2",
       "type": "object"
     },
     "ArtifactRef": {
@@ -66,16 +66,6 @@
       ],
       "title": "ArtifactRef",
       "type": "object"
-    },
-    "AttestationKind": {
-      "description": "Whose attestation the recorded result carries.",
-      "enum": [
-        "participant",
-        "platform",
-        "independent"
-      ],
-      "title": "AttestationKind",
-      "type": "string"
     },
     "BudgetSpec": {
       "additionalProperties": false,
@@ -245,76 +235,9 @@
       "title": "EnvironmentSpec",
       "type": "object"
     },
-    "EvaluationBackendKind": {
-      "description": "Which system orchestrated the evaluation.",
-      "enum": [
-        "local_techtree",
-        "prime_lab",
-        "independent_reproducer"
-      ],
-      "title": "EvaluationBackendKind",
-      "type": "string"
-    },
-    "EvaluationBackendSpec": {
+    "EvidenceRequirementsV2": {
       "additionalProperties": false,
-      "description": "The orchestrating backend and the attestation it carries.",
-      "properties": {
-        "attestation": {
-          "$ref": "#/$defs/AttestationKind"
-        },
-        "executor_identity": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/NonEmptyString"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "kind": {
-          "$ref": "#/$defs/EvaluationBackendKind"
-        },
-        "provider_run_ref": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/NonEmptyString"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "schema_version": {
-          "const": "techtree.evaluation-backend.v1alpha1",
-          "title": "Schema Version",
-          "type": "string"
-        },
-        "workspace_ref": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/NonEmptyString"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "required": [
-        "schema_version",
-        "kind",
-        "attestation"
-      ],
-      "title": "EvaluationBackendSpec",
-      "type": "object"
-    },
-    "EvidenceRequirements": {
-      "additionalProperties": false,
-      "description": "Which evidence a valid episode must carry.",
+      "description": "Which evidence a valid episode must carry, under the v0.2 Campaign.\n\nThat a Verifiers episode is required is the execution plan's evidence\nplane, so it is not restated here. What remains is the requirement the\nplan does not speak to: whether the subject's runtime must be receipted.",
       "properties": {
         "runtime_evidence": {
           "enum": [
@@ -324,18 +247,12 @@
           ],
           "title": "Runtime Evidence",
           "type": "string"
-        },
-        "verifiers_episode": {
-          "const": "required",
-          "title": "Verifiers Episode",
-          "type": "string"
         }
       },
       "required": [
-        "verifiers_episode",
         "runtime_evidence"
       ],
-      "title": "EvidenceRequirements",
+      "title": "EvidenceRequirementsV2",
       "type": "object"
     },
     "ExecutionSpec": {
@@ -370,13 +287,10 @@
       "title": "ExecutionSpec",
       "type": "object"
     },
-    "HarnessSpec": {
+    "HarnessSpecV2": {
       "additionalProperties": false,
-      "description": "The agent harness and the skills inserted into it.",
+      "description": "The skills inserted into the subject harness.\n\nWhich harness that is — its id and its version — is the execution plan's\nsubject plane, and is not restated here. A Campaign that named the harness\nas well could disagree with the plan it is bound to, and there would be no\nprincipled way to say which of the two ran.",
       "properties": {
-        "id": {
-          "$ref": "#/$defs/NonEmptyString"
-        },
         "skills": {
           "items": {
             "$ref": "#/$defs/ArtifactRef"
@@ -387,18 +301,13 @@
         "use_bundled_skill": {
           "title": "Use Bundled Skill",
           "type": "boolean"
-        },
-        "version": {
-          "$ref": "#/$defs/NonEmptyString"
         }
       },
       "required": [
-        "id",
-        "version",
         "use_bundled_skill",
         "skills"
       ],
-      "title": "HarnessSpec",
+      "title": "HarnessSpecV2",
       "type": "object"
     },
     "JsonScalar": {
@@ -803,14 +712,14 @@
       "type": "string"
     }
   },
-  "$id": "https://schemas.techtree.dev/v1alpha1/campaign.schema.json",
+  "$id": "https://schemas.techtree.dev/v2/campaign.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "The complete scientific and execution contract.",
+  "description": "A Campaign that binds exactly one resolved execution plan.\n\nPlan v0.2, \"Campaign and execution-plan ownership\": the plan is not a\nmutable run-time choice beneath an already frozen Campaign. Because the\ndigest is a field, selecting a different evaluation engine, execution\nbackend, subject backend, or evidence backend changes the Campaign's own\ncanonical bytes, so a backend change can only ever produce a *different*\nCampaign — never a quiet reinterpretation of an existing one.\n\nThe digest is carried rather than the plan itself, which is the same shape\n``data_policy_digest`` already has and for the same reason: a Campaign\npoints at the immutable objects it rests on, and each of those objects is\nfetched, digested, and checked on its own terms.\n\nThree things the v0.1 document carries are absent here, because the plan\nnow owns them and a fact stated twice is a fact that can disagree with\nitself:\n\n``evaluation_backend``\n    Who orchestrated the run is the plan's execution plane.\n``agents.subject.harness.id`` and ``.version``\n    Which harness is measured is the plan's subject plane.\n``evidence.verifiers_episode``\n    That native episode evidence is required is the plan's evidence plane.\n\nThis is a sibling of :class:`CampaignSpec`, not a refinement of it. The two\nshare the scientific contract and nothing else, and neither validates as\nthe other.",
   "properties": {
     "agents": {
       "additionalProperties": {
-        "$ref": "#/$defs/AgentSpec"
+        "$ref": "#/$defs/AgentSpecV2"
       },
       "title": "Agents",
       "type": "object"
@@ -827,14 +736,14 @@
     "environment": {
       "$ref": "#/$defs/EnvironmentSpec"
     },
-    "evaluation_backend": {
-      "$ref": "#/$defs/EvaluationBackendSpec"
-    },
     "evidence": {
-      "$ref": "#/$defs/EvidenceRequirements"
+      "$ref": "#/$defs/EvidenceRequirementsV2"
     },
     "execution": {
       "$ref": "#/$defs/ExecutionSpec"
+    },
+    "execution_plan_digest": {
+      "$ref": "#/$defs/Digest"
     },
     "kind": {
       "const": "Campaign",
@@ -848,7 +757,7 @@
       "$ref": "#/$defs/MutationContract"
     },
     "schema_version": {
-      "const": "techtree.campaign.v1alpha1",
+      "const": "techtree.campaign.v2",
       "title": "Schema Version",
       "type": "string"
     },
@@ -872,9 +781,9 @@
     "schema_version",
     "kind",
     "agents",
-    "evaluation_backend",
-    "evidence"
+    "evidence",
+    "execution_plan_digest"
   ],
-  "title": "CampaignSpec",
+  "title": "CampaignSpecV2",
   "type": "object"
 }

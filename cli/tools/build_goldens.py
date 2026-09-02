@@ -40,11 +40,13 @@ from techtree.canonical import (
 from techtree.compatibility import compare_campaign_configurations
 from techtree.constants import (
     CAMPAIGN_SCHEMA_VERSION,
+    CAMPAIGN_V2_SCHEMA_VERSION,
     CLI_SCHEMA_VERSION,
     CLIMB_SCHEMA_VERSION,
     DATA_POLICY_SCHEMA_VERSION,
     EPISODE_RECEIPT_SCHEMA_VERSION,
     EVALUATION_BACKEND_SCHEMA_VERSION,
+    EXECUTION_PLAN_SCHEMA_VERSION,
     EXPERIMENT_SCHEMA_VERSION,
     PINNED_VERIFIERS_REVISION,
     SKILL_SCHEMA_VERSION,
@@ -70,15 +72,19 @@ from techtree.models.campaign import (
     SKILL_MUTATION_POINTER,
     SUBJECT_AGENT,
     AgentSpec,
+    AgentSpecV2,
     BudgetSpec,
     CampaignContext,
     CampaignMetadata,
     CampaignSpec,
+    CampaignSpecV2,
     CampaignTaskset,
     EnvironmentSpec,
     EvidenceRequirements,
+    EvidenceRequirementsV2,
     ExecutionSpec,
     HarnessSpec,
+    HarnessSpecV2,
     ModelSpec,
     MutationContract,
     MutationKind,
@@ -132,6 +138,15 @@ from techtree.models.evaluation_backend import (
     AttestationKind,
     EvaluationBackendKind,
     EvaluationBackendSpec,
+)
+from techtree.models.execution_plan import (
+    EvaluationEngineRef,
+    EvidenceBackendSpec,
+    ExecutionBackendKind,
+    ExecutionBackendSpec,
+    ResolvedExecutionPlan,
+    SubjectBackendKind,
+    SubjectBackendSpec,
 )
 from techtree.models.experiment import (
     ExperimentConfiguration,
@@ -557,6 +572,90 @@ def build_configuration_comparison(
     comparison concludes shows up here as a diff a reviewer can read.
     """
     return compare_campaign_configurations(policy, source, candidate)
+
+
+def build_execution_plan() -> ResolvedExecutionPlan:
+    """Return the plan v0.2.0 resolves: local execution, native evidence.
+
+    The four planes are filled in independently, which is the point of the
+    object. This fixture takes the shape v0.2.0 actually emits — a local
+    execution backend, the directly integrated subject harness, and native
+    evidence with no trace coverage requested.
+    """
+    return ResolvedExecutionPlan(
+        schema_version=EXECUTION_PLAN_SCHEMA_VERSION,
+        kind="ResolvedExecutionPlan",
+        evaluation=EvaluationEngineRef(
+            kind="verifiers",
+            api_generation="v1",
+            package_version="0.3.1",
+            source_commit=PINNED_VERIFIERS_REVISION,
+            wheel_digest=fixture_digest("verifiers-wheel"),
+        ),
+        execution=ExecutionBackendSpec(
+            kind=ExecutionBackendKind.LOCAL,
+            provider=None,
+            provider_environment_coordinate=None,
+        ),
+        subject=SubjectBackendSpec(
+            kind=SubjectBackendKind.DIRECT,
+            harness_id="hermes-agent",
+            harness_version="0.19.0",
+            adapter_id=None,
+            adapter_version=None,
+            adapter_contract_version=None,
+        ),
+        evidence=EvidenceBackendSpec(
+            native_evidence="required",
+            trace_coverage="not_requested",
+            coverage_profile_digest=None,
+        ),
+    )
+
+
+def build_campaign_v2(
+    data_policy_digest: Digest,
+    receipt_digest: Digest,
+    execution_plan_digest: Digest,
+) -> CampaignSpecV2:
+    """Return the v0.2 Campaign: the same science, bound to one plan.
+
+    The science is copied from the v0.1 fixture so that the two goldens are
+    demonstrably the same experiment. What is not copied is what the plan now
+    owns: the evaluation backend, the harness coordinates, and the requirement
+    for a Verifiers episode.
+    """
+    campaign = build_campaign(data_policy_digest, receipt_digest)
+    subject = campaign.subject
+    return CampaignSpecV2(
+        schema_version=CAMPAIGN_V2_SCHEMA_VERSION,
+        kind=campaign.kind,
+        metadata=campaign.metadata,
+        context=campaign.context,
+        taskset=campaign.taskset,
+        environment=campaign.environment,
+        agents={
+            SUBJECT_AGENT: AgentSpecV2(
+                model=subject.model,
+                sampling=subject.sampling,
+                harness=HarnessSpecV2(
+                    use_bundled_skill=subject.harness.use_bundled_skill,
+                    skills=list(subject.harness.skills),
+                ),
+                runtime=subject.runtime,
+                trainable=subject.trainable,
+            )
+        },
+        mutation_contract=campaign.mutation_contract,
+        execution=campaign.execution,
+        scoring=campaign.scoring,
+        evidence=EvidenceRequirementsV2(
+            runtime_evidence=campaign.evidence.runtime_evidence
+        ),
+        budgets=campaign.budgets,
+        data_policy_digest=campaign.data_policy_digest,
+        execution_plan_digest=execution_plan_digest,
+    )
 
 
 def build_climb(campaign_digest: Digest) -> ClimbManifest:
@@ -1261,6 +1360,11 @@ def golden_objects() -> dict[str, BaseModel]:
     campaign = build_campaign(data_policy_digest, receipt_digest)
     campaign_digest = digest_object(campaign)
 
+    execution_plan = build_execution_plan()
+    campaign_v2 = build_campaign_v2(
+        data_policy_digest, receipt_digest, digest_object(execution_plan)
+    )
+
     climb = build_climb(campaign_digest)
     climb_digest = digest_object(climb)
 
@@ -1312,11 +1416,13 @@ def golden_objects() -> dict[str, BaseModel]:
     return {
         "campaign": campaign,
         "campaign-parity-candidate": parity_candidate,
+        "campaign-v2": campaign_v2,
         "climb": climb,
         "cli-envelope": build_cli_envelope(summary),
         "data-policy": data_policy,
         # The public half of the key the two signed goldens were signed with,
         # so a reader of those signatures has something to check them against.
+        "execution-plan": execution_plan,
         "executor-identity": build_executor_identity(),
         "experiment-baseline": baseline,
         "experiment-candidate": candidate,

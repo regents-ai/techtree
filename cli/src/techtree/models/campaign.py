@@ -16,11 +16,30 @@ anything runs, ``shuffle`` cannot be spelled ``True``, and the only difference
 a candidate is permitted to introduce is the subject's skill list. Everything in
 this module exists to make an uncontrolled comparison unrepresentable rather
 than merely discouraged.
+
+Two Campaign documents live here, and they are siblings rather than a
+document and its refinement. ``CampaignSpec`` is v0.1, and its canonical bytes
+are frozen: every published proof recomputes this exact object's digest, so a
+field added to it would invalidate evidence that has already been signed.
+``CampaignSpecV2`` is v0.2. It binds the digest of the execution plan the
+Campaign is resolved against, and it drops the three facts that plan now owns
+— the evaluation backend, the subject harness coordinates, and the requirement
+for a Verifiers episode — because a fact stated in two documents is a fact
+that can disagree with itself.
+
+What the two share is the scientific contract, and they share it through
+``_CampaignScience``, which is not a document: it has no ``schema_version``
+and no ``kind``, so it cannot be stored or mistaken for a Campaign, and a
+function that asks for one Campaign will not silently accept the other.
+Nothing anywhere branches on which document is in hand. Decision 0040 records
+why v0.2 could not simply add a field, and ``techtree-di5`` is where the live
+write path cuts over and the v0.1 shape becomes read-only history.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Collection
 from enum import StrEnum
 from typing import Literal, Self
 
@@ -43,15 +62,19 @@ __all__ = [
     "SKILL_MUTATION_POINTER",
     "SUBJECT_AGENT",
     "AgentSpec",
+    "AgentSpecV2",
     "BudgetSpec",
     "CampaignContext",
     "CampaignMetadata",
     "CampaignSpec",
+    "CampaignSpecV2",
     "CampaignTaskset",
     "EnvironmentSpec",
     "EvidenceRequirements",
+    "EvidenceRequirementsV2",
     "ExecutionSpec",
     "HarnessSpec",
+    "HarnessSpecV2",
     "ModelSpec",
     "MutationContract",
     "MutationKind",
@@ -304,6 +327,29 @@ class AgentSpec(ProtocolModel):
     trainable: bool
 
 
+class HarnessSpecV2(ProtocolModel):
+    """The skills inserted into the subject harness.
+
+    Which harness that is — its id and its version — is the execution plan's
+    subject plane, and is not restated here. A Campaign that named the harness
+    as well could disagree with the plan it is bound to, and there would be no
+    principled way to say which of the two ran.
+    """
+
+    use_bundled_skill: bool
+    skills: list[ArtifactRef]
+
+
+class AgentSpecV2(ProtocolModel):
+    """One named agent, complete, under the v0.2 Campaign."""
+
+    model: ModelSpec
+    sampling: SamplingSpec
+    harness: HarnessSpecV2
+    runtime: RuntimeSpec
+    trainable: bool
+
+
 class EnvironmentSpec(ProtocolModel):
     """The interaction shape the Campaign runs in."""
 
@@ -387,6 +433,17 @@ class EvidenceRequirements(ProtocolModel):
     runtime_evidence: Literal["not_required", "optional", "required"]
 
 
+class EvidenceRequirementsV2(ProtocolModel):
+    """Which evidence a valid episode must carry, under the v0.2 Campaign.
+
+    That a Verifiers episode is required is the execution plan's evidence
+    plane, so it is not restated here. What remains is the requirement the
+    plan does not speak to: whether the subject's runtime must be receipted.
+    """
+
+    runtime_evidence: Literal["not_required", "optional", "required"]
+
+
 class BudgetSpec(ProtocolModel):
     """Optional ceilings on what a run may consume."""
 
@@ -410,23 +467,91 @@ class CampaignMetadata(ProtocolModel):
     ]
 
 
-class CampaignSpec(ProtocolModel):
-    """The complete scientific and execution contract."""
+class _CampaignScience(ProtocolModel):
+    """The scientific contract both Campaign documents state identically.
 
-    schema_version: Literal["techtree.campaign.v1alpha1"]
-    kind: Literal["Campaign"]
+    This is not a document and is never stored, published, or digested on its
+    own: it has no ``schema_version`` and no ``kind``, so nothing can serialize
+    it or mistake it for a Campaign. It exists so that the rules below are
+    written once, and so that the two Campaign documents are *siblings* — a
+    v0.2 Campaign is not a v0.1 Campaign with extras, and a function that asks
+    for one will not silently accept the other.
+    """
+
     metadata: CampaignMetadata
     context: CampaignContext
     taskset: CampaignTaskset
     environment: EnvironmentSpec
-    agents: dict[str, AgentSpec]
     mutation_contract: MutationContract
-    evaluation_backend: EvaluationBackendSpec
     execution: ExecutionSpec
     scoring: ScoringSpec
-    evidence: EvidenceRequirements
     budgets: BudgetSpec
     data_policy_digest: Digest
+
+    @model_validator(mode="after")
+    def _check_the_comparison_is_controlled(self) -> Self:
+        """Enforce the rules that read only the shared scientific fields."""
+        if self.taskset.selection.num_rollouts != 1:
+            raise ValueError("v0.1 scores one rollout per task; num_rollouts must be 1")
+
+        if self.mutation_contract.target_agent != SUBJECT_AGENT:
+            raise ValueError("the mutation contract must target the subject agent")
+        return self
+
+
+def _check_the_baseline_is_the_declared_one(
+    *,
+    agent_names: Collection[str],
+    mutation_kind: MutationKind,
+    baseline_skills: int,
+    use_bundled_skill: bool,
+) -> None:
+    """Check the subject agent against the mutation the Campaign declares.
+
+    Both Campaign documents describe the baseline side of the comparison, so
+    both answer to this rule; only the shape of the agent they hold differs,
+    which is why the rule takes the three facts it needs rather than an agent.
+    """
+    if set(agent_names) != {SUBJECT_AGENT}:
+        raise ValueError(
+            f"a Campaign defines exactly one agent named {SUBJECT_AGENT!r}; "
+            f"got {sorted(agent_names)}"
+        )
+
+    # The Campaign describes the baseline, so the subject harness carries the
+    # skill list the baseline side of the comparison starts from, and which
+    # list that is follows from the mutation kind (spec section 3.1).
+    if mutation_kind is MutationKind.SKILL_INSERTION:
+        if baseline_skills:
+            raise ValueError(
+                "a skill_insertion Campaign describes a baseline that "
+                "carries no skills; the candidate adds exactly one"
+            )
+    elif baseline_skills != 1:
+        raise ValueError(
+            "a skill_replacement Campaign describes a baseline that carries "
+            f"exactly one skill to replace; got {baseline_skills}"
+        )
+    if use_bundled_skill:
+        raise ValueError(
+            "use_bundled_skill is false for the whole of WP0-WP5; a bundled "
+            "skill would be an uncontrolled second difference"
+        )
+
+
+class CampaignSpec(_CampaignScience):
+    """The complete scientific and execution contract."""
+
+    # Frozen. Every published v0.1 proof recomputes this exact object's digest
+    # from the bytes it stored, so a field added here would invalidate evidence
+    # that has already been signed, and the docstring stays as it was because
+    # it is published in schemas/v1alpha1/campaign.schema.json.
+
+    schema_version: Literal["techtree.campaign.v1alpha1"]
+    kind: Literal["Campaign"]
+    agents: dict[str, AgentSpec]
+    evaluation_backend: EvaluationBackendSpec
+    evidence: EvidenceRequirements
 
     @property
     def subject(self) -> AgentSpec:
@@ -436,45 +561,80 @@ class CampaignSpec(ProtocolModel):
     @model_validator(mode="after")
     def _check_campaign_contract(self) -> Self:
         """Enforce every WP0–WP5 Campaign rule from spec section 11.5."""
-        if set(self.agents) != {SUBJECT_AGENT}:
-            raise ValueError(
-                f"v0.1 defines exactly one agent named {SUBJECT_AGENT!r}; "
-                f"got {sorted(self.agents)}"
-            )
-
-        subject = self.agents[SUBJECT_AGENT]
-        # The Campaign describes the baseline, so the subject harness carries
-        # the skill list the baseline side of the comparison starts from, and
-        # which list that is follows from the mutation kind (spec section 3.1).
-        baseline_skills = len(subject.harness.skills)
-        if self.mutation_contract.kind is MutationKind.SKILL_INSERTION:
-            if baseline_skills:
-                raise ValueError(
-                    "a skill_insertion Campaign describes a baseline that "
-                    "carries no skills; the candidate adds exactly one"
-                )
-        elif baseline_skills != 1:
-            raise ValueError(
-                "a skill_replacement Campaign describes a baseline that carries "
-                f"exactly one skill to replace; got {baseline_skills}"
-            )
-        if subject.harness.use_bundled_skill:
-            raise ValueError(
-                "use_bundled_skill is false for the whole of WP0-WP5; a bundled "
-                "skill would be an uncontrolled second difference"
-            )
-
-        if self.taskset.selection.num_rollouts != 1:
-            raise ValueError("v0.1 scores one rollout per task; num_rollouts must be 1")
-
-        if self.mutation_contract.target_agent != SUBJECT_AGENT:
-            raise ValueError("the mutation contract must target the subject agent")
+        subject = self.agents.get(SUBJECT_AGENT)
+        _check_the_baseline_is_the_declared_one(
+            agent_names=self.agents,
+            mutation_kind=self.mutation_contract.kind,
+            baseline_skills=len(subject.harness.skills) if subject else 0,
+            use_bundled_skill=bool(subject and subject.harness.use_bundled_skill),
+        )
 
         if self.evaluation_backend.kind is not EvaluationBackendKind.LOCAL_TECHTREE:
             raise ValueError(
                 "WP0-WP5 Campaigns are evaluated by local_techtree only; "
                 f"got {self.evaluation_backend.kind.value}"
             )
+
+        if self.evidence.runtime_evidence != "not_required":
+            raise ValueError(
+                "runtime evidence is not collected before WP6, so a Campaign "
+                "that required it could never produce a valid episode"
+            )
+        return self
+
+
+class CampaignSpecV2(_CampaignScience):
+    """A Campaign that binds exactly one resolved execution plan.
+
+    Plan v0.2, "Campaign and execution-plan ownership": the plan is not a
+    mutable run-time choice beneath an already frozen Campaign. Because the
+    digest is a field, selecting a different evaluation engine, execution
+    backend, subject backend, or evidence backend changes the Campaign's own
+    canonical bytes, so a backend change can only ever produce a *different*
+    Campaign — never a quiet reinterpretation of an existing one.
+
+    The digest is carried rather than the plan itself, which is the same shape
+    ``data_policy_digest`` already has and for the same reason: a Campaign
+    points at the immutable objects it rests on, and each of those objects is
+    fetched, digested, and checked on its own terms.
+
+    Three things the v0.1 document carries are absent here, because the plan
+    now owns them and a fact stated twice is a fact that can disagree with
+    itself:
+
+    ``evaluation_backend``
+        Who orchestrated the run is the plan's execution plane.
+    ``agents.subject.harness.id`` and ``.version``
+        Which harness is measured is the plan's subject plane.
+    ``evidence.verifiers_episode``
+        That native episode evidence is required is the plan's evidence plane.
+
+    This is a sibling of :class:`CampaignSpec`, not a refinement of it. The two
+    share the scientific contract and nothing else, and neither validates as
+    the other.
+    """
+
+    schema_version: Literal["techtree.campaign.v2"]
+    kind: Literal["Campaign"]
+    agents: dict[str, AgentSpecV2]
+    evidence: EvidenceRequirementsV2
+    execution_plan_digest: Digest
+
+    @property
+    def subject(self) -> AgentSpecV2:
+        """Return the single subject agent."""
+        return self.agents[SUBJECT_AGENT]
+
+    @model_validator(mode="after")
+    def _check_campaign_contract(self) -> Self:
+        """Enforce the Campaign rules the execution plan does not own."""
+        subject = self.agents.get(SUBJECT_AGENT)
+        _check_the_baseline_is_the_declared_one(
+            agent_names=self.agents,
+            mutation_kind=self.mutation_contract.kind,
+            baseline_skills=len(subject.harness.skills) if subject else 0,
+            use_bundled_skill=bool(subject and subject.harness.use_bundled_skill),
+        )
 
         if self.evidence.runtime_evidence != "not_required":
             raise ValueError(

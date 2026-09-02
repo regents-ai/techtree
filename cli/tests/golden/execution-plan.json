@@ -1,0 +1,29 @@
+{
+  "evaluation": {
+    "api_generation": "v1",
+    "kind": "verifiers",
+    "package_version": "0.3.1",
+    "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+    "wheel_digest": "sha256:6e260ca61cb7946c6bae1820eda4760486d24bd5355c8c8973c404f926de04dd"
+  },
+  "evidence": {
+    "coverage_profile_digest": null,
+    "native_evidence": "required",
+    "trace_coverage": "not_requested"
+  },
+  "execution": {
+    "kind": "local",
+    "provider": null,
+    "provider_environment_coordinate": null
+  },
+  "kind": "ResolvedExecutionPlan",
+  "schema_version": "techtree.execution-plan.v1",
+  "subject": {
+    "adapter_contract_version": null,
+    "adapter_id": null,
+    "adapter_version": null,
+    "harness_id": "hermes-agent",
+    "harness_version": "0.19.0",
+    "kind": "direct"
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EvaluationEngineRef": {
+      "additionalProperties": false,
+      "description": "Which Verifiers build supplies task identity, task results, and reward.\n\nVerifiers stays authoritative for all three, so the plan names the exact\nbuild rather than a range. The wheel digest is what an offline reader can\ncheck; the version and the commit are what a person can read.",
+      "properties": {
+        "api_generation": {
+          "const": "v1",
+          "title": "Api Generation",
+          "type": "string"
+        },
+        "kind": {
+          "const": "verifiers",
+          "title": "Kind",
+          "type": "string"
+        },
+        "package_version": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "wheel_digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "kind",
+        "api_generation",
+        "package_version",
+        "source_commit",
+        "wheel_digest"
+      ],
+      "title": "EvaluationEngineRef",
+      "type": "object"
+    },
+    "EvidenceBackendSpec": {
+      "additionalProperties": false,
+      "description": "Which evidence the run must produce.\n\nNative evidence is never optional: it is the receipted record the score\nrests on. Trace coverage is the supplementary observation a Campaign may\nask for, and it is requested against one versioned coverage profile, whose\ndigest is the same value the proof's ``trace_coverage`` facet reports\nagainst. Naming the profile rather than the observer is deliberate — the\nplan states what coverage is owed, and the profile states how it is\nobtained.\n\nRequesting coverage is a request, not a promise. What the run actually\nachieved is an evidence outcome and is never written back into the plan;\na plan that recorded an outcome would change after the Campaign froze.",
+      "properties": {
+        "coverage_profile_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "native_evidence": {
+          "const": "required",
+          "title": "Native Evidence",
+          "type": "string"
+        },
+        "trace_coverage": {
+          "enum": [
+            "not_requested",
+            "requested"
+          ],
+          "title": "Trace Coverage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "native_evidence",
+        "trace_coverage",
+        "coverage_profile_digest"
+      ],
+      "title": "EvidenceBackendSpec",
+      "type": "object"
+    },
+    "ExecutionBackendKind": {
+      "description": "Where the comparison is orchestrated.\n\nThese are the two values the proof's ``execution_location`` facet carries.\n``prime_hosted`` is protocol vocabulary in v0.2.0 and behavior in v0.2.x.",
+      "enum": [
+        "local",
+        "prime_hosted"
+      ],
+      "title": "ExecutionBackendKind",
+      "type": "string"
+    },
+    "ExecutionBackendSpec": {
+      "additionalProperties": false,
+      "description": "Who runs the comparison, and on whose infrastructure.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ExecutionBackendKind"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionProvider"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_environment_coordinate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "provider",
+        "provider_environment_coordinate"
+      ],
+      "title": "ExecutionBackendSpec",
+      "type": "object"
+    },
+    "ExecutionProvider": {
+      "description": "The hosted provider, for the kinds that have one.",
+      "enum": [
+        "prime"
+      ],
+      "title": "ExecutionProvider",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "SubjectBackendKind": {
+      "description": "How the measured agent is reached.\n\n``direct`` is Techtree's own integration with the harness. ``fabric``\nreaches it through a Fabric adapter. ``verifiers_native`` lets the\nevaluation engine's own harness drive the subject.",
+      "enum": [
+        "direct",
+        "fabric",
+        "verifiers_native"
+      ],
+      "title": "SubjectBackendKind",
+      "type": "string"
+    },
+    "SubjectBackendSpec": {
+      "additionalProperties": false,
+      "description": "The harness that is measured, and the adapter that reaches it.\n\nThe harness is named on every kind, because the harness is what is being\nmeasured and it does not stop mattering when an adapter sits in front of\nit. The adapter coordinates exist only on the kind that has an adapter.",
+      "properties": {
+        "adapter_contract_version": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "adapter_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "adapter_version": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "harness_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "harness_version": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "kind": {
+          "$ref": "#/$defs/SubjectBackendKind"
+        }
+      },
+      "required": [
+        "kind",
+        "harness_id",
+        "harness_version",
+        "adapter_id",
+        "adapter_version",
+        "adapter_contract_version"
+      ],
+      "title": "SubjectBackendSpec",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v2/execution-plan.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "All four planes, resolved, immutable, and digestible as one object.",
+  "properties": {
+    "evaluation": {
+      "$ref": "#/$defs/EvaluationEngineRef"
+    },
+    "evidence": {
+      "$ref": "#/$defs/EvidenceBackendSpec"
+    },
+    "execution": {
+      "$ref": "#/$defs/ExecutionBackendSpec"
+    },
+    "kind": {
+      "const": "ResolvedExecutionPlan",
+      "title": "Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "techtree.execution-plan.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "subject": {
+      "$ref": "#/$defs/SubjectBackendSpec"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "evaluation",
+    "execution",
+    "subject",
+    "evidence"
+  ],
+  "title": "ResolvedExecutionPlan",
+  "type": "object"
+}

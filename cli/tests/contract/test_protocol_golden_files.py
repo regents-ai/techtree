@@ -29,7 +29,11 @@ from techtree.canonical import canonical_json_bytes, digest_object, sha256_diges
 from techtree.compatibility import compare_campaign_configurations
 from techtree.identity.models import ExecutorIdentity
 from techtree.models.base import ObjectEnvelope
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import (
+    CampaignSpec,
+    CampaignSpecV2,
+    _CampaignScience,
+)
 from techtree.models.catalog import ClimbSummary
 from techtree.models.cli import CliEnvelope
 from techtree.models.climb import ClimbManifest
@@ -39,6 +43,7 @@ from techtree.models.compatibility import (
 )
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import ExperimentManifest, ExperimentVariant
 from techtree.models.skill import SkillArtifact
 from techtree.models.uplift_report import UpliftReport
@@ -57,6 +62,7 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     # The second Campaign of the backend-parity pair. Two immutable Campaigns
     # are what a parity study compares, so the golden set holds both of them.
     "campaign-parity-candidate": CampaignSpec,
+    "campaign-v2": CampaignSpecV2,
     "cli-envelope": CliEnvelope[ClimbSummary],
     "climb": ClimbManifest,
     # Not a protocol object either — decisions 0007 R6 puts the comparison's
@@ -66,6 +72,7 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "configuration-comparison": ConfigurationComparison,
     "configuration-compatibility-policy": ConfigurationCompatibilityPolicy,
     "data-policy": DataPolicy,
+    "execution-plan": ResolvedExecutionPlan,
     "executor-identity": ExecutorIdentity,
     "experiment-baseline": ExperimentManifest,
     "experiment-candidate": ExperimentManifest,
@@ -170,6 +177,35 @@ def test_the_climb_points_at_the_committed_campaign() -> None:
     climb: ClimbManifest = load("climb")
 
     assert climb.campaign_spec_digest == digest_object(load("campaign"))
+
+
+def test_the_v02_campaign_points_at_the_committed_execution_plan() -> None:
+    campaign: CampaignSpecV2 = load("campaign-v2")
+
+    assert campaign.execution_plan_digest == digest_object(load("execution-plan"))
+
+
+def test_the_v02_campaign_restates_the_v01_scientific_contract() -> None:
+    """The two goldens must be the same experiment, or the pair proves nothing."""
+    v1: CampaignSpec = load("campaign")
+    v2: CampaignSpecV2 = load("campaign-v2")
+
+    shared = set(_CampaignScience.model_fields)
+    assert {name: getattr(v2, name) for name in shared} == {
+        name: getattr(v1, name) for name in shared
+    }
+
+
+def test_the_v02_campaign_golden_drops_what_the_plan_owns() -> None:
+    """Read off the committed bytes, not off the model."""
+    document = golden_document("campaign-v2")
+
+    assert "evaluation_backend" not in document
+    assert "verifiers_episode" not in document["evidence"]
+    assert set(document["agents"]["subject"]["harness"]) == {
+        "skills",
+        "use_bundled_skill",
+    }
 
 
 def test_the_campaign_points_at_the_committed_data_policy() -> None:
