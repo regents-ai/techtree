@@ -314,7 +314,7 @@ def _watching_payload(*, baseline: int | None, candidate: int | None):  # type: 
     from datetime import UTC, datetime
 
     from techtree.cli.commands.run import RunStatusPayload
-    from techtree.models.run import VariantProgress
+    from techtree.models.run import PublicRunState, VariantProgress
 
     progress = {}
     for name, completed in (("baseline", baseline), ("candidate", candidate)):
@@ -331,6 +331,8 @@ def _watching_payload(*, baseline: int | None, candidate: int | None):  # type: 
     return RunStatusPayload(
         run_id="run_00000000000000000000000000000001",
         phase=RunPhase.RUNNING_VARIANTS,
+        public_state=PublicRunState.RUNNING,
+        state_digest="sha256:" + "00" * 32,
         sequence=9,
         updated_at=datetime(2026, 8, 13, tzinfo=UTC),
         progress=None,

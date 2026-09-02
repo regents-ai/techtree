@@ -40,6 +40,7 @@ from techtree.models.evaluation_backend import EvaluationBackendSpec
 __all__ = [
     "ExecutorKind",
     "PolicyAcknowledgement",
+    "PublicRunState",
     "RunEvent",
     "RunPhase",
     "RunProgress",
@@ -81,6 +82,27 @@ class RunPhase(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCEL_REQUESTED = "cancel_requested"
+    CANCELLED = "cancelled"
+
+
+class PublicRunState(StrEnum):
+    """Where a run is, in the five words a caller outside Techtree is told.
+
+    ``RunPhase`` above is the run's own vocabulary and stays exactly as it is:
+    the event log records phases, the worker moves between phases, and no phase
+    is retired. This is a projection over those phases rather than a
+    replacement for them, and it exists so the public vocabulary does not have
+    to grow every time a backend adds a step to a run.
+
+    The mapping is total and is written out once, in
+    :data:`techtree.runs.machine.PUBLIC_STATE_BY_PHASE`, against the table in
+    ``docs/v0.2/MACHINE_CONTRACT.md``.
+    """
+
+    PREPARED = "prepared"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
     CANCELLED = "cancelled"
 
 

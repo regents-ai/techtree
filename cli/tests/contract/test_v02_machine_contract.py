@@ -23,7 +23,8 @@ import pytest
 import typer
 
 from techtree.cli.app import create_app
-from techtree.models.run import RunPhase
+from techtree.models.run import PublicRunState, RunPhase
+from techtree.runs.machine import public_state
 
 CLI_ROOT = Path(__file__).parents[2]
 MONOREPO_ROOT = CLI_ROOT.parent
@@ -271,6 +272,26 @@ def test_the_projection_covers_every_run_phase_exactly_once() -> None:
     assert len(projection) == len(rows) - 1, "the projection lists a phase twice"
     assert set(projection) == {phase.value for phase in RunPhase}
     assert set(projection.values()) == PUBLIC_STATES
+
+
+def test_the_cli_projects_every_phase_the_way_the_document_says() -> None:
+    """The documented table and the one the CLI uses are one table.
+
+    The test above holds the document to ``RunPhase``. This holds the code to
+    the document, so a projection that was changed in one place and not the
+    other fails rather than leaving a host agent's five states disagreeing with
+    the contract it programmed against.
+    """
+    rows = table_rows(section(contract_text(), "## The public state projection"))
+    documented = {row[0].strip("`"): row[1].strip("`") for row in rows[1:]}
+    implemented = {phase.value: public_state(phase).value for phase in RunPhase}
+
+    assert implemented == documented
+
+
+def test_the_five_public_states_are_the_ones_the_plan_names() -> None:
+    """The enum a payload carries holds exactly the contract's vocabulary."""
+    assert {state.value for state in PublicRunState} == PUBLIC_STATES
 
 
 def test_a_run_asked_to_stop_is_not_reported_as_stopped() -> None:

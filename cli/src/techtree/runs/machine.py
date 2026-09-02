@@ -32,6 +32,12 @@ admits them. Recording them as events is what keeps the projection derivable
 from the log; recording them anywhere else would make ``state.json`` hold facts
 the log cannot rebuild.
 
+Twelve phases is more vocabulary than anything outside Techtree should have to
+learn, so :func:`public_state` projects them onto the five public states the
+v0.2 machine contract speaks in. It is a projection and not a replacement: no
+phase is retired, the log is unchanged, and the detailed phase remains the
+answer to "what is this run doing".
+
 One fact deliberately does not come from events: ``heartbeat_at``. A liveness
 signal refreshed every couple of seconds would bury a run's actual history under
 thousands of lines that mean nothing after the fact, so the heartbeat is a
@@ -50,6 +56,7 @@ from techtree.errors import RunError, ValidationError
 from techtree.models.base import Digest, JsonValue
 from techtree.models.cli import CliError
 from techtree.models.run import (
+    PublicRunState,
     RunEvent,
     RunPhase,
     RunProgress,
@@ -83,11 +90,13 @@ from techtree.runs.events import (
 __all__ = [
     "ALLOWED_TRANSITIONS",
     "NORMAL_PATH",
+    "PUBLIC_STATE_BY_PHASE",
     "apply_event",
     "can_cancel",
     "initial_state",
     "is_terminal",
     "phase_progress_allowed",
+    "public_state",
     "reduce_events",
     "validate_same_phase_event",
     "validate_transition",
@@ -257,6 +266,50 @@ def phase_progress_allowed(phase: RunPhase) -> bool:
 def _named(kinds: frozenset[str]) -> str:
     """Return a list of event kinds as English, for a message a human reads."""
     return ", ".join(sorted(kinds))
+
+
+# ---------------------------------------------------------------------------
+# The public projection
+# ---------------------------------------------------------------------------
+
+
+#: What each phase is called outside Techtree. One row per phase, written out
+#: rather than derived from a rule.
+#:
+#: A rule would answer for a phase nobody had thought about, and the answer it
+#: happened to give would be the difference between telling a caller a run is
+#: still going and telling them it has stopped. Written out, a phase added
+#: without an answer here fails the build instead.
+#:
+#: ``docs/v0.2/MACHINE_CONTRACT.md`` carries the same table, and
+#: ``tests/contract/test_v02_machine_contract.py`` holds the two to each other.
+PUBLIC_STATE_BY_PHASE: Final[dict[RunPhase, PublicRunState]] = {
+    RunPhase.CREATED: PublicRunState.PREPARED,
+    RunPhase.VALIDATING_TASKSET: PublicRunState.RUNNING,
+    RunPhase.RUNNING_BASELINE: PublicRunState.RUNNING,
+    RunPhase.RUNNING_CANDIDATE: PublicRunState.RUNNING,
+    RunPhase.RUNNING_VARIANTS: PublicRunState.RUNNING,
+    RunPhase.BUILDING_RECEIPTS: PublicRunState.RUNNING,
+    RunPhase.VERIFYING_COMPARISON: PublicRunState.RUNNING,
+    RunPhase.BUILDING_REPORT: PublicRunState.RUNNING,
+    RunPhase.CANCEL_REQUESTED: PublicRunState.RUNNING,
+    RunPhase.COMPLETED: PublicRunState.COMPLETED,
+    RunPhase.FAILED: PublicRunState.FAILED,
+    RunPhase.CANCELLED: PublicRunState.CANCELLED,
+}
+
+
+def public_state(phase: RunPhase) -> PublicRunState:
+    """Return the public state a phase projects onto.
+
+    ``cancel_requested`` projects to ``running``, not to ``cancelled``.
+    Cancellation is cooperative and takes effect at a phase boundary: a run
+    that has been asked to stop has not stopped, may still be working, and may
+    still end in ``failed``. Calling it ``cancelled`` would report an outcome
+    that has not happened. That the request was made is a fact the run carries
+    — the moment it was first made — rather than a state.
+    """
+    return PUBLIC_STATE_BY_PHASE[phase]
 
 
 # ---------------------------------------------------------------------------

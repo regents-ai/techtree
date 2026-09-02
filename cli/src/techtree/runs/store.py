@@ -51,7 +51,7 @@ from techtree.fs import (
     open_exclusive,
     read_json,
 )
-from techtree.models.base import JsonValue
+from techtree.models.base import Digest, JsonValue
 from techtree.models.run import RunEvent, RunPhase, RunRequest, RunState
 from techtree.models.uplift_report import UpliftReport
 from techtree.paths import TechtreePaths
@@ -66,6 +66,7 @@ from techtree.runs.events import (
     RUN_CREATED,
     WORKER_STARTED,
     append_event,
+    event_digest,
     next_sequence,
     read_events,
 )
@@ -256,6 +257,17 @@ class RunStore:
         if cached.sequence < journal.sequence:
             return self.rebuild_state(run_id)
         return cached
+
+    def state_digest(self, run_id: str) -> Digest:
+        """Return the digest of this run's log, over its exact bytes.
+
+        The log is the truth and ``state.json`` is a cache of it, so the log's
+        digest is the only honest identity for how far a run has got. A caller
+        holding two of them knows whether anything moved without diffing two
+        projections, and without either of them having to be complete.
+        """
+        self._require_run(run_id)
+        return event_digest(self._events_path(run_id))
 
     def rebuild_state(self, run_id: str) -> RunState:
         """Recompute from events."""

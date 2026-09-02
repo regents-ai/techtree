@@ -46,6 +46,7 @@ from techtree.models.evaluation_backend import (
 from techtree.models.experiment import ManifestComparison
 from techtree.models.run import (
     PolicyAcknowledgement,
+    PublicRunState,
     RunEvent,
     RunPhase,
     RunProgress,
@@ -105,11 +106,13 @@ from techtree.runs.events import (
 )
 from techtree.runs.machine import (
     ALLOWED_TRANSITIONS,
+    PUBLIC_STATE_BY_PHASE,
     apply_event,
     can_cancel,
     initial_state,
     is_terminal,
     phase_progress_allowed,
+    public_state,
     reduce_events,
     validate_same_phase_event,
     validate_transition,
@@ -189,6 +192,25 @@ SPECIFIED_EVENT_KINDS = {
     "variant.started",
     "variant.progress",
     "variant.completed",
+}
+
+#: What each phase is called in public, written out here independently of the
+#: table the module holds, exactly as the transition table above is. A phase
+#: added to ``RunPhase`` without an answer fails here rather than picking up
+#: whatever a rule would have given it.
+EXPECTED_PUBLIC_STATES: dict[RunPhase, PublicRunState] = {
+    RunPhase.CREATED: PublicRunState.PREPARED,
+    RunPhase.VALIDATING_TASKSET: PublicRunState.RUNNING,
+    RunPhase.RUNNING_BASELINE: PublicRunState.RUNNING,
+    RunPhase.RUNNING_CANDIDATE: PublicRunState.RUNNING,
+    RunPhase.RUNNING_VARIANTS: PublicRunState.RUNNING,
+    RunPhase.BUILDING_RECEIPTS: PublicRunState.RUNNING,
+    RunPhase.VERIFYING_COMPARISON: PublicRunState.RUNNING,
+    RunPhase.BUILDING_REPORT: PublicRunState.RUNNING,
+    RunPhase.CANCEL_REQUESTED: PublicRunState.RUNNING,
+    RunPhase.COMPLETED: PublicRunState.COMPLETED,
+    RunPhase.FAILED: PublicRunState.FAILED,
+    RunPhase.CANCELLED: PublicRunState.CANCELLED,
 }
 
 #: The phases a run passes through on the way to a finished report.
@@ -534,6 +556,45 @@ def test_the_two_variant_routes_do_not_join_in_the_middle(target: RunPhase) -> N
     with pytest.raises(RunError) as raised:
         validate_transition(RunPhase.RUNNING_VARIANTS, target)
     assert raised.value.code == "run_transition_invalid"
+
+
+# ---------------------------------------------------------------------------
+# The public projection
+# ---------------------------------------------------------------------------
+
+
+def test_the_public_projection_is_the_table_written_out_here() -> None:
+    assert PUBLIC_STATE_BY_PHASE == EXPECTED_PUBLIC_STATES
+
+
+def test_every_phase_projects_onto_exactly_one_public_state() -> None:
+    """Total over the enum, and onto the five states and no sixth."""
+    assert set(PUBLIC_STATE_BY_PHASE) == set(RunPhase)
+    assert set(PUBLIC_STATE_BY_PHASE.values()) == set(PublicRunState)
+
+
+@pytest.mark.parametrize("phase", list(RunPhase))
+def test_public_state_answers_for_every_phase(phase: RunPhase) -> None:
+    assert public_state(phase) is EXPECTED_PUBLIC_STATES[phase]
+
+
+def test_a_run_asked_to_stop_is_still_running() -> None:
+    """Cancellation is cooperative: asking is not stopping."""
+    assert public_state(RunPhase.CANCEL_REQUESTED) is PublicRunState.RUNNING
+    assert public_state(RunPhase.CANCELLED) is PublicRunState.CANCELLED
+
+
+@pytest.mark.parametrize("phase", list(RunPhase))
+def test_only_a_terminal_phase_projects_onto_a_terminal_state(
+    phase: RunPhase,
+) -> None:
+    """The two vocabularies agree about whether a run has ended."""
+    ended = public_state(phase) in {
+        PublicRunState.COMPLETED,
+        PublicRunState.FAILED,
+        PublicRunState.CANCELLED,
+    }
+    assert ended is is_terminal(phase)
 
 
 # ---------------------------------------------------------------------------

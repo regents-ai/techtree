@@ -438,14 +438,24 @@ build.
 
 ### What the handlers do not do yet
 
-Five places where this contract describes behavior the cited handler does not
-have today. They are listed so an implementer sizes them rather than discovers
-them, and so no reader mistakes a described operation for an implemented one.
+Five places where this contract described behavior the cited handler did not
+have when it was frozen. They are listed so an implementer sizes them rather
+than discovers them, and so no reader mistakes a described operation for an
+implemented one. An item a work package has since delivered says so in place
+and keeps its number, so a reference to "item 3" means the same item it always
+did.
 
-1. **`run.wait` has no waiting option.** `status_run_command` takes a run id
-   and `--watch`, which is human-only and refused in machine mode. The bounded
-   `timeout_seconds` option this contract requires does not exist and is WP1
-   scope. Nothing in the CLI waits for a machine caller today.
+1. **`run.wait` waits, as of WP1.4.** `status_run_command` takes the bounded
+   `timeout_seconds` option this contract requires, alongside the digest a
+   caller last saw, and blocks until the run's durable state moves past it, the
+   run reaches a terminal public state, or the bound expires. `--watch` is
+   unchanged: still human-only, still refused in machine mode, and refused
+   beside a bounded wait rather than silently taking precedence over one.
+   Waiting is asked for and never assumed, so a plain `run status` still
+   answers about now. Two pieces of this belong to WP1.6 and are not done: the
+   envelope still reports the command path rather than naming `run.wait` as the
+   operation that answered, and `state_digest` is carried on the status payload
+   rather than on the envelope where this contract puts it.
 2. **`run.reconcile` has only its local half.** Recomputing durable state from
    the append-only log is real and already happens on every `run status`. The
    remote arm — the `submitting` / `identified` / `reconciliation_required` /

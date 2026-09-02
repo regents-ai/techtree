@@ -33,6 +33,7 @@ reserves that for an explicit reconciliation path.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
@@ -41,7 +42,10 @@ from pathlib import Path
 from typing import Final, Literal
 
 from techtree.canonical import digest_object, to_json_value
-from techtree.constants import DEFAULT_STALE_HEARTBEAT_SECONDS
+from techtree.constants import (
+    DEFAULT_STALE_HEARTBEAT_SECONDS,
+    DEFAULT_WORKER_HEARTBEAT_SECONDS,
+)
 from techtree.drafts.store import (
     DraftSnapshot,
     DraftStartRecord,
@@ -60,6 +64,7 @@ from techtree.errors import (
     error_to_cli_error,
 )
 from techtree.ids import new_id
+from techtree.models.base import Digest
 from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
 from techtree.models.run import (
     PolicyAcknowledgement,
@@ -90,15 +95,19 @@ __all__ = [
     "ACKNOWLEDGEMENT_METHODS",
     "APPROVAL_ACTORS",
     "DEFAULT_LOG_TAIL",
+    "DEFAULT_WAIT_TIMEOUT_SECONDS",
     "DRAFT_ALREADY_STARTED",
     "MAXIMUM_LOG_TAIL",
+    "MAXIMUM_WAIT_TIMEOUT_SECONDS",
     "MINIMUM_LOG_TAIL",
+    "MINIMUM_WAIT_TIMEOUT_SECONDS",
     "POLICY_ACCEPTANCE_DIGEST_MISMATCH",
     "POLICY_ACCEPTANCE_METHOD_INVALID",
     "POLICY_ACCEPTANCE_REQUIRED",
     "RUN_LOGS_UNAVAILABLE",
     "RUN_RESULT_DIGEST_MISMATCH",
     "RUN_RESULT_NOT_READY",
+    "RUN_WAIT_TIMEOUT_OUT_OF_RANGE",
     "ApprovalActor",
     "CancellationOutcome",
     "ProcessHealth",
@@ -115,6 +124,7 @@ POLICY_ACCEPTANCE_METHOD_INVALID: Final = "policy_acceptance_method_invalid"
 RUN_RESULT_NOT_READY: Final = "run_result_not_ready"
 RUN_RESULT_DIGEST_MISMATCH: Final = "run_result_digest_mismatch"
 RUN_LOGS_UNAVAILABLE: Final = "run_logs_unavailable"
+RUN_WAIT_TIMEOUT_OUT_OF_RANGE: Final = "run_wait_timeout_out_of_range"
 
 type ApprovalActor = Literal["human_via_cli", "operator_via_flag", "human_via_hermes"]
 """Who gave the approval this run records.
@@ -163,6 +173,29 @@ ACKNOWLEDGEMENT_METHODS: Final[frozenset[str]] = frozenset(ACTORS_BY_METHOD)
 DEFAULT_LOG_TAIL: Final = 200
 MINIMUM_LOG_TAIL: Final = 1
 MAXIMUM_LOG_TAIL: Final = 5000
+
+#: The bounds of a bounded wait, in seconds. ``docs/v0.2/MACHINE_CONTRACT.md``
+#: section "Bounded ``run.wait``" fixes both numbers here and nowhere else.
+#:
+#: The ceiling is not arbitrary. The Hermes bridge runs the CLI under a
+#: 120-second subprocess timeout (``plugin/cli/constants.py``,
+#: ``DEFAULT_CLI_TIMEOUT_SECONDS``), and stopping at 90 leaves the host's own
+#: timeout as the thing that never fires first — so a wait that expires is
+#: always Techtree's answer rather than the host's guess. Asking for longer is
+#: a usage error rather than a request quietly cut down to size, because a
+#: caller that believed it had two minutes and silently got ninety seconds
+#: would read the difference as the run having stalled.
+#:
+#: The floor is this build's, not the contract's, which states a default and a
+#: maximum only. It is one second rather than zero because a wait of zero is
+#: not a shorter wait, it is a different request — read the run once and answer
+#: — and that request is ``run status`` with no wait asked for at all. Spelling
+#: it as a bound of zero, or of minus thirty, would be a second way to say
+#: something the command already says plainly, so it is refused as a usage
+#: error rather than quietly accepted as a synonym.
+DEFAULT_WAIT_TIMEOUT_SECONDS: Final = 30
+MINIMUM_WAIT_TIMEOUT_SECONDS: Final = 1
+MAXIMUM_WAIT_TIMEOUT_SECONDS: Final = 90
 
 type CancellationOutcome = Literal["requested", "already_requested", "already_terminal"]
 
@@ -471,6 +504,76 @@ class RunService:
     def request(self, run_id: str) -> RunRequest:
         """Return the immutable request this run executes."""
         return self._runs.get_request(run_id)
+
+    def state_digest(self, run_id: str) -> Digest:
+        """Return the digest of the durable state an answer was read from."""
+        return self._runs.state_digest(run_id)
+
+    def wait(
+        self,
+        run_id: str,
+        *,
+        timeout_seconds: int = DEFAULT_WAIT_TIMEOUT_SECONDS,
+        since_state_digest: Digest | None = None,
+        monotonic: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        """Block until this run moves past ``since_state_digest``, ends, or time is up.
+
+        A caller that has already read the run passes the digest it read; one
+        that has not gets the state at the first look as its baseline, which is
+        the same question asked about the moment it asked.
+
+        Nothing is returned. The caller reads the run afterwards exactly as it
+        would have without waiting, so waiting bounds *when* the answer is
+        taken and changes nothing about the answer itself — including when the
+        bound expires, which is an ordinary return and not a failure. Whether
+        anything actually moved is the caller's comparison of two digests, not
+        a flag this can set on its behalf.
+
+        Nothing is left running. This is a loop inside one invocation, and the
+        invocation ends before the process does; the run is a detached worker
+        that was already surviving without it. Nor is the log read in a tight
+        loop: the worker's heartbeat interval is the fastest rate at which
+        anything new can exist to be seen, so it is the fastest rate this
+        looks.
+        """
+        self._require_wait_within_bounds(run_id, timeout_seconds)
+        baseline = (
+            self._runs.state_digest(run_id)
+            if since_state_digest is None
+            else since_state_digest
+        )
+        deadline = monotonic() + timeout_seconds
+
+        while True:
+            if self._runs.state_digest(run_id) != baseline:
+                return
+            if is_terminal(self._runs.state(run_id).phase):
+                return
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                return
+            sleep(min(DEFAULT_WORKER_HEARTBEAT_SECONDS, remaining))
+
+    def _require_wait_within_bounds(self, run_id: str, timeout_seconds: int) -> None:
+        """Refuse a bound outside the contract's, before anything is read."""
+        if (
+            timeout_seconds < MINIMUM_WAIT_TIMEOUT_SECONDS
+            or timeout_seconds > MAXIMUM_WAIT_TIMEOUT_SECONDS
+        ):
+            raise UsageError(
+                f"a wait is between {MINIMUM_WAIT_TIMEOUT_SECONDS} and "
+                f"{MAXIMUM_WAIT_TIMEOUT_SECONDS} seconds; {timeout_seconds} is "
+                "outside that",
+                code=RUN_WAIT_TIMEOUT_OUT_OF_RANGE,
+                details={
+                    "run_id": run_id,
+                    "timeout_seconds": timeout_seconds,
+                    "minimum": MINIMUM_WAIT_TIMEOUT_SECONDS,
+                    "maximum": MAXIMUM_WAIT_TIMEOUT_SECONDS,
+                },
+            )
 
     def process_health(self, run_id: str) -> ProcessHealth:
         """Return what the host knows about this run's worker process."""

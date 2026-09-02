@@ -17,6 +17,13 @@ true of every reading, bounded and followed alike. What comes back is a window
 rather than the file, and the response never contains the log's path: handing
 an agent a filename is handing it an invitation to read something else.
 
+*Waiting is bounded and adds nothing to the answer.* ``run status`` answers
+about now. Given ``--timeout-seconds`` or ``--since-state-digest`` it waits
+first — for the run to move past the state the caller last saw, for it to end,
+or for the bound to expire — and then answers about now anyway. An expired wait
+is an ordinary answer, and the caller tells the two apart by comparing the
+state digest it passed with the one it gets back.
+
 *Cancelling is a mutation and is treated as one.* A person is asked; a program
 must pass ``--confirm``. Possession of a run identifier is not intent to stop
 the run.
@@ -39,6 +46,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from techtree.canonical import validate_digest
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
@@ -49,7 +57,12 @@ from techtree.identity.models import VerificationResult
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
 from techtree.models.cli import CliError, CliMessage, MessageLevel, NextAction
 from techtree.models.experiment import ExperimentVariant
-from techtree.models.run import RunPhase, RunProgress, VariantProgress
+from techtree.models.run import (
+    PublicRunState,
+    RunPhase,
+    RunProgress,
+    VariantProgress,
+)
 from techtree.models.uplift_report import UpliftReport
 from techtree.presentation.build import build_uplift_presentation
 from techtree.presentation.compact import render_uplift_markdown
@@ -73,11 +86,14 @@ from techtree.runs.launcher import (
     default_worker_executable,
     scrubbed_worker_environment,
 )
-from techtree.runs.machine import is_terminal
+from techtree.runs.machine import is_terminal, public_state
 from techtree.runs.service import (
     DEFAULT_LOG_TAIL,
+    DEFAULT_WAIT_TIMEOUT_SECONDS,
     MAXIMUM_LOG_TAIL,
+    MAXIMUM_WAIT_TIMEOUT_SECONDS,
     MINIMUM_LOG_TAIL,
+    MINIMUM_WAIT_TIMEOUT_SECONDS,
     RunService,
 )
 from techtree.runs.store import RunStore
@@ -94,6 +110,7 @@ __all__ = [
     "RUN_FOLLOW_NOT_SUPPORTED_FOR_VARIANT",
     "RUN_FOLLOW_NOT_SUPPORTED_IN_JSON",
     "RUN_WATCH_NOT_SUPPORTED_IN_JSON",
+    "RUN_WATCH_NOT_SUPPORTED_WITH_WAIT",
     "SCORE_PROVISIONAL_NOTICE",
     "STATUS_COMMAND",
     "ResultFormat",
@@ -120,6 +137,7 @@ RESULT_COMMAND: Final = "run result"
 RUN_FOLLOW_NOT_SUPPORTED_IN_JSON: Final = "run_follow_not_supported_in_json"
 RUN_FOLLOW_NOT_SUPPORTED_FOR_VARIANT: Final = "run_follow_not_supported_for_variant"
 RUN_WATCH_NOT_SUPPORTED_IN_JSON: Final = "run_watch_not_supported_in_json"
+RUN_WATCH_NOT_SUPPORTED_WITH_WAIT: Final = "run_watch_not_supported_with_wait"
 CANCEL_CONFIRMATION_REQUIRED: Final = "run_cancel_confirmation_required"
 
 #: What every reader of a fake result is told before they read anything else.
@@ -183,6 +201,16 @@ class RunStatusPayload(ProtocolModel):
 
     run_id: NonEmptyString
     phase: RunPhase
+    #: The same run in the five words the v0.2 machine contract speaks. It is a
+    #: projection of ``phase`` and never disagrees with it: a caller that only
+    #: has to decide whether to keep waiting reads this, and one that wants to
+    #: know what the run is actually doing reads the phase.
+    public_state: PublicRunState
+    #: The digest of the durable state this answer was read from — the run's
+    #: event log, over its exact bytes. Two answers carrying the same digest
+    #: were read from the same state, which is how a caller tells a wait that
+    #: expired from one that ended because the run moved.
+    state_digest: Digest
     sequence: int
     updated_at: UtcDateTime
     progress: RunProgress | None
@@ -289,11 +317,40 @@ def status_run_command(
             help="Keep reporting until the run ends. Human output only.",
         ),
     ] = False,
+    timeout_seconds: Annotated[
+        int | None,
+        typer.Option(
+            "--timeout-seconds",
+            metavar="SECONDS",
+            help=(
+                "Wait up to this long for the run to change before answering, "
+                f"from {MINIMUM_WAIT_TIMEOUT_SECONDS} to "
+                f"{MAXIMUM_WAIT_TIMEOUT_SECONDS} seconds "
+                f"(default {DEFAULT_WAIT_TIMEOUT_SECONDS} when waiting)."
+            ),
+        ),
+    ] = None,
+    since_state_digest: Annotated[
+        str | None,
+        typer.Option(
+            "--since-state-digest",
+            metavar="DIGEST",
+            help=(
+                "Wait until the run's state differs from this one, which is "
+                "the state digest of an earlier answer."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Show how a run is progressing."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[RunStatusPayload]:
+        # Waiting is asked for, never assumed: without either option this
+        # answers about now, which is what every existing caller of `run
+        # status` is waiting on the process for.
+        waiting = timeout_seconds is not None or since_state_digest is not None
+
         if watch and context.json_output:
             raise UsageError(
                 "--watch prints repeatedly and machine mode returns one "
@@ -301,8 +358,31 @@ def status_run_command(
                 code=RUN_WATCH_NOT_SUPPORTED_IN_JSON,
                 details={"run_id": run_id},
             )
+        if watch and waiting:
+            raise UsageError(
+                "--watch prints until the run ends and a bounded wait answers "
+                "once; ask for one or the other",
+                code=RUN_WATCH_NOT_SUPPORTED_WITH_WAIT,
+                details={"run_id": run_id},
+            )
 
         service = build_run_service(context)
+        if waiting:
+            _wait_for_the_run(
+                service,
+                run_id,
+                context,
+                timeout_seconds=(
+                    DEFAULT_WAIT_TIMEOUT_SECONDS
+                    if timeout_seconds is None
+                    else timeout_seconds
+                ),
+                since_state_digest=(
+                    None
+                    if since_state_digest is None
+                    else validate_digest(since_state_digest)
+                ),
+            )
         payload = (
             _watch_until_terminal(service, run_id, context)
             if watch
@@ -317,13 +397,57 @@ def status_run_command(
     invoke_command(context, STATUS_COMMAND, action, render_data=_render_status)
 
 
+def _wait_for_the_run(
+    service: RunService,
+    run_id: str,
+    context: CliContext,
+    *,
+    timeout_seconds: int,
+    since_state_digest: Digest | None,
+) -> None:
+    """Wait for the run, treating a reader who stops waiting as an answer.
+
+    ``Ctrl-C`` stops the waiting and never the run, which is the rule
+    ``--watch`` and ``--follow`` already follow. What comes back afterwards is
+    the ordinary answer about the run as it is now — the same answer a wait
+    that ran out of time gives, and for the same reason: the caller asked to
+    stop waiting, not to be told that something went wrong.
+
+    The line saying so is for a person. Machine mode writes one object and
+    nothing else, and a caller reading JSON learns the same thing from the
+    state digest it gets back.
+    """
+    try:
+        service.wait(
+            run_id,
+            timeout_seconds=timeout_seconds,
+            since_state_digest=since_state_digest,
+        )
+    except KeyboardInterrupt:
+        if not context.json_output:
+            human_console(no_color=context.no_color).print(
+                "Stopped waiting. The run is unaffected."
+            )
+
+
 def _status_payload(service: RunService, run_id: str) -> RunStatusPayload:
+    # The digest is read first, and deliberately. A run advances while it is
+    # being read, so the two reads can land either side of an event, and only
+    # one of the two orders is harmless. A digest older than the phase beside
+    # it understates what the caller has seen: they wait again and are told
+    # about the move a second time. A digest read *after* the state would name
+    # a moment the reported phase had already been left, and a caller that
+    # recorded it as seen would then wait for a transition it had been given a
+    # stale name for and never hear about it again.
+    state_digest = service.state_digest(run_id)
     status = service.status(run_id)
     health = service.process_health(run_id)
     state = status.state
     return RunStatusPayload(
         run_id=state.run_id,
         phase=state.phase,
+        public_state=public_state(state.phase),
+        state_digest=state_digest,
         sequence=state.sequence,
         updated_at=state.updated_at,
         progress=state.progress,
