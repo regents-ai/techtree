@@ -29,6 +29,10 @@ from techtree.models.campaign import CampaignSpec
 from techtree.models.catalog import CatalogIndex, ClimbSummary, CompatibilityResult
 from techtree.models.cli import CliEnvelope
 from techtree.models.climb import ClimbManifest
+from techtree.models.compatibility import (
+    ConfigurationComparison,
+    ConfigurationCompatibilityPolicy,
+)
 from techtree.models.data_policy import DataPolicy
 from techtree.models.engine import EngineDescriptor
 from techtree.models.episode_receipt import EpisodeReceipt
@@ -71,6 +75,8 @@ def schema_models() -> dict[str, type[BaseModel]]:
         "climb": ClimbManifest,
         "climb-summary": ClimbSummary,
         "compatibility-result": CompatibilityResult,
+        "configuration-comparison": ConfigurationComparison,
+        "configuration-compatibility-policy": ConfigurationCompatibilityPolicy,
         "data-policy": DataPolicy,
         "engine": EngineDescriptor,
         "episode-receipt": EpisodeReceipt,

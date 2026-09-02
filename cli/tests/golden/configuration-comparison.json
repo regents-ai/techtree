@@ -1,0 +1,12 @@
+{
+  "candidate_campaign_digest": "sha256:99a3dd02c6cd125cd5baabf74227ceec1b772e6e4be44383fd80bc1c341ad12d",
+  "compatibility": "compatible_with_declared_drift",
+  "observed_drift_paths": [
+    "/agents/subject/harness/id",
+    "/agents/subject/harness/version",
+    "/metadata/id",
+    "/metadata/version"
+  ],
+  "policy_digest": "sha256:d8a24a003da285abb6e179315145baa980a0f5ac75231f2f9add165513824103",
+  "source_campaign_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1"
+}

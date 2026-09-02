@@ -31,7 +31,13 @@ from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pydantic import BaseModel
 
-from techtree.canonical import digest_object, sha256_digest_bytes, to_json_value
+from techtree.canonical import (
+    canonical_json_text,
+    digest_object,
+    sha256_digest_bytes,
+    to_json_value,
+)
+from techtree.compatibility import compare_campaign_configurations
 from techtree.constants import (
     CAMPAIGN_SCHEMA_VERSION,
     CLI_SCHEMA_VERSION,
@@ -101,6 +107,11 @@ from techtree.models.climb import (
     ClimbMetadata,
     LeaderboardPolicy,
     PublicationPolicy,
+)
+from techtree.models.compatibility import (
+    COMPARISON_ALGORITHM,
+    ConfigurationComparison,
+    ConfigurationCompatibilityPolicy,
 )
 from techtree.models.data_policy import (
     CandidateSkillPolicy,
@@ -453,6 +464,99 @@ def build_campaign(data_policy_digest: Digest, receipt_digest: Digest) -> Campai
         ),
         data_policy_digest=data_policy_digest,
     )
+
+
+#: What a Fabric-hosted rerun of the development Campaign is permitted to
+#: change: which harness runs the subject, and the Campaign's own identity.
+#: Nothing else may differ, and that is the allowed-drift list's doing — it is
+#: exhaustive, so any other difference is undeclared and incompatible. The
+#: required-equal list below names the scientific fields explicitly rather
+#: than exhaustively, so that what a parity study is claiming to hold fixed is
+#: legible in the policy document instead of only implied by an absence.
+PARITY_HARNESS_ID = "fabric-hermes-agent"
+PARITY_HARNESS_VERSION = "0.19.0+fabric.1"
+PARITY_ALLOWED_DRIFT_PATHS = (
+    "/agents/subject/harness/id",
+    "/agents/subject/harness/version",
+    "/metadata/id",
+    "/metadata/version",
+)
+PARITY_REQUIRED_EQUAL_PATHS = (
+    "/agents/subject/model",
+    "/agents/subject/runtime",
+    "/agents/subject/sampling",
+    "/data_policy_digest",
+    "/environment",
+    "/evaluation_backend",
+    "/evidence",
+    "/execution",
+    "/mutation_contract",
+    "/scoring",
+    "/taskset",
+)
+
+
+def build_parity_candidate_campaign(source: CampaignSpec) -> CampaignSpec:
+    """Return the second Campaign of the backend-parity pair.
+
+    The same experiment run under a different subject harness. It is built by
+    validating a modified copy rather than by assembling a second Campaign by
+    hand, so anything the source Campaign gains later is carried here too and
+    the pair cannot drift apart by omission.
+    """
+    subject = source.agents[SUBJECT_AGENT]
+    candidate = source.model_copy(
+        update={
+            "metadata": source.metadata.model_copy(
+                update={
+                    "id": fixture_id("campaign", "parity-candidate-campaign"),
+                    "version": source.metadata.version + 1,
+                }
+            ),
+            "agents": {
+                SUBJECT_AGENT: subject.model_copy(
+                    update={
+                        "harness": subject.harness.model_copy(
+                            update={
+                                "id": PARITY_HARNESS_ID,
+                                "version": PARITY_HARNESS_VERSION,
+                            }
+                        )
+                    }
+                )
+            },
+        }
+    )
+    # ``model_copy`` does not validate. Re-reading the copy the way a stored
+    # document is read is what proves the golden is a Campaign and not just a
+    # Campaign-shaped object.
+    return CampaignSpec.model_validate_json(canonical_json_text(candidate))
+
+
+def build_compatibility_policy(
+    source_campaign_digest: Digest,
+) -> ConfigurationCompatibilityPolicy:
+    """Return the parity policy the two Campaigns are compared under."""
+    return ConfigurationCompatibilityPolicy(
+        purpose="backend_parity",
+        source_campaign_digest=source_campaign_digest,
+        required_equal_paths=tuple(sorted(PARITY_REQUIRED_EQUAL_PATHS)),
+        allowed_drift_paths=tuple(sorted(PARITY_ALLOWED_DRIFT_PATHS)),
+        comparison_algorithm=COMPARISON_ALGORITHM,
+    )
+
+
+def build_configuration_comparison(
+    policy: ConfigurationCompatibilityPolicy,
+    source: CampaignSpec,
+    candidate: CampaignSpec,
+) -> ConfigurationComparison:
+    """Return the comparison, computed rather than transcribed.
+
+    The golden is the real output of the real function, so a change in what the
+    comparison concludes shows up here as a diff a reviewer can read.
+    """
+    return compare_campaign_configurations(policy, source, candidate)
 
 
 def build_climb(campaign_digest: Digest) -> ClimbManifest:
@@ -1160,6 +1264,9 @@ def golden_objects() -> dict[str, BaseModel]:
     climb = build_climb(campaign_digest)
     climb_digest = digest_object(climb)
 
+    parity_candidate = build_parity_candidate_campaign(campaign)
+    compatibility_policy = build_compatibility_policy(campaign_digest)
+
     skill = build_skill_artifact()
     candidate_skill = ArtifactRef(
         digest=skill.archive_digest,
@@ -1204,6 +1311,7 @@ def golden_objects() -> dict[str, BaseModel]:
 
     return {
         "campaign": campaign,
+        "campaign-parity-candidate": parity_candidate,
         "climb": climb,
         "cli-envelope": build_cli_envelope(summary),
         "data-policy": data_policy,
@@ -1224,6 +1332,10 @@ def golden_objects() -> dict[str, BaseModel]:
             real_report, real_receipt, campaign, skill
         ),
         "comparison-execution": real_execution,
+        "configuration-comparison": build_configuration_comparison(
+            compatibility_policy, campaign, parity_candidate
+        ),
+        "configuration-compatibility-policy": compatibility_policy,
         "presentation-payload": build_presentation_payload(
             real_report, real_receipt, skill, climb, real_execution, campaign
         ),

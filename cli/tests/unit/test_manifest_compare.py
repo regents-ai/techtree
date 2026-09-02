@@ -40,8 +40,6 @@ from techtree.manifests.compare import (
     assert_controlled_comparison,
     compare_manifests,
     diff_values,
-    json_pointer_escape,
-    pointer_is_within,
 )
 from techtree.models.base import ArtifactRef, JsonValue
 from techtree.models.campaign import (
@@ -57,6 +55,7 @@ from techtree.models.experiment import (
     ManifestComparison,
 )
 from techtree.models.skill import SkillArtifact, SkillFile
+from techtree.pointers import json_pointer_escape, pointer_is_within
 
 PINNED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 

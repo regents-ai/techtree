@@ -1,0 +1,24 @@
+{
+  "allowed_drift_paths": [
+    "/agents/subject/harness/id",
+    "/agents/subject/harness/version",
+    "/metadata/id",
+    "/metadata/version"
+  ],
+  "comparison_algorithm": "rfc6901_json_pointer_v1",
+  "purpose": "backend_parity",
+  "required_equal_paths": [
+    "/agents/subject/model",
+    "/agents/subject/runtime",
+    "/agents/subject/sampling",
+    "/data_policy_digest",
+    "/environment",
+    "/evaluation_backend",
+    "/evidence",
+    "/execution",
+    "/mutation_contract",
+    "/scoring",
+    "/taskset"
+  ],
+  "source_campaign_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1"
+}

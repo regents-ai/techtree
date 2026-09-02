@@ -26,12 +26,17 @@ import pytest
 from pydantic import BaseModel
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
+from techtree.compatibility import compare_campaign_configurations
 from techtree.identity.models import ExecutorIdentity
 from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import CampaignSpec
 from techtree.models.catalog import ClimbSummary
 from techtree.models.cli import CliEnvelope
 from techtree.models.climb import ClimbManifest
+from techtree.models.compatibility import (
+    ConfigurationComparison,
+    ConfigurationCompatibilityPolicy,
+)
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EpisodeReceipt
 from techtree.models.experiment import ExperimentManifest, ExperimentVariant
@@ -49,12 +54,17 @@ GOLDEN_DIRECTORY = REPOSITORY_ROOT / "tests" / "golden"
 #: reviewer should be able to read in a diff.
 GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "campaign": CampaignSpec,
+    # The second Campaign of the backend-parity pair. Two immutable Campaigns
+    # are what a parity study compares, so the golden set holds both of them.
+    "campaign-parity-candidate": CampaignSpec,
     "cli-envelope": CliEnvelope[ClimbSummary],
     "climb": ClimbManifest,
     # Not a protocol object either — decisions 0007 R6 puts the comparison's
     # operational record outside the frozen v0.1 protocol — and a golden for
     # the same reason: presentation and the plugin both read this shape.
     "comparison-execution": ComparisonExecutionRecord,
+    "configuration-comparison": ConfigurationComparison,
+    "configuration-compatibility-policy": ConfigurationCompatibilityPolicy,
     "data-policy": DataPolicy,
     "executor-identity": ExecutorIdentity,
     "experiment-baseline": ExperimentManifest,
@@ -188,6 +198,58 @@ def test_the_lock_and_the_campaign_commit_to_the_same_tasks() -> None:
 
     assert lock.ordered_task_hashes == campaign.taskset.membership.ordered_task_hashes
     assert lock.membership_digest == campaign.taskset.membership.membership_digest
+
+
+def test_the_compatibility_policy_names_the_committed_campaign() -> None:
+    policy: ConfigurationCompatibilityPolicy = load(
+        "configuration-compatibility-policy"
+    )
+
+    assert policy.source_campaign_digest == digest_object(load("campaign"))
+    assert policy.purpose == "backend_parity"
+
+
+def test_the_committed_comparison_is_the_one_the_comparator_computes() -> None:
+    """The golden is the real output, so it cannot drift from the function."""
+    policy: ConfigurationCompatibilityPolicy = load(
+        "configuration-compatibility-policy"
+    )
+    stored: ConfigurationComparison = load("configuration-comparison")
+
+    recomputed = compare_campaign_configurations(
+        policy, load("campaign"), load("campaign-parity-candidate")
+    )
+
+    assert recomputed == stored
+
+
+def test_the_comparison_names_the_committed_policy_and_both_campaigns() -> None:
+    comparison: ConfigurationComparison = load("configuration-comparison")
+
+    assert comparison.policy_digest == digest_object(
+        load("configuration-compatibility-policy")
+    )
+    assert comparison.source_campaign_digest == digest_object(load("campaign"))
+    assert comparison.candidate_campaign_digest == digest_object(
+        load("campaign-parity-candidate")
+    )
+
+
+def test_the_parity_pair_drifts_only_where_the_policy_allows() -> None:
+    """Spec: the two Campaigns are the same experiment on a second harness."""
+    comparison: ConfigurationComparison = load("configuration-comparison")
+    policy: ConfigurationCompatibilityPolicy = load(
+        "configuration-compatibility-policy"
+    )
+    source: CampaignSpec = load("campaign")
+    candidate: CampaignSpec = load("campaign-parity-candidate")
+
+    assert comparison.compatibility == "compatible_with_declared_drift"
+    assert set(comparison.observed_drift_paths) <= set(policy.allowed_drift_paths)
+    assert source.subject.harness.id != candidate.subject.harness.id
+    assert source.subject.model == candidate.subject.model
+    assert source.taskset == candidate.taskset
+    assert source.data_policy_digest == candidate.data_policy_digest
 
 
 def test_both_experiments_reference_the_same_campaign_and_policy() -> None:

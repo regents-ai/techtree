@@ -1,0 +1,57 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "JsonPointer": {
+      "pattern": "^(?:/(?:[^/~]|~[01])*)+$",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/configuration-compatibility-policy.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The declared rules a candidate Campaign is judged against.",
+  "properties": {
+    "allowed_drift_paths": {
+      "items": {
+        "$ref": "#/$defs/JsonPointer"
+      },
+      "title": "Allowed Drift Paths",
+      "type": "array"
+    },
+    "comparison_algorithm": {
+      "const": "rfc6901_json_pointer_v1",
+      "title": "Comparison Algorithm",
+      "type": "string"
+    },
+    "purpose": {
+      "enum": [
+        "reproduction",
+        "backend_parity"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "required_equal_paths": {
+      "items": {
+        "$ref": "#/$defs/JsonPointer"
+      },
+      "title": "Required Equal Paths",
+      "type": "array"
+    },
+    "source_campaign_digest": {
+      "$ref": "#/$defs/Digest"
+    }
+  },
+  "required": [
+    "purpose",
+    "source_campaign_digest",
+    "required_equal_paths",
+    "allowed_drift_paths",
+    "comparison_algorithm"
+  ],
+  "title": "ConfigurationCompatibilityPolicy",
+  "type": "object"
+}

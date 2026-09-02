@@ -31,6 +31,8 @@ EXPECTED_SCHEMAS = {
     "climb",
     "climb-summary",
     "compatibility-result",
+    "configuration-comparison",
+    "configuration-compatibility-policy",
     "data-policy",
     "engine",
     "episode-receipt",

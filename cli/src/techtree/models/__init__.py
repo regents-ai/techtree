@@ -90,6 +90,12 @@ from techtree.models.climb import (
     ResolvedClimb,
     check_climb_policy_consistency,
 )
+from techtree.models.compatibility import (
+    CompatibilityVerdict,
+    ConfigurationComparison,
+    ConfigurationCompatibilityPolicy,
+    JsonPointer,
+)
 from techtree.models.data_policy import (
     CandidateSkillPolicy,
     DataOwner,
@@ -193,6 +199,9 @@ __all__ = [
     "ComparisonStatus",
     "CompatibilityIssue",
     "CompatibilityResult",
+    "CompatibilityVerdict",
+    "ConfigurationComparison",
+    "ConfigurationCompatibilityPolicy",
     "DataOwner",
     "DataPolicy",
     "DataPolicySummary",
@@ -218,6 +227,7 @@ __all__ = [
     "HarnessSpec",
     "HostPlatform",
     "JsonDifference",
+    "JsonPointer",
     "JsonScalar",
     "JsonValue",
     "LeaderboardPolicy",

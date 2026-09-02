@@ -1,0 +1,54 @@
+{
+  "$defs": {
+    "CompatibilityVerdict": {
+      "enum": [
+        "exact_configuration",
+        "compatible_with_declared_drift",
+        "incompatible"
+      ],
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "JsonPointer": {
+      "pattern": "^(?:/(?:[^/~]|~[01])*)+$",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/configuration-comparison.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What comparing two Campaigns under one policy found.",
+  "properties": {
+    "candidate_campaign_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/CompatibilityVerdict"
+    },
+    "observed_drift_paths": {
+      "items": {
+        "$ref": "#/$defs/JsonPointer"
+      },
+      "title": "Observed Drift Paths",
+      "type": "array"
+    },
+    "policy_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "source_campaign_digest": {
+      "$ref": "#/$defs/Digest"
+    }
+  },
+  "required": [
+    "policy_digest",
+    "source_campaign_digest",
+    "candidate_campaign_digest",
+    "observed_drift_paths",
+    "compatibility"
+  ],
+  "title": "ConfigurationComparison",
+  "type": "object"
+}

@@ -61,32 +61,21 @@ from techtree.models.experiment import (
     JsonDifference,
     ManifestComparison,
 )
+from techtree.pointers import (
+    POINTER_SEPARATOR,
+    json_pointer_escape,
+    pointer_is_within,
+)
 
 __all__ = [
     "MANIFEST_COMPARISON_INVALID",
-    "POINTER_SEPARATOR",
     "assert_controlled_comparison",
     "compare_manifests",
     "diff_values",
-    "json_pointer_escape",
-    "pointer_is_within",
 ]
-
-#: RFC 6901 separates reference tokens with a solidus and gives it no other
-#: meaning, which is why a token containing one has to be escaped.
-POINTER_SEPARATOR: Final = "/"
 
 #: The one error code an uncontrolled comparison reports. Spec PR6 §6.10.
 MANIFEST_COMPARISON_INVALID: Final = "manifest_comparison_invalid"
-
-
-def json_pointer_escape(segment: str) -> str:
-    """Escape ``~`` as ``~0`` and ``/`` as ``~1``.
-
-    In that order: escaping the solidus first would turn its replacement's
-    tilde into a second escape.
-    """
-    return segment.replace("~", "~0").replace(POINTER_SEPARATOR, "~1")
 
 
 def diff_values(
@@ -113,18 +102,6 @@ def diff_values(
     if _same_scalar(baseline, candidate):
         return []
     return [_difference(pointer, baseline, candidate)]
-
-
-def pointer_is_within(pointer: str, allowed_root: str) -> bool:
-    """Return whether a pointer is the allowed root or descends from it.
-
-    ``/agents/subject/harness/skills_extra`` is not within
-    ``/agents/subject/harness/skills``: containment is a boundary between
-    reference tokens, not a string prefix.
-    """
-    return pointer == allowed_root or pointer.startswith(
-        f"{allowed_root}{POINTER_SEPARATOR}"
-    )
 
 
 def compare_manifests(
