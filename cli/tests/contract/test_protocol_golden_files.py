@@ -26,6 +26,7 @@ from typing import Any
 
 import pytest
 from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
 from techtree.compatibility import compare_campaign_configurations
@@ -41,7 +42,7 @@ from techtree.models.campaign import (
     CampaignSpecV2,
     _CampaignScience,
 )
-from techtree.models.catalog import ClimbSummary
+from techtree.models.catalog import ClimbSummary, ClimbSummaryV2
 from techtree.models.cli import CliEnvelope
 from techtree.models.climb import ClimbManifest
 from techtree.models.compatibility import (
@@ -49,7 +50,7 @@ from techtree.models.compatibility import (
     ConfigurationCompatibilityPolicy,
 )
 from techtree.models.data_policy import DataPolicy
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceipt, EpisodeReceiptV2
 from techtree.models.evidence import (
     ArtifactIntegrityStatus,
     ComparisonValidityStatus,
@@ -61,9 +62,14 @@ from techtree.models.evidence import (
     may_headline_uplift,
 )
 from techtree.models.execution_plan import ResolvedExecutionPlan
-from techtree.models.experiment import ExperimentManifest, ExperimentVariant
+from techtree.models.experiment import (
+    ExperimentManifest,
+    ExperimentManifestV2,
+    ExperimentVariant,
+)
+from techtree.models.run import RunRequestV2
 from techtree.models.skill import SkillArtifact
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReport, UpliftReportV2
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
 from techtree.presentation.models import UpliftPresentationPayload
 from techtree.receipts.execution import ComparisonExecutionRecord
@@ -82,6 +88,13 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "campaign-v2": CampaignSpecV2,
     "cli-envelope": CliEnvelope[ClimbSummary],
     "climb": ClimbManifest,
+    # The v0.2 run-side documents. Every execution and subject fact in them
+    # comes from the plan the Campaign binds, never from the Campaign.
+    "climb-summary-v2": ClimbSummaryV2,
+    # The same public Climb over the v0.2 Campaign. The wrapper's own shape
+    # did not change in v0.2, so this is the v0.1 document naming the second
+    # Campaign, committed so the v0.2 summary's edges can be checked.
+    "climb-v2": ClimbManifest,
     # Not a protocol object either — decisions 0007 R6 puts the comparison's
     # operational record outside the frozen v0.1 protocol — and a golden for
     # the same reason: presentation and the plugin both read this shape.
@@ -89,6 +102,7 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "configuration-comparison": ConfigurationComparison,
     "configuration-compatibility-policy": ConfigurationCompatibilityPolicy,
     "data-policy": DataPolicy,
+    "episode-receipt-v2": EpisodeReceiptV2,
     "execution-plan": ResolvedExecutionPlan,
     # The v0.2 evidence contract. Plan `docs/plan/v0.2.md`, "Evidence contract"
     # and "Evidence availability and proof closure".
@@ -97,7 +111,9 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "execution-approval": ExecutionApproval,
     "executor-identity": ExecutorIdentity,
     "experiment-baseline": ExperimentManifest,
+    "experiment-baseline-v2": ExperimentManifestV2,
     "experiment-candidate": ExperimentManifest,
+    "experiment-candidate-v2": ExperimentManifestV2,
     "fake-uplift-report": UpliftReport,
     # Not a protocol object — spec section 7.18's context is local working
     # material — but spec section 7.4 asks for the golden, because the shape
@@ -107,9 +123,11 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "real-episode-receipt": ObjectEnvelope[EpisodeReceipt],
     "real-uplift-report": ObjectEnvelope[UpliftReport],
     "remote-execution-estimate": RemoteExecutionEstimate,
+    "run-request-v2": RunRequestV2,
     "skill-artifact": SkillArtifact,
     "taskset-lock": TasksetLock,
     "taskset-validation-receipt": TasksetValidationReceipt,
+    "uplift-report-v2": UpliftReportV2,
 }
 
 
@@ -229,6 +247,126 @@ def test_the_v02_campaign_golden_drops_what_the_plan_owns() -> None:
         "skills",
         "use_bundled_skill",
     }
+
+
+def test_the_v02_climb_wraps_the_v02_campaign() -> None:
+    climb: ClimbManifest = load("climb-v2")
+
+    assert climb.campaign_spec_digest == digest_object(load("campaign-v2"))
+
+
+#: Every v0.2 run-side golden, and where in it the bound plan is named. The
+#: experiment manifests name it inside the configuration the two arms are
+#: compared on; the climb summary names it through its compatibility result.
+V2_RUN_SIDE_GOLDENS: dict[str, tuple[str, ...]] = {
+    "climb-summary-v2": ("compatibility",),
+    "episode-receipt-v2": (),
+    "experiment-baseline-v2": ("configuration",),
+    "experiment-candidate-v2": ("configuration",),
+    "run-request-v2": (),
+    "uplift-report-v2": (),
+}
+
+
+@pytest.mark.parametrize("name", sorted(V2_RUN_SIDE_GOLDENS))
+def test_every_v02_run_side_golden_names_the_committed_plan(name: str) -> None:
+    document = golden_document(name)
+    for key in V2_RUN_SIDE_GOLDENS[name]:
+        document = document[key]
+
+    assert document["execution_plan_digest"] == digest_object(load("execution-plan"))
+
+
+@pytest.mark.parametrize("name", sorted(V2_RUN_SIDE_GOLDENS))
+def test_no_v02_run_side_golden_states_a_dropped_campaign_fact(name: str) -> None:
+    """Read off the committed bytes: the words are simply not in the file."""
+    text = golden_text(name)
+
+    assert "evaluation_backend" not in text
+    assert "verifiers_episode" not in text
+
+
+def test_the_v02_run_side_goldens_anchor_to_the_v02_campaign() -> None:
+    v2_digest = digest_object(load("campaign-v2"))
+    anchored = (
+        "episode-receipt-v2",
+        "experiment-baseline-v2",
+        "experiment-candidate-v2",
+        "run-request-v2",
+        "uplift-report-v2",
+    )
+
+    for name in anchored:
+        assert golden_document(name)["campaign_spec_digest"] == v2_digest, name
+
+
+def test_the_v02_receipt_and_report_say_where_the_work_ran() -> None:
+    plan: ResolvedExecutionPlan = load("execution-plan")
+    receipt: EpisodeReceiptV2 = load("episode-receipt-v2")
+    report: UpliftReportV2 = load("uplift-report-v2")
+
+    assert receipt.execution_location.kind.value == plan.execution.kind.value
+    assert report.execution_location.kind.value == plan.execution.kind.value
+
+
+def test_the_v02_experiments_are_the_two_variants_of_one_plan() -> None:
+    baseline: ExperimentManifestV2 = load("experiment-baseline-v2")
+    candidate: ExperimentManifestV2 = load("experiment-candidate-v2")
+
+    assert baseline.variant is ExperimentVariant.BASELINE
+    assert candidate.variant is ExperimentVariant.CANDIDATE
+    assert (
+        baseline.configuration.execution_plan_digest
+        == candidate.configuration.execution_plan_digest
+    )
+    assert baseline.configuration_digest != candidate.configuration_digest
+
+
+def test_the_v02_run_request_runs_the_two_committed_manifests() -> None:
+    request: RunRequestV2 = load("run-request-v2")
+
+    assert request.baseline_manifest_digest == digest_object(
+        load("experiment-baseline-v2")
+    )
+    assert request.candidate_manifest_digest == digest_object(
+        load("experiment-candidate-v2")
+    )
+
+
+def test_the_v02_report_compares_the_committed_v02_experiments() -> None:
+    report: UpliftReportV2 = load("uplift-report-v2")
+    baseline: ExperimentManifestV2 = load("experiment-baseline-v2")
+    candidate: ExperimentManifestV2 = load("experiment-candidate-v2")
+
+    assert report.baseline_manifest_digest == digest_object(baseline)
+    assert report.candidate_manifest_digest == digest_object(candidate)
+    assert (
+        report.manifest_comparison.baseline_configuration_digest
+        == baseline.configuration_digest
+    )
+    assert (
+        report.manifest_comparison.candidate_configuration_digest
+        == candidate.configuration_digest
+    )
+
+
+def test_the_two_experiment_manifests_reject_each_other_bytes() -> None:
+    """Siblings, on decision 0040's terms: neither validates as the other."""
+    with pytest.raises(PydanticValidationError):
+        ExperimentManifest.model_validate_json(golden_text("experiment-baseline-v2"))
+    with pytest.raises(PydanticValidationError):
+        ExperimentManifestV2.model_validate_json(golden_text("experiment-baseline"))
+
+
+def test_the_v02_summary_shows_the_harness_the_plan_names() -> None:
+    summary: ClimbSummaryV2 = load("climb-summary-v2")
+    plan: ResolvedExecutionPlan = load("execution-plan")
+
+    assert summary.subject_harness == plan.subject.harness_id
+    assert summary.subject_harness_version == plan.subject.harness_version
+    assert summary.execution_backend_kind is plan.execution.kind
+    assert summary.climb_digest == digest_object(load("climb-v2"))
+    assert summary.campaign_spec_digest == digest_object(load("campaign-v2"))
 
 
 def test_the_campaign_points_at_the_committed_data_policy() -> None:
@@ -604,6 +742,17 @@ def test_the_cli_envelope_golden_carries_the_committed_climb_summary() -> None:
         # unconstrained copy of the same number, and is tampered with above.
         ("remote-execution-estimate", ("estimated_cost",)),
         ("taskset-lock", ("engine_digest",)),
+        # The v0.2 run-side documents. Each execution fact they take from the
+        # plan is part of what they are, so moving one produces a different
+        # document rather than the same document under a new backend.
+        ("climb-summary-v2", ("subject_harness_version",)),
+        ("climb-summary-v2", ("compatibility", "execution_plan_digest")),
+        ("episode-receipt-v2", ("execution_plan_digest",)),
+        ("episode-receipt-v2", ("execution_location", "kind")),
+        ("experiment-baseline-v2", ("configuration", "execution_plan_digest")),
+        ("run-request-v2", ("execution_plan_digest",)),
+        ("uplift-report-v2", ("execution_plan_digest",)),
+        ("uplift-report-v2", ("execution_location", "kind")),
     ],
 )
 def test_one_changed_field_changes_the_digest(
@@ -637,6 +786,10 @@ def _changed(value: Any) -> Any:
         return "allowed"
     if value == "consent_required":
         return "prohibited"
+    # An execution location is one of two words, so the only different value
+    # it can take is the other one.
+    if value == "local":
+        return "prime_hosted"
     # A monetary amount has one canonical spelling, so it cannot be changed by
     # appending to it. Raising the whole units keeps the result an amount.
     if isinstance(value, str) and re.fullmatch(MONETARY_AMOUNT_PATTERN, value):

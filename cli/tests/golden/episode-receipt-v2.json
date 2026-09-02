@@ -1,0 +1,53 @@
+{
+  "artifacts": [
+    {
+      "digest": "sha256:01aae4fb42e1dc83897a73d6d39a8220e1fe412e0e8609226e943f4acf0c788a",
+      "media_type": "application/x-ndjson",
+      "relative_path": null,
+      "size": 65536
+    }
+  ],
+  "campaign_spec_digest": "sha256:9ca493001fd48582e0c5f756b4da2f836652b716d316b399c9046f659a1cdd82",
+  "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
+  "episode_digest": "sha256:60017f691db8746f0d841c3f0093e31f976f82c2158b76b009901890c2c96aed",
+  "episode_id": "episode_df97c7a992e666cbb8e957b98893a2be",
+  "evidence_status": "complete",
+  "execution_location": {
+    "kind": "local"
+  },
+  "execution_plan_digest": "sha256:713280f58dbfcfaf192cb2fe3039ce6077fab259bee7c7f9a8a923e8748b1dc2",
+  "executor_kind": "verifiers",
+  "experiment_manifest_digest": "sha256:a892d1255653ea2828ecf6cd2e74592eeaa0d5aa0b2bbcf9c29d0802f440839a",
+  "id": "receipt_ebab4a3197b84718000b5a1f9abb6a60",
+  "named_traces": {
+    "subject": [
+      {
+        "metrics": {},
+        "ok": true,
+        "rewards": {
+          "exact_match": 1.0
+        },
+        "role": "subject",
+        "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
+        "trace_digest": "sha256:3170b35f5a8672f54e408b7dc922afcd33389a12c845f16f3fba9e920d0c3c33",
+        "trace_id": "trace_7dd74c49d62d7228652cd911c2ee9651"
+      }
+    ]
+  },
+  "outcome_contract_digest": null,
+  "program_ref": null,
+  "public_context": {
+    "climb_digest": "sha256:72edd77609bc75a3832a37b444a189ee2cb958578997857b3d6dbc8fdbfc8857",
+    "kind": "climb"
+  },
+  "run_id": "run_bc5e01438ad71b7de1078aa4a307785a",
+  "schema_version": "techtree.episode-receipt.v2",
+  "score_status": "valid",
+  "subject_runtime": {
+    "kind": "docker",
+    "platform": "linux/arm64",
+    "resolved_image_digest": "sha256:9c058d4e72697f0f11074e22709c6d6a4b0292ad7dded77c793a7be717e460ab"
+  },
+  "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef",
+  "variant": "candidate"
+}

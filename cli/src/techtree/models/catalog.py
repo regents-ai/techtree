@@ -20,6 +20,14 @@ issues. ``compatible`` is derived from the blocking issues rather than asserted
 alongside them, so a result cannot claim to be runnable while listing the
 reason it is not. Before WP4 an absent engine blocks ``prepare`` while ``list``
 and ``show`` still display the Climb.
+
+The summary and the compatibility result each have a v0.2 sibling, on the
+terms decision 0040 fixes for the two Campaign documents. Both v0.1 documents
+read their execution and subject facts out of the Campaign: the evaluation
+backend kind, and the harness the subject runs. Under v0.2 those facts belong
+to the execution plane and the subject plane of the plan the Campaign binds,
+so ``ClimbSummaryV2`` and ``CompatibilityResultV2`` state them from there and
+:mod:`techtree.execution_facts` is the only place the projection is written.
 """
 
 from __future__ import annotations
@@ -31,14 +39,17 @@ from pydantic import Field, model_validator
 
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.evaluation_backend import EvaluationBackendKind
+from techtree.models.execution_plan import ExecutionBackendKind, SubjectBackendKind
 
 __all__ = [
     "CatalogClimbEntry",
     "CatalogIndex",
     "CatalogObjectLocation",
     "ClimbSummary",
+    "ClimbSummaryV2",
     "CompatibilityIssue",
     "CompatibilityResult",
+    "CompatibilityResultV2",
     "DataPolicySummary",
     "EngineCompatibilityStatus",
 ]
@@ -158,6 +169,24 @@ class EngineCompatibilityStatus(StrEnum):
     VERIFIED = "verified"
 
 
+def _check_the_verdict_follows_from_the_issues(
+    *,
+    compatible: bool,
+    issues: list[CompatibilityIssue],
+) -> None:
+    """Reject a verdict that disagrees with the issues beside it, either shape."""
+    blocking = any(issue.blocking for issue in issues)
+    if compatible and blocking:
+        raise ValueError("compatible is true only when no listed issue is blocking")
+    if not compatible and not blocking:
+        raise ValueError(
+            "an incompatible result must list the blocking issue that made "
+            "it incompatible"
+        )
+    if len({issue.code for issue in issues}) != len(issues):
+        raise ValueError("each compatibility issue is reported once")
+
+
 class CompatibilityResult(ProtocolModel):
     """Whether this host can run this Climb, and what stands in the way."""
 
@@ -173,16 +202,53 @@ class CompatibilityResult(ProtocolModel):
     @model_validator(mode="after")
     def _check_compatibility_follows_from_the_issues(self) -> Self:
         """Reject a verdict that disagrees with the issues it lists."""
-        blocking = any(issue.blocking for issue in self.issues)
-        if self.compatible and blocking:
-            raise ValueError("compatible is true only when no listed issue is blocking")
-        if not self.compatible and not blocking:
-            raise ValueError(
-                "an incompatible result must list the blocking issue that made "
-                "it incompatible"
-            )
-        if len({issue.code for issue in self.issues}) != len(self.issues):
-            raise ValueError("each compatibility issue is reported once")
+        _check_the_verdict_follows_from_the_issues(
+            compatible=self.compatible, issues=self.issues
+        )
+        return self
+
+
+class CompatibilityResultV2(ProtocolModel):
+    """Whether this host can run this v0.2 Campaign, and what stands in the way.
+
+    A sibling of :class:`CompatibilityResult`, not a refinement of it. The
+    question it answers is the same one, but under v0.2 the answer turns on
+    the plan the Campaign binds rather than on a backend field the Campaign
+    carried, so this document names the plan it judged and reports every plane
+    a host can fail: which Verifiers build supplies task and reward truth, who
+    orchestrates the comparison, and how the measured agent is reached. A plan
+    naming a backend this release does not resolve is runnable nowhere,
+    whatever the host has installed.
+
+    ``required_engine_digest`` is not that first plane and never was. It is
+    the engine the publisher validated the taskset against, carried here from
+    the validation receipt, and it answers a different question from the wheel
+    the plan pins. The two coordinates are reported side by side rather than
+    collapsed, because a host that has the validated engine and not the
+    planned one is in a state a reader has to be told about rather than have
+    decided for them.
+    """
+
+    compatible: bool
+    host_platform: NonEmptyString
+    host_supported: bool
+    required_engine_digest: Digest
+    engine_status: EngineCompatibilityStatus
+    execution_plan_digest: Digest
+    evaluation_engine_source_commit: NonEmptyString
+    evaluation_engine_wheel_digest: Digest
+    execution_backend_kind: ExecutionBackendKind
+    execution_backend_supported: bool
+    subject_backend_kind: SubjectBackendKind
+    subject_backend_supported: bool
+    issues: list[CompatibilityIssue]
+
+    @model_validator(mode="after")
+    def _check_compatibility_follows_from_the_issues(self) -> Self:
+        """Reject a verdict that disagrees with the issues it lists."""
+        _check_the_verdict_follows_from_the_issues(
+            compatible=self.compatible, issues=self.issues
+        )
         return self
 
 
@@ -225,3 +291,37 @@ class ClimbSummary(ProtocolModel):
     proof_grade: Literal["development_only", "P1"]
     data_policy: DataPolicySummary
     compatibility: CompatibilityResult
+
+
+class ClimbSummaryV2(ProtocolModel):
+    """Everything ``climb list`` and ``climb show`` display for a v0.2 Climb.
+
+    A sibling of :class:`ClimbSummary`, not a refinement of it. Three display
+    facts move to the plan the Campaign binds: which harness is measured and at
+    which version are the plan's subject plane, and who orchestrates the
+    comparison is its execution plane, in place of the evaluation-backend kind
+    the v0.1 summary read out of the Campaign.
+
+    Which plan that is stays in the compatibility result below rather than
+    being repeated here. A summary is a projection for display, and repeating
+    a digest it already carries would give a reader two places to check and no
+    rule for which one to believe.
+    """
+
+    reference: NonEmptyString
+    climb_digest: Digest
+    campaign_spec_digest: Digest
+    title: NonEmptyString
+    summary: NonEmptyString
+    status: Literal["open", "closed", "development"]
+    purpose: NonEmptyString
+    taskset_id: NonEmptyString
+    task_count: int = Field(ge=1)
+    subject_harness: NonEmptyString
+    subject_harness_version: NonEmptyString
+    mutation_kind: Literal["skill_insertion"]
+    candidate_skill_visibility: Literal["public", "private"]
+    execution_backend_kind: ExecutionBackendKind
+    proof_grade: Literal["development_only", "P1"]
+    data_policy: DataPolicySummary
+    compatibility: CompatibilityResultV2

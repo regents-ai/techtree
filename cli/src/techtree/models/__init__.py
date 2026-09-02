@@ -80,8 +80,10 @@ from techtree.models.catalog import (
     CatalogIndex,
     CatalogObjectLocation,
     ClimbSummary,
+    ClimbSummaryV2,
     CompatibilityIssue,
     CompatibilityResult,
+    CompatibilityResultV2,
     DataPolicySummary,
     EngineCompatibilityStatus,
 )
@@ -132,6 +134,7 @@ from techtree.models.engine import (
 # --- Execution artifacts ---------------------------------------------------
 from techtree.models.episode_receipt import (
     EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     NamedTraceReceipt,
     ScoreStatus,
@@ -184,7 +187,9 @@ from techtree.models.execution_plan import (
 )
 from techtree.models.experiment import (
     ExperimentConfiguration,
+    ExperimentConfigurationV2,
     ExperimentManifest,
+    ExperimentManifestV2,
     ExperimentVariant,
     JsonDifference,
     ManifestComparison,
@@ -195,6 +200,7 @@ from techtree.models.run import (
     RunPhase,
     RunProgress,
     RunRequest,
+    RunRequestV2,
     RunState,
     RunStatus,
 )
@@ -212,6 +218,7 @@ from techtree.models.uplift_report import (
     TaskDelta,
     UpliftDecision,
     UpliftReport,
+    UpliftReportV2,
     UpliftStatuses,
 )
 
@@ -259,11 +266,13 @@ __all__ = [
     "ClimbManifest",
     "ClimbMetadata",
     "ClimbSummary",
+    "ClimbSummaryV2",
     "ComparisonStatus",
     "ComparisonValidity",
     "ComparisonValidityStatus",
     "CompatibilityIssue",
     "CompatibilityResult",
+    "CompatibilityResultV2",
     "CompatibilityVerdict",
     "ConfigurationComparison",
     "ConfigurationCompatibilityPolicy",
@@ -280,6 +289,7 @@ __all__ = [
     "EngineStatus",
     "EnvironmentSpec",
     "EpisodeReceipt",
+    "EpisodeReceiptV2",
     "EvaluationBackendKind",
     "EvaluationBackendSpec",
     "EvaluationEngineRef",
@@ -299,7 +309,9 @@ __all__ = [
     "ExecutionSpec",
     "ExecutionStatus",
     "ExperimentConfiguration",
+    "ExperimentConfigurationV2",
     "ExperimentManifest",
+    "ExperimentManifestV2",
     "ExperimentVariant",
     "HarnessSpec",
     "HarnessSpecV2",
@@ -348,6 +360,7 @@ __all__ = [
     "RunPhase",
     "RunProgress",
     "RunRequest",
+    "RunRequestV2",
     "RunState",
     "RunStatus",
     "RuntimeSpec",
@@ -372,6 +385,7 @@ __all__ = [
     "TraceCoverageKind",
     "UpliftDecision",
     "UpliftReport",
+    "UpliftReportV2",
     "UpliftStatuses",
     "UpstreamValidationSummary",
     "UtcDateTime",

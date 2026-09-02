@@ -1,0 +1,194 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "ExecutorKind": {
+      "enum": [
+        "fake",
+        "verifiers"
+      ],
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PolicyAcknowledgement": {
+      "additionalProperties": false,
+      "description": "That a specific rights policy was accepted, how, and when.\n\nDecisions document 0003 A5, as amended by 0019 section 2.\n``explicit_cli_review`` says the review of what the run would do — its\nsize, the spending limit its Campaign declares, the one change being\nmeasured, where model calls go, and what an upload would carry — was put in\nfront of whoever started it and\nexplicitly accepted. It covers both spellings of that answer at the command\nline, the typed ``y`` and the flag an operator passes instead, because the\nfact being recorded is the same one; who gave the answer is recorded\nseparately on the run's ``run.approved`` event.\n\n``host_agent_confirmation`` is the approval surface the plugin presents in\na conversation: the review is shown there, the person confirms there, and\nthe plugin then starts that exact draft. The process that writes this\nrecord is not the one that asked the question, so which surface it was is\ndeclared by whoever starts the run rather than guessed at from the fact\nthat nobody was prompted here.",
+      "properties": {
+        "acknowledged_at": {
+          "$ref": "#/$defs/UtcDateTime"
+        },
+        "data_policy_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "method": {
+          "enum": [
+            "explicit_cli_review",
+            "host_agent_confirmation"
+          ],
+          "title": "Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "data_policy_digest",
+        "method",
+        "acknowledged_at"
+      ],
+      "title": "PolicyAcknowledgement",
+      "type": "object"
+    },
+    "ProgramRef": {
+      "additionalProperties": false,
+      "description": "A reserved pointer at a future ``ImprovementProgram``.\n\nThe program model itself is deferred (spec section 4.4). Only the pointer\nexists, so that artifacts written today can be attributed later without a\nschema break.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "title": "ProgramRef",
+      "type": "object"
+    },
+    "PublicContext": {
+      "additionalProperties": false,
+      "description": "The optional public Climb an execution artifact was produced under.",
+      "properties": {
+        "climb_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "kind": {
+          "const": "climb",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "climb_digest"
+      ],
+      "title": "PublicContext",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v2/run-request.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What was asked for, under a v0.2 Campaign.\n\nA sibling of :class:`RunRequest`, on the terms decision 0040 fixes: the\ntwo share the request contract and nothing else, and neither validates as\nthe other. What changes is where the run's execution facts come from. The\nv0.1 request restates the Campaign's ``evaluation_backend``; this one\nnames the execution plan its Campaign binds, and the engine, the execution\nbackend, the subject harness, and the evidence the run owes are that plan's\nfour planes. A request that restated any of them could disagree with the\nplan the Campaign froze.\n\nIt also says what it is. The v0.1 request carries no version literal, and\nfor as long as it had no published schema that cost nothing; this one has\na schema, so a reader who opens ``request.json`` learns which document is\nin front of them from the document rather than from its directory.",
+  "properties": {
+    "baseline_manifest_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "candidate_manifest_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "created_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "data_policy_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "draft_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "draft_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "execution_plan_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "executor_kind": {
+      "$ref": "#/$defs/ExecutorKind"
+    },
+    "outcome_contract_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "policy_acknowledgement": {
+      "$ref": "#/$defs/PolicyAcknowledgement"
+    },
+    "program_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProgramRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "public_context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PublicContext"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "run_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "schema_version": {
+      "const": "techtree.run-request.v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "taskset_lock_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_id",
+    "draft_id",
+    "draft_digest",
+    "campaign_spec_digest",
+    "program_ref",
+    "public_context",
+    "data_policy_digest",
+    "outcome_contract_digest",
+    "execution_plan_digest",
+    "taskset_lock_digest",
+    "baseline_manifest_digest",
+    "candidate_manifest_digest",
+    "policy_acknowledgement",
+    "executor_kind",
+    "created_at"
+  ],
+  "title": "RunRequestV2",
+  "type": "object"
+}

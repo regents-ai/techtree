@@ -1,0 +1,293 @@
+{
+  "$defs": {
+    "CompatibilityIssue": {
+      "additionalProperties": false,
+      "description": "One reason a Climb might not run here.",
+      "properties": {
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "code": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "message": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "severity": {
+          "enum": [
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "blocking"
+      ],
+      "title": "CompatibilityIssue",
+      "type": "object"
+    },
+    "CompatibilityResultV2": {
+      "additionalProperties": false,
+      "description": "Whether this host can run this v0.2 Campaign, and what stands in the way.\n\nA sibling of :class:`CompatibilityResult`, not a refinement of it. The\nquestion it answers is the same one, but under v0.2 the answer turns on\nthe plan the Campaign binds rather than on a backend field the Campaign\ncarried, so this document names the plan it judged and reports every plane\na host can fail: which Verifiers build supplies task and reward truth, who\norchestrates the comparison, and how the measured agent is reached. A plan\nnaming a backend this release does not resolve is runnable nowhere,\nwhatever the host has installed.\n\n``required_engine_digest`` is not that first plane and never was. It is\nthe engine the publisher validated the taskset against, carried here from\nthe validation receipt, and it answers a different question from the wheel\nthe plan pins. The two coordinates are reported side by side rather than\ncollapsed, because a host that has the validated engine and not the\nplanned one is in a state a reader has to be told about rather than have\ndecided for them.",
+      "properties": {
+        "compatible": {
+          "title": "Compatible",
+          "type": "boolean"
+        },
+        "engine_status": {
+          "$ref": "#/$defs/EngineCompatibilityStatus"
+        },
+        "evaluation_engine_source_commit": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "evaluation_engine_wheel_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "execution_backend_kind": {
+          "$ref": "#/$defs/ExecutionBackendKind"
+        },
+        "execution_backend_supported": {
+          "title": "Execution Backend Supported",
+          "type": "boolean"
+        },
+        "execution_plan_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "host_platform": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "host_supported": {
+          "title": "Host Supported",
+          "type": "boolean"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/CompatibilityIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "required_engine_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "subject_backend_kind": {
+          "$ref": "#/$defs/SubjectBackendKind"
+        },
+        "subject_backend_supported": {
+          "title": "Subject Backend Supported",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "compatible",
+        "host_platform",
+        "host_supported",
+        "required_engine_digest",
+        "engine_status",
+        "execution_plan_digest",
+        "evaluation_engine_source_commit",
+        "evaluation_engine_wheel_digest",
+        "execution_backend_kind",
+        "execution_backend_supported",
+        "subject_backend_kind",
+        "subject_backend_supported",
+        "issues"
+      ],
+      "title": "CompatibilityResultV2",
+      "type": "object"
+    },
+    "DataPolicySummary": {
+      "additionalProperties": false,
+      "description": "The four rights a participant most needs to see before starting.",
+      "properties": {
+        "candidate_skill_public_release": {
+          "enum": [
+            "required_for_climb",
+            "allowed",
+            "prohibited",
+            "consent_required"
+          ],
+          "title": "Candidate Skill Public Release",
+          "type": "string"
+        },
+        "raw_episode_server_upload": {
+          "enum": [
+            "allowed",
+            "prohibited",
+            "consent_required"
+          ],
+          "title": "Raw Episode Server Upload",
+          "type": "string"
+        },
+        "raw_episode_training_use": {
+          "enum": [
+            "allowed",
+            "prohibited",
+            "consent_required"
+          ],
+          "title": "Raw Episode Training Use",
+          "type": "string"
+        },
+        "uplift_report_visibility": {
+          "enum": [
+            "public",
+            "private",
+            "prohibited"
+          ],
+          "title": "Uplift Report Visibility",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw_episode_server_upload",
+        "raw_episode_training_use",
+        "candidate_skill_public_release",
+        "uplift_report_visibility"
+      ],
+      "title": "DataPolicySummary",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EngineCompatibilityStatus": {
+      "description": "What is known about the required engine on this host.",
+      "enum": [
+        "unknown",
+        "not_installed",
+        "installed_unverified",
+        "verified"
+      ],
+      "title": "EngineCompatibilityStatus",
+      "type": "string"
+    },
+    "ExecutionBackendKind": {
+      "description": "Where the comparison is orchestrated.\n\nThese are the two values the proof's ``execution_location`` facet carries.\n``prime_hosted`` is protocol vocabulary in v0.2.0 and behavior in v0.2.x.",
+      "enum": [
+        "local",
+        "prime_hosted"
+      ],
+      "title": "ExecutionBackendKind",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "SubjectBackendKind": {
+      "description": "How the measured agent is reached.\n\n``direct`` is Techtree's own integration with the harness. ``fabric``\nreaches it through a Fabric adapter. ``verifiers_native`` lets the\nevaluation engine's own harness drive the subject.",
+      "enum": [
+        "direct",
+        "fabric",
+        "verifiers_native"
+      ],
+      "title": "SubjectBackendKind",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v2/climb-summary.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Everything ``climb list`` and ``climb show`` display for a v0.2 Climb.\n\nA sibling of :class:`ClimbSummary`, not a refinement of it. Three display\nfacts move to the plan the Campaign binds: which harness is measured and at\nwhich version are the plan's subject plane, and who orchestrates the\ncomparison is its execution plane, in place of the evaluation-backend kind\nthe v0.1 summary read out of the Campaign.\n\nWhich plan that is stays in the compatibility result below rather than\nbeing repeated here. A summary is a projection for display, and repeating\na digest it already carries would give a reader two places to check and no\nrule for which one to believe.",
+  "properties": {
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "candidate_skill_visibility": {
+      "enum": [
+        "public",
+        "private"
+      ],
+      "title": "Candidate Skill Visibility",
+      "type": "string"
+    },
+    "climb_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/CompatibilityResultV2"
+    },
+    "data_policy": {
+      "$ref": "#/$defs/DataPolicySummary"
+    },
+    "execution_backend_kind": {
+      "$ref": "#/$defs/ExecutionBackendKind"
+    },
+    "mutation_kind": {
+      "const": "skill_insertion",
+      "title": "Mutation Kind",
+      "type": "string"
+    },
+    "proof_grade": {
+      "enum": [
+        "development_only",
+        "P1"
+      ],
+      "title": "Proof Grade",
+      "type": "string"
+    },
+    "purpose": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "reference": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "status": {
+      "enum": [
+        "open",
+        "closed",
+        "development"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "subject_harness": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "subject_harness_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "summary": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "task_count": {
+      "minimum": 1,
+      "title": "Task Count",
+      "type": "integer"
+    },
+    "taskset_id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "title": {
+      "$ref": "#/$defs/NonEmptyString"
+    }
+  },
+  "required": [
+    "reference",
+    "climb_digest",
+    "campaign_spec_digest",
+    "title",
+    "summary",
+    "status",
+    "purpose",
+    "taskset_id",
+    "task_count",
+    "subject_harness",
+    "subject_harness_version",
+    "mutation_kind",
+    "candidate_skill_visibility",
+    "execution_backend_kind",
+    "proof_grade",
+    "data_policy",
+    "compatibility"
+  ],
+  "title": "ClimbSummaryV2",
+  "type": "object"
+}

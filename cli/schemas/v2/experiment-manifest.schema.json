@@ -1,0 +1,813 @@
+{
+  "$defs": {
+    "AgentSpecV2": {
+      "additionalProperties": false,
+      "description": "One named agent, complete, under the v0.2 Campaign.",
+      "properties": {
+        "harness": {
+          "$ref": "#/$defs/HarnessSpecV2"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelSpec"
+        },
+        "runtime": {
+          "$ref": "#/$defs/RuntimeSpec"
+        },
+        "sampling": {
+          "$ref": "#/$defs/SamplingSpec"
+        },
+        "trainable": {
+          "title": "Trainable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model",
+        "sampling",
+        "harness",
+        "runtime",
+        "trainable"
+      ],
+      "title": "AgentSpecV2",
+      "type": "object"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "A content-addressed pointer to a stored byte stream.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "relative_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative Path"
+        },
+        "size": {
+          "exclusiveMinimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "digest",
+        "media_type",
+        "size"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "BudgetSpec": {
+      "additionalProperties": false,
+      "description": "Optional ceilings on what a run may consume.",
+      "properties": {
+        "maximum_input_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Input Tokens"
+        },
+        "maximum_model_calls": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Model Calls"
+        },
+        "maximum_output_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Output Tokens"
+        },
+        "maximum_usd": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Usd"
+        }
+      },
+      "title": "BudgetSpec",
+      "type": "object"
+    },
+    "CampaignTaskset": {
+      "additionalProperties": false,
+      "description": "The taskset, the slice of it that is used, and its validation receipt.",
+      "properties": {
+        "membership": {
+          "$ref": "#/$defs/TaskMembershipCommitment"
+        },
+        "ref": {
+          "$ref": "#/$defs/TasksetRef"
+        },
+        "selection": {
+          "$ref": "#/$defs/TaskSelection"
+        },
+        "validation_receipt_digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "ref",
+        "selection",
+        "membership",
+        "validation_receipt_digest"
+      ],
+      "title": "CampaignTaskset",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EnvironmentSpec": {
+      "additionalProperties": false,
+      "description": "The interaction shape the Campaign runs in.",
+      "properties": {
+        "id": {
+          "const": "single-agent",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "EnvironmentSpec",
+      "type": "object"
+    },
+    "EvidenceRequirementsV2": {
+      "additionalProperties": false,
+      "description": "Which evidence a valid episode must carry, under the v0.2 Campaign.\n\nThat a Verifiers episode is required is the execution plan's evidence\nplane, so it is not restated here. What remains is the requirement the\nplan does not speak to: whether the subject's runtime must be receipted.",
+      "properties": {
+        "runtime_evidence": {
+          "enum": [
+            "not_required",
+            "optional",
+            "required"
+          ],
+          "title": "Runtime Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runtime_evidence"
+      ],
+      "title": "EvidenceRequirementsV2",
+      "type": "object"
+    },
+    "ExecutionSpec": {
+      "additionalProperties": false,
+      "description": "How the two variants are executed against each other.",
+      "properties": {
+        "max_concurrent": {
+          "minimum": 1,
+          "title": "Max Concurrent",
+          "type": "integer"
+        },
+        "order": {
+          "$ref": "#/$defs/VariantSchedule"
+        },
+        "retry_limit": {
+          "minimum": 0,
+          "title": "Retry Limit",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "order",
+        "max_concurrent",
+        "timeout_seconds",
+        "retry_limit"
+      ],
+      "title": "ExecutionSpec",
+      "type": "object"
+    },
+    "ExperimentConfigurationV2": {
+      "additionalProperties": false,
+      "description": "The part of a v0.2 manifest that is compared.\n\nThis mirrors the v0.2 Campaign's scientific fields with the choices\nresolved, and it names the execution plan that Campaign binds rather than\nthe evaluation backend the v0.1 configuration named. Which engine, which\nexecution backend, which harness, and which evidence the run owes are the\nplan's four planes; a manifest that restated any of them could disagree\nwith the plan the Campaign is bound to, and no rule could say which of the\ntwo ran.\n\nThe plan digest sits in the compared configuration rather than beside it\nbecause both arms of a comparison resolve the same plan, so a candidate\nthat quietly moved to another backend should read as an undeclared\ndifference. Nothing compares these documents yet — the comparator takes\nthe v0.1 manifest — and where the digest sits is what will make that\ndifference visible when it does.",
+      "properties": {
+        "agents": {
+          "additionalProperties": {
+            "$ref": "#/$defs/AgentSpecV2"
+          },
+          "title": "Agents",
+          "type": "object"
+        },
+        "budgets": {
+          "$ref": "#/$defs/BudgetSpec"
+        },
+        "data_policy_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "environment": {
+          "$ref": "#/$defs/EnvironmentSpec"
+        },
+        "evidence": {
+          "$ref": "#/$defs/EvidenceRequirementsV2"
+        },
+        "execution": {
+          "$ref": "#/$defs/ExecutionSpec"
+        },
+        "execution_plan_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "mutation_contract": {
+          "$ref": "#/$defs/MutationContract"
+        },
+        "outcome_contract_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scoring": {
+          "$ref": "#/$defs/ScoringSpec"
+        },
+        "taskset": {
+          "$ref": "#/$defs/CampaignTaskset"
+        }
+      },
+      "required": [
+        "taskset",
+        "environment",
+        "agents",
+        "mutation_contract",
+        "execution_plan_digest",
+        "execution",
+        "scoring",
+        "evidence",
+        "budgets",
+        "data_policy_digest",
+        "outcome_contract_digest"
+      ],
+      "title": "ExperimentConfigurationV2",
+      "type": "object"
+    },
+    "ExperimentVariant": {
+      "description": "Which side of the comparison a manifest describes.",
+      "enum": [
+        "baseline",
+        "candidate"
+      ],
+      "title": "ExperimentVariant",
+      "type": "string"
+    },
+    "HarnessSpecV2": {
+      "additionalProperties": false,
+      "description": "The skills inserted into the subject harness.\n\nWhich harness that is — its id and its version — is the execution plan's\nsubject plane, and is not restated here. A Campaign that named the harness\nas well could disagree with the plan it is bound to, and there would be no\nprincipled way to say which of the two ran.",
+      "properties": {
+        "skills": {
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "title": "Skills",
+          "type": "array"
+        },
+        "use_bundled_skill": {
+          "title": "Use Bundled Skill",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "use_bundled_skill",
+        "skills"
+      ],
+      "title": "HarnessSpecV2",
+      "type": "object"
+    },
+    "JsonScalar": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JsonScalar"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "ModelSpec": {
+      "additionalProperties": false,
+      "description": "Which model answers, and the environment variable holding its key.",
+      "properties": {
+        "credential_env": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "model_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "provider": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "provider",
+        "model_id",
+        "revision",
+        "credential_env"
+      ],
+      "title": "ModelSpec",
+      "type": "object"
+    },
+    "MutationContract": {
+      "additionalProperties": false,
+      "description": "What a candidate is allowed to change, and by how much.",
+      "properties": {
+        "allowed_differences": {
+          "items": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Allowed Differences",
+          "type": "array"
+        },
+        "kind": {
+          "$ref": "#/$defs/MutationKind"
+        },
+        "maximum_skills": {
+          "minimum": 1,
+          "title": "Maximum Skills",
+          "type": "integer"
+        },
+        "minimum_skills": {
+          "minimum": 0,
+          "title": "Minimum Skills",
+          "type": "integer"
+        },
+        "target_agent": {
+          "const": "subject",
+          "title": "Target Agent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "target_agent",
+        "allowed_differences",
+        "minimum_skills",
+        "maximum_skills"
+      ],
+      "title": "MutationContract",
+      "type": "object"
+    },
+    "MutationKind": {
+      "description": "Which shape of skill change the candidate is allowed to make.\n\nSpec section 3.1. ``skill_insertion`` measures a skill against no skill and\nis what a public Climb requires. ``skill_replacement`` measures one revision\nof a skill against the previous one, which is the shape a local improvement\nloop needs and which no public Climb wraps.",
+      "enum": [
+        "skill_insertion",
+        "skill_replacement"
+      ],
+      "title": "MutationKind",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "PackageRef": {
+      "additionalProperties": false,
+      "description": "The source package a taskset is defined in.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "kind": {
+          "enum": [
+            "embedded",
+            "git",
+            "hub"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "revision": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "revision",
+        "digest"
+      ],
+      "title": "PackageRef",
+      "type": "object"
+    },
+    "ProgramRef": {
+      "additionalProperties": false,
+      "description": "A reserved pointer at a future ``ImprovementProgram``.\n\nThe program model itself is deferred (spec section 4.4). Only the pointer\nexists, so that artifacts written today can be attributed later without a\nschema break.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "title": "ProgramRef",
+      "type": "object"
+    },
+    "PublicContext": {
+      "additionalProperties": false,
+      "description": "The optional public Climb an execution artifact was produced under.",
+      "properties": {
+        "climb_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "kind": {
+          "const": "climb",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "climb_digest"
+      ],
+      "title": "PublicContext",
+      "type": "object"
+    },
+    "RuntimeSpec": {
+      "additionalProperties": false,
+      "description": "Where the subject agent executes. Not the evaluation backend.\n\nThe image is pinned twice over, because one pin is not enough to say what\nran. ``image`` names content rather than a tag, and for a multi-platform\nrepository the content it names is an OCI image *index* — a list of\nper-platform manifests, not a filesystem. Two hosts on different\narchitectures pulling the same index digest therefore run different bytes,\nand a comparison that recorded only the index digest could not tell whether\nthe two variants ran the same subject container.\n\n``image_platform_digests`` closes that: one platform-specific manifest\ndigest per supported platform, resolved from the registry when the pin is\nmade and carried in the Campaign from then on. A run records the platform\nthe local daemon resolved, and the digest that actually ran is this table's\nentry for that platform.",
+      "properties": {
+        "cpu": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cpu"
+        },
+        "image": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "image_platform_digests": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Digest"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Image Platform Digests",
+          "type": "object"
+        },
+        "memory_gb": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Memory Gb"
+        },
+        "network_policy": {
+          "enum": [
+            "restricted",
+            "open"
+          ],
+          "title": "Network Policy",
+          "type": "string"
+        },
+        "supported_platforms": {
+          "items": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Supported Platforms",
+          "type": "array"
+        },
+        "type": {
+          "const": "docker",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "image",
+        "supported_platforms",
+        "image_platform_digests",
+        "cpu",
+        "memory_gb",
+        "network_policy"
+      ],
+      "title": "RuntimeSpec",
+      "type": "object"
+    },
+    "SamplingSpec": {
+      "additionalProperties": false,
+      "description": "How the subject model is sampled.",
+      "properties": {
+        "max_tokens": {
+          "minimum": 1,
+          "title": "Max Tokens",
+          "type": "integer"
+        },
+        "temperature": {
+          "maximum": 2.0,
+          "minimum": 0.0,
+          "title": "Temperature",
+          "type": "number"
+        }
+      },
+      "required": [
+        "temperature",
+        "max_tokens"
+      ],
+      "title": "SamplingSpec",
+      "type": "object"
+    },
+    "ScoringSpec": {
+      "additionalProperties": false,
+      "description": "Which reward decides the comparison, and what counts as an improvement.",
+      "properties": {
+        "aggregation": {
+          "const": "mean",
+          "title": "Aggregation",
+          "type": "string"
+        },
+        "minimum_absolute_delta": {
+          "minimum": 0.0,
+          "title": "Minimum Absolute Delta",
+          "type": "number"
+        },
+        "primary_reward": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "require_candidate_above_baseline": {
+          "title": "Require Candidate Above Baseline",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "primary_reward",
+        "aggregation",
+        "require_candidate_above_baseline",
+        "minimum_absolute_delta"
+      ],
+      "title": "ScoringSpec",
+      "type": "object"
+    },
+    "TaskMembershipCommitment": {
+      "additionalProperties": false,
+      "description": "The exact tasks a Campaign is fixed to, committed in order.",
+      "properties": {
+        "membership_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "mode": {
+          "const": "committed",
+          "title": "Mode",
+          "type": "string"
+        },
+        "ordered_task_hashes": {
+          "items": {
+            "$ref": "#/$defs/Digest"
+          },
+          "title": "Ordered Task Hashes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mode",
+        "ordered_task_hashes",
+        "membership_digest"
+      ],
+      "title": "TaskMembershipCommitment",
+      "type": "object"
+    },
+    "TaskSelection": {
+      "additionalProperties": false,
+      "description": "How many tasks and rollouts, in which order.\n\n``shuffle`` is typed ``Literal[False]``. Decisions document 0001 removes\nshuffling from WP0–WP5 entirely, and there is no seed anywhere in the\nprotocol to reproduce a shuffle with, so a document that claimed to be\nshuffled could not be checked by anyone.",
+      "properties": {
+        "num_rollouts": {
+          "minimum": 1,
+          "title": "Num Rollouts",
+          "type": "integer"
+        },
+        "num_tasks": {
+          "minimum": 1,
+          "title": "Num Tasks",
+          "type": "integer"
+        },
+        "shuffle": {
+          "const": false,
+          "title": "Shuffle",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "num_tasks",
+        "num_rollouts",
+        "shuffle"
+      ],
+      "title": "TaskSelection",
+      "type": "object"
+    },
+    "TasksetRef": {
+      "additionalProperties": false,
+      "description": "Which taskset, from which package, with which configuration.",
+      "properties": {
+        "config": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Config",
+          "type": "object"
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "kind": {
+          "const": "verifiers",
+          "title": "Kind",
+          "type": "string"
+        },
+        "package": {
+          "$ref": "#/$defs/PackageRef"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "package",
+        "config"
+      ],
+      "title": "TasksetRef",
+      "type": "object"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "VariantSchedule": {
+      "description": "Whether the two variants run one after the other or side by side.\n\nSpec section 3.2. ``max_concurrent`` is the Campaign-wide bound either way;\nunder ``parallel_variants`` the executor divides it between the two variants\nrather than granting each of them the whole allowance.",
+      "enum": [
+        "baseline_then_candidate",
+        "parallel_variants"
+      ],
+      "title": "VariantSchedule",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v2/experiment-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One fully resolved variant derived from a v0.2 Campaign.\n\nA sibling of :class:`ExperimentManifest`, not a refinement of it: the two\nshare the comparison contract and nothing else, and neither validates as\nthe other.",
+  "properties": {
+    "campaign_spec_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "configuration": {
+      "$ref": "#/$defs/ExperimentConfigurationV2"
+    },
+    "configuration_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "created_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "id": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "program_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProgramRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "public_context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PublicContext"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schema_version": {
+      "const": "techtree.experiment.v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "variant": {
+      "$ref": "#/$defs/ExperimentVariant"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "campaign_spec_digest",
+    "program_ref",
+    "public_context",
+    "variant",
+    "configuration",
+    "configuration_digest",
+    "created_at"
+  ],
+  "title": "ExperimentManifestV2",
+  "type": "object"
+}

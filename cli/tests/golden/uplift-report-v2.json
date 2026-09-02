@@ -1,0 +1,179 @@
+{
+  "baseline_manifest_digest": "sha256:02534b1707785ca7cfd2b0677ffe5ad4bbc27bcee24705e0d770901e40cc212c",
+  "campaign_spec_digest": "sha256:9ca493001fd48582e0c5f756b4da2f836652b716d316b399c9046f659a1cdd82",
+  "candidate_manifest_digest": "sha256:a892d1255653ea2828ecf6cd2e74592eeaa0d5aa0b2bbcf9c29d0802f440839a",
+  "created_at": "2026-01-01T00:00:00Z",
+  "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
+  "decision": "accepted",
+  "execution_location": {
+    "kind": "local"
+  },
+  "execution_plan_digest": "sha256:713280f58dbfcfaf192cb2fe3039ce6077fab259bee7c7f9a8a923e8748b1dc2",
+  "id": "uplift_1d01f7cca88df7f7f41845bdfddfbdde",
+  "manifest_comparison": {
+    "allowed_differences": [
+      "/agents/subject/harness/skills"
+    ],
+    "baseline_configuration_digest": "sha256:6e969147eeb8a99a245960d9f009942360a38aad8a943b83b09738b9205f477e",
+    "candidate_configuration_digest": "sha256:734d0059f43dd5df1bc273a56f84319c57c7743ba0a08c12cc8e45cdb9c60f63",
+    "controlled": true,
+    "differences": [
+      {
+        "baseline": null,
+        "candidate": "sha256:f059797eab10344b512bddd0084d8f2b83518d21a5a160583718e86e236b849f",
+        "pointer": "/agents/subject/harness/skills/0"
+      }
+    ],
+    "violations": []
+  },
+  "outcome_contract_digest": null,
+  "primary_result": {
+    "absolute_delta": 0.3,
+    "baseline_mean": 0.3,
+    "candidate_mean": 0.6,
+    "losses": 2,
+    "relative_delta": 1.0,
+    "reward_name": "exact_match",
+    "ties": 10,
+    "wins": 8
+  },
+  "program_ref": null,
+  "proof_grade": "P1",
+  "public_context": {
+    "climb_digest": "sha256:72edd77609bc75a3832a37b444a189ee2cb958578997857b3d6dbc8fdbfc8857",
+    "kind": "climb"
+  },
+  "publication_eligible": true,
+  "run_id": "run_bc5e01438ad71b7de1078aa4a307785a",
+  "schema_version": "techtree.uplift-report.v2",
+  "statuses": {
+    "comparison": "controlled_with_warnings",
+    "evidence": "complete",
+    "execution": "completed",
+    "publication": "not_requested",
+    "score": "valid"
+  },
+  "task_deltas": [
+    {
+      "baseline_reward": 1.0,
+      "candidate_reward": 0.0,
+      "delta": -1.0,
+      "task_hash": "sha256:de3897e782c16d166dbef41c2e4d7c923a8f62694b6f12bc7159f26147caf7ef"
+    },
+    {
+      "baseline_reward": 1.0,
+      "candidate_reward": 0.0,
+      "delta": -1.0,
+      "task_hash": "sha256:f13f0e1a9e8c5c1fa7ee22b0bf16fe4f4c4f295830f002dc8f6c041ceea8bc6f"
+    },
+    {
+      "baseline_reward": 1.0,
+      "candidate_reward": 1.0,
+      "delta": 0.0,
+      "task_hash": "sha256:7382751baf5726771425c5f5b334f806efca1cfa0e1402d4021fb551faebcda8"
+    },
+    {
+      "baseline_reward": 1.0,
+      "candidate_reward": 1.0,
+      "delta": 0.0,
+      "task_hash": "sha256:6b934d6dc7dd6a4388b115659f8692b4c6f02a4fcc4a76469d7ff37b955c1e4b"
+    },
+    {
+      "baseline_reward": 1.0,
+      "candidate_reward": 1.0,
+      "delta": 0.0,
+      "task_hash": "sha256:96861527b5de3158782357f69610d89210c4951f5cbad26e1788557d2271364a"
+    },
+    {
+      "baseline_reward": 1.0,
+      "candidate_reward": 1.0,
+      "delta": 0.0,
+      "task_hash": "sha256:00762bfef7cc69cce110987ac209463d0cd0c329a86be0d558d2426edd99a6ef"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:9ca894dd9d22c8af2cc6d4e439eafe60561a119780845f1eb33be5286795f9e5"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:fd6726a063cf25adbd3e4793ac119ad62924e65f8e01e55a9693363be8e8daef"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:9eeed74698f6dde1f07a16701ca456c9255cfebbd562455946d51dd25d24b202"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:aeec0e9f474384198b2066ba8caa41596daa727ebf7a10aa7edb0ae98dcc4df9"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:b39ea2241332303b53f3ffb9fc12dfa25ace66aaa622b46466fae63035fb14c0"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:376fa59ae32b4d7b7ee9ef003d21eec0adb70d0c872672aef7c57114552ed8db"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:1b2de99b6bda9f670b9236b6879a2f37f1b4ec98fba73e57898b6afd4f1097e0"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "task_hash": "sha256:3512f8c4290ba90e558e9cc85f9d99fe3e18ec406b5a4d188da1be3797426852"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "task_hash": "sha256:9ea788992a0dc938497ff97ad196d25b21c8ec94c98c6fd149bcad44623ce68f"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "task_hash": "sha256:1b60f6c51856f50a1456739513e5e94f97a407be7391f473f39f147d513af932"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "task_hash": "sha256:0e38a939d3a0ae65e606a50b1c95a4b2dfc6810a264a5a157ff07bcbb96cda49"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "task_hash": "sha256:2368de2a2ed5fceae718086004cbde5b4893e2023d7c0849019186d44d682c9a"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "task_hash": "sha256:f7381bc2e26f3a761853c95fdc529a2995a6f4e989c4e289797dc17b9a1fe5c0"
+    },
+    {
+      "baseline_reward": 0.0,
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "task_hash": "sha256:331ddd7dd1e56ccb23b6358980e142b0d0dd912646f9a546454e281e312a6fb5"
+    }
+  ],
+  "taskset_validation_receipt_digest": "sha256:b0ff34a2b54a35ea85856babdf86b4a93c6ef86c9a7fc33d2c7fa230490e3c94"
+}

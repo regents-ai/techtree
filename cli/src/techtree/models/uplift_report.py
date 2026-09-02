@@ -11,6 +11,13 @@ are development-only; scores can be valid while evidence is partial; a
 comparison can be controlled while publication is blocked by the data policy.
 Collapsing them into one "status" would force a caller to guess which of those
 five things a single word referred to.
+
+Two report documents live here and they are siblings, on the terms decision
+0040 fixes. ``UpliftReport`` is v0.1 and its bytes are frozen.
+``UpliftReportV2`` reports a comparison run under a v0.2 Campaign: it names
+the execution plan that Campaign binds and reports where the work ran as the
+proof's ``execution_location`` facet, in place of the ``evaluation_backend``
+the v0.1 report copied out of the Campaign.
 """
 
 from __future__ import annotations
@@ -24,6 +31,7 @@ from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateT
 from techtree.models.campaign import ProgramRef, PublicContext
 from techtree.models.episode_receipt import EvidenceStatus, ScoreStatus
 from techtree.models.evaluation_backend import EvaluationBackendSpec
+from techtree.models.evidence import ExecutionLocation
 from techtree.models.experiment import ManifestComparison
 
 __all__ = [
@@ -34,6 +42,7 @@ __all__ = [
     "TaskDelta",
     "UpliftDecision",
     "UpliftReport",
+    "UpliftReportV2",
     "UpliftStatuses",
 ]
 
@@ -109,6 +118,35 @@ class UpliftStatuses(ProtocolModel):
     publication: PublicationStatus
 
 
+def _check_a_report_cannot_overclaim(
+    *,
+    proof_grade: str,
+    decision: UpliftDecision,
+    publication: PublicationStatus,
+    publication_eligible: bool,
+    baseline_manifest_digest: str,
+    candidate_manifest_digest: str,
+) -> None:
+    """Keep a report from claiming more than its own fields support."""
+    development_only = proof_grade == "development_only"
+    if development_only and decision is not UpliftDecision.DEVELOPMENT_ONLY:
+        raise ValueError(
+            "a development_only report reaches a development_only decision"
+        )
+    if development_only and publication_eligible:
+        raise ValueError("a development_only report is never publication eligible")
+    if publication_eligible and publication is PublicationStatus.BLOCKED:
+        raise ValueError(
+            "a report cannot be publication eligible while its publication "
+            "status is blocked"
+        )
+    if baseline_manifest_digest == candidate_manifest_digest:
+        raise ValueError(
+            "a report compares two different manifests; an identical pair "
+            "measures nothing"
+        )
+
+
 class UpliftReport(ProtocolModel):
     """The complete result of one baseline-versus-candidate comparison."""
 
@@ -136,23 +174,60 @@ class UpliftReport(ProtocolModel):
     @model_validator(mode="after")
     def _check_report_cannot_overclaim(self) -> Self:
         """Keep a development-only report from presenting itself as evidence."""
-        development_only = self.proof_grade == "development_only"
-        if development_only and self.decision is not UpliftDecision.DEVELOPMENT_ONLY:
-            raise ValueError(
-                "a development_only report reaches a development_only decision"
-            )
-        if development_only and self.publication_eligible:
-            raise ValueError("a development_only report is never publication eligible")
-        if self.publication_eligible and self.statuses.publication is (
-            PublicationStatus.BLOCKED
-        ):
-            raise ValueError(
-                "a report cannot be publication eligible while its publication "
-                "status is blocked"
-            )
-        if self.baseline_manifest_digest == self.candidate_manifest_digest:
-            raise ValueError(
-                "a report compares two different manifests; an identical pair "
-                "measures nothing"
-            )
+        _check_a_report_cannot_overclaim(
+            proof_grade=self.proof_grade,
+            decision=self.decision,
+            publication=self.statuses.publication,
+            publication_eligible=self.publication_eligible,
+            baseline_manifest_digest=self.baseline_manifest_digest,
+            candidate_manifest_digest=self.candidate_manifest_digest,
+        )
+        return self
+
+
+class UpliftReportV2(ProtocolModel):
+    """The complete result of one comparison run under a v0.2 Campaign.
+
+    A sibling of :class:`UpliftReport`, not a refinement of it. Two fields
+    replace the ``evaluation_backend`` the v0.1 report copied out of its
+    Campaign: ``execution_plan_digest`` names the plan the Campaign is bound
+    to, and ``execution_location`` is the proof's own facet for where the work
+    ran. Whether the provider recorded or attested that execution is the
+    evidence contract's ``execution_observation`` facet and is not restated
+    here.
+    """
+
+    schema_version: Literal["techtree.uplift-report.v2"]
+    id: NonEmptyString
+    run_id: NonEmptyString
+    campaign_spec_digest: Digest
+    program_ref: ProgramRef | None
+    public_context: PublicContext | None
+    data_policy_digest: Digest
+    outcome_contract_digest: Digest | None
+    execution_plan_digest: Digest
+    execution_location: ExecutionLocation
+    taskset_validation_receipt_digest: Digest
+    baseline_manifest_digest: Digest
+    candidate_manifest_digest: Digest
+    statuses: UpliftStatuses
+    manifest_comparison: ManifestComparison
+    primary_result: PrimaryUpliftResult
+    task_deltas: list[TaskDelta]
+    decision: UpliftDecision
+    proof_grade: Literal["development_only", "P1"]
+    publication_eligible: bool
+    created_at: UtcDateTime
+
+    @model_validator(mode="after")
+    def _check_report_cannot_overclaim(self) -> Self:
+        """Keep a development-only report from presenting itself as evidence."""
+        _check_a_report_cannot_overclaim(
+            proof_grade=self.proof_grade,
+            decision=self.decision,
+            publication=self.statuses.publication,
+            publication_eligible=self.publication_eligible,
+            baseline_manifest_digest=self.baseline_manifest_digest,
+            candidate_manifest_digest=self.candidate_manifest_digest,
+        )
         return self

@@ -46,22 +46,34 @@ from techtree.constants import (
     CLIMB_SCHEMA_VERSION,
     DATA_POLICY_SCHEMA_VERSION,
     EPISODE_RECEIPT_SCHEMA_VERSION,
+    EPISODE_RECEIPT_V2_SCHEMA_VERSION,
     EVALUATION_BACKEND_SCHEMA_VERSION,
     EXECUTION_PLAN_SCHEMA_VERSION,
     EXPERIMENT_SCHEMA_VERSION,
+    EXPERIMENT_V2_SCHEMA_VERSION,
     PINNED_VERIFIERS_REVISION,
+    RUN_REQUEST_V2_SCHEMA_VERSION,
     SKILL_SCHEMA_VERSION,
     SUBJECT_IMAGE,
     SUBJECT_IMAGE_PLATFORM_DIGESTS,
     TASKSET_LOCK_SCHEMA_VERSION,
     TASKSET_VALIDATION_SCHEMA_VERSION,
     UPLIFT_SCHEMA_VERSION,
+    UPLIFT_V2_SCHEMA_VERSION,
 )
 from techtree.crypto import (
     load_private_key,
     public_key_bytes,
     public_key_to_base64,
     sign_digest,
+)
+from techtree.execution_facts import (
+    climb_summary_execution_facts,
+    compatibility_result_execution_facts,
+    episode_receipt_execution_facts,
+    experiment_configuration_execution_facts,
+    run_request_execution_facts,
+    uplift_report_execution_facts,
 )
 from techtree.identity.models import (
     ExecutorIdentity,
@@ -108,8 +120,10 @@ from techtree.models.campaign import (
 )
 from techtree.models.catalog import (
     ClimbSummary,
+    ClimbSummaryV2,
     CompatibilityIssue,
     CompatibilityResult,
+    CompatibilityResultV2,
     DataPolicySummary,
     EngineCompatibilityStatus,
 )
@@ -137,6 +151,7 @@ from techtree.models.data_policy import (
 )
 from techtree.models.episode_receipt import (
     EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     NamedTraceReceipt,
     ScoreStatus,
@@ -179,11 +194,14 @@ from techtree.models.execution_plan import (
 )
 from techtree.models.experiment import (
     ExperimentConfiguration,
+    ExperimentConfigurationV2,
     ExperimentManifest,
+    ExperimentManifestV2,
     ExperimentVariant,
     JsonDifference,
     ManifestComparison,
 )
+from techtree.models.run import PolicyAcknowledgement, RunRequestV2
 from techtree.models.skill import SkillArtifact, SkillFile
 from techtree.models.uplift_report import (
     ComparisonStatus,
@@ -193,6 +211,7 @@ from techtree.models.uplift_report import (
     TaskDelta,
     UpliftDecision,
     UpliftReport,
+    UpliftReportV2,
     UpliftStatuses,
 )
 from techtree.models.validation import (
@@ -687,15 +706,27 @@ def build_campaign_v2(
     )
 
 
-def build_climb(campaign_digest: Digest) -> ClimbManifest:
-    """Return the development Climb from spec section 23.4."""
+def build_climb(
+    campaign_digest: Digest,
+    *,
+    version: int = 1,
+    label: str = "climb",
+) -> ClimbManifest:
+    """Return the development Climb from spec section 23.4.
+
+    The public wrapper's shape is the same in v0.2: it holds a Campaign digest
+    and none of the Campaign's contents, so nothing in it moved when the
+    Campaign gained a second document. ``version`` and ``label`` exist so the
+    fixture graph can hold a second edition of this Climb over the v0.2
+    Campaign without the two sharing one public reference.
+    """
     return ClimbManifest(
         schema_version=CLIMB_SCHEMA_VERSION,
         kind="Climb",
         metadata=ClimbMetadata(
-            id=fixture_id("climb", "climb"),
+            id=fixture_id("climb", label),
             slug=CLIMB_SLUG,
-            version=1,
+            version=version,
             title="Techtree Hello World",
             summary=(
                 "A toy Skill-uplift Climb, used here to exercise the Techtree "
@@ -1496,6 +1527,291 @@ def build_execution_approval(estimate: RemoteExecutionEstimate) -> ExecutionAppr
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# The v0.2 run-side documents
+# ---------------------------------------------------------------------------
+#
+# Every execution-facing field below is projected from the bound execution
+# plan by ``techtree.execution_facts``, never copied from the Campaign. The
+# goldens are therefore the real output of the real projection: if a plane
+# moves, or if a projection starts answering differently, these files show it
+# as a diff a reviewer can read.
+
+
+def build_subject_agent_v2(skills: list[ArtifactRef]) -> AgentSpecV2:
+    """Return the development subject without the harness the plan now names."""
+    subject = build_subject_agent(skills)
+    return AgentSpecV2(
+        model=subject.model,
+        sampling=subject.sampling,
+        harness=HarnessSpecV2(
+            use_bundled_skill=subject.harness.use_bundled_skill,
+            skills=list(subject.harness.skills),
+        ),
+        runtime=subject.runtime,
+        trainable=subject.trainable,
+    )
+
+
+def build_experiment_configuration_v2(
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    skills: list[ArtifactRef],
+) -> ExperimentConfigurationV2:
+    """Return one resolved v0.2 configuration, differing only in the skills."""
+    facts = experiment_configuration_execution_facts(campaign, plan)
+    return ExperimentConfigurationV2(
+        taskset=campaign.taskset,
+        environment=campaign.environment,
+        agents={SUBJECT_AGENT: build_subject_agent_v2(skills)},
+        mutation_contract=campaign.mutation_contract,
+        execution_plan_digest=facts.execution_plan_digest,
+        execution=campaign.execution,
+        scoring=campaign.scoring,
+        evidence=campaign.evidence,
+        budgets=campaign.budgets,
+        data_policy_digest=campaign.data_policy_digest,
+        outcome_contract_digest=campaign.context.outcome_contract_digest,
+    )
+
+
+def build_experiment_v2(
+    variant: ExperimentVariant,
+    campaign_digest: Digest,
+    climb_digest: Digest,
+    configuration: ExperimentConfigurationV2,
+) -> ExperimentManifestV2:
+    """Return one fully resolved v0.2 experiment manifest."""
+    return ExperimentManifestV2(
+        schema_version=EXPERIMENT_V2_SCHEMA_VERSION,
+        id=fixture_id("receipt", f"experiment/v2/{variant.value}"),
+        campaign_spec_digest=campaign_digest,
+        program_ref=None,
+        public_context=PublicContext(kind="climb", climb_digest=climb_digest),
+        variant=variant,
+        configuration=configuration,
+        configuration_digest=digest_object(configuration),
+        created_at=FIXED_TIME,
+    )
+
+
+def build_run_request_v2(
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    campaign_digest: Digest,
+    climb_digest: Digest,
+    lock_digest: Digest,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
+) -> RunRequestV2:
+    """Return what a v0.2 run was created to do."""
+    facts = run_request_execution_facts(campaign, plan)
+    return RunRequestV2(
+        schema_version=RUN_REQUEST_V2_SCHEMA_VERSION,
+        run_id=fixture_id("run", "v2-run"),
+        draft_id=fixture_id("draft", "v2-draft"),
+        draft_digest=fixture_digest("v2-draft"),
+        campaign_spec_digest=campaign_digest,
+        program_ref=None,
+        public_context=PublicContext(kind="climb", climb_digest=climb_digest),
+        data_policy_digest=campaign.data_policy_digest,
+        outcome_contract_digest=None,
+        execution_plan_digest=facts.execution_plan_digest,
+        taskset_lock_digest=lock_digest,
+        baseline_manifest_digest=digest_object(baseline),
+        candidate_manifest_digest=digest_object(candidate),
+        policy_acknowledgement=PolicyAcknowledgement(
+            data_policy_digest=campaign.data_policy_digest,
+            method="explicit_cli_review",
+            acknowledged_at=FIXED_TIME,
+        ),
+        executor_kind="verifiers",
+        created_at=FIXED_TIME,
+    )
+
+
+def build_episode_receipt_v2(
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    campaign_digest: Digest,
+    climb_digest: Digest,
+    candidate: ExperimentManifestV2,
+) -> EpisodeReceiptV2:
+    """Return one v0.2 receipt of the shape a real Verifiers episode produces."""
+    facts = episode_receipt_execution_facts(campaign, plan)
+    task_hash = ordered_task_hashes()[0]
+    return EpisodeReceiptV2(
+        schema_version=EPISODE_RECEIPT_V2_SCHEMA_VERSION,
+        id=fixture_id("receipt", "v2-episode-receipt"),
+        run_id=fixture_id("run", "v2-run"),
+        campaign_spec_digest=campaign_digest,
+        program_ref=None,
+        public_context=PublicContext(kind="climb", climb_digest=climb_digest),
+        data_policy_digest=campaign.data_policy_digest,
+        outcome_contract_digest=None,
+        execution_plan_digest=facts.execution_plan_digest,
+        execution_location=facts.execution_location,
+        subject_runtime=SubjectRuntimeReceipt(
+            kind="docker",
+            resolved_image_digest=fixture_digest("subject-image"),
+            platform="linux/arm64",
+        ),
+        variant=ExperimentVariant.CANDIDATE,
+        experiment_manifest_digest=digest_object(candidate),
+        episode_id=fixture_id("episode", "v2-episode"),
+        episode_digest=fixture_digest("v2-raw-episode"),
+        task_hash=task_hash,
+        named_traces={
+            SUBJECT_AGENT: [
+                NamedTraceReceipt(
+                    role=SUBJECT_AGENT,
+                    trace_id=fixture_id("trace", "v2-trace"),
+                    trace_digest=fixture_digest("v2-raw-trace"),
+                    task_hash=task_hash,
+                    rewards={"exact_match": 1.0},
+                    metrics={},
+                    ok=True,
+                )
+            ]
+        },
+        score_status=ScoreStatus.VALID,
+        evidence_status=EvidenceStatus.COMPLETE,
+        executor_kind="verifiers",
+        artifacts=[
+            ArtifactRef(
+                digest=fixture_digest("v2-normalized-episodes"),
+                media_type="application/x-ndjson",
+                size=65536,
+                relative_path=None,
+            )
+        ],
+    )
+
+
+def build_uplift_report_v2(
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    campaign_digest: Digest,
+    climb_digest: Digest,
+    receipt_digest: Digest,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
+) -> UpliftReportV2:
+    """Return the shape a v0.2 report of a real comparison takes."""
+    facts = uplift_report_execution_facts(campaign, plan)
+    deltas = real_task_deltas()
+    return UpliftReportV2(
+        schema_version=UPLIFT_V2_SCHEMA_VERSION,
+        id=fixture_id("uplift", "v2-uplift-report"),
+        run_id=fixture_id("run", "v2-run"),
+        campaign_spec_digest=campaign_digest,
+        program_ref=None,
+        public_context=PublicContext(kind="climb", climb_digest=climb_digest),
+        data_policy_digest=campaign.data_policy_digest,
+        outcome_contract_digest=None,
+        execution_plan_digest=facts.execution_plan_digest,
+        execution_location=facts.execution_location,
+        taskset_validation_receipt_digest=receipt_digest,
+        baseline_manifest_digest=digest_object(baseline),
+        candidate_manifest_digest=digest_object(candidate),
+        statuses=UpliftStatuses(
+            execution=ExecutionStatus.COMPLETED,
+            score=ScoreStatus.VALID,
+            evidence=EvidenceStatus.COMPLETE,
+            comparison=ComparisonStatus.CONTROLLED_WITH_WARNINGS,
+            publication=PublicationStatus.NOT_REQUESTED,
+        ),
+        manifest_comparison=ManifestComparison(
+            baseline_configuration_digest=baseline.configuration_digest,
+            candidate_configuration_digest=candidate.configuration_digest,
+            differences=[
+                JsonDifference(
+                    pointer=f"{SKILL_MUTATION_POINTER}/0",
+                    baseline=None,
+                    candidate=fixture_digest("skill-archive"),
+                )
+            ],
+            allowed_differences=[SKILL_MUTATION_POINTER],
+            controlled=True,
+            violations=[],
+        ),
+        primary_result=aggregate_primary_result(deltas, "exact_match"),
+        task_deltas=deltas,
+        decision=UpliftDecision.ACCEPTED,
+        proof_grade="P1",
+        publication_eligible=publication_eligible_for(
+            grade="P1", publication=PublicationStatus.NOT_REQUESTED
+        ),
+        created_at=FIXED_TIME,
+    )
+
+
+def build_climb_summary_v2(
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    campaign_digest: Digest,
+    climb: ClimbManifest,
+    climb_digest: Digest,
+    data_policy: DataPolicy,
+) -> ClimbSummaryV2:
+    """Return what ``climb show`` displays for the v0.2 development Climb."""
+    facts = climb_summary_execution_facts(campaign, plan)
+    compatibility_facts = compatibility_result_execution_facts(campaign, plan)
+    compatibility = CompatibilityResultV2(
+        compatible=False,
+        host_platform="darwin/arm64",
+        host_supported=True,
+        required_engine_digest=fixture_digest("engine-bundle"),
+        engine_status=EngineCompatibilityStatus.NOT_INSTALLED,
+        execution_plan_digest=compatibility_facts.execution_plan_digest,
+        evaluation_engine_source_commit=(
+            compatibility_facts.evaluation_engine_source_commit
+        ),
+        evaluation_engine_wheel_digest=(
+            compatibility_facts.evaluation_engine_wheel_digest
+        ),
+        execution_backend_kind=compatibility_facts.execution_backend_kind,
+        execution_backend_supported=(compatibility_facts.execution_backend_supported),
+        subject_backend_kind=compatibility_facts.subject_backend_kind,
+        subject_backend_supported=compatibility_facts.subject_backend_supported,
+        issues=[
+            CompatibilityIssue(
+                code="engine_not_installed",
+                severity="error",
+                message=(
+                    "The managed evaluation engine this Climb requires is not "
+                    "installed yet."
+                ),
+                blocking=True,
+            )
+        ],
+    )
+    return ClimbSummaryV2(
+        reference=f"{climb.metadata.slug}@{climb.metadata.version}",
+        climb_digest=climb_digest,
+        campaign_spec_digest=campaign_digest,
+        title=climb.metadata.title,
+        summary=climb.metadata.summary,
+        status=climb.metadata.status,
+        purpose=campaign.metadata.purpose,
+        taskset_id=campaign.taskset.ref.id,
+        task_count=campaign.taskset.selection.num_tasks,
+        subject_harness=facts.subject_harness,
+        subject_harness_version=facts.subject_harness_version,
+        mutation_kind=campaign.mutation_contract.kind,
+        candidate_skill_visibility=climb.candidate_policy.skill_visibility,
+        execution_backend_kind=facts.execution_backend_kind,
+        proof_grade=climb.publication.proof_grade,
+        data_policy=DataPolicySummary(
+            raw_episode_server_upload=data_policy.raw_episodes.server_upload,
+            raw_episode_training_use=data_policy.raw_episodes.training_use,
+            candidate_skill_public_release=(data_policy.candidate_skill.public_release),
+            uplift_report_visibility=data_policy.derived_artifacts.uplift_report,
+        ),
+        compatibility=compatibility,
+    )
+
+
 def golden_objects() -> dict[str, BaseModel]:
     """Return filename/model mapping."""
     data_policy = build_data_policy()
@@ -1512,9 +1828,18 @@ def golden_objects() -> dict[str, BaseModel]:
     campaign_v2 = build_campaign_v2(
         data_policy_digest, receipt_digest, digest_object(execution_plan)
     )
+    campaign_v2_digest = digest_object(campaign_v2)
 
     climb = build_climb(campaign_digest)
     climb_digest = digest_object(climb)
+
+    # The same public Climb, republished over the v0.2 Campaign. The wrapper's
+    # own shape did not change in v0.2 — it holds a Campaign digest and none of
+    # the Campaign's contents — so this is the v0.1 document naming the second
+    # Campaign, and it exists so the v0.2 summary's edges can be checked
+    # against an object a reader can open.
+    climb_v2 = build_climb(campaign_v2_digest, version=2, label="climb/v2")
+    climb_v2_digest = digest_object(climb_v2)
 
     parity_candidate = build_parity_candidate_campaign(campaign)
     compatibility_policy = build_compatibility_policy(campaign_digest)
@@ -1539,6 +1864,21 @@ def golden_objects() -> dict[str, BaseModel]:
         climb_digest,
         build_experiment_configuration(
             data_policy_digest, receipt_digest, [candidate_skill]
+        ),
+    )
+
+    baseline_v2 = build_experiment_v2(
+        ExperimentVariant.BASELINE,
+        campaign_v2_digest,
+        climb_v2_digest,
+        build_experiment_configuration_v2(campaign_v2, execution_plan, []),
+    )
+    candidate_v2 = build_experiment_v2(
+        ExperimentVariant.CANDIDATE,
+        campaign_v2_digest,
+        climb_v2_digest,
+        build_experiment_configuration_v2(
+            campaign_v2, execution_plan, [candidate_skill]
         ),
     )
 
@@ -1569,8 +1909,24 @@ def golden_objects() -> dict[str, BaseModel]:
         "campaign-parity-candidate": parity_candidate,
         "campaign-v2": campaign_v2,
         "climb": climb,
+        "climb-summary-v2": build_climb_summary_v2(
+            campaign_v2,
+            execution_plan,
+            campaign_v2_digest,
+            climb_v2,
+            climb_v2_digest,
+            data_policy,
+        ),
+        "climb-v2": climb_v2,
         "cli-envelope": build_cli_envelope(summary),
         "data-policy": data_policy,
+        "episode-receipt-v2": build_episode_receipt_v2(
+            campaign_v2,
+            execution_plan,
+            campaign_v2_digest,
+            climb_v2_digest,
+            candidate_v2,
+        ),
         "evidence-artifact-ref": build_evidence_artifact_ref(sealed_receipt),
         "evidence-facets": build_evidence_facets(campaign_digest),
         "execution-approval": build_execution_approval(estimate),
@@ -1579,7 +1935,9 @@ def golden_objects() -> dict[str, BaseModel]:
         "execution-plan": execution_plan,
         "executor-identity": build_executor_identity(),
         "experiment-baseline": baseline,
+        "experiment-baseline-v2": baseline_v2,
         "experiment-candidate": candidate,
+        "experiment-candidate-v2": candidate_v2,
         "fake-uplift-report": build_fake_uplift_report(
             campaign_digest,
             climb_digest,
@@ -1606,9 +1964,27 @@ def golden_objects() -> dict[str, BaseModel]:
         "real-episode-receipt": sealed_receipt,
         "real-uplift-report": sign_fixture(real_report),
         "remote-execution-estimate": estimate,
+        "run-request-v2": build_run_request_v2(
+            campaign_v2,
+            execution_plan,
+            campaign_v2_digest,
+            climb_v2_digest,
+            digest_object(lock),
+            baseline_v2,
+            candidate_v2,
+        ),
         "skill-artifact": skill,
         "taskset-lock": lock,
         "taskset-validation-receipt": receipt,
+        "uplift-report-v2": build_uplift_report_v2(
+            campaign_v2,
+            execution_plan,
+            campaign_v2_digest,
+            climb_v2_digest,
+            receipt_digest,
+            baseline_v2,
+            candidate_v2,
+        ),
     }
 
 

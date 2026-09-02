@@ -1,0 +1,34 @@
+{
+  "campaign_spec_digest": "sha256:9ca493001fd48582e0c5f756b4da2f836652b716d316b399c9046f659a1cdd82",
+  "candidate_policy": {
+    "constraints": {
+      "format": "techtree-instruction-skill-v1",
+      "max_skills": 1,
+      "min_skills": 1
+    },
+    "required_mutation": "skill_insertion",
+    "skill_visibility": "public"
+  },
+  "kind": "Climb",
+  "leaderboard": {
+    "enabled": false,
+    "evidence_required": "not_required"
+  },
+  "metadata": {
+    "closes_at": null,
+    "id": "climb_ce953b6bac8e2440d945bd2f6b6247e4",
+    "opens_at": null,
+    "slug": "hello-world-climb",
+    "status": "development",
+    "summary": "A toy Skill-uplift Climb, used here to exercise the Techtree protocol end to end. It produces no publishable evidence.",
+    "title": "Techtree Hello World",
+    "version": 2
+  },
+  "publication": {
+    "proof_grade": "development_only",
+    "public_trace_projection": "redacted",
+    "raw_episode_visibility": "prohibited",
+    "report_visibility": "public"
+  },
+  "schema_version": "techtree.climb.v1alpha1"
+}

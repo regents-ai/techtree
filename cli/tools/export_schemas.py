@@ -41,7 +41,13 @@ from pydantic import BaseModel
 from techtree.models.approval import ExecutionApproval, RemoteExecutionEstimate
 from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import CampaignSpec, CampaignSpecV2
-from techtree.models.catalog import CatalogIndex, ClimbSummary, CompatibilityResult
+from techtree.models.catalog import (
+    CatalogIndex,
+    ClimbSummary,
+    ClimbSummaryV2,
+    CompatibilityResult,
+    CompatibilityResultV2,
+)
 from techtree.models.cli import CliEnvelope
 from techtree.models.climb import ClimbManifest
 from techtree.models.compatibility import (
@@ -50,14 +56,14 @@ from techtree.models.compatibility import (
 )
 from techtree.models.data_policy import DataPolicy
 from techtree.models.engine import EngineDescriptor
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceipt, EpisodeReceiptV2
 from techtree.models.evaluation_backend import EvaluationBackendSpec
 from techtree.models.evidence import EvidenceArtifactRef, EvidenceFacets
 from techtree.models.execution_plan import ResolvedExecutionPlan
-from techtree.models.experiment import ExperimentManifest
-from techtree.models.run import RunState
+from techtree.models.experiment import ExperimentManifest, ExperimentManifestV2
+from techtree.models.run import RunRequestV2, RunState
 from techtree.models.skill import SkillArtifact, SubmissionDraft
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReport, UpliftReportV2
 from techtree.models.validation import (
     TasksetLock,
     TasksetValidationReceipt,
@@ -138,7 +144,18 @@ def v2_schema_models() -> dict[str, type[BaseModel]]:
     """
     return {
         "campaign": CampaignSpecV2,
+        "climb-summary": ClimbSummaryV2,
+        "compatibility-result": CompatibilityResultV2,
+        "episode-receipt": EpisodeReceiptV2,
         "execution-plan": ResolvedExecutionPlan,
+        "experiment-manifest": ExperimentManifestV2,
+        # The run's own record of what was asked for. It is a stored document
+        # in both generations and it had no published schema under v0.1; the
+        # v0.2 shape is published because it is the document that names the
+        # execution plan a run is bound to, and a consumer reading a run
+        # directory should be able to validate it.
+        "run-request": RunRequestV2,
+        "uplift-report": UpliftReportV2,
     }
 
 

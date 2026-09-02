@@ -28,6 +28,15 @@ EVALUATION_BACKEND_SCHEMA_VERSION: Final = "techtree.evaluation-backend.v1alpha1
 SKILL_SCHEMA_VERSION: Final = "techtree.skill.v1alpha1"
 SUBMISSION_DRAFT_SCHEMA_VERSION: Final = "techtree.submission-draft.v1alpha1"
 EXPERIMENT_SCHEMA_VERSION: Final = "techtree.experiment.v1alpha1"
+#: The v0.2 experiment manifest. It names the execution plan its Campaign
+#: binds instead of restating the evaluation backend, so it is the second
+#: version of a document v0.1 already had. Decision 0040.
+EXPERIMENT_V2_SCHEMA_VERSION: Final = "techtree.experiment.v2"
+#: The v0.2 run request. The v0.1 request is a stored document that never
+#: carried a version literal and has no published schema; the v0.2 one has
+#: both, because a stored document that names the execution plan a run is
+#: bound to should say what it is when someone opens it.
+RUN_REQUEST_V2_SCHEMA_VERSION: Final = "techtree.run-request.v2"
 TASKSET_LOCK_SCHEMA_VERSION: Final = "techtree.taskset-lock.v1alpha1"
 TASKSET_VALIDATION_SCHEMA_VERSION: Final = "techtree.taskset-validation.v1alpha1"
 #: Decisions document 0003 A1. The deterministic, normalized form of the raw
@@ -37,7 +46,13 @@ VALIDATION_EVIDENCE_SCHEMA_VERSION: Final = "techtree.validation-evidence.v1alph
 #: execution. Never part of the Campaign graph.
 VALIDATION_EXECUTION_SCHEMA_VERSION: Final = "techtree.validation-execution.v1alpha1"
 EPISODE_RECEIPT_SCHEMA_VERSION: Final = "techtree.episode-receipt.v1alpha1"
+#: The v0.2 episode receipt. Where the work ran is the proof's
+#: ``execution_location`` facet and the plan it ran under is a digest, so no
+#: run-side document restates an execution fact the plan owns.
+EPISODE_RECEIPT_V2_SCHEMA_VERSION: Final = "techtree.episode-receipt.v2"
 UPLIFT_SCHEMA_VERSION: Final = "techtree.uplift-report.v1alpha1"
+#: The v0.2 uplift report, on the same terms as the receipt above.
+UPLIFT_V2_SCHEMA_VERSION: Final = "techtree.uplift-report.v2"
 ENGINE_SCHEMA_VERSION: Final = "techtree.engine.v1alpha1"
 #: Decisions document 0038. The two documents that cross the one boundary this
 #: product opens: what a participant sends when they publish a run, and the

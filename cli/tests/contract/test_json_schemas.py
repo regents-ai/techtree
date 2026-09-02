@@ -64,11 +64,45 @@ EXPECTED_SCHEMAS = {
     "validation-evidence",
 }
 
-#: Plan v0.2: the Campaign gains its bound execution plan, and the plan is a
-#: document of its own.
+#: Plan v0.2: the Campaign gains its bound execution plan, the plan is a
+#: document of its own, and every run-side document that used to copy its
+#: execution facts out of the Campaign takes them from the plan instead.
 EXPECTED_V2_SCHEMAS = {
     "campaign",
+    "climb-summary",
+    "compatibility-result",
+    "episode-receipt",
     "execution-plan",
+    "experiment-manifest",
+    "run-request",
+    "uplift-report",
+}
+
+#: The v0.2 documents whose execution facts come from the plan the Campaign
+#: binds, and where each one names that plan so a reader can fetch it and
+#: check every plane. Two documents name it below their root. The experiment
+#: manifest puts it in the configuration the two arms are compared on, so that
+#: a candidate which moved to another backend will read as an undeclared
+#: difference once a comparator takes these documents; the climb summary
+#: carries it through the compatibility result it already holds rather than
+#: stating it twice.
+V2_SCHEMAS_NAMING_THE_PLAN = {
+    "compatibility-result": (),
+    "episode-receipt": (),
+    "experiment-manifest": ("ExperimentConfigurationV2",),
+    "run-request": (),
+    "uplift-report": (),
+}
+
+#: What the v0.2 Campaign dropped, in the spelling each dropped fact has in a
+#: JSON Schema property name. No v0.2 document may state one of these, at any
+#: depth: decision 0040's whole point is that the plan owns them now, and a
+#: fact stated in two documents is a fact that can disagree with itself.
+FACTS_THE_V2_CAMPAIGN_DROPPED = {
+    "evaluation_backend",
+    "evaluation_backend_kind",
+    "evaluation_backend_supported",
+    "verifiers_episode",
 }
 
 
@@ -252,6 +286,95 @@ def test_the_v2_campaign_schema_drops_what_the_plan_owns() -> None:
         "verifiers_episode"
         not in (document["$defs"]["EvidenceRequirementsV2"]["properties"])
     )
+
+
+@pytest.mark.parametrize("name", sorted(V2_SCHEMAS_NAMING_THE_PLAN))
+def test_every_v2_document_names_the_plan_its_facts_come_from(name: str) -> None:
+    document = v2_schema(name)
+    for definition in V2_SCHEMAS_NAMING_THE_PLAN[name]:
+        document = document["$defs"][definition]
+
+    assert "execution_plan_digest" in document["required"]
+
+
+def test_the_v2_climb_summary_reads_the_plan_through_its_compatibility_result() -> None:
+    document = v2_schema("climb-summary")
+    referenced = document["properties"]["compatibility"]["$ref"]
+
+    assert "execution_plan_digest" not in document["properties"]
+    assert referenced == "#/$defs/CompatibilityResultV2"
+    assert (
+        "execution_plan_digest"
+        in document["$defs"]["CompatibilityResultV2"]["required"]
+    )
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_V2_SCHEMAS))
+def test_no_v2_schema_states_a_fact_the_v2_campaign_dropped(name: str) -> None:
+    """The structural form of decision 0040's rule, at every depth."""
+    document = v2_schema(name)
+    stated: set[str] = set()
+    for definition in [document, *document.get("$defs", {}).values()]:
+        stated |= set(definition.get("properties", {}))
+
+    assert stated.isdisjoint(FACTS_THE_V2_CAMPAIGN_DROPPED)
+
+
+def test_no_v2_schema_restates_the_subject_harness_coordinates() -> None:
+    """A harness id and version beside a skill list is the coordinate pair."""
+    for name in sorted(EXPECTED_V2_SCHEMAS):
+        for definition in v2_schema(name).get("$defs", {}).values():
+            properties = set(definition.get("properties", {}))
+            if "skills" not in properties:
+                continue
+            assert properties.isdisjoint({"id", "version"}), name
+
+
+def test_the_v2_run_side_documents_report_where_the_work_ran() -> None:
+    for name in ("episode-receipt", "uplift-report"):
+        assert "execution_location" in v2_schema(name)["required"], name
+
+
+def test_the_v2_compatibility_result_judges_every_plane_a_host_can_fail() -> None:
+    required = set(v2_schema("compatibility-result")["required"])
+
+    assert {
+        "evaluation_engine_source_commit",
+        "evaluation_engine_wheel_digest",
+        "execution_backend_kind",
+        "execution_backend_supported",
+        "subject_backend_kind",
+        "subject_backend_supported",
+    } <= required
+
+
+def test_the_v2_receipt_names_its_executor_the_way_a_run_does() -> None:
+    """One spelling of that fact in v0.2, and none that reads as a plane."""
+    properties = set(v2_schema("episode-receipt")["properties"])
+
+    assert "executor_kind" in properties
+    assert "execution_backend" not in properties
+
+
+def test_the_v2_run_request_says_which_document_it_is() -> None:
+    assert v2_schema("run-request")["properties"]["schema_version"]["const"] == (
+        "techtree.run-request.v2"
+    )
+
+
+def test_the_v1alpha1_run_side_schemas_are_untouched_by_the_v2_documents() -> None:
+    """The frozen tree still states the facts v0.2 moved to the plan."""
+    assert "evaluation_backend" in schema("episode-receipt")["properties"]
+    assert "evaluation_backend" in schema("uplift-report")["properties"]
+    assert (
+        "evaluation_backend"
+        in (
+            schema("experiment-manifest")["$defs"]["ExperimentConfiguration"][
+                "properties"
+            ]
+        )
+    )
+    assert "evaluation_backend" in schema("climb-summary")["properties"]
 
 
 def test_the_v1alpha1_campaign_schema_has_no_execution_plan_digest() -> None:

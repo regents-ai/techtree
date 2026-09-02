@@ -10,6 +10,13 @@ reconstructing a run from events should never have to infer where it came from.
 makes progress. Keeping them in separate classes is what stops a heartbeat
 update from being able to alter the request it is executing.
 
+``RunRequestV2`` is the v0.2 sibling of the request, on the terms decision
+0040 fixes: it names the execution plan its Campaign binds instead of
+restating the Campaign's evaluation backend. ``RunState`` has no v0.2 sibling
+because it states no execution or subject fact — it is the run's own position,
+its worker's liveness, and its result — so there is nothing in it for the
+execution plan to own.
+
 Decisions document 0003 A5 puts ``policy_acknowledgement`` here. A draft states
 which rights policy must be accepted; the run records that it *was* accepted,
 by which method, and when. Decisions document 0019 section 2 makes that one
@@ -45,6 +52,7 @@ __all__ = [
     "RunPhase",
     "RunProgress",
     "RunRequest",
+    "RunRequestV2",
     "RunState",
     "RunStatus",
     "VariantProgress",
@@ -53,10 +61,12 @@ __all__ = [
 type ExecutorKind = Literal["fake", "verifiers"]
 """Which executor a run was created to be executed by.
 
-The two names are the two that exist, and they are the same two an
-:class:`~techtree.models.episode_receipt.EpisodeReceipt` records under
-``execution_backend`` — a run and the receipts it produces should not need a
-translation table to agree on what ran.
+The two names are the two that exist, and they are the same two the receipts
+of a run record — under ``execution_backend`` in
+:class:`~techtree.models.episode_receipt.EpisodeReceipt`, and under
+``executor_kind`` in its v0.2 sibling, which spells it the way this alias
+does. A run and the receipts it produces should not need a translation table
+to agree on what ran.
 
 The value is decided when the run is created, from the Campaign, because that
 is when a person is told what is about to happen and what it will cost. It is
@@ -135,6 +145,22 @@ class PolicyAcknowledgement(ProtocolModel):
     acknowledged_at: UtcDateTime
 
 
+def _check_the_request_runs_what_it_acknowledged(
+    *,
+    acknowledged_data_policy_digest: Digest,
+    data_policy_digest: Digest,
+    baseline_manifest_digest: Digest,
+    candidate_manifest_digest: Digest,
+) -> None:
+    """Enforce the two rules every run request answers to, in either shape."""
+    if acknowledged_data_policy_digest != data_policy_digest:
+        raise ValueError(
+            "the acknowledged DataPolicy is not the one this run executes under"
+        )
+    if baseline_manifest_digest == candidate_manifest_digest:
+        raise ValueError("a run compares two different manifests")
+
+
 class RunRequest(ProtocolModel):
     """What was asked for, fixed at the moment the run was created."""
 
@@ -157,12 +183,63 @@ class RunRequest(ProtocolModel):
     @model_validator(mode="after")
     def _check_acknowledged_policy_is_the_one_being_run(self) -> Self:
         """Reject a run acknowledging a different policy than it executes under."""
-        if self.policy_acknowledgement.data_policy_digest != self.data_policy_digest:
-            raise ValueError(
-                "the acknowledged DataPolicy is not the one this run executes under"
-            )
-        if self.baseline_manifest_digest == self.candidate_manifest_digest:
-            raise ValueError("a run compares two different manifests")
+        _check_the_request_runs_what_it_acknowledged(
+            acknowledged_data_policy_digest=(
+                self.policy_acknowledgement.data_policy_digest
+            ),
+            data_policy_digest=self.data_policy_digest,
+            baseline_manifest_digest=self.baseline_manifest_digest,
+            candidate_manifest_digest=self.candidate_manifest_digest,
+        )
+        return self
+
+
+class RunRequestV2(ProtocolModel):
+    """What was asked for, under a v0.2 Campaign.
+
+    A sibling of :class:`RunRequest`, on the terms decision 0040 fixes: the
+    two share the request contract and nothing else, and neither validates as
+    the other. What changes is where the run's execution facts come from. The
+    v0.1 request restates the Campaign's ``evaluation_backend``; this one
+    names the execution plan its Campaign binds, and the engine, the execution
+    backend, the subject harness, and the evidence the run owes are that plan's
+    four planes. A request that restated any of them could disagree with the
+    plan the Campaign froze.
+
+    It also says what it is. The v0.1 request carries no version literal, and
+    for as long as it had no published schema that cost nothing; this one has
+    a schema, so a reader who opens ``request.json`` learns which document is
+    in front of them from the document rather than from its directory.
+    """
+
+    schema_version: Literal["techtree.run-request.v2"]
+    run_id: NonEmptyString
+    draft_id: NonEmptyString
+    draft_digest: Digest
+    campaign_spec_digest: Digest
+    program_ref: ProgramRef | None
+    public_context: PublicContext | None
+    data_policy_digest: Digest
+    outcome_contract_digest: Digest | None
+    execution_plan_digest: Digest
+    taskset_lock_digest: Digest | None
+    baseline_manifest_digest: Digest
+    candidate_manifest_digest: Digest
+    policy_acknowledgement: PolicyAcknowledgement
+    executor_kind: ExecutorKind
+    created_at: UtcDateTime
+
+    @model_validator(mode="after")
+    def _check_acknowledged_policy_is_the_one_being_run(self) -> Self:
+        """Reject a run acknowledging a different policy than it executes under."""
+        _check_the_request_runs_what_it_acknowledged(
+            acknowledged_data_policy_digest=(
+                self.policy_acknowledgement.data_policy_digest
+            ),
+            data_policy_digest=self.data_policy_digest,
+            baseline_manifest_digest=self.baseline_manifest_digest,
+            candidate_manifest_digest=self.candidate_manifest_digest,
+        )
         return self
 
 

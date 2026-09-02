@@ -450,9 +450,13 @@ skill-artifact, submission-draft, experiment manifest, taskset lock, taskset
 validation receipt, validation evidence, episode receipt, uplift report, run
 state, engine, evaluation backend, CLI envelope, climb summary, compatibility
 result — and its bytes are frozen, because published evidence is validated
-against them. `schemas/v2/` holds the documents v0.2 changes: the Campaign
-that binds a resolved execution plan, and the plan itself. All generated;
-regenerate with `make schemas`, and `make generated-check` fails on drift.
+against them. `schemas/v2/` holds the eight documents v0.2 changes: the
+resolved execution plan, which is new; the Campaign that binds one; and the
+six run-side documents that used to copy their execution and subject facts out
+of the Campaign and now take them from that plan — experiment manifest, run
+request, episode receipt, uplift report, climb summary, and compatibility
+result. All generated; regenerate with `make schemas`, and `make
+generated-check` fails on drift.
 
 ### 3.2 techtree-plugin
 

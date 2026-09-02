@@ -1,0 +1,45 @@
+{
+  "campaign_spec_digest": "sha256:9ca493001fd48582e0c5f756b4da2f836652b716d316b399c9046f659a1cdd82",
+  "candidate_skill_visibility": "public",
+  "climb_digest": "sha256:72edd77609bc75a3832a37b444a189ee2cb958578997857b3d6dbc8fdbfc8857",
+  "compatibility": {
+    "compatible": false,
+    "engine_status": "not_installed",
+    "evaluation_engine_source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+    "evaluation_engine_wheel_digest": "sha256:6e260ca61cb7946c6bae1820eda4760486d24bd5355c8c8973c404f926de04dd",
+    "execution_backend_kind": "local",
+    "execution_backend_supported": true,
+    "execution_plan_digest": "sha256:713280f58dbfcfaf192cb2fe3039ce6077fab259bee7c7f9a8a923e8748b1dc2",
+    "host_platform": "darwin/arm64",
+    "host_supported": true,
+    "issues": [
+      {
+        "blocking": true,
+        "code": "engine_not_installed",
+        "message": "The managed evaluation engine this Climb requires is not installed yet.",
+        "severity": "error"
+      }
+    ],
+    "required_engine_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92",
+    "subject_backend_kind": "direct",
+    "subject_backend_supported": true
+  },
+  "data_policy": {
+    "candidate_skill_public_release": "required_for_climb",
+    "raw_episode_server_upload": "prohibited",
+    "raw_episode_training_use": "prohibited",
+    "uplift_report_visibility": "public"
+  },
+  "execution_backend_kind": "local",
+  "mutation_kind": "skill_insertion",
+  "proof_grade": "development_only",
+  "purpose": "component_uplift",
+  "reference": "hello-world-climb@2",
+  "status": "development",
+  "subject_harness": "hermes-agent",
+  "subject_harness_version": "0.19.0",
+  "summary": "A toy Skill-uplift Climb, used here to exercise the Techtree protocol end to end. It produces no publishable evidence.",
+  "task_count": 20,
+  "taskset_id": "procedure-transfer-v1",
+  "title": "Techtree Hello World"
+}
