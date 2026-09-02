@@ -19,6 +19,8 @@ that the digests joining them mean what the protocol says they mean.
 from __future__ import annotations
 
 import json
+import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +30,11 @@ from pydantic import BaseModel
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
 from techtree.compatibility import compare_campaign_configurations
 from techtree.identity.models import ExecutorIdentity
+from techtree.models.approval import (
+    MONETARY_AMOUNT_PATTERN,
+    ExecutionApproval,
+    RemoteExecutionEstimate,
+)
 from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import (
     CampaignSpec,
@@ -43,6 +50,16 @@ from techtree.models.compatibility import (
 )
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.evidence import (
+    ArtifactIntegrityStatus,
+    ComparisonValidityStatus,
+    EvidenceArtifactRef,
+    EvidenceFacets,
+    ExecutionLocationKind,
+    ProviderAttestationStatus,
+    ProviderRecordStatus,
+    may_headline_uplift,
+)
 from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import ExperimentManifest, ExperimentVariant
 from techtree.models.skill import SkillArtifact
@@ -73,6 +90,11 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "configuration-compatibility-policy": ConfigurationCompatibilityPolicy,
     "data-policy": DataPolicy,
     "execution-plan": ResolvedExecutionPlan,
+    # The v0.2 evidence contract. Plan `docs/plan/v0.2.md`, "Evidence contract"
+    # and "Evidence availability and proof closure".
+    "evidence-artifact-ref": EvidenceArtifactRef,
+    "evidence-facets": EvidenceFacets,
+    "execution-approval": ExecutionApproval,
     "executor-identity": ExecutorIdentity,
     "experiment-baseline": ExperimentManifest,
     "experiment-candidate": ExperimentManifest,
@@ -84,6 +106,7 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "presentation-payload": UpliftPresentationPayload,
     "real-episode-receipt": ObjectEnvelope[EpisodeReceipt],
     "real-uplift-report": ObjectEnvelope[UpliftReport],
+    "remote-execution-estimate": RemoteExecutionEstimate,
     "skill-artifact": SkillArtifact,
     "taskset-lock": TasksetLock,
     "taskset-validation-receipt": TasksetValidationReceipt,
@@ -478,6 +501,76 @@ def _fixture_identity() -> ExecutorIdentity:
     return identity
 
 
+def test_the_evidence_facets_describe_the_committed_campaign() -> None:
+    facets: EvidenceFacets = load("evidence-facets")
+
+    assert facets.comparison_validity.campaign_digest == digest_object(load("campaign"))
+
+
+def test_the_evidence_facets_are_what_v020_emits_and_nothing_more() -> None:
+    """Plan `docs/plan/v0.2.md`: local, absent, and an empty reproduction list.
+
+    The hosted values stay in the protocol so WP1 cuts it once. A golden that
+    populated one would be documenting a capability this release does not have.
+    """
+    facets: EvidenceFacets = load("evidence-facets")
+    observation = facets.execution_observation
+
+    assert facets.execution_location.kind is ExecutionLocationKind.LOCAL
+    assert observation.provider_record.status is ProviderRecordStatus.ABSENT
+    assert observation.provider_attestation.status is ProviderAttestationStatus.ABSENT
+    assert facets.reproductions == ()
+
+
+def test_the_evidence_facets_golden_may_headline() -> None:
+    """Integrity verified and the comparison valid, which is the whole rule."""
+    facets: EvidenceFacets = load("evidence-facets")
+
+    assert facets.artifact_integrity.status is ArtifactIntegrityStatus.VERIFIED
+    assert facets.comparison_validity.status is ComparisonValidityStatus.VALID
+    assert may_headline_uplift(facets)
+
+
+def test_the_availability_statement_describes_the_committed_receipt() -> None:
+    """The claim is checkable against the bytes it is a claim about."""
+    reference: EvidenceArtifactRef = load("evidence-artifact-ref")
+    sealed: ObjectEnvelope[EpisodeReceipt] = load("real-episode-receipt")
+
+    assert reference.digest == digest_object(sealed)
+    assert reference.size_bytes == len(canonical_json_bytes(sealed))
+    assert reference.availability == "embedded_in_proof"
+    assert reference.verification == "recomputable_from_bundle"
+
+
+def test_the_approval_binds_the_committed_estimate_plan_budget_and_account() -> None:
+    approval: ExecutionApproval = load("execution-approval")
+    estimate: RemoteExecutionEstimate = load("remote-execution-estimate")
+
+    assert approval.estimate_digest == digest_object(estimate)
+    assert approval.execution_plan_digest == estimate.execution_plan_digest
+    assert approval.maximum_authorized_cost == estimate.maximum_authorized_cost
+    assert approval.billing_principal_label == estimate.billing_principal_label
+
+
+def test_the_estimate_golden_prices_the_two_arms_separately() -> None:
+    """The authorized maximum is what both arms together may spend."""
+    estimate: RemoteExecutionEstimate = load("remote-execution-estimate")
+    arms = estimate.per_arm_ceilings
+
+    assert estimate.ceiling_scope.value == "per_arm_ceiling"
+    assert arms is not None
+    assert Decimal(arms.baseline) + Decimal(arms.candidate) == Decimal(
+        estimate.maximum_authorized_cost
+    )
+
+
+def test_the_approval_golden_was_given_by_a_person() -> None:
+    """Plan `docs/plan/v0.2.md`: the model never approves paid inference."""
+    approval: ExecutionApproval = load("execution-approval")
+
+    assert approval.approval_method.value == "terminal_confirmation"
+
+
 def test_the_cli_envelope_golden_carries_the_committed_climb_summary() -> None:
     envelope: CliEnvelope[ClimbSummary] = load("cli-envelope")
     climb: ClimbManifest = load("climb")
@@ -501,6 +594,15 @@ def test_the_cli_envelope_golden_carries_the_committed_climb_summary() -> None:
         ("campaign", ("scoring", "minimum_absolute_delta")),
         ("climb", ("metadata", "title")),
         ("data-policy", ("raw_episodes", "reproduction_access")),
+        ("evidence-artifact-ref", ("size_bytes",)),
+        ("evidence-facets", ("comparison_validity", "campaign_digest")),
+        ("execution-approval", ("estimate_digest",)),
+        ("execution-approval", ("maximum_authorized_cost",)),
+        ("remote-execution-estimate", ("execution_plan_digest",)),
+        # The authorized maximum is the sum of the two arm ceilings, so it
+        # cannot be moved on its own. The approval golden carries the
+        # unconstrained copy of the same number, and is tampered with above.
+        ("remote-execution-estimate", ("estimated_cost",)),
         ("taskset-lock", ("engine_digest",)),
     ],
 )
@@ -535,4 +637,10 @@ def _changed(value: Any) -> Any:
         return "allowed"
     if value == "consent_required":
         return "prohibited"
+    # A monetary amount has one canonical spelling, so it cannot be changed by
+    # appending to it. Raising the whole units keeps the result an amount.
+    if isinstance(value, str) and re.fullmatch(MONETARY_AMOUNT_PATTERN, value):
+        whole, _, fraction = value.partition(".")
+        raised = str(int(whole) + 1)
+        return f"{raised}.{fraction}" if fraction else raised
     return f"{value} (changed)"

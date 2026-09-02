@@ -1,0 +1,16 @@
+{
+  "billing_principal_label": "fixture billing principal",
+  "ceiling_scope": "per_arm_ceiling",
+  "currency": "USD",
+  "estimate_source": "provider quote for the resolved execution plan",
+  "estimated_cost": "7.4",
+  "execution_plan_digest": "sha256:63ca89ea3c1e626263e735897c3a8123f213e16a2027c7baa39f5927ef9697d0",
+  "expires_at": "2026-01-01T01:00:00Z",
+  "maximum_authorized_cost": "12",
+  "per_arm_ceilings": {
+    "baseline": "5",
+    "candidate": "7"
+  },
+  "provider": "prime",
+  "uncertainty_disclosure": "Token counts vary between runs, so the figure is an expectation and the maximum is the only number that binds."
+}

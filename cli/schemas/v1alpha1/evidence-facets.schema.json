@@ -1,0 +1,410 @@
+{
+  "$defs": {
+    "ArtifactIntegrity": {
+      "additionalProperties": false,
+      "description": "The integrity facet: do these bytes still say what they said?",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/ArtifactIntegrityStatus"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ArtifactIntegrity",
+      "type": "object"
+    },
+    "ArtifactIntegrityStatus": {
+      "description": "Whether every artifact still hashes to the digest the proof recorded.",
+      "enum": [
+        "verified",
+        "invalid"
+      ],
+      "title": "ArtifactIntegrityStatus",
+      "type": "string"
+    },
+    "ComparisonValidity": {
+      "additionalProperties": false,
+      "description": "The comparison facet, bound to the Campaign it is a comparison of.\n\nBoth difference digests are carried because either one alone proves\nnothing. The declared digest is what the Campaign permitted; the observed\ndigest is what the two arms actually differed by. A comparison is valid\nwhen they are the same digest, and when they are not, the reason codes say\nwhat went wrong rather than leaving a reader to diff two hashes.",
+      "properties": {
+        "campaign_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "declared_difference_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "mutation_axis": {
+          "const": "skill",
+          "title": "Mutation Axis",
+          "type": "string"
+        },
+        "observed_difference_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ComparisonValidityStatus"
+        }
+      },
+      "required": [
+        "status",
+        "campaign_digest",
+        "mutation_axis",
+        "declared_difference_digest",
+        "observed_difference_digest",
+        "reason_codes"
+      ],
+      "title": "ComparisonValidity",
+      "type": "object"
+    },
+    "ComparisonValidityStatus": {
+      "description": "Whether the two arms differed only where the Campaign declared.\n\n``indeterminate`` is not a softer ``invalid``. It says the evidence does\nnot establish either answer, which is a different thing to tell a reader\nthan \"the comparison broke its own contract\".",
+      "enum": [
+        "valid",
+        "invalid",
+        "indeterminate"
+      ],
+      "title": "ComparisonValidityStatus",
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "ExecutionLocation": {
+      "additionalProperties": false,
+      "description": "The location facet.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ExecutionLocationKind"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ExecutionLocation",
+      "type": "object"
+    },
+    "ExecutionLocationKind": {
+      "description": "Where the work ran. v0.2.0 emits ``local`` and nothing else.",
+      "enum": [
+        "local",
+        "prime_hosted"
+      ],
+      "title": "ExecutionLocationKind",
+      "type": "string"
+    },
+    "ExecutionObservation": {
+      "additionalProperties": false,
+      "description": "Every independent observation of one execution, accumulated.\n\nThe three blocks are not ranked against each other by the model, because\nthey are not alternatives: a run can be participant-attested and\nprovider-recorded and provider-attested at once, and each says something\nthe other two do not. :func:`provider_verification_claim` is where the\naccumulation is reduced to a sentence.",
+      "properties": {
+        "participant_attestation": {
+          "$ref": "#/$defs/ParticipantAttestation"
+        },
+        "provider_attestation": {
+          "$ref": "#/$defs/ProviderAttestation"
+        },
+        "provider_record": {
+          "$ref": "#/$defs/ProviderRecord"
+        }
+      },
+      "required": [
+        "participant_attestation",
+        "provider_record",
+        "provider_attestation"
+      ],
+      "title": "ExecutionObservation",
+      "type": "object"
+    },
+    "ModelIdentity": {
+      "additionalProperties": false,
+      "description": "The model-identity facet.",
+      "properties": {
+        "pin_strength": {
+          "$ref": "#/$defs/ModelPinStrength"
+        }
+      },
+      "required": [
+        "pin_strength"
+      ],
+      "title": "ModelIdentity",
+      "type": "object"
+    },
+    "ModelPinStrength": {
+      "description": "How tightly the subject model was pinned.\n\nOrdered by what it lets a reader conclude, weakest first: an alias can move\nunder a Campaign, a provider revision cannot but is still the provider's\nword for it, and an artifact digest names bytes.",
+      "enum": [
+        "mutable_alias",
+        "provider_revision",
+        "artifact_digest"
+      ],
+      "title": "ModelPinStrength",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "ParticipantAttestation": {
+      "additionalProperties": false,
+      "description": "What the participant asserted, and which key asserted it.",
+      "properties": {
+        "key_fingerprint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/ParticipantAttestationStatus"
+        }
+      },
+      "required": [
+        "status",
+        "key_fingerprint"
+      ],
+      "title": "ParticipantAttestation",
+      "type": "object"
+    },
+    "ParticipantAttestationStatus": {
+      "description": "Whether the participant's own signature over the run checks out.",
+      "enum": [
+        "verified",
+        "invalid",
+        "absent"
+      ],
+      "title": "ParticipantAttestationStatus",
+      "type": "string"
+    },
+    "ProviderAttestation": {
+      "additionalProperties": false,
+      "description": "A provider-signed assertion, absent until a real one exists.",
+      "properties": {
+        "attestation_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/ProviderAttestationStatus"
+        }
+      },
+      "required": [
+        "status",
+        "attestation_digest"
+      ],
+      "title": "ProviderAttestation",
+      "type": "object"
+    },
+    "ProviderAttestationStatus": {
+      "description": "Whether the provider made a verifiable assertion about the run.",
+      "enum": [
+        "absent",
+        "verified",
+        "invalid"
+      ],
+      "title": "ProviderAttestationStatus",
+      "type": "string"
+    },
+    "ProviderRecord": {
+      "additionalProperties": false,
+      "description": "The provider's record of the run, and how it was come by.",
+      "properties": {
+        "provider": {
+          "anyOf": [
+            {
+              "const": "prime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider"
+        },
+        "provider_run_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "record_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/ProviderRecordStatus"
+        }
+      },
+      "required": [
+        "status",
+        "provider",
+        "provider_run_ref",
+        "record_digest"
+      ],
+      "title": "ProviderRecord",
+      "type": "object"
+    },
+    "ProviderRecordStatus": {
+      "description": "How a provider's own record of the run reached this proof.\n\n``participant_captured`` means a run reference was copied into the\nparticipant-signed bundle. It is rendered as \"Prime run reference\ncaptured\", never \"Prime verified this run\".",
+      "enum": [
+        "absent",
+        "participant_captured",
+        "publication_service_retrieved"
+      ],
+      "title": "ProviderRecordStatus",
+      "type": "string"
+    },
+    "ReproductionKind": {
+      "description": "What kind of re-run one entry is.\n\nA same-participant run on the provider is a provider-hosted rerun. It is\nnever an independent reproduction, and there is no status that would let it\nbe described as one.",
+      "enum": [
+        "same_participant_provider_rerun",
+        "independent_reproduction"
+      ],
+      "title": "ReproductionKind",
+      "type": "string"
+    },
+    "ReproductionRef": {
+      "additionalProperties": false,
+      "description": "One proof that re-ran this one, and under what configuration.\n\n``compatibility`` carries the plan's literal compatibility outcomes rather\nthan importing the comparison model, so a proof can be read without the\npolicy that produced the verdict.",
+      "properties": {
+        "compatibility": {
+          "enum": [
+            "exact_configuration",
+            "compatible_with_declared_drift",
+            "incompatible"
+          ],
+          "title": "Compatibility",
+          "type": "string"
+        },
+        "executor_fingerprint": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "kind": {
+          "$ref": "#/$defs/ReproductionKind"
+        },
+        "proof_digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "proof_digest",
+        "kind",
+        "compatibility",
+        "executor_fingerprint"
+      ],
+      "title": "ReproductionRef",
+      "type": "object"
+    },
+    "TraceCoverage": {
+      "additionalProperties": false,
+      "description": "The trace facet, measured against a named profile or not at all.",
+      "properties": {
+        "coverage_profile_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/TraceCoverageKind"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/NonEmptyString"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "coverage_profile_digest",
+        "reasons"
+      ],
+      "title": "TraceCoverage",
+      "type": "object"
+    },
+    "TraceCoverageKind": {
+      "description": "How much of the requested trace evidence exists.",
+      "enum": [
+        "not_requested",
+        "unavailable",
+        "incomplete",
+        "complete_for_profile"
+      ],
+      "title": "TraceCoverageKind",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/evidence-facets.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Every evidence facet of one proof.",
+  "properties": {
+    "artifact_integrity": {
+      "$ref": "#/$defs/ArtifactIntegrity"
+    },
+    "comparison_validity": {
+      "$ref": "#/$defs/ComparisonValidity"
+    },
+    "execution_location": {
+      "$ref": "#/$defs/ExecutionLocation"
+    },
+    "execution_observation": {
+      "$ref": "#/$defs/ExecutionObservation"
+    },
+    "model_identity": {
+      "$ref": "#/$defs/ModelIdentity"
+    },
+    "reproductions": {
+      "items": {
+        "$ref": "#/$defs/ReproductionRef"
+      },
+      "title": "Reproductions",
+      "type": "array"
+    },
+    "trace_coverage": {
+      "$ref": "#/$defs/TraceCoverage"
+    }
+  },
+  "required": [
+    "artifact_integrity",
+    "comparison_validity",
+    "execution_location",
+    "execution_observation",
+    "trace_coverage",
+    "model_identity",
+    "reproductions"
+  ],
+  "title": "EvidenceFacets",
+  "type": "object"
+}

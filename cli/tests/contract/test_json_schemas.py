@@ -30,7 +30,9 @@ SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / "v1alpha1"
 V2_SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / "v2"
 
 #: Spec section 8, extended by decisions 0003 A7 with the catalog, summary, and
-#: compatibility schemas, and by A1 with normalized validation evidence.
+#: compatibility schemas, by A1 with normalized validation evidence, and by the
+#: v0.2 plan's evidence contract with the facets, evidence availability, and
+#: the estimate and approval that authorize a run's spend.
 EXPECTED_SCHEMAS = {
     "campaign",
     "catalog",
@@ -44,11 +46,15 @@ EXPECTED_SCHEMAS = {
     "engine",
     "episode-receipt",
     "evaluation-backend",
+    "evidence-artifact-ref",
+    "evidence-facets",
+    "execution-approval",
     "experiment-manifest",
     "publication-receipt",
     "publication-submission",
     "publication-withdrawal",
     "publication-withdrawal-receipt",
+    "remote-execution-estimate",
     "run-state",
     "skill-artifact",
     "submission-draft",

@@ -1,0 +1,41 @@
+{
+  "artifact_integrity": {
+    "status": "verified"
+  },
+  "comparison_validity": {
+    "campaign_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1",
+    "declared_difference_digest": "sha256:93f7bcec1665817b6a672ab020985346078dd6f06e026a546608dc5244d2155c",
+    "mutation_axis": "skill",
+    "observed_difference_digest": "sha256:93f7bcec1665817b6a672ab020985346078dd6f06e026a546608dc5244d2155c",
+    "reason_codes": [],
+    "status": "valid"
+  },
+  "execution_location": {
+    "kind": "local"
+  },
+  "execution_observation": {
+    "participant_attestation": {
+      "key_fingerprint": "sha256:cb1636de7059dc2a939fb3e53590a8373911d5613540d1c00eeaf7d37a10d38f",
+      "status": "verified"
+    },
+    "provider_attestation": {
+      "attestation_digest": null,
+      "status": "absent"
+    },
+    "provider_record": {
+      "provider": null,
+      "provider_run_ref": null,
+      "record_digest": null,
+      "status": "absent"
+    }
+  },
+  "model_identity": {
+    "pin_strength": "provider_revision"
+  },
+  "reproductions": [],
+  "trace_coverage": {
+    "coverage_profile_digest": null,
+    "kind": "not_requested",
+    "reasons": []
+  }
+}

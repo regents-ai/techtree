@@ -15,12 +15,24 @@ Execution artifacts
 Taskset validation
     The lock, the deterministic receipt, and the local execution record.
 
+The v0.2 evidence contract
+    The orthogonal evidence facets a proof carries, and the estimate and
+    approval that authorize the spend a run makes.
+
 Catalog, CLI, and local state
     What the packaged catalog ships and what the CLI hands back.
 """
 
 from __future__ import annotations
 
+from techtree.models.approval import (
+    ApprovalMethod,
+    ArmCeilings,
+    CeilingScope,
+    ExecutionApproval,
+    MonetaryAmount,
+    RemoteExecutionEstimate,
+)
 from techtree.models.base import (
     ArtifactRef,
     Digest,
@@ -130,6 +142,36 @@ from techtree.models.evaluation_backend import (
     EvaluationBackendKind,
     EvaluationBackendSpec,
 )
+
+# --- The v0.2 evidence contract --------------------------------------------
+from techtree.models.evidence import (
+    ArtifactIntegrity,
+    ArtifactIntegrityStatus,
+    ComparisonValidity,
+    ComparisonValidityStatus,
+    EvidenceArtifactRef,
+    EvidenceFacets,
+    ExecutionLocation,
+    ExecutionLocationKind,
+    ExecutionObservation,
+    ModelIdentity,
+    ModelPinStrength,
+    ParticipantAttestation,
+    ParticipantAttestationStatus,
+    ProviderAttestation,
+    ProviderAttestationStatus,
+    ProviderRecord,
+    ProviderRecordStatus,
+    ProviderVerificationClaim,
+    ReproductionKind,
+    ReproductionRef,
+    TraceCoverage,
+    TraceCoverageKind,
+    independent_reproductions,
+    is_independent_reproduction,
+    may_headline_uplift,
+    provider_verification_claim,
+)
 from techtree.models.execution_plan import (
     EvaluationEngineRef,
     EvidenceBackendSpec,
@@ -191,6 +233,10 @@ from techtree.models.validation import (
 __all__ = [
     "AgentSpec",
     "AgentSpecV2",
+    "ApprovalMethod",
+    "ArmCeilings",
+    "ArtifactIntegrity",
+    "ArtifactIntegrityStatus",
     "ArtifactRef",
     "AttestationKind",
     "BudgetSpec",
@@ -205,6 +251,7 @@ __all__ = [
     "CatalogClimbEntry",
     "CatalogIndex",
     "CatalogObjectLocation",
+    "CeilingScope",
     "CheckStatus",
     "CliEnvelope",
     "CliError",
@@ -213,6 +260,8 @@ __all__ = [
     "ClimbMetadata",
     "ClimbSummary",
     "ComparisonStatus",
+    "ComparisonValidity",
+    "ComparisonValidityStatus",
     "CompatibilityIssue",
     "CompatibilityResult",
     "CompatibilityVerdict",
@@ -234,12 +283,18 @@ __all__ = [
     "EvaluationBackendKind",
     "EvaluationBackendSpec",
     "EvaluationEngineRef",
+    "EvidenceArtifactRef",
     "EvidenceBackendSpec",
+    "EvidenceFacets",
     "EvidenceRequirements",
     "EvidenceRequirementsV2",
     "EvidenceStatus",
+    "ExecutionApproval",
     "ExecutionBackendKind",
     "ExecutionBackendSpec",
+    "ExecutionLocation",
+    "ExecutionLocationKind",
+    "ExecutionObservation",
     "ExecutionProvider",
     "ExecutionSpec",
     "ExecutionStatus",
@@ -256,23 +311,36 @@ __all__ = [
     "LeaderboardPolicy",
     "ManifestComparison",
     "MessageLevel",
+    "ModelIdentity",
+    "ModelPinStrength",
     "ModelSpec",
+    "MonetaryAmount",
     "MutationContract",
     "NamedTraceReceipt",
     "NextAction",
     "NonEmptyString",
     "ObjectEnvelope",
     "PackageRef",
+    "ParticipantAttestation",
+    "ParticipantAttestationStatus",
     "PolicyAcceptanceRequirement",
     "PolicyAcknowledgement",
     "PrimaryUpliftResult",
     "ProgramRef",
     "ProtocolModel",
+    "ProviderAttestation",
+    "ProviderAttestationStatus",
+    "ProviderRecord",
+    "ProviderRecordStatus",
+    "ProviderVerificationClaim",
     "PublicContext",
     "PublicKeyRef",
     "PublicationPolicy",
     "PublicationStatus",
     "RawEpisodePolicy",
+    "RemoteExecutionEstimate",
+    "ReproductionKind",
+    "ReproductionRef",
     "ResolvedClimb",
     "ResolvedExecutionPlan",
     "RevocationPolicy",
@@ -300,6 +368,8 @@ __all__ = [
     "TasksetLock",
     "TasksetRef",
     "TasksetValidationReceipt",
+    "TraceCoverage",
+    "TraceCoverageKind",
     "UpliftDecision",
     "UpliftReport",
     "UpliftStatuses",
@@ -313,6 +383,10 @@ __all__ = [
     "ValidationMethod",
     "ValidationTaskOutcome",
     "check_climb_policy_consistency",
+    "independent_reproductions",
+    "is_independent_reproduction",
+    "may_headline_uplift",
     "normalize_host_platform",
+    "provider_verification_claim",
     "validation_display_id",
 ]

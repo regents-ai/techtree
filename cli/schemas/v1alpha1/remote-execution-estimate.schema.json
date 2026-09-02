@@ -1,0 +1,119 @@
+{
+  "$defs": {
+    "ArmCeilings": {
+      "additionalProperties": false,
+      "description": "The separately quoted ceiling of each arm of one comparison.",
+      "properties": {
+        "baseline": {
+          "$ref": "#/$defs/MonetaryAmount"
+        },
+        "candidate": {
+          "$ref": "#/$defs/MonetaryAmount"
+        }
+      },
+      "required": [
+        "baseline",
+        "candidate"
+      ],
+      "title": "ArmCeilings",
+      "type": "object"
+    },
+    "CeilingScope": {
+      "description": "What the provider's quoted ceiling covers.\n\nA comparison has two arms, and a provider may price it either way. The\nestimate says which, because \"the maximum is fifty dollars\" means something\ndifferent when it is a per-arm figure. ``maximum_authorized_cost`` is the\ntotal in both cases; this field says how the quote behind it was built.",
+      "enum": [
+        "single_ceiling_for_both_arms",
+        "per_arm_ceiling"
+      ],
+      "title": "CeilingScope",
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "MonetaryAmount": {
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/remote-execution-estimate.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What one execution plan is expected to cost, and until when.\n\n``estimated_cost`` is nullable because a provider that will not quote is a\nreal answer; ``maximum_authorized_cost`` is not, because the ceiling is the\nwhole point of the document. ``uncertainty_disclosure`` is required for the\nsame reason: an estimate with no stated uncertainty reads as a promise.",
+  "properties": {
+    "billing_principal_label": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "ceiling_scope": {
+      "$ref": "#/$defs/CeilingScope"
+    },
+    "currency": {
+      "const": "USD",
+      "title": "Currency",
+      "type": "string"
+    },
+    "estimate_source": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "estimated_cost": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MonetaryAmount"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "execution_plan_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "expires_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "maximum_authorized_cost": {
+      "$ref": "#/$defs/MonetaryAmount"
+    },
+    "per_arm_ceilings": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArmCeilings"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider": {
+      "const": "prime",
+      "title": "Provider",
+      "type": "string"
+    },
+    "uncertainty_disclosure": {
+      "$ref": "#/$defs/NonEmptyString"
+    }
+  },
+  "required": [
+    "execution_plan_digest",
+    "provider",
+    "billing_principal_label",
+    "currency",
+    "estimated_cost",
+    "maximum_authorized_cost",
+    "ceiling_scope",
+    "per_arm_ceilings",
+    "estimate_source",
+    "uncertainty_disclosure",
+    "expires_at"
+  ],
+  "title": "RemoteExecutionEstimate",
+  "type": "object"
+}

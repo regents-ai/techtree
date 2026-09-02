@@ -32,6 +32,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pydantic import BaseModel
 
 from techtree.canonical import (
+    canonical_json_bytes,
     canonical_json_text,
     digest_object,
     sha256_digest_bytes,
@@ -66,6 +67,13 @@ from techtree.identity.models import (
     ExecutorIdentity,
     VerificationMessage,
     VerificationResult,
+)
+from techtree.models.approval import (
+    ApprovalMethod,
+    ArmCeilings,
+    CeilingScope,
+    ExecutionApproval,
+    RemoteExecutionEstimate,
 )
 from techtree.models.base import ArtifactRef, Digest, ObjectEnvelope
 from techtree.models.campaign import (
@@ -138,6 +146,27 @@ from techtree.models.evaluation_backend import (
     AttestationKind,
     EvaluationBackendKind,
     EvaluationBackendSpec,
+)
+from techtree.models.evidence import (
+    ArtifactIntegrity,
+    ArtifactIntegrityStatus,
+    ComparisonValidity,
+    ComparisonValidityStatus,
+    EvidenceArtifactRef,
+    EvidenceFacets,
+    ExecutionLocation,
+    ExecutionLocationKind,
+    ExecutionObservation,
+    ModelIdentity,
+    ModelPinStrength,
+    ParticipantAttestation,
+    ParticipantAttestationStatus,
+    ProviderAttestation,
+    ProviderAttestationStatus,
+    ProviderRecord,
+    ProviderRecordStatus,
+    TraceCoverage,
+    TraceCoverageKind,
 )
 from techtree.models.execution_plan import (
     EvaluationEngineRef,
@@ -1344,6 +1373,125 @@ def build_cli_envelope(summary: ClimbSummary) -> CliEnvelope[ClimbSummary]:
 
 
 # ---------------------------------------------------------------------------
+# The v0.2 evidence contract
+# ---------------------------------------------------------------------------
+
+#: The plan a v0.2 Campaign binds is the execution-plan work package's model,
+#: and this fixture names it the way every other externally produced digest is
+#: named here: by label. Plan `docs/plan/v0.2.md`, "Campaign and execution-plan
+#: ownership".
+EXECUTION_PLAN_LABEL = "resolved-execution-plan"
+
+#: A private local display label never carries an account, an organization, or
+#: anything a reader could bill. Plan `docs/plan/v0.2.md`: a billing-principal
+#: label stays private by default.
+FIXTURE_BILLING_PRINCIPAL = "fixture billing principal"
+
+
+def build_evidence_facets(campaign_digest: Digest) -> EvidenceFacets:
+    """Return the evidence facets exactly as v0.2.0 emits them.
+
+    Every hosted value stays in the protocol and none of them is populated
+    here: the location is local, the provider record and provider attestation
+    are absent, and nothing has reproduced this run. A golden that showed a
+    Prime record would be documenting a capability this release does not have.
+    """
+    return EvidenceFacets(
+        artifact_integrity=ArtifactIntegrity(
+            status=ArtifactIntegrityStatus.VERIFIED,
+        ),
+        comparison_validity=ComparisonValidity(
+            status=ComparisonValidityStatus.VALID,
+            campaign_digest=campaign_digest,
+            mutation_axis="skill",
+            declared_difference_digest=fixture_digest("declared-skill-difference"),
+            observed_difference_digest=fixture_digest("declared-skill-difference"),
+            reason_codes=(),
+        ),
+        execution_location=ExecutionLocation(kind=ExecutionLocationKind.LOCAL),
+        execution_observation=ExecutionObservation(
+            participant_attestation=ParticipantAttestation(
+                status=ParticipantAttestationStatus.VERIFIED,
+                key_fingerprint=build_executor_identity().key_id,
+            ),
+            provider_record=ProviderRecord(
+                status=ProviderRecordStatus.ABSENT,
+                provider=None,
+                provider_run_ref=None,
+                record_digest=None,
+            ),
+            provider_attestation=ProviderAttestation(
+                status=ProviderAttestationStatus.ABSENT,
+                attestation_digest=None,
+            ),
+        ),
+        trace_coverage=TraceCoverage(
+            kind=TraceCoverageKind.NOT_REQUESTED,
+            coverage_profile_digest=None,
+            reasons=(),
+        ),
+        model_identity=ModelIdentity(pin_strength=ModelPinStrength.PROVIDER_REVISION),
+        reproductions=(),
+    )
+
+
+def build_evidence_artifact_ref(
+    sealed: ObjectEnvelope[EpisodeReceipt],
+) -> EvidenceArtifactRef:
+    """Return the availability statement for the committed signed receipt.
+
+    It is a real edge rather than a placeholder: the digest, the size, and the
+    claim all describe the ``real-episode-receipt`` golden, so a reader can
+    check the claim against the bytes it is about.
+    """
+    return EvidenceArtifactRef(
+        digest=digest_object(sealed),
+        media_type="application/json",
+        size_bytes=len(canonical_json_bytes(sealed)),
+        availability="embedded_in_proof",
+        verification="recomputable_from_bundle",
+    )
+
+
+def build_remote_execution_estimate() -> RemoteExecutionEstimate:
+    """Return one exact estimate of the shape an approval is given against.
+
+    The arms are priced separately, because that is the shape a reader needs to
+    see in a diff: the two ceilings are there and the authorized maximum is
+    their sum, so the relationship between them is checkable in the committed
+    bytes rather than only in a test.
+    """
+    return RemoteExecutionEstimate(
+        execution_plan_digest=fixture_digest(EXECUTION_PLAN_LABEL),
+        provider="prime",
+        billing_principal_label=FIXTURE_BILLING_PRINCIPAL,
+        currency="USD",
+        estimated_cost="7.4",
+        maximum_authorized_cost="12",
+        ceiling_scope=CeilingScope.PER_ARM_CEILING,
+        per_arm_ceilings=ArmCeilings(baseline="5", candidate="7"),
+        estimate_source="provider quote for the resolved execution plan",
+        uncertainty_disclosure=(
+            "Token counts vary between runs, so the figure is an expectation "
+            "and the maximum is the only number that binds."
+        ),
+        expires_at=FIXED_TIME + timedelta(hours=1),
+    )
+
+
+def build_execution_approval(estimate: RemoteExecutionEstimate) -> ExecutionApproval:
+    """Return the approval that binds that estimate, plan, budget, and account."""
+    return ExecutionApproval(
+        execution_plan_digest=estimate.execution_plan_digest,
+        estimate_digest=digest_object(estimate),
+        maximum_authorized_cost=estimate.maximum_authorized_cost,
+        billing_principal_label=estimate.billing_principal_label,
+        approved_at=FIXED_TIME,
+        approval_method=ApprovalMethod.TERMINAL_CONFIRMATION,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
 
@@ -1413,6 +1561,9 @@ def golden_objects() -> dict[str, BaseModel]:
         real_report, campaign_digest, baseline, candidate
     )
 
+    sealed_receipt = sign_fixture(real_receipt)
+    estimate = build_remote_execution_estimate()
+
     return {
         "campaign": campaign,
         "campaign-parity-candidate": parity_candidate,
@@ -1420,6 +1571,9 @@ def golden_objects() -> dict[str, BaseModel]:
         "climb": climb,
         "cli-envelope": build_cli_envelope(summary),
         "data-policy": data_policy,
+        "evidence-artifact-ref": build_evidence_artifact_ref(sealed_receipt),
+        "evidence-facets": build_evidence_facets(campaign_digest),
+        "execution-approval": build_execution_approval(estimate),
         # The public half of the key the two signed goldens were signed with,
         # so a reader of those signatures has something to check them against.
         "execution-plan": execution_plan,
@@ -1449,8 +1603,9 @@ def golden_objects() -> dict[str, BaseModel]:
         # disk once a run has proved itself: the receipt inside its envelope in
         # the proof bundle, and the report inside the envelope the bundle
         # commits to. Spec sections 7.5 and 7.11.
-        "real-episode-receipt": sign_fixture(real_receipt),
+        "real-episode-receipt": sealed_receipt,
         "real-uplift-report": sign_fixture(real_report),
+        "remote-execution-estimate": estimate,
         "skill-artifact": skill,
         "taskset-lock": lock,
         "taskset-validation-receipt": receipt,

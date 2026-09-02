@@ -1,0 +1,8 @@
+{
+  "approval_method": "terminal_confirmation",
+  "approved_at": "2026-01-01T00:00:00Z",
+  "billing_principal_label": "fixture billing principal",
+  "estimate_digest": "sha256:02eb88425625761f9719ab5cd25658c7a66099b11d7db4244a4363f0a03deb0e",
+  "execution_plan_digest": "sha256:63ca89ea3c1e626263e735897c3a8123f213e16a2027c7baa39f5927ef9697d0",
+  "maximum_authorized_cost": "12"
+}

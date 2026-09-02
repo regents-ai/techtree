@@ -1,0 +1,7 @@
+{
+  "availability": "embedded_in_proof",
+  "digest": "sha256:0a7d56423e78a95be8302aead49303d231ed83182b22e2ebed6629852fd54d91",
+  "media_type": "application/json",
+  "size_bytes": 2588,
+  "verification": "recomputable_from_bundle"
+}

@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "ApprovalMethod": {
+      "description": "How the person approved. Every member is a person.",
+      "enum": [
+        "native_hermes",
+        "native_codex",
+        "terminal_confirmation"
+      ],
+      "title": "ApprovalMethod",
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "MonetaryAmount": {
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/execution-approval.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One person's authorization of one plan, one ceiling, one account.",
+  "properties": {
+    "approval_method": {
+      "$ref": "#/$defs/ApprovalMethod"
+    },
+    "approved_at": {
+      "$ref": "#/$defs/UtcDateTime"
+    },
+    "billing_principal_label": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "estimate_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "execution_plan_digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "maximum_authorized_cost": {
+      "$ref": "#/$defs/MonetaryAmount"
+    }
+  },
+  "required": [
+    "execution_plan_digest",
+    "estimate_digest",
+    "maximum_authorized_cost",
+    "billing_principal_label",
+    "approved_at",
+    "approval_method"
+  ],
+  "title": "ExecutionApproval",
+  "type": "object"
+}

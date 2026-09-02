@@ -1,0 +1,57 @@
+{
+  "$defs": {
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v1alpha1/evidence-artifact-ref.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Where a digest's bytes are, and what an offline verifier can prove.\n\nAvailability and verification are separate because they answer separate\nquestions. A blob can be retrievable from a provider and still have been\nchecked only by the participant during the run; a blob can be gone and\nstill have a signed commitment a public verifier can check without ever\nclaiming it rechecked the bytes.",
+  "properties": {
+    "availability": {
+      "enum": [
+        "embedded_in_proof",
+        "private_local_archive",
+        "provider_retrievable",
+        "not_retained"
+      ],
+      "title": "Availability",
+      "type": "string"
+    },
+    "digest": {
+      "$ref": "#/$defs/Digest"
+    },
+    "media_type": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "size_bytes": {
+      "exclusiveMinimum": 0,
+      "title": "Size Bytes",
+      "type": "integer"
+    },
+    "verification": {
+      "enum": [
+        "recomputable_from_bundle",
+        "verified_during_run_and_receipted",
+        "commitment_only"
+      ],
+      "title": "Verification",
+      "type": "string"
+    }
+  },
+  "required": [
+    "digest",
+    "media_type",
+    "size_bytes",
+    "availability",
+    "verification"
+  ],
+  "title": "EvidenceArtifactRef",
+  "type": "object"
+}

@@ -30,6 +30,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from techtree.models.approval import ExecutionApproval, RemoteExecutionEstimate
 from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import CampaignSpec, CampaignSpecV2
 from techtree.models.catalog import CatalogIndex, ClimbSummary, CompatibilityResult
@@ -43,6 +44,7 @@ from techtree.models.data_policy import DataPolicy
 from techtree.models.engine import EngineDescriptor
 from techtree.models.episode_receipt import EpisodeReceipt
 from techtree.models.evaluation_backend import EvaluationBackendSpec
+from techtree.models.evidence import EvidenceArtifactRef, EvidenceFacets
 from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import ExperimentManifest
 from techtree.models.run import RunState
@@ -91,7 +93,11 @@ def schema_models() -> dict[str, type[BaseModel]]:
         "engine": EngineDescriptor,
         "episode-receipt": EpisodeReceipt,
         "evaluation-backend": EvaluationBackendSpec,
+        "evidence-artifact-ref": EvidenceArtifactRef,
+        "evidence-facets": EvidenceFacets,
+        "execution-approval": ExecutionApproval,
         "experiment-manifest": ExperimentManifest,
+        "remote-execution-estimate": RemoteExecutionEstimate,
         # The three signed documents travel in the envelope every other signed
         # document in this protocol travels in, so the published schema is the
         # envelope: a consumer validating one has to be told where the digest
