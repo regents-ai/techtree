@@ -11,9 +11,15 @@ actually present, which is what catches the day the two repositories drift.
 A recorded envelope is never edited. Editing one turns a capture into an
 assertion about what somebody expected the CLI to say, which is the one thing
 these files exist not to be: they were re-captured at the ``techtree.cli.v2``
-cutover, from a Techtree home created for the capture at
-``/tmp/techtree-recorded-home``, and that path is in the bytes because the CLI
-put it there.
+cutover, from Techtree homes created for the capture under ``/tmp``, and those
+paths are in the bytes because the CLI put them there.
+
+Capturing rather than editing puts one obligation on whoever captures: run the
+CLI somewhere nobody's home directory can reach the bytes. ``doctor`` reports
+the interpreter it runs on, the Techtree home it read, and the executables it
+found, so it was captured from a virtualenv and a home under ``/tmp`` with a
+neutral ``PATH`` and ``HOME``. The test at the end of this module holds the
+whole fixture tree to that.
 
 Only read-only commands appear here. Nothing prepares a draft, starts a run,
 spends model budget, or writes to a Techtree home.
@@ -128,6 +134,26 @@ def _run(*arguments: str) -> subprocess.CompletedProcess[str]:
 
 def test_every_recorded_command_is_covered() -> None:
     assert {path.name for path in RECORDED} == set(RECORDED_COMMANDS)
+
+
+def test_no_fixture_carries_a_path_out_of_somebodys_home() -> None:
+    """A capture is committed, so where it was captured is committed with it.
+
+    Doctor reports the interpreter it runs on and the executables it found, so
+    a capture taken on a laptop names that laptop's owner. Nothing here needs
+    a home directory, and a fixture that carried one would put a person's
+    username in the repository for as long as the file lives.
+    """
+    home_directories = ("/Users/", "/home/")
+    for path in sorted((FIXTURES.parent).rglob("*")):
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for directory in home_directories:
+            assert directory not in text, (
+                f"{path.relative_to(FIXTURES.parent)} names {directory}, which "
+                "is a path out of whoever captured it"
+            )
 
 
 @pytest.mark.parametrize("path", RECORDED, ids=lambda path: path.name)
