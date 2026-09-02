@@ -118,10 +118,12 @@ part of the move, in WP6, and is not a compatibility shim.
 
 WP0 records this map. Nothing else.
 
-- **WP6** moves `plugin/` to `plugin/hermes/` and adds `plugin/codex/`, and
-  migrates both consumers directly to `techtree.cli.v2`. There is no
-  compatibility adapter and no dual-mode period: Hermes and Codex move in the
-  same change as the producers.
+- **WP1.6** moved the Hermes consumer to `techtree.cli.v2`, in the same change
+  as the producers. There was no compatibility adapter and no dual-mode period:
+  `plugin/cli/constants.py:SUPPORTED_CLI_SCHEMA` names one envelope version,
+  and the plugin refuses anything else. It did not move a directory.
+- **WP6** moves `plugin/` to `plugin/hermes/` and adds `plugin/codex/`, whose
+  bridge is written against v2 from the start.
 - The Codex package's manifest shape, tool registration, and approval surface
   are determined by the Codex Fabric and operator contract spike in WP6. This
   document deliberately does not invent them.

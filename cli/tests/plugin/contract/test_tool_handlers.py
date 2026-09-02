@@ -68,8 +68,8 @@ def test_the_catalog_tool_lists_the_real_catalog(services: PluginServices) -> No
     result = _call("techtree_climb_list", services, {})
 
     assert result["ok"] is True
-    assert result["command"] == "climb list"
-    assert result["data"]
+    assert result["operation"] == "plan.inspect"
+    assert result["facts"]
 
 
 def test_inspecting_the_introductory_climb_returns_its_policy(
@@ -79,7 +79,7 @@ def test_inspecting_the_introductory_climb_returns_its_policy(
 
     result = _call("techtree_climb_inspect", services, {"reference": reference})
 
-    climb = result["data"]["climb"]
+    climb = result["facts"]["climb"]
     assert result["ok"] is True
     assert climb["data_policy"]
     assert climb["campaign_spec_digest"].startswith("sha256:")

@@ -2,12 +2,20 @@
 
 Spec section 10.3. This module has no side effects beyond reading installed
 distribution metadata, so it is safe to import from anywhere in the package.
+
+The envelope version is not defined here. It is
+:data:`techtree.constants.CLI_SCHEMA_VERSION`, and this module reports that
+value rather than restating it: a second copy is a second answer, and the one
+place it would have been read — Doctor, inside an envelope that announces its
+own version — is exactly where the two disagreeing would be hardest to notice.
 """
 
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as distribution_version
+
+from techtree import constants
 
 DISTRIBUTION_NAME = "techtree"
 
@@ -16,7 +24,6 @@ DISTRIBUTION_NAME = "techtree"
 SOURCE_VERSION = "0.0.0+source"
 
 PROTOCOL_VERSION = "v1alpha1"
-CLI_SCHEMA_VERSION = "techtree.cli.v1"
 
 
 def package_version() -> str:
@@ -32,7 +39,7 @@ def version_info() -> dict[str, str]:
     return {
         "package_version": package_version(),
         "protocol_version": PROTOCOL_VERSION,
-        "cli_schema_version": CLI_SCHEMA_VERSION,
+        "cli_schema_version": constants.CLI_SCHEMA_VERSION,
     }
 
 

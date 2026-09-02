@@ -90,7 +90,6 @@ def tool_result(
 
     reduced: dict[str, Any] = {
         "ok": payload.get("ok"),
-        "command": payload.get("command"),
         "truncated": True,
         "code": CODE_TOOL_RESULT_TOO_LARGE,
         "message": (
@@ -102,6 +101,8 @@ def tool_result(
         "channel": channel.value,
     }
     for key in (
+        "command",
+        "operation",
         "run_id",
         "draft_id",
         "next_action",

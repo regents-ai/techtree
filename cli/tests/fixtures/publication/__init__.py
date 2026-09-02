@@ -170,7 +170,6 @@ class RefusingTransport:
         raise TechtreeError(
             "the run log could not be reached, so nothing was sent",
             code=PUBLICATION_TRANSPORT_FAILED,
-            retryable=True,
         )
 
 

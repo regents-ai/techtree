@@ -154,7 +154,8 @@ def _slash_climbs(services: Any, arguments: Sequence[str]) -> str:
             "The list is too long to show here. "
             "Next: run `techtree climb list` in a terminal to see all of it."
         )
-    climbs = answer.get("data") or []
+    facts = answer.get("facts")
+    climbs = facts.get("climbs") if isinstance(facts, dict) else None
     if not isinstance(climbs, list) or not climbs:
         return (
             "This build ships no Climbs. "
@@ -465,7 +466,7 @@ def _slash_result(services: Any, arguments: Sequence[str]) -> str:
     answer = _tool(services, "techtree_run_result", {"run_id": run_id})
     if not answer.get("ok"):
         return _error_line(answer)
-    presentation = (answer.get("data") or {}).get("presentation") or {}
+    presentation = (answer.get("facts") or {}).get("presentation") or {}
     lines = [f"Run {run_id}"]
     if presentation:
         lines += [
@@ -494,7 +495,7 @@ def _slash_verify(services: Any, arguments: Sequence[str]) -> str:
     answer = _tool(services, "techtree_proof_verify", {key: target})
     if not answer.get("ok"):
         return _error_line(answer)
-    data = answer.get("data") or {}
+    data = answer.get("facts") or {}
     return (
         f"Proof for {target}: "
         + ("verified" if data.get("verified") else "did not verify")

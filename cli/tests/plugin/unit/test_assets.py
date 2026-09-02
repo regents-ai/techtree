@@ -220,7 +220,7 @@ def _context_envelope(**overrides: str) -> dict[str, object]:
         "data_policy_digest": "sha256:" + "e" * 64,
     }
     context.update(overrides)
-    return {"ok": True, "data": {"context": context, "relative_path": "context.json"}}
+    return {"ok": True, "facts": {"context": context, "relative_path": "context.json"}}
 
 
 def test_the_context_pins_the_skill_by_digest() -> None:
@@ -240,7 +240,7 @@ def test_a_context_that_pins_nothing_is_refused(missing: str) -> None:
 
 def test_something_that_is_not_a_context_is_refused() -> None:
     with pytest.raises(PluginError, match="not an improvement context"):
-        source_skill_reference({"ok": True, "data": None})
+        source_skill_reference({"ok": True, "facts": {}})
 
 
 class ContextBridge:
@@ -270,7 +270,7 @@ def test_reading_the_measured_skill_stops_where_techtree_stops() -> None:
 def test_a_context_techtree_refused_reports_techtrees_own_reason() -> None:
     envelope = {
         "ok": False,
-        "data": None,
+        "facts": {},
         "error": {
             "code": "run_not_found",
             "message": "there is no run called run_000",
@@ -299,14 +299,17 @@ def _starter_envelope(
 ) -> dict[str, object]:
     """Return one ``skill starter`` envelope as the bridge would hand it over."""
     return {
-        "schema_version": "techtree.cli.v1",
-        "command": "skill starter",
+        "schema_version": "techtree.cli.v2",
+        "operation": "plan.prepare",
         "ok": ok,
-        "data": data,
-        "error": error,
-        "messages": [],
+        "state_digest": None,
+        "facts": data,
+        "unknowns": [],
+        "blockers": [],
         "warnings": [],
+        "content_refs": [],
         "next_actions": [],
+        "error": error,
     }
 
 

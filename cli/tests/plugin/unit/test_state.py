@@ -75,14 +75,17 @@ class _PlanStore:
 
 def _status(**data: Any) -> dict[str, Any]:
     return {
-        "schema_version": "techtree.cli.v1",
-        "command": "run status",
+        "schema_version": "techtree.cli.v2",
+        "operation": "run.status",
         "ok": True,
-        "data": {"run_id": RUN_ID, **data},
-        "error": None,
-        "messages": [],
+        "state_digest": None,
+        "facts": {"run_id": RUN_ID, **data},
+        "unknowns": [],
+        "blockers": [],
         "warnings": [],
+        "content_refs": [],
         "next_actions": [],
+        "error": None,
     }
 
 
@@ -115,7 +118,7 @@ def test_state_holds_identifiers_and_nothing_else() -> None:
         _session_at(DemoStage.CLI_READY),
         {
             "ok": True,
-            "data": {
+            "facts": {
                 "draft_id": DRAFT_ID,
                 "skill_root_digest": DIGEST,
                 "confirmation_token": "token-that-must-not-be-kept",
@@ -312,37 +315,37 @@ def test_the_first_run_advances_through_its_stages() -> None:
 
     session = update_after_first_prepare(
         session,
-        {"ok": True, "data": {"draft_id": DRAFT_ID, "skill_root_digest": DIGEST}},
+        {"ok": True, "facts": {"draft_id": DRAFT_ID, "skill_root_digest": DIGEST}},
     )
     assert session.stage is DemoStage.FIRST_DRAFT_PREPARED
 
     session = update_after_first_start(
-        session, {"ok": True, "data": {"run_id": RUN_ID}}
+        session, {"ok": True, "facts": {"run_id": RUN_ID}}
     )
     assert session.stage is DemoStage.FIRST_RUN_ACTIVE
     assert session.first_run_id == RUN_ID
 
-    session = update_after_first_result(session, {"ok": True, "data": {}})
+    session = update_after_first_result(session, {"ok": True, "facts": {}})
     assert session.stage is DemoStage.FIRST_RESULT_READY
 
 
 def test_a_start_that_returned_no_run_changes_nothing() -> None:
     session = _session_at(DemoStage.FIRST_DRAFT_PREPARED)
 
-    assert update_after_first_start(session, {"ok": True, "data": {}}) == session
+    assert update_after_first_start(session, {"ok": True, "facts": {}}) == session
 
 
 def test_a_failed_result_call_does_not_mark_a_result_ready() -> None:
     session = _session_at(DemoStage.FIRST_RUN_ACTIVE, first_run_id=RUN_ID)
 
-    assert update_after_first_result(session, {"ok": False, "data": None}) == session
+    assert update_after_first_result(session, {"ok": False, "facts": {}}) == session
 
 
 def test_the_second_run_counts_the_revision() -> None:
     session = _session_at(DemoStage.SECOND_DRAFT_PREPARED, first_run_id=RUN_ID)
 
     session = update_after_second_start(
-        session, {"ok": True, "data": {"run_id": SECOND_RUN_ID, "draft_id": DRAFT_ID}}
+        session, {"ok": True, "facts": {"run_id": SECOND_RUN_ID, "draft_id": DRAFT_ID}}
     )
 
     assert session.stage is DemoStage.SECOND_RUN_ACTIVE

@@ -22,7 +22,10 @@ erasure this release does not perform.
 
 Somebody has to say so. Withdrawal changes a public page, so it is asked for the
 same way publishing is asked for, and where nobody can be asked the command
-stops and names the flag instead of deciding on their behalf.
+stops and names the flag instead of deciding on their behalf. That refusal
+carries the review rather than only the identifier: the entry, where the signed
+request would go, and what withdrawing does and does not do, so that a host
+agent can show a person the same thing a terminal would.
 """
 
 from __future__ import annotations
@@ -35,14 +38,21 @@ from rich.console import Console
 from techtree.canonical import validate_digest
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
-from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import human_console, render_pairs
 from techtree.drafts.store import utc_now
 from techtree.errors import UsageError
 from techtree.identity.service import IdentityService
 from techtree.identity.store import IdentityStore
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
-from techtree.models.cli import CliMessage, MessageLevel
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.publication.coordinates import packaged_publication_coordinates
 from techtree.publication.transport import (
     HttpsPublicationTransport,
@@ -52,14 +62,12 @@ from techtree.publication.withdraw import WithdrawalService
 
 __all__ = [
     "WITHDRAWAL_CONFIRMATION_REQUIRED",
-    "WITHDRAW_COMMAND",
     "WithdrawalPayload",
+    "WithdrawalReviewPayload",
     "build_withdrawal_service",
     "withdraw_run_command",
     "withdrawal_review_lines",
 ]
-
-WITHDRAW_COMMAND: Final = "withdraw"
 
 #: Stable error code for "nobody said to withdraw this".
 WITHDRAWAL_CONFIRMATION_REQUIRED: Final = "withdrawal_confirmation_required"
@@ -89,6 +97,15 @@ class WithdrawalPayload(ProtocolModel):
     key_id: NonEmptyString
 
 
+class WithdrawalReviewPayload(ProtocolModel):
+    """What withdrawing this entry would do, for a caller that has to show it."""
+
+    bundle_digest: Digest
+    endpoint: NonEmptyString
+    #: The review a person reads, in the order they read it.
+    review: list[NonEmptyString]
+
+
 def withdraw_run_command(
     ctx: typer.Context,
     bundle_digest: Annotated[
@@ -112,11 +129,13 @@ def withdraw_run_command(
     """Withdraw a published run from the public run log."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[WithdrawalPayload]:
+    def action() -> CommandResult[WithdrawalPayload | WithdrawalReviewPayload]:
         digest = validate_digest(bundle_digest)
         service = build_withdrawal_service(context)
         if not yes:
-            _require_withdrawal_confirmation(context, digest, service.endpoint)
+            if context.no_input:
+                return _withdrawal_review(digest, service.endpoint)
+            _ask_for_the_withdrawal(context, digest, service.endpoint)
 
         outcome = service.withdraw(digest)
         payload = WithdrawalPayload(
@@ -126,22 +145,14 @@ def withdraw_run_command(
             withdrawn_at=outcome.withdrawn_at,
             key_id=outcome.key_id,
         )
-        return CommandResult(
-            data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="entry_withdrawn",
-                    text=(
-                        f"The entry at {payload.entry_url} is marked withdrawn. "
-                        "It stays where it is: the log appended the withdrawal "
-                        "rather than removing anything."
-                    ),
-                )
-            ],
-        )
+        return CommandResult(data=payload)
 
-    invoke_command(context, WITHDRAW_COMMAND, action, render_data=_render)
+    invoke_command(
+        context,
+        approval_operation(context, assume_yes=yes),
+        action,
+        render_data=_render,
+    )
 
 
 def build_withdrawal_service(context: CliContext) -> WithdrawalService:
@@ -161,18 +172,59 @@ def build_withdrawal_service(context: CliContext) -> WithdrawalService:
     )
 
 
-def _require_withdrawal_confirmation(
-    context: CliContext, bundle_digest: Digest, endpoint: str
-) -> None:
-    """Show what would happen, take the answer, or send nothing."""
-    if context.no_input:
-        raise UsageError(
+def _withdrawal_review(
+    bundle_digest: Digest, endpoint: str
+) -> CommandResult[WithdrawalPayload | WithdrawalReviewPayload]:
+    """Return what withdrawing would do, and the call a person's answer allows.
+
+    Nothing was sent and nothing was decided. The envelope fails, because the
+    entry is still published; it carries the review, because that is what a
+    person has to read; and it offers the one call that acts on their answer.
+    """
+    return CommandResult(
+        data=WithdrawalReviewPayload(
+            bundle_digest=bundle_digest,
+            endpoint=endpoint,
+            review=[
+                line
+                for line in withdrawal_review_lines(bundle_digest, endpoint)
+                if line
+            ],
+        ),
+        next_actions=[_withdraw_when_agreed(bundle_digest)],
+        error=UsageError(
             "withdrawing changes a public page, so somebody has to agree to "
             "it. Nothing here can be asked, so say so with --yes",
             code=WITHDRAWAL_CONFIRMATION_REQUIRED,
             details={"bundle_digest": bundle_digest},
-        )
+        ),
+    )
 
+
+def _withdraw_when_agreed(bundle_digest: Digest) -> NextAction:
+    """Return the call that withdraws, once a person has agreed to it."""
+    return NextAction(
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation(
+            "withdraw", arguments=[bundle_digest], options={"--yes": True}
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.PUBLIC_PUBLICATION,
+        approval_required=True,
+        retry_class=RetryClass.RECONCILE_FIRST,
+        estimated_cost=None,
+        data_egress=DataEgress.PUBLICATION_SERVICE,
+        reason=(
+            "It marks the entry above withdrawn. The entry stays where it is "
+            "and the log records the withdrawal as another event."
+        ),
+    )
+
+
+def _ask_for_the_withdrawal(
+    context: CliContext, bundle_digest: Digest, endpoint: str
+) -> None:
+    """Show what would happen, take the answer, or send nothing."""
     console = human_console(no_color=context.no_color)
     for line in withdrawal_review_lines(bundle_digest, endpoint):
         console.print(line)
@@ -198,9 +250,19 @@ def withdrawal_review_lines(bundle_digest: Digest, endpoint: str) -> list[str]:
 
 
 def _render(data: object, console: Console) -> None:
+    """Print what the log marked, or what it would be asked to mark."""
+    if isinstance(data, WithdrawalReviewPayload):
+        for line in data.review:
+            console.print(line)
+        return
     if not isinstance(data, WithdrawalPayload):
         return
 
+    console.print(
+        f"The entry at {data.entry_url} is marked withdrawn. It stays where it "
+        "is: the log appended the withdrawal rather than removing anything."
+    )
+    console.print()
     render_pairs(
         [
             ("Entry", data.entry_url),

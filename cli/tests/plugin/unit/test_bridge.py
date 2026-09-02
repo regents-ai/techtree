@@ -126,9 +126,9 @@ def test_the_call_runs_without_a_shell(
 def test_one_envelope_is_accepted_and_returned_unchanged(fake_cli: FakeCli) -> None:
     envelope = invoke_cli(["doctor"])
 
-    assert envelope["command"] == "doctor"
+    assert envelope["operation"] == "plan.inspect"
     assert envelope["ok"] is True
-    assert envelope["data"] == {"checks": []}
+    assert envelope["facts"] == {"checks": []}
 
 
 def test_two_json_records_are_rejected(
@@ -153,14 +153,17 @@ def test_ansi_in_machine_output_is_rejected(
         "sys.stdout.write('\\x1b[32m' + json.dumps("
         + repr(
             {
-                "schema_version": "techtree.cli.v1",
-                "command": "doctor",
+                "schema_version": "techtree.cli.v2",
+                "operation": "plan.inspect",
                 "ok": True,
-                "data": None,
-                "error": None,
-                "messages": [],
+                "state_digest": None,
+                "facts": {},
+                "unknowns": [],
+                "blockers": [],
                 "warnings": [],
+                "content_refs": [],
                 "next_actions": [],
+                "error": None,
             }
         )
         + ") + '\\x1b[0m')",
@@ -197,19 +200,21 @@ def test_a_failing_command_returns_its_own_envelope(
 ) -> None:
     """Techtree reports its failures in-band; the bridge does not reword them."""
     failure = {
-        "schema_version": "techtree.cli.v1",
-        "command": "climb show",
+        "schema_version": "techtree.cli.v2",
+        "operation": "plan.inspect",
         "ok": False,
-        "data": None,
+        "state_digest": None,
+        "facts": {},
+        "unknowns": [],
+        "blockers": [],
+        "warnings": [],
+        "content_refs": [],
+        "next_actions": [],
         "error": {
             "code": "climb_not_found",
             "message": "this build ships no Climb called 'nope@1'",
-            "retryable": False,
             "details": {"reference": "nope@1"},
         },
-        "messages": [],
-        "warnings": [],
-        "next_actions": [],
     }
     _fake_cli_printing(
         tmp_path,
@@ -294,9 +299,11 @@ def _environment_reporting_cli(
     return _fake_cli_printing(
         tmp_path,
         monkeypatch,
-        "print(json.dumps({'schema_version': 'techtree.cli.v1', 'command': 'doctor',"
-        " 'ok': True, 'data': {'environment': dict(os.environ)},"
-        " 'error': None, 'messages': [], 'warnings': [], 'next_actions': []}))",
+        "print(json.dumps({'schema_version': 'techtree.cli.v2',"
+        " 'operation': 'plan.inspect', 'ok': True, 'state_digest': None,"
+        " 'facts': {'environment': dict(os.environ)}, 'unknowns': [],"
+        " 'blockers': [], 'warnings': [], 'content_refs': [],"
+        " 'next_actions': [], 'error': None}))",
     )
 
 
@@ -307,7 +314,7 @@ def test_the_environment_reaches_the_cli(
     monkeypatch.setenv("TECHTREE_HOME", str(tmp_path / "home"))
     _environment_reporting_cli(tmp_path, monkeypatch)
 
-    received = invoke_cli(["doctor"])["data"]["environment"]
+    received = invoke_cli(["doctor"])["facts"]["environment"]
 
     assert received["TECHTREE_HOME"] == str(tmp_path / "home")
 
@@ -336,7 +343,7 @@ def test_the_call_is_given_the_allowlist_and_nothing_else(
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "aws-secret-must-never-appear")
     _environment_reporting_cli(tmp_path, monkeypatch)
 
-    received = invoke_cli(["doctor"])["data"]["environment"]
+    received = invoke_cli(["doctor"])["facts"]["environment"]
 
     assert cli_environment().items() <= received.items()
     assert _unexplained_names(received) == set()
@@ -352,7 +359,7 @@ def test_a_secret_the_cli_has_no_business_seeing_never_arrives(
 
     envelope = invoke_cli(["doctor"])
 
-    assert "FAKE_WALLET_KEY" not in envelope["data"]["environment"]
+    assert "FAKE_WALLET_KEY" not in envelope["facts"]["environment"]
     assert "wallet-secret-must-never-appear" not in json.dumps(envelope)
 
 
@@ -417,7 +424,7 @@ def test_a_matching_cli_release_verifies(
         "source_commit": "a" * 40,
     }
     cli = _fake_cli_printing(
-        tmp_path, monkeypatch, print_envelope(command="release info", data=payload)
+        tmp_path, monkeypatch, print_envelope(operation="plan.inspect", facts=payload)
     )
 
     result = verify_cli_release(core)
@@ -443,7 +450,7 @@ def test_a_different_cli_release_is_reported_coordinate_by_coordinate(
         "source_commit": "b" * 40,
     }
     _fake_cli_printing(
-        tmp_path, monkeypatch, print_envelope(command="release info", data=payload)
+        tmp_path, monkeypatch, print_envelope(operation="plan.inspect", facts=payload)
     )
 
     result = verify_cli_release(core)

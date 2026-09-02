@@ -80,7 +80,7 @@ class ReleaseSkillProvider:
         if not envelope.get("ok"):
             raise PluginError(_cli_message(envelope), code=_cli_code(envelope))
 
-        data = envelope.get("data")
+        data = envelope.get("facts")
         if not isinstance(data, dict):
             raise PluginError(
                 "Techtree answered the starter Skill command with nothing to read",
@@ -353,7 +353,7 @@ def source_skill_reference(envelope: Any) -> SourceSkillReference:
         )
         raise PluginError(str(message), code=CODE_SOURCE_SKILL_UNAVAILABLE)
 
-    data = envelope.get("data") if isinstance(envelope, dict) else None
+    data = envelope.get("facts") if isinstance(envelope, dict) else None
     context = data.get("context") if isinstance(data, dict) else None
     if not isinstance(context, dict):
         raise PluginError(

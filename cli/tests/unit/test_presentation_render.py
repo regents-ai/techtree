@@ -24,7 +24,14 @@ import re
 import pytest
 from rich.console import Console
 
-from techtree.models.cli import NextAction
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.presentation.build import (
     FIRST_RESULT_LABEL,
     SECOND_RESULT_LABEL,
@@ -163,13 +170,17 @@ def payload(
         ],
         next_actions=[
             NextAction(
-                id="verify_proof",
-                label="Verify this run's local proof",
-                reason=None,
-                cli=["techtree", "proof", "verify", "run_" + "0" * 32],
-                hermes_tool=None,
-                hermes_args=None,
-                requires_user_confirmation=False,
+                operation=Operation.PROOF_VERIFY,
+                prepared_arguments=invocation(
+                    "proof", "verify", arguments=["run_" + "0" * 32]
+                ),
+                expected_state_digest=None,
+                side_effect=SideEffect.NONE,
+                approval_required=False,
+                retry_class=RetryClass.SAFE,
+                estimated_cost=None,
+                data_egress=DataEgress.NONE,
+                reason="It verifies this run's local proof.",
             )
         ],
     )

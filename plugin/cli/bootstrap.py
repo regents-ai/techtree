@@ -379,7 +379,7 @@ def doctor_summary(services: Any) -> dict[str, Any]:
             "code": getattr(error, "code", None),
         }
 
-    data = envelope.get("data") or {}
+    data = envelope.get("facts") or {}
     checks = data.get("checks") if isinstance(data, dict) else None
     checks = checks if isinstance(checks, list) else []
     blocking = [
@@ -398,7 +398,7 @@ def doctor_summary(services: Any) -> dict[str, Any]:
         "checks": checks,
         "blocking_failures": blocking,
         "can_prepare_demo": not blocking,
-        "messages": envelope.get("messages", []),
+        "blockers": envelope.get("blockers", []),
         "warnings": envelope.get("warnings", []),
     }
 

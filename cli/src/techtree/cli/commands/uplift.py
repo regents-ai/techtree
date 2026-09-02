@@ -35,29 +35,43 @@ see before approving a second run.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Final, Literal
+from typing import Annotated, Literal
 
 import typer
 from pydantic import PositiveFloat
 from rich.console import Console
 from rich.table import Table
 
-from techtree.canonical import canonical_json_bytes
+from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.cli.commands.climb import (
     PUBLICATION_TERMS_LINE,
     ReviewSurface,
+    StartReviewPayload,
     approve_run,
     build_preparation_service,
+    declared_maximum,
     phrase,
+    require_the_review_surface_was_answered,
+    start_review,
+    start_when_approved,
+    unknown_maximum,
 )
-from techtree.cli.commands.run import build_run_service
+from techtree.cli.commands.run import build_run_service, wait_for_change_action
 from techtree.cli.context import CliContext, cli_context
-from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import render_pairs
 from techtree.drafts.store import DraftStore
 from techtree.fs import atomic_write_bytes, ensure_private_directory
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliWarning,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.run import RunPhase
 from techtree.models.skill import PolicyAcceptanceRequirement
 from techtree.paths import TechtreePaths
@@ -65,13 +79,10 @@ from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.service import ApprovalActor
 from techtree.skills.service import PreparedDraft
 from techtree.uplift.context import SkillImprovementContext
+from techtree.uplift.offer import revision_not_written_yet
 from techtree.uplift.service import UpliftService
 
 __all__ = [
-    "CONTEXT_COMMAND",
-    "PREPARE_COMMAND",
-    "SKILL_SOURCE_COMMAND",
-    "START_COMMAND",
     "UpliftContextPayload",
     "UpliftPreparePayload",
     "UpliftSkillSourcePayload",
@@ -82,11 +93,6 @@ __all__ = [
     "skill_source_uplift_command",
     "start_uplift_command",
 ]
-
-CONTEXT_COMMAND: Final = "uplift context"
-SKILL_SOURCE_COMMAND: Final = "uplift skill-source"
-PREPARE_COMMAND: Final = "uplift prepare"
-START_COMMAND: Final = "uplift start"
 
 
 class UpliftContextPayload(ProtocolModel):
@@ -129,10 +135,13 @@ class UpliftPreparePayload(ProtocolModel):
     person approves the second run from states the same facts as the screen
     they approved the first from: how many Skills each side carries, and which
     data rights govern what this run produces.
+
+    The draft's own digest is not here, for the reason it is not on
+    ``climb prepare``'s payload either: the envelope's ``state_digest`` is the
+    identity of the state this preparation wrote, and one value has one home.
     """
 
     draft_id: NonEmptyString
-    draft_digest: Digest
     source_run_id: NonEmptyString
     campaign_spec_digest: Digest
     data_policy_digest: Digest
@@ -217,30 +226,25 @@ def context_uplift_command(
         )
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="improvement_context_ready",
-                    text=(
-                        f"Built improvement context for {run_id} from "
-                        f"{len(improvement.examples)} of this run's tasks."
-                    ),
-                )
-            ],
+            # What this call wrote, by its own identity. The context is derived
+            # rather than evidence and is rewritten on every call, so a caller
+            # comparing two answers is comparing two real states.
+            state_digest=digest_object(improvement),
+            unknowns=[revision_not_written_yet()],
             warnings=[
-                CliMessage(
-                    level=MessageLevel.WARNING,
-                    code="improvement_context_is_not_proof",
+                CliWarning(
+                    id="improvement_context_is_not_proof",
                     text=(
                         "This context is working material, not evidence. It is "
                         "not signed, nothing verifies it, and nothing uploads it."
                     ),
+                    resolvable_by=None,
                 )
             ],
-            next_actions=[_prepare_replacement(run_id)],
+            next_actions=[read_the_measured_skill(run_id)],
         )
 
-    invoke_command(context, CONTEXT_COMMAND, action, render_data=_render_context)
+    invoke_command(context, Operation.PLAN_PREPARE, action, render_data=_render_context)
 
 
 def _write_context(
@@ -289,24 +293,13 @@ def skill_source_uplift_command(
             entrypoint_text=skill.entrypoint_text,
             file_count=skill.file_count,
         )
-        return CommandResult(
-            data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="source_skill_verified",
-                    text=(
-                        f"This is run {run_id}'s own copy of "
-                        f"{payload.entrypoint_path}, re-verified against the "
-                        "Skill the run measured as it was read."
-                    ),
-                )
-            ],
-            next_actions=[_prepare_replacement(run_id)],
-        )
+        # This reads the run's own snapshot and writes nothing, so there is no
+        # durable state for the envelope to name. What comes next is a person
+        # writing a revision, which is why it is an unknown and not a step.
+        return CommandResult(data=payload, unknowns=[revision_not_written_yet()])
 
     invoke_command(
-        context, SKILL_SOURCE_COMMAND, action, render_data=_render_skill_source
+        context, Operation.PLAN_INSPECT, action, render_data=_render_skill_source
     )
 
 
@@ -354,28 +347,30 @@ def prepare_uplift_command(
         payload = _prepare_payload(from_run, prepared)
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="replacement_prepared",
-                    text=(
-                        f"Prepared {payload.candidate_label} against the Skill "
-                        f"run {from_run} measured. Nothing has run yet."
+            state_digest=prepared.draft_digest,
+            unknowns=unknown_maximum(payload.campaign_maximum_usd),
+            warnings=[
+                CliWarning(id="draft_warning", text=warning, resolvable_by=None)
+                for warning in payload.warnings
+            ],
+            next_actions=[
+                start_when_approved(
+                    "uplift",
+                    draft_id=payload.draft_id,
+                    draft_digest=prepared.draft_digest,
+                    estimated_cost=declared_maximum(prepared.source.campaign),
+                    reason=(
+                        f"It starts {payload.candidate_label} against the "
+                        f"previous Skill, running {payload.estimated_episodes} "
+                        "episodes. Invoke it once a person has agreed on your "
+                        "own approval surface; --reviewed-on records which "
+                        "surface that was."
                     ),
                 )
             ],
-            warnings=[
-                CliMessage(
-                    level=MessageLevel.WARNING,
-                    code="draft_warning",
-                    text=warning,
-                )
-                for warning in payload.warnings
-            ],
-            next_actions=[_start_replacement(payload)],
         )
 
-    invoke_command(context, PREPARE_COMMAND, action, render_data=_render_prepare)
+    invoke_command(context, Operation.PLAN_PREPARE, action, render_data=_render_prepare)
 
 
 def _prepare_payload(
@@ -389,7 +384,6 @@ def _prepare_payload(
     data_policy = prepared.source.data_policy
     return UpliftPreparePayload(
         draft_id=draft.id,
-        draft_digest=prepared.draft_digest,
         source_run_id=source_run_id,
         campaign_spec_digest=draft.campaign_spec_digest,
         data_policy_digest=draft.data_policy_digest,
@@ -453,14 +447,21 @@ def start_uplift_command(
     """Review the prepared revision, approve it, and start the second run."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[UpliftStartPayload]:
+    def action() -> CommandResult[UpliftStartPayload | StartReviewPayload]:
         service = build_run_service(context)
         store = DraftStore(context.paths)
         draft = store.get(draft_id)
+        campaign = store.get_source(draft_id).campaign
+        require_the_review_surface_was_answered(
+            draft_id=draft_id, assume_yes=yes, reviewed_on=reviewed_on
+        )
+        if not yes and context.no_input:
+            return start_review("uplift", draft=draft, campaign=campaign)
+
         approval = approve_run(
             context,
             draft=draft,
-            campaign=store.get_source(draft_id).campaign,
+            campaign=campaign,
             assume_yes=yes,
             reviewed_on=reviewed_on,
         )
@@ -483,20 +484,20 @@ def start_uplift_command(
         )
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="run_started",
-                    text=(
-                        f"Run {payload.run_id} is going. It continues whether "
-                        "or not this command is still open."
-                    ),
+            state_digest=service.state_digest(payload.run_id),
+            next_actions=[
+                wait_for_change_action(
+                    payload.run_id, service.state_digest(payload.run_id)
                 )
             ],
-            next_actions=[_watch_run(payload.run_id)],
         )
 
-    invoke_command(context, START_COMMAND, action, render_data=_render_start)
+    invoke_command(
+        context,
+        approval_operation(context, assume_yes=yes),
+        action,
+        render_data=_render_start,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -504,54 +505,22 @@ def start_uplift_command(
 # ---------------------------------------------------------------------------
 
 
-def _prepare_replacement(run_id: str) -> NextAction:
+def read_the_measured_skill(run_id: str) -> NextAction:
+    """Return the read that hands over the text a revision is written from."""
     return NextAction(
-        id="prepare_replacement",
-        label="Compare a revised Skill against the one this run measured",
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("uplift", "skill-source", arguments=[run_id]),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason=(
-            "Point --candidate-skill at the revised skill directory. The "
-            "baseline is pinned to the Skill this run actually evaluated."
+            "It hands over this run's own copy of the Skill it measured, "
+            "re-verified as it is read, which is the text a revision starts "
+            "from."
         ),
-        cli=[
-            "techtree",
-            "uplift",
-            "prepare",
-            "--from-run",
-            run_id,
-            "--candidate-skill",
-            "PATH",
-        ],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
-    )
-
-
-def _start_replacement(payload: UpliftPreparePayload) -> NextAction:
-    return NextAction(
-        id="start_replacement",
-        label=f"Start {payload.candidate_label} against the previous Skill",
-        reason=(
-            f"Runs {payload.estimated_episodes} episodes. It shows you the "
-            "spending limit the Campaign declares and what this changes, and "
-            "starts only if you say yes."
-        ),
-        cli=["techtree", "uplift", "start", payload.draft_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
-    )
-
-
-def _watch_run(run_id: str) -> NextAction:
-    return NextAction(
-        id="run_status",
-        label="Check how the run is going",
-        reason="The run continues after this command returns.",
-        cli=["techtree", "run", "status", run_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
 
@@ -566,6 +535,11 @@ def _render_context(data: object, console: Console) -> None:
         return
     improvement = data.context
 
+    console.print(
+        f"Built improvement context for {improvement.source_run_id} from "
+        f"{len(improvement.examples)} of this run's tasks."
+    )
+    console.print()
     render_pairs(
         [
             ("Run", improvement.source_run_id),
@@ -603,6 +577,11 @@ def _render_skill_source(data: object, console: Console) -> None:
     if not isinstance(data, UpliftSkillSourcePayload):
         return
 
+    console.print(
+        f"This is run {data.source_run_id}'s own copy of {data.entrypoint_path}, "
+        "re-verified against the Skill the run measured as it was read."
+    )
+    console.print()
     render_pairs(
         [
             ("Run", data.source_run_id),
@@ -626,6 +605,11 @@ def _render_prepare(data: object, console: Console) -> None:
     if not isinstance(data, UpliftPreparePayload):
         return
 
+    console.print(
+        f"Prepared {data.candidate_label} against the Skill run "
+        f"{data.source_run_id} measured. Nothing has run yet."
+    )
+    console.print()
     render_pairs(
         [
             ("Draft", data.draft_id),
@@ -680,9 +664,18 @@ def _render_prepare(data: object, console: Console) -> None:
 
 
 def _render_start(data: object, console: Console) -> None:
-    """Print what was started and where it can be followed."""
+    """Print what was started, or what starting it would do."""
+    if isinstance(data, StartReviewPayload):
+        for line in data.review:
+            console.print(line)
+        return
     if not isinstance(data, UpliftStartPayload):
         return
+    console.print(
+        f"Run {data.run_id} is going. It continues whether or not this command "
+        "is still open."
+    )
+    console.print()
     render_pairs(
         [
             ("Run", data.run_id),

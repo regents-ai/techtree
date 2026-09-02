@@ -470,7 +470,6 @@ class VerifiersChild:
                 f"{timeout:.0f}s",
                 code=CHILD_STILL_RUNNING,
                 details={"variant": self._variant.value, "timeout_seconds": timeout},
-                retryable=True,
             ) from error
         self._record_exit()
         return code

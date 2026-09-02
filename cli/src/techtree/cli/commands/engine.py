@@ -24,8 +24,17 @@ from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.engines.bundle import default_engine_digest
 from techtree.engines.installer import EngineInstaller, find_uv
 from techtree.engines.registry import EngineRegistry
+from techtree.errors import EngineError
 from techtree.models.base import Digest
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliWarning,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.engine import EngineStatus
 
 __all__ = [
@@ -58,32 +67,24 @@ def install_engine_command(ctx: typer.Context, digest: DigestArgument = None) ->
 
         return CommandResult(
             data=status,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="engine_installed",
-                    text=(
-                        f"Evaluation engine {status.digest} is installed and "
-                        f"verified at {status.path}."
-                    ),
-                )
-            ],
             warnings=[
-                CliMessage(
-                    level=MessageLevel.WARNING,
-                    code="engine_install_interrupted",
+                CliWarning(
+                    id="engine_install_interrupted",
                     text=(
                         f"An earlier install of evaluation engine "
                         f"{install.digest} did not finish. What it left behind "
                         "was removed and the engine was installed again."
                     ),
+                    resolvable_by=None,
                 )
                 for install in interrupted
             ],
             next_actions=[_activate_or_browse(registry, status)],
         )
 
-    invoke_command(context, "engine install", action, render_data=_render)
+    invoke_command(
+        context, Operation.ACTION_EXECUTE, action, render_data=_render_installed
+    )
 
 
 def status_engine_command(ctx: typer.Context, digest: DigestArgument = None) -> None:
@@ -96,13 +97,6 @@ def status_engine_command(ctx: typer.Context, digest: DigestArgument = None) -> 
 
         return CommandResult(
             data=status,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="engine_status",
-                    text=f"Evaluation engine {status.digest} is {status.detail}.",
-                )
-            ],
             next_actions=[
                 _activate_or_browse(registry, status)
                 if status.installed
@@ -110,7 +104,7 @@ def status_engine_command(ctx: typer.Context, digest: DigestArgument = None) -> 
             ],
         )
 
-    invoke_command(context, "engine status", action, render_data=_render)
+    invoke_command(context, Operation.PLAN_INSPECT, action, render_data=_render_status)
 
 
 def verify_engine_command(ctx: typer.Context, digest: DigestArgument = None) -> None:
@@ -120,24 +114,24 @@ def verify_engine_command(ctx: typer.Context, digest: DigestArgument = None) -> 
     def action() -> CommandResult[EngineStatus]:
         registry = EngineRegistry(context.paths, context.settings)
         installer = EngineInstaller(context.paths, registry, find_uv())
-        status = installer.verify(_selected(context, digest))
+        try:
+            status = installer.verify(_selected(context, digest))
+        except EngineError as error:
+            # Verifying an engine that is not there has one repair, and it is
+            # not verifying it again. The installer knows the engine is
+            # missing; what to do about it is this command's call.
+            if error.code == "engine_not_installed" and not error.next_actions:
+                error.next_actions = [_install_action()]
+            raise
 
         return CommandResult(
             data=status,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="engine_verified",
-                    text=(
-                        f"Evaluation engine {status.digest} holds the files it "
-                        "was installed with and runs the pinned validator."
-                    ),
-                )
-            ],
             next_actions=[_activate_or_browse(registry, status)],
         )
 
-    invoke_command(context, "engine verify", action, render_data=_render)
+    invoke_command(
+        context, Operation.PLAN_INSPECT, action, render_data=_render_verified
+    )
 
 
 def render_engine_status(status: EngineStatus, console: Console) -> None:
@@ -151,9 +145,36 @@ def render_engine_status(status: EngineStatus, console: Console) -> None:
         console.print(f"Python:     {status.python_executable}")
 
 
-def _render(data: object, console: Console) -> None:
-    if isinstance(data, EngineStatus):
-        render_engine_status(data, console)
+def _render_installed(data: object, console: Console) -> None:
+    """Say what was installed, then show the engine it left."""
+    if not isinstance(data, EngineStatus):
+        return
+    console.print(
+        f"Evaluation engine {data.digest} is installed and verified at {data.path}."
+    )
+    console.print()
+    render_engine_status(data, console)
+
+
+def _render_status(data: object, console: Console) -> None:
+    """Say where this engine stands, then show it."""
+    if not isinstance(data, EngineStatus):
+        return
+    console.print(f"Evaluation engine {data.digest} is {data.detail}.")
+    console.print()
+    render_engine_status(data, console)
+
+
+def _render_verified(data: object, console: Console) -> None:
+    """Say what verifying proved, then show the engine it proved it of."""
+    if not isinstance(data, EngineStatus):
+        return
+    console.print(
+        f"Evaluation engine {data.digest} holds the files it was installed "
+        "with and runs the pinned validator."
+    )
+    console.print()
+    render_engine_status(data, console)
 
 
 def _requested(digest: str | None) -> Digest | None:
@@ -174,13 +195,15 @@ def _selected(context: CliContext, digest: str | None) -> Digest:
 
 def _install_action() -> NextAction:
     return NextAction(
-        id="install_engine",
-        label="Install the managed evaluation engine",
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation("engine", "install"),
+        expected_state_digest=None,
+        side_effect=SideEffect.LOCAL_STATE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.PACKAGE_INDEX,
         reason="Preparing or starting a Climb needs an installed, active engine.",
-        cli=["techtree", "engine", "install"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
 
@@ -188,20 +211,24 @@ def _activate_or_browse(registry: EngineRegistry, status: EngineStatus) -> NextA
     """Offer setup when the new engine is not the active one, else browsing."""
     if registry.active_digest() == status.digest:
         return NextAction(
-            id="list_climbs",
-            label="Browse the available Climbs",
-            reason="The evaluation engine is ready.",
-            cli=["techtree", "climb", "list"],
-            hermes_tool=None,
-            hermes_args=None,
-            requires_user_confirmation=False,
+            operation=Operation.PLAN_INSPECT,
+            prepared_arguments=invocation("climb", "list"),
+            expected_state_digest=None,
+            side_effect=SideEffect.NONE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
+            reason="The evaluation engine is ready; these are the Climbs it runs.",
         )
     return NextAction(
-        id="run_setup",
-        label="Finish setting this machine up",
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation("setup"),
+        expected_state_digest=None,
+        side_effect=SideEffect.LOCAL_STATE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.PACKAGE_INDEX,
         reason="The engine is installed but is not the active one yet.",
-        cli=["techtree", "setup"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )

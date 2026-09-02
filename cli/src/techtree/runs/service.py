@@ -65,6 +65,14 @@ from techtree.errors import (
 )
 from techtree.ids import new_id
 from techtree.models.base import Digest
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
 from techtree.models.run import (
     PolicyAcknowledgement,
@@ -573,6 +581,7 @@ class RunService:
                     "minimum": MINIMUM_WAIT_TIMEOUT_SECONDS,
                     "maximum": MAXIMUM_WAIT_TIMEOUT_SECONDS,
                 },
+                next_actions=[_wait_within_the_bound(run_id)],
             )
 
     def process_health(self, run_id: str) -> ProcessHealth:
@@ -609,7 +618,6 @@ class RunService:
             raise RunError(
                 f"run {run_id} is {state.phase.value} and has no result yet",
                 code=RUN_RESULT_NOT_READY,
-                retryable=not is_terminal(state.phase),
                 details={"run_id": run_id, "phase": state.phase.value},
             )
 
@@ -680,7 +688,6 @@ class RunService:
             raise NotFoundError(
                 missing,
                 code=RUN_LOGS_UNAVAILABLE,
-                retryable=True,
                 details={"run_id": run_id},
             ) from error
 
@@ -717,3 +724,33 @@ class RunService:
             status=self.status(run_id),
             outcome="already_requested" if already else "requested",
         )
+
+
+def _wait_within_the_bound(run_id: str) -> NextAction:
+    """Return the same wait, asked for inside the bound the contract sets.
+
+    A refused bound is a caller that wanted to wait, so the repair is the wait
+    it can have rather than a note about the numbers. It is offered explicitly
+    at the default rather than bare, because the value is the whole of what was
+    wrong with the first call.
+    """
+    return NextAction(
+        operation=Operation.RUN_WAIT,
+        prepared_arguments=invocation(
+            "run",
+            "status",
+            arguments=[run_id],
+            options={"--timeout-seconds": str(DEFAULT_WAIT_TIMEOUT_SECONDS)},
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=(
+            f"A wait is bounded: between {MINIMUM_WAIT_TIMEOUT_SECONDS} and "
+            f"{MAXIMUM_WAIT_TIMEOUT_SECONDS} seconds, and "
+            f"{DEFAULT_WAIT_TIMEOUT_SECONDS} by default."
+        ),
+    )

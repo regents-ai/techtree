@@ -21,6 +21,13 @@ inventing an answer. ``--yes`` with ``--reviewed-on host-agent`` is how an agent
 records that the person answered in the conversation, which is the same surface
 ``climb start`` already uses and the one decisions 0038 names for this.
 
+*The refusal carries the review.* Stopping is not the whole answer: what would
+be sent, how much of it, where it would go and what it does not contain are the
+things a person has to be shown before they can agree, and a host agent that
+cannot read them cannot show them. So the machine-mode refusal is
+``action.prepare`` — the same review a terminal prints, as facts, with the
+approved call offered as the next action.
+
 *The address question is asked once, and promises nothing.* It defaults to no,
 what is typed is checked and canonicalised before it goes anywhere, and it
 travels in the ``x-techtree-contributor-address`` request header — beside the
@@ -49,12 +56,19 @@ from rich.console import Console
 from techtree.cli.commands.climb import ReviewSurface
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
-from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import human_console, render_pairs
 from techtree.drafts.store import utc_now
 from techtree.errors import UsageError
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.uplift_report import PublicationStatus
 from techtree.publication.address import (
     canonical_contributor_address,
@@ -73,6 +87,7 @@ __all__ = [
     "PUBLICATION_CONFIRMATION_REQUIRED",
     "PUBLISH_COMMAND",
     "PublicationPayload",
+    "PublicationReviewPayload",
     "publish_run_command",
 ]
 
@@ -142,6 +157,27 @@ class PublicationPayload(ProtocolModel):
     skill_github_url: NonEmptyString | None = None
 
 
+class PublicationReviewPayload(ProtocolModel):
+    """What publishing this run would do, for a caller that has to show it.
+
+    It is the machine reading of exactly what a terminal prints before it asks:
+    what would be sent, how much of it, where it would go, and the lines that
+    say what the proof directory does and does not contain. A host agent shows
+    these and takes the person's answer on its own approval surface; nothing
+    here is an approval and nothing here has been sent.
+    """
+
+    run_id: NonEmptyString
+    bundle_digest: Digest
+    endpoint: NonEmptyString
+    file_count: int
+    byte_count: int
+    skill_name: NonEmptyString | None
+    skill_github_url: NonEmptyString | None
+    #: The review a person reads, in the order they read it.
+    review: list[NonEmptyString]
+
+
 def publish_run_command(
     ctx: typer.Context,
     run_id: Annotated[
@@ -201,19 +237,25 @@ def publish_run_command(
     """Publish a verified run's proof to the public run log."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[PublicationPayload]:
+    def action() -> CommandResult[PublicationPayload | PublicationReviewPayload]:
         service = build_publication_service(context)
         skill_github_url = (
             canonical_skill_github_url(github_url) if github_url is not None else None
         )
         plan = service.plan(run_id)
+        _require_the_review_surface_was_answered(
+            plan, assume_yes=yes, reviewed_on=reviewed_on
+        )
+        # Nobody here can be asked, so the answer is the review itself rather
+        # than an approval invented on somebody's behalf.
+        if not yes and context.no_input:
+            return _publication_review(plan, skill_github_url=skill_github_url)
+
         # The order a person meets this in is the order it is written in: what
         # would be sent, then the one optional question, then the answer that
         # covers both. An address asked for before the review would be asked
         # of somebody who does not yet know what they are being asked about.
-        asking = _require_an_answer_is_possible(
-            context, plan, assume_yes=yes, reviewed_on=reviewed_on
-        )
+        asking = not yes
         if asking:
             _show_what_would_be_sent(context, plan, skill_github_url=skill_github_url)
         contributor = _contributor_address(context, typed=address, asking=asking)
@@ -243,21 +285,15 @@ def publish_run_command(
         )
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="run_published",
-                    text=(
-                        f"Run {payload.run_id} is entry {payload.log_sequence} "
-                        f"of the public log, at {payload.entry_url}. The log "
-                        "records arrivals in order and ranks nothing."
-                    ),
-                )
-            ],
             next_actions=[_verify_proof(payload.run_id)],
         )
 
-    invoke_command(context, PUBLISH_COMMAND, action, render_data=_render)
+    invoke_command(
+        context,
+        approval_operation(context, assume_yes=yes),
+        action,
+        render_data=_render,
+    )
 
 
 def build_publication_service(context: CliContext) -> PublicationService:
@@ -292,14 +328,13 @@ def build_publication_service(context: CliContext) -> PublicationService:
 # ---------------------------------------------------------------------------
 
 
-def _require_an_answer_is_possible(
-    context: CliContext,
+def _require_the_review_surface_was_answered(
     plan: PublicationPlan,
     *,
     assume_yes: bool,
     reviewed_on: ReviewSurface,
-) -> bool:
-    """Return whether a person is about to be asked, or refuse to go on.
+) -> None:
+    """Refuse a declared review surface that nobody answered on.
 
     The shape is ``climb start``'s rather than ``run cancel``'s, because this is
     the same kind of decision: something a person has to be shown before they
@@ -307,27 +342,76 @@ def _require_an_answer_is_possible(
     conversation instead. ``--confirm`` on its own would record that a flag was
     passed; ``--yes --reviewed-on host-agent`` records where somebody answered.
     """
-    if assume_yes:
-        return False
+    if assume_yes or reviewed_on is ReviewSurface.CLI:
+        return
+    raise UsageError(
+        "--reviewed-on says where an agreement was already given, so it "
+        "goes with --yes; without it what would be sent is shown here and "
+        "answered here",
+        code=PUBLICATION_CONFIRMATION_REQUIRED,
+        details={"run_id": plan.run_id, "reviewed_on": reviewed_on.value},
+    )
 
-    if reviewed_on is not ReviewSurface.CLI:
-        raise UsageError(
-            "--reviewed-on says where an agreement was already given, so it "
-            "goes with --yes; without it what would be sent is shown here and "
-            "answered here",
-            code=PUBLICATION_CONFIRMATION_REQUIRED,
-            details={"run_id": plan.run_id, "reviewed_on": reviewed_on.value},
-        )
 
-    if context.no_input:
-        raise UsageError(
+def _publication_review(
+    plan: PublicationPlan, *, skill_github_url: str | None
+) -> CommandResult[PublicationPayload | PublicationReviewPayload]:
+    """Return what publishing would do, and the approved call that would do it.
+
+    Refusing and reporting are one answer here. The envelope fails, because
+    nothing was published; it carries the review, because that is what the
+    caller needs; and it offers the call a person's agreement turns into a
+    publication, marked as needing that agreement first.
+    """
+    return CommandResult(
+        data=PublicationReviewPayload(
+            run_id=plan.run_id,
+            bundle_digest=plan.bundle_digest,
+            endpoint=plan.endpoint,
+            file_count=plan.file_count,
+            byte_count=plan.byte_count,
+            skill_name=plan.skill_name,
+            skill_github_url=skill_github_url,
+            review=[
+                line
+                for line in publication_review_lines(
+                    plan, skill_github_url=skill_github_url
+                )
+                if line
+            ],
+        ),
+        next_actions=[_publish_when_agreed(plan.run_id)],
+        error=UsageError(
             "publishing sends this run's proof to the public run log, and a "
             "published entry is withdrawn rather than deleted, so somebody has "
             "to agree to it. Nothing here can be asked, so say so with --yes",
             code=PUBLICATION_CONFIRMATION_REQUIRED,
             details={"run_id": plan.run_id},
-        )
-    return True
+        ),
+    )
+
+
+def _publish_when_agreed(run_id: str) -> NextAction:
+    """Return the call that publishes, once a person has agreed to it."""
+    return NextAction(
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation(
+            "publish",
+            arguments=[run_id],
+            options={"--yes": True, "--reviewed-on": ReviewSurface.HOST_AGENT.value},
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.PUBLIC_PUBLICATION,
+        approval_required=True,
+        retry_class=RetryClass.RECONCILE_FIRST,
+        estimated_cost=None,
+        data_egress=DataEgress.PUBLICATION_SERVICE,
+        reason=(
+            "It publishes the proof described above, recording that the person "
+            "who agreed to it answered in your conversation. A published entry "
+            "is withdrawn rather than deleted."
+        ),
+    )
 
 
 def _show_what_would_be_sent(
@@ -412,20 +496,35 @@ def publication_review_lines(
 
 def _verify_proof(run_id: str) -> NextAction:
     return NextAction(
-        id="verify_proof",
-        label="Verify this run's local proof again",
-        reason="It checks offline, from the bytes the run stored.",
-        cli=["techtree", "proof", "verify", run_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+        operation=Operation.PROOF_VERIFY,
+        prepared_arguments=invocation("proof", "verify", arguments=[run_id]),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=(
+            "It verifies this run's local proof again, offline, from the bytes "
+            "the run stored."
+        ),
     )
 
 
 def _render(data: object, console: Console) -> None:
+    """Print what the log accepted, or what it would be asked to accept."""
+    if isinstance(data, PublicationReviewPayload):
+        for line in data.review:
+            console.print(line)
+        return
     if not isinstance(data, PublicationPayload):
         return
 
+    console.print(
+        f"Run {data.run_id} is entry {data.log_sequence} of the public log, at "
+        f"{data.entry_url}. The log records arrivals in order and ranks nothing."
+    )
+    console.print()
     render_pairs(
         [
             ("Run", data.run_id),

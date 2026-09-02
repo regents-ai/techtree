@@ -26,6 +26,13 @@ from fixtures.receipts.proof import execution_record as fixture_execution_record
 from techtree.canonical import canonical_json_bytes
 from techtree.identity.models import VerificationMessage, VerificationResult
 from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec, VariantSchedule
+from techtree.models.cli import (
+    DataEgress,
+    Operation,
+    RetryClass,
+    SideEffect,
+    command_line,
+)
 from techtree.models.episode_receipt import EpisodeReceipt
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.skill import SkillArtifact, SkillFile
@@ -858,14 +865,18 @@ def test_the_next_actions_only_name_commands_this_build_has(
 ) -> None:
     payload = build(report, receipts, verified())
 
-    assert [action.id for action in payload.next_actions] == [
-        "inspect_tasks",
-        "publish_run",
-        "verify_proof",
-        "improvement_context",
-        "prepare_replacement",
+    # Preparing the second comparison is not among them. It needs the path of
+    # a revision nobody has written, and an action carries the exact arguments
+    # to invoke it with, so there is nothing to offer yet.
+    assert [command_line(action) for action in payload.next_actions] == [
+        ["techtree", "run", "result", payload.run_id, "--show-tasks", "all"],
+        ["techtree", "publish", payload.run_id],
+        ["techtree", "proof", "verify", payload.run_id],
+        ["techtree", "uplift", "context", payload.run_id],
     ]
-    assert all(action.cli is not None for action in payload.next_actions)
+    assert not [
+        action for action in payload.next_actions if "PATH" in command_line(action)
+    ]
 
 
 def test_publishing_is_offered_second_so_a_reader_is_actually_shown_it(
@@ -880,11 +891,14 @@ def test_publishing_is_offered_second_so_a_reader_is_actually_shown_it(
     payload = build(report, receipts, verified())
 
     publish = payload.next_actions[1]
-    assert publish.id == "publish_run"
-    assert publish.cli == ["techtree", "publish", payload.run_id]
+    assert command_line(publish) == ["techtree", "publish", payload.run_id]
+    assert publish.side_effect is SideEffect.PUBLIC_PUBLICATION
+    assert publish.data_egress is DataEgress.PUBLICATION_SERVICE
     # A host agent must ask rather than act: this is the one step that leaves
-    # the machine.
-    assert publish.requires_user_confirmation
+    # the machine. And a publication whose answer was lost is reconciled
+    # rather than sent again.
+    assert publish.approval_required
+    assert publish.retry_class is RetryClass.RECONCILE_FIRST
 
 
 def test_a_result_whose_proof_was_not_checked_is_not_offered_publishing(
@@ -893,7 +907,9 @@ def test_a_result_whose_proof_was_not_checked_is_not_offered_publishing(
     """``run result --no-verify`` verifies nothing, so it establishes nothing."""
     payload = build(report, receipts, None)
 
-    assert "publish_run" not in [action.id for action in payload.next_actions]
+    assert ["techtree", "publish", payload.run_id] not in [
+        command_line(action) for action in payload.next_actions
+    ]
 
 
 def test_a_result_whose_proof_failed_is_never_offered_publishing(
@@ -902,7 +918,9 @@ def test_a_result_whose_proof_failed_is_never_offered_publishing(
     """The whole point of the product is that this cannot be published."""
     payload = build(report, receipts, unverified())
 
-    assert "publish_run" not in [action.id for action in payload.next_actions]
+    assert ["techtree", "publish", payload.run_id] not in [
+        command_line(action) for action in payload.next_actions
+    ]
 
 
 def test_an_ineligible_report_is_not_offered_publishing(
@@ -913,7 +931,9 @@ def test_an_ineligible_report_is_not_offered_publishing(
 
     payload = build(ineligible, receipts, verified())
 
-    assert "publish_run" not in [action.id for action in payload.next_actions]
+    assert ["techtree", "publish", payload.run_id] not in [
+        command_line(action) for action in payload.next_actions
+    ]
 
 
 def test_a_development_only_result_is_not_offered_a_proof_to_verify(
@@ -923,7 +943,9 @@ def test_a_development_only_result_is_not_offered_a_proof_to_verify(
     """It has no proof bundle, so offering the command would offer a failure."""
     payload = build(development_report, receipts, None)
 
-    assert [action.id for action in payload.next_actions] == ["inspect_tasks"]
+    assert [command_line(action) for action in payload.next_actions] == [
+        ["techtree", "run", "result", payload.run_id, "--show-tasks", "all"]
+    ]
 
 
 def test_the_score_bars_are_drawn_on_one_scale(
@@ -1074,6 +1096,8 @@ def test_both_channels_say_what_the_receipt_is_worth_and_how_to_check_it(
 
     assert "techtree proof verify" in gateway
     verify = next(
-        action for action in payload.next_actions if action.id == "verify_proof"
+        action
+        for action in payload.next_actions
+        if action.operation is Operation.PROOF_VERIFY
     )
-    assert verify.cli == ["techtree", "proof", "verify", payload.run_id]
+    assert command_line(verify) == ["techtree", "proof", "verify", payload.run_id]

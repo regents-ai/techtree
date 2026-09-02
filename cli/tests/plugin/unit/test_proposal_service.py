@@ -81,21 +81,23 @@ class FakeBridge:
             path = Path(arguments[list(arguments).index("--candidate-skill") + 1])
             self.skill_seen = path.read_text(encoding="utf-8")
         return {
-            "schema_version": "techtree.cli.v1",
-            "command": "uplift prepare",
+            "schema_version": "techtree.cli.v2",
+            "operation": "plan.prepare",
             "ok": self.ok,
-            "data": self.data if self.ok else None,
+            "state_digest": None,
+            "facts": self.data if self.ok else {},
+            "unknowns": [],
+            "blockers": [],
+            "warnings": [],
+            "content_refs": [],
+            "next_actions": [],
             "error": None
             if self.ok
             else {
                 "code": "skill_scan_failed",
                 "message": "the scanner refused this Skill",
-                "retryable": False,
                 "details": {},
             },
-            "messages": [],
-            "warnings": [],
-            "next_actions": [],
         }
 
 

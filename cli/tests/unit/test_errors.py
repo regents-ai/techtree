@@ -44,7 +44,17 @@ from techtree.errors import (
     exit_code_for,
     stable_exception_message,
 )
-from techtree.models.cli import CliEnvelope, CliError, NextAction
+from techtree.models.cli import (
+    CliEnvelope,
+    CliError,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    command_line,
+    invocation,
+)
 
 DIGEST = sha256_digest_bytes(b"object")
 
@@ -109,18 +119,24 @@ def test_call_sites_may_override_the_defaults() -> None:
     error = ValidationError(
         "membership does not match",
         code="membership_mismatch",
-        retryable=True,
         details={"expected": 20, "actual": 19},
     )
 
     assert error.code == "membership_mismatch"
-    assert error.retryable is True
     assert error.details == {"expected": 20, "actual": 19}
     assert error.exit_code == EXIT_VALIDATION
 
 
-def test_errors_are_not_retryable_by_default() -> None:
-    assert TechtreeError("x").retryable is False
+def test_an_error_says_nothing_about_retrying() -> None:
+    """``techtree.cli.v2`` removed the boolean; the repair action says instead.
+
+    An error is what went wrong. What to do about it is the ``retry_class`` of
+    the next action the error carries, which can say five things where the
+    boolean said two — and which is absent when there is no sensible repair,
+    rather than defaulting to "no".
+    """
+    assert not hasattr(TechtreeError("x"), "retryable")
+    assert "retryable" not in CliError.model_fields
 
 
 def test_an_error_carries_no_next_actions_by_default() -> None:
@@ -129,18 +145,22 @@ def test_an_error_carries_no_next_actions_by_default() -> None:
 
 def test_an_error_can_carry_the_next_actions_the_cli_should_offer() -> None:
     action = NextAction(
-        id="install_engine",
-        label="Install the evaluation engine",
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation("engine", "install"),
+        expected_state_digest=None,
+        side_effect=SideEffect.LOCAL_STATE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.PACKAGE_INDEX,
         reason="The engine this Climb requires is not installed.",
-        cli=["techtree", "engine", "install"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
     error = PrerequisiteError("the engine is not installed", next_actions=[action])
 
-    assert [item.id for item in error.next_actions] == ["install_engine"]
+    assert [command_line(item) for item in error.next_actions] == [
+        ["techtree", "engine", "install"]
+    ]
 
 
 def test_details_default_to_an_empty_mapping() -> None:
@@ -155,7 +175,6 @@ def test_details_default_to_an_empty_mapping() -> None:
 def test_error_to_cli_error_keeps_the_machine_facing_fields() -> None:
     error = EngineError(
         "the engine could not be installed",
-        retryable=True,
         details={"digest": DIGEST},
     )
 
@@ -164,7 +183,6 @@ def test_error_to_cli_error_keeps_the_machine_facing_fields() -> None:
     assert isinstance(projected, CliError)
     assert projected.code == "engine_error"
     assert projected.message == "the engine could not be installed"
-    assert projected.retryable is True
     assert projected.details == {"digest": DIGEST}
 
 
@@ -211,13 +229,16 @@ def test_error_to_cli_error_does_not_carry_next_actions() -> None:
 
 
 def test_a_projected_error_fits_a_failure_envelope() -> None:
-    envelope = CliEnvelope[CliError](
-        schema_version="techtree.cli.v1",
+    envelope = CliEnvelope[dict[str, str]](
+        schema_version="techtree.cli.v2",
+        operation=Operation.ACTION_EXECUTE,
         ok=False,
-        command="engine install",
-        data=None,
-        messages=[],
+        state_digest=None,
+        facts={},
+        unknowns=[],
+        blockers=[],
         warnings=[],
+        content_refs=[],
         next_actions=[],
         error=error_to_cli_error(EngineError("the engine could not be installed")),
     )

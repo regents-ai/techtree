@@ -211,7 +211,6 @@ class StarterSkillService:
                 "another Techtree process is materializing a Skill",
                 code=STARTER_SKILL_UNAVAILABLE,
                 details={"path": str(self._paths.skills_cache_dir())},
-                retryable=True,
             ) from error
         try:
             yield
@@ -386,7 +385,6 @@ def _download_document(url: str) -> bytes:
             f"{getattr(error, 'reason', None) or error}",
             code=STARTER_SKILL_SOURCE_REFUSED,
             details={"url": url},
-            retryable=True,
         ) from error
 
     if len(data) > MAX_SKILL_TOTAL_BYTES:

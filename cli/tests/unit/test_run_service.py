@@ -450,7 +450,6 @@ def test_a_run_that_has_written_no_log_says_so(harness: RunHarness) -> None:
         harness.service.logs(run_id)
 
     assert raised.value.code == "run_logs_unavailable"
-    assert raised.value.retryable is True
 
 
 def test_a_log_line_is_read_back_exactly_as_it_was_written(
@@ -479,7 +478,6 @@ def test_a_result_asked_for_too_early_is_refused_and_retryable(
         harness.service.result(run_id)
 
     assert raised.value.code == "run_result_not_ready"
-    assert raised.value.retryable is True
 
 
 def test_a_finished_run_returns_its_report(harness: RunHarness) -> None:

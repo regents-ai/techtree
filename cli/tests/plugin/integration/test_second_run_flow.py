@@ -15,7 +15,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from support import envelope, install_fake_cli
+from support import envelope, install_fake_cli, operation_for
 from techtree_hermes.cli.bridge import CliBridge
 from techtree_hermes.cli.constants import PLUGIN_ROOT
 from techtree_hermes.cli.errors import PluginError
@@ -155,14 +155,17 @@ class StubLlm:
 
 def _answers(**overrides: dict[str, Any]) -> dict[str, dict[str, Any]]:
     answers = {
-        "doctor": envelope(command="doctor", data={"checks": []}),
-        "climb list": envelope(command="climb list", data=[{"reference": "x@1"}]),
+        "doctor": envelope(operation=operation_for("doctor"), facts={"checks": []}),
+        "climb list": envelope(
+            operation=operation_for("climb list"),
+            facts={"climbs": [{"reference": "x@1"}]},
+        ),
         "climb show": envelope(
-            command="climb show", data={"climb": {"reference": "x@1"}}
+            operation=operation_for("climb show"), facts={"climb": {"reference": "x@1"}}
         ),
         "run status": envelope(
-            command="run status",
-            data={
+            operation=operation_for("run status"),
+            facts={
                 "run_id": FIRST_RUN,
                 "phase": "completed",
                 "terminal": True,
@@ -171,16 +174,16 @@ def _answers(**overrides: dict[str, Any]) -> dict[str, dict[str, Any]]:
             },
         ),
         "run result": envelope(
-            command="run result",
-            data={"report": {"run_id": FIRST_RUN}, "presentation": _presentation()},
+            operation=operation_for("run result"),
+            facts={"report": {"run_id": FIRST_RUN}, "presentation": _presentation()},
         ),
         "uplift context": envelope(
-            command="uplift context",
-            data={"context": CONTEXT, "relative_path": "context.json"},
+            operation=operation_for("uplift context"),
+            facts={"context": CONTEXT, "relative_path": "context.json"},
         ),
         "uplift skill-source": envelope(
-            command="uplift skill-source",
-            data={
+            operation=operation_for("uplift skill-source"),
+            facts={
                 "source_run_id": FIRST_RUN,
                 "skill_name": "branchcode",
                 "skill_root_digest": ROOT_DIGEST,
@@ -192,8 +195,8 @@ def _answers(**overrides: dict[str, Any]) -> dict[str, dict[str, Any]]:
             },
         ),
         "uplift prepare": envelope(
-            command="uplift prepare",
-            data={
+            operation=operation_for("uplift prepare"),
+            facts={
                 "draft_id": SECOND_DRAFT,
                 "draft_digest": DRAFT_DIGEST,
                 "confirmation_expires_at": "2026-08-13T12:00:00Z",
@@ -209,12 +212,12 @@ def _answers(**overrides: dict[str, Any]) -> dict[str, dict[str, Any]]:
             },
         ),
         "uplift start": envelope(
-            command="uplift start",
-            data={"run_id": SECOND_RUN, "draft_id": SECOND_DRAFT, "phase": "created"},
+            operation=operation_for("uplift start"),
+            facts={"run_id": SECOND_RUN, "draft_id": SECOND_DRAFT, "phase": "created"},
         ),
         "proof verify": envelope(
-            command="proof verify",
-            data={
+            operation=operation_for("proof verify"),
+            facts={
                 "target": SECOND_RUN,
                 "kind": "bundle",
                 "verified": True,
@@ -333,7 +336,7 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
         draft_id=SECOND_DRAFT,
         channel=channel,
     )
-    assert started["data"]["run_id"] == SECOND_RUN
+    assert started["facts"]["run_id"] == SECOND_RUN
     assert _stage(journey) is DemoStage.SECOND_RUN_ACTIVE
 
     second = _call(journey, "techtree_run_result", run_id=SECOND_RUN, channel=channel)
@@ -348,7 +351,7 @@ def test_the_terminal_journey_from_first_result_to_second_receipt(
     }
 
     proof = _call(journey, "techtree_proof_verify", run_id=SECOND_RUN, channel=channel)
-    assert proof["data"]["verified"] is True
+    assert proof["facts"]["verified"] is True
 
     # The revision proposal is the only host completion the journey makes.
     assert len(journey.ctx.llm.calls) == 1
@@ -483,7 +486,7 @@ def test_a_run_identifier_always_comes_back(journey: PluginServices) -> None:
         channel=ChannelKind.GATEWAY.value,
     )
 
-    assert started["data"]["run_id"] == SECOND_RUN
+    assert started["facts"]["run_id"] == SECOND_RUN
 
 
 # Nothing advances itself ------------------------------------------------------------
@@ -525,8 +528,8 @@ def test_a_result_that_did_not_verify_is_never_called_an_improvement(
     answers = _answers(
         **{
             "run result": envelope(
-                command="run result",
-                data={
+                operation=operation_for("run result"),
+                facts={
                     "report": {"run_id": SECOND_RUN},
                     "presentation": _presentation(
                         decision="rejected", verification_status="proof_invalid"

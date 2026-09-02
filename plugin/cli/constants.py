@@ -144,8 +144,10 @@ DEMO_SESSION_TTL_SECONDS: Final = 604_800
 
 SUPPORTED_RELEASE_CORE_SCHEMA: Final = "techtree.release-core.v1"
 
-# The one CLI envelope contract this plugin release speaks.
-SUPPORTED_CLI_SCHEMA: Final = "techtree.cli.v1"
+# The one CLI envelope contract this plugin release speaks. There is no second
+# one: the plugin and the CLI moved to v2 together, and an envelope announcing
+# anything else is a plugin and a CLI that no longer agree.
+SUPPORTED_CLI_SCHEMA: Final = "techtree.cli.v2"
 
 # Host lifecycle hooks this plugin takes part in. Both do local bookkeeping
 # only: no network, no installation, no Docker, no model call.

@@ -36,7 +36,7 @@ import os
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Annotated, Any, NoReturn
+from typing import Annotated, Any, Final, NoReturn
 
 import typer
 from typer.core import TyperGroup
@@ -83,9 +83,20 @@ from techtree.errors import (
     exit_code_for,
     stable_exception_message,
 )
+from techtree.models.cli import Operation
 from techtree.version import package_version
 
-__all__ = ["create_app", "main", "root_callback"]
+__all__ = ["BOUNDARY_OPERATION", "create_app", "main", "root_callback"]
+
+#: What the envelope names when nothing got as far as being an operation.
+#:
+#: A command line that names no command, a Techtree home that could not be
+#: built, a defect that escaped every command's own boundary: none of them is
+#: an operation, and every envelope has to name one from the closed inventory.
+#: ``plan.inspect`` is the one that answers about this machine, which is what
+#: these failures are about, and it is a read that changed nothing — which is
+#: also true of every one of them.
+BOUNDARY_OPERATION: Final = Operation.PLAN_INSPECT
 
 #: Namespaces that belong to Techtree but are not part of this product surface
 #: yet. Listed so the choice is visible in code review rather than implied by
@@ -196,7 +207,7 @@ def root_callback(
         emit_boundary_failure(
             json_output=json_output,
             no_color=no_color,
-            command="techtree",
+            operation=BOUNDARY_OPERATION,
             error=UsageError(
                 "no command was given; run `techtree --help` for the available "
                 "commands",
@@ -216,7 +227,7 @@ def root_callback(
         emit_boundary_failure(
             json_output=json_output,
             no_color=no_color,
-            command=ctx.invoked_subcommand,
+            operation=BOUNDARY_OPERATION,
             error=error,
         )
 
@@ -403,7 +414,7 @@ def _last_resort(error: TechtreeError) -> NoReturn:
     handled where the context exists.
     """
     write_envelope(
-        failure_envelope(command="techtree", error=error),
+        failure_envelope(operation=BOUNDARY_OPERATION, error=error),
         json_output=_machine_mode(sys.argv[1:], os.environ),
         no_color=True,
     )
