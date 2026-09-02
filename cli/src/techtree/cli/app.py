@@ -95,7 +95,6 @@ RESERVED_NAMESPACES: tuple[str, ...] = (
     "blueprint",
     "forge",
     "verify",
-    "uplift",
     "trace",
     "lab",
 )

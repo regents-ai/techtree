@@ -164,10 +164,14 @@ is for reading. Techtree never executes a displayed command string.
 
 ```text
 doctor
+setup
+publish
+withdraw
 climb list
 climb show
 climb prepare
 climb start
+skill starter
 run status
 run logs
 run cancel
@@ -176,6 +180,7 @@ proof verify
 release info
 release verify
 uplift context
+uplift skill-source
 uplift prepare
 uplift start
 engine install

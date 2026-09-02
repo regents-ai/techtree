@@ -675,7 +675,6 @@ def test_the_reserved_namespaces_are_the_ones_the_specification_names() -> None:
         "blueprint",
         "forge",
         "verify",
-        "uplift",
         "trace",
         "lab",
     )
