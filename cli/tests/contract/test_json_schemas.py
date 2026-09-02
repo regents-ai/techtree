@@ -353,3 +353,72 @@ def test_v2_regeneration_is_byte_stable(tmp_path: Path) -> None:
         module.export_schema(model, destination, "v2")
 
         assert destination.read_text(encoding="utf-8") == v2_schema_text(name)
+
+
+# ---------------------------------------------------------------------------
+# The frozen tree is verified, never written
+# ---------------------------------------------------------------------------
+#
+# Regenerating a tree that is called frozen is how a v0.1 document's bytes move
+# without anybody deciding they should: the export rewrites the file, and every
+# check that compares the committed tree against a fresh export agrees with the
+# rewritten bytes afterwards. The tests below hold the only arrangement in
+# which the word means something — the generator reads that tree and reports,
+# and a difference stops the generation.
+
+
+def test_the_v1alpha1_tree_is_the_frozen_one() -> None:
+    assert set(exporter().FROZEN_SCHEMA_VERSIONS) == {"v1alpha1"}
+
+
+def test_the_committed_frozen_tree_verifies() -> None:
+    module = exporter()
+
+    assert module.verify_tree(module.schema_models(), "v1alpha1") == []
+
+
+def test_verifying_the_frozen_tree_writes_nothing(tmp_path: Path) -> None:
+    module = exporter()
+    copy = tmp_path / "v1alpha1"
+    copy.mkdir()
+    for path in SCHEMA_DIRECTORY.glob("*.schema.json"):
+        (copy / path.name).write_bytes(path.read_bytes())
+    before = {path.name: path.read_bytes() for path in copy.iterdir()}
+
+    assert module.verify_tree(module.schema_models(), "v1alpha1", copy) == []
+    assert {path.name: path.read_bytes() for path in copy.iterdir()} == before
+
+
+@pytest.mark.parametrize(
+    ("break_it", "expected"),
+    [
+        (
+            lambda directory: (directory / "campaign.schema.json").write_text(
+                '{"$id": "not the published schema"}\n', encoding="utf-8"
+            ),
+            "v1alpha1/campaign.schema.json no longer matches the model it publishes",
+        ),
+        (
+            lambda directory: (directory / "campaign.schema.json").unlink(),
+            "v1alpha1/campaign.schema.json is committed nowhere",
+        ),
+        (
+            lambda directory: (directory / "invented.schema.json").write_text(
+                "{}\n", encoding="utf-8"
+            ),
+            "v1alpha1/invented.schema.json publishes no model",
+        ),
+    ],
+    ids=["changed", "missing", "unexpected"],
+)
+def test_a_frozen_tree_that_moved_is_reported(
+    tmp_path: Path, break_it: Any, expected: str
+) -> None:
+    module = exporter()
+    copy = tmp_path / "v1alpha1"
+    copy.mkdir()
+    for path in SCHEMA_DIRECTORY.glob("*.schema.json"):
+        (copy / path.name).write_bytes(path.read_bytes())
+    break_it(copy)
+
+    assert module.verify_tree(module.schema_models(), "v1alpha1", copy) == [expected]

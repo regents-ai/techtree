@@ -8,8 +8,16 @@ throwaway copy of the repository and fails on any difference.
 There is one directory per protocol version. ``v1alpha1`` is v0.1, and its
 bytes are frozen because published evidence is validated against them.
 ``v2`` is the protocol v0.2 introduces, and it holds only the documents whose
-shape actually changed; the two trees are exported the same way and neither
-knows about the other.
+shape actually changed; neither tree knows about the other.
+
+The frozen tree is *verified* rather than written. Saying the bytes are frozen
+and then rewriting them on every regeneration is a promise nothing keeps: a
+change that reorders a v0.1 document's fields would land in the working tree
+silently, and every check that compares the committed tree against a fresh
+export would agree with it afterwards. So ``v1alpha1`` is never opened for
+writing here. Its schemas are exported in memory, compared byte for byte
+against what is committed, and a difference stops the generation and names the
+files, which is the only outcome that can reach a reviewer.
 
 Two things make the output stable enough to diff:
 
@@ -67,6 +75,11 @@ from techtree.publication.models import (
 #: bytes are frozen, ``v2`` is the protocol v0.2 introduces.
 SCHEMA_VERSION_DIRECTORY = "v1alpha1"
 V2_SCHEMA_VERSION_DIRECTORY = "v2"
+
+#: The protocol generations whose committed bytes this tool may not write.
+#: Published v0.1 evidence is validated against ``v1alpha1``, so a change to a
+#: document there is a release decision rather than a regeneration.
+FROZEN_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION_DIRECTORY})
 
 #: The JSON Schema dialect the exported documents are written against.
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
@@ -145,12 +158,19 @@ def schema_document(
     }
 
 
+def rendered_schema(model: type[BaseModel], filename: str, version: str) -> str:
+    """Return the exact text one schema file holds."""
+    document = schema_document(model, filename, version)
+    rendered = json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False)
+    return f"{rendered}\n"
+
+
 def export_schema(model: type[BaseModel], destination: Path, version: str) -> None:
     """Generate stable JSON Schema."""
-    document = schema_document(model, destination.name, version)
-    rendered = json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(f"{rendered}\n", encoding="utf-8")
+    destination.write_text(
+        rendered_schema(model, destination.name, version), encoding="utf-8"
+    )
 
 
 def export_tree(models: dict[str, type[BaseModel]], version: str) -> Path:
@@ -168,17 +188,61 @@ def export_tree(models: dict[str, type[BaseModel]], version: str) -> Path:
     return directory
 
 
+def verify_tree(
+    models: dict[str, type[BaseModel]], version: str, directory: Path | None = None
+) -> list[str]:
+    """Return every way a frozen tree differs from what the models describe.
+
+    Nothing is written, including when everything matches. A caller gets one
+    sentence per problem, naming the file, so a drift is reported in full
+    rather than one file at a time.
+    """
+    tree = REPOSITORY_ROOT / "schemas" / version if directory is None else directory
+    problems: list[str] = []
+
+    for name, model in sorted(models.items()):
+        filename = f"{name}.schema.json"
+        expected = rendered_schema(model, filename, version)
+        path = tree / filename
+        try:
+            committed = path.read_text(encoding="utf-8")
+        except OSError:
+            problems.append(f"{version}/{filename} is committed nowhere")
+            continue
+        if committed != expected:
+            problems.append(
+                f"{version}/{filename} no longer matches the model it publishes"
+            )
+
+    published = {f"{name}.schema.json" for name in models}
+    for stale in sorted(tree.glob("*.json")):
+        if stale.name not in published:
+            problems.append(f"{version}/{stale.name} publishes no model")
+    return problems
+
+
 def main() -> None:
-    """Rewrite every schema tree."""
+    """Rewrite every schema tree that is not frozen, and verify the ones that are."""
     trees = {
         SCHEMA_VERSION_DIRECTORY: schema_models(),
         V2_SCHEMA_VERSION_DIRECTORY: v2_schema_models(),
     }
     for version, models in trees.items():
-        directory = export_tree(models, version)
-        print(
-            f"wrote {len(models)} schemas to {directory.relative_to(REPOSITORY_ROOT)}"
-        )
+        relative = Path("schemas") / version
+        if version in FROZEN_SCHEMA_VERSIONS:
+            problems = verify_tree(models, version)
+            if problems:
+                raise SystemExit(
+                    f"{relative} is frozen and its bytes were not written:\n"
+                    + "".join(f"  {problem}\n" for problem in problems)
+                    + "  published v0.1 evidence is validated against these "
+                    "schemas, so changing one is a release decision, not a "
+                    "regeneration."
+                )
+            print(f"verified {len(models)} frozen schemas in {relative}")
+            continue
+        export_tree(models, version)
+        print(f"wrote {len(models)} schemas to {relative}")
 
 
 if __name__ == "__main__":
