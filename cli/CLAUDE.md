@@ -1,7 +1,5 @@
 # Project Instructions for AI Agents
 
-This file provides instructions and context for AI coding agents working on this project.
-
 ## Build & Test
 
 ```bash
@@ -50,4 +48,4 @@ The five canonical roles, each label string equal to its name: `needs-triage`, `
 
 ### Domain docs
 
-Single-context. Binding decision records live in `docs/decisions/` (not `docs/adr/`), with work-package specs in `docs/spec/`. See `docs/agents/domain.md`.
+Single-context. Binding decision records live in `docs/decisions/`, with work-package specs in `docs/spec/`. See `docs/agents/domain.md`.
