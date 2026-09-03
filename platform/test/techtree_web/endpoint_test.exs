@@ -120,7 +120,7 @@ defmodule TechtreeWeb.EndpointTest do
 
   describe "a static file" do
     test "is served with the refusals a page is served with", %{conn: conn} do
-      for path <- ["/robots.txt", "/favicon.ico", "/assets/css/site.css"] do
+      for path <- ["/robots.txt", "/favicon.svg", "/assets/css/site.css"] do
         served = get(conn, path)
 
         assert served.status == 200, "#{path} is not being served"
