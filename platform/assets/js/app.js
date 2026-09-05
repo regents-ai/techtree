@@ -87,17 +87,17 @@ window.addEventListener("pagehide", () => window.clearInterval(githubStarRefresh
 const THEME_COOKIE = "techtree_theme"
 const THEME_MAX_AGE = 60 * 60 * 24 * 365
 const THEMES = {
-  orange: {
+  light: {
     crownVariant: "2",
-    name: "Orange",
-    nextName: "Titanium dark",
-    browserColor: "#f4eee4",
+    name: "Light",
+    nextName: "Dark",
+    browserColor: "#F6F4EA",
   },
-  titanium: {
+  dark: {
     crownVariant: "4",
-    name: "Titanium",
-    nextName: "Orange light",
-    browserColor: "#101010",
+    name: "Dark",
+    nextName: "Light",
+    browserColor: "#161616",
   },
 }
 function readThemeCookie() {
@@ -118,11 +118,11 @@ function writeThemeCookie(theme) {
 
 let savedTheme = readThemeCookie()
 
-const resolvedTheme = () => savedTheme || "orange"
+const resolvedTheme = () => savedTheme || "light"
 
 function previewRouteTheme() {
-  if (/^\/crown\/2\/?$/.test(window.location.pathname)) return "orange"
-  if (/^\/crown\/4\/?$/.test(window.location.pathname)) return "titanium"
+  if (/^\/crown\/2\/?$/.test(window.location.pathname)) return "light"
+  if (/^\/crown\/4\/?$/.test(window.location.pathname)) return "dark"
   return undefined
 }
 
@@ -130,7 +130,7 @@ const pageTheme = () => previewRouteTheme() || resolvedTheme()
 
 function syncThemeControl(theme) {
   const selected = THEMES[theme]
-  const orangeActive = theme === "orange"
+  const orangeActive = theme === "light"
 
   document.querySelectorAll("[data-theme-toggle]").forEach(toggle => {
     toggle.dataset.theme = theme
@@ -174,8 +174,8 @@ function syncBackground(theme) {
     if (canvas) canvas.dataset.backgroundPreset = preset
 
     if (root.dataset.opticsKind !== "background") return
-    root.dataset.backgroundTheme = theme
-    if (canvas) canvas.dataset.backgroundTheme = theme
+    root.dataset.backgroundTheme = theme === "dark" ? "titanium" : "orange"
+    if (canvas) canvas.dataset.backgroundTheme = theme === "dark" ? "titanium" : "orange"
   })
 
   return preset
@@ -197,7 +197,7 @@ document.addEventListener("click", event => {
   if (!(event.target instanceof Element) || !event.target.closest("[data-theme-toggle]")) return
 
   const activeTheme = document.documentElement.dataset.theme || pageTheme()
-  const theme = activeTheme === "orange" ? "titanium" : "orange"
+  const theme = activeTheme === "light" ? "dark" : "light"
   savedTheme = theme
   writeThemeCookie(theme)
   applyTheme(theme)

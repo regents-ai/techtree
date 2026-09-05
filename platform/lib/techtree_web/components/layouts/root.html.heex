@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme={assigns[:theme]}>
+<html lang="en" data-brand="techtree" data-theme={assigns[:theme]}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,12 +7,12 @@
     <meta name="techtree-revision" content={Techtree.BuildInfo.source_revision()} />
     <meta
       name="color-scheme"
-      content={if(assigns[:theme] == "orange", do: "light", else: "dark")}
+      content={if(assigns[:theme] == "light", do: "light", else: "dark")}
     />
     <meta
       id="theme-color"
       name="theme-color"
-      content={if(assigns[:theme] == "orange", do: "#f4eee4", else: "#101010")}
+      content={if(assigns[:theme] == "light", do: "#F6F4EA", else: "#161616")}
     />
     <meta
       name="description"
@@ -42,11 +42,12 @@
       Skip to main content
     </a>
     <div
+      :if={request_path(assigns) == "/"}
       id="site-background"
       class="site-background"
       data-optics-kind="background"
       data-optics-source={~p"/assets/js/background_island.js"}
-      data-background-theme={assigns[:theme]}
+      data-background-theme={if(assigns[:theme] == "dark", do: "titanium", else: "orange")}
       data-background-preset="10"
       aria-hidden="true"
     >
@@ -54,15 +55,16 @@
         id="site-background-canvas"
         class="site-background__canvas"
         data-optics-canvas
-        data-background-theme={assigns[:theme]}
+        data-background-theme={if(assigns[:theme] == "dark", do: "titanium", else: "orange")}
         data-background-preset="10"
       >
       </canvas>
     </div>
+    <Regent.SiteBackground.site_background :if={request_path(assigns) != "/"} />
     <.masthead
       :if={masthead_visible?(assigns)}
       current_path={request_path(assigns)}
-      theme={assigns[:theme] || "orange"}
+      theme={assigns[:theme] || "light"}
     />
     {@inner_content}
   </body>

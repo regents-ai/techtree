@@ -134,16 +134,16 @@ defmodule TechtreeWeb.Router do
   defp put_theme(conn, _opts) do
     theme =
       case conn.request_path do
-        "/crown/2" -> "orange"
-        "/crown/4" -> "titanium"
+        "/crown/2" -> "light"
+        "/crown/4" -> "dark"
         _path -> saved_theme(conn.req_cookies[@theme_cookie])
       end
 
     assign(conn, :theme, theme)
   end
 
-  defp saved_theme(value) when value in ["orange", "titanium"], do: value
-  defp saved_theme(_value), do: "orange"
+  defp saved_theme(value) when value in ["light", "dark"], do: value
+  defp saved_theme(_value), do: "light"
 
   # Previews of work heading for `/`, and nothing a release publishes.
   #

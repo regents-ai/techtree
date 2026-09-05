@@ -33,7 +33,7 @@ defmodule TechtreeWeb.Layouts do
   end
 
   attr :current_path, :string, default: "/"
-  attr :theme, :string, default: "orange"
+  attr :theme, :string, default: "light"
 
   defp masthead(assigns) do
     assigns =
@@ -42,7 +42,7 @@ defmodule TechtreeWeb.Layouts do
         repository_stars: @repository_stars,
         theme_name: theme_name(assigns.theme),
         next_theme_name: next_theme_name(assigns.theme),
-        orange_active?: assigns.theme == "orange"
+        orange_active?: assigns.theme == "light"
       )
 
     ~H"""
@@ -139,11 +139,11 @@ defmodule TechtreeWeb.Layouts do
   defp request_path(%{conn: %Plug.Conn{request_path: path}}), do: path
   defp request_path(_assigns), do: "/"
 
-  defp theme_name("titanium"), do: "Titanium"
-  defp theme_name(_theme), do: "Orange"
+  defp theme_name("dark"), do: "Dark"
+  defp theme_name(_theme), do: "Light"
 
-  defp next_theme_name("titanium"), do: "Orange"
-  defp next_theme_name(_theme), do: "Titanium"
+  defp next_theme_name("dark"), do: "Light"
+  defp next_theme_name(_theme), do: "Dark"
 
   defp page_description(assigns) do
     assigns

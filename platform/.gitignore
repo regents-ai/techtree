@@ -52,3 +52,6 @@ npm-debug.log
 /vendor/regent_ui/
 /vendor/.regent-ui-history/
 /vendor/.regent-ui-stage-*/
+
+# Generated from the pinned Regent UI package.
+/priv/static/images/regent-ui/
