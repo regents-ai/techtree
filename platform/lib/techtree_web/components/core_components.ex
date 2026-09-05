@@ -24,7 +24,7 @@ defmodule TechtreeWeb.CoreComponents do
 
   def protocol_badge(assigns) do
     ~H"""
-    <span class="badge badge--exact" {@rest}>{@name}</span>
+    <Regent.Primitives.status class="badge badge--exact" {@rest}>{@name}</Regent.Primitives.status>
     """
   end
 
@@ -35,9 +35,9 @@ defmodule TechtreeWeb.CoreComponents do
 
   def status_badge(assigns) do
     ~H"""
-    <span class={["badge", @status == "development" && "badge--attention"]}>
+    <Regent.Primitives.status class={["badge", @status == "development" && "badge--attention"]}>
       {status_words(@status)}
-    </span>
+    </Regent.Primitives.status>
     """
   end
 

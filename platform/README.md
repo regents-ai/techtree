@@ -239,3 +239,13 @@ monorepo root.
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 
 No model-provider credential is read by this application.
+
+
+## Shared UI in release builds
+
+The UI source remains in `design-system/regent_ui`. Before a standalone Docker or
+Fly build, run `mix regent_ui.stage` using the dependency revision selected for the
+release. This creates ignored `vendor/regent_ui`; the Dockerfile uses that generated
+copy through `REGENT_UI_PATH`. Staging performs no remote action. Previous generated
+copies remain in ignored `vendor/.regent-ui-history`, excluded from Docker contexts.
+For isolated verification, `REGENT_DEPS_ROOT` selects the worktree's pinned libraries.

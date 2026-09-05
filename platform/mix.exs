@@ -53,7 +53,11 @@ defmodule Techtree.MixProject do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
+    shared = System.get_env("REGENT_DEPS_ROOT", Path.expand("../..", __DIR__))
+
     [
+      {:regent_ui,
+       path: System.get_env("REGENT_UI_PATH", Path.join(shared, "design-system/regent_ui"))},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_phoenix, "~> 2.0"},
       {:ash_postgres, "~> 2.0"},
@@ -91,8 +95,8 @@ defmodule Techtree.MixProject do
       "catalog.import": ["techtree.catalog.import"],
       check: ["format --check-formatted", "compile --warnings-as-errors", "test"],
       "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "esbuild techtree"],
-      "assets.deploy": ["esbuild techtree --minify", "phx.digest"]
+      "assets.build": ["compile", "regent_ui.assets", "esbuild techtree"],
+      "assets.deploy": ["regent_ui.assets", "esbuild techtree --minify", "phx.digest"]
     ]
   end
 end

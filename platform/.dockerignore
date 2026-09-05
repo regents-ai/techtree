@@ -51,3 +51,12 @@ fly.toml
 Dockerfile
 .formatter.exs
 .claude
+
+# Preserve generated regent_ui, omit staging history.
+vendor/.regent-ui-history
+vendor/.regent-ui-stage-*
+.envrc
+.env.local
+
+.env
+.env.*

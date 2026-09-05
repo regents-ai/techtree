@@ -17,6 +17,9 @@ if [[ "$source_revision" != "$upstream_revision" ]]; then
   exit 1
 fi
 
+# Stage the resolved shared package into this application-only build context.
+mix regent_ui.stage
+
 exec flyctl deploy \
   --app techtree-sh \
   --remote-only \

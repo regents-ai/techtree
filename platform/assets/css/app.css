@@ -1,3 +1,4 @@
+@import "../vendor/regent_ui/primitives.css";
 /* The Techtree stylesheet.
  *
  * One dark surface, one accent, and four colours that mean nothing except a
@@ -130,6 +131,19 @@ svg {
     sans-serif;
   --font-display: "Geist Pixel", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Shared primitives inherit this product's existing semantic palette. */
+  --color-bg: var(--page);
+  --color-fg: var(--ink);
+  --color-fg-muted: var(--ink-quiet);
+  --color-surface: var(--panel);
+  --color-border: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-fg-on-accent: var(--accent-ink);
+  --color-success: var(--complete);
+  --color-warning: var(--running);
+  --color-error: var(--failed);
+  --font-family-ui: var(--font-prose);
 
   --page-width: 76rem;
   --reading-width: 46rem;

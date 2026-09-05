@@ -17,7 +17,7 @@ config :techtree, Techtree.Repo,
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :techtree, TechtreeWeb.Endpoint,
-  http: [ip: {127, 0, 0, 1}, port: 4002],
+  http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PORT", "4002"))],
   secret_key_base: "fJEVwbcHenhXO0I0VkIPCVbw+UngMhEYquu/I6Vvo87vhMrsp4BT5B6GM8Nkr+q7",
   server: false
 

@@ -40,10 +40,12 @@ WORKDIR /app
 RUN mix local.hex --force && mix local.rebar --force
 
 ENV MIX_ENV="prod"
+ENV REGENT_UI_PATH="/app/vendor/regent_ui"
 
 # Dependencies first, and only the production ones, so that editing application
 # code does not re-fetch or re-compile them.
 COPY mix.exs mix.lock ./
+COPY vendor/regent_ui vendor/regent_ui
 RUN mix deps.get --only $MIX_ENV
 
 RUN mkdir config
