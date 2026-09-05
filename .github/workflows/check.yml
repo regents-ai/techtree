@@ -58,3 +58,17 @@ jobs:
       - name: Check platform
         working-directory: platform
         run: mix check
+
+  contracts:
+    name: Registry contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Materialize Solidity compiler
+        working-directory: contracts
+        run: forge build
+      - name: Check contracts offline
+        run: make check-contracts

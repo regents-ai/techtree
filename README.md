@@ -9,13 +9,14 @@ optionally publish those results.
 
 [![The Techtree homepage](docs/assets/techtree-home.png)](https://techtree.sh/)
 
-## One repository, three components
+## One repository, four components
 
 | Component | Source | What it does |
 | --- | --- | --- |
 | **CLI and campaign kernel** | [`cli/`](cli/) | Runs pinned baseline and candidate evaluations, manages the local campaign lifecycle, signs receipts, and verifies result bundles offline. |
 | **Hermes plugin** | [`plugin/`](plugin/) | Gives Hermes an approval-aware operator surface for Techtree. It explains each step, invokes the CLI with fixed arguments, and relays structured results; evaluation logic stays in the CLI. |
 | **Public platform** | [`platform/`](platform/) | Powers [techtree.sh](https://techtree.sh/): installation, campaign discovery, documentation, and the public list of results participants choose to publish. |
+| **Registry contracts** | [`contracts/`](contracts/README.md) | Owns Techtree graph registry Solidity, scripts and local tests. |
 
 ## Quickstart
 

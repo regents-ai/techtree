@@ -5,6 +5,7 @@ to the component that owns the behavior:
 
 - `cli/` owns campaign execution, local results, publication transport, and
   the plugin's automated test suite.
+- `contracts/` owns registry Solidity, scripts and tests; run Foundry checks there.
 - `plugin/` owns the Hermes integration and Skills.
 - `platform/` owns techtree.sh, publication ingestion, and public result views.
 
