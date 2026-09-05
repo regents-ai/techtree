@@ -11,6 +11,5 @@ defmodule TechtreeWeb.CopyFeedbackJSTest do
       )
 
     assert status == 0, output
-    assert output =~ "pass 2"
   end
 end

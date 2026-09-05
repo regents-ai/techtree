@@ -20,17 +20,9 @@ custom classes must fully style the input
 
 ### JS and CSS guidelines
 
-- **Use Tailwind CSS classes and custom CSS rules** to create polished, responsive, and visually stunning interfaces.
-- Tailwindcss v4 **no longer needs a tailwind.config.js** and uses a new import syntax in `app.css`:
-
-      @import "tailwindcss" source(none);
-      @source "../css";
-      @source "../js";
-      @source "../../lib/my_app_web";
-
-- **Always use and maintain this import syntax** in the app.css file for projects generated with `phx.new`
-- **Never** use `@apply` when writing raw css
-- **Always** manually write your own tailwind-based components instead of using daisyUI for a unique, world-class design
+- This application uses plain CSS in `assets/css/app.css`; it has no Tailwind or daisyUI dependency. Preserve that setup.
+- Reuse existing classes and shared Regent presentation primitives as they are adopted. Keep Techtree's layout and theme product-specific.
+- Do not introduce a CSS framework as part of a local visual change.
 - Out of the box **only the app.js and app.css bundles are supported**
   - You cannot reference an external vendor'd script `src` or link `href` in the layouts
   - You must import the vendor deps into app.js and app.css to use them
@@ -237,7 +229,7 @@ custom classes must fully style the input
          |> stream(:messages, messages, reset: true)}
       end
 
-- LiveView streams *do not support counting or empty states*. If you need to display a count, you must track it using a separate assign. For empty states, you can use Tailwind classes:
+- LiveView streams *do not support counting or empty states*. If you need to display a count, you must track it using a separate assign. For empty states, use semantic markup and existing CSS classes:
 
       <div id="tasks" phx-update="stream">
         <div class="hidden only:block">No tasks yet</div>
