@@ -31,6 +31,7 @@ function showGitHubStars(count) {
 
   document.querySelectorAll("[data-github-stars]").forEach(node => {
     node.textContent = formatGitHubStars(count)
+    node.hidden = false
   })
 
   document.querySelectorAll("[data-github-stars-link]").forEach(link => {

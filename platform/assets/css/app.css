@@ -3274,3 +3274,21 @@ strong {
   justify-content: space-between;
   gap: 1rem;
 }
+
+/* Source and product discovery; disclosure links remain in the document. */
+.product-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem 1.5rem;
+  padding: 1.25rem;
+  margin: 1rem auto;
+  max-width: 72rem;
+  font-size: 0.875rem;
+}
+.product-links__related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+}

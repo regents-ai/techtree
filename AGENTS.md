@@ -31,3 +31,7 @@ unblocked work and `bd show <id>` before implementation. Claim the ticket with
 `docs/plan/techtree-market.md`. Export the tracker to
 `.beads/issues.jsonl` after changing tickets so collaborators can reconstruct
 the current issue set.
+
+For product orientation and related Regent products, see [README.md](README.md).
+The public agent entry point is [platform/priv/static/llms.txt](platform/priv/static/llms.txt);
+keep its advertised commands consistent with the owning CLI and HTTP contracts.

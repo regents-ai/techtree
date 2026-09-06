@@ -7,17 +7,16 @@ defmodule TechtreeWeb.Layouts do
 
   use TechtreeWeb, :html
 
-  embed_templates "layouts/*"
+  embed_templates("layouts/*")
 
   @repository_url "https://github.com/regents-ai/techtree"
-  @repository_stars 0
 
   @doc """
   Wrap one page.
   """
-  attr :wide, :boolean, default: false, doc: "give the page the wider measure"
-  attr :flush, :boolean, default: false, doc: "let a page own its vertical rhythm"
-  slot :inner_block, required: true
+  attr(:wide, :boolean, default: false, doc: "give the page the wider measure")
+  attr(:flush, :boolean, default: false, doc: "let a page own its vertical rhythm")
+  slot(:inner_block, required: true)
 
   def page(assigns) do
     ~H"""
@@ -25,21 +24,17 @@ defmodule TechtreeWeb.Layouts do
       {render_slot(@inner_block)}
     </main>
 
-    <footer class="colophon">
-      <span class="colophon__mark" aria-hidden="true"></span>
-      <a href="https://regents.sh" rel="noopener noreferrer">A Regents Labs project</a>
-    </footer>
+    <.product_links />
     """
   end
 
-  attr :current_path, :string, default: "/"
-  attr :theme, :string, default: "light"
+  attr(:current_path, :string, default: "/")
+  attr(:theme, :string, default: "light")
 
   defp masthead(assigns) do
     assigns =
       assign(assigns,
         repository_url: @repository_url,
-        repository_stars: @repository_stars,
         theme_name: theme_name(assigns.theme),
         next_theme_name: next_theme_name(assigns.theme),
         orange_active?: assigns.theme == "light"
@@ -86,13 +81,13 @@ defmodule TechtreeWeb.Layouts do
             href={@repository_url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={"regents-ai/techtree on GitHub, #{@repository_stars} stars"}
+            aria-label="Star Techtree on GitHub"
             title="regents-ai/techtree on GitHub"
             data-github-stars-link
             data-github-repository="regents-ai/techtree"
           >
             <span class="masthead__github-label">Star on GitHub</span>
-            <span class="masthead__github-count" data-github-stars>{@repository_stars}</span>
+            <span class="masthead__github-count" data-github-stars hidden></span>
             <svg class="masthead__github-star" viewBox="0 0 16 16" aria-hidden="true">
               <path d="M8 1.15 9.9 5l4.25.62-3.08 3 .73 4.23L8 10.86l-3.8 2 .73-4.23-3.08-3L6.1 5 8 1.15Z" />
             </svg>
@@ -172,4 +167,22 @@ defmodule TechtreeWeb.Layouts do
 
   defp description_for_path(_path),
     do: "Improve a Skill under controlled conditions and produce a checkable local Result."
+
+  @doc "Product and source discovery without loading a browser integration."
+  def product_links(assigns) do
+    ~H"""
+    <footer aria-label="Project links" class="product-links">
+      <a href="https://github.com/regents-ai/techtree" rel="noopener noreferrer">Star on GitHub</a>
+      <a href="/llms.txt">For agents</a>
+      <details>
+        <summary>Regents Labs</summary>
+        <nav aria-label="Related products" class="product-links__related">
+          <a href="https://regents.sh">Regents</a>
+          <a href="https://autolaunch.sh">Autolaunch</a>
+          <a href="https://patchbay.help">Patchbay</a>
+        </nav>
+      </details>
+    </footer>
+    """
+  end
 end

@@ -7,6 +7,8 @@ candidate Skill—then produces a signed result that can be verified offline.
 The public platform at [techtree.sh](https://techtree.sh/) lets participants
 optionally publish those results.
 
+[Website](https://techtree.sh) · [CLI](cli/README.md) · [Agent guide](https://techtree.sh/skill.md) · [Star on GitHub](https://github.com/regents-ai/techtree)
+
 [![The Techtree homepage](docs/assets/techtree-home.png)](https://techtree.sh/)
 
 ## One repository, four components
@@ -26,25 +28,23 @@ for the exact plugin commit, CLI version, prerequisites, and approval steps.
 Techtree Doctor checks the machine and prints the next action before a run can
 start paid model inference.
 
-To work on the monorepo, install
-[uv](https://docs.astral.sh/uv/) with Python 3.12, Erlang and Elixir, and
-PostgreSQL 14 or newer, then run:
+For local development, choose the component you need. The CLI uses Python 3.12
+and uv; the platform uses Erlang/Elixir, Node and PostgreSQL plus the shared
+`regent_ui` library. Follow [platform setup](platform/README.md#development)
+before running `mix setup`. The full `make check` also runs registry contract
+checks and therefore requires Foundry and its pinned Solidity dependencies.
+A platform-only change does not require those contract downloads.
 
 ```sh
-git clone https://github.com/regents-ai/techtree.git
-cd techtree
-
+# From the repository root, for CLI/plugin work:
 make -C cli install
 make -C plugin install
-cd platform
-mix setup
-cd ..
-
-make check
+make -C cli check
+make -C cli check-plugin
 ```
 
-The full check is model-free: it does not start inference, publish a result,
-deploy the platform, or release a package.
+The model-free checks do not start inference, publish a result, deploy the
+platform or release a package. Real model runs can spend the participant's budget.
 
 ## Roadmap
 
@@ -108,7 +108,7 @@ integration suite:
 make check
 ```
 
-For component-specific setup and commands, use the original documentation:
+For component-specific setup and commands:
 
 | Component | Documentation | Main check |
 | --- | --- | --- |
@@ -128,6 +128,7 @@ techtree/
 ├── cli/          # Python CLI, campaign kernel, and plugin test suite
 ├── plugin/       # Hermes plugin package and Skills
 ├── platform/     # Ash/Phoenix public platform
+├── contracts/    # Registry Solidity and verification
 ├── docs/         # shared architecture and migration records
 ├── README.md
 ├── CONTRIBUTING.md
@@ -139,3 +140,17 @@ techtree/
 ```
 
 Hermes installs the plugin directly from the [`plugin/`](plugin/) subdirectory.
+
+## Related products
+
+| Product | Use it for | Website | Source |
+| --- | --- | --- | --- |
+| Regents | Agent identity, operations, staking and redemption | [regents.sh](https://regents.sh) | [Regents](https://github.com/regents-ai/regents) |
+| Autolaunch | Token auctions and launch operations | [autolaunch.sh](https://autolaunch.sh) | [Autolaunch](https://github.com/regents-ai/autolaunch-contracts) |
+| Patchbay | Agent tool reports and bounded WebMCP repair | [patchbay.help](https://patchbay.help) | [Patchbay](https://github.com/regents-ai/patchbay) |
+| Techtree | Controlled Skill evaluations and verifiable results | [techtree.sh](https://techtree.sh) | [Techtree](https://github.com/regents-ai/techtree) |
+
+Each product owns its API, CLI and authorization. A login, payment or published
+result on one product does not grant permissions on another. Shared presentation
+lives in [design-system](https://github.com/regents-ai/design-system); common Elixir
+libraries live in [elixir-utils](https://github.com/regents-ai/elixir-utils).

@@ -1,6 +1,6 @@
 # Techtree Platform
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Elixir ~> 1.15](https://img.shields.io/badge/elixir-~%3E%201.15-lightgrey)](https://elixir-lang.org/) [![Phoenix ~> 1.8.4](https://img.shields.io/badge/phoenix-~%3E%201.8.4-lightgrey)](https://www.phoenixframework.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](../LICENSE) [![Elixir ~> 1.15](https://img.shields.io/badge/elixir-~%3E%201.15-lightgrey)](https://elixir-lang.org/) [![Phoenix ~> 1.8.4](https://img.shields.io/badge/phoenix-~%3E%201.8.4-lightgrey)](https://www.phoenixframework.org/)
 
 ![The Techtree homepage](docs/assets/homepage.png)
 
@@ -213,9 +213,27 @@ Copy follows one rule: say what something means for the person reading it. The
 protocol page is written for a technical reader and names documents the way the
 protocol names them; everywhere else, a fingerprint is a fingerprint.
 
+## Shared dependencies
+
+From a directory containing sibling product repositories, acquire the shared libraries:
+
+```sh
+git clone https://github.com/regents-ai/design-system.git
+git clone https://github.com/regents-ai/elixir-utils.git
+```
+
+The expected layout is `<workspace>/<product>/platform`,
+`<workspace>/design-system/regent_ui` and `<workspace>/elixir-utils/`.
+From this component directory, `REGENT_DEPS_ROOT` may point at `<workspace>` when
+it is elsewhere. Record both shared repository commit IDs with check results;
+release builds and isolated agent worktrees must use their selected immutable
+revisions, rather than updating sibling checkouts during verification.
+Do not clone recursive Solidity submodules for a web-only change.
+
 ## Development
 
-Requires PostgreSQL 14 or newer.
+Requires Elixir/Erlang, Node and PostgreSQL 14 or newer, plus the shared dependency
+layout above. Run from `platform/`; registry-contract checks separately require Foundry.
 
 ```bash
 mix setup   # deps, database, assets
