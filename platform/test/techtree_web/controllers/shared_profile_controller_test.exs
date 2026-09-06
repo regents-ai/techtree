@@ -48,6 +48,28 @@ defmodule TechtreeWeb.SharedProfileControllerTest do
     assert json_response(updated, 200)["profile"]["display_name"] == "Shared name"
   end
 
+  test "Privy permissions and metadata stay on the profile document" do
+    for path <- ["/profile", "/profile/"] do
+      conn = build_conn() |> get(path)
+      html = html_response(conn, 200)
+      assert html =~ ~s(name="privy-app-id")
+      assert html =~ ~s(name="privy-bridge-src")
+      assert [policy] = get_resp_header(conn, "content-security-policy")
+      assert policy =~ "https://auth.privy.io"
+      refute policy =~ "unsafe-eval"
+    end
+
+    for path <- ["/", "/docs", "/results"] do
+      conn = build_conn() |> get(path)
+      html = html_response(conn, 200)
+      refute html =~ ~s(name="privy-app-id")
+      refute html =~ ~s(name="privy-bridge-src")
+      assert [policy] = get_resp_header(conn, "content-security-policy")
+      refute policy =~ "auth.privy.io"
+      refute policy =~ "unsafe-eval"
+    end
+  end
+
   defp api(method, path, pair, body \\ nil) do
     build_conn()
     |> put_req_header("authorization", "Bearer #{pair.access}")

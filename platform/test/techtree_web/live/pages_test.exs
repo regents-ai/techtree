@@ -62,17 +62,13 @@ defmodule TechtreeWeb.PagesTest do
       refute html =~ "The connection to the site dropped"
     end
 
-    test "every page mounts the theme-aware vGPU background with a solid fallback", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/results")
-
-      assert html =~
-               ~s|id="site-background" class="site-background" data-optics-kind="background" data-optics-source="/assets/js/background_island.js"|
-
-      assert html =~
-               ~s|id="site-background-canvas" class="site-background__canvas" data-optics-canvas|
-
-      assert html =~ ~s|data-background-theme="orange"|
-      assert html =~ ~s|data-background-preset="10"|
+    test "the homepage keeps its background while other pages use the shared SVG", %{conn: conn} do
+      home = conn |> get("/") |> html_response(200) |> LazyHTML.from_document()
+      refute Enum.empty?(LazyHTML.query(home, "#site-background-canvas"))
+      assert Enum.empty?(LazyHTML.query(home, ".rg-site-background"))
+      results = conn |> get("/results") |> html_response(200) |> LazyHTML.from_document()
+      refute Enum.empty?(LazyHTML.query(results, ".rg-site-background[aria-hidden=true]"))
+      assert Enum.empty?(LazyHTML.query(results, "#site-background-canvas"))
     end
 
     test "no page uses the vocabulary of the machinery", %{conn: conn} do
@@ -196,28 +192,30 @@ defmodule TechtreeWeb.PagesTest do
     test "a saved color theme is applied by the first server render", %{conn: conn} do
       html =
         conn
-        |> put_req_cookie("techtree_theme", "orange")
+        |> put_req_cookie("techtree_theme", "light")
         |> get("/")
         |> html_response(200)
 
-      assert html =~ ~s|<html lang="en" data-theme="orange">|
+      assert html =~ ~s|data-theme="light"|
     end
 
-    test "orange is the default regardless of system preference", %{conn: conn} do
-      html = conn |> get("/") |> html_response(200)
-
-      assert html =~ ~s|<html lang="en" data-theme="orange">|
-      assert html =~ ~s|<meta name="color-scheme" content="light">|
+    test "an absent or retired saved theme uses the light default", %{conn: conn} do
+      for cookie <- [nil, "orange", "titanium", "invalid"] do
+        request = if cookie, do: put_req_cookie(conn, "techtree_theme", cookie), else: conn
+        html = request |> get("/") |> html_response(200)
+        assert html =~ ~s|data-theme="light"|
+        assert html =~ ~s|<meta name="color-scheme" content="light">|
+      end
     end
 
-    test "a saved titanium choice overrides the orange default", %{conn: conn} do
+    test "a saved dark choice is applied before JavaScript", %{conn: conn} do
       html =
         conn
-        |> put_req_cookie("techtree_theme", "titanium")
+        |> put_req_cookie("techtree_theme", "dark")
         |> get("/")
         |> html_response(200)
 
-      assert html =~ ~s|<html lang="en" data-theme="titanium">|
+      assert html =~ ~s|data-theme="dark"|
       assert html =~ ~s|<meta name="color-scheme" content="dark">|
     end
 
@@ -243,8 +241,8 @@ defmodule TechtreeWeb.PagesTest do
 
     test "every page that does not name a Climb still renders", %{conn: conn} do
       for page <- @pages_without_catalog do
-        assert {:ok, _live, html} = live(conn, page)
-        assert html =~ "A Regents Labs project"
+        assert {:ok, view, _html} = live(conn, page)
+        assert has_element?(view, ~s(footer a[href="https://regents.sh"]))
       end
     end
 

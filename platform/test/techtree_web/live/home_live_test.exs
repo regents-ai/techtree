@@ -342,7 +342,7 @@ defmodule TechtreeWeb.HomeLiveTest do
                ~r|<a class="skip-link" href="#main-content">\s*Skip to main content\s*</a>|
 
       assert has_element?(live, "main#main-content")
-      assert html =~ "A Regents Labs project"
+      assert has_element?(live, ~s(footer a[href="https://regents.sh"]))
       refute html =~ ~s|>Sign in<|
     end
   end

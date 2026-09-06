@@ -24,7 +24,7 @@ def test_invalid_proof_is_a_fixed_error(
     proof = tmp_path / "fixture-proof.json"
     proof.write_bytes(raw)
     with proof.open() as stream:
-        monkeypatch.setattr(profile.sys, "stdin", stream)
+        monkeypatch.setattr(sys, "stdin", stream)
         with pytest.raises(
             UsageError, match="Could not read a valid paired Privy proof"
         ):
