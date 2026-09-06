@@ -61,24 +61,5 @@ defmodule Techtree.DatabaseNamespaceTest do
              Repo.query!("SELECT last_value, is_called FROM public.network_publication_sequence").rows
   end
 
-  test "incomplete imported history stops before touching either migration ledger" do
-    Repo.query!(
-      "DELETE FROM techtree_app.schema_migrations WHERE version=(SELECT min(version) FROM techtree_app.schema_migrations)"
-    )
-
-    public = Repo.query!("SELECT version FROM public.schema_migrations ORDER BY version").rows
-
-    selected =
-      Repo.query!("SELECT version FROM techtree_app.schema_migrations ORDER BY version").rows
-
-    assert_raise RuntimeError, ~r/Import the complete Techtree schema/, fn ->
-      Techtree.Release.migrate()
-    end
-
-    assert public ==
-             Repo.query!("SELECT version FROM public.schema_migrations ORDER BY version").rows
-
-    assert selected ==
-             Repo.query!("SELECT version FROM techtree_app.schema_migrations ORDER BY version").rows
-  end
+  # Import-history refusal is exercised with fresh release credentials in ReleaseMigrationTest.
 end

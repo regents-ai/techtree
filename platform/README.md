@@ -296,3 +296,14 @@ Both shared packages must match their snapshot manifests. The generated vendor
 packages are build inputs; staging does not migrate a database or deploy.
 The Regents release owner alone runs `RegentIdentity.Migrator.up(Repo)` on the
 identified shared destination, before enabling profiles on consumers.
+
+### Separate migration credentials
+
+`Techtree.Release.migrate()` requires `DATABASE_DIRECT_URL`, a PostgreSQL URL
+with explicit migration-owner credentials and no query parameters or fragment.
+`DATABASE_URL` remains the runtime connection. Run migration commands in a fresh
+release `eval` process; they refuse an already-running Repo and restore its
+configuration afterward. Local `mix ecto.migrate` keeps its existing development
+configuration. The selected product schema, TLS and socket options are retained;
+supply transport settings appropriate to the direct endpoint. Existing imported
+history must be present before selecting the shared product namespace.
