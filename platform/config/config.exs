@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+config :regent_identity, repo: Techtree.Repo, ash_domains: [RegentIdentity]
+
 # These enable behaviors that will become the default in the next major
 # version of Ash. Setting them now opts your application into the new
 # behavior and ensures a seamless upgrade. See the backwards compatibility
@@ -98,6 +100,12 @@ config :esbuild,
   techtree: [
     args:
       ~w(js/site.js js/crown_island.js js/background_island.js css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => [Mix.Project.deps_path(), Mix.Project.build_path()]}
+  ],
+  techtree_privy: [
+    args:
+      ~w(js/privy_bridge.jsx --bundle --format=esm --splitting --target=es2022 --outdir=../priv/static/assets/js),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Mix.Project.deps_path(), Mix.Project.build_path()]}
   ]

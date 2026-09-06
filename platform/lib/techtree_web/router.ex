@@ -1,45 +1,7 @@
 defmodule TechtreeWeb.Router do
   @moduledoc """
-  Every route this application answers.
-
-  All but one of them are `GET`. The exception is `POST /api/v1/publications`,
-  where a participant publishes a finished run and, later, withdraws one they
-  published. Two documents, one address: each declares what it is in a member
-  its own signature covers, so which one arrived is read off the document rather
-  than off the URL, and this site keeps the single write address decision 0038
-  allows it. What is done with either is in `Techtree.Network.Ingest`, which
-  checks every property of a bundle before a row exists and checks a withdrawal
-  against the key the entry already carries before an event is appended. There
-  is no route that uploads a file, authenticates anybody, or ranks anything, and
-  no route takes a path parameter other than a digest, a key fingerprint, or a
-  slug the catalog can resolve. A request for anything else is a `404`, never a
-  placeholder that appears to have worked.
-
-  A published result is addressed by its bundle digest, at `/results/<digest>` and at
-  `/api/v1/publications/<digest>`. That address is derivable from the proof
-  itself, two people publishing the same bundle land on the same page, and
-  nothing in it reads as a rank — a row identifier would exist only inside our
-  own database, and a log sequence in a URL would look like a position.
-
-  `GET /api/v1/publications/<digest>/bundle` is the child of that address, and
-  it answers with the exact bytes the participant submitted — the same bytes
-  this site verified, handed back without being parsed and written out again,
-  so that a reader can check the run offline against the participant's own
-  signatures rather than against our reading of them. Once the participant
-  withdraws the run that address answers `410 Gone`, while the entry, the event
-  that recorded the withdrawal and the receipt stay exactly where they were.
-
-  `GET /api/v1/publication-keys/:key_id` is the counterpart of that one write:
-  the public half of the key this site signs publication receipts with,
-  at the fingerprint of that key, so a receipt can be checked by anybody
-  holding one and the address can be derived from the receipt rather than
-  looked up.
-
-  The endpoint also declares the live-page transport the public pages use.
-  Nothing reachable through it can write: every catalog and network resource
-  forbids create, update, and destroy through any interface, and the importer
-  and the ingest are the two callers that bypass that, deliberately and each in
-  one place.
+  Public catalog and signed publication routes, plus the owner-only shared
+  profile. Privy profile authority never grants publication-key authority.
   """
 
   use TechtreeWeb, :router
@@ -65,6 +27,10 @@ defmodule TechtreeWeb.Router do
     }
   end
 
+  pipeline :profile_browser do
+    plug TechtreeWeb.Plugs.ProfileBrowserPolicy
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
     plug :put_public_api_headers
@@ -75,6 +41,18 @@ defmodule TechtreeWeb.Router do
     plug :accepts, ["json"]
     plug :put_public_api_headers
     plug TechtreeWeb.PublicationRate
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through [:browser, :profile_browser]
+    get "/profile", SharedProfileController, :show
+  end
+
+  scope "/api/v1", TechtreeWeb do
+    pipe_through :api
+    get "/profile", SharedProfileController, :read
+    patch "/profile", SharedProfileController, :update
+    post "/profile/sync", SharedProfileController, :sync
   end
 
   scope "/", TechtreeWeb do

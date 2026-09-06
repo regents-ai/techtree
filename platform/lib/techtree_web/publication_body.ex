@@ -57,5 +57,5 @@ defmodule TechtreeWeb.PublicationBody do
     end
   end
 
-  def read_body(conn, options), do: Plug.Conn.read_body(conn, options)
+  def read_body(conn, options), do: RegentIdentity.BodyReader.read_body(conn, options)
 end

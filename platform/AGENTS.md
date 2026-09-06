@@ -23,7 +23,7 @@ custom classes must fully style the input
 - This application uses plain CSS in `assets/css/app.css`; it has no Tailwind or daisyUI dependency. Preserve that setup.
 - Reuse existing classes and shared Regent presentation primitives as they are adopted. Keep Techtree's layout and theme product-specific.
 - Do not introduce a CSS framework as part of a local visual change.
-- Out of the box **only the app.js and app.css bundles are supported**
+- Keep the ordinary page bundle small. The shared profile loads a separate, local Privy bridge only when needed; provider network permissions belong only to `/profile`.
   - You cannot reference an external vendor'd script `src` or link `href` in the layouts
   - You must import the vendor deps into app.js and app.css to use them
   - **Never write inline <script>custom js</script> tags within templates**

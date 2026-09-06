@@ -252,3 +252,12 @@ with the release. This creates ignored `vendor/regent_ui`; the Dockerfile uses t
 copy through `REGENT_UI_PATH`. Staging performs no remote action. Previous generated
 copies remain in ignored `vendor/.regent-ui-history`, excluded from Docker contexts.
 For isolated verification, `REGENT_DEPS_ROOT` selects the worktree's pinned libraries.
+
+## Shared profile release inputs
+
+Run `mix regent_identity.stage` through the prepared worktree with pinned
+`REGENT_IDENTITY_REVISION` and `REGENT_PRIVY_REVISION`, alongside `mix regent_ui.stage`.
+Both shared packages must match their snapshot manifests. The generated vendor
+packages are build inputs; staging does not migrate a database or deploy.
+The Regents release owner alone runs `RegentIdentity.Migrator.up(Repo)` on the
+identified shared destination, before enabling profiles on consumers.

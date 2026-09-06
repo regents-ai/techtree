@@ -55,6 +55,7 @@ Dockerfile
 # Preserve generated regent_ui, omit staging history.
 vendor/.regent-ui-history
 vendor/.regent-ui-stage-*
+vendor/.regent-identity-history
 .envrc
 .env.local
 

@@ -55,3 +55,10 @@ npm-debug.log
 
 # Generated from the pinned Regent UI package.
 /priv/static/images/regent-ui/
+
+/assets/vendor/regent_identity/
+
+/vendor/regent_identity/
+/vendor/regent_privy_shared/
+/vendor/.regent-identity-history/
+/vendor/.regent-identity-stage-*/

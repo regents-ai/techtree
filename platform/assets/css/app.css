@@ -3274,3 +3274,5 @@ strong {
   justify-content: space-between;
   gap: 1rem;
 }
+/* Private profile shares primitives while retaining Techtree's document layout. */
+.shared-profile-page { max-width: 42rem; margin: 2rem auto; padding: 1rem; }
