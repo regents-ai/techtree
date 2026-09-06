@@ -53,6 +53,11 @@ from techtree.cli.commands.engine import (
     status_engine_command,
     verify_engine_command,
 )
+from techtree.cli.commands.profile import (
+    get_profile_command,
+    sync_profile_command,
+    update_profile_command,
+)
 from techtree.cli.commands.proof import verify_proof_command
 from techtree.cli.commands.publish import publish_run_command
 from techtree.cli.commands.release import (
@@ -250,6 +255,7 @@ def create_app() -> typer.Typer:
         help="Withdraw a published entry from the public run log.",
     )(withdraw_run_command)
 
+    app.add_typer(_profile_app(), name="profile")
     app.add_typer(_climb_app(), name="climb")
     app.add_typer(_skill_app(), name="skill")
     app.add_typer(_run_app(), name="run")
@@ -413,3 +419,14 @@ def _last_resort(error: TechtreeError) -> NoReturn:
 def _machine_mode(argv: Sequence[str], environ: Mapping[str, str]) -> bool:
     """Decide the output mode without a parsed command line."""
     return "--json" in argv or environ.get("TECHTREE_OUTPUT_MODE") == "json"
+
+
+def _profile_app() -> typer.Typer:
+    app = typer.Typer(
+        help="Private shared profile using paired Privy proof on stdin.",
+        no_args_is_help=True,
+    )
+    app.command("get")(get_profile_command)
+    app.command("sync")(sync_profile_command)
+    app.command("update")(update_profile_command)
+    return app

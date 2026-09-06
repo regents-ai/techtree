@@ -1,5 +1,9 @@
 import Config
 
+config :techtree, :privy,
+  app_id: System.get_env("PRIVY_APP_ID"),
+  verification_key: System.get_env("PRIVY_VERIFICATION_KEY")
+
 config :techtree,
   deployed_source_revision: System.get_env("TECHTREE_SOURCE_REVISION", "development")
 

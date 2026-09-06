@@ -75,6 +75,9 @@ defmodule TechtreeWeb.Layouts do
               Verify
             </a>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
+            <a href={~p"/profile"} aria-current={current_section(@current_path, "/profile")}>
+              Profile
+            </a>
           </span>
           <a
             class="masthead__github"

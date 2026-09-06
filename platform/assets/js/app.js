@@ -1,3 +1,6 @@
+import {installSharedProfile} from "./shared_profile.js"
+
+installSharedProfile()
 // The pages are read-only documents. This bundle keeps the live connection,
 // copies published commands, remembers the reader's color preference, and
 // draws the crown behind the headline, and reads the repository's public star

@@ -44,7 +44,7 @@ Every machine response is one object with exactly these eleven fields.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `schema_version` | `"techtree.cli.v2"` | Always this literal. |
-| `operation` | operation identifier | Which operation answered. One of the eleven below. |
+| `operation` | operation identifier | Which operation answered. One of the operations below. |
 | `ok` | boolean | Whether the operation succeeded. |
 | `state_digest` | digest or null | The durable state this envelope observed. |
 | `facts` | object | What Techtree observed and can stand behind. |
@@ -269,6 +269,9 @@ gives. That is the point of describing rather than duplicating.
 | `result.inspect` | `techtree.cli.commands.run:result_run_command` | `techtree.cli.commands.run:logs_run_command` | The finished Result: its report, its numbers, its execution record, and its files. |
 | `claim.inspect` | `techtree.cli.commands.run:result_run_command` | `techtree.cli.commands.proof:verify_proof_command` | What that Result is entitled to assert: proof grade, decision, publication eligibility, weaker-claim warnings, and the v0.2 evidence facets. |
 | `proof.verify` | `techtree.cli.commands.proof:verify_proof_command` | — | Whether the stored bytes verify offline. |
+| `profile.get` | `techtree.cli.commands.profile:get_profile_command` | — | Read the owner's shared personal profile using paired Privy proof, independent of publication keys. |
+| `profile.sync` | `techtree.cli.commands.profile:sync_profile_command` | — | Explicitly synchronize personal X and wallet evidence; no publication, payout or signing authority. |
+| `profile.update` | `techtree.cli.commands.profile:update_profile_command` | — | Edit the owner's shared name or selected linked wallet without changing payment destinations. |
 
 How the four non-run operations divide, stated once so a twelfth identifier is
 never invented to hold something these already cover:

@@ -1,6 +1,6 @@
 """The v0.2 machine contract, bound to the code it describes. WP0.6.
 
-``docs/v0.2/MACHINE_CONTRACT.md`` freezes ``techtree.cli.v2``: eleven stable
+``docs/v0.2/MACHINE_CONTRACT.md`` freezes ``techtree.cli.v2``: stable
 operation identifiers that *describe existing CLI handlers* rather than create a
 second command hierarchy, and a five-state public projection over the detailed
 append-only run phases.
@@ -44,6 +44,9 @@ PLANNED_OPERATIONS: frozenset[str] = frozenset(
         "result.inspect",
         "claim.inspect",
         "proof.verify",
+        "profile.get",
+        "profile.sync",
+        "profile.update",
     }
 )
 
@@ -171,7 +174,7 @@ def handlers() -> dict[str, tuple[str, ...]]:
 
 
 def test_the_inventory_names_exactly_the_planned_operations() -> None:
-    """Eleven identifiers, no more and no fewer."""
+    """Only the deliberately published operation identifiers."""
     documented = {row[0].strip("`") for row in inventory_rows()}
     assert documented == PLANNED_OPERATIONS
 

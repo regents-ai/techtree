@@ -58,10 +58,14 @@ defmodule Techtree.MixProject do
     [
       {:regent_ui,
        path: System.get_env("REGENT_UI_PATH", Path.join(shared, "design-system/regent_ui"))},
+      {:regent_privy,
+       path: System.get_env("REGENT_PRIVY_PATH", Path.join(shared, "elixir-utils/privy"))},
+      {:regent_identity,
+       path: System.get_env("REGENT_IDENTITY_PATH", Path.join(shared, "regents/identity"))},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_phoenix, "~> 2.0"},
-      {:ash_postgres, "~> 2.0"},
-      {:ash, "~> 3.0"},
+      {:ash_postgres, "~> 2.13.0"},
+      {:ash, "~> 3.32.3"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.4"},
@@ -95,8 +99,20 @@ defmodule Techtree.MixProject do
       "catalog.import": ["techtree.catalog.import"],
       check: ["format --check-formatted", "compile --warnings-as-errors", "test"],
       "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "regent_ui.assets", "esbuild techtree"],
-      "assets.deploy": ["regent_ui.assets", "esbuild techtree --minify", "phx.digest"]
+      "assets.build": [
+        "compile",
+        "regent_ui.assets",
+        "regent_identity.assets",
+        "esbuild techtree",
+        "esbuild techtree_privy"
+      ],
+      "assets.deploy": [
+        "regent_ui.assets",
+        "regent_identity.assets",
+        "esbuild techtree --minify",
+        "esbuild techtree_privy --minify",
+        "phx.digest"
+      ]
     ]
   end
 end

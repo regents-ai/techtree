@@ -1,35 +1,24 @@
 defmodule TechtreeWeb.RouterTest do
   @moduledoc """
-  The routing table is part of the product promise: this application publishes,
-  and accepts one thing at one address and nothing else anywhere. These tests
-  read the table itself rather than trusting that nobody added a route, and
-  they check the refusals a curious caller would actually attempt.
-
-  The table carries exactly one write, and it is named here, in
-  `TechtreeWeb.MethodSurface`, and in the router's own documentation, so that a
-  reader who finds one finds the other two. `POST /api/v1/publications` is where
-  a participant publishes a finished run and where the same participant later
-  withdraws one — two documents at one address, told apart by what each declares
-  itself to be rather than by the URL. A second write appearing without those
-  three places changing together is the failure these tests exist to catch.
-
-  The path parameters are pinned as well. A run is addressed by its bundle
-  digest, a key by its own fingerprint, and a Climb by a slug the catalog can
-  resolve — and nothing else may become a path parameter without this list
-  being changed on purpose.
+  Pins the published route surface and method refusals. Private profile writes
+  are distinct from publication documents and retain independent authorization.
   """
 
   use TechtreeWeb.ConnCase, async: true
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "exactly one route is a write, and it is where a participant's own run goes" do
+  test "writes are limited to publication and private profile actions" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
       |> Enum.map(&"#{&1.verb} #{&1.path}")
 
-    assert writes == ["post /api/v1/publications"]
+    assert Enum.sort(writes) == [
+             "patch /api/v1/profile",
+             "post /api/v1/profile/sync",
+             "post /api/v1/publications"
+           ]
   end
 
   # Previews of work heading for `/`, compiled only where `dev_routes` is set:
@@ -85,6 +74,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/catalog",
              "get /api/v1/climbs/:slug",
              "get /api/v1/objects/:digest",
+             "get /api/v1/profile",
              "get /api/v1/publication-keys/:key_id",
              "get /api/v1/publications",
              "get /api/v1/publications/:bundle_digest",
@@ -92,11 +82,14 @@ defmodule TechtreeWeb.RouterTest do
              "get /climbs/:slug",
              "get /docs",
              "get /healthz",
+             "get /profile",
              "get /proofs",
              "get /results",
              "get /results/:bundle_digest",
              "get /skill.md",
              "get /start",
+             "patch /api/v1/profile",
+             "post /api/v1/profile/sync",
              "post /api/v1/publications"
            ]
   end

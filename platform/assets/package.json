@@ -5,6 +5,9 @@
   "description": "Vendored browser dependencies for the Techtree site. esbuild bundles them from here into priv/static/assets, so the strict script-src 'self' policy holds and nothing is fetched at runtime.",
   "license": "MIT",
   "dependencies": {
+    "@privy-io/react-auth": "3.34.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "vgpu": "0.3.1"
   }
 }

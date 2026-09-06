@@ -163,6 +163,9 @@ is for reading. Techtree never executes a displayed command string.
 `command` is the space-joined command path without the program name.
 
 ```text
+profile get
+profile sync
+profile update
 doctor
 setup
 publish
@@ -282,3 +285,18 @@ closing, and the host-agent session ending. Progress is read with
 `techtree run status`, which returns one snapshot per invocation in machine
 mode. The streaming options `--watch` and `--follow` are human-only and are
 rejected with `--json`.
+
+## Private shared profile
+
+`profile get`, `profile sync`, and `profile update` use the Regent profile API
+in `profile.openapi.json`. Pipe paired Privy proof JSON (`access`, `identity`)
+from an approved credential provider; never pass proof as flags or substitute
+publication keys. This adapter does not obtain a Privy session. The default origin
+is `https://techtree.sh`; only explicit `--base-url` changes it. No cookies,
+redirects, automatic retries, signing, payment authority or publication permissions.
+
+`data` contains the same `{ok, status, body}` result as WebMCP; transport failures
+contain `error.code` and `error.outcome_unknown`. A dispatched write with unknown
+outcome must be read back before deciding to retry. Use `--display-name`,
+`--wallet-address`, or `--clear-wallet` for updates. X verification reports the last
+synchronized signed proof, not a live X check or company role.

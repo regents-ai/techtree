@@ -220,12 +220,15 @@ From a directory containing sibling product repositories, acquire the shared lib
 ```sh
 git clone https://github.com/regents-ai/design-system.git
 git clone https://github.com/regents-ai/elixir-utils.git
+git clone https://github.com/regents-ai/regents.git
 ```
 
 The expected layout is `<workspace>/<product>/platform`,
-`<workspace>/design-system/regent_ui` and `<workspace>/elixir-utils/`.
+`<workspace>/design-system/regent_ui`, `<workspace>/elixir-utils/` and
+`<workspace>/regents/identity`.
 From this component directory, `REGENT_DEPS_ROOT` may point at `<workspace>` when
-it is elsewhere. Record both shared repository commit IDs with check results;
+it is elsewhere. Individual packages may instead be selected with `REGENT_UI_PATH`,
+`REGENT_PRIVY_PATH` and `REGENT_IDENTITY_PATH`. Record all three repository commit IDs with check results;
 release builds and isolated agent worktrees must use their selected immutable
 revisions, rather than updating sibling checkouts during verification.
 Do not clone recursive Solidity submodules for a web-only change.
@@ -270,3 +273,12 @@ with the release. This creates ignored `vendor/regent_ui`; the Dockerfile uses t
 copy through `REGENT_UI_PATH`. Staging performs no remote action. Previous generated
 copies remain in ignored `vendor/.regent-ui-history`, excluded from Docker contexts.
 For isolated verification, `REGENT_DEPS_ROOT` selects the worktree's pinned libraries.
+
+## Shared profile release inputs
+
+Run `mix regent_identity.stage` through the prepared worktree with pinned
+`REGENT_IDENTITY_REVISION` and `REGENT_PRIVY_REVISION`, alongside `mix regent_ui.stage`.
+Both shared packages must match their snapshot manifests. The generated vendor
+packages are build inputs; staging does not migrate a database or deploy.
+The Regents release owner alone runs `RegentIdentity.Migrator.up(Repo)` on the
+identified shared destination, before enabling profiles on consumers.
