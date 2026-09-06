@@ -1,5 +1,15 @@
 import Config
 
+database_schema = System.get_env("TECHTREE_DB_SCHEMA", "public")
+
+unless database_schema in ["public", "techtree_app"] do
+  raise "TECHTREE_DB_SCHEMA must be public or techtree_app"
+end
+
+config :techtree, Techtree.Repo,
+  default_prefix: database_schema,
+  migration_default_prefix: database_schema
+
 config :techtree, :privy,
   app_id: System.get_env("PRIVY_APP_ID"),
   verification_key: System.get_env("PRIVY_VERIFICATION_KEY")

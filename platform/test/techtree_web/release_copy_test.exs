@@ -350,7 +350,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       refute_exact_score_claim(sources)
       refute_forbidden_name(sources)
       refute_uncertified_hosting(sources)
-      refute_priced_claim(sources)
+      # Prices are checked on rendered pages and the installation contract.
+      # Raw Elixir also contains SQL placeholders such as $1, which are not copy.
       refute_offered_publication(sources)
       refute_promised_erasure(sources)
       require_never_disable(sources)

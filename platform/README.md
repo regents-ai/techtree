@@ -262,6 +262,20 @@ monorepo root.
 No model-provider credential is read by this application.
 
 
+## Shared database namespace
+
+Development and test databases use `public` by default. The reviewed shared-database
+cutover selects `TECHTREE_DB_SCHEMA=techtree_app` only after importing the complete
+product schema, publication sequence and migration ledger. Regents' historical
+`techtree` schema is a separate retained source.
+
+Use `Techtree.Release.migrate()` for that destination. It selects Techtree's ledger
+and refuses to replay missing historical migrations containing public-qualified
+references. Ordinary unprefixed `mix ecto.*` commands must not target the shared
+database. Future migrations and Ash snapshot changes need the imported schema as
+their baseline; do not regenerate or reset the existing publication sequence.
+This setting does not bootstrap a fresh namespaced database or change runtime grants.
+
 ## Shared UI in release builds
 
 The UI source remains in `design-system/regent_ui`. Before a standalone Docker or

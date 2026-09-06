@@ -14,6 +14,9 @@ defmodule Techtree.Release do
   alias Techtree.Catalog.Publication
 
   @app :techtree
+  # Earlier migrations contain public-qualified references. They are imported,
+  # together with their ledger, before this application selects techtree_app.
+  @imported_through 20_260_828_235_308
 
   @default_starter_skill_root {:priv, "release"}
 
@@ -26,7 +29,10 @@ defmodule Techtree.Release do
 
     for repo <- repos() do
       {:ok, _result, _apps} =
-        Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+        Ecto.Migrator.with_repo(repo, fn repo ->
+          require_imported_history!(repo)
+          Ecto.Migrator.run(repo, :up, all: true, prefix: repo.default_prefix())
+        end)
     end
 
     :ok
@@ -121,6 +127,25 @@ defmodule Techtree.Release do
 
   defp repos do
     Application.fetch_env!(@app, :ecto_repos)
+  end
+
+  defp require_imported_history!(repo) do
+    if repo.default_prefix() != "public" do
+      migrations =
+        Ecto.Migrator.migrations(repo, Ecto.Migrator.migrations_path(repo),
+          prefix: repo.default_prefix(),
+          skip_table_creation: true
+        )
+
+      incomplete? =
+        Enum.any?(migrations, fn {status, version, _name} ->
+          status == :down and version <= @imported_through
+        end)
+
+      if incomplete? do
+        raise "Import the complete Techtree schema and migration history before migrating"
+      end
+    end
   end
 
   defp load_app do

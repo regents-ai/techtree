@@ -432,7 +432,11 @@ defmodule Techtree.Network.Ingest do
   # The log sequence is a database sequence rather than a count of rows,
   # because a count read inside one transaction is already stale in another.
   defp next_log_sequence do
-    %{rows: [[sequence]]} = Repo.query!("SELECT nextval('network_publication_sequence')")
+    %{rows: [[sequence]]} =
+      Repo.query!("SELECT nextval($1::text::regclass)", [
+        Repo.default_prefix() <> ".network_publication_sequence"
+      ])
+
     sequence
   end
 
