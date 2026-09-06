@@ -61,7 +61,7 @@ would otherwise be written.
 
 *The observed inputs are richer than section 7.9's signature.* The specification
 sketches ``compare_real_variants`` as taking receipts alone. A frozen
-``EpisodeReceipt`` carries rewards and lineage and no configuration at all, so
+``EpisodeReceiptV2`` carries rewards and lineage and no configuration at all, so
 the observed side is passed explicitly as :class:`ObservedVariant`, built by
 :func:`observe_variant` from the same evidence the receipts were built from.
 The schedule is passed for the same reason: which schedule ran, and how far
@@ -83,15 +83,16 @@ from techtree.manifests.compare import compare_manifests
 from techtree.models.base import Digest, JsonValue, NonEmptyString, ProtocolModel
 from techtree.models.campaign import (
     SUBJECT_AGENT,
-    AgentSpec,
-    CampaignSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
     MutationKind,
     RuntimeSpec,
     VariantSchedule,
 )
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import (
-    ExperimentManifest,
+    ExperimentManifestV2,
     ExperimentVariant,
     ManifestComparison,
 )
@@ -296,18 +297,25 @@ def observe_variant(
 
 def compare_real_variants(
     *,
-    campaign: CampaignSpec,
-    baseline_manifest: ExperimentManifest,
-    candidate_manifest: ExperimentManifest,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    baseline_manifest: ExperimentManifestV2,
+    candidate_manifest: ExperimentManifestV2,
     prepared_manifest_comparison: ManifestComparison,
-    baseline_receipts: Sequence[EpisodeReceipt],
-    candidate_receipts: Sequence[EpisodeReceipt],
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    candidate_receipts: Sequence[EpisodeReceiptV2],
     taskset_lock: TasksetLock,
     baseline_observed: ObservedVariant,
     candidate_observed: ObservedVariant,
     schedule: VariantSchedule,
 ) -> RealComparisonResult:
-    """Verify declared and observed control and return the paired rows."""
+    """Verify declared and observed control and return the paired rows.
+
+    ``plan`` is the execution plan the Campaign binds. The subject harness a
+    v0.2 manifest declares is that plan's subject plane, so what each variant
+    was observed to run is held against the plan rather than against a field
+    the manifest no longer carries.
+    """
     committed = [validate_digest(value) for value in taskset_lock.ordered_task_hashes]
     recomputed = compare_manifests(
         baseline_manifest, candidate_manifest, campaign.mutation_contract
@@ -324,6 +332,7 @@ def compare_real_variants(
         ),
         *_observed_checks(
             campaign=campaign,
+            plan=plan,
             baseline_manifest=baseline_manifest,
             candidate_manifest=candidate_manifest,
             baseline=baseline_observed,
@@ -374,9 +383,9 @@ def compare_real_variants(
 
 def _declared_checks(
     *,
-    campaign: CampaignSpec,
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
+    campaign: CampaignSpecV2,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
     prepared: ManifestComparison,
     recomputed: ManifestComparison,
     taskset_lock: TasksetLock,
@@ -420,10 +429,10 @@ def _declared_checks(
             right.outcome_contract_digest,
         ),
         _same(
-            "declared_evaluation_backend",
-            "evaluation backend",
-            left.evaluation_backend,
-            right.evaluation_backend,
+            "declared_execution_plan",
+            "execution plan",
+            left.execution_plan_digest,
+            right.execution_plan_digest,
         ),
         _same(
             "declared_environment", "environment", left.environment, right.environment
@@ -439,9 +448,9 @@ def _declared_checks(
         ),
         _same(
             "declared_harness",
-            "harness identity, version or bundled-Skill setting",
-            _harness_identity(subject_left),
-            _harness_identity(subject_right),
+            "bundled-Skill setting",
+            subject_left.harness.use_bundled_skill,
+            subject_right.harness.use_bundled_skill,
         ),
         _same(
             "declared_runtime",
@@ -463,9 +472,9 @@ def _declared_checks(
 
 
 def _taskset_checks(
-    campaign: CampaignSpec,
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
+    campaign: CampaignSpecV2,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
     lock: TasksetLock,
 ) -> list[ComparisonCheck]:
     """Require one taskset, one committed membership, and one lock over it."""
@@ -535,7 +544,7 @@ def _manifest_comparison_checks(
 
 
 def _mutation_check(
-    campaign: CampaignSpec, baseline: AgentSpec, candidate: AgentSpec
+    campaign: CampaignSpecV2, baseline: AgentSpecV2, candidate: AgentSpecV2
 ) -> ComparisonCheck:
     """Hold the declared skill lists to the shape the mutation kind requires."""
     kind = campaign.mutation_contract.kind
@@ -568,9 +577,10 @@ def _mutation_check(
 
 def _observed_checks(
     *,
-    campaign: CampaignSpec,
-    baseline_manifest: ExperimentManifest,
-    candidate_manifest: ExperimentManifest,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    baseline_manifest: ExperimentManifestV2,
+    candidate_manifest: ExperimentManifestV2,
     baseline: ObservedVariant,
     candidate: ObservedVariant,
     committed: Sequence[Digest],
@@ -657,8 +667,8 @@ def _observed_checks(
             (left.verifiers_version, left.verifiers_revision),
             (right.verifiers_version, right.verifiers_revision),
         ),
-        _declared_to_observed(baseline_manifest, baseline),
-        _declared_to_observed(candidate_manifest, candidate),
+        _declared_to_observed(baseline_manifest, baseline, plan),
+        _declared_to_observed(candidate_manifest, candidate, plan),
         *weaker_claim_warnings(campaign),
     ]
 
@@ -783,7 +793,9 @@ def _conformance_departure(
 
 
 def _declared_to_observed(
-    manifest: ExperimentManifest, observed: ObservedVariant
+    manifest: ExperimentManifestV2,
+    observed: ObservedVariant,
+    plan: ResolvedExecutionPlan,
 ) -> ComparisonCheck:
     """Check one variant's execution against the manifest it was supposed to be.
 
@@ -791,6 +803,10 @@ def _declared_to_observed(
     because a check that only has meaning inside a controlled comparison should
     be read beside the other checks of that comparison, and because
     ``ComparisonCheck`` is this section's type.
+
+    The harness identity and version come from the plan's subject plane: a
+    v0.2 manifest names the plan by digest instead of restating the harness,
+    so the plan is the declaration the observation is held to.
     """
     subject = _subject(manifest)
     configuration = observed.configuration
@@ -802,8 +818,12 @@ def _declared_to_observed(
         label
         for label, declared, seen in (
             ("model", subject.model.model_id, configuration.model_id),
-            ("harness", subject.harness.id, configuration.harness_id),
-            ("harness version", subject.harness.version, configuration.harness_version),
+            ("harness", plan.subject.harness_id, configuration.harness_id),
+            (
+                "harness version",
+                plan.subject.harness_version,
+                configuration.harness_version,
+            ),
             (
                 "bundled-Skill setting",
                 subject.harness.use_bundled_skill,
@@ -837,7 +857,7 @@ def _declared_to_observed(
 
 
 def _runtime_pin_checks(
-    campaign: CampaignSpec, baseline: ObservedVariant, candidate: ObservedVariant
+    campaign: CampaignSpecV2, baseline: ObservedVariant, candidate: ObservedVariant
 ) -> list[ComparisonCheck]:
     """Hold both executions to the container the Campaign pinned.
 
@@ -890,7 +910,7 @@ def _runtime_pin_checks(
     ]
 
 
-def weaker_claim_warnings(campaign: CampaignSpec) -> list[ComparisonCheck]:
+def weaker_claim_warnings(campaign: CampaignSpecV2) -> list[ComparisonCheck]:
     """Record the one fact about a real run that cannot be independently pinned.
 
     It is not a scientific failure and it may not be left unsaid. Presenting
@@ -921,8 +941,8 @@ def weaker_claim_warnings(campaign: CampaignSpec) -> list[ComparisonCheck]:
 
 def _pair_receipts(
     *,
-    baseline_receipts: Sequence[EpisodeReceipt],
-    candidate_receipts: Sequence[EpisodeReceipt],
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    candidate_receipts: Sequence[EpisodeReceiptV2],
     committed: Sequence[Digest],
 ) -> tuple[list[PairedReceiptRow], ComparisonCheck]:
     """Join the two sides task by task, in committed order.
@@ -957,12 +977,12 @@ def _pair_receipts(
 
 
 def _by_task(
-    receipts: Sequence[EpisodeReceipt],
+    receipts: Sequence[EpisodeReceiptV2],
     committed: Sequence[Digest],
     label: str,
-) -> tuple[dict[Digest, EpisodeReceipt], list[str]]:
+) -> tuple[dict[Digest, EpisodeReceiptV2], list[str]]:
     """Index one side's receipts by task and report what does not line up."""
-    by_task: dict[Digest, EpisodeReceipt] = {}
+    by_task: dict[Digest, EpisodeReceiptV2] = {}
     faults: list[str] = []
     for receipt in receipts:
         if receipt.task_hash in by_task:
@@ -1044,22 +1064,9 @@ def _same(identifier: str, label: str, left: object, right: object) -> Compariso
     )
 
 
-def _subject(manifest: ExperimentManifest) -> AgentSpec:
+def _subject(manifest: ExperimentManifestV2) -> AgentSpecV2:
     """Return the manifest's subject agent, which its own validator requires."""
     subject = manifest.configuration.agents.get(SUBJECT_AGENT)
     if subject is None:  # pragma: no cover - the model refuses to be built without one
         raise ValueError("an experiment configuration defines a subject agent")
     return subject
-
-
-def _harness_identity(subject: AgentSpec) -> tuple[str, str, bool]:
-    """Return the part of a harness two variants must share.
-
-    Not the skill list: that is the one field the mutation contract permits to
-    differ, and comparing it here would fail every correct comparison.
-    """
-    return (
-        subject.harness.id,
-        subject.harness.version,
-        subject.harness.use_bundled_skill,
-    )

@@ -33,9 +33,9 @@ from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.identity.service import verify_signed_object
 from techtree.identity.store import IdentityStore
 from techtree.models.base import ObjectEnvelope
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.experiment import ExperimentVariant
-from techtree.models.uplift_report import UpliftDecision, UpliftReport
+from techtree.models.uplift_report import UpliftDecision, UpliftReportV2
 from techtree.receipts.bundle import (
     BUNDLE_MANIFEST_FILENAME,
     P1_CONDITIONS,
@@ -86,8 +86,8 @@ def bundle_of(run: StagedRecordedRun) -> Path:
     return proof_bundle_dir(run.paths.run_dir(run.run_id))
 
 
-def report_of(run: StagedRecordedRun) -> UpliftReport:
-    return UpliftReport.model_validate_json(
+def report_of(run: StagedRecordedRun) -> UpliftReportV2:
+    return UpliftReportV2.model_validate_json(
         run.run_store.result_path(run.run_id).read_bytes()
     )
 
@@ -137,7 +137,7 @@ def test_every_receipt_travels_signed(run: StagedRecordedRun) -> None:
 
     for variant in (ExperimentVariant.BASELINE, ExperimentVariant.CANDIDATE):
         for position in range(2):
-            envelope = ObjectEnvelope[EpisodeReceipt].model_validate_json(
+            envelope = ObjectEnvelope[EpisodeReceiptV2].model_validate_json(
                 (bundle / receipt_filename(variant, position)).read_bytes()
             )
             assert envelope.signature is not None
@@ -147,7 +147,7 @@ def test_every_receipt_travels_signed(run: StagedRecordedRun) -> None:
 def test_the_report_in_the_bundle_is_the_report_the_run_recorded(
     run: StagedRecordedRun,
 ) -> None:
-    sealed = ObjectEnvelope[UpliftReport].model_validate_json(
+    sealed = ObjectEnvelope[UpliftReportV2].model_validate_json(
         (bundle_of(run) / REPORT_FILENAME).read_bytes()
     )
 

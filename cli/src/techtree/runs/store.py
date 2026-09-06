@@ -52,8 +52,8 @@ from techtree.fs import (
     read_json,
 )
 from techtree.models.base import Digest, JsonValue
-from techtree.models.run import RunEvent, RunPhase, RunRequest, RunState
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.run import RunEvent, RunPhase, RunRequestV2, RunState
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.paths import TechtreePaths
 from techtree.runs.events import (
     CANCEL_REQUESTED,
@@ -109,7 +109,7 @@ class RunStore:
 
     # -- immutable request --------------------------------------------------
 
-    def create(self, request: RunRequest) -> RunState:
+    def create(self, request: RunRequestV2) -> RunState:
         """Create run tree and initial event."""
         run_id = request.run_id
         run_dir = self._run_dir(run_id)
@@ -142,7 +142,7 @@ class RunStore:
             )
             return self._write_projection(run_id)
 
-    def get_request(self, run_id: str) -> RunRequest:
+    def get_request(self, run_id: str) -> RunRequestV2:
         """Load immutable request."""
         path = self._request_path(run_id)
         try:
@@ -155,7 +155,7 @@ class RunStore:
             ) from error
 
         try:
-            return RunRequest.model_validate_json(raw)
+            return RunRequestV2.model_validate_json(raw)
         except PydanticValidationError as error:
             # Nothing here inspects *why* validation failed, and nothing here
             # tries to read the document another way. A stored request that
@@ -331,10 +331,10 @@ class RunStore:
     # -- result -------------------------------------------------------------
 
     def result_path(self, run_id: str) -> Path:
-        """Return UpliftReport path."""
+        """Return UpliftReportV2 path."""
         return self._run_dir(run_id) / _REPORT_DIRECTORY_NAME / _RESULT_FILE_NAME
 
-    def write_result(self, run_id: str, report: UpliftReport) -> None:
+    def write_result(self, run_id: str, report: UpliftReportV2) -> None:
         """Write immutable result."""
         self._require_run(run_id)
         if report.run_id != run_id:
@@ -359,7 +359,7 @@ class RunStore:
             self._write_immutable(path, report)
             self._commit_event(run_id, event)
 
-    def get_result(self, run_id: str) -> UpliftReport:
+    def get_result(self, run_id: str) -> UpliftReportV2:
         """Load result."""
         self._require_run(run_id)
         path = self.result_path(run_id)
@@ -372,7 +372,7 @@ class RunStore:
             ) from error
 
         try:
-            return UpliftReport.model_validate_json(raw)
+            return UpliftReportV2.model_validate_json(raw)
         except PydanticValidationError as error:
             raise ValidationError(
                 f"run result is not a valid report: {path} "

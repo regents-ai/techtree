@@ -49,6 +49,7 @@ from techtree.execution_facts import (
     episode_receipt_execution_facts,
     experiment_configuration_execution_facts,
     release_core_subject_hermes_version,
+    require_executable_execution_plan,
     run_request_execution_facts,
     uplift_report_execution_facts,
 )
@@ -425,6 +426,54 @@ def test_a_plan_this_release_cannot_resolve_is_reported_unsupported() -> None:
 
     assert facts.execution_backend_supported is False
     assert facts.subject_backend_supported is False
+
+
+@pytest.mark.parametrize(
+    ("overrides", "plane", "named"),
+    [
+        pytest.param(
+            {
+                "execution": ExecutionBackendSpec(
+                    kind=ExecutionBackendKind.PRIME_HOSTED,
+                    provider=ExecutionProvider.PRIME,
+                    provider_environment_coordinate="prime/environments/example",
+                )
+            },
+            "execution_backend_kind",
+            ExecutionBackendKind.PRIME_HOSTED.value,
+            id="hosted-execution",
+        ),
+        pytest.param(
+            {
+                "subject": SubjectBackendSpec(
+                    kind=SubjectBackendKind.FABRIC,
+                    harness_id=HARNESS_ID,
+                    harness_version=HARNESS_VERSION,
+                    adapter_id="fabric-hermes",
+                    adapter_version="1.0.0",
+                    adapter_contract_version="1",
+                )
+            },
+            "subject_backend_kind",
+            SubjectBackendKind.FABRIC.value,
+            id="adapted-subject",
+        ),
+    ],
+)
+def test_a_plan_this_release_cannot_run_is_refused_naming_the_plane(
+    overrides: dict[str, Any], plane: str, named: str
+) -> None:
+    """The gate every executable path runs refuses by code, and says which plane."""
+    campaign, plan = bound_pair(**overrides)
+
+    with pytest.raises(ValidationError) as caught:
+        require_executable_execution_plan(campaign, plan)
+
+    assert caught.value.code == "execution_plan_unsupported"
+    assert caught.value.details == {
+        "execution_plan_digest": campaign.execution_plan_digest,
+        plane: named,
+    }
 
 
 def test_the_release_coordinate_is_the_subject_plane_harness_version() -> None:

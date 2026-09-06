@@ -29,7 +29,7 @@ import pytest
 from fixtures.runs.support import run_harness
 from fixtures.verifiers.support import local_run
 from techtree.errors import PrerequisiteError, RunError
-from techtree.models.run import RunRequest
+from techtree.models.run import RunRequestV2
 from techtree.paths import paths_from_root
 from techtree.runs.fake import FakeRunExecutor
 from techtree.runs.real import (
@@ -135,7 +135,7 @@ def test_each_run_records_the_executor_its_campaign_will_get(
     placeholder_id = placeholder.start().state.run_id
     real = local_run(tmp_path / "real-home")
 
-    fake_request: RunRequest = placeholder.request(placeholder_id)
+    fake_request: RunRequestV2 = placeholder.request(placeholder_id)
     assert fake_request.executor_kind == "fake"
     assert real.request.executor_kind == "verifiers"
     assert isinstance(

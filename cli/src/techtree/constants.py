@@ -14,6 +14,9 @@ DIGEST_PREFIX: Final = "sha256:"
 
 CLI_SCHEMA_VERSION: Final = "techtree.cli.v1"
 CATALOG_SCHEMA_VERSION: Final = "techtree.catalog.v1alpha1"
+#: The v0.2 catalog index. It files one more kind of object than the v0.1
+#: index did: the resolved execution plan a v0.2 Campaign binds.
+CATALOG_V2_SCHEMA_VERSION: Final = "techtree.catalog.v2"
 CAMPAIGN_SCHEMA_VERSION: Final = "techtree.campaign.v1alpha1"
 #: The v0.2 Campaign, which binds one resolved execution plan. It is the
 #: second version of a document v0.1 already had, so its literal says v2.

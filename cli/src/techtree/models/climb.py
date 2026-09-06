@@ -22,8 +22,9 @@ from pydantic import Field, model_validator
 
 from techtree.errors import PolicyError
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.data_policy import DataPolicy
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.validation import TasksetValidationReceipt
 
 __all__ = [
@@ -208,12 +209,14 @@ class ResolvedClimb(ProtocolModel):
 
     climb: ClimbManifest
     climb_digest: Digest
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
     campaign_digest: Digest
     data_policy: DataPolicy
     data_policy_digest: Digest
     publisher_validation: TasksetValidationReceipt
     publisher_validation_digest: Digest
+    execution_plan: ResolvedExecutionPlan
+    execution_plan_digest: Digest
 
     @model_validator(mode="after")
     def _check_graph(self) -> Self:
@@ -232,6 +235,10 @@ class ResolvedClimb(ProtocolModel):
             raise ValueError(
                 "the Campaign references a different validation receipt than "
                 "the one resolved"
+            )
+        if self.campaign.execution_plan_digest != self.execution_plan_digest:
+            raise ValueError(
+                "the Campaign binds a different execution plan than the one resolved"
             )
 
         mutation = self.campaign.mutation_contract

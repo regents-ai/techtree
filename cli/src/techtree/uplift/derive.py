@@ -48,15 +48,15 @@ from techtree.models.base import Digest
 from techtree.models.campaign import (
     SKILL_MUTATION_POINTER,
     SUBJECT_AGENT,
-    AgentSpec,
-    CampaignSpec,
-    HarnessSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
+    HarnessSpecV2,
     MutationContract,
     MutationKind,
 )
-from techtree.models.experiment import ExperimentManifest, ManifestComparison
+from techtree.models.experiment import ExperimentManifestV2, ManifestComparison
 from techtree.models.skill import SkillArtifact
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 
 __all__ = [
     "REPLACEMENT_DERIVATION_FAILED",
@@ -78,11 +78,11 @@ REPLACEMENT_PURPOSE = "component_uplift"
 
 def derive_skill_replacement_campaign(
     *,
-    source_campaign: CampaignSpec,
-    source_run: UpliftReport,
+    source_campaign: CampaignSpecV2,
+    source_run: UpliftReportV2,
     baseline_skill: SkillArtifact,
     candidate_skill: SkillArtifact,
-) -> CampaignSpec:
+) -> CampaignSpecV2:
     """Derive the local Campaign that compares Skill v1 against Skill v2.
 
     ``source_run`` is the signed report of the run being continued from. It is
@@ -110,12 +110,10 @@ def derive_skill_replacement_campaign(
     )
 
     subject = source_campaign.agents[SUBJECT_AGENT]
-    replaced = AgentSpec(
+    replaced = AgentSpecV2(
         model=subject.model.model_copy(deep=True),
         sampling=subject.sampling.model_copy(deep=True),
-        harness=HarnessSpec(
-            id=subject.harness.id,
-            version=subject.harness.version,
+        harness=HarnessSpecV2(
             use_bundled_skill=subject.harness.use_bundled_skill,
             # The baseline of a replacement is the Skill being revised, named
             # by the content address the first run actually evaluated.
@@ -125,7 +123,7 @@ def derive_skill_replacement_campaign(
         trainable=subject.trainable,
     )
 
-    return CampaignSpec(
+    return CampaignSpecV2(
         schema_version=source_campaign.schema_version,
         kind=source_campaign.kind,
         metadata=source_campaign.metadata.model_copy(deep=True),
@@ -142,7 +140,10 @@ def derive_skill_replacement_campaign(
             minimum_skills=1,
             maximum_skills=1,
         ),
-        evaluation_backend=source_campaign.evaluation_backend.model_copy(deep=True),
+        # The derived Campaign runs under the plan the source ran under: the
+        # comparison it continues is only a continuation if the engine, the
+        # location and the subject harness are the ones the first run had.
+        execution_plan_digest=source_campaign.execution_plan_digest,
         execution=source_campaign.execution.model_copy(deep=True),
         scoring=source_campaign.scoring.model_copy(deep=True),
         evidence=source_campaign.evidence.model_copy(deep=True),
@@ -153,11 +154,11 @@ def derive_skill_replacement_campaign(
 
 def derive_replacement_manifests(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     candidate_skill: SkillArtifact,
     campaign_digest: Digest | None = None,
     created_at: datetime | None = None,
-) -> tuple[ExperimentManifest, ExperimentManifest, ManifestComparison]:
+) -> tuple[ExperimentManifestV2, ExperimentManifestV2, ManifestComparison]:
     """Build both variants of a replacement and require the pair to be controlled.
 
     The baseline is built from the Campaign alone, because a replacement

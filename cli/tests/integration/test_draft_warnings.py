@@ -25,17 +25,17 @@ import ast
 import re
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
 import pytest
 
 from fixtures.drafts.support import (
     VALID_SKILL,
-    catalog_fixture_builder,
     preparation_service,
+    synthetic_graph,
+    write_synthetic_catalog,
 )
-from techtree.canonical import digest_object
-from techtree.models.campaign import CampaignSpec, ExecutionSpec, VariantSchedule
+from techtree.models.campaign import CampaignSpecV2, ExecutionSpec, VariantSchedule
 from techtree.paths import paths_from_root
 from techtree.skills.service import _comparison_warning
 from techtree.verifiers.compiler import divide_concurrency
@@ -83,18 +83,13 @@ def claims(sentence: str, phrases: Iterable[str]) -> list[str]:
     ]
 
 
-def campaign_running(order: VariantSchedule) -> CampaignSpec:
+def campaign_running(order: VariantSchedule) -> CampaignSpecV2:
     """Return the synthetic Campaign, running its two sides the given way."""
-    builder: Any = catalog_fixture_builder()
-    lock = builder.build_taskset_lock()
-    evidence = builder.build_validation_evidence(lock)
-    campaign: CampaignSpec = builder.build_campaign(
-        lock=lock,
-        validation_receipt_digest=digest_object(
-            builder.build_validation_receipt(lock, evidence)
-        ),
-        data_policy_digest=digest_object(builder.build_data_policy()),
-    )
+    return scheduled(synthetic_graph().campaign, order)
+
+
+def scheduled(campaign: CampaignSpecV2, order: VariantSchedule) -> CampaignSpecV2:
+    """Return the same Campaign, running its two sides the given way."""
     return campaign.model_copy(
         update={
             "execution": ExecutionSpec(
@@ -109,38 +104,8 @@ def campaign_running(order: VariantSchedule) -> CampaignSpec:
 
 def catalog_running(destination: Path, order: VariantSchedule) -> None:
     """Write the synthetic catalog whose Campaign runs its two sides that way."""
-    builder: Any = catalog_fixture_builder()
-    data_policy = builder.build_data_policy()
-    lock = builder.build_taskset_lock()
-    evidence = builder.build_validation_evidence(lock)
-    receipt = builder.build_validation_receipt(lock, evidence)
-    campaign = campaign_running(order)
-
-    builder.write_catalog(
-        destination,
-        climbs={
-            f"climbs/{slug}.json": builder.build_climb(
-                campaign_digest=digest_object(campaign),
-                slug=slug,
-                status=status,
-                proof_grade=proof_grade,
-            )
-            for slug, status, proof_grade in builder.CLIMB_VARIANTS
-        },
-        objects=[
-            builder.CatalogFile(
-                kind="campaign", path=builder.CAMPAIGN_PATH, model=campaign
-            ),
-            builder.CatalogFile(
-                kind="data_policy", path=builder.DATA_POLICY_PATH, model=data_policy
-            ),
-            builder.CatalogFile(
-                kind="taskset_validation", path=builder.RECEIPT_PATH, model=receipt
-            ),
-            builder.CatalogFile(
-                kind="validation_evidence", path=builder.EVIDENCE_PATH, model=evidence
-            ),
-        ],
+    write_synthetic_catalog(
+        destination, revise_campaign=lambda campaign: scheduled(campaign, order)
     )
 
 

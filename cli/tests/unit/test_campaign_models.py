@@ -27,12 +27,14 @@ from techtree.errors import PolicyError
 from techtree.models.campaign import (
     SKILL_MUTATION_POINTER,
     CampaignSpec,
+    CampaignSpecV2,
     MutationKind,
     VariantSchedule,
 )
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import (
     ExperimentConfiguration,
     ExperimentManifest,
@@ -453,11 +455,14 @@ def resolved(
     receipt = TasksetValidationReceipt.model_validate_json(
         json.dumps(golden("taskset-validation-receipt"))
     )
-    campaign_document = golden("campaign")
+    plan = ResolvedExecutionPlan.model_validate_json(
+        json.dumps(golden("execution-plan"))
+    )
+    campaign_document = golden("campaign-v2")
     campaign_document["data_policy_digest"] = digest_object(policy)
-    spec = campaign(campaign_document)
+    spec = CampaignSpecV2.model_validate_json(json.dumps(campaign_document))
 
-    manifest_document = climb_document or golden("climb")
+    manifest_document = climb_document or golden("climb-v2")
     manifest_document["campaign_spec_digest"] = digest_object(spec)
     manifest = climb(manifest_document)
 
@@ -466,6 +471,8 @@ def resolved(
         climb_digest=digest_object(manifest),
         campaign=spec,
         campaign_digest=digest_object(spec),
+        execution_plan=plan,
+        execution_plan_digest=digest_object(plan),
         data_policy=policy,
         data_policy_digest=digest_object(policy),
         publisher_validation=receipt,
@@ -482,6 +489,7 @@ def test_the_development_graph_resolves() -> None:
         graph.campaign.taskset.validation_receipt_digest
         == graph.publisher_validation_digest
     )
+    assert graph.campaign.execution_plan_digest == graph.execution_plan_digest
 
 
 def test_a_climb_pointing_at_another_campaign_is_rejected() -> None:
@@ -493,6 +501,8 @@ def test_a_climb_pointing_at_another_campaign_is_rejected() -> None:
             climb_digest=graph.climb_digest,
             campaign=graph.campaign,
             campaign_digest=sha256_digest_bytes(b"another campaign"),
+            execution_plan=graph.execution_plan,
+            execution_plan_digest=graph.execution_plan_digest,
             data_policy=graph.data_policy,
             data_policy_digest=graph.data_policy_digest,
             publisher_validation=graph.publisher_validation,
@@ -509,6 +519,8 @@ def test_a_campaign_pointing_at_another_data_policy_is_rejected() -> None:
             climb_digest=graph.climb_digest,
             campaign=graph.campaign,
             campaign_digest=graph.campaign_digest,
+            execution_plan=graph.execution_plan,
+            execution_plan_digest=graph.execution_plan_digest,
             data_policy=graph.data_policy,
             data_policy_digest=sha256_digest_bytes(b"another policy"),
             publisher_validation=graph.publisher_validation,
@@ -525,6 +537,8 @@ def test_a_campaign_pointing_at_another_validation_receipt_is_rejected() -> None
             climb_digest=graph.climb_digest,
             campaign=graph.campaign,
             campaign_digest=graph.campaign_digest,
+            execution_plan=graph.execution_plan,
+            execution_plan_digest=graph.execution_plan_digest,
             data_policy=graph.data_policy,
             data_policy_digest=graph.data_policy_digest,
             publisher_validation=graph.publisher_validation,
@@ -532,8 +546,26 @@ def test_a_campaign_pointing_at_another_validation_receipt_is_rejected() -> None
         )
 
 
+def test_a_campaign_bound_to_another_execution_plan_is_rejected() -> None:
+    graph = resolved()
+
+    with pytest.raises(PydanticValidationError, match="different execution plan"):
+        ResolvedClimb(
+            climb=graph.climb,
+            climb_digest=graph.climb_digest,
+            campaign=graph.campaign,
+            campaign_digest=graph.campaign_digest,
+            execution_plan=graph.execution_plan,
+            execution_plan_digest=sha256_digest_bytes(b"another plan"),
+            data_policy=graph.data_policy,
+            data_policy_digest=graph.data_policy_digest,
+            publisher_validation=graph.publisher_validation,
+            publisher_validation_digest=graph.publisher_validation_digest,
+        )
+
+
 def test_candidate_constraints_must_match_the_mutation_bounds() -> None:
-    document = golden("climb")
+    document = golden("climb-v2")
     document["candidate_policy"]["constraints"]["max_skills"] = 3
 
     with pytest.raises(PydanticValidationError, match="mutation bounds"):

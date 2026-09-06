@@ -63,17 +63,18 @@ from techtree.manifests.builder import (
 )
 from techtree.manifests.compare import assert_controlled_comparison, compare_manifests
 from techtree.models.base import Digest
-from techtree.models.campaign import CampaignSpec, PublicContext, VariantSchedule
+from techtree.models.campaign import CampaignSpecV2, PublicContext, VariantSchedule
 from techtree.models.climb import ResolvedClimb
 from techtree.models.data_policy import DataPolicy
-from techtree.models.experiment import ExperimentManifest, ManifestComparison
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2, ManifestComparison
 from techtree.models.skill import (
     PolicyAcceptanceRequirement,
     SkillArtifact,
     SkillFile,
     SubmissionDraft,
 )
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.models.validation import TasksetValidationReceipt, ValidationEvidence
 from techtree.paths import TechtreePaths
 from techtree.runs.real import executor_kind_for
@@ -239,11 +240,12 @@ class SkillPreparationService:
     def prepare_replacement(
         self,
         *,
-        source_campaign: CampaignSpec,
+        source_campaign: CampaignSpecV2,
+        execution_plan: ResolvedExecutionPlan,
         data_policy: DataPolicy,
         publisher_validation: TasksetValidationReceipt,
         validation_evidence: ValidationEvidence,
-        source_report: UpliftReport,
+        source_report: UpliftReportV2,
         baseline_skill: StagedSkill,
         candidate_skill_path: Path,
         candidate_label: str | None = None,
@@ -288,10 +290,14 @@ class SkillPreparationService:
                 baseline_skill=baseline_skill.artifact,
                 candidate_skill=staged.artifact,
             )
+            # The derived Campaign binds the plan the source run ran under, so
+            # the source is built over that same plan and its binding is
+            # re-checked there.
             source = CampaignSource.local(
                 campaign=campaign,
                 data_policy=data_policy,
                 publisher_validation=publisher_validation,
+                execution_plan=execution_plan,
             )
             baseline, candidate, comparison = derive_replacement_manifests(
                 campaign=campaign,
@@ -516,9 +522,9 @@ class SkillPreparationService:
 
     def _require_controlled(
         self,
-        baseline: ExperimentManifest,
-        candidate: ExperimentManifest,
-        campaign: CampaignSpec,
+        baseline: ExperimentManifestV2,
+        candidate: ExperimentManifestV2,
+        campaign: CampaignSpecV2,
     ) -> ManifestComparison:
         """Compare both variants and refuse a pair that measures more than one thing."""
         comparison = compare_manifests(baseline, candidate, campaign.mutation_contract)
@@ -540,8 +546,8 @@ class SkillPreparationService:
         *,
         source: CampaignSource,
         skill: SkillArtifact,
-        baseline: ExperimentManifest,
-        candidate: ExperimentManifest,
+        baseline: ExperimentManifestV2,
+        candidate: ExperimentManifestV2,
         policy: PolicyAcceptanceRequirement,
         created_at: datetime,
         warnings: list[str],
@@ -565,7 +571,7 @@ class SkillPreparationService:
             created_at=created_at,
         )
 
-    def _estimate_episodes(self, campaign: CampaignSpec) -> int:
+    def _estimate_episodes(self, campaign: CampaignSpecV2) -> int:
         """Return tasks × rollouts × two variants."""
         selection = campaign.taskset.selection
         return selection.num_tasks * selection.num_rollouts * _VARIANTS
@@ -646,7 +652,7 @@ class SkillPreparationService:
 # ---------------------------------------------------------------------------
 
 
-def _comparison_warning(campaign: CampaignSpec) -> str:
+def _comparison_warning(campaign: CampaignSpecV2) -> str:
     """Say how this Campaign runs its two sides, reading it off the Campaign.
 
     The approval screen is where a person decides to spend model tokens on a

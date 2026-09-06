@@ -48,7 +48,7 @@ from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError, VerificationError
 from techtree.fs import atomic_write_bytes, ensure_private_directory
 from techtree.models.base import ArtifactRef, Digest
-from techtree.models.campaign import CampaignSpec, TaskSelection, TasksetRef
+from techtree.models.campaign import CampaignSpecV2, TaskSelection, TasksetRef
 from techtree.models.engine import normalize_host_platform
 from techtree.models.validation import (
     REQUIRED_VALIDATION_CHECKS,
@@ -244,7 +244,7 @@ class TasksetService:
     def resolve_and_validate(
         self,
         *,
-        campaign: CampaignSpec,
+        campaign: CampaignSpecV2,
         run_dir: Path,
     ) -> TasksetValidationRun:
         """Resolve this Campaign's taskset, validate it, and issue a receipt."""

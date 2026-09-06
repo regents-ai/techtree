@@ -5,14 +5,14 @@ The product loop — prepare, start, detach, watch, cancel, read a result — ha
 to be finished and trustworthy long before there is a real evaluation behind
 it. This executor is what makes that possible: it walks every phase, writes
 every artifact, and produces a complete, structurally valid
-:class:`~techtree.models.uplift_report.UpliftReport` without calling a model,
+:class:`~techtree.models.uplift_report.UpliftReportV2` without calling a model,
 starting a container, or running a Verifiers evaluation.
 
 The numbers in that report are invented. Everything in this module is arranged
 so that no reader, human or machine, can mistake them for measurements:
 
-* Every receipt reports ``execution_backend = "fake"``, and the frozen model
-  refuses such a receipt unless its score and evidence statuses are both
+* Every receipt reports ``executor_kind = "fake"``, and the model refuses
+  such a receipt unless its score and evidence statuses are both
   ``development_only``.
 * Every receipt's subject runtime is ``not_executed``, because none was.
 * The report's decision and proof grade are ``development_only``, its
@@ -39,21 +39,28 @@ from datetime import datetime
 from typing import Final, Literal
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
-from techtree.constants import EPISODE_RECEIPT_SCHEMA_VERSION, UPLIFT_SCHEMA_VERSION
+from techtree.constants import (
+    EPISODE_RECEIPT_V2_SCHEMA_VERSION,
+    UPLIFT_V2_SCHEMA_VERSION,
+)
 from techtree.errors import ValidationError, VerificationError
+from techtree.execution_facts import (
+    episode_receipt_execution_facts,
+    require_executable_execution_plan,
+    uplift_report_execution_facts,
+)
 from techtree.ids import new_id
 from techtree.manifests.compare import assert_controlled_comparison, compare_manifests
 from techtree.models.base import ArtifactRef, Digest, JsonValue, ProtocolModel
 from techtree.models.episode_receipt import (
-    EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     NamedTraceReceipt,
     ScoreStatus,
     SubjectRuntimeReceipt,
 )
-from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
 from techtree.models.experiment import ExperimentVariant, ManifestComparison
-from techtree.models.run import RunPhase, RunRequest
+from techtree.models.run import RunPhase, RunRequestV2
 from techtree.models.uplift_report import (
     ComparisonStatus,
     ExecutionStatus,
@@ -61,7 +68,7 @@ from techtree.models.uplift_report import (
     PublicationStatus,
     TaskDelta,
     UpliftDecision,
-    UpliftReport,
+    UpliftReportV2,
     UpliftStatuses,
 )
 from techtree.runs.artifacts import RunInputBundle
@@ -182,27 +189,28 @@ def _reward_vector(task_count: int, successes: int) -> list[float]:
 
 def build_fake_episode_receipt(
     *,
-    request: RunRequest,
+    request: RunRequestV2,
     inputs: RunInputBundle,
     variant: ExperimentVariant,
     position: int,
     task_hash: Digest,
     reward: float,
     trace_artifact: ArtifactRef,
-) -> EpisodeReceipt:
+) -> EpisodeReceiptV2:
     """Build one receipt carrying every generic Campaign reference exactly.
 
     Nothing here is derived, defaulted, or re-resolved: the Campaign, the
     improvement program, the public context, the DataPolicy, and the
-    OutcomeContract all come from the immutable request, and the evaluation
-    backend from the Campaign this run owns. A future real executor writes the
-    same fields from the same places.
+    OutcomeContract all come from the immutable request, and the execution
+    facts from the plan the Campaign this run owns is bound to. The real
+    executor writes the same fields from the same places.
     """
     campaign = inputs.campaign
-    if campaign.evaluation_backend != request.evaluation_backend:
+    facts = episode_receipt_execution_facts(campaign, inputs.execution_plan)
+    if facts.execution_plan_digest != request.execution_plan_digest:
         raise VerificationError(
-            "the Campaign this run owns names a different evaluation backend "
-            "than the run's request",
+            "the Campaign this run owns binds a different execution plan "
+            "than the run's request names",
             code=FAKE_RECEIPT_INVALID,
             details={"run_id": request.run_id},
         )
@@ -216,8 +224,8 @@ def build_fake_episode_receipt(
         trace_digest=trace_digest,
     )
 
-    return EpisodeReceipt(
-        schema_version=EPISODE_RECEIPT_SCHEMA_VERSION,
+    return EpisodeReceiptV2(
+        schema_version=EPISODE_RECEIPT_V2_SCHEMA_VERSION,
         id=_derived_id("receipt", episode_digest),
         run_id=request.run_id,
         campaign_spec_digest=request.campaign_spec_digest,
@@ -225,7 +233,8 @@ def build_fake_episode_receipt(
         public_context=request.public_context,
         data_policy_digest=request.data_policy_digest,
         outcome_contract_digest=request.outcome_contract_digest,
-        evaluation_backend=campaign.evaluation_backend,
+        execution_plan_digest=facts.execution_plan_digest,
+        execution_location=facts.execution_location,
         # No subject ran. Anything else here would be the single most
         # misleading field a fake receipt could carry.
         subject_runtime=SubjectRuntimeReceipt(kind="not_executed"),
@@ -249,12 +258,12 @@ def build_fake_episode_receipt(
         },
         score_status=ScoreStatus.DEVELOPMENT_ONLY,
         evidence_status=EvidenceStatus.DEVELOPMENT_ONLY,
-        execution_backend="fake",
+        executor_kind="fake",
         artifacts=[trace_artifact],
     )
 
 
-def _manifest_digest(request: RunRequest, variant: ExperimentVariant) -> Digest:
+def _manifest_digest(request: RunRequestV2, variant: ExperimentVariant) -> Digest:
     if variant is ExperimentVariant.BASELINE:
         return request.baseline_manifest_digest
     return request.candidate_manifest_digest
@@ -296,8 +305,8 @@ def _derived_id(prefix: str, digest: Digest) -> str:
 def aggregate_fake_results(
     *,
     reward_name: str,
-    baseline: Sequence[EpisodeReceipt],
-    candidate: Sequence[EpisodeReceipt],
+    baseline: Sequence[EpisodeReceiptV2],
+    candidate: Sequence[EpisodeReceiptV2],
     ordered_task_hashes: Sequence[Digest],
 ) -> tuple[PrimaryUpliftResult, list[TaskDelta]]:
     """Join the two variants by task hash and compute the headline result.
@@ -346,7 +355,7 @@ def aggregate_fake_results(
 
 
 def _rewards_by_task(
-    receipts: Sequence[EpisodeReceipt],
+    receipts: Sequence[EpisodeReceiptV2],
     reward_name: str,
     label: str,
 ) -> dict[Digest, float]:
@@ -418,14 +427,14 @@ def _mean(values: Iterable[float]) -> float:
 
 def build_development_uplift_report(
     *,
-    request: RunRequest,
+    request: RunRequestV2,
     inputs: RunInputBundle,
     validation: TasksetValidationOutcome,
-    baseline_receipts: Sequence[EpisodeReceipt],
-    candidate_receipts: Sequence[EpisodeReceipt],
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    candidate_receipts: Sequence[EpisodeReceiptV2],
     comparison: ManifestComparison,
     created_at: datetime,
-) -> UpliftReport:
+) -> UpliftReportV2:
     """Build the one report a fake run is allowed to produce."""
     primary, deltas = aggregate_fake_results(
         reward_name=inputs.campaign.scoring.primary_reward,
@@ -434,9 +443,10 @@ def build_development_uplift_report(
         ordered_task_hashes=inputs.ordered_task_hashes,
     )
 
+    facts = uplift_report_execution_facts(inputs.campaign, inputs.execution_plan)
     try:
-        return UpliftReport(
-            schema_version=UPLIFT_SCHEMA_VERSION,
+        return UpliftReportV2(
+            schema_version=UPLIFT_V2_SCHEMA_VERSION,
             id=new_id("uplift"),
             run_id=request.run_id,
             campaign_spec_digest=request.campaign_spec_digest,
@@ -444,7 +454,8 @@ def build_development_uplift_report(
             public_context=request.public_context,
             data_policy_digest=request.data_policy_digest,
             outcome_contract_digest=request.outcome_contract_digest,
-            evaluation_backend=inputs.campaign.evaluation_backend,
+            execution_plan_digest=facts.execution_plan_digest,
+            execution_location=facts.execution_location,
             taskset_validation_receipt_digest=digest_object(validation.receipt),
             baseline_manifest_digest=request.baseline_manifest_digest,
             candidate_manifest_digest=request.candidate_manifest_digest,
@@ -501,7 +512,7 @@ class FakeRunExecutor:
             None if candidate_rewards is None else list(candidate_rewards)
         )
 
-    def execute(self, context: ExecutionContext) -> UpliftReport:
+    def execute(self, context: ExecutionContext) -> UpliftReportV2:
         """Execute the full development-only flow."""
         request = context.request
         run_id = request.run_id
@@ -658,7 +669,7 @@ class FakeRunExecutor:
 
     # -- preconditions ------------------------------------------------------
 
-    def _require_fake_executor(self, request: RunRequest) -> None:
+    def _require_fake_executor(self, request: RunRequestV2) -> None:
         if request.executor_kind != "fake":
             raise ValidationError(
                 f"this run asks for a {request.executor_kind} executor, and "
@@ -668,17 +679,8 @@ class FakeRunExecutor:
             )
 
     def _require_supported_backend(self, inputs: RunInputBundle) -> None:
-        kind = inputs.campaign.evaluation_backend.kind
-        if kind not in SUPPORTED_EVALUATION_BACKEND_KINDS:
-            raise ValidationError(
-                f"this Campaign is evaluated by {kind.value}, which this build "
-                "does not run",
-                code=FAKE_REPORT_INVALID,
-                details={
-                    "run_id": inputs.request.run_id,
-                    "evaluation_backend": kind.value,
-                },
-            )
+        """Refuse a plan this build cannot run, before anything is written."""
+        require_executable_execution_plan(inputs.campaign, inputs.execution_plan)
 
     def _require_valid_validation(
         self,
@@ -706,7 +708,7 @@ class FakeRunExecutor:
 
     def _require_receipts(
         self,
-        receipts: Sequence[EpisodeReceipt],
+        receipts: Sequence[EpisodeReceiptV2],
         task_hashes: Sequence[Digest],
         label: str,
     ) -> None:

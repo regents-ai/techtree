@@ -36,9 +36,9 @@ import pytest
 from fixtures.receipts.pair import RecordedPair, recorded_pair, recorded_report
 from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.errors import ValidationError
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.skill import SkillArtifact, SkillFile
-from techtree.models.uplift_report import TaskDelta, UpliftReport
+from techtree.models.uplift_report import TaskDelta, UpliftReportV2
 from techtree.uplift.context import (
     EXAMPLE_CONTRAST_LIMIT,
     EXAMPLE_LIMIT,
@@ -84,7 +84,7 @@ def pair() -> RecordedPair:
 
 
 @pytest.fixture(scope="module")
-def receipts(pair: RecordedPair) -> dict[VariantName, list[EpisodeReceipt]]:
+def receipts(pair: RecordedPair) -> dict[VariantName, list[EpisodeReceiptV2]]:
     return {
         variant: pair.receipts(variant)
         for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
@@ -92,14 +92,14 @@ def receipts(pair: RecordedPair) -> dict[VariantName, list[EpisodeReceipt]]:
 
 
 @pytest.fixture(scope="module")
-def report(pair: RecordedPair) -> UpliftReport:
+def report(pair: RecordedPair) -> UpliftReportV2:
     return recorded_report(pair)
 
 
 def build(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
     **overrides: object,
 ) -> SkillImprovementContext:
     """Build a context from the recorded evidence, with test overrides.
@@ -126,8 +126,8 @@ def build(
 
 def test_the_context_pins_the_run_the_campaign_and_the_skill(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """Spec section 7.22: the source Skill digest is pinned."""
     context = build(pair, receipts, report)
@@ -142,8 +142,8 @@ def test_the_context_pins_the_run_the_campaign_and_the_skill(
 
 def test_the_context_carries_the_four_fingerprints_r2_requires(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """Decisions 0007 R2: root digest, entrypoint digest, run ID, report digest.
 
@@ -164,8 +164,8 @@ def test_the_context_carries_the_four_fingerprints_r2_requires(
 
 def test_the_pinned_report_digest_follows_the_report(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A context built from a different result names a different result."""
     other = report.model_copy(update={"id": f"{report.id}-again"})
@@ -177,8 +177,8 @@ def test_the_pinned_report_digest_follows_the_report(
 
 def test_the_pinned_entrypoint_digest_follows_the_entry_file(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """The entrypoint digest is SKILL.md's, not the first file's."""
     skill = parent_skill()
@@ -203,8 +203,8 @@ def test_the_pinned_entrypoint_digest_follows_the_entry_file(
 
 def test_the_objective_names_the_reward_and_the_threshold(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A model asked to improve something must be told against what."""
     context = build(pair, receipts, report)
@@ -216,8 +216,8 @@ def test_the_objective_names_the_reward_and_the_threshold(
 
 def test_a_context_cannot_be_built_from_another_campaigns_report(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """The report and the Campaign must be about one experiment."""
     other = pair.campaign.model_copy(
@@ -244,8 +244,8 @@ def _rendered(context: SkillImprovementContext) -> str:
 
 def test_no_hidden_expected_answer_reaches_the_context(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """The shape gives an answer nowhere to go, even when one is put in its way.
 
@@ -282,8 +282,8 @@ def test_no_hidden_expected_answer_reaches_the_context(
 
 def test_a_reply_offered_through_the_projection_seat_is_still_excluded(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """``subject_reply`` has no source in this build, and cannot acquire one."""
     context = build(
@@ -304,8 +304,8 @@ def test_a_reply_offered_through_the_projection_seat_is_still_excluded(
 
 def test_no_grader_material_reaches_the_context(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A grader's source has no field, and nothing in the shape resembles one."""
     rendered = _rendered(build(pair, receipts, report))
@@ -317,8 +317,8 @@ def test_no_grader_material_reaches_the_context(
 
 def test_no_sealed_task_content_reaches_the_context(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A task is named by its committed hash and its public input, and no more.
 
@@ -339,8 +339,8 @@ def test_no_sealed_task_content_reaches_the_context(
 
 def test_no_private_environment_value_reaches_the_context(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """No field carries environment, and the credential names never appear."""
     rendered = _rendered(build(pair, receipts, report))
@@ -351,8 +351,8 @@ def test_no_private_environment_value_reaches_the_context(
 
 def test_no_unredacted_local_path_reaches_the_context(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """An absolute path is refused rather than shipped."""
     with pytest.raises(ValidationError) as raised:
@@ -371,8 +371,8 @@ def test_no_unredacted_local_path_reaches_the_context(
 
 def test_every_example_carries_the_public_task_input(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """Decisions R1 and 0014: the input is public and the reader is shown it."""
     context = build(pair, receipts, report)
@@ -390,8 +390,8 @@ def test_every_example_carries_the_public_task_input(
 
 def test_showing_the_input_leaves_every_exclusion_standing(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """The one thing that was added did not bring anything else with it."""
     context = build(pair, receipts, report)
@@ -408,8 +408,8 @@ def test_showing_the_input_leaves_every_exclusion_standing(
 
 def test_a_taskset_with_no_disclosure_policy_still_shows_only_a_hash(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """R1: taskset-specific, never inferred. An unknown taskset shows nothing."""
     from techtree.models.campaign import CampaignTaskset
@@ -441,8 +441,8 @@ def test_a_taskset_with_no_disclosure_policy_still_shows_only_a_hash(
 
 def test_the_context_states_what_it_withholds(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A consumer is told what it is not being given."""
     context = build(pair, receipts, report)
@@ -460,8 +460,8 @@ def test_the_context_states_what_it_withholds(
 
 def test_two_builds_of_one_run_are_byte_identical(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A derived artifact that varied would make the loop unreproducible."""
     first = canonical_json_bytes(build(pair, receipts, report))
@@ -472,8 +472,8 @@ def test_two_builds_of_one_run_are_byte_identical(
 
 def test_regressions_and_failures_come_before_anything_else(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """Spec section 7.18's selection order, over a synthesized spread."""
     context = build(pair, receipts, _with_deltas(report, _spread(report)))
@@ -492,8 +492,8 @@ def test_regressions_and_failures_come_before_anything_else(
 
 def test_stable_successes_are_only_a_small_contrast_sample(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A context is about what did not work."""
     context = build(pair, receipts, _with_deltas(report, _spread(report)))
@@ -506,8 +506,8 @@ def test_stable_successes_are_only_a_small_contrast_sample(
 
 def test_a_long_run_is_bounded(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """A model has a finite window and the regressions must fit inside it."""
     many = [
@@ -527,8 +527,8 @@ def test_a_long_run_is_bounded(
 
 def test_a_report_with_no_tasks_is_refused(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
-    report: UpliftReport,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
+    report: UpliftReportV2,
 ) -> None:
     """There is nothing to improve against."""
     with pytest.raises(ValidationError) as raised:
@@ -556,7 +556,7 @@ def _deltas(context: SkillImprovementContext, outcome: str) -> list[float]:
     ]
 
 
-def _spread(report: UpliftReport) -> list[TaskDelta]:
+def _spread(report: UpliftReportV2) -> list[TaskDelta]:
     """Return one task of every outcome, several of each, in committed order."""
     rows: list[tuple[float, float]] = [
         (1.0, 0.0),  # regressed, worst
@@ -579,6 +579,6 @@ def _spread(report: UpliftReport) -> list[TaskDelta]:
     ]
 
 
-def _with_deltas(report: UpliftReport, deltas: list[TaskDelta]) -> UpliftReport:
+def _with_deltas(report: UpliftReportV2, deltas: list[TaskDelta]) -> UpliftReportV2:
     """Return the same report over a different set of paired tasks."""
     return report.model_construct(**{**dict(report), "task_deltas": deltas})

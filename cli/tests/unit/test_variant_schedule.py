@@ -34,19 +34,15 @@ from typing import Final
 import pytest
 
 from techtree.canonical import sha256_digest_bytes
+from techtree.constants import RUN_REQUEST_V2_SCHEMA_VERSION
 from techtree.errors import CancellationError, RunError, ValidationError
 from techtree.models.base import ArtifactRef, Digest
 from techtree.models.campaign import ProgramRef, PublicContext, VariantSchedule
-from techtree.models.evaluation_backend import (
-    AttestationKind,
-    EvaluationBackendKind,
-    EvaluationBackendSpec,
-)
 from techtree.models.run import (
     PolicyAcknowledgement,
     RunEvent,
     RunPhase,
-    RunRequest,
+    RunRequestV2,
 )
 from techtree.paths import TechtreePaths, paths_from_root
 from techtree.runs.child_registry import (
@@ -230,10 +226,11 @@ def pair(tmp_path: Path) -> VariantPair:
 
 
 @pytest.fixture
-def request_model() -> RunRequest:
+def request_model() -> RunRequestV2:
     """The immutable request every run in this module executes."""
     policy = sha256_digest_bytes(b"data-policy")
-    return RunRequest(
+    return RunRequestV2(
+        schema_version=RUN_REQUEST_V2_SCHEMA_VERSION,
         run_id="run_00000000000000000000000000000001",
         draft_id="draft_0000000000000000000000000000000a",
         draft_digest=sha256_digest_bytes(b"draft"),
@@ -244,11 +241,7 @@ def request_model() -> RunRequest:
         ),
         data_policy_digest=policy,
         outcome_contract_digest=None,
-        evaluation_backend=EvaluationBackendSpec(
-            schema_version="techtree.evaluation-backend.v1alpha1",
-            kind=EvaluationBackendKind.LOCAL_TECHTREE,
-            attestation=AttestationKind.PARTICIPANT,
-        ),
+        execution_plan_digest=sha256_digest_bytes(b"execution-plan"),
         taskset_lock_digest=sha256_digest_bytes(b"taskset-lock"),
         baseline_manifest_digest=sha256_digest_bytes(b"baseline"),
         candidate_manifest_digest=sha256_digest_bytes(b"candidate"),
@@ -263,7 +256,7 @@ def request_model() -> RunRequest:
 
 
 @pytest.fixture
-def store(tmp_path: Path, request_model: RunRequest) -> RunStore:
+def store(tmp_path: Path, request_model: RunRequestV2) -> RunStore:
     """A run store holding one run, ready to enter the concurrent phase."""
     clear_local_cancellation()
     run_store = RunStore(_home(tmp_path))
@@ -366,7 +359,7 @@ def test_an_odd_allowance_is_divided_without_starving_either_side(
 
 
 def test_neither_child_starts_when_one_variants_config_is_missing(
-    tmp_path: Path, store: RunStore, request_model: RunRequest
+    tmp_path: Path, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """A comparison starts as a pair or not at all."""
     pair = VariantPair(
@@ -391,7 +384,7 @@ def test_neither_child_starts_when_one_variants_config_is_missing(
 
 
 def test_an_output_directory_that_already_holds_evidence_is_refused(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """A run writes its own evidence; it does not inherit somebody else's."""
     stale = Path(pair.baseline.verifiers_output_dir)
@@ -411,7 +404,7 @@ def test_an_output_directory_that_already_holds_evidence_is_refused(
 
 
 def test_a_second_child_that_cannot_start_stops_the_first(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """A comparison with one live side buys nothing, so the live side is stopped."""
     baseline = StubChild(
@@ -440,7 +433,7 @@ def test_a_second_child_that_cannot_start_stops_the_first(
 
 
 def test_both_children_start_before_either_is_awaited(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """The second launch does not wait for the first variant's first episode."""
     children = _children(pair, exit_after=2)
@@ -461,7 +454,7 @@ def test_both_children_start_before_either_is_awaited(
 
 
 def test_the_launch_skew_is_recorded_for_the_pair(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """The gap between the two launches is measured and written down."""
     run_root = tmp_path / "run"
@@ -488,7 +481,7 @@ def test_the_launch_skew_is_recorded_for_the_pair(
 
 
 def test_a_sequential_pair_records_no_launch_skew(
-    tmp_path: Path, store: RunStore, request_model: RunRequest
+    tmp_path: Path, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """A gap between a first variant and a second one is not a launch skew."""
     pair = VariantPair(
@@ -523,7 +516,7 @@ def test_a_sequential_pair_records_no_launch_skew(
 
 
 def test_both_sides_announce_themselves_and_their_completion(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """A watcher can see each variant start and each variant finish."""
     children = _children(pair, exit_after=1)
@@ -560,7 +553,7 @@ def test_both_sides_announce_themselves_and_their_completion(
 
 
 def test_a_failed_variant_terminates_its_sibling_and_fails_the_pair(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """A comparison needs both sides, so one failure ends the whole thing."""
     baseline = StubChild(
@@ -592,7 +585,7 @@ def test_a_failed_variant_terminates_its_sibling_and_fails_the_pair(
 
 
 def test_a_sequential_failure_never_starts_the_second_variant(
-    tmp_path: Path, store: RunStore, request_model: RunRequest
+    tmp_path: Path, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """Money is not spent on a candidate whose baseline already failed."""
     pair = VariantPair(
@@ -620,7 +613,7 @@ def test_a_sequential_failure_never_starts_the_second_variant(
 
 
 def test_cancelling_the_run_stops_both_children(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """One request to stop reaches both process groups."""
     children = _children(pair, exit_after=1000)
@@ -641,7 +634,7 @@ def test_cancelling_the_run_stops_both_children(
 
 
 def test_a_cancellation_during_the_run_terminates_both_and_forgets_them(
-    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequest
+    tmp_path: Path, pair: VariantPair, store: RunStore, request_model: RunRequestV2
 ) -> None:
     """A stop requested while both variants are live reaches both of them."""
     children = _children(pair, exit_after=1000)

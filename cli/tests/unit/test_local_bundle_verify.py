@@ -34,12 +34,13 @@ from techtree.canonical import (
 from techtree.identity.models import ExecutorIdentity, VerificationResult
 from techtree.identity.store import IdentityStore
 from techtree.models.base import ObjectEnvelope
-from techtree.models.episode_receipt import EpisodeReceipt, ScoreStatus
+from techtree.models.episode_receipt import EpisodeReceiptV2, ScoreStatus
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.uplift_report import ComparisonStatus, UpliftDecision
 from techtree.paths import paths_from_root
 from techtree.receipts.bundle import (
     BUNDLE_MANIFEST_FILENAME,
+    EXECUTION_PLAN_FILENAME,
     P1_ARTIFACT_DIGESTS_VERIFY,
     P1_COMPARISON_CONTROLLED,
     P1_CONDITIONS,
@@ -110,6 +111,7 @@ def test_a_bundle_carries_the_documents_a_reader_needs(bundle: Path) -> None:
         "candidate-receipt-set.json",
         "comparison-execution.json",
         "data-policy.json",
+        "execution-plan.json",
         "executor-public.json",
         "receipts/baseline/0000.json",
         "receipts/baseline/0001.json",
@@ -337,6 +339,53 @@ def test_an_edited_campaign_breaks_the_proof(bundle: Path) -> None:
     assert result.verified is False
 
 
+@pytest.mark.parametrize(
+    "damage",
+    [
+        pytest.param(lambda path: path.unlink(), id="absent"),
+        pytest.param(
+            lambda path: path.write_bytes(
+                canonical_json_bytes({"kind": "ResolvedExecutionPlan"})
+            ),
+            id="not-a-plan",
+        ),
+    ],
+)
+def test_an_unreadable_execution_plan_is_reported_by_name(
+    bundle: Path, damage: Callable[[Path], None]
+) -> None:
+    """A proof with no readable plan is refused, and the reader is told which file."""
+    damage(bundle / EXECUTION_PLAN_FILENAME)
+    result = verify_local_bundle(bundle)
+
+    assert result.verified is False
+    assert f"document.{EXECUTION_PLAN_FILENAME}" in failed(result)
+
+
+def test_a_plan_the_campaign_never_bound_fails_the_binding_itself(
+    bundle: Path,
+) -> None:
+    """An undeclared plan move is caught as a binding, not only as a changed file.
+
+    The digest check would notice the rewritten bytes on its own. What is
+    asserted here is that the plan is also checked *as the plan*: every
+    document that names the Campaign's plan has to name this one.
+    """
+    rewrite(
+        bundle / EXECUTION_PLAN_FILENAME,
+        lambda document: document["evaluation"].update({"package_version": "0.3.2"}),
+    )
+    result = verify_local_bundle(bundle)
+
+    assert result.verified is False
+    assert {
+        "linkage.campaign_plan",
+        "linkage.report_plan",
+        "linkage.baseline_plan",
+        "linkage.candidate_plan",
+    } <= set(failed(result))
+
+
 def test_a_foreign_public_key_breaks_the_proof(bundle: Path, tmp_path: Path) -> None:
     """Swapping the key does not turn somebody else's signature into yours."""
     stranger = IdentityStore(paths_from_root(tmp_path / "stranger")).create()
@@ -547,7 +596,7 @@ def test_a_signed_receipt_in_the_bundle_is_the_receipt_on_its_own(
     bundle: Path, proof: RecordedProof
 ) -> None:
     """The envelope adds a seal; it does not change what a receipt says."""
-    stored = ObjectEnvelope[EpisodeReceipt].model_validate_json(
+    stored = ObjectEnvelope[EpisodeReceiptV2].model_validate_json(
         (bundle / BASELINE_RECEIPT).read_bytes()
     )
     built = proof.receipts[ExperimentVariant.BASELINE][0]

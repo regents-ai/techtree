@@ -25,7 +25,7 @@ from techtree.models.catalog import (
     CatalogClimbEntry,
     CatalogIndex,
     CatalogObjectLocation,
-    ClimbSummary,
+    ClimbSummaryV2,
     CompatibilityIssue,
     CompatibilityResult,
     EngineCompatibilityStatus,
@@ -268,10 +268,10 @@ def test_compatibility_issue_codes_are_reported_once() -> None:
 # ---------------------------------------------------------------------------
 
 
-def summary_from_golden() -> ClimbSummary:
+def summary_from_golden() -> ClimbSummaryV2:
     """Load the summary carried by the committed CLI envelope golden."""
     text = (GOLDEN_DIRECTORY / "cli-envelope.json").read_text(encoding="utf-8")
-    envelope = CliEnvelope[ClimbSummary].model_validate_json(text)
+    envelope = CliEnvelope[ClimbSummaryV2].model_validate_json(text)
     assert envelope.data is not None
     return envelope.data
 
@@ -279,7 +279,7 @@ def summary_from_golden() -> ClimbSummary:
 def test_the_climb_summary_shows_identity_science_and_rights() -> None:
     summary = summary_from_golden()
 
-    assert summary.reference == "hello-world-climb@1"
+    assert summary.reference == "hello-world-climb@2"
     assert summary.taskset_id == "procedure-transfer-v1"
     assert summary.task_count == 20
     assert summary.subject_harness == "hermes-agent"
@@ -291,7 +291,7 @@ def test_the_climb_summary_shows_identity_science_and_rights() -> None:
 
 
 def test_the_climb_summary_carries_no_scientific_configuration() -> None:
-    fields = set(ClimbSummary.model_fields)
+    fields = set(ClimbSummaryV2.model_fields)
 
     assert fields.isdisjoint({"agents", "execution", "scoring", "budgets", "taskset"})
 
@@ -301,4 +301,4 @@ def test_the_climb_summary_rejects_an_invented_status() -> None:
     document["status"] = "archived"
 
     with pytest.raises(PydanticValidationError):
-        ClimbSummary.model_validate_json(json.dumps(document))
+        ClimbSummaryV2.model_validate_json(json.dumps(document))

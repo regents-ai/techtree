@@ -32,8 +32,8 @@ from datetime import datetime
 from typing import Final, Protocol
 
 from techtree.errors import CancellationError
-from techtree.models.run import RunPhase, RunRequest
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.run import RunPhase, RunRequestV2
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.store import RunStore
 from techtree.runs.validation import TasksetValidationProvider
@@ -64,7 +64,7 @@ _LOCAL_CANCELLATION: Final[threading.Event] = threading.Event()
 class ExecutionContext:
     """Everything one execution of one run is given."""
 
-    request: RunRequest
+    request: RunRequestV2
     run_store: RunStore
     artifact_store: RunArtifactStore
     validation_provider: TasksetValidationProvider
@@ -74,7 +74,7 @@ class ExecutionContext:
 class RunExecutor(Protocol):
     """Executes one run to a terminal scientific artifact."""
 
-    def execute(self, context: ExecutionContext) -> UpliftReport:
+    def execute(self, context: ExecutionContext) -> UpliftReportV2:
         """Execute one run and return the report it produced."""
         ...
 

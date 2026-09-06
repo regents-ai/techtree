@@ -1,14 +1,17 @@
 {
   "command": "climb show",
   "data": {
-    "campaign_spec_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1",
+    "campaign_spec_digest": "sha256:8e9a9b31c7de92ed47332ce6a181270029823419915cb8b06f0893aab61b48be",
     "candidate_skill_visibility": "public",
-    "climb_digest": "sha256:8a98cf28affe2de98e3431db3b2a26b0a6dc60861fc9fb0f264d8ca044c217ba",
+    "climb_digest": "sha256:df6ac14c999316ecdccd2926aa61b443b55aa5aa3fa2b0f792b7aab91ebfb1e4",
     "compatibility": {
       "compatible": false,
       "engine_status": "not_installed",
-      "evaluation_backend_kind": "local_techtree",
-      "evaluation_backend_supported": true,
+      "evaluation_engine_source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+      "evaluation_engine_wheel_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92",
+      "execution_backend_kind": "local",
+      "execution_backend_supported": true,
+      "execution_plan_digest": "sha256:179d640d0d98a477be09624c4f4c58f411709c7dc4c011d5f92415e0030cddc0",
       "host_platform": "darwin/arm64",
       "host_supported": true,
       "issues": [
@@ -19,7 +22,9 @@
           "severity": "error"
         }
       ],
-      "required_engine_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92"
+      "required_engine_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92",
+      "subject_backend_kind": "direct",
+      "subject_backend_supported": true
     },
     "data_policy": {
       "candidate_skill_public_release": "required_for_climb",
@@ -27,11 +32,11 @@
       "raw_episode_training_use": "prohibited",
       "uplift_report_visibility": "public"
     },
-    "evaluation_backend": "local_techtree",
+    "execution_backend_kind": "local",
     "mutation_kind": "skill_insertion",
     "proof_grade": "development_only",
     "purpose": "component_uplift",
-    "reference": "hello-world-climb@1",
+    "reference": "hello-world-climb@2",
     "status": "development",
     "subject_harness": "hermes-agent",
     "subject_harness_version": "0.19.0",

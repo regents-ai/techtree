@@ -31,8 +31,9 @@ from techtree.manifests.builder import (
     build_candidate_manifest,
     skill_content_digest,
 )
-from techtree.models.campaign import CampaignSpec, VariantSchedule
-from techtree.models.experiment import ExperimentManifest
+from techtree.models.campaign import CampaignSpecV2, VariantSchedule
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2
 from techtree.models.skill import SkillArtifact, SkillFile
 from techtree.verifiers.compiler import (
     EVAL_CONFIG_MEDIA_TYPE,
@@ -79,7 +80,9 @@ def candidate_skill() -> SkillArtifact:
     )
 
 
-def manifests(graph: SyntheticGraph) -> tuple[ExperimentManifest, ExperimentManifest]:
+def manifests(
+    graph: SyntheticGraph,
+) -> tuple[ExperimentManifestV2, ExperimentManifestV2]:
     """Return the baseline and candidate the run would execute."""
     baseline = build_baseline_manifest(
         campaign=graph.campaign,
@@ -110,6 +113,7 @@ def test_the_campaign_values_land_where_the_engine_reads_them(
 
     config = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=baseline,
         run_paths=run_paths,
         variant=VariantName.BASELINE,
@@ -121,7 +125,10 @@ def test_the_campaign_values_land_where_the_engine_reads_them(
     assert config.sampling.temperature == subject.sampling.temperature
     assert config.sampling.max_tokens == subject.sampling.max_tokens
     assert config.env.taskset.id == graph.campaign.taskset.ref.id
-    assert config.env.subject.harness.version == subject.harness.version
+    assert (
+        config.env.subject.harness.version
+        == graph.execution_plan.subject.harness_version
+    )
     assert config.env.subject.runtime.image == subject.runtime.image
     assert config.env.subject.runtime.cpu == subject.runtime.cpu
     assert config.env.subject.runtime.memory == subject.runtime.memory_gb
@@ -147,6 +154,7 @@ def test_a_restricted_campaign_runtime_compiles_to_framework_only_egress(
 
     config = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=baseline,
         run_paths=run_paths,
         variant=VariantName.BASELINE,
@@ -168,6 +176,7 @@ def test_the_baseline_mounts_no_skill_and_the_candidate_mounts_exactly_one(
 
     baseline = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=baseline_manifest,
         run_paths=run_paths,
         variant=VariantName.BASELINE,
@@ -175,6 +184,7 @@ def test_the_baseline_mounts_no_skill_and_the_candidate_mounts_exactly_one(
     )
     candidate = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=candidate_manifest,
         run_paths=run_paths,
         variant=VariantName.CANDIDATE,
@@ -195,6 +205,7 @@ def test_the_only_difference_between_the_two_documents_is_the_skill_list(
         config_to_json_bytes(
             compile_variant_config(
                 campaign=graph.campaign,
+                plan=graph.execution_plan,
                 experiment=baseline_manifest,
                 run_paths=run_paths,
                 variant=VariantName.BASELINE,
@@ -206,6 +217,7 @@ def test_the_only_difference_between_the_two_documents_is_the_skill_list(
         config_to_json_bytes(
             compile_variant_config(
                 campaign=graph.campaign,
+                plan=graph.execution_plan,
                 experiment=candidate_manifest,
                 run_paths=run_paths,
                 variant=VariantName.CANDIDATE,
@@ -231,6 +243,7 @@ def test_the_same_manifest_always_compiles_to_the_same_bytes(
     baseline, _ = manifests(graph)
     compile_once = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=baseline,
         run_paths=run_paths,
         variant=VariantName.BASELINE,
@@ -238,6 +251,7 @@ def test_the_same_manifest_always_compiles_to_the_same_bytes(
     )
     compile_again = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=baseline,
         run_paths=run_paths,
         variant=VariantName.BASELINE,
@@ -257,6 +271,7 @@ def test_no_credential_value_reaches_the_compiled_bytes(
     data = config_to_json_bytes(
         compile_variant_config(
             campaign=graph.campaign,
+            plan=graph.execution_plan,
             experiment=baseline,
             run_paths=run_paths,
             variant=VariantName.BASELINE,
@@ -293,7 +308,7 @@ COMPILED_LIMITS: Final[tuple[tuple[str, object], ...]] = (
 )
 
 
-def bounded(campaign: CampaignSpec) -> CampaignSpec:
+def bounded(campaign: CampaignSpecV2) -> CampaignSpecV2:
     """Return the same Campaign with every execution limit declared."""
     return campaign.model_copy(
         update={
@@ -312,7 +327,7 @@ def bounded(campaign: CampaignSpec) -> CampaignSpec:
 
 
 def compiled_seats(
-    campaign: CampaignSpec, graph: SyntheticGraph, run_paths: RunPaths
+    campaign: CampaignSpecV2, graph: SyntheticGraph, run_paths: RunPaths
 ) -> dict[VariantName, SubjectAgentToml]:
     """Compile both variants of one Campaign and return the two subject seats."""
     campaign_digest = digest_object(campaign)
@@ -334,6 +349,7 @@ def compiled_seats(
     return {
         variant: compile_variant_config(
             campaign=campaign,
+            plan=graph.execution_plan,
             experiment=manifest,
             run_paths=run_paths,
             variant=variant,
@@ -414,6 +430,7 @@ def test_a_manifest_from_a_different_campaign_is_refused(
     with pytest.raises(ValidationError) as caught:
         compile_variant_config(
             campaign=other,
+            plan=graph.execution_plan,
             experiment=baseline,
             run_paths=run_paths,
             variant=VariantName.BASELINE,
@@ -430,6 +447,7 @@ def test_a_manifest_compiled_under_the_other_variants_name_is_refused(
     with pytest.raises(ValidationError) as caught:
         compile_variant_config(
             campaign=graph.campaign,
+            plan=graph.execution_plan,
             experiment=baseline,
             run_paths=run_paths,
             variant=VariantName.CANDIDATE,
@@ -441,17 +459,12 @@ def test_a_manifest_compiled_under_the_other_variants_name_is_refused(
 def test_a_harness_wp6_cannot_execute_is_refused(
     graph: SyntheticGraph, run_paths: RunPaths
 ) -> None:
-    campaign = _with_harness_id(graph.campaign, "bash")
-    baseline = build_baseline_manifest(
-        campaign=campaign,
-        campaign_digest=digest_object(campaign),
-        public_context=graph.public_context,
-        created_at=PINNED_TIME,
-    )
+    baseline, _ = manifests(graph)
 
     with pytest.raises(ValidationError) as caught:
         compile_variant_config(
-            campaign=campaign,
+            campaign=graph.campaign,
+            plan=_with_harness_id(graph.execution_plan, "bash"),
             experiment=baseline,
             run_paths=run_paths,
             variant=VariantName.BASELINE,
@@ -460,16 +473,16 @@ def test_a_harness_wp6_cannot_execute_is_refused(
     assert caught.value.code == "manifest_not_compilable"
 
 
-def _with_harness_id(campaign: CampaignSpec, harness_id: str) -> CampaignSpec:
-    """Return the same Campaign with the subject running another harness."""
-    subject = campaign.subject
-    harness = subject.harness.model_copy(update={"id": harness_id})
-    return campaign.model_copy(
-        update={"agents": {"subject": subject.model_copy(update={"harness": harness})}}
+def _with_harness_id(
+    plan: ResolvedExecutionPlan, harness_id: str
+) -> ResolvedExecutionPlan:
+    """Return the same plan with its subject plane naming another harness."""
+    return plan.model_copy(
+        update={"subject": plan.subject.model_copy(update={"harness_id": harness_id})}
     )
 
 
-def _with_primary_reward(campaign: CampaignSpec, reward: str) -> CampaignSpec:
+def _with_primary_reward(campaign: CampaignSpecV2, reward: str) -> CampaignSpecV2:
     """Return a Campaign that is the same experiment scored differently."""
     scoring = campaign.scoring.model_copy(update={"primary_reward": reward})
     return campaign.model_copy(update={"scoring": scoring})
@@ -508,6 +521,7 @@ def test_both_plans_describe_run_owned_paths(
 
     baseline, candidate = compile_plans(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         baseline=baseline_manifest,
         candidate=candidate_manifest,
         run_paths=run_paths,
@@ -535,6 +549,7 @@ def test_a_written_config_is_hashed_from_the_bytes_on_disk(
     baseline, _ = manifests(graph)
     config = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=baseline,
         run_paths=run_paths,
         variant=VariantName.BASELINE,
@@ -556,6 +571,7 @@ def test_a_compiled_config_is_never_silently_overwritten(
     baseline, _ = manifests(graph)
     config = compile_variant_config(
         campaign=graph.campaign,
+        plan=graph.execution_plan,
         experiment=baseline,
         run_paths=run_paths,
         variant=VariantName.BASELINE,

@@ -14,7 +14,7 @@ The order is the specification's, and each step depends on the one before it:
 ```text
  1. Validate the bundle manifest.
  2. Verify every artifact digest.
- 3. Verify Campaign and policy linkage.
+ 3. Verify Campaign, execution-plan and policy linkage.
  4. Verify TasksetLock and validation-receipt linkage.
  5. Verify every EpisodeReceipt envelope signature.
  6. Verify the receipt sets.
@@ -58,21 +58,24 @@ from techtree.identity.models import (
     VerificationStatus,
 )
 from techtree.identity.service import verify_signed_object
-from techtree.models.base import ObjectEnvelope
-from techtree.models.campaign import CampaignSpec
+from techtree.models.base import Digest, ObjectEnvelope
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.data_policy import DataPolicy
-from techtree.models.episode_receipt import EpisodeReceipt
-from techtree.models.experiment import ExperimentManifest, ExperimentVariant
+from techtree.models.episode_receipt import EpisodeReceiptV2
+from techtree.models.evidence import ExecutionLocation, ExecutionLocationKind
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2, ExperimentVariant
 from techtree.models.uplift_report import (
     ComparisonStatus,
     PublicationStatus,
-    UpliftReport,
+    UpliftReportV2,
 )
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
 from techtree.receipts.bundle import (
     BUNDLE_MANIFEST_FILENAME,
     CAMPAIGN_FILENAME,
     DATA_POLICY_FILENAME,
+    EXECUTION_PLAN_FILENAME,
     P1_ARTIFACT_DIGESTS_VERIFY,
     P1_COMPARISON_CONTROLLED,
     P1_PUBLIC_KEY_PRESENT,
@@ -161,7 +164,7 @@ def verify_report_envelope(path: Path) -> VerificationResult:
     so is more useful than reporting a signature as unverifiable.
     """
     checks = _Checks()
-    envelope = _load_envelope(path, UpliftReport, checks, "uplift-report")
+    envelope = _load_envelope(path, UpliftReportV2, checks, "uplift-report")
     identity = _load_identity(path.parent / PUBLIC_IDENTITY_FILENAME, checks)
     if envelope is None or identity is None:
         return checks.result()
@@ -202,8 +205,22 @@ def verify_local_bundle(path: Path) -> VerificationResult:
         ).messages
     )
 
-    # 2. Every artifact digest, recomputed from the stored file.
+    # 2. Every artifact digest, recomputed from the stored file. The execution
+    # plan is one of them, and it has to be one of them: a plan file the
+    # signed index never named is not bound to this run by anything.
     _check_artifacts(directory, manifest, checks)
+    committed_plan = manifest.artifact(EXECUTION_PLAN_FILENAME) is not None
+    checks.record(
+        "bundle.execution_plan_committed",
+        _PASSED if committed_plan else _FAILED,
+        PROOF_BUNDLE_INVALID,
+        f"the bundle manifest commits to {EXECUTION_PLAN_FILENAME}"
+        if committed_plan
+        else (
+            f"the bundle manifest does not commit to {EXECUTION_PLAN_FILENAME}, "
+            "so nothing binds an execution plan to this proof"
+        ),
+    )
 
     # The public key travels as its own file, and it must be the same key.
     stored_identity = _load_identity(directory / PUBLIC_IDENTITY_FILENAME, checks)
@@ -222,7 +239,7 @@ def verify_local_bundle(path: Path) -> VerificationResult:
     if documents is None:
         return checks.result()
 
-    # 3-4. Lineage: Campaign, policy, lock, validation receipt.
+    # 3-4. Lineage: Campaign, execution plan, policy, lock, validation receipt.
     _check_linkage(manifest, documents, checks)
 
     # 5-6. Receipts and the commitments over them.
@@ -279,15 +296,17 @@ class _Documents:
     def __init__(
         self,
         *,
-        campaign: CampaignSpec,
+        campaign: CampaignSpecV2,
+        execution_plan: ResolvedExecutionPlan,
         data_policy: DataPolicy,
         taskset_lock: TasksetLock,
         validation_receipt: TasksetValidationReceipt,
-        experiments: dict[ExperimentVariant, ExperimentManifest],
+        experiments: dict[ExperimentVariant, ExperimentManifestV2],
         receipt_sets: dict[ExperimentVariant, ReceiptSetManifest],
-        report: ObjectEnvelope[UpliftReport],
+        report: ObjectEnvelope[UpliftReportV2],
     ) -> None:
         self.campaign = campaign
+        self.execution_plan = execution_plan
         self.data_policy = data_policy
         self.taskset_lock = taskset_lock
         self.validation_receipt = validation_receipt
@@ -298,18 +317,21 @@ class _Documents:
 
 def _load_documents(directory: Path, checks: _Checks) -> _Documents | None:
     """Parse every document the bundle layout requires, or say which is unreadable."""
-    campaign = _load_model(directory / CAMPAIGN_FILENAME, CampaignSpec, checks)
+    campaign = _load_model(directory / CAMPAIGN_FILENAME, CampaignSpecV2, checks)
+    plan = _load_model(
+        directory / EXECUTION_PLAN_FILENAME, ResolvedExecutionPlan, checks
+    )
     policy = _load_model(directory / DATA_POLICY_FILENAME, DataPolicy, checks)
     lock = _load_model(directory / TASKSET_LOCK_FILENAME, TasksetLock, checks)
     receipt = _load_model(
         directory / VALIDATION_RECEIPT_FILENAME, TasksetValidationReceipt, checks
     )
     report = _load_envelope(
-        directory / REPORT_FILENAME, UpliftReport, checks, "uplift-report"
+        directory / REPORT_FILENAME, UpliftReportV2, checks, "uplift-report"
     )
     experiments = {
         variant: _load_model(
-            directory / experiment_filename(variant), ExperimentManifest, checks
+            directory / experiment_filename(variant), ExperimentManifestV2, checks
         )
         for variant in _VARIANT_ORDER
     }
@@ -322,6 +344,7 @@ def _load_documents(directory: Path, checks: _Checks) -> _Documents | None:
 
     if (
         campaign is None
+        or plan is None
         or policy is None
         or lock is None
         or receipt is None
@@ -332,6 +355,7 @@ def _load_documents(directory: Path, checks: _Checks) -> _Documents | None:
         return None
     return _Documents(
         campaign=campaign,
+        execution_plan=plan,
         data_policy=policy,
         taskset_lock=lock,
         validation_receipt=receipt,
@@ -388,6 +412,7 @@ def _check_linkage(
     """Check every edge between the documents, in both directions."""
     report = documents.report.payload
     campaign_digest = digest_object(documents.campaign)
+    plan_digest = digest_object(documents.execution_plan)
     policy_digest = digest_object(documents.data_policy)
     lock_digest = digest_object(documents.taskset_lock)
     receipt_digest = digest_object(documents.validation_receipt)
@@ -404,6 +429,34 @@ def _check_linkage(
             report.campaign_spec_digest,
             campaign_digest,
             "the report was produced under the Campaign the bundle carries",
+        ),
+        (
+            "linkage.campaign_plan",
+            documents.campaign.execution_plan_digest,
+            plan_digest,
+            "the Campaign binds the execution plan the bundle carries",
+        ),
+        (
+            "linkage.report_plan",
+            report.execution_plan_digest,
+            plan_digest,
+            "the report was produced under that same execution plan",
+        ),
+        (
+            "linkage.baseline_plan",
+            documents.experiments[
+                ExperimentVariant.BASELINE
+            ].configuration.execution_plan_digest,
+            plan_digest,
+            "the baseline experiment was resolved under that same execution plan",
+        ),
+        (
+            "linkage.candidate_plan",
+            documents.experiments[
+                ExperimentVariant.CANDIDATE
+            ].configuration.execution_plan_digest,
+            plan_digest,
+            "the candidate experiment was resolved under that same execution plan",
         ),
         (
             "linkage.campaign_policy",
@@ -463,6 +516,26 @@ def _check_linkage(
             else f"{description} — but it names {expected} and this is {found}",
         )
 
+    # Where the work ran is the plan's execution plane and nothing else; a
+    # report saying otherwise describes an execution the plan did not fix.
+    planned_location = ExecutionLocation(
+        kind=ExecutionLocationKind(documents.execution_plan.execution.kind.value)
+    )
+    located = report.execution_location == planned_location
+    checks.record(
+        "linkage.report_location",
+        _PASSED if located else _FAILED,
+        COMPARISON_INVALID,
+        f"the report places the execution where the plan does: "
+        f"{planned_location.kind.value}"
+        if located
+        else (
+            f"the report places the execution at "
+            f"{report.execution_location.kind.value} and the plan fixes "
+            f"{planned_location.kind.value}"
+        ),
+    )
+
     committed = list(documents.campaign.taskset.membership.ordered_task_hashes)
     locked = list(documents.taskset_lock.ordered_task_hashes)
     checks.record(
@@ -488,18 +561,19 @@ def _check_receipts(
     documents: _Documents,
     identity: ExecutorIdentity,
     checks: _Checks,
-) -> dict[ExperimentVariant, list[EpisodeReceipt]] | None:
+) -> dict[ExperimentVariant, list[EpisodeReceiptV2]] | None:
     """Verify every receipt's signature and every variant's commitment."""
     committed = list(documents.taskset_lock.ordered_task_hashes)
-    loaded: dict[ExperimentVariant, list[EpisodeReceipt]] = {}
+    plan_digest = digest_object(documents.execution_plan)
+    loaded: dict[ExperimentVariant, list[EpisodeReceiptV2]] = {}
 
     for variant in _VARIANT_ORDER:
         receipt_set = documents.receipt_sets[variant]
-        envelopes: list[ObjectEnvelope[EpisodeReceipt]] = []
+        envelopes: list[ObjectEnvelope[EpisodeReceiptV2]] = []
         for position in range(receipt_set.receipt_count):
             relative_path = receipt_filename(variant, position)
             envelope = _load_envelope(
-                directory / relative_path, EpisodeReceipt, checks, relative_path
+                directory / relative_path, EpisodeReceiptV2, checks, relative_path
             )
             if envelope is None:
                 return None
@@ -547,14 +621,41 @@ def _check_receipts(
             else f"the {variant.value} receipts were scored under a different "
             "experiment manifest than the one the bundle carries",
         )
+        _check_receipts_plan(variant, envelopes, plan_digest, checks)
         loaded[variant] = [envelope.payload for envelope in envelopes]
 
     return loaded
 
 
+def _check_receipts_plan(
+    variant: ExperimentVariant,
+    envelopes: Sequence[ObjectEnvelope[EpisodeReceiptV2]],
+    plan_digest: Digest,
+    checks: _Checks,
+) -> None:
+    """Require every receipt to have been scored under the bundle's plan."""
+    strayed = [
+        str(position)
+        for position, envelope in enumerate(envelopes)
+        if envelope.payload.execution_plan_digest != plan_digest
+    ]
+    checks.record(
+        f"receipt_set.{variant.value}.execution_plan",
+        _PASSED if not strayed else _FAILED,
+        RECEIPT_SET_INVALID,
+        f"the {variant.value} receipts were scored under the execution plan "
+        "the bundle carries"
+        if not strayed
+        else (
+            f"these {variant.value} receipts name a different execution plan "
+            f"than the one the bundle carries: {', '.join(strayed)}"
+        ),
+    )
+
+
 def _check_aggregate(
     documents: _Documents,
-    receipts: dict[ExperimentVariant, list[EpisodeReceipt]],
+    receipts: dict[ExperimentVariant, list[EpisodeReceiptV2]],
     checks: _Checks,
 ) -> None:
     """Recompute the paired aggregate and require the report to equal it."""
@@ -690,7 +791,7 @@ def _check_execution_record(
     )
 
 
-def _check_publication(report: UpliftReport, checks: _Checks) -> None:
+def _check_publication(report: UpliftReportV2, checks: _Checks) -> None:
     """Require the report's two publication fields to hold together.
 
     A bundle is written before anybody has been asked whether to publish the
@@ -757,7 +858,7 @@ def _check_p1_conditions(
     *,
     manifest: LocalProofBundleManifest,
     documents: _Documents,
-    receipts: dict[ExperimentVariant, list[EpisodeReceipt]] | None,
+    receipts: dict[ExperimentVariant, list[EpisodeReceiptV2]] | None,
     identity_matches: bool,
     checks: _Checks,
 ) -> None:

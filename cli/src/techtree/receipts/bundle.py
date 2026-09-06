@@ -10,6 +10,7 @@ runs/<run-id>/proof/
 ├── bundle.json                        signed manifest over everything below
 ├── executor-public.json               the key the participant signed with
 ├── campaign.json
+├── execution-plan.json                the resolved plan the Campaign binds
 ├── data-policy.json
 ├── taskset-lock.json
 ├── taskset-validation-receipt.json
@@ -17,10 +18,10 @@ runs/<run-id>/proof/
 ├── candidate-experiment.json
 ├── baseline-receipt-set.json
 ├── candidate-receipt-set.json
-├── receipts/{baseline,candidate}/NNNN.json    signed EpisodeReceipt envelopes
+├── receipts/{baseline,candidate}/NNNN.json    signed EpisodeReceiptV2 envelopes
 ├── comparison-execution.json          the signed ComparisonExecutionRecord,
 │                                      present only when the run recorded one
-└── uplift-report.json                 the signed UpliftReport envelope
+└── uplift-report.json                 the signed UpliftReportV2 envelope
 ```
 
 ``comparison-execution.json`` is the one optional member. Decisions document
@@ -78,11 +79,12 @@ from techtree.models.base import (
     ObjectEnvelope,
     ProtocolModel,
 )
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.data_policy import DataPolicy
-from techtree.models.episode_receipt import EpisodeReceipt, ScoreStatus
-from techtree.models.experiment import ExperimentManifest, ExperimentVariant
-from techtree.models.uplift_report import ComparisonStatus, UpliftReport
+from techtree.models.episode_receipt import EpisodeReceiptV2, ScoreStatus
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2, ExperimentVariant
+from techtree.models.uplift_report import ComparisonStatus, UpliftReportV2
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
 from techtree.receipts.execution import (
     EXECUTION_RECORD_FILENAME,
@@ -95,6 +97,7 @@ __all__ = [
     "BUNDLE_DIRECTORY",
     "BUNDLE_MANIFEST_FILENAME",
     "BUNDLE_MEDIA_TYPE",
+    "EXECUTION_PLAN_FILENAME",
     "LOCAL_PROOF_BUNDLE_SCHEMA_VERSION",
     "P1_ARTIFACT_DIGESTS_VERIFY",
     "P1_COMPARISON_CONTROLLED",
@@ -132,6 +135,7 @@ BUNDLE_DIRECTORY: Final = "proof"
 BUNDLE_MANIFEST_FILENAME: Final = "bundle.json"
 PUBLIC_IDENTITY_FILENAME: Final = "executor-public.json"
 CAMPAIGN_FILENAME: Final = "campaign.json"
+EXECUTION_PLAN_FILENAME: Final = "execution-plan.json"
 DATA_POLICY_FILENAME: Final = "data-policy.json"
 TASKSET_LOCK_FILENAME: Final = "taskset-lock.json"
 VALIDATION_RECEIPT_FILENAME: Final = "taskset-validation-receipt.json"
@@ -162,7 +166,7 @@ _VARIANT_ORDER: Final[tuple[ExperimentVariant, ...]] = (
 P1_ARTIFACT_DIGESTS_VERIFY: Final = "artifact_digests_verify"
 #: "all EpisodeReceipts are wrapped in signed ObjectEnvelopes"
 P1_RECEIPTS_SIGNED: Final = "receipts_signed"
-#: "the UpliftReport is wrapped in a signed ObjectEnvelope"
+#: "the UpliftReportV2 is wrapped in a signed ObjectEnvelope"
 P1_REPORT_SIGNED: Final = "report_signed"
 #: "the local public key is included in the bundle"
 P1_PUBLIC_KEY_PRESENT: Final = "public_key_in_bundle"
@@ -265,14 +269,15 @@ class LocalProofBundleContents:
     """
 
     identity: ExecutorIdentity
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
+    execution_plan: ResolvedExecutionPlan
     data_policy: DataPolicy
     taskset_lock: TasksetLock
     validation_receipt: TasksetValidationReceipt
-    experiments: Mapping[ExperimentVariant, ExperimentManifest]
+    experiments: Mapping[ExperimentVariant, ExperimentManifestV2]
     receipt_sets: Mapping[ExperimentVariant, ReceiptSetManifest]
-    receipts: Mapping[ExperimentVariant, Sequence[ObjectEnvelope[EpisodeReceipt]]]
-    report: ObjectEnvelope[UpliftReport]
+    receipts: Mapping[ExperimentVariant, Sequence[ObjectEnvelope[EpisodeReceiptV2]]]
+    report: ObjectEnvelope[UpliftReportV2]
     #: Decisions document 0007 R6's operational record, already signed. It is
     #: optional because it describes what the comparison consumed rather than
     #: what it measured: a run that could not record its economics still has a
@@ -319,6 +324,7 @@ def bundle_files(contents: LocalProofBundleContents) -> dict[str, bytes]:
     files: dict[str, bytes] = {
         PUBLIC_IDENTITY_FILENAME: canonical_json_bytes(contents.identity),
         CAMPAIGN_FILENAME: canonical_json_bytes(contents.campaign),
+        EXECUTION_PLAN_FILENAME: canonical_json_bytes(contents.execution_plan),
         DATA_POLICY_FILENAME: canonical_json_bytes(contents.data_policy),
         TASKSET_LOCK_FILENAME: canonical_json_bytes(contents.taskset_lock),
         VALIDATION_RECEIPT_FILENAME: canonical_json_bytes(contents.validation_receipt),
@@ -405,7 +411,7 @@ def assess_local_attestation(
     identity_self_check: bool,
     referenced_objects: Sequence[ReferencedObject],
     signed_receipts: Mapping[
-        ExperimentVariant, Sequence[ObjectEnvelope[EpisodeReceipt]]
+        ExperimentVariant, Sequence[ObjectEnvelope[EpisodeReceiptV2]]
     ],
     comparison: ComparisonStatus,
     score: ScoreStatus,
@@ -473,7 +479,7 @@ def _artifact_digests_condition(
 def _receipts_signed_condition(
     identity: ExecutorIdentity | None,
     signed_receipts: Mapping[
-        ExperimentVariant, Sequence[ObjectEnvelope[EpisodeReceipt]]
+        ExperimentVariant, Sequence[ObjectEnvelope[EpisodeReceiptV2]]
     ],
 ) -> ProofCondition:
     """Require every receipt to travel in an envelope this key's signature verifies."""

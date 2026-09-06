@@ -28,6 +28,7 @@ from typing import Final
 from fixtures.catalog.build_complete import (
     build_campaign,
     build_data_policy,
+    build_execution_plan,
     build_taskset_lock,
     build_validation_evidence,
     build_validation_receipt,
@@ -35,24 +36,32 @@ from fixtures.catalog.build_complete import (
     synthetic_id,
 )
 from techtree.canonical import digest_object
-from techtree.constants import EPISODE_RECEIPT_SCHEMA_VERSION, UPLIFT_SCHEMA_VERSION
+from techtree.constants import (
+    EPISODE_RECEIPT_V2_SCHEMA_VERSION,
+    UPLIFT_V2_SCHEMA_VERSION,
+)
+from techtree.execution_facts import (
+    episode_receipt_execution_facts,
+    uplift_report_execution_facts,
+)
 from techtree.identity.models import ExecutorIdentity
 from techtree.identity.service import IdentityService
 from techtree.identity.store import IdentityStore
 from techtree.manifests.builder import build_experiment_configuration, finalize_manifest
 from techtree.models.base import ArtifactRef, Digest, ObjectEnvelope
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec, VariantSchedule
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2, VariantSchedule
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import (
-    EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     NamedTraceReceipt,
     ScoreStatus,
     SubjectRuntimeReceipt,
 )
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import (
-    ExperimentConfiguration,
-    ExperimentManifest,
+    ExperimentConfigurationV2,
+    ExperimentManifestV2,
     ExperimentVariant,
     JsonDifference,
     ManifestComparison,
@@ -63,7 +72,7 @@ from techtree.models.uplift_report import (
     PublicationStatus,
     TaskDelta,
     UpliftDecision,
-    UpliftReport,
+    UpliftReportV2,
     UpliftStatuses,
 )
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
@@ -115,14 +124,15 @@ class RecordedProof:
 
     identity: ExecutorIdentity
     identity_service: IdentityService
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
+    execution_plan: ResolvedExecutionPlan
     data_policy: DataPolicy
     taskset_lock: TasksetLock
     validation_receipt: TasksetValidationReceipt
-    experiments: dict[ExperimentVariant, ExperimentManifest]
-    receipts: dict[ExperimentVariant, list[ObjectEnvelope[EpisodeReceipt]]]
+    experiments: dict[ExperimentVariant, ExperimentManifestV2]
+    receipts: dict[ExperimentVariant, list[ObjectEnvelope[EpisodeReceiptV2]]]
     receipt_sets: dict[ExperimentVariant, ReceiptSetManifest]
-    report: ObjectEnvelope[UpliftReport]
+    report: ObjectEnvelope[UpliftReportV2]
     #: Decisions 0007 R6's operational record, when the proof carries one. A
     #: proof without it is complete, which is the point of the field being
     #: optional here as well as in the bundle.
@@ -134,6 +144,7 @@ class RecordedProof:
         return LocalProofBundleContents(
             identity=self.identity,
             campaign=self.campaign,
+            execution_plan=self.execution_plan,
             data_policy=self.data_policy,
             taskset_lock=self.taskset_lock,
             validation_receipt=self.validation_receipt,
@@ -170,10 +181,12 @@ def signed_proof(
     lock = build_taskset_lock()
     evidence = build_validation_evidence(lock)
     validation_receipt = build_validation_receipt(lock, evidence)
+    execution_plan = build_execution_plan()
     campaign = build_campaign(
         lock=lock,
         validation_receipt_digest=digest_object(validation_receipt),
         data_policy_digest=digest_object(data_policy),
+        execution_plan_digest=digest_object(execution_plan),
     )
     campaign_digest = digest_object(campaign)
 
@@ -197,6 +210,7 @@ def signed_proof(
         variant: [
             _receipt(
                 campaign=campaign,
+                execution_plan=execution_plan,
                 campaign_digest=campaign_digest,
                 data_policy_digest=digest_object(data_policy),
                 experiment=experiments[variant],
@@ -214,7 +228,7 @@ def signed_proof(
         variant: [
             identity_service.sign_object(receipt)
             if sign_receipts
-            else ObjectEnvelope[EpisodeReceipt](
+            else ObjectEnvelope[EpisodeReceiptV2](
                 payload=receipt, payload_digest=digest_object(receipt), signature=None
             )
             for receipt in receipts[variant]
@@ -234,6 +248,7 @@ def signed_proof(
 
     report = _report(
         campaign=campaign,
+        execution_plan=execution_plan,
         campaign_digest=campaign_digest,
         data_policy_digest=digest_object(data_policy),
         validation_receipt_digest=digest_object(validation_receipt),
@@ -247,7 +262,7 @@ def signed_proof(
     sealed_report = (
         identity_service.sign_object(report)
         if sign_report
-        else ObjectEnvelope[UpliftReport](
+        else ObjectEnvelope[UpliftReportV2](
             payload=report, payload_digest=digest_object(report), signature=None
         )
     )
@@ -256,6 +271,7 @@ def signed_proof(
         identity=identity,
         identity_service=identity_service,
         campaign=campaign,
+        execution_plan=execution_plan,
         data_policy=data_policy,
         taskset_lock=lock,
         validation_receipt=validation_receipt,
@@ -385,12 +401,12 @@ def _reward(variant: ExperimentVariant, position: int) -> float:
 
 
 def _manifest(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     campaign_digest: Digest,
     variant: ExperimentVariant,
     *,
     skill: ArtifactRef | None,
-) -> ExperimentManifest:
+) -> ExperimentManifestV2:
     """Build one variant through the same finalizer the run service uses."""
     configuration = build_experiment_configuration(campaign)
     if skill is not None:
@@ -407,11 +423,11 @@ def _manifest(
 
 
 def _with_skill(
-    configuration: ExperimentConfiguration, skill: ArtifactRef
-) -> ExperimentConfiguration:
+    configuration: ExperimentConfigurationV2, skill: ArtifactRef
+) -> ExperimentConfigurationV2:
     """Return the same configuration with the candidate Skill mounted."""
     subject = configuration.agents[SUBJECT_AGENT]
-    return ExperimentConfiguration(
+    return ExperimentConfigurationV2(
         **{
             **dict(configuration),
             "agents": {
@@ -430,20 +446,22 @@ def _with_skill(
 
 def _receipt(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
+    execution_plan: ResolvedExecutionPlan,
     campaign_digest: Digest,
     data_policy_digest: Digest,
-    experiment: ExperimentManifest,
+    experiment: ExperimentManifestV2,
     variant: ExperimentVariant,
     position: int,
     task_hash: Digest,
     reward: float,
     score: ScoreStatus,
-) -> EpisodeReceipt:
+) -> EpisodeReceiptV2:
     """Return one receipt of the shape a real evaluation produces."""
     label = f"{variant.value}/{position}"
-    return EpisodeReceipt(
-        schema_version=EPISODE_RECEIPT_SCHEMA_VERSION,
+    facts = episode_receipt_execution_facts(campaign, execution_plan)
+    return EpisodeReceiptV2(
+        schema_version=EPISODE_RECEIPT_V2_SCHEMA_VERSION,
         id=synthetic_id("receipt", f"receipt/{label}"),
         run_id=PROOF_RUN_ID,
         campaign_spec_digest=campaign_digest,
@@ -451,7 +469,8 @@ def _receipt(
         public_context=None,
         data_policy_digest=data_policy_digest,
         outcome_contract_digest=None,
-        evaluation_backend=campaign.evaluation_backend,
+        execution_plan_digest=facts.execution_plan_digest,
+        execution_location=facts.execution_location,
         subject_runtime=SubjectRuntimeReceipt(
             kind="docker",
             resolved_image_digest=_SUBJECT_IMAGE_DIGEST,
@@ -477,7 +496,7 @@ def _receipt(
         },
         score_status=score,
         evidence_status=EvidenceStatus.COMPLETE,
-        execution_backend="verifiers",
+        executor_kind="verifiers",
         artifacts=[
             ArtifactRef(
                 digest=synthetic_digest(f"normalized-episodes/{variant.value}"),
@@ -491,18 +510,20 @@ def _receipt(
 
 def _report(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
+    execution_plan: ResolvedExecutionPlan,
     campaign_digest: Digest,
     data_policy_digest: Digest,
     validation_receipt_digest: Digest,
-    experiments: dict[ExperimentVariant, ExperimentManifest],
+    experiments: dict[ExperimentVariant, ExperimentManifestV2],
     committed: list[Digest],
     proof_grade: str,
     decision: UpliftDecision,
     comparison: ComparisonStatus,
     score: ScoreStatus,
-) -> UpliftReport:
+) -> UpliftReportV2:
     """Return the report these receipts produce, aggregated by the real code."""
+    facts = uplift_report_execution_facts(campaign, execution_plan)
     deltas = [
         TaskDelta(
             task_hash=task_hash,
@@ -517,8 +538,8 @@ def _report(
     ]
     baseline = experiments[ExperimentVariant.BASELINE]
     candidate = experiments[ExperimentVariant.CANDIDATE]
-    return UpliftReport(
-        schema_version=UPLIFT_SCHEMA_VERSION,
+    return UpliftReportV2(
+        schema_version=UPLIFT_V2_SCHEMA_VERSION,
         id=synthetic_id("uplift", "proof-report"),
         run_id=PROOF_RUN_ID,
         campaign_spec_digest=campaign_digest,
@@ -526,7 +547,8 @@ def _report(
         public_context=None,
         data_policy_digest=data_policy_digest,
         outcome_contract_digest=None,
-        evaluation_backend=campaign.evaluation_backend,
+        execution_plan_digest=facts.execution_plan_digest,
+        execution_location=facts.execution_location,
         taskset_validation_receipt_digest=validation_receipt_digest,
         baseline_manifest_digest=digest_object(baseline),
         candidate_manifest_digest=digest_object(candidate),
@@ -568,6 +590,6 @@ def _report(
     )
 
 
-def replace_report(proof: RecordedProof, report: UpliftReport) -> RecordedProof:
+def replace_report(proof: RecordedProof, report: UpliftReportV2) -> RecordedProof:
     """Return the same proof around a different report, signed by the same key."""
     return replace(proof, report=proof.identity_service.sign_object(report))

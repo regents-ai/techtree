@@ -41,8 +41,9 @@ from techtree.manifests.builder import (
     skill_content_digest,
 )
 from techtree.models.base import ArtifactRef
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.engine import EngineStatus
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.skill import SkillArtifact, SkillFile
 from techtree.paths import TechtreePaths, ensure_path_layout, paths_from_root
 from techtree.settings import Settings
@@ -73,11 +74,18 @@ SUBJECT_SEAT = "subject"
 
 
 @pytest.fixture(scope="module")
-def campaign() -> CampaignSpec:
+def campaign() -> CampaignSpecV2:
     """The Campaign this build ships, read from the packaged catalog."""
     repository = EmbeddedCatalogRepository.packaged()
     climb = repository.load_climb(DEV_CLIMB)
     return repository.load_campaign(climb.campaign_spec_digest)
+
+
+@pytest.fixture(scope="module")
+def plan(campaign: CampaignSpecV2) -> ResolvedExecutionPlan:
+    """The execution plan the shipped Campaign binds, from the same catalog."""
+    repository = EmbeddedCatalogRepository.packaged()
+    return repository.load_execution_plan(campaign.execution_plan_digest)
 
 
 @pytest.fixture(scope="module")
@@ -103,7 +111,10 @@ def candidate_skill() -> SkillArtifact:
 
 
 def compile_both(
-    campaign: CampaignSpec, skill: SkillArtifact, run_paths: RunPaths
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    skill: SkillArtifact,
+    run_paths: RunPaths,
 ) -> dict[VariantName, EvalToml]:
     """Compile both variants of the shipped Campaign."""
     digest = digest_object(campaign)
@@ -125,6 +136,7 @@ def compile_both(
     return {
         variant: compile_variant_config(
             campaign=campaign,
+            plan=plan,
             experiment=manifest,
             run_paths=run_paths,
             variant=variant,
@@ -135,11 +147,14 @@ def compile_both(
 
 
 def test_both_variants_of_the_shipped_campaign_compile(
-    campaign: CampaignSpec, candidate_skill: SkillArtifact, tmp_path: Path
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    candidate_skill: SkillArtifact,
+    tmp_path: Path,
 ) -> None:
     run_paths = RunPaths(root=tmp_path / "runs" / "run_dev")
 
-    configs = compile_both(campaign, candidate_skill, run_paths)
+    configs = compile_both(campaign, plan, candidate_skill, run_paths)
 
     for variant, config in configs.items():
         assert config.env.taskset.id == campaign.taskset.ref.id
@@ -156,12 +171,15 @@ def test_both_variants_of_the_shipped_campaign_compile(
 
 
 def test_the_shipped_campaign_compiles_to_the_same_bytes_every_time(
-    campaign: CampaignSpec, candidate_skill: SkillArtifact, tmp_path: Path
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    candidate_skill: SkillArtifact,
+    tmp_path: Path,
 ) -> None:
     run_paths = RunPaths(root=tmp_path / "runs" / "run_dev")
 
-    first = compile_both(campaign, candidate_skill, run_paths)
-    second = compile_both(campaign, candidate_skill, run_paths)
+    first = compile_both(campaign, plan, candidate_skill, run_paths)
+    second = compile_both(campaign, plan, candidate_skill, run_paths)
 
     for variant in VariantName:
         assert config_to_json_bytes(first[variant]) == config_to_json_bytes(
@@ -170,7 +188,8 @@ def test_the_shipped_campaign_compiles_to_the_same_bytes_every_time(
 
 
 def test_no_credential_value_appears_in_either_compiled_document(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
     candidate_skill: SkillArtifact,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -179,7 +198,7 @@ def test_no_credential_value_appears_in_either_compiled_document(
     monkeypatch.setenv(campaign.subject.model.credential_env, secret)
     run_paths = RunPaths(root=tmp_path / "runs" / "run_dev")
 
-    configs = compile_both(campaign, candidate_skill, run_paths)
+    configs = compile_both(campaign, plan, candidate_skill, run_paths)
 
     for config in configs.values():
         data = config_to_json_bytes(config)
@@ -188,13 +207,17 @@ def test_no_credential_value_appears_in_either_compiled_document(
 
 
 def test_the_campaign_concurrency_bound_is_divided_between_the_plans(
-    campaign: CampaignSpec, candidate_skill: SkillArtifact, tmp_path: Path
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    candidate_skill: SkillArtifact,
+    tmp_path: Path,
 ) -> None:
     run_paths = RunPaths(root=tmp_path / "runs" / "run_dev")
     digest = digest_object(campaign)
 
     baseline, candidate = compile_plans(
         campaign=campaign,
+        plan=plan,
         baseline=build_baseline_manifest(
             campaign=campaign,
             campaign_digest=digest,
@@ -219,7 +242,7 @@ def test_the_campaign_concurrency_bound_is_divided_between_the_plans(
 
 
 def test_the_evaluation_credential_is_diagnosed_on_its_own(
-    campaign: CampaignSpec, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    campaign: CampaignSpecV2, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     # Spec sections 6.9 and 6.18: the subject's model credential is not the
     # operator's own sign-in, and a run says so before it provisions anything.
@@ -269,7 +292,7 @@ def engine_runner(
 def named_subject_engine(
     engine_paths: TechtreePaths,
     installed_engine: EngineStatus,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> EngineStatus:
     """The engine, once it is known to expose the named-subject environment.
 
@@ -298,7 +321,8 @@ def named_subject_engine(
 
 @pytest.mark.parametrize("variant", list(VariantName))
 def test_each_compiled_variant_dry_runs_against_the_installed_engine(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
     candidate_skill: SkillArtifact,
     named_subject_engine: EngineStatus,
     engine_runner: EngineRunner,
@@ -306,7 +330,7 @@ def test_each_compiled_variant_dry_runs_against_the_installed_engine(
     variant: VariantName,
 ) -> None:
     run_paths = RunPaths(root=tmp_path / "runs" / "run_dev")
-    config = compile_both(campaign, candidate_skill, run_paths)[variant]
+    config = compile_both(campaign, plan, candidate_skill, run_paths)[variant]
     input_path = run_paths.variant_input_config(variant)
     write_variant_config(config, input_path)
 
@@ -417,7 +441,8 @@ print(json.dumps({"written": len(hashes)}))
 
 
 def test_the_engine_normalizer_orders_episodes_by_committed_membership(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
     candidate_skill: SkillArtifact,
     named_subject_engine: EngineStatus,
     engine_paths: TechtreePaths,
@@ -459,8 +484,9 @@ def test_the_engine_normalizer_orders_episodes_by_committed_membership(
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(manifest.model_dump_json())
 
-    plan = compile_plans(
+    compiled = compile_plans(
         campaign=campaign,
+        plan=plan,
         baseline=build_baseline_manifest(
             campaign=campaign,
             campaign_digest=digest,
@@ -478,7 +504,7 @@ def test_the_engine_normalizer_orders_episodes_by_committed_membership(
     written = engine_runner.run_python_script(
         generator,
         [
-            plan.verifiers_output_dir,
+            compiled.verifiers_output_dir,
             image,
             campaign.subject.model.model_id,
             *(value.removeprefix("sha256:") for value in committed),
@@ -509,7 +535,7 @@ def test_the_engine_normalizer_orders_episodes_by_committed_membership(
     )
 
     result = build_variant_result(
-        plan=plan,
+        plan=compiled,
         outcome=outcome,
         image_resolution=SubjectImageResolution(
             variant=variant,
@@ -542,6 +568,7 @@ def test_the_engine_normalizer_orders_episodes_by_committed_membership(
     checks = verify_variant_execution(
         result=result,
         experiment=manifest,
+        plan=plan,
         taskset_lock=taskset_lock,
         primary_reward=campaign.scoring.primary_reward,
         engine=descriptor,
@@ -552,7 +579,7 @@ def test_the_engine_normalizer_orders_episodes_by_committed_membership(
 
 
 def test_normalization_is_deterministic_for_the_same_raw_output(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     named_subject_engine: EngineStatus,
     engine_paths: TechtreePaths,
     engine_runner: EngineRunner,

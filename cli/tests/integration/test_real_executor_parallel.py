@@ -27,7 +27,7 @@ import pytest
 from fixtures.runs.support import run_harness
 from techtree.canonical import sha256_digest_bytes
 from techtree.models.campaign import VariantSchedule
-from techtree.models.run import RunPhase, RunRequest
+from techtree.models.run import RunPhase, RunRequestV2
 from techtree.paths import TechtreePaths, paths_from_root
 from techtree.runs.child_registry import ChildRegistry, children_record_path
 from techtree.runs.events import VARIANT_COMPLETED, VARIANT_PROGRESS, VARIANT_STARTED
@@ -99,7 +99,9 @@ def _child(
 
 
 @pytest.fixture
-def started(tmp_path: Path) -> tuple[TechtreePaths, RunStore, RunRequest, VariantPair]:
+def started(
+    tmp_path: Path,
+) -> tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair]:
     """A real run, projected as far as the concurrent phase may be entered from."""
     clear_local_cancellation()
     home = tmp_path / "home"
@@ -119,7 +121,7 @@ def started(tmp_path: Path) -> tuple[TechtreePaths, RunStore, RunRequest, Varian
 
 
 def test_both_children_are_alive_at_the_same_time(
-    started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
+    started: tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair],
 ) -> None:
     """Side by side is a scientific control, so it is checked on the clock."""
     paths, store, request, pair = started
@@ -151,7 +153,7 @@ def test_both_children_are_alive_at_the_same_time(
 
 
 def test_the_run_journal_describes_both_sides_of_the_comparison(
-    started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
+    started: tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair],
 ) -> None:
     """A watcher reading the log alone can follow both variants."""
     paths, store, request, pair = started
@@ -183,7 +185,7 @@ def test_the_run_journal_describes_both_sides_of_the_comparison(
 
 
 def test_the_children_record_survives_the_run_for_manual_cleanup(
-    started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
+    started: tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair],
 ) -> None:
     """A worker that died would leave this file and nothing else."""
     paths, store, request, pair = started
@@ -206,7 +208,7 @@ def test_the_children_record_survives_the_run_for_manual_cleanup(
 
 
 def test_a_failed_variant_stops_its_sibling_and_keeps_both_partial_outputs(
-    started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
+    started: tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair],
 ) -> None:
     """A pair is the unit of a comparison, and its evidence outlives its failure."""
     from techtree.errors import RunError
@@ -235,7 +237,7 @@ def test_a_failed_variant_stops_its_sibling_and_keeps_both_partial_outputs(
 
 
 def test_an_evaluation_that_cannot_be_launched_never_leaves_its_sibling_running(
-    started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
+    started: tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair],
 ) -> None:
     """One live side of a comparison is money spent on nothing.
 

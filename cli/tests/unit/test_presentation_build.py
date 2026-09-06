@@ -24,12 +24,13 @@ from fixtures.receipts.pair import (
 )
 from fixtures.receipts.proof import execution_record as fixture_execution_record
 from techtree.canonical import canonical_json_bytes
+from techtree.execution_facts import uplift_report_execution_facts
 from techtree.identity.models import VerificationMessage, VerificationResult
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec, VariantSchedule
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2, VariantSchedule
+from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.skill import SkillArtifact, SkillFile
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.presentation.build import (
     BASELINE_SKILL_LABEL,
     FIRST_CHANGE_LABEL,
@@ -137,7 +138,7 @@ def pair() -> RecordedPair:
 
 
 @pytest.fixture(scope="module")
-def receipts(pair: RecordedPair) -> dict[VariantName, list[EpisodeReceipt]]:
+def receipts(pair: RecordedPair) -> dict[VariantName, list[EpisodeReceiptV2]]:
     return {
         variant: pair.receipts(variant)
         for variant in (VariantName.BASELINE, VariantName.CANDIDATE)
@@ -146,27 +147,28 @@ def receipts(pair: RecordedPair) -> dict[VariantName, list[EpisodeReceipt]]:
 
 @pytest.fixture(scope="module")
 def report(
-    pair: RecordedPair, receipts: dict[VariantName, list[EpisodeReceipt]]
-) -> UpliftReport:
+    pair: RecordedPair, receipts: dict[VariantName, list[EpisodeReceiptV2]]
+) -> UpliftReportV2:
     """Build the signed-grade report the recorded evidence produces."""
     return _report(pair, receipts, LocalAttestation.LOCAL_ED25519)
 
 
 @pytest.fixture(scope="module")
 def development_report(
-    pair: RecordedPair, receipts: dict[VariantName, list[EpisodeReceipt]]
-) -> UpliftReport:
+    pair: RecordedPair, receipts: dict[VariantName, list[EpisodeReceiptV2]]
+) -> UpliftReportV2:
     """Build the same comparison with nothing signed."""
     return _report(pair, receipts, LocalAttestation.UNATTESTED)
 
 
 def _report(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
     attestation: LocalAttestation,
-) -> UpliftReport:
+) -> UpliftReportV2:
     comparison = compare_real_variants(
         campaign=pair.campaign,
+        plan=pair.execution_plan,
         baseline_manifest=pair.baseline_manifest,
         candidate_manifest=pair.candidate_manifest,
         prepared_manifest_comparison=pair.prepared_comparison,
@@ -189,6 +191,7 @@ def _report(
     return build_uplift_report(
         run_request=pair.request,
         campaign=pair.campaign,
+        execution=uplift_report_execution_facts(pair.campaign, pair.execution_plan),
         data_policy=recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
@@ -209,7 +212,7 @@ def _report(
 
 def _receipt_set(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
     variant: VariantName,
 ) -> ReceiptSetManifest:
     return build_receipt_set(
@@ -222,12 +225,12 @@ def _receipt_set(
 
 
 def build(
-    report: UpliftReport,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReportV2,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
     verification: VerificationResult | None = None,
     execution_record: ComparisonExecutionRecord | None = None,
     recorded_evidence: RecordedEvidence | None = None,
-    campaign: CampaignSpec | None = None,
+    campaign: CampaignSpecV2 | None = None,
 ) -> UpliftPresentationPayload:
     return build_uplift_presentation(
         report=report,
@@ -244,7 +247,7 @@ def build(
 
 
 def execution_record(
-    report: UpliftReport, *, costs: dict[str, VariantCost] | None = None
+    report: UpliftReportV2, *, costs: dict[str, VariantCost] | None = None
 ) -> ComparisonExecutionRecord:
     """Return an operational record for this run, with the cost asked for."""
     record = fixture_execution_record(
@@ -273,7 +276,7 @@ def execution_record(
 
 
 def test_the_payload_states_what_the_report_measured(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
 
@@ -288,7 +291,7 @@ def test_the_payload_states_what_the_report_measured(
 
 
 def test_the_payload_copies_the_verdict_rather_than_deciding_one(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
 
@@ -297,7 +300,7 @@ def test_the_payload_copies_the_verdict_rather_than_deciding_one(
 
 
 def test_an_insertion_comparison_says_what_it_compared(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
 
@@ -310,8 +313,8 @@ def test_an_insertion_comparison_says_what_it_compared(
 
 
 def _compare(
-    report: UpliftReport,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReportV2,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
     *,
     baseline: SkillArtifact | None,
     candidate: SkillArtifact,
@@ -330,7 +333,7 @@ def _compare(
 
 
 def test_a_replacement_comparison_says_what_it_compared(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """Decisions 0019 s1: the baseline is a Skill here, and is named as one."""
     payload = _compare(
@@ -351,7 +354,7 @@ def test_a_replacement_comparison_says_what_it_compared(
 
 
 def test_a_third_comparison_is_not_labelled_as_the_second(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """The ordinal comes from the chain, so it stops where the chain does.
 
@@ -376,7 +379,7 @@ def test_a_third_comparison_is_not_labelled_as_the_second(
 
 
 def test_the_task_rows_name_tasks_by_position_and_hash(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
 
@@ -393,7 +396,7 @@ def test_the_task_rows_name_tasks_by_position_and_hash(
 
 
 def test_a_controlled_comparison_with_warnings_says_so_plainly(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """The handoff rule: warnings are rendered, never hidden."""
     payload = build(report, receipts, verified())
@@ -404,7 +407,7 @@ def test_a_controlled_comparison_with_warnings_says_so_plainly(
 
 
 def test_a_p1_result_explains_p1_in_the_only_permitted_words(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
     caveat = _caveat(payload, "local_participant_attestation")
@@ -414,7 +417,7 @@ def test_a_p1_result_explains_p1_in_the_only_permitted_words(
 
 
 def test_every_result_states_its_standing_limits(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
     codes = [caveat.code for caveat in payload.caveats]
@@ -425,8 +428,8 @@ def test_every_result_states_its_standing_limits(
 
 
 def test_a_development_only_report_leads_with_an_error_caveat(
-    development_report: UpliftReport,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    development_report: UpliftReportV2,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
 ) -> None:
     payload = build(development_report, receipts, None)
 
@@ -437,7 +440,7 @@ def test_a_development_only_report_leads_with_an_error_caveat(
 
 
 def test_a_failed_verification_is_an_error_caveat(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, unverified())
 
@@ -446,7 +449,7 @@ def test_a_failed_verification_is_an_error_caveat(
 
 
 def test_an_unchecked_proof_is_not_a_verified_one(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, None)
 
@@ -455,7 +458,7 @@ def test_an_unchecked_proof_is_not_a_verified_one(
 
 
 def test_a_verified_proof_says_it_was_checked_offline(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
 
@@ -468,7 +471,7 @@ def test_a_verified_proof_says_it_was_checked_offline(
 
 
 def test_the_same_report_builds_the_same_bytes(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """Deterministic: one report, one payload, byte for byte."""
     first = build(report, receipts, verified())
@@ -478,7 +481,7 @@ def test_the_same_report_builds_the_same_bytes(
 
 
 def test_the_payload_carries_no_hidden_material(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """No expected answer, no reply, no grader source has a field to enter by."""
     payload = build(report, receipts, verified())
@@ -490,7 +493,7 @@ def test_the_payload_carries_no_hidden_material(
 
 
 def test_a_result_without_an_execution_record_says_its_economics_are_unknown(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """Decisions 0007 R6: unavailable and warned about, never invented."""
     payload = build(report, receipts, verified())
@@ -506,7 +509,7 @@ def test_a_result_without_an_execution_record_says_its_economics_are_unknown(
 
 
 def test_a_result_with_an_execution_record_is_sourced_from_it(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """The signed record is the source of timing, tokens and cost."""
     record = execution_record(report)
@@ -532,8 +535,8 @@ def test_a_result_with_an_execution_record_is_sourced_from_it(
     ],
 )
 def test_every_cost_provenance_reaches_the_payload_with_its_own_caveat(
-    report: UpliftReport,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    report: UpliftReportV2,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
     provenance: CostProvenance,
     code: str,
     severity: str,
@@ -553,7 +556,7 @@ def test_every_cost_provenance_reaches_the_payload_with_its_own_caveat(
 
 
 def test_a_run_the_provider_priced_nothing_for_still_gets_a_derived_figure(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-nom. Every token was recorded, so a cost is workable.
 
@@ -577,7 +580,7 @@ def test_a_run_the_provider_priced_nothing_for_still_gets_a_derived_figure(
 
 
 def test_a_derived_figure_says_it_was_worked_out_and_names_what_from(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-nom. The sentence a reader judges the number by."""
     payload = build(report, receipts, verified(), execution_record(report))
@@ -589,7 +592,7 @@ def test_a_derived_figure_says_it_was_worked_out_and_names_what_from(
 
 
 def test_a_reported_cost_is_preferred_over_one_that_could_be_worked_out(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-nom. A bill beats arithmetic wherever there is one."""
     cost = VariantCost(
@@ -611,7 +614,7 @@ def test_a_reported_cost_is_preferred_over_one_that_could_be_worked_out(
 
 
 def test_cached_input_is_priced_at_the_full_rate_and_said_to_be(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-nom. An unstated discount is never quietly assumed."""
     record = execution_record(report)
@@ -640,7 +643,7 @@ def test_cached_input_is_priced_at_the_full_rate_and_said_to_be(
 
 
 def test_a_run_with_no_execution_record_says_which_half_is_missing(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-nom. "Unavailable" alone tells a reader nothing."""
     payload = build(report, receipts, verified())
@@ -655,7 +658,7 @@ def test_a_run_with_no_execution_record_says_which_half_is_missing(
 
 
 def test_a_model_this_release_priced_nothing_for_invents_no_cost(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-nom. A missing price is stated, never guessed around."""
     payload = build(
@@ -704,7 +707,7 @@ def seen(
 
 
 def test_the_headline_is_offered_as_a_count_of_tasks(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-of9. The recorded pair is 0 of 36 against 24 of 36."""
     payload = build(report, receipts, verified())
@@ -715,7 +718,7 @@ def test_the_headline_is_offered_as_a_count_of_tasks(
 
 
 def test_a_reward_that_is_not_all_or_nothing_gets_no_invented_count(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-of9. A task scored 0.4 was neither right nor wrong."""
     payload = build(report, receipts, verified())
@@ -734,7 +737,7 @@ def test_a_reward_that_is_not_all_or_nothing_gets_no_invented_count(
 
 
 def test_the_turn_counts_are_carried_and_read_as_a_saving(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-4y1. Two bare counts are not a finding; the saving is.
 
@@ -755,7 +758,7 @@ def test_the_turn_counts_are_carried_and_read_as_a_saving(
 
 
 def test_a_run_whose_files_could_not_be_read_claims_no_turns(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-bmk. Nothing is inferred from a reading that failed."""
     payload = build(report, receipts, verified(), execution_record(report))
@@ -766,7 +769,7 @@ def test_a_run_whose_files_could_not_be_read_claims_no_turns(
 
 
 def test_an_asymmetric_rate_limit_is_a_warning_that_names_both_sides(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-vmp. The founder found this by reading raw eval logs."""
     payload = build(report, receipts, verified(), recorded_evidence=seen())
@@ -780,7 +783,7 @@ def test_an_asymmetric_rate_limit_is_a_warning_that_names_both_sides(
 
 
 def test_an_even_rate_limit_is_stated_without_being_a_qualification(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-vmp. Nothing is asymmetric, so nothing is qualified."""
     payload = build(
@@ -796,7 +799,7 @@ def test_an_even_rate_limit_is_stated_without_being_a_qualification(
 
 
 def test_a_rollout_that_did_not_complete_is_not_claimed_to_have(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-vmp. The completion clause is a claim, and it is checked."""
     payload = build(
@@ -810,7 +813,7 @@ def test_a_rollout_that_did_not_complete_is_not_claimed_to_have(
 
 
 def test_a_run_with_no_reading_says_nothing_about_throttling(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-vmp. Silence, never a zero nobody counted."""
     payload = build(report, receipts, verified())
@@ -821,7 +824,7 @@ def test_a_run_with_no_reading_says_nothing_about_throttling(
 
 
 def test_the_weak_attestation_warning_names_the_coordinate(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-6rq. "At least one coordinate" is true and unusable."""
     payload = build(report, receipts, verified())
@@ -833,7 +836,7 @@ def test_the_weak_attestation_warning_names_the_coordinate(
 
 
 def test_a_cause_this_build_cannot_name_keeps_the_general_wording(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """techtree-python-6rq. The model-revision sentence is never borrowed.
 
@@ -854,7 +857,7 @@ def test_a_cause_this_build_cannot_name_keeps_the_general_wording(
 
 
 def test_the_next_actions_only_name_commands_this_build_has(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     payload = build(report, receipts, verified())
 
@@ -869,7 +872,7 @@ def test_the_next_actions_only_name_commands_this_build_has(
 
 
 def test_publishing_is_offered_second_so_a_reader_is_actually_shown_it(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """The envelope carries three actions, so a position is what is shown.
 
@@ -888,7 +891,7 @@ def test_publishing_is_offered_second_so_a_reader_is_actually_shown_it(
 
 
 def test_a_result_whose_proof_was_not_checked_is_not_offered_publishing(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """``run result --no-verify`` verifies nothing, so it establishes nothing."""
     payload = build(report, receipts, None)
@@ -897,7 +900,7 @@ def test_a_result_whose_proof_was_not_checked_is_not_offered_publishing(
 
 
 def test_a_result_whose_proof_failed_is_never_offered_publishing(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """The whole point of the product is that this cannot be published."""
     payload = build(report, receipts, unverified())
@@ -906,7 +909,7 @@ def test_a_result_whose_proof_failed_is_never_offered_publishing(
 
 
 def test_an_ineligible_report_is_not_offered_publishing(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     """Offering a command that would refuse is worse than offering nothing."""
     ineligible = report.model_copy(update={"publication_eligible": False})
@@ -917,8 +920,8 @@ def test_an_ineligible_report_is_not_offered_publishing(
 
 
 def test_a_development_only_result_is_not_offered_a_proof_to_verify(
-    development_report: UpliftReport,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    development_report: UpliftReportV2,
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
 ) -> None:
     """It has no proof bundle, so offering the command would offer a failure."""
     payload = build(development_report, receipts, None)
@@ -927,7 +930,7 @@ def test_a_development_only_result_is_not_offered_a_proof_to_verify(
 
 
 def test_the_score_bars_are_drawn_on_one_scale(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> None:
     bars = score_bars(build(report, receipts, verified()))
 
@@ -940,7 +943,7 @@ def _caveat(payload: UpliftPresentationPayload, code: str) -> PresentationCaveat
     return next(caveat for caveat in payload.caveats if caveat.code == code)
 
 
-def _measuring(model_id: str, *, revision: str | None = None) -> CampaignSpec:
+def _measuring(model_id: str, *, revision: str | None = None) -> CampaignSpecV2:
     """Return the recorded Campaign with a different subject model on it."""
     campaign = recorded_pair().campaign
     subject = campaign.subject
@@ -997,7 +1000,7 @@ def _terminal(payload: UpliftPresentationPayload) -> str:
 
 @pytest.fixture
 def channels(
-    report: UpliftReport, receipts: dict[VariantName, list[EpisodeReceipt]]
+    report: UpliftReportV2, receipts: dict[VariantName, list[EpisodeReceiptV2]]
 ) -> tuple[UpliftPresentationPayload, str, str]:
     """Return one real payload and both renderings of it."""
     payload = build(report, receipts, verified(), execution_record(report))

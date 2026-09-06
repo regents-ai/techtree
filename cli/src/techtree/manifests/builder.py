@@ -8,7 +8,7 @@ true.
 Four rules make it true rather than merely intended.
 
 *Copy, never re-derive.* The taskset, environment, agents, mutation contract,
-evaluation backend, execution plan, scoring rule, evidence requirements,
+execution plan digest, execution schedule, scoring rule, evidence requirements,
 budgets, DataPolicy digest, and OutcomeContract digest are copied out of the
 Campaign exactly as they were found. Nothing is normalized, defaulted, or
 recomputed on the way through, because a value this module produced would be a
@@ -42,19 +42,19 @@ from datetime import UTC, datetime
 from typing import Final
 
 from techtree.canonical import digest_object
-from techtree.constants import EXPERIMENT_SCHEMA_VERSION
+from techtree.constants import EXPERIMENT_V2_SCHEMA_VERSION
 from techtree.errors import ValidationError
 from techtree.models.base import ArtifactRef, Digest, JsonValue
 from techtree.models.campaign import (
-    AgentSpec,
-    CampaignSpec,
-    HarnessSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
+    HarnessSpecV2,
     MutationKind,
     PublicContext,
 )
 from techtree.models.experiment import (
-    ExperimentConfiguration,
-    ExperimentManifest,
+    ExperimentConfigurationV2,
+    ExperimentManifestV2,
     ExperimentVariant,
 )
 from techtree.models.skill import SkillArtifact, SkillFile
@@ -91,8 +91,8 @@ _ID_HEX_LENGTH: Final = 24
 
 
 def build_experiment_configuration(
-    campaign: CampaignSpec,
-) -> ExperimentConfiguration:
+    campaign: CampaignSpecV2,
+) -> ExperimentConfigurationV2:
     """Copy the Campaign scientific fields into an ``ExperimentConfiguration``.
 
     This is the baseline configuration, because a Campaign describes the subject
@@ -101,14 +101,14 @@ def build_experiment_configuration(
     :func:`build_candidate_manifest` produces the other variant by replacing
     exactly one field of exactly one agent.
     """
-    return ExperimentConfiguration(
+    return ExperimentConfigurationV2(
         taskset=campaign.taskset.model_copy(deep=True),
         environment=campaign.environment.model_copy(deep=True),
         agents={
             name: agent.model_copy(deep=True) for name, agent in campaign.agents.items()
         },
         mutation_contract=campaign.mutation_contract.model_copy(deep=True),
-        evaluation_backend=campaign.evaluation_backend.model_copy(deep=True),
+        execution_plan_digest=campaign.execution_plan_digest,
         execution=campaign.execution.model_copy(deep=True),
         scoring=campaign.scoring.model_copy(deep=True),
         evidence=campaign.evidence.model_copy(deep=True),
@@ -161,12 +161,12 @@ def build_skill_reference(skill: SkillArtifact) -> ArtifactRef:
 
 def build_baseline_manifest(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     campaign_digest: Digest,
     public_context: PublicContext | None,
     created_at: datetime | None = None,
     manifest_id: str | None = None,
-) -> ExperimentManifest:
+) -> ExperimentManifestV2:
     """Build the baseline variant."""
     configuration = build_experiment_configuration(campaign)
     _require_campaign_baseline(configuration, campaign)
@@ -183,13 +183,13 @@ def build_baseline_manifest(
 
 def build_candidate_manifest(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     campaign_digest: Digest,
     skill: SkillArtifact,
     public_context: PublicContext | None,
     created_at: datetime | None = None,
     manifest_id: str | None = None,
-) -> ExperimentManifest:
+) -> ExperimentManifestV2:
     """Build the candidate variant with exactly one skill reference.
 
     The candidate configuration is the baseline configuration with the subject
@@ -229,12 +229,10 @@ def build_candidate_manifest(
 
     target = mutation.target_agent
     subject = configuration.agents[target]
-    with_skill = AgentSpec(
+    with_skill = AgentSpecV2(
         model=subject.model,
         sampling=subject.sampling,
-        harness=HarnessSpec(
-            id=subject.harness.id,
-            version=subject.harness.version,
+        harness=HarnessSpecV2(
             use_bundled_skill=subject.harness.use_bundled_skill,
             skills=[reference],
         ),
@@ -257,14 +255,14 @@ def build_candidate_manifest(
 
 def finalize_manifest(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     campaign_digest: Digest,
     public_context: PublicContext | None,
     variant: ExperimentVariant,
-    configuration: ExperimentConfiguration,
+    configuration: ExperimentConfigurationV2,
     created_at: datetime | None,
     manifest_id: str | None,
-) -> ExperimentManifest:
+) -> ExperimentManifestV2:
     """Validate lineage, calculate ``configuration_digest``, and construct."""
     if digest_object(campaign) != campaign_digest:
         raise ValidationError(
@@ -278,8 +276,8 @@ def finalize_manifest(
         )
 
     configuration_digest = digest_object(configuration)
-    manifest = ExperimentManifest(
-        schema_version=EXPERIMENT_SCHEMA_VERSION,
+    manifest = ExperimentManifestV2(
+        schema_version=EXPERIMENT_V2_SCHEMA_VERSION,
         id=manifest_id or manifest_id_for(configuration_digest),
         campaign_spec_digest=campaign_digest,
         program_ref=(
@@ -300,8 +298,8 @@ def finalize_manifest(
 
 
 def assert_manifest_matches_campaign(
-    manifest: ExperimentManifest,
-    campaign: CampaignSpec,
+    manifest: ExperimentManifestV2,
+    campaign: CampaignSpecV2,
     campaign_digest: Digest,
 ) -> None:
     """Check, after the fact, that a manifest is the Campaign it claims to be.
@@ -326,9 +324,9 @@ def assert_manifest_matches_campaign(
             configuration.data_policy_digest,
         ),
         (
-            "evaluation backend",
-            campaign.evaluation_backend,
-            configuration.evaluation_backend,
+            "execution plan",
+            campaign.execution_plan_digest,
+            configuration.execution_plan_digest,
         ),
         ("taskset", campaign.taskset, configuration.taskset),
         ("environment", campaign.environment, configuration.environment),
@@ -337,7 +335,7 @@ def assert_manifest_matches_campaign(
             campaign.mutation_contract,
             configuration.mutation_contract,
         ),
-        ("execution plan", campaign.execution, configuration.execution),
+        ("execution schedule", campaign.execution, configuration.execution),
         ("scoring rule", campaign.scoring, configuration.scoring),
         ("evidence requirement", campaign.evidence, configuration.evidence),
         ("budget", campaign.budgets, configuration.budgets),
@@ -389,8 +387,8 @@ def manifest_id_for(configuration_digest: Digest) -> str:
 
 
 def _require_campaign_baseline(
-    configuration: ExperimentConfiguration, campaign: CampaignSpec
-) -> AgentSpec:
+    configuration: ExperimentConfigurationV2, campaign: CampaignSpecV2
+) -> AgentSpecV2:
     """Fail closed when the Campaign's subject is not the baseline its kind needs.
 
     An insertion measures a skill against no skill, so its Campaign carries

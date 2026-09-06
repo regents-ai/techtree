@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from importlib.resources.abc import Traversable
 from pathlib import Path
@@ -31,9 +32,10 @@ from techtree.catalog.repository import EmbeddedCatalogRepository
 from techtree.catalog.service import CatalogService, HostInfo
 from techtree.drafts.store import DraftStore
 from techtree.models.base import Digest
-from techtree.models.campaign import CampaignSpec, PublicContext
+from techtree.models.campaign import CampaignSpecV2, PublicContext
 from techtree.models.catalog import EngineCompatibilityStatus
 from techtree.models.climb import ClimbManifest, ResolvedClimb
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.validation import ValidationEvidence
 from techtree.paths import TechtreePaths, paths_from_root
 from techtree.skills.service import PreparedDraft, SkillPreparationService
@@ -72,9 +74,14 @@ class SyntheticGraph:
     evidence: ValidationEvidence
 
     @property
-    def campaign(self) -> CampaignSpec:
+    def campaign(self) -> CampaignSpecV2:
         """Return the Campaign the Climb wraps."""
         return self.resolved.campaign
+
+    @property
+    def execution_plan(self) -> ResolvedExecutionPlan:
+        """Return the resolved plan the Campaign binds."""
+        return self.resolved.execution_plan
 
     @property
     def campaign_digest(self) -> Digest:
@@ -123,10 +130,12 @@ def synthetic_graph(
     lock = builder.build_taskset_lock()
     evidence = builder.build_validation_evidence(lock)
     receipt = builder.build_validation_receipt(lock, evidence)
+    execution_plan = builder.build_execution_plan()
     campaign = builder.build_campaign(
         lock=lock,
         validation_receipt_digest=digest_object(receipt),
         data_policy_digest=digest_object(data_policy),
+        execution_plan_digest=digest_object(execution_plan),
     )
     climb: ClimbManifest = builder.build_climb(
         campaign_digest=digest_object(campaign),
@@ -141,12 +150,74 @@ def synthetic_graph(
             climb_digest=digest_object(climb),
             campaign=campaign,
             campaign_digest=digest_object(campaign),
+            execution_plan=execution_plan,
+            execution_plan_digest=digest_object(execution_plan),
             data_policy=data_policy,
             data_policy_digest=digest_object(data_policy),
             publisher_validation=receipt,
             publisher_validation_digest=digest_object(receipt),
         ),
         evidence=evidence,
+    )
+
+
+def write_synthetic_catalog(
+    destination: Path,
+    *,
+    execution_plan: ResolvedExecutionPlan | None = None,
+    revise_campaign: Callable[[CampaignSpecV2], CampaignSpecV2] | None = None,
+) -> None:
+    """Write the synthetic catalog to ``destination``, varied in one place.
+
+    The committed fixture is what most tests read. A test about how one
+    coordinate is handled — a plan this build cannot run, a Campaign that
+    schedules its two sides differently — needs the same catalog with that one
+    thing changed, and building it here keeps every digest derived from the
+    real bytes the way the committed one's are.
+    """
+    builder: Any = catalog_fixture_builder()
+    data_policy = builder.build_data_policy()
+    lock = builder.build_taskset_lock()
+    evidence = builder.build_validation_evidence(lock)
+    receipt = builder.build_validation_receipt(lock, evidence)
+    plan = execution_plan or builder.build_execution_plan()
+    campaign: CampaignSpecV2 = builder.build_campaign(
+        lock=lock,
+        validation_receipt_digest=digest_object(receipt),
+        data_policy_digest=digest_object(data_policy),
+        execution_plan_digest=digest_object(plan),
+    )
+    if revise_campaign is not None:
+        campaign = revise_campaign(campaign)
+
+    builder.write_catalog(
+        destination,
+        climbs={
+            f"climbs/{slug}.json": builder.build_climb(
+                campaign_digest=digest_object(campaign),
+                slug=slug,
+                status=status,
+                proof_grade=proof_grade,
+            )
+            for slug, status, proof_grade in builder.CLIMB_VARIANTS
+        },
+        objects=[
+            builder.CatalogFile(
+                kind="campaign", path=builder.CAMPAIGN_PATH, model=campaign
+            ),
+            builder.CatalogFile(
+                kind="data_policy", path=builder.DATA_POLICY_PATH, model=data_policy
+            ),
+            builder.CatalogFile(
+                kind="execution_plan", path=builder.EXECUTION_PLAN_PATH, model=plan
+            ),
+            builder.CatalogFile(
+                kind="taskset_validation", path=builder.RECEIPT_PATH, model=receipt
+            ),
+            builder.CatalogFile(
+                kind="validation_evidence", path=builder.EVIDENCE_PATH, model=evidence
+            ),
+        ],
     )
 
 

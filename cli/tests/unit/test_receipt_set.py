@@ -14,16 +14,19 @@ edits is made and the resulting refusal is asserted.
 from __future__ import annotations
 
 import json
+from functools import cache
 from pathlib import Path
 from typing import Final
 
 import pytest
 
+from fixtures.receipts.pair import RecordedPair, recorded_pair
 from fixtures.receipts.support import RecordedVariant, recorded_variant
 from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.errors import TechtreeError
+from techtree.execution_facts import episode_receipt_execution_facts
 from techtree.models.base import ObjectEnvelope
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.experiment import ExperimentVariant
 from techtree.receipts.episode import (
     EPISODE_COUNT_MISMATCH,
@@ -56,36 +59,45 @@ def recorded(request: pytest.FixtureRequest) -> RecordedVariant:
     return recorded_variant(variant)
 
 
-def receipts_of(recorded: RecordedVariant) -> list[EpisodeReceipt]:
+@cache
+def pair() -> RecordedPair:
+    """Return the recorded comparison as the run the receipts belong to."""
+    return recorded_pair()
+
+
+def receipts_of(recorded: RecordedVariant) -> list[EpisodeReceiptV2]:
     """Build one recorded variant's receipts."""
+    run = pair()
     return build_variant_receipts(
-        run_request=recorded.request,
+        run_request=run.request,
         variant=recorded.variant,
-        experiment=recorded.experiment,
-        result=recorded.result,
-        evaluation_backend=recorded.campaign.evaluation_backend,
+        experiment=run.manifest(recorded.variant),
+        result=run.results[recorded.variant],
+        execution=episode_receipt_execution_facts(run.campaign, run.execution_plan),
         ordered_task_hashes=recorded.ordered_task_hashes,
         primary_reward=recorded.primary_reward,
-        evidence=recorded.campaign.evidence,
+        evidence=run.campaign.evidence,
     )
 
 
 def envelopes_of(
     recorded: RecordedVariant,
-) -> list[ObjectEnvelope[EpisodeReceipt]]:
+) -> list[ObjectEnvelope[EpisodeReceiptV2]]:
     """Seal one recorded variant's receipts."""
     return [seal_receipt(receipt) for receipt in receipts_of(recorded)]
 
 
 def set_of(
     recorded: RecordedVariant,
-    envelopes: list[ObjectEnvelope[EpisodeReceipt]] | None = None,
+    envelopes: list[ObjectEnvelope[EpisodeReceiptV2]] | None = None,
 ) -> ReceiptSetManifest:
     """Build the commitment over one recorded variant's receipts."""
     return build_receipt_set(
-        run_id=recorded.request.run_id,
+        run_id=pair().request.run_id,
         variant=experiment_variant_of(recorded.variant),
-        experiment_manifest_digest=recorded.result.experiment_manifest_digest,
+        experiment_manifest_digest=pair()
+        .results[recorded.variant]
+        .experiment_manifest_digest,
         signed_receipts=envelopes_of(recorded) if envelopes is None else envelopes,
         ordered_task_hashes=recorded.ordered_task_hashes,
     )
@@ -104,7 +116,7 @@ def test_the_set_commits_to_every_receipt_in_membership_order(
     manifest = set_of(recorded, envelopes)
 
     assert manifest.schema_version == RECEIPT_SET_SCHEMA_VERSION
-    assert manifest.run_id == recorded.request.run_id
+    assert manifest.run_id == pair().request.run_id
     assert manifest.variant is experiment_variant_of(recorded.variant)
     assert manifest.receipt_count == len(recorded.ordered_task_hashes)
     assert manifest.ordered_receipt_digests == [

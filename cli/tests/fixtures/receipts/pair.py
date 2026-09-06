@@ -37,11 +37,24 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Final
 
-from fixtures.receipts.support import RecordedVariant, recorded_variant
+from fixtures.receipts.support import (
+    RecordedVariant,
+    recorded_execution_plan,
+    recorded_variant,
+)
 from techtree.canonical import digest_object
 from techtree.catalog.repository import EmbeddedCatalogRepository
-from techtree.constants import TASKSET_LOCK_SCHEMA_VERSION
+from techtree.constants import (
+    CAMPAIGN_V2_SCHEMA_VERSION,
+    RUN_REQUEST_V2_SCHEMA_VERSION,
+    TASKSET_LOCK_SCHEMA_VERSION,
+)
 from techtree.engines.bundle import default_engine_digest
+from techtree.execution_facts import (
+    episode_receipt_execution_facts,
+    run_request_execution_facts,
+    uplift_report_execution_facts,
+)
 from techtree.manifests.builder import (
     build_experiment_configuration,
     finalize_manifest,
@@ -50,23 +63,25 @@ from techtree.manifests.compare import compare_manifests
 from techtree.models.base import ArtifactRef, Digest
 from techtree.models.campaign import (
     SUBJECT_AGENT,
-    AgentSpec,
-    CampaignSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
     CampaignTaskset,
-    HarnessSpec,
+    EvidenceRequirementsV2,
+    HarnessSpecV2,
     TaskMembershipCommitment,
     TaskSelection,
 )
 from techtree.models.data_policy import DataPolicy
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import (
-    ExperimentConfiguration,
-    ExperimentManifest,
+    ExperimentConfigurationV2,
+    ExperimentManifestV2,
     ExperimentVariant,
     ManifestComparison,
 )
-from techtree.models.run import PolicyAcknowledgement, RunRequest
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.run import PolicyAcknowledgement, RunRequestV2
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.models.validation import TasksetLock
 from techtree.receipts.compare import (
     ObservedVariant,
@@ -102,12 +117,13 @@ _FIXTURE_INSTANT: Final = datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
 class RecordedPair:
     """Both sides of one controlled comparison, declared and observed."""
 
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
     campaign_digest: Digest
-    baseline_manifest: ExperimentManifest
-    candidate_manifest: ExperimentManifest
+    execution_plan: ResolvedExecutionPlan
+    baseline_manifest: ExperimentManifestV2
+    candidate_manifest: ExperimentManifestV2
     prepared_comparison: ManifestComparison
-    request: RunRequest
+    request: RunRequestV2
     taskset_lock: TasksetLock
     results: dict[VariantName, VariantExecutionResult]
     resolved_configs: dict[VariantName, dict[str, Any]]
@@ -122,7 +138,7 @@ class RecordedPair:
         """The tasks both probes scored, in committed order."""
         return list(self.campaign.taskset.membership.ordered_task_hashes)
 
-    def manifest(self, variant: VariantName) -> ExperimentManifest:
+    def manifest(self, variant: VariantName) -> ExperimentManifestV2:
         """Return one side's declared manifest."""
         return (
             self.baseline_manifest
@@ -138,14 +154,16 @@ class RecordedPair:
             runtime=self.campaign.agents[SUBJECT_AGENT].runtime,
         )
 
-    def receipts(self, variant: VariantName) -> list[EpisodeReceipt]:
+    def receipts(self, variant: VariantName) -> list[EpisodeReceiptV2]:
         """Build one side's receipts from its recorded evidence."""
         return build_variant_receipts(
             run_request=self.request,
             variant=variant,
             experiment=self.manifest(variant),
             result=self.results[variant],
-            evaluation_backend=self.campaign.evaluation_backend,
+            execution=episode_receipt_execution_facts(
+                self.campaign, self.execution_plan
+            ),
             ordered_task_hashes=self.ordered_task_hashes,
             primary_reward=self.primary_reward,
             evidence=self.campaign.evidence,
@@ -156,7 +174,7 @@ def recorded_report(
     pair: RecordedPair,
     *,
     attestation: LocalAttestation = LocalAttestation.LOCAL_ED25519,
-) -> UpliftReport:
+) -> UpliftReportV2:
     """Build the report the recorded comparison produces, through the real code.
 
     Every step is the production one — the observed comparison, the paired
@@ -170,6 +188,7 @@ def recorded_report(
     }
     comparison = compare_real_variants(
         campaign=pair.campaign,
+        plan=pair.execution_plan,
         baseline_manifest=pair.baseline_manifest,
         candidate_manifest=pair.candidate_manifest,
         prepared_manifest_comparison=pair.prepared_comparison,
@@ -192,6 +211,7 @@ def recorded_report(
     return build_uplift_report(
         run_request=pair.request,
         campaign=pair.campaign,
+        execution=uplift_report_execution_facts(pair.campaign, pair.execution_plan),
         data_policy=recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
@@ -212,7 +232,7 @@ def recorded_report(
 
 def _receipt_set(
     pair: RecordedPair,
-    receipts: dict[VariantName, list[EpisodeReceipt]],
+    receipts: dict[VariantName, list[EpisodeReceiptV2]],
     variant: VariantName,
 ) -> ReceiptSetManifest:
     """Commit to one side's receipts the way a run does."""
@@ -225,7 +245,7 @@ def _receipt_set(
     )
 
 
-def recorded_data_policy(campaign: CampaignSpec) -> DataPolicy:
+def recorded_data_policy(campaign: CampaignSpecV2) -> DataPolicy:
     """Return the rights statement one Campaign runs under.
 
     Loaded from the packaged catalog by the digest the Campaign itself names,
@@ -237,7 +257,11 @@ def recorded_data_policy(campaign: CampaignSpec) -> DataPolicy:
     )
 
 
-def trimmed_campaign(task_hashes: list[Digest] | None = None) -> CampaignSpec:
+def trimmed_campaign(
+    task_hashes: list[Digest] | None = None,
+    *,
+    execution_plan: ResolvedExecutionPlan | None = None,
+) -> CampaignSpecV2:
     """Return the recorded run's own Campaign, committed to the tasks it scored.
 
     Read from the evidence rather than re-derived from the source tree. The
@@ -250,35 +274,64 @@ def trimmed_campaign(task_hashes: list[Digest] | None = None) -> CampaignSpec:
     cannot describe a different experiment than the episodes beside them.
 
     Only the committed membership is narrowed, and only to tasks the recorded
-    evidence actually covers.
+    evidence actually covers. The recorded Campaign is a v0.1 document; the
+    one returned is the same science restated as a v0.2 Campaign, bound to
+    the plan the recorded harness and this build's engine resolve to
+    (:func:`recorded_execution_plan`) unless a caller binds another.
     """
     full = recorded_variant(VariantName.CANDIDATE).campaign
+    subject = full.agents[SUBJECT_AGENT]
     committed = task_hashes or _shared_task_hashes()
-    return CampaignSpec(
-        **{
-            **dict(full),
-            "taskset": CampaignTaskset(
-                ref=full.taskset.ref,
-                selection=TaskSelection(
-                    num_tasks=len(committed), num_rollouts=1, shuffle=False
-                ),
-                membership=TaskMembershipCommitment(
-                    mode="committed",
-                    ordered_task_hashes=list(committed),
-                    membership_digest=membership_digest(committed),
-                ),
-                validation_receipt_digest=full.taskset.validation_receipt_digest,
+    plan = execution_plan or recorded_execution_plan()
+    return CampaignSpecV2(
+        schema_version=CAMPAIGN_V2_SCHEMA_VERSION,
+        kind=full.kind,
+        metadata=full.metadata,
+        context=full.context,
+        taskset=CampaignTaskset(
+            ref=full.taskset.ref,
+            selection=TaskSelection(
+                num_tasks=len(committed), num_rollouts=1, shuffle=False
             ),
-        }
+            membership=TaskMembershipCommitment(
+                mode="committed",
+                ordered_task_hashes=list(committed),
+                membership_digest=membership_digest(committed),
+            ),
+            validation_receipt_digest=full.taskset.validation_receipt_digest,
+        ),
+        environment=full.environment,
+        agents={
+            SUBJECT_AGENT: AgentSpecV2(
+                model=subject.model,
+                sampling=subject.sampling,
+                harness=HarnessSpecV2(
+                    use_bundled_skill=subject.harness.use_bundled_skill,
+                    skills=list(subject.harness.skills),
+                ),
+                runtime=subject.runtime,
+                trainable=subject.trainable,
+            )
+        },
+        mutation_contract=full.mutation_contract,
+        execution=full.execution,
+        scoring=full.scoring,
+        evidence=EvidenceRequirementsV2(
+            runtime_evidence=full.evidence.runtime_evidence
+        ),
+        budgets=full.budgets,
+        data_policy_digest=full.data_policy_digest,
+        execution_plan_digest=digest_object(plan),
     )
 
 
 def recorded_pair(
     *,
-    campaign: CampaignSpec | None = None,
-    baseline_manifest: ExperimentManifest | None = None,
-    candidate_manifest: ExperimentManifest | None = None,
-    request: RunRequest | None = None,
+    campaign: CampaignSpecV2 | None = None,
+    execution_plan: ResolvedExecutionPlan | None = None,
+    baseline_manifest: ExperimentManifestV2 | None = None,
+    candidate_manifest: ExperimentManifestV2 | None = None,
+    request: RunRequestV2 | None = None,
 ) -> RecordedPair:
     """Assemble one controlled comparison over the recorded probe evidence.
 
@@ -292,7 +345,8 @@ def recorded_pair(
     }
     _require_recorded_campaign(probes[VariantName.CANDIDATE])
 
-    resolved_campaign = campaign or trimmed_campaign()
+    plan = execution_plan or recorded_execution_plan()
+    resolved_campaign = campaign or trimmed_campaign(execution_plan=plan)
     campaign_digest = digest_object(resolved_campaign)
     committed = list(resolved_campaign.taskset.membership.ordered_task_hashes)
 
@@ -309,6 +363,7 @@ def recorded_pair(
     return RecordedPair(
         campaign=resolved_campaign,
         campaign_digest=campaign_digest,
+        execution_plan=plan,
         baseline_manifest=baseline,
         candidate_manifest=candidate,
         prepared_comparison=compare_manifests(
@@ -317,6 +372,7 @@ def recorded_pair(
         request=request
         or _request(
             campaign=resolved_campaign,
+            plan=plan,
             campaign_digest=campaign_digest,
             baseline=baseline,
             candidate=candidate,
@@ -368,12 +424,12 @@ def restrict_to_tasks(
 
 
 def _manifest(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     campaign_digest: Digest,
     variant: ExperimentVariant,
     *,
     skill: ArtifactRef | None,
-) -> ExperimentManifest:
+) -> ExperimentManifestV2:
     """Build one variant through the same finalizer the run service uses."""
     configuration = build_experiment_configuration(campaign)
     if skill is not None:
@@ -390,18 +446,18 @@ def _manifest(
 
 
 def _with_skill(
-    configuration: ExperimentConfiguration, skill: ArtifactRef
-) -> ExperimentConfiguration:
+    configuration: ExperimentConfigurationV2, skill: ArtifactRef
+) -> ExperimentConfigurationV2:
     """Return the configuration with the subject's Skill list replaced."""
     subject = configuration.agents[SUBJECT_AGENT]
-    return ExperimentConfiguration(
+    return ExperimentConfigurationV2(
         **{
             **dict(configuration),
             "agents": {
-                SUBJECT_AGENT: AgentSpec(
+                SUBJECT_AGENT: AgentSpecV2(
                     **{
                         **dict(subject),
-                        "harness": HarnessSpec(
+                        "harness": HarnessSpecV2(
                             **{**dict(subject.harness), "skills": [skill]}
                         ),
                     }
@@ -419,18 +475,20 @@ def _recorded_skill_reference(candidate: RecordedVariant) -> ArtifactRef:
 
 def _request(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
     campaign_digest: Digest,
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
-) -> RunRequest:
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
+) -> RunRequestV2:
     """Build the request one run of this pair would have been created from.
 
     Derived, not recorded: the probes were two runs and this comparison is one.
     Every digest in it is a digest of an object above.
     """
-    return RunRequest(
-        run_id="run_recordedpair00000000000000000",
+    return RunRequestV2(
+        schema_version=RUN_REQUEST_V2_SCHEMA_VERSION,
+        run_id="run_abababababababababababababababab",
         draft_id="draft_recordedpair0000000000000000",
         draft_digest=digest_object({"fixture": "recorded-pair-draft"}),
         campaign_spec_digest=campaign_digest,
@@ -438,7 +496,9 @@ def _request(
         public_context=None,
         data_policy_digest=campaign.data_policy_digest,
         outcome_contract_digest=None,
-        evaluation_backend=campaign.evaluation_backend,
+        execution_plan_digest=run_request_execution_facts(
+            campaign, plan
+        ).execution_plan_digest,
         taskset_lock_digest=None,
         baseline_manifest_digest=digest_object(baseline),
         candidate_manifest_digest=digest_object(candidate),
@@ -452,7 +512,7 @@ def _request(
     )
 
 
-def _taskset_lock(campaign: CampaignSpec) -> TasksetLock:
+def _taskset_lock(campaign: CampaignSpecV2) -> TasksetLock:
     """Return the lock this comparison's episodes were joined on.
 
     The engine is the pinned bundle this build resolves, which is the engine

@@ -44,9 +44,9 @@ from fixtures.drafts.support import COMPLETE_CATALOG, VALID_SKILL, preparation_s
 from techtree.canonical import digest_object
 from techtree.drafts.store import DraftStore
 from techtree.errors import TechtreeError
-from techtree.models.run import PolicyAcknowledgement, RunRequest, RunStatus
+from techtree.models.run import PolicyAcknowledgement, RunRequestV2, RunStatus
 from techtree.models.skill import SubmissionDraft
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.paths import TechtreePaths, paths_from_root
 from techtree.runs.artifacts import RunArtifactStore, RunInputBundle
 from techtree.runs.executor import ExecutionContext, clear_local_cancellation
@@ -172,7 +172,7 @@ class RunHarness:
             approved_by=approved_by,
         )
 
-    def request(self, run_id: str) -> RunRequest:
+    def request(self, run_id: str) -> RunRequestV2:
         """Return the run's immutable request."""
         return self.run_store.get_request(run_id)
 
@@ -242,7 +242,7 @@ def execute_in_process(
     *,
     executor: FakeRunExecutor | None = None,
     provider: TasksetValidationProvider | None = None,
-) -> UpliftReport:
+) -> UpliftReportV2:
     """Run the fake executor to completion in this process."""
     clear_local_cancellation()
     chosen = executor or FakeRunExecutor(step_delay_seconds=0.0)
@@ -401,6 +401,6 @@ def worker_environment(paths: TechtreePaths) -> Mapping[str, str]:
     return scrubbed_worker_environment(paths)("run_id")
 
 
-def report_digest(report: UpliftReport) -> str:
+def report_digest(report: UpliftReportV2) -> str:
     """Return the digest a run's journal records for this report."""
     return digest_object(report)

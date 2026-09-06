@@ -1,17 +1,17 @@
 {
   "climbs": [
     {
-      "digest": "sha256:1b1509443d25f05d1c3613431647d8d849b1e7ffc28b1ba762aabf56637867f8",
+      "digest": "sha256:6ce201549efd0ef454d27325f85cebf36e8e0a98d63d298d6a7a562a779d5b64",
       "path": "climbs/synthetic-open.json",
       "reference": "synthetic-open@1"
     },
     {
-      "digest": "sha256:7744a1da9a359a14e3a6c39b9f645d86291df582e1a53234f310f90e86cd51ff",
+      "digest": "sha256:6e059bd4e4b7eb86a2d60d87c295daf07cee8cb32853ad173939748bb3f8279d",
       "path": "climbs/synthetic-development.json",
       "reference": "synthetic-development@1"
     },
     {
-      "digest": "sha256:0aac0fe67c93e82fc123428f7aeb335290dcc41d551f494222bbe38b5b735f9e",
+      "digest": "sha256:84af67dbbe8c3efc44f9553cd2d4e21da274d2d423659910ee6531c6a5faa1de",
       "path": "climbs/synthetic-closed.json",
       "reference": "synthetic-closed@1"
     }
@@ -22,7 +22,12 @@
       "media_type": "application/json",
       "path": "taskset-validations/synthetic.json"
     },
-    "sha256:19137c2c6b79543b2c313016a7341deccc82cf82762bea50f5da8647759d01e8": {
+    "sha256:5794420568711368c6698d579466eb1c2b9fbf896742fd36226f14ee88301430": {
+      "kind": "execution_plan",
+      "media_type": "application/json",
+      "path": "execution-plans/synthetic.json"
+    },
+    "sha256:8480a3f5c5322a76266bf2fffb05360cd1018f8e80b2d0f490faf53d6c77e2a8": {
       "kind": "campaign",
       "media_type": "application/json",
       "path": "campaigns/synthetic.json"
@@ -38,5 +43,5 @@
       "path": "validation-evidence/synthetic.json"
     }
   },
-  "schema_version": "techtree.catalog.v1alpha1"
+  "schema_version": "techtree.catalog.v2"
 }

@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "Base64String": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "ConcreteDigest": {
+      "maxLength": 71,
+      "minLength": 71,
+      "pattern": "^sha256:0*[1-9a-f][0-9a-f]*$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "ObjectUrl": {
+      "pattern": "^https://[^\\s/@]+/[^\\s]*sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "PinnedNetworkKey": {
+      "additionalProperties": false,
+      "description": "The public half of the key the run log countersigns receipts with.\n\nRequiring a receipt to carry a key and a signature proves nothing on its\nown: a server that wanted to lie would invent a key, sign with it, and hand\nboth to the participant. What makes a countersignature worth having is that\nthe participant already knows which key to expect, so the key is pinned in\nthe release rather than learned from the answer.\n\nThe identifier is the digest of the public key and is checked to be, as\nevery other key identifier in this protocol is (decisions 0038, founder\nruling of 2026-08-27). A derived identifier cannot name one key and carry\nanother, so a receipt that names a key it does not carry is caught without\nanybody writing a check for it. Rotation is a new key and therefore a new\nidentifier, and a release pins exactly the one it trusts.\n\nOnly the public half ever reaches this repository. Nothing here can sign,\nand nothing here is a place a private key could be put.",
+      "properties": {
+        "algorithm": {
+          "const": "ed25519",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "key_id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "public_key": {
+          "$ref": "#/$defs/Base64String"
+        }
+      },
+      "required": [
+        "algorithm",
+        "key_id",
+        "public_key"
+      ],
+      "title": "PinnedNetworkKey",
+      "type": "object"
+    },
+    "PlainHttpsUrl": {
+      "pattern": "^https://[^\\s/@?#]+(?:/[^\\s?#]*)?$",
+      "type": "string"
+    },
+    "PublicationCoordinates": {
+      "additionalProperties": false,
+      "description": "Where a run is published, where it is then read, and who countersigns.\n\nAll three are release coordinates rather than settings, for one reason each\n(decisions 0038, founder ruling of 2026-08-27).\n\n``submission_endpoint`` is pinned because a stable release has to be able to\npublish with nothing configured. An address that only arrived from the\nenvironment meant a published wheel could not publish out of the box, and a\nperson who had to set a variable before publishing would be a person who\ncould set it to the wrong thing.\n\n``public_log_url`` is pinned because a receipt names where the entry now\nlives, and an entry address the participant did not already expect is an\naddress the answering server chose. The receipt's address is checked to be\non this origin before the receipt is written down.\n\n``network_key`` is pinned because a countersignature is only worth the\nprior knowledge of which key made it.",
+      "properties": {
+        "network_key": {
+          "$ref": "#/$defs/PinnedNetworkKey"
+        },
+        "public_log_url": {
+          "$ref": "#/$defs/PlainHttpsUrl"
+        },
+        "submission_endpoint": {
+          "$ref": "#/$defs/PlainHttpsUrl"
+        }
+      },
+      "required": [
+        "submission_endpoint",
+        "public_log_url",
+        "network_key"
+      ],
+      "title": "PublicationCoordinates",
+      "type": "object"
+    },
+    "ReleaseId": {
+      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$",
+      "type": "string"
+    },
+    "Version": {
+      "pattern": "^[0-9]+(?:\\.[0-9]+){2}$",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/release/release-core.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The frozen coordinates of one Climb release. Spec section 6.6.\n\nEvery field is required and concrete. There is no field that describes the\nwheel, the plugin, or the commit this document was authored at: those are\nfacts about artifacts that do not exist yet when the release is written,\nand decision 0026 puts them where they can be known — stamped into the\nwheel, and witnessed by the website's bootstrap document.\n\n``starter_skill_digest`` and ``starter_skill_object_url`` are two halves of\none coordinate and neither substitutes for the other. The digest says\n*which* Skill the release measured — spec section 4.1 and decisions 0008\nmake it the ordered content-tree digest, not a file hash — and the URL says\nwhere a machine that does not already hold those bytes can obtain them, and\nwhich bytes the address itself promises.",
+  "properties": {
+    "catalog_digest": {
+      "$ref": "#/$defs/ConcreteDigest"
+    },
+    "cli_version": {
+      "$ref": "#/$defs/Version"
+    },
+    "engine_digest": {
+      "$ref": "#/$defs/ConcreteDigest"
+    },
+    "intro_climb_reference": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "maximum_tested_host_hermes_version": {
+      "$ref": "#/$defs/Version"
+    },
+    "minimum_host_hermes_version": {
+      "$ref": "#/$defs/Version"
+    },
+    "protocol_version": {
+      "$ref": "#/$defs/NonEmptyString"
+    },
+    "publication": {
+      "$ref": "#/$defs/PublicationCoordinates"
+    },
+    "release_id": {
+      "$ref": "#/$defs/ReleaseId"
+    },
+    "schema_version": {
+      "const": "techtree.release-core.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "skill_improver_digest": {
+      "$ref": "#/$defs/ConcreteDigest"
+    },
+    "starter_skill_digest": {
+      "$ref": "#/$defs/ConcreteDigest"
+    },
+    "starter_skill_object_url": {
+      "$ref": "#/$defs/ObjectUrl"
+    },
+    "subject_hermes_version": {
+      "$ref": "#/$defs/Version"
+    }
+  },
+  "required": [
+    "schema_version",
+    "release_id",
+    "cli_version",
+    "protocol_version",
+    "engine_digest",
+    "catalog_digest",
+    "intro_climb_reference",
+    "starter_skill_digest",
+    "starter_skill_object_url",
+    "skill_improver_digest",
+    "minimum_host_hermes_version",
+    "maximum_tested_host_hermes_version",
+    "subject_hermes_version",
+    "publication"
+  ],
+  "title": "ReleaseCore",
+  "type": "object"
+}

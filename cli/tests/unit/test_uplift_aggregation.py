@@ -31,7 +31,8 @@ from fixtures.receipts.pair import (
 )
 from techtree.canonical import digest_object
 from techtree.errors import VerificationError
-from techtree.models.campaign import CampaignSpec, ScoringSpec, VariantSchedule
+from techtree.execution_facts import uplift_report_execution_facts
+from techtree.models.campaign import CampaignSpecV2, ScoringSpec, VariantSchedule
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import EvidenceStatus, ScoreStatus
 from techtree.models.uplift_report import (
@@ -40,7 +41,7 @@ from techtree.models.uplift_report import (
     PublicationStatus,
     TaskDelta,
     UpliftDecision,
-    UpliftReport,
+    UpliftReportV2,
 )
 from techtree.receipts.compare import (
     COMPARISON_INVALID,
@@ -86,6 +87,7 @@ def _compare(
     """Compare the recorded pair, optionally with one side altered."""
     return compare_real_variants(
         campaign=pair.campaign,
+        plan=pair.execution_plan,
         baseline_manifest=pair.baseline_manifest,
         candidate_manifest=pair.candidate_manifest,
         prepared_manifest_comparison=pair.prepared_comparison,
@@ -654,12 +656,12 @@ def _report(
     comparison: RealComparisonResult,
     *,
     attestation: LocalAttestation = LocalAttestation.UNATTESTED,
-    campaign: CampaignSpec | None = None,
+    campaign: CampaignSpecV2 | None = None,
     data_policy: DataPolicy | None = None,
     deltas: Sequence[TaskDelta] | None = None,
     score: ScoreStatus | None = None,
     candidate_receipt_set: ReceiptSetManifest | None = None,
-) -> UpliftReport:
+) -> UpliftReportV2:
     """Build the recorded pair's report with any one input replaced."""
     rows = list(deltas) if deltas is not None else _deltas(pair)
     resolved_score, evidence = summarize_receipts(
@@ -668,6 +670,9 @@ def _report(
     return build_uplift_report(
         run_request=pair.request,
         campaign=campaign or pair.campaign,
+        execution=uplift_report_execution_facts(
+            campaign or pair.campaign, pair.execution_plan
+        ),
         data_policy=data_policy or recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
@@ -701,10 +706,10 @@ def _broken_comparison(pair: RecordedPair) -> RealComparisonResult:
 
 
 def _with_scoring(
-    campaign: CampaignSpec, *, require_above: bool, minimum_absolute_delta: float
-) -> CampaignSpec:
+    campaign: CampaignSpecV2, *, require_above: bool, minimum_absolute_delta: float
+) -> CampaignSpecV2:
     """Return the Campaign with a different acceptance rule."""
-    return CampaignSpec(
+    return CampaignSpecV2(
         **{
             **dict(campaign),
             "scoring": ScoringSpec(

@@ -55,9 +55,10 @@ from typing import Any, Final
 from techtree.engines.runner import EngineProcessResult, EngineRunner
 from techtree.errors import ValidationError
 from techtree.fs import ensure_private_directory
-from techtree.models.campaign import SUBJECT_AGENT, AgentSpec, ModelSpec
+from techtree.models.campaign import SUBJECT_AGENT, AgentSpecV2, ModelSpec
 from techtree.models.engine import EngineDescriptor
-from techtree.models.experiment import ExperimentManifest
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2
 from techtree.models.validation import TasksetLock
 from techtree.verifiers.child import (
     CANCELLATION_EXIT_CODE,
@@ -446,7 +447,8 @@ def _last_meaningful_line(process: EngineProcessResult) -> str:
 def verify_variant_execution(
     *,
     result: VariantExecutionResult,
-    experiment: ExperimentManifest,
+    experiment: ExperimentManifestV2,
+    plan: ResolvedExecutionPlan,
     taskset_lock: TasksetLock,
     primary_reward: str,
     engine: EngineDescriptor | None = None,
@@ -456,7 +458,9 @@ def verify_variant_execution(
     Raises only when the inputs cannot be checked at all — a manifest with no
     subject agent leaves nothing to compare an execution against. Everything
     else is reported as a verdict, because "which rule did this break" is the
-    question a caller actually has.
+    question a caller actually has. ``plan`` is the execution plan the
+    Campaign binds: the harness every trace must have run is its subject
+    plane, which a v0.2 manifest names by digest rather than restating.
     """
     subject = experiment.configuration.agents.get(SUBJECT_AGENT)
     if subject is None:
@@ -469,7 +473,7 @@ def verify_variant_execution(
 
     checks = [_completion_check(result)]
     checks.extend(_membership_checks(result, taskset_lock))
-    checks.extend(_trace_checks(result, subject, primary_reward))
+    checks.extend(_trace_checks(result, subject, plan, primary_reward))
     checks.append(_manifest_check(result, experiment))
     if engine is not None:
         checks.append(_pin_check(result, engine))
@@ -564,7 +568,10 @@ def _membership_checks(
 
 
 def _trace_checks(
-    result: VariantExecutionResult, subject: AgentSpec, primary_reward: str
+    result: VariantExecutionResult,
+    subject: AgentSpecV2,
+    plan: ResolvedExecutionPlan,
+    primary_reward: str,
 ) -> list[ExecutionCheck]:
     """Whether every trace is the subject the manifest declared, scored."""
     traces = [trace for episode in result.episodes for trace in episode.traces]
@@ -597,8 +604,13 @@ def _trace_checks(
     declared_skills = sorted(artifact.digest for artifact in subject.harness.skills)
     expectations: list[tuple[str, str, Any, Any]] = [
         ("model_id_matches", "model", subject.model.model_id, None),
-        ("harness_id_matches", "harness", subject.harness.id, None),
-        ("harness_version_matches", "harness version", subject.harness.version, None),
+        ("harness_id_matches", "harness", plan.subject.harness_id, None),
+        (
+            "harness_version_matches",
+            "harness version",
+            plan.subject.harness_version,
+            None,
+        ),
         ("runtime_image_matches", "runtime image", subject.runtime.image, None),
     ]
     observed: dict[str, set[Any]] = {
@@ -727,7 +739,7 @@ def _tool_inventory_check(traces: list[NormalizedTrace]) -> ExecutionCheck:
 
 
 def _manifest_check(
-    result: VariantExecutionResult, experiment: ExperimentManifest
+    result: VariantExecutionResult, experiment: ExperimentManifestV2
 ) -> ExecutionCheck:
     """Whether this result belongs to the manifest it is being checked against."""
     from techtree.canonical import digest_object

@@ -1,0 +1,29 @@
+{
+  "evaluation": {
+    "api_generation": "v1",
+    "kind": "verifiers",
+    "package_version": "0.3.1",
+    "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
+    "wheel_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92"
+  },
+  "evidence": {
+    "coverage_profile_digest": null,
+    "native_evidence": "required",
+    "trace_coverage": "not_requested"
+  },
+  "execution": {
+    "kind": "local",
+    "provider": null,
+    "provider_environment_coordinate": null
+  },
+  "kind": "ResolvedExecutionPlan",
+  "schema_version": "techtree.execution-plan.v1",
+  "subject": {
+    "adapter_contract_version": "1",
+    "adapter_id": "fabric-hermes-adapter",
+    "adapter_version": "0.1.0",
+    "harness_id": "fabric-hermes-agent",
+    "harness_version": "0.19.0+fabric.1",
+    "kind": "fabric"
+  }
+}

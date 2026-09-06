@@ -27,10 +27,12 @@ from __future__ import annotations
 
 import shutil
 import stat
+from functools import cache
 from pathlib import Path
 
 import pytest
 
+from fixtures.receipts.pair import RecordedPair, recorded_pair
 from fixtures.receipts.support import (
     NORMALIZED_EPISODES_FILE,
     RESOLVED_CONFIG_FILE,
@@ -39,10 +41,11 @@ from fixtures.receipts.support import (
     recorded_variant,
 )
 from techtree.canonical import sha256_digest_bytes
+from techtree.execution_facts import episode_receipt_execution_facts
 from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import SUBJECT_AGENT
 from techtree.models.episode_receipt import (
-    EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     ScoreStatus,
 )
@@ -67,9 +70,15 @@ from techtree.verifiers.models import VERIFIERS_DIRECTORY, VariantName
 pytestmark = pytest.mark.integration
 
 
+@cache
+def pair() -> RecordedPair:
+    """The recorded comparison, declared the way a v0.2 run declares it."""
+    return recorded_pair()
+
+
 def stage_recorded_run(home: Path, recorded: RecordedVariant) -> Path:
     """Lay one recorded variant out where a finished evaluation would have."""
-    run_root = home / "runs" / recorded.request.run_id
+    run_root = home / "runs" / pair().request.run_id
     output = run_root / VERIFIERS_DIRECTORY / recorded.variant.value / "run"
     output.mkdir(parents=True)
     for name in (NORMALIZED_EPISODES_FILE, RESOLVED_CONFIG_FILE):
@@ -91,21 +100,25 @@ def test_receipts_are_built_from_a_run_directory_without_executing_anything(
 
     # 2. One receipt per committed task, with the rewards that were recorded.
     receipts = build_variant_receipts(
-        run_request=recorded.request,
+        run_request=pair().request,
         variant=recorded.variant,
-        experiment=recorded.experiment,
-        result=recorded.result.model_copy(update={"episodes": episodes}),
-        evaluation_backend=recorded.campaign.evaluation_backend,
+        experiment=pair().manifest(recorded.variant),
+        result=pair()
+        .results[recorded.variant]
+        .model_copy(update={"episodes": episodes}),
+        execution=episode_receipt_execution_facts(
+            pair().campaign, pair().execution_plan
+        ),
         ordered_task_hashes=recorded.ordered_task_hashes,
         primary_reward=recorded.primary_reward,
-        evidence=recorded.campaign.evidence,
+        evidence=pair().campaign.evidence,
     )
     assert [receipt.task_hash for receipt in receipts] == recorded.ordered_task_hashes
     assert all(receipt.score_status is ScoreStatus.VALID for receipt in receipts)
     assert all(
         receipt.evidence_status is EvidenceStatus.COMPLETE for receipt in receipts
     )
-    assert all(receipt.execution_backend == "verifiers" for receipt in receipts)
+    assert all(receipt.executor_kind == "verifiers" for receipt in receipts)
     rewards = [
         receipt.named_traces["subject"][0].rewards[recorded.primary_reward]
         for receipt in receipts
@@ -117,14 +130,16 @@ def test_receipts_are_built_from_a_run_directory_without_executing_anything(
     assert sum(rewards) == (24.0 if recorded.variant is VariantName.CANDIDATE else 0.0)
 
     # 3. The ordered commitment, written into the run's own tree.
-    envelopes: list[ObjectEnvelope[EpisodeReceipt]] = [
+    envelopes: list[ObjectEnvelope[EpisodeReceiptV2]] = [
         seal_receipt(receipt) for receipt in receipts
     ]
     variant = experiment_variant_of(recorded.variant)
     manifest = build_receipt_set(
-        run_id=recorded.request.run_id,
+        run_id=pair().request.run_id,
         variant=variant,
-        experiment_manifest_digest=recorded.result.experiment_manifest_digest,
+        experiment_manifest_digest=pair()
+        .results[recorded.variant]
+        .experiment_manifest_digest,
         signed_receipts=envelopes,
         ordered_task_hashes=recorded.ordered_task_hashes,
     )
@@ -169,18 +184,20 @@ def test_the_manifest_does_not_disturb_the_runs_own_receipt_directory(
     recorded = recorded_variant(VariantName.CANDIDATE)
     paths = paths_from_root(temp_techtree_home)
     store = RunArtifactStore(paths)
-    run_id = recorded.request.run_id
+    run_id = pair().request.run_id
     variant = experiment_variant_of(recorded.variant)
 
     receipts = build_variant_receipts(
-        run_request=recorded.request,
+        run_request=pair().request,
         variant=recorded.variant,
-        experiment=recorded.experiment,
-        result=recorded.result,
-        evaluation_backend=recorded.campaign.evaluation_backend,
+        experiment=pair().manifest(recorded.variant),
+        result=pair().results[recorded.variant],
+        execution=episode_receipt_execution_facts(
+            pair().campaign, pair().execution_plan
+        ),
         ordered_task_hashes=recorded.ordered_task_hashes,
         primary_reward=recorded.primary_reward,
-        evidence=recorded.campaign.evidence,
+        evidence=pair().campaign.evidence,
     )
     for position, receipt in enumerate(receipts):
         store.write_episode_receipt(run_id, position=position, receipt=receipt)
@@ -188,7 +205,9 @@ def test_the_manifest_does_not_disturb_the_runs_own_receipt_directory(
     manifest = build_receipt_set(
         run_id=run_id,
         variant=variant,
-        experiment_manifest_digest=recorded.result.experiment_manifest_digest,
+        experiment_manifest_digest=pair()
+        .results[recorded.variant]
+        .experiment_manifest_digest,
         signed_receipts=[seal_receipt(receipt) for receipt in receipts],
         ordered_task_hashes=recorded.ordered_task_hashes,
     )
@@ -208,19 +227,23 @@ def test_both_recorded_variants_produce_independent_receipt_sets(
         output = run_root / VERIFIERS_DIRECTORY / variant.value / "run"
         episodes = read_variant_episodes(output / NORMALIZED_EPISODES_FILE)
         receipts = build_variant_receipts(
-            run_request=recorded.request,
+            run_request=pair().request,
             variant=variant,
-            experiment=recorded.experiment,
-            result=recorded.result.model_copy(update={"episodes": episodes}),
-            evaluation_backend=recorded.campaign.evaluation_backend,
+            experiment=pair().manifest(variant),
+            result=pair().results[variant].model_copy(update={"episodes": episodes}),
+            execution=episode_receipt_execution_facts(
+                pair().campaign, pair().execution_plan
+            ),
             ordered_task_hashes=recorded.ordered_task_hashes,
             primary_reward=recorded.primary_reward,
-            evidence=recorded.campaign.evidence,
+            evidence=pair().campaign.evidence,
         )
         manifests[variant.value] = build_receipt_set(
-            run_id=recorded.request.run_id,
+            run_id=pair().request.run_id,
             variant=experiment_variant_of(variant),
-            experiment_manifest_digest=recorded.result.experiment_manifest_digest,
+            experiment_manifest_digest=pair()
+            .results[variant]
+            .experiment_manifest_digest,
             signed_receipts=[seal_receipt(receipt) for receipt in receipts],
             ordered_task_hashes=recorded.ordered_task_hashes,
         )

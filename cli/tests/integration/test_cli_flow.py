@@ -45,7 +45,7 @@ from techtree.cli.commands.climb import abbreviated_digest
 from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
 from techtree.errors import EXIT_OK
 from techtree.identity.store import IdentityStore
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.paths import paths_from_root
 from techtree.release.document import render_release_core
 from techtree.runs.artifacts import RunArtifactStore
@@ -196,7 +196,7 @@ def test_show_reports_the_campaign_and_the_data_policy(
     assert flow["draft"]["data_policy_digest"].startswith("sha256:")
 
 
-def _shipped_campaign() -> CampaignSpec:
+def _shipped_campaign() -> CampaignSpecV2:
     """Return the Campaign this build ships, read from the catalog it ships in."""
     document = (
         Path(techtree.__file__).parent
@@ -205,7 +205,7 @@ def _shipped_campaign() -> CampaignSpec:
         / "campaigns"
         / "hello-world-climb.json"
     )
-    return CampaignSpec.model_validate_json(document.read_text(encoding="utf-8"))
+    return CampaignSpecV2.model_validate_json(document.read_text(encoding="utf-8"))
 
 
 def test_prepare_builds_a_draft_from_a_real_skill(flow: dict[str, Any]) -> None:

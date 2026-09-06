@@ -36,6 +36,7 @@ from pydantic import model_validator
 from techtree.catalog.repository import EmbeddedCatalogRepository
 from techtree.engines.bundle import engine_bundle_digest
 from techtree.errors import ValidationError
+from techtree.execution_facts import release_core_subject_hermes_version
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.release.document import (
     document_digest,
@@ -131,7 +132,8 @@ def local_release_facts(sources: ReleaseSources) -> ReleaseFacts:
     for reference in references:
         climb = catalog.load_climb(reference)
         campaign = catalog.load_campaign(climb.campaign_spec_digest)
-        harnesses[reference] = campaign.subject.harness.version
+        plan = catalog.load_execution_plan(campaign.execution_plan_digest)
+        harnesses[reference] = release_core_subject_hermes_version(campaign, plan)
 
     return ReleaseFacts(
         package_version=package_version(),

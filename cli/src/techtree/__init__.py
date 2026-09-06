@@ -10,26 +10,26 @@ because they do not exist: WP0–WP5 reserve only the pointers to them.
 
 from __future__ import annotations
 
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.climb import ClimbManifest
 from techtree.models.data_policy import DataPolicy
-from techtree.models.episode_receipt import EpisodeReceipt
-from techtree.models.evaluation_backend import EvaluationBackendSpec
-from techtree.models.experiment import ExperimentManifest
+from techtree.models.episode_receipt import EpisodeReceiptV2
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2
 from techtree.models.skill import SkillArtifact
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.models.validation import TasksetValidationReceipt
 from techtree.version import __version__
 
 __all__ = [
-    "CampaignSpec",
+    "CampaignSpecV2",
     "ClimbManifest",
     "DataPolicy",
-    "EpisodeReceipt",
-    "EvaluationBackendSpec",
-    "ExperimentManifest",
+    "EpisodeReceiptV2",
+    "ExperimentManifestV2",
+    "ResolvedExecutionPlan",
     "SkillArtifact",
     "TasksetValidationReceipt",
-    "UpliftReport",
+    "UpliftReportV2",
     "__version__",
 ]

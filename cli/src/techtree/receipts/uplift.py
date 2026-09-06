@@ -68,19 +68,20 @@ from enum import StrEnum
 from typing import Literal
 
 from techtree.canonical import digest_object
-from techtree.constants import UPLIFT_SCHEMA_VERSION
+from techtree.constants import UPLIFT_V2_SCHEMA_VERSION
 from techtree.errors import VerificationError
+from techtree.execution_facts import UpliftReportExecutionFacts
 from techtree.ids import new_id
 from techtree.models.base import Digest, JsonValue
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2
 from techtree.models.data_policy import DataPolicy
 from techtree.models.episode_receipt import (
-    EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     ScoreStatus,
 )
-from techtree.models.experiment import ExperimentManifest, ExperimentVariant
-from techtree.models.run import RunRequest
+from techtree.models.experiment import ExperimentManifestV2, ExperimentVariant
+from techtree.models.run import RunRequestV2
 from techtree.models.uplift_report import (
     ComparisonStatus,
     ExecutionStatus,
@@ -88,7 +89,7 @@ from techtree.models.uplift_report import (
     PublicationStatus,
     TaskDelta,
     UpliftDecision,
-    UpliftReport,
+    UpliftReportV2,
     UpliftStatuses,
 )
 from techtree.receipts.compare import COMPARISON_INVALID, RealComparisonResult
@@ -138,8 +139,8 @@ class LocalAttestation(StrEnum):
 
 def pair_task_rewards(
     *,
-    baseline_receipts: Sequence[EpisodeReceipt],
-    candidate_receipts: Sequence[EpisodeReceipt],
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    candidate_receipts: Sequence[EpisodeReceiptV2],
     ordered_task_hashes: Sequence[Digest],
     reward_name: str,
 ) -> list[TaskDelta]:
@@ -176,7 +177,7 @@ def pair_task_rewards(
 
 
 def _rewards_by_task(
-    receipts: Sequence[EpisodeReceipt],
+    receipts: Sequence[EpisodeReceiptV2],
     reward_name: str,
     committed: Sequence[Digest],
     label: str,
@@ -302,7 +303,7 @@ def _mean(values: Iterable[float]) -> float:
 
 def decide_uplift(
     *,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     comparison: RealComparisonResult,
     primary: PrimaryUpliftResult,
 ) -> UpliftDecision:
@@ -329,8 +330,8 @@ def decide_uplift(
 
 
 def summarize_receipts(
-    baseline_receipts: Sequence[EpisodeReceipt],
-    candidate_receipts: Sequence[EpisodeReceipt],
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    candidate_receipts: Sequence[EpisodeReceiptV2],
 ) -> tuple[ScoreStatus, EvidenceStatus]:
     """Return the score and evidence statuses the whole comparison carries.
 
@@ -441,12 +442,13 @@ def proof_grade_for(
 
 def build_uplift_report(
     *,
-    run_request: RunRequest,
-    campaign: CampaignSpec,
+    run_request: RunRequestV2,
+    campaign: CampaignSpecV2,
+    execution: UpliftReportExecutionFacts,
     data_policy: DataPolicy,
     taskset_validation_receipt_digest: Digest,
-    baseline_manifest: ExperimentManifest,
-    candidate_manifest: ExperimentManifest,
+    baseline_manifest: ExperimentManifestV2,
+    candidate_manifest: ExperimentManifestV2,
     baseline_receipt_set: ReceiptSetManifest,
     candidate_receipt_set: ReceiptSetManifest,
     comparison: RealComparisonResult,
@@ -456,7 +458,7 @@ def build_uplift_report(
     evidence: EvidenceStatus,
     attestation: LocalAttestation,
     created_at: datetime,
-) -> UpliftReport:
+) -> UpliftReportV2:
     """Construct the canonical real local report, or refuse to construct one.
 
     Two conditions are refusals rather than statuses. A comparison that is not
@@ -475,11 +477,16 @@ def build_uplift_report(
     eligibility is read off its terms. It is checked against the digest the
     run's request names, so a report cannot cite a Campaign's rights statement
     and be graded under a different one.
+
+    ``execution`` is the projection of the Campaign and the plan it binds. It
+    is checked against the plan the run's request names, so a report cannot
+    describe an execution the run was not created for.
     """
     _require_reportable(comparison, score, run_request)
     _require_lineage(
         run_request=run_request,
         campaign=campaign,
+        execution=execution,
         data_policy=data_policy,
         baseline_manifest=baseline_manifest,
         candidate_manifest=candidate_manifest,
@@ -500,8 +507,8 @@ def build_uplift_report(
         else UpliftDecision.DEVELOPMENT_ONLY
     )
 
-    return UpliftReport(
-        schema_version=UPLIFT_SCHEMA_VERSION,
+    return UpliftReportV2(
+        schema_version=UPLIFT_V2_SCHEMA_VERSION,
         id=new_id("uplift"),
         run_id=run_request.run_id,
         campaign_spec_digest=run_request.campaign_spec_digest,
@@ -509,7 +516,8 @@ def build_uplift_report(
         public_context=run_request.public_context,
         data_policy_digest=run_request.data_policy_digest,
         outcome_contract_digest=run_request.outcome_contract_digest,
-        evaluation_backend=campaign.evaluation_backend,
+        execution_plan_digest=execution.execution_plan_digest,
+        execution_location=execution.execution_location,
         taskset_validation_receipt_digest=taskset_validation_receipt_digest,
         baseline_manifest_digest=run_request.baseline_manifest_digest,
         candidate_manifest_digest=run_request.candidate_manifest_digest,
@@ -539,7 +547,7 @@ def build_uplift_report(
 
 
 def _require_reportable(
-    comparison: RealComparisonResult, score: ScoreStatus, run_request: RunRequest
+    comparison: RealComparisonResult, score: ScoreStatus, run_request: RunRequestV2
 ) -> None:
     """Refuse to write a report over evidence that decided nothing."""
     if not comparison.controlled:
@@ -565,11 +573,12 @@ def _require_reportable(
 
 def _require_lineage(
     *,
-    run_request: RunRequest,
-    campaign: CampaignSpec,
+    run_request: RunRequestV2,
+    campaign: CampaignSpecV2,
+    execution: UpliftReportExecutionFacts,
     data_policy: DataPolicy,
-    baseline_manifest: ExperimentManifest,
-    candidate_manifest: ExperimentManifest,
+    baseline_manifest: ExperimentManifestV2,
+    candidate_manifest: ExperimentManifestV2,
     baseline_receipt_set: ReceiptSetManifest,
     candidate_receipt_set: ReceiptSetManifest,
     comparison: RealComparisonResult,
@@ -584,6 +593,11 @@ def _require_lineage(
     campaign_digest = digest_object(campaign)
     for label, expected, found in (
         ("Campaign", run_request.campaign_spec_digest, campaign_digest),
+        (
+            "execution plan",
+            run_request.execution_plan_digest,
+            execution.execution_plan_digest,
+        ),
         (
             "baseline manifest",
             run_request.baseline_manifest_digest,

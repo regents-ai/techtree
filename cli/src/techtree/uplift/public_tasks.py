@@ -45,7 +45,7 @@ from typing import Final
 from techtree.engines.bundle import embedded_engine_root
 from techtree.errors import ValidationError
 from techtree.models.base import Digest
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.uplift.context import (
     TaskPublicProjection,
     TaskPublicProjectionProvider,
@@ -66,7 +66,7 @@ _REFERENCE_TASKSET: Final = "procedure-transfer-v1"
 _DATASET_MODULE: Final = "dataset.py"
 
 
-def public_projection_for(campaign: CampaignSpec) -> TaskPublicProjectionProvider:
+def public_projection_for(campaign: CampaignSpecV2) -> TaskPublicProjectionProvider:
     """Return how much of each task this Campaign's taskset may show.
 
     Args:
@@ -84,7 +84,7 @@ def public_projection_for(campaign: CampaignSpec) -> TaskPublicProjectionProvide
     return _branch_code_projection(campaign)
 
 
-def _branch_code_projection(campaign: CampaignSpec) -> TaskPublicProjectionProvider:
+def _branch_code_projection(campaign: CampaignSpecV2) -> TaskPublicProjectionProvider:
     """Name each committed task by the public input the subject was given."""
     committed = list(campaign.taskset.membership.ordered_task_hashes)
     inputs = _proving_inputs()

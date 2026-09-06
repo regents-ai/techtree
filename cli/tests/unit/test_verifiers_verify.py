@@ -28,7 +28,7 @@ from techtree.manifests.builder import build_baseline_manifest
 from techtree.models.base import ArtifactRef
 from techtree.models.campaign import ModelSpec
 from techtree.models.engine import EngineDescriptor
-from techtree.models.experiment import ExperimentManifest
+from techtree.models.experiment import ExperimentManifestV2
 from techtree.models.validation import TasksetLock
 from techtree.verifiers.child import (
     CONFIG_ARGUMENT_MARKER,
@@ -559,10 +559,11 @@ VERIFIERS_REVISION = "7e1c47d24d055aae587ee8259f77a3e8e193513a"
 
 def execution_fixture(
     **trace_overrides: Any,
-) -> tuple[VariantExecutionResult, ExperimentManifest, TasksetLock, EngineDescriptor]:
+) -> tuple[VariantExecutionResult, ExperimentManifestV2, TasksetLock, EngineDescriptor]:
     """A complete, valid baseline execution of the synthetic Campaign."""
     graph = synthetic_graph()
     campaign = graph.campaign
+    harness = graph.execution_plan.subject
     manifest = build_baseline_manifest(
         campaign=campaign,
         campaign_digest=graph.campaign_digest,
@@ -586,8 +587,8 @@ def execution_fixture(
                 "max_tokens": subject.sampling.max_tokens,
                 "temperature": subject.sampling.temperature,
             },
-            "harness_id": subject.harness.id,
-            "harness_version": subject.harness.version,
+            "harness_id": harness.harness_id,
+            "harness_version": harness.harness_version,
             "use_bundled_skill": False,
             "skill_root_digests": [a.digest for a in subject.harness.skills],
             "runtime": NormalizedRuntime(
@@ -683,13 +684,14 @@ def execution_fixture(
 
 def verdicts(
     result: VariantExecutionResult,
-    manifest: ExperimentManifest,
+    manifest: ExperimentManifestV2,
     lock: TasksetLock,
     descriptor: EngineDescriptor,
 ) -> dict[str, str]:
     checks = verify_variant_execution(
         result=result,
         experiment=manifest,
+        plan=synthetic_graph().execution_plan,
         taskset_lock=lock,
         primary_reward="synthetic_reward",
         engine=descriptor,
@@ -776,6 +778,7 @@ def test_a_manifest_with_no_subject_cannot_be_verified_at_all() -> None:
         verify_variant_execution(
             result=result,
             experiment=headless,
+            plan=synthetic_graph().execution_plan,
             taskset_lock=lock,
             primary_reward="synthetic_reward",
         )

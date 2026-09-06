@@ -37,7 +37,7 @@ from techtree.engines.bundle import default_engine_descriptor
 from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError, VerificationError
 from techtree.models.base import Digest, JsonValue
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunInputBundle
 from techtree.runs.validation import (
@@ -74,7 +74,7 @@ def locally_validatable_packages() -> frozenset[str]:
     return frozenset(package.name for package in default_engine_descriptor().packages)
 
 
-def can_validate_locally(campaign: CampaignSpec) -> bool:
+def can_validate_locally(campaign: CampaignSpecV2) -> bool:
     """Return whether this build ships the package this Campaign's taskset needs."""
     package = campaign.taskset.ref.package
     return package.kind == "embedded" and package.name in locally_validatable_packages()

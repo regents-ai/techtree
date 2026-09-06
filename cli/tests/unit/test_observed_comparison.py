@@ -35,15 +35,15 @@ from techtree.canonical import digest_object
 from techtree.models.base import ArtifactRef
 from techtree.models.campaign import (
     SUBJECT_AGENT,
-    AgentSpec,
-    CampaignSpec,
-    HarnessSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
+    HarnessSpecV2,
     ModelSpec,
     MutationContract,
     MutationKind,
     VariantSchedule,
 )
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.uplift_report import ComparisonStatus
 from techtree.receipts.compare import (
     SKILL_INDEX_TOOL,
@@ -76,12 +76,12 @@ def pair() -> RecordedPair:
 def compare(
     pair: RecordedPair,
     *,
-    campaign: CampaignSpec | None = None,
+    campaign: CampaignSpecV2 | None = None,
     baseline_manifest: object | None = None,
     candidate_manifest: object | None = None,
     prepared: object | None = None,
-    baseline_receipts: list[EpisodeReceipt] | None = None,
-    candidate_receipts: list[EpisodeReceipt] | None = None,
+    baseline_receipts: list[EpisodeReceiptV2] | None = None,
+    candidate_receipts: list[EpisodeReceiptV2] | None = None,
     taskset_lock: object | None = None,
     baseline_observed: ObservedVariant | None = None,
     candidate_observed: ObservedVariant | None = None,
@@ -90,6 +90,7 @@ def compare(
     """Compare the recorded pair with any one input replaced."""
     return compare_real_variants(
         campaign=campaign or pair.campaign,
+        plan=pair.execution_plan,
         baseline_manifest=baseline_manifest or pair.baseline_manifest,  # type: ignore[arg-type]
         candidate_manifest=candidate_manifest or pair.candidate_manifest,  # type: ignore[arg-type]
         prepared_manifest_comparison=prepared or pair.prepared_comparison,  # type: ignore[arg-type]
@@ -643,7 +644,7 @@ def _replacement_pair(*, replaced: ArtifactRef | None = None) -> RecordedPair:
         size=1024,
         relative_path=None,
     )
-    campaign = CampaignSpec(
+    campaign = CampaignSpecV2(
         **{
             **dict(base),
             "mutation_contract": MutationContract(
@@ -653,10 +654,10 @@ def _replacement_pair(*, replaced: ArtifactRef | None = None) -> RecordedPair:
                 }
             ),
             "agents": {
-                SUBJECT_AGENT: AgentSpec(
+                SUBJECT_AGENT: AgentSpecV2(
                     **{
                         **dict(subject),
-                        "harness": HarnessSpec(
+                        "harness": HarnessSpecV2(
                             **{**dict(subject.harness), "skills": [replaced]}
                         ),
                     }
@@ -667,14 +668,14 @@ def _replacement_pair(*, replaced: ArtifactRef | None = None) -> RecordedPair:
     return recorded_pair(campaign=campaign)
 
 
-def _with_model_revision(campaign: CampaignSpec, revision: str) -> CampaignSpec:
+def _with_model_revision(campaign: CampaignSpecV2, revision: str) -> CampaignSpecV2:
     """Return the Campaign with a provider revision pinned on its subject."""
     subject = campaign.agents[SUBJECT_AGENT]
-    return CampaignSpec(
+    return CampaignSpecV2(
         **{
             **dict(campaign),
             "agents": {
-                SUBJECT_AGENT: AgentSpec(
+                SUBJECT_AGENT: AgentSpecV2(
                     **{
                         **dict(subject),
                         "model": ModelSpec(

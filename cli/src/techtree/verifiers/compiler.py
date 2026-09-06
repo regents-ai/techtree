@@ -34,11 +34,12 @@ from techtree.fs import ensure_private_directory, fsync_directory, open_exclusiv
 from techtree.models.base import ArtifactRef, Digest
 from techtree.models.campaign import (
     SUBJECT_AGENT,
-    AgentSpec,
-    CampaignSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
     VariantSchedule,
 )
-from techtree.models.experiment import ExperimentManifest, ExperimentVariant
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2, ExperimentVariant
 from techtree.verifiers.config import (
     DockerRuntimeToml,
     EnvToml,
@@ -119,8 +120,9 @@ def skill_directory_name(digest: Digest) -> str:
 
 def compile_variant_config(
     *,
-    campaign: CampaignSpec,
-    experiment: ExperimentManifest,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    experiment: ExperimentManifestV2,
     run_paths: RunPaths,
     variant: VariantName,
     variant_max_concurrent: int,
@@ -130,14 +132,15 @@ def compile_variant_config(
     Every disagreement between the manifest and the Campaign it claims to
     derive from is refused here, before any file is written, because a
     compiled config is the last point at which the two documents can still be
-    compared cheaply.
+    compared cheaply. ``plan`` is the execution plan the Campaign binds; its
+    subject plane names the harness the config asks the engine to run.
     """
     campaign_digest = digest_object(campaign)
     _check_manifest_derives_from(experiment, campaign, campaign_digest)
     _check_variant_matches(experiment, variant)
 
     subject = _subject_of(experiment)
-    _check_subject_is_executable(subject)
+    _check_subject_is_executable(subject, plan)
     skill_paths = _resolve_skill_paths(subject, run_paths)
 
     # ``output_dir`` names the directory the engine *groups* runs under, not
@@ -191,7 +194,7 @@ def compile_variant_config(
             taskset=TasksetToml(id=taskset.ref.id),
             subject=SubjectAgentToml(
                 harness=HermesHarnessToml(
-                    version=subject.harness.version,
+                    version=plan.subject.harness_version,
                     skills=skill_paths,
                 ),
                 runtime=DockerRuntimeToml(
@@ -218,7 +221,7 @@ def compile_variant_config(
     )
 
 
-def _subject_of(experiment: ExperimentManifest) -> AgentSpec:
+def _subject_of(experiment: ExperimentManifestV2) -> AgentSpecV2:
     """Return the manifest's subject agent, or refuse."""
     subject = experiment.configuration.agents.get(SUBJECT_AGENT)
     if subject is None:
@@ -230,8 +233,8 @@ def _subject_of(experiment: ExperimentManifest) -> AgentSpec:
 
 
 def _check_manifest_derives_from(
-    experiment: ExperimentManifest,
-    campaign: CampaignSpec,
+    experiment: ExperimentManifestV2,
+    campaign: CampaignSpecV2,
     campaign_digest: Digest,
 ) -> None:
     """Refuse a manifest that is not this Campaign, fully resolved."""
@@ -254,9 +257,9 @@ def _check_manifest_derives_from(
             "the experiment and its Campaign disagree about the data policy",
             manifest_id=experiment.id,
         )
-    if configuration.evaluation_backend != campaign.evaluation_backend:
+    if configuration.execution_plan_digest != campaign.execution_plan_digest:
         _refuse(
-            "the experiment and its Campaign disagree about the evaluation backend",
+            "the experiment and its Campaign name different execution plans",
             manifest_id=experiment.id,
         )
     if configuration.taskset.ref != campaign.taskset.ref:
@@ -280,7 +283,7 @@ def _check_manifest_derives_from(
 
 
 def _check_variant_matches(
-    experiment: ExperimentManifest, variant: VariantName
+    experiment: ExperimentManifestV2, variant: VariantName
 ) -> None:
     """Refuse a manifest compiled under the other variant's name."""
     if _VARIANTS[experiment.variant] is not variant:
@@ -292,17 +295,19 @@ def _check_variant_matches(
         )
 
 
-def _check_subject_is_executable(subject: AgentSpec) -> None:
+def _check_subject_is_executable(
+    subject: AgentSpecV2, plan: ResolvedExecutionPlan
+) -> None:
     """Refuse a subject WP6 has no way to run."""
-    if subject.harness.id != REFERENCE_HARNESS_ID:
+    if plan.subject.harness_id != REFERENCE_HARNESS_ID:
         _refuse(
             f"WP6 executes the {REFERENCE_HARNESS_ID!r} harness only",
-            harness_id=subject.harness.id,
+            harness_id=plan.subject.harness_id,
         )
     if subject.harness.use_bundled_skill:
         _refuse(
             "a bundled skill catalogue is an uncontrolled second difference",
-            harness_id=subject.harness.id,
+            harness_id=plan.subject.harness_id,
         )
     if subject.runtime.type != "docker":
         _refuse(
@@ -312,11 +317,11 @@ def _check_subject_is_executable(subject: AgentSpec) -> None:
     if subject.trainable:
         _refuse(
             "the subject is evaluated, never trained",
-            harness_id=subject.harness.id,
+            harness_id=plan.subject.harness_id,
         )
 
 
-def _resolve_skill_paths(subject: AgentSpec, run_paths: RunPaths) -> list[str]:
+def _resolve_skill_paths(subject: AgentSpecV2, run_paths: RunPaths) -> list[str]:
     """Return the run-owned directory each declared skill is mounted from."""
     paths: list[str] = []
     for skill in subject.harness.skills:
@@ -392,9 +397,10 @@ def divide_concurrency(
 
 def compile_plans(
     *,
-    campaign: CampaignSpec,
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
     run_paths: RunPaths,
 ) -> tuple[VariantExecutionPlan, VariantExecutionPlan]:
     """Build both variants' plans and divide the Campaign's concurrency."""
@@ -402,7 +408,7 @@ def compile_plans(
     baseline_permits, candidate_permits = divide_concurrency(
         schedule, campaign.execution.max_concurrent
     )
-    manifests: Mapping[VariantName, tuple[ExperimentManifest, int]] = {
+    manifests: Mapping[VariantName, tuple[ExperimentManifestV2, int]] = {
         VariantName.BASELINE: (baseline, baseline_permits),
         VariantName.CANDIDATE: (candidate, candidate_permits),
     }
@@ -411,6 +417,7 @@ def compile_plans(
     for variant, (manifest, permits) in manifests.items():
         config = compile_variant_config(
             campaign=campaign,
+            plan=plan,
             experiment=manifest,
             run_paths=run_paths,
             variant=variant,

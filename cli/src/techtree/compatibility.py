@@ -54,7 +54,7 @@ from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.errors import VerificationError
 from techtree.manifests.compare import diff_values
 from techtree.models.base import Digest, JsonValue
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.compatibility import (
     CompatibilityVerdict,
     ConfigurationComparison,
@@ -75,7 +75,7 @@ CONFIGURATION_COMPARISON_INVALID: Final = "configuration_comparison_invalid"
 
 
 def observed_drift_paths(
-    source: CampaignSpec, candidate: CampaignSpec
+    source: CampaignSpecV2, candidate: CampaignSpecV2
 ) -> tuple[str, ...]:
     """Return every pointer at which the two canonical Campaigns disagree.
 
@@ -88,8 +88,8 @@ def observed_drift_paths(
 
 def compare_campaign_configurations(
     policy: ConfigurationCompatibilityPolicy,
-    source: CampaignSpec,
-    candidate: CampaignSpec,
+    source: CampaignSpecV2,
+    candidate: CampaignSpecV2,
 ) -> ConfigurationComparison:
     """Compare two Campaigns and report the drift and the verdict."""
     source_digest = digest_object(source)
@@ -169,7 +169,7 @@ def _is_declared(pointer: str, allowed_drift_paths: tuple[str, ...]) -> bool:
     return any(pointer_is_within(pointer, root) for root in allowed_drift_paths)
 
 
-def _campaign_json(campaign: CampaignSpec) -> JsonValue:
+def _campaign_json(campaign: CampaignSpecV2) -> JsonValue:
     """Return one Campaign's canonical JSON form."""
     decoded: JsonValue = json.loads(canonical_json_bytes(campaign).decode("utf-8"))
     return decoded

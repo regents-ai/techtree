@@ -39,17 +39,30 @@ from fixtures.drafts.support import (
     COMPLETE_CATALOG,
     SKILL_FIXTURES,
     VALID_SKILL,
+    catalog_fixture_builder,
     catalog_service,
     preparation_service,
     prepare_draft,
+    write_synthetic_catalog,
 )
 from techtree.canonical import digest_object
 from techtree.cli.app import create_app
 from techtree.drafts.store import DraftStore
-from techtree.errors import EXIT_OK, EXIT_VALIDATION, PolicyError, ValidationError
+from techtree.errors import (
+    EXIT_OK,
+    EXIT_VALIDATION,
+    PolicyError,
+    PrerequisiteError,
+    ValidationError,
+)
 from techtree.manifests.builder import SKILL_MEDIA_TYPE
 from techtree.models.campaign import SKILL_MUTATION_POINTER
 from techtree.models.catalog import EngineCompatibilityStatus
+from techtree.models.execution_plan import (
+    ExecutionBackendKind,
+    ExecutionBackendSpec,
+    ExecutionProvider,
+)
 from techtree.paths import paths_from_root
 from techtree.skills.service import PreparedDraft
 
@@ -129,8 +142,9 @@ def test_both_variants_share_the_campaign_policy_and_backend(
         == resolved.data_policy_digest
     )
     assert (
-        baseline.configuration.evaluation_backend
-        == candidate.configuration.evaluation_backend
+        baseline.configuration.execution_plan_digest
+        == candidate.configuration.execution_plan_digest
+        == resolved.execution_plan_digest
     )
     assert baseline.public_context is not None
     assert baseline.public_context.climb_digest == resolved.climb_digest
@@ -328,6 +342,42 @@ def test_an_absent_engine_blocks_preparing_but_not_resolving(
         paths, engine=EngineCompatibilityStatus.NOT_INSTALLED
     ).get_climb("synthetic-development")
     assert resolved.climb.metadata.slug == "synthetic-development"
+
+
+def test_a_climb_planned_to_run_elsewhere_is_refused_before_anything_starts(
+    temp_techtree_home: Path,
+) -> None:
+    """v0.2.0 runs a comparison on this machine only, and says so at the door.
+
+    The plan is a valid document describing a run this build cannot perform.
+    Preparation is the first thing that reads it, so the refusal lands there:
+    no draft is written, and nothing later has to abandon a run partway.
+    """
+    builder: Any = catalog_fixture_builder()
+    hosted = builder.build_execution_plan().model_copy(
+        update={
+            "execution": ExecutionBackendSpec(
+                kind=ExecutionBackendKind.PRIME_HOSTED,
+                provider=ExecutionProvider.PRIME,
+                provider_environment_coordinate="prime/environments/example",
+            )
+        }
+    )
+    catalog = temp_techtree_home / "catalog"
+    write_synthetic_catalog(catalog, execution_plan=hosted)
+    paths = paths_from_root(temp_techtree_home / "techtree")
+    service, _ = preparation_service(paths, catalog_root=catalog)
+
+    with pytest.raises(PrerequisiteError) as caught:
+        service.prepare(
+            climb_reference="synthetic-development",
+            skill_path=VALID_SKILL,
+            candidate_label="elsewhere",
+        )
+
+    assert caught.value.code == "climb_not_preparable"
+    assert caught.value.details["blocking_issues"] == ["execution_backend_unsupported"]
+    assert_no_draft(paths.drafts_dir)
 
 
 # ---------------------------------------------------------------------------

@@ -153,6 +153,7 @@ def test_one_real_baseline_variant_runs_end_to_end(
     # -- compile ---------------------------------------------------------
     compiled = compile_variant_config(
         campaign=campaign.campaign,
+        plan=campaign.execution_plan,
         experiment=campaign.baseline,
         run_paths=paths,
         variant=variant,
@@ -288,6 +289,7 @@ def test_one_real_baseline_variant_runs_end_to_end(
     checks = verify_variant_execution(
         result=result,
         experiment=campaign.baseline,
+        plan=campaign.execution_plan,
         taskset_lock=lock,
         primary_reward=campaign.campaign.scoring.primary_reward,
         # The pin is recorded per trace by the run itself, so the check is

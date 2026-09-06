@@ -1,12 +1,11 @@
 {
-  "candidate_campaign_digest": "sha256:99a3dd02c6cd125cd5baabf74227ceec1b772e6e4be44383fd80bc1c341ad12d",
+  "candidate_campaign_digest": "sha256:2eb4ac9690b5053ff6867ca0f6d6553f6ec46b80a8cc8e562599122b3f79eafc",
   "compatibility": "compatible_with_declared_drift",
   "observed_drift_paths": [
-    "/agents/subject/harness/id",
-    "/agents/subject/harness/version",
+    "/execution_plan_digest",
     "/metadata/id",
     "/metadata/version"
   ],
-  "policy_digest": "sha256:d8a24a003da285abb6e179315145baa980a0f5ac75231f2f9add165513824103",
-  "source_campaign_digest": "sha256:2ffd504ad7478aa0243881a3658044b07ea6c51d4778a2a011acc96bf9f93af1"
+  "policy_digest": "sha256:62621c7860dd4e20eef4ed27e94bc823397814a7314b4372183d470865ce79e4",
+  "source_campaign_digest": "sha256:8e9a9b31c7de92ed47332ce6a181270029823419915cb8b06f0893aab61b48be"
 }

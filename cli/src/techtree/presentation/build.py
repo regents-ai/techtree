@@ -40,15 +40,15 @@ from typing import Final, Literal
 
 from techtree.errors import PrerequisiteError
 from techtree.identity.models import VerificationResult
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.cli import NextAction
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.skill import SkillArtifact
 from techtree.models.uplift_report import (
     ComparisonStatus,
     TaskDelta,
     UpliftDecision,
-    UpliftReport,
+    UpliftReportV2,
 )
 from techtree.presentation.evidence import RecordedEvidence
 from techtree.presentation.models import (
@@ -191,10 +191,10 @@ _TOKENS_PER_MILLION: Final = 1_000_000.0
 
 def build_uplift_presentation(
     *,
-    report: UpliftReport,
-    campaign: CampaignSpec,
-    baseline_receipts: Sequence[EpisodeReceipt],
-    candidate_receipts: Sequence[EpisodeReceipt],
+    report: UpliftReportV2,
+    campaign: CampaignSpecV2,
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    candidate_receipts: Sequence[EpisodeReceiptV2],
     campaign_title: str,
     baseline_skill: SkillArtifact | None,
     candidate_skill: SkillArtifact,
@@ -689,8 +689,8 @@ class _Economics:
 
 def _economics(
     record: ComparisonExecutionRecord | None,
-    baseline_receipts: Sequence[EpisodeReceipt],
-    candidate_receipts: Sequence[EpisodeReceipt],
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    candidate_receipts: Sequence[EpisodeReceiptV2],
 ) -> _Economics:
     """Decide what this payload may say about what the comparison consumed.
 
@@ -725,7 +725,7 @@ def _economics(
 
 
 def _derived_cost(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     record: ComparisonExecutionRecord | None,
     economics: _Economics,
 ) -> DerivedCost | None:
@@ -791,7 +791,7 @@ def _summed(usage: tuple[VariantUsage, VariantUsage], field: str) -> int | None:
     return total
 
 
-def _tokens(receipts: Sequence[EpisodeReceipt]) -> int | None:
+def _tokens(receipts: Sequence[EpisodeReceiptV2]) -> int | None:
     """Return one side's token total when the receipts carry one.
 
     A receipt records whatever metrics the evaluation recorded. The pinned
@@ -830,8 +830,8 @@ _COST_PROVENANCE: Final[dict[CostProvenance, str]] = {
 
 def _caveats(
     *,
-    report: UpliftReport,
-    campaign: CampaignSpec,
+    report: UpliftReportV2,
+    campaign: CampaignSpecV2,
     verification: VerificationResult | None,
     economics: _Economics,
     recorded_evidence: RecordedEvidence | None,
@@ -966,7 +966,7 @@ def _caveats(
     return caveats
 
 
-def _weak_attestation_text(campaign: CampaignSpec) -> str:
+def _weak_attestation_text(campaign: CampaignSpecV2) -> str:
     """Say which declared coordinate the run could not confirm, when it can.
 
     "At least one declared coordinate could not be confirmed" is true and
@@ -1057,7 +1057,7 @@ _COST_CAVEATS: Final[
 
 
 def _cost_unavailable_reason(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     record: ComparisonExecutionRecord | None,
     economics: _Economics,
 ) -> str:

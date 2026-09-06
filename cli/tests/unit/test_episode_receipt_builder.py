@@ -19,17 +19,20 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from functools import cache
 from pathlib import Path
 from typing import Final
 
 import pytest
 
+from fixtures.receipts.pair import RecordedPair, recorded_pair
 from fixtures.receipts.support import RecordedVariant, recorded_variant
 from techtree.canonical import digest_object
 from techtree.errors import TechtreeError
-from techtree.models.campaign import EvidenceRequirements
+from techtree.execution_facts import episode_receipt_execution_facts
+from techtree.models.campaign import EvidenceRequirementsV2
 from techtree.models.episode_receipt import (
-    EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     ScoreStatus,
 )
@@ -66,27 +69,39 @@ def recorded(request: pytest.FixtureRequest) -> RecordedVariant:
     return recorded_variant(variant)
 
 
+@cache
+def pair() -> RecordedPair:
+    """Return the recorded comparison as the run the receipts are built for.
+
+    The evidence is the recorded variant's; the request, the manifests and
+    the plan facts are the ones the derived run names, so what is under test
+    is the builder joining live inputs to recorded episodes.
+    """
+    return recorded_pair()
+
+
 def receipts_for(
     recorded: RecordedVariant,
     *,
     result: VariantExecutionResult | None = None,
     ordered_task_hashes: Sequence[str] | None = None,
-    evidence: EvidenceRequirements | None = None,
-) -> list[EpisodeReceipt]:
+    evidence: EvidenceRequirementsV2 | None = None,
+) -> list[EpisodeReceiptV2]:
     """Build one variant's receipts, with one input optionally replaced."""
+    run = pair()
     return build_variant_receipts(
-        run_request=recorded.request,
+        run_request=run.request,
         variant=recorded.variant,
-        experiment=recorded.experiment,
-        result=recorded.result if result is None else result,
-        evaluation_backend=recorded.campaign.evaluation_backend,
+        experiment=run.manifest(recorded.variant),
+        result=run.results[recorded.variant] if result is None else result,
+        execution=episode_receipt_execution_facts(run.campaign, run.execution_plan),
         ordered_task_hashes=(
             recorded.ordered_task_hashes
             if ordered_task_hashes is None
             else ordered_task_hashes
         ),
         primary_reward=recorded.primary_reward,
-        evidence=recorded.campaign.evidence if evidence is None else evidence,
+        evidence=run.campaign.evidence if evidence is None else evidence,
     )
 
 
@@ -94,7 +109,9 @@ def with_episodes(
     recorded: RecordedVariant, episodes: Sequence[NormalizedEpisode]
 ) -> VariantExecutionResult:
     """Return the recorded execution carrying a different episode list."""
-    return recorded.result.model_copy(update={"episodes": list(episodes)})
+    return (
+        pair().results[recorded.variant].model_copy(update={"episodes": list(episodes)})
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +227,9 @@ def test_the_candidate_outscored_the_baseline_on_the_shared_tasks() -> None:
 
 def test_a_receipt_carries_the_runs_own_lineage(recorded: RecordedVariant) -> None:
     """Every reference comes from the immutable request and staged manifest."""
-    request = recorded.request
+    run = pair()
+    request = run.request
+    facts = episode_receipt_execution_facts(run.campaign, run.execution_plan)
 
     for receipt in receipts_for(recorded):
         assert receipt.run_id == request.run_id
@@ -219,10 +238,14 @@ def test_a_receipt_carries_the_runs_own_lineage(recorded: RecordedVariant) -> No
         assert receipt.public_context == request.public_context
         assert receipt.data_policy_digest == request.data_policy_digest
         assert receipt.outcome_contract_digest == request.outcome_contract_digest
-        assert receipt.evaluation_backend == recorded.campaign.evaluation_backend
+        assert receipt.execution_plan_digest == request.execution_plan_digest
+        assert receipt.execution_plan_digest == digest_object(run.execution_plan)
+        assert receipt.execution_location == facts.execution_location
         assert receipt.variant is experiment_variant_of(recorded.variant)
-        assert receipt.experiment_manifest_digest == digest_object(recorded.experiment)
-        assert receipt.execution_backend == "verifiers"
+        assert receipt.experiment_manifest_digest == digest_object(
+            run.manifest(recorded.variant)
+        )
+        assert receipt.executor_kind == "verifiers"
 
 
 def test_a_receipt_names_the_container_the_subject_ran_in(
@@ -267,7 +290,7 @@ def test_a_receipt_points_at_the_whole_variants_evidence(
     recorded: RecordedVariant,
 ) -> None:
     """Raw evidence and its projection are both referenced, both by digest."""
-    result = recorded.result
+    result = pair().results[recorded.variant]
     expected = [
         result.resolved_verifiers_config,
         result.raw_traces,
@@ -282,18 +305,18 @@ def test_a_receipt_points_at_the_whole_variants_evidence(
 def test_a_receipt_from_the_other_variants_manifest_is_refused() -> None:
     """A manifest that is not the one the request names cannot be receipted."""
     baseline = recorded_variant(VariantName.BASELINE)
-    candidate = recorded_variant(VariantName.CANDIDATE)
+    run = pair()
 
     with pytest.raises(TechtreeError) as failure:
         build_variant_receipts(
-            run_request=baseline.request,
+            run_request=run.request,
             variant=VariantName.BASELINE,
-            experiment=candidate.experiment,
-            result=baseline.result,
-            evaluation_backend=baseline.campaign.evaluation_backend,
+            experiment=run.manifest(VariantName.CANDIDATE),
+            result=run.results[VariantName.BASELINE],
+            execution=episode_receipt_execution_facts(run.campaign, run.execution_plan),
             ordered_task_hashes=baseline.ordered_task_hashes,
             primary_reward=baseline.primary_reward,
-            evidence=baseline.campaign.evidence,
+            evidence=run.campaign.evidence,
         )
 
     assert failure.value.code == EPISODE_RECEIPT_INVALID
@@ -302,18 +325,18 @@ def test_a_receipt_from_the_other_variants_manifest_is_refused() -> None:
 def test_an_execution_from_the_other_variant_is_refused() -> None:
     """A baseline receipt cannot be built from a candidate execution."""
     baseline = recorded_variant(VariantName.BASELINE)
-    candidate = recorded_variant(VariantName.CANDIDATE)
+    run = pair()
 
     with pytest.raises(TechtreeError) as failure:
         build_variant_receipts(
-            run_request=baseline.request,
+            run_request=run.request,
             variant=VariantName.BASELINE,
-            experiment=baseline.experiment,
-            result=candidate.result,
-            evaluation_backend=baseline.campaign.evaluation_backend,
+            experiment=run.manifest(VariantName.BASELINE),
+            result=run.results[VariantName.CANDIDATE],
+            execution=episode_receipt_execution_facts(run.campaign, run.execution_plan),
             ordered_task_hashes=baseline.ordered_task_hashes,
             primary_reward=baseline.primary_reward,
-            evidence=baseline.campaign.evidence,
+            evidence=run.campaign.evidence,
         )
 
     assert failure.value.code == EPISODE_RECEIPT_INVALID
@@ -373,9 +396,7 @@ def test_evidence_is_partial_when_the_campaign_requires_a_relay(
     recorded: RecordedVariant,
 ) -> None:
     """This release collects no runtime evidence and must not pretend it did."""
-    demanding = EvidenceRequirements(
-        verifiers_episode="required", runtime_evidence="required"
-    )
+    demanding = EvidenceRequirementsV2(runtime_evidence="required")
     receipts = receipts_for(recorded, evidence=demanding)
 
     assert all(
@@ -387,9 +408,7 @@ def test_evidence_is_complete_when_a_relay_is_merely_optional(
     recorded: RecordedVariant,
 ) -> None:
     """Absence of an optional thing is not incompleteness. Spec section 7.6."""
-    optional = EvidenceRequirements(
-        verifiers_episode="required", runtime_evidence="optional"
-    )
+    optional = EvidenceRequirementsV2(runtime_evidence="optional")
     receipts = receipts_for(recorded, evidence=optional)
 
     assert all(

@@ -52,20 +52,20 @@ from techtree.canonical import (
     sha256_digest_bytes,
     validate_digest,
 )
-from techtree.constants import EPISODE_RECEIPT_SCHEMA_VERSION
+from techtree.constants import EPISODE_RECEIPT_V2_SCHEMA_VERSION
 from techtree.errors import ValidationError, VerificationError
+from techtree.execution_facts import EpisodeReceiptExecutionFacts
 from techtree.models.base import ArtifactRef, Digest, JsonValue
-from techtree.models.campaign import SUBJECT_AGENT, EvidenceRequirements
+from techtree.models.campaign import SUBJECT_AGENT, EvidenceRequirementsV2
 from techtree.models.episode_receipt import (
-    EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     NamedTraceReceipt,
     ScoreStatus,
     SubjectRuntimeReceipt,
 )
-from techtree.models.evaluation_backend import EvaluationBackendSpec
-from techtree.models.experiment import ExperimentManifest, ExperimentVariant
-from techtree.models.run import RunRequest
+from techtree.models.experiment import ExperimentManifestV2, ExperimentVariant
+from techtree.models.run import RunRequestV2
 from techtree.verifiers.models import (
     NormalizedEpisode,
     NormalizedTrace,
@@ -228,15 +228,15 @@ def _first_non_finite(value: object, pointer: str) -> str | None:
 
 def build_episode_receipt(
     *,
-    run_request: RunRequest,
+    run_request: RunRequestV2,
     variant: VariantName,
-    experiment: ExperimentManifest,
+    experiment: ExperimentManifestV2,
     episode: NormalizedEpisode,
     raw_artifacts: VariantExecutionResult,
-    evaluation_backend: EvaluationBackendSpec,
+    execution: EpisodeReceiptExecutionFacts,
     primary_reward: str,
-    evidence: EvidenceRequirements,
-) -> EpisodeReceipt:
+    evidence: EvidenceRequirementsV2,
+) -> EpisodeReceiptV2:
     """Construct one immutable Techtree receipt from one normalized Episode.
 
     ``primary_reward`` and ``evidence`` are the two Campaign facts a receipt's
@@ -245,13 +245,16 @@ def build_episode_receipt(
     passed explicitly rather than by handing this function the whole Campaign,
     because everything else a receipt cites comes from the run's request and
     the run's manifest, and a second source for those would be a second truth.
+    ``execution`` is the projection of the Campaign and the execution plan it
+    binds: the plan's digest, which the request and the manifest must also
+    name, and where the work ran.
     """
     _require_lineage(
         run_request=run_request,
         variant=variant,
         experiment=experiment,
         raw_artifacts=raw_artifacts,
-        evaluation_backend=evaluation_backend,
+        execution=execution,
     )
     trace = _subject_trace(episode, variant)
     task_hash = validate_digest(episode.task_hash)
@@ -264,8 +267,8 @@ def build_episode_receipt(
         )
 
     episode_digest = validate_digest(episode.raw_episode_digest)
-    return EpisodeReceipt(
-        schema_version=EPISODE_RECEIPT_SCHEMA_VERSION,
+    return EpisodeReceiptV2(
+        schema_version=EPISODE_RECEIPT_V2_SCHEMA_VERSION,
         id=_receipt_id(
             run_id=run_request.run_id, variant=variant, episode_digest=episode_digest
         ),
@@ -275,7 +278,8 @@ def build_episode_receipt(
         public_context=run_request.public_context,
         data_policy_digest=run_request.data_policy_digest,
         outcome_contract_digest=run_request.outcome_contract_digest,
-        evaluation_backend=evaluation_backend,
+        execution_plan_digest=execution.execution_plan_digest,
+        execution_location=execution.execution_location,
         subject_runtime=_subject_runtime(trace),
         variant=experiment_variant_of(variant),
         experiment_manifest_digest=raw_artifacts.experiment_manifest_digest,
@@ -297,18 +301,18 @@ def build_episode_receipt(
         },
         score_status=_score_status(episode, trace, primary_reward),
         evidence_status=_evidence_status(trace, evidence),
-        execution_backend="verifiers",
+        executor_kind="verifiers",
         artifacts=_variant_artifacts(raw_artifacts),
     )
 
 
 def _require_lineage(
     *,
-    run_request: RunRequest,
+    run_request: RunRequestV2,
     variant: VariantName,
-    experiment: ExperimentManifest,
+    experiment: ExperimentManifestV2,
     raw_artifacts: VariantExecutionResult,
-    evaluation_backend: EvaluationBackendSpec,
+    execution: EpisodeReceiptExecutionFacts,
 ) -> None:
     """Require every reference a receipt copies to agree with every other."""
     expected_variant = experiment_variant_of(variant)
@@ -368,10 +372,12 @@ def _require_lineage(
         "program or public context",
     )
     _require(
-        evaluation_backend == run_request.evaluation_backend
-        and evaluation_backend == configuration.evaluation_backend,
-        "the evaluation backend this receipt would carry is not the one the "
+        execution.execution_plan_digest == run_request.execution_plan_digest
+        and execution.execution_plan_digest == configuration.execution_plan_digest,
+        "the execution plan this receipt would carry is not the one the "
         "run's request and manifest were executed under",
+        expected=run_request.execution_plan_digest,
+        computed=execution.execution_plan_digest,
     )
 
 
@@ -466,7 +472,7 @@ def _score_status(
 
 
 def _evidence_status(
-    trace: NormalizedTrace, evidence: EvidenceRequirements
+    trace: NormalizedTrace, evidence: EvidenceRequirementsV2
 ) -> EvidenceStatus:
     """Say how complete the supporting evidence is. Spec section 7.6.
 
@@ -528,15 +534,15 @@ def _receipt_id(*, run_id: str, variant: VariantName, episode_digest: Digest) ->
 
 def build_variant_receipts(
     *,
-    run_request: RunRequest,
+    run_request: RunRequestV2,
     variant: VariantName,
-    experiment: ExperimentManifest,
+    experiment: ExperimentManifestV2,
     result: VariantExecutionResult,
-    evaluation_backend: EvaluationBackendSpec,
+    execution: EpisodeReceiptExecutionFacts,
     ordered_task_hashes: Sequence[Digest],
     primary_reward: str,
-    evidence: EvidenceRequirements,
-) -> list[EpisodeReceipt]:
+    evidence: EvidenceRequirementsV2,
+) -> list[EpisodeReceiptV2]:
     """Build exactly one receipt per committed task, in committed order.
 
     The join is on task hash and never on position in a file. Completion order
@@ -559,7 +565,7 @@ def build_variant_receipts(
         variant=variant,
         experiment=experiment,
         raw_artifacts=result,
-        evaluation_backend=evaluation_backend,
+        execution=execution,
     )
     committed = _committed_membership(ordered_task_hashes)
     episodes = _episodes_by_task(result, committed, variant)
@@ -571,7 +577,7 @@ def build_variant_receipts(
             experiment=experiment,
             episode=episodes[task_hash],
             raw_artifacts=result,
-            evaluation_backend=evaluation_backend,
+            execution=execution,
             primary_reward=primary_reward,
             evidence=evidence,
         )
@@ -650,7 +656,7 @@ def _episodes_by_task(
 
 
 def _require_every_task_scored(
-    receipts: Sequence[EpisodeReceipt], primary_reward: str, variant: VariantName
+    receipts: Sequence[EpisodeReceiptV2], primary_reward: str, variant: VariantName
 ) -> None:
     """Refuse a variant whose clean rollouts produced no primary reward."""
     unscored: list[JsonValue] = [

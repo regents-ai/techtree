@@ -31,17 +31,13 @@ from pathlib import Path
 import pytest
 
 from techtree.canonical import sha256_digest_bytes
+from techtree.constants import RUN_REQUEST_V2_SCHEMA_VERSION
 from techtree.models.base import Digest
 from techtree.models.campaign import ProgramRef, PublicContext
-from techtree.models.evaluation_backend import (
-    AttestationKind,
-    EvaluationBackendKind,
-    EvaluationBackendSpec,
-)
 from techtree.models.run import (
     PolicyAcknowledgement,
     RunPhase,
-    RunRequest,
+    RunRequestV2,
     RunState,
 )
 from techtree.paths import TechtreePaths, paths_from_root
@@ -120,10 +116,11 @@ def digest_of(text: str) -> Digest:
     return sha256_digest_bytes(text.encode("utf-8"))
 
 
-def build_request() -> RunRequest:
+def build_request() -> RunRequestV2:
     """Return a complete run request for the run under test."""
     data_policy_digest = digest_of("data-policy")
-    return RunRequest(
+    return RunRequestV2(
+        schema_version=RUN_REQUEST_V2_SCHEMA_VERSION,
         run_id=RUN_ID,
         draft_id=DRAFT_ID,
         draft_digest=digest_of("draft"),
@@ -132,11 +129,7 @@ def build_request() -> RunRequest:
         public_context=PublicContext(kind="climb", climb_digest=digest_of("climb")),
         data_policy_digest=data_policy_digest,
         outcome_contract_digest=None,
-        evaluation_backend=EvaluationBackendSpec(
-            schema_version="techtree.evaluation-backend.v1alpha1",
-            kind=EvaluationBackendKind.LOCAL_TECHTREE,
-            attestation=AttestationKind.PARTICIPANT,
-        ),
+        execution_plan_digest=digest_of("execution-plan"),
         taskset_lock_digest=digest_of("taskset-lock"),
         baseline_manifest_digest=digest_of("baseline"),
         candidate_manifest_digest=digest_of("candidate"),

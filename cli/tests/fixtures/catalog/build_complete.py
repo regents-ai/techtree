@@ -37,11 +37,11 @@ from pydantic import BaseModel
 
 from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.constants import (
-    CAMPAIGN_SCHEMA_VERSION,
-    CATALOG_SCHEMA_VERSION,
+    CAMPAIGN_V2_SCHEMA_VERSION,
+    CATALOG_V2_SCHEMA_VERSION,
     CLIMB_SCHEMA_VERSION,
     DATA_POLICY_SCHEMA_VERSION,
-    EVALUATION_BACKEND_SCHEMA_VERSION,
+    EXECUTION_PLAN_SCHEMA_VERSION,
     PINNED_VERIFIERS_REVISION,
     SUBJECT_IMAGE,
     SUBJECT_IMAGE_PLATFORM_DIGESTS,
@@ -53,16 +53,16 @@ from techtree.models.base import ArtifactRef, Digest
 from techtree.models.campaign import (
     SKILL_MUTATION_POINTER,
     SUBJECT_AGENT,
-    AgentSpec,
+    AgentSpecV2,
     BudgetSpec,
     CampaignContext,
     CampaignMetadata,
-    CampaignSpec,
+    CampaignSpecV2,
     CampaignTaskset,
     EnvironmentSpec,
-    EvidenceRequirements,
+    EvidenceRequirementsV2,
     ExecutionSpec,
-    HarnessSpec,
+    HarnessSpecV2,
     ModelSpec,
     MutationContract,
     MutationKind,
@@ -77,8 +77,8 @@ from techtree.models.campaign import (
 )
 from techtree.models.catalog import (
     CatalogClimbEntry,
-    CatalogIndex,
-    CatalogObjectLocation,
+    CatalogIndexV2,
+    CatalogObjectLocationV2,
 )
 from techtree.models.climb import (
     CandidateConstraints,
@@ -96,10 +96,14 @@ from techtree.models.data_policy import (
     RawEpisodePolicy,
     RevocationPolicy,
 )
-from techtree.models.evaluation_backend import (
-    AttestationKind,
-    EvaluationBackendKind,
-    EvaluationBackendSpec,
+from techtree.models.execution_plan import (
+    EvaluationEngineRef,
+    EvidenceBackendSpec,
+    ExecutionBackendKind,
+    ExecutionBackendSpec,
+    ResolvedExecutionPlan,
+    SubjectBackendKind,
+    SubjectBackendSpec,
 )
 from techtree.models.validation import (
     TasksetLock,
@@ -125,6 +129,7 @@ MEDIA_TYPE: Final = "application/json"
 
 CAMPAIGN_PATH: Final = "campaigns/synthetic.json"
 DATA_POLICY_PATH: Final = "data-policies/synthetic.json"
+EXECUTION_PLAN_PATH: Final = "execution-plans/synthetic.json"
 RECEIPT_PATH: Final = "taskset-validations/synthetic.json"
 EVIDENCE_PATH: Final = "validation-evidence/synthetic.json"
 
@@ -148,6 +153,7 @@ class CatalogFile:
     kind: Literal[
         "campaign",
         "data_policy",
+        "execution_plan",
         "taskset_validation",
         "validation_evidence",
     ]
@@ -325,15 +331,58 @@ def build_validation_receipt(
     )
 
 
+def build_execution_plan() -> ResolvedExecutionPlan:
+    """Return the resolved plan the synthetic Campaign binds.
+
+    The evaluation plane names the same fixture engine the publisher's lock
+    and receipt were issued under, by its synthetic digest rather than the
+    packaged one: this catalog exercises resolution and linkage, not
+    execution, and a fixture that tracked the real engine would change every
+    time the engine did. Naming the receipt's engine is what makes the Climb
+    preparable, since a plan that evaluates under a different engine than the
+    one its tasks were validated with is refused before any draft exists.
+    """
+    return ResolvedExecutionPlan(
+        schema_version=EXECUTION_PLAN_SCHEMA_VERSION,
+        kind="ResolvedExecutionPlan",
+        evaluation=EvaluationEngineRef(
+            kind="verifiers",
+            api_generation="v1",
+            package_version="0.3.1",
+            source_commit=PINNED_VERIFIERS_REVISION,
+            wheel_digest=synthetic_digest("synthetic-engine-bundle"),
+        ),
+        execution=ExecutionBackendSpec(
+            kind=ExecutionBackendKind.LOCAL,
+            provider=None,
+            provider_environment_coordinate=None,
+        ),
+        subject=SubjectBackendSpec(
+            kind=SubjectBackendKind.DIRECT,
+            harness_id="hermes-agent",
+            harness_version="0.19.0",
+            adapter_id=None,
+            adapter_version=None,
+            adapter_contract_version=None,
+        ),
+        evidence=EvidenceBackendSpec(
+            native_evidence="required",
+            trace_coverage="not_requested",
+            coverage_profile_digest=None,
+        ),
+    )
+
+
 def build_campaign(
     *,
     lock: TasksetLock,
     validation_receipt_digest: Digest,
     data_policy_digest: Digest,
-) -> CampaignSpec:
+    execution_plan_digest: Digest,
+) -> CampaignSpecV2:
     """Return the synthetic scientific contract the Climbs wrap."""
-    return CampaignSpec(
-        schema_version=CAMPAIGN_SCHEMA_VERSION,
+    return CampaignSpecV2(
+        schema_version=CAMPAIGN_V2_SCHEMA_VERSION,
         kind="Campaign",
         metadata=CampaignMetadata(
             id=synthetic_id("campaign", "synthetic-campaign"),
@@ -357,7 +406,7 @@ def build_campaign(
         ),
         environment=EnvironmentSpec(id="single-agent"),
         agents={
-            SUBJECT_AGENT: AgentSpec(
+            SUBJECT_AGENT: AgentSpecV2(
                 model=ModelSpec(
                     provider="development",
                     model_id="development-placeholder",
@@ -365,12 +414,7 @@ def build_campaign(
                     credential_env="TECHTREE_MODEL_API_KEY",
                 ),
                 sampling=SamplingSpec(temperature=0.0, max_tokens=512),
-                harness=HarnessSpec(
-                    id="hermes-agent",
-                    version="0.19.0",
-                    use_bundled_skill=False,
-                    skills=[],
-                ),
+                harness=HarnessSpecV2(use_bundled_skill=False, skills=[]),
                 runtime=RuntimeSpec(
                     type="docker",
                     image=SUBJECT_IMAGE,
@@ -390,14 +434,6 @@ def build_campaign(
             minimum_skills=1,
             maximum_skills=1,
         ),
-        evaluation_backend=EvaluationBackendSpec(
-            schema_version=EVALUATION_BACKEND_SCHEMA_VERSION,
-            kind=EvaluationBackendKind.LOCAL_TECHTREE,
-            attestation=AttestationKind.PARTICIPANT,
-            workspace_ref=None,
-            provider_run_ref=None,
-            executor_identity=None,
-        ),
         execution=ExecutionSpec(
             order=VariantSchedule.SEQUENTIAL,
             max_concurrent=1,
@@ -410,10 +446,7 @@ def build_campaign(
             require_candidate_above_baseline=True,
             minimum_absolute_delta=0.0,
         ),
-        evidence=EvidenceRequirements(
-            verifiers_episode="required",
-            runtime_evidence="not_required",
-        ),
+        evidence=EvidenceRequirementsV2(runtime_evidence="not_required"),
         budgets=BudgetSpec(
             maximum_input_tokens=None,
             maximum_output_tokens=None,
@@ -421,6 +454,7 @@ def build_campaign(
             maximum_usd=None,
         ),
         data_policy_digest=data_policy_digest,
+        execution_plan_digest=execution_plan_digest,
     )
 
 
@@ -485,8 +519,8 @@ def write_catalog(
     for entry in objects:
         _write_object(destination / entry.path, entry.model)
 
-    index = CatalogIndex(
-        schema_version=CATALOG_SCHEMA_VERSION,
+    index = CatalogIndexV2(
+        schema_version=CATALOG_V2_SCHEMA_VERSION,
         climbs=[
             CatalogClimbEntry(
                 reference=f"{climb.metadata.slug}@{climb.metadata.version}",
@@ -496,7 +530,7 @@ def write_catalog(
             for path, climb in climbs.items()
         ],
         objects={
-            digest_object(entry.model): CatalogObjectLocation(
+            digest_object(entry.model): CatalogObjectLocationV2(
                 kind=entry.kind,
                 path=entry.path,
                 media_type=MEDIA_TYPE,
@@ -507,7 +541,7 @@ def write_catalog(
     write_index(destination, index)
 
 
-def write_index(destination: Path, index: CatalogIndex) -> None:
+def write_index(destination: Path, index: CatalogIndexV2) -> None:
     """Write one catalog index as readable, stably ordered JSON."""
     destination.mkdir(parents=True, exist_ok=True)
     document = json.loads(canonical_json_bytes(index).decode("utf-8"))
@@ -521,10 +555,12 @@ def build(destination: Path = FIXTURE_DIRECTORY) -> None:
     lock = build_taskset_lock()
     evidence = build_validation_evidence(lock)
     receipt = build_validation_receipt(lock, evidence)
+    execution_plan = build_execution_plan()
     campaign = build_campaign(
         lock=lock,
         validation_receipt_digest=digest_object(receipt),
         data_policy_digest=digest_object(data_policy),
+        execution_plan_digest=digest_object(execution_plan),
     )
     campaign_digest = digest_object(campaign)
 
@@ -544,6 +580,9 @@ def build(destination: Path = FIXTURE_DIRECTORY) -> None:
         objects=[
             CatalogFile(kind="campaign", path=CAMPAIGN_PATH, model=campaign),
             CatalogFile(kind="data_policy", path=DATA_POLICY_PATH, model=data_policy),
+            CatalogFile(
+                kind="execution_plan", path=EXECUTION_PLAN_PATH, model=execution_plan
+            ),
             CatalogFile(kind="taskset_validation", path=RECEIPT_PATH, model=receipt),
             CatalogFile(kind="validation_evidence", path=EVIDENCE_PATH, model=evidence),
         ],

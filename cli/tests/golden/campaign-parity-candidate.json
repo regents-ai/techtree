@@ -2,10 +2,8 @@
   "agents": {
     "subject": {
       "harness": {
-        "id": "fabric-hermes-agent",
         "skills": [],
-        "use_bundled_skill": false,
-        "version": "0.19.0+fabric.1"
+        "use_bundled_skill": false
       },
       "model": {
         "credential_env": "TECHTREE_MODEL_API_KEY",
@@ -49,17 +47,8 @@
   "environment": {
     "id": "single-agent"
   },
-  "evaluation_backend": {
-    "attestation": "participant",
-    "executor_identity": null,
-    "kind": "local_techtree",
-    "provider_run_ref": null,
-    "schema_version": "techtree.evaluation-backend.v1alpha1",
-    "workspace_ref": null
-  },
   "evidence": {
-    "runtime_evidence": "not_required",
-    "verifiers_episode": "required"
+    "runtime_evidence": "not_required"
   },
   "execution": {
     "max_concurrent": 1,
@@ -67,6 +56,7 @@
     "retry_limit": 0,
     "timeout_seconds": 1800
   },
+  "execution_plan_digest": "sha256:b76404db5900af339d387cf96d957d65ee9d309f341cdd88d6365d43b6b9d073",
   "kind": "Campaign",
   "metadata": {
     "id": "campaign_f78cd1b191b02c6815c216f9cfe09b34",
@@ -82,7 +72,7 @@
     "minimum_skills": 1,
     "target_agent": "subject"
   },
-  "schema_version": "techtree.campaign.v1alpha1",
+  "schema_version": "techtree.campaign.v2",
   "scoring": {
     "aggregation": "mean",
     "minimum_absolute_delta": 0.05,

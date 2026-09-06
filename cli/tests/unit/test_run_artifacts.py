@@ -75,7 +75,8 @@ def test_the_staged_graph_is_the_one_the_request_names(
     assert bundle.source.data_policy_digest == request.data_policy_digest
     assert digest_object(bundle.baseline) == request.baseline_manifest_digest
     assert digest_object(bundle.candidate) == request.candidate_manifest_digest
-    assert bundle.campaign.evaluation_backend == request.evaluation_backend
+    assert bundle.campaign.execution_plan_digest == request.execution_plan_digest
+    assert digest_object(bundle.execution_plan) == request.execution_plan_digest
 
 
 def test_the_run_needs_neither_the_draft_nor_the_source_skill(

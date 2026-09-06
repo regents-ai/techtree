@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "CatalogClimbEntry": {
+      "additionalProperties": false,
+      "description": "One public Climb the package ships.",
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "path": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "reference": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "reference",
+        "digest",
+        "path"
+      ],
+      "title": "CatalogClimbEntry",
+      "type": "object"
+    },
+    "CatalogObjectLocationV2": {
+      "additionalProperties": false,
+      "description": "Where one content-addressed object lives, under the v0.2 catalog.\n\nOne kind more than the v0.1 location: the resolved execution plan a v0.2\nCampaign binds is a catalog object in its own right, filed and verified\nby digest like the DataPolicy and the validation receipt the Campaign\nalso points at.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "campaign",
+            "data_policy",
+            "execution_plan",
+            "taskset_validation",
+            "validation_evidence"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "path": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "media_type"
+      ],
+      "title": "CatalogObjectLocationV2",
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v2/catalog.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The generated map of everything a v0.2 build ships.\n\nA sibling of :class:`CatalogIndex`, not a refinement of it: the v0.1\nindex is published in the frozen ``schemas/v1alpha1`` tree and keeps its\nbytes. What changes is the set of kinds an object can be filed under,\nbecause a v0.2 Campaign binds a resolved execution plan and the catalog\nhas to ship that plan for the Campaign to be resolvable at all.",
+  "properties": {
+    "climbs": {
+      "items": {
+        "$ref": "#/$defs/CatalogClimbEntry"
+      },
+      "title": "Climbs",
+      "type": "array"
+    },
+    "objects": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CatalogObjectLocationV2"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/Digest"
+      },
+      "title": "Objects",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "techtree.catalog.v2",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "climbs",
+    "objects"
+  ],
+  "title": "CatalogIndexV2",
+  "type": "object"
+}

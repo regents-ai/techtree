@@ -45,6 +45,7 @@ from techtree.canonical import digest_object, to_json_value
 from techtree.constants import (
     DEFAULT_STALE_HEARTBEAT_SECONDS,
     DEFAULT_WORKER_HEARTBEAT_SECONDS,
+    RUN_REQUEST_V2_SCHEMA_VERSION,
 )
 from techtree.drafts.store import (
     DraftSnapshot,
@@ -63,17 +64,20 @@ from techtree.errors import (
     VerificationError,
     error_to_cli_error,
 )
+from techtree.execution_facts import (
+    require_executable_execution_plan,
+    run_request_execution_facts,
+)
 from techtree.ids import new_id
 from techtree.models.base import Digest
-from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
 from techtree.models.run import (
     PolicyAcknowledgement,
     RunPhase,
-    RunRequest,
+    RunRequestV2,
     RunState,
     RunStatus,
 )
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.events import (
@@ -318,14 +322,9 @@ class RunService:
                 details={"draft_id": draft.id},
             )
 
-        kind = snapshot.source.campaign.evaluation_backend.kind
-        if kind not in SUPPORTED_EVALUATION_BACKEND_KINDS:
-            raise VerificationError(
-                f"this Campaign is evaluated by {kind.value}, which this build "
-                "does not run",
-                code="evaluation_backend_unsupported",
-                details={"draft_id": draft.id, "evaluation_backend": kind.value},
-            )
+        require_executable_execution_plan(
+            snapshot.source.campaign, snapshot.source.execution_plan
+        )
 
     def _require_agreeing_approval(
         self,
@@ -352,7 +351,7 @@ class RunService:
         record: DraftStartRecord,
         snapshot: DraftSnapshot,
         policy_acknowledgement: PolicyAcknowledgement,
-    ) -> RunRequest:
+    ) -> RunRequestV2:
         """Return the run's immutable request, existing or newly built.
 
         A run that already exists keeps the request it was created with. The
@@ -375,7 +374,11 @@ class RunService:
                 )
             return existing
 
-        return RunRequest(
+        facts = run_request_execution_facts(
+            snapshot.source.campaign, snapshot.source.execution_plan
+        )
+        return RunRequestV2(
+            schema_version=RUN_REQUEST_V2_SCHEMA_VERSION,
             run_id=record.run_id,
             draft_id=draft.id,
             draft_digest=digest_object(draft),
@@ -384,7 +387,7 @@ class RunService:
             public_context=draft.public_context,
             data_policy_digest=draft.data_policy_digest,
             outcome_contract_digest=draft.outcome_contract_digest,
-            evaluation_backend=snapshot.source.campaign.evaluation_backend,
+            execution_plan_digest=facts.execution_plan_digest,
             taskset_lock_digest=(
                 snapshot.source.publisher_validation.taskset_lock_digest
             ),
@@ -398,7 +401,7 @@ class RunService:
     def _ensure_run_exists(
         self,
         record: DraftStartRecord,
-        request: RunRequest,
+        request: RunRequestV2,
         approved_by: ApprovalActor,
     ) -> None:
         """Create the run directory unless a previous attempt already did.
@@ -501,7 +504,7 @@ class RunService:
             result_available=self._runs.result_path(run_id).exists(),
         )
 
-    def request(self, run_id: str) -> RunRequest:
+    def request(self, run_id: str) -> RunRequestV2:
         """Return the immutable request this run executes."""
         return self._runs.get_request(run_id)
 
@@ -602,7 +605,7 @@ class RunService:
             heartbeat_stale=stale,
         )
 
-    def result(self, run_id: str) -> UpliftReport:
+    def result(self, run_id: str) -> UpliftReportV2:
         """Return the report, once the run has finished and it verifies."""
         state = self._runs.state(run_id)
         if state.phase is not RunPhase.COMPLETED:

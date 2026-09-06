@@ -2,7 +2,7 @@
 
 A run does not read the draft it came from. Everything the executor needs is
 copied into ``runs/<run-id>/inputs/`` before the worker is launched, verified
-there against the run's own :class:`~techtree.models.run.RunRequest`, and read
+there against the run's own :class:`~techtree.models.run.RunRequestV2`, and read
 back from that copy for the rest of the run's life. Spec §10.4 is the reason:
 the draft directory, the participant's source skill, and the packaged catalog
 are all mutable from the worker's point of view, and a run that consulted them
@@ -56,16 +56,17 @@ from techtree.fs import (
 )
 from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import ArtifactRef, Digest, JsonValue
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import (
-    ExperimentManifest,
+    ExperimentManifestV2,
     ExperimentVariant,
     ManifestComparison,
 )
-from techtree.models.run import RunRequest
+from techtree.models.run import RunRequestV2
 from techtree.models.skill import SkillArtifact, SubmissionDraft
 from techtree.models.validation import TasksetValidationReceipt, ValidationEvidence
 from techtree.paths import TechtreePaths
@@ -100,6 +101,7 @@ _CAMPAIGN_FILE: Final = "campaign.json"
 _DATA_POLICY_FILE: Final = "data-policy.json"
 _VALIDATION_RECEIPT_FILE: Final = "publisher-validation.json"
 _EVIDENCE_FILE: Final = "publisher-validation-evidence.json"
+_EXECUTION_PLAN_FILE: Final = "execution-plan.json"
 
 _MANIFESTS_DIR: Final = "manifests"
 _BASELINE_FILE: Final = "baseline.json"
@@ -127,20 +129,25 @@ _FILE_MODE: Final = 0o600
 class RunInputBundle:
     """Everything one run executes, loaded from the run's own copies."""
 
-    request: RunRequest
+    request: RunRequestV2
     draft: SubmissionDraft
     source: CampaignSource
     validation_evidence: ValidationEvidence
-    baseline: ExperimentManifest
-    candidate: ExperimentManifest
+    baseline: ExperimentManifestV2
+    candidate: ExperimentManifestV2
     comparison: ManifestComparison
     candidate_skill: StagedSkill
     baseline_skill: StagedSkill | None
 
     @property
-    def campaign(self) -> CampaignSpec:
+    def campaign(self) -> CampaignSpecV2:
         """Return the Campaign this run's science comes from."""
         return self.source.campaign
+
+    @property
+    def execution_plan(self) -> ResolvedExecutionPlan:
+        """Return the resolved execution plan this run's Campaign binds."""
+        return self.source.execution_plan
 
     @property
     def ordered_task_hashes(self) -> list[Digest]:
@@ -167,7 +174,7 @@ class RunArtifactStore:
         self,
         *,
         run_id: str,
-        request: RunRequest,
+        request: RunRequestV2,
         snapshot: DraftSnapshot,
     ) -> RunInputBundle:
         """Copy the draft's immutable graph into this run's ``inputs/``.
@@ -193,7 +200,7 @@ class RunArtifactStore:
         fsync_directory(self._run_dir(run_id))
         return self.load_inputs(run_id, request)
 
-    def load_inputs(self, run_id: str, request: RunRequest) -> RunInputBundle:
+    def load_inputs(self, run_id: str, request: RunRequestV2) -> RunInputBundle:
         """Load and verify the run-owned inputs, consulting no draft."""
         root = self._inputs_dir(run_id)
         if not root.exists():
@@ -253,7 +260,7 @@ class RunArtifactStore:
         run_id: str,
         *,
         position: int,
-        receipt: EpisodeReceipt,
+        receipt: EpisodeReceiptV2,
     ) -> ArtifactRef:
         """Write one immutable receipt under its variant directory.
 
@@ -274,13 +281,13 @@ class RunArtifactStore:
         self,
         run_id: str,
         variant: ExperimentVariant,
-    ) -> list[EpisodeReceipt]:
+    ) -> list[EpisodeReceiptV2]:
         """Load one variant's receipts in Campaign task order."""
         directory = self._run_dir(run_id) / _RECEIPTS_DIR / variant.value
         if not directory.exists():
             return []
         return [
-            self._parse(path, EpisodeReceipt, run_id)
+            self._parse(path, EpisodeReceiptV2, run_id)
             for path in sorted(directory.iterdir())
             if path.is_file()
         ]
@@ -319,6 +326,7 @@ class RunArtifactStore:
                 public / _VALIDATION_RECEIPT_FILE, source.publisher_validation
             )
             self._write_immutable(public / _EVIDENCE_FILE, snapshot.validation_evidence)
+            self._write_immutable(public / _EXECUTION_PLAN_FILE, source.execution_plan)
 
             manifests = staging / _MANIFESTS_DIR
             ensure_private_directory(manifests)
@@ -360,14 +368,23 @@ class RunArtifactStore:
 
     # -- reading and verification -------------------------------------------
 
-    def _read_bundle(self, root: Path, request: RunRequest) -> RunInputBundle:
+    def _read_bundle(self, root: Path, request: RunRequestV2) -> RunInputBundle:
         """Load every staged object from one input tree."""
         run_id = request.run_id
         public = root / _PUBLIC_DIR
-        campaign = self._parse(public / _CAMPAIGN_FILE, CampaignSpec, run_id)
+        campaign = self._parse(public / _CAMPAIGN_FILE, CampaignSpecV2, run_id)
         data_policy = self._parse(public / _DATA_POLICY_FILE, DataPolicy, run_id)
         receipt = self._parse(
             public / _VALIDATION_RECEIPT_FILE, TasksetValidationReceipt, run_id
+        )
+        plan = self._parse(public / _EXECUTION_PLAN_FILE, ResolvedExecutionPlan, run_id)
+        plan_digest = digest_object(plan)
+        _require(
+            plan_digest == campaign.execution_plan_digest,
+            "the staged execution plan is not the one the staged Campaign binds",
+            run_id,
+            expected=campaign.execution_plan_digest,
+            computed=plan_digest,
         )
 
         baseline_artifact = root / _BASELINE_SKILL_DIR / _ARTIFACT_FILE
@@ -380,15 +397,16 @@ class RunArtifactStore:
                 campaign=campaign,
                 data_policy=data_policy,
                 receipt=receipt,
+                plan=plan,
             ),
             validation_evidence=self._parse(
                 public / _EVIDENCE_FILE, ValidationEvidence, run_id
             ),
             baseline=self._parse(
-                root / _MANIFESTS_DIR / _BASELINE_FILE, ExperimentManifest, run_id
+                root / _MANIFESTS_DIR / _BASELINE_FILE, ExperimentManifestV2, run_id
             ),
             candidate=self._parse(
-                root / _MANIFESTS_DIR / _CANDIDATE_FILE, ExperimentManifest, run_id
+                root / _MANIFESTS_DIR / _CANDIDATE_FILE, ExperimentManifestV2, run_id
             ),
             comparison=self._parse(root / _COMPARISON_FILE, ManifestComparison, run_id),
             candidate_skill=self._read_skill(root / _SKILL_DIR, run_id),
@@ -404,9 +422,10 @@ class RunArtifactStore:
         public: Path,
         *,
         run_id: str,
-        campaign: CampaignSpec,
+        campaign: CampaignSpecV2,
         data_policy: DataPolicy,
         receipt: TasksetValidationReceipt,
+        plan: ResolvedExecutionPlan,
     ) -> CampaignSource:
         """Assemble the Campaign graph this run owns, Climb included when there is one.
 
@@ -420,6 +439,7 @@ class RunArtifactStore:
                 campaign=campaign,
                 data_policy=data_policy,
                 publisher_validation=receipt,
+                execution_plan=plan,
             )
 
         climb = self._parse(public / _CLIMB_FILE, ClimbManifest, run_id)
@@ -433,6 +453,8 @@ class RunArtifactStore:
                 data_policy_digest=digest_object(data_policy),
                 publisher_validation=receipt,
                 publisher_validation_digest=digest_object(receipt),
+                execution_plan=plan,
+                execution_plan_digest=digest_object(plan),
             )
         except PydanticValidationError as error:
             raise VerificationError(
@@ -505,9 +527,13 @@ class RunArtifactStore:
             run_id,
         )
         _require(
-            campaign.evaluation_backend == request.evaluation_backend,
-            "the staged Campaign names a different evaluation backend than the request",
+            source.execution_plan_digest
+            == request.execution_plan_digest
+            == campaign.execution_plan_digest,
+            "the staged execution plan is not the one this run executes under",
             run_id,
+            expected=request.execution_plan_digest,
+            computed=source.execution_plan_digest,
         )
 
         self._verify_validation(run_id, bundle)
@@ -715,7 +741,7 @@ class RunArtifactStore:
         return self._run_dir(run_id) / _INPUTS_DIR
 
 
-def _declared_baseline_skill(baseline: ExperimentManifest) -> ArtifactRef | None:
+def _declared_baseline_skill(baseline: ExperimentManifestV2) -> ArtifactRef | None:
     """Return the one Skill a baseline variant declares, when it declares one."""
     subject = baseline.configuration.agents.get(SUBJECT_AGENT)
     if subject is None or not subject.harness.skills:

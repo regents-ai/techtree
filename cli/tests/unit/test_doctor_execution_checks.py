@@ -29,13 +29,13 @@ from techtree.doctor.execution_checks import (
 )
 from techtree.doctor.service import DoctorService
 from techtree.engines.registry import EngineRegistry
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec, RuntimeSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2, RuntimeSpec
 from techtree.models.cli import CheckStatus, DoctorCheck
 from techtree.paths import paths_from_root
 from techtree.settings import Settings
 
 
-def placeholder_campaign() -> CampaignSpec:
+def placeholder_campaign() -> CampaignSpecV2:
     """Return the shipped Campaign with a development placeholder put back in.
 
     Decisions document 0025 took the last placeholder out of the shipped

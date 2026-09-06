@@ -49,8 +49,8 @@ from techtree.errors import (
 )
 from techtree.identity.service import IdentityService
 from techtree.identity.store import IdentityStore
-from techtree.models.run import RunPhase, RunRequest
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.run import RunPhase, RunRequestV2
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.paths import TechtreePaths, default_paths, paths_from_root
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.child_registry import ChildRegistry
@@ -98,7 +98,7 @@ class AnyExecutor(Protocol):
 
     Two shapes qualify and the difference is what each one is entitled to
     produce. A development executor invents a whole
-    :class:`~techtree.models.uplift_report.UpliftReport`. A real executor
+    :class:`~techtree.models.uplift_report.UpliftReportV2`. A real executor
     produces a :class:`~techtree.verifiers.models.RealExecutionResult` and stops
     there, because deciding what a measurement means is the report stage's
     (spec section 6.22). Stating the union as a protocol rather than as two
@@ -106,13 +106,15 @@ class AnyExecutor(Protocol):
     executor that replays recorded evidence.
     """
 
-    def execute(self, context: ExecutionContext) -> UpliftReport | RealExecutionResult:
+    def execute(
+        self, context: ExecutionContext
+    ) -> UpliftReportV2 | RealExecutionResult:
         """Execute one run and return what it produced."""
         ...
 
 
-type ExecutorFactory = Callable[[RunRequest], AnyExecutor]
-type ValidationProviderFactory = Callable[[RunRequest], TasksetValidationProvider]
+type ExecutorFactory = Callable[[RunRequestV2], AnyExecutor]
+type ValidationProviderFactory = Callable[[RunRequestV2], TasksetValidationProvider]
 
 #: The shell's convention for "terminated by an interrupt", which is what a
 #: cancelled run is from the caller's point of view.
@@ -161,7 +163,7 @@ def worker_paths() -> TechtreePaths:
 
 
 def executor_for(
-    request: RunRequest,
+    request: RunRequestV2,
     *,
     paths: TechtreePaths | None = None,
 ) -> AnyExecutor:
@@ -200,7 +202,7 @@ def executor_for(
 
 
 def validation_provider_for(
-    request: RunRequest,
+    request: RunRequestV2,
     *,
     paths: TechtreePaths | None = None,
 ) -> TasksetValidationProvider:
@@ -353,11 +355,11 @@ def execute_run(
 def _require_report(
     produced: object,
     *,
-    request: RunRequest,
+    request: RunRequestV2,
     run_store: RunStore,
     artifact_store: RunArtifactStore,
     paths: TechtreePaths,
-) -> UpliftReport:
+) -> UpliftReportV2:
     """Return the report the run finishes with, or say why there is none.
 
     Two executors reach here and they hand back different things. The
@@ -374,7 +376,7 @@ def _require_report(
     named rather than discarded.
     """
     run_id = request.run_id
-    if isinstance(produced, UpliftReport):
+    if isinstance(produced, UpliftReportV2):
         return produced
     if isinstance(produced, RealExecutionResult):
         return RealUpliftReportService(

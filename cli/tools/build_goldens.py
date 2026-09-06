@@ -119,10 +119,8 @@ from techtree.models.campaign import (
     VariantSchedule,
 )
 from techtree.models.catalog import (
-    ClimbSummary,
     ClimbSummaryV2,
     CompatibilityIssue,
-    CompatibilityResult,
     CompatibilityResultV2,
     DataPolicySummary,
     EngineCompatibilityStatus,
@@ -530,27 +528,31 @@ def build_campaign(data_policy_digest: Digest, receipt_digest: Digest) -> Campai
 
 
 #: What a Fabric-hosted rerun of the development Campaign is permitted to
-#: change: which harness runs the subject, and the Campaign's own identity.
-#: Nothing else may differ, and that is the allowed-drift list's doing — it is
-#: exhaustive, so any other difference is undeclared and incompatible. The
-#: required-equal list below names the scientific fields explicitly rather
-#: than exhaustively, so that what a parity study is claiming to hold fixed is
-#: legible in the policy document instead of only implied by an absence.
+#: change: which resolved plan it runs under, and the Campaign's own identity.
+#: A v0.2 Campaign names its harness through the plan it binds, so the harness
+#: swap a parity study makes is one drift path, the plan digest — and nothing
+#: else may differ. That is the allowed-drift list's doing: it is exhaustive,
+#: so any other difference is undeclared and incompatible. The required-equal
+#: list below names the scientific fields explicitly rather than exhaustively,
+#: so that what a parity study is claiming to hold fixed is legible in the
+#: policy document instead of only implied by an absence.
 PARITY_HARNESS_ID = "fabric-hermes-agent"
 PARITY_HARNESS_VERSION = "0.19.0+fabric.1"
+PARITY_ADAPTER_ID = "fabric-hermes-adapter"
+PARITY_ADAPTER_VERSION = "0.1.0"
+PARITY_ADAPTER_CONTRACT_VERSION = "1"
 PARITY_ALLOWED_DRIFT_PATHS = (
-    "/agents/subject/harness/id",
-    "/agents/subject/harness/version",
+    "/execution_plan_digest",
     "/metadata/id",
     "/metadata/version",
 )
 PARITY_REQUIRED_EQUAL_PATHS = (
+    "/agents/subject/harness",
     "/agents/subject/model",
     "/agents/subject/runtime",
     "/agents/subject/sampling",
     "/data_policy_digest",
     "/environment",
-    "/evaluation_backend",
     "/evidence",
     "/execution",
     "/mutation_contract",
@@ -559,15 +561,38 @@ PARITY_REQUIRED_EQUAL_PATHS = (
 )
 
 
-def build_parity_candidate_campaign(source: CampaignSpec) -> CampaignSpec:
+def build_parity_execution_plan(source: ResolvedExecutionPlan) -> ResolvedExecutionPlan:
+    """Return the plan the parity candidate binds: the same run, Fabric-hosted.
+
+    Only the subject plane differs. The evaluation engine, where the
+    comparison runs, and the evidence it must produce are the source plan's,
+    so that the two Campaigns' plans differ in exactly the way the parity
+    policy declares a rerun may.
+    """
+    return source.model_copy(
+        update={
+            "subject": SubjectBackendSpec(
+                kind=SubjectBackendKind.FABRIC,
+                harness_id=PARITY_HARNESS_ID,
+                harness_version=PARITY_HARNESS_VERSION,
+                adapter_id=PARITY_ADAPTER_ID,
+                adapter_version=PARITY_ADAPTER_VERSION,
+                adapter_contract_version=PARITY_ADAPTER_CONTRACT_VERSION,
+            )
+        }
+    )
+
+
+def build_parity_candidate_campaign(
+    source: CampaignSpecV2, execution_plan_digest: Digest
+) -> CampaignSpecV2:
     """Return the second Campaign of the backend-parity pair.
 
-    The same experiment run under a different subject harness. It is built by
+    The same experiment bound to a different resolved plan. It is built by
     validating a modified copy rather than by assembling a second Campaign by
     hand, so anything the source Campaign gains later is carried here too and
     the pair cannot drift apart by omission.
     """
-    subject = source.agents[SUBJECT_AGENT]
     candidate = source.model_copy(
         update={
             "metadata": source.metadata.model_copy(
@@ -576,24 +601,13 @@ def build_parity_candidate_campaign(source: CampaignSpec) -> CampaignSpec:
                     "version": source.metadata.version + 1,
                 }
             ),
-            "agents": {
-                SUBJECT_AGENT: subject.model_copy(
-                    update={
-                        "harness": subject.harness.model_copy(
-                            update={
-                                "id": PARITY_HARNESS_ID,
-                                "version": PARITY_HARNESS_VERSION,
-                            }
-                        )
-                    }
-                )
-            },
+            "execution_plan_digest": execution_plan_digest,
         }
     )
     # ``model_copy`` does not validate. Re-reading the copy the way a stored
     # document is read is what proves the golden is a Campaign and not just a
     # Campaign-shaped object.
-    return CampaignSpec.model_validate_json(canonical_json_text(candidate))
+    return CampaignSpecV2.model_validate_json(canonical_json_text(candidate))
 
 
 def build_compatibility_policy(
@@ -611,8 +625,8 @@ def build_compatibility_policy(
 
 def build_configuration_comparison(
     policy: ConfigurationCompatibilityPolicy,
-    source: CampaignSpec,
-    candidate: CampaignSpec,
+    source: CampaignSpecV2,
+    candidate: CampaignSpecV2,
 ) -> ConfigurationComparison:
     """Return the comparison, computed rather than transcribed.
 
@@ -628,7 +642,9 @@ def build_execution_plan() -> ResolvedExecutionPlan:
     The four planes are filled in independently, which is the point of the
     object. This fixture takes the shape v0.2.0 actually emits — a local
     execution backend, the directly integrated subject harness, and native
-    evidence with no trace coverage requested.
+    evidence with no trace coverage requested. The evaluation plane names the
+    engine the fixture publisher validated the taskset under: one engine
+    digest, whether it is read from the plan or from the validation receipt.
     """
     return ResolvedExecutionPlan(
         schema_version=EXECUTION_PLAN_SCHEMA_VERSION,
@@ -638,7 +654,7 @@ def build_execution_plan() -> ResolvedExecutionPlan:
             api_generation="v1",
             package_version="0.3.1",
             source_commit=PINNED_VERIFIERS_REVISION,
-            wheel_digest=fixture_digest("verifiers-wheel"),
+            wheel_digest=fixture_digest("engine-bundle"),
         ),
         execution=ExecutionBackendSpec(
             kind=ExecutionBackendKind.LOCAL,
@@ -1118,10 +1134,10 @@ def build_real_uplift_report(
 
 
 def build_comparison_execution(
-    report: UpliftReport,
+    report: UpliftReportV2,
     campaign_digest: Digest,
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
 ) -> ComparisonExecutionRecord:
     """Return one comparison's operational record. Decisions 0007 R6+R8.
 
@@ -1174,7 +1190,7 @@ def build_comparison_execution(
 def build_variant_execution(
     variant: ExperimentVariant,
     *,
-    manifest: ExperimentManifest,
+    manifest: ExperimentManifestV2,
     started_at: datetime,
     finished_at: datetime,
     input_tokens: int,
@@ -1211,12 +1227,12 @@ def build_variant_execution(
 
 
 def build_presentation_payload(
-    report: UpliftReport,
-    receipt: EpisodeReceipt,
+    report: UpliftReportV2,
+    receipt: EpisodeReceiptV2,
     skill: SkillArtifact,
     climb: ClimbManifest,
     execution: ComparisonExecutionRecord,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> UpliftPresentationPayload:
     """Return what every channel draws one real result from. Spec section 7.13."""
     return build_uplift_presentation(
@@ -1246,15 +1262,15 @@ def build_presentation_payload(
 
 
 def real_variant_receipts(
-    receipt: EpisodeReceipt, *, candidate: bool
-) -> list[EpisodeReceipt]:
+    receipt: EpisodeReceiptV2, *, candidate: bool
+) -> list[EpisodeReceiptV2]:
     """Return one receipt per committed task, scored as the deltas record.
 
     The golden receipt is one episode. A context describes a whole run, so the
     fixture is widened to the run the report already describes rather than the
     context being shown a run with nineteen tasks missing.
     """
-    receipts: list[EpisodeReceipt] = []
+    receipts: list[EpisodeReceiptV2] = []
     for position, delta in enumerate(real_task_deltas()):
         reward = delta.candidate_reward if candidate else delta.baseline_reward
         traces = [
@@ -1285,9 +1301,9 @@ def real_variant_receipts(
 
 
 def build_improvement_context(
-    report: UpliftReport,
-    receipt: EpisodeReceipt,
-    campaign: CampaignSpec,
+    report: UpliftReportV2,
+    receipt: EpisodeReceiptV2,
+    campaign: CampaignSpecV2,
     skill: SkillArtifact,
 ) -> SkillImprovementContext:
     """Return the sanitized context a host agent reads. Spec section 7.18.
@@ -1307,63 +1323,9 @@ def build_improvement_context(
     )
 
 
-def build_climb_summary(
-    campaign: CampaignSpec,
-    campaign_digest: Digest,
-    climb: ClimbManifest,
-    climb_digest: Digest,
-    data_policy: DataPolicy,
-) -> ClimbSummary:
-    """Return what ``climb show`` displays for the development Climb."""
-    compatibility = CompatibilityResult(
-        compatible=False,
-        host_platform="darwin/arm64",
-        host_supported=True,
-        required_engine_digest=fixture_digest("engine-bundle"),
-        engine_status=EngineCompatibilityStatus.NOT_INSTALLED,
-        evaluation_backend_kind=campaign.evaluation_backend.kind,
-        evaluation_backend_supported=True,
-        issues=[
-            CompatibilityIssue(
-                code="engine_not_installed",
-                severity="error",
-                message=(
-                    "The managed evaluation engine this Climb requires is not "
-                    "installed yet."
-                ),
-                blocking=True,
-            )
-        ],
-    )
-    return ClimbSummary(
-        reference=f"{climb.metadata.slug}@{climb.metadata.version}",
-        climb_digest=climb_digest,
-        campaign_spec_digest=campaign_digest,
-        title=climb.metadata.title,
-        summary=climb.metadata.summary,
-        status=climb.metadata.status,
-        purpose=campaign.metadata.purpose,
-        taskset_id=campaign.taskset.ref.id,
-        task_count=campaign.taskset.selection.num_tasks,
-        subject_harness=campaign.subject.harness.id,
-        subject_harness_version=campaign.subject.harness.version,
-        mutation_kind=campaign.mutation_contract.kind,
-        candidate_skill_visibility=climb.candidate_policy.skill_visibility,
-        evaluation_backend=campaign.evaluation_backend.kind,
-        proof_grade=climb.publication.proof_grade,
-        data_policy=DataPolicySummary(
-            raw_episode_server_upload=data_policy.raw_episodes.server_upload,
-            raw_episode_training_use=data_policy.raw_episodes.training_use,
-            candidate_skill_public_release=(data_policy.candidate_skill.public_release),
-            uplift_report_visibility=data_policy.derived_artifacts.uplift_report,
-        ),
-        compatibility=compatibility,
-    )
-
-
-def build_cli_envelope(summary: ClimbSummary) -> CliEnvelope[ClimbSummary]:
+def build_cli_envelope(summary: ClimbSummaryV2) -> CliEnvelope[ClimbSummaryV2]:
     """Return a representative successful CLI response."""
-    return CliEnvelope[ClimbSummary](
+    return CliEnvelope[ClimbSummaryV2](
         schema_version=CLI_SCHEMA_VERSION,
         ok=True,
         command="climb show",
@@ -1841,8 +1803,11 @@ def golden_objects() -> dict[str, BaseModel]:
     climb_v2 = build_climb(campaign_v2_digest, version=2, label="climb/v2")
     climb_v2_digest = digest_object(climb_v2)
 
-    parity_candidate = build_parity_candidate_campaign(campaign)
-    compatibility_policy = build_compatibility_policy(campaign_digest)
+    parity_plan = build_parity_execution_plan(execution_plan)
+    parity_candidate = build_parity_candidate_campaign(
+        campaign_v2, digest_object(parity_plan)
+    )
+    compatibility_policy = build_compatibility_policy(campaign_v2_digest)
 
     skill = build_skill_artifact()
     candidate_skill = ArtifactRef(
@@ -1882,10 +1847,18 @@ def golden_objects() -> dict[str, BaseModel]:
         ),
     )
 
-    summary = build_climb_summary(
-        campaign, campaign_digest, climb, climb_digest, data_policy
+    summary_v2 = build_climb_summary_v2(
+        campaign_v2,
+        execution_plan,
+        campaign_v2_digest,
+        climb_v2,
+        climb_v2_digest,
+        data_policy,
     )
 
+    # The v0.1 real shapes, frozen: they are what the v0.1 release signed and
+    # what the historical verifier still reads, so they are built exactly as
+    # they always were and nothing live is derived from them any more.
     real_receipt = build_real_episode_receipt(
         campaign_digest, climb_digest, data_policy_digest, candidate
     )
@@ -1897,11 +1870,29 @@ def golden_objects() -> dict[str, BaseModel]:
         baseline,
         candidate,
     )
-    real_execution = build_comparison_execution(
-        real_report, campaign_digest, baseline, candidate
-    )
-
     sealed_receipt = sign_fixture(real_receipt)
+
+    # The v0.2 real shapes, which is what every live reader — presentation,
+    # the improvement context, the plugin — is now built against.
+    receipt_v2 = build_episode_receipt_v2(
+        campaign_v2,
+        execution_plan,
+        campaign_v2_digest,
+        climb_v2_digest,
+        candidate_v2,
+    )
+    report_v2 = build_uplift_report_v2(
+        campaign_v2,
+        execution_plan,
+        campaign_v2_digest,
+        climb_v2_digest,
+        receipt_digest,
+        baseline_v2,
+        candidate_v2,
+    )
+    execution_v2 = build_comparison_execution(
+        report_v2, campaign_v2_digest, baseline_v2, candidate_v2
+    )
     estimate = build_remote_execution_estimate()
 
     return {
@@ -1909,30 +1900,22 @@ def golden_objects() -> dict[str, BaseModel]:
         "campaign-parity-candidate": parity_candidate,
         "campaign-v2": campaign_v2,
         "climb": climb,
-        "climb-summary-v2": build_climb_summary_v2(
-            campaign_v2,
-            execution_plan,
-            campaign_v2_digest,
-            climb_v2,
-            climb_v2_digest,
-            data_policy,
-        ),
+        "climb-summary-v2": summary_v2,
         "climb-v2": climb_v2,
-        "cli-envelope": build_cli_envelope(summary),
+        "cli-envelope": build_cli_envelope(summary_v2),
         "data-policy": data_policy,
-        "episode-receipt-v2": build_episode_receipt_v2(
-            campaign_v2,
-            execution_plan,
-            campaign_v2_digest,
-            climb_v2_digest,
-            candidate_v2,
-        ),
+        # Signed, like its v0.1 counterpart, because a receipt exists on disk
+        # inside the envelope the proof bundle commits to and never bare.
+        "episode-receipt-v2": sign_fixture(receipt_v2),
         "evidence-artifact-ref": build_evidence_artifact_ref(sealed_receipt),
         "evidence-facets": build_evidence_facets(campaign_digest),
         "execution-approval": build_execution_approval(estimate),
         # The public half of the key the two signed goldens were signed with,
         # so a reader of those signatures has something to check them against.
         "execution-plan": execution_plan,
+        # The plan the parity candidate binds, so the second Campaign of the
+        # pair names an object a reader can open, like the first one does.
+        "execution-plan-parity": parity_plan,
         "executor-identity": build_executor_identity(),
         "experiment-baseline": baseline,
         "experiment-baseline-v2": baseline_v2,
@@ -1947,15 +1930,15 @@ def golden_objects() -> dict[str, BaseModel]:
             candidate,
         ),
         "improvement-context": build_improvement_context(
-            real_report, real_receipt, campaign, skill
+            report_v2, receipt_v2, campaign_v2, skill
         ),
-        "comparison-execution": real_execution,
+        "comparison-execution": execution_v2,
         "configuration-comparison": build_configuration_comparison(
-            compatibility_policy, campaign, parity_candidate
+            compatibility_policy, campaign_v2, parity_candidate
         ),
         "configuration-compatibility-policy": compatibility_policy,
         "presentation-payload": build_presentation_payload(
-            real_report, real_receipt, skill, climb, real_execution, campaign
+            report_v2, receipt_v2, skill, climb_v2, execution_v2, campaign_v2
         ),
         # The two real shapes travel signed, because that is how they exist on
         # disk once a run has proved itself: the receipt inside its envelope in
@@ -1976,15 +1959,7 @@ def golden_objects() -> dict[str, BaseModel]:
         "skill-artifact": skill,
         "taskset-lock": lock,
         "taskset-validation-receipt": receipt,
-        "uplift-report-v2": build_uplift_report_v2(
-            campaign_v2,
-            execution_plan,
-            campaign_v2_digest,
-            climb_v2_digest,
-            receipt_digest,
-            baseline_v2,
-            candidate_v2,
-        ),
+        "uplift-report-v2": sign_fixture(report_v2),
     }
 
 

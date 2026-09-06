@@ -51,17 +51,18 @@ from fixtures.receipts.support import (
     NORMALIZED_EPISODES_FILE,
     RESOLVED_CONFIG_FILE,
     read_recorded_config,
+    recorded_execution_plan,
     recorded_root,
 )
 from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.catalog.repository import EmbeddedCatalogRepository, packaged_catalog_root
-from techtree.constants import CATALOG_SCHEMA_VERSION, TASKSET_LOCK_SCHEMA_VERSION
+from techtree.constants import CATALOG_V2_SCHEMA_VERSION, TASKSET_LOCK_SCHEMA_VERSION
 from techtree.models.base import ArtifactRef, Digest
-from techtree.models.campaign import CampaignSpec, CampaignTaskset
+from techtree.models.campaign import CampaignSpecV2, CampaignTaskset
 from techtree.models.catalog import (
     CatalogClimbEntry,
-    CatalogIndex,
-    CatalogObjectLocation,
+    CatalogIndexV2,
+    CatalogObjectLocationV2,
 )
 from techtree.models.climb import ClimbManifest
 from techtree.models.run import RunPhase
@@ -97,6 +98,7 @@ __all__ = [
 _CLIMB_REFERENCE: Final = "hello-world-climb"
 
 _CAMPAIGN_PATH: Final = "campaigns/hello-world-climb.json"
+_EXECUTION_PLAN_PATH: Final = "execution-plans/hello-world-climb.json"
 _CLIMB_PATH: Final = "climbs/hello-world-climb.json"
 _DATA_POLICY_PATH: Final = "data-policies/hello-world-climb.json"
 _RECEIPT_PATH: Final = "taskset-validations/hello-world-climb.json"
@@ -113,16 +115,17 @@ class StagedRecordedRun:
     run_store: RunStore
     artifacts: RunArtifactStore
     run_id: str
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
     pair: RecordedPair
 
 
-def recorded_catalog(destination: Path) -> tuple[Path, CampaignSpec]:
+def recorded_catalog(destination: Path) -> tuple[Path, CampaignSpecV2]:
     """Write a catalog offering the recorded comparison's Campaign.
 
     The DataPolicy is the shipped one, byte for byte. The Campaign is the
-    locally derived one narrowed to the two tasks both probes scored, and the
-    publisher's lock, evidence and receipt are re-issued over the same two.
+    locally derived one narrowed to the two tasks both probes scored, bound to
+    the plan the recorded harness resolves to, and the publisher's lock,
+    evidence and receipt are re-issued over the same two tasks.
     """
     repository = EmbeddedCatalogRepository.packaged()
     shipped_climb = repository.load_climb(_CLIMB_REFERENCE)
@@ -134,13 +137,14 @@ def recorded_catalog(destination: Path) -> tuple[Path, CampaignSpec]:
     assert reference is not None, "the shipped receipt names its normalized evidence"
     shipped_evidence = repository.load_validation_evidence(reference.digest)
 
-    narrowed = trimmed_campaign()
+    execution_plan = recorded_execution_plan()
+    narrowed = trimmed_campaign(execution_plan=execution_plan)
     committed = list(narrowed.taskset.membership.ordered_task_hashes)
     lock = _reissued_lock(narrowed, shipped_receipt.engine_digest)
     evidence = _reissued_evidence(shipped_evidence, lock)
     receipt = _reissued_receipt(shipped_receipt, lock, evidence)
 
-    campaign = CampaignSpec(
+    campaign = CampaignSpecV2(
         **{
             **dict(narrowed),
             "taskset": CampaignTaskset(
@@ -158,6 +162,7 @@ def recorded_catalog(destination: Path) -> tuple[Path, CampaignSpec]:
 
     destination.mkdir(parents=True, exist_ok=True)
     _write(destination / _CAMPAIGN_PATH, canonical_json_bytes(campaign))
+    _write(destination / _EXECUTION_PLAN_PATH, canonical_json_bytes(execution_plan))
     _write(destination / _CLIMB_PATH, canonical_json_bytes(climb))
     _write(destination / _RECEIPT_PATH, canonical_json_bytes(receipt))
     _write(destination / _EVIDENCE_PATH, canonical_json_bytes(evidence))
@@ -166,8 +171,8 @@ def recorded_catalog(destination: Path) -> tuple[Path, CampaignSpec]:
     _write(destination / _DATA_POLICY_PATH, data_policy)
     policy_digest = digest_object(json.loads(data_policy))
 
-    index = CatalogIndex(
-        schema_version=CATALOG_SCHEMA_VERSION,
+    index = CatalogIndexV2(
+        schema_version=CATALOG_V2_SCHEMA_VERSION,
         climbs=[
             CatalogClimbEntry(
                 reference=f"{climb.metadata.slug}@{climb.metadata.version}",
@@ -177,6 +182,9 @@ def recorded_catalog(destination: Path) -> tuple[Path, CampaignSpec]:
         ],
         objects={
             campaign_digest: _location("campaign", _CAMPAIGN_PATH),
+            digest_object(execution_plan): _location(
+                "execution_plan", _EXECUTION_PLAN_PATH
+            ),
             policy_digest: _location("data_policy", _DATA_POLICY_PATH),
             digest_object(receipt): _location("taskset_validation", _RECEIPT_PATH),
             digest_object(evidence): _location("validation_evidence", _EVIDENCE_PATH),
@@ -243,6 +251,7 @@ def staged_recorded_run(home: Path) -> StagedRecordedRun:
         campaign=campaign,
         pair=recorded_pair(
             campaign=campaign,
+            execution_plan=inputs.execution_plan,
             baseline_manifest=inputs.baseline,
             candidate_manifest=inputs.candidate,
             request=request,
@@ -314,7 +323,7 @@ class RecordedEvidenceExecutor:
 # ---------------------------------------------------------------------------
 
 
-def _reissued_lock(campaign: CampaignSpec, engine_digest: Digest) -> TasksetLock:
+def _reissued_lock(campaign: CampaignSpecV2, engine_digest: Digest) -> TasksetLock:
     """Return the lock ``derive_taskset_lock`` will rebuild from this Campaign."""
     committed = list(campaign.taskset.membership.ordered_task_hashes)
     return TasksetLock(
@@ -396,9 +405,9 @@ def _reissued_receipt(
     )
 
 
-def _location(kind: str, path: str) -> CatalogObjectLocation:
+def _location(kind: str, path: str) -> CatalogObjectLocationV2:
     """Return one catalog object entry."""
-    return CatalogObjectLocation.model_validate(
+    return CatalogObjectLocationV2.model_validate(
         {"kind": kind, "path": path, "media_type": _JSON_MEDIA_TYPE}
     )
 

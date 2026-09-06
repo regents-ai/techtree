@@ -37,7 +37,7 @@ from techtree.doctor.checks import (
 from techtree.doctor.execution_checks import execution_checks
 from techtree.engines.registry import EngineRegistry
 from techtree.models.base import NonEmptyString, ProtocolModel
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.cli import MAX_NEXT_ACTIONS, CheckStatus, DoctorCheck, NextAction
 from techtree.paths import TechtreePaths
 from techtree.settings import Settings
@@ -79,7 +79,7 @@ class DoctorService:
         self,
         *,
         for_evaluation: bool = False,
-        campaign: CampaignSpec | None = None,
+        campaign: CampaignSpecV2 | None = None,
     ) -> list[DoctorCheck]:
         """Run checks in deterministic order.
 

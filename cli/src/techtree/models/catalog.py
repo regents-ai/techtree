@@ -44,7 +44,9 @@ from techtree.models.execution_plan import ExecutionBackendKind, SubjectBackendK
 __all__ = [
     "CatalogClimbEntry",
     "CatalogIndex",
+    "CatalogIndexV2",
     "CatalogObjectLocation",
+    "CatalogObjectLocationV2",
     "ClimbSummary",
     "ClimbSummaryV2",
     "CompatibilityIssue",
@@ -106,6 +108,52 @@ class CatalogObjectLocation(ProtocolModel):
         return self
 
 
+class CatalogObjectLocationV2(ProtocolModel):
+    """Where one content-addressed object lives, under the v0.2 catalog.
+
+    One kind more than the v0.1 location: the resolved execution plan a v0.2
+    Campaign binds is a catalog object in its own right, filed and verified
+    by digest like the DataPolicy and the validation receipt the Campaign
+    also points at.
+    """
+
+    kind: Literal[
+        "campaign",
+        "data_policy",
+        "execution_plan",
+        "taskset_validation",
+        "validation_evidence",
+    ]
+    path: NonEmptyString
+    media_type: NonEmptyString
+
+    @model_validator(mode="after")
+    def _check_path(self) -> Self:
+        """Reject a path that leaves the catalog root."""
+        _check_relative_catalog_path(self.path)
+        return self
+
+
+def _check_a_catalog_index_is_unambiguous(
+    climbs: list[CatalogClimbEntry],
+    object_paths: list[str],
+) -> None:
+    """Reject repeated references, repeated digests, or shared paths."""
+    references = [entry.reference for entry in climbs]
+    if len(set(references)) != len(references):
+        raise ValueError("each Climb reference appears once in the catalog")
+    climb_digests = [entry.digest for entry in climbs]
+    if len(set(climb_digests)) != len(climb_digests):
+        raise ValueError("each Climb digest appears once in the catalog")
+
+    paths = [entry.path for entry in climbs] + object_paths
+    if len(set(paths)) != len(paths):
+        raise ValueError(
+            "two catalog entries claim the same file; a digest-to-path map "
+            "that is not one-to-one cannot be verified"
+        )
+
+
 class CatalogIndex(ProtocolModel):
     """The generated map of everything the package ships.
 
@@ -121,21 +169,32 @@ class CatalogIndex(ProtocolModel):
     @model_validator(mode="after")
     def _check_index_is_unambiguous(self) -> Self:
         """Reject repeated references, repeated digests, or shared paths."""
-        references = [entry.reference for entry in self.climbs]
-        if len(set(references)) != len(references):
-            raise ValueError("each Climb reference appears once in the catalog")
-        climb_digests = [entry.digest for entry in self.climbs]
-        if len(set(climb_digests)) != len(climb_digests):
-            raise ValueError("each Climb digest appears once in the catalog")
+        _check_a_catalog_index_is_unambiguous(
+            self.climbs, [location.path for location in self.objects.values()]
+        )
+        return self
 
-        paths = [entry.path for entry in self.climbs] + [
-            location.path for location in self.objects.values()
-        ]
-        if len(set(paths)) != len(paths):
-            raise ValueError(
-                "two catalog entries claim the same file; a digest-to-path map "
-                "that is not one-to-one cannot be verified"
-            )
+
+class CatalogIndexV2(ProtocolModel):
+    """The generated map of everything a v0.2 build ships.
+
+    A sibling of :class:`CatalogIndex`, not a refinement of it: the v0.1
+    index is published in the frozen ``schemas/v1alpha1`` tree and keeps its
+    bytes. What changes is the set of kinds an object can be filed under,
+    because a v0.2 Campaign binds a resolved execution plan and the catalog
+    has to ship that plan for the Campaign to be resolvable at all.
+    """
+
+    schema_version: Literal["techtree.catalog.v2"]
+    climbs: list[CatalogClimbEntry]
+    objects: dict[Digest, CatalogObjectLocationV2]
+
+    @model_validator(mode="after")
+    def _check_index_is_unambiguous(self) -> Self:
+        """Reject repeated references, repeated digests, or shared paths."""
+        _check_a_catalog_index_is_unambiguous(
+            self.climbs, [location.path for location in self.objects.values()]
+        )
         return self
 
 

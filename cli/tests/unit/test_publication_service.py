@@ -42,14 +42,10 @@ from fixtures.publication import (
     network_signed,
     receipt_for,
 )
-from fixtures.publication.conformance import (
-    CONFORMANCE_RUN_ID,
-    FIXTURE_PATH,
-    materialize_proof,
-)
 from fixtures.receipts.proof import (
     PROOF_RUN_ID,
     RecordedProof,
+    replace_report,
     signed_proof,
     write_proof,
 )
@@ -95,10 +91,8 @@ from techtree.publication.service import (
 from techtree.publication.transport import PUBLICATION_ENDPOINT_INVALID
 from techtree.publication.verify import PUBLICATION_RECEIPT_INVALID
 from techtree.receipts.bundle import (
-    BUNDLE_DIRECTORY,
     BUNDLE_MANIFEST_FILENAME,
     PROOF_BUNDLE_INVALID,
-    REPORT_FILENAME,
 )
 
 # ---------------------------------------------------------------------------
@@ -871,38 +865,29 @@ def _submission(runs_dir: Path) -> PublicationSubmission:
     )
 
 
-def test_a_report_written_before_publishing_existed_is_still_publishable(
-    tmp_path: Path,
+def test_eligibility_is_decided_from_the_grade_and_the_rights_not_the_flag(
+    tmp_path: Path, runs_dir: Path
 ) -> None:
-    """The defect the staged rehearsal found, and the reason it is one.
+    """The flag a report stores is its author's answer, not the publisher's.
 
-    Every report signed before publishing existed stores
-    ``publication_eligible: false``, because the build that wrote it had
-    nowhere to publish to. Reading that flag here refused every run that
-    exists - including the certification runs this release rests on - with a
-    message naming the grade and the status as the reason, when those two are
-    exactly what make it eligible.
-
-    So eligibility is decided the way the report's own rules decide it, from
-    the grade and the rights statement. The offline verifier had the same bug
-    from the other direction and was fixed the same way.
-
-    The bundle here is the conformance fixture, which is a real signed proof
-    from before the flag was computed. A freshly built one cannot stand in for
-    it: it stores the new answer, so it would pass whatever this code did.
+    A staged rehearsal once refused every eligible run because the publisher
+    read ``publication_eligible`` back out of the report, and the build that
+    had written those reports had nowhere to publish to. Eligibility is
+    decided the way the report's own rules decide it, from the grade and the
+    rights statement; the offline verifier had the same bug from the other
+    direction and was fixed the same way. The report here stores ``false``
+    over a P1 grade and a policy that permits publication, which is exactly
+    the document that rehearsal found.
     """
-    runs = tmp_path / "runs"
-    directory = runs / CONFORMANCE_RUN_ID / BUNDLE_DIRECTORY
-    directory.parent.mkdir(parents=True)
-    materialize_proof(FIXTURE_PATH.read_bytes(), directory)
+    recorded = signed_proof(tmp_path / "home")
+    stored_false = recorded.report.payload.model_copy(
+        update={"publication_eligible": False}
+    )
+    write_proof(replace_report(recorded, stored_false), runs_dir / PROOF_RUN_ID)
 
-    stored = json.loads((directory / REPORT_FILENAME).read_text(encoding="utf-8"))
-    assert stored["payload"]["publication_eligible"] is False
-    assert stored["payload"]["proof_grade"] == "P1"
+    publisher = service(runs_dir, StubTransport())
+    assert publisher.publication_eligible(PROOF_RUN_ID) is True
 
-    publisher = service(runs, StubTransport())
-    assert publisher.publication_eligible(CONFORMANCE_RUN_ID) is True
+    plan = publisher.plan(PROOF_RUN_ID)
 
-    plan = publisher.plan(CONFORMANCE_RUN_ID)
-
-    assert plan.run_id == CONFORMANCE_RUN_ID
+    assert plan.run_id == PROOF_RUN_ID

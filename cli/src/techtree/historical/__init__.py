@@ -5,7 +5,9 @@ every one of them only reads. Nothing in this package writes a file, signs an
 object, or hands a v0.1 shape back to a live write path; the v0.2 producers
 have one shape and it is the only shape they emit.
 
-:mod:`techtree.historical.v01` is the v0.1 projector.
+:mod:`techtree.historical.v01` is the v0.1 projector, and
+:mod:`techtree.historical.verify_v01` is the v0.1 release's proof verifier,
+which that projector reads through.
 """
 
 from __future__ import annotations

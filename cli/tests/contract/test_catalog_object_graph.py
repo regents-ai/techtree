@@ -55,7 +55,7 @@ from techtree.errors import (
     ValidationError,
     VerificationError,
 )
-from techtree.models.catalog import ClimbSummary, EngineCompatibilityStatus
+from techtree.models.catalog import ClimbSummaryV2, EngineCompatibilityStatus
 from techtree.models.engine import EngineInstallation
 from techtree.paths import TechtreePaths, paths_from_root
 from techtree.settings import Settings
@@ -271,9 +271,9 @@ def test_the_repository_reports_what_the_index_contains(catalog_root: Path) -> N
     metadata = repository(catalog_root).catalog_metadata()
 
     assert metadata == {
-        "schema_version": "techtree.catalog.v1alpha1",
+        "schema_version": "techtree.catalog.v2",
         "climb_count": 3,
-        "object_count": 4,
+        "object_count": 5,
     }
 
 
@@ -600,7 +600,7 @@ def test_the_packaged_catalog_ships_the_generated_development_climb() -> None:
     packaged = EmbeddedCatalogRepository.packaged()
 
     assert packaged.list_climb_references() == ["hello-world-climb@1"]
-    assert packaged.catalog_metadata()["object_count"] == 4
+    assert packaged.catalog_metadata()["object_count"] == 5
 
 
 def test_the_packaged_graph_resolves_and_agrees_with_itself(
@@ -694,7 +694,7 @@ def test_show_returns_a_summary_a_host_agent_can_validate(
 
     # Validated from JSON rather than from the parsed mapping: a protocol model
     # is strict, and a host agent reads the bytes, not a Python object.
-    summary = ClimbSummary.model_validate_json(json.dumps(envelope["data"]["climb"]))
+    summary = ClimbSummaryV2.model_validate_json(json.dumps(envelope["data"]["climb"]))
     assert summary.reference == "synthetic-open@1"
     assert summary.task_count == 4
     assert summary.data_policy.candidate_skill_public_release == "required_for_climb"
@@ -798,7 +798,7 @@ def test_show_displays_everything_a_person_needs_before_entering(
         "participant",
         "required for climb",
         "prohibited",
-        "local_techtree",
+        "on this machine",
         "skill insertion",
         "development only",
         "not installed",
@@ -881,10 +881,12 @@ def _rebuild(root: Path, *, evidence: Any) -> None:
     lock = fixture.build_taskset_lock()
     data_policy = fixture.build_data_policy()
     receipt = fixture.build_validation_receipt(lock, evidence)
+    execution_plan = fixture.build_execution_plan()
     campaign = fixture.build_campaign(
         lock=lock,
         validation_receipt_digest=digest_object(receipt),
         data_policy_digest=digest_object(data_policy),
+        execution_plan_digest=digest_object(execution_plan),
     )
     climb = fixture.build_climb(
         campaign_digest=digest_object(campaign),
@@ -900,6 +902,11 @@ def _rebuild(root: Path, *, evidence: Any) -> None:
         objects=[
             fixture.CatalogFile(
                 kind="campaign", path=fixture.CAMPAIGN_PATH, model=campaign
+            ),
+            fixture.CatalogFile(
+                kind="execution_plan",
+                path=fixture.EXECUTION_PLAN_PATH,
+                model=execution_plan,
             ),
             fixture.CatalogFile(
                 kind="data_policy", path=fixture.DATA_POLICY_PATH, model=data_policy

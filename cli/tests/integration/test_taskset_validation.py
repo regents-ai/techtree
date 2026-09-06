@@ -40,10 +40,11 @@ from techtree.engines.installer import EngineInstaller, find_uv
 from techtree.engines.registry import EngineRegistry
 from techtree.engines.runner import EngineRunner
 from techtree.models.base import ArtifactRef
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.climb import ClimbManifest
 from techtree.models.data_policy import DataPolicy
 from techtree.models.engine import EngineStatus
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.validation import (
     REQUIRED_VALIDATION_CHECKS,
     TasksetLock,
@@ -81,7 +82,7 @@ EXPECTED_TASK_COUNT: Final = 36
 # ---------------------------------------------------------------------------
 
 
-def published_campaign() -> CampaignSpec:
+def published_campaign() -> CampaignSpecV2:
     """Return the Campaign the packaged catalog ships."""
     packaged = EmbeddedCatalogRepository.packaged()
     climb = packaged.load_climb(CLIMB_REFERENCE)
@@ -399,6 +400,7 @@ def tampered_catalog(destination: Path, validated: TasksetValidationRun) -> Path
     )
 
     data_policy: DataPolicy = builder.build_development_data_policy()
+    execution_plan: ResolvedExecutionPlan = builder.build_hello_world_execution_plan()
     # The subject is put back to a development placeholder, and that is the
     # third deliberate difference from the shipped catalog. Decisions document
     # 0025 named a real subject in the product, so a Campaign straight from the
@@ -411,6 +413,7 @@ def tampered_catalog(destination: Path, validated: TasksetValidationRun) -> Path
             taskset_lock=lock,
             validation_receipt_digest=digest_object(receipt),
             data_policy_digest=digest_object(data_policy),
+            execution_plan_digest=digest_object(execution_plan),
         )
     )
     climb: ClimbManifest = builder.build_hello_world_climb(
@@ -425,6 +428,11 @@ def tampered_catalog(destination: Path, validated: TasksetValidationRun) -> Path
             ),
             builder.CatalogFile(
                 kind="data_policy", path=builder.DATA_POLICY_PATH, model=data_policy
+            ),
+            builder.CatalogFile(
+                kind="execution_plan",
+                path=builder.EXECUTION_PLAN_PATH,
+                model=execution_plan,
             ),
             builder.CatalogFile(
                 kind="taskset_validation", path=builder.RECEIPT_PATH, model=receipt

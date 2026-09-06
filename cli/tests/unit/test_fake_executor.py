@@ -249,7 +249,7 @@ def test_every_generic_campaign_reference_propagates_exactly(
             assert receipt.public_context == request.public_context
             assert receipt.data_policy_digest == request.data_policy_digest
             assert receipt.outcome_contract_digest == request.outcome_contract_digest
-            assert receipt.evaluation_backend == campaign.evaluation_backend
+            assert receipt.execution_plan_digest == campaign.execution_plan_digest
             assert receipt.variant is variant
 
 
@@ -292,7 +292,7 @@ def test_every_receipt_is_marked_development_only(
 
     for variant in ExperimentVariant:
         for receipt in harness.artifacts.episode_receipts(run_id, variant):
-            assert receipt.execution_backend == "fake"
+            assert receipt.executor_kind == "fake"
             assert receipt.score_status is ScoreStatus.DEVELOPMENT_ONLY
             assert receipt.evidence_status is EvidenceStatus.DEVELOPMENT_ONLY
 
@@ -349,7 +349,7 @@ def test_the_report_carries_the_campaign_lineage(
     assert report.data_policy_digest == request.data_policy_digest
     assert report.public_context == request.public_context
     assert report.program_ref == request.program_ref
-    assert report.evaluation_backend == inputs.campaign.evaluation_backend
+    assert report.execution_plan_digest == inputs.campaign.execution_plan_digest
     assert report.taskset_validation_receipt_digest == digest_object(
         inputs.source.publisher_validation
     )

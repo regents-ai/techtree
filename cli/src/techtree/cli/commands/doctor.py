@@ -22,7 +22,7 @@ from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.doctor.service import DoctorReport, DoctorService
 from techtree.errors import PrerequisiteError
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.cli import CheckStatus, CliMessage, DoctorCheck, MessageLevel
 
 __all__ = ["doctor_command", "render_doctor_report"]
@@ -90,7 +90,7 @@ def doctor_command(
     invoke_command(context, COMMAND, action, render_data=_render)
 
 
-def _campaign_for(context: CliContext, reference: str | None) -> CampaignSpec | None:
+def _campaign_for(context: CliContext, reference: str | None) -> CampaignSpecV2 | None:
     """Resolve the Campaign a named Climb would execute, if one was named.
 
     Without a Climb, Doctor can only ask the machine-level questions. Which

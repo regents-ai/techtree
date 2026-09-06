@@ -22,8 +22,8 @@ actually have. Nothing here believes a recorded value; every observed one is
 taken again from the file.
 
 *The normalized outcome.* :attr:`ProjectedProof.verification` is
-:func:`techtree.receipts.verify.verify_local_bundle` — the same offline
-verification a v0.1 reader ran, over the same bytes, reported in the same
+:func:`techtree.historical.verify_v01.verify_local_bundle` — the v0.1
+release's own offline verification, over the same bytes, reported in the same
 :class:`~techtree.identity.models.VerificationResult`. This module does not
 re-implement it, soften it, or put a second opinion beside it.
 
@@ -66,6 +66,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.errors import VerificationError
+from techtree.historical.verify_v01 import P1_MEANING, verify_local_bundle
 from techtree.identity.models import VerificationResult
 from techtree.models.base import ArtifactRef, ObjectEnvelope
 from techtree.models.episode_receipt import EpisodeReceipt
@@ -80,7 +81,6 @@ from techtree.receipts.bundle import (
     receipt_set_filename,
 )
 from techtree.receipts.set import ReceiptSetManifest
-from techtree.receipts.verify import P1_MEANING, verify_local_bundle
 
 __all__ = [
     "V01_PROJECTOR",

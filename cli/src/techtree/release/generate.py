@@ -43,6 +43,7 @@ from techtree.catalog.repository import (
 )
 from techtree.engines.bundle import embedded_engine_root, engine_bundle_digest
 from techtree.errors import ValidationError
+from techtree.execution_facts import release_core_subject_hermes_version
 from techtree.models.base import Digest, JsonValue
 from techtree.release.document import document_digest
 from techtree.release.models import (
@@ -125,6 +126,7 @@ def build_release_core(inputs: ReleaseInputs, sources: ReleaseSources) -> Releas
     reference = _exact_climb_reference(catalog, inputs.intro_climb_reference)
     climb = catalog.load_climb(reference)
     campaign = catalog.load_campaign(climb.campaign_spec_digest)
+    plan = catalog.load_execution_plan(campaign.execution_plan_digest)
 
     values = {
         "cli_version": inputs.cli_version,
@@ -144,7 +146,9 @@ def build_release_core(inputs: ReleaseInputs, sources: ReleaseSources) -> Releas
         engine_digest=engine_bundle_digest(sources.engine_root),
         catalog_digest=document_digest(sources.catalog_index_bytes()),
         intro_climb_reference=reference,
-        subject_hermes_version=campaign.subject.harness.version,
+        # The subject harness is the plan's subject plane; the Campaign binds
+        # the plan by digest and states no harness of its own.
+        subject_hermes_version=release_core_subject_hermes_version(campaign, plan),
         # Where a run is published, where it is then read, and the public half
         # of the key that countersigns the answer. None of the three can be
         # derived from this source tree — they are facts about a deployment and

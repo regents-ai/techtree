@@ -60,7 +60,7 @@ from techtree.receipts.bundle import (
     PROOF_BUNDLE_INVALID,
     proof_bundle_dir,
 )
-from techtree.receipts.verify import LocalProofVerifier
+from techtree.receipts.dispatch import verify_proof
 
 __all__ = [
     "PROOF_TARGET_NOT_FOUND",
@@ -116,17 +116,13 @@ def verify_proof_command(
 
     def action() -> CommandResult[ProofVerificationPayload]:
         path, kind = resolve_proof_target(target, runs_dir=context.paths.runs_dir)
-        verifier = LocalProofVerifier()
-        result = (
-            verifier.verify_bundle(path)
-            if kind == "bundle"
-            else verifier.verify_report(path)
-        )
+        verification = verify_proof(path, kind)
+        result = verification.result
         payload = ProofVerificationPayload(
             target=target,
             kind=kind,
             verified=result.verified,
-            summary=verifier.explain(result),
+            summary=verification.summary,
             checks=list(result.messages),
         )
         return CommandResult(

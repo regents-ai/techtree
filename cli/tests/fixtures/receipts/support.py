@@ -106,8 +106,19 @@ from pathlib import Path
 from typing import Any, Final
 
 from techtree.canonical import digest_object, sha256_digest_bytes
+from techtree.constants import EXECUTION_PLAN_SCHEMA_VERSION
+from techtree.engines.bundle import default_engine_descriptor, default_engine_digest
 from techtree.models.base import ArtifactRef, Digest
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
+from techtree.models.execution_plan import (
+    EvaluationEngineRef,
+    EvidenceBackendSpec,
+    ExecutionBackendKind,
+    ExecutionBackendSpec,
+    ResolvedExecutionPlan,
+    SubjectBackendKind,
+    SubjectBackendSpec,
+)
 from techtree.models.experiment import ExperimentManifest
 from techtree.models.run import RunRequest
 from techtree.receipts.episode import read_variant_episodes
@@ -146,7 +157,14 @@ _REQUEST_FILE: Final = "request.json"
 
 @dataclass(frozen=True)
 class RecordedVariant:
-    """One variant's recorded evaluation, loaded and self-checked."""
+    """One variant's recorded evaluation, loaded and self-checked.
+
+    The three staged documents are read as what they are: the v0.1 documents
+    the probes ran under. Nothing live consumes them directly; what a test
+    hands the live path is derived from them by :func:`trimmed_campaign` and
+    :func:`recorded_execution_plan`, which is the only place the two shapes
+    meet.
+    """
 
     variant: VariantName
     directory: Path
@@ -178,6 +196,51 @@ class RecordedVariant:
 def recorded_root() -> Path:
     """Return the directory holding the recorded evaluation evidence."""
     return Path(__file__).resolve().parent / "recorded"
+
+
+def recorded_execution_plan() -> ResolvedExecutionPlan:
+    """Return the resolved plan the recorded comparison is re-read under.
+
+    Derived, not recorded: the probes predate the plan object. The subject
+    plane restates the harness the recorded Campaign pinned, so the plan
+    describes the harness the evidence was actually produced by, and the
+    evaluation plane names the engine this build ships, which is the engine
+    that reads the evidence back. The probes ran locally with native evidence
+    and no coverage requested, which is what the other two planes say.
+    """
+    harness = (
+        recorded_variant(VariantName.CANDIDATE).campaign.agents[SUBJECT_AGENT].harness
+    )
+    descriptor = default_engine_descriptor()
+    return ResolvedExecutionPlan(
+        schema_version=EXECUTION_PLAN_SCHEMA_VERSION,
+        kind="ResolvedExecutionPlan",
+        evaluation=EvaluationEngineRef(
+            kind="verifiers",
+            api_generation="v1",
+            package_version=descriptor.verifiers_version,
+            source_commit=descriptor.verifiers_revision,
+            wheel_digest=default_engine_digest(),
+        ),
+        execution=ExecutionBackendSpec(
+            kind=ExecutionBackendKind.LOCAL,
+            provider=None,
+            provider_environment_coordinate=None,
+        ),
+        subject=SubjectBackendSpec(
+            kind=SubjectBackendKind.DIRECT,
+            harness_id=harness.id,
+            harness_version=harness.version,
+            adapter_id=None,
+            adapter_version=None,
+            adapter_contract_version=None,
+        ),
+        evidence=EvidenceBackendSpec(
+            native_evidence="required",
+            trace_coverage="not_requested",
+            coverage_profile_digest=None,
+        ),
+    )
 
 
 def recorded_platform() -> str:

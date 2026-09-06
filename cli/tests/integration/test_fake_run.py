@@ -29,7 +29,7 @@ from techtree.canonical import digest_object
 from techtree.errors import EXIT_OK
 from techtree.fs import remove_tree
 from techtree.models.experiment import ExperimentVariant
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.events import (
@@ -74,13 +74,13 @@ def finished_run(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     }
 
 
-def _report(finished_run: dict[str, Any]) -> UpliftReport:
+def _report(finished_run: dict[str, Any]) -> UpliftReportV2:
     # Protocol documents are loaded from bytes, never from a decoded dict: it
     # is the JSON spelling the strict models accept, and it is what a real
     # reader of this envelope would have. ``run result`` returns the report
     # together with the neutral presentation payload every channel draws from
     # (spec section 7.21), so the report is one field of the response.
-    return UpliftReport.model_validate_json(
+    return UpliftReportV2.model_validate_json(
         json.dumps(finished_run["result"].data()["report"])
     )
 
@@ -171,7 +171,7 @@ def test_the_report_carries_the_whole_lineage(finished_run: dict[str, Any]) -> N
     assert report.data_policy_digest == inputs.source.data_policy_digest
     assert report.public_context is not None
     assert report.public_context.climb_digest == inputs.source.climb_digest
-    assert report.evaluation_backend == inputs.campaign.evaluation_backend
+    assert report.execution_plan_digest == inputs.campaign.execution_plan_digest
     assert report.taskset_validation_receipt_digest == (
         inputs.source.publisher_validation_digest
     )
@@ -273,7 +273,7 @@ def test_no_subject_ran_anywhere(finished_run: dict[str, Any]) -> None:
 
     for variant in ExperimentVariant:
         for receipt in artifacts.episode_receipts(run_id, variant):
-            assert receipt.execution_backend == "fake"
+            assert receipt.executor_kind == "fake"
             assert receipt.subject_runtime.kind == "not_executed"
             assert receipt.subject_runtime.resolved_image_digest is None
     assert request.executor_kind == "fake"

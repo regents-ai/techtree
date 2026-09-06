@@ -49,8 +49,8 @@ from techtree.models.campaign import (
     PublicContext,
 )
 from techtree.models.experiment import (
-    ExperimentConfiguration,
-    ExperimentManifest,
+    ExperimentConfigurationV2,
+    ExperimentManifestV2,
     ExperimentVariant,
     ManifestComparison,
 )
@@ -88,7 +88,7 @@ def artifact(name: str = "candidate-under-test", fill: str = "a") -> SkillArtifa
     )
 
 
-def pair(graph: SyntheticGraph) -> tuple[ExperimentManifest, ExperimentManifest]:
+def pair(graph: SyntheticGraph) -> tuple[ExperimentManifestV2, ExperimentManifestV2]:
     """Return the baseline and candidate a correct preparation would build."""
     context = graph.public_context
     return (
@@ -110,15 +110,15 @@ def pair(graph: SyntheticGraph) -> tuple[ExperimentManifest, ExperimentManifest]
 
 def compare(
     graph: SyntheticGraph,
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
 ) -> ManifestComparison:
     return compare_manifests(baseline, candidate, graph.campaign.mutation_contract)
 
 
 def with_configuration(
-    manifest: ExperimentManifest, configuration: ExperimentConfiguration
-) -> ExperimentManifest:
+    manifest: ExperimentManifestV2, configuration: ExperimentConfigurationV2
+) -> ExperimentManifestV2:
     """Return a manifest carrying a different configuration, honestly digested.
 
     ``model_copy`` is what lets a test build a document the model would refuse.
@@ -134,8 +134,8 @@ def with_configuration(
 
 
 def with_subject(
-    manifest: ExperimentManifest, **agent_updates: object
-) -> ExperimentManifest:
+    manifest: ExperimentManifestV2, **agent_updates: object
+) -> ExperimentManifestV2:
     """Return a manifest whose subject agent has been altered."""
     configuration = manifest.configuration
     subject = configuration.agents["subject"].model_copy(update=agent_updates)
@@ -148,8 +148,8 @@ def with_subject(
 
 
 def with_harness(
-    manifest: ExperimentManifest, **harness_updates: object
-) -> ExperimentManifest:
+    manifest: ExperimentManifestV2, **harness_updates: object
+) -> ExperimentManifestV2:
     harness = manifest.configuration.agents["subject"].harness.model_copy(
         update=harness_updates
     )
@@ -283,14 +283,24 @@ def test_changed_sampling_is_rejected(graph: SyntheticGraph) -> None:
     assert not compare(graph, baseline, mutated).controlled
 
 
-def test_a_changed_harness_version_is_rejected(graph: SyntheticGraph) -> None:
+def test_an_undeclared_execution_plan_move_is_rejected(graph: SyntheticGraph) -> None:
+    """The harness, engine and location live in the plan; moving it moves them.
+
+    The two manifests differ nowhere a pointer could name except in the plan
+    they bind, so the violation has to come from the plan comparison itself.
+    """
     baseline, candidate = pair(graph)
-    mutated = with_harness(candidate, version="0.20.0")
+    mutated = with_configuration(
+        candidate,
+        candidate.configuration.model_copy(
+            update={"execution_plan_digest": f"sha256:{'e' * 64}"}
+        ),
+    )
 
     comparison = compare(graph, baseline, mutated)
 
     assert not comparison.controlled
-    assert any("/agents/subject/harness/version" in v for v in comparison.violations)
+    assert any("different execution plan" in v for v in comparison.violations)
 
 
 def test_switching_on_the_bundled_skill_is_rejected(graph: SyntheticGraph) -> None:
@@ -391,26 +401,6 @@ def test_a_changed_outcome_contract_digest_is_rejected(
     assert any("different OutcomeContract" in v for v in comparison.violations)
 
 
-def test_a_changed_evaluation_backend_is_rejected(graph: SyntheticGraph) -> None:
-    baseline, candidate = pair(graph)
-    backend = candidate.configuration.evaluation_backend
-    mutated = with_configuration(
-        candidate,
-        candidate.configuration.model_copy(
-            update={
-                "evaluation_backend": backend.model_copy(
-                    update={"workspace_ref": "elsewhere"}
-                )
-            }
-        ),
-    )
-
-    comparison = compare(graph, baseline, mutated)
-
-    assert not comparison.controlled
-    assert any("different evaluation backend" in v for v in comparison.violations)
-
-
 def test_a_changed_public_context_is_rejected(graph: SyntheticGraph) -> None:
     baseline, candidate = pair(graph)
     mutated = candidate.model_copy(
@@ -470,7 +460,7 @@ def replacement_pair(
     *,
     baseline_fill: str = "a",
     candidate_fill: str = "b",
-) -> tuple[ExperimentManifest, ExperimentManifest]:
+) -> tuple[ExperimentManifestV2, ExperimentManifestV2]:
     """Return a pair carrying one skill each, differing where ``fill`` differs."""
     baseline, candidate = pair(graph)
     return (
@@ -713,7 +703,7 @@ def test_an_uncontrolled_comparison_raises_a_verification_error(
     graph: SyntheticGraph,
 ) -> None:
     baseline, candidate = pair(graph)
-    mutated = with_harness(candidate, version="0.20.0")
+    mutated = with_harness(candidate, use_bundled_skill=True)
     comparison = compare(graph, baseline, mutated)
 
     with pytest.raises(VerificationError) as caught:

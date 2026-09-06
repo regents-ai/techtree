@@ -60,7 +60,7 @@ from typing import Final
 import pytest
 from rich.console import Console
 
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.presentation.build import cost_explanation, cost_summary
 from techtree.presentation.models import DerivedCost, UpliftPresentationPayload
 
@@ -563,7 +563,7 @@ NOTHING_OFFERED_FRAMING: Final[re.Pattern[str]] = re.compile(
 )
 
 
-def _released_campaign() -> CampaignSpec:
+def _released_campaign() -> CampaignSpecV2:
     """Return the Campaign this build ships, read from the catalog it ships in.
 
     The review's cost line is checked against the released contract rather than
@@ -573,7 +573,7 @@ def _released_campaign() -> CampaignSpec:
     document = (
         SOURCE_ROOT / "resources" / "catalog" / "campaigns" / "hello-world-climb.json"
     )
-    return CampaignSpec.model_validate_json(document.read_text(encoding="utf-8"))
+    return CampaignSpecV2.model_validate_json(document.read_text(encoding="utf-8"))
 
 
 def _offenders(

@@ -53,31 +53,31 @@ from pydantic import BaseModel
 
 from techtree.canonical import canonical_json_bytes, digest_object
 from techtree.constants import (
-    CAMPAIGN_SCHEMA_VERSION,
-    CATALOG_SCHEMA_VERSION,
+    CAMPAIGN_V2_SCHEMA_VERSION,
+    CATALOG_V2_SCHEMA_VERSION,
     CLIMB_SCHEMA_VERSION,
     DATA_POLICY_SCHEMA_VERSION,
-    EVALUATION_BACKEND_SCHEMA_VERSION,
+    EXECUTION_PLAN_SCHEMA_VERSION,
     SUBJECT_IMAGE,
     SUBJECT_IMAGE_PLATFORM_DIGESTS,
 )
-from techtree.engines.bundle import default_engine_descriptor
+from techtree.engines.bundle import default_engine_descriptor, default_engine_digest
 from techtree.engines.installer import EngineInstaller, find_uv
 from techtree.engines.registry import EngineRegistry
 from techtree.models.base import Digest
 from techtree.models.campaign import (
     SKILL_MUTATION_POINTER,
     SUBJECT_AGENT,
-    AgentSpec,
+    AgentSpecV2,
     BudgetSpec,
     CampaignContext,
     CampaignMetadata,
-    CampaignSpec,
+    CampaignSpecV2,
     CampaignTaskset,
     EnvironmentSpec,
-    EvidenceRequirements,
+    EvidenceRequirementsV2,
     ExecutionSpec,
-    HarnessSpec,
+    HarnessSpecV2,
     ModelSpec,
     MutationContract,
     MutationKind,
@@ -92,8 +92,8 @@ from techtree.models.campaign import (
 )
 from techtree.models.catalog import (
     CatalogClimbEntry,
-    CatalogIndex,
-    CatalogObjectLocation,
+    CatalogIndexV2,
+    CatalogObjectLocationV2,
 )
 from techtree.models.climb import (
     CandidateConstraints,
@@ -111,10 +111,14 @@ from techtree.models.data_policy import (
     RawEpisodePolicy,
     RevocationPolicy,
 )
-from techtree.models.evaluation_backend import (
-    AttestationKind,
-    EvaluationBackendKind,
-    EvaluationBackendSpec,
+from techtree.models.execution_plan import (
+    EvaluationEngineRef,
+    EvidenceBackendSpec,
+    ExecutionBackendKind,
+    ExecutionBackendSpec,
+    ResolvedExecutionPlan,
+    SubjectBackendKind,
+    SubjectBackendSpec,
 )
 from techtree.models.validation import TasksetLock, TasksetValidationReceipt
 from techtree.paths import ensure_path_layout, paths_from_root
@@ -280,6 +284,7 @@ MEDIA_TYPE: Final = "application/json"
 CLIMB_PATH: Final = f"climbs/{CLIMB_SLUG}.json"
 CAMPAIGN_PATH: Final = f"campaigns/{CLIMB_SLUG}.json"
 DATA_POLICY_PATH: Final = f"data-policies/{CLIMB_SLUG}.json"
+EXECUTION_PLAN_PATH: Final = f"execution-plans/{CLIMB_SLUG}.json"
 RECEIPT_PATH: Final = f"taskset-validations/{CLIMB_SLUG}.json"
 EVIDENCE_PATH: Final = f"validation-evidence/{CLIMB_SLUG}.json"
 
@@ -294,6 +299,7 @@ class CatalogFile:
     kind: Literal[
         "campaign",
         "data_policy",
+        "execution_plan",
         "taskset_validation",
         "validation_evidence",
     ]
@@ -415,12 +421,59 @@ def build_development_data_policy() -> DataPolicy:
     )
 
 
+def build_hello_world_execution_plan() -> ResolvedExecutionPlan:
+    """Return the plan the hello-world Campaign binds. Decisions document 0040.
+
+    Every fact a v0.1 Campaign carried about *how* it is run now lives here,
+    resolved: the packaged engine by content, local execution on the
+    participant's own machine, the directly integrated Hermes harness at its
+    pinned version, and the native evidence a scored episode must produce.
+
+    The engine plane is taken from the packaged engine itself rather than
+    restated, so the plan names the exact engine this build ships and cannot
+    say otherwise. ``wheel_digest`` carries the engine bundle's content digest,
+    the same value ``techtree doctor`` and compatibility check the installed
+    engine against.
+    """
+    descriptor = default_engine_descriptor()
+    return ResolvedExecutionPlan(
+        schema_version=EXECUTION_PLAN_SCHEMA_VERSION,
+        kind="ResolvedExecutionPlan",
+        evaluation=EvaluationEngineRef(
+            kind="verifiers",
+            api_generation="v1",
+            package_version=descriptor.verifiers_version,
+            source_commit=descriptor.verifiers_revision,
+            wheel_digest=default_engine_digest(),
+        ),
+        execution=ExecutionBackendSpec(
+            kind=ExecutionBackendKind.LOCAL,
+            provider=None,
+            provider_environment_coordinate=None,
+        ),
+        subject=SubjectBackendSpec(
+            kind=SubjectBackendKind.DIRECT,
+            harness_id="hermes-agent",
+            harness_version="0.19.0",
+            adapter_id=None,
+            adapter_version=None,
+            adapter_contract_version=None,
+        ),
+        evidence=EvidenceBackendSpec(
+            native_evidence="required",
+            trace_coverage="not_requested",
+            coverage_profile_digest=None,
+        ),
+    )
+
+
 def build_hello_world_campaign(
     *,
     taskset_lock: TasksetLock,
     validation_receipt_digest: Digest,
     data_policy_digest: Digest,
-) -> CampaignSpec:
+    execution_plan_digest: Digest,
+) -> CampaignSpecV2:
     """Return the scientific contract. Spec section 23.3, decisions 0001.
 
     Nothing here is a placeholder any more. The subject *model* is the
@@ -438,8 +491,8 @@ def build_hello_world_campaign(
     release/limit-calibration.json, and the comparisons that establish this
     Campaign's results are re-run against it rather than inherited.
     """
-    return CampaignSpec(
-        schema_version=CAMPAIGN_SCHEMA_VERSION,
+    return CampaignSpecV2(
+        schema_version=CAMPAIGN_V2_SCHEMA_VERSION,
         kind="Campaign",
         metadata=CampaignMetadata(
             id=derived_id("campaign", CAMPAIGN_LABEL),
@@ -459,7 +512,7 @@ def build_hello_world_campaign(
         ),
         environment=EnvironmentSpec(id="single-agent"),
         agents={
-            SUBJECT_AGENT: AgentSpec(
+            SUBJECT_AGENT: AgentSpecV2(
                 model=ModelSpec(
                     provider=SUBJECT_MODEL_PROVIDER,
                     model_id=SUBJECT_MODEL_ID,
@@ -469,12 +522,7 @@ def build_hello_world_campaign(
                 sampling=SamplingSpec(
                     temperature=0.0, max_tokens=SUBJECT_MAX_OUTPUT_TOKENS
                 ),
-                harness=HarnessSpec(
-                    id="hermes-agent",
-                    version="0.19.0",
-                    use_bundled_skill=False,
-                    skills=[],
-                ),
+                harness=HarnessSpecV2(use_bundled_skill=False, skills=[]),
                 runtime=RuntimeSpec(
                     type="docker",
                     image=SUBJECT_IMAGE,
@@ -494,14 +542,6 @@ def build_hello_world_campaign(
             minimum_skills=1,
             maximum_skills=1,
         ),
-        evaluation_backend=EvaluationBackendSpec(
-            schema_version=EVALUATION_BACKEND_SCHEMA_VERSION,
-            kind=EvaluationBackendKind.LOCAL_TECHTREE,
-            attestation=AttestationKind.PARTICIPANT,
-            workspace_ref=None,
-            provider_run_ref=None,
-            executor_identity=None,
-        ),
         execution=ExecutionSpec(
             order=VariantSchedule.PARALLEL,
             max_concurrent=CAMPAIGN_MAX_CONCURRENT,
@@ -514,10 +554,7 @@ def build_hello_world_campaign(
             require_candidate_above_baseline=True,
             minimum_absolute_delta=0.0,
         ),
-        evidence=EvidenceRequirements(
-            verifiers_episode="required",
-            runtime_evidence="not_required",
-        ),
+        evidence=EvidenceRequirementsV2(runtime_evidence="not_required"),
         # Three publisher decisions, all of them enforced: turns, input,
         # output. The total ceiling is not a fourth decision — the compiler
         # derives it from the last two (decisions document 0029, resolution 1),
@@ -529,6 +566,7 @@ def build_hello_world_campaign(
             maximum_usd=CAMPAIGN_BUDGET_USD,
         ),
         data_policy_digest=data_policy_digest,
+        execution_plan_digest=execution_plan_digest,
     )
 
 
@@ -608,8 +646,8 @@ def write_catalog(
     for entry in objects:
         _write_object(destination / entry.path, entry.model)
 
-    index = CatalogIndex(
-        schema_version=CATALOG_SCHEMA_VERSION,
+    index = CatalogIndexV2(
+        schema_version=CATALOG_V2_SCHEMA_VERSION,
         climbs=[
             CatalogClimbEntry(
                 reference=f"{climb.metadata.slug}@{climb.metadata.version}",
@@ -619,7 +657,7 @@ def write_catalog(
             for path, climb in climbs.items()
         ],
         objects={
-            digest_object(entry.model): CatalogObjectLocation(
+            digest_object(entry.model): CatalogObjectLocationV2(
                 kind=entry.kind,
                 path=entry.path,
                 media_type=MEDIA_TYPE,
@@ -662,16 +700,21 @@ def build(destination: Path = CATALOG_ROOT) -> TasksetValidationReceipt:
         validation = publish_validation(Path(directory))
 
     data_policy = build_development_data_policy()
+    execution_plan = build_hello_world_execution_plan()
     campaign = build_hello_world_campaign(
         taskset_lock=validation.lock,
         validation_receipt_digest=validation.receipt_digest,
         data_policy_digest=digest_object(data_policy),
+        execution_plan_digest=digest_object(execution_plan),
     )
     climb = build_hello_world_climb(campaign_digest=digest_object(campaign))
 
     objects = [
         CatalogFile(kind="campaign", path=CAMPAIGN_PATH, model=campaign),
         CatalogFile(kind="data_policy", path=DATA_POLICY_PATH, model=data_policy),
+        CatalogFile(
+            kind="execution_plan", path=EXECUTION_PLAN_PATH, model=execution_plan
+        ),
         CatalogFile(
             kind="taskset_validation", path=RECEIPT_PATH, model=validation.receipt
         ),

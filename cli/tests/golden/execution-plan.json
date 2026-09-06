@@ -4,7 +4,7 @@
     "kind": "verifiers",
     "package_version": "0.3.1",
     "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
-    "wheel_digest": "sha256:6e260ca61cb7946c6bae1820eda4760486d24bd5355c8c8973c404f926de04dd"
+    "wheel_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92"
   },
   "evidence": {
     "coverage_profile_digest": null,

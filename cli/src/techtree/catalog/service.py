@@ -41,18 +41,21 @@ from typing import Final, Protocol
 from techtree.catalog.repository import EmbeddedCatalogRepository, climb_reference
 from techtree.engines.registry import EngineRegistry
 from techtree.errors import NotFoundError, PolicyError, PrerequisiteError, UsageError
+from techtree.execution_facts import (
+    climb_summary_execution_facts,
+    compatibility_result_execution_facts,
+)
 from techtree.models.base import Digest
 from techtree.models.catalog import (
-    ClimbSummary,
+    ClimbSummaryV2,
     CompatibilityIssue,
-    CompatibilityResult,
+    CompatibilityResultV2,
     DataPolicySummary,
     EngineCompatibilityStatus,
 )
 from techtree.models.climb import ResolvedClimb, check_climb_policy_consistency
 from techtree.models.data_policy import DataPolicy
 from techtree.models.engine import normalize_host_platform
-from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
 from techtree.models.validation import ValidationEvidence
 from techtree.paths import TechtreePaths
 from techtree.settings import resolved_settings
@@ -143,7 +146,7 @@ class CatalogService:
         self._host_info = host_info
         self._engine_status = engine_status
 
-    def list_climbs(self, *, status: str = "available") -> list[ClimbSummary]:
+    def list_climbs(self, *, status: str = "available") -> list[ClimbSummaryV2]:
         """Return one summary per Climb, in catalog order.
 
         Every listed Climb is fully resolved first. Listing a Climb that cannot
@@ -158,7 +161,7 @@ class CatalogService:
                 details={"status": status},
             )
 
-        summaries: list[ClimbSummary] = []
+        summaries: list[ClimbSummaryV2] = []
         for reference in self._repository.list_climb_references():
             resolved = self.get_climb(reference)
             if _status_matches(resolved.climb.metadata.status, status):
@@ -174,6 +177,7 @@ class CatalogService:
         receipt = self._repository.load_validation_receipt(
             campaign.taskset.validation_receipt_digest
         )
+        plan = self._repository.load_execution_plan(campaign.execution_plan_digest)
 
         resolved = ResolvedClimb(
             climb=climb,
@@ -184,15 +188,29 @@ class CatalogService:
             data_policy_digest=campaign.data_policy_digest,
             publisher_validation=receipt,
             publisher_validation_digest=campaign.taskset.validation_receipt_digest,
+            execution_plan=plan,
+            execution_plan_digest=campaign.execution_plan_digest,
         )
 
         self._check_validation_evidence(resolved)
         self.validate_public_policy(resolved)
         return resolved
 
-    def compatibility(self, resolved: ResolvedClimb) -> CompatibilityResult:
-        """Report whether this host could run this Climb, and what is missing."""
+    def compatibility(self, resolved: ResolvedClimb) -> CompatibilityResultV2:
+        """Report whether this host could run this Climb, and what is missing.
+
+        Three planes of the bound plan can each block a host, and so can the
+        engine question the plan and the publisher's receipt both answer: the
+        receipt names the engine the taskset was validated against, the plan
+        names the engine the run will use, and a Climb whose two answers
+        differ would have its tasks validated by one engine and scored by
+        another. That is reported as a blocking issue rather than decided
+        silently in favour of either.
+        """
         issues: list[CompatibilityIssue] = []
+        facts = compatibility_result_execution_facts(
+            resolved.campaign, resolved.execution_plan
+        )
 
         host_platform, host_supported = self._host_platform()
         if not host_supported:
@@ -214,29 +232,62 @@ class CatalogService:
         if engine_issue is not None:
             issues.append(engine_issue)
 
-        backend_kind = resolved.campaign.evaluation_backend.kind
-        backend_supported = backend_kind in SUPPORTED_EVALUATION_BACKEND_KINDS
-        if not backend_supported:
+        if facts.evaluation_engine_wheel_digest != engine_digest:
             issues.append(
                 CompatibilityIssue(
-                    code="evaluation_backend_unsupported",
+                    code="engine_plan_mismatch",
                     severity="error",
                     message=(
-                        f"This Climb is evaluated by {backend_kind.value}, which "
-                        "this version of Techtree cannot run."
+                        "This Climb's tasks were validated with a different "
+                        "evaluation engine than the one its execution plan "
+                        "names, so a result could not be scored by the engine "
+                        "that checked the tasks."
                     ),
                     blocking=True,
                 )
             )
 
-        return CompatibilityResult(
+        if not facts.execution_backend_supported:
+            issues.append(
+                CompatibilityIssue(
+                    code="execution_backend_unsupported",
+                    severity="error",
+                    message=(
+                        "This Climb runs its comparison "
+                        f"{_location_phrase(facts.execution_backend_kind.value)}, "
+                        "which this version of Techtree cannot do."
+                    ),
+                    blocking=True,
+                )
+            )
+
+        if not facts.subject_backend_supported:
+            issues.append(
+                CompatibilityIssue(
+                    code="subject_backend_unsupported",
+                    severity="error",
+                    message=(
+                        "This Climb reaches the measured agent through "
+                        f"{facts.subject_backend_kind.value}, which this "
+                        "version of Techtree cannot do."
+                    ),
+                    blocking=True,
+                )
+            )
+
+        return CompatibilityResultV2(
             compatible=not any(issue.blocking for issue in issues),
             host_platform=host_platform,
             host_supported=host_supported,
             required_engine_digest=engine_digest,
             engine_status=engine_status,
-            evaluation_backend_kind=backend_kind,
-            evaluation_backend_supported=backend_supported,
+            execution_plan_digest=facts.execution_plan_digest,
+            evaluation_engine_source_commit=facts.evaluation_engine_source_commit,
+            evaluation_engine_wheel_digest=facts.evaluation_engine_wheel_digest,
+            execution_backend_kind=facts.execution_backend_kind,
+            execution_backend_supported=facts.execution_backend_supported,
+            subject_backend_kind=facts.subject_backend_kind,
+            subject_backend_supported=facts.subject_backend_supported,
             issues=issues,
         )
 
@@ -278,12 +329,13 @@ class CatalogService:
                 details={"status": status, "proof_grade": proof_grade},
             )
 
-    def climb_summary(self, resolved: ResolvedClimb) -> ClimbSummary:
+    def climb_summary(self, resolved: ResolvedClimb) -> ClimbSummaryV2:
         """Project a resolved graph into what ``list`` and ``show`` display."""
         campaign = resolved.campaign
         climb = resolved.climb
+        facts = climb_summary_execution_facts(campaign, resolved.execution_plan)
 
-        return ClimbSummary(
+        return ClimbSummaryV2(
             reference=climb_reference(climb),
             climb_digest=resolved.climb_digest,
             campaign_spec_digest=resolved.campaign_digest,
@@ -293,14 +345,14 @@ class CatalogService:
             purpose=campaign.metadata.purpose,
             taskset_id=campaign.taskset.ref.id,
             task_count=campaign.taskset.selection.num_tasks,
-            subject_harness=campaign.subject.harness.id,
-            subject_harness_version=campaign.subject.harness.version,
+            subject_harness=facts.subject_harness,
+            subject_harness_version=facts.subject_harness_version,
             # Read off the Climb rather than the Campaign: a public Climb still
             # requires skill_insertion, and ``ResolvedClimb`` refuses to exist
             # unless the Campaign's mutation kind is the one the Climb names.
             mutation_kind=climb.candidate_policy.required_mutation,
             candidate_skill_visibility=climb.candidate_policy.skill_visibility,
-            evaluation_backend=campaign.evaluation_backend.kind,
+            execution_backend_kind=facts.execution_backend_kind,
             proof_grade=climb.publication.proof_grade,
             data_policy=data_policy_summary(resolved.data_policy),
             compatibility=self.compatibility(resolved),
@@ -374,6 +426,13 @@ def data_policy_summary(data_policy: DataPolicy) -> DataPolicySummary:
         candidate_skill_public_release=data_policy.candidate_skill.public_release,
         uplift_report_visibility=data_policy.derived_artifacts.uplift_report,
     )
+
+
+def _location_phrase(execution_backend_kind: str) -> str:
+    """Say where a comparison runs in words a reader can act on."""
+    if execution_backend_kind == "local":
+        return "on this machine"
+    return f"through {execution_backend_kind.replace('_', ' ')}"
 
 
 def _status_matches(climb_status: str, requested: str) -> bool:

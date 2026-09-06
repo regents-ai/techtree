@@ -13,7 +13,7 @@ the digest it is filed under is a :class:`~techtree.errors.VerificationError`,
 not a warning, and not something a later stage discovers.
 
 *Stay inside the root.* Index paths are relative, normalized, and non-escaping
-— :class:`~techtree.models.catalog.CatalogIndex` rejects the spellings a
+— :class:`~techtree.models.catalog.CatalogIndexV2` rejects the spellings a
 document can be checked for — and this module additionally refuses a resolved
 path that leaves the catalog directory through a symlink, which no document
 inspection could see.
@@ -44,14 +44,15 @@ from techtree.canonical import canonical_json_bytes, digest_object, sha256_diges
 from techtree.errors import NotFoundError, ValidationError, VerificationError
 from techtree.fs import realpath_within
 from techtree.models.base import Digest, JsonValue
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.models.catalog import (
     CatalogClimbEntry,
-    CatalogIndex,
-    CatalogObjectLocation,
+    CatalogIndexV2,
+    CatalogObjectLocationV2,
 )
 from techtree.models.climb import ClimbManifest
 from techtree.models.data_policy import DataPolicy
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.validation import TasksetValidationReceipt, ValidationEvidence
 
 __all__ = [
@@ -67,10 +68,11 @@ CATALOG_INDEX_FILENAME: Final = "catalog.json"
 
 #: What the index calls each kind of object, keyed by the model the caller asks
 #: for. Keeping the mapping here rather than at each call site is what makes
-#: "the kind is part of the address" a single rule instead of four.
+#: "the kind is part of the address" a single rule instead of five.
 _KIND_FOR_MODEL: Final[dict[type[BaseModel], str]] = {
-    CampaignSpec: "campaign",
+    CampaignSpecV2: "campaign",
     DataPolicy: "data_policy",
+    ResolvedExecutionPlan: "execution_plan",
     TasksetValidationReceipt: "taskset_validation",
     ValidationEvidence: "validation_evidence",
 }
@@ -98,7 +100,7 @@ class EmbeddedCatalogRepository:
 
     def __init__(self, resource_root: Traversable) -> None:
         self._root = resource_root
-        self._index: CatalogIndex | None = None
+        self._index: CatalogIndexV2 | None = None
 
     @classmethod
     def packaged(cls) -> Self:
@@ -107,7 +109,7 @@ class EmbeddedCatalogRepository:
 
     # -- The index ---------------------------------------------------------
 
-    def index(self) -> CatalogIndex:
+    def index(self) -> CatalogIndexV2:
         """Return the validated catalog index, reading it at most once.
 
         Reading the index is also when the catalog is checked for the failures
@@ -123,7 +125,7 @@ class EmbeddedCatalogRepository:
             CATALOG_INDEX_FILENAME, self._resolve(CATALOG_INDEX_FILENAME)
         )
         try:
-            index = CatalogIndex.model_validate_json(raw)
+            index = CatalogIndexV2.model_validate_json(raw)
         except PydanticValidationError as error:
             raise ValidationError(
                 f"the catalog index is not a valid catalog: {_first_problem(error)}",
@@ -213,13 +215,17 @@ class EmbeddedCatalogRepository:
             raise self._digest_mismatch(digest, recomputed, location.path)
         return document
 
-    def load_campaign(self, digest: Digest) -> CampaignSpec:
+    def load_campaign(self, digest: Digest) -> CampaignSpecV2:
         """Load and verify one CampaignSpec."""
-        return self._load_model(digest, CampaignSpec)
+        return self._load_model(digest, CampaignSpecV2)
 
     def load_data_policy(self, digest: Digest) -> DataPolicy:
         """Load and verify one DataPolicy."""
         return self._load_model(digest, DataPolicy)
+
+    def load_execution_plan(self, digest: Digest) -> ResolvedExecutionPlan:
+        """Load and verify one resolved execution plan."""
+        return self._load_model(digest, ResolvedExecutionPlan)
 
     def load_validation_receipt(self, digest: Digest) -> TasksetValidationReceipt:
         """Load and verify one publisher validation receipt."""
@@ -279,7 +285,7 @@ class EmbeddedCatalogRepository:
             raise self._digest_mismatch(digest, recomputed, location.path)
         return loaded
 
-    def _object_location(self, digest: Digest) -> CatalogObjectLocation:
+    def _object_location(self, digest: Digest) -> CatalogObjectLocationV2:
         location = self.index().objects.get(digest)
         if location is None:
             raise NotFoundError(

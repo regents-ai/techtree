@@ -69,9 +69,9 @@ from techtree.fs import fsync_directory, open_exclusive
 from techtree.identity.models import VerificationResult
 from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import Digest, ObjectEnvelope
-from techtree.models.experiment import ExperimentManifest
+from techtree.models.experiment import ExperimentManifestV2
 from techtree.models.skill import SkillArtifact, SubmissionDraft
-from techtree.models.uplift_report import PublicationStatus, UpliftReport
+from techtree.models.uplift_report import PublicationStatus, UpliftReportV2
 from techtree.publication.journal import PublicationJournal, PublicationJournalEntry
 from techtree.publication.models import (
     PublicationReceiptPayload,
@@ -150,7 +150,7 @@ class PublicationPlan:
     #: wire. It is the size of the thing a person recognises — the proof
     #: directory — rather than the size of its encoding.
     byte_count: int
-    report: UpliftReport
+    report: UpliftReportV2
     verification: VerificationResult
     #: The candidate Skill's prepared public label, when the run still carries
     #: its immutable inputs and that label's root digest matches the verified
@@ -492,7 +492,7 @@ class PublicationService:
         try:
             draft = self._load_json_model(inputs / _DRAFT_FILENAME, SubmissionDraft)
             candidate = self._load_json_model(
-                directory / _CANDIDATE_MANIFEST_FILENAME, ExperimentManifest
+                directory / _CANDIDATE_MANIFEST_FILENAME, ExperimentManifestV2
             )
             skill = draft.skill_artifact
             subject = candidate.configuration.agents.get("subject")
@@ -565,11 +565,11 @@ class PublicationService:
             ) from error
         return envelope.payload_digest
 
-    def _report(self, directory: Path, run_id: str) -> UpliftReport:
+    def _report(self, directory: Path, run_id: str) -> UpliftReportV2:
         """Return the report this bundle carries."""
         raw = (directory / REPORT_FILENAME).read_bytes()
         try:
-            envelope = ObjectEnvelope[UpliftReport].model_validate_json(raw)
+            envelope = ObjectEnvelope[UpliftReportV2].model_validate_json(raw)
         except PydanticValidationError as error:
             raise VerificationError(
                 f"run {run_id}'s report cannot be read out of its own proof",

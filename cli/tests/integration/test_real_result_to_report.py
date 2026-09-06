@@ -38,10 +38,11 @@ from fixtures.receipts.staged import (
     staged_recorded_run,
 )
 from techtree.canonical import digest_object
+from techtree.execution_facts import uplift_report_execution_facts
 from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import VariantSchedule
 from techtree.models.episode_receipt import (
-    EpisodeReceipt,
+    EpisodeReceiptV2,
     EvidenceStatus,
     ScoreStatus,
 )
@@ -51,7 +52,7 @@ from techtree.models.uplift_report import (
     ExecutionStatus,
     PublicationStatus,
     UpliftDecision,
-    UpliftReport,
+    UpliftReportV2,
 )
 from techtree.receipts.compare import SKILL_INDEX_TOOL, compare_real_variants
 from techtree.receipts.episode import experiment_variant_of
@@ -98,6 +99,7 @@ def test_the_recorded_probes_produce_a_complete_report() -> None:
     # 2. The two executions were one experiment, tool surface included.
     comparison = compare_real_variants(
         campaign=pair.campaign,
+        plan=pair.execution_plan,
         baseline_manifest=pair.baseline_manifest,
         candidate_manifest=pair.candidate_manifest,
         prepared_manifest_comparison=pair.prepared_comparison,
@@ -140,6 +142,7 @@ def test_the_recorded_probes_produce_a_complete_report() -> None:
     report = build_uplift_report(
         run_request=pair.request,
         campaign=pair.campaign,
+        execution=uplift_report_execution_facts(pair.campaign, pair.execution_plan),
         data_policy=recorded_data_policy(pair.campaign),
         taskset_validation_receipt_digest=(
             pair.campaign.taskset.validation_receipt_digest
@@ -249,13 +252,13 @@ def test_the_completed_run_leaves_checkable_receipts(tmp_path: Path) -> None:
         protocol_variant = experiment_variant_of(variant)
         receipts = run.artifacts.episode_receipts(run.run_id, protocol_variant)
         assert [receipt.task_hash for receipt in receipts] == committed
-        assert all(receipt.execution_backend == "verifiers" for receipt in receipts)
+        assert all(receipt.executor_kind == "verifiers" for receipt in receipts)
         assert all(receipt.score_status is ScoreStatus.VALID for receipt in receipts)
 
         path = receipt_set_path(run.paths.run_dir(run.run_id), protocol_variant)
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
         manifest = ReceiptSetManifest.model_validate_json(path.read_bytes())
-        envelopes: list[ObjectEnvelope[EpisodeReceipt]] = [
+        envelopes: list[ObjectEnvelope[EpisodeReceiptV2]] = [
             seal_receipt(receipt) for receipt in receipts
         ]
         verify_receipt_set(
@@ -318,10 +321,10 @@ def _receipt_set(pair: RecordedPair, variant: VariantName) -> ReceiptSetManifest
     )
 
 
-def _report_on_disk(run: StagedRecordedRun) -> UpliftReport:
+def _report_on_disk(run: StagedRecordedRun) -> UpliftReportV2:
     """Load the report the run recorded, from the bytes it wrote."""
     path = run.run_store.result_path(run.run_id)
-    return UpliftReport.model_validate_json(path.read_bytes())
+    return UpliftReportV2.model_validate_json(path.read_bytes())
 
 
 def _events(run: StagedRecordedRun) -> list[dict[str, object]]:

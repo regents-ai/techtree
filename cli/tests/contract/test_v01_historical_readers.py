@@ -61,9 +61,9 @@ from techtree.historical.v01 import (
     project_signed_receipt,
     project_signed_report,
 )
+from techtree.historical.verify_v01 import P1_MEANING, verify_local_bundle
 from techtree.identity.models import VerificationMessage, VerificationResult
 from techtree.receipts.bundle import BUNDLE_MANIFEST_FILENAME
-from techtree.receipts.verify import P1_MEANING, verify_local_bundle
 
 REPOSITORY_ROOT: Final = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT: Final = REPOSITORY_ROOT / "src" / "techtree"

@@ -2,12 +2,13 @@
 
 A draft is a self-contained claim. Everything needed to check it — the public
 Climb when there is one, the Campaign, the DataPolicy, the publisher's
-validation receipt, the normalized evidence that receipt was issued from, both
-experiment variants, the controlled comparison, and every skill the pair
-declares as both an archive and an expanded tree — is copied in at prepare
-time. Nothing is left as a reference into the catalog, because a draft that
-needed the catalog to be verifiable would stop being verifiable the moment the
-build shipping that catalog changed. Decisions document 0003 A4 states the
+validation receipt, the normalized evidence that receipt was issued from, the
+resolved execution plan the Campaign binds, both experiment variants, the
+controlled comparison, and every skill the pair declares as both an archive
+and an expanded tree — is copied in at prepare time. Nothing is left as a
+reference into the catalog, because a draft that needed the catalog to be
+verifiable would stop being verifiable the moment the build shipping that
+catalog changed. Decisions document 0003 A4 states the
 rule; this module is where it is paid for.
 
 Two of those are conditional, and what decides them is the Campaign rather than
@@ -78,10 +79,11 @@ from techtree.fs import (
 from techtree.ids import validate_id
 from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import ArtifactRef, JsonValue, StateModel, UtcDateTime
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
-from techtree.models.experiment import ExperimentManifest, ManifestComparison
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2, ManifestComparison
 from techtree.models.skill import SkillArtifact, SubmissionDraft
 from techtree.models.validation import TasksetValidationReceipt, ValidationEvidence
 from techtree.paths import TechtreePaths
@@ -106,6 +108,7 @@ _CAMPAIGN_DIGEST_MISMATCH: Final = "campaign_digest_mismatch"
 _DATA_POLICY_DIGEST_MISMATCH: Final = "data_policy_digest_mismatch"
 _PUBLISHER_VALIDATION_MISSING: Final = "publisher_validation_missing"
 _PUBLISHER_EVIDENCE_MISSING: Final = "publisher_validation_evidence_missing"
+_EXECUTION_PLAN_MISMATCH: Final = "execution_plan_mismatch"
 _SKILL_INVALID: Final = "skill_invalid"
 _MANIFEST_BUILD_FAILED: Final = "manifest_build_failed"
 _MANIFEST_COMPARISON_INVALID: Final = "manifest_comparison_invalid"
@@ -128,6 +131,7 @@ _CAMPAIGN_FILE: Final = "campaign.json"
 _DATA_POLICY_FILE: Final = "data-policy.json"
 _VALIDATION_FILE: Final = "publisher-validation.json"
 _EVIDENCE_FILE: Final = "publisher-validation-evidence.json"
+_EXECUTION_PLAN_FILE: Final = "execution-plan.json"
 
 _MANIFESTS_DIR: Final = "manifests"
 _BASELINE_FILE: Final = "baseline.json"
@@ -183,8 +187,8 @@ class DraftSnapshot:
     draft: SubmissionDraft
     source: CampaignSource
     validation_evidence: ValidationEvidence
-    baseline: ExperimentManifest
-    candidate: ExperimentManifest
+    baseline: ExperimentManifestV2
+    candidate: ExperimentManifestV2
     comparison: ManifestComparison
     candidate_skill: StagedSkill
     baseline_skill: StagedSkill | None
@@ -224,8 +228,8 @@ class DraftStore:
         self,
         *,
         draft: SubmissionDraft,
-        baseline: ExperimentManifest,
-        candidate: ExperimentManifest,
+        baseline: ExperimentManifestV2,
+        candidate: ExperimentManifestV2,
         comparison: ManifestComparison,
         source: CampaignSource,
         validation_evidence: ValidationEvidence,
@@ -287,8 +291,8 @@ class DraftStore:
         staging: Path,
         *,
         draft: SubmissionDraft,
-        baseline: ExperimentManifest,
-        candidate: ExperimentManifest,
+        baseline: ExperimentManifestV2,
+        candidate: ExperimentManifestV2,
         comparison: ManifestComparison,
         source: CampaignSource,
         validation_evidence: ValidationEvidence,
@@ -320,6 +324,7 @@ class DraftStore:
                 public / _VALIDATION_FILE, source.publisher_validation
             )
             self._write_immutable(public / _EVIDENCE_FILE, validation_evidence)
+            self._write_immutable(public / _EXECUTION_PLAN_FILE, source.execution_plan)
 
             manifests = staging / _MANIFESTS_DIR
             ensure_private_directory(manifests)
@@ -383,14 +388,14 @@ class DraftStore:
 
     def get_manifests(
         self, draft_id: str
-    ) -> tuple[ExperimentManifest, ExperimentManifest]:
+    ) -> tuple[ExperimentManifestV2, ExperimentManifestV2]:
         """Load immutable manifests."""
         return (
             self._load(
-                draft_id, f"{_MANIFESTS_DIR}/{_BASELINE_FILE}", ExperimentManifest
+                draft_id, f"{_MANIFESTS_DIR}/{_BASELINE_FILE}", ExperimentManifestV2
             ),
             self._load(
-                draft_id, f"{_MANIFESTS_DIR}/{_CANDIDATE_FILE}", ExperimentManifest
+                draft_id, f"{_MANIFESTS_DIR}/{_CANDIDATE_FILE}", ExperimentManifestV2
             ),
         )
 
@@ -408,12 +413,25 @@ class DraftStore:
         own validator runs against the bytes on this disk rather than against
         the ones the catalog once shipped.
         """
-        campaign = self._load(draft_id, f"{_PUBLIC_DIR}/{_CAMPAIGN_FILE}", CampaignSpec)
+        campaign = self._load(
+            draft_id, f"{_PUBLIC_DIR}/{_CAMPAIGN_FILE}", CampaignSpecV2
+        )
         data_policy = self._load(
             draft_id, f"{_PUBLIC_DIR}/{_DATA_POLICY_FILE}", DataPolicy
         )
         receipt = self._load(
             draft_id, f"{_PUBLIC_DIR}/{_VALIDATION_FILE}", TasksetValidationReceipt
+        )
+        plan = self._load(
+            draft_id, f"{_PUBLIC_DIR}/{_EXECUTION_PLAN_FILE}", ResolvedExecutionPlan
+        )
+        plan_digest = digest_object(plan)
+        _require(
+            plan_digest == campaign.execution_plan_digest,
+            "the snapshotted execution plan is not the one the Campaign binds",
+            _EXECUTION_PLAN_MISMATCH,
+            expected=campaign.execution_plan_digest,
+            computed=plan_digest,
         )
 
         if not (self.draft_dir(draft_id) / _PUBLIC_DIR / _CLIMB_FILE).exists():
@@ -421,6 +439,7 @@ class DraftStore:
                 campaign=campaign,
                 data_policy=data_policy,
                 publisher_validation=receipt,
+                execution_plan=plan,
             )
 
         climb = self._load(draft_id, f"{_PUBLIC_DIR}/{_CLIMB_FILE}", ClimbManifest)
@@ -434,6 +453,8 @@ class DraftStore:
                 data_policy_digest=digest_object(data_policy),
                 publisher_validation=receipt,
                 publisher_validation_digest=digest_object(receipt),
+                execution_plan=plan,
+                execution_plan_digest=plan_digest,
             )
         except PydanticValidationError as error:
             raise VerificationError(
@@ -537,6 +558,17 @@ class DraftStore:
             _PUBLISHER_VALIDATION_MISSING,
             expected=campaign.taskset.validation_receipt_digest,
             computed=receipt_digest,
+        )
+
+        plan_digest = digest_object(source.execution_plan)
+        _require(
+            plan_digest
+            == campaign.execution_plan_digest
+            == source.execution_plan_digest,
+            "the snapshotted execution plan is not the one the Campaign binds",
+            _EXECUTION_PLAN_MISMATCH,
+            expected=campaign.execution_plan_digest,
+            computed=plan_digest,
         )
 
         reference = receipt.normalized_evidence
@@ -949,7 +981,7 @@ def _staged_at(directory: Path, artifact: SkillArtifact) -> StagedSkill:
     )
 
 
-def _declared_baseline_skill(baseline: ExperimentManifest) -> ArtifactRef | None:
+def _declared_baseline_skill(baseline: ExperimentManifestV2) -> ArtifactRef | None:
     """Return the one skill a baseline variant declares, when it declares one.
 
     Only the mutation kinds v0.1 defines can occur here: an insertion baseline

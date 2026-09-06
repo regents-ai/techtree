@@ -50,7 +50,7 @@ from fixtures.receipts.support import (
 from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.models.base import ArtifactRef, Digest
 from techtree.models.campaign import SUBJECT_AGENT
-from techtree.models.experiment import ExperimentManifest
+from techtree.models.experiment import ExperimentManifestV2
 from techtree.models.run import RunPhase
 from techtree.paths import TechtreePaths
 from techtree.receipts.episode import read_variant_episodes
@@ -181,7 +181,7 @@ class ReplacementEvidenceExecutor:
         *,
         run_paths: RunPaths,
         variant: VariantName,
-        manifest: ExperimentManifest,
+        manifest: ExperimentManifestV2,
         recorded_skill: Digest,
         committed: list[Digest],
     ) -> VariantExecutionResult:
@@ -247,7 +247,7 @@ class ReplacementEvidenceExecutor:
         )
 
 
-def _declared_skill(manifest: ExperimentManifest) -> Digest:
+def _declared_skill(manifest: ExperimentManifestV2) -> Digest:
     """Return the one Skill a replacement variant declares."""
     subject = manifest.configuration.agents[SUBJECT_AGENT]
     references = subject.harness.skills

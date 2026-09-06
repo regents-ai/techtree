@@ -52,20 +52,21 @@ from techtree.errors import (
     ValidationError,
     VerificationError,
 )
+from techtree.execution_facts import require_executable_execution_plan
 from techtree.fs import atomic_write_json, ensure_private_directory, open_exclusive
 from techtree.models.base import Digest, JsonValue
 from techtree.models.campaign import (
     SUBJECT_AGENT,
-    AgentSpec,
-    CampaignSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
     ModelSpec,
     VariantSchedule,
 )
 from techtree.models.cli import CheckStatus
 from techtree.models.engine import EngineDescriptor, EngineInstallation
-from techtree.models.evaluation_backend import SUPPORTED_EVALUATION_BACKEND_KINDS
-from techtree.models.experiment import ExperimentManifest
-from techtree.models.run import ExecutorKind, RunPhase, RunRequest
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2
+from techtree.models.run import ExecutorKind, RunPhase, RunRequestV2
 from techtree.models.skill import SkillArtifact
 from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunInputBundle
@@ -198,7 +199,7 @@ class _ResolvedEngine:
 # ---------------------------------------------------------------------------
 
 
-def campaign_is_executable(campaign: CampaignSpec) -> bool:
+def campaign_is_executable(campaign: CampaignSpecV2) -> bool:
     """Whether this Campaign names a subject that may be executed for real.
 
     One predicate, consulted both by the worker choosing an executor and by the
@@ -211,7 +212,7 @@ def campaign_is_executable(campaign: CampaignSpec) -> bool:
     return check_live_campaign(campaign).status is CheckStatus.PASS
 
 
-def executor_kind_for(campaign: CampaignSpec) -> ExecutorKind:
+def executor_kind_for(campaign: CampaignSpecV2) -> ExecutorKind:
     """Return the name of the executor this Campaign will be run by.
 
     The same predicate that routes the worker, answered early enough to be
@@ -229,7 +230,7 @@ def executor_kind_for(campaign: CampaignSpec) -> ExecutorKind:
     return "verifiers" if campaign_is_executable(campaign) else "fake"
 
 
-def require_live_campaign(campaign: CampaignSpec) -> None:
+def require_live_campaign(campaign: CampaignSpecV2) -> None:
     """Refuse a Campaign whose coordinates are development placeholders."""
     check = check_live_campaign(campaign)
     if check.status is CheckStatus.PASS:
@@ -241,7 +242,7 @@ def require_live_campaign(campaign: CampaignSpec) -> None:
     )
 
 
-def require_bounded_campaign(campaign: CampaignSpec) -> None:
+def require_bounded_campaign(campaign: CampaignSpecV2) -> None:
     """Refuse to spend anything for a Campaign whose limits are not limits.
 
     Both halves of decisions document 0029's layer A, asked in the one place
@@ -348,13 +349,15 @@ class RealVerifiersExecutor:
         # 1-3. The run's own inputs, verified, and the rights it runs under.
         inputs = context.artifact_store.load_inputs(run_id, request)
         campaign = inputs.campaign
+        plan = inputs.execution_plan
         self._require_acknowledged_policy(request, campaign)
-        self._require_supported_backend(campaign)
+        self._require_executable_plan(request, campaign, plan)
         require_live_campaign(campaign)
         subject = self._subject(campaign)
 
         # 4-5. The engine, and the credential the subject's calls are paid with.
         engine = self._resolve_engine()
+        self._require_engine_is_the_plans(plan, engine)
         require_credentials(subject.model)
 
         # 5a. What the Campaign may spend, and whether it can be held to it.
@@ -374,7 +377,9 @@ class RealVerifiersExecutor:
         # asked for both variants before either is launched, so that a missing
         # or unexpected image costs nothing rather than half a comparison.
         self._materialize_skill_mounts(inputs, run_paths)
-        pair = self._compile_pair(campaign, inputs, run_paths, engine, subject.model)
+        pair = self._compile_pair(
+            campaign, plan, inputs, run_paths, engine, subject.model
+        )
         images = {
             variant: resolve_subject_image(subject.runtime, variant)
             for variant in _VARIANT_ORDER
@@ -392,6 +397,7 @@ class RealVerifiersExecutor:
                 outcome=outcome,
                 images=images,
                 inputs=inputs,
+                plan=plan,
                 validation=validation,
                 engine=engine,
                 lock_path=lock_path,
@@ -404,7 +410,7 @@ class RealVerifiersExecutor:
     # -- preconditions ------------------------------------------------------
 
     def _require_acknowledged_policy(
-        self, request: RunRequest, campaign: CampaignSpec
+        self, request: RunRequestV2, campaign: CampaignSpecV2
     ) -> None:
         """Refuse to execute under rights nobody accepted for this Campaign."""
         acknowledged = request.policy_acknowledgement.data_policy_digest
@@ -421,19 +427,58 @@ class RealVerifiersExecutor:
             },
         )
 
-    def _require_supported_backend(self, campaign: CampaignSpec) -> None:
-        """Refuse a Campaign this build has no evaluation backend for."""
-        kind = campaign.evaluation_backend.kind
-        if kind in SUPPORTED_EVALUATION_BACKEND_KINDS:
+    def _require_executable_plan(
+        self,
+        request: RunRequestV2,
+        campaign: CampaignSpecV2,
+        plan: ResolvedExecutionPlan,
+    ) -> None:
+        """Refuse a plan this build cannot execute, or one the run was not made for.
+
+        The staged plan is the one the Campaign binds; the input bundle has
+        already checked that. What is asked here is whether this build runs
+        it at all — local execution reaching the subject directly is the only
+        location v0.2.0 executes — and whether it is the plan the request was
+        created under, so a request cannot be re-pointed at another plan
+        after the person who approved it was shown its terms.
+        """
+        digest = require_executable_execution_plan(campaign, plan)
+        if digest == request.execution_plan_digest:
             return
         raise ValidationError(
-            f"this Campaign is evaluated by {kind.value}, which this build "
-            "does not run",
+            "the execution plan this run was created under is not the one "
+            "its Campaign binds",
             code=REAL_EXECUTION_UNSUPPORTED,
-            details={"evaluation_backend": kind.value},
+            details={
+                "run_id": request.run_id,
+                "requested": request.execution_plan_digest,
+                "campaign": digest,
+            },
         )
 
-    def _subject(self, campaign: CampaignSpec) -> AgentSpec:
+    def _require_engine_is_the_plans(
+        self, plan: ResolvedExecutionPlan, engine: _ResolvedEngine
+    ) -> None:
+        """Refuse to run under an engine other than the one the plan names.
+
+        The plan's evaluation plane names the exact engine build by digest.
+        The engine this executor resolved is the one this build ships, and the
+        two must be the same bytes: a report that cites the plan would
+        otherwise name an engine that never scored its episodes.
+        """
+        if plan.evaluation.wheel_digest == engine.digest:
+            return
+        raise ValidationError(
+            "the engine this build would run is not the one the Campaign's "
+            "execution plan names",
+            code=REAL_EXECUTION_UNSUPPORTED,
+            details={
+                "plan_engine_digest": plan.evaluation.wheel_digest,
+                "engine_digest": engine.digest,
+            },
+        )
+
+    def _subject(self, campaign: CampaignSpecV2) -> AgentSpecV2:
         """Return the evaluated agent, or refuse a Campaign that names none."""
         subject = campaign.agents.get(SUBJECT_AGENT)
         if subject is None:
@@ -579,7 +624,8 @@ class RealVerifiersExecutor:
 
     def _compile_pair(
         self,
-        campaign: CampaignSpec,
+        campaign: CampaignSpecV2,
+        plan: ResolvedExecutionPlan,
         inputs: RunInputBundle,
         run_paths: RunPaths,
         engine: _ResolvedEngine,
@@ -596,6 +642,7 @@ class RealVerifiersExecutor:
         """
         baseline_plan, candidate_plan = compile_plans(
             campaign=campaign,
+            plan=plan,
             baseline=inputs.baseline,
             candidate=inputs.candidate,
             run_paths=run_paths,
@@ -610,13 +657,14 @@ class RealVerifiersExecutor:
             VariantName.CANDIDATE: inputs.candidate,
         }
         for variant in _VARIANT_ORDER:
-            plan = pair.plan(variant)
+            variant_plan = pair.plan(variant)
             compiled = compile_variant_config(
                 campaign=campaign,
+                plan=plan,
                 experiment=manifests[variant],
                 run_paths=run_paths,
                 variant=variant,
-                variant_max_concurrent=plan.max_concurrent,
+                variant_max_concurrent=variant_plan.max_concurrent,
             )
             input_path = run_paths.variant_input_config(variant)
             write_variant_config(compiled, input_path)
@@ -648,10 +696,10 @@ class RealVerifiersExecutor:
         self,
         context: ExecutionContext,
         *,
-        campaign: CampaignSpec,
+        campaign: CampaignSpecV2,
         pair: VariantPair,
         engine: _ResolvedEngine,
-        subject: AgentSpec,
+        subject: AgentSpecV2,
     ) -> VariantPairOutcome:
         """Start and watch both variants under the Campaign's own schedule."""
         run_id = context.request.run_id
@@ -721,6 +769,7 @@ class RealVerifiersExecutor:
         outcome: VariantPairOutcome,
         images: Mapping[VariantName, SubjectImageResolution],
         inputs: RunInputBundle,
+        plan: ResolvedExecutionPlan,
         validation: TasksetValidationOutcome,
         engine: _ResolvedEngine,
         lock_path: Path,
@@ -731,7 +780,7 @@ class RealVerifiersExecutor:
             VariantName.BASELINE: outcome.baseline,
             VariantName.CANDIDATE: outcome.candidate,
         }
-        manifests: dict[VariantName, ExperimentManifest] = {
+        manifests: dict[VariantName, ExperimentManifestV2] = {
             VariantName.BASELINE: inputs.baseline,
             VariantName.CANDIDATE: inputs.candidate,
         }
@@ -751,6 +800,7 @@ class RealVerifiersExecutor:
             checks = verify_variant_execution(
                 result=result,
                 experiment=manifests[variant],
+                plan=plan,
                 taskset_lock=validation.lock,
                 primary_reward=primary_reward,
                 engine=engine.descriptor,

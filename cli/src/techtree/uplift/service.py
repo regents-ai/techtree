@@ -69,13 +69,17 @@ from pydantic import ValidationError as PydanticValidationError
 
 from techtree.canonical import digest_object
 from techtree.errors import PolicyError, ValidationError, VerificationError
+from techtree.execution_facts import (
+    episode_receipt_execution_facts,
+    uplift_report_execution_facts,
+)
 from techtree.identity.models import ExecutorIdentity
 from techtree.identity.service import IdentityService
 from techtree.models.base import ObjectEnvelope
-from techtree.models.episode_receipt import EpisodeReceipt
+from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.experiment import ExperimentVariant
-from techtree.models.run import RunPhase, RunRequest
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.run import RunPhase, RunRequestV2
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.models.validation import TasksetLock
 from techtree.paths import TechtreePaths
 from techtree.receipts.bundle import (
@@ -162,7 +166,7 @@ _VARIANT_ORDER: Final[tuple[VariantName, ...]] = (
 class CompletedRun:
     """One finished run's signed result and the inputs it was executed from."""
 
-    report: UpliftReport
+    report: UpliftReportV2
     inputs: RunInputBundle
 
 
@@ -170,14 +174,14 @@ class CompletedRun:
 class VariantReceipts:
     """One variant's signed receipts, its commitment over them, and what it ran."""
 
-    receipts: list[EpisodeReceipt]
-    signed_receipts: list[ObjectEnvelope[EpisodeReceipt]]
+    receipts: list[EpisodeReceiptV2]
+    signed_receipts: list[ObjectEnvelope[EpisodeReceiptV2]]
     receipt_set: ReceiptSetManifest
     observed: ObservedVariant
 
 
 class RealUpliftReportService:
-    """Completes a real run by turning its evidence into a signed UpliftReport."""
+    """Completes a real run by turning its evidence into a signed UpliftReportV2."""
 
     def __init__(
         self,
@@ -195,8 +199,8 @@ class RealUpliftReportService:
         self._clock = clock or _utc_now
 
     def complete(
-        self, *, request: RunRequest, execution: RealExecutionResult
-    ) -> UpliftReport:
+        self, *, request: RunRequestV2, execution: RealExecutionResult
+    ) -> UpliftReportV2:
         """Build, check, aggregate, sign, prove and record this run's result."""
         run_id = request.run_id
         raise_if_cancel_requested(self._run_store, run_id)
@@ -275,7 +279,7 @@ class RealUpliftReportService:
     def _build_variant(
         self,
         *,
-        request: RunRequest,
+        request: RunRequestV2,
         inputs: RunInputBundle,
         run_paths: RunPaths,
         lock: TasksetLock,
@@ -292,7 +296,7 @@ class RealUpliftReportService:
             variant=variant,
             experiment=experiment,
             result=result,
-            evaluation_backend=campaign.evaluation_backend,
+            execution=episode_receipt_execution_facts(campaign, inputs.execution_plan),
             ordered_task_hashes=lock.ordered_task_hashes,
             primary_reward=campaign.scoring.primary_reward,
             evidence=campaign.evidence,
@@ -346,6 +350,7 @@ class RealUpliftReportService:
         """Check that the two executions were one experiment."""
         return compare_real_variants(
             campaign=inputs.campaign,
+            plan=inputs.execution_plan,
             baseline_manifest=inputs.baseline,
             candidate_manifest=inputs.candidate,
             prepared_manifest_comparison=inputs.comparison,
@@ -362,14 +367,14 @@ class RealUpliftReportService:
     def _report(
         self,
         *,
-        request: RunRequest,
+        request: RunRequestV2,
         inputs: RunInputBundle,
         lock: TasksetLock,
         identity: ExecutorIdentity,
         comparison: RealComparisonResult,
         baseline: VariantReceipts,
         candidate: VariantReceipts,
-    ) -> UpliftReport:
+    ) -> UpliftReportV2:
         """Aggregate the paired rewards and construct the report."""
         campaign = inputs.campaign
         deltas = pair_task_rewards(
@@ -384,6 +389,7 @@ class RealUpliftReportService:
         return build_uplift_report(
             run_request=request,
             campaign=campaign,
+            execution=uplift_report_execution_facts(campaign, inputs.execution_plan),
             # The run's own staged copy of the rights statement it executed
             # under, which is what decides whether its report may be published.
             data_policy=inputs.source.data_policy,
@@ -428,11 +434,11 @@ class RealUpliftReportService:
     def _prove(
         self,
         *,
-        request: RunRequest,
+        request: RunRequestV2,
         inputs: RunInputBundle,
         lock: TasksetLock,
         identity: ExecutorIdentity,
-        report: UpliftReport,
+        report: UpliftReportV2,
         baseline: VariantReceipts,
         candidate: VariantReceipts,
         execution_record: ComparisonExecutionRecord,
@@ -452,6 +458,7 @@ class RealUpliftReportService:
             contents=LocalProofBundleContents(
                 identity=identity,
                 campaign=inputs.campaign,
+                execution_plan=inputs.execution_plan,
                 data_policy=inputs.source.data_policy,
                 taskset_lock=lock,
                 validation_receipt=inputs.source.publisher_validation,
@@ -488,7 +495,7 @@ class RealUpliftReportService:
         )
 
     def _referenced_objects(
-        self, *, request: RunRequest, inputs: RunInputBundle, lock: TasksetLock
+        self, *, request: RunRequestV2, inputs: RunInputBundle, lock: TasksetLock
     ) -> list[ReferencedObject]:
         """Return every object this report cites, with the digest it cites it under.
 
@@ -501,6 +508,11 @@ class RealUpliftReportService:
         publisher_validation = inputs.source.publisher_validation
         return [
             ReferencedObject("campaign", campaign, request.campaign_spec_digest),
+            ReferencedObject(
+                "execution-plan",
+                inputs.execution_plan,
+                campaign.execution_plan_digest,
+            ),
             ReferencedObject(
                 "data-policy",
                 inputs.source.data_policy,
@@ -659,6 +671,7 @@ class UpliftService:
         source = self._completed_real_run(source_run_id)
         return self._skills.prepare_replacement(
             source_campaign=source.inputs.campaign,
+            execution_plan=source.inputs.execution_plan,
             data_policy=source.inputs.source.data_policy,
             publisher_validation=source.inputs.source.publisher_validation,
             validation_evidence=source.inputs.validation_evidence,
@@ -686,19 +699,19 @@ class UpliftService:
                 details={"run_id": run_id, "proof_grade": report.proof_grade},
             )
 
-        backends = {
-            receipt.execution_backend
+        executors = {
+            receipt.executor_kind
             for variant in ExperimentVariant
             for receipt in self._artifacts.episode_receipts(run_id, variant)
         }
-        if backends != {"verifiers"}:
+        if executors != {"verifiers"}:
             raise PolicyError(
                 f"run {run_id} did not evaluate every episode for real, so it "
                 "is not a run another comparison can be built on",
                 code=SOURCE_RUN_NOT_USABLE,
                 details={
                     "run_id": run_id,
-                    "execution_backends": ", ".join(sorted(backends)),
+                    "executor_kinds": ", ".join(sorted(executors)),
                 },
             )
 

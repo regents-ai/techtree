@@ -43,6 +43,7 @@ from techtree.models.base import ObjectEnvelope
 from techtree.models.campaign import CampaignSpec, CampaignSpecV2
 from techtree.models.catalog import (
     CatalogIndex,
+    CatalogIndexV2,
     ClimbSummary,
     ClimbSummaryV2,
     CompatibilityResult,
@@ -144,6 +145,9 @@ def v2_schema_models() -> dict[str, type[BaseModel]]:
     """
     return {
         "campaign": CampaignSpecV2,
+        # The index gains one object kind, the resolved execution plan, so a
+        # v0.2 catalog is described here rather than by the frozen v0.1 index.
+        "catalog": CatalogIndexV2,
         "climb-summary": ClimbSummaryV2,
         "compatibility-result": CompatibilityResultV2,
         "episode-receipt": EpisodeReceiptV2,

@@ -39,6 +39,7 @@ never agreed to.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Final
 
 from techtree.canonical import digest_object
 from techtree.errors import ValidationError
@@ -54,6 +55,7 @@ from techtree.models.execution_plan import (
 )
 
 __all__ = [
+    "EXECUTION_PLAN_UNSUPPORTED",
     "ClimbSummaryExecutionFacts",
     "CompatibilityResultExecutionFacts",
     "EpisodeReceiptExecutionFacts",
@@ -66,9 +68,14 @@ __all__ = [
     "episode_receipt_execution_facts",
     "experiment_configuration_execution_facts",
     "release_core_subject_hermes_version",
+    "require_executable_execution_plan",
     "run_request_execution_facts",
     "uplift_report_execution_facts",
 ]
+
+#: The one code a plan this build cannot run is refused under, wherever the
+#: refusal happens: at prepare, at start, and again in the executor.
+EXECUTION_PLAN_UNSUPPORTED: Final = "execution_plan_unsupported"
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +100,43 @@ def bound_execution_plan_digest(
             details={
                 "campaign_execution_plan_digest": campaign.execution_plan_digest,
                 "plan_digest": digest,
+            },
+        )
+    return digest
+
+
+def require_executable_execution_plan(
+    campaign: CampaignSpecV2,
+    plan: ResolvedExecutionPlan,
+) -> Digest:
+    """Return the bound plan's digest, refusing a plan this release cannot run.
+
+    v0.2.0 executes in one place: on this machine, reaching the subject
+    directly. A plan naming any other execution or subject backend is a valid
+    document describing a run this build cannot perform, and it is refused
+    here — before any external work — with the plane that cannot be honoured
+    named, rather than partway through a run that would then have to be
+    abandoned.
+    """
+    digest = bound_execution_plan_digest(campaign, plan)
+    if plan.execution.kind not in SUPPORTED_EXECUTION_BACKEND_KINDS:
+        raise ValidationError(
+            f"this Campaign's execution plan runs through {plan.execution.kind.value}, "
+            "which this build does not run",
+            code=EXECUTION_PLAN_UNSUPPORTED,
+            details={
+                "execution_plan_digest": digest,
+                "execution_backend_kind": plan.execution.kind.value,
+            },
+        )
+    if plan.subject.kind not in SUPPORTED_SUBJECT_BACKEND_KINDS:
+        raise ValidationError(
+            "this Campaign's execution plan reaches the subject through "
+            f"{plan.subject.kind.value}, which this build does not run",
+            code=EXECUTION_PLAN_UNSUPPORTED,
+            details={
+                "execution_plan_digest": digest,
+                "subject_backend_kind": plan.subject.kind.value,
             },
         )
     return digest

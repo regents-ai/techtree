@@ -19,7 +19,7 @@ the data.
 ``show`` returns a payload rather than a bare summary. Four facts a reader
 needs before entering a Climb — which model answers, where it runs, which
 reward decides the comparison, and who owns a submitted skill — have no field
-on :class:`~techtree.models.catalog.ClimbSummary`, and a host agent should not
+on :class:`~techtree.models.catalog.ClimbSummaryV2`, and a host agent should not
 have to read them out of a rendered table.
 
 ``prepare`` writes the draft and stops. The start action it offers names the
@@ -86,10 +86,10 @@ from techtree.models.base import (
     NonEmptyString,
     ProtocolModel,
 )
-from techtree.models.campaign import CampaignSpec, ModelSpec, RuntimeSpec
+from techtree.models.campaign import CampaignSpecV2, ModelSpec, RuntimeSpec
 from techtree.models.catalog import (
-    ClimbSummary,
-    CompatibilityResult,
+    ClimbSummaryV2,
+    CompatibilityResultV2,
     EngineCompatibilityStatus,
 )
 from techtree.models.cli import CliMessage, MessageLevel, NextAction
@@ -97,7 +97,7 @@ from techtree.models.climb import ResolvedClimb
 from techtree.models.run import (
     PolicyAcknowledgement,
     RunPhase,
-    RunRequest,
+    RunRequestV2,
     RunStatus,
 )
 from techtree.models.skill import PolicyAcceptanceRequirement, SubmissionDraft
@@ -161,7 +161,7 @@ class ClimbShowPayload(ProtocolModel):
     """What ``climb show`` returns: the summary, plus the Campaign facts.
 
     The five extra fields are read straight off the resolved graph. They are
-    carried here rather than added to ``ClimbSummary`` because the summary is a
+    carried here rather than added to ``ClimbSummaryV2`` because the summary is a
     published protocol object with an exported schema, and this is one
     command's response shape.
 
@@ -174,7 +174,7 @@ class ClimbShowPayload(ProtocolModel):
     both.
     """
 
-    climb: ClimbSummary
+    climb: ClimbSummaryV2
     data_policy_digest: Digest
     subject_model: ModelSpec
     subject_runtime: RuntimeSpec
@@ -268,7 +268,7 @@ def list_climbs_command(ctx: typer.Context) -> None:
     """List public wrappers with resolved Campaign compatibility."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[list[ClimbSummary]]:
+    def action() -> CommandResult[list[ClimbSummaryV2]]:
         summaries = build_catalog_service(context).list_climbs()
 
         if not summaries:
@@ -562,7 +562,7 @@ PUBLICATION_TERMS_LINE: Final = (
 )
 
 
-def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]:
+def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpecV2) -> list[str]:
     """Return the five things a person weighs before a run starts.
 
     Decisions document 0019 section 2 fixes the list and the order: how much
@@ -593,7 +593,7 @@ def review_lines(*, draft: SubmissionDraft, campaign: CampaignSpec) -> list[str]
     ]
 
 
-def _cost_line(campaign: CampaignSpec) -> str:
+def _cost_line(campaign: CampaignSpecV2) -> str:
     """Say what is checked about the spend before the run starts, and what is not.
 
     The declared maximum stays a US-dollar figure, because that is what the
@@ -628,7 +628,7 @@ def approve_run(
     context: CliContext,
     *,
     draft: SubmissionDraft,
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     assume_yes: bool,
     reviewed_on: ReviewSurface = ReviewSurface.CLI,
 ) -> RunApproval:
@@ -703,7 +703,7 @@ def _start_payload(
     draft: SubmissionDraft,
     status: RunStatus,
     approval: RunApproval,
-    request: RunRequest,
+    request: RunRequestV2,
 ) -> ClimbStartPayload:
     """Project the run that was just created, reading its own record for what it is.
 
@@ -736,7 +736,7 @@ def _available_summary(count: int) -> str:
     return f"{count} Climbs are available in this build."
 
 
-def _development_warnings(summaries: list[ClimbSummary]) -> list[CliMessage]:
+def _development_warnings(summaries: list[ClimbSummaryV2]) -> list[CliMessage]:
     """Warn once per development Climb that its results prove nothing."""
     return [
         CliMessage(
@@ -752,7 +752,7 @@ def _development_warnings(summaries: list[ClimbSummary]) -> list[CliMessage]:
     ]
 
 
-def _show_next_actions(compatibility: CompatibilityResult) -> list[NextAction]:
+def _show_next_actions(compatibility: CompatibilityResultV2) -> list[NextAction]:
     """Offer the one step that moves this Climb forward on this machine."""
     if not compatibility.host_supported:
         # Nothing Techtree can run fixes the wrong machine, so nothing is
@@ -1003,7 +1003,7 @@ def _render_show(data: object, console: Console) -> None:
             ("Subject runtime", f"{runtime.type} {runtime.image} ({platforms})"),
             ("Primary reward", data.primary_reward),
             ("Candidate ownership", data.candidate_skill_ownership),
-            ("Evaluated by", summary.evaluation_backend.value),
+            ("Runs", _location_phrase(summary.execution_backend_kind)),
             ("Allowed change", phrase(summary.mutation_kind)),
             ("Proof grade", phrase(summary.proof_grade)),
         ],
@@ -1152,6 +1152,13 @@ def abbreviated_digest(digest: str) -> str:
     return f"{algorithm}:{hexadecimal[:ABBREVIATED_DIGEST_CHARACTERS]}…"
 
 
+def _location_phrase(execution_backend_kind: str) -> str:
+    """Say where a comparison runs in words a reader can act on."""
+    if execution_backend_kind == "local":
+        return "on this machine"
+    return f"through {execution_backend_kind.replace('_', ' ')}"
+
+
 def phrase(value: str) -> str:
     """Render a protocol value as words rather than as an identifier.
 
@@ -1167,7 +1174,7 @@ def phrase(value: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _show_payload(resolved: ResolvedClimb, summary: ClimbSummary) -> ClimbShowPayload:
+def _show_payload(resolved: ResolvedClimb, summary: ClimbSummaryV2) -> ClimbShowPayload:
     """Return the summary plus the Campaign facts it has no field for."""
     subject = resolved.campaign.subject
     return ClimbShowPayload(

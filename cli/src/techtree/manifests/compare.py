@@ -8,7 +8,7 @@ The check runs in two stages, and the order matters.
 
 First the structural invariants are required outright: same Campaign, same
 improvement program, same public context, same DataPolicy, same OutcomeContract,
-same evaluation backend, the right variant on each side, and the skill counts
+same execution plan, the right variant on each side, and the skill counts
 the Campaign's mutation kind requires — no skill on the baseline and exactly one
 on the candidate for an insertion, one differing skill on each side for a
 replacement. These are stated as invariants rather
@@ -35,7 +35,7 @@ protocol's own byte-level form is what two independent implementations agree
 on, so it is what is compared.
 
 *The invariants are checked here even where a model already enforces them.*
-:class:`~techtree.models.experiment.ExperimentManifest` refuses a baseline with
+:class:`~techtree.models.experiment.ExperimentManifestV2` refuses a baseline with
 a skill. This module refuses one again. The model protects documents that are
 built; this function protects documents that are loaded, and the second is the
 case that matters when a comparison is being audited rather than created.
@@ -56,7 +56,7 @@ from techtree.errors import VerificationError
 from techtree.models.base import JsonValue
 from techtree.models.campaign import MutationContract, MutationKind
 from techtree.models.experiment import (
-    ExperimentManifest,
+    ExperimentManifestV2,
     ExperimentVariant,
     JsonDifference,
     ManifestComparison,
@@ -105,8 +105,8 @@ def diff_values(
 
 
 def compare_manifests(
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
     mutation: MutationContract,
 ) -> ManifestComparison:
     """Compare two variants' configurations and report whether it is controlled."""
@@ -230,7 +230,7 @@ def _difference(
     )
 
 
-def _configuration_json(manifest: ExperimentManifest) -> JsonValue:
+def _configuration_json(manifest: ExperimentManifestV2) -> JsonValue:
     """Return the canonical JSON form of one manifest's configuration."""
     decoded: JsonValue = json.loads(
         canonical_json_bytes(manifest.configuration).decode("utf-8")
@@ -244,7 +244,7 @@ def _configuration_json(manifest: ExperimentManifest) -> JsonValue:
 
 
 def _variant_violations(
-    baseline: ExperimentManifest, candidate: ExperimentManifest
+    baseline: ExperimentManifestV2, candidate: ExperimentManifestV2
 ) -> list[str]:
     violations: list[str] = []
     if baseline.variant is not ExperimentVariant.BASELINE:
@@ -261,7 +261,7 @@ def _variant_violations(
 
 
 def _shared_field_violations(
-    baseline: ExperimentManifest, candidate: ExperimentManifest
+    baseline: ExperimentManifestV2, candidate: ExperimentManifestV2
 ) -> list[str]:
     """Report every field the two variants are required to share."""
     return [
@@ -281,9 +281,9 @@ def _shared_field_violations(
                 candidate.configuration.outcome_contract_digest,
             ),
             (
-                "evaluation backend",
-                baseline.configuration.evaluation_backend,
-                candidate.configuration.evaluation_backend,
+                "execution plan",
+                baseline.configuration.execution_plan_digest,
+                candidate.configuration.execution_plan_digest,
             ),
         )
         if left != right
@@ -291,8 +291,8 @@ def _shared_field_violations(
 
 
 def _skill_count_violations(
-    baseline: ExperimentManifest,
-    candidate: ExperimentManifest,
+    baseline: ExperimentManifestV2,
+    candidate: ExperimentManifestV2,
     mutation: MutationContract,
 ) -> list[str]:
     target = mutation.target_agent

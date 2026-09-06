@@ -53,7 +53,7 @@ from techtree.errors import ValidationError
 from techtree.models.base import Digest, JsonValue
 from techtree.models.campaign import (
     SUBJECT_AGENT,
-    CampaignSpec,
+    CampaignSpecV2,
     ModelSpec,
     RuntimeSpec,
 )
@@ -313,7 +313,7 @@ def check_subject_image(runtime: RuntimeSpec) -> DoctorCheck:
     )
 
 
-def check_live_campaign(campaign: CampaignSpec) -> DoctorCheck:
+def check_live_campaign(campaign: CampaignSpecV2) -> DoctorCheck:
     """Refuse a Campaign whose coordinates are development placeholders.
 
     A development fixture names a model that exists to be compiled and dry-run,
@@ -379,7 +379,7 @@ def check_live_campaign(campaign: CampaignSpec) -> DoctorCheck:
 def execution_checks(
     *,
     engine_registry: EngineRegistry,
-    campaign: CampaignSpec | None = None,
+    campaign: CampaignSpecV2 | None = None,
     engine_digest: Digest | None = None,
 ) -> list[DoctorCheck]:
     """Run every execution check, in a deterministic order.

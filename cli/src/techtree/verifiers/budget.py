@@ -36,7 +36,7 @@ from pydantic import Field
 
 from techtree.errors import PrerequisiteError
 from techtree.models.base import JsonValue, NonEmptyString, ProtocolModel
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 
 __all__ = [
     "CAMPAIGN_BUDGET_NOT_ENFORCED",
@@ -126,7 +126,7 @@ def price_profile_for(model_id: str) -> PriceProfile:
     )
 
 
-def require_executable_budget(campaign: CampaignSpec) -> None:
+def require_executable_budget(campaign: CampaignSpecV2) -> None:
     """Refuse a Campaign whose declared execution limits are not enforced.
 
     The four values here are the four the engine can be made to enforce: the
@@ -155,7 +155,7 @@ def require_executable_budget(campaign: CampaignSpec) -> None:
 
 
 def calculate_release_cost_bound(
-    campaign: CampaignSpec, price_profile: PriceProfile
+    campaign: CampaignSpecV2, price_profile: PriceProfile
 ) -> float:
     """Return the most one comparison of this Campaign can cost, in dollars.
 
@@ -187,7 +187,7 @@ def calculate_release_cost_bound(
     return episodes * per_episode
 
 
-def require_cost_bound(campaign: CampaignSpec, price_profile: PriceProfile) -> float:
+def require_cost_bound(campaign: CampaignSpecV2, price_profile: PriceProfile) -> float:
     """Refuse a Campaign that can cost more than it says it may.
 
     Returns the computed bound so a caller can record it. A Campaign that

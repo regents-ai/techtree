@@ -1,0 +1,29 @@
+{
+  "artifacts": {
+    "release/release-core.json": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa",
+    "release/release-core.schema.json": "sha256:583c8b09665eca0807d45de971791e7e17108686ba271897f61e3ca5e3b45c38",
+    "src/techtree/resources/release/release-core.json": "sha256:07bfd0f0f07c4df08e879c2ff6dbb8e17c6363445e15be62c6ec9549989d67fa"
+  },
+  "build_provenance": {
+    "build_command": "uv build --wheel",
+    "commit_source": "git rev-parse HEAD, asked of the tree being packaged",
+    "editable_installs": "not stamped: an editable install is the working tree rather than a distributable artifact, and `techtree release info` reports that no commit was stamped instead of naming one",
+    "in_the_committed_tree": "never; the stamp belongs to one artifact and is written and removed by the build",
+    "mechanism": "a hatchling build hook, tools/stamp_provenance.py, writes the source commit into the package while the wheel is being built",
+    "refuses": "a build with no git, no commit, or any packaged path (src/techtree, pyproject.toml, README.md, LICENSE) differing from that commit; there is no unknown value and no default",
+    "reported_by": "techtree release info",
+    "stamp_schema_version": "techtree.build-provenance.v1",
+    "stamped_file": "techtree/resources/release/build-provenance.json"
+  },
+  "generator": "tools/build_release_core.py",
+  "generator_version": "0.1.0",
+  "inputs": {
+    "catalog_digest": "sha256:10a7fcc5de1951c14509947c0512a4eeb247a703cdf01cc3f268580979a7d12c",
+    "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
+    "intro_climb_reference": "hello-world-climb@1",
+    "protocol_version": "v1alpha1",
+    "pyproject_version": "0.1.1",
+    "release_inputs_digest": "sha256:cdb1f19dab00d1075b239e400e1e7e00dcd4ef755fbc60ab9b7b832e02303b11"
+  },
+  "schema_version": "techtree.release-build-info.v1"
+}

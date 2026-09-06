@@ -53,13 +53,13 @@ from typing import Final, Literal, Protocol
 from techtree.canonical import digest_object
 from techtree.errors import ValidationError
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
-from techtree.models.campaign import CampaignSpec
-from techtree.models.episode_receipt import EpisodeReceipt, ScoreStatus
+from techtree.models.campaign import CampaignSpecV2
+from techtree.models.episode_receipt import EpisodeReceiptV2, ScoreStatus
 from techtree.models.skill import SKILL_ENTRY_FILE, SkillArtifact
 from techtree.models.uplift_report import (
     PrimaryUpliftResult,
     TaskDelta,
-    UpliftReport,
+    UpliftReportV2,
 )
 from techtree.presentation.sanitize import (
     ensure_no_control_or_local_path,
@@ -224,10 +224,10 @@ class SkillImprovementContext(ProtocolModel):
 
 def build_improvement_context(
     *,
-    report: UpliftReport,
-    candidate_receipts: Sequence[EpisodeReceipt],
-    baseline_receipts: Sequence[EpisodeReceipt],
-    campaign: CampaignSpec,
+    report: UpliftReportV2,
+    candidate_receipts: Sequence[EpisodeReceiptV2],
+    baseline_receipts: Sequence[EpisodeReceiptV2],
+    campaign: CampaignSpecV2,
     parent_skill: SkillArtifact,
     task_public_projection: TaskPublicProjectionProvider = hash_only_projection,
 ) -> SkillImprovementContext:
@@ -330,7 +330,7 @@ def _example(
     *,
     delta: TaskDelta,
     position: int,
-    receipt: EpisodeReceipt | None,
+    receipt: EpisodeReceiptV2 | None,
     projection: TaskPublicProjection,
 ) -> ImprovementExample:
     """Describe one task from the signed record of what it scored.
@@ -382,7 +382,7 @@ def _outcome(delta: TaskDelta) -> ImprovementOutcome:
     return "stable_success" if delta.candidate_reward > 0.0 else "stable_failure"
 
 
-def _recorded_metrics(receipt: EpisodeReceipt | None) -> dict[str, float | None]:
+def _recorded_metrics(receipt: EpisodeReceiptV2 | None) -> dict[str, float | None]:
     """Return the metrics this task's subject traces recorded, if any.
 
     These are the evaluation's own named measurements, which the report already
@@ -401,7 +401,7 @@ def _recorded_metrics(receipt: EpisodeReceipt | None) -> dict[str, float | None]
     return recorded
 
 
-def _error_summary(receipt: EpisodeReceipt | None) -> str | None:
+def _error_summary(receipt: EpisodeReceiptV2 | None) -> str | None:
     """Say why a task's score is not usable evidence, when it is not.
 
     The engine's recorded exception text lives in the normalized evaluation
@@ -470,7 +470,7 @@ def _within_group(example: ImprovementExample) -> float:
     return 0.0 if delta is None else delta
 
 
-def _objective(campaign: CampaignSpec, result: PrimaryUpliftResult) -> str:
+def _objective(campaign: CampaignSpecV2, result: PrimaryUpliftResult) -> str:
     """State, in one sentence a model can act on, what a revision has to beat.
 
     The margin clause is dropped when the Campaign declares no margin, because

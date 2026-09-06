@@ -69,6 +69,7 @@ EXPECTED_SCHEMAS = {
 #: execution facts out of the Campaign takes them from the plan instead.
 EXPECTED_V2_SCHEMAS = {
     "campaign",
+    "catalog",
     "climb-summary",
     "compatibility-result",
     "episode-receipt",

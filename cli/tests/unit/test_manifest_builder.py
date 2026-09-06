@@ -33,14 +33,14 @@ from techtree.manifests.builder import (
 )
 from techtree.models.base import ArtifactRef
 from techtree.models.campaign import (
-    AgentSpec,
-    CampaignSpec,
-    HarnessSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
+    HarnessSpecV2,
     MutationContract,
     MutationKind,
     PublicContext,
 )
-from techtree.models.experiment import ExperimentManifest, ExperimentVariant
+from techtree.models.experiment import ExperimentManifestV2, ExperimentVariant
 from techtree.models.skill import SkillArtifact, SkillFile
 
 PINNED_TIME = datetime(2026, 1, 1, tzinfo=UTC)
@@ -83,7 +83,7 @@ def skill_artifact(files: list[SkillFile] | None = None) -> SkillArtifact:
     )
 
 
-def baseline_of(graph: SyntheticGraph) -> ExperimentManifest:
+def baseline_of(graph: SyntheticGraph) -> ExperimentManifestV2:
     return build_baseline_manifest(
         campaign=graph.campaign,
         campaign_digest=graph.campaign_digest,
@@ -94,7 +94,7 @@ def baseline_of(graph: SyntheticGraph) -> ExperimentManifest:
 
 def candidate_of(
     graph: SyntheticGraph, skill: SkillArtifact | None = None
-) -> ExperimentManifest:
+) -> ExperimentManifestV2:
     return build_candidate_manifest(
         campaign=graph.campaign,
         campaign_digest=graph.campaign_digest,
@@ -172,11 +172,11 @@ def test_the_data_policy_digest_is_the_campaigns(graph: SyntheticGraph) -> None:
         )
 
 
-def test_the_evaluation_backend_is_copied_exactly(graph: SyntheticGraph) -> None:
+def test_the_execution_plan_binding_is_the_campaigns(graph: SyntheticGraph) -> None:
     for manifest in (baseline_of(graph), candidate_of(graph)):
         assert (
-            manifest.configuration.evaluation_backend
-            == graph.campaign.evaluation_backend
+            manifest.configuration.execution_plan_digest
+            == graph.campaign.execution_plan_digest
         )
 
 
@@ -376,7 +376,7 @@ def test_the_postcondition_catches_a_manifest_that_drifted(
     assert caught.value.details["field"] == "scoring rule"
 
 
-def _campaign_with_a_skill(campaign: CampaignSpec) -> CampaignSpec:
+def _campaign_with_a_skill(campaign: CampaignSpecV2) -> CampaignSpecV2:
     """Return a Campaign whose subject already carries a skill.
 
     Built with ``model_copy`` because an insertion Campaign refuses to validate
@@ -387,19 +387,17 @@ def _campaign_with_a_skill(campaign: CampaignSpec) -> CampaignSpec:
 
 
 def _campaign_carrying(
-    campaign: CampaignSpec, skills: list[ArtifactRef]
-) -> CampaignSpec:
+    campaign: CampaignSpecV2, skills: list[ArtifactRef]
+) -> CampaignSpecV2:
     """Return the Campaign with its subject's skill list replaced."""
     subject = campaign.subject
     return campaign.model_copy(
         update={
             "agents": {
-                "subject": AgentSpec(
+                "subject": AgentSpecV2(
                     model=subject.model,
                     sampling=subject.sampling,
-                    harness=HarnessSpec(
-                        id=subject.harness.id,
-                        version=subject.harness.version,
+                    harness=HarnessSpecV2(
                         use_bundled_skill=False,
                         skills=skills,
                     ),
@@ -429,7 +427,7 @@ def prior_skill() -> SkillArtifact:
     return skill_artifact(files)
 
 
-def replacement_campaign(graph: SyntheticGraph) -> CampaignSpec:
+def replacement_campaign(graph: SyntheticGraph) -> CampaignSpecV2:
     """Return the synthetic Campaign as a replacement, baseline skill and all."""
     widened = graph.campaign.model_copy(
         update={

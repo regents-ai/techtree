@@ -42,7 +42,7 @@ from techtree.models.campaign import (
     CampaignSpecV2,
     _CampaignScience,
 )
-from techtree.models.catalog import ClimbSummary, ClimbSummaryV2
+from techtree.models.catalog import ClimbSummaryV2
 from techtree.models.cli import CliEnvelope
 from techtree.models.climb import ClimbManifest
 from techtree.models.compatibility import (
@@ -83,10 +83,11 @@ GOLDEN_DIRECTORY = REPOSITORY_ROOT / "tests" / "golden"
 GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "campaign": CampaignSpec,
     # The second Campaign of the backend-parity pair. Two immutable Campaigns
-    # are what a parity study compares, so the golden set holds both of them.
-    "campaign-parity-candidate": CampaignSpec,
+    # are what a parity study compares, so the golden set holds both of them,
+    # and the second plan the candidate binds sits next to the first.
+    "campaign-parity-candidate": CampaignSpecV2,
     "campaign-v2": CampaignSpecV2,
-    "cli-envelope": CliEnvelope[ClimbSummary],
+    "cli-envelope": CliEnvelope[ClimbSummaryV2],
     "climb": ClimbManifest,
     # The v0.2 run-side documents. Every execution and subject fact in them
     # comes from the plan the Campaign binds, never from the Campaign.
@@ -102,8 +103,11 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "configuration-comparison": ConfigurationComparison,
     "configuration-compatibility-policy": ConfigurationCompatibilityPolicy,
     "data-policy": DataPolicy,
-    "episode-receipt-v2": EpisodeReceiptV2,
+    # The v0.2 receipt and report are committed as the signed envelopes a
+    # proof bundle stores, so the goldens are checkable signatures too.
+    "episode-receipt-v2": ObjectEnvelope[EpisodeReceiptV2],
     "execution-plan": ResolvedExecutionPlan,
+    "execution-plan-parity": ResolvedExecutionPlan,
     # The v0.2 evidence contract. Plan `docs/plan/v0.2.md`, "Evidence contract"
     # and "Evidence availability and proof closure".
     "evidence-artifact-ref": EvidenceArtifactRef,
@@ -127,7 +131,7 @@ GOLDEN_MODELS: dict[str, type[BaseModel]] = {
     "skill-artifact": SkillArtifact,
     "taskset-lock": TasksetLock,
     "taskset-validation-receipt": TasksetValidationReceipt,
-    "uplift-report-v2": UpliftReportV2,
+    "uplift-report-v2": ObjectEnvelope[UpliftReportV2],
 }
 
 
@@ -260,12 +264,20 @@ def test_the_v02_climb_wraps_the_v02_campaign() -> None:
 #: compared on; the climb summary names it through its compatibility result.
 V2_RUN_SIDE_GOLDENS: dict[str, tuple[str, ...]] = {
     "climb-summary-v2": ("compatibility",),
-    "episode-receipt-v2": (),
+    "episode-receipt-v2": ("payload",),
     "experiment-baseline-v2": ("configuration",),
     "experiment-candidate-v2": ("configuration",),
     "run-request-v2": (),
-    "uplift-report-v2": (),
+    "uplift-report-v2": ("payload",),
 }
+
+#: The v0.2 goldens stored as signed envelopes, and the document each seals.
+V2_SEALED_GOLDENS = ("episode-receipt-v2", "uplift-report-v2")
+
+
+def sealed(name: str) -> Any:
+    """Return the document a signed v0.2 golden carries."""
+    return load(name).payload
 
 
 @pytest.mark.parametrize("name", sorted(V2_RUN_SIDE_GOLDENS))
@@ -297,13 +309,14 @@ def test_the_v02_run_side_goldens_anchor_to_the_v02_campaign() -> None:
     )
 
     for name in anchored:
-        assert golden_document(name)["campaign_spec_digest"] == v2_digest, name
+        document = sealed(name) if name in V2_SEALED_GOLDENS else load(name)
+        assert document.campaign_spec_digest == v2_digest, name
 
 
 def test_the_v02_receipt_and_report_say_where_the_work_ran() -> None:
     plan: ResolvedExecutionPlan = load("execution-plan")
-    receipt: EpisodeReceiptV2 = load("episode-receipt-v2")
-    report: UpliftReportV2 = load("uplift-report-v2")
+    receipt: EpisodeReceiptV2 = sealed("episode-receipt-v2")
+    report: UpliftReportV2 = sealed("uplift-report-v2")
 
     assert receipt.execution_location.kind.value == plan.execution.kind.value
     assert report.execution_location.kind.value == plan.execution.kind.value
@@ -334,7 +347,7 @@ def test_the_v02_run_request_runs_the_two_committed_manifests() -> None:
 
 
 def test_the_v02_report_compares_the_committed_v02_experiments() -> None:
-    report: UpliftReportV2 = load("uplift-report-v2")
+    report: UpliftReportV2 = sealed("uplift-report-v2")
     baseline: ExperimentManifestV2 = load("experiment-baseline-v2")
     candidate: ExperimentManifestV2 = load("experiment-candidate-v2")
 
@@ -402,7 +415,7 @@ def test_the_compatibility_policy_names_the_committed_campaign() -> None:
         "configuration-compatibility-policy"
     )
 
-    assert policy.source_campaign_digest == digest_object(load("campaign"))
+    assert policy.source_campaign_digest == digest_object(load("campaign-v2"))
     assert policy.purpose == "backend_parity"
 
 
@@ -414,7 +427,7 @@ def test_the_committed_comparison_is_the_one_the_comparator_computes() -> None:
     stored: ConfigurationComparison = load("configuration-comparison")
 
     recomputed = compare_campaign_configurations(
-        policy, load("campaign"), load("campaign-parity-candidate")
+        policy, load("campaign-v2"), load("campaign-parity-candidate")
     )
 
     assert recomputed == stored
@@ -426,24 +439,34 @@ def test_the_comparison_names_the_committed_policy_and_both_campaigns() -> None:
     assert comparison.policy_digest == digest_object(
         load("configuration-compatibility-policy")
     )
-    assert comparison.source_campaign_digest == digest_object(load("campaign"))
+    assert comparison.source_campaign_digest == digest_object(load("campaign-v2"))
     assert comparison.candidate_campaign_digest == digest_object(
         load("campaign-parity-candidate")
     )
 
 
 def test_the_parity_pair_drifts_only_where_the_policy_allows() -> None:
-    """Spec: the two Campaigns are the same experiment on a second harness."""
+    """Spec: the two Campaigns are the same experiment on a second harness.
+
+    Under v0.2 the harness lives in the plan, so the pair differs in the one
+    pointer that binds it, and the two plans differ in their subject plane.
+    """
     comparison: ConfigurationComparison = load("configuration-comparison")
     policy: ConfigurationCompatibilityPolicy = load(
         "configuration-compatibility-policy"
     )
-    source: CampaignSpec = load("campaign")
-    candidate: CampaignSpec = load("campaign-parity-candidate")
+    source: CampaignSpecV2 = load("campaign-v2")
+    candidate: CampaignSpecV2 = load("campaign-parity-candidate")
+    source_plan: ResolvedExecutionPlan = load("execution-plan")
+    candidate_plan: ResolvedExecutionPlan = load("execution-plan-parity")
 
     assert comparison.compatibility == "compatible_with_declared_drift"
     assert set(comparison.observed_drift_paths) <= set(policy.allowed_drift_paths)
-    assert source.subject.harness.id != candidate.subject.harness.id
+    assert "/execution_plan_digest" in comparison.observed_drift_paths
+    assert source.execution_plan_digest == digest_object(source_plan)
+    assert candidate.execution_plan_digest == digest_object(candidate_plan)
+    assert source_plan.subject.harness_id != candidate_plan.subject.harness_id
+    assert source_plan.evaluation == candidate_plan.evaluation
     assert source.subject.model == candidate.subject.model
     assert source.taskset == candidate.taskset
     assert source.data_policy_digest == candidate.data_policy_digest
@@ -529,7 +552,10 @@ def test_the_real_receipt_is_a_verifiers_receipt_rather_than_a_fake_one() -> Non
     assert receipt.evidence_status.value == "complete"
 
 
-@pytest.mark.parametrize("name", ["real-episode-receipt", "real-uplift-report"])
+SIGNED_GOLDENS = ("real-episode-receipt", "real-uplift-report", *V2_SEALED_GOLDENS)
+
+
+@pytest.mark.parametrize("name", SIGNED_GOLDENS)
 def test_a_signed_golden_carries_a_signature_over_its_own_payload(name: str) -> None:
     """The envelope's digest describes the payload it travels with."""
     sealed: ObjectEnvelope[Any] = load(name)
@@ -539,7 +565,7 @@ def test_a_signed_golden_carries_a_signature_over_its_own_payload(name: str) -> 
     assert sealed.payload_digest == digest_object(sealed.payload)
 
 
-@pytest.mark.parametrize("name", ["real-episode-receipt", "real-uplift-report"])
+@pytest.mark.parametrize("name", SIGNED_GOLDENS)
 def test_a_signed_golden_verifies_against_the_fixture_identity(name: str) -> None:
     """A golden signature is checkable, which is the only thing that makes it
     worth committing: a stale one would be a silently unverifiable example."""
@@ -577,7 +603,7 @@ def test_no_golden_carries_private_key_material() -> None:
 def test_the_improvement_context_carries_no_reply_and_no_hidden_material() -> None:
     """Spec section 7.18: the exclusions are visible in the committed bytes."""
     context: SkillImprovementContext = load("improvement-context")
-    report: UpliftReport = load("real-uplift-report").payload
+    report: UpliftReportV2 = sealed("uplift-report-v2")
 
     assert context.source_run_id == report.run_id
     assert context.current_result == report.primary_result
@@ -594,7 +620,7 @@ def test_the_improvement_context_carries_no_reply_and_no_hidden_material() -> No
 def test_the_presentation_payload_says_only_what_the_report_says() -> None:
     """Spec section 7.13: a view of the report, never a second opinion."""
     payload: UpliftPresentationPayload = load("presentation-payload")
-    report: UpliftReport = load("real-uplift-report").payload
+    report: UpliftReportV2 = sealed("uplift-report-v2")
 
     assert payload.run_id == report.run_id
     assert payload.decision == report.decision.value
@@ -710,8 +736,8 @@ def test_the_approval_golden_was_given_by_a_person() -> None:
 
 
 def test_the_cli_envelope_golden_carries_the_committed_climb_summary() -> None:
-    envelope: CliEnvelope[ClimbSummary] = load("cli-envelope")
-    climb: ClimbManifest = load("climb")
+    envelope: CliEnvelope[ClimbSummaryV2] = load("cli-envelope")
+    climb: ClimbManifest = load("climb-v2")
 
     assert envelope.ok is True
     assert envelope.error is None
@@ -747,12 +773,12 @@ def test_the_cli_envelope_golden_carries_the_committed_climb_summary() -> None:
         # document rather than the same document under a new backend.
         ("climb-summary-v2", ("subject_harness_version",)),
         ("climb-summary-v2", ("compatibility", "execution_plan_digest")),
-        ("episode-receipt-v2", ("execution_plan_digest",)),
-        ("episode-receipt-v2", ("execution_location", "kind")),
+        ("episode-receipt-v2", ("payload", "execution_plan_digest")),
+        ("episode-receipt-v2", ("payload", "execution_location", "kind")),
         ("experiment-baseline-v2", ("configuration", "execution_plan_digest")),
         ("run-request-v2", ("execution_plan_digest",)),
-        ("uplift-report-v2", ("execution_plan_digest",)),
-        ("uplift-report-v2", ("execution_location", "kind")),
+        ("uplift-report-v2", ("payload", "execution_plan_digest")),
+        ("uplift-report-v2", ("payload", "execution_location", "kind")),
     ],
 )
 def test_one_changed_field_changes_the_digest(

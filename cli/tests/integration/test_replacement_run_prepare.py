@@ -13,7 +13,7 @@ a controlled pair: Skill v1 as evaluated, against Skill v2 as scanned
         ↓  techtree uplift start
 a second run, through the same kernel, reaching completed
         ↓
-a second signed UpliftReport whose proof verifies offline
+a second signed UpliftReportV2 whose proof verifies offline
 ```
 
 Nothing here calls a model, starts a container, or spends anything. The first
@@ -62,7 +62,7 @@ from techtree.models.campaign import MutationKind
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.run import PolicyAcknowledgement, RunPhase
 from techtree.models.skill import SubmissionDraft
-from techtree.models.uplift_report import UpliftDecision, UpliftReport
+from techtree.models.uplift_report import UpliftDecision, UpliftReportV2
 from techtree.presentation.build import (
     BASELINE_SKILL_LABEL,
     SECOND_CHANGE_LABEL,
@@ -199,7 +199,7 @@ def test_a_finished_run_becomes_a_second_controlled_comparison(
     assert first.run_store.state(second_run_id).phase is RunPhase.COMPLETED
 
     # 5. A second signed report, whose proof verifies from its own bytes.
-    second: UpliftReport = first.run_store.get_result(second_run_id)
+    second: UpliftReportV2 = first.run_store.get_result(second_run_id)
     assert second.run_id == second_run_id
     assert second.campaign_spec_digest == digest_object(campaign)
     assert second.public_context is None

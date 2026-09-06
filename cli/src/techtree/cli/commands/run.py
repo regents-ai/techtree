@@ -63,7 +63,7 @@ from techtree.models.run import (
     RunProgress,
     VariantProgress,
 )
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.presentation.build import build_uplift_presentation
 from techtree.presentation.compact import render_uplift_markdown
 from techtree.presentation.evidence import read_recorded_evidence
@@ -276,7 +276,7 @@ class RunResultPayload(ProtocolModel):
     the result.
     """
 
-    report: UpliftReport
+    report: UpliftReportV2
     presentation: UpliftPresentationPayload
     execution_record: ComparisonExecutionRecord | None
     format: ResultFormat
@@ -847,7 +847,7 @@ def result_run_command(
 def _presentation(
     context: CliContext,
     run_id: str,
-    report: UpliftReport,
+    report: UpliftReportV2,
     verification: VerificationResult | None,
     execution_record: ComparisonExecutionRecord | None,
 ) -> UpliftPresentationPayload:
@@ -897,7 +897,7 @@ def _presentation(
 
 
 def _verify_proof(
-    context: CliContext, run_id: str, report: UpliftReport
+    context: CliContext, run_id: str, report: UpliftReportV2
 ) -> VerificationResult | None:
     """Check the run's local proof, when it has one to check.
 
@@ -964,7 +964,7 @@ def _fake_executor_warnings(fake_executor: bool) -> list[CliMessage]:
     ]
 
 
-def _result_warnings(report: UpliftReport) -> list[CliMessage]:
+def _result_warnings(report: UpliftReportV2) -> list[CliMessage]:
     """Return the caveat a finished report carries. Spec section 29.
 
     ``development_only_result`` states the report's proof grade and only that:

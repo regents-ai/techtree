@@ -33,16 +33,13 @@ import pytest
 from filelock import FileLock
 
 from techtree.canonical import canonical_json_bytes, digest_object, sha256_digest_bytes
+from techtree.constants import RUN_REQUEST_V2_SCHEMA_VERSION, UPLIFT_V2_SCHEMA_VERSION
 from techtree.errors import ConflictError, NotFoundError, RunError, ValidationError
 from techtree.models.base import Digest, JsonValue
 from techtree.models.campaign import ProgramRef, PublicContext
 from techtree.models.cli import CliError
 from techtree.models.episode_receipt import EvidenceStatus, ScoreStatus
-from techtree.models.evaluation_backend import (
-    AttestationKind,
-    EvaluationBackendKind,
-    EvaluationBackendSpec,
-)
+from techtree.models.evidence import ExecutionLocation, ExecutionLocationKind
 from techtree.models.experiment import ManifestComparison
 from techtree.models.run import (
     PolicyAcknowledgement,
@@ -50,7 +47,7 @@ from techtree.models.run import (
     RunEvent,
     RunPhase,
     RunProgress,
-    RunRequest,
+    RunRequestV2,
     RunState,
     VariantProgress,
 )
@@ -60,7 +57,7 @@ from techtree.models.uplift_report import (
     PrimaryUpliftResult,
     PublicationStatus,
     UpliftDecision,
-    UpliftReport,
+    UpliftReportV2,
     UpliftStatuses,
 )
 from techtree.paths import TechtreePaths, paths_from_root
@@ -247,10 +244,11 @@ FAILURE = CliError(
 # ---------------------------------------------------------------------------
 
 
-def build_request(run_id: str = RUN_ID) -> RunRequest:
+def build_request(run_id: str = RUN_ID) -> RunRequestV2:
     """Return a complete run request with a matching policy acknowledgement."""
     data_policy_digest = digest_of("data-policy")
-    return RunRequest(
+    return RunRequestV2(
+        schema_version=RUN_REQUEST_V2_SCHEMA_VERSION,
         run_id=run_id,
         draft_id=DRAFT_ID,
         draft_digest=digest_of("draft"),
@@ -259,11 +257,7 @@ def build_request(run_id: str = RUN_ID) -> RunRequest:
         public_context=PublicContext(kind="climb", climb_digest=digest_of("climb")),
         data_policy_digest=data_policy_digest,
         outcome_contract_digest=None,
-        evaluation_backend=EvaluationBackendSpec(
-            schema_version="techtree.evaluation-backend.v1alpha1",
-            kind=EvaluationBackendKind.LOCAL_TECHTREE,
-            attestation=AttestationKind.PARTICIPANT,
-        ),
+        execution_plan_digest=digest_of("execution-plan"),
         taskset_lock_digest=digest_of("taskset-lock"),
         baseline_manifest_digest=digest_of("baseline"),
         candidate_manifest_digest=digest_of("candidate"),
@@ -277,10 +271,10 @@ def build_request(run_id: str = RUN_ID) -> RunRequest:
     )
 
 
-def build_report(run_id: str = RUN_ID) -> UpliftReport:
+def build_report(run_id: str = RUN_ID) -> UpliftReportV2:
     """Return a development-only report for the run under test."""
-    return UpliftReport(
-        schema_version="techtree.uplift-report.v1alpha1",
+    return UpliftReportV2(
+        schema_version=UPLIFT_V2_SCHEMA_VERSION,
         id="uplift_0000000000000000000000000000000b",
         run_id=run_id,
         campaign_spec_digest=digest_of("campaign"),
@@ -288,11 +282,8 @@ def build_report(run_id: str = RUN_ID) -> UpliftReport:
         public_context=None,
         data_policy_digest=digest_of("data-policy"),
         outcome_contract_digest=None,
-        evaluation_backend=EvaluationBackendSpec(
-            schema_version="techtree.evaluation-backend.v1alpha1",
-            kind=EvaluationBackendKind.LOCAL_TECHTREE,
-            attestation=AttestationKind.PARTICIPANT,
-        ),
+        execution_plan_digest=digest_of("execution-plan"),
+        execution_location=ExecutionLocation(kind=ExecutionLocationKind.LOCAL),
         taskset_validation_receipt_digest=digest_of("receipt"),
         baseline_manifest_digest=digest_of("baseline"),
         candidate_manifest_digest=digest_of("candidate"),

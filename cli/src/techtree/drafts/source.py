@@ -8,12 +8,13 @@ wraps it — :class:`~techtree.models.climb.CandidatePolicy` can only require
 ``skill_insertion``, so a ``ResolvedClimb`` holding a replacement Campaign is
 unrepresentable rather than merely unusual.
 
-:class:`CampaignSource` is what the kernel carries instead. It holds the three
-objects a run's science actually needs — the Campaign, the DataPolicy it runs
-under, and the publisher's taskset validation receipt — and the public Climb
-beside them when there is one. Preparation, the draft store, the run's staged
-inputs, and the report stage all read it, so a local replacement travels the
-same path as a public submission rather than a parallel one.
+:class:`CampaignSource` is what the kernel carries instead. It holds the four
+objects a run actually needs — the Campaign, the DataPolicy it runs under, the
+publisher's taskset validation receipt, and the resolved execution plan the
+Campaign binds — and the public Climb beside them when there is one.
+Preparation, the draft store, the run's staged inputs, and the report stage
+all read it, so a local replacement travels the same path as a public
+submission rather than a parallel one.
 
 Two properties are deliberate.
 
@@ -42,10 +43,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from techtree.canonical import digest_object
+from techtree.execution_facts import bound_execution_plan_digest
 from techtree.models.base import Digest
-from techtree.models.campaign import CampaignSpec, MutationKind, PublicContext
+from techtree.models.campaign import CampaignSpecV2, MutationKind, PublicContext
 from techtree.models.climb import ClimbManifest, ResolvedClimb
 from techtree.models.data_policy import DataPolicy
+from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.skill import SkillArtifact
 from techtree.models.validation import TasksetValidationReceipt
 
@@ -70,12 +73,14 @@ class CampaignSource:
     a Skill replacement and which no public invitation wraps.
     """
 
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
     campaign_digest: Digest
     data_policy: DataPolicy
     data_policy_digest: Digest
     publisher_validation: TasksetValidationReceipt
     publisher_validation_digest: Digest
+    execution_plan: ResolvedExecutionPlan
+    execution_plan_digest: Digest
     climb: ClimbManifest | None
     climb_digest: Digest | None
 
@@ -97,6 +102,8 @@ class CampaignSource:
             data_policy_digest=resolved.data_policy_digest,
             publisher_validation=resolved.publisher_validation,
             publisher_validation_digest=resolved.publisher_validation_digest,
+            execution_plan=resolved.execution_plan,
+            execution_plan_digest=resolved.execution_plan_digest,
             climb=resolved.climb,
             climb_digest=resolved.climb_digest,
         )
@@ -105,11 +112,18 @@ class CampaignSource:
     def local(
         cls,
         *,
-        campaign: CampaignSpec,
+        campaign: CampaignSpecV2,
         data_policy: DataPolicy,
         publisher_validation: TasksetValidationReceipt,
+        execution_plan: ResolvedExecutionPlan,
     ) -> CampaignSource:
-        """Return a source for a locally derived Campaign that no Climb wraps."""
+        """Return a source for a locally derived Campaign that no Climb wraps.
+
+        The plan is the one object here whose binding is checked on the way
+        in: a Campaign points at its plan by digest, and a source assembled
+        around a plan the Campaign does not bind would carry execution facts
+        about a run of a different Campaign.
+        """
         return cls(
             campaign=campaign,
             campaign_digest=digest_object(campaign),
@@ -117,6 +131,8 @@ class CampaignSource:
             data_policy_digest=digest_object(data_policy),
             publisher_validation=publisher_validation,
             publisher_validation_digest=digest_object(publisher_validation),
+            execution_plan=execution_plan,
+            execution_plan_digest=bound_execution_plan_digest(campaign, execution_plan),
             climb=None,
             climb_digest=None,
         )

@@ -8,7 +8,7 @@ different model, a larger token budget, one more task, or a second harness is
 not a reproduction of the first Campaign, and nobody may call it one because
 the policy forgot to mention it.
 
-Every Campaign here is a real, validated ``CampaignSpec`` built from the
+Every Campaign here is a real, validated ``CampaignSpecV2`` built from the
 synthetic catalog fixture, because that is what the comparison reads. Modified
 copies are re-validated rather than trusted: a golden or a stored document is
 always a document a model accepted, so a test that compared Campaign-shaped
@@ -17,9 +17,14 @@ objects would be testing something the protocol never carries.
 Two mechanics are worth stating.
 
 *The pointer-prefix confusion is tested through real configurations.* Declaring
-drift at ``/agents/subject/harness/id`` must not admit a change to
-``/agents/subject/harness/version``, which is the sibling under the same parent
+drift at ``/agents/subject/model/model_id`` must not admit a change to
+``/agents/subject/model/revision``, which is the sibling under the same parent
 that a string-prefix test would let through.
+
+*The plan is one pointer.* A v0.2 Campaign binds its resolved execution plan
+by digest, so a rerun that moved to another harness, engine or location moves
+exactly ``/execution_plan_digest``. A policy that does not declare that
+pointer has not declared the move, and the move is incompatible.
 
 *The tamper cases work on stored documents.* A comparison is bytes on disk, and
 the attack is not to compute a false verdict but to hand a reader the verdict
@@ -42,7 +47,7 @@ from techtree.compatibility import (
     observed_drift_paths,
 )
 from techtree.errors import VerificationError
-from techtree.models.campaign import SUBJECT_AGENT, CampaignSpec
+from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2
 from techtree.models.compatibility import (
     COMPARISON_ALGORITHM,
     ConfigurationComparison,
@@ -50,70 +55,55 @@ from techtree.models.compatibility import (
 )
 from techtree.pointers import pointer_is_within
 
-HARNESS_ID_POINTER = "/agents/subject/harness/id"
-HARNESS_VERSION_POINTER = "/agents/subject/harness/version"
+PLAN_POINTER = "/execution_plan_digest"
 MODEL_ID_POINTER = "/agents/subject/model/model_id"
+MODEL_REVISION_POINTER = "/agents/subject/model/revision"
 TASK_HASHES_POINTER = "/taskset/membership/ordered_task_hashes"
 
 
 @pytest.fixture
-def campaign() -> CampaignSpec:
+def campaign() -> CampaignSpecV2:
     graph: SyntheticGraph = synthetic_graph()
     return graph.campaign
 
 
 @pytest.fixture
-def twenty_task_campaign(campaign: CampaignSpec) -> CampaignSpec:
+def twenty_task_campaign(campaign: CampaignSpecV2) -> CampaignSpecV2:
     """A Campaign whose committed task list runs past a single-digit index."""
     return with_task_list(campaign, [task_hash(index) for index in range(20)])
 
 
-def revalidated(campaign: CampaignSpec) -> CampaignSpec:
+def revalidated(campaign: CampaignSpecV2) -> CampaignSpecV2:
     """Return the Campaign as a stored document is read: from its own bytes."""
-    return CampaignSpec.model_validate_json(canonical_json_text(campaign))
+    return CampaignSpecV2.model_validate_json(canonical_json_text(campaign))
 
 
-def with_harness(
-    campaign: CampaignSpec,
+def with_plan_digest(campaign: CampaignSpecV2, label: str) -> CampaignSpecV2:
+    """Return the Campaign bound to a different resolved execution plan."""
+    return revalidated(
+        campaign.model_copy(update={"execution_plan_digest": f"sha256:{label * 64}"})
+    )
+
+
+def with_model(
+    campaign: CampaignSpecV2,
     *,
-    harness_id: str | None = None,
-    harness_version: str | None = None,
-) -> CampaignSpec:
-    """Return the Campaign with a different subject harness identity."""
+    model_id: str | None = None,
+    revision: str | None = None,
+) -> CampaignSpecV2:
+    """Return the Campaign with a different subject model identity."""
     subject = campaign.agents[SUBJECT_AGENT]
-    harness = subject.harness.model_copy(
+    model = subject.model.model_copy(
         update={
             key: value
-            for key, value in (("id", harness_id), ("version", harness_version))
+            for key, value in (("model_id", model_id), ("revision", revision))
             if value is not None
         }
     )
     return revalidated(
         campaign.model_copy(
             update={
-                "agents": {
-                    SUBJECT_AGENT: subject.model_copy(update={"harness": harness})
-                }
-            }
-        )
-    )
-
-
-def with_model_id(campaign: CampaignSpec, model_id: str) -> CampaignSpec:
-    """Return the Campaign with a different subject model."""
-    subject = campaign.agents[SUBJECT_AGENT]
-    return revalidated(
-        campaign.model_copy(
-            update={
-                "agents": {
-                    SUBJECT_AGENT: subject.model_copy(
-                        update={
-                            "model": subject.model.model_copy(
-                                update={"model_id": model_id}
-                            )
-                        }
-                    )
-                }
+                "agents": {SUBJECT_AGENT: subject.model_copy(update={"model": model})}
             }
         )
     )
@@ -124,7 +114,7 @@ def task_hash(index: int) -> str:
     return f"sha256:{index:064x}"
 
 
-def with_task_list(campaign: CampaignSpec, hashes: list[str]) -> CampaignSpec:
+def with_task_list(campaign: CampaignSpecV2, hashes: list[str]) -> CampaignSpecV2:
     """Return the Campaign committed to exactly these tasks, in this order."""
     taskset = campaign.taskset
     return revalidated(
@@ -146,7 +136,7 @@ def with_task_list(campaign: CampaignSpec, hashes: list[str]) -> CampaignSpec:
 
 
 def policy_for(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     *,
     purpose: Literal["reproduction", "backend_parity"] = "backend_parity",
     allowed: tuple[str, ...] = (),
@@ -167,28 +157,26 @@ def policy_for(
 # ---------------------------------------------------------------------------
 
 
-def test_two_identical_campaigns_drift_nowhere(campaign: CampaignSpec) -> None:
+def test_two_identical_campaigns_drift_nowhere(campaign: CampaignSpecV2) -> None:
     assert observed_drift_paths(campaign, revalidated(campaign)) == ()
 
 
 def test_the_walk_reports_the_exact_pointer_that_changed(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
-    candidate = with_harness(campaign, harness_id="fabric-hermes-agent")
+    candidate = with_plan_digest(campaign, "a")
 
-    assert observed_drift_paths(campaign, candidate) == (HARNESS_ID_POINTER,)
+    assert observed_drift_paths(campaign, candidate) == (PLAN_POINTER,)
 
 
 def test_the_walk_reports_every_changed_pointer_sorted_and_once(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
-    candidate = with_harness(
-        campaign, harness_id="fabric-hermes-agent", harness_version="9.9.9"
-    )
+    candidate = with_plan_digest(with_model(campaign, revision="9.9.9"), "a")
 
     paths = observed_drift_paths(campaign, candidate)
 
-    assert paths == (HARNESS_ID_POINTER, HARNESS_VERSION_POINTER)
+    assert paths == (MODEL_REVISION_POINTER, PLAN_POINTER)
     assert list(paths) == sorted(set(paths))
 
 
@@ -198,7 +186,7 @@ def test_the_walk_reports_every_changed_pointer_sorted_and_once(
 
 
 def test_an_unchanged_campaign_is_an_exact_configuration(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
     policy = policy_for(campaign, purpose="reproduction")
 
@@ -210,29 +198,40 @@ def test_an_unchanged_campaign_is_an_exact_configuration(
     assert comparison.observed_drift_paths == ()
 
 
-def test_drift_only_on_declared_paths_is_compatible(campaign: CampaignSpec) -> None:
-    candidate = with_harness(
-        campaign, harness_id="fabric-hermes-agent", harness_version="9.9.9"
-    )
+def test_drift_only_on_declared_paths_is_compatible(campaign: CampaignSpecV2) -> None:
+    candidate = with_plan_digest(with_model(campaign, revision="9.9.9"), "a")
     policy = policy_for(
         campaign,
-        allowed=(HARNESS_ID_POINTER, HARNESS_VERSION_POINTER),
+        allowed=(MODEL_REVISION_POINTER, PLAN_POINTER),
         required=(MODEL_ID_POINTER, "/taskset"),
     )
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
 
     assert comparison.compatibility == "compatible_with_declared_drift"
-    assert comparison.observed_drift_paths == (
-        HARNESS_ID_POINTER,
-        HARNESS_VERSION_POINTER,
-    )
+    assert comparison.observed_drift_paths == (MODEL_REVISION_POINTER, PLAN_POINTER)
 
 
-def test_an_undeclared_difference_is_incompatible(campaign: CampaignSpec) -> None:
+def test_an_undeclared_plan_move_is_incompatible(campaign: CampaignSpecV2) -> None:
+    """Another harness, engine or location is another plan, and one pointer.
+
+    Nothing else about the Campaign changed, so the only thing a reader can
+    see is that it binds a plan the policy never mentioned. Backend parity is
+    the purpose that declares that pointer, and this policy is not it.
+    """
+    candidate = with_plan_digest(campaign, "b")
+    policy = policy_for(campaign, allowed=(MODEL_REVISION_POINTER,))
+
+    comparison = compare_campaign_configurations(policy, campaign, candidate)
+
+    assert comparison.compatibility == "incompatible"
+    assert comparison.observed_drift_paths == (PLAN_POINTER,)
+
+
+def test_an_undeclared_difference_is_incompatible(campaign: CampaignSpecV2) -> None:
     """The rule the whole model exists for."""
-    candidate = with_model_id(campaign, "a-quietly-better-model")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    candidate = with_model(campaign, model_id="a-quietly-better-model")
+    policy = policy_for(campaign, allowed=(PLAN_POINTER,))
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
 
@@ -241,9 +240,9 @@ def test_an_undeclared_difference_is_incompatible(campaign: CampaignSpec) -> Non
 
 
 def test_a_reproduction_policy_declaring_nothing_refuses_any_drift(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
-    candidate = with_harness(campaign, harness_id="fabric-hermes-agent")
+    candidate = with_plan_digest(campaign, "a")
     policy = policy_for(campaign, purpose="reproduction")
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
@@ -252,7 +251,7 @@ def test_a_reproduction_policy_declaring_nothing_refuses_any_drift(
 
 
 def test_drift_on_a_required_equal_path_is_incompatible(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
     """Rejected by the undeclared rule, which the non-overlap invariant forces.
 
@@ -261,10 +260,10 @@ def test_drift_on_a_required_equal_path_is_incompatible(
     verdict needs no separate test of those paths, and this pins that the two
     statements really do come out the same way.
     """
-    candidate = with_model_id(campaign, "a-quietly-better-model")
+    candidate = with_model(campaign, model_id="a-quietly-better-model")
     policy = policy_for(
         campaign,
-        allowed=(HARNESS_ID_POINTER,),
+        allowed=(PLAN_POINTER,),
         required=("/agents/subject/model",),
     )
 
@@ -278,20 +277,20 @@ def test_drift_on_a_required_equal_path_is_incompatible(
 
 
 def test_a_declared_sibling_does_not_admit_the_field_next_to_it(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
-    """``harness/id`` is declared; ``harness/version`` is a different field."""
-    candidate = with_harness(campaign, harness_version="9.9.9")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    """``model/model_id`` is declared; ``model/revision`` is a different field."""
+    candidate = with_model(campaign, revision="9.9.9")
+    policy = policy_for(campaign, allowed=(MODEL_ID_POINTER,))
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
 
     assert comparison.compatibility == "incompatible"
-    assert comparison.observed_drift_paths == (HARNESS_VERSION_POINTER,)
+    assert comparison.observed_drift_paths == (MODEL_REVISION_POINTER,)
 
 
 def test_a_declared_element_admits_that_element(
-    twenty_task_campaign: CampaignSpec,
+    twenty_task_campaign: CampaignSpecV2,
 ) -> None:
     hashes = [task_hash(index) for index in range(20)]
     hashes[1] = task_hash(1001)
@@ -308,7 +307,7 @@ def test_a_declared_element_admits_that_element(
 
 @pytest.mark.parametrize("index", range(10, 20))
 def test_a_declared_element_does_not_admit_a_longer_index(
-    twenty_task_campaign: CampaignSpec, index: int
+    twenty_task_campaign: CampaignSpecV2, index: int
 ) -> None:
     """Element 1 is declared. Elements 10 to 19 are ten other tasks.
 
@@ -331,12 +330,10 @@ def test_a_declared_element_does_not_admit_a_longer_index(
 
 
 def test_a_declared_root_admits_everything_beneath_it(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
-    candidate = with_harness(
-        campaign, harness_id="fabric-hermes-agent", harness_version="9.9.9"
-    )
-    policy = policy_for(campaign, allowed=("/agents/subject/harness",))
+    candidate = with_model(campaign, model_id="another-model", revision="9.9.9")
+    policy = policy_for(campaign, allowed=("/agents/subject/model",))
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
 
@@ -344,10 +341,10 @@ def test_a_declared_root_admits_everything_beneath_it(
 
 
 def test_the_comparison_records_both_campaign_digests(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
-    candidate = with_harness(campaign, harness_id="fabric-hermes-agent")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    candidate = with_plan_digest(campaign, "a")
+    policy = policy_for(campaign, allowed=(PLAN_POINTER,))
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
 
@@ -357,12 +354,12 @@ def test_the_comparison_records_both_campaign_digests(
 
 
 def test_a_policy_written_for_another_campaign_judges_nothing(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
     """A policy names one source. Judging a different one answers no question."""
-    other = with_harness(campaign, harness_id="some-other-harness")
+    other = with_plan_digest(campaign, "f")
     candidate = revalidated(campaign)
-    policy = policy_for(other, allowed=(HARNESS_ID_POINTER,))
+    policy = policy_for(other, allowed=(PLAN_POINTER,))
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
 
@@ -376,20 +373,20 @@ def test_a_policy_written_for_another_campaign_judges_nothing(
 
 
 def test_a_comparison_verifies_against_the_policy_it_names(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
-    candidate = with_harness(campaign, harness_id="fabric-hermes-agent")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    candidate = with_plan_digest(campaign, "a")
+    policy = policy_for(campaign, allowed=(PLAN_POINTER,))
 
     comparison = compare_campaign_configurations(policy, campaign, candidate)
 
     assert_comparison_binds_its_policy(comparison, policy)
 
 
-def test_a_swapped_wider_policy_is_refused(campaign: CampaignSpec) -> None:
+def test_a_swapped_wider_policy_is_refused(campaign: CampaignSpecV2) -> None:
     """The attack: keep the compatible verdict, hand over different rules."""
-    candidate = with_harness(campaign, harness_id="fabric-hermes-agent")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    candidate = with_plan_digest(campaign, "a")
+    policy = policy_for(campaign, allowed=(PLAN_POINTER,))
     comparison = compare_campaign_configurations(policy, campaign, candidate)
     wider = policy_for(campaign, allowed=("/agents",))
 
@@ -400,15 +397,15 @@ def test_a_swapped_wider_policy_is_refused(campaign: CampaignSpec) -> None:
 
 
 def test_a_policy_for_another_source_campaign_is_refused(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
     """Identical rules, a different anchor. Both halves of the check fire."""
-    candidate = with_harness(campaign, harness_id="fabric-hermes-agent")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    candidate = with_plan_digest(campaign, "a")
+    policy = policy_for(campaign, allowed=(PLAN_POINTER,))
     comparison = compare_campaign_configurations(policy, campaign, candidate)
     elsewhere = policy_for(
-        with_harness(campaign, harness_id="some-other-harness"),
-        allowed=(HARNESS_ID_POINTER,),
+        with_plan_digest(campaign, "f"),
+        allowed=(PLAN_POINTER,),
     )
 
     assert elsewhere.allowed_drift_paths == policy.allowed_drift_paths
@@ -424,7 +421,7 @@ def test_a_policy_for_another_source_campaign_is_refused(
 
 
 def test_a_comparison_moved_onto_another_source_campaign_is_refused(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
     """The stored comparison is edited, and the policy it names is untouched.
 
@@ -433,8 +430,8 @@ def test_a_comparison_moved_onto_another_source_campaign_is_refused(
     Campaign nobody judged. The policy digest still matches, so only the source
     check stands between that and a reader who believes it.
     """
-    candidate = with_harness(campaign, harness_id="fabric-hermes-agent")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    candidate = with_plan_digest(campaign, "a")
+    policy = policy_for(campaign, allowed=(PLAN_POINTER,))
     honest = compare_campaign_configurations(policy, campaign, candidate)
     moved = honest.model_copy(
         update={"source_campaign_digest": digest_object(candidate)}
@@ -452,15 +449,15 @@ def test_a_comparison_moved_onto_another_source_campaign_is_refused(
 
 
 def test_a_stored_comparison_with_an_edited_drift_list_still_names_its_policy(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
     """Editing the drift list changes the comparison, never the policy digest.
 
     Which is the point: the binding check proves the rules, and the verdict has
     to be re-derived from the two Campaigns to prove itself.
     """
-    candidate = with_model_id(campaign, "a-quietly-better-model")
-    policy = policy_for(campaign, allowed=(HARNESS_ID_POINTER,))
+    candidate = with_model(campaign, model_id="a-quietly-better-model")
+    policy = policy_for(campaign, allowed=(PLAN_POINTER,))
     honest = compare_campaign_configurations(policy, campaign, candidate)
     forged = honest.model_copy(
         update={"observed_drift_paths": (), "compatibility": "exact_configuration"}
@@ -483,13 +480,13 @@ def test_a_stored_comparison_with_an_edited_drift_list_still_names_its_policy(
         # And the other way round: the required-equal path contains the path
         # declared free to drift. Either spelling is the same contradiction,
         # and the comparison relies on both being refused.
-        ((HARNESS_ID_POINTER,), ("/agents/subject/harness",)),
+        ((MODEL_ID_POINTER,), ("/agents/subject/model",)),
         # The degenerate case, where the two lists name the same place.
-        ((HARNESS_ID_POINTER,), (HARNESS_ID_POINTER,)),
+        ((MODEL_ID_POINTER,), (MODEL_ID_POINTER,)),
     ],
 )
 def test_a_policy_cannot_both_fix_and_free_the_same_place(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
     allowed: tuple[str, ...],
     required: tuple[str, ...],
 ) -> None:
@@ -497,31 +494,31 @@ def test_a_policy_cannot_both_fix_and_free_the_same_place(
         policy_for(campaign, allowed=allowed, required=required)
 
 
-def test_a_policy_cannot_repeat_a_path(campaign: CampaignSpec) -> None:
+def test_a_policy_cannot_repeat_a_path(campaign: CampaignSpecV2) -> None:
     with pytest.raises(PydanticValidationError, match="must not repeat a pointer"):
         ConfigurationCompatibilityPolicy(
             purpose="reproduction",
             source_campaign_digest=digest_object(campaign),
             required_equal_paths=(),
-            allowed_drift_paths=(HARNESS_ID_POINTER, HARNESS_ID_POINTER),
+            allowed_drift_paths=(MODEL_ID_POINTER, MODEL_ID_POINTER),
             comparison_algorithm=COMPARISON_ALGORITHM,
         )
 
 
-def test_a_policy_cannot_spell_one_rule_set_two_ways(campaign: CampaignSpec) -> None:
+def test_a_policy_cannot_spell_one_rule_set_two_ways(campaign: CampaignSpecV2) -> None:
     with pytest.raises(PydanticValidationError, match="must be sorted"):
         ConfigurationCompatibilityPolicy(
             purpose="reproduction",
             source_campaign_digest=digest_object(campaign),
             required_equal_paths=(),
-            allowed_drift_paths=(HARNESS_VERSION_POINTER, HARNESS_ID_POINTER),
+            allowed_drift_paths=(MODEL_REVISION_POINTER, MODEL_ID_POINTER),
             comparison_algorithm=COMPARISON_ALGORITHM,
         )
 
 
 @pytest.mark.parametrize("path", ["", "agents/subject", "/agents/~2subject"])
 def test_a_policy_path_must_be_a_json_pointer(
-    campaign: CampaignSpec, path: str
+    campaign: CampaignSpecV2, path: str
 ) -> None:
     with pytest.raises(PydanticValidationError):
         ConfigurationCompatibilityPolicy(
@@ -533,7 +530,7 @@ def test_a_policy_path_must_be_a_json_pointer(
         )
 
 
-def test_an_exact_configuration_cannot_list_drift(campaign: CampaignSpec) -> None:
+def test_an_exact_configuration_cannot_list_drift(campaign: CampaignSpecV2) -> None:
     digest = digest_object(campaign)
 
     with pytest.raises(PydanticValidationError, match="no observed drift"):
@@ -541,12 +538,12 @@ def test_an_exact_configuration_cannot_list_drift(campaign: CampaignSpec) -> Non
             policy_digest=digest,
             source_campaign_digest=digest,
             candidate_campaign_digest=digest,
-            observed_drift_paths=(HARNESS_ID_POINTER,),
+            observed_drift_paths=(MODEL_ID_POINTER,),
             compatibility="exact_configuration",
         )
 
 
-def test_declared_drift_has_to_say_what_drifted(campaign: CampaignSpec) -> None:
+def test_declared_drift_has_to_say_what_drifted(campaign: CampaignSpecV2) -> None:
     digest = digest_object(campaign)
 
     with pytest.raises(PydanticValidationError, match="which declared paths"):
@@ -560,7 +557,7 @@ def test_declared_drift_has_to_say_what_drifted(campaign: CampaignSpec) -> None:
 
 
 def test_a_comparison_cannot_repeat_or_unsort_its_drift(
-    campaign: CampaignSpec,
+    campaign: CampaignSpecV2,
 ) -> None:
     digest = digest_object(campaign)
 
@@ -569,6 +566,6 @@ def test_a_comparison_cannot_repeat_or_unsort_its_drift(
             policy_digest=digest,
             source_campaign_digest=digest,
             candidate_campaign_digest=digest,
-            observed_drift_paths=(HARNESS_VERSION_POINTER, HARNESS_ID_POINTER),
+            observed_drift_paths=(MODEL_REVISION_POINTER, MODEL_ID_POINTER),
             compatibility="incompatible",
         )

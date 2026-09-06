@@ -19,12 +19,12 @@ from techtree.errors import ValidationError, VerificationError
 from techtree.models.campaign import (
     SKILL_MUTATION_POINTER,
     SUBJECT_AGENT,
-    CampaignSpec,
+    CampaignSpecV2,
     MutationKind,
 )
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.skill import SkillArtifact, SkillFile
-from techtree.models.uplift_report import UpliftReport
+from techtree.models.uplift_report import UpliftReportV2
 from techtree.uplift.derive import (
     REPLACEMENT_DERIVATION_FAILED,
     derive_replacement_manifests,
@@ -63,12 +63,12 @@ def pair() -> RecordedPair:
 
 
 @pytest.fixture(scope="module")
-def source(pair: RecordedPair) -> CampaignSpec:
+def source(pair: RecordedPair) -> CampaignSpecV2:
     return pair.campaign
 
 
 @pytest.fixture(scope="module")
-def report(pair: RecordedPair) -> UpliftReport:
+def report(pair: RecordedPair) -> UpliftReportV2:
     """The recorded comparison's own report; derivation reads its Campaign digest."""
     return recorded_report(pair)
 
@@ -84,8 +84,8 @@ def v2() -> SkillArtifact:
 
 
 def derive(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
-) -> CampaignSpec:
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
+) -> CampaignSpecV2:
     return derive_skill_replacement_campaign(
         source_campaign=source,
         source_run=report,
@@ -100,7 +100,7 @@ def derive(
 
 
 def test_the_mutation_becomes_a_replacement_of_exactly_one_skill(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     derived = derive(source, report, v1, v2)
     mutation = derived.mutation_contract
@@ -112,7 +112,7 @@ def test_the_mutation_becomes_a_replacement_of_exactly_one_skill(
 
 
 def test_the_baseline_carries_the_skill_that_was_evaluated(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     """By content address, not by anything read off a directory."""
     derived = derive(source, report, v1, v2)
@@ -125,7 +125,7 @@ def test_the_baseline_carries_the_skill_that_was_evaluated(
 
 
 def test_the_derived_campaign_has_a_new_digest(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     assert digest_object(derive(source, report, v1, v2)) != digest_object(source)
 
@@ -144,18 +144,18 @@ def test_the_derived_campaign_has_a_new_digest(
         "context",
         "taskset",
         "environment",
-        "evaluation_backend",
         "execution",
         "scoring",
         "evidence",
         "budgets",
         "data_policy_digest",
+        "execution_plan_digest",
     ],
 )
 def test_every_scientific_field_propagates_unchanged(
     field: str,
-    source: CampaignSpec,
-    report: UpliftReport,
+    source: CampaignSpecV2,
+    report: UpliftReportV2,
     v1: SkillArtifact,
     v2: SkillArtifact,
 ) -> None:
@@ -165,7 +165,7 @@ def test_every_scientific_field_propagates_unchanged(
 
 
 def test_the_subject_differs_only_in_its_skill_list(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     """Model, sampling, harness identity, runtime and trainability all carry over."""
     derived = derive(source, report, v1, v2)
@@ -181,7 +181,7 @@ def test_the_subject_differs_only_in_its_skill_list(
 
 
 def test_the_derived_campaign_carries_nothing_public(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     """No Climb wraps a replacement, so its manifests name no public context."""
     derived = derive(source, report, v1, v2)
@@ -199,7 +199,7 @@ def test_the_derived_campaign_carries_nothing_public(
 
 
 def test_a_report_of_another_campaign_cannot_be_continued_from(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     other = source.model_copy(
         update={"metadata": source.metadata.model_copy(update={"version": 99})}
@@ -212,7 +212,7 @@ def test_a_report_of_another_campaign_cannot_be_continued_from(
 
 
 def test_an_identical_revision_is_refused(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact
 ) -> None:
     """Spec section 7.22: a new Skill digest is required."""
     with pytest.raises(ValidationError) as raised:
@@ -222,7 +222,7 @@ def test_an_identical_revision_is_refused(
 
 
 def test_a_campaign_measuring_something_else_is_refused(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     """A replacement continues a component uplift and nothing else."""
     other = source.model_copy(
@@ -237,7 +237,7 @@ def test_a_campaign_measuring_something_else_is_refused(
 
 
 def test_an_insertion_campaign_cannot_produce_replacement_manifests(
-    source: CampaignSpec, v2: SkillArtifact
+    source: CampaignSpecV2, v2: SkillArtifact
 ) -> None:
     with pytest.raises(ValidationError) as raised:
         derive_replacement_manifests(campaign=source, candidate_skill=v2)
@@ -251,7 +251,7 @@ def test_an_insertion_campaign_cannot_produce_replacement_manifests(
 
 
 def test_the_pair_is_controlled_and_differs_only_at_the_skill_pointer(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     derived = derive(source, report, v1, v2)
     baseline, candidate, comparison = derive_replacement_manifests(
@@ -268,7 +268,7 @@ def test_the_pair_is_controlled_and_differs_only_at_the_skill_pointer(
 
 
 def test_the_pair_names_the_campaign_it_was_derived_from(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     derived = derive(source, report, v1, v2)
     baseline, candidate, _ = derive_replacement_manifests(
@@ -280,7 +280,7 @@ def test_the_pair_names_the_campaign_it_was_derived_from(
 
 
 def test_a_campaign_digest_that_is_not_the_campaigns_is_refused(
-    source: CampaignSpec, report: UpliftReport, v1: SkillArtifact, v2: SkillArtifact
+    source: CampaignSpecV2, report: UpliftReportV2, v1: SkillArtifact, v2: SkillArtifact
 ) -> None:
     """The manifests must name the Campaign they were actually built from."""
     derived = derive(source, report, v1, v2)

@@ -35,12 +35,13 @@ from techtree.manifests.builder import build_baseline_manifest
 from techtree.models.base import Digest
 from techtree.models.campaign import (
     SUBJECT_AGENT,
-    AgentSpec,
-    CampaignSpec,
+    AgentSpecV2,
+    CampaignSpecV2,
     ModelSpec,
 )
-from techtree.models.experiment import ExperimentManifest
-from techtree.models.run import RunRequest
+from techtree.models.execution_plan import ResolvedExecutionPlan
+from techtree.models.experiment import ExperimentManifestV2
+from techtree.models.run import RunRequestV2
 from techtree.paths import TechtreePaths, default_paths, paths_from_root
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.executor import ExecutionContext
@@ -93,7 +94,7 @@ RECORDED_SKILL: Final = (
 )
 
 
-def shipped_campaign() -> CampaignSpec:
+def shipped_campaign() -> CampaignSpecV2:
     """Load the Campaign this build ships, exactly as it ships it."""
     repository = EmbeddedCatalogRepository.packaged()
     climb = repository.load_climb(DEVELOPMENT_CLIMB)
@@ -115,11 +116,12 @@ SUBJECT_OUTPUT_USD_PER_MTOK: Final = 0.13
 
 @dataclass(frozen=True)
 class ExecutableCampaign:
-    """The shipped Campaign and the baseline manifest built from it."""
+    """The shipped Campaign, the plan it binds, and its baseline manifest."""
 
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
     campaign_digest: Digest
-    baseline: ExperimentManifest
+    execution_plan: ResolvedExecutionPlan
+    baseline: ExperimentManifestV2
 
     @property
     def task_count(self) -> int:
@@ -138,9 +140,11 @@ def executable_campaign() -> ExecutableCampaign:
     """
     campaign = shipped_campaign()
     campaign_digest = digest_object(campaign)
+    repository = EmbeddedCatalogRepository.packaged()
     return ExecutableCampaign(
         campaign=campaign,
         campaign_digest=campaign_digest,
+        execution_plan=repository.load_execution_plan(campaign.execution_plan_digest),
         baseline=build_baseline_manifest(
             campaign=campaign,
             campaign_digest=campaign_digest,
@@ -149,7 +153,7 @@ def executable_campaign() -> ExecutableCampaign:
     )
 
 
-def with_placeholder_subject(campaign: CampaignSpec) -> CampaignSpec:
+def with_placeholder_subject(campaign: CampaignSpecV2) -> CampaignSpecV2:
     """Return the same Campaign with a development-placeholder subject model.
 
     Decisions document 0025 named the subject model in the product, so every
@@ -161,11 +165,11 @@ def with_placeholder_subject(campaign: CampaignSpec) -> CampaignSpec:
     deliberately the unexecutable kind.
     """
     subject = campaign.agents[SUBJECT_AGENT]
-    return CampaignSpec(
+    return CampaignSpecV2(
         **{
             **dict(campaign),
             "agents": {
-                SUBJECT_AGENT: AgentSpec(
+                SUBJECT_AGENT: AgentSpecV2(
                     **{
                         **dict(subject),
                         "model": ModelSpec(
@@ -189,10 +193,10 @@ class LocalRun:
     run_store: RunStore
     artifacts: RunArtifactStore
     run_id: str
-    campaign: CampaignSpec
+    campaign: CampaignSpecV2
 
     @property
-    def request(self) -> RunRequest:
+    def request(self) -> RunRequestV2:
         """Return the run's immutable request."""
         return self.run_store.get_request(self.run_id)
 

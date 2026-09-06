@@ -27,7 +27,7 @@ from fixtures.verifiers.support import (
     shipped_campaign,
 )
 from techtree.errors import PrerequisiteError
-from techtree.models.campaign import CampaignSpec
+from techtree.models.campaign import CampaignSpecV2
 from techtree.verifiers.budget import (
     CAMPAIGN_BUDGET_NOT_ENFORCED,
     CAMPAIGN_COST_BOUND_EXCEEDED,
@@ -63,7 +63,7 @@ TEST_PROFILE: Final = PriceProfile(
 EXPECTED_BOUND: Final = 0.032192
 
 
-def campaign(**budgets: object) -> CampaignSpec:
+def campaign(**budgets: object) -> CampaignSpecV2:
     """Return the synthetic Campaign with the given budget fields declared."""
     base = synthetic_graph().campaign
     declared: dict[str, object] = {

@@ -33,7 +33,7 @@ import pytest
 from fixtures.runs.support import run_harness
 from techtree.canonical import sha256_digest_bytes
 from techtree.errors import CancellationError
-from techtree.models.run import RunPhase, RunRequest
+from techtree.models.run import RunPhase, RunRequestV2
 from techtree.paths import TechtreePaths, paths_from_root
 from techtree.runs.child_registry import ChildRegistry
 from techtree.runs.executor import clear_local_cancellation, request_local_cancellation
@@ -99,7 +99,9 @@ def _child(plan: VariantExecutionPlan) -> VerifiersChild:
 
 
 @pytest.fixture
-def started(tmp_path: Path) -> tuple[TechtreePaths, RunStore, RunRequest, VariantPair]:
+def started(
+    tmp_path: Path,
+) -> tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair]:
     """A real run, ready for the concurrent phase, with two plans to execute."""
     clear_local_cancellation()
     home = tmp_path / "home"
@@ -129,7 +131,7 @@ def _alive(pid: int | None) -> bool:
 
 
 def test_a_cancellation_in_the_journal_stops_both_process_groups(
-    started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
+    started: tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair],
 ) -> None:
     """One line appended by another process ends both live evaluations."""
     paths, store, request, pair = started
@@ -192,7 +194,7 @@ def test_a_cancellation_in_the_journal_stops_both_process_groups(
 
 
 def test_a_signal_to_this_process_stops_both_children_too(
-    started: tuple[TechtreePaths, RunStore, RunRequest, VariantPair],
+    started: tuple[TechtreePaths, RunStore, RunRequestV2, VariantPair],
 ) -> None:
     """A worker signalled directly unwinds the same way a journal cancel does."""
     paths, store, request, pair = started
