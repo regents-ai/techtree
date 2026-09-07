@@ -442,7 +442,10 @@
         "run.cancel",
         "result.inspect",
         "claim.inspect",
-        "proof.verify"
+        "proof.verify",
+        "profile.get",
+        "profile.sync",
+        "profile.update"
       ],
       "title": "Operation",
       "type": "string"

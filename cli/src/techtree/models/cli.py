@@ -107,6 +107,9 @@ class Operation(StrEnum):
     RESULT_INSPECT = "result.inspect"
     CLAIM_INSPECT = "claim.inspect"
     PROOF_VERIFY = "proof.verify"
+    PROFILE_GET = "profile.get"
+    PROFILE_SYNC = "profile.sync"
+    PROFILE_UPDATE = "profile.update"
 
 
 class RetryClass(StrEnum):
