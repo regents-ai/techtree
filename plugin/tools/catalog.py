@@ -49,7 +49,7 @@ def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "checks": checks,
             "blocking_failures": blocking,
             "can_prepare_demo": not blocking,
-            "messages": doctor.get("messages", []),
+            "blockers": doctor.get("blockers", []),
             "warnings": doctor.get("warnings", []),
             "next_action": (
                 {

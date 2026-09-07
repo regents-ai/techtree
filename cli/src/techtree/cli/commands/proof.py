@@ -53,7 +53,15 @@ from techtree.errors import NotFoundError, ValidationError, VerificationError
 from techtree.identity.models import VerificationMessage, VerificationResult
 from techtree.ids import validate_id
 from techtree.models.base import JsonValue, NonEmptyString, ProtocolModel
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliWarning,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.publication.offer import publish_action
 from techtree.receipts.bundle import (
     BUNDLE_MANIFEST_FILENAME,
@@ -64,13 +72,10 @@ from techtree.receipts.dispatch import verify_proof
 
 __all__ = [
     "PROOF_TARGET_NOT_FOUND",
-    "VERIFY_COMMAND",
     "ProofVerificationPayload",
     "resolve_proof_target",
     "verify_proof_command",
 ]
-
-VERIFY_COMMAND: Final = "proof verify"
 
 #: Stable error code for "there is nothing at that name to verify". Distinct
 #: from a bundle that exists and does not hold together, which is the section
@@ -127,18 +132,17 @@ def verify_proof_command(
         )
         return CommandResult(
             data=payload,
-            messages=_messages(payload),
             warnings=_warnings(result),
             next_actions=[
                 *_publication_offer(context, path, kind, verified=result.verified),
-                _read_logs(target),
+                _every_check(target),
             ],
             error=None if result.verified else _failure(payload, result),
         )
 
     invoke_command(
         context,
-        VERIFY_COMMAND,
+        Operation.PROOF_VERIFY,
         action,
         render_data=_renderer(every_check=every_check),
     )
@@ -208,27 +212,12 @@ def _codes(result: VerificationResult) -> list[JsonValue]:
     return [code for code in sorted({message.code for message in result.failures})]
 
 
-def _messages(payload: ProofVerificationPayload) -> list[CliMessage]:
-    if not payload.verified:
-        return []
+def _warnings(result: VerificationResult) -> list[CliWarning]:
     return [
-        CliMessage(
-            level=MessageLevel.INFO,
-            code="proof_verified",
-            text=(
-                f"This proof verifies: {len(payload.checks)} checks, all from "
-                "the stored bytes, with nothing fetched."
-            ),
-        )
-    ]
-
-
-def _warnings(result: VerificationResult) -> list[CliMessage]:
-    return [
-        CliMessage(
-            level=MessageLevel.WARNING,
-            code=message.code,
+        CliWarning(
+            id=message.code,
             text=message.detail,
+            resolvable_by=None,
         )
         for message in result.warnings
     ]
@@ -276,15 +265,22 @@ def _run_of(bundle: Path, runs_dir: Path) -> str | None:
         return None
 
 
-def _read_logs(target: str) -> NextAction:
+def _every_check(target: str) -> NextAction:
     return NextAction(
-        id="proof_checks",
-        label="See every check, including the ones that passed",
-        reason="Machine output lists each check with its own stable code.",
-        cli=["techtree", "proof", "verify", target, "--json"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+        operation=Operation.PROOF_VERIFY,
+        prepared_arguments=invocation(
+            "proof", "verify", arguments=[target], options={"--checks": True}
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=(
+            "It lists every check, including the ones that passed, each with "
+            "its own stable identifier."
+        ),
     )
 
 
@@ -428,6 +424,12 @@ def _render(data: object, console: Console, *, every_check: bool) -> None:
     if not isinstance(data, ProofVerificationPayload):
         return
 
+    if data.verified:
+        console.print(
+            f"This proof verifies: {len(data.checks)} checks, all from the "
+            "stored bytes, with nothing fetched."
+        )
+        console.print()
     console.print(f"Proof: {data.target}")
     console.print()
     _render_summary(data.summary, console)

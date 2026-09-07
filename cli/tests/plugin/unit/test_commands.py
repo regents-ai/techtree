@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from support import operation_for
 from techtree_hermes.cli.bootstrap import create_install_plan
 from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.host.commands import (
@@ -42,21 +43,23 @@ RUN_ID = "run_" + "0" * 32
 
 def _envelope(command: str, data: Any = None, ok: bool = True) -> dict[str, Any]:
     return {
-        "schema_version": "techtree.cli.v1",
-        "command": command,
+        "schema_version": "techtree.cli.v2",
+        "operation": operation_for(command),
         "ok": ok,
-        "data": data,
+        "state_digest": None,
+        "facts": data,
+        "unknowns": [],
+        "blockers": [],
+        "warnings": [],
+        "content_refs": [],
+        "next_actions": [],
         "error": None
         if ok
         else {
             "code": "nope",
             "message": "Techtree said no",
-            "retryable": False,
             "details": {},
         },
-        "messages": [],
-        "warnings": [],
-        "next_actions": [],
     }
 
 
@@ -157,7 +160,9 @@ def test_setup_reports_the_build_and_the_next_step() -> None:
 
 
 def test_the_climbs_command_lists_what_the_build_offers() -> None:
-    listing = _envelope("climb list", [{"reference": "demo@1", "title": "A demo"}])
+    listing = _envelope(
+        "climb list", {"climbs": [{"reference": "demo@1", "title": "A demo"}]}
+    )
     answer = handle_slash_command(
         "climbs", _services(bridge=FakeBridge({"climb list": listing}))
     )
@@ -365,7 +370,7 @@ def test_improve_says_what_this_build_will_not_do() -> None:
 
 def test_a_failure_is_reported_not_raised() -> None:
     services = _services(
-        bridge=FakeBridge({"climb list": _envelope("climb list", None, ok=False)})
+        bridge=FakeBridge({"climb list": _envelope("climb list", {}, ok=False)})
     )
 
     answer = handle_slash_command("climbs", services)
@@ -376,10 +381,12 @@ def test_a_failure_is_reported_not_raised() -> None:
 def test_every_answer_is_whole_and_free_of_control_characters() -> None:
     listing = _envelope(
         "climb list",
-        [
-            {"reference": f"climb-{n}@1", "title": "\x1b[31m" + "t" * 200}
-            for n in range(200)
-        ],
+        {
+            "climbs": [
+                {"reference": f"climb-{n}@1", "title": "\x1b[31m" + "t" * 200}
+                for n in range(200)
+            ]
+        },
     )
     services = _services(bridge=FakeBridge({"climb list": listing}))
 
@@ -395,7 +402,9 @@ def test_every_answer_is_whole_and_free_of_control_characters() -> None:
 #: would answer it, so that each subcommand reaches its successful ending.
 SUCCESSFUL_ANSWERS: dict[str, dict[str, Any]] = {
     "doctor": _envelope("doctor", {"checks": []}),
-    "climb list": _envelope("climb list", [{"reference": "demo@1", "title": "A demo"}]),
+    "climb list": _envelope(
+        "climb list", {"climbs": [{"reference": "demo@1", "title": "A demo"}]}
+    ),
     "climb show": _envelope("climb show", {}),
     "climb prepare": _envelope(
         "climb prepare",

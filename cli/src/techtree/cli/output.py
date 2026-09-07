@@ -1,9 +1,11 @@
 """How one envelope reaches stdout. Spec section 12.2.
 
 There are exactly two renderings of a response and they never mix. A machine
-gets one compact JSON object and a newline. A person gets messages, a data
-summary, warnings, and numbered next steps. Which one happens is decided by the
-context, once, so no command can half-render.
+gets one compact JSON object and a newline. A person gets the command's own
+summary of what it found, then what is in the way, what could not be
+determined, what must still be seen, what bytes are referred to, and the
+numbered next steps. Which one happens is decided by the context, once, so no
+command can half-render.
 
 The JSON spelling is the canonical one: sorted keys, no insignificant
 whitespace. Nothing here is hashed, but a stable byte order is what makes an
@@ -13,10 +15,17 @@ Operational logs go to stderr and only to stderr. That separation is the whole
 reason a host agent can pipe stdout into a JSON parser without filtering it
 first.
 
+``techtree.cli.v2`` has no free-text message channel, so every sentence a
+person reads here is built from the typed answer rather than carried beside it.
+A command's own opening line is written by its renderer, out of the payload it
+just produced; there is no way for the words a person sees to describe
+something the machine answer does not contain.
+
 ``shell_display`` exists so a next action can be *shown* as a command line. It
-uses ``shlex.join`` and its output is display-only: the argv list is the
-contract, the string is a courtesy. Nothing in Techtree ever executes a
-displayed command string, which is exactly why next actions are arrays.
+uses ``shlex.join`` and its output is display-only: the prepared arguments are
+the contract, the string is a courtesy. Nothing in Techtree ever executes a
+displayed command string, which is exactly why an action carries a named
+invocation rather than a line of shell.
 """
 
 from __future__ import annotations
@@ -34,11 +43,14 @@ from rich.text import Text
 from techtree.canonical import canonical_json_text
 from techtree.cli.context import CliContext
 from techtree.models.cli import (
+    CliBlocker,
     CliEnvelope,
     CliError,
-    CliMessage,
-    MessageLevel,
+    CliUnknown,
+    CliWarning,
+    ContentRef,
     NextAction,
+    command_line,
 )
 
 __all__ = [
@@ -56,20 +68,6 @@ __all__ = [
 
 type DataRenderer = Callable[[Any, Console], None]
 """Renders one command's payload for a person. Machine mode never calls it."""
-
-#: How each message level is introduced in human output. Plain words rather
-#: than symbols, so the text survives a terminal that cannot draw them.
-_LEVEL_PREFIX: dict[MessageLevel, str] = {
-    MessageLevel.INFO: "",
-    MessageLevel.WARNING: "Warning: ",
-    MessageLevel.ERROR: "Error: ",
-}
-
-_LEVEL_STYLE: dict[MessageLevel, str] = {
-    MessageLevel.INFO: "",
-    MessageLevel.WARNING: "yellow",
-    MessageLevel.ERROR: "red",
-}
 
 
 def human_console(*, no_color: bool) -> Console:
@@ -126,19 +124,21 @@ def render_human(
     *,
     render_data: DataRenderer | None = None,
 ) -> None:
-    """Render messages, typed data summaries, warnings, and next actions."""
-    for message in envelope.messages:
-        _render_message(message, console)
+    """Render the payload, then everything the caller still has to know.
 
-    if envelope.data is not None and render_data is not None:
-        if envelope.messages:
-            console.print()
-        render_data(envelope.data, console)
+    The order is the order somebody acts in: what was found, what stops them,
+    what nobody could establish, what they must see anyway, where the bytes
+    are, what went wrong, and what to do next.
+    """
+    if envelope.facts is not None and render_data is not None:
+        render_data(envelope.facts, console)
 
-    if envelope.warnings:
-        console.print()
-        for warning in envelope.warnings:
-            _render_message(warning, console)
+    _render_block(console, [_blocker_text(entry) for entry in envelope.blockers], "red")
+    _render_block(console, [_unknown_text(entry) for entry in envelope.unknowns], None)
+    _render_block(
+        console, [_warning_text(entry) for entry in envelope.warnings], "yellow"
+    )
+    _render_content_refs(envelope.content_refs, console)
 
     if envelope.error is not None:
         console.print()
@@ -214,34 +214,65 @@ def stderr_log(message: str) -> None:
     sys.stderr.flush()
 
 
-def _render_message(message: CliMessage, console: Console) -> None:
-    prefix = _LEVEL_PREFIX[message.level]
-    console.print(f"{prefix}{message.text}", style=_LEVEL_STYLE[message.level] or None)
+def _render_block(console: Console, lines: list[str], style: str | None) -> None:
+    """Print one group of typed entries, or nothing when there are none."""
+    if not lines:
+        return
+    console.print()
+    for line in lines:
+        console.print(line, style=style)
+
+
+def _blocker_text(blocker: CliBlocker) -> str:
+    """Say what is in the way.
+
+    Which operations it forbids is not repeated here. That list is a machine
+    identifier apiece, and a person reading a terminal is being told what is
+    wrong and shown the step that fixes it, which is the same fact in the words
+    they came for.
+    """
+    return f"Blocked: {blocker.text}"
+
+
+def _unknown_text(unknown: CliUnknown) -> str:
+    """Say what could not be established, never a zero in its place."""
+    return f"Not determined: {unknown.reason}"
+
+
+def _warning_text(warning: CliWarning) -> str:
+    return f"Warning: {warning.text}"
+
+
+def _render_content_refs(refs: list[ContentRef], console: Console) -> None:
+    """Point at the bytes the answer refers to rather than carries."""
+    if not refs:
+        return
+    console.print()
+    console.print("Files")
+    render_pairs(
+        [(ref.kind, ref.path or ref.url or "") for ref in refs],
+        console,
+    )
 
 
 def _step_text(action: NextAction) -> Text:
     """Return one next step with the line a person types set apart.
 
-    A step is up to three lines that used to look alike: what it is, the
-    command, and why. The command is the only one of them anybody retypes, so
-    it is the one the eye should land on, and the reason is the one a reader
-    who already knows why can pass over. Weight says that without moving
-    anything or changing a word, which is what was wanted here: the ordering
-    and the wording are settled elsewhere and this changes neither.
+    A step is the command, then why it is offered. The command is the only one
+    of them anybody retypes, so it is the one the eye should land on, and the
+    reason is the one a reader who already knows why can pass over. Weight says
+    that without moving anything or changing a word.
 
     The styles are carried by a :class:`~rich.text.Text` rather than by a
     marked-up string. Nothing this console prints is read for markup, so a
     label or a path that happens to contain square brackets is drawn as the
     characters it is made of and cannot choose a colour for itself.
     """
-    step = Text(action.label)
-    if action.cli is not None:
-        step.append("\n")
-        step.append(shell_display(action.cli), style="bold")
-    if action.reason is not None:
-        step.append("\n")
-        step.append(action.reason, style="dim")
-    if action.requires_user_confirmation:
+    step = Text()
+    step.append(shell_display(command_line(action)), style="bold")
+    step.append("\n")
+    step.append(action.reason, style="dim")
+    if action.approval_required:
         step.append("\nRequires confirmation by a person before it runs.")
     return step
 

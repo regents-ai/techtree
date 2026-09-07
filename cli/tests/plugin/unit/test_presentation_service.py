@@ -47,14 +47,17 @@ def _payload(**overrides: Any) -> dict[str, Any]:
 
 def _envelope(**overrides: Any) -> dict[str, Any]:
     return {
-        "schema_version": "techtree.cli.v1",
-        "command": "run result",
+        "schema_version": "techtree.cli.v2",
+        "operation": "result.inspect",
         "ok": True,
-        "data": {"report": {"run_id": "run_x"}, "presentation": _payload(**overrides)},
-        "error": None,
-        "messages": [],
+        "state_digest": None,
+        "facts": {"report": {"run_id": "run_x"}, "presentation": _payload(**overrides)},
+        "unknowns": [],
+        "blockers": [],
         "warnings": [],
+        "content_refs": [],
         "next_actions": [],
+        "error": None,
     }
 
 
@@ -78,7 +81,7 @@ def test_the_numbers_come_through_untouched() -> None:
 
 def test_completion_summary_uses_record_headlines_and_keeps_side_values() -> None:
     envelope = _envelope()
-    envelope["data"]["execution_record"] = {
+    envelope["facts"]["execution_record"] = {
         "elapsed_seconds": 42.5,
         "baseline": {
             "elapsed_seconds": 17.25,
@@ -106,7 +109,7 @@ def test_completion_summary_uses_record_headlines_and_keeps_side_values() -> Non
 
 def test_completion_summary_with_partial_usage_has_no_invented_total() -> None:
     envelope = _envelope()
-    envelope["data"]["execution_record"] = {
+    envelope["facts"]["execution_record"] = {
         "elapsed_seconds": 42.5,
         "baseline": {
             "elapsed_seconds": 17.25,
@@ -222,6 +225,6 @@ def test_a_result_with_no_presentation_payload_is_refused_not_invented() -> None
     """Nothing here makes up a presentation Techtree did not produce."""
     with pytest.raises(PluginError, match="no presentation payload"):
         _service().deterministic_only(
-            result_envelope={"ok": True, "data": {"report": {}}},
+            result_envelope={"ok": True, "facts": {"report": {}}},
             channel=ChannelKind.TERMINAL,
         )

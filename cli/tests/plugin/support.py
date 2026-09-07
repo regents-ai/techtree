@@ -24,15 +24,63 @@ from pathlib import Path
 from typing import Any
 
 VALID_ENVELOPE: dict[str, Any] = {
-    "schema_version": "techtree.cli.v1",
-    "command": "doctor",
+    "schema_version": "techtree.cli.v2",
+    "operation": "plan.inspect",
     "ok": True,
-    "data": {"checks": []},
-    "error": None,
-    "messages": [],
+    "state_digest": None,
+    "facts": {"checks": []},
+    "unknowns": [],
+    "blockers": [],
     "warnings": [],
+    "content_refs": [],
     "next_actions": [],
+    "error": None,
 }
+
+
+#: Which v2 operation answers each command the plugin's tests stand in for.
+#: The plugin drives the CLI by command line and reads back an operation, so a
+#: test double has to know the same mapping the CLI applies.
+OPERATIONS: dict[str, str] = {
+    "climb list": "plan.inspect",
+    "climb prepare": "plan.prepare",
+    "climb show": "plan.inspect",
+    "climb start": "action.execute",
+    "doctor": "plan.inspect",
+    "engine install": "action.execute",
+    "engine status": "plan.inspect",
+    "engine verify": "plan.inspect",
+    "proof verify": "proof.verify",
+    "publish": "action.execute",
+    "release info": "plan.inspect",
+    "release verify": "plan.inspect",
+    "run cancel": "run.cancel",
+    "run logs": "run.status",
+    "run result": "result.inspect",
+    "run status": "run.status",
+    "setup": "action.execute",
+    "skill starter": "plan.prepare",
+    "uplift context": "plan.prepare",
+    "uplift prepare": "plan.prepare",
+    "uplift skill-source": "plan.inspect",
+    "uplift start": "action.execute",
+    "withdraw": "action.execute",
+}
+
+
+def operation_for(command: str) -> str:
+    """Return the operation the CLI answers ``command`` under.
+
+    The argument may be a whole command line, because the doubles that use this
+    are handed one. The command path is its first one or two words, and
+    anything after that is an argument.
+    """
+    words = command.split()
+    for length in (2, 1):
+        candidate = " ".join(words[:length])
+        if candidate in OPERATIONS:
+            return OPERATIONS[candidate]
+    raise KeyError(f"no operation is recorded for {command!r}")
 
 
 @dataclass(frozen=True)
@@ -223,7 +271,14 @@ def founder_result_payload(**overrides: Any) -> dict[str, Any]:
     a dictionary, so the fixture cannot drift away from the payload the CLI
     actually emits.
     """
-    from techtree.models.cli import NextAction
+    from techtree.models.cli import (
+        DataEgress,
+        NextAction,
+        Operation,
+        RetryClass,
+        SideEffect,
+        invocation,
+    )
     from techtree.presentation.models import (
         DerivedCost,
         PresentationCaveat,
@@ -335,13 +390,20 @@ def founder_result_payload(**overrides: Any) -> dict[str, Any]:
         ],
         next_actions=[
             NextAction(
-                id="show_every_task",
-                label="Show every task",
+                operation=Operation.RESULT_INSPECT,
+                prepared_arguments=invocation(
+                    "run",
+                    "result",
+                    arguments=[run_id],
+                    options={"--show-tasks": "all"},
+                ),
+                expected_state_digest=None,
+                side_effect=SideEffect.NONE,
+                approval_required=False,
+                retry_class=RetryClass.SAFE,
+                estimated_cost=None,
+                data_egress=DataEgress.NONE,
                 reason="The per-task table is one command away.",
-                cli=["techtree", "run", "result", run_id, "--show-tasks", "all"],
-                hermes_tool=None,
-                hermes_args=None,
-                requires_user_confirmation=False,
             )
         ],
     )

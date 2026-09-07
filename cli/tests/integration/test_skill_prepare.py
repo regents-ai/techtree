@@ -427,12 +427,15 @@ def test_the_machine_response_carries_everything_a_host_agent_needs(
 
     assert result.exit_code == EXIT_OK, result.stdout
     envelope = json.loads(result.stdout.splitlines()[-1])
-    payload = envelope["data"]
+    payload = envelope["facts"]
 
     assert envelope["ok"] is True
-    assert envelope["command"] == "climb prepare"
+    assert envelope["operation"] == "plan.prepare"
     assert payload["draft_id"].startswith("draft_")
-    assert payload["draft_digest"].startswith("sha256:")
+    # The draft's digest is the envelope's state_digest, not a payload field:
+    # preparing writes durable local state, and one value has one home.
+    assert envelope["state_digest"].startswith("sha256:")
+    assert "draft_digest" not in payload
     assert payload["climb_reference"] == "synthetic-development@1"
     assert payload["campaign_spec_digest"].startswith("sha256:")
     assert payload["data_policy_digest"].startswith("sha256:")
@@ -455,10 +458,20 @@ def test_the_machine_response_carries_everything_a_host_agent_needs(
     assert payload["comparison"]["controlled"] is True
     assert payload["comparison"]["differences"] == [f"{SKILL_MUTATION_POINTER}/0"]
 
+    # The step offered is the call a person's answer allows, carrying the flag
+    # that says one was given — not the call that would refuse again.
     start = envelope["next_actions"][0]
-    assert start["id"] == "start_climb"
-    assert start["requires_user_confirmation"] is True
-    assert start["cli"] == ["techtree", "climb", "start", payload["draft_id"]]
+    assert start["operation"] == "action.execute"
+    assert start["approval_required"] is True
+    assert start["retry_class"] == "human_decision_required"
+    assert start["side_effect"] == "local_execution"
+    assert start["data_egress"] == "model_provider"
+    assert start["expected_state_digest"] == envelope["state_digest"]
+    assert start["prepared_arguments"] == {
+        "command": ["climb", "start"],
+        "arguments": [payload["draft_id"]],
+        "options": {"--yes": True, "--reviewed-on": "host-agent"},
+    }
 
 
 def test_the_human_rendering_shows_the_whole_display_list(cli_home: Path) -> None:

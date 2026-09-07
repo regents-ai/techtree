@@ -12,7 +12,7 @@ from typing import Final
 #: Prefix that turns a bare SHA-256 hexadecimal string into a Techtree digest.
 DIGEST_PREFIX: Final = "sha256:"
 
-CLI_SCHEMA_VERSION: Final = "techtree.cli.v1"
+CLI_SCHEMA_VERSION: Final = "techtree.cli.v2"
 CATALOG_SCHEMA_VERSION: Final = "techtree.catalog.v1alpha1"
 #: The v0.2 catalog index. It files one more kind of object than the v0.1
 #: index did: the resolved execution plan a v0.2 Campaign binds.

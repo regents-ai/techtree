@@ -15,9 +15,11 @@ is nothing to read. This is the same rule the rest of the plugin lives by —
 commands shown to a person come from Techtree's own next actions, never from a
 sentence somebody wrote.
 
-*The asking is Hermes's.* The offer carries ``requires_user_confirmation``, and
-the tool that acts on it is declared the same way, so the host asks on its own
-approval surface where a model cannot answer for anybody.
+*The asking is Hermes's.* Techtree marks the offer ``approval_required``, this
+plugin repeats that to the host as the ``requires_user_confirmation`` its own
+next steps carry, and the tool that acts on it is declared the same way — so
+the host asks on its own approval surface where a model cannot answer for
+anybody.
 
 *The publishing is the CLI's.* This plugin can open no network connection at
 all — the doctor proves it by reading every runtime module's imports rather
@@ -40,8 +42,20 @@ from ..services.approvals import (
 from . import channel_of, passthrough, require_argument, safe_tool, tool_result
 from .arguments import require_run_id
 
-#: The identifier Techtree gives the offer to publish, in its own next actions.
+#: How Techtree spells the offer to publish in its own next actions: the
+#: operation that would send the proof, invoked as the command that shows the
+#: review first. Both halves are checked, because ``action.prepare`` alone
+#: describes a start and a withdrawal too.
+PUBLISH_ACTION_OPERATION = "action.prepare"
+PUBLISH_ACTION_COMMAND = ["publish"]
+
+#: What this plugin calls the offer, in its own answer to the host.
 PUBLISH_ACTION_ID = "publish_run"
+
+#: What the offer says, in the plugin's own words. Techtree's next action
+#: carries a reason and no label; a person reading a conversation needs a line
+#: that says what they are being offered before the reason it is offered.
+PUBLISH_ACTION_LABEL = "Publish this run to the public run log"
 
 #: The tool a host agent calls once the person has answered.
 PUBLISH_TOOL = "techtree_publish_run"
@@ -52,21 +66,28 @@ def publication_offer(
 ) -> dict[str, Any] | None:
     """Return the offer to publish this run, if Techtree made one.
 
-    ``None`` whenever Techtree's envelope carries no ``publish_run`` action,
-    which is every case where the proof was not checked and passed just now.
-    The label and the reason are Techtree's own words, carried across
-    unchanged; what the plugin adds is the tool that acts on it and the
-    disclosure a person is owed before they answer.
+    ``None`` whenever Techtree's envelope carries no offer to publish, which is
+    every case where the proof was not checked and passed just now. The reason
+    is Techtree's own words, carried across unchanged; what the plugin adds is
+    the tool that acts on it and the disclosure a person is owed before they
+    answer.
     """
     actions = envelope.get("next_actions")
     if not isinstance(actions, list):
         return None
     for action in actions:
-        if not isinstance(action, Mapping) or action.get("id") != PUBLISH_ACTION_ID:
+        if not isinstance(action, Mapping):
+            continue
+        if action.get("operation") != PUBLISH_ACTION_OPERATION:
+            continue
+        prepared = action.get("prepared_arguments")
+        if not isinstance(prepared, Mapping):
+            continue
+        if list(prepared.get("command") or []) != PUBLISH_ACTION_COMMAND:
             continue
         return {
             "id": PUBLISH_ACTION_ID,
-            "label": action.get("label"),
+            "label": PUBLISH_ACTION_LABEL,
             "reason": action.get("reason"),
             "tool": PUBLISH_TOOL,
             "run_id": run_id,

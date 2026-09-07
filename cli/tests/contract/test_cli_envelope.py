@@ -71,25 +71,31 @@ from techtree.models.cli import (
     MAX_NEXT_ACTIONS,
     CheckStatus,
     CliEnvelope,
-    CliMessage,
+    DataEgress,
     DoctorCheck,
-    MessageLevel,
     NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    command_line,
+    invocation,
 )
 from techtree.paths import paths_from_root
 from techtree.settings import Settings
 
 
-def action(identifier: str) -> NextAction:
+def action(*command: str) -> NextAction:
     """Build a runnable next action."""
     return NextAction(
-        id=identifier,
-        label=f"Do {identifier}",
-        reason=None,
-        cli=["techtree", "doctor"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation(*(command or ("doctor",))),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=f"Run {' '.join(command or ('doctor',))}.",
     )
 
 
@@ -138,42 +144,52 @@ def emitted(capsys: pytest.CaptureFixture[str]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def test_a_successful_envelope_names_its_command_and_carries_no_error() -> None:
-    envelope = success_envelope(command="doctor", data={"checks": [1]})
+def test_a_successful_envelope_names_its_operation_and_carries_no_error() -> None:
+    envelope = success_envelope(operation=Operation.PLAN_INSPECT, facts={"checks": [1]})
 
     assert envelope.schema_version == CLI_SCHEMA_VERSION
     assert envelope.ok is True
-    assert envelope.command == "doctor"
+    assert envelope.operation is Operation.PLAN_INSPECT
+    assert envelope.state_digest is None
     assert envelope.error is None
 
 
 def test_a_failed_envelope_projects_the_typed_error() -> None:
-    envelope: CliEnvelope[None] = failure_envelope(
-        command="climb show",
+    envelope = failure_envelope(
+        operation=Operation.PLAN_INSPECT,
         error=NotFoundError("no such Climb: nope", details={"reference": "nope"}),
     )
 
     assert envelope.ok is False
+    assert envelope.facts == {}
     assert envelope.error is not None
     assert envelope.error.code == "not_found"
     assert envelope.error.details == {"reference": "nope"}
 
 
 def test_a_failed_envelope_offers_the_repairs_its_error_carried() -> None:
-    error = PrerequisiteError("no engine", next_actions=[action("install_engine")])
+    error = PrerequisiteError("no engine", next_actions=[action("engine", "install")])
 
-    envelope: CliEnvelope[None] = failure_envelope(command="climb prepare", error=error)
+    envelope = failure_envelope(operation=Operation.PLAN_PREPARE, error=error)
 
-    assert [step.id for step in envelope.next_actions] == ["install_engine"]
+    assert [command_line(step) for step in envelope.next_actions] == [
+        ["techtree", "engine", "install"]
+    ]
 
 
 def test_more_than_three_repairs_are_truncated_rather_than_rejected() -> None:
     error = PrerequisiteError(
         "several problems",
-        next_actions=[action(f"repair_{index}") for index in range(5)],
+        next_actions=[
+            action("doctor"),
+            action("climb", "list"),
+            action("engine", "verify"),
+            action("release", "verify"),
+            action("release", "info"),
+        ],
     )
 
-    envelope: CliEnvelope[None] = failure_envelope(command="doctor", error=error)
+    envelope = failure_envelope(operation=Operation.PLAN_INSPECT, error=error)
 
     assert len(envelope.next_actions) == MAX_NEXT_ACTIONS
 
@@ -188,12 +204,12 @@ def test_a_failing_command_may_still_return_what_it_found(
         )
 
     with pytest.raises(typer.Exit) as exit_signal:
-        invoke_command(context, "doctor", diagnose)
+        invoke_command(context, Operation.PLAN_INSPECT, diagnose)
 
     envelope = emitted(capsys)
     assert exit_signal.value.exit_code == EXIT_PREREQUISITE
     assert envelope["ok"] is False
-    assert envelope["data"] == {"finding": "the host is not ready"}
+    assert envelope["facts"] == {"finding": "the host is not ready"}
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +237,7 @@ def test_each_typed_failure_exits_with_its_documented_code(
         raise error
 
     with pytest.raises(typer.Exit) as exit_signal:
-        invoke_command(context, "climb list", fail)
+        invoke_command(context, Operation.PLAN_INSPECT, fail)
 
     envelope = emitted(capsys)
     assert exit_signal.value.exit_code == expected_code
@@ -231,11 +247,11 @@ def test_each_typed_failure_exits_with_its_documented_code(
 def test_success_exits_zero_and_failure_never_does(
     context: CliContext, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    def succeed() -> CommandResult[str]:
-        return CommandResult(data="fine")
+    def succeed() -> CommandResult[dict[str, str]]:
+        return CommandResult(data={"finding": "fine"})
 
     with pytest.raises(typer.Exit) as exit_signal:
-        invoke_command(context, "doctor", succeed)
+        invoke_command(context, Operation.PLAN_INSPECT, succeed)
 
     envelope = emitted(capsys)
     assert exit_signal.value.exit_code == EXIT_OK
@@ -249,7 +265,7 @@ def test_an_unexpected_exception_becomes_an_internal_error_not_a_traceback(
         raise ZeroDivisionError("division by zero")
 
     with pytest.raises(typer.Exit) as exit_signal:
-        invoke_command(context, "run status", explode)
+        invoke_command(context, Operation.RUN_STATUS, explode)
 
     envelope = emitted(capsys)
     assert exit_signal.value.exit_code == 1
@@ -261,7 +277,7 @@ def test_an_unexpected_exception_becomes_an_internal_error_not_a_traceback(
 def test_a_registered_but_unbuilt_command_says_so_in_a_stable_way() -> None:
     error = not_implemented_error("climb list")
 
-    envelope: CliEnvelope[None] = failure_envelope(command="climb list", error=error)
+    envelope = failure_envelope(operation=Operation.PLAN_INSPECT, error=error)
 
     assert envelope.error is not None
     assert envelope.error.code == "not_implemented"
@@ -282,7 +298,7 @@ def test_a_failure_message_reaches_the_envelope_word_for_word(
         raise ValidationError("rejected by the index at pypi.corp.example/simple")
 
     with pytest.raises(typer.Exit):
-        invoke_command(context, "climb start", fail)
+        invoke_command(context, Operation.ACTION_EXECUTE, fail)
 
     envelope = emitted(capsys)
     assert envelope["error"]["message"] == (
@@ -294,13 +310,7 @@ def test_json_output_is_one_line_of_canonical_json(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     json_stdout(
-        success_envelope(
-            command="doctor",
-            data=None,
-            messages=[
-                CliMessage(level=MessageLevel.INFO, code=None, text="ready"),
-            ],
-        )
+        success_envelope(operation=Operation.PLAN_INSPECT, facts={"checks": []})
     )
 
     captured = capsys.readouterr()
@@ -321,7 +331,7 @@ def _rendered(actions: list[NextAction]) -> str:
 
 def test_one_next_action_is_headed_as_the_one_thing_to_do_next() -> None:
     """Decision 0024 section 7: a successful answer ends with one immediate step."""
-    text = _rendered([action("run_doctor")])
+    text = _rendered([action("doctor")])
 
     assert "Next:" in text
     assert "Next steps:" not in text
@@ -329,7 +339,7 @@ def test_one_next_action_is_headed_as_the_one_thing_to_do_next() -> None:
 
 
 def test_several_next_actions_are_still_headed_as_a_list() -> None:
-    text = _rendered([action("run_doctor"), action("list_climbs")])
+    text = _rendered([action("doctor"), action("climb", "list")])
 
     assert "Next steps:" in text
     assert "1." in text
@@ -380,15 +390,17 @@ def piped(width: int = 100) -> tuple[io.StringIO, Console]:
 
 
 def test_the_line_a_next_step_is_typed_from_is_the_one_that_stands_out() -> None:
-    """A step is a label, a command and a reason; only one is retyped."""
+    """A step is a command and a reason; only one of them is retyped."""
     step = NextAction(
-        id="run_doctor",
-        label="Check that this machine is ready",
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("doctor"),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason="Doctor reports what would block a run.",
-        cli=["techtree", "doctor"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
     buffer, console = watched()
 
@@ -397,8 +409,6 @@ def test_the_line_a_next_step_is_typed_from_is_the_one_that_stands_out() -> None
 
     assert f"{BOLD}techtree doctor" in text
     assert f"{DIM}Doctor reports what would block a run." in text
-    assert f"{BOLD}Check that this machine is ready" not in text
-    assert f"{DIM}Check that this machine is ready" not in text
 
 
 def test_a_labelled_fact_dims_the_label_and_leaves_the_value_alone() -> None:
@@ -523,10 +533,10 @@ def test_a_failure_that_was_redirected_is_the_same_two_plain_lines() -> None:
     assert buffer.getvalue() == ("\nError: there is no run here\nCode: not_found\n")
 
 
-def _missing_run() -> CliEnvelope[None]:
+def _missing_run() -> CliEnvelope[Any]:
     """An envelope carrying nothing but one failure."""
     return failure_envelope(
-        command="run status",
+        operation=Operation.RUN_STATUS,
         error=NotFoundError("there is no run here", next_actions=[]),
     )
 
@@ -552,8 +562,30 @@ def test_doctor_offers_at_most_three_repairs_without_repeating_one(
     actions = service.next_actions(checks)
 
     assert len(actions) <= MAX_NEXT_ACTIONS
-    assert len({step.id for step in actions}) == len(actions)
-    assert all(step.cli for step in actions)
+    lines = [command_line(step) for step in actions]
+    assert len({tuple(line) for line in lines}) == len(lines)
+    assert all(line[0] == "techtree" for line in lines)
+
+
+def test_doctor_offers_one_step_once_however_it_is_worded(
+    temp_techtree_home: Path,
+) -> None:
+    """What makes two steps the same step is the call, not the sentence.
+
+    Four failing checks here share one repair — re-running Doctor — and a
+    reader offered it four times has been given one step and three repeats.
+    """
+    service = DoctorService(paths_from_root(temp_techtree_home), Settings())
+    checks = [
+        check("techtree_home", CheckStatus.FAIL, blocking=True),
+        check("python_version", CheckStatus.FAIL, blocking=True),
+        check("uv", CheckStatus.WARN),
+        check("docker_cli", CheckStatus.WARN),
+    ]
+
+    actions = service.next_actions(checks)
+
+    assert [command_line(step) for step in actions] == [["techtree", "doctor"]]
 
 
 def test_doctor_still_suggests_something_when_everything_passes(
@@ -563,8 +595,7 @@ def test_doctor_still_suggests_something_when_everything_passes(
 
     actions = service.next_actions([check("python_version", CheckStatus.PASS)])
 
-    assert [step.id for step in actions] == ["list_climbs"]
-    assert actions[0].cli == ["techtree", "climb", "list"]
+    assert [command_line(step) for step in actions] == [["techtree", "climb", "list"]]
 
 
 def test_doctor_separates_the_host_platform_from_the_docker_platform(
@@ -613,6 +644,12 @@ def test_a_blocking_check_is_reported_as_blocking_and_a_warning_is_not(
     ]
 
     assert [item.id for item in service.blocking_failures(checks)] == ["techtree_home"]
+    assert [item.id for item in service.warning_checks(checks)] == ["uv"]
+    # And each one is reported in the channel that says what it costs the
+    # caller: a blocker names the operations it forbids, a warning does not.
+    assert [item.blocks for item in service.blockers(checks)] == [
+        [Operation.PLAN_PREPARE, Operation.ACTION_EXECUTE]
+    ]
     assert [item.id for item in service.warnings(checks)] == ["uv"]
 
 
@@ -707,11 +744,16 @@ def test_a_blocking_check_makes_doctor_fail_without_losing_the_diagnosis(
     assert result.exit_code == EXIT_PREREQUISITE
     envelope = json.loads(result.stdout.splitlines()[-1])
     assert envelope["ok"] is False
-    assert envelope["command"] == "doctor"
+    assert envelope["operation"] == "plan.inspect"
     assert envelope["error"]["code"] == "environment_not_ready"
     assert envelope["error"]["details"]["failed_checks"] == ["techtree_home"]
-    assert envelope["data"]["checks"][2]["id"] == "techtree_home"
-    assert envelope["next_actions"][0]["id"] == "fix_techtree_home_permissions"
+    assert envelope["facts"]["checks"][2]["id"] == "techtree_home"
+    # The failure is the verdict; the blocker is what a host agent branches on,
+    # and it says what the broken machine costs the caller.
+    assert envelope["blockers"][0]["id"] == "techtree_home"
+    assert envelope["blockers"][0]["blocks"] == ["plan.prepare", "action.execute"]
+    assert "chmod 700" in envelope["blockers"][0]["text"]
+    assert envelope["next_actions"][0]["prepared_arguments"]["command"] == ["doctor"]
 
 
 def test_a_defect_outside_every_command_still_produces_one_envelope(

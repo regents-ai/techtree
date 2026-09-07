@@ -272,8 +272,7 @@ def summary_from_golden() -> ClimbSummaryV2:
     """Load the summary carried by the committed CLI envelope golden."""
     text = (GOLDEN_DIRECTORY / "cli-envelope.json").read_text(encoding="utf-8")
     envelope = CliEnvelope[ClimbSummaryV2].model_validate_json(text)
-    assert envelope.data is not None
-    return envelope.data
+    return envelope.facts
 
 
 def test_the_climb_summary_shows_identity_science_and_rights() -> None:

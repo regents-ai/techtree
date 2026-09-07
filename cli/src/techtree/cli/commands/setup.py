@@ -38,13 +38,20 @@ from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError
 from techtree.identity.service import IdentityService
 from techtree.identity.store import IdentityStore
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.base import NonEmptyString, ProtocolModel
+from techtree.models.cli import (
+    CliWarning,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.engine import EngineStatus
 from techtree.paths import ensure_path_layout
 
-__all__ = ["LOCAL_SIGNING_KEY_NOTICE", "setup_command"]
-
-COMMAND = "setup"
+__all__ = ["LOCAL_SIGNING_KEY_NOTICE", "SetupPayload", "setup_command"]
 
 #: Spec section 7.5. Printed whenever setup settles this machine's identity,
 #: whether it made one or found one, because the sentence a person needs is
@@ -65,6 +72,19 @@ LOCAL_SIGNING_KEY_NOTICE = (
 )
 
 
+class SetupPayload(ProtocolModel):
+    """What one setup settled: the engine, and this machine's identity.
+
+    The key identifier is a fact rather than a sentence. A caller that is a
+    program has to be able to read which key this machine will sign with, and
+    a machine answer that carried the engine but only mentioned the key in
+    prose would leave it unreadable to exactly the caller that most needs it.
+    """
+
+    engine: EngineStatus
+    key_id: NonEmptyString
+
+
 def setup_command(
     ctx: typer.Context,
     hermes: Annotated[
@@ -78,7 +98,7 @@ def setup_command(
     """Prepare this machine to run a Climb."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[EngineStatus]:
+    def action() -> CommandResult[SetupPayload]:
         if hermes:
             raise not_implemented_error("setup --hermes")
 
@@ -99,40 +119,25 @@ def setup_command(
         identity = IdentityService(IdentityStore(context.paths)).ensure()
 
         return CommandResult(
-            data=status,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="local_signing_key",
-                    text=LOCAL_SIGNING_KEY_NOTICE.format(key_id=identity.key_id),
-                ),
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="setup_complete",
-                    text=(
-                        f"This machine is ready. Evaluation engine "
-                        f"{status.digest} is installed, verified, and active."
-                    ),
-                ),
-            ],
+            data=SetupPayload(engine=status, key_id=identity.key_id),
             warnings=[_interrupted_notice(install) for install in interrupted],
             next_actions=[_browse_climbs()],
         )
 
-    invoke_command(context, COMMAND, action, render_data=_render)
+    invoke_command(context, Operation.ACTION_EXECUTE, action, render_data=_render)
 
 
-def _interrupted_notice(install: InterruptedInstall) -> CliMessage:
+def _interrupted_notice(install: InterruptedInstall) -> CliWarning:
     """Say that an earlier install did not finish, and what became of it."""
     when = "" if install.started_at is None else f", started {install.started_at}"
-    return CliMessage(
-        level=MessageLevel.WARNING,
-        code="engine_install_interrupted",
+    return CliWarning(
+        id="engine_install_interrupted",
         text=(
             f"An earlier install of evaluation engine {install.digest} did not "
             f"finish{when}. What it left behind was removed and the engine was "
             "installed again from scratch."
         ),
+        resolvable_by=None,
     )
 
 
@@ -153,29 +158,42 @@ def _check_prerequisites(context: CliContext) -> None:
 
 
 def _render(data: object, console: Console) -> None:
-    if isinstance(data, EngineStatus):
-        render_engine_status(data, console)
+    """Say what setup settled, then show the engine and the key it settled."""
+    if not isinstance(data, SetupPayload):
+        return
+    console.print(
+        f"This machine is ready. Evaluation engine {data.engine.digest} is "
+        "installed, verified, and active."
+    )
+    console.print()
+    render_engine_status(data.engine, console)
+    console.print()
+    console.print(LOCAL_SIGNING_KEY_NOTICE.format(key_id=data.key_id))
 
 
 def _run_doctor() -> NextAction:
     return NextAction(
-        id="run_doctor",
-        label="See what this machine is missing",
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("doctor"),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason="Doctor lists every prerequisite and how to satisfy it.",
-        cli=["techtree", "doctor"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
 
 def _browse_climbs() -> NextAction:
     return NextAction(
-        id="list_climbs",
-        label="Browse the available Climbs",
-        reason="This host is ready.",
-        cli=["techtree", "climb", "list"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("climb", "list"),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason="This host is ready; these are the Climbs it can run.",
     )

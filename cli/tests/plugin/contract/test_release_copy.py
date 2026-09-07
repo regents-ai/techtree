@@ -1320,17 +1320,20 @@ class _ResultBridge:
 
     def invoke(self, arguments: Sequence[str]) -> dict[str, object]:
         return {
-            "schema_version": "techtree.cli.v1",
-            "command": "run result",
+            "schema_version": "techtree.cli.v2",
+            "operation": "result.inspect",
             "ok": True,
-            "data": {
+            "state_digest": None,
+            "facts": {
                 "report": {"run_id": self._payload["run_id"]},
                 "presentation": dict(self._payload),
             },
-            "error": None,
-            "messages": [],
+            "unknowns": [],
+            "blockers": [],
             "warnings": [],
+            "content_refs": [],
             "next_actions": [],
+            "error": None,
         }
 
     def call(self, arguments: Sequence[str], *, purpose: str = "") -> CliResponse:
@@ -1537,7 +1540,7 @@ def test_the_phone_answer_still_fits_the_channel_it_is_read_in() -> None:
         service.deterministic_only(
             result_envelope={
                 "ok": True,
-                "data": {"report": {}, "presentation": payload},
+                "facts": {"report": {}, "presentation": payload},
             },
             channel=ChannelKind.GATEWAY,
         ),
@@ -1565,7 +1568,7 @@ def test_a_result_whose_qualifications_are_long_keeps_the_answer_whole() -> None
     )
     service = PresentationService(release=load_embedded_release_core())
     relayed = service.deterministic_only(
-        result_envelope={"ok": True, "data": {"report": {}, "presentation": payload}},
+        result_envelope={"ok": True, "facts": {"report": {}, "presentation": payload}},
         channel=ChannelKind.GATEWAY,
     )
     answer = tool_result(relayed, ChannelKind.GATEWAY)

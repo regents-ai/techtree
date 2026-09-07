@@ -34,7 +34,7 @@ from techtree.doctor.execution_checks import (
 from techtree.doctor.service import DoctorService
 from techtree.engines.registry import EngineRegistry
 from techtree.models.campaign import SUBJECT_AGENT, CampaignSpecV2, RuntimeSpec
-from techtree.models.cli import CheckStatus, DoctorCheck
+from techtree.models.cli import CheckStatus, DoctorCheck, command_line
 from techtree.paths import paths_from_root
 from techtree.settings import Settings
 
@@ -297,8 +297,14 @@ def test_the_repair_for_a_missing_credential_leads_with_signing_in(
 
     actions = service.next_actions([credential_check()])
 
-    assert actions[0].cli == ["prime", "login"]
-    assert "doctor --for-evaluation" in (actions[0].reason or "")
+    # The sign-in itself is not a Techtree operation, so it is stated in the
+    # words of the check rather than handed over as a command; what is offered
+    # is the check that says whether it worked.
+    assert command_line(actions[0]) == ["techtree", "doctor", "--for-evaluation"]
+    reported = service.blockers([credential_check()]) + service.warnings(
+        [credential_check()]
+    )
+    assert "prime login" in reported[0].text
 
 
 # ---------------------------------------------------------------------------

@@ -8,6 +8,19 @@ captured from the installed CLI, so the contract is checked on every run,
 everywhere. The live tests re-check the same commands against a CLI that is
 actually present, which is what catches the day the two repositories drift.
 
+A recorded envelope is never edited. Editing one turns a capture into an
+assertion about what somebody expected the CLI to say, which is the one thing
+these files exist not to be: they were re-captured at the ``techtree.cli.v2``
+cutover, from Techtree homes created for the capture under ``/tmp``, and those
+paths are in the bytes because the CLI put them there.
+
+Capturing rather than editing puts one obligation on whoever captures: run the
+CLI somewhere nobody's home directory can reach the bytes. ``doctor`` reports
+the interpreter it runs on, the Techtree home it read, and the executables it
+found, so it was captured from a virtualenv and a home under ``/tmp`` with a
+neutral ``PATH`` and ``HOME``. The test at the end of this module holds the
+whole fixture tree to that.
+
 Only read-only commands appear here. Nothing prepares a draft, starts a run,
 spends model budget, or writes to a Techtree home.
 """
@@ -32,7 +45,8 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "cli"
 RECORDED = sorted(FIXTURES.glob("*.json"))
 
 #: Every read-only command whose recorded output is checked here, and the
-#: command name its envelope reports.
+#: operation its envelope reports. All five read, so all five answer under
+#: ``plan.inspect``.
 #:
 #: Whether a host can run a Climb changes the shape of the answer, so both
 #: shapes are on record. Each comes from a throwaway Techtree home created for
@@ -41,41 +55,43 @@ RECORDED = sorted(FIXTURES.glob("*.json"))
 #:
 #: * ``climb-list.json`` and ``climb-show.json`` come from an empty home, with
 #:   no evaluation engine in it at all. Compatibility is false, and the issue
-#:   is a blocking ``engine_not_installed`` error.
+#:   is a blocking ``engine_not_installed`` error — which the envelope reports
+#:   as a blocker rather than a warning.
 #: * ``climb-list-compatible.json`` and ``climb-show-compatible.json`` come
-#:   from a home with the release's own engine unpacked into it.
-#:   Compatibility is true, and the issue is a non-blocking
-#:   ``engine_not_verified`` warning. The engine reads as installed but
-#:   unverified because installing it and vouching for it are separate steps.
+#:   from the same home after ``techtree engine install``, with the
+#:   installation record's ``verified`` flag cleared so the engine reads as
+#:   installed but unverified. Compatibility is true, and the issue is a
+#:   non-blocking ``engine_not_verified`` warning. Installing an engine and
+#:   vouching for it are separate steps, so that state is one a person really
+#:   reaches.
 #:
 #: The remaining envelopes are read-only answers that do not depend on which
 #: engine a home holds, and are captured from the ordinary one.
 #:
 #: ``release-info.json`` reports a null ``source_commit`` and the warning that
-#: goes with it. It used to carry a real one, because it was captured from the
-#: candidate wheel installed into an isolated home and a wheel is stamped with
-#: the commit it was built from (Techtree decisions document 0026). The
-#: Techtree decision 0029 regeneration moved the catalog and the ReleaseCore
-#: ahead of any wheel, so these two were re-captured from the source tree,
-#: where the CLI reports null and says so. The plugin accepts both shapes,
-#: because it compares only the coordinates both documents hold; the wheel
-#: capture comes back when there is a wheel carrying this release again.
+#: goes with it, because it is captured from the source tree rather than from a
+#: built wheel, and only a wheel is stamped with the commit it was built from
+#: (Techtree decisions document 0026). The plugin accepts both shapes, because
+#: it compares only the coordinates both documents hold; the wheel capture
+#: comes back when there is a wheel carrying this release again.
 #:
 #: Everything else about the two Climb captures — the Climb, the Campaign, the
 #: policy, the digests — is identical, which is the point: the plugin must
 #: read both without either being a special case.
 RECORDED_COMMANDS = {
-    "doctor.json": "doctor",
-    "climb-list.json": "climb list",
-    "climb-list-compatible.json": "climb list",
-    "climb-show.json": "climb show",
-    "climb-show-compatible.json": "climb show",
-    "climb-show-not-found.json": "climb show",
-    "release-info.json": "release info",
-    "release-verify.json": "release verify",
+    "doctor.json": "plan.inspect",
+    "climb-list.json": "plan.inspect",
+    "climb-list-compatible.json": "plan.inspect",
+    "climb-show.json": "plan.inspect",
+    "climb-show-compatible.json": "plan.inspect",
+    "climb-show-not-found.json": "plan.inspect",
+    "release-info.json": "plan.inspect",
+    "release-verify.json": "plan.inspect",
 }
 
 #: The two recorded ``climb show`` shapes, and what each one says about a host.
+#: The last element is whether the issue is blocking, which is also what
+#: decides whether the envelope reports it as a blocker or as a warning.
 RECORDED_COMPATIBILITY = {
     "climb-show.json": (False, "not_installed", "engine_not_installed", True),
     "climb-show-compatible.json": (
@@ -120,11 +136,31 @@ def test_every_recorded_command_is_covered() -> None:
     assert {path.name for path in RECORDED} == set(RECORDED_COMMANDS)
 
 
+def test_no_fixture_carries_a_path_out_of_somebodys_home() -> None:
+    """A capture is committed, so where it was captured is committed with it.
+
+    Doctor reports the interpreter it runs on and the executables it found, so
+    a capture taken on a laptop names that laptop's owner. Nothing here needs
+    a home directory, and a fixture that carried one would put a person's
+    username in the repository for as long as the file lives.
+    """
+    home_directories = ("/Users/", "/home/")
+    for path in sorted((FIXTURES.parent).rglob("*")):
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for directory in home_directories:
+            assert directory not in text, (
+                f"{path.relative_to(FIXTURES.parent)} names {directory}, which "
+                "is a path out of whoever captured it"
+            )
+
+
 @pytest.mark.parametrize("path", RECORDED, ids=lambda path: path.name)
 def test_a_recorded_envelope_parses(path: Path) -> None:
     envelope = parse_cli_envelope(path.read_text(encoding="utf-8"))
 
-    assert envelope["command"] == RECORDED_COMMANDS[path.name]
+    assert envelope["operation"] == RECORDED_COMMANDS[path.name]
     assert isinstance(envelope["ok"], bool)
 
 
@@ -134,22 +170,30 @@ def test_a_recorded_climb_reports_its_hosts_readiness(name: str) -> None:
     compatible, status, code, blocking = RECORDED_COMPATIBILITY[name]
     envelope = parse_cli_envelope((FIXTURES / name).read_text(encoding="utf-8"))
 
-    readiness = envelope["data"]["climb"]["compatibility"]
+    readiness = envelope["facts"]["climb"]["compatibility"]
     assert envelope["ok"] is True
     assert readiness["compatible"] is compatible
     assert readiness["engine_status"] == status
     assert readiness["issues"][0]["code"] == code
     assert readiness["issues"][0]["blocking"] is blocking
 
+    # A blocking issue is a blocker, and it names what it stops; one that
+    # blocks nothing is a warning. A caller must not have to read the payload's
+    # own ``blocking`` flag to learn which.
+    reported = envelope["blockers"] if blocking else envelope["warnings"]
+    assert code in {entry["id"] for entry in reported}
+    if blocking:
+        assert envelope["blockers"][0]["blocks"] == ["plan.prepare", "action.execute"]
+
 
 def test_the_two_recorded_climbs_differ_only_in_host_readiness() -> None:
     """A Climb is the same Climb whether or not this machine can run it."""
     blocked = parse_cli_envelope(
         (FIXTURES / "climb-show.json").read_text(encoding="utf-8")
-    )["data"]["climb"]
+    )["facts"]["climb"]
     ready = parse_cli_envelope(
         (FIXTURES / "climb-show-compatible.json").read_text(encoding="utf-8")
-    )["data"]["climb"]
+    )["facts"]["climb"]
 
     assert blocked["reference"] == ready["reference"] == "hello-world-climb@1"
     assert blocked["title"] == ready["title"] == "Techtree Hello World"
@@ -170,8 +214,11 @@ def test_a_recorded_failure_carries_a_typed_error() -> None:
 
     assert envelope["ok"] is False
     assert envelope["error"]["code"] == "climb_not_found"
-    assert envelope["error"]["retryable"] is False
-    assert envelope["next_actions"][0]["cli"][:2] == ["techtree", "climb"]
+    assert "retryable" not in envelope["error"]
+    action = envelope["next_actions"][0]
+    assert action["operation"] == "plan.inspect"
+    assert action["prepared_arguments"]["command"] == ["climb", "list"]
+    assert action["retry_class"] == "safe"
 
 
 def test_the_recorded_release_belongs_to_the_same_release_as_this_plugin() -> None:
@@ -180,7 +227,7 @@ def test_the_recorded_release_belongs_to_the_same_release_as_this_plugin() -> No
         (FIXTURES / "release-info.json").read_text(encoding="utf-8")
     )
 
-    assert compare_cli_release(load_embedded_release_core(), envelope["data"]) == []
+    assert compare_cli_release(load_embedded_release_core(), envelope["facts"]) == []
 
 
 def test_the_recorded_release_verification_passed() -> None:
@@ -188,12 +235,12 @@ def test_the_recorded_release_verification_passed() -> None:
         (FIXTURES / "release-verify.json").read_text(encoding="utf-8")
     )
 
-    assert envelope["data"]["verified"] is True
+    assert envelope["facts"]["verified"] is True
     assert (
-        envelope["data"]["release_core_digest"]
+        envelope["facts"]["release_core_digest"]
         == (
             json.loads((FIXTURES / "release-info.json").read_text(encoding="utf-8"))[
-                "data"
+                "facts"
             ]["release_core_digest"]
         )
     )
@@ -209,8 +256,8 @@ def test_doctor_returns_one_envelope_this_plugin_accepts() -> None:
 
     envelope = parse_cli_envelope(completed.stdout)
 
-    assert envelope["command"] == "doctor"
-    assert isinstance(envelope["data"]["checks"], list)
+    assert envelope["operation"] == "plan.inspect"
+    assert isinstance(envelope["facts"]["checks"], list)
 
 
 @pytest.mark.real_cli
@@ -230,7 +277,7 @@ def test_the_installed_cli_belongs_to_this_plugins_release() -> None:
     completed = _run(*RELEASE_INFO_ARGUMENTS, *CLI_JSON_FLAGS)
 
     envelope = parse_cli_envelope(completed.stdout)
-    mismatches = compare_cli_release(load_embedded_release_core(), envelope["data"])
+    mismatches = compare_cli_release(load_embedded_release_core(), envelope["facts"])
 
     assert envelope["ok"] is True
     assert mismatches == []
@@ -243,7 +290,7 @@ def test_the_installed_release_verifies_against_its_own_coordinates() -> None:
 
     envelope = parse_cli_envelope(completed.stdout)
 
-    assert envelope["data"]["verified"] is True
+    assert envelope["facts"]["verified"] is True
     assert completed.returncode == 0
 
 

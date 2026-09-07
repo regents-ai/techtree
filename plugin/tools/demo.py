@@ -112,13 +112,13 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
     session = update_after_first_prepare(session, prepared)
     save_session(services, session)
 
-    data = prepared.get("data") or {}
+    data = prepared.get("facts") or {}
     return tool_result(
         {
             "ok": True,
             "command": "demo prepare",
             "demo": session_payload(session),
-            "climb": inspection.get("data"),
+            "climb": inspection.get("facts"),
             "draft_id": data.get("draft_id"),
             "draft_digest": data.get("draft_digest"),
             "data_policy_digest": data.get("data_policy_digest"),
@@ -212,7 +212,7 @@ def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> 
 
 def _draft_digest(envelope: Any) -> str | None:
     """Return the digest Techtree named for this draft, or None if it named none."""
-    data = envelope.get("data") if isinstance(envelope, dict) else None
+    data = envelope.get("facts") if isinstance(envelope, dict) else None
     digest = data.get("draft_digest") if isinstance(data, dict) else None
     return digest if isinstance(digest, str) and digest else None
 

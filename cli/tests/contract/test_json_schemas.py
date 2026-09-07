@@ -24,7 +24,10 @@ import pytest
 from pydantic import BaseModel
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / "v1alpha1"
+#: The frozen v0.1 protocol generation, named once so a test can ask the
+#: exporter about the same tree it reads from disk.
+SCHEMA_VERSION = "v1alpha1"
+SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / SCHEMA_VERSION
 #: The protocol v0.2 introduces. It holds only the documents whose shape
 #: changed, and it never rewrites the frozen v1alpha1 tree beside it.
 V2_SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / "v2"
@@ -36,7 +39,6 @@ V2_SCHEMA_DIRECTORY = REPOSITORY_ROOT / "schemas" / "v2"
 EXPECTED_SCHEMAS = {
     "campaign",
     "catalog",
-    "cli-envelope",
     "climb",
     "climb-summary",
     "compatibility-result",
@@ -55,7 +57,6 @@ EXPECTED_SCHEMAS = {
     "publication-withdrawal",
     "publication-withdrawal-receipt",
     "remote-execution-estimate",
-    "run-state",
     "skill-artifact",
     "submission-draft",
     "taskset-lock",
@@ -65,11 +66,13 @@ EXPECTED_SCHEMAS = {
 }
 
 #: Plan v0.2: the Campaign gains its bound execution plan, the plan is a
-#: document of its own, and every run-side document that used to copy its
-#: execution facts out of the Campaign takes them from the plan instead.
+#: document of its own, every run-side document that used to copy its execution
+#: facts out of the Campaign takes them from the plan instead, and the CLI
+#: envelope is ``techtree.cli.v2``.
 EXPECTED_V2_SCHEMAS = {
     "campaign",
     "catalog",
+    "cli-envelope",
     "climb-summary",
     "compatibility-result",
     "episode-receipt",
@@ -105,6 +108,12 @@ FACTS_THE_V2_CAMPAIGN_DROPPED = {
     "evaluation_backend_supported",
     "verifiers_episode",
 }
+
+#: The schemas in ``v1alpha1`` that are frozen released bytes with no live
+#: model behind them. ``CliEnvelope`` describes v2 now, and the v1 run state
+#: embeds that envelope's error, which lost a field in the same cutover. Both
+#: are checked against a recorded digest and never rewritten.
+FROZEN_SCHEMAS = {"cli-envelope", "run-state"}
 
 
 def exporter() -> Any:
@@ -153,17 +162,50 @@ def test_every_expected_schema_is_committed() -> None:
         for path in SCHEMA_DIRECTORY.glob("*.schema.json")
     }
 
-    assert committed == EXPECTED_SCHEMAS
+    assert committed == EXPECTED_SCHEMAS | FROZEN_SCHEMAS
 
 
 def test_no_unexpected_files_live_in_the_schema_tree() -> None:
     assert {path.name for path in SCHEMA_DIRECTORY.iterdir()} == {
-        f"{name}.schema.json" for name in EXPECTED_SCHEMAS
+        f"{name}.schema.json" for name in EXPECTED_SCHEMAS | FROZEN_SCHEMAS
     }
 
 
 def test_the_exporter_and_the_expected_list_agree() -> None:
     assert set(exporter().schema_models()) == EXPECTED_SCHEMAS
+
+
+def test_the_frozen_files_with_no_model_are_checked_by_the_same_guard() -> None:
+    """Their bytes are history, and one mechanism verifies the whole tree.
+
+    ``techtree.models.cli:CliEnvelope`` describes ``techtree.cli.v2`` now and
+    ``RunState`` embeds its error, so neither file can be rendered any more.
+    They are checked against the digest of what v0.1 released, by the guard
+    that verifies every other file in the tree by rendering it — not by a
+    second mechanism beside it.
+    """
+    module = exporter()
+    frozen = module.FROZEN_SCHEMAS_WITHOUT_A_MODEL[SCHEMA_VERSION]
+
+    assert set(frozen) == {f"{name}.schema.json" for name in FROZEN_SCHEMAS}
+    assert FROZEN_SCHEMAS.isdisjoint(EXPECTED_SCHEMAS)
+    assert set(module.FROZEN_SCHEMAS_WITHOUT_A_MODEL) == {SCHEMA_VERSION}
+    assert module.verify_tree(module.schema_models(), SCHEMA_VERSION) == []
+
+
+def test_the_frozen_v1_run_state_still_carries_the_error_v1_released() -> None:
+    """v0.1 evidence is validated against these bytes, so they do not move.
+
+    ``techtree.cli.v2`` dropped ``error.retryable``. The v1 run state embeds
+    the v1 error and keeps it, because the file describes what v0.1 wrote
+    rather than what this build writes. The v0.2 run state is a document of its
+    own, and publishing it belongs to the work that versions the run-side
+    documents.
+    """
+    error = schema("run-state")["$defs"]["CliError"]
+
+    assert "retryable" in error["properties"]
+    assert "retryable" in error["required"]
 
 
 @pytest.mark.parametrize("name", sorted(EXPECTED_SCHEMAS))
@@ -435,9 +477,17 @@ def test_the_submission_draft_schema_asks_for_policy_acceptance() -> None:
 
 
 def test_the_cli_envelope_schema_leaves_its_payload_open() -> None:
-    data = schema("cli-envelope")["properties"]["data"]
+    """Each operation documents its own facts; the envelope pins only the shape.
 
-    assert data["anyOf"] == [{}, {"type": "null"}]
+    ``facts`` is an object in every answer, so a caller reads one shape
+    whatever it asked. Which keys the object holds is each operation's to
+    document, and pinning one payload type here would describe a contract no
+    command keeps.
+    """
+    assert v2_schema("cli-envelope")["properties"]["facts"] == {
+        "title": "Facts",
+        "type": "object",
+    }
 
 
 def test_the_engine_schema_fixes_the_host_vocabulary() -> None:
@@ -532,8 +582,20 @@ def test_verifying_the_frozen_tree_writes_nothing(tmp_path: Path) -> None:
             ),
             "v1alpha1/invented.schema.json publishes no model",
         ),
+        # The two files no model can render are held to the same promise, by
+        # the digest of the bytes v0.1 released.
+        (
+            lambda directory: (directory / "cli-envelope.schema.json").write_text(
+                "{}\n", encoding="utf-8"
+            ),
+            "v1alpha1/cli-envelope.schema.json no longer holds released bytes",
+        ),
+        (
+            lambda directory: (directory / "run-state.schema.json").unlink(),
+            "v1alpha1/run-state.schema.json is committed nowhere",
+        ),
     ],
-    ids=["changed", "missing", "unexpected"],
+    ids=["changed", "missing", "unexpected", "frozen-changed", "frozen-missing"],
 )
 def test_a_frozen_tree_that_moved_is_reported(
     tmp_path: Path, break_it: Any, expected: str

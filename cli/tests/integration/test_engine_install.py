@@ -23,7 +23,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from typer.testing import CliRunner
 
+from techtree.cli.app import create_app
 from techtree.engines import installer as installer_module
 from techtree.engines.bundle import (
     ENGINE_TOOLS,
@@ -412,7 +414,23 @@ def test_a_missing_uv_is_a_named_retryable_failure(
         find_uv()
 
     assert failure.value.code == "uv_not_found"
-    assert failure.value.retryable
+
+
+def test_verifying_an_engine_that_is_not_there_offers_installing_it(
+    tmp_path: Path,
+) -> None:
+    """The one repair for a missing engine is not verifying it again."""
+    result = CliRunner().invoke(
+        create_app(),
+        ["--home", str(tmp_path / "home"), "--json", "engine", "verify"],
+    )
+    envelope = json.loads(result.stdout.splitlines()[-1])
+
+    assert envelope["ok"] is False
+    assert envelope["error"]["code"] == "engine_not_installed"
+    [repair] = envelope["next_actions"]
+    assert repair["operation"] == "action.execute"
+    assert repair["prepared_arguments"]["command"] == ["engine", "install"]
 
 
 def test_an_unsupported_host_is_refused_before_anything_is_downloaded(

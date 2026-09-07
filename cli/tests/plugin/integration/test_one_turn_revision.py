@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from support import envelope, install_fake_cli
+from support import envelope, install_fake_cli, operation_for
 from techtree_hermes.cli.bridge import CliBridge
 from techtree_hermes.cli.constants import PLUGIN_ROOT
 from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
@@ -153,12 +153,12 @@ def _prepared(**overrides: Any) -> dict[str, Any]:
 def _answers(prepared: dict[str, Any] | None = None) -> dict[str, dict[str, Any]]:
     return {
         "uplift context": envelope(
-            command="uplift context",
-            data={"context": CONTEXT, "relative_path": "context.json"},
+            operation=operation_for("uplift context"),
+            facts={"context": CONTEXT, "relative_path": "context.json"},
         ),
         "uplift skill-source": envelope(
-            command="uplift skill-source",
-            data={
+            operation=operation_for("uplift skill-source"),
+            facts={
                 "source_run_id": RUN_ID,
                 "skill_name": "branchcode",
                 "skill_root_digest": ROOT_DIGEST,
@@ -170,12 +170,12 @@ def _answers(prepared: dict[str, Any] | None = None) -> dict[str, dict[str, Any]
             },
         ),
         "uplift prepare": envelope(
-            command="uplift prepare",
-            data=prepared if prepared is not None else _prepared(),
+            operation=operation_for("uplift prepare"),
+            facts=prepared if prepared is not None else _prepared(),
         ),
         "uplift start": envelope(
-            command="uplift start",
-            data={
+            operation=operation_for("uplift start"),
+            facts={
                 "run_id": SECOND_RUN_ID,
                 "draft_id": DRAFT_ID,
                 "draft_digest": DRAFT_DIGEST,
@@ -418,7 +418,7 @@ def test_the_second_run_starts_once_the_diff_and_policy_were_shown(
     )
 
     assert started["ok"] is True
-    assert started["data"]["run_id"] == SECOND_RUN_ID
+    assert started["facts"]["run_id"] == SECOND_RUN_ID
     session = latest_session(services)
     assert session is not None
     assert session.stage is DemoStage.SECOND_RUN_ACTIVE

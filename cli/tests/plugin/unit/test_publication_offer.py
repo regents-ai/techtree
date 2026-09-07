@@ -36,27 +36,39 @@ from techtree_hermes.services.approvals import (
     REVIEWED_ON_HOST_AGENT,
     publish_arguments,
 )
-from techtree_hermes.tools.publish import publication_offer
+from techtree_hermes.tools.publish import PUBLISH_ACTION_LABEL, publication_offer
 from unit.test_tools import RUN_ID, FakeBridge, _call, _envelope, _services
 
 PUBLISH_OFFER: dict[str, Any] = {
-    "id": "publish_run",
-    "label": "Publish this run to the public run log",
+    "operation": "action.prepare",
+    "prepared_arguments": {
+        "command": ["publish"],
+        "arguments": [RUN_ID],
+        "options": {},
+    },
+    "expected_state_digest": None,
+    "side_effect": "public_publication",
+    "approval_required": True,
+    "retry_class": "reconcile_first",
+    "estimated_cost": None,
+    "data_egress": "publication_service",
     "reason": "The proof just verified, so the run's own evidence travels with it.",
-    "cli": ["techtree", "publish", RUN_ID],
-    "hermes_tool": None,
-    "hermes_args": None,
-    "requires_user_confirmation": True,
 }
 
 VERIFY_PROOF: dict[str, Any] = {
-    "id": "verify_proof",
-    "label": "Verify this run's local proof",
+    "operation": "proof.verify",
+    "prepared_arguments": {
+        "command": ["proof", "verify"],
+        "arguments": [RUN_ID],
+        "options": {},
+    },
+    "expected_state_digest": None,
+    "side_effect": "none",
+    "approval_required": False,
+    "retry_class": "safe",
+    "estimated_cost": None,
+    "data_egress": "none",
     "reason": "It checks offline, from the bytes the run stored.",
-    "cli": ["techtree", "proof", "verify", RUN_ID],
-    "hermes_tool": None,
-    "hermes_args": None,
-    "requires_user_confirmation": False,
 }
 
 
@@ -91,7 +103,7 @@ def test_the_offer_is_read_out_of_techtrees_own_next_actions() -> None:
     offer = publication_offer(_with_actions("proof verify", [PUBLISH_OFFER]), RUN_ID)
 
     assert offer is not None
-    assert offer["label"] == PUBLISH_OFFER["label"]
+    assert offer["label"] == PUBLISH_ACTION_LABEL
     assert offer["reason"] == PUBLISH_OFFER["reason"]
     assert offer["run_id"] == RUN_ID
     assert offer["tool"] == "techtree_publish_run"

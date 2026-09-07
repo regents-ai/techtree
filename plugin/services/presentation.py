@@ -64,7 +64,7 @@ class PresentationService:
         compact = is_gateway_safe_required(channel)
         result: dict[str, Any] = {
             "ok": bool(result_envelope.get("ok", True)),
-            "command": "run result",
+            "operation": "result.inspect",
             "channel": channel.value,
             "order": list(GATEWAY_ORDER if compact else TERMINAL_ORDER),
             "presentation": compact_presentation(payload) if compact else dict(payload),
@@ -94,7 +94,7 @@ class PresentationService:
 
 
 def _payload_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any]:
-    data = result_envelope.get("data")
+    data = result_envelope.get("facts")
     payload = data.get("presentation") if isinstance(data, Mapping) else None
     if not isinstance(payload, Mapping):
         raise PluginError(
@@ -105,7 +105,7 @@ def _payload_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def _report_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any] | None:
-    data = result_envelope.get("data")
+    data = result_envelope.get("facts")
     report = data.get("report") if isinstance(data, Mapping) else None
     return report if isinstance(report, Mapping) else None
 
@@ -206,7 +206,7 @@ def completion_summary(result_envelope: Mapping[str, Any]) -> dict[str, Any]:
     The side values remain available here and in ``usage`` for a reader who
     wants the breakdown.
     """
-    data = result_envelope.get("data")
+    data = result_envelope.get("facts")
     payload = data.get("presentation") if isinstance(data, Mapping) else None
     record = data.get("execution_record") if isinstance(data, Mapping) else None
     if not isinstance(record, Mapping):

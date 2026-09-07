@@ -1,13 +1,16 @@
 """``techtree doctor``. Spec section 12.5.
 
-The command decides nothing. It asks the Doctor service what it found, turns
-warnings into messages, turns blocking failures into a typed prerequisite
-error, and hands the whole thing to the envelope machinery. Whether a check
-blocks, and which repairs are worth offering, are the service's calls.
+The command decides nothing. It asks the Doctor service what it found and hands
+the whole thing to the envelope machinery. Whether a check blocks, what each
+failure needs, and which repairs are worth offering are the service's calls.
 
-A blocking failure is reported as a failure — non-zero exit, ``ok`` false — and
-the report still travels in ``data``. A caller that asked what is wrong with
-its machine should get the answer along with the verdict, not instead of it.
+A blocking failure is reported three ways at once, because they answer three
+different questions. The envelope fails — non-zero exit, ``ok`` false — which
+is the verdict. Each blocking check becomes a blocker naming the operations it
+forbids, which is what a host agent branches on. And every check that ran,
+passing or not, stays in ``facts``, because a caller that asked what is wrong
+with its machine should get the answer along with the verdict rather than
+instead of it.
 """
 
 from __future__ import annotations
@@ -23,11 +26,9 @@ from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.doctor.service import DoctorReport, DoctorService
 from techtree.errors import PrerequisiteError
 from techtree.models.campaign import CampaignSpecV2
-from techtree.models.cli import CheckStatus, CliMessage, DoctorCheck, MessageLevel
+from techtree.models.cli import CheckStatus, DoctorCheck, Operation
 
 __all__ = ["doctor_command", "render_doctor_report"]
-
-COMMAND = "doctor"
 
 #: How each status is coloured for a person. Ignored entirely when colour is
 #: off or stdout is not a terminal.
@@ -72,22 +73,13 @@ def doctor_command(
 
         return CommandResult(
             data=service.report(checks),
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="doctor_summary",
-                    text=_summary(len(checks), len(blocking)),
-                )
-            ],
-            warnings=[
-                CliMessage(level=MessageLevel.WARNING, code=check.id, text=check.detail)
-                for check in service.warnings(checks)
-            ],
+            blockers=service.blockers(checks),
+            warnings=service.warnings(checks),
             next_actions=service.next_actions(checks),
             error=_blocking_error(blocking) if blocking else None,
         )
 
-    invoke_command(context, COMMAND, action, render_data=_render)
+    invoke_command(context, Operation.PLAN_INSPECT, action, render_data=_render)
 
 
 def _campaign_for(context: CliContext, reference: str | None) -> CampaignSpecV2 | None:
@@ -103,7 +95,14 @@ def _campaign_for(context: CliContext, reference: str | None) -> CampaignSpecV2 
 
 
 def render_doctor_report(report: DoctorReport, console: Console) -> None:
-    """Print the environment facts and the check table."""
+    """Print the verdict, the environment facts, and the check table."""
+    console.print(
+        _summary(
+            len(report.checks),
+            sum(1 for check in report.checks if check.blocking),
+        )
+    )
+    console.print()
     console.print(f"Techtree {report.versions['package_version']}")
     console.print(f"Home:            {report.techtree_home}")
     console.print(f"Host platform:   {report.host_platform or 'unsupported'}")

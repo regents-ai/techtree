@@ -201,15 +201,17 @@ def test_the_machine_envelope_carries_the_report_and_the_presentation(
 
     assert result.exit_code == EXIT_OK
     assert envelope["ok"] is True
-    assert envelope["data"]["report"]["proof_grade"] == "P1"
-    assert envelope["data"]["presentation"]["verification_status"] == "verified_offline"
+    assert envelope["facts"]["report"]["proof_grade"] == "P1"
+    assert (
+        envelope["facts"]["presentation"]["verification_status"] == "verified_offline"
+    )
 
 
 def test_the_machine_envelope_carries_every_caveat(
     finished: dict[str, Any],
 ) -> None:
     envelope = run_cli(finished["home"], "run", "result", finished["run_id"]).envelope()
-    codes = {caveat["code"] for caveat in envelope["data"]["presentation"]["caveats"]}
+    codes = {caveat["code"] for caveat in envelope["facts"]["presentation"]["caveats"]}
 
     assert "local_participant_attestation" in codes
     assert "no_independent_reproduction" in codes
@@ -233,7 +235,7 @@ def test_the_result_can_be_read_without_verifying_the_proof(
         finished["home"], "run", "result", finished["run_id"], "--no-verify"
     ).envelope()
 
-    assert envelope["data"]["presentation"]["verification_status"] == "not_verified"
+    assert envelope["facts"]["presentation"]["verification_status"] == "not_verified"
 
 
 def test_the_path_format_says_where_the_proof_is(finished: dict[str, Any]) -> None:
