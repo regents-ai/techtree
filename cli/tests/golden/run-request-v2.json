@@ -1,12 +1,12 @@
 {
-  "baseline_manifest_digest": "sha256:16081b1c929c5fc059329632f94a140a96ed8e82e133f136e9e4e2b484e58952",
-  "campaign_spec_digest": "sha256:8e9a9b31c7de92ed47332ce6a181270029823419915cb8b06f0893aab61b48be",
-  "candidate_manifest_digest": "sha256:f8f882a274a7b2f753b3f2ed79d27aaf7d61510873f17c0c049eea9fc0254be3",
+  "baseline_manifest_digest": "sha256:26ea14d44fae660caf948e0659115865f1c17bd850a5100dd04a39a3e3ab0d30",
+  "campaign_spec_digest": "sha256:6c3032e1d63ee66c5d95b4030ead1b45d692c98277ac5916c1069e9b0d03c533",
+  "candidate_manifest_digest": "sha256:566d3b07ea3ecb99f961fb34a6e3e63f82edb3a912f630b2b93484f315f93170",
   "created_at": "2026-01-01T00:00:00Z",
   "data_policy_digest": "sha256:f61fff0ff5941205fca8fc044c81e7a56aed9017539f6927ab9df0e81f70f88b",
   "draft_digest": "sha256:b77b073cd3c2e7a98c7d1ad3c87140885875c51d7f1439765592155d27911dbc",
   "draft_id": "draft_b77b073cd3c2e7a98c7d1ad3c8714088",
-  "execution_plan_digest": "sha256:179d640d0d98a477be09624c4f4c58f411709c7dc4c011d5f92415e0030cddc0",
+  "execution_plan_digest": "sha256:50c38344ecac5aae0fa2a5ab46320871e8e1268a9e033e7446d561576414c030",
   "executor_kind": "verifiers",
   "outcome_contract_digest": null,
   "policy_acknowledgement": {
@@ -16,7 +16,7 @@
   },
   "program_ref": null,
   "public_context": {
-    "climb_digest": "sha256:df6ac14c999316ecdccd2926aa61b443b55aa5aa3fa2b0f792b7aab91ebfb1e4",
+    "climb_digest": "sha256:5b9a4949ed7ab1202187435e59165f3f07bac8b438fad858729dcdad21c47bfd",
     "kind": "climb"
   },
   "run_id": "run_bc5e01438ad71b7de1078aa4a307785a",

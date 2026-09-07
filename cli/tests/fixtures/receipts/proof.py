@@ -166,13 +166,16 @@ def signed_proof(
     sign_receipts: bool = True,
     sign_report: bool = True,
     with_execution_record: bool = True,
+    execution_plan: ResolvedExecutionPlan | None = None,
 ) -> RecordedProof:
     """Build one complete proof, signed by a key created under ``home``.
 
     The keyword arguments exist so that a test can produce a proof that is
     correct in every way except one. That is the only way to check that a
     condition is actually being checked rather than being assumed by a
-    verifier that never met a counterexample.
+    verifier that never met a counterexample. ``execution_plan`` replaces the
+    plan the whole proof is bound to, so every document that names the plan
+    names the replacement and only the replacement's own claims are wrong.
     """
     identity_service = IdentityService(IdentityStore(paths_from_root(home)))
     identity = identity_service.ensure()
@@ -181,7 +184,8 @@ def signed_proof(
     lock = build_taskset_lock()
     evidence = build_validation_evidence(lock)
     validation_receipt = build_validation_receipt(lock, evidence)
-    execution_plan = build_execution_plan()
+    if execution_plan is None:
+        execution_plan = build_execution_plan()
     campaign = build_campaign(
         lock=lock,
         validation_receipt_digest=digest_object(validation_receipt),

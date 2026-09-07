@@ -30,6 +30,7 @@ from typing import Final, NoReturn
 
 from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.errors import ValidationError
+from techtree.execution_facts import bound_execution_plan_digest
 from techtree.fs import ensure_private_directory, fsync_directory, open_exclusive
 from techtree.models.base import ArtifactRef, Digest
 from techtree.models.campaign import (
@@ -132,10 +133,12 @@ def compile_variant_config(
     Every disagreement between the manifest and the Campaign it claims to
     derive from is refused here, before any file is written, because a
     compiled config is the last point at which the two documents can still be
-    compared cheaply. ``plan`` is the execution plan the Campaign binds; its
+    compared cheaply. ``plan`` has to be the execution plan the Campaign
+    binds, and is checked against it by digest rather than trusted: its
     subject plane names the harness the config asks the engine to run.
     """
     campaign_digest = digest_object(campaign)
+    bound_execution_plan_digest(campaign, plan)
     _check_manifest_derives_from(experiment, campaign, campaign_digest)
     _check_variant_matches(experiment, variant)
 

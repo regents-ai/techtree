@@ -6,12 +6,15 @@
     },
     "EvaluationEngineRef": {
       "additionalProperties": false,
-      "description": "Which Verifiers build supplies task identity, task results, and reward.\n\nVerifiers stays authoritative for all three, so the plan names the exact\nbuild rather than a range. The wheel digest is what an offline reader can\ncheck; the version and the commit are what a person can read.",
+      "description": "Which Verifiers build supplies task identity, task results, and reward.\n\nVerifiers stays authoritative for all three, so the plan names the exact\nbuild rather than a range. ``engine_digest`` is the content digest of the\nmanaged engine bundle that installs that build: the same value the\nTasksetLock, the validation receipt and the installed-engine registry\nuse, so an offline reader checks all of them against one number. The\nversion and the commit are what a person can read. The upstream lock\nrecords the published Verifiers wheel on its own; the bundle installs the\npinned source and ships no wheel, so no document here names one.",
       "properties": {
         "api_generation": {
           "const": "v1",
           "title": "Api Generation",
           "type": "string"
+        },
+        "engine_digest": {
+          "$ref": "#/$defs/Digest"
         },
         "kind": {
           "const": "verifiers",
@@ -23,9 +26,6 @@
         },
         "source_commit": {
           "$ref": "#/$defs/NonEmptyString"
-        },
-        "wheel_digest": {
-          "$ref": "#/$defs/Digest"
         }
       },
       "required": [
@@ -33,7 +33,7 @@
         "api_generation",
         "package_version",
         "source_commit",
-        "wheel_digest"
+        "engine_digest"
       ],
       "title": "EvaluationEngineRef",
       "type": "object"

@@ -25,7 +25,13 @@ from typing import Any
 
 import pytest
 
-from fixtures.receipts.proof import RecordedProof, signed_proof, write_proof
+from fixtures.catalog.build_complete import build_execution_plan
+from fixtures.receipts.proof import (
+    PROOF_RUN_ID,
+    RecordedProof,
+    signed_proof,
+    write_proof,
+)
 from techtree.canonical import (
     canonical_json_bytes,
     digest_object,
@@ -35,6 +41,7 @@ from techtree.identity.models import ExecutorIdentity, VerificationResult
 from techtree.identity.store import IdentityStore
 from techtree.models.base import ObjectEnvelope
 from techtree.models.episode_receipt import EpisodeReceiptV2, ScoreStatus
+from techtree.models.evidence import ExecutionLocation, ExecutionLocationKind
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.uplift_report import ComparisonStatus, UpliftDecision
 from techtree.paths import paths_from_root
@@ -63,6 +70,7 @@ from techtree.receipts.execution import (
     OPERATIONAL_EVIDENCE_UNAVAILABLE,
     read_execution_record,
 )
+from techtree.receipts.set import build_receipt_set
 from techtree.receipts.uplift import LocalAttestation
 from techtree.receipts.verify import LocalProofVerifier, verify_local_bundle
 
@@ -384,6 +392,76 @@ def test_a_plan_the_campaign_never_bound_fails_the_binding_itself(
         "linkage.baseline_plan",
         "linkage.candidate_plan",
     } <= set(failed(result))
+
+
+def test_a_plan_naming_another_engine_than_the_receipt_fails_the_linkage(
+    tmp_path: Path,
+) -> None:
+    """The plan's engine is the one the tasks were validated under, or nothing.
+
+    Every document in this proof names the same plan, and every digest and
+    signature checks out; the plan simply names an engine bundle other than
+    the one the validation receipt was issued under. Prepare refuses that
+    Climb and the executor refuses to run it, so a signed bundle that says it
+    happened is refused as well — as the engine binding, not as a changed
+    file.
+    """
+    plan = build_execution_plan()
+    elsewhere = plan.model_copy(
+        update={
+            "evaluation": plan.evaluation.model_copy(
+                update={"engine_digest": f"sha256:{'9' * 64}"}
+            )
+        }
+    )
+    proof = signed_proof(tmp_path / "home", execution_plan=elsewhere)
+    result = verify_local_bundle(write_proof(proof, tmp_path / "run"))
+
+    assert result.verified is False
+    assert "linkage.plan_engine" in failed(result)
+    assert not any(name.endswith("_plan") for name in failed(result))
+
+
+def test_receipts_placed_elsewhere_than_the_plan_fail_their_receipt_set(
+    proof: RecordedProof, tmp_path: Path
+) -> None:
+    """Every receipt has to place its episode where the plan fixes the work.
+
+    The receipts are re-signed by the same key with a hosted location and
+    the receipt sets are rebuilt over them, so the bundle is internally
+    consistent: signatures, digests, commitments and the report's own
+    location all hold. What has to catch it is the receipts being read
+    against the plan, one by one.
+    """
+    hosted = ExecutionLocation(kind=ExecutionLocationKind.PRIME_HOSTED)
+    relocated = {
+        variant: [
+            proof.identity_service.sign_object(
+                envelope.payload.model_copy(update={"execution_location": hosted})
+            )
+            for envelope in envelopes
+        ]
+        for variant, envelopes in proof.receipts.items()
+    }
+    receipt_sets = {
+        variant: build_receipt_set(
+            run_id=PROOF_RUN_ID,
+            variant=variant,
+            experiment_manifest_digest=digest_object(proof.experiments[variant]),
+            signed_receipts=relocated[variant],
+            ordered_task_hashes=proof.taskset_lock.ordered_task_hashes,
+        )
+        for variant in relocated
+    }
+    moved = replace(proof, receipts=relocated, receipt_sets=receipt_sets)
+    result = verify_local_bundle(write_proof(moved, tmp_path / "run"))
+
+    assert result.verified is False
+    assert {
+        "receipt_set.baseline.execution_location",
+        "receipt_set.candidate.execution_location",
+    } <= set(failed(result))
+    assert "linkage.report_location" not in failed(result)
 
 
 def test_a_foreign_public_key_breaks_the_proof(bundle: Path, tmp_path: Path) -> None:

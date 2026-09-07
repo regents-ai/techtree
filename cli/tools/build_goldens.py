@@ -654,7 +654,7 @@ def build_execution_plan() -> ResolvedExecutionPlan:
             api_generation="v1",
             package_version="0.3.1",
             source_commit=PINNED_VERIFIERS_REVISION,
-            wheel_digest=fixture_digest("engine-bundle"),
+            engine_digest=fixture_digest("engine-bundle"),
         ),
         execution=ExecutionBackendSpec(
             kind=ExecutionBackendKind.LOCAL,
@@ -1729,9 +1729,7 @@ def build_climb_summary_v2(
         evaluation_engine_source_commit=(
             compatibility_facts.evaluation_engine_source_commit
         ),
-        evaluation_engine_wheel_digest=(
-            compatibility_facts.evaluation_engine_wheel_digest
-        ),
+        evaluation_engine_digest=(compatibility_facts.evaluation_engine_digest),
         execution_backend_kind=compatibility_facts.execution_backend_kind,
         execution_backend_supported=(compatibility_facts.execution_backend_supported),
         subject_backend_kind=compatibility_facts.subject_backend_kind,

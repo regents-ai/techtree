@@ -466,14 +466,14 @@ class RealVerifiersExecutor:
         two must be the same bytes: a report that cites the plan would
         otherwise name an engine that never scored its episodes.
         """
-        if plan.evaluation.wheel_digest == engine.digest:
+        if plan.evaluation.engine_digest == engine.digest:
             return
         raise ValidationError(
             "the engine this build would run is not the one the Campaign's "
             "execution plan names",
             code=REAL_EXECUTION_UNSUPPORTED,
             details={
-                "plan_engine_digest": plan.evaluation.wheel_digest,
+                "plan_engine_digest": plan.evaluation.engine_digest,
                 "engine_digest": engine.digest,
             },
         )

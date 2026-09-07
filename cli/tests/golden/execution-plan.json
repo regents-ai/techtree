@@ -1,10 +1,10 @@
 {
   "evaluation": {
     "api_generation": "v1",
+    "engine_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92",
     "kind": "verifiers",
     "package_version": "0.3.1",
-    "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
-    "wheel_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92"
+    "source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf"
   },
   "evidence": {
     "coverage_profile_digest": null,

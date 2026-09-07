@@ -43,11 +43,11 @@
         "engine_status": {
           "$ref": "#/$defs/EngineCompatibilityStatus"
         },
+        "evaluation_engine_digest": {
+          "$ref": "#/$defs/Digest"
+        },
         "evaluation_engine_source_commit": {
           "$ref": "#/$defs/NonEmptyString"
-        },
-        "evaluation_engine_wheel_digest": {
-          "$ref": "#/$defs/Digest"
         },
         "execution_backend_kind": {
           "$ref": "#/$defs/ExecutionBackendKind"
@@ -92,7 +92,7 @@
         "engine_status",
         "execution_plan_digest",
         "evaluation_engine_source_commit",
-        "evaluation_engine_wheel_digest",
+        "evaluation_engine_digest",
         "execution_backend_kind",
         "execution_backend_supported",
         "subject_backend_kind",

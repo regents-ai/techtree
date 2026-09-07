@@ -220,7 +220,7 @@ def recorded_execution_plan() -> ResolvedExecutionPlan:
             api_generation="v1",
             package_version=descriptor.verifiers_version,
             source_commit=descriptor.verifiers_revision,
-            wheel_digest=default_engine_digest(),
+            engine_digest=default_engine_digest(),
         ),
         execution=ExecutionBackendSpec(
             kind=ExecutionBackendKind.LOCAL,

@@ -232,7 +232,7 @@ class CatalogService:
         if engine_issue is not None:
             issues.append(engine_issue)
 
-        if facts.evaluation_engine_wheel_digest != engine_digest:
+        if facts.evaluation_engine_digest != engine_digest:
             issues.append(
                 CompatibilityIssue(
                     code="engine_plan_mismatch",
@@ -283,7 +283,7 @@ class CatalogService:
             engine_status=engine_status,
             execution_plan_digest=facts.execution_plan_digest,
             evaluation_engine_source_commit=facts.evaluation_engine_source_commit,
-            evaluation_engine_wheel_digest=facts.evaluation_engine_wheel_digest,
+            evaluation_engine_digest=facts.evaluation_engine_digest,
             execution_backend_kind=facts.execution_backend_kind,
             execution_backend_supported=facts.execution_backend_supported,
             subject_backend_kind=facts.subject_backend_kind,

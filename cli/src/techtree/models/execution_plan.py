@@ -68,15 +68,20 @@ class EvaluationEngineRef(ProtocolModel):
     """Which Verifiers build supplies task identity, task results, and reward.
 
     Verifiers stays authoritative for all three, so the plan names the exact
-    build rather than a range. The wheel digest is what an offline reader can
-    check; the version and the commit are what a person can read.
+    build rather than a range. ``engine_digest`` is the content digest of the
+    managed engine bundle that installs that build: the same value the
+    TasksetLock, the validation receipt and the installed-engine registry
+    use, so an offline reader checks all of them against one number. The
+    version and the commit are what a person can read. The upstream lock
+    records the published Verifiers wheel on its own; the bundle installs the
+    pinned source and ships no wheel, so no document here names one.
     """
 
     kind: Literal["verifiers"]
     api_generation: Literal["v1"]
     package_version: NonEmptyString
     source_commit: NonEmptyString
-    wheel_digest: Digest
+    engine_digest: Digest
 
     @model_validator(mode="after")
     def _check_the_engine_is_pinned_to_content(self) -> Self:

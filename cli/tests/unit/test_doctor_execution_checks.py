@@ -1,7 +1,10 @@
 """The gate in front of a real evaluation. Spec section 6.18.
 
-Two of these checks shell out to Docker and are therefore only asserted on
-where the answer does not depend on the machine. The rest are pure questions
+Two of these checks shell out to Docker. Where a test needs them it puts a
+stand-in ``docker`` on PATH that answers the way the real command boundary
+does on a host with no daemon, or with a daemon that holds no such image; the
+checks and Doctor's classification of their answers are the real ones. What
+Docker itself would do is not verified here. The rest are pure questions
 about a Campaign, a credential name, and an engine directory, and those are
 where the interesting rules live: a placeholder Campaign must be refused, and
 evaluation authentication must be diagnosed as its own thing rather than folded
@@ -12,6 +15,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -49,6 +53,69 @@ def placeholder_campaign() -> CampaignSpecV2:
 def registry(home: Path) -> EngineRegistry:
     """An engine registry over an empty Techtree home."""
     return EngineRegistry(paths_from_root(home), Settings())
+
+
+@pytest.fixture
+def host_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Make one directory the only place Doctor's probes can find tools.
+
+    It starts empty. The two system directories are on the end because a
+    stand-in written in shell needs the ordinary utilities, and neither of
+    them is anywhere a Docker is installed.
+    """
+    directory = tmp_path / "bin"
+    directory.mkdir()
+    monkeypatch.setenv("PATH", f"{directory}:/usr/bin:/bin")
+    return directory
+
+
+NO_DAEMON: Final = (
+    "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. "
+    "Is the docker daemon running?"
+)
+
+
+def standin_docker(directory: Path, *, daemon: bool) -> None:
+    """Put a ``docker`` in ``directory`` that answers at the command boundary.
+
+    With ``daemon`` the stand-in serves a supported platform and holds no
+    image at all; without it every daemon command fails the way the real
+    client does when nothing is listening. Nothing else is answered.
+    """
+    if daemon:
+        answers = [
+            'if [ "$1" = "version" ]; then',
+            "  printf '%s\\n' 'linux/arm64'",
+            "  exit 0",
+            "fi",
+            'if [ "$1" = "image" ]; then',
+            "  printf 'Error response from daemon: No such image: %s\\n' \"$3\" >&2",
+            "  exit 1",
+            "fi",
+        ]
+    else:
+        answers = [
+            'if [ "$1" = "version" ] || [ "$1" = "image" ]; then',
+            f"  printf '%s\\n' '{NO_DAEMON}' >&2",
+            "  exit 1",
+            "fi",
+        ]
+    executable = directory / "docker"
+    executable.write_text(
+        "\n".join(
+            [
+                "#!/bin/sh",
+                'if [ "$1" = "--version" ]; then',
+                "  printf '%s\\n' 'Docker version 0.0.0-standin'",
+                "  exit 0",
+                "fi",
+                *answers,
+                "exit 1",
+                "",
+            ]
+        )
+    )
+    executable.chmod(0o755)
 
 
 # ---------------------------------------------------------------------------
@@ -258,7 +325,8 @@ def test_an_engine_that_is_not_installed_blocks(temp_techtree_home: Path) -> Non
 # ---------------------------------------------------------------------------
 
 
-def test_an_image_that_is_not_present_locally_blocks() -> None:
+def test_an_image_that_is_not_present_locally_blocks(host_path: Path) -> None:
+    standin_docker(host_path, daemon=True)
     runtime = RuntimeSpec(
         type="docker",
         image=f"techtree-nothing-has-this-name@sha256:{'d' * 64}",
@@ -287,8 +355,9 @@ def test_an_image_that_is_not_present_locally_blocks() -> None:
 
 
 def test_without_a_campaign_only_the_machine_questions_are_asked(
-    temp_techtree_home: Path,
+    temp_techtree_home: Path, host_path: Path
 ) -> None:
+    standin_docker(host_path, daemon=False)
     checks = execution_checks(engine_registry=registry(temp_techtree_home))
 
     assert [check.id for check in checks] == [
@@ -298,8 +367,9 @@ def test_without_a_campaign_only_the_machine_questions_are_asked(
 
 
 def test_with_a_campaign_the_subject_questions_are_asked_too(
-    temp_techtree_home: Path,
+    temp_techtree_home: Path, host_path: Path
 ) -> None:
+    standin_docker(host_path, daemon=False)
     checks = execution_checks(
         engine_registry=registry(temp_techtree_home),
         campaign=shipped_campaign(),
@@ -330,8 +400,9 @@ def test_an_ordinary_doctor_asks_none_of_these(temp_techtree_home: Path) -> None
 
 
 def test_the_evaluation_doctor_treats_a_missing_engine_as_a_stop(
-    temp_techtree_home: Path,
+    temp_techtree_home: Path, host_path: Path
 ) -> None:
+    standin_docker(host_path, daemon=False)
     service = DoctorService(paths_from_root(temp_techtree_home), Settings())
 
     checks = service.run(for_evaluation=True)
@@ -341,11 +412,14 @@ def test_the_evaluation_doctor_treats_a_missing_engine_as_a_stop(
 
 
 def test_a_host_that_cannot_run_anything_is_not_told_it_is_ready(
-    temp_techtree_home: Path,
+    temp_techtree_home: Path, host_path: Path
 ) -> None:
+    standin_docker(host_path, daemon=False)
     service = DoctorService(paths_from_root(temp_techtree_home), Settings())
     checks = service.run(for_evaluation=True, campaign=shipped_campaign())
 
+    blocking = {check.id for check in service.blocking_failures(checks)}
     reasons = " ".join(action.reason or "" for action in service.next_actions(checks))
 
+    assert {"execution_docker_platform", "execution_engine_eval"} <= blocking
     assert "This host is ready" not in reasons

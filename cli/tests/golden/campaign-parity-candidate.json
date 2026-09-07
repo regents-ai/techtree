@@ -56,7 +56,7 @@
     "retry_limit": 0,
     "timeout_seconds": 1800
   },
-  "execution_plan_digest": "sha256:b76404db5900af339d387cf96d957d65ee9d309f341cdd88d6365d43b6b9d073",
+  "execution_plan_digest": "sha256:3d5b8faad42f38a435b7f32376c292104ad2aace08b004acb1293a01186cdd6c",
   "kind": "Campaign",
   "metadata": {
     "id": "campaign_f78cd1b191b02c6815c216f9cfe09b34",

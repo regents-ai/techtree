@@ -1,17 +1,17 @@
 {
   "command": "climb show",
   "data": {
-    "campaign_spec_digest": "sha256:8e9a9b31c7de92ed47332ce6a181270029823419915cb8b06f0893aab61b48be",
+    "campaign_spec_digest": "sha256:6c3032e1d63ee66c5d95b4030ead1b45d692c98277ac5916c1069e9b0d03c533",
     "candidate_skill_visibility": "public",
-    "climb_digest": "sha256:df6ac14c999316ecdccd2926aa61b443b55aa5aa3fa2b0f792b7aab91ebfb1e4",
+    "climb_digest": "sha256:5b9a4949ed7ab1202187435e59165f3f07bac8b438fad858729dcdad21c47bfd",
     "compatibility": {
       "compatible": false,
       "engine_status": "not_installed",
+      "evaluation_engine_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92",
       "evaluation_engine_source_commit": "b2e4e8157783b2c0dffc7821044c87f29f1c3ccf",
-      "evaluation_engine_wheel_digest": "sha256:0337fb26178a12a267b7dd3fe4fe7ab67190a454e118b47b4794553b08091b92",
       "execution_backend_kind": "local",
       "execution_backend_supported": true,
-      "execution_plan_digest": "sha256:179d640d0d98a477be09624c4f4c58f411709c7dc4c011d5f92415e0030cddc0",
+      "execution_plan_digest": "sha256:50c38344ecac5aae0fa2a5ab46320871e8e1268a9e033e7446d561576414c030",
       "host_platform": "darwin/arm64",
       "host_supported": true,
       "issues": [

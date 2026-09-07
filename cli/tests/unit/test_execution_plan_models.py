@@ -69,7 +69,7 @@ from techtree.models.execution_plan import (
 
 TASK_DIGEST: Digest = f"sha256:{'11' * 32}"
 PROFILE_DIGEST: Digest = f"sha256:{'22' * 32}"
-WHEEL_DIGEST: Digest = f"sha256:{'33' * 32}"
+ENGINE_DIGEST: Digest = f"sha256:{'33' * 32}"
 POLICY_DIGEST: Digest = f"sha256:{'44' * 32}"
 RECEIPT_DIGEST: Digest = f"sha256:{'55' * 32}"
 MEMBERSHIP_DIGEST: Digest = f"sha256:{'66' * 32}"
@@ -88,7 +88,7 @@ def engine(**overrides: Any) -> EvaluationEngineRef:
         "api_generation": "v1",
         "package_version": "0.3.1",
         "source_commit": PINNED_VERIFIERS_REVISION,
-        "wheel_digest": WHEEL_DIGEST,
+        "engine_digest": ENGINE_DIGEST,
     }
     fields.update(overrides)
     return EvaluationEngineRef(**fields)
@@ -231,7 +231,7 @@ def test_the_pinned_engine_is_valid() -> None:
     reference = engine()
 
     assert reference.source_commit == PINNED_VERIFIERS_REVISION
-    assert reference.wheel_digest == WHEEL_DIGEST
+    assert reference.engine_digest == ENGINE_DIGEST
 
 
 @pytest.mark.parametrize("moving", ["main", "v0.3.1", "b2e4e81"])

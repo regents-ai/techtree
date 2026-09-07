@@ -6,7 +6,7 @@ worktree generates; Sean confirms or renames the release identity before any
 of it reaches main, origin, the plugin, or the website.
 
 Branch `regent/techtree-di5-campaign-write-cutover`, based on
-`a5bfba68bdae71bfaa9bb9bc94a963cb34be93f9`.
+`a5bfba68bdae71bfaa9bb9bc94a963bc34be93f9`.
 
 ## 1. What changed in one sentence
 
@@ -39,8 +39,8 @@ The package version moves with it: `pyproject.toml` and `uv.lock` say
 
 | artifact | digest |
 | --- | --- |
-| `release/release-core.json` (= `src/techtree/resources/release/release-core.json` = `plugin/release-core.json`) | `sha256:f138f02f00e9bbed4e1715a0d32caf420ef7644dca8f397b832081b6d901d97a` |
-| `release-core.catalog_digest` | `sha256:cf1b5f9813d71eb7cfcf3d0367dbe6b3f023d7a0681c21a68a516edfaf49df21` |
+| `release/release-core.json` (= `src/techtree/resources/release/release-core.json` = `plugin/release-core.json`) | `sha256:f81429367dde864907c40f510aadde6b7e2e5b05c306586129a5fa54f45f612e` |
+| `release-core.catalog_digest` | `sha256:edf773ee561c09413d9704046b2d53edff19bc04c0cfbe7d6efee646670a26f3` |
 | `release-core.engine_digest` (unchanged) | `sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b` |
 | `release-core.subject_hermes_version` (unchanged value, now read from the plan's subject plane) | `0.19.0` |
 | `release-core.protocol_version` (unchanged) | `v1alpha1` |
@@ -55,18 +55,23 @@ Index schema `techtree.catalog.v2`; one Climb, five objects.
 
 | object | kind | digest |
 | --- | --- | --- |
-| `climbs/hello-world-climb.json` (`hello-world-climb@1`) | climb | `sha256:989d8a523380291c10cd094e5568770b3c561eb09968ae9eda88ac74cb7da233` |
-| `campaigns/hello-world-climb.json` | campaign (`techtree.campaign.v2`) | `sha256:e19693b7fd951b71d34e29bc2525960208edc120c5b7d61ad14d13ebb9f6e8e0` |
-| `execution-plans/hello-world-climb.json` | execution_plan (new object kind) | `sha256:0a0e12e3cad4fbd190b3737e28749b67aadb128a08289f313ace4c817fac3dae` |
+| `climbs/hello-world-climb.json` (`hello-world-climb@1`) | climb | `sha256:10643f2153f4efd55866ca88dfc9f64852073712dadde22857c6fbff6e2d330c` |
+| `campaigns/hello-world-climb.json` | campaign (`techtree.campaign.v2`) | `sha256:d5e91926076b69401c25c29868d00dad5c057ca4151a141b58186bb811b9f07c` |
+| `execution-plans/hello-world-climb.json` | execution_plan (new object kind) | `sha256:6e3443231e0605c2a07b100507c72bd3c49fa848cf454f79f70666ab922f8eb3` |
 | `taskset-validations/hello-world-climb.json` | taskset_validation | `sha256:4944bd71caa1a295e03325b18a7af753d0d8fcf787189c89244209171cda1302` |
 | `data-policies/hello-world-climb.json` | data_policy | `sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9` |
 | `validation-evidence/hello-world-climb.json` | validation_evidence | `sha256:991be5e42acbd48c6bd9aaf8e1f5a5a2478c0a0e4bf04ad4f2be84b702adee43` |
 
 The Campaign binds the plan by `execution_plan_digest`; the plan's evaluation
-plane names the packaged engine bundle (`wheel_digest` equal to the publisher
-validation receipt's `engine_digest`), so the Climb is preparable. A plan
-whose engine differs from the receipt's is refused at prepare
-(`engine_plan_mismatch`).
+plane names the packaged engine bundle (`evaluation.engine_digest` equal to
+the publisher validation receipt's `engine_digest`), so the Climb is
+preparable. A plan whose engine differs from the receipt's is refused at
+prepare (`engine_plan_mismatch`), by the executor, and by the bundle verifier
+(`linkage.plan_engine`).
+
+The three digests above moved between the first candidate and this one
+because the plan's evaluation field was renamed from `wheel_digest` to
+`engine_digest` (section 8a); the bytes it names are unchanged.
 
 ## 5. Preserved history (byte-identical, verified with `git diff --quiet HEAD`)
 
@@ -126,7 +131,9 @@ files still verify with the v0.1 outcome through `techtree.historical`);
 
 ## 7. Generated artifacts (`make regenerate`, drift-free under `make generated-check`)
 
-- `schemas/v2/`: 9 schemas, one new (`catalog.schema.json`).
+- `schemas/v2/`: 9 schemas, one new (`catalog.schema.json`);
+  `execution-plan`, `compatibility-result` and `climb-summary` carry the
+  `engine_digest` rename.
 - v2 goldens rebuilt over v2 documents: `campaign-parity-candidate`,
   `campaign-v2`, `cli-envelope`, `climb-summary-v2`, `climb-v2`,
   `comparison-execution`, `configuration-comparison`,
@@ -146,15 +153,59 @@ files still verify with the v0.1 outcome through `techtree.historical`);
   the configuration-compatibility policy has the sibling
   (`tests/unit/test_configuration_compatibility.py::test_an_undeclared_plan_move_is_incompatible`).
 - (b) `CompatibilityResultV2.required_engine_digest` (from the validation
-  receipt) and `evaluation_engine_wheel_digest` (from the plan) are
-  reconciled: the packaged plan, the synthetic fixture plan and the golden
-  plan all name the receipt's engine, and a mismatch blocks prepare.
+  receipt) and `evaluation_engine_digest` (from the plan) are reconciled:
+  the packaged plan, the synthetic fixture plan and the golden plan all name
+  the receipt's engine, and a mismatch blocks prepare.
 - (c) Signed v2 receipt and report goldens: `episode-receipt-v2.json`,
   `uplift-report-v2.json`.
 - (d) `executor_kind` is the only live name; `execution_backend` survives
   only inside the historical v0.1 models and on two internal execution
   records (`receipts/execution.py`, `verifiers/models.py`) that are not
   protocol documents. Flagged in section 10 rather than renamed here.
+
+## 8a. Corrections after Astra's review of the first candidate (2026-09-07)
+
+Astra reproduced three acceptances the first candidate should have refused
+(`artifacts/techtree-delivery-audit-2026-09-06/di5-review/reproduce.py`).
+Each is now refused, each has a negative test, and the reproduction script
+(with `wheel_digest` read as `engine_digest`) reports all three rejected.
+
+- Signed receipts placed elsewhere than the plan. `verify_local_bundle`
+  only compared the receipts' `execution_plan_digest`; a bundle whose every
+  receipt said `prime_hosted` under a local plan verified. Every receipt's
+  `execution_location` is now read against the plan's execution plane
+  (`receipt_set.<variant>.execution_location`, `RECEIPT_SET_INVALID`).
+  Test: `tests/unit/test_local_bundle_verify.py::test_receipts_placed_elsewhere_than_the_plan_fail_their_receipt_set`.
+- A supplied plan the Campaign never bound. `compile_variant_config` (and
+  `compile_plans` through it) took `plan` on trust; it now calls
+  `bound_execution_plan_digest(campaign, plan)` before anything is compared
+  or written. `verify_variant_execution` had the same gap and now refuses a
+  plan whose digest is not the manifest's `configuration.execution_plan_digest`
+  (`variant_execution_uncheckable`). Tests:
+  `tests/unit/test_verifiers_compiler.py::test_a_plan_the_campaign_never_bound_is_refused`
+  (nothing written) and
+  `tests/unit/test_verifiers_verify.py::test_a_plan_the_manifest_was_not_resolved_under_cannot_be_verified`.
+- A plan naming another engine than the validation receipt. Prepare and the
+  executor refuse it; the bundle verifier did not. It now records
+  `linkage.plan_engine` (`COMPARISON_INVALID`) comparing
+  `execution_plan.evaluation.engine_digest` with
+  `validation_receipt.engine_digest`. Test:
+  `tests/unit/test_local_bundle_verify.py::test_a_plan_naming_another_engine_than_the_receipt_fails_the_linkage`
+  (fails as the engine binding, not as a moved plan).
+- `EvaluationEngineRef.wheel_digest` renamed to `engine_digest`. The value
+  was always the managed engine bundle's content digest (the engine bundle
+  installs Verifiers from pinned source and ships no wheel; the descriptor's
+  packages carry `source_digest`), and every consumer compares it to the
+  bundle digest: the taskset lock, the validation receipt, the installed-
+  engine registry, the executor and now the bundle verifier. The inherited
+  WP1.8 field `CompatibilityResultV2.evaluation_engine_wheel_digest` had the
+  same conflation and is `evaluation_engine_digest`. The Verifiers wheel
+  itself stays where it was recorded, in `UPSTREAM_CONTRACT_LOCK.json`
+  (`verifiers.wheel_sha256`), unchanged. The rename moves the v2 execution
+  plan, compatibility-result and climb-summary schemas, the packaged plan and
+  everything that hashes it (section 4), the goldens and the synthetic
+  fixture catalog. No v1alpha1 schema, historical document or frozen fixture
+  changed.
 
 ## 9. Acceptance evidence (model-free)
 
@@ -179,58 +230,60 @@ files still verify with the v0.1 outcome through `techtree.historical`);
   `tests/unit/test_local_bundle_verify.py::test_an_unreadable_execution_plan_is_reported_by_name`
   and `tests/unit/test_proof_dispatch.py::test_a_proof_this_build_cannot_place_is_refused_not_guessed`.
 - Tamper fixtures: the existing bundle tamper tests, now over v2 bundles.
+- Internally consistent but wrong bundles and inputs (section 8a): the four
+  negative tests listed there, plus Astra's reproduction script run against
+  this candidate.
 
 ## 10. Decisions and open points for Sean / Astra
 
-1. Confirm the release identity and the exact digests in sections 3 and 4
-   (`climb-v0.2.0`, CLI `0.2.0`), or rename.
-2. `protocol_version` in the ReleaseCore stays `v1alpha1`: the v0.2 documents
+The release identity (`climb-v0.2.0`, CLI `0.2.0`) and the history
+snapshot location `release/history/climb-v0.1.0/` were confirmed in review
+and are no longer open. The digests in sections 3 and 4 are what this
+candidate generates and are read, not approved, until Astra integrates.
+
+1. `protocol_version` in the ReleaseCore stays `v1alpha1`: the v0.2 documents
    are published under `schemas/v2` while the ReleaseCore field still names
    the v1alpha1 protocol. Not changed here because it was not in the
    confirmed field list; say if it should move.
-3. The history snapshot location `release/history/climb-v0.1.0/` is my
-   proposal for keeping the v0.1 release bytes in this repository after the
-   live files move. Accept, or name another place.
-4. `wheel_digest` naming on `EvaluationEngineRef`: the value is the managed
-   engine bundle digest, which is what the receipt calls `engine_digest`.
-   One name would be clearer; left as is because it is a v2 protocol field.
-5. Internal `execution_backend` on `RealExecutionResult` /
+2. Internal `execution_backend` on `RealExecutionResult` /
    `VariantExecutionResult` traces (not protocol documents): rename to
    `executor_kind` in a follow-up, or leave.
-6. The plugin's other recorded CLI envelopes (`climb-show*.json`,
+3. The plugin's other recorded CLI envelopes (`climb-show*.json`,
    `climb-list*.json`, `doctor.json`) still describe the v0.1 CLI's Climb
    summary. They should be re-captured when the plugin is cut over.
-7. Platform importer for `techtree.catalog.v2` / `techtree.campaign.v2` is a
-   separate ticket; `platform/` was not opened.
+4. The platform consumer for `techtree.catalog.v2` / `techtree.campaign.v2`
+   (the platform rejects catalog v2 today and has no `execution_plan` object
+   kind) is Astra's bounded follow-up ticket; `platform/` was not opened and
+   its bytes are unchanged here.
 
 ## 11. Known failures and what was not run
 
-- Four tests in `tests/unit/test_doctor_execution_checks.py` call the real
-  `docker` CLI and hang on this machine because the Docker daemon is
-  unreachable (`docker version` itself hangs). They were deselected from
-  the check run below and are not verified by this candidate:
-  `test_an_image_that_is_not_present_locally_blocks`,
+- Docker itself is not exercised by any check in this candidate. The Docker
+  daemon is unreachable on this machine (`docker version` hangs; Astra's
+  probe of the same host timed out too), so Docker readiness is recorded as
+  unavailable rather than retried. The four tests in
+  `tests/unit/test_doctor_execution_checks.py` that reach the `docker`
+  command (`test_an_image_that_is_not_present_locally_blocks`,
   `test_with_a_campaign_the_subject_questions_are_asked_too`,
   `test_the_evaluation_doctor_treats_a_missing_engine_as_a_stop`,
-  `test_a_host_that_cannot_run_anything_is_not_told_it_is_ready`.
+  `test_a_host_that_cannot_run_anything_is_not_told_it_is_ready`) now put a
+  stand-in `docker` on PATH that answers at the command boundary the way the
+  real client does with no daemon listening, or with a daemon that holds no
+  such image. The checks, and Doctor's classification of their answers, are
+  the real code; what Docker would do with a container is not verified here.
 - `real_model` tests were not run (paid inference is out of authority).
 - No wheel was built, nothing was pushed, published, or signed with a real
   key.
 
-## 12. Check commands and results (this worktree, 2026-09-06)
+## 12. Check commands and results (this worktree, 2026-09-07)
 
-`make -C cli check` cannot complete on this machine because its `pytest`
-step reaches the four Docker-bound doctor tests in section 11 and hangs. The
-same targets were run one by one, with only those four deselected:
+`make check` now completes as one command on this machine; the deselected
+count it reports is the integration and `real_model` markers it excludes by
+default, which are run separately below.
 
 | command | result |
 | --- | --- |
-| `make format-check` | exit 0 |
-| `make lint` | `All checks passed!` |
-| `make typecheck` | `Success: no issues found in 308 source files` |
-| `uv run pytest --deselect <the four doctor tests>` | `4040 passed, 1 skipped, 306 deselected in 411.54s` |
-| `make generated-check` | `generated-check: generated artifacts match the working tree` |
-| `make v02-conformance-preflight` | `6 passed in 17.12s` |
-| `uv run pytest -m "integration and not real_model" tests/integration` (equivalent to `make test-integration`; the `real_model` files are not marked `integration`) | first pass `5 failed, 295 passed, 2 deselected`; the five read run output through the frozen v1 `CampaignSpec`, `UpliftReport` and `EpisodeReceipt` models in `test_cli_flow.py` and `test_local_sign_and_verify.py`, moved to the v2 models, rerun: `33 passed` in those two files |
-| `make check-plugin` | `929 passed`, plugin typecheck clean, plugin doctor passed (release `climb-v0.2.0` pins CLI `0.2.0`) |
-| `make test-plugin` | `929 passed in 90.65s` |
+| `make check` (format-check, lint, typecheck, test, generated-check, v02-conformance-preflight) | exit 0: `388 files already formatted`; `All checks passed!`; `Success: no issues found in 308 source files`; `4048 passed, 1 skipped, 302 deselected in 407.92s`; `generated-check: generated artifacts match the working tree`; preflight `6 passed in 18.34s` |
+| `uv run pytest -m "integration and not real_model" tests/integration` (equivalent to `make test-integration`; the `real_model` files are not marked `integration`) | `300 passed, 2 deselected in 340.28s` |
+| `make check-plugin` | `929 passed in 94.35s`, plugin typecheck clean, plugin doctor passed (release `climb-v0.2.0` pins CLI `0.2.0`) |
+| Astra's three reproductions from the first review, rerun against this tree with `wheel_digest` read as `engine_digest` | contradictory receipt location: rejected, `receipt_set.baseline.execution_location` and `receipt_set.candidate.execution_location` fail; replacement plan: rejected, "this execution plan is not the one the Campaign binds"; plan/validation engine mismatch: rejected, `linkage.plan_engine` fails |

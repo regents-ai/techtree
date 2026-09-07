@@ -459,6 +459,13 @@ def _check_linkage(
             "the candidate experiment was resolved under that same execution plan",
         ),
         (
+            "linkage.plan_engine",
+            documents.execution_plan.evaluation.engine_digest,
+            documents.validation_receipt.engine_digest,
+            "the execution plan names the engine the validation receipt was "
+            "issued under",
+        ),
+        (
             "linkage.campaign_policy",
             documents.campaign.data_policy_digest,
             policy_digest,
@@ -518,9 +525,7 @@ def _check_linkage(
 
     # Where the work ran is the plan's execution plane and nothing else; a
     # report saying otherwise describes an execution the plan did not fix.
-    planned_location = ExecutionLocation(
-        kind=ExecutionLocationKind(documents.execution_plan.execution.kind.value)
-    )
+    planned_location = _planned_location(documents.execution_plan)
     located = report.execution_location == planned_location
     checks.record(
         "linkage.report_location",
@@ -556,6 +561,11 @@ def _check_linkage(
     )
 
 
+def _planned_location(plan: ResolvedExecutionPlan) -> ExecutionLocation:
+    """Return where the plan's execution plane fixes the work to run."""
+    return ExecutionLocation(kind=ExecutionLocationKind(plan.execution.kind.value))
+
+
 def _check_receipts(
     directory: Path,
     documents: _Documents,
@@ -565,6 +575,7 @@ def _check_receipts(
     """Verify every receipt's signature and every variant's commitment."""
     committed = list(documents.taskset_lock.ordered_task_hashes)
     plan_digest = digest_object(documents.execution_plan)
+    planned_location = _planned_location(documents.execution_plan)
     loaded: dict[ExperimentVariant, list[EpisodeReceiptV2]] = {}
 
     for variant in _VARIANT_ORDER:
@@ -622,6 +633,7 @@ def _check_receipts(
             "experiment manifest than the one the bundle carries",
         )
         _check_receipts_plan(variant, envelopes, plan_digest, checks)
+        _check_receipts_location(variant, envelopes, planned_location, checks)
         loaded[variant] = [envelope.payload for envelope in envelopes]
 
     return loaded
@@ -649,6 +661,39 @@ def _check_receipts_plan(
         else (
             f"these {variant.value} receipts name a different execution plan "
             f"than the one the bundle carries: {', '.join(strayed)}"
+        ),
+    )
+
+
+def _check_receipts_location(
+    variant: ExperimentVariant,
+    envelopes: Sequence[ObjectEnvelope[EpisodeReceiptV2]],
+    planned_location: ExecutionLocation,
+    checks: _Checks,
+) -> None:
+    """Require every receipt to place its episode where the plan fixed it.
+
+    Where a receipt says its episode ran is a claim the executor signed; the
+    plan is what the Campaign bound. They are compared receipt by receipt
+    because one is enough: a single episode scored on another plane is a
+    comparison the plan did not describe.
+    """
+    strayed = [
+        str(position)
+        for position, envelope in enumerate(envelopes)
+        if envelope.payload.execution_location != planned_location
+    ]
+    checks.record(
+        f"receipt_set.{variant.value}.execution_location",
+        _PASSED if not strayed else _FAILED,
+        RECEIPT_SET_INVALID,
+        f"the {variant.value} receipts place their episodes where the plan "
+        f"does: {planned_location.kind.value}"
+        if not strayed
+        else (
+            f"these {variant.value} receipts place their episodes elsewhere "
+            f"than the plan's {planned_location.kind.value}: "
+            f"{', '.join(strayed)}"
         ),
     )
 

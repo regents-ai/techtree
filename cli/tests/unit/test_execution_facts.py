@@ -126,7 +126,7 @@ POLICY_DIGEST: Digest = f"sha256:{'44' * 32}"
 RECEIPT_DIGEST: Digest = f"sha256:{'55' * 32}"
 MEMBERSHIP_DIGEST: Digest = f"sha256:{'66' * 32}"
 PACKAGE_DIGEST: Digest = f"sha256:{'77' * 32}"
-WHEEL_DIGEST: Digest = f"sha256:{'33' * 32}"
+ENGINE_DIGEST: Digest = f"sha256:{'33' * 32}"
 MANIFEST_DIGEST: Digest = f"sha256:{'88' * 32}"
 OTHER_DIGEST: Digest = f"sha256:{'99' * 32}"
 
@@ -152,7 +152,7 @@ def build_plan(**overrides: Any) -> ResolvedExecutionPlan:
             api_generation="v1",
             package_version="0.3.1",
             source_commit=PINNED_VERIFIERS_REVISION,
-            wheel_digest=WHEEL_DIGEST,
+            engine_digest=ENGINE_DIGEST,
         ),
         "execution": ExecutionBackendSpec(
             kind=ExecutionBackendKind.LOCAL,
@@ -402,7 +402,7 @@ def test_the_compatibility_facts_carry_the_evaluation_plane() -> None:
     facts = compatibility_result_execution_facts(campaign, plan)
 
     assert facts.evaluation_engine_source_commit == PINNED_VERIFIERS_REVISION
-    assert facts.evaluation_engine_wheel_digest == WHEEL_DIGEST
+    assert facts.evaluation_engine_digest == ENGINE_DIGEST
 
 
 def test_a_plan_this_release_cannot_resolve_is_reported_unsupported() -> None:

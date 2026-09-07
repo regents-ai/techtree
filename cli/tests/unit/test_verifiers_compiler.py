@@ -459,18 +459,70 @@ def test_a_manifest_compiled_under_the_other_variants_name_is_refused(
 def test_a_harness_wp6_cannot_execute_is_refused(
     graph: SyntheticGraph, run_paths: RunPaths
 ) -> None:
-    baseline, _ = manifests(graph)
+    plan = _with_harness_id(graph.execution_plan, "bash")
+    campaign, baseline = _bound_to(graph, plan)
 
     with pytest.raises(ValidationError) as caught:
         compile_variant_config(
-            campaign=graph.campaign,
-            plan=_with_harness_id(graph.execution_plan, "bash"),
+            campaign=campaign,
+            plan=plan,
             experiment=baseline,
             run_paths=run_paths,
             variant=VariantName.BASELINE,
             variant_max_concurrent=1,
         )
     assert caught.value.code == "manifest_not_compilable"
+
+
+def test_a_plan_the_campaign_never_bound_is_refused(
+    graph: SyntheticGraph, run_paths: RunPaths
+) -> None:
+    """The plan compiled from is the one the Campaign binds, checked by digest.
+
+    The manifest and the Campaign agree about which plan they name. That is
+    worth nothing if the plan actually handed to the compiler is another
+    one: the config would ask the engine for a harness neither document
+    fixed. So the supplied plan is refused before either variant is written.
+    """
+    baseline, candidate = manifests(graph)
+    replacement = graph.execution_plan.model_copy(
+        update={
+            "subject": graph.execution_plan.subject.model_copy(
+                update={"harness_version": "999.0.0"}
+            )
+        }
+    )
+
+    with pytest.raises(ValidationError) as caught:
+        compile_plans(
+            campaign=graph.campaign,
+            plan=replacement,
+            baseline=baseline,
+            candidate=candidate,
+            run_paths=run_paths,
+        )
+    assert caught.value.details["plan_digest"] == digest_object(replacement)
+    assert (
+        caught.value.details["campaign_execution_plan_digest"]
+        == graph.campaign.execution_plan_digest
+    )
+    assert not run_paths.root.exists()
+
+
+def _bound_to(
+    graph: SyntheticGraph, plan: ResolvedExecutionPlan
+) -> tuple[CampaignSpecV2, ExperimentManifestV2]:
+    """Return the synthetic Campaign bound to ``plan``, and its baseline."""
+    campaign = graph.campaign.model_copy(
+        update={"execution_plan_digest": digest_object(plan)}
+    )
+    baseline = build_baseline_manifest(
+        campaign=campaign,
+        campaign_digest=digest_object(campaign),
+        public_context=graph.public_context,
+        created_at=PINNED_TIME,
+    )
+    return campaign, baseline
 
 
 def _with_harness_id(

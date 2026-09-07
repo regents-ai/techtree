@@ -350,7 +350,7 @@ def build_execution_plan() -> ResolvedExecutionPlan:
             api_generation="v1",
             package_version="0.3.1",
             source_commit=PINNED_VERIFIERS_REVISION,
-            wheel_digest=synthetic_digest("synthetic-engine-bundle"),
+            engine_digest=synthetic_digest("synthetic-engine-bundle"),
         ),
         execution=ExecutionBackendSpec(
             kind=ExecutionBackendKind.LOCAL,

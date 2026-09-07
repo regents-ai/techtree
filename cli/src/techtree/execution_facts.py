@@ -221,7 +221,7 @@ class CompatibilityResultExecutionFacts:
 
     execution_plan_digest: Digest
     evaluation_engine_source_commit: str
-    evaluation_engine_wheel_digest: Digest
+    evaluation_engine_digest: Digest
     execution_backend_kind: ExecutionBackendKind
     execution_backend_supported: bool
     subject_backend_kind: SubjectBackendKind
@@ -296,7 +296,7 @@ def compatibility_result_execution_facts(
     return CompatibilityResultExecutionFacts(
         execution_plan_digest=bound_execution_plan_digest(campaign, plan),
         evaluation_engine_source_commit=plan.evaluation.source_commit,
-        evaluation_engine_wheel_digest=plan.evaluation.wheel_digest,
+        evaluation_engine_digest=plan.evaluation.engine_digest,
         execution_backend_kind=plan.execution.kind,
         execution_backend_supported=(
             plan.execution.kind in SUPPORTED_EXECUTION_BACKEND_KINDS

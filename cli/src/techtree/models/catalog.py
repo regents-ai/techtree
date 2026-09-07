@@ -295,7 +295,7 @@ class CompatibilityResultV2(ProtocolModel):
     engine_status: EngineCompatibilityStatus
     execution_plan_digest: Digest
     evaluation_engine_source_commit: NonEmptyString
-    evaluation_engine_wheel_digest: Digest
+    evaluation_engine_digest: Digest
     execution_backend_kind: ExecutionBackendKind
     execution_backend_supported: bool
     subject_backend_kind: SubjectBackendKind

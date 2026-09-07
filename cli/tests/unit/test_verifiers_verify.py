@@ -783,3 +783,35 @@ def test_a_manifest_with_no_subject_cannot_be_verified_at_all() -> None:
             primary_reward="synthetic_reward",
         )
     assert caught.value.code == "variant_execution_uncheckable"
+
+
+def test_a_plan_the_manifest_was_not_resolved_under_cannot_be_verified() -> None:
+    """The plan the traces are read against is the manifest's, by digest.
+
+    The harness every trace must have run is read off the plan's subject
+    plane; a plan other than the one the manifest names would make the
+    checks compare the traces against a harness nothing bound.
+    """
+    result, manifest, lock, descriptor = execution_fixture()
+    plan = synthetic_graph().execution_plan
+    other = plan.model_copy(
+        update={
+            "subject": plan.subject.model_copy(update={"harness_version": "999.0.0"})
+        }
+    )
+
+    with pytest.raises(ValidationError) as caught:
+        verify_variant_execution(
+            result=result,
+            experiment=manifest,
+            plan=other,
+            taskset_lock=lock,
+            primary_reward="synthetic_reward",
+            engine=descriptor,
+        )
+    assert caught.value.code == "variant_execution_uncheckable"
+    assert caught.value.details["plan_digest"] == digest_object(other)
+    assert (
+        caught.value.details["manifest_execution_plan_digest"]
+        == manifest.configuration.execution_plan_digest
+    )

@@ -52,6 +52,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
+from techtree.canonical import digest_object
 from techtree.engines.runner import EngineProcessResult, EngineRunner
 from techtree.errors import ValidationError
 from techtree.fs import ensure_private_directory
@@ -459,9 +460,25 @@ def verify_variant_execution(
     subject agent leaves nothing to compare an execution against. Everything
     else is reported as a verdict, because "which rule did this break" is the
     question a caller actually has. ``plan`` is the execution plan the
-    Campaign binds: the harness every trace must have run is its subject
-    plane, which a v0.2 manifest names by digest rather than restating.
+    manifest was resolved under, checked by digest rather than trusted: the
+    harness every trace must have run is its subject plane, which a v0.2
+    manifest names by digest rather than restating.
     """
+    plan_digest = digest_object(plan)
+    if plan_digest != experiment.configuration.execution_plan_digest:
+        raise ValidationError(
+            "this execution plan is not the one the experiment manifest was "
+            "resolved under, so there is nothing to verify this execution against",
+            code=VARIANT_EXECUTION_UNCHECKABLE,
+            details={
+                "manifest_id": experiment.id,
+                "variant": result.variant.value,
+                "manifest_execution_plan_digest": (
+                    experiment.configuration.execution_plan_digest
+                ),
+                "plan_digest": plan_digest,
+            },
+        )
     subject = experiment.configuration.agents.get(SUBJECT_AGENT)
     if subject is None:
         raise ValidationError(
@@ -742,8 +759,6 @@ def _manifest_check(
     result: VariantExecutionResult, experiment: ExperimentManifestV2
 ) -> ExecutionCheck:
     """Whether this result belongs to the manifest it is being checked against."""
-    from techtree.canonical import digest_object
-
     expected = digest_object(experiment)
     matches = result.experiment_manifest_digest == expected
     return ExecutionCheck(

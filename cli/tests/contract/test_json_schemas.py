@@ -341,7 +341,7 @@ def test_the_v2_compatibility_result_judges_every_plane_a_host_can_fail() -> Non
 
     assert {
         "evaluation_engine_source_commit",
-        "evaluation_engine_wheel_digest",
+        "evaluation_engine_digest",
         "execution_backend_kind",
         "execution_backend_supported",
         "subject_backend_kind",
