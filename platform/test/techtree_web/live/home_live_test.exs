@@ -23,19 +23,25 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert text =~ "Improve a Skill."
       assert text =~ "Prove it worked."
-      assert text =~ "Same agent. Same tasks. One Skill changed."
-      assert text =~ "Built on Prime Intellect and NVIDIA NeMo."
+      assert text =~ "Same agent. Same tasks. One Skill upgraded."
+      assert text =~ "Built on Prime Intellect and NVIDIA NeMo"
 
       assert has_element?(
                live,
                ".hero__mechanism > span",
-               "Same agent. Same tasks. One Skill changed."
+               "Same agent. Same tasks. One Skill upgraded."
              )
 
       assert has_element?(
                live,
-               ".hero__mechanism > span",
-               "Built on Prime Intellect and NVIDIA NeMo."
+               ".hero__source-link[href='https://github.com/PrimeIntellect-ai/verifiers']",
+               "Prime Intellect"
+             )
+
+      assert has_element?(
+               live,
+               ".hero__source-link[href='https://github.com/NVIDIA/NeMo-Relay']",
+               "NVIDIA NeMo"
              )
 
       assert has_element?(

@@ -99,8 +99,12 @@ defmodule TechtreeWeb.HomeLive do
               <span class="hero-title__line">Prove it worked.</span>
             </h1>
             <p class="hero__mechanism">
-              <span>Same agent. Same tasks. One Skill changed.</span>
-              <span>Built on Prime Intellect and NVIDIA&nbsp;NeMo.</span>
+              <span>Same agent. Same tasks. One Skill upgraded.</span>
+              <span>
+                Built on
+                <a class="hero__source-link" href="https://github.com/PrimeIntellect-ai/verifiers">Prime Intellect</a>
+                and <a class="hero__source-link" href="https://github.com/NVIDIA/NeMo-Relay">NVIDIA&nbsp;NeMo</a>.
+              </span>
             </p>
             <.installer release={@release} agent_line={@agent_line} />
             <div class="hero__actions">
