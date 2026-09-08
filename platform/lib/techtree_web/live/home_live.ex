@@ -103,7 +103,8 @@ defmodule TechtreeWeb.HomeLive do
               <span>
                 Built on
                 <a class="hero__source-link" href="https://github.com/PrimeIntellect-ai/verifiers">Prime Intellect</a>
-                and <a class="hero__source-link" href="https://github.com/NVIDIA/NeMo-Relay">NVIDIA&nbsp;NeMo</a>.
+                and
+                <a class="hero__source-link" href="https://github.com/NVIDIA/NeMo-Relay">NVIDIA&nbsp;NeMo</a>
               </span>
             </p>
             <.installer release={@release} agent_line={@agent_line} />

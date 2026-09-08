@@ -36,6 +36,7 @@
   white-space: nowrap;
   text-decoration: none;
 }
+.hero--landing .hero__source-link:first-of-type { margin-inline-end: -.25em; }
 .hero--landing .hero__source-link:is(:hover, :focus-visible) {
   text-decoration: underline dotted;
   text-decoration-thickness: 1px;
