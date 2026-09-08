@@ -1,6 +1,24 @@
 # Handoff — Techtree v0.2.0, WP0 closed, WP1 protocol cutover in progress
 
-## Release preparation — 2026-09-08
+## Delivery — 2026-09-08
+
+The accumulated Techtree work is published to GitHub. Required Regent UI, Privy
+and identity sources are published on scoped `release/techtree-libraries-20260908`
+branches; CI pins their exact commits. Unrelated sibling history and dirty source
+work were not pushed. All repository-owned ignore files in scope now exclude
+`local-only-*`; no matching tracked private files were found.
+
+The site has been deployed to Fly and its public pages checked. The existing
+catalog, bootstrap and all five public object digests are unchanged. Check
+`/healthz` for the exact deployed application revision and GitHub Checks for the
+latest CI outcome. The authenticated-CI migration fixture now uses configured
+test credentials rather than a password that only worked with local trust auth.
+
+Execution-foundation work remains next, in the order approved in
+`docs/plan/repo2rlenv-v02x.md`; no paid parity run or new catalog activation is
+implied by this delivery.
+
+## Predeployment verification — 2026-09-08
 
 The founder approved committing/pushing Techtree, deploying the public site and
 the narrow roadmap amendment in `docs/plan/repo2rlenv-v02x.md`. Repo2RLEnv remains
