@@ -10,9 +10,9 @@
 # Debian date on the builder and the runner identical: the release is linked
 # against the builder's libraries and runs against the runner's.
 
-ARG ELIXIR_VERSION=1.19.5
-ARG OTP_VERSION=28.2
-ARG DEBIAN_VERSION=trixie-20260803
+ARG ELIXIR_VERSION=1.20.4
+ARG OTP_VERSION=29.0.6
+ARG DEBIAN_VERSION=trixie-20260824
 ARG TECHTREE_SOURCE_REVISION
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}-slim"

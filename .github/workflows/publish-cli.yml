@@ -22,10 +22,10 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.tag }}
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v10.0.1
       - name: Build the wheel from the approved tag
         working-directory: cli
         run: uv build --wheel
@@ -52,6 +52,6 @@ jobs:
             exit 1
           fi
       - name: Publish with trusted publishing
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@v1.14.2
         with:
           packages-dir: cli/dist/

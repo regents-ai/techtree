@@ -10,8 +10,8 @@ jobs:
     name: CLI and Hermes plugin
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.0.1
       - name: Check CLI
         working-directory: cli
         run: make check
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18.6
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -44,11 +44,11 @@ jobs:
       PGPASSWORD: postgres
       PGHOST: localhost
     steps:
-      - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@v7.0.1
+      - uses: erlef/setup-beam@v1.24.1
         with:
-          elixir-version: 1.19.5
-          otp-version: 28.2
+          elixir-version: 1.20.4
+          otp-version: 29.0.6
       - name: Install dependencies
         working-directory: platform
         run: mix deps.get
@@ -63,10 +63,12 @@ jobs:
     name: Registry contracts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           submodules: recursive
-      - uses: foundry-rs/foundry-toolchain@v1
+      - uses: foundry-rs/foundry-toolchain@v1.9.1
+        with:
+          version: v1.8.1
       - name: Materialize Solidity compiler
         working-directory: contracts
         run: forge build

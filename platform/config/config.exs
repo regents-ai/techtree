@@ -27,6 +27,7 @@ config :ash,
   transaction_rollback_on_error?: true,
   redact_sensitive_values_in_errors?: true,
   many_to_many_destroy_destination_on_match?: true,
+  default_string_length_count: :codepoints,
   known_types: [AshPostgres.Timestamptz, AshPostgres.TimestamptzUsec]
 
 config :spark,
@@ -96,7 +97,7 @@ config :techtree, TechtreeWeb.Endpoint,
 # the homepage can load it on demand; the source-faithful prism ships as a
 # prebuilt, route-only module under priv/static/vendor.
 config :esbuild,
-  version: "0.25.4",
+  version: "0.28.2",
   techtree: [
     args:
       ~w(js/site.js js/crown_island.js js/background_island.js css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),

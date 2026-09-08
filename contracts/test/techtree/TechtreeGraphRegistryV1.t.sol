@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity 0.8.36;
 
 import {Test} from "forge-std/Test.sol";
 import {TechtreeGraphRegistryV1} from "../../src/techtree/TechtreeGraphRegistryV1.sol";

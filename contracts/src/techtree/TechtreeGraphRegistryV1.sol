@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity 0.8.36;
 
 /// @title TechtreeGraphRegistryV1
 /// @notice Stores structural assertions recorded by the Regent registrar for Techtree.
