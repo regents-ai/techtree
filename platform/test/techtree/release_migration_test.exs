@@ -94,7 +94,7 @@ defmodule Techtree.ReleaseMigrationTest do
     Application.put_env(:techtree, Repo, runtime)
 
     url =
-      "postgresql://#{URI.encode_www_form(config[:username])}:fixture@127.0.0.1:#{config[:port] || 5432}/#{name}"
+      direct_database_url(config, name)
 
     System.put_env("DATABASE_DIRECT_URL", url)
 
@@ -133,7 +133,7 @@ defmodule Techtree.ReleaseMigrationTest do
 
     System.put_env(
       "DATABASE_DIRECT_URL",
-      "postgresql://#{URI.encode_www_form(config[:username])}:fixture@127.0.0.1:#{config[:port] || 5432}/#{name}"
+      direct_database_url(config, name)
     )
 
     {:ok, connection} = Postgrex.start_link(database)
@@ -170,6 +170,12 @@ defmodule Techtree.ReleaseMigrationTest do
     after
       GenServer.stop(connection)
     end
+  end
+
+  defp direct_database_url(config, name) do
+    username = URI.encode(config[:username], &URI.char_unreserved?/1)
+    password = URI.encode(config[:password] || "unused", &URI.char_unreserved?/1)
+    "postgresql://#{username}:#{password}@127.0.0.1:#{config[:port] || 5432}/#{name}"
   end
 
   defp disposable_database do
