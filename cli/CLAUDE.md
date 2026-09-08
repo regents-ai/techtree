@@ -42,9 +42,9 @@ artifacts, and the plugin's tests and tooling.
 
 ## Agent guidance
 
-### Triage labels
+### Work coordination
 
-The five canonical roles, each label string equal to its name: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Follow the workspace `regent-workflow`. The founder's current request defines scope; Hermes/Astra coordinates scoped Claude/Fable assignments. Historical ticket IDs and triage labels are reference only and do not impose a tracker workflow. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

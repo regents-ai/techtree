@@ -23,14 +23,10 @@ Keep the three component READMEs useful from their own directories. When a
 change crosses components, update the contract producer and consumer together
 and verify the integration through `make -C cli check-plugin`.
 
-Track work in the monorepo's Beads database with `bd`. Use `bd ready` for
-unblocked work and `bd show <id>` before implementation. Claim the ticket with
-`bd update <id> --claim` before changing code. The v0.2 epic is
-`techtree-31k`; its binding plan and ticket mapping are in
-`docs/plan/v0.2.md` and `docs/v0.2/TICKETS.md`. Post-v0.2.0 work is governed by
-`docs/plan/techtree-market.md`. Export the tracker to
-`.beads/issues.jsonl` after changing tickets so collaborators can reconstruct
-the current issue set.
+Follow the workspace `regent-workflow`: Hermes/Astra coordinates Claude/Fable
+assignments and verifies the integrated result. Current requests define work;
+historical ticket maps and exports are reference material only. Product requirements
+remain in `docs/plan/v0.2.md` and `docs/plan/techtree-market.md`.
 
 For product orientation and related Regent products, see [README.md](README.md).
 The public agent entry point is [platform/priv/static/llms.txt](platform/priv/static/llms.txt);

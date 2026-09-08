@@ -1,4 +1,9 @@
+local-only-*
+
 .DS_Store
+
+# Private planning inputs are not publication artifacts.
+/local-only-planning/
 
 # Beads / Dolt files (added by bd init)
 .dolt/

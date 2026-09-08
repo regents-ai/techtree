@@ -164,8 +164,8 @@ The [v0.2 contract](docs/plan/v0.2.md) and
 [Market and Foundry plan](docs/plan/techtree-market.md) contain existing release
 boundaries. The [delivery audit and implementation sequence](docs/plan/techtree-delivery-audit-2026-09-06.md)
 reconciles current work and identifies the additional forum scope. The
-[ticket ledger](docs/v0.2/TICKETS.md) maps the original work packages; live `bd`
-records carry their status.
+[ticket ledger](docs/v0.2/TICKETS.md) maps the original work packages as
+historical reference; [HANDOFF.md](HANDOFF.md) carries current status.
 
 <details>
 <summary>Collaboration, competition, and USDC</summary>

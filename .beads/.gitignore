@@ -1,3 +1,5 @@
+local-only-*
+
 # Dolt database (managed by Dolt, not git)
 dolt/
 embeddeddolt/
