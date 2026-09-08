@@ -166,6 +166,21 @@ are hashed again on every read.
 
 ## The catalog bundle
 
+The live importer accepts `techtree.catalog.v2` and `techtree.campaign.v2`.
+Each Campaign must bind a shipped `techtree.execution-plan.v1` object by its
+raw-byte digest. Imports reject absent, wrong-kind, or unsupported-schema plans;
+the API serves their exact bytes like every other content-addressed object.
+Published v2 reports must name that same Campaign and execution plan. The HTTP
+route and publication-submission envelope versions are unchanged.
+
+Publication tests use a synthetic v2 proof and CLI-produced submission in
+`test/support/fixtures/proof-v2/` and `test/support/fixtures/publication/`.
+Regenerate them with `uv run --project ../cli python scripts/build_v2_proof_fixture.py`.
+The generator verifies its output with the CLI and creates a fresh disposable
+signing key, so signatures change on regeneration. This is protocol conformance,
+not a paid evaluation or release certification. The archived v0.1 proof under
+`test/support/fixtures/proof/` remains unchanged.
+
 `priv/catalog` holds the generated export rather than committed source. The
 `cli/` component is the single owner of those artifacts.
 Sync one in before importing:
@@ -197,6 +212,22 @@ mix catalog.import --path priv/catalog
 
 Both exit nonzero on failure. A failed import leaves the previously active
 release serving exactly what it was serving.
+
+### Dependency security
+
+The security update locks Ash 3.33.0, AshPhoenix 2.3.25, Bandit 1.12.5 and
+Privy React Auth 3.40.0. Ash string lengths explicitly count codepoints.
+The npm overrides select patched Axios and UUID, patched `ws` under Viem,
+and WalletConnect Ethereum Provider 2.22.4 to remove the older vulnerable
+transitive dependency branch. Keep the overrides until upstream constraints
+resolve to patched versions without them; do not remove them merely because
+the asset build passes.
+
+After dependency changes, run `npm ci --ignore-scripts` and `npm audit` in
+`assets/`, audit the exact Hex versions in `mix.lock` against OSV, and run
+`make check-platform` from the monorepo root. Tests and asset compilation are
+compatibility checks, not substitutes for vulnerability audits. Live Privy
+login and wallet signing still require a separate release smoke test.
 
 ## The pages
 
@@ -280,7 +311,7 @@ This setting does not bootstrap a fresh namespaced database or change runtime gr
 
 The UI source remains in `design-system/regent_ui`. Before a standalone Docker or
 Fly build, prepare the release worktree and run
-`regentctl worktree-run techtree <ticket> -- mix regent_ui.stage`.
+`mix regent_ui.stage`.
 Staging requires the selected pinned dependency snapshot, verifies package content,
 and records its revision and SHA256 in `.regent-ui-generated`. Keep that evidence
 with the release. This creates ignored `vendor/regent_ui`; the Dockerfile uses that generated

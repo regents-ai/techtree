@@ -20,9 +20,11 @@ defmodule TechtreeWeb.Layouts do
 
   def page(assigns) do
     ~H"""
-    <main id="main-content" class={["page", @wide && "page--wide", @flush && "page--flush"]}>
-      {render_slot(@inner_block)}
-    </main>
+    <Regent.Structure.row rail={false}>
+      <main id="main-content" class={["page", @wide && "page--wide", @flush && "page--flush"]}>
+        {render_slot(@inner_block)}
+      </main>
+    </Regent.Structure.row>
 
     <.product_links />
     """
@@ -71,13 +73,10 @@ defmodule TechtreeWeb.Layouts do
             <a href={~p"/results"} aria-current={current_section(@current_path, "/results")}>
               Results
             </a>
-            <a href={~p"/proofs"} aria-current={current_section(@current_path, "/proofs")}>
+            <a href={~p"/verify"} aria-current={current_section(@current_path, "/verify")}>
               Verify
             </a>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
-            <a href={~p"/profile"} aria-current={current_section(@current_path, "/profile")}>
-              Profile
-            </a>
           </span>
           <a
             class="masthead__github"
@@ -96,7 +95,8 @@ defmodule TechtreeWeb.Layouts do
             </svg>
           </a>
         </nav>
-        <button
+        <Regent.Primitives.button
+          variant="secondary"
           id="site-theme-toggle"
           class="theme-toggle"
           type="button"
@@ -117,7 +117,7 @@ defmodule TechtreeWeb.Layouts do
             </span>
           </span>
           <span class="offscreen" data-theme-toggle-state>{@theme_name} theme active</span>
-        </button>
+        </Regent.Primitives.button>
       </div>
     </header>
     """
@@ -129,6 +129,8 @@ defmodule TechtreeWeb.Layouts do
       _conn -> true
     end
   end
+
+  defp current_section("/proofs", "/verify"), do: "page"
 
   defp current_section(path, root) when is_binary(path) do
     if path == root or String.starts_with?(path, root <> "/"), do: "page"
@@ -155,9 +157,13 @@ defmodule TechtreeWeb.Layouts do
   defp description_for_path("/results"),
     do: "Browse participant-attested Results from controlled Skill comparisons."
 
-  defp description_for_path("/proofs"),
+  defp description_for_path(path) when path in ["/proofs", "/verify"],
     do:
       "Understand what Techtree verifies, what remains unproven, and how to check a Result offline."
+
+  defp description_for_path("/repo2rlenv"),
+    do:
+      "Repo2RLEnv: Techtree’s planned first service for turning repositories into reproducible reinforcement-learning environments."
 
   defp description_for_path("/docs"),
     do: "Install, operate, verify, publish, and integrate Techtree."
@@ -174,18 +180,20 @@ defmodule TechtreeWeb.Layouts do
   @doc "Product and source discovery without loading a browser integration."
   def product_links(assigns) do
     ~H"""
-    <footer aria-label="Project links" class="product-links">
-      <a href="https://github.com/regents-ai/techtree" rel="noopener noreferrer">Star on GitHub</a>
-      <a href="/llms.txt">For agents</a>
-      <details>
-        <summary>Regents Labs</summary>
-        <nav aria-label="Related products" class="product-links__related">
-          <a href="https://regents.sh">Regents</a>
-          <a href="https://autolaunch.sh">Autolaunch</a>
-          <a href="https://patchbay.help">Patchbay</a>
-        </nav>
-      </details>
-    </footer>
+    <Regent.Structure.row rail={false}>
+      <footer aria-label="Project links" class="product-links">
+        <a href="https://github.com/regents-ai/techtree" rel="noopener noreferrer">Star on GitHub</a>
+        <a href="/llms.txt">For agents</a>
+        <a href={~p"/repo2rlenv"}>Repo2RLEnv · Planned</a>
+        <Regent.Primitives.disclosure id="related-products" summary="Regents Labs">
+          <nav aria-label="Related products" class="product-links__related">
+            <a href="https://regents.sh">Regents</a>
+            <a href="https://autolaunch.sh">Autolaunch</a>
+            <a href="https://patchbay.help">Patchbay</a>
+          </nav>
+        </Regent.Primitives.disclosure>
+      </footer>
+    </Regent.Structure.row>
     """
   end
 end

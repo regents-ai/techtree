@@ -10,6 +10,13 @@ defmodule TechtreeWeb.ErrorHTMLTest do
     assert html =~ "This page is not part of Techtree."
     assert html =~ ~s|href="/"|
     assert html =~ ~s|href="/results"|
+
+    dark =
+      render_to_string(TechtreeWeb.ErrorHTML, "404", "html",
+        conn: build_conn() |> put_req_header("cookie", "techtree_theme=dark")
+      )
+
+    assert dark =~ ~s(data-theme="dark")
   end
 
   test "renders 500.html" do

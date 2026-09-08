@@ -16,7 +16,7 @@ defmodule TechtreeWeb.PageCopy do
   def page_copy(assigns) do
     ~H"""
     <div class="pagecopy" data-markdown-skip>
-      <button
+      <Regent.Primitives.button
         type="button"
         class="pagecopy__main"
         id="copy-page"
@@ -24,20 +24,20 @@ defmodule TechtreeWeb.PageCopy do
         phx-update="ignore"
       >
         <span data-copy-label>Copy page</span>
-      </button>
+      </Regent.Primitives.button>
       <span
         class="offscreen"
         data-copy-status
         role="status"
         aria-live="polite"
         aria-atomic="true"
-      >
-      </span>
+      ></span>
       <details>
         <summary aria-label="More ways to take this page">⌄</summary>
         <div class="pagecopy__menu">
-          <button
+          <Regent.Primitives.button
             type="button"
+            variant="quiet"
             class="pagecopy__item"
             id="copy-page-menu"
             phx-hook="CopyCommandPage"
@@ -45,24 +45,24 @@ defmodule TechtreeWeb.PageCopy do
           >
             <span data-copy-label>Copy page</span>
             <small>Copy page as Markdown for agents</small>
-          </button>
+          </Regent.Primitives.button>
           <span
             class="offscreen"
             data-copy-status
             role="status"
             aria-live="polite"
             aria-atomic="true"
-          >
-          </span>
-          <button
+          ></span>
+          <Regent.Primitives.button
             type="button"
+            variant="quiet"
             class="pagecopy__item"
             id="view-page-markdown"
             phx-hook="CopyCommandPageView"
             phx-update="ignore"
           >
             View as Markdown <small>Open this page as plain text</small>
-          </button>
+          </Regent.Primitives.button>
         </div>
       </details>
     </div>

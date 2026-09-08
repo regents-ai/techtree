@@ -32,6 +32,7 @@ defmodule Techtree.Network.Query do
 
   alias Techtree.Network
   alias Techtree.Network.PublicationEntry
+  alias Techtree.Network.AgentVersions
 
   @typedoc """
   One page of the log, and where the next one starts.
@@ -53,7 +54,13 @@ defmodule Techtree.Network.Query do
     # is another one without counting the whole log.
     found =
       PublicationEntry
-      |> Ash.Query.for_read(:list_log, %{before_sequence: before})
+      |> Ash.Query.for_read(:list_log, %{
+        before_sequence: before,
+        agent: Keyword.get(options, :agent),
+        agent_version: Keyword.get(options, :agent_version),
+        model: Keyword.get(options, :model),
+        challenge: Keyword.get(options, :challenge)
+      })
       |> Ash.Query.limit(limit + 1)
       |> Ash.read!()
 
@@ -65,6 +72,38 @@ defmodule Techtree.Network.Query do
       end
 
     %{entries: entries, next_before_sequence: next}
+  end
+
+  @doc "Submitted agent versions, discovered independently of result pagination."
+  def agent_families do
+    PublicationEntry
+    |> Ash.Query.for_read(:agent_versions)
+    |> Ash.Query.distinct([:subject_harness, :subject_harness_version])
+    |> Ash.Query.distinct_sort(log_sequence: :asc)
+    |> Ash.read!()
+    |> AgentVersions.families()
+  end
+
+  @doc "Model choices for one submitted harness version, independent of pagination."
+  def result_models(agent, version) do
+    PublicationEntry
+    |> Ash.Query.for_read(:list_log, %{agent: agent, agent_version: version})
+    |> Ash.Query.select([:subject_model, :log_sequence])
+    |> Ash.Query.distinct(:subject_model)
+    |> Ash.Query.distinct_sort(log_sequence: :desc)
+    |> Ash.read!()
+    |> Enum.map(& &1.subject_model)
+  end
+
+  @doc "Exact Campaign choices for one harness version and model; never merge by title."
+  def result_challenges(agent, version, model) do
+    PublicationEntry
+    |> Ash.Query.for_read(:list_log, %{agent: agent, agent_version: version, model: model})
+    |> Ash.Query.select([:campaign_spec_digest, :campaign_name, :climb_reference, :log_sequence])
+    |> Ash.Query.distinct(:campaign_spec_digest)
+    |> Ash.Query.distinct_sort(log_sequence: :desc)
+    |> Ash.read!()
+    |> Enum.map(&Map.take(&1, [:campaign_spec_digest, :campaign_name, :climb_reference]))
   end
 
   @doc """
@@ -104,10 +143,43 @@ defmodule Techtree.Network.Query do
   @spec read_page_options(map()) :: {:ok, keyword()} | {:error, String.t()}
   def read_page_options(params) when is_map(params) do
     with {:ok, before} <- sequence(Map.get(params, "before_sequence")),
-         {:ok, limit} <- limit(Map.get(params, "limit")) do
-      {:ok, [before_sequence: before, limit: limit]}
+         {:ok, limit} <- limit(Map.get(params, "limit")),
+         {:ok, selection} <- agent_options(params),
+         {:ok, model} <- coordinate(Map.get(params, "model"), "model"),
+         {:ok, challenge} <- coordinate(Map.get(params, "challenge"), "challenge") do
+      {:ok,
+       [before_sequence: before, limit: limit, model: model, challenge: challenge] ++ selection}
     end
   end
+
+  defp agent_options(params) do
+    case {Map.get(params, "agent"), Map.get(params, "agent_version")} do
+      {nil, nil} ->
+        {:ok, []}
+
+      {agent, version}
+      when is_binary(agent) and is_binary(version) and byte_size(agent) in 1..128 and
+             byte_size(version) in 1..128 ->
+        if String.trim(agent) != "" and String.trim(version) != "" do
+          {:ok, [agent: agent, agent_version: version]}
+        else
+          {:error, "agent and agent_version must both be nonempty version coordinates"}
+        end
+
+      _ ->
+        {:error, "agent and agent_version must both be nonempty version coordinates"}
+    end
+  end
+
+  defp coordinate(nil, _name), do: {:ok, nil}
+
+  defp coordinate(value, name) when is_binary(value) and byte_size(value) in 1..512 do
+    if String.trim(value) == "",
+      do: {:error, "#{name} must be a nonempty Result coordinate"},
+      else: {:ok, value}
+  end
+
+  defp coordinate(_value, name), do: {:error, "#{name} must be a nonempty Result coordinate"}
 
   defp sequence(nil), do: {:ok, nil}
 

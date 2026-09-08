@@ -40,7 +40,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
              ~s|#comparison a[href="https://github.com/NousResearch/hermes-agent"]|
            )
 
-    assert has_element?(live, "#verifier-checks h2", "performs #{count} checks")
+    assert has_element?(live, "#verifier-checks summary", "#{count} checks")
 
     for {_name, words} <- Techtree.Network.Bundle.checks() do
       assert has_element?(live, "#verifier-checks .checks li", words)

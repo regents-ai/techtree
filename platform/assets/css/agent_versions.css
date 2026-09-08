@@ -1,0 +1,15 @@
+/* Submitted-version navigation uses the product's shared palette and type. */
+#agent-version-browser { margin-block: 1.5rem; padding-block: 1rem; border-block: 1px solid var(--rule); min-width: 0; }
+.agent-versions__families, .agent-versions__carousel, .agent-versions__list { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+.agent-versions__families { flex-wrap: wrap; margin-bottom: .75rem; }
+.agent-versions__list { overflow-x: auto; flex: 1; padding: .25rem; scroll-snap-type: x proximity; }
+#agent-version-browser a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: .5rem .8rem; border: 1px solid var(--rule); color: var(--ink); text-decoration: none; flex-shrink: 0; scroll-snap-align: start; }
+#agent-version-browser a[aria-current="page"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+#agent-version-browser a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+#agent-version-browser a span { margin-left: .3em; font-size: .8em; }
+#agent-version-summary { margin-top: .8rem; color: var(--ink-quiet); font-size: .875rem; }
+#agent-version-error { color: var(--failed); margin-block: 1rem; }
+@media (max-width: 40rem) {
+  .agent-versions__carousel { flex-wrap: wrap; }
+  .agent-versions__list { order: -1; flex-basis: 100%; }
+}

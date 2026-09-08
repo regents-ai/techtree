@@ -99,10 +99,30 @@ defmodule Techtree.Network.PublicationEntry do
       description "The log, newest arrival first, from a sequence the caller already holds."
 
       argument :before_sequence, :integer, allow_nil?: true
+      argument :agent, :string, allow_nil?: true, constraints: [trim?: false, allow_empty?: true]
+
+      argument :agent_version, :string,
+        allow_nil?: true,
+        constraints: [trim?: false, allow_empty?: true]
+
+      argument :model, :string, allow_nil?: true, constraints: [trim?: false, allow_empty?: true]
+
+      argument :challenge, :string,
+        allow_nil?: true,
+        constraints: [trim?: false, allow_empty?: true]
 
       filter expr(is_nil(^arg(:before_sequence)) or log_sequence < ^arg(:before_sequence))
+      filter expr(is_nil(^arg(:agent)) or subject_harness == ^arg(:agent))
+      filter expr(is_nil(^arg(:agent_version)) or subject_harness_version == ^arg(:agent_version))
+      filter expr(is_nil(^arg(:model)) or subject_model == ^arg(:model))
+      filter expr(is_nil(^arg(:challenge)) or campaign_spec_digest == ^arg(:challenge))
 
       prepare build(sort: [log_sequence: :desc])
+    end
+
+    read :agent_versions do
+      description "Version coordinates across the entire accepted log, without proof bytes."
+      prepare build(select: [:subject_harness, :subject_harness_version, :log_sequence])
     end
 
     read :get_by_digest do

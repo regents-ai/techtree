@@ -128,8 +128,12 @@ defmodule TechtreeWeb.RunsLive.Show do
           </:fact>
         </.definition_list>
 
-        <details class="integrity-details">
-          <summary>Integrity details</summary>
+        <Regent.Primitives.disclosure
+          id="run-integrity-details"
+          summary="Integrity details"
+          index="01"
+          class="integrity-details"
+        >
           <.definition_list>
             <:fact term="Climb fingerprint">
               <.digest
@@ -153,7 +157,7 @@ defmodule TechtreeWeb.RunsLive.Show do
             <:fact term="Protocol grade">{@entry.proof_grade}</:fact>
             <:fact term="Publisher key"><.digest value={@entry.participant_key_id} /></:fact>
           </.definition_list>
-        </details>
+        </Regent.Primitives.disclosure>
       </section>
 
       <section class="section">
@@ -171,8 +175,9 @@ defmodule TechtreeWeb.RunsLive.Show do
         <p class="eyebrow">{@entry.task_count} tasks</p>
         <h2>Task by task</h2>
         <div class="tasks__filters" aria-label="Filter task outcomes">
-          <button
+          <Regent.Primitives.button
             :for={{filter, label, count} <- task_filters(@entry)}
+            variant="secondary"
             id={"task-filter-#{filter}"}
             type="button"
             class="tasks__filter"
@@ -181,12 +186,18 @@ defmodule TechtreeWeb.RunsLive.Show do
             phx-value-filter={filter}
           >
             {label} {count}
-          </button>
+          </Regent.Primitives.button>
         </div>
         <p id="task-filter-status" class="offscreen" aria-live="polite">
           {filter_status(@task_filter, length(@filtered_tasks))}
         </p>
-        <div id="task-results" class="tasks">
+        <div
+          id="task-results"
+          class="tasks"
+          role="region"
+          aria-label="Task results, scroll horizontally for all scores"
+          tabindex="0"
+        >
           <p class="tasks__row tasks__head" aria-hidden="true">
             <span>Task</span>
             <span class="tasks__number">Without</span>

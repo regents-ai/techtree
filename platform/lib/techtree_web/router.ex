@@ -27,10 +27,6 @@ defmodule TechtreeWeb.Router do
     }
   end
 
-  pipeline :profile_browser do
-    plug TechtreeWeb.Plugs.ProfileBrowserPolicy
-  end
-
   pipeline :api do
     plug :accepts, ["json"]
     plug :put_public_api_headers
@@ -43,11 +39,8 @@ defmodule TechtreeWeb.Router do
     plug TechtreeWeb.PublicationRate
   end
 
-  scope "/", TechtreeWeb do
-    pipe_through [:browser, :profile_browser]
-    get "/profile", SharedProfileController, :show
-  end
-
+  # The public profile page is temporarily withdrawn. Keep the owner-only
+  # API and implementation intact for its later return.
   scope "/api/v1", TechtreeWeb do
     pipe_through :api
     get "/profile", SharedProfileController, :read
@@ -61,6 +54,8 @@ defmodule TechtreeWeb.Router do
     live "/", HomeLive
     live "/docs", DocsLive
     live "/proofs", ProofsLive
+    live "/verify", ProofsLive
+    live "/repo2rlenv", Repo2RLEnvLive
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show
     get "/skill.md", SkillController, :show

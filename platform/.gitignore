@@ -1,3 +1,5 @@
+local-only-*
+
 # The directory Mix will write compiled artifacts to.
 /_build/
 
@@ -55,6 +57,7 @@ npm-debug.log
 
 # Generated from the pinned Regent UI package.
 /priv/static/images/regent-ui/
+/priv/static/fonts/regent-ui/
 
 /assets/vendor/regent_identity/
 

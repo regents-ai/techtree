@@ -62,12 +62,14 @@ defmodule TechtreeWeb.PagesTest do
       refute html =~ "The connection to the site dropped"
     end
 
-    test "the homepage keeps its background while other pages use the shared SVG", %{conn: conn} do
+    test "every page uses a ruled frame without a page background", %{conn: conn} do
       home = conn |> get("/") |> html_response(200) |> LazyHTML.from_document()
-      refute Enum.empty?(LazyHTML.query(home, "#site-background-canvas"))
+      assert Enum.empty?(LazyHTML.query(home, "#site-background-canvas"))
+      refute Enum.empty?(LazyHTML.query(home, ".rg-frame"))
       assert Enum.empty?(LazyHTML.query(home, ".rg-site-background"))
       results = conn |> get("/results") |> html_response(200) |> LazyHTML.from_document()
-      refute Enum.empty?(LazyHTML.query(results, ".rg-site-background[aria-hidden=true]"))
+      assert Enum.empty?(LazyHTML.query(results, ".rg-site-background"))
+      refute Enum.empty?(LazyHTML.query(results, ".rg-frame"))
       assert Enum.empty?(LazyHTML.query(results, "#site-background-canvas"))
     end
 
@@ -173,10 +175,15 @@ defmodule TechtreeWeb.PagesTest do
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
 
-        # No fixed pixel widths, and no table: the long values on these pages are
-        # fingerprints and commands, which wrap or scroll inside their own box.
+        # Long values wrap or scroll inside their own box. The Results table
+        # has an explicit horizontal scroll region rather than widening the page.
         refute html =~ ~r/style="[^"]*width:\s*\d{3,}px/
-        refute html =~ ~r/<table/
+
+        if html =~ "<table" do
+          document = LazyHTML.from_document(html)
+          refute Enum.empty?(LazyHTML.query(document, ".runs-index__table-frame table"))
+        end
+
         refute html =~ ~r/white-space:\s*nowrap/
       end
     end

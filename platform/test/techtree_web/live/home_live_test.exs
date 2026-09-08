@@ -23,19 +23,19 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert text =~ "Improve a Skill."
       assert text =~ "Prove it worked."
-      assert text =~ "Opinionated Stack for Agent Skill Uplift."
-      assert text =~ "Built on Prime Intellect and NVIDIA NeMo."
+      assert text =~ "Same agent. Same tasks. One Skill changed."
+      assert text =~ "Built on Prime Intellect and NVIDIA NeMo."
 
       assert has_element?(
                live,
                ".hero__mechanism > span",
-               "Opinionated Stack for Agent Skill Uplift."
+               "Same agent. Same tasks. One Skill changed."
              )
 
       assert has_element?(
                live,
                ".hero__mechanism > span",
-               "Built on Prime Intellect and NVIDIA NeMo."
+               "Built on Prime Intellect and NVIDIA NeMo."
              )
 
       assert has_element?(
@@ -49,10 +49,10 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, "section.hero")
       refute has_element?(live, "section.hero[data-hero-stage]")
 
-      assert text =~ "Techtree v0.1 · development release"
+      assert text =~ "Controlled agent evaluations"
     end
 
-    test "the copy renders immediately while only the GPU visuals fade in", %{conn: conn} do
+    test "the copy remains visible beside a bounded crown canvas", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
       css = File.read!("assets/css/app.css")
       javascript = File.read!("assets/js/app.js")
@@ -61,30 +61,31 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute css =~ "hero-reveal-failsafe"
       refute javascript =~ "heroFallback"
       refute javascript =~ "hero.dataset.heroStage"
-      assert javascript =~ "siteBackgroundController?.mount()"
-      assert css =~ ~s|.site-background[data-optics-ready="true"] .site-background__canvas|
-      assert css =~ "transition: opacity 180ms"
+      refute javascript =~ "siteBackgroundController?.mount()"
+      refute has_element?(live, "#site-background-canvas")
+      assert has_element?(live, "#hero-crown canvas#hero-crown-canvas")
+      assert css =~ ~s|@import "./techtree_home.css"|
     end
 
-    test "the crown comparison route renders the same 13-cube homepage", %{conn: conn} do
+    test "the crown comparison route retains the bounded homepage study", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/crown/1")
 
       assert visible_text(html) =~ "Improve a Skill."
 
       assert has_element?(
                live,
-               ~s|#hero-crown[phx-hook="Optics"][phx-update="ignore"][data-optics-kind="crown"][data-crown-variant="1"] canvas[data-optics-canvas]|
+               ~s|#hero-crown[data-crown-variant="1"] canvas#hero-crown-canvas|
              )
 
       assert has_element?(live, "#crown-study-1[aria-current=page]")
     end
 
-    test "the hero points to the release section below it", %{conn: conn} do
+    test "the hero points to the planned service below it", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(
                live,
-               ~s|a.hero__more[href="#what-this-release-is"][aria-label="Continue to the v0.1 release section"] svg|
+               ~s|a.hero__more[href="#first-service"][aria-label="Explore Techtree’s first planned service"] svg|
              )
     end
 
@@ -97,7 +98,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, "#copy-home-agent-line")
       assert text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
-      assert has_element?(live, ~s|a[href="/proofs"]|, "What verification establishes")
+      assert has_element?(live, ~s|a[href="/verify"]|, "What verification establishes")
     end
 
     @tag :tmp_dir
@@ -182,7 +183,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               ~s|#hero-crown[phx-hook="Optics"][data-optics-kind="crown"] canvas[data-optics-canvas]|
+               ~s|#hero-crown canvas#hero-crown-canvas|
              )
 
       assert text =~ "Give this to your agent"
@@ -255,51 +256,43 @@ defmodule TechtreeWeb.HomeLiveTest do
              ~r/if \(Number\.isInteger\(cached\)\) \{\s*showGitHubStars\(cached\)\s*return/s
   end
 
-  test "the source button has 25 percent more space from the product tabs" do
+  test "the sheet shares canonical type, spacing and control skins" do
     css = File.read!(Path.expand("../../../assets/css/app.css", __DIR__))
 
-    assert css =~ ~r/\.masthead__nav\s*\{[^}]*gap: 0\.8125rem;/s
-    assert css =~ ~r/@media \(max-width: 52rem\).*?\.masthead__nav\s*\{[^}]*gap: 0\.625rem;/s
+    assert css =~ ~s|@import "../vendor/regent_ui/primitives.css"|
+    assert css =~ "font-family: var(--font-family-ui)"
+    assert css =~ "font-family: var(--font-family-title)"
+    assert css =~ "font-synthesis: none"
+    refute css =~ "100vw;"
+    refute css =~ "text-overflow: ellipsis"
   end
 
-  test "small-screen controls keep the primary action and usable hit targets" do
+  test "small-screen controls retain data and intentional table scrolling" do
     css = File.read!(Path.expand("../../../assets/css/app.css", __DIR__))
 
-    phone_breakpoints = :binary.matches(css, "@media (max-width: 36rem)")
-    {narrow_breakpoint, _length} = :binary.match(css, "@media (max-width: 22rem)")
-
-    assert phone_breakpoints != []
-    assert narrow_breakpoint > phone_breakpoints |> List.last() |> elem(0)
-
-    assert css =~
-             ~r/@media \(max-width: 22rem\).*?\.masthead__selector a\s*\{[^}]*width: auto;[^}]*flex: 1 1 0;/s
-
-    assert css =~
-             ~r/@media \(max-width: 22rem\).*?\.masthead__github-count\s*\{[^}]*display: none;/s
-
-    refute css =~
-             ~r/@media \(max-width: 36rem\).*?\.hero__actions \.button--primary\s*\{[^}]*display: none;/s
-
+    assert css =~ "@media (max-width: 24rem)"
+    assert css =~ "grid-template-columns: minmax(0, 1fr)"
+    assert css =~ ".runs-index__table-frame"
+    assert css =~ "overflow-x: auto"
+    refute css =~ ~r/\.runs-table__runtime\s*\{[^}]*display: none/s
     assert css =~ ~r/\.command__copy\s*\{[^}]*min-height: 2\.75rem;/s
     assert css =~ ~r/\.tasks__filter\s*\{[^}]*min-height: 2\.75rem;/s
     assert css =~ ~r/\.pagecopy__main\s*\{[^}]*min-height: 2\.75rem;/s
   end
 
-  test "the mobile crown responds to scroll and touch without overriding reduced motion" do
-    javascript = File.read!(Path.expand("../../../assets/js/optics_controller.js", __DIR__))
+  test "retired optics remain available as assets but do not mount on documents" do
+    javascript = File.read!(Path.expand("../../../assets/js/app.js", __DIR__))
 
-    assert javascript =~
-             ~s|root.dataset.opticsKind === "crown" && !finePointer.matches && !motion.matches|
+    root =
+      File.read!(
+        Path.expand("../../../lib/techtree_web/components/layouts/root.html.heex", __DIR__)
+      )
 
-    assert javascript =~
-             ~s|window.addEventListener("scroll", aimCrownFromScroll, {passive: true})|
-
-    assert javascript =~
-             ~s|pointerHost.addEventListener("pointerdown", onPointerMove, {passive: true, capture: viewportPointer})|
-
-    assert javascript =~ ~s|if (touchDriven) mobileAimX = x|
-    assert javascript =~ ~s|window.removeEventListener("scroll", aimCrownFromScroll)|
-    assert javascript =~ ~s|pointerHost.removeEventListener("pointerdown", onPointerMove|
+    refute javascript =~ "createOpticsController"
+    refute root =~ "data-optics-source"
+    refute root =~ "SiteBackground"
+    assert root =~ "Regent.Structure.frame"
+    assert File.exists?(Path.expand("../../../assets/js/optics_controller.js", __DIR__))
   end
 
   test "the landing page leaves every primary tab neutral", %{conn: conn} do
@@ -325,7 +318,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, path)
 
       assert html =~
-               ~r|<span class="masthead__selector">.*href="/start"[^>]*>\s*Start\s*</a>.*href="/results"[^>]*>\s*Results\s*</a>.*href="/proofs"[^>]*>\s*Verify\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
+               ~r|<span class="masthead__selector">.*href="/start"[^>]*>\s*Start\s*</a>.*href="/results"[^>]*>\s*Results\s*</a>.*href="/verify"[^>]*>\s*Verify\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
 
       refute html =~ ~r|href="/results"[^>]*>\s*Proofs\s*</a>|
 
@@ -333,9 +326,9 @@ defmodule TechtreeWeb.HomeLiveTest do
         assert html =~ ~r|href="/start" aria-current="page">\s*Start\s*</a>|
       end
 
-      assert html =~ ~r|</nav>\s*<button id="site-theme-toggle"|s
+      assert html =~ ~r|</nav>\s*<button[^>]*id="site-theme-toggle"|s
+      assert html =~ ~s|rg-button--secondary theme-toggle|
       assert html =~ ~s|class="theme-toggle__cube"|
-      assert html =~ ~s|class="theme-toggle__laser"|
       assert has_element?(live, "main")
 
       assert html =~

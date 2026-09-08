@@ -1,10 +1,7 @@
 defmodule TechtreeWeb.PrismLive do
   @moduledoc """
-  The public VGPU homepage demo, isolated as a full-bleed comparison route.
-
-  Its words remain server-rendered. A small lifecycle hook loads the original
-  optical renderer only while the canvas can be seen, and a browser without
-  WebGPU keeps the complete black-and-white document without the decoration.
+  The development-only VGPU comparison document. Original artwork remains
+  packaged; this route uses a bounded static figure, never a page canvas.
   """
 
   use TechtreeWeb, :live_view
@@ -17,38 +14,38 @@ defmodule TechtreeWeb.PrismLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <main
-      id="prism-demo"
-      class="prism-demo"
-      phx-hook="Optics"
-      phx-update="ignore"
-      data-prism-demo
-      data-optics-kind="prism"
-      data-optics-module
-      data-optics-source={~p"/vendor/vgpu-prism/prism-current.js"}
-    >
-      <canvas
-        id="prism-demo-canvas"
-        class="prism-demo__canvas"
-        data-optics-canvas
-        phx-update="ignore"
-        aria-hidden="true"
+    <Layouts.page wide>
+      <article
+        id="prism-demo"
+        class="prism-demo"
+        data-prism-demo
       >
-      </canvas>
-
-      <div class="prism-demo__frame" data-triangle-container aria-hidden="true"></div>
-
-      <div class="prism-demo__copy">
-        <h1 class="prism-demo__title" aria-label="vgpu">
-          <.vgpu_wordmark />
-        </h1>
-        <p class="prism-demo__tagline">The WebGPU library,<br />designed for agents.</p>
-        <p class="prism-demo__modes">
-          Prompt <span>·</span> CLI <span>·</span> Skill <span>·</span> MCP
-        </p>
-        <p class="prism-demo__command">Setup vgpu on my project, run npx vgpu</p>
-      </div>
-    </main>
+        <div class="prism-demo__copy">
+          <h1 class="prism-demo__title" aria-label="vgpu">
+            <.vgpu_wordmark />
+          </h1>
+          <p class="prism-demo__tagline">The WebGPU library,<br />designed for agents.</p>
+          <p class="prism-demo__modes">
+            Prompt <span>·</span> CLI <span>·</span> Skill <span>·</span> MCP
+          </p>
+          <p class="prism-demo__command">Setup vgpu on my project, run npx vgpu</p>
+        </div>
+        <Regent.Structure.technical_figure class="rg-support-figure" data-triangle-container>
+          <svg
+            id="prism-demo-canvas"
+            viewBox="0 0 400 400"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path d="M200 48 48 320h304ZM200 48v176M48 320l152-96 152 96M200 224v128" />
+            <circle cx="200" cy="224" r="120" stroke-dasharray="2 6" />
+          </svg>
+          <:caption>Illustration · Prism study</:caption>
+        </Regent.Structure.technical_figure>
+      </article>
+    </Layouts.page>
     """
   end
 

@@ -3,7 +3,7 @@ import {installSharedProfile} from "./shared_profile.js"
 installSharedProfile()
 // The pages are read-only documents. This bundle keeps the live connection,
 // copies published commands, remembers the reader's color preference, and
-// draws the crown behind the headline, and reads the repository's public star
+// reads the repository's public star
 // count. It never runs a command or sends the color preference anywhere.
 
 import "phoenix_html"
@@ -11,7 +11,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
 import {mountCommandCopyButton, mountPageCopyButton} from "./copy_feedback.mjs"
-import {Optics, createOpticsController} from "./optics_controller"
+import {Optics} from "./optics_controller"
 
 const GITHUB_STAR_CACHE = "techtree-github-stars"
 const GITHUB_STAR_REFRESH_MS = 2 * 60 * 1000
@@ -192,8 +192,11 @@ function applyTheme(theme) {
   syncThemeControl(theme)
   syncCrownTheme(theme)
   const backgroundPreset = syncBackground(theme)
+  // Study routes select a material independently of the reader's page theme.
+  const study = document.querySelector('[data-optics-kind="crown"][data-crown-theme-controlled="false"]')
+  const crownVariant = study?.dataset.crownVariant || selected.crownVariant
   document.dispatchEvent(new CustomEvent("techtree:themechange", {
-    detail: {theme, crownVariant: selected.crownVariant, backgroundPreset},
+    detail: {theme, crownVariant, backgroundPreset},
   }))
 }
 
@@ -210,14 +213,40 @@ document.addEventListener("click", event => {
 window.addEventListener("phx:page-loading-stop", () => applyTheme(pageTheme()))
 applyTheme(pageTheme())
 
-const siteBackground = document.querySelector("#site-background")
-const siteBackgroundController = siteBackground && createOpticsController(siteBackground)
-siteBackgroundController?.mount()
-window.addEventListener("pagehide", () => siteBackgroundController?.destroy(), {once: true})
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
-const Hooks = {Optics}
+const Hooks = {
+  Optics: {
+    ...Optics,
+    mounted() {
+      // A connected render can restore server attributes after initial theme sync.
+      // Resolve them before the existing controller creates its first renderer.
+      syncCrownTheme(pageTheme())
+      syncBackground(pageTheme())
+      Optics.mounted.call(this)
+    },
+  },
+}
+
+Hooks.AgentVersions = {
+  mounted() { this.revealSelection() },
+  beforeUpdate() { this.hadFocus = this.el.contains(document.activeElement) },
+  updated() { this.revealSelection() },
+  revealSelection() {
+    const strip = this.el.querySelector(".agent-versions__list")
+    const selected = strip?.querySelector('[aria-current="page"]')
+    if (!selected) return
+    if (this.hadFocus && !this.el.contains(document.activeElement)) {
+      selected.focus({preventScroll: true})
+    }
+    this.hadFocus = false
+    const stripBounds = strip.getBoundingClientRect()
+    const selectedBounds = selected.getBoundingClientRect()
+    strip.scrollLeft += selectedBounds.left - stripBounds.left -
+      (strip.clientWidth - selectedBounds.width) / 2
+  },
+}
 
 Hooks.CopyCommand = {
   mounted() {

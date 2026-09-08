@@ -27,10 +27,30 @@ defmodule TechtreeWeb.StartLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.page flush>
-      <section class="setup-page" aria-labelledby="setup-instruction">
-        <h1 id="setup-instruction" class="setup-page__instruction">{@instruction}</h1>
-        <p class="setup-page__paths">{@setup_paths}</p>
+    <Layouts.page wide>
+      <section class="setup-page start-guide" aria-labelledby="setup-instruction">
+        <header class="editorial-heading">
+          <p class="eyebrow">Start locally</p>
+          <h1 id="setup-instruction">Your first controlled run.</h1>
+          <p class="lede">{@instruction} {@setup_paths}</p>
+        </header>
+        <ol class="start-steps" aria-label="Setup sequence">
+          <li>
+            <span class="eyebrow">01 / Install</span><h2>Choose your interface.</h2><p>
+              Use the CLI directly or work inside Hermes. Both use the same Techtree runtime.
+            </p>
+          </li>
+          <li>
+            <span class="eyebrow">02 / Check</span><h2>Let Doctor guide you.</h2><p>
+              Check the machine and the Climb before running. Follow the exact next action it returns.
+            </p>
+          </li>
+          <li>
+            <span class="eyebrow">03 / Run</span><h2>Approve, then compare.</h2><p>
+              Confirm any paid inference first. Inspect the local Result before choosing whether to publish.
+            </p>
+          </li>
+        </ol>
         <div :if={@setup_commands} class="setup-page__plans">
           <.command_block
             id="copy-setup-cli"
@@ -43,9 +63,22 @@ defmodule TechtreeWeb.StartLive do
             lines={@setup_commands.hermes}
           />
         </div>
-        <p :if={!@setup_commands} class="release-state">
-          No concrete release is available to install yet.
-        </p>
+        <Regent.Structure.panel :if={!@setup_commands} class="rg-panel__body setup-unavailable">
+          <p class="eyebrow">Installation unavailable on this channel</p>
+          <h2>No concrete release is available to install yet.</h2>
+          <p>
+            This channel does not provide installable release coordinates. No placeholder command will be offered.
+          </p>
+          <.link navigate={~p"/docs"} class="text-link">Read the setup documentation →</.link>
+        </Regent.Structure.panel>
+        <div class="start-guide__next">
+          <div>
+            <p class="eyebrow">After the run</p><h2>Keep the evidence.</h2><p>
+              A Result can show uplift, a tie, or regression. Verification checks the bundle—not whether someone else reproduced the run.
+            </p>
+          </div>
+          <.link navigate={~p"/verify"} class="rg-button rg-button--secondary">Understand verification →</.link>
+        </div>
       </section>
     </Layouts.page>
     """

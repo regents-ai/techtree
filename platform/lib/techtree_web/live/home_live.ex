@@ -10,10 +10,8 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ReleaseInfo
 
-  # The milestone this preview is, said once. It is not an install coordinate:
-  # the version, the fingerprint and the command all come from the published
-  # release below, and none of them is written into this page.
-  @preview_label "Techtree v0.1 · development release"
+  # Install coordinates come from the published release, never marketing copy.
+  @preview_label "Controlled agent evaluations"
 
   # This names a stable page and introductory Climb rather than a release
   # coordinate, so it remains safe to hand to an agent as the release moves.
@@ -54,32 +52,11 @@ defmodule TechtreeWeb.HomeLive do
     ~H"""
     <Layouts.page wide flush>
       <section
-        class="hero"
+        class="hero hero--landing"
         data-crown-variant={@crown_variant}
         data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
         aria-labelledby="hero-title"
       >
-        <div
-          id="hero-crown"
-          class="hero__optics"
-          phx-hook="Optics"
-          phx-update="ignore"
-          data-optics-kind="crown"
-          data-optics-source={~p"/assets/js/crown_island.js"}
-          data-optics-pointer="viewport"
-          data-crown-variant={@crown_variant}
-          data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
-          aria-hidden="true"
-        >
-          <canvas
-            id="hero-crown-canvas"
-            class="hero__crown"
-            data-optics-canvas
-            data-crown-variant={@crown_variant}
-          >
-          </canvas>
-        </div>
-
         <nav :if={@crown_study?} class="crown-studies" aria-label="Crown material studies">
           <span>Material study</span>
           <a
@@ -94,39 +71,97 @@ defmodule TechtreeWeb.HomeLive do
           </a>
         </nav>
 
-        <div class="hero__copy">
-          <p class="eyebrow">{@preview_label}</p>
-          <h1 id="hero-title" class="hero-title">
-            <span class="hero-title__line">Improve a Skill.</span>
-            <span class="hero-title__line">Prove it worked.</span>
-          </h1>
-          <p class="hero__mechanism">
-            <span>Opinionated Stack for Agent Skill Uplift.</span>
-            <span>Built on Prime Intellect and NVIDIA NeMo.</span>
-          </p>
+        <div class="hero__stage">
+          <div
+            id="hero-crown"
+            class="hero__optics"
+            phx-hook="Optics"
+            phx-update="ignore"
+            data-optics-kind="crown"
+            data-optics-source={~p"/assets/js/crown_island.js"}
+            data-optics-pointer="parent"
+            data-crown-variant={@crown_variant}
+            data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
+            aria-hidden="true"
+          >
+            <canvas
+              id="hero-crown-canvas"
+              class="hero__crown"
+              data-optics-canvas
+              data-crown-variant={@crown_variant}
+            ></canvas>
+          </div>
 
-          <.installer release={@release} agent_line={@agent_line} />
-
-          <div class="hero__actions">
-            <.link class="button button--primary" navigate={~p"/start"}>
-              <span class="button__mark" aria-hidden="true"></span> Start your first Climb
-            </.link>
-            <a class="text-link" href={~p"/results"}>
-              View published Results <span aria-hidden="true">→</span>
-            </a>
+          <div class="hero__copy">
+            <p class="eyebrow">{@preview_label}</p>
+            <h1 id="hero-title" class="hero-title">
+              <span class="hero-title__line">Improve a Skill.</span>
+              <span class="hero-title__line">Prove it worked.</span>
+            </h1>
+            <p class="hero__mechanism">
+              <span>Same agent. Same tasks. One Skill changed.</span>
+              <span>Built on Prime Intellect and NVIDIA&nbsp;NeMo.</span>
+            </p>
+            <.installer release={@release} agent_line={@agent_line} />
+            <div class="hero__actions">
+              <.link
+                id="hero-start"
+                class="rg-button rg-button--primary button--primary"
+                navigate={~p"/start"}
+              >
+                <span class="rg-button__label">Start your first Climb</span>
+              </.link>
+              <a class="text-link" href={~p"/results"}>
+                View published Results <span aria-hidden="true">→</span>
+              </a>
+            </div>
           </div>
         </div>
 
         <a
           class="hero__more"
-          href="#what-this-release-is"
-          aria-label="Continue to the v0.1 release section"
+          href="#first-service"
+          aria-label="Explore Techtree’s first planned service"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m6 5 6 6 6-6" />
             <path d="m6 12 6 6 6-6" />
           </svg>
         </a>
+      </section>
+
+      <section
+        id="first-service"
+        class="home-section service-intro"
+        aria-labelledby="service-intro-title"
+      >
+        <Regent.Structure.section_bar>
+          <p class="rg-section-bar__label">First service</p>
+          <Regent.Primitives.status>Planned</Regent.Primitives.status>
+        </Regent.Structure.section_bar>
+        <div class="service-intro__body">
+          <div>
+            <h2 id="service-intro-title">Your repo. A repeatable environment.</h2>
+            <p>
+              Repo2RLEnv will turn a pinned repository into a reproducible reinforcement-learning
+              environment: buildable runtime, bounded tasks, a scorer, and an evidence report.
+            </p>
+            <.link navigate={~p"/repo2rlenv"} class="rg-button rg-button--secondary">
+              Explore Repo2RLEnv <span aria-hidden="true">→</span>
+            </.link>
+          </div>
+          <ol class="service-flow" aria-label="Planned Repo2RLEnv workflow">
+            <li>
+              <span>01 / Source</span><strong>Pinned repository</strong><small>Commit + rights</small>
+            </li>
+            <li>
+              <span>02 / Build</span><strong>RL environment</strong><small>Runtime + tasks + scorer</small>
+            </li>
+            <li>
+              <span>03 / Evidence</span><strong>Validation report</strong><small>What passed. What did not.</small>
+            </li>
+          </ol>
+        </div>
       </section>
 
       <.proof_of_concept
@@ -178,7 +213,7 @@ defmodule TechtreeWeb.HomeLive do
           under that provider’s policies.
         </p>
         <p class="trust__links">
-          <a href={~p"/proofs"}>What verification establishes <span aria-hidden="true">→</span></a>
+          <a href={~p"/verify"}>What verification establishes <span aria-hidden="true">→</span></a>
         </p>
       </section>
     </Layouts.page>

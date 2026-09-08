@@ -52,31 +52,13 @@
     <a :if={masthead_visible?(assigns)} class="skip-link" href="#main-content">
       Skip to main content
     </a>
-    <div
-      :if={request_path(assigns) == "/"}
-      id="site-background"
-      class="site-background"
-      data-optics-kind="background"
-      data-optics-source={~p"/assets/js/background_island.js"}
-      data-background-theme={if(assigns[:theme] == "dark", do: "titanium", else: "orange")}
-      data-background-preset="10"
-      aria-hidden="true"
-    >
-      <canvas
-        id="site-background-canvas"
-        class="site-background__canvas"
-        data-optics-canvas
-        data-background-theme={if(assigns[:theme] == "dark", do: "titanium", else: "orange")}
-        data-background-preset="10"
-      >
-      </canvas>
-    </div>
-    <Regent.SiteBackground.site_background :if={request_path(assigns) != "/"} />
-    <.masthead
-      :if={masthead_visible?(assigns)}
-      current_path={request_path(assigns)}
-      theme={assigns[:theme] || "light"}
-    />
-    {@inner_content}
+    <Regent.Structure.frame class="techtree-frame">
+      <.masthead
+        :if={masthead_visible?(assigns)}
+        current_path={request_path(assigns)}
+        theme={assigns[:theme] || "light"}
+      />
+      {@inner_content}
+    </Regent.Structure.frame>
   </body>
 </html>

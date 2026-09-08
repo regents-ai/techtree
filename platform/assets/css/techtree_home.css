@@ -1,0 +1,139 @@
+/* Techtree's live-site composition, inside the shared Regent frame.
+   Do not replace shared palette, typography, button skins or command components. */
+.hero--landing .hero__stage {
+  min-height: max(42rem, calc(100svh - 10rem));
+  align-content: center;
+  gap: 0;
+  padding-block: clamp(3rem, 6vh, 6rem);
+}
+.hero--landing .hero__copy {
+  position: relative;
+  width: min(52%, 38rem);
+  padding: 0;
+  background: transparent;
+}
+.hero--landing .hero__copy > .eyebrow { color: var(--accent-deep); }
+.hero--landing .hero-title {
+  margin-top: var(--space-2);
+  font-size: clamp(2.5rem, 4.75vw, 5.5rem);
+  line-height: 1.1;
+  letter-spacing: -.035em;
+}
+.hero--landing .hero-title__line { display: block; }
+.hero--landing .hero__mechanism {
+  margin-top: var(--space-3);
+  font-family: var(--font-family-ui);
+  font-size: clamp(1rem, 1.2vw, 1.25rem);
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.hero--landing .hero__mechanism span { display: block; }
+.hero--landing .hero__optics {
+  inset: 0;
+  height: auto;
+  mask-image: linear-gradient(to right, transparent 28%, rgb(0 0 0 / .25) 48%, #000 68%);
+}
+.hero--landing .installer { margin-top: var(--space-4); }
+.hero--landing .command__head { padding: var(--space-1) var(--space-2); }
+.hero--landing .command__block { padding: var(--space-2); }
+.hero--landing .installer__divider {
+  margin-block: var(--space-2);
+  color: var(--ink-quiet);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.hero--landing .hero__actions {
+  margin-top: var(--space-4);
+  gap: var(--space-3);
+}
+.hero--landing .hero__actions .text-link { font-weight: 600; }
+.hero--landing .hero__actions .text-link span { color: var(--accent-deep); }
+
+/* Preserve the live prism/laser motif within the real shared button. The
+   existing delegated theme handler, accessible name and cookie remain its API. */
+.theme-toggle.rg-button {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  perspective: 5rem;
+}
+.theme-toggle .theme-toggle__stage {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--panel);
+  transform-style: preserve-3d;
+  --prism-laser: var(--palette-tangerine-tango);
+  --prism-edge: color-mix(in oklch, var(--ink) 55%, var(--accent));
+  --prism-face: color-mix(in oklch, var(--accent) 28%, transparent);
+}
+html[data-theme="dark"] .theme-toggle__stage { --prism-laser: var(--palette-powder-blue); }
+.theme-toggle__laser {
+  position: absolute;
+  inset-block: .125rem;
+  left: calc(50% - .0625rem);
+  width: .125rem;
+  background: var(--prism-laser);
+  box-shadow: 0 0 .3rem var(--prism-laser);
+}
+.theme-toggle__cube {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: .75rem;
+  height: .75rem;
+  transform-style: preserve-3d;
+  transform: translate3d(-50%, -50%, 0) rotateX(-19deg) rotateY(28deg);
+}
+.theme-toggle__face {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--prism-edge);
+  background: var(--prism-face);
+  backface-visibility: visible;
+}
+.theme-toggle__face--front { transform: translateZ(.375rem); }
+.theme-toggle__face--back { transform: rotateY(180deg) translateZ(.375rem); }
+.theme-toggle__face--left { transform: rotateY(-90deg) translateZ(.375rem); }
+.theme-toggle__face--right { transform: rotateY(90deg) translateZ(.375rem); }
+.theme-toggle__face--top { transform: rotateX(90deg) translateZ(.375rem); }
+.theme-toggle__face--bottom { transform: rotateX(-90deg) translateZ(.375rem); }
+@media (prefers-reduced-motion: no-preference) {
+  .theme-toggle__cube { animation: techtree-theme-prism 14s linear infinite; }
+}
+@keyframes techtree-theme-prism {
+  from { transform: translate3d(-50%, -50%, 0) rotateX(-19deg) rotateY(28deg); }
+  to { transform: translate3d(-50%, -50%, 0) rotateX(341deg) rotateY(388deg); }
+}
+@media (max-width: 47.99rem) {
+  body:has(.hero--landing) .masthead__inner { row-gap: var(--space-2); }
+  body:has(.hero--landing) .masthead__nav { width: 100%; gap: var(--space-1); }
+  body:has(.hero--landing) .masthead__selector {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+  }
+  body:has(.hero--landing) .masthead__selector a { padding-inline: .25rem; font-size: .8125rem; }
+  .hero--landing .hero__stage { min-height: 0; padding-block: var(--space-4) 0; }
+  .hero--landing .hero__copy { width: 100%; order: 1; }
+  .hero--landing .hero-title { font-size: clamp(2rem, 7.5vw, 3.5rem); }
+  .hero--landing .hero__optics {
+    position: relative;
+    inset: auto;
+    order: 2;
+    z-index: 0;
+    height: 18rem;
+    margin-top: var(--space-3);
+    mask-image: linear-gradient(transparent, #000 20%, #000 80%, transparent);
+  }
+}
+@media (max-width: 24rem) {
+  body:has(.hero--landing) .masthead__selector a { font-size: .75rem; }
+}
+@media print {
+  .hero--landing .hero__stage { min-height: 0; padding-block: var(--space-3); }
+  .hero--landing .hero__copy { width: 100%; }
+}

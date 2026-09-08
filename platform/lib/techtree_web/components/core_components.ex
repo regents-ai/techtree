@@ -125,15 +125,15 @@ defmodule TechtreeWeb.CoreComponents do
   def proof_of_concept(assigns) do
     ~H"""
     <section class={@class} aria-labelledby="what-this-release-is">
-      <div class="section-heading">
+      <Regent.Structure.section_bar class="section-heading rg-support-band">
         <p :if={@eyebrow} class="eyebrow">{@eyebrow}</p>
-        <h2 id="what-this-release-is">
+        <h2 id="what-this-release-is" class="rg-section-bar__label">
           {@title}
           <%= if @title_suffix do %>
             <span class="section-heading__nowrap">{@title_suffix}</span>
           <% end %>
         </h2>
-      </div>
+      </Regent.Structure.section_bar>
       <div class={[
         "proof-of-concept__body",
         @inner_block != [] && "proof-of-concept__body--with-evidence"
@@ -210,11 +210,12 @@ defmodule TechtreeWeb.CoreComponents do
       |> assign(:copy_id, assigns.id || command_id(command, assigns.label))
 
     ~H"""
-    <div class="command">
+    <Regent.Structure.panel class="command rg-support-panel">
       <div class="command__head">
         <p class="command__label">{@label || "Command"}</p>
-        <button
+        <Regent.Primitives.button
           :if={@copy}
+          variant="secondary"
           id={@copy_id}
           class="command__copy"
           type="button"
@@ -223,18 +224,17 @@ defmodule TechtreeWeb.CoreComponents do
           data-copy-value={@command}
         >
           <span data-copy-label>Copy</span>
-        </button>
+        </Regent.Primitives.button>
         <span
           class="offscreen"
           data-copy-status
           role="status"
           aria-live="polite"
           aria-atomic="true"
-        >
-        </span>
+        ></span>
       </div>
-      <pre class="command__block"><code>{@command}</code></pre>
-    </div>
+      <pre class="command__block" tabindex="0" role="region" aria-label="Command"><code>{@command}</code></pre>
+    </Regent.Structure.panel>
     """
   end
 
@@ -252,10 +252,11 @@ defmodule TechtreeWeb.CoreComponents do
 
   def prompt_block(assigns) do
     ~H"""
-    <div class="command command--prose">
+    <Regent.Structure.panel class="command command--prose rg-support-panel">
       <div class="command__head">
         <p class="command__label">{@label}</p>
-        <button
+        <Regent.Primitives.button
+          variant="secondary"
           id={@id}
           class="command__copy"
           type="button"
@@ -264,18 +265,17 @@ defmodule TechtreeWeb.CoreComponents do
           data-copy-value={@text}
         >
           <span data-copy-label>Copy</span>
-        </button>
+        </Regent.Primitives.button>
         <span
           class="offscreen"
           data-copy-status
           role="status"
           aria-live="polite"
           aria-atomic="true"
-        >
-        </span>
+        ></span>
       </div>
       <p class="command__block">{@text}</p>
-    </div>
+    </Regent.Structure.panel>
     """
   end
 
@@ -340,7 +340,7 @@ defmodule TechtreeWeb.CoreComponents do
   def next_step(assigns) do
     ~H"""
     <li>
-      <p class="plain"><strong>{@title}</strong></p>
+      <p class="next-step-title">{@title}</p>
       {render_slot(@inner_block)}
     </li>
     """

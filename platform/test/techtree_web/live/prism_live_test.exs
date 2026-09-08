@@ -3,7 +3,7 @@ defmodule TechtreeWeb.PrismLiveTest do
 
   import Phoenix.LiveViewTest
 
-  test "the public VGPU comparison is a full-bleed prism route", %{conn: conn} do
+  test "the development VGPU comparison is a bounded static figure", %{conn: conn} do
     {:ok, live, html} = live(conn, ~p"/prism")
     text = visible_text(html)
 
@@ -13,7 +13,7 @@ defmodule TechtreeWeb.PrismLiveTest do
 
     assert has_element?(
              live,
-             ~s|#prism-demo[phx-hook="Optics"][phx-update="ignore"][data-prism-demo][data-optics-kind="prism"][data-optics-module][data-optics-source="/vendor/vgpu-prism/prism-current.js"] canvas[data-optics-canvas]|
+             ~s|#prism-demo[data-prism-demo] .rg-technical-figure svg#prism-demo-canvas|
            )
 
     assert has_element?(live, "#prism-demo [data-triangle-container]")

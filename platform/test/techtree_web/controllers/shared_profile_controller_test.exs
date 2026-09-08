@@ -21,12 +21,9 @@ defmodule TechtreeWeb.SharedProfileControllerTest do
     %{key: key}
   end
 
-  test "profile page and private API use shared components and signed ownership", %{key: key} do
-    html = build_conn() |> get("/profile") |> html_response(200)
-    assert html =~ "data-regent-profile"
-    assert html =~ "Connect X"
-    alias_html = build_conn() |> get("/profile/") |> html_response(200)
-    assert alias_html =~ ~s(name="privy-app-id" content="profile-fixture")
+  test "withdrawn profile page preserves the private API and signed ownership", %{key: key} do
+    assert build_conn() |> get("/profile") |> html_response(404)
+    assert build_conn() |> get("/profile/") |> html_response(404)
     assert build_conn() |> get("/api/v1/profile") |> response(401)
 
     assert build_conn()
@@ -48,14 +45,14 @@ defmodule TechtreeWeb.SharedProfileControllerTest do
     assert json_response(updated, 200)["profile"]["display_name"] == "Shared name"
   end
 
-  test "Privy permissions and metadata stay on the profile document" do
+  test "withdrawn profile documents expose no Privy permissions or metadata" do
     for path <- ["/profile", "/profile/"] do
       conn = build_conn() |> get(path)
-      html = html_response(conn, 200)
-      assert html =~ ~s(name="privy-app-id")
-      assert html =~ ~s(name="privy-bridge-src")
-      assert [policy] = get_resp_header(conn, "content-security-policy")
-      assert policy =~ "https://auth.privy.io"
+      html = html_response(conn, 404)
+      refute html =~ ~s(name="privy-app-id")
+      refute html =~ ~s(name="privy-bridge-src")
+      policy = Enum.join(get_resp_header(conn, "content-security-policy"), "; ")
+      refute policy =~ "https://auth.privy.io"
       refute policy =~ "unsafe-eval"
     end
 
