@@ -43,12 +43,35 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
       PGHOST: localhost
+      MIX_TEST_PARTITION: _github
+      REGENT_DEPS_ROOT: ${{ github.workspace }}/.shared-deps
     steps:
       - uses: actions/checkout@v7.0.1
+      - name: Checkout pinned Regent UI
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: regents-ai/design-system
+          ref: 0ce0c3bfea98d86b3e395d2650bbfb493fd243b8
+          path: .shared-deps/design-system
+          persist-credentials: false
+      - name: Checkout pinned Privy verifier
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: regents-ai/elixir-utils
+          ref: 17e9e356040c6322bdd8e84830eeef19c4ed3c42
+          path: .shared-deps/elixir-utils
+          persist-credentials: false
+      - name: Checkout pinned shared identity
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: regents-ai/regents
+          ref: 747c54169b338b4b832250173e37e05b26f74be7
+          path: .shared-deps/regents
+          persist-credentials: false
       - uses: erlef/setup-beam@v1.24.1
         with:
-          elixir-version: 1.20.4
-          otp-version: 29.0.6
+          elixir-version: 1.19.5
+          otp-version: 28.3.1
       - name: Install dependencies
         working-directory: platform
         run: mix deps.get
