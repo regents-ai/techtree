@@ -39,6 +39,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
+from fixtures.envelopes import command_line_of
 from fixtures.starter import STARTER_FIXTURE, tree_digest
 from fixtures.starter import release_pinning as release
 from techtree.cli.app import create_app
@@ -140,7 +141,7 @@ def test_the_answer_separates_the_path_the_name_and_the_label(
     obtained: dict[str, Any],
 ) -> None:
     """Three values, three fields, and no two of them equal by accident."""
-    payload = obtained["data"]
+    payload = obtained["facts"]
 
     assert payload["skill_name"] == STARTER_SKILL_NAME
     assert payload["candidate_label"] == STARTER_SKILL_CANDIDATE_LABEL
@@ -153,7 +154,7 @@ def test_the_skill_is_cached_under_a_digest_named_directory(
     obtained: dict[str, Any], temp_techtree_home: Path
 ) -> None:
     """The directory a label must never be taken from, present in every case."""
-    payload = obtained["data"]
+    payload = obtained["facts"]
     cache_directory = Path(payload["skill_path"]).parent
 
     assert (
@@ -169,7 +170,7 @@ def test_the_printed_command_is_argv_elements_rather_than_a_line_of_shell(
     obtained: dict[str, Any],
 ) -> None:
     """A host agent executes this, so it arrives already split and unquoted."""
-    argv = obtained["next_actions"][0]["cli"]
+    argv = command_line_of(obtained["next_actions"][0])
 
     assert isinstance(argv, list)
     assert all(isinstance(element, str) for element in argv)
@@ -183,8 +184,8 @@ def test_the_printed_command_takes_its_path_and_its_label_from_different_places(
     obtained: dict[str, Any],
 ) -> None:
     """The whole ruling, stated as one assertion pair."""
-    payload = obtained["data"]
-    argv = obtained["next_actions"][0]["cli"]
+    payload = obtained["facts"]
+    argv = command_line_of(obtained["next_actions"][0])
 
     assert argv[argv.index("--skill") + 1] == payload["skill_path"]
     assert argv[argv.index("--label") + 1] == STARTER_SKILL_CANDIDATE_LABEL
@@ -194,8 +195,8 @@ def test_no_argument_of_the_printed_command_is_a_label_read_off_a_path(
     obtained: dict[str, Any], tmp_path: Path
 ) -> None:
     """No segment of any path involved is offered as the candidate's name."""
-    payload = obtained["data"]
-    argv = obtained["next_actions"][0]["cli"]
+    payload = obtained["facts"]
+    argv = command_line_of(obtained["next_actions"][0])
     label = argv[argv.index("--label") + 1]
 
     forbidden = {
@@ -215,7 +216,7 @@ def test_the_answer_says_what_the_starter_skill_is_for(
     obtained: dict[str, Any],
 ) -> None:
     """Decisions 0010 item 2: the disclosure travels with the artifact."""
-    payload = obtained["data"]
+    payload = obtained["facts"]
 
     assert payload["skill_purpose"] == STARTER_SKILL_PURPOSE
     assert payload["skill_purpose"] == "intentionally incomplete introductory Skill"

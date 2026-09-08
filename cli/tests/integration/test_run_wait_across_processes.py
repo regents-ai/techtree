@@ -58,8 +58,8 @@ def test_a_waiting_process_answers_as_soon_as_the_worker_moves(
 ) -> None:
     """The digest it was given is gone, and it did not sit out its bound."""
     home, run_id = slow_run
-    first = run_cli(home, "run", "status", run_id).data()
-    if first["terminal"]:
+    first = run_cli(home, "run", "status", run_id).envelope()
+    if first["facts"]["terminal"]:
         # A run that finished before anything could wait on it has nothing left
         # to move, and the wait would rightly return the digest it was given.
         # That is the next test's subject, not this one's.
@@ -80,9 +80,9 @@ def test_a_waiting_process_answers_as_soon_as_the_worker_moves(
 
     assert waited.exit_code == EXIT_OK
     assert time.monotonic() - began < DEFAULT_WAIT_TIMEOUT_SECONDS
-    payload = waited.data()
-    assert payload["state_digest"] != seen
-    assert payload["public_state"] in {
+    body = waited.envelope()
+    assert body["state_digest"] != seen
+    assert body["facts"]["public_state"] in {
         PublicRunState.RUNNING.value,
         PublicRunState.COMPLETED.value,
     }

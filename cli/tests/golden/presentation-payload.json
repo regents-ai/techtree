@@ -74,78 +74,85 @@
   "losses": 2,
   "next_actions": [
     {
-      "cli": [
-        "techtree",
-        "run",
-        "result",
-        "run_bc5e01438ad71b7de1078aa4a307785a",
-        "--show-tasks",
-        "all"
-      ],
-      "hermes_args": null,
-      "hermes_tool": null,
-      "id": "inspect_tasks",
-      "label": "Look at every task, including the ones that regressed",
+      "approval_required": false,
+      "data_egress": "none",
+      "estimated_cost": null,
+      "expected_state_digest": null,
+      "operation": "result.inspect",
+      "prepared_arguments": {
+        "arguments": [
+          "run_bc5e01438ad71b7de1078aa4a307785a"
+        ],
+        "command": [
+          "run",
+          "result"
+        ],
+        "options": {
+          "--show-tasks": "all"
+        }
+      },
       "reason": "The per-task table is where a Skill's effect is legible.",
-      "requires_user_confirmation": false
+      "retry_class": "safe",
+      "side_effect": "none"
     },
     {
-      "cli": [
-        "techtree",
-        "publish",
-        "run_bc5e01438ad71b7de1078aa4a307785a"
-      ],
-      "hermes_args": null,
-      "hermes_tool": null,
-      "id": "publish_run",
-      "label": "Publish this run to the public run log",
+      "approval_required": true,
+      "data_egress": "publication_service",
+      "estimated_cost": null,
+      "expected_state_digest": null,
+      "operation": "action.prepare",
+      "prepared_arguments": {
+        "arguments": [
+          "run_bc5e01438ad71b7de1078aa4a307785a"
+        ],
+        "command": [
+          "publish"
+        ],
+        "options": {}
+      },
       "reason": "The proof just verified, so the run's own evidence travels with it. It shows what would be sent and asks before sending anything.",
-      "requires_user_confirmation": true
+      "retry_class": "reconcile_first",
+      "side_effect": "public_publication"
     },
     {
-      "cli": [
-        "techtree",
-        "proof",
-        "verify",
-        "run_bc5e01438ad71b7de1078aa4a307785a"
-      ],
-      "hermes_args": null,
-      "hermes_tool": null,
-      "id": "verify_proof",
-      "label": "Verify this run's local proof",
-      "reason": "It checks offline, from the bytes the run stored.",
-      "requires_user_confirmation": false
+      "approval_required": false,
+      "data_egress": "none",
+      "estimated_cost": null,
+      "expected_state_digest": null,
+      "operation": "proof.verify",
+      "prepared_arguments": {
+        "arguments": [
+          "run_bc5e01438ad71b7de1078aa4a307785a"
+        ],
+        "command": [
+          "proof",
+          "verify"
+        ],
+        "options": {}
+      },
+      "reason": "It verifies this run's local proof offline, from the bytes the run stored.",
+      "retry_class": "safe",
+      "side_effect": "none"
     },
     {
-      "cli": [
-        "techtree",
-        "uplift",
-        "context",
-        "run_bc5e01438ad71b7de1078aa4a307785a"
-      ],
-      "hermes_args": null,
-      "hermes_tool": null,
-      "id": "improvement_context",
-      "label": "Export what a host agent needs to propose one Skill revision",
-      "reason": "It carries the regressions, the failures and the objective, and no hidden task material.",
-      "requires_user_confirmation": false
-    },
-    {
-      "cli": [
-        "techtree",
-        "uplift",
-        "prepare",
-        "--from-run",
-        "run_bc5e01438ad71b7de1078aa4a307785a",
-        "--candidate-skill",
-        "PATH"
-      ],
-      "hermes_args": null,
-      "hermes_tool": null,
-      "id": "prepare_replacement",
-      "label": "Prepare a comparison of this Skill against a revision of it",
-      "reason": "The baseline is pinned to the Skill this run measured, so the second comparison starts where this one ended.",
-      "requires_user_confirmation": true
+      "approval_required": false,
+      "data_egress": "none",
+      "estimated_cost": null,
+      "expected_state_digest": null,
+      "operation": "plan.prepare",
+      "prepared_arguments": {
+        "arguments": [
+          "run_bc5e01438ad71b7de1078aa4a307785a"
+        ],
+        "command": [
+          "uplift",
+          "context"
+        ],
+        "options": {}
+      },
+      "reason": "It exports what a host agent needs to propose one Skill revision: the regressions, the failures and the objective, and no hidden task material.",
+      "retry_class": "safe",
+      "side_effect": "local_state"
     }
   ],
   "proof_grade": "P1",

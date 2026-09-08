@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from support import operation_for
 from techtree_hermes.cli.constants import PLUGIN_ROOT
 from techtree_hermes.cli.errors import PluginError
 from techtree_hermes.cli.release import load_embedded_release_core
@@ -131,21 +132,23 @@ def _skill_source(**overrides: Any) -> dict[str, Any]:
 
 def _envelope(command: str, data: Any, ok: bool = True) -> dict[str, Any]:
     return {
-        "schema_version": "techtree.cli.v1",
-        "command": command,
+        "schema_version": "techtree.cli.v2",
+        "operation": operation_for(command),
         "ok": ok,
-        "data": data,
+        "state_digest": None,
+        "facts": data,
+        "unknowns": [],
+        "blockers": [],
+        "warnings": [],
+        "content_refs": [],
+        "next_actions": [],
         "error": None
         if ok
         else {
             "code": "run_not_found",
             "message": "no such run",
-            "retryable": False,
             "details": {},
         },
-        "messages": [],
-        "warnings": [],
-        "next_actions": [],
     }
 
 

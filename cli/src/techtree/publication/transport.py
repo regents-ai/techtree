@@ -208,20 +208,17 @@ class HttpsPublicationTransport:
                     "somewhere else, and a proof bundle is not re-sent to an "
                     "address that was not the one agreed to",
                     code=PUBLICATION_TRANSPORT_REDIRECTED,
-                    retryable=False,
                     details={"status": error.code},
                 ) from error
             raise TechtreeError(
                 f"the run log refused this submission: HTTP {error.code}",
                 code=PUBLICATION_TRANSPORT_FAILED,
-                retryable=error.code >= 500,
                 details={"status": error.code},
             ) from error
         except (urllib.error.URLError, OSError, TimeoutError) as error:
             raise TechtreeError(
                 "the run log could not be reached, so nothing was sent",
                 code=PUBLICATION_TRANSPORT_FAILED,
-                retryable=True,
                 details={"reason": type(error).__name__},
             ) from error
 
@@ -240,7 +237,6 @@ def _response_bytes(response: http.client.HTTPResponse) -> bytes:
             f"the run log answered with {media_type} rather than {_MEDIA_TYPE}, "
             "so what came back is not a publication receipt",
             code=PUBLICATION_RESPONSE_NOT_JSON,
-            retryable=False,
             details={"content_type": media_type},
         )
 
@@ -260,7 +256,6 @@ def _response_bytes(response: http.client.HTTPResponse) -> bytes:
             f"the run log's answer is longer than {MAX_RESPONSE_BYTES} bytes, "
             "which no publication receipt is, so none of it was read further",
             code=PUBLICATION_RESPONSE_TOO_LARGE,
-            retryable=False,
             details={"limit": MAX_RESPONSE_BYTES},
         )
     return raw

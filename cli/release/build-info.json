@@ -1,8 +1,8 @@
 {
   "artifacts": {
-    "release/release-core.json": "sha256:f81429367dde864907c40f510aadde6b7e2e5b05c306586129a5fa54f45f612e",
+    "release/release-core.json": "sha256:3b6e6c940719452605b04e206fc353f0ced1b46130b5a0cb282be1fe5a1f4f7e",
     "release/release-core.schema.json": "sha256:583c8b09665eca0807d45de971791e7e17108686ba271897f61e3ca5e3b45c38",
-    "src/techtree/resources/release/release-core.json": "sha256:f81429367dde864907c40f510aadde6b7e2e5b05c306586129a5fa54f45f612e"
+    "src/techtree/resources/release/release-core.json": "sha256:3b6e6c940719452605b04e206fc353f0ced1b46130b5a0cb282be1fe5a1f4f7e"
   },
   "build_provenance": {
     "build_command": "uv build --wheel",
@@ -18,8 +18,8 @@
   "generator": "tools/build_release_core.py",
   "generator_version": "0.1.0",
   "inputs": {
-    "catalog_digest": "sha256:edf773ee561c09413d9704046b2d53edff19bc04c0cfbe7d6efee646670a26f3",
-    "engine_digest": "sha256:29b1bbb8327d8f1a9ade03ff4504695ad3783ae34aaaa559e5c6bf9fc95e879b",
+    "catalog_digest": "sha256:4d2165719e1e90cf838d284112fa3c1935ebc4b03917c178725c6d4ba57b7eb5",
+    "engine_digest": "sha256:f56f15d0d2f80b838838ca4154d3d6922854ae93abe105c0325187648b036bc5",
     "intro_climb_reference": "hello-world-climb@1",
     "protocol_version": "v1alpha1",
     "pyproject_version": "0.2.0",

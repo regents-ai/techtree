@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from support import operation_for
 from techtree_hermes.cli.constants import PLUGIN_ROOT
 from techtree_hermes.cli.errors import PluginError
 from techtree_hermes.services.improvement import ImprovementService
@@ -430,14 +431,17 @@ GOOD_PROPOSAL: dict[str, Any] = {
 
 def _envelope(command: str, data: Any) -> dict[str, Any]:
     return {
-        "schema_version": "techtree.cli.v1",
-        "command": command,
+        "schema_version": "techtree.cli.v2",
+        "operation": operation_for(command),
         "ok": True,
-        "data": data,
-        "error": None,
-        "messages": [],
+        "state_digest": None,
+        "facts": data,
+        "unknowns": [],
+        "blockers": [],
         "warnings": [],
+        "content_refs": [],
         "next_actions": [],
+        "error": None,
     }
 
 

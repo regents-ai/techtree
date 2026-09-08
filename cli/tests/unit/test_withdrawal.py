@@ -367,11 +367,42 @@ def test_something_that_is_not_a_bundle_digest_is_refused(home: Path) -> None:
     assert "digest must be sha256" in result.stdout
 
 
+def test_a_machine_mode_refusal_is_the_review_a_person_would_have_read(
+    home: Path,
+) -> None:
+    """``action.prepare``: no request left the machine, and the review came back."""
+    result = invoke(home, "--json", "withdraw", BUNDLE_DIGEST)
+    envelope = json.loads(result.stdout)
+
+    assert result.exit_code != EXIT_OK
+    assert envelope["ok"] is False
+    assert envelope["operation"] == "action.prepare"
+    assert envelope["error"]["code"] == "withdrawal_confirmation_required"
+
+    facts = envelope["facts"]
+    assert facts["bundle_digest"] == BUNDLE_DIGEST
+    assert facts["endpoint"]
+    review = " ".join(facts["review"])
+    assert "It is not a deletion" in review
+
+    [approved] = envelope["next_actions"]
+    assert approved["operation"] == "action.execute"
+    assert approved["approval_required"] is True
+    assert approved["retry_class"] == "reconcile_first"
+    assert approved["side_effect"] == "public_publication"
+    assert approved["data_egress"] == "publication_service"
+    assert approved["prepared_arguments"] == {
+        "command": ["withdraw"],
+        "arguments": [BUNDLE_DIGEST],
+        "options": {"--yes": True, "--reviewed-on": "host-agent"},
+    }
+
+
 def test_withdrawing_reports_what_the_log_answered(home: Path) -> None:
     result = invoke(home, "--json", "withdraw", BUNDLE_DIGEST, "--yes")
 
     assert result.exit_code == EXIT_OK
-    data = json.loads(result.stdout)["data"]
+    data = json.loads(result.stdout)["facts"]
     assert data["entry_url"] == ENTRY_URL
     assert data["bundle_digest"] == BUNDLE_DIGEST
     assert data["endpoint"] == PINNED_ENDPOINT
@@ -385,7 +416,7 @@ def test_the_development_override_moves_the_withdrawal_too(
 
     result = invoke(home, "--json", "withdraw", BUNDLE_DIGEST, "--yes")
 
-    assert json.loads(result.stdout)["data"]["endpoint"] == ENDPOINT
+    assert json.loads(result.stdout)["facts"]["endpoint"] == ENDPOINT
 
 
 def test_the_command_uses_the_coordinates_this_build_actually_ships(

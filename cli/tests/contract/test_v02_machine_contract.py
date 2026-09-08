@@ -9,12 +9,17 @@ A document that names a handler is a document that can be wrong about it. These
 tests make it impossible to be wrong for long: every handler the inventory
 cites must exist and be registered as a command, every registered command must
 be described by some operation, and the projection table must cover every
-``RunPhase`` exactly once. WP0 changes no runtime behavior, so this is the only
-thing holding the document to the code until WP1 replaces the envelope.
+``RunPhase`` exactly once.
+
+Since WP1.6 they also bind the envelope itself. The document's eleven envelope
+fields, its nine next-action fields, and its five retry classes are checked
+against the models that produce them, so a field renamed in one place and not
+the other fails the build rather than reaching a host agent.
 """
 
 from __future__ import annotations
 
+import ast
 import importlib
 import re
 from pathlib import Path
@@ -23,6 +28,15 @@ import pytest
 import typer
 
 from techtree.cli.app import create_app
+from techtree.constants import CLI_SCHEMA_VERSION
+from techtree.models.cli import (
+    CliEnvelope,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+)
 from techtree.models.run import PublicRunState, RunPhase
 from techtree.runs.machine import public_state
 
@@ -66,9 +80,12 @@ RETRY_CLASSES: frozenset[str] = frozenset(
     }
 )
 
-#: ``module:function``, the way the document cites a handler.
+#: ``module:symbol``, the way the document cites code. The symbol may be a
+#: function or a class: the contract cites the review payloads a refusal
+#: returns as well as the handlers that return them, and a citation nobody
+#: checks is the kind that survives a rename.
 HANDLER_REFERENCE = re.compile(
-    r"`(techtree(?:\.[a-z_][a-z0-9_]*)+):([a-z_][a-z0-9_]*)`"
+    r"`(techtree(?:\.[a-z_][a-z0-9_]*)+):([A-Za-z_][A-Za-z0-9_]*)`"
 )
 
 #: A backticked operation identifier: two dotted lowercase words.
@@ -313,11 +330,21 @@ def test_a_run_asked_to_stop_is_not_reported_as_stopped() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_the_envelope_documents_exactly_the_eleven_planned_fields() -> None:
+def documented_envelope_fields() -> list[str]:
     rows = first_table(section(contract_text(), "## The envelope"))
     assert rows[0][0] == "Field", "the envelope table lost its header"
-    documented = [row[0].strip("`") for row in rows[1:]]
-    assert documented == [
+    return [row[0].strip("`") for row in rows[1:]]
+
+
+def documented_next_action_fields() -> list[str]:
+    # The first table is the entry itself; the ones after it are its value sets.
+    rows = first_table(section(contract_text(), "## Typed next actions"))
+    assert rows[0][0] == "Field", "the next-action table lost its header"
+    return [row[0].strip("`") for row in rows[1:]]
+
+
+def test_the_envelope_documents_exactly_the_eleven_planned_fields() -> None:
+    assert documented_envelope_fields() == [
         "schema_version",
         "operation",
         "ok",
@@ -332,13 +359,23 @@ def test_the_envelope_documents_exactly_the_eleven_planned_fields() -> None:
     ]
 
 
+def test_the_envelope_the_cli_emits_has_exactly_those_fields() -> None:
+    """The document and the model are one envelope.
+
+    Holding the document to the plan is only half of it. This holds the code to
+    the document, so a field added, renamed, or dropped in the model without
+    the contract moving with it fails here rather than reaching a host agent
+    that programmed against the document.
+    """
+    assert list(CliEnvelope.model_fields) == documented_envelope_fields()
+
+
+def test_the_next_action_the_cli_emits_has_exactly_those_fields() -> None:
+    assert list(NextAction.model_fields) == documented_next_action_fields()
+
+
 def test_a_next_action_documents_exactly_the_nine_planned_fields() -> None:
-    body = section(contract_text(), "## Typed next actions")
-    # The first table is the entry itself; the ones after it are its value sets.
-    rows = first_table(body)
-    assert rows[0][0] == "Field", "the next-action table lost its header"
-    documented = [row[0].strip("`") for row in rows[1:]]
-    assert documented == [
+    assert documented_next_action_fields() == [
         "operation",
         "prepared_arguments",
         "expected_state_digest",
@@ -359,6 +396,46 @@ def test_the_five_retry_classes_are_the_ones_the_plan_names() -> None:
         if row[0].strip("`") in RETRY_CLASSES
     }
     assert documented == RETRY_CLASSES
+    assert {retry.value for retry in RetryClass} == RETRY_CLASSES
+
+
+def test_the_operations_the_cli_can_answer_under_are_the_planned_ones() -> None:
+    """The enum the envelope carries holds exactly the inventory."""
+    assert {operation.value for operation in Operation} == PLANNED_OPERATIONS
+
+
+def test_the_side_effect_and_egress_classes_are_the_documented_ones() -> None:
+    """Both value sets are derived in the contract, so both are checked to it.
+
+    They are the two fields that say what invoking an action would do to a
+    machine and what would leave it, which makes an undocumented member a
+    promise nobody wrote down.
+    """
+    body = section(contract_text(), "## Typed next actions")
+    documented = {row[0].strip("`") for row in table_rows(body)}
+    assert {effect.value for effect in SideEffect} <= documented
+    assert {egress.value for egress in DataEgress} <= documented
+    for section_name, members in (
+        ("### Side-effect classes", {effect.value for effect in SideEffect}),
+        ("### Data-egress classes", {egress.value for egress in DataEgress}),
+    ):
+        rows = table_rows(_subsection(contract_text(), section_name))
+        assert {row[0].strip("`") for row in rows[1:]} == members
+
+
+def _subsection(text: str, heading: str) -> str:
+    """Return one ``###``-level subsection's body, heading excluded."""
+    lines = text.splitlines()
+    start = next(
+        (index for index, line in enumerate(lines) if line.strip() == heading), None
+    )
+    assert start is not None, f"the contract has no section {heading!r}"
+    body: list[str] = []
+    for line in lines[start + 1 :]:
+        if line.startswith("## ") or line.startswith("### "):
+            break
+        body.append(line)
+    return "\n".join(body)
 
 
 # ---------------------------------------------------------------------------
@@ -366,21 +443,270 @@ def test_the_five_retry_classes_are_the_ones_the_plan_names() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_this_build_still_emits_the_v1_envelope() -> None:
-    """WP0 is a decision, not a migration.
+def test_this_build_emits_the_v2_envelope() -> None:
+    """WP1.6 was the cutover, and the document says so where it happened."""
+    assert CLI_SCHEMA_VERSION == "techtree.cli.v2"
+    assert (
+        "`techtree.constants:CLI_SCHEMA_VERSION` is\n`techtree.cli.v2` in this build"
+        in contract_text()
+    )
 
-    The contract is frozen here and the producers move in WP1. If this starts
-    failing, the cutover happened and this test is what should be deleted with
-    it — not the document's claim that WP0 changed no runtime behavior.
+
+#: Files that may still name the v1 envelope version, and why. This test names
+#: it in order to forbid it. ``test_models.py`` hands the plugin's parser a v1
+#: envelope to prove it is rejected. Everything else that builds or reads an
+#: envelope speaks one version, and the frozen trees — the v1 contract
+#: document and ``schemas/v1alpha1`` — are history rather than code.
+V1_VERSION_IS_ALLOWED: frozenset[str] = frozenset(
+    {
+        "test_models.py",
+        "test_v02_machine_contract.py",
+    }
+)
+
+
+def test_no_v1_envelope_or_next_action_shape_survives() -> None:
+    """The cutover is hard: the v1 names are gone from producer and consumer.
+
+    ``messages`` was v1's free-text channel, ``retryable`` its error-level
+    boolean, and ``requires_user_confirmation``, ``hermes_tool`` and
+    ``hermes_args`` its next-action fields. A search is a blunt instrument, and
+    it is the right one over the code that builds an envelope and the code that
+    reads one: none of these words may be a field name in either.
+
+    ``techtree.cli.v1`` is scanned the same way, and for a sharper reason. A
+    second definition of the envelope version is not a field name a reader
+    would notice — it is a string that looks right everywhere it appears — and
+    one of them survived the cutover in ``version.py``, where Doctor reported
+    it from inside a v2 envelope.
     """
-    from techtree.constants import CLI_SCHEMA_VERSION
+    forbidden = (
+        "requires_user_confirmation",
+        "hermes_tool",
+        "hermes_args",
+        "retryable",
+    )
+    for path in sorted((CLI_ROOT / "src").rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        for name in forbidden:
+            if name == "retryable" and path.name in {"cli.py", "errors.py"}:
+                # Both explain, in prose, why the boolean is gone.
+                continue
+            assert name not in text, f"{path} still names the v1 field {name!r}"
 
-    assert CLI_SCHEMA_VERSION == "techtree.cli.v1"
-    assert "`techtree.constants:CLI_SCHEMA_VERSION` is still" in contract_text()
+
+def test_nothing_that_speaks_the_envelope_still_names_v1() -> None:
+    """One envelope version, defined once, named nowhere it could be read as live."""
+    roots = (CLI_ROOT / "src", CLI_ROOT / "tests", MONOREPO_ROOT / "plugin")
+    for root in roots:
+        for suffix in ("*.py", "*.json"):
+            for path in sorted(root.rglob(suffix)):
+                if path.name in V1_VERSION_IS_ALLOWED:
+                    continue
+                text = path.read_text(encoding="utf-8")
+                assert "techtree.cli.v1" not in text, (
+                    f"{path} still names techtree.cli.v1"
+                )
 
 
-def test_the_contract_forbids_the_rejected_alternatives() -> None:
-    """The named rejections stay named, so a later reader inherits them."""
-    body = section(contract_text(), "## What v2 does not add").lower()
-    for rejected in ("adapter", "second command hierarchy", "daemon", "busy-poll"):
-        assert rejected in body, f"the contract stopped rejecting {rejected}"
+#: The four side-effecting handlers, and how each one names the thing it acts
+#: on. All four refuse in machine mode without ``--yes``; what each refusal
+#: offers is the subject of the tests below.
+APPROVED_CALLS: tuple[tuple[str, list[str], list[str]], ...] = (
+    ("climb start", ["climb", "start"], ["draft_00000000000000000000000000000000"]),
+    ("uplift start", ["uplift", "start"], ["draft_00000000000000000000000000000000"]),
+    ("publish", ["publish"], ["run_00000000000000000000000000000000"]),
+    ("withdraw", ["withdraw"], ["sha256:" + "0" * 64]),
+)
+
+#: What each approved call would do, in the contract's three classes. A start
+#: runs locally and sends prompts to the model provider; a publication or a
+#: withdrawal changes the public log and reaches the publication service. The
+#: retry class is where they differ most: a start is a person's decision every
+#: time, and a request that may already have reached the log is read back
+#: before anything is decided.
+APPROVED_CALL_CLASSES: dict[str, tuple[SideEffect, DataEgress, RetryClass]] = {
+    "climb start": (
+        SideEffect.LOCAL_EXECUTION,
+        DataEgress.MODEL_PROVIDER,
+        RetryClass.HUMAN_DECISION_REQUIRED,
+    ),
+    "uplift start": (
+        SideEffect.LOCAL_EXECUTION,
+        DataEgress.MODEL_PROVIDER,
+        RetryClass.HUMAN_DECISION_REQUIRED,
+    ),
+    "publish": (
+        SideEffect.PUBLIC_PUBLICATION,
+        DataEgress.PUBLICATION_SERVICE,
+        RetryClass.RECONCILE_FIRST,
+    ),
+    "withdraw": (
+        SideEffect.PUBLIC_PUBLICATION,
+        DataEgress.PUBLICATION_SERVICE,
+        RetryClass.RECONCILE_FIRST,
+    ),
+}
+
+
+def offered_approved_calls() -> dict[str, NextAction]:
+    """Return the step each of the four refusals offers, built as it is built."""
+    from techtree.cli.commands.climb import start_when_approved
+    from techtree.cli.commands.publish import _publish_when_agreed
+    from techtree.cli.commands.withdraw import _withdraw_when_agreed
+
+    draft = APPROVED_CALLS[0][2][0]
+    digest = "sha256:" + "a" * 64
+    return {
+        "climb start": start_when_approved(
+            "climb",
+            draft_id=draft,
+            draft_digest=digest,
+            estimated_cost=None,
+            reason="It starts the run described above.",
+        ),
+        "uplift start": start_when_approved(
+            "uplift",
+            draft_id=draft,
+            draft_digest=digest,
+            estimated_cost=None,
+            reason="It starts the run described above.",
+        ),
+        "publish": _publish_when_agreed(APPROVED_CALLS[2][2][0]),
+        "withdraw": _withdraw_when_agreed(APPROVED_CALLS[3][2][0]),
+    }
+
+
+def test_every_refusal_offers_the_approved_call_not_the_refused_one() -> None:
+    """``action.prepare`` refuses; what it offers is the call that would work.
+
+    Handing back the invocation that had just been refused is not a next step
+    — a caller that took it would be refused again, forever. Each of the four
+    offers the same call carrying the flag that says a person has answered,
+    which is ``action.execute``, and what stops a machine from taking it on
+    its own is ``approval_required``.
+    """
+    offered = offered_approved_calls()
+
+    for name, command, arguments in APPROVED_CALLS:
+        action = offered[name]
+        prepared = action.prepared_arguments
+        assert action.operation is Operation.ACTION_EXECUTE, name
+        assert action.approval_required is True, name
+        assert prepared["command"] == command, name
+        assert prepared["arguments"] == arguments, name
+        options = prepared["options"]
+        assert isinstance(options, dict)
+        assert options.get("--yes") is True, f"{name} offers the refused call"
+
+
+def test_every_approved_call_records_where_the_review_was_answered() -> None:
+    """The refusal carried the review, so the approved call says who read it.
+
+    ``--reviewed-on host-agent`` is how the run, the publication receipt, or
+    the withdrawal records that the person answered on the host agent's own
+    surface rather than at this terminal. An approved call without it would
+    record an answer given nowhere.
+    """
+    offered = offered_approved_calls()
+
+    for name, _command, _arguments in APPROVED_CALLS:
+        options = offered[name].prepared_arguments["options"]
+        assert isinstance(options, dict)
+        assert options == {"--yes": True, "--reviewed-on": "host-agent"}, name
+
+
+def test_every_approved_call_says_what_invoking_it_would_do() -> None:
+    """The three classes are the truth about the step, not about the refusal.
+
+    A host agent branches on them before it shows a person anything, so an
+    approved call that understated its effect — a publication marked as local
+    state, a start marked as reaching nothing — would have the person agree to
+    less than what happens.
+    """
+    offered = offered_approved_calls()
+
+    for name, (side_effect, data_egress, retry_class) in APPROVED_CALL_CLASSES.items():
+        action = offered[name]
+        assert action.side_effect is side_effect, name
+        assert action.data_egress is data_egress, name
+        assert action.retry_class is retry_class, name
+
+
+def test_a_start_offered_after_a_review_is_bound_to_the_draft_reviewed() -> None:
+    """An answer is about one draft, and the call it allows says which.
+
+    ``expected_state_digest`` is what stops a start from running on a draft
+    that moved after the review a person read. The money statement travels
+    with the same call: a review that showed a declared maximum offers a start
+    carrying it, and one that showed none offers a start that carries none
+    rather than a zero.
+    """
+    from techtree.cli.commands.climb import _declared_maximum_of, start_when_approved
+
+    offered = offered_approved_calls()
+
+    for name in ("climb start", "uplift start"):
+        assert offered[name].expected_state_digest == "sha256:" + "a" * 64, name
+        assert offered[name].estimated_cost is None, name
+
+    priced = start_when_approved(
+        "climb",
+        draft_id=APPROVED_CALLS[0][2][0],
+        draft_digest="sha256:" + "a" * 64,
+        estimated_cost=_declared_maximum_of(12.5),
+        reason="It starts the run described above.",
+    )
+    assert priced.estimated_cost is not None
+    assert priced.estimated_cost.maximum_authorized_cost == "12.5"
+    assert priced.estimated_cost.estimate_source == "campaign_declared_maximum"
+    assert priced.estimated_cost.execution_plan_digest is None
+
+
+def literal_tuple(module: Path, name: str) -> tuple[str, ...]:
+    """Return one module-level tuple of string literals, without importing it.
+
+    The Hermes plugin is a separate package with its own import machinery, and
+    reading its source is enough here: what is being checked is the vocabulary
+    it hard-codes, which is a literal in the file either way.
+    """
+    tree = ast.parse(module.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.AnnAssign | ast.Assign):
+            continue
+        targets = [node.target] if isinstance(node, ast.AnnAssign) else node.targets
+        if not any(
+            isinstance(target, ast.Name) and target.id == name for target in targets
+        ):
+            continue
+        assert isinstance(node.value, ast.Tuple), f"{name} is not a tuple literal"
+        return tuple(ast.literal_eval(element) for element in node.value.elts)
+    raise AssertionError(f"{module} defines no {name}")
+
+
+def test_the_hermes_consumer_reads_exactly_the_contract_envelope() -> None:
+    """The producer and the only consumer describe one envelope.
+
+    The plugin parses an envelope by name and rejects a field it has never
+    heard of, so its field lists *are* its half of the contract. They are
+    checked against the document rather than against the CLI's model, because
+    the document is what a second consumer would be written from.
+    """
+    models = MONOREPO_ROOT / "plugin" / "services" / "models.py"
+    assert (
+        list(literal_tuple(models, "_CLI_ENVELOPE_FIELDS"))
+        == documented_envelope_fields()
+    )
+    assert (
+        list(literal_tuple(models, "_CLI_NEXT_ACTION_FIELDS"))
+        == documented_next_action_fields()
+    )
+    assert set(literal_tuple(models, "_CLI_OPERATIONS")) == PLANNED_OPERATIONS
+    assert set(literal_tuple(models, "_CLI_RETRY_CLASSES")) == RETRY_CLASSES
+
+
+def test_the_hermes_consumer_speaks_the_same_envelope_version() -> None:
+    """One version, moved in one change. There is no negotiation."""
+    constants = MONOREPO_ROOT / "plugin" / "cli" / "constants.py"
+    text = constants.read_text(encoding="utf-8")
+    assert f'SUPPORTED_CLI_SCHEMA: Final = "{CLI_SCHEMA_VERSION}"' in text

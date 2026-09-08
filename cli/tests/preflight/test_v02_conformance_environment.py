@@ -62,11 +62,14 @@ def conformance_python(
     root = tmp_path_factory.mktemp("v02-prime-conformance")
     venv = root / ".venv"
     environment = uv_sync_environment(root / "home", venv)
+    dependency_project = Path(
+        os.environ.get("TECHTREE_CONFORMANCE_DEPENDENCIES", str(ENVIRONMENT_ROOT))
+    ).resolve()
     check_engine_command(
         "uv",
         "sync",
         "--project",
-        ENVIRONMENT_ROOT,
+        dependency_project,
         "--frozen",
         "--python",
         "3.12",

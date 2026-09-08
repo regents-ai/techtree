@@ -29,6 +29,7 @@ from typer.testing import CliRunner
 from fixtures.receipts.proof import PROOF_RUN_ID
 from techtree.cli.app import create_app
 from techtree.cli.commands.publish import PUBLISH_COMMAND
+from techtree.models.cli import command_line
 from techtree.publication.offer import publish_action
 from techtree.publication.transport import CONTRIBUTOR_ADDRESS_HEADER
 
@@ -94,13 +95,17 @@ def test_the_envelope_calls_the_command_by_its_name(tmp_path: Path) -> None:
         "--home", str(tmp_path), "--json", "publish", "run_" + "0" * 32, "--yes"
     )
 
-    assert json.loads(result.stdout)["command"] == "publish"
+    assert json.loads(result.stdout)["operation"] == "action.execute"
 
 
 def test_the_offer_a_person_is_shown_is_the_command_that_exists() -> None:
-    assert publish_action(PROOF_RUN_ID).cli == ["techtree", "publish", PROOF_RUN_ID]
+    assert command_line(publish_action(PROOF_RUN_ID)) == [
+        "techtree",
+        "publish",
+        PROOF_RUN_ID,
+    ]
     # A host agent asks rather than acts. Decisions 0038.
-    assert publish_action(PROOF_RUN_ID).requires_user_confirmation is True
+    assert publish_action(PROOF_RUN_ID).approval_required is True
 
 
 @pytest.mark.parametrize("spelling", OLD_SPELLINGS)

@@ -23,6 +23,7 @@ from techtree.cli.context import cli_context
 from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.errors import TechtreeError, UsageError
 from techtree.models.base import JsonValue
+from techtree.models.cli import Operation
 
 DEFAULT_ORIGIN = "https://techtree.sh"
 _PROOF_TIMEOUT = 30
@@ -189,7 +190,7 @@ def get_profile_command(
     base_url: Annotated[str, typer.Option("--base-url")] = DEFAULT_ORIGIN,
 ) -> NoReturn:
     invoke_command(
-        cli_context(ctx), "profile get", lambda: _request("get", base_url, None)
+        cli_context(ctx), Operation.PROFILE_GET, lambda: _request("get", base_url, None)
     )
 
 
@@ -198,7 +199,9 @@ def sync_profile_command(
     base_url: Annotated[str, typer.Option("--base-url")] = DEFAULT_ORIGIN,
 ) -> NoReturn:
     invoke_command(
-        cli_context(ctx), "profile sync", lambda: _request("sync", base_url, None)
+        cli_context(ctx),
+        Operation.PROFILE_SYNC,
+        lambda: _request("sync", base_url, None),
     )
 
 
@@ -229,4 +232,4 @@ def update_profile_command(
             )
         return _request("update", base_url, body)
 
-    invoke_command(cli_context(ctx), "profile update", update)
+    invoke_command(cli_context(ctx), Operation.PROFILE_UPDATE, update)

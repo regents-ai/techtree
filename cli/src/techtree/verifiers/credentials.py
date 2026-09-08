@@ -35,7 +35,14 @@ from typing import Final, Literal
 from techtree.errors import AuthenticationError
 from techtree.models.base import NonEmptyString, ProtocolModel
 from techtree.models.campaign import ModelSpec
-from techtree.models.cli import NextAction
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.engine import EngineInstallation
 
 __all__ = [
@@ -195,30 +202,23 @@ def require_credentials(model: ModelSpec) -> CredentialStatus:
         },
         next_actions=[
             NextAction(
-                id="sign_in_to_prime",
-                label="Sign in to Prime, then start the run again",
-                reason=(
-                    "A PRIME_API_KEY-named credential resolves from the active "
-                    "Prime CLI configuration, which a run can read for itself."
+                operation=Operation.PLAN_INSPECT,
+                prepared_arguments=invocation(
+                    "doctor", options={"--for-evaluation": True}
                 ),
-                cli=["prime", "login"],
-                hermes_tool=None,
-                hermes_args=None,
-                requires_user_confirmation=True,
-            ),
-            NextAction(
-                id="export_evaluation_credential",
-                label=(f"Check how {model.credential_env} reaches a run"),
+                expected_state_digest=None,
+                side_effect=SideEffect.NONE,
+                approval_required=False,
+                retry_class=RetryClass.SAFE,
+                estimated_cost=None,
+                data_egress=DataEgress.NONE,
                 reason=(
+                    f"Doctor reports how {model.credential_env} reaches a run. "
                     "Setting this credential in your own terminal is not "
                     "enough: a run works in a separate background process that "
                     "is not given your terminal's variables. It pays for the "
                     "evaluated subject's model calls and is never stored."
                 ),
-                cli=["techtree", "doctor", "--for-evaluation"],
-                hermes_tool=None,
-                hermes_args=None,
-                requires_user_confirmation=False,
             ),
         ],
     )

@@ -15,9 +15,9 @@ the operation inventory says which handler exists today.
 adapter, no negotiation, no dual-write path, and no second command hierarchy.
 The v1 contract, [`cli/docs/cli-json-contract.md`](../../cli/docs/cli-json-contract.md),
 is the frozen historical description of the v0.1 packages and of the bytes they
-already produced. It is historical rather than authoritative, and it has one
-known inaccuracy of its own, recorded below. Those bytes are never rewritten.
-v0.2 producers and consumers move to v2 together, in WP1 and WP6.
+already produced. It is historical rather than authoritative; its own command
+list was reconciled separately, as recorded below. Those bytes are never
+rewritten. v0.2 producers and consumers move to v2 together, in WP1 and WP6.
 
 ## What v2 does not change
 
@@ -84,10 +84,17 @@ For every run-scoped operation it is the run's event-log digest —
 log is the truth and the projection is a cache, so the log's digest is the only
 honest identity for "where this run had got to".
 
+For a draft-scoped operation — preparing a comparison — it is the draft's own
+digest, which is the identity of the durable state that preparation wrote and
+what the start offered beside it is bound to.
+
 For an operation with no durable subject — inspecting the machine, verifying a
 proof file — `state_digest` is null. Null means "this answer is not about
 durable state", never "the state is unknown"; something unknown is an
 `unknowns` entry.
+
+It has exactly one home. A payload never carries its own copy: two places to
+read the same digest from is two places for them to disagree.
 
 ### `facts`
 
@@ -184,11 +191,22 @@ Each `next_actions` entry has exactly these nine fields.
 | `data_egress` | egress class | What leaves this machine if it runs. |
 | `reason` | string | Why this is being offered. |
 
-`prepared_arguments` is a named object rather than v1's argv array, because the
-operation identifier already fixes the handler and a name cannot be mis-quoted
-into a second command. A caller that renders a command line for a person builds
-it from the operation and the arguments; Techtree never executes a displayed
-command string.
+`prepared_arguments` is a named object rather than v1's argv array, because a
+name cannot be mis-quoted into a second command. It has exactly three entries:
+
+| Entry | Meaning |
+| --- | --- |
+| `command` | The command path, as literal segments. At least one. |
+| `arguments` | The positional values, in order. |
+| `options` | Each option by the name it is spelled with, valued by its value, or `true` where it takes none. |
+
+An operation may describe more than one handler, so the invocation says which
+one. A caller builds the call — or the command line it shows a person — by
+joining `techtree`, the command path, the arguments, and the options; nothing
+has to be parsed and nothing can be mis-quoted. The command path is *not* back
+in the machine contract: a caller branches on `operation`, which is stable, and
+takes the invocation as given rather than composing one of its own. Techtree
+never executes a displayed command string.
 
 `expected_state_digest` is how an action stays bound to the state it was
 prepared against. When it does not equal the current `state_digest`, the
@@ -247,7 +265,7 @@ default.
 
 ## Operation inventory
 
-These eleven identifiers are the stable v2 surface. **They describe existing
+These fourteen identifiers are the stable v2 surface. **They describe existing
 CLI handlers; they do not create a second command hierarchy.** Every handler
 below is cited as `module:function` and exists in `cli/src` today, which
 `cli/tests/contract/test_v02_machine_contract.py` checks on every run.
@@ -273,10 +291,16 @@ gives. That is the point of describing rather than duplicating.
 | `profile.sync` | `techtree.cli.commands.profile:sync_profile_command` | — | Explicitly synchronize personal X and wallet evidence; no publication, payout or signing authority. |
 | `profile.update` | `techtree.cli.commands.profile:update_profile_command` | — | Edit the owner's shared name or selected linked wallet without changing payment destinations. |
 
-How the four non-run operations divide, stated once so a twelfth identifier is
-never invented to hold something these already cover:
+How the four non-run, non-profile operations divide, stated once so a
+fifteenth identifier is never invented to hold something these already cover:
 
-- `plan.inspect` reads. Its next actions have `side_effect: none`.
+- `plan.inspect` reads. *It* changes nothing; the steps it offers may change
+  anything, and each says so. Doctor answers under `plan.inspect` and offers
+  installing the evaluation engine, which writes local state and reaches a
+  package index; `climb show` does the same for a machine that has no engine.
+  A read that could only ever offer other reads would be a read with no way
+  out of a blocked machine. Every class on an offered step is the truth about
+  that step, never about the operation that offered it.
 - `plan.prepare` builds the comparison plan and its inputs. It writes local
   state and starts nothing.
 - `action.prepare` and `action.execute` are the same handlers in their two
@@ -286,23 +310,21 @@ never invented to hold something these already cover:
   `--reviewed-on` is `action.execute`. This is why approval stays a person's
   act while a machine drives, and why no second hierarchy is needed.
 
-  **The refusal does not carry the review yet.** Today the machine-mode
-  refusals carry identifiers only — the draft id and data-policy digest in
-  `techtree.cli.commands.climb:approve_run`, the run id in
-  `techtree.cli.commands.publish:_require_an_answer_is_possible`, the bundle
-  digest in `techtree.cli.commands.withdraw:_require_withdrawal_confirmation`.
-  The review text a person reads is printed to the human console on the
-  interactive path and never reaches machine mode. Adding the machine-readable
-  review payload — what would happen, what it costs, what leaves the machine —
-  to those refusals is WP1 scope, and `action.prepare` is not complete without
-  it.
+  **The refusal carries the review.** The three refusals return what a person
+  would have been shown — `techtree.cli.commands.climb:start_review` for a
+  start, `techtree.cli.commands.publish:PublicationReviewPayload` for a
+  publication, `techtree.cli.commands.withdraw:WithdrawalReviewPayload` for a
+  withdrawal — as facts, alongside the identifiers they always carried and the
+  exact lines the interactive path prints. Each offers the approved call as its
+  one next action, marked `approval_required`, so a host agent shows the review
+  on its own surface and calls again saying where the answer was given. Nothing
+  in that flow lets a machine supply the answer itself.
 
   **`setup` and `engine install` have no preview mode.** Neither takes `--yes`
   and neither has a two-mode split, so `action.prepare` does not describe them
   and the inventory does not claim it does. They appear under `action.execute`
-  alone. Whether they need a preview at all is a WP1 question; until one
-  exists, a host agent that wants to know what they would do reads
-  `plan.inspect`.
+  alone. Whether they need a preview at all is still open; until one exists, a
+  host agent that wants to know what they would do reads `plan.inspect`.
 - `result.inspect` reports the Result; `claim.inspect` reports what may be
   claimed about it. The two consult publication eligibility by different
   routes, and the difference matters. `result_run_command` reads
@@ -319,7 +341,7 @@ never invented to hold something these already cover:
 ### Handlers this inventory does not describe
 
 None. Every command registered in `techtree.cli.app:create_app` is described by
-at least one of the eleven operations above, and the inventory cites no handler
+at least one of the fourteen operations above, and the inventory cites no handler
 that is not registered there. The contract test checks both directions, so a
 command added without an operation, or an operation left pointing at a deleted
 handler, fails the build rather than drifting.
@@ -426,72 +448,143 @@ re-emitted, re-encoded, or re-signed, and no v0.2 code reads them through a
 compatibility branch; historical artifacts are read by the read-only v0.1
 projectors WP1 adds.
 
+Two published schemas stop being generated because of that. `v1alpha1`'s
+`cli-envelope.schema.json` describes an envelope this build no longer produces,
+and its `run-state.schema.json` embeds that envelope's error, which lost
+`retryable` in the cutover. Both keep the bytes v0.1 released and are verified
+against a recorded digest by `cli/tools/export_schemas.py` rather than written
+again. Regenerating either would rewrite history instead of checking it.
+
 ## Where this is implemented
 
-WP0 freezes this contract and nothing else. No runtime behavior changes here,
-and `techtree.constants:CLI_SCHEMA_VERSION` is still `techtree.cli.v1` in this
-build.
+WP1 replaced the envelope, the next-action model, and the state projection, and
+added bounded `run.wait`. `techtree.constants:CLI_SCHEMA_VERSION` is
+`techtree.cli.v2` in this build, every command answers under one of the fourteen
+operations, and no v1 envelope or next-action shape remains in `cli/` or
+`plugin/`. WP1.6 was the cutover, and it moved the Hermes consumer in the same
+change; there was never a build in which the two spoke different versions.
 
-- **WP1** replaces the envelope, the next-action model, and the state
-  projection, and adds bounded `run.wait`, moving
-  `CLI_SCHEMA_VERSION` to `techtree.cli.v2` in one cutover.
 - **WP4** implements the remote arm of `run.reconcile`.
-- **WP6** migrates the Hermes and Codex consumers, atomically and without a
-  compatibility layer.
+- **WP6** migrates the Codex consumer.
+
+### Which operation each command reports
+
+The inventory above says which operations *describe* a handler. This says which
+one a given invocation answers under, for the cases where a handler has more
+than one answer to give. Everything not listed here reports the operation its
+inventory row names.
+
+| Invocation | Operation | Why |
+| --- | --- | --- |
+| `run status` with neither `--timeout-seconds` nor `--since-state-digest` | `run.status` | It answers about now. |
+| `run status` with either of them | `run.wait` | It waits first, bounded, and the wait is the answer. |
+| `run logs` | `run.status` | One handler, one answer: a run's diagnostic output. The inventory also lists it under `result.inspect`, and nothing distinguishes the two at the moment of running, so it reports the operation it is a snapshot of. |
+| `run result` | `result.inspect` | The Result and the claim it is entitled to make come back together, and `result.inspect` is the one that describes the payload. |
+| `proof verify` | `proof.verify` | Whether the stored bytes verify offline. |
+| `climb start`, `uplift start`, `publish`, `withdraw` without `--yes`, where nobody can be asked | `action.prepare` | The refusal carries the review, which is the preparation. |
+| The same four otherwise | `action.execute` | Either a person has already answered, or one is about to be asked. |
+| A failure before any command starts | `plan.inspect` | Nothing got as far as being an operation; the envelope still names one, and this is the one that answers about this machine. |
+
+Two of the fourteen identifiers are never reported by a handler in this build.
+`claim.inspect` is answered inside `result.inspect`: `run result` returns the
+recorded claim — `report.publication_eligible`, written when
+`techtree.receipts.uplift:build_uplift_report` built the report — and says so by
+carrying it as a fact of the Result rather than as a separate answer.
+`run.reconcile` has only its local half, which happens on every `run status`.
+Both remain valid targets for a next action.
+
+### Where the handlers deviate from this contract
+
+Places where the code and this document knowingly differ, with the reading
+taken. They are deviations rather than gaps: the behavior is deliberate and
+the contract has been amended to match, and each entry says what moved.
+
+1. **`plan.inspect`'s next actions are not all `side_effect: none`.** This
+   document said they were, of every read. Doctor's repairs and `climb show`'s
+   offer to install the evaluation engine are `local_state` with
+   `package_index` egress, because that is what invoking them does, and a read
+   that could only offer reads would leave a blocked machine with nothing to
+   do. The sentence above is amended; the operation reads, its steps are
+   labelled truthfully, and a caller branches on the step's own classes.
 
 ### What the handlers do not do yet
 
-Five places where this contract described behavior the cited handler did not
-have when it was frozen. They are listed so an implementer sizes them rather
-than discovers them, and so no reader mistakes a described operation for an
-implemented one. An item a work package has since delivered says so in place
-and keeps its number, so a reference to "item 3" means the same item it always
-did.
+Places where this contract describes behavior the cited handler does not have.
+They are listed so an implementer sizes them rather than discovers them. An
+item a work package has since delivered says so in place and keeps its number,
+so a reference to "item 3" means the same item it always did.
 
-1. **`run.wait` waits, as of WP1.4.** `status_run_command` takes the bounded
-   `timeout_seconds` option this contract requires, alongside the digest a
-   caller last saw, and blocks until the run's durable state moves past it, the
-   run reaches a terminal public state, or the bound expires. `--watch` is
-   unchanged: still human-only, still refused in machine mode, and refused
-   beside a bounded wait rather than silently taking precedence over one.
-   Waiting is asked for and never assumed, so a plain `run status` still
-   answers about now. Two pieces of this belong to WP1.6 and are not done: the
-   envelope still reports the command path rather than naming `run.wait` as the
-   operation that answered, and `state_digest` is carried on the status payload
-   rather than on the envelope where this contract puts it.
+1. **`run.wait` waits, as of WP1.4, and names itself, as of WP1.6.**
+   `status_run_command` takes the bounded `timeout_seconds` option this
+   contract requires, alongside the digest a caller last saw, and blocks until
+   the run's durable state moves past it, the run reaches a terminal public
+   state, or the bound expires. Asking to wait is what makes the answer
+   `run.wait`, and `state_digest` is on the envelope where this contract puts
+   it. `--watch` is unchanged: still human-only, still refused in machine mode,
+   and refused beside a bounded wait rather than silently taking precedence
+   over one. Waiting is asked for and never assumed, so a plain `run status`
+   still answers about now.
 2. **`run.reconcile` has only its local half.** Recomputing durable state from
    the append-only log is real and already happens on every `run status`. The
    remote arm — the `submitting` / `identified` / `reconciliation_required` /
    `terminal` control record — does not exist and is WP4 scope.
-3. **`action.prepare` has no machine-readable review.** The refusals carry
-   identifiers, not the review payload. WP1, as described above.
-4. **`setup` and `engine install` have no preview mode.** WP1 decides whether
-   they need one.
-5. **Every next action in the CLI has the v1 shape.** v1's seven fields and
-   v2's nine share none, so every construction site across the climb, run,
-   proof, publish, engine, release, setup and skill handlers is rewritten in
-   WP1. So is every `messages` producer, since v2 has no such channel.
+3. **`action.prepare` carries the machine-readable review, as of WP1.6.** A
+   start, a publication, or a withdrawal that carries no `--yes` where nobody
+   can be asked returns the review as facts: for a start, the episodes, the
+   maximum the Campaign declares, the provider the model calls go to, the
+   rights being accepted, and the exact lines a person reads; for a
+   publication, the file and byte counts, the endpoint, the bundle digest and
+   what the proof directory does not contain; for a withdrawal, the entry, the
+   endpoint, and what withdrawing does and does not do. Each carries the
+   approved call as its one next action, marked `approval_required`.
+4. **`setup` and `engine install` have no preview mode.** Neither takes `--yes`
+   and neither has a two-mode split. They appear under `action.execute` alone.
+   Whether they need a preview at all is still open; until one exists, a host
+   agent that wants to know what they would do reads `plan.inspect`.
+5. **Every next action in the CLI has the v2 shape, as of WP1.6.** Every
+   construction site across the climb, run, proof, publish, withdraw, engine,
+   release, setup, skill and uplift handlers was rewritten, as was every
+   `messages` producer: what a caller must act on is now a fact, an unknown, a
+   blocker, or a warning, and the sentences a person reads are built by each
+   command's own renderer out of the payload it produced.
+6. **No envelope refers to bytes yet.** `content_refs` is defined, validated,
+   and empty in every response this build produces. Nothing in v0.2.0 names
+   bytes instead of carrying them; a proof bundle is verified in place and a
+   report is inlined. The first producer is WP5's public evidence.
+7. **`estimated_cost` states a declared maximum, never a quote.** The only
+   money statement this build can make is the Campaign's own declared maximum,
+   carried on the two start actions with `estimate_source:
+   campaign_declared_maximum` and no `execution_plan_digest`, because no
+   resolved plan is priced yet. A Campaign that declares no maximum produces no
+   money statement and an `unknowns` entry saying so, never a zero. The quoted
+   `RemoteExecutionEstimate` this field is otherwise drawn from arrives with
+   the hosted backend in WP4.
+8. **A next action names a Techtree operation and nothing else.** v1's actions
+   could carry any argument vector, and Doctor used that to hand back
+   `chmod`, `uv python install`, and `prime login`. v2 actions are typed
+   operations, so those repairs are stated in the words of the blocker or
+   warning that reports the check, and the action offered beside them is the
+   Techtree operation that follows — the re-check, or the engine install.
 
-### The known inaccuracy in the v1 document
+### The v1 document's command list
 
-`cli/docs/cli-json-contract.md` says `command` is drawn from a list of nineteen
-stable command names. At the `v0.1.1` tag the CLI registers twenty-four. Five
-were shipped and never added to the list: `setup`, `publish`, `withdraw`,
-`skill starter`, and `uplift skill-source`. The document's claim that every
-command it lists is implemented is true; the converse, which a host agent
-reading it would assume, is not.
+`cli/docs/cli-json-contract.md` once listed nineteen stable command names where
+the CLI registered twenty-four. That was reconciled by techtree-31k.15: the
+document lists every registered command, and
+`cli/tests/contract/test_cli_json_contract_doc.py` holds it to
+`techtree.cli.app:create_app` so it cannot drift again.
 
-The v1 document is deliberately **not** corrected here. It describes frozen
-released bytes, and editing it now would make it a worse record of what v0.1
-shipped with rather than a better one. It is recorded instead as a known
-inaccuracy so nobody reads that list as the v0.1 surface, and as the reason
-this document's operation inventory is checked against the registered commands
-in both directions rather than maintained by hand.
+It stays the frozen v1 description all the same — it describes the bytes v0.1
+released, and this document is the v2 contract. The reasoning that a hand-kept
+list goes stale is why the operation inventory above is checked against the
+registered commands in both directions rather than maintained by hand.
 
 ## Open questions for the founder
 
 Recorded rather than silently resolved. Each names the reading taken here and
-what the plan actually says.
+what the plan actually says. WP1.6 built to every reading below as a working
+default: they are reversible engineering choices with no protected effect, and
+a different answer is applied to the envelope before lock adoption.
 
 1. **`claim.inspect` is not defined in the plan.** Two readings exist. (a) The
    claim a Result is entitled to make — proof grade, decision, publication

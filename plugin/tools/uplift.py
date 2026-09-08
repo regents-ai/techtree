@@ -133,7 +133,7 @@ def techtree_uplift_propose(services: Any, args: dict[str, Any], **kwargs: Any) 
         channel=channel,
     )
 
-    session = update_after_second_prepare(session, {"ok": True, "data": prepared})
+    session = update_after_second_prepare(session, {"ok": True, "facts": prepared})
     save_session(services, session)
 
     written = proposal.output.to_dict()
@@ -296,6 +296,6 @@ def techtree_uplift_start(services: Any, args: dict[str, Any], **kwargs: Any) ->
 
 def _draft_digest(envelope: Any) -> str | None:
     """Return the digest Techtree named for this draft, or None if it named none."""
-    data = envelope.get("data") if isinstance(envelope, dict) else None
+    data = envelope.get("facts") if isinstance(envelope, dict) else None
     digest = data.get("draft_digest") if isinstance(data, dict) else None
     return digest if isinstance(digest, str) and digest else None

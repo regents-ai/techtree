@@ -5,22 +5,26 @@ checks run in, which failures actually block, and which repairs are worth
 offering. Keeping them here is what lets the Doctor command be nine lines of
 plumbing with no opinion in it.
 
-Repairs are chosen by priority and capped at three. Some problems have a
-concrete argument vector that fixes them — a permissions change, an engine
-install. Others cannot be fixed by anything Techtree is allowed to run, and for
-those the action's argv is the re-check and the reason says what a person has
-to do first. That is deliberate: a next action is a promise that running the
-vector is safe and sensible, so it never carries a placeholder to be filled in
-or an installer piped out of the network.
+What a check found and what to do about it are two halves of one answer, and
+the service produces both. A failing check becomes a blocker or a warning whose
+text carries the repair — including the ones only a person can carry out, a
+permissions change, an interpreter, a container runtime, a sign-in — and the
+next actions are the Techtree operations that follow. A next action names a
+Techtree operation and nothing else, so an instruction to run something that is
+not Techtree is stated in words rather than handed over as a command somebody's
+agent might run unread.
 
-When nothing needs repair the caller is not left without a next step. The
-useful thing to do on a healthy host is to look at what there is to climb.
+Repairs are chosen by priority and capped at three. When nothing needs repair
+the caller is not left without a next step: the useful thing to do on a healthy
+host is to look at what there is to climb.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from typing import Final
+import json
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Final, Literal
 
 from techtree.doctor.checks import (
     check_active_engine,
@@ -38,12 +42,33 @@ from techtree.doctor.execution_checks import execution_checks
 from techtree.engines.registry import EngineRegistry
 from techtree.models.base import NonEmptyString, ProtocolModel
 from techtree.models.campaign import CampaignSpecV2
-from techtree.models.cli import MAX_NEXT_ACTIONS, CheckStatus, DoctorCheck, NextAction
+from techtree.models.cli import (
+    MAX_NEXT_ACTIONS,
+    CheckStatus,
+    CliBlocker,
+    CliWarning,
+    DataEgress,
+    DoctorCheck,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.paths import TechtreePaths
 from techtree.settings import Settings
 from techtree.version import version_info
 
-__all__ = ["DoctorReport", "DoctorService"]
+__all__ = ["BLOCKED_OPERATIONS", "DoctorReport", "DoctorService"]
+
+#: What a blocking environment failure forbids. A machine that cannot run a
+#: Climb cannot prepare a comparison to run and cannot perform a side-effecting
+#: step, and saying which operations are stopped is the whole difference
+#: between a blocker and a note.
+BLOCKED_OPERATIONS: Final[tuple[Operation, ...]] = (
+    Operation.PLAN_PREPARE,
+    Operation.ACTION_EXECUTE,
+)
 
 #: Where uv's own installation instructions live. It goes in a reason, never in
 #: an argument vector: Techtree does not offer to pipe an installer into a
@@ -127,8 +152,8 @@ class DoctorService:
         """Return blocking failures."""
         return [check for check in checks if check.blocking]
 
-    def warnings(self, checks: list[DoctorCheck]) -> list[DoctorCheck]:
-        """Return warnings."""
+    def warning_checks(self, checks: list[DoctorCheck]) -> list[DoctorCheck]:
+        """Return the checks that reported something short of blocking."""
         return [
             check
             for check in checks
@@ -136,23 +161,63 @@ class DoctorService:
             or (check.status is CheckStatus.FAIL and not check.blocking)
         ]
 
+    def blockers(self, checks: list[DoctorCheck]) -> list[CliBlocker]:
+        """Return one blocker per blocking failure, carrying its repair.
+
+        Each names the operations it forbids rather than leaving a reader to
+        work out what a failed check costs them, and each carries what to do
+        about it — including the part only a person can do.
+        """
+        return [
+            CliBlocker(
+                id=check.id,
+                text=_finding(check),
+                blocks=list(BLOCKED_OPERATIONS),
+                resolvable_by=_resolvable_by(check.id),
+            )
+            for check in self.blocking_failures(checks)
+        ]
+
+    def warnings(self, checks: list[DoctorCheck]) -> list[CliWarning]:
+        """Return what did not stop this host and must still be seen."""
+        return [
+            CliWarning(
+                id=check.id,
+                text=_finding(check),
+                resolvable_by=_resolvable_by(check.id),
+            )
+            for check in self.warning_checks(checks)
+        ]
+
     def next_actions(self, checks: list[DoctorCheck]) -> list[NextAction]:
-        """Create no more than three repair actions."""
+        """Create no more than three repair actions.
+
+        Two checks can share one repair — a missing Docker CLI and an
+        unreachable daemon are both fixed by installing and starting it — so a
+        step that is already offered is not offered twice. What makes two steps
+        the same step is what the envelope says it is: one operation with one
+        set of prepared arguments. Comparing the wording instead would let two
+        identical calls through the moment somebody reworded one of them.
+        """
         by_id = {check.id: check for check in checks}
         actions: list[NextAction] = []
-        offered: set[str] = set()
+        offered: set[tuple[Operation, str]] = set()
 
-        for check_id, build in _REPAIRS:
+        for check_id, repair in _REPAIRS:
             check = by_id.get(check_id)
             if check is None or check.status in (CheckStatus.PASS, CheckStatus.SKIP):
                 continue
-            action = build(self._paths)
-            # Two checks can share one repair — a missing Docker CLI and an
-            # unreachable daemon are both fixed by installing and starting it.
-            if action is None or action.id in offered:
+            action = repair.action
+            if action is None:
+                continue
+            step = (
+                action.operation,
+                json.dumps(action.prepared_arguments, sort_keys=True),
+            )
+            if step in offered:
                 continue
             actions.append(action)
-            offered.add(action.id)
+            offered.add(step)
             if len(actions) == MAX_NEXT_ACTIONS:
                 return actions
 
@@ -177,117 +242,70 @@ def _metadata_string(
     return None
 
 
-def _fix_home_permissions(paths: TechtreePaths) -> NextAction:
+@dataclass(frozen=True)
+class _Repair:
+    """What to do about one failing check.
+
+    ``instruction`` is what a person does, in words, and it is the only place
+    a step Techtree cannot take for somebody appears. ``action`` is the
+    Techtree operation that follows it, and is absent when nothing Techtree can
+    run would move this forward.
+    """
+
+    instruction: str | None
+    action: NextAction | None
+
+
+def _recheck(*, for_evaluation: bool = False) -> NextAction:
+    """Return the check that says whether a repair worked."""
+    options: dict[str, str | Literal[True]] = {}
+    if for_evaluation:
+        options["--for-evaluation"] = True
     return NextAction(
-        id="fix_techtree_home_permissions",
-        label="Make the Techtree home directory private and writable",
-        reason="Techtree stores drafts, runs, and engines there for one user only.",
-        cli=["chmod", "700", str(paths.root)],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("doctor", options=options),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=(
+            "Doctor reports what is installed, what is missing, and what would "
+            "block a run, so it says whether a repair worked."
+            if not for_evaluation
+            else (
+                "The evaluation checks report whether this machine could run a "
+                "Climb for real, so they say whether a repair worked."
+            )
+        ),
     )
 
 
-def _install_supported_python(_: TechtreePaths) -> NextAction:
+def _install_engine() -> NextAction:
     return NextAction(
-        id="install_supported_python",
-        label="Install a supported Python and re-run Doctor",
-        reason="Techtree requires Python 3.12 or 3.13.",
-        cli=["uv", "python", "install", "3.12"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
-    )
-
-
-def _install_engine(_: TechtreePaths) -> NextAction:
-    return NextAction(
-        id="install_engine",
-        label="Install the managed evaluation engine",
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation("engine", "install"),
+        expected_state_digest=None,
+        side_effect=SideEffect.LOCAL_STATE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.PACKAGE_INDEX,
         reason="Preparing or starting a Climb needs an installed, active engine.",
-        cli=["techtree", "engine", "install"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
-
-
-def _recheck_after_installing_uv(_: TechtreePaths) -> NextAction:
-    return NextAction(
-        id="recheck_after_installing_uv",
-        label="Install uv, then re-run Doctor",
-        reason=(
-            "The managed evaluation engine is installed with uv. Installation "
-            f"instructions: {UV_INSTALL_DOCUMENTATION}"
-        ),
-        cli=["techtree", "doctor"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
-    )
-
-
-def _recheck_after_starting_docker(_: TechtreePaths) -> NextAction:
-    return NextAction(
-        id="recheck_after_starting_docker",
-        label="Start Docker, then re-run Doctor",
-        reason="An evaluated subject runs in a container on this host.",
-        cli=["techtree", "doctor"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
-    )
-
-
-def _unsupported_host(_: TechtreePaths) -> None:
-    """No repair exists for the wrong machine, so no action is offered."""
-    return None
-
-
-def _sign_in_to_prime(_: TechtreePaths) -> NextAction:
-    return NextAction(
-        id="sign_in_to_prime",
-        label="Sign in to Prime, then re-run this check",
-        reason=(
-            "The evaluated subject's model calls are paid for by a credential "
-            "a run reads for itself, which is why signing in to Prime works "
-            "and exporting the credential in a terminal does not. It is "
-            "separate from whatever your own agent is signed in with. After "
-            "signing in, run techtree doctor --for-evaluation again."
-        ),
-        cli=["prime", "login"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
-    )
-
-
-def _pull_subject_image(_: TechtreePaths) -> NextAction:
-    return NextAction(
-        id="pull_subject_image",
-        label="Pull the subject's container image, then re-run this check",
-        reason=(
-            "The evaluated subject runs in the image the Campaign pins. "
-            "Downloading it is a deliberate setup step, so Techtree reports it "
-            "rather than doing it during a check."
-        ),
-        cli=["techtree", "doctor", "--for-evaluation"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
-    )
-
-
-def _not_runnable_yet(_: TechtreePaths) -> None:
-    """A Campaign that is not meant to be executed has no repair."""
-    return None
 
 
 def _browse_climbs(*, ready: bool) -> NextAction:
     return NextAction(
-        id="list_climbs",
-        label="Browse the available Climbs",
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("climb", "list"),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason=(
             "This host is ready."
             if ready
@@ -296,31 +314,126 @@ def _browse_climbs(*, ready: bool) -> NextAction:
                 "it needs."
             )
         ),
-        cli=["techtree", "climb", "list"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
 
-#: Check identifier to repair builder, most important first. A builder returns
-#: None when the problem is real and nothing runnable would fix it.
-type _Repair = Callable[[TechtreePaths], NextAction | None]
+def _finding(check: DoctorCheck) -> str:
+    """Return what one check found, and what to do about it."""
+    repair = _REPAIRS_BY_CHECK.get(check.id)
+    instruction = None if repair is None else repair.instruction
+    if instruction is None:
+        return check.detail
+    return f"{check.detail} {instruction}"
 
-_REPAIRS: Final[tuple[tuple[str, _Repair], ...]] = (
-    ("techtree_home", _fix_home_permissions),
-    ("python_version", _install_supported_python),
-    ("host_platform", _unsupported_host),
-    ("uv", _recheck_after_installing_uv),
-    ("active_engine", _install_engine),
-    ("docker_cli", _recheck_after_starting_docker),
-    ("docker_daemon", _recheck_after_starting_docker),
-    # Spec section 6.18. These only appear under --for-evaluation, and they sit
-    # last because a host that fails an ordinary check fails these too, and the
-    # ordinary repair is the one worth offering first.
-    ("execution_docker_platform", _recheck_after_starting_docker),
-    ("execution_engine_eval", _install_engine),
-    ("execution_model_credential", _sign_in_to_prime),
-    ("execution_subject_image", _pull_subject_image),
-    ("execution_live_campaign", _not_runnable_yet),
-)
+
+def _resolvable_by(check_id: str) -> Operation | None:
+    """Return the operation that would clear this check, if one would."""
+    repair = _REPAIRS_BY_CHECK.get(check_id)
+    if repair is None or repair.action is None:
+        return None
+    return repair.action.operation
+
+
+def _repairs() -> tuple[tuple[str, _Repair], ...]:
+    """Return the repair table, most important first.
+
+    The order is the order actions are offered in. A repair with no action is a
+    problem that is real and that nothing Techtree runs would fix; a repair
+    with no instruction is one Techtree can carry out itself.
+    """
+    recheck = _Repair(instruction=None, action=_recheck())
+    engine = _Repair(instruction=None, action=_install_engine())
+    return (
+        (
+            "techtree_home",
+            _Repair(
+                instruction=(
+                    "Make that directory private and writable — chmod 700 — "
+                    "and try again. Techtree stores drafts, runs, and engines "
+                    "there for one user only."
+                ),
+                action=_recheck(),
+            ),
+        ),
+        (
+            "python_version",
+            _Repair(
+                instruction=(
+                    "Install a supported Python — Techtree requires 3.12 or "
+                    "3.13 — for example with uv python install 3.12."
+                ),
+                action=_recheck(),
+            ),
+        ),
+        ("host_platform", _Repair(instruction=None, action=None)),
+        (
+            "uv",
+            _Repair(
+                instruction=(
+                    "Install uv: the managed evaluation engine is installed "
+                    f"with it. Installation instructions: "
+                    f"{UV_INSTALL_DOCUMENTATION}"
+                ),
+                action=_recheck(),
+            ),
+        ),
+        ("active_engine", engine),
+        (
+            "docker_cli",
+            _Repair(
+                instruction=(
+                    "Install and start Docker: an evaluated subject runs in a "
+                    "container on this host."
+                ),
+                action=_recheck(),
+            ),
+        ),
+        (
+            "docker_daemon",
+            _Repair(
+                instruction=(
+                    "Start Docker: an evaluated subject runs in a container on "
+                    "this host."
+                ),
+                action=_recheck(),
+            ),
+        ),
+        # Spec section 6.18. These only appear under --for-evaluation, and they
+        # sit last because a host that fails an ordinary check fails these too,
+        # and the ordinary repair is the one worth offering first.
+        ("execution_docker_platform", recheck),
+        ("execution_engine_eval", engine),
+        (
+            "execution_model_credential",
+            _Repair(
+                instruction=(
+                    "Sign in to Prime with prime login. The evaluated subject's "
+                    "model calls are paid for by a credential a run reads for "
+                    "itself, which is why signing in works and exporting the "
+                    "credential in a terminal does not. It is separate from "
+                    "whatever your own agent is signed in with."
+                ),
+                action=_recheck(for_evaluation=True),
+            ),
+        ),
+        (
+            "execution_subject_image",
+            _Repair(
+                instruction=(
+                    "Pull the subject's container image. The evaluated subject "
+                    "runs in the image the Campaign pins, and downloading it is "
+                    "a deliberate setup step Techtree reports rather than takes "
+                    "during a check."
+                ),
+                action=_recheck(for_evaluation=True),
+            ),
+        ),
+        ("execution_live_campaign", _Repair(instruction=None, action=None)),
+    )
+
+
+#: The repair table, built once. Nothing in it reads the machine, so it is a
+#: constant rather than something each Doctor run assembles again.
+_REPAIRS: Final[tuple[tuple[str, _Repair], ...]] = _repairs()
+
+_REPAIRS_BY_CHECK: Final[dict[str, _Repair]] = dict(_REPAIRS)

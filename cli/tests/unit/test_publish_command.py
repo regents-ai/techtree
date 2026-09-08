@@ -39,6 +39,7 @@ from techtree.cli.commands.publish import (
     publication_review_lines,
 )
 from techtree.errors import EXIT_OK, EXIT_USAGE, EXIT_VERIFICATION
+from techtree.models.cli import NextAction, command_line
 from techtree.publication.journal import PublicationJournal
 from techtree.publication.service import (
     PUBLICATION_RECEIPT_FILENAME,
@@ -171,6 +172,113 @@ def test_a_host_agent_that_asked_in_the_conversation_may_publish(
     assert (home / "runs" / PROOF_RUN_ID / PUBLICATION_RECEIPT_FILENAME).is_file()
 
 
+def test_a_machine_mode_refusal_is_the_review_a_person_would_have_read(
+    home: Path,
+) -> None:
+    """``action.prepare``: nothing was sent, and the whole review came back.
+
+    A host agent refused with a run identifier and a flag name cannot show
+    anybody what publishing would do. What comes back is what a terminal
+    prints before it asks — the file and byte counts, the address, the bundle
+    digest, and what the proof directory does not contain — with the approved
+    call as its one next action.
+    """
+    result = invoke(home, "--json", "publish", PROOF_RUN_ID)
+    envelope = json.loads(result.stdout)
+
+    assert result.exit_code == EXIT_USAGE
+    assert SENT == []
+    assert envelope["ok"] is False
+    assert envelope["operation"] == "action.prepare"
+    assert envelope["error"]["code"] == "publication_confirmation_required"
+
+    facts = envelope["facts"]
+    assert facts["run_id"] == PROOF_RUN_ID
+    assert facts["file_count"] > 0
+    assert facts["byte_count"] > 0
+    assert facts["endpoint"]
+    review = " ".join(facts["review"])
+    assert facts["bundle_digest"] in review
+    assert "No prompts and no replies are among them" in review
+
+    [approved] = envelope["next_actions"]
+    assert approved["operation"] == "action.execute"
+    assert approved["approval_required"] is True
+    assert approved["retry_class"] == "reconcile_first"
+    assert approved["side_effect"] == "public_publication"
+    assert approved["data_egress"] == "publication_service"
+    assert approved["prepared_arguments"] == {
+        "command": ["publish"],
+        "arguments": [PROOF_RUN_ID],
+        "options": {"--yes": True, "--reviewed-on": "host-agent"},
+    }
+    assert facts["contributor_address"] is None
+    assert "Address" not in review
+
+
+def test_a_refusal_keeps_what_the_caller_supplied_beside_the_run(
+    home: Path,
+) -> None:
+    """What a person agrees to is what the approved call sends.
+
+    An address and a GitHub URL given with the refused call are shown in the
+    review and carried on the approved call, so the host agent invokes the
+    call it was handed rather than composing one that remembers them.
+    """
+    url = "https://github.com/example/branch-code"
+    result = invoke(
+        home,
+        "--json",
+        "publish",
+        PROOF_RUN_ID,
+        "--address",
+        ADDRESS,
+        "--github-url",
+        url,
+    )
+    envelope = json.loads(result.stdout)
+
+    assert result.exit_code == EXIT_USAGE
+    assert SENT == []
+    facts = envelope["facts"]
+    assert facts["contributor_address"] == ADDRESS.lower()
+    assert facts["skill_github_url"] == url
+    assert f"Address {ADDRESS.lower()}" in facts["review"]
+    assert f"GitHub {url}" in facts["review"]
+
+    [approved] = envelope["next_actions"]
+    assert approved["prepared_arguments"]["options"] == {
+        "--yes": True,
+        "--reviewed-on": "host-agent",
+        "--address": ADDRESS.lower(),
+        "--github-url": url,
+    }
+
+    # The approved call, invoked exactly as offered, sends what the review showed.
+    line = command_line(NextAction.model_validate_json(json.dumps(approved)))
+    assert line[0] == "techtree"
+    agreed = invoke(home, "--json", *line[1:])
+
+    assert agreed.exit_code == EXIT_OK
+    assert [ADDRESS.lower()] == SENT_ADDRESSES
+    assert [url] == SENT_SKILL_GITHUB_URLS
+
+
+def test_a_mistyped_address_is_refused_before_the_review_is_shown(
+    home: Path,
+) -> None:
+    """A review nobody could act on is not shown."""
+    wrong = ADDRESS[:-1] + ADDRESS[-1].upper()
+
+    result = invoke(home, "--json", "publish", PROOF_RUN_ID, "--address", wrong)
+    envelope = json.loads(result.stdout)
+
+    assert result.exit_code != EXIT_OK
+    assert envelope["error"]["code"] == "contributor_address_invalid"
+    assert envelope["next_actions"] == []
+    assert SENT == []
+
+
 def test_a_proof_that_does_not_verify_is_refused_before_anything_is_asked(
     home: Path,
 ) -> None:
@@ -200,7 +308,7 @@ def test_a_build_with_nothing_configured_publishes_to_the_pinned_address(
 
     assert result.exit_code == EXIT_OK
     assert len(SENT) == 1
-    assert json.loads(result.stdout)["data"]["endpoint"] == PINNED_ENDPOINT
+    assert json.loads(result.stdout)["facts"]["endpoint"] == PINNED_ENDPOINT
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +331,19 @@ def test_the_review_says_how_much_goes_where_and_what_is_not_in_it(
     assert plan.bundle_digest in review
     assert "No prompts and no replies" in review
     assert "withdrawn" in review
+
+
+def test_an_address_given_with_the_command_is_in_the_review_and_not_asked_for(
+    home: Path,
+) -> None:
+    """A typed address is shown where the rest of what would be sent is shown."""
+    result = invoke(home, "publish", PROOF_RUN_ID, "--address", ADDRESS, stdin="y\n")
+
+    printed = " ".join(result.stdout.split())
+    assert result.exit_code == EXIT_OK
+    assert f"Address {ADDRESS.lower()}" in printed
+    assert "Leave an address with this run?" not in printed
+    assert [ADDRESS.lower()] == SENT_ADDRESSES
 
 
 def test_the_review_is_printed_before_either_question(home: Path) -> None:
@@ -254,11 +375,16 @@ def test_a_verified_proof_offers_publishing(home: Path) -> None:
     envelope = json.loads(result.stdout)
 
     offer = next(
-        action for action in envelope["next_actions"] if action["id"] == "publish_run"
+        action
+        for action in envelope["next_actions"]
+        if action["prepared_arguments"]["command"] == ["publish"]
     )
-    assert offer["cli"] == ["techtree", "publish", PROOF_RUN_ID]
-    # The host agent asks; it does not act.
-    assert offer["requires_user_confirmation"] is True
+    assert offer["prepared_arguments"]["arguments"] == [PROOF_RUN_ID]
+    # The host agent asks; it does not act. And a publication whose answer was
+    # lost is reconciled rather than sent a second time.
+    assert offer["approval_required"] is True
+    assert offer["retry_class"] == "reconcile_first"
+    assert offer["data_egress"] == "publication_service"
 
 
 def test_a_proof_that_does_not_verify_is_offered_no_such_thing(home: Path) -> None:
@@ -272,7 +398,7 @@ def test_a_proof_that_does_not_verify_is_offered_no_such_thing(home: Path) -> No
     envelope = json.loads(result.stdout)
 
     assert envelope["ok"] is False
-    assert "publish_run" not in [action["id"] for action in envelope["next_actions"]]
+    assert not _publication_offers(envelope)
 
 
 def test_a_bundle_carried_here_from_elsewhere_is_offered_nothing(
@@ -285,8 +411,19 @@ def test_a_bundle_carried_here_from_elsewhere_is_offered_nothing(
     result = invoke(home, "--json", "proof", "verify", str(carried))
     envelope = json.loads(result.stdout)
 
-    assert envelope["data"]["verified"] is True
-    assert "publish_run" not in [action["id"] for action in envelope["next_actions"]]
+    assert envelope["facts"]["verified"] is True
+    assert not _publication_offers(envelope)
+
+
+def _publication_offers(envelope: dict[str, object]) -> list[object]:
+    """Return every offer to publish an envelope carries."""
+    actions = envelope["next_actions"]
+    assert isinstance(actions, list)
+    return [
+        action
+        for action in actions
+        if action["prepared_arguments"]["command"] == ["publish"]
+    ]
 
 
 # ---------------------------------------------------------------------------

@@ -234,7 +234,6 @@ def digest_of(label: str) -> Digest:
 FAILURE = CliError(
     code="run_error",
     message="the fake executor stopped",
-    retryable=False,
     details={},
 )
 

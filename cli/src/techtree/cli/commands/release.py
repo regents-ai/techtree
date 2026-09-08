@@ -34,7 +34,15 @@ from techtree.cli.invoke import CommandResult, invoke_command
 from techtree.cli.output import render_pairs
 from techtree.errors import VerificationError
 from techtree.models.base import Digest, JsonValue, NonEmptyString, ProtocolModel
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliWarning,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.release.checks import (
     ReleaseCheck,
     ReleaseVerification,
@@ -55,17 +63,12 @@ from techtree.release.provenance import (
 from techtree.version import package_version
 
 __all__ = [
-    "INFO_COMMAND",
     "RELEASE_NOT_VERIFIED",
-    "VERIFY_COMMAND",
     "ReleaseInfoPayload",
     "ReleaseVerificationPayload",
     "info_release_command",
     "verify_release_command",
 ]
-
-INFO_COMMAND: Final = "release info"
-VERIFY_COMMAND: Final = "release verify"
 
 #: Stable error code for a release whose coordinates no longer agree.
 RELEASE_NOT_VERIFIED: Final = "release_not_verified"
@@ -123,7 +126,7 @@ def info_release_command(ctx: typer.Context) -> None:
             next_actions=[_verify_action()],
         )
 
-    invoke_command(context, INFO_COMMAND, action, render_data=_render_info)
+    invoke_command(context, Operation.PLAN_INSPECT, action, render_data=_render_info)
 
 
 def verify_release_command(
@@ -156,7 +159,6 @@ def verify_release_command(
         )
         return CommandResult(
             data=payload,
-            messages=_verified_messages(result),
             warnings=_unstamped_warnings(packaged_build_provenance()),
             next_actions=[
                 _check_environment() if result.verified else _inspect_action()
@@ -164,7 +166,9 @@ def verify_release_command(
             error=None if result.verified else _failure(result),
         )
 
-    invoke_command(context, VERIFY_COMMAND, action, render_data=_render_verification)
+    invoke_command(
+        context, Operation.PLAN_INSPECT, action, render_data=_render_verification
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -195,73 +199,71 @@ def _codes(result: ReleaseVerification) -> list[JsonValue]:
     return [code for code in sorted({check.code for check in result.failures})]
 
 
-def _verified_messages(result: ReleaseVerification) -> list[CliMessage]:
-    if not result.verified:
-        return []
-    return [
-        CliMessage(
-            level=MessageLevel.INFO,
-            code="release_verified",
-            text=(
-                f"This release verifies: {len(result.checks)} checks, "
-                f"{len(result.skipped)} of them not applicable to an installed "
-                "CLI, with nothing fetched."
-            ),
-        )
-    ]
-
-
-def _unstamped_warnings(stamp: BuildProvenance | None) -> list[CliMessage]:
+def _unstamped_warnings(stamp: BuildProvenance | None) -> list[CliWarning]:
     """Say when this is not a built artifact, so nothing claims a commit."""
     if stamp is not None:
         return []
     return [
-        CliMessage(
-            level=MessageLevel.WARNING,
-            code="release_source_commit_unstamped",
+        CliWarning(
+            id="release_source_commit_unstamped",
             text=(
                 "This is running from a source checkout rather than an "
                 "installed build, so no source commit was stamped into it and "
                 "none is reported."
             ),
+            resolvable_by=None,
         )
     ]
 
 
-def _inspect_action() -> NextAction:
+def _read_only_action(*command: str, reason: str) -> NextAction:
+    """Return one of this module's read-only offers.
+
+    All three read something this build ships and change nothing, so they
+    differ only in what they look at and why it is worth looking at.
+    """
     return NextAction(
-        id="release_checks",
-        label="See every release check, including the ones that passed",
-        reason="Machine output lists each check with its own stable code.",
-        cli=["techtree", "release", "verify", "--json"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation(*command),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=reason,
+    )
+
+
+def _inspect_action() -> NextAction:
+    return _read_only_action(
+        "release",
+        "verify",
+        reason=(
+            "Every release check, including the ones that passed, each with "
+            "its own stable identifier."
+        ),
     )
 
 
 def _verify_action() -> NextAction:
-    return NextAction(
-        id="verify_release",
-        label="Check this build against the release it names",
-        reason="Every coordinate above is checked against the thing it points at.",
-        cli=["techtree", "release", "verify"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+    return _read_only_action(
+        "release",
+        "verify",
+        reason=(
+            "It checks this build against the release it names: every "
+            "coordinate above against the thing it points at."
+        ),
     )
 
 
 def _check_environment() -> NextAction:
-    return NextAction(
-        id="check_environment",
-        label="Check that this machine is ready",
-        reason="Doctor reports what is installed, what is missing, and what "
-        "would block a run.",
-        cli=["techtree", "doctor"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+    return _read_only_action(
+        "doctor",
+        reason=(
+            "Doctor reports what is installed, what is missing, and what would "
+            "block a run."
+        ),
     )
 
 
@@ -289,9 +291,17 @@ def _render_info(data: object, console: Console) -> None:
 
 
 def _render_verification(data: object, console: Console) -> None:
+    """Say whether the release verified, then show every check."""
     if not isinstance(data, ReleaseVerificationPayload):
         return
 
+    if data.verified:
+        skipped = len([check for check in data.checks if check.status == "skipped"])
+        console.print(
+            f"This release verifies: {len(data.checks)} checks, {skipped} of "
+            "them not applicable to an installed CLI, with nothing fetched."
+        )
+        console.print()
     console.print(f"ReleaseCore: {data.release_core_digest}")
     console.print()
     table = Table(box=None, show_header=False, pad_edge=False, padding=(0, 2))

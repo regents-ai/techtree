@@ -109,18 +109,25 @@ def test_the_worker_was_still_going_after_its_launcher_exited(
 def test_a_result_asked_for_too_early_says_to_check_the_status(
     survivor: Survivor,
 ) -> None:
-    """Spec §8.15: retryable, and pointed at the command that answers."""
+    """Spec §8.15: pointed at the command that answers, and safe to repeat.
+
+    ``techtree.cli.v2`` says whether to try again on the repair rather than on
+    the error: reading a run's status is ``safe``, and the answer to "is it
+    finished yet" is the status itself.
+    """
     envelope = survivor.result_while_running.envelope()
 
     assert envelope["ok"] is False
     assert envelope["error"]["code"] == "run_result_not_ready"
-    assert envelope["error"]["retryable"] is True
-    assert envelope["next_actions"][0]["cli"] == [
-        "techtree",
-        "run",
-        "status",
-        survivor.run_id,
-    ]
+    assert "retryable" not in envelope["error"]
+    action = envelope["next_actions"][0]
+    assert action["operation"] == "run.status"
+    assert action["prepared_arguments"] == {
+        "command": ["run", "status"],
+        "arguments": [survivor.run_id],
+        "options": {},
+    }
+    assert action["retry_class"] == "safe"
 
 
 def test_the_worker_is_its_own_session_leader(survivor: Survivor) -> None:

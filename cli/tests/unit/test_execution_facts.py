@@ -458,6 +458,18 @@ def test_a_plan_this_release_cannot_resolve_is_reported_unsupported() -> None:
             SubjectBackendKind.FABRIC.value,
             id="adapted-subject",
         ),
+        pytest.param(
+            {
+                "evidence": EvidenceBackendSpec(
+                    native_evidence="required",
+                    trace_coverage="requested",
+                    coverage_profile_digest=OTHER_DIGEST,
+                )
+            },
+            "trace_coverage",
+            "requested",
+            id="unsupported-trace-coverage",
+        ),
     ],
 )
 def test_a_plan_this_release_cannot_run_is_refused_naming_the_plane(

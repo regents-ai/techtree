@@ -19,6 +19,14 @@ writing here. Its schemas are exported in memory, compared byte for byte
 against what is committed, and a difference stops the generation and names the
 files, which is the only outcome that can reach a reviewer.
 
+Two of its files have outlived their models and are checked a second way. The
+v1 CLI envelope described bytes v0.1 released and its model describes
+``techtree.cli.v2`` now; the v1 run state embeds that envelope's error, which
+lost a field in the same cutover. Neither can be rendered any more, so there is
+nothing to compare against — they are checked against the digest of the exact
+bytes instead, by the same guard, and are still never written. Their v0.2
+shapes are published in the ``v2`` tree by the work that owns each document.
+
 Two things make the output stable enough to diff:
 
 * Keys are sorted and the indent is fixed, so a reordering inside Pydantic
@@ -27,12 +35,15 @@ Two things make the output stable enough to diff:
   has fetched one can say which one it fetched.
 
 ``CliEnvelope`` is generic. Its published schema describes the envelope, and
-``data`` is deliberately unconstrained: each command documents its own payload,
-and pinning one payload type here would describe a contract no command keeps.
+``facts`` is deliberately unconstrained: each operation documents its own
+payload, and pinning one payload type here would describe a contract no command
+keeps. The envelope's v0.2 shape is ``techtree.cli.v2`` and lives in the ``v2``
+tree.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -62,7 +73,7 @@ from techtree.models.evaluation_backend import EvaluationBackendSpec
 from techtree.models.evidence import EvidenceArtifactRef, EvidenceFacets
 from techtree.models.execution_plan import ResolvedExecutionPlan
 from techtree.models.experiment import ExperimentManifest, ExperimentManifestV2
-from techtree.models.run import RunRequestV2, RunState
+from techtree.models.run import RunRequestV2
 from techtree.models.skill import SkillArtifact, SubmissionDraft
 from techtree.models.uplift_report import UpliftReport, UpliftReportV2
 from techtree.models.validation import (
@@ -88,6 +99,24 @@ V2_SCHEMA_VERSION_DIRECTORY = "v2"
 #: document there is a release decision rather than a regeneration.
 FROZEN_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION_DIRECTORY})
 
+#: Files in a frozen tree that no model can render any more, per protocol
+#: version, keyed by filename and valued by the SHA-256 of the exact bytes v0.1
+#: released. ``techtree.models.cli:CliEnvelope`` describes ``techtree.cli.v2``
+#: now, and ``techtree.models.run:RunState`` carries that envelope's error,
+#: which lost its ``retryable`` field in the same cutover. There is nothing
+#: left to render them from, so the guard checks their digest instead — the
+#: same guard, and the same refusal to write.
+FROZEN_SCHEMAS_WITHOUT_A_MODEL: dict[str, dict[str, str]] = {
+    SCHEMA_VERSION_DIRECTORY: {
+        "cli-envelope.schema.json": (
+            "3d978d9f44068ac76f05b5ccded485f589031482bc401736f09789b0a98fbbb1"
+        ),
+        "run-state.schema.json": (
+            "d9c835017a26e0ea72e073c9624608bcfc8425cf1116f3f0c9a446737644e321"
+        ),
+    },
+}
+
 #: The JSON Schema dialect the exported documents are written against.
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 
@@ -103,7 +132,6 @@ def schema_models() -> dict[str, type[BaseModel]]:
     return {
         "campaign": CampaignSpec,
         "catalog": CatalogIndex,
-        "cli-envelope": CliEnvelope,
         "climb": ClimbManifest,
         "climb-summary": ClimbSummary,
         "compatibility-result": CompatibilityResult,
@@ -126,7 +154,6 @@ def schema_models() -> dict[str, type[BaseModel]]:
         "publication-submission": PublicationSubmission,
         "publication-withdrawal": ObjectEnvelope[WithdrawalRequest],
         "publication-withdrawal-receipt": ObjectEnvelope[WithdrawalReceiptPayload],
-        "run-state": RunState,
         "skill-artifact": SkillArtifact,
         "submission-draft": SubmissionDraft,
         "taskset-lock": TasksetLock,
@@ -148,6 +175,7 @@ def v2_schema_models() -> dict[str, type[BaseModel]]:
         # The index gains one object kind, the resolved execution plan, so a
         # v0.2 catalog is described here rather than by the frozen v0.1 index.
         "catalog": CatalogIndexV2,
+        "cli-envelope": CliEnvelope,
         "climb-summary": ClimbSummaryV2,
         "compatibility-result": CompatibilityResultV2,
         "episode-receipt": EpisodeReceiptV2,
@@ -210,15 +238,27 @@ def export_tree(models: dict[str, type[BaseModel]], version: str) -> Path:
 
 
 def verify_tree(
-    models: dict[str, type[BaseModel]], version: str, directory: Path | None = None
+    models: dict[str, type[BaseModel]],
+    version: str,
+    directory: Path | None = None,
+    frozen: dict[str, str] | None = None,
 ) -> list[str]:
-    """Return every way a frozen tree differs from what the models describe.
+    """Return every way a frozen tree differs from what it is supposed to hold.
 
     Nothing is written, including when everything matches. A caller gets one
     sentence per problem, naming the file, so a drift is reported in full
     rather than one file at a time.
+
+    Two kinds of file live in a frozen tree. Most are still described by a
+    model, and are checked by rendering it and comparing byte for byte. A few
+    have outlived their model — ``frozen`` names them — and are checked against
+    the digest of the bytes v0.1 released, because there is nothing left to
+    render them from. Both are the same promise: these bytes do not move.
     """
     tree = REPOSITORY_ROOT / "schemas" / version if directory is None else directory
+    digests = (
+        FROZEN_SCHEMAS_WITHOUT_A_MODEL.get(version, {}) if frozen is None else frozen
+    )
     problems: list[str] = []
 
     for name, model in sorted(models.items()):
@@ -235,7 +275,17 @@ def verify_tree(
                 f"{version}/{filename} no longer matches the model it publishes"
             )
 
-    published = {f"{name}.schema.json" for name in models}
+    for filename, expected_digest in sorted(digests.items()):
+        path = tree / filename
+        try:
+            raw = path.read_bytes()
+        except OSError:
+            problems.append(f"{version}/{filename} is committed nowhere")
+            continue
+        if hashlib.sha256(raw).hexdigest() != expected_digest:
+            problems.append(f"{version}/{filename} no longer holds released bytes")
+
+    published = {f"{name}.schema.json" for name in models} | set(digests)
     for stale in sorted(tree.glob("*.json")):
         if stale.name not in published:
             problems.append(f"{version}/{stale.name} publishes no model")
@@ -260,7 +310,9 @@ def main() -> None:
                     "schemas, so changing one is a release decision, not a "
                     "regeneration."
                 )
-            print(f"verified {len(models)} frozen schemas in {relative}")
+            frozen = FROZEN_SCHEMAS_WITHOUT_A_MODEL.get(version, {})
+            checked = len(models) + len(frozen)
+            print(f"verified {checked} frozen schemas in {relative}")
             continue
         export_tree(models, version)
         print(f"wrote {len(models)} schemas to {relative}")

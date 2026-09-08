@@ -332,7 +332,6 @@ def _watching_payload(*, baseline: int | None, candidate: int | None):  # type: 
         run_id="run_00000000000000000000000000000001",
         phase=RunPhase.RUNNING_VARIANTS,
         public_state=PublicRunState.RUNNING,
-        state_digest="sha256:" + "00" * 32,
         sequence=9,
         updated_at=datetime(2026, 8, 13, tzinfo=UTC),
         progress=None,

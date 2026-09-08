@@ -57,6 +57,7 @@ from techtree.errors import (
 )
 from techtree.models.catalog import ClimbSummaryV2, EngineCompatibilityStatus
 from techtree.models.engine import EngineInstallation
+from techtree.models.execution_plan import EvidenceBackendSpec
 from techtree.paths import TechtreePaths, paths_from_root
 from techtree.settings import Settings
 
@@ -574,6 +575,47 @@ def test_a_verified_engine_clears_the_engine_next_step(
     assert compatibility.issues == []
 
 
+def test_requested_trace_coverage_blocks_compatibility(service: CatalogService) -> None:
+    resolved = service.get_climb("synthetic-open@1")
+    plan = resolved.execution_plan.model_copy(
+        update={
+            "evidence": EvidenceBackendSpec(
+                native_evidence="required",
+                trace_coverage="requested",
+                coverage_profile_digest="sha256:" + "0" * 64,
+            )
+        }
+    )
+    plan_digest = digest_object(plan)
+    campaign = resolved.campaign.model_copy(
+        update={"execution_plan_digest": plan_digest}
+    )
+    campaign_digest = digest_object(campaign)
+    climb = resolved.climb.model_copy(update={"campaign_spec_digest": campaign_digest})
+    resolved = type(resolved).model_validate(
+        {
+            **resolved.model_dump(),
+            "execution_plan": plan,
+            "execution_plan_digest": plan_digest,
+            "campaign": campaign,
+            "campaign_digest": campaign_digest,
+            "climb": climb,
+            "climb_digest": digest_object(climb),
+        }
+    )
+
+    compatibility = service.compatibility(resolved)
+
+    assert compatibility.compatible is False
+    issue = next(
+        issue
+        for issue in compatibility.issues
+        if issue.code == "evidence_backend_unsupported"
+    )
+    assert issue.blocking is True
+    assert issue.severity == "error"
+
+
 def test_an_unsupported_host_is_named_rather_than_guessed_at(
     catalog_root: Path, paths: TechtreePaths
 ) -> None:
@@ -631,8 +673,10 @@ def test_list_offers_the_climb_this_build_ships(
     envelope = _invoke(temp_techtree_home, "climb", "list", "--json")
 
     assert envelope["ok"] is True
-    assert [entry["reference"] for entry in envelope["data"]] == ["hello-world-climb@1"]
-    assert envelope["messages"][0]["code"] == "climbs_available"
+    assert [entry["reference"] for entry in envelope["facts"]["climbs"]] == [
+        "hello-world-climb@1"
+    ]
+    assert envelope["operation"] == "plan.inspect"
 
 
 def test_show_reports_a_name_this_build_does_not_have(
@@ -647,7 +691,10 @@ def test_show_reports_a_name_this_build_does_not_have(
     envelope = json.loads(result.stdout.splitlines()[-1])
     assert envelope["error"]["code"] == "climb_not_found"
     # This build does ship a Climb, so the useful next step is to see which.
-    assert envelope["next_actions"][0]["id"] == "list_climbs"
+    assert envelope["next_actions"][0]["prepared_arguments"]["command"] == [
+        "climb",
+        "list",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -661,17 +708,16 @@ def test_list_shows_every_available_climb_and_offers_the_first(
     envelope = populated_cli("climb", "list", "--json")
 
     assert envelope["ok"] is True
-    assert [entry["reference"] for entry in envelope["data"]] == [
+    assert [entry["reference"] for entry in envelope["facts"]["climbs"]] == [
         "synthetic-open@1",
         "synthetic-development@1",
     ]
-    assert envelope["warnings"][0]["code"] == "development_climb"
-    assert envelope["next_actions"][0]["cli"] == [
-        "techtree",
-        "climb",
-        "show",
-        "synthetic-open@1",
-    ]
+    assert envelope["warnings"][0]["id"] == "development_climb"
+    assert envelope["next_actions"][0]["prepared_arguments"] == {
+        "command": ["climb", "show"],
+        "arguments": ["synthetic-open@1"],
+        "options": {},
+    }
 
 
 def test_list_renders_one_readable_row_per_climb(populated_home: Path) -> None:
@@ -694,7 +740,7 @@ def test_show_returns_a_summary_a_host_agent_can_validate(
 
     # Validated from JSON rather than from the parsed mapping: a protocol model
     # is strict, and a host agent reads the bytes, not a Python object.
-    summary = ClimbSummaryV2.model_validate_json(json.dumps(envelope["data"]["climb"]))
+    summary = ClimbSummaryV2.model_validate_json(json.dumps(envelope["facts"]["climb"]))
     assert summary.reference == "synthetic-open@1"
     assert summary.task_count == 4
     assert summary.data_policy.candidate_skill_public_release == "required_for_climb"
@@ -705,7 +751,7 @@ def test_show_gives_a_host_agent_the_campaign_facts_a_summary_omits(
     populated_cli: Callable[..., dict[str, Any]],
 ) -> None:
     """Spec section 26 WP1's display list, machine-readable rather than rendered."""
-    payload = populated_cli("climb", "show", "synthetic-open", "--json")["data"]
+    payload = populated_cli("climb", "show", "synthetic-open", "--json")["facts"]
 
     assert payload["subject_model"]["model_id"] == "development-placeholder"
     assert payload["subject_runtime"]["type"] == "docker"
@@ -718,7 +764,7 @@ def test_show_gives_a_machine_reader_both_complete_digests(
     populated_cli: Callable[..., dict[str, Any]],
 ) -> None:
     """Decisions 0007 R3: complete campaign and data-policy digests in JSON."""
-    payload = populated_cli("climb", "show", "synthetic-open", "--json")["data"]
+    payload = populated_cli("climb", "show", "synthetic-open", "--json")["facts"]
     resolved = CatalogService(
         EmbeddedCatalogRepository(catalog_root),
         current_host_info(),

@@ -194,4 +194,4 @@ def test_a_log_that_does_not_exist_yet_says_so(tmp_path: Path) -> None:
     refused = run_cli(home, "run", "logs", run_id)
 
     assert refused.envelope()["error"]["code"] == "run_logs_unavailable"
-    assert refused.envelope()["error"]["retryable"] is True
+    assert "retryable" not in refused.envelope()["error"]

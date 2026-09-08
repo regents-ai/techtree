@@ -25,6 +25,7 @@ from fixtures.runs.support import (
     start_through_the_cli,
     wait_for_terminal,
 )
+from techtree.cli.commands.climb import ONLY_CHANGE_LINE, PUBLICATION_TERMS_LINE
 from techtree.drafts.store import DraftStore
 from techtree.errors import EXIT_OK, EXIT_POLICY
 from techtree.fs import remove_tree
@@ -180,6 +181,63 @@ def test_a_machine_caller_must_name_the_policy_digest(
     assert "--yes" in error["message"]
     assert error["details"]["data_policy_digest"] == draft.draft.data_policy_digest
     assert not paths.runs_dir.exists() or _runs(paths) == []
+
+
+def test_the_refusal_is_the_review_a_person_would_have_been_shown(
+    prepared: tuple[Path, TechtreePaths, PreparedDraft],
+) -> None:
+    """``action.prepare``: nothing started, and the whole review came back.
+
+    A host agent that is refused an identifier and a flag name cannot show
+    anybody anything. What comes back is what a terminal prints before it asks
+    — the work, the declared maximum, the provider, the rights — and the one
+    call a person's answer turns into a run.
+    """
+    home, _, draft = prepared
+
+    refused = run_cli(home, "climb", "start", draft.draft.id)
+    envelope = refused.envelope()
+
+    assert envelope["operation"] == "action.prepare"
+    facts = envelope["facts"]
+    assert facts["draft_id"] == draft.draft.id
+    assert facts["data_policy_digest"] == draft.draft.data_policy_digest
+    assert facts["estimated_episodes"] == draft.draft.estimated_episodes
+    assert facts["subject_model_provider"]
+    assert facts["policy_acceptance"]["summary"]
+    review = "\n".join(facts["review"])
+    assert ONLY_CHANGE_LINE in review
+    assert PUBLICATION_TERMS_LINE in review
+    assert facts["policy_acceptance"]["summary"] in review
+
+    # What is offered is the call a person's answer allows, not the call that
+    # was just refused: a caller handed the refused one would be refused again.
+    [approved] = envelope["next_actions"]
+    assert approved["operation"] == "action.execute"
+    assert approved["approval_required"] is True
+    assert approved["retry_class"] == "human_decision_required"
+    assert approved["side_effect"] == "local_execution"
+    assert approved["data_egress"] == "model_provider"
+    assert approved["prepared_arguments"]["command"] == ["climb", "start"]
+    assert approved["prepared_arguments"]["options"] == {
+        "--yes": True,
+        "--reviewed-on": "host-agent",
+    }
+    assert approved["expected_state_digest"] == envelope["state_digest"]
+
+    # The money statement is the Campaign's own declared maximum, or an unknown
+    # saying there is none. It is never a zero.
+    if facts["campaign_maximum_usd"] is None:
+        assert [entry["id"] for entry in envelope["unknowns"]] == [
+            "campaign_maximum_usd"
+        ]
+        assert approved["estimated_cost"] is None
+    else:
+        assert envelope["unknowns"] == []
+        assert approved["estimated_cost"]["estimate_source"] == (
+            "campaign_declared_maximum"
+        )
+        assert approved["estimated_cost"]["currency"] == "USD"
 
 
 def test_a_person_approves_by_answering_yes(

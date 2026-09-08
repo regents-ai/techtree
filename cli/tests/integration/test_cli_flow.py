@@ -38,10 +38,12 @@ from typer.testing import CliRunner
 
 import techtree
 from fixtures.drafts.support import VALID_SKILL
+from fixtures.envelopes import command_line_of
 from fixtures.runs.support import run_cli, wait_for_terminal
 from fixtures.starter import STARTER_FIXTURE, release_pinning, tree_digest
 from techtree.cli.app import create_app
 from techtree.cli.commands.climb import abbreviated_digest
+from techtree.cli.commands.setup import LOCAL_SIGNING_KEY_NOTICE
 from techtree.constants import STARTER_SKILL_CANDIDATE_LABEL, STARTER_SKILL_NAME
 from techtree.errors import EXIT_OK
 from techtree.identity.store import IdentityStore
@@ -123,7 +125,7 @@ def flow(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
 def test_setup_installs_verifies_and_activates_the_engine(
     flow: dict[str, Any],
 ) -> None:
-    engine = flow["setup"].data()
+    engine = flow["setup"].data()["engine"]
 
     assert engine["installed"] is True
     assert engine["verified"] is True
@@ -133,24 +135,27 @@ def test_setup_installs_verifies_and_activates_the_engine(
 def test_setup_creates_the_local_signing_key_and_says_what_it_is_for(
     flow: dict[str, Any],
 ) -> None:
-    """Spec section 7.5: a key is made here, and announced rather than assumed."""
-    messages = flow["setup"].envelope()["messages"]
-    notice = next(
-        message for message in messages if message["code"] == "local_signing_key"
-    )
+    """Spec section 7.5: a key is made here, and announced rather than assumed.
+
+    The key identifier is a fact rather than a sentence: a caller reading the
+    machine answer needs to know which key this machine will sign with, and the
+    notice a person reads is built from it.
+    """
     store = IdentityStore(paths_from_root(flow["home"]))
 
     assert store.exists() is True
     assert store.verify_pair() is True
+    assert flow["setup"].data()["key_id"] == store.load_public().key_id
     # Decisions 0038: a published proof carries the public half, so the notice
     # says which half travels rather than implying that neither does.
-    assert "The private half never leaves the key directory." in notice["text"]
-    assert "The public half travels inside the proofs it signs" in notice["text"]
-    assert store.load_public().key_id in notice["text"]
+    notice = LOCAL_SIGNING_KEY_NOTICE.format(key_id=store.load_public().key_id)
+    assert "The private half never leaves the key directory." in notice
+    assert "The public half travels inside the proofs it signs" in notice
+    assert store.load_public().key_id in notice
 
 
 def test_list_shows_the_development_climb(flow: dict[str, Any]) -> None:
-    entries = flow["listed"].envelope()["data"]
+    entries = flow["listed"].envelope()["facts"]["climbs"]
 
     assert [entry["reference"] for entry in entries] == [CLIMB_LISTING_REFERENCE]
     assert entries[0]["task_count"] == EXPECTED_TASK_COUNT
@@ -164,8 +169,8 @@ def test_a_verified_climb_moves_to_the_starter_skill_instead_of_looping(
 ) -> None:
     [next_action] = flow["shown"].envelope()["next_actions"]
 
-    assert next_action["id"] == "get_starter_skill"
-    assert next_action["cli"] == ["techtree", "skill", "starter"]
+    assert next_action["operation"] == "plan.prepare"
+    assert next_action["prepared_arguments"]["command"] == ["skill", "starter"]
 
 
 def test_show_reports_the_campaign_and_the_data_policy(
@@ -267,7 +272,7 @@ def test_start_tells_the_person_what_this_run_actually_does(
     first one.
     """
     envelope = flow["started"].envelope()
-    codes = [warning["code"] for warning in envelope["warnings"]]
+    codes = [warning["id"] for warning in envelope["warnings"]]
     text = " ".join(warning["text"] for warning in envelope["warnings"])
 
     assert flow["started"].data()["fake_executor"] is False
@@ -378,7 +383,7 @@ def test_the_starter_skills_printed_next_step_runs_verbatim(
     )
     assert obtained.exit_code == EXIT_OK, obtained.stdout
     envelope = json.loads(obtained.stdout.splitlines()[-1])
-    argv: list[str] = envelope["next_actions"][0]["cli"]
+    argv: list[str] = command_line_of(envelope["next_actions"][0])
 
     assert argv[0] == "techtree"
     assert CLIMB_LISTING_REFERENCE in argv
@@ -389,7 +394,7 @@ def test_the_starter_skills_printed_next_step_runs_verbatim(
     draft = prepared.data()
     assert draft["candidate_label"] == STARTER_SKILL_CANDIDATE_LABEL
     assert draft["climb_reference"] == CLIMB_LISTING_REFERENCE
-    assert draft["skill_root_digest"] == envelope["data"]["skill_root_digest"]
+    assert draft["skill_root_digest"] == envelope["facts"]["skill_root_digest"]
 
 
 def test_the_starter_skills_own_name_is_still_a_label_a_candidate_may_carry(

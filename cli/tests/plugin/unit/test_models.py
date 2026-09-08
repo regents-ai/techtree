@@ -66,13 +66,16 @@ RELEASE_DIGEST_GOLDEN = (
 )
 
 VALID_ENVELOPE: dict[str, Any] = {
-    "schema_version": "techtree.cli.v1",
-    "command": "doctor",
+    "schema_version": "techtree.cli.v2",
+    "operation": "plan.inspect",
     "ok": True,
-    "data": {"checks": []},
-    "error": None,
-    "messages": [],
+    "state_digest": None,
+    "facts": {"checks": []},
+    "unknowns": [],
+    "blockers": [],
     "warnings": [],
+    "content_refs": [],
+    "error": None,
     "next_actions": [],
 }
 
@@ -179,7 +182,7 @@ def test_release_bytes_that_are_not_json_are_rejected() -> None:
 def test_one_envelope_parses() -> None:
     parsed = parse_cli_envelope(json.dumps(VALID_ENVELOPE))
 
-    assert parsed["command"] == "doctor"
+    assert parsed["operation"] == "plan.inspect"
     assert parsed["ok"] is True
 
 
@@ -200,10 +203,15 @@ def test_ansi_in_machine_output_is_a_contract_failure() -> None:
 @pytest.mark.parametrize(
     ("mutation", "expected"),
     [
-        ({"schema_version": "techtree.cli.v2"}, "schema"),
+        ({"schema_version": "techtree.cli.v1"}, "schema"),
         ({"ok": "yes"}, "'ok'"),
-        ({"command": ""}, "command"),
-        ({"messages": {}}, "messages"),
+        ({"operation": "climb show"}, "operation"),
+        ({"operation": "plan.rehearse"}, "operation"),
+        ({"facts": "checks"}, "'facts'"),
+        ({"warnings": {}}, "warnings"),
+        ({"blockers": {}}, "blockers"),
+        ({"unknowns": {}}, "unknowns"),
+        ({"content_refs": {}}, "content_refs"),
     ],
 )
 def test_a_malformed_envelope_is_rejected(
@@ -214,7 +222,7 @@ def test_a_malformed_envelope_is_rejected(
 
 
 def test_a_truncated_envelope_is_rejected() -> None:
-    partial = {key: value for key, value in VALID_ENVELOPE.items() if key != "data"}
+    partial = {key: value for key, value in VALID_ENVELOPE.items() if key != "facts"}
 
     with pytest.raises(CliEnvelopeError, match="missing fields"):
         parse_cli_envelope(json.dumps(partial))
@@ -229,28 +237,160 @@ def test_a_field_the_contract_does_not_have_is_rejected() -> None:
 
 
 @pytest.mark.parametrize(
-    ("entry", "expected"),
+    ("channel", "entry", "expected"),
     [
-        ({"level": "info", "text": "hello"}, "missing"),
-        ({"level": "shout", "code": None, "text": "hello"}, "level"),
-        ({"level": "info", "code": None, "text": ""}, "no text"),
-        ({"level": "info", "code": 7, "text": "hello"}, "non-string code"),
+        ("warnings", {"id": "x", "text": "hello"}, "missing"),
+        ("warnings", {"id": "", "text": "hello", "resolvable_by": None}, "no id"),
+        ("warnings", {"id": "x", "text": "", "resolvable_by": None}, "no text"),
+        (
+            "warnings",
+            {"id": "x", "text": "hello", "resolvable_by": "plan.rehearse"},
+            "not an operation",
+        ),
+        (
+            "blockers",
+            {"id": "x", "text": "hello", "blocks": [], "resolvable_by": None},
+            "no operation it blocks",
+        ),
+        (
+            "blockers",
+            {
+                "id": "x",
+                "text": "hello",
+                "blocks": ["climb prepare"],
+                "resolvable_by": None,
+            },
+            "not an operation",
+        ),
+        (
+            "unknowns",
+            {"id": "x", "subject": None, "reason": "", "resolvable_by": None},
+            "no reason",
+        ),
+        (
+            "content_refs",
+            {
+                "id": "x",
+                "kind": "report",
+                "digest": None,
+                "path": None,
+                "url": None,
+                "media_type": "application/json",
+                "byte_count": None,
+            },
+            "neither a path nor a URL",
+        ),
     ],
 )
-def test_a_malformed_message_is_rejected(entry: dict[str, Any], expected: str) -> None:
+def test_a_malformed_typed_entry_is_rejected(
+    channel: str, entry: dict[str, Any], expected: str
+) -> None:
     with pytest.raises(CliEnvelopeError, match=expected):
-        parse_cli_envelope(json.dumps({**VALID_ENVELOPE, "messages": [entry]}))
+        parse_cli_envelope(json.dumps({**VALID_ENVELOPE, channel: [entry]}))
+
+
+@pytest.mark.parametrize(
+    ("cost", "expected"),
+    [
+        ({"currency": "USD"}, "missing"),
+        (
+            {
+                "currency": "GBP",
+                "estimated_cost": None,
+                "maximum_authorized_cost": "5",
+                "estimate_source": "campaign_declared_maximum",
+                "uncertainty_disclosure": "nothing keeps a running total",
+                "expires_at": None,
+                "execution_plan_digest": None,
+            },
+            "not a currency",
+        ),
+        (
+            {
+                "currency": "USD",
+                "estimated_cost": None,
+                "maximum_authorized_cost": "5.00",
+                "estimate_source": "campaign_declared_maximum",
+                "uncertainty_disclosure": "nothing keeps a running total",
+                "expires_at": None,
+                "execution_plan_digest": None,
+            },
+            "one spelling",
+        ),
+        (
+            {
+                "currency": "USD",
+                "estimated_cost": None,
+                "maximum_authorized_cost": "5",
+                "estimate_source": "",
+                "uncertainty_disclosure": "nothing keeps a running total",
+                "expires_at": None,
+                "execution_plan_digest": None,
+            },
+            "no estimate_source",
+        ),
+    ],
+)
+def test_a_malformed_money_statement_is_rejected(
+    cost: dict[str, Any], expected: str
+) -> None:
+    """The one number a person is shown before agreeing to spend.
+
+    ``5.00`` and ``5`` are the same money and two different strings, and an
+    authorization that can be respelled is one that can be argued about, so
+    the plugin takes the single spelling the protocol has or nothing.
+    """
+    action = _next_action(estimated_cost=cost)
+
+    with pytest.raises(CliEnvelopeError, match=expected):
+        parse_cli_envelope(json.dumps({**VALID_ENVELOPE, "next_actions": [action]}))
+
+
+def test_a_well_formed_money_statement_is_accepted() -> None:
+    action = _next_action(
+        estimated_cost={
+            "currency": "USD",
+            "estimated_cost": None,
+            "maximum_authorized_cost": "5.5",
+            "estimate_source": "campaign_declared_maximum",
+            "uncertainty_disclosure": "nothing keeps a running total",
+            "expires_at": None,
+            "execution_plan_digest": None,
+        }
+    )
+
+    parsed = parse_cli_envelope(
+        json.dumps({**VALID_ENVELOPE, "next_actions": [action]})
+    )
+
+    assert parsed["next_actions"][0]["estimated_cost"]["maximum_authorized_cost"] == (
+        "5.5"
+    )
+
+
+def test_facts_that_are_not_an_object_are_rejected() -> None:
+    """One shape whatever the command, so one reader handles every answer."""
+    refused: list[Any] = [[], "ready", 7]
+    for not_an_object in refused:
+        with pytest.raises(CliEnvelopeError, match="'facts' is not an object"):
+            parse_cli_envelope(json.dumps({**VALID_ENVELOPE, "facts": not_an_object}))
 
 
 def _next_action(**overrides: Any) -> dict[str, Any]:
     action: dict[str, Any] = {
-        "id": "list_climbs",
-        "label": "Browse the available Climbs",
+        "operation": "plan.inspect",
+        "prepared_arguments": {
+            "command": ["climb", "list"],
+            "arguments": [],
+            "options": {},
+        },
+        "expected_state_digest": None,
+        "side_effect": "none",
+        "approval_required": False,
+        "retry_class": "safe",
+        "estimated_cost": None,
+        "data_egress": "none",
         "reason": "This host is ready.",
-        "cli": ["techtree", "climb", "list"],
-        "hermes_tool": None,
-        "hermes_args": None,
-        "requires_user_confirmation": False,
     }
     action.update(overrides)
     return action
@@ -261,16 +401,70 @@ def test_a_complete_next_action_is_accepted() -> None:
         json.dumps({**VALID_ENVELOPE, "next_actions": [_next_action()]})
     )
 
-    assert envelope["next_actions"][0]["id"] == "list_climbs"
+    assert envelope["next_actions"][0]["operation"] == "plan.inspect"
 
 
 @pytest.mark.parametrize(
     ("overrides", "expected"),
     [
-        ({"label": ""}, "no label"),
-        ({"requires_user_confirmation": "no"}, "needs confirmation"),
-        ({"cli": "techtree climb list"}, "argv list"),
-        ({"cli": ["techtree", ""]}, "empty argument"),
+        ({"reason": ""}, "no reason"),
+        ({"operation": "climb list"}, "not one this plugin release knows"),
+        ({"approval_required": "no"}, "needs approval"),
+        ({"retry_class": "eventually"}, "retry_class"),
+        ({"side_effect": "harmless"}, "side_effect"),
+        ({"data_egress": "somewhere"}, "data_egress"),
+        ({"prepared_arguments": {"command": ["climb"]}}, "missing"),
+        (
+            {
+                "prepared_arguments": {
+                    "command": "climb list",
+                    "arguments": [],
+                    "options": {},
+                }
+            },
+            "no command path",
+        ),
+        (
+            {
+                "prepared_arguments": {
+                    "command": ["climb", ""],
+                    "arguments": [],
+                    "options": {},
+                }
+            },
+            "empty command literal",
+        ),
+        (
+            {
+                "prepared_arguments": {
+                    "command": ["climb", "list"],
+                    "arguments": [],
+                    "options": {"json": True},
+                }
+            },
+            "not an option name",
+        ),
+        (
+            {
+                "prepared_arguments": {
+                    "command": ["climb", "list"],
+                    "arguments": [],
+                    "options": {"--label": ""},
+                }
+            },
+            "carries no value",
+        ),
+        (
+            # A ``--yes`` that says no must never be read as a flag to render.
+            {
+                "prepared_arguments": {
+                    "command": ["climb", "start"],
+                    "arguments": ["draft_" + "0" * 32],
+                    "options": {"--yes": False},
+                }
+            },
+            "neither a value nor true",
+        ),
     ],
 )
 def test_a_malformed_next_action_is_rejected(
@@ -291,7 +485,6 @@ def test_a_success_must_not_carry_an_error() -> None:
     error = {
         "code": "climb_not_found",
         "message": "no such Climb",
-        "retryable": False,
         "details": {},
     }
 
@@ -302,10 +495,11 @@ def test_a_success_must_not_carry_an_error() -> None:
 @pytest.mark.parametrize(
     ("error", "expected"),
     [
-        ({"code": "x", "message": "y", "retryable": False}, "missing"),
-        ({"code": "", "message": "y", "retryable": False, "details": {}}, "no code"),
-        ({"code": "x", "message": "y", "retryable": "no", "details": {}}, "retryable"),
-        ({"code": "x", "message": "y", "retryable": True, "details": []}, "details"),
+        ({"code": "x", "message": "y"}, "missing"),
+        ({"code": "x", "message": "y", "retryable": False, "details": {}}, "carries"),
+        ({"code": "", "message": "y", "details": {}}, "no code"),
+        ({"code": "x", "message": "", "details": {}}, "no message"),
+        ({"code": "x", "message": "y", "details": []}, "details"),
     ],
 )
 def test_a_malformed_error_is_rejected(error: dict[str, Any], expected: str) -> None:
@@ -359,7 +553,6 @@ def test_an_error_is_relayed_unchanged() -> None:
     error = {
         "code": "engine_install_failed",
         "message": "the engine could not be installed",
-        "retryable": False,
         "details": {
             "detail": "uv sync --index-url https://pypi.internal/simple failed",
             "environment": ["TECHTREE_HOME=/tmp/techtree"],
@@ -367,7 +560,7 @@ def test_an_error_is_relayed_unchanged() -> None:
             "exit_code": 2,
         },
     }
-    raw = json.dumps({**VALID_ENVELOPE, "ok": False, "data": None, "error": error})
+    raw = json.dumps({**VALID_ENVELOPE, "ok": False, "facts": {}, "error": error})
 
     assert parse_cli_envelope(raw)["error"] == error
 

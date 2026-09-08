@@ -310,7 +310,7 @@ def verify_cli_release(
         timeout_seconds=timeout_seconds,
         path_lookup=path_lookup,
     )
-    installed = envelope_data(envelope)
+    installed = envelope_facts(envelope)
     mismatches = compare_cli_release(expected, installed)
 
     return {
@@ -423,7 +423,13 @@ class CliBridge:
         return verify_cli_release(expected, timeout_seconds=self.timeout_seconds)
 
 
-def envelope_data(envelope: Mapping[str, Any]) -> Mapping[str, Any]:
-    """Return an envelope's data object, or an empty mapping."""
-    data = envelope.get("data")
-    return data if isinstance(data, dict) else {}
+def envelope_facts(envelope: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Return an envelope's facts object, or an empty mapping.
+
+    ``facts`` is what the operation observed and can stand behind, and in
+    ``techtree.cli.v2`` it is always an object: the parser refuses anything
+    else. The empty mapping is for a caller that reads named fields out of an
+    envelope it never parsed, which gets nothing, the honest answer.
+    """
+    facts = envelope.get("facts")
+    return facts if isinstance(facts, dict) else {}

@@ -1,3 +1,5 @@
+local-only-*
+
 __pycache__/
 *.py[cod]
 .venv/

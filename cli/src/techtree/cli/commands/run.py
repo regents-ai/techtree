@@ -22,7 +22,10 @@ about now. Given ``--timeout-seconds`` or ``--since-state-digest`` it waits
 first — for the run to move past the state the caller last saw, for it to end,
 or for the bound to expire — and then answers about now anyway. An expired wait
 is an ordinary answer, and the caller tells the two apart by comparing the
-state digest it passed with the one it gets back.
+state digest it passed with the one it gets back. Asking to wait is also what
+decides which operation answered: a bare ``run status`` is ``run.status`` and a
+bounded one is ``run.wait``, because they are two answers rather than one
+answer with an option on it.
 
 *Cancelling is a mutation and is treated as one.* A person is asked; a program
 must pass ``--confirm``. Possession of a run identifier is not intent to stop
@@ -39,6 +42,7 @@ from __future__ import annotations
 import sys
 import time
 from collections.abc import Iterator
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Annotated, Final, Literal
 
@@ -55,7 +59,17 @@ from techtree.drafts.store import DraftStore
 from techtree.errors import TechtreeError, UsageError, VerificationError
 from techtree.identity.models import VerificationResult
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
-from techtree.models.cli import CliError, CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliError,
+    CliUnknown,
+    CliWarning,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.experiment import ExperimentVariant
 from techtree.models.run import (
     PublicRunState,
@@ -100,19 +114,15 @@ from techtree.runs.store import RunStore
 from techtree.verifiers.models import VariantName
 
 __all__ = [
-    "CANCEL_COMMAND",
     "CANCEL_CONFIRMATION_REQUIRED",
     "DEVELOPMENT_ONLY_BANNER",
     "DEVELOPMENT_ONLY_RESULT_NOTICE",
-    "LOGS_COMMAND",
     "PROVISIONAL_SCORE",
-    "RESULT_COMMAND",
     "RUN_FOLLOW_NOT_SUPPORTED_FOR_VARIANT",
     "RUN_FOLLOW_NOT_SUPPORTED_IN_JSON",
     "RUN_WATCH_NOT_SUPPORTED_IN_JSON",
     "RUN_WATCH_NOT_SUPPORTED_WITH_WAIT",
     "SCORE_PROVISIONAL_NOTICE",
-    "STATUS_COMMAND",
     "ResultFormat",
     "RunCancelPayload",
     "RunLogsPayload",
@@ -120,17 +130,13 @@ __all__ = [
     "RunStatusPayload",
     "build_run_service",
     "cancel_run_command",
+    "check_status_action",
     "development_only_result_notice",
     "logs_run_command",
     "result_run_command",
     "status_run_command",
     "watch_line",
 ]
-
-STATUS_COMMAND: Final = "run status"
-LOGS_COMMAND: Final = "run logs"
-CANCEL_COMMAND: Final = "run cancel"
-RESULT_COMMAND: Final = "run result"
 
 #: Stable error codes this module reports. Spec PR8 §8.16 names the first;
 #: the other two are the machine-mode rules the same section asks for.
@@ -195,6 +201,13 @@ _WATCH_INTERVAL_SECONDS: Final = 1.0
 #: How long a follower waits before checking a quiet log again.
 _FOLLOW_INTERVAL_SECONDS: Final = 0.25
 
+#: The three public states a run has ended in. A run's own phase says more, but
+#: "has this stopped" is a question about the public projection, which is the
+#: vocabulary the envelope speaks.
+_TERMINAL_PUBLIC_STATES: Final[frozenset[PublicRunState]] = frozenset(
+    {PublicRunState.COMPLETED, PublicRunState.FAILED, PublicRunState.CANCELLED}
+)
+
 
 class RunStatusPayload(ProtocolModel):
     """Everything a caller needs to decide what to do about a run next."""
@@ -206,11 +219,6 @@ class RunStatusPayload(ProtocolModel):
     #: has to decide whether to keep waiting reads this, and one that wants to
     #: know what the run is actually doing reads the phase.
     public_state: PublicRunState
-    #: The digest of the durable state this answer was read from — the run's
-    #: event log, over its exact bytes. Two answers carrying the same digest
-    #: were read from the same state, which is how a caller tells a wait that
-    #: expired from one that ended because the run moved.
-    state_digest: Digest
     sequence: int
     updated_at: UtcDateTime
     progress: RunProgress | None
@@ -344,19 +352,20 @@ def status_run_command(
 ) -> None:
     """Show how a run is progressing."""
     context = cli_context(ctx)
+    # Waiting is asked for, never assumed: without either option this answers
+    # about now, which is what every existing caller of `run status` is waiting
+    # on the process for. It is also what names the operation, because the
+    # contract has two of them for these two answers.
+    waiting = timeout_seconds is not None or since_state_digest is not None
 
     def action() -> CommandResult[RunStatusPayload]:
-        # Waiting is asked for, never assumed: without either option this
-        # answers about now, which is what every existing caller of `run
-        # status` is waiting on the process for.
-        waiting = timeout_seconds is not None or since_state_digest is not None
-
         if watch and context.json_output:
             raise UsageError(
                 "--watch prints repeatedly and machine mode returns one "
                 "envelope; poll `techtree run status --json` instead",
                 code=RUN_WATCH_NOT_SUPPORTED_IN_JSON,
                 details={"run_id": run_id},
+                next_actions=[wait_for_change_action(run_id, None)],
             )
         if watch and waiting:
             raise UsageError(
@@ -364,6 +373,7 @@ def status_run_command(
                 "once; ask for one or the other",
                 code=RUN_WATCH_NOT_SUPPORTED_WITH_WAIT,
                 details={"run_id": run_id},
+                next_actions=[wait_for_change_action(run_id, None)],
             )
 
         service = build_run_service(context)
@@ -383,18 +393,24 @@ def status_run_command(
                     else validate_digest(since_state_digest)
                 ),
             )
-        payload = (
+        observed = (
             _watch_until_terminal(service, run_id, context)
             if watch
-            else _status_payload(service, run_id)
+            else _observe(service, run_id)
         )
         return CommandResult(
-            data=payload,
-            warnings=_fake_executor_warnings(payload.fake_executor),
-            next_actions=_status_next_actions(payload),
+            data=observed.payload,
+            state_digest=observed.state_digest,
+            warnings=_fake_executor_warnings(observed.payload.fake_executor),
+            next_actions=_status_next_actions(observed),
         )
 
-    invoke_command(context, STATUS_COMMAND, action, render_data=_render_status)
+    invoke_command(
+        context,
+        Operation.RUN_WAIT if waiting else Operation.RUN_STATUS,
+        action,
+        render_data=_render_status,
+    )
 
 
 def _wait_for_the_run(
@@ -430,7 +446,21 @@ def _wait_for_the_run(
             )
 
 
-def _status_payload(service: RunService, run_id: str) -> RunStatusPayload:
+@dataclass(frozen=True)
+class _Observation:
+    """One reading of a run: where it had got to, and the state that was.
+
+    The two travel together because they are one answer. The digest belongs on
+    the envelope and the rest belongs in the facts, and a payload that carried
+    its own copy of the digest would give a caller two places to read the same
+    thing from.
+    """
+
+    state_digest: Digest
+    payload: RunStatusPayload
+
+
+def _observe(service: RunService, run_id: str) -> _Observation:
     # The digest is read first, and deliberately. A run advances while it is
     # being read, so the two reads can land either side of an event, and only
     # one of the two orders is harmless. A digest older than the phase beside
@@ -443,11 +473,11 @@ def _status_payload(service: RunService, run_id: str) -> RunStatusPayload:
     status = service.status(run_id)
     health = service.process_health(run_id)
     state = status.state
-    return RunStatusPayload(
+    projected = public_state(state.phase)
+    payload = RunStatusPayload(
         run_id=state.run_id,
         phase=state.phase,
-        public_state=public_state(state.phase),
-        state_digest=state_digest,
+        public_state=projected,
         sequence=state.sequence,
         updated_at=state.updated_at,
         progress=state.progress,
@@ -458,32 +488,33 @@ def _status_payload(service: RunService, run_id: str) -> RunStatusPayload:
         heartbeat_age_seconds=health.heartbeat_age_seconds,
         heartbeat_stale=status.heartbeat_stale,
         cancel_requested_at=state.cancel_requested_at,
-        terminal=is_terminal(state.phase),
+        terminal=projected in _TERMINAL_PUBLIC_STATES,
         result_available=status.result_available,
         result_digest=state.result_digest,
         error=state.error,
         fake_executor=service.request(run_id).executor_kind == "fake",
     )
+    return _Observation(state_digest=state_digest, payload=payload)
 
 
 def _watch_until_terminal(
     service: RunService, run_id: str, context: CliContext
-) -> RunStatusPayload:
+) -> _Observation:
     """Report every second until the run ends or the reader stops watching.
 
     A ``Ctrl-C`` here stops the watching, never the run. Anything else would
     make looking at a run a way to lose one.
     """
     console = human_console(no_color=context.no_color)
-    payload = _status_payload(service, run_id)
+    observed = _observe(service, run_id)
     try:
-        while not payload.terminal:
-            console.print(watch_line(payload))
+        while not observed.payload.terminal:
+            console.print(watch_line(observed.payload))
             time.sleep(_WATCH_INTERVAL_SECONDS)
-            payload = _status_payload(service, run_id)
+            observed = _observe(service, run_id)
     except KeyboardInterrupt:
         console.print("Stopped watching. The run is still going.")
-    return payload
+    return observed
 
 
 def watch_line(payload: RunStatusPayload) -> str:
@@ -516,12 +547,23 @@ def _variant_watch_cells(progress: dict[str, VariantProgress]) -> list[str]:
     return cells
 
 
-def _status_next_actions(payload: RunStatusPayload) -> list[NextAction]:
+def _status_next_actions(observed: _Observation) -> list[NextAction]:
+    """Offer the step this run is actually at.
+
+    A run still going is followed by waiting for it to move, bound to the state
+    this answer was read from: that is the whole of how a host agent follows a
+    run, and it is why the wait carries the digest rather than the caller
+    having to remember it.
+    """
+    payload = observed.payload
     if payload.result_available:
-        return [_read_result(payload.run_id)]
+        return [read_result_action(payload.run_id)]
     if payload.terminal:
-        return [_read_logs(payload.run_id)]
-    return [_check_status(payload.run_id), _read_logs(payload.run_id)]
+        return [read_logs_action(payload.run_id)]
+    return [
+        wait_for_change_action(payload.run_id, observed.state_digest),
+        read_logs_action(payload.run_id),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -581,6 +623,7 @@ def logs_run_command(
                 "poll `techtree run logs --json` instead",
                 code=RUN_FOLLOW_NOT_SUPPORTED_IN_JSON,
                 details={"run_id": run_id},
+                next_actions=[check_status_action(run_id)],
             )
 
         service = build_run_service(context)
@@ -592,7 +635,8 @@ def logs_run_command(
                     lines=list(logs.lines),
                     truncated=logs.truncated,
                 ),
-                next_actions=[_check_status(run_id)],
+                state_digest=service.state_digest(run_id),
+                next_actions=[check_status_action(run_id)],
             )
 
         logs = service.logs(run_id, tail=tail)
@@ -606,10 +650,11 @@ def logs_run_command(
                 lines=list(logs.lines),
                 truncated=logs.truncated,
             ),
-            next_actions=[_check_status(run_id)],
+            state_digest=service.state_digest(run_id),
+            next_actions=[check_status_action(run_id)],
         )
 
-    invoke_command(context, LOGS_COMMAND, action, render_data=_render_logs)
+    invoke_command(context, Operation.RUN_STATUS, action, render_data=_render_logs)
 
 
 def _follow_log(
@@ -689,18 +734,12 @@ def cancel_run_command(
         )
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code=f"run_cancel_{cancellation.outcome}",
-                    text=_cancel_message(payload),
-                )
-            ],
+            state_digest=service.state_digest(run_id),
             warnings=_cancel_warnings(payload),
-            next_actions=[_check_status(run_id)],
+            next_actions=[check_status_action(run_id)],
         )
 
-    invoke_command(context, CANCEL_COMMAND, action, render_data=_render_cancel)
+    invoke_command(context, Operation.RUN_CANCEL, action, render_data=_render_cancel)
 
 
 def _require_cancel_confirmation(
@@ -749,27 +788,27 @@ def _cancel_message(payload: RunCancelPayload) -> str:
     return f"Run {payload.run_id} has been asked to stop."
 
 
-def _cancel_warnings(payload: RunCancelPayload) -> list[CliMessage]:
+def _cancel_warnings(payload: RunCancelPayload) -> list[CliWarning]:
     if payload.outcome == "already_terminal":
         return [
-            CliMessage(
-                level=MessageLevel.WARNING,
-                code="run_already_terminal",
+            CliWarning(
+                id="run_already_terminal",
                 text=(
                     "A run that has ended cannot be cancelled, and its result "
                     "was left exactly as it was."
                 ),
+                resolvable_by=None,
             )
         ]
     if payload.worker_alive:
         return [
-            CliMessage(
-                level=MessageLevel.WARNING,
-                code="run_stopping",
+            CliWarning(
+                id="run_stopping",
                 text=(
                     "The worker was signalled and stops at its next safe point, "
                     "so the run may take a moment to report as cancelled."
                 ),
+                resolvable_by=Operation.RUN_STATUS,
             )
         ]
     return []
@@ -819,7 +858,7 @@ def result_run_command(
             # "Not finished yet" is the ordinary answer here, and the caller
             # should be told where to look rather than told to guess.
             if not error.next_actions:
-                error.next_actions = [_check_status(run_id)]
+                error.next_actions = [check_status_action(run_id)]
             raise
 
         verification = _verify_proof(context, run_id, report) if verify else None
@@ -833,15 +872,19 @@ def result_run_command(
         )
         return CommandResult(
             data=payload,
+            state_digest=service.state_digest(run_id),
+            unknowns=_result_unknowns(payload.presentation),
             warnings=_result_warnings(report),
-            next_actions=[*payload.presentation.next_actions, _read_logs(run_id)],
+            next_actions=[*payload.presentation.next_actions, read_logs_action(run_id)],
             # A result whose own proof does not check out is shown and
             # reported as a failure: the caller still gets the report, and
             # the exit code says not to believe it.
             error=_unverified_error(run_id, verification),
         )
 
-    invoke_command(context, RESULT_COMMAND, action, render_data=_render_result)
+    invoke_command(
+        context, Operation.RESULT_INSPECT, action, render_data=_render_result
+    )
 
 
 def _presentation(
@@ -944,32 +987,32 @@ def _default_format(context: CliContext) -> ResultFormat:
 # ---------------------------------------------------------------------------
 
 
-def _fake_executor_warnings(fake_executor: bool) -> list[CliMessage]:
+def _fake_executor_warnings(fake_executor: bool) -> list[CliWarning]:
     """Return the caveat a run driven by the fake executor carries.
 
     ``fake_executor_run`` states one fact and only that fact: this run called
-    no model. It is the same code ``climb start`` fires off the same request
-    field, and it is deliberately not the code a development-only *grade*
-    fires, because the two are independent — a run against a real model at
-    real cost still produces a report that may not be published.
+    no model. It is the same identifier ``climb start`` fires off the same
+    request field, and it is deliberately not the one a development-only
+    *grade* fires, because the two are independent — a run against a real model
+    at real cost still produces a report that may not be published.
     """
     if not fake_executor:
         return []
     return [
-        CliMessage(
-            level=MessageLevel.WARNING,
-            code="fake_executor_run",
+        CliWarning(
+            id="fake_executor_run",
             text=_FAKE_EXECUTOR_WARNING,
+            resolvable_by=None,
         )
     ]
 
 
-def _result_warnings(report: UpliftReportV2) -> list[CliMessage]:
+def _result_warnings(report: UpliftReportV2) -> list[CliWarning]:
     """Return the caveat a finished report carries. Spec section 29.
 
     ``development_only_result`` states the report's proof grade and only that:
     these numbers are not evidence and no verdict is stated. Which executor
-    produced them is a separate fact with its own code.
+    produced them is a separate fact with its own identifier.
 
     A report knows which DataPolicy its run executed under, so the warning on
     a result can name it. Progress reporting cannot — a run in flight has no
@@ -978,47 +1021,114 @@ def _result_warnings(report: UpliftReportV2) -> list[CliMessage]:
     if report.proof_grade != "development_only":
         return []
     return [
-        CliMessage(
-            level=MessageLevel.WARNING,
-            code="development_only_result",
+        CliWarning(
+            id="development_only_result",
             text=development_only_result_notice(report.data_policy_digest),
+            resolvable_by=None,
         )
     ]
 
 
-def _check_status(run_id: str) -> NextAction:
+def _result_unknowns(
+    presentation: UpliftPresentationPayload,
+) -> list[CliUnknown]:
+    """Say what this result could not establish, rather than showing zeroes.
+
+    A comparison whose operational record is missing has no money figure at
+    all, and the difference between "this cost nothing" and "nobody can say
+    what this cost" is the whole reason the envelope has somewhere to put the
+    second one.
+
+    The input the next comparison needs is *not* named here. A result reports
+    what this run measured; nobody has asked it for a revision, so it has not
+    failed to determine one. That unknown belongs to the improvement commands,
+    which is also where the step that would take the path is offered.
+    """
+    if presentation.cost_usd is not None:
+        return []
+    return [
+        CliUnknown(
+            id="result_cost",
+            subject="/presentation/cost_usd",
+            reason=(
+                presentation.cost_unavailable_reason
+                or "this run recorded no operational evidence to cost it from"
+            ),
+            resolvable_by=None,
+        )
+    ]
+
+
+def check_status_action(run_id: str) -> NextAction:
+    """Return the read that answers about a run as it is now."""
     return NextAction(
-        id="run_status",
-        label="Check how the run is going",
+        operation=Operation.RUN_STATUS,
+        prepared_arguments=invocation("run", "status", arguments=[run_id]),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason="A run continues whether or not anything is watching it.",
-        cli=["techtree", "run", "status", run_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
 
-def _read_logs(run_id: str) -> NextAction:
+def wait_for_change_action(run_id: str, state_digest: Digest | None) -> NextAction:
+    """Return the bounded wait that ends when this run moves past ``state_digest``.
+
+    The digest the answer was read from is carried into the action, so a caller
+    following a run never has to remember where it was: the wait it is offered
+    is already bound to the state it has seen.
+    """
+    options: dict[str, str | Literal[True]] = {}
+    if state_digest is not None:
+        options["--since-state-digest"] = state_digest
     return NextAction(
-        id="run_logs",
-        label="Read what the worker recorded",
+        operation=Operation.RUN_WAIT,
+        prepared_arguments=invocation(
+            "run", "status", arguments=[run_id], options=options
+        ),
+        expected_state_digest=state_digest,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=(
+            f"It answers as soon as the run moves or ends, and after "
+            f"{DEFAULT_WAIT_TIMEOUT_SECONDS} seconds either way."
+        ),
+    )
+
+
+def read_logs_action(run_id: str) -> NextAction:
+    """Return the read of what the worker recorded."""
+    return NextAction(
+        operation=Operation.RUN_STATUS,
+        prepared_arguments=invocation("run", "logs", arguments=[run_id]),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason="The log says what the run was doing when it got there.",
-        cli=["techtree", "run", "logs", run_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
 
-def _read_result(run_id: str) -> NextAction:
+def read_result_action(run_id: str) -> NextAction:
+    """Return the read of a finished run's report."""
     return NextAction(
-        id="run_result",
-        label="Read the finished report",
+        operation=Operation.RESULT_INSPECT,
+        prepared_arguments=invocation("run", "result", arguments=[run_id]),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason="The run has produced its result.",
-        cli=["techtree", "run", "result", run_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
     )
 
 
@@ -1136,8 +1246,11 @@ def _render_logs(data: object, console: Console) -> None:
 
 
 def _render_cancel(data: object, console: Console) -> None:
+    """Say what asking a run to stop achieved, then where it left the run."""
     if not isinstance(data, RunCancelPayload):
         return
+    console.print(_cancel_message(data))
+    console.print()
     render_pairs(
         [
             ("Run", data.run_id),

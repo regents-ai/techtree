@@ -1,6 +1,18 @@
 {
-  "command": "climb show",
-  "data": {
+  "blockers": [
+    {
+      "blocks": [
+        "plan.prepare",
+        "action.execute"
+      ],
+      "id": "engine_not_installed",
+      "resolvable_by": "action.execute",
+      "text": "The evaluation engine is not installed, so this Climb cannot be prepared yet."
+    }
+  ],
+  "content_refs": [],
+  "error": null,
+  "facts": {
     "campaign_spec_digest": "sha256:6c3032e1d63ee66c5d95b4030ead1b45d692c98277ac5916c1069e9b0d03c533",
     "candidate_skill_visibility": "public",
     "climb_digest": "sha256:5b9a4949ed7ab1202187435e59165f3f07bac8b438fad858729dcdad21c47bfd",
@@ -45,36 +57,36 @@
     "taskset_id": "procedure-transfer-v1",
     "title": "Techtree Hello World"
   },
-  "error": null,
-  "messages": [
-    {
-      "code": "development_climb",
-      "level": "info",
-      "text": "This is a development Climb. Its results are not publishable evidence."
-    }
-  ],
   "next_actions": [
     {
-      "cli": [
-        "techtree",
-        "engine",
-        "install"
-      ],
-      "hermes_args": null,
-      "hermes_tool": null,
-      "id": "install_engine",
-      "label": "Install the evaluation engine",
+      "approval_required": false,
+      "data_egress": "package_index",
+      "estimated_cost": null,
+      "expected_state_digest": null,
+      "operation": "action.execute",
+      "prepared_arguments": {
+        "arguments": [],
+        "command": [
+          "engine",
+          "install"
+        ],
+        "options": {}
+      },
       "reason": "The engine this Climb requires is not installed.",
-      "requires_user_confirmation": false
+      "retry_class": "safe",
+      "side_effect": "local_state"
     }
   ],
   "ok": true,
-  "schema_version": "techtree.cli.v1",
+  "operation": "plan.inspect",
+  "schema_version": "techtree.cli.v2",
+  "state_digest": null,
+  "unknowns": [],
   "warnings": [
     {
-      "code": "engine_not_installed",
-      "level": "warning",
-      "text": "The evaluation engine is not installed, so this Climb cannot be prepared yet."
+      "id": "development_climb",
+      "resolvable_by": null,
+      "text": "This is a development Climb. Its results are not publishable evidence."
     }
   ]
 }

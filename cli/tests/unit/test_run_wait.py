@@ -38,7 +38,10 @@ from typer.testing import CliRunner
 
 from fixtures.runs.support import RunHarness, execute_in_process, run_harness
 from techtree.cli.app import create_app
-from techtree.cli.commands.run import RUN_WATCH_NOT_SUPPORTED_WITH_WAIT
+from techtree.cli.commands.run import (
+    RUN_WATCH_NOT_SUPPORTED_IN_JSON,
+    RUN_WATCH_NOT_SUPPORTED_WITH_WAIT,
+)
 from techtree.constants import DEFAULT_WORKER_HEARTBEAT_SECONDS
 from techtree.errors import EXIT_OK, EXIT_USAGE, EXIT_VALIDATION, UsageError
 from techtree.models.run import PublicRunState, RunPhase, RunStatus
@@ -298,13 +301,20 @@ def envelope(result: Any) -> dict[str, Any]:
 def test_status_carries_the_public_state_and_the_state_digest(
     temp_techtree_home: Path, harness: RunHarness, started: str
 ) -> None:
+    """The digest is on the envelope; the phase and its projection are facts.
+
+    One home for the digest, and it is the envelope's: a payload carrying its
+    own copy would give a caller two places to read the same thing from.
+    """
     result = invoke(temp_techtree_home, "--json", "run", "status", started)
 
     assert result.exit_code == EXIT_OK
-    payload = envelope(result)["data"]
-    assert payload["phase"] == RunPhase.CREATED.value
-    assert payload["public_state"] == PublicRunState.PREPARED.value
-    assert payload["state_digest"] == harness.service.state_digest(started)
+    body = envelope(result)
+    assert body["operation"] == "run.status"
+    assert body["state_digest"] == harness.service.state_digest(started)
+    assert "state_digest" not in body["facts"]
+    assert body["facts"]["phase"] == RunPhase.CREATED.value
+    assert body["facts"]["public_state"] == PublicRunState.PREPARED.value
 
 
 def test_an_answer_never_carries_a_digest_newer_than_the_phase_beside_it(
@@ -358,7 +368,8 @@ def test_a_reader_who_stops_waiting_still_gets_an_answer(
     assert result.exit_code == EXIT_OK
     body = envelope(result)
     assert body["ok"] is True
-    assert body["data"]["state_digest"] == harness.service.state_digest(started)
+    assert body["operation"] == "run.wait"
+    assert body["state_digest"] == harness.service.state_digest(started)
     assert harness.service.status(started).state.phase is RunPhase.CREATED
 
 
@@ -391,8 +402,19 @@ def test_asking_for_longer_than_the_ceiling_is_refused_at_the_command_line(
         str(MAXIMUM_WAIT_TIMEOUT_SECONDS + 1),
     )
 
+    body = envelope(result)
     assert result.exit_code == EXIT_USAGE
-    assert envelope(result)["error"]["code"] == RUN_WAIT_TIMEOUT_OUT_OF_RANGE
+    assert body["error"]["code"] == RUN_WAIT_TIMEOUT_OUT_OF_RANGE
+    # A refused bound is a caller that wanted to wait, so the repair is the
+    # wait it can have rather than a note about the numbers.
+    [repair] = body["next_actions"]
+    assert repair["operation"] == "run.wait"
+    assert repair["prepared_arguments"] == {
+        "command": ["run", "status"],
+        "arguments": [started],
+        "options": {"--timeout-seconds": str(DEFAULT_WAIT_TIMEOUT_SECONDS)},
+    }
+    assert repair["retry_class"] == "safe"
 
 
 def test_a_digest_that_is_not_a_digest_is_refused(
@@ -431,9 +453,10 @@ def test_a_state_the_run_has_left_is_answered_without_waiting(
 
     assert result.exit_code == EXIT_OK
     assert time.monotonic() - began < DEFAULT_WAIT_TIMEOUT_SECONDS
-    payload = envelope(result)["data"]
-    assert payload["state_digest"] != before
-    assert payload["public_state"] == PublicRunState.RUNNING.value
+    body = envelope(result)
+    assert body["operation"] == "run.wait"
+    assert body["state_digest"] != before
+    assert body["facts"]["public_state"] == PublicRunState.RUNNING.value
 
 
 def test_a_wait_that_expires_answers_normally_at_the_command_line(
@@ -456,7 +479,8 @@ def test_a_wait_that_expires_answers_normally_at_the_command_line(
     body = envelope(result)
     assert body["ok"] is True
     assert body["error"] is None
-    assert body["data"]["state_digest"] == before
+    assert body["operation"] == "run.wait"
+    assert body["state_digest"] == before
 
 
 def test_watching_and_waiting_are_not_asked_for_together(
@@ -475,3 +499,43 @@ def test_watching_and_waiting_are_not_asked_for_together(
 
     assert result.exit_code == EXIT_USAGE
     assert RUN_WATCH_NOT_SUPPORTED_WITH_WAIT in result.stdout
+
+
+def test_the_refusal_to_watch_and_wait_at_once_offers_the_wait(
+    temp_techtree_home: Path, started: str
+) -> None:
+    """Both refusals a bounded wait can make carry the step that works.
+
+    This one is human-only by construction: ``--watch`` in machine mode is
+    refused before the pair is even looked at, so the refusal for asking for
+    both is read where a person asked for both.
+    """
+    result = invoke(
+        temp_techtree_home,
+        "run",
+        "status",
+        started,
+        "--watch",
+        "--timeout-seconds",
+        "5",
+    )
+    printed = " ".join(result.stdout.split())
+
+    assert result.exit_code == EXIT_USAGE
+    assert RUN_WATCH_NOT_SUPPORTED_WITH_WAIT in printed
+    assert f"techtree run status {started}" in printed
+
+
+def test_the_refusal_to_watch_in_machine_mode_offers_the_wait(
+    temp_techtree_home: Path, started: str
+) -> None:
+    """A caller that cannot watch is handed the way a machine follows a run."""
+    result = invoke(temp_techtree_home, "--json", "run", "status", started, "--watch")
+
+    body = envelope(result)
+    assert result.exit_code == EXIT_USAGE
+    assert body["error"]["code"] == RUN_WATCH_NOT_SUPPORTED_IN_JSON
+    [repair] = body["next_actions"]
+    assert repair["operation"] == "run.wait"
+    assert repair["prepared_arguments"]["command"] == ["run", "status"]
+    assert repair["prepared_arguments"]["arguments"] == [started]

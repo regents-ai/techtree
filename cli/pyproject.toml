@@ -16,12 +16,12 @@ classifiers = [
 # or NeMo Relay. Engine dependencies belong to the independently locked
 # managed engine under src/techtree/resources/engines/default/.
 dependencies = [
-  "cryptography>=45,<47",
+  "cryptography>=50.0.1,<51",
   "filelock>=3.18,<4",
   "platformdirs>=4,<5",
   "pydantic>=2.12,<3",
   "rfc8785>=0.1,<1",
-  "rich>=14,<15",
+  "rich>=15,<16",
   "tomli-w>=1.2,<2",
   "typer>=0.16,<1",
 ]
@@ -36,8 +36,8 @@ dev = [
   # The build backend, so that the tests can exercise the build hook that
   # stamps a wheel's source commit into it (decisions 0026).
   "hatchling>=1.27,<2",
-  "mypy>=1.17,<2",
-  "pytest>=8,<9",
+  "mypy>=2.3.1,<3",
+  "pytest>=9.1.1,<10",
   "pytest-cov>=6,<8",
   "pytest-xdist>=3,<4",
   "ruff>=0.12,<1",

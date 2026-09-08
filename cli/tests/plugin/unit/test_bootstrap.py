@@ -407,8 +407,8 @@ def _installed_cli(
             }
         ]
     }
-    info_envelope = envelope(command="release info", data=info)
-    doctor_envelope = envelope(command="doctor", data=doctor)
+    info_envelope = envelope(operation="plan.inspect", facts=info)
+    doctor_envelope = envelope(operation="plan.inspect", facts=doctor)
     body = (
         "if argv[:1] == ['--version']:\n"
         f"    print({release.cli_version!r})\n"
@@ -476,13 +476,12 @@ def test_a_blocking_doctor_failure_stops_demo_preparation(
     install_fake_cli(
         tmp_path / "bin",
         body=print_envelope(
-            command="doctor",
-            data=doctor,
+            operation="plan.inspect",
+            facts=doctor,
             ok=False,
             error={
                 "code": "docker_unavailable",
                 "message": "Docker is not running",
-                "retryable": True,
                 "details": {},
             },
         ),

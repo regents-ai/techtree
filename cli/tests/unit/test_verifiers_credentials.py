@@ -19,6 +19,7 @@ import pytest
 
 from techtree.errors import AuthenticationError
 from techtree.models.campaign import ModelSpec
+from techtree.models.cli import command_line
 from techtree.models.engine import EngineInstallation
 from techtree.verifiers.credentials import (
     PRIME_CREDENTIAL_ENV,
@@ -175,7 +176,7 @@ def test_a_missing_credential_refuses_with_actions_that_name_the_variable(
     assert error.code == "model_credentials_missing"
     assert error.details["credential_env"] == "TECHTREE_MODEL_API_KEY"
     assert any(
-        "TECHTREE_MODEL_API_KEY" in action.label for action in error.next_actions
+        "TECHTREE_MODEL_API_KEY" in action.reason for action in error.next_actions
     )
 
 
@@ -193,9 +194,9 @@ def test_the_refusal_does_not_promise_that_a_terminal_export_is_enough(
         require_credentials(model())
 
     actions = caught.value.next_actions
-    reasons = " ".join(action.reason or "" for action in actions)
+    reasons = " ".join(action.reason for action in actions)
     assert "not enough" in reasons
-    assert actions[0].cli == ["prime", "login"]
+    assert command_line(actions[0]) == ["techtree", "doctor", "--for-evaluation"]
 
 
 def test_the_refusal_says_this_is_not_the_operators_own_sign_in(

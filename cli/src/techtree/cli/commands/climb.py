@@ -45,6 +45,12 @@ records the surface the answer was really given on rather than the surface the
 writing happened on. Either way the run records that the review was shown and
 accepted, and its ``run.approved`` event records who gave the answer.
 
+Where nobody can be asked, the review is the answer. A start with no ``--yes``
+in machine mode is ``action.prepare``: it starts nothing, and it returns what
+the run would do, what the Campaign declares it may cost, and the exact lines a
+person has to read — so a host agent shows the same review a terminal would
+rather than an identifier and a flag name.
+
 The command returns as soon as the worker is launched. The run continues after
 this process exits, which is the whole point, and the response says where to
 look rather than waiting to find out.
@@ -53,6 +59,7 @@ look rather than waiting to find out.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final, Literal
@@ -62,16 +69,17 @@ from pydantic import PositiveFloat
 from rich.console import Console
 from rich.table import Table
 
+from techtree.canonical import digest_object
 from techtree.catalog.repository import EmbeddedCatalogRepository, climb_reference
 from techtree.catalog.service import (
     CatalogService,
     InstalledEngineStatus,
     current_host_info,
 )
-from techtree.cli.commands.run import build_run_service
+from techtree.cli.commands.run import build_run_service, wait_for_change_action
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
-from techtree.cli.invoke import CommandResult, invoke_command
+from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import human_console, render_pairs
 from techtree.drafts.source import CampaignSource
 from techtree.drafts.store import DraftStore, utc_now
@@ -92,7 +100,18 @@ from techtree.models.catalog import (
     CompatibilityResultV2,
     EngineCompatibilityStatus,
 )
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliBlocker,
+    CliUnknown,
+    CliWarning,
+    DataEgress,
+    EstimatedCost,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.climb import ResolvedClimb
 from techtree.models.run import (
     PolicyAcknowledgement,
@@ -105,33 +124,31 @@ from techtree.runs.service import POLICY_ACCEPTANCE_REQUIRED, ApprovalActor
 from techtree.skills.service import PreparedDraft, SkillPreparationService
 
 __all__ = [
-    "LIST_COMMAND",
-    "PREPARE_COMMAND",
     "REVIEW_SURFACE_NOT_APPROVED",
-    "SHOW_COMMAND",
-    "START_COMMAND",
+    "ClimbListPayload",
     "ClimbPreparePayload",
     "ClimbShowPayload",
     "ClimbStartPayload",
     "PreparedComparison",
     "ReviewSurface",
     "RunApproval",
+    "StartReviewPayload",
     "abbreviated_digest",
     "approve_run",
     "build_catalog_service",
     "build_preparation_service",
+    "declared_maximum",
     "list_climbs_command",
     "phrase",
     "prepare_climb_command",
+    "require_the_review_surface_was_answered",
     "review_lines",
     "show_climb_command",
     "start_climb_command",
+    "start_review",
+    "start_when_approved",
+    "unknown_maximum",
 ]
-
-LIST_COMMAND: Final = "climb list"
-SHOW_COMMAND: Final = "climb show"
-PREPARE_COMMAND: Final = "climb prepare"
-START_COMMAND: Final = "climb start"
 
 #: What a reader is told when the build ships no Climbs at all. The packaged
 #: catalog is generated, so an empty one means this build was assembled without
@@ -155,6 +172,18 @@ class ReviewSurface(StrEnum):
 
     CLI = "cli"
     HOST_AGENT = "host-agent"
+
+
+class ClimbListPayload(ProtocolModel):
+    """What ``climb list`` returns: every Climb this build ships.
+
+    The list is under a key rather than being the whole answer. ``facts`` is an
+    object in every envelope, so a caller reads one shape whatever it asked,
+    and an answer that was a bare array could never gain a second fact about
+    the listing without changing shape underneath everyone.
+    """
+
+    climbs: list[ClimbSummaryV2]
 
 
 class ClimbShowPayload(ProtocolModel):
@@ -191,10 +220,15 @@ class PreparedComparison(ProtocolModel):
 
 
 class ClimbPreparePayload(ProtocolModel):
-    """What ``climb prepare`` returns: the draft, and what it commits to."""
+    """What ``climb prepare`` returns: the draft, and what it commits to.
+
+    The draft's own digest is not here. Preparing writes durable local state
+    and the envelope's ``state_digest`` is that state's identity, so a second
+    copy in the payload would be a second place for the same value to be read
+    from — and, once they drifted, disagreed with.
+    """
 
     draft_id: NonEmptyString
-    draft_digest: Digest
     climb_reference: NonEmptyString
     climb_digest: Digest
     campaign_spec_digest: Digest
@@ -268,36 +302,23 @@ def list_climbs_command(ctx: typer.Context) -> None:
     """List public wrappers with resolved Campaign compatibility."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[list[ClimbSummaryV2]]:
+    def action() -> CommandResult[ClimbListPayload]:
         summaries = build_catalog_service(context).list_climbs()
+        payload = ClimbListPayload(climbs=summaries)
 
         if not summaries:
             return CommandResult(
-                data=summaries,
-                messages=[
-                    CliMessage(
-                        level=MessageLevel.INFO,
-                        code="no_climbs_available",
-                        text=_NO_CLIMBS,
-                    )
-                ],
+                data=payload,
                 next_actions=[_check_environment()],
             )
 
         return CommandResult(
-            data=summaries,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="climbs_available",
-                    text=_available_summary(len(summaries)),
-                )
-            ],
+            data=payload,
             warnings=_development_warnings(summaries),
             next_actions=[_show_climb(summaries[0].reference)],
         )
 
-    invoke_command(context, LIST_COMMAND, action, render_data=_render_list)
+    invoke_command(context, Operation.PLAN_INSPECT, action, render_data=_render_list)
 
 
 def show_climb_command(
@@ -326,21 +347,16 @@ def show_climb_command(
             raise
         summary = service.climb_summary(resolved)
 
+        actions = _show_next_actions(summary.compatibility)
         return CommandResult(
             data=_show_payload(resolved, summary),
+            blockers=_compatibility_blockers(summary.compatibility, actions),
             warnings=_development_warnings([summary])
-            + [
-                CliMessage(
-                    level=MessageLevel.WARNING,
-                    code=issue.code,
-                    text=issue.message,
-                )
-                for issue in summary.compatibility.issues
-            ],
-            next_actions=_show_next_actions(summary.compatibility),
+            + _compatibility_warnings(summary.compatibility),
+            next_actions=actions,
         )
 
-    invoke_command(context, SHOW_COMMAND, action, render_data=_render_show)
+    invoke_command(context, Operation.PLAN_INSPECT, action, render_data=_render_show)
 
 
 def prepare_climb_command(
@@ -396,28 +412,30 @@ def prepare_climb_command(
         payload = _prepare_payload(reference, prepared)
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="draft_prepared",
-                    text=(
-                        f"Prepared {payload.candidate_label} for "
-                        f"{payload.climb_reference}. Nothing has run yet."
+            state_digest=prepared.draft_digest,
+            unknowns=unknown_maximum(payload.campaign_maximum_usd),
+            warnings=[
+                CliWarning(id="draft_warning", text=warning, resolvable_by=None)
+                for warning in payload.warnings
+            ],
+            next_actions=[
+                start_when_approved(
+                    "climb",
+                    draft_id=payload.draft_id,
+                    draft_digest=prepared.draft_digest,
+                    estimated_cost=_declared_maximum_of(payload.campaign_maximum_usd),
+                    reason=(
+                        f"It starts {payload.candidate_label} on "
+                        f"{payload.climb_reference}, running "
+                        f"{payload.estimated_episodes} episodes. It shows you "
+                        "the spending limit the Campaign declares and what "
+                        "this changes, and starts only if you say yes."
                     ),
                 )
             ],
-            warnings=[
-                CliMessage(
-                    level=MessageLevel.WARNING,
-                    code="draft_warning",
-                    text=warning,
-                )
-                for warning in payload.warnings
-            ],
-            next_actions=[_start_draft(payload)],
         )
 
-    invoke_command(context, PREPARE_COMMAND, action, render_data=_render_prepare)
+    invoke_command(context, Operation.PLAN_PREPARE, action, render_data=_render_prepare)
 
 
 def start_climb_command(
@@ -458,11 +476,17 @@ def start_climb_command(
     """Review a prepared draft, approve it, and start a detached run."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[ClimbStartPayload]:
+    def action() -> CommandResult[ClimbStartPayload | StartReviewPayload]:
         service = build_run_service(context)
         store = DraftStore(context.paths)
         draft = store.get(draft_id)
         source = store.get_source(draft_id)
+        require_the_review_surface_was_answered(
+            draft_id=draft_id, assume_yes=yes, reviewed_on=reviewed_on
+        )
+        if not yes and context.no_input:
+            return start_review("climb", draft=draft, campaign=source.campaign)
+
         approval = approve_run(
             context,
             draft=draft,
@@ -481,21 +505,217 @@ def start_climb_command(
 
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="run_started",
-                    text=(
-                        f"Run {payload.run_id} is going. It continues whether "
-                        "or not this command is still open."
-                    ),
+            state_digest=service.state_digest(payload.run_id),
+            warnings=_start_warnings(payload, source=source),
+            next_actions=[
+                wait_for_change_action(
+                    payload.run_id, service.state_digest(payload.run_id)
                 )
             ],
-            warnings=_start_warnings(payload, source=source),
-            next_actions=[_watch_run(payload.run_id)],
         )
 
-    invoke_command(context, START_COMMAND, action, render_data=_render_start)
+    invoke_command(
+        context,
+        approval_operation(context, assume_yes=yes),
+        action,
+        render_data=_render_start,
+    )
+
+
+class StartReviewPayload(ProtocolModel):
+    """What starting a prepared draft would do, for a caller that has to show it.
+
+    It is the machine reading of exactly what a terminal prints before it asks:
+    how much work this is, the most the Campaign declares it may cost, what is
+    being changed, where the model calls go, what an upload would carry, and
+    the rights a person is accepting. Nothing here is an approval and nothing
+    has started.
+    """
+
+    draft_id: NonEmptyString
+    campaign_spec_digest: Digest
+    data_policy_digest: Digest
+    estimated_episodes: int
+    #: What the Campaign declares this run may cost, or null where it declares
+    #: no maximum at all. A null is not "free"; the envelope says so as an
+    #: unknown beside it.
+    campaign_maximum_usd: PositiveFloat | None
+    subject_model_provider: NonEmptyString
+    policy_acceptance: PolicyAcceptanceRequirement
+    #: The review a person reads, in the order they read it.
+    review: list[NonEmptyString]
+
+
+def require_the_review_surface_was_answered(
+    *, draft_id: str, assume_yes: bool, reviewed_on: ReviewSurface
+) -> None:
+    """Refuse a declared review surface that nobody answered on.
+
+    The answer is about to be given here, so a run that recorded it as given
+    somewhere else would name a surface nobody used.
+    """
+    if assume_yes or reviewed_on is ReviewSurface.CLI:
+        return
+    raise UsageError(
+        "--reviewed-on says where an approval was already given, so it goes "
+        "with --yes; without it the review is shown here and answered here",
+        code=REVIEW_SURFACE_NOT_APPROVED,
+        details={"draft_id": draft_id, "reviewed_on": reviewed_on.value},
+    )
+
+
+def start_review[T](
+    *command: str, draft: SubmissionDraft, campaign: CampaignSpecV2
+) -> CommandResult[T | StartReviewPayload]:
+    """Return what starting this draft would do, and the call that would do it.
+
+    Both comparisons answer the same way, because they ask the same question of
+    a person: ``climb start`` and ``uplift start`` differ in which draft they
+    are about and in nothing a reader has to weigh.
+    """
+    maximum = campaign.budgets.maximum_usd
+    return CommandResult(
+        data=StartReviewPayload(
+            draft_id=draft.id,
+            campaign_spec_digest=draft.campaign_spec_digest,
+            data_policy_digest=draft.data_policy_digest,
+            estimated_episodes=draft.estimated_episodes,
+            campaign_maximum_usd=maximum,
+            subject_model_provider=campaign.subject.model.provider,
+            policy_acceptance=draft.policy_acceptance,
+            review=[
+                *review_lines(draft=draft, campaign=campaign),
+                draft.policy_acceptance.summary,
+                PUBLICATION_TERMS_LINE,
+            ],
+        ),
+        state_digest=digest_object(draft),
+        unknowns=unknown_maximum(maximum),
+        next_actions=[
+            start_when_approved(
+                *command,
+                draft_id=draft.id,
+                draft_digest=digest_object(draft),
+                estimated_cost=_declared_maximum_of(maximum),
+                reason=(
+                    f"It starts the run described above: "
+                    f"{draft.estimated_episodes} episodes. Invoke it once a "
+                    "person has agreed on your own approval surface; "
+                    "--reviewed-on records which surface that was."
+                ),
+            )
+        ],
+        error=PolicyError(
+            "starting this draft accepts its data policy and spends the run it "
+            "describes, so somebody has to approve it. Nothing here can be "
+            "asked, so say so with --yes",
+            code=POLICY_ACCEPTANCE_REQUIRED,
+            details={
+                "draft_id": draft.id,
+                "data_policy_digest": draft.policy_acceptance.data_policy_digest,
+            },
+        ),
+    )
+
+
+def start_when_approved(
+    *command: str,
+    draft_id: str,
+    draft_digest: Digest,
+    estimated_cost: EstimatedCost | None,
+    reason: str,
+) -> NextAction:
+    """Return the start a person's agreement turns into a run.
+
+    It carries ``--yes`` and ``--reviewed-on``, which makes it
+    ``action.execute``: invoking it as written starts the run. Offering the
+    refused call instead would hand a caller the thing that had just refused
+    it, which is not a next step at all. What stops a machine taking it is
+    ``approval_required``, and it is bound to the exact draft by
+    ``expected_state_digest``, so a draft that moved underneath the review is
+    not started on the strength of an answer given about a different one.
+    """
+    return NextAction(
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation(
+            *command,
+            "start",
+            arguments=[draft_id],
+            options={
+                "--yes": True,
+                "--reviewed-on": ReviewSurface.HOST_AGENT.value,
+            },
+        ),
+        expected_state_digest=draft_digest,
+        side_effect=SideEffect.LOCAL_EXECUTION,
+        approval_required=True,
+        retry_class=RetryClass.HUMAN_DECISION_REQUIRED,
+        estimated_cost=estimated_cost,
+        data_egress=DataEgress.MODEL_PROVIDER,
+        reason=reason,
+    )
+
+
+#: What a declared maximum does and does not promise, said wherever the figure
+#: travels. Decision 0025: nothing counts the spend while a run is under way
+#: and nothing ends one part-way through over it, so a money statement that
+#: only carried the number would read as a meter.
+DECLARED_MAXIMUM_UNCERTAINTY: Final = (
+    "Techtree checks before starting that this Campaign's enforced per-episode "
+    "limits cannot add up past the maximum it declares, and refuses to run it "
+    "if they could. Nothing keeps a running total while the run is under way "
+    "and nothing ends it part-way through: a provider that charges for tokens "
+    "bills the episodes to your own account, and a model you run yourself "
+    "sends no bill."
+)
+
+
+def declared_maximum(campaign: CampaignSpecV2) -> EstimatedCost | None:
+    """Return what the Campaign declares this run may cost, if it declares one.
+
+    It is the Campaign's own ceiling rather than a quote, so nothing estimates
+    the cost and nothing binds it to a resolved execution plan. A Campaign that
+    declares no maximum has no money statement at all, which the envelope says
+    as an unknown rather than as a zero.
+    """
+    return _declared_maximum_of(campaign.budgets.maximum_usd)
+
+
+def _declared_maximum_of(maximum: float | None) -> EstimatedCost | None:
+    if maximum is None:
+        return None
+    return EstimatedCost(
+        currency="USD",
+        estimated_cost=None,
+        maximum_authorized_cost=_monetary(maximum),
+        estimate_source="campaign_declared_maximum",
+        uncertainty_disclosure=DECLARED_MAXIMUM_UNCERTAINTY,
+        expires_at=None,
+        execution_plan_digest=None,
+    )
+
+
+def _monetary(amount: float) -> str:
+    """Return one amount in the protocol's single spelling of it."""
+    return format(Decimal(str(amount)).normalize(), "f")
+
+
+def unknown_maximum(maximum: float | None) -> list[CliUnknown]:
+    """Say that no maximum could be established, rather than showing a zero."""
+    if maximum is not None:
+        return []
+    return [
+        CliUnknown(
+            id="campaign_maximum_usd",
+            subject="/campaign_maximum_usd",
+            reason=(
+                "This Campaign declares no maximum, so there is no figure for "
+                "Techtree to hold the run to. Each episode still has enforced "
+                "turn, token, and time limits."
+            ),
+            resolvable_by=None,
+        )
+    ]
 
 
 @dataclass(frozen=True)
@@ -636,36 +856,14 @@ def approve_run(
 
     Somebody who passed ``--yes`` has answered already, and ``--reviewed-on``
     says where. Otherwise a person is shown the review and the rights summary
-    and answers here; where nobody can be asked, the command stops and names
-    the flag rather than inventing an approval nobody gave.
+    and answers here. A caller that nobody can be asked on behalf of never
+    reaches this: the start returns the review instead, before anything is
+    read off the draft store.
     """
     if assume_yes:
         if reviewed_on is ReviewSurface.HOST_AGENT:
             return _approved(draft, "host_agent_confirmation", "human_via_hermes")
         return _approved(draft, "explicit_cli_review", "operator_via_flag")
-
-    if reviewed_on is not ReviewSurface.CLI:
-        # The answer is about to be given here, so a run that recorded it as
-        # given somewhere else would name a surface nobody used.
-        raise UsageError(
-            "--reviewed-on says where an approval was already given, so it "
-            "goes with --yes; without it the review is shown here and answered "
-            "here",
-            code=REVIEW_SURFACE_NOT_APPROVED,
-            details={"draft_id": draft.id, "reviewed_on": reviewed_on.value},
-        )
-
-    if context.no_input:
-        raise PolicyError(
-            "starting this draft accepts its data policy and spends the run it "
-            "describes, so somebody has to approve it. Nothing here can be "
-            "asked, so say so with --yes",
-            code=POLICY_ACCEPTANCE_REQUIRED,
-            details={
-                "draft_id": draft.id,
-                "data_policy_digest": draft.policy_acceptance.data_policy_digest,
-            },
-        )
 
     console = human_console(no_color=context.no_color)
     for line in review_lines(draft=draft, campaign=campaign):
@@ -736,19 +934,53 @@ def _available_summary(count: int) -> str:
     return f"{count} Climbs are available in this build."
 
 
-def _development_warnings(summaries: list[ClimbSummaryV2]) -> list[CliMessage]:
+def _development_warnings(summaries: list[ClimbSummaryV2]) -> list[CliWarning]:
     """Warn once per development Climb that its results prove nothing."""
     return [
-        CliMessage(
-            level=MessageLevel.WARNING,
-            code="development_climb",
+        CliWarning(
+            id="development_climb",
             text=(
                 f"{summary.reference} is a development Climb. Its results are "
                 "for trying the flow out and are not comparable evidence."
             ),
+            resolvable_by=None,
         )
         for summary in summaries
         if summary.status == "development"
+    ]
+
+
+def _compatibility_blockers(
+    compatibility: CompatibilityResultV2, actions: list[NextAction]
+) -> list[CliBlocker]:
+    """Return what stops this Climb from being prepared on this machine.
+
+    An issue that leaves the Climb runnable here is a note; one that does not
+    is a blocker, and it names what it forbids. Whether anything Techtree runs
+    would clear it is read off the action the same reading already offered, so
+    the blocker and the step can never disagree about that.
+    """
+    if compatibility.compatible:
+        return []
+    resolvable = actions[0].operation if actions else None
+    return [
+        CliBlocker(
+            id=issue.code,
+            text=issue.message,
+            blocks=[Operation.PLAN_PREPARE, Operation.ACTION_EXECUTE],
+            resolvable_by=resolvable,
+        )
+        for issue in compatibility.issues
+    ]
+
+
+def _compatibility_warnings(compatibility: CompatibilityResultV2) -> list[CliWarning]:
+    """Return the issues that did not stop this Climb running here."""
+    if not compatibility.compatible:
+        return []
+    return [
+        CliWarning(id=issue.code, text=issue.message, resolvable_by=None)
+        for issue in compatibility.issues
     ]
 
 
@@ -756,7 +988,7 @@ def _show_next_actions(compatibility: CompatibilityResultV2) -> list[NextAction]
     """Offer the one step that moves this Climb forward on this machine."""
     if not compatibility.host_supported:
         # Nothing Techtree can run fixes the wrong machine, so nothing is
-        # offered. The reason is already in the compatibility warning.
+        # offered. The reason is already in the compatibility blocker.
         return []
     if compatibility.engine_status is EngineCompatibilityStatus.NOT_INSTALLED:
         return [_install_engine()]
@@ -773,96 +1005,101 @@ def _unknown_climb_actions(error: NotFoundError) -> list[NextAction]:
     return [_check_environment()]
 
 
-def _browse_climbs() -> NextAction:
+def _read_only(
+    *command: str, arguments: list[str] | None = None, reason: str
+) -> NextAction:
+    """Return one read that changes nothing on this machine."""
     return NextAction(
-        id="list_climbs",
-        label="See which Climbs this build ships",
-        reason="A Climb is named by its slug, or by slug and version.",
-        cli=["techtree", "climb", "list"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation(*command, arguments=arguments or []),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=reason,
+    )
+
+
+def _browse_climbs() -> NextAction:
+    return _read_only(
+        "climb",
+        "list",
+        reason=(
+            "It lists the Climbs this build ships. A Climb is named by its "
+            "slug, or by slug and version."
+        ),
     )
 
 
 def _show_climb(reference: str) -> NextAction:
-    return NextAction(
-        id="show_climb",
-        label=f"Look at {reference} in detail",
-        reason="Shows what it measures, the data rights it carries, and "
-        "whether this machine can run it.",
-        cli=["techtree", "climb", "show", reference],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+    return _read_only(
+        "climb",
+        "show",
+        arguments=[reference],
+        reason=(
+            f"It shows what {reference} measures, the data rights it carries, "
+            "and whether this machine can run it."
+        ),
+    )
+
+
+def _check_environment() -> NextAction:
+    return _read_only(
+        "doctor",
+        reason=(
+            "Doctor reports what is installed, what is missing, and what would "
+            "block a run."
+        ),
+    )
+
+
+def _verify_engine() -> NextAction:
+    return _read_only(
+        "engine",
+        "verify",
+        reason=(
+            "It checks that the installed evaluation engine is intact. A "
+            "result is only worth as much as the engine that produced it."
+        ),
     )
 
 
 def _install_engine() -> NextAction:
     return NextAction(
-        id="install_engine",
-        label="Install the evaluation engine",
-        reason="Preparing a submission for this Climb needs it.",
-        cli=["techtree", "engine", "install"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
-    )
-
-
-def _verify_engine() -> NextAction:
-    return NextAction(
-        id="verify_engine",
-        label="Check that the installed evaluation engine is intact",
-        reason="A result is only worth as much as the engine that produced it.",
-        cli=["techtree", "engine", "verify"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation("engine", "install"),
+        expected_state_digest=None,
+        side_effect=SideEffect.LOCAL_STATE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.PACKAGE_INDEX,
+        reason="Preparing a submission for this Climb needs the evaluation engine.",
     )
 
 
 def _get_starter_skill() -> NextAction:
     return NextAction(
-        id="get_starter_skill",
-        label="Get the pinned starter Skill",
+        operation=Operation.PLAN_PREPARE,
+        prepared_arguments=invocation("skill", "starter"),
+        expected_state_digest=None,
+        side_effect=SideEffect.LOCAL_STATE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.PACKAGE_INDEX,
         reason=(
             "The starter Skill is the candidate used for the introductory "
             "Climb, and its next step is the exact prepare command."
         ),
-        cli=["techtree", "skill", "starter"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
-    )
-
-
-def _start_draft(payload: ClimbPreparePayload) -> NextAction:
-    """Offer the start, and say what answering it commits to.
-
-    The action names the draft and nothing else. What the run would do is shown
-    when the start is run, and answering it is what accepts the rights policy,
-    so this is marked as needing a person rather than carrying anything a
-    caller could pass instead of one.
-    """
-    return NextAction(
-        id="start_climb",
-        label=f"Start {payload.candidate_label} on {payload.climb_reference}",
-        reason=(
-            f"Runs {payload.estimated_episodes} episodes. It shows you the "
-            "spending limit the Campaign declares and what this changes, and "
-            "starts only if you say yes."
-        ),
-        cli=["techtree", "climb", "start", payload.draft_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
     )
 
 
 def _start_warnings(
     payload: ClimbStartPayload, *, source: CampaignSource
-) -> list[CliMessage]:
+) -> list[CliWarning]:
     """Say plainly, in both output modes, what this run is going to produce.
 
     Two separate facts, each read off the run rather than stated here. Whether
@@ -874,24 +1111,23 @@ def _start_warnings(
     model would be called on the screen where they had just agreed to pay for
     the calls.
     """
-    warnings: list[CliMessage] = []
+    warnings: list[CliWarning] = []
 
     if payload.fake_executor:
         warnings.append(
-            CliMessage(
-                level=MessageLevel.WARNING,
-                code="fake_executor_run",
+            CliWarning(
+                id="fake_executor_run",
                 text=(
                     "No agent is evaluated and no model is called on this run. "
                     "The numbers in the report it produces are invented."
                 ),
+                resolvable_by=None,
             )
         )
     else:
         warnings.append(
-            CliMessage(
-                level=MessageLevel.WARNING,
-                code="paid_evaluation_run",
+            CliWarning(
+                id="paid_evaluation_run",
                 text=(
                     "This run evaluates the agent for real and spends model "
                     "tokens on inference with "
@@ -899,6 +1135,7 @@ def _start_warnings(
                     "provider charges for tokens, what you pay is whatever it "
                     "charges; a model you run yourself sends no bill."
                 ),
+                resolvable_by=None,
             )
         )
 
@@ -906,43 +1143,18 @@ def _start_warnings(
         source.climb.publication.proof_grade == "development_only"
     ):
         warnings.append(
-            CliMessage(
-                level=MessageLevel.WARNING,
-                code="not_publication_eligible",
+            CliWarning(
+                id="not_publication_eligible",
                 text=(
                     f"{climb_reference(source.climb)} is a development Climb. "
                     "Its report is not publication eligible, and its result is "
                     "not comparable evidence."
                 ),
+                resolvable_by=None,
             )
         )
 
     return warnings
-
-
-def _watch_run(run_id: str) -> NextAction:
-    return NextAction(
-        id="run_status",
-        label="Check how the run is going",
-        reason="The run continues after this command returns.",
-        cli=["techtree", "run", "status", run_id],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
-    )
-
-
-def _check_environment() -> NextAction:
-    return NextAction(
-        id="check_environment",
-        label="Check that this machine is ready",
-        reason="Doctor reports what is installed, what is missing, and what "
-        "would block a run.",
-        cli=["techtree", "doctor"],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=False,
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -951,10 +1163,15 @@ def _check_environment() -> NextAction:
 
 
 def _render_list(data: object, console: Console) -> None:
-    """Print one row per Climb, or nothing when there are none."""
-    if not isinstance(data, list) or not data:
+    """Say how many Climbs this build ships, then print one row each."""
+    if not isinstance(data, ClimbListPayload):
+        return
+    if not data.climbs:
+        console.print(_NO_CLIMBS)
         return
 
+    console.print(_available_summary(len(data.climbs)))
+    console.print()
     table = Table(box=None, pad_edge=False, padding=(0, 2))
     table.add_column("Climb", no_wrap=True)
     table.add_column("Title", overflow="fold")
@@ -962,7 +1179,7 @@ def _render_list(data: object, console: Console) -> None:
     table.add_column("Tasks", justify="right", no_wrap=True)
     table.add_column("Runs here", no_wrap=True)
 
-    for summary in data:
+    for summary in data.climbs:
         table.add_row(
             summary.reference,
             summary.title,
@@ -1060,6 +1277,11 @@ def _render_prepare(data: object, console: Console) -> None:
     if not isinstance(data, ClimbPreparePayload):
         return
 
+    console.print(
+        f"Prepared {data.candidate_label} for {data.climb_reference}. "
+        "Nothing has run yet."
+    )
+    console.print()
     render_pairs(
         [
             ("Draft", data.draft_id),
@@ -1115,10 +1337,24 @@ def _render_prepare(data: object, console: Console) -> None:
 
 
 def _render_start(data: object, console: Console) -> None:
-    """Print what was started and where it can be followed."""
+    """Print what was started, or what starting it would do.
+
+    The review is printed by the interactive path before the question is put,
+    so it is only reprinted here for the caller that was never asked — the one
+    holding a refusal that carries the review instead of an approval.
+    """
+    if isinstance(data, StartReviewPayload):
+        for line in data.review:
+            console.print(line)
+        return
     if not isinstance(data, ClimbStartPayload):
         return
 
+    console.print(
+        f"Run {data.run_id} is going. It continues whether or not this command "
+        "is still open."
+    )
+    console.print()
     render_pairs(
         [
             ("Run", data.run_id),
@@ -1199,7 +1435,6 @@ def _prepare_payload(reference: str, prepared: PreparedDraft) -> ClimbPreparePay
 
     return ClimbPreparePayload(
         draft_id=draft.id,
-        draft_digest=prepared.draft_digest,
         climb_reference=climb_reference(source.climb),
         climb_digest=source.climb_digest,
         campaign_spec_digest=draft.campaign_spec_digest,

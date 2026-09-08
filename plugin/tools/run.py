@@ -36,7 +36,7 @@ def techtree_run_status(services: Any, args: dict[str, Any], **kwargs: Any) -> s
     if session is not None:
         save_session(services, reconcile_session_with_cli(services, session))
 
-    data = envelope.get("data") or {}
+    data = envelope.get("facts") or {}
     return tool_result(
         {
             **envelope,
@@ -96,7 +96,7 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
         # leaving the raw envelope in is how a phone ends up with no result at
         # all rather than a short one. The compact view added below is this
         # channel's copy of it, and the full one is one terminal command away.
-        payload["data"] = None
+        payload["facts"] = {}
     if envelope.get("ok"):
         second = session is not None and session.second_run_id == run_id
         try:
@@ -132,7 +132,7 @@ def _source_feedback_digest(services: Any, session: Any) -> str | None:
         envelope = services.bridge.invoke(["uplift", "context", session.first_run_id])
     except PluginError:
         return None
-    data = envelope.get("data") if isinstance(envelope, dict) else None
+    data = envelope.get("facts") if isinstance(envelope, dict) else None
     context = data.get("context") if isinstance(data, dict) else None
     digest = context.get("source_report_digest") if isinstance(context, dict) else None
     return digest if isinstance(digest, str) else None

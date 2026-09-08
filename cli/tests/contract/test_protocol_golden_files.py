@@ -741,9 +741,8 @@ def test_the_cli_envelope_golden_carries_the_committed_climb_summary() -> None:
 
     assert envelope.ok is True
     assert envelope.error is None
-    assert envelope.data is not None
-    assert envelope.data.climb_digest == digest_object(climb)
-    assert envelope.data.campaign_spec_digest == climb.campaign_spec_digest
+    assert envelope.facts.climb_digest == digest_object(climb)
+    assert envelope.facts.campaign_spec_digest == climb.campaign_spec_digest
     assert len(envelope.next_actions) <= 3
 
 

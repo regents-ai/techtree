@@ -275,6 +275,19 @@ class CatalogService:
                 )
             )
 
+        if resolved.execution_plan.evidence.trace_coverage != "not_requested":
+            issues.append(
+                CompatibilityIssue(
+                    code="evidence_backend_unsupported",
+                    severity="error",
+                    message=(
+                        "This Climb requests trace coverage, which this version "
+                        "of Techtree cannot produce."
+                    ),
+                    blocking=True,
+                )
+            )
+
         return CompatibilityResultV2(
             compatible=not any(issue.blocking for issue in issues),
             host_platform=host_platform,

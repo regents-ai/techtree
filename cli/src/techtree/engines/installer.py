@@ -389,7 +389,6 @@ class EngineInstaller:
             f"building the engine environment failed: {_excerpt(completed.stderr)}",
             code="engine_sync_failed",
             details={"exit_code": completed.returncode},
-            retryable=True,
         )
 
     def _check_environment(
@@ -523,7 +522,6 @@ class EngineInstaller:
                 "another Techtree process is installing an engine",
                 code="engine_install_locked",
                 details={"path": str(self._paths.engines_dir)},
-                retryable=True,
             ) from error
         try:
             yield
@@ -554,7 +552,6 @@ class EngineInstaller:
                 f"engine installation step timed out after {timeout:.0f}s",
                 code="engine_install_timeout",
                 details={"timeout_seconds": timeout},
-                retryable=True,
             ) from error
         except OSError as error:
             raise EngineError(
@@ -616,7 +613,6 @@ def find_uv() -> Path:
             "installed with uv (https://docs.astral.sh/uv/getting-started/"
             "installation/)",
             code="uv_not_found",
-            retryable=True,
         )
     return Path(found)
 

@@ -238,7 +238,7 @@ class ImprovementService:
                 code=CODE_CONTEXT_INVALID,
             )
 
-        data = envelope.get("data")
+        data = envelope.get("facts")
         context = data.get("context") if isinstance(data, Mapping) else None
         if not isinstance(context, Mapping):
             raise PluginError(
@@ -264,7 +264,7 @@ class ImprovementService:
                 code=CODE_CONTEXT_INVALID,
             )
 
-        data = envelope.get("data")
+        data = envelope.get("facts")
         if not isinstance(data, Mapping):
             raise PluginError(
                 "that is not a Skill source payload", code=CODE_CONTEXT_INVALID

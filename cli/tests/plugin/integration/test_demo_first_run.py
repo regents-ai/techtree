@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from support import FakeCli, envelope, install_fake_cli
+from support import FakeCli, envelope, install_fake_cli, operation_for
 from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.host.state import SessionStore, latest_session
 from techtree_hermes.services.approvals import InstallPlanStore
@@ -49,8 +49,8 @@ STARTER_SKILL_LABEL = "hello-world-v1"
 def _answers() -> dict[str, dict[str, Any]]:
     return {
         "release info": envelope(
-            command="release info",
-            data={
+            operation=operation_for("release info"),
+            facts={
                 "release_id": PUBLISHED.release_id,
                 "cli_version": PUBLISHED.cli_version,
                 "package_version": PUBLISHED.cli_version,
@@ -62,10 +62,10 @@ def _answers() -> dict[str, dict[str, Any]]:
                 "source_commit": "a" * 40,
             },
         ),
-        "doctor": envelope(command="doctor", data={"checks": []}),
+        "doctor": envelope(operation=operation_for("doctor"), facts={"checks": []}),
         "skill starter": envelope(
-            command="skill starter",
-            data={
+            operation=operation_for("skill starter"),
+            facts={
                 "release_id": PUBLISHED.release_id,
                 "skill_root_digest": PUBLISHED.starter_skill_digest,
                 "skill_path": STARTER_SKILL_PATH,
@@ -79,16 +79,16 @@ def _answers() -> dict[str, dict[str, Any]]:
             },
         ),
         "climb list": envelope(
-            command="climb list",
-            data=[{"reference": PUBLISHED.intro_climb_reference}],
+            operation=operation_for("climb list"),
+            facts={"climbs": [{"reference": PUBLISHED.intro_climb_reference}]},
         ),
         "climb show": envelope(
-            command="climb show",
-            data={"reference": PUBLISHED.intro_climb_reference, "proof_grade": "P1"},
+            operation=operation_for("climb show"),
+            facts={"reference": PUBLISHED.intro_climb_reference, "proof_grade": "P1"},
         ),
         "climb prepare": envelope(
-            command="climb prepare",
-            data={
+            operation=operation_for("climb prepare"),
+            facts={
                 "draft_id": DRAFT_ID,
                 "draft_digest": DRAFT_DIGEST,
                 "data_policy_digest": POLICY,
@@ -97,16 +97,16 @@ def _answers() -> dict[str, dict[str, Any]]:
             },
         ),
         "climb start": envelope(
-            command="climb start",
-            data={
+            operation=operation_for("climb start"),
+            facts={
                 "run_id": RUN_ID,
                 "draft_digest": DRAFT_DIGEST,
                 "phase": "created",
             },
         ),
         "run status": envelope(
-            command="run status",
-            data={
+            operation=operation_for("run status"),
+            facts={
                 "run_id": RUN_ID,
                 "phase": "completed",
                 "terminal": True,
@@ -115,8 +115,8 @@ def _answers() -> dict[str, dict[str, Any]]:
             },
         ),
         "run result": envelope(
-            command="run result",
-            data={"presentation": {"run_id": RUN_ID, "decision": "improved"}},
+            operation=operation_for("run result"),
+            facts={"presentation": {"run_id": RUN_ID, "decision": "improved"}},
         ),
     }
 
@@ -189,7 +189,7 @@ def test_the_whole_first_run_sequence(services: PluginServices) -> None:
             "data_policy_digest": POLICY,
         },
     )
-    assert started["data"]["run_id"] == RUN_ID
+    assert started["facts"]["run_id"] == RUN_ID
     assert started["approval"]["draft_digest"] == DRAFT_DIGEST
     assert _current(services).stage is DemoStage.FIRST_RUN_ACTIVE
 

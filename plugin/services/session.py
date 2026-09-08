@@ -168,7 +168,7 @@ def _advance(
 
 
 def _data(envelope: Mapping[str, Any]) -> Mapping[str, Any]:
-    data = envelope.get("data")
+    data = envelope.get("facts")
     return data if isinstance(data, dict) else {}
 
 

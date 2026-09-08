@@ -164,7 +164,6 @@ def test_a_source_that_is_not_there_is_refused(
         )
 
     assert raised.value.code == STARTER_SKILL_SOURCE_REFUSED
-    assert raised.value.retryable is True
 
 
 def test_the_cli_accepts_a_local_copy_of_the_skill_this_release_pins(
@@ -183,6 +182,6 @@ def test_the_cli_accepts_a_local_copy_of_the_skill_this_release_pins(
     )
 
     assert obtained.exit_code == 0
-    payload = obtained.envelope()["data"]
+    payload = obtained.envelope()["facts"]
     assert payload["skill_root_digest"] == STARTER_SKILL_TREE_DIGEST
     assert payload["origin"] == "local_file"

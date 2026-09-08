@@ -23,7 +23,14 @@ from pydantic import ValidationError as PydanticValidationError
 from techtree.errors import ValidationError
 from techtree.fs import atomic_write_text
 from techtree.models.base import Digest, StateModel
-from techtree.models.cli import NextAction
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.paths import TechtreePaths
 
 __all__ = [
@@ -128,16 +135,25 @@ def _validate(document: object, *, source: str) -> Settings:
 
 
 def _repair_settings_action(source: str) -> NextAction:
-    """Point at the file to fix; deleting it restores working defaults."""
+    """Point at what a working machine looks like once the file is fixed.
+
+    The repair is a person's: an unreadable settings file is edited or removed
+    by whoever owns it, and Techtree offers no command that deletes somebody's
+    configuration for them. What it can offer is the check that says whether
+    the machine reads correctly again.
+    """
     return NextAction(
-        id="repair_settings",
-        label="Fix or remove the settings file",
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("doctor"),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
         reason=(
-            f"the settings file at {source} cannot be read; deleting it "
-            "restores the defaults and techtree recreates it on demand"
+            f"The settings file at {source} cannot be read. Fix it, or delete "
+            "it to restore the defaults, then run this to confirm the machine "
+            "reads correctly again."
         ),
-        cli=["rm", source],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
     )

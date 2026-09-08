@@ -139,6 +139,15 @@ def require_executable_execution_plan(
                 "subject_backend_kind": plan.subject.kind.value,
             },
         )
+    if plan.evidence.trace_coverage != "not_requested":
+        raise ValidationError(
+            "this Campaign requests trace coverage, which this build cannot produce",
+            code=EXECUTION_PLAN_UNSUPPORTED,
+            details={
+                "execution_plan_digest": digest,
+                "trace_coverage": plan.evidence.trace_coverage,
+            },
+        )
     return digest
 
 

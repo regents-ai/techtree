@@ -125,7 +125,17 @@ from techtree.models.catalog import (
     DataPolicySummary,
     EngineCompatibilityStatus,
 )
-from techtree.models.cli import CliEnvelope, CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    CliBlocker,
+    CliEnvelope,
+    CliWarning,
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.climb import (
     CandidateConstraints,
     CandidatePolicy,
@@ -1324,41 +1334,53 @@ def build_improvement_context(
 
 
 def build_cli_envelope(summary: ClimbSummaryV2) -> CliEnvelope[ClimbSummaryV2]:
-    """Return a representative successful CLI response."""
+    """Return a representative successful CLI response.
+
+    It is the answer ``climb show`` gives on a machine that cannot run the
+    Climb yet, because that is the case where every part of the envelope
+    carries something: a blocker that names what it forbids, a warning that
+    stops nothing, and one typed next action that would clear the blocker.
+    """
     return CliEnvelope[ClimbSummaryV2](
         schema_version=CLI_SCHEMA_VERSION,
+        operation=Operation.PLAN_INSPECT,
         ok=True,
-        command="climb show",
-        data=summary,
-        messages=[
-            CliMessage(
-                level=MessageLevel.INFO,
-                code="development_climb",
-                text=(
-                    "This is a development Climb. Its results are not "
-                    "publishable evidence."
-                ),
-            )
-        ],
-        warnings=[
-            CliMessage(
-                level=MessageLevel.WARNING,
-                code="engine_not_installed",
+        state_digest=None,
+        facts=summary,
+        unknowns=[],
+        blockers=[
+            CliBlocker(
+                id="engine_not_installed",
                 text=(
                     "The evaluation engine is not installed, so this Climb "
                     "cannot be prepared yet."
                 ),
+                blocks=[Operation.PLAN_PREPARE, Operation.ACTION_EXECUTE],
+                resolvable_by=Operation.ACTION_EXECUTE,
             )
         ],
+        warnings=[
+            CliWarning(
+                id="development_climb",
+                text=(
+                    "This is a development Climb. Its results are not "
+                    "publishable evidence."
+                ),
+                resolvable_by=None,
+            )
+        ],
+        content_refs=[],
         next_actions=[
             NextAction(
-                id="install_engine",
-                label="Install the evaluation engine",
+                operation=Operation.ACTION_EXECUTE,
+                prepared_arguments=invocation("engine", "install"),
+                expected_state_digest=None,
+                side_effect=SideEffect.LOCAL_STATE,
+                approval_required=False,
+                retry_class=RetryClass.SAFE,
+                estimated_cost=None,
+                data_egress=DataEgress.PACKAGE_INDEX,
                 reason="The engine this Climb requires is not installed.",
-                cli=["techtree", "engine", "install"],
-                hermes_tool=None,
-                hermes_args=None,
-                requires_user_confirmation=False,
             )
         ],
         error=None,

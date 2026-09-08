@@ -132,7 +132,6 @@ class EngineRunner:
                 f"engine command did not finish within {timeout:.0f}s: {program.name}",
                 code="engine_command_timeout",
                 details={"digest": self._digest, "timeout_seconds": timeout},
-                retryable=True,
             ) from error
         except OSError as error:
             raise EngineError(

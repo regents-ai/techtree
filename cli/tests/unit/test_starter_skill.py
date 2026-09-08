@@ -286,7 +286,6 @@ def test_a_published_address_that_cannot_be_reached_is_a_typed_refusal(
         raise PrerequisiteError(
             f"the starter Skill could not be fetched from {url}",
             code=STARTER_SKILL_SOURCE_REFUSED,
-            retryable=True,
         )
 
     service = StarterSkillService(paths_from_root(temp_techtree_home), download=offline)

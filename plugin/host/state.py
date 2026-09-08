@@ -146,7 +146,7 @@ def reconcile_session_with_cli(
     except PluginError:
         return session
 
-    data = envelope.get("data")
+    data = envelope.get("facts")
     if not isinstance(data, dict) or not envelope.get("ok"):
         return session
 

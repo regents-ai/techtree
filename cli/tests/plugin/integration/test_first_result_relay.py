@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from support import envelope, founder_result_payload, install_fake_cli
+from support import envelope, founder_result_payload, install_fake_cli, operation_for
 from techtree_hermes.cli.bridge import CliBridge
 from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.host.schemas import all_tool_schemas
@@ -77,8 +77,8 @@ class StubCtx:
 def services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginServices:
     answers = {
         "run result": envelope(
-            command="run result",
-            data={
+            operation=operation_for("run result"),
+            facts={
                 "report": {"run_id": RUN_ID},
                 "presentation": PRESENTATION,
                 "execution_record": EXECUTION_RECORD,
@@ -212,8 +212,8 @@ def founder_services(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PluginS
     payload = founder_result_payload()
     answers = {
         "run result": envelope(
-            command="run result",
-            data={"report": {"run_id": payload["run_id"]}, "presentation": payload},
+            operation=operation_for("run result"),
+            facts={"report": {"run_id": payload["run_id"]}, "presentation": payload},
         )
     }
     body = (
@@ -277,4 +277,4 @@ def test_the_terminal_still_gets_every_task_row(
     )
 
     assert len(answer["presentation"]["task_rows"]) == 36
-    assert answer["data"]["presentation"]["candidate_tasks_scored_full"] == 24
+    assert answer["facts"]["presentation"]["candidate_tasks_scored_full"] == 24

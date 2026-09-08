@@ -41,7 +41,14 @@ from typing import Final, Literal
 from techtree.errors import PrerequisiteError
 from techtree.identity.models import VerificationResult
 from techtree.models.campaign import CampaignSpecV2
-from techtree.models.cli import NextAction
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.models.episode_receipt import EpisodeReceiptV2
 from techtree.models.skill import SkillArtifact
 from techtree.models.uplift_report import (
@@ -1170,16 +1177,30 @@ def _next_actions(
     passed, so re-running it is a step already taken, while publishing is the
     step that has not been. The envelope carries three actions, so a position
     here is a decision about what a reader is actually shown.
+
+    Preparing the second comparison is *not* offered, even though it is what
+    this loop leads to. It needs the path of a revision nobody has written
+    yet, and a next action carries the exact arguments to invoke it with, so
+    an action naming a placeholder is one nothing can run. What is offered
+    instead is the export the revision is written from, and the missing input
+    is named where that export names it.
     """
     actions = [
         NextAction(
-            id="inspect_tasks",
-            label="Look at every task, including the ones that regressed",
+            operation=Operation.RESULT_INSPECT,
+            prepared_arguments=invocation(
+                "run",
+                "result",
+                arguments=[run_id],
+                options={"--show-tasks": "all"},
+            ),
+            expected_state_digest=None,
+            side_effect=SideEffect.NONE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
             reason="The per-task table is where a Skill's effect is legible.",
-            cli=["techtree", "run", "result", run_id, "--show-tasks", "all"],
-            hermes_tool=None,
-            hermes_args=None,
-            requires_user_confirmation=False,
         )
     ]
     if proof_grade == "development_only":
@@ -1194,49 +1215,35 @@ def _next_actions(
     # compared against anything.
     actions.append(
         NextAction(
-            id="verify_proof",
-            label="Verify this run's local proof",
-            reason="It checks offline, from the bytes the run stored.",
-            cli=["techtree", "proof", "verify", run_id],
-            hermes_tool=None,
-            hermes_args=None,
-            requires_user_confirmation=False,
+            operation=Operation.PROOF_VERIFY,
+            prepared_arguments=invocation("proof", "verify", arguments=[run_id]),
+            expected_state_digest=None,
+            side_effect=SideEffect.NONE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
+            reason=(
+                "It verifies this run's local proof offline, from the bytes "
+                "the run stored."
+            ),
         )
     )
     actions.append(
         NextAction(
-            id="improvement_context",
-            label="Export what a host agent needs to propose one Skill revision",
+            operation=Operation.PLAN_PREPARE,
+            prepared_arguments=invocation("uplift", "context", arguments=[run_id]),
+            expected_state_digest=None,
+            side_effect=SideEffect.LOCAL_STATE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
             reason=(
-                "It carries the regressions, the failures and the objective, "
+                "It exports what a host agent needs to propose one Skill "
+                "revision: the regressions, the failures and the objective, "
                 "and no hidden task material."
             ),
-            cli=["techtree", "uplift", "context", run_id],
-            hermes_tool=None,
-            hermes_args=None,
-            requires_user_confirmation=False,
-        )
-    )
-    actions.append(
-        NextAction(
-            id="prepare_replacement",
-            label="Prepare a comparison of this Skill against a revision of it",
-            reason=(
-                "The baseline is pinned to the Skill this run measured, so the "
-                "second comparison starts where this one ended."
-            ),
-            cli=[
-                "techtree",
-                "uplift",
-                "prepare",
-                "--from-run",
-                run_id,
-                "--candidate-skill",
-                "PATH",
-            ],
-            hermes_tool=None,
-            hermes_args=None,
-            requires_user_confirmation=True,
         )
     )
     return actions

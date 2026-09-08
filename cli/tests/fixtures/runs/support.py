@@ -269,7 +269,7 @@ class CliRun:
         """Return the envelope's payload, insisting the command succeeded."""
         envelope = self.envelope()
         assert envelope["ok"] is True, envelope.get("error")
-        payload = envelope["data"]
+        payload = envelope["facts"]
         assert isinstance(payload, dict)
         return payload
 

@@ -34,14 +34,13 @@ Skill-management tool. Across two recorded probes of the same Campaign the
 fifteen tool names, fifteen parameter schemas and fourteen of the fifteen
 descriptions are byte-identical, and ``skill_manage``'s description differs. A
 check that required one tool-inventory digest would therefore reject every
-clean run. What is permitted is the exact derived difference decisions document
-0007 ratified: the tool names and parameter schemas of the pinned harness
-conformance fixture (:mod:`techtree.harness`), unchanged on both sides, with at
-most one differing description and only on :data:`SKILL_INDEX_TOOL`. A second
-differing description, a differing schema, a differing description anywhere
-else, or any departure from the fixture's own surface is a violation — the
-fixture is what stops a moved harness pin from being read as the Skill index
-doing what the Skill index does.
+clean run. The adapter contract permits identical observed tool names and
+parameter schemas on both sides, with at most one differing description, on
+:data:`SKILL_INDEX_TOOL` for Hermes only. Duplicate or empty inventories and
+other differences are refused. Version-specific reference recordings are not
+an admission allowlist: exact runtime/version agreement between both variants
+and the bound plan is checked independently. This is participant-attested
+consistency, not independent certification of an upstream runtime build.
 
 *A weaker claim is a warning, never silence and never a failure.* One thing
 about a real run is honestly unverifiable here: a provider that publishes no
@@ -78,7 +77,6 @@ from typing import Any, Final, Literal, Self
 from pydantic import Field, model_validator
 
 from techtree.canonical import digest_object, validate_digest
-from techtree.harness import harness_conformance
 from techtree.manifests.compare import compare_manifests
 from techtree.models.base import Digest, JsonValue, NonEmptyString, ProtocolModel
 from techtree.models.campaign import (
@@ -680,9 +678,21 @@ def _tool_surface_check(
     left = {tool.name: tool for tool in baseline.tools}
     right = {tool.name: tool for tool in candidate.tools}
 
-    departure = _conformance_departure(baseline, candidate)
-    if departure is not None:
-        return _check("observed_tool_inventory", _FAILED, departure)
+    # Admission is about the adapter contract observed in this comparison,
+    # not a global list of previously recorded runtime versions. Runtime and
+    # version equality, image digests and agreement with the bound plan are
+    # checked independently by _observed_checks and _declared_to_observed.
+    if (
+        not left
+        or not right
+        or len(left) != len(baseline.tools)
+        or len(right) != len(candidate.tools)
+    ):
+        return _check(
+            "observed_tool_inventory",
+            _FAILED,
+            "each variant must record a nonempty tool inventory with unique names",
+        )
 
     if set(left) != set(right):
         added = sorted(set(right) - set(left))
@@ -719,7 +729,11 @@ def _tool_surface_check(
             f"both variants were offered the same {len(left)} tools, described "
             "identically",
         )
-    if descriptions == [SKILL_INDEX_TOOL]:
+    if descriptions == [SKILL_INDEX_TOOL] and (
+        baseline.configuration.harness_id
+        == candidate.configuration.harness_id
+        == "hermes-agent"
+    ):
         return _check(
             "observed_tool_inventory",
             _PASSED,
@@ -733,63 +747,6 @@ def _tool_surface_check(
         f"the description of {', '.join(descriptions)} differs between the two "
         f"variants; only {SKILL_INDEX_TOOL}'s may",
     )
-
-
-def _conformance_departure(
-    baseline: ObservedVariant, candidate: ObservedVariant
-) -> str | None:
-    """Return why the offered tools are not the pinned harness's, or nothing.
-
-    Decisions document 0007 R9 item 4. A comparison sees one description
-    differing on one tool and cannot tell, from inside itself, whether that is
-    the Skill index doing its job or a harness that changed underneath the
-    Campaign. The pinned fixture is the outside evidence: it fixes the tool
-    count, the names and the parameter schemas of the harness build the
-    Campaign declares, so anything else is a departure and not a derived
-    difference.
-    """
-    for observed in (baseline, candidate):
-        configuration = observed.configuration
-        try:
-            pinned = harness_conformance(
-                configuration.harness_id, configuration.harness_version
-            )
-        except FileNotFoundError:
-            return (
-                f"no tool surface was ever recorded for "
-                f"{configuration.harness_id} {configuration.harness_version}, "
-                "so the difference between the two variants cannot be shown to "
-                "be the Skill index alone"
-            )
-        offered = sorted(tool.name for tool in observed.tools)
-        if offered != sorted(pinned.tool_names):
-            return (
-                f"the {observed.variant.value} was offered {len(offered)} tools "
-                f"where {configuration.harness_id} "
-                f"{configuration.harness_version} offers "
-                f"{len(pinned.tool_names)}, so the harness is not the one the "
-                "Campaign declares"
-            )
-        expected = pinned.parameters_by_tool
-        reshaped = sorted(
-            tool.name
-            for tool in observed.tools
-            if tool.parameters_digest != expected[tool.name]
-        )
-        if reshaped:
-            return (
-                f"the {observed.variant.value} was offered a different "
-                f"parameter schema for {', '.join(reshaped)} than "
-                f"{configuration.harness_id} {configuration.harness_version} "
-                "records"
-            )
-        if pinned.skill_index_tool != SKILL_INDEX_TOOL:
-            return (
-                f"{configuration.harness_id} {configuration.harness_version} "
-                f"renders its Skill index into {pinned.skill_index_tool}, not "
-                f"{SKILL_INDEX_TOOL}"
-            )
-    return None
 
 
 def _declared_to_observed(

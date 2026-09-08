@@ -1,0 +1,575 @@
+{
+  "$defs": {
+    "CliBlocker": {
+      "additionalProperties": false,
+      "description": "One thing that stops this operation, or the step the caller wanted next.",
+      "properties": {
+        "blocks": {
+          "items": {
+            "$ref": "#/$defs/Operation"
+          },
+          "title": "Blocks",
+          "type": "array"
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "resolvable_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Operation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "blocks",
+        "resolvable_by"
+      ],
+      "title": "CliBlocker",
+      "type": "object"
+    },
+    "CliError": {
+      "additionalProperties": false,
+      "description": "The machine-safe projection of a failure.\n\nThere is no ``retryable`` boolean. Whether and how to retry is stated by\nthe ``retry_class`` of the repair action the failed envelope carries, which\ncan say five things where a boolean said two.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "details": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Details",
+          "type": "object"
+        },
+        "message": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "details"
+      ],
+      "title": "CliError",
+      "type": "object"
+    },
+    "CliUnknown": {
+      "additionalProperties": false,
+      "description": "One thing this operation could not determine, named.\n\n``subject`` is a JSON Pointer into ``facts`` when the unknown is about a\nfield the payload has, and null when it is about something the payload has\nno place for. It is a pointer rather than a field name so that it can reach\ninto a nested payload, and it is validated as one: a caller that resolves\nit against ``facts`` must not be handed a string that no resolver accepts.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "reason": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "resolvable_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Operation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonPointer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "subject",
+        "reason",
+        "resolvable_by"
+      ],
+      "title": "CliUnknown",
+      "type": "object"
+    },
+    "CliWarning": {
+      "additionalProperties": false,
+      "description": "Something that did not stop the operation and must still be seen.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "resolvable_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Operation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "resolvable_by"
+      ],
+      "title": "CliWarning",
+      "type": "object"
+    },
+    "ContentRef": {
+      "additionalProperties": false,
+      "description": "Bytes the envelope names rather than carries.\n\nAn envelope is a message, not a container, so a proof bundle, a worker log,\nor an export is pointed at. An entry offers at least one of ``path`` and\n``url``, because a reference nothing can be fetched by is not a reference.",
+      "properties": {
+        "byte_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Byte Count"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "kind": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "media_type": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "digest",
+        "path",
+        "url",
+        "media_type"
+      ],
+      "title": "ContentRef",
+      "type": "object"
+    },
+    "DataEgress": {
+      "description": "What leaves this machine when an action runs.",
+      "enum": [
+        "none",
+        "package_index",
+        "model_provider",
+        "execution_provider",
+        "publication_service"
+      ],
+      "title": "DataEgress",
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EstimatedCost": {
+      "additionalProperties": false,
+      "description": "What an action may cost, and the ceiling it is authorized against.\n\nThe non-secret money statement, and only that. It never carries an account\nidentifier: the billing-principal label of a\n:class:`~techtree.models.approval.RemoteExecutionEstimate` is a private\nlabel and stays private, so it has no field here.\n\n``estimated_cost`` is null when nothing quoted one, which is a different\nanswer from zero. ``execution_plan_digest`` is null for a statement that is\nnot bound to a resolved plan — a Campaign's own declared maximum is a\nproperty of the Campaign rather than of one hosted execution.",
+      "properties": {
+        "currency": {
+          "const": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "estimate_source": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "estimated_cost": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MonetaryAmount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution_plan_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UtcDateTime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maximum_authorized_cost": {
+          "$ref": "#/$defs/MonetaryAmount"
+        },
+        "uncertainty_disclosure": {
+          "$ref": "#/$defs/NonEmptyString"
+        }
+      },
+      "required": [
+        "currency",
+        "estimated_cost",
+        "maximum_authorized_cost",
+        "estimate_source",
+        "uncertainty_disclosure",
+        "expires_at",
+        "execution_plan_digest"
+      ],
+      "title": "EstimatedCost",
+      "type": "object"
+    },
+    "JsonPointer": {
+      "pattern": "^$|^(/([^~]|~[01])*)+$",
+      "type": "string"
+    },
+    "JsonScalar": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JsonScalar"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "MonetaryAmount": {
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$",
+      "type": "string"
+    },
+    "NextAction": {
+      "additionalProperties": false,
+      "description": "A typed next step, addressed to a host agent or to a person through one.\n\n``prepared_arguments`` is a named object rather than v1's argv array,\nbecause a name cannot be mis-quoted into a second command. It has exactly\nthree entries — ``command``, the command path as literal segments;\n``arguments``, the positional values in order; and ``options``, each option\nby its own name — which is what lets a caller build the invocation, or\nrender it for a person to read, without parsing anything. Techtree never\nexecutes a displayed command string.\n\n``expected_state_digest`` binds the action to the state it was prepared\nagainst. When it no longer equals the current ``state_digest`` the world\nmoved, and the action must not be replayed on the new one.",
+      "properties": {
+        "approval_required": {
+          "title": "Approval Required",
+          "type": "boolean"
+        },
+        "data_egress": {
+          "$ref": "#/$defs/DataEgress"
+        },
+        "estimated_cost": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EstimatedCost"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_state_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "$ref": "#/$defs/Operation"
+        },
+        "prepared_arguments": {
+          "additionalProperties": false,
+          "properties": {
+            "arguments": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "command": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "options": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "const": true
+                  }
+                ]
+              },
+              "propertyNames": {
+                "pattern": "^--"
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "command",
+            "arguments",
+            "options"
+          ],
+          "title": "Prepared Arguments",
+          "type": "object"
+        },
+        "reason": {
+          "$ref": "#/$defs/NonEmptyString"
+        },
+        "retry_class": {
+          "$ref": "#/$defs/RetryClass"
+        },
+        "side_effect": {
+          "$ref": "#/$defs/SideEffect"
+        }
+      },
+      "required": [
+        "operation",
+        "prepared_arguments",
+        "expected_state_digest",
+        "side_effect",
+        "approval_required",
+        "retry_class",
+        "estimated_cost",
+        "data_egress",
+        "reason"
+      ],
+      "title": "NextAction",
+      "type": "object"
+    },
+    "NonEmptyString": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "Operation": {
+      "description": "The fourteen stable identifiers the v2 machine surface answers under.\n\nThey *describe existing handlers* rather than create a second command\nhierarchy: ``docs/v0.2/MACHINE_CONTRACT.md`` says which handler each one\nnames, and ``tests/contract/test_v02_machine_contract.py`` holds the\ndocument to the code in both directions.",
+      "enum": [
+        "plan.inspect",
+        "plan.prepare",
+        "action.prepare",
+        "action.execute",
+        "run.status",
+        "run.wait",
+        "run.reconcile",
+        "run.cancel",
+        "result.inspect",
+        "claim.inspect",
+        "proof.verify",
+        "profile.get",
+        "profile.sync",
+        "profile.update"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "RetryClass": {
+      "description": "What to do when an action does not clearly succeed.\n\nFive answers where v1's ``retryable`` boolean had two. ``reconcile_first``\nis the one that matters most: an ambiguous paid submission may already have\nbeen accepted, so durable state is read before anything is decided.",
+      "enum": [
+        "safe",
+        "safe_after_delay",
+        "reconcile_first",
+        "human_decision_required",
+        "forbidden"
+      ],
+      "title": "RetryClass",
+      "type": "string"
+    },
+    "SideEffect": {
+      "description": "What invoking an action changes.",
+      "enum": [
+        "none",
+        "local_state",
+        "local_execution",
+        "paid_remote_execution",
+        "public_publication"
+      ],
+      "title": "SideEffect",
+      "type": "string"
+    },
+    "UtcDateTime": {
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.techtree.dev/v2/cli-envelope.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The single response shape every command returns.\n\n``facts`` is command-specific, which is why the type is a parameter. The\npublished schema describes the envelope; each operation documents its own\npayload.",
+  "properties": {
+    "blockers": {
+      "items": {
+        "$ref": "#/$defs/CliBlocker"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "content_refs": {
+      "items": {
+        "$ref": "#/$defs/ContentRef"
+      },
+      "title": "Content Refs",
+      "type": "array"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CliError"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "facts": {
+      "title": "Facts",
+      "type": "object"
+    },
+    "next_actions": {
+      "items": {
+        "$ref": "#/$defs/NextAction"
+      },
+      "maxItems": 3,
+      "title": "Next Actions",
+      "type": "array"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "operation": {
+      "$ref": "#/$defs/Operation"
+    },
+    "schema_version": {
+      "const": "techtree.cli.v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unknowns": {
+      "items": {
+        "$ref": "#/$defs/CliUnknown"
+      },
+      "title": "Unknowns",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/CliWarning"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "operation",
+    "ok",
+    "state_digest",
+    "facts",
+    "unknowns",
+    "blockers",
+    "warnings",
+    "content_refs",
+    "next_actions",
+    "error"
+  ],
+  "title": "CliEnvelope",
+  "type": "object"
+}

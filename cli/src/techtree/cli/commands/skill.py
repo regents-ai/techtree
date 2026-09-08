@@ -42,7 +42,7 @@ on purpose.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Final, Literal
+from typing import Annotated, Literal
 
 import typer
 from rich.console import Console
@@ -56,17 +56,21 @@ from techtree.constants import (
     STARTER_SKILL_PURPOSE,
 )
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
-from techtree.models.cli import CliMessage, MessageLevel, NextAction
+from techtree.models.cli import (
+    DataEgress,
+    NextAction,
+    Operation,
+    RetryClass,
+    SideEffect,
+    invocation,
+)
 from techtree.release.document import packaged_release_core_bytes, parse_release_core
-from techtree.skills.starter import MaterializedStarterSkill, StarterSkillService
+from techtree.skills.starter import StarterSkillService
 
 __all__ = [
-    "STARTER_COMMAND",
     "StarterSkillPayload",
     "starter_skill_command",
 ]
-
-STARTER_COMMAND: Final = "skill starter"
 
 
 class StarterSkillPayload(ProtocolModel):
@@ -138,29 +142,28 @@ def starter_skill_command(
             origin=materialized.origin,
             intro_climb_reference=release.intro_climb_reference,
         )
+        # No state digest, deliberately. Materializing writes into the cache,
+        # but what it writes is addressed by the digest this release pins: the
+        # same call produces the same bytes in the same place, so there is no
+        # state here that moves between two answers and nothing for a later
+        # action to be stale against. The Skill's own digest is a fact about
+        # the Skill and is in the payload, where a reader needs it.
         return CommandResult(
             data=payload,
-            messages=[
-                CliMessage(
-                    level=MessageLevel.INFO,
-                    code="starter_skill_ready",
-                    text=_summary(materialized),
-                )
-            ],
             next_actions=[_prepare_action(payload)],
         )
 
-    invoke_command(context, STARTER_COMMAND, action, render_data=_render)
+    invoke_command(context, Operation.PLAN_PREPARE, action, render_data=_render)
 
 
-def _summary(materialized: MaterializedStarterSkill) -> str:
+def _summary(origin: str) -> str:
     """Say in one sentence what happened and what was proved."""
     how = {
         "cache": "was already on this machine",
         "local_file": "was read from the file you named",
         "download": "was fetched from the source you named",
         "release": "was fetched from the address this release publishes it at",
-    }[materialized.origin]
+    }[origin]
     return (
         f"The starter Skill {how} and matches the digest this release pins. "
         "It is prepared the same way any other Skill is."
@@ -179,32 +182,38 @@ def _prepare_action(payload: StarterSkillPayload) -> NextAction:
     naming it is also what makes these arguments runnable exactly as printed.
     """
     return NextAction(
-        id="prepare_starter_skill",
-        label="Prepare Techtree Hello World with the starter Skill",
-        reason=(
-            "The starter Skill is scanned, checked against the Climb's policy, "
-            "and shown to you before anything runs."
-        ),
-        cli=[
-            "techtree",
+        operation=Operation.PLAN_PREPARE,
+        prepared_arguments=invocation(
             "climb",
             "prepare",
-            payload.intro_climb_reference,
-            "--skill",
-            payload.skill_path,
-            "--label",
-            payload.candidate_label,
-        ],
-        hermes_tool=None,
-        hermes_args=None,
-        requires_user_confirmation=True,
+            arguments=[payload.intro_climb_reference],
+            options={
+                "--skill": payload.skill_path,
+                "--label": payload.candidate_label,
+            },
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.LOCAL_STATE,
+        # Preparing writes a draft and starts nothing; the person is asked at
+        # the start, which the prepared draft offers in its turn.
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=(
+            "It prepares Techtree Hello World with the starter Skill. The "
+            "Skill is scanned, checked against the Climb's policy, and shown "
+            "to you before anything runs."
+        ),
     )
 
 
 def _render(data: object, console: Console) -> None:
-    """Print where the Skill is and what it was verified against."""
+    """Print how the Skill got here, then where it is and what it proved."""
     if not isinstance(data, StarterSkillPayload):
         return
+    console.print(_summary(data.origin))
+    console.print()
     render_pairs(
         [
             ("Release", data.release_id),

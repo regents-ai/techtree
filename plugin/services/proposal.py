@@ -164,7 +164,7 @@ class ProposalService:
                 code=CODE_PROPOSAL_PREPARE_FAILED,
             )
 
-        data = envelope.get("data")
+        data = envelope.get("facts")
         if not isinstance(data, Mapping):
             raise PluginError(
                 "Techtree's preparation carried no draft to start",

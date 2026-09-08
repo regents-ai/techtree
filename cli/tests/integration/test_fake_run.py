@@ -206,7 +206,7 @@ def test_starting_a_fake_run_says_no_model_is_called(
     where it is true.
     """
     envelope = finished_run["started"].envelope()
-    warnings = {warning["code"]: warning["text"] for warning in envelope["warnings"]}
+    warnings = {warning["id"]: warning["text"] for warning in envelope["warnings"]}
 
     assert finished_run["started"].data()["fake_executor"] is True
     assert "fake_executor_run" in warnings
@@ -220,7 +220,7 @@ def test_the_machine_envelope_carries_the_caveat(
     """A host agent reading JSON is the caller most likely to over-read this."""
     warnings = finished_run["result"].envelope()["warnings"]
 
-    assert any(warning["code"] == "development_only_result" for warning in warnings)
+    assert any(warning["id"] == "development_only_result" for warning in warnings)
 
 
 def test_status_and_result_name_two_different_facts(
@@ -236,9 +236,9 @@ def test_status_and_result_name_two_different_facts(
     status = run_cli(
         finished_run["home"], "run", "status", finished_run["run_id"]
     ).envelope()
-    status_codes = [warning["code"] for warning in status["warnings"]]
+    status_codes = [warning["id"] for warning in status["warnings"]]
     result_codes = [
-        warning["code"] for warning in finished_run["result"].envelope()["warnings"]
+        warning["id"] for warning in finished_run["result"].envelope()["warnings"]
     ]
 
     assert status_codes == ["fake_executor_run"]
@@ -329,4 +329,4 @@ def test_the_source_skill_and_the_draft_may_be_deleted(
 
     assert final["phase"] == "completed"
     assert result.exit_code == EXIT_OK
-    assert json.loads(result.stdout)["data"]["report"]["run_id"] == run_id
+    assert json.loads(result.stdout)["facts"]["report"]["run_id"] == run_id

@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import pytest
+from support import operation_for
 from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.host.schemas import all_tool_schemas
 from techtree_hermes.host.state import SessionStore
@@ -35,16 +36,17 @@ POLICY = "sha256:" + "b" * 64
 
 def _envelope(command: str, data: Any = None, ok: bool = True) -> dict[str, Any]:
     return {
-        "schema_version": "techtree.cli.v1",
-        "command": command,
+        "schema_version": "techtree.cli.v2",
+        "operation": operation_for(command),
         "ok": ok,
-        "data": data,
-        "error": None
-        if ok
-        else {"code": "x", "message": "y", "retryable": False, "details": {}},
-        "messages": [],
+        "state_digest": None,
+        "facts": data,
+        "unknowns": [],
+        "blockers": [],
         "warnings": [],
+        "content_refs": [],
         "next_actions": [],
+        "error": None if ok else {"code": "x", "message": "y", "details": {}},
     }
 
 
@@ -285,7 +287,7 @@ def test_starting_a_run_returns_a_run_identifier_and_does_not_wait() -> None:
 
     result = _call("techtree_climb_start", services, {"draft_id": DRAFT_ID})
 
-    assert result["data"]["run_id"] == RUN_ID
+    assert result["facts"]["run_id"] == RUN_ID
     assert bridge.last_argv() == [
         "climb",
         "start",

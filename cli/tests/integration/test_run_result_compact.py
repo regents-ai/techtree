@@ -214,10 +214,12 @@ def test_the_finished_result_offers_publishing(finished: dict[str, Any]) -> None
     envelope = result.envelope()
 
     offer = next(
-        action for action in envelope["next_actions"] if action["id"] == "publish_run"
+        action
+        for action in envelope["next_actions"]
+        if action["prepared_arguments"]["command"] == ["publish"]
     )
-    assert offer["cli"] == ["techtree", "publish", finished["run_id"]]
-    assert offer["requires_user_confirmation"] is True
+    assert offer["prepared_arguments"]["arguments"] == [finished["run_id"]]
+    assert offer["approval_required"] is True
 
 
 def test_a_result_nobody_verified_offers_no_publishing(
@@ -228,8 +230,11 @@ def test_a_result_nobody_verified_offers_no_publishing(
         finished["home"], "run", "result", finished["run_id"], "--no-verify"
     )
 
-    identifiers = [action["id"] for action in result.envelope()["next_actions"]]
-    assert "publish_run" not in identifiers
+    offered = [
+        action["prepared_arguments"]["command"]
+        for action in result.envelope()["next_actions"]
+    ]
+    assert ["publish"] not in offered
 
 
 def test_verifying_a_run_by_identifier(finished: dict[str, Any]) -> None:
@@ -238,16 +243,15 @@ def test_verifying_a_run_by_identifier(finished: dict[str, Any]) -> None:
 
     assert result.exit_code == EXIT_OK
     assert envelope["ok"] is True
-    assert envelope["data"]["verified"] is True
-    assert envelope["data"]["kind"] == "bundle"
+    assert envelope["facts"]["verified"] is True
+    assert envelope["facts"]["kind"] == "bundle"
     # Decision 0024 section 7: a verified proof still names something to do
     # next. Decisions 0038 adds the offer to publish, for a verified run whose
     # own report says it may be, and it comes first because it is the step the
     # verification has just made available.
-    assert [action["id"] for action in envelope["next_actions"]] == [
-        "publish_run",
-        "proof_checks",
-    ]
+    assert [
+        action["prepared_arguments"]["command"] for action in envelope["next_actions"]
+    ] == [["publish"], ["proof", "verify"]]
 
 
 def test_verifying_a_bundle_directory_anywhere(
@@ -262,7 +266,7 @@ def test_verifying_a_bundle_directory_anywhere(
     result = run_cli(tmp_path / "empty-home", "proof", "verify", str(carried))
 
     assert result.exit_code == EXIT_OK
-    assert result.envelope()["data"]["verified"] is True
+    assert result.envelope()["facts"]["verified"] is True
 
 
 def test_verifying_one_signed_report_file(finished: dict[str, Any]) -> None:
@@ -274,7 +278,7 @@ def test_verifying_one_signed_report_file(finished: dict[str, Any]) -> None:
     result = run_cli(finished["home"], "proof", "verify", str(report))
 
     assert result.exit_code == EXIT_OK
-    assert result.envelope()["data"]["kind"] == "report"
+    assert result.envelope()["facts"]["kind"] == "report"
 
 
 def test_the_human_verification_keeps_the_five_answers_apart(
@@ -311,7 +315,7 @@ def test_a_tampered_proof_fails_with_the_documented_exit_code(
     assert result.exit_code == EXIT_VERIFICATION
     assert envelope["ok"] is False
     assert envelope["error"]["code"] == PROOF_BUNDLE_INVALID
-    assert envelope["data"]["verified"] is False
+    assert envelope["facts"]["verified"] is False
     assert envelope["error"]["details"]["failed_checks"]
 
 
@@ -332,7 +336,7 @@ def test_a_result_whose_proof_was_tampered_with_fails_the_command(
     assert result.exit_code == EXIT_VERIFICATION
     assert envelope["ok"] is False
     assert envelope["error"]["code"] == PROOF_BUNDLE_INVALID
-    assert envelope["data"]["presentation"]["verification_status"] == (
+    assert envelope["facts"]["presentation"]["verification_status"] == (
         "verification_failed"
     )
 

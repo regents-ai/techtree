@@ -184,6 +184,12 @@ generated-check:
 v02-conformance-preflight:
 	$(RUN) pytest -m preflight tests/preflight/test_v02_conformance_environment.py
 
+.PHONY: latest-conformance-preflight
+# Exercise the published package under current local dependencies without
+# rewriting the package or the lock covered by its publication attestation.
+latest-conformance-preflight:
+	TECHTREE_CONFORMANCE_DEPENDENCIES=tests/conformance/local_environment $(RUN) pytest -m preflight tests/preflight/test_v02_conformance_environment.py
+
 verifiers-preflight:
 	$(RUN) pytest -m preflight tests/preflight
 

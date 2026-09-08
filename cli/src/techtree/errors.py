@@ -1,9 +1,14 @@
 """Typed Techtree errors and the exit codes they map to. Spec section 10.5.
 
 Every failure a user can provoke is one of the classes below. Each class fixes
-a machine-stable ``code``, a documented process exit code, and whether retrying
-the same command could plausibly succeed. Call sites override those defaults
-only when they have something more specific to say.
+a machine-stable ``code`` and a documented process exit code. Call sites
+override those defaults only when they have something more specific to say.
+
+Nothing here says whether to retry. ``techtree.cli.v2`` removed the
+error-level ``retryable`` boolean: what to do about a failure is the
+``retry_class`` of the repair action the failed envelope carries, which can say
+five things where a boolean said two, and which the raising call site supplies
+through ``next_actions``.
 
 Two rules shape this module:
 
@@ -88,7 +93,6 @@ class TechtreeError(Exception):
 
     default_code: ClassVar[str] = "techtree_error"
     default_exit_code: ClassVar[int] = EXIT_ERROR
-    default_retryable: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -96,7 +100,6 @@ class TechtreeError(Exception):
         *,
         code: str | None = None,
         exit_code: int | None = None,
-        retryable: bool | None = None,
         details: Mapping[str, JsonValue] | None = None,
         next_actions: Sequence[NextAction] | None = None,
     ) -> None:
@@ -104,7 +107,6 @@ class TechtreeError(Exception):
         self.message = message
         self.code = self.default_code if code is None else code
         self.exit_code = self.default_exit_code if exit_code is None else exit_code
-        self.retryable = self.default_retryable if retryable is None else retryable
         self.details: dict[str, JsonValue] = dict(details or {})
         #: What the caller could do about this, in the CLI's own vocabulary.
         #: Raising code fills this in when it knows; the CLI never invents it.
@@ -241,7 +243,6 @@ def error_to_cli_error(error: TechtreeError) -> CliError:
     return CliError(
         code=error.code,
         message=stable_exception_message(error),
-        retryable=error.retryable,
         details=dict(error.details),
     )
 

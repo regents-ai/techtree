@@ -248,7 +248,6 @@ def test_a_redirect_is_refused_and_never_followed(
         _submit(run_log, address="0x0000000000000000000000000000000000000001")
 
     assert raised.value.code == PUBLICATION_TRANSPORT_REDIRECTED
-    assert raised.value.retryable is False
     assert run_log.requested == ["/api/v1/publications"]
 
 

@@ -91,7 +91,7 @@ def techtree(repository_root: Path, techtree_home: Path) -> Any:
 
 def checks(envelope: dict[str, Any]) -> dict[str, Any]:
     """Return the checks a verification envelope carries, keyed by identifier."""
-    return {check["id"]: check for check in envelope["data"]["checks"]}
+    return {check["id"]: check for check in envelope["facts"]["checks"]}
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ def test_release_info_reports_every_coordinate_the_spec_lists(techtree: Any) -> 
     result = techtree("release", "info", "--json", "--no-color", "--no-input")
     assert result.exit_code == EXIT_OK
 
-    data = result.envelope()["data"]
+    data = result.envelope()["facts"]
     assert set(data) >= {
         "cli_version",
         "source_commit",
@@ -115,9 +115,10 @@ def test_release_info_reports_every_coordinate_the_spec_lists(techtree: Any) -> 
     }
     assert data["release_core_digest"] == document_digest(packaged_release_core_bytes())
     # Decision 0024 section 7: one immediate step, and only one.
-    assert [action["id"] for action in result.envelope()["next_actions"]] == [
-        "verify_release"
-    ]
+    assert [
+        action["prepared_arguments"]["command"]
+        for action in result.envelope()["next_actions"]
+    ] == [["release", "verify"]]
 
 
 def test_release_info_reports_the_commit_this_artifact_was_stamped_with(
@@ -131,8 +132,8 @@ def test_release_info_reports_the_commit_this_artifact_was_stamped_with(
     """
     envelope = techtree("release", "info", "--json").envelope()
 
-    assert envelope["data"]["source_commit"] is None
-    assert [warning["code"] for warning in envelope["warnings"]] == [
+    assert envelope["facts"]["source_commit"] is None
+    assert [warning["id"] for warning in envelope["warnings"]] == [
         "release_source_commit_unstamped"
     ]
 
@@ -141,7 +142,7 @@ def test_release_info_shows_the_installed_version_beside_the_named_one(
     techtree: Any,
 ) -> None:
     """Two different statements: what is installed, and what the release names."""
-    data = techtree("release", "info", "--json").envelope()["data"]
+    data = techtree("release", "info", "--json").envelope()["facts"]
 
     assert data["cli_version"] == "0.2.0"
     assert data["package_version"] == data["cli_version"]
@@ -159,12 +160,11 @@ def test_release_verify_passes_on_this_build(techtree: Any) -> None:
     envelope = result.envelope()
     assert envelope["ok"] is True
     assert envelope["error"] is None
-    assert envelope["data"]["verified"] is True
-    assert envelope["messages"][0]["code"] == "release_verified"
+    assert envelope["facts"]["verified"] is True
     # Decision 0024 section 7: a verified build is pointed straight at Doctor.
-    assert [action["id"] for action in envelope["next_actions"]] == [
-        "check_environment"
-    ]
+    assert [
+        action["prepared_arguments"]["command"] for action in envelope["next_actions"]
+    ] == [["doctor"]]
 
 
 def test_release_verify_accepts_the_published_digest(techtree: Any) -> None:
@@ -183,7 +183,7 @@ def test_release_verify_refuses_the_wrong_digest(techtree: Any) -> None:
 
     envelope = result.envelope()
     assert envelope["ok"] is False
-    assert envelope["data"]["verified"] is False
+    assert envelope["facts"]["verified"] is False
     assert envelope["error"]["code"] == "release_not_verified"
     assert envelope["error"]["details"]["failed_checks"] == ["release_core_digest"]
 

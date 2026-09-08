@@ -109,8 +109,8 @@ def test_doctor_emits_exactly_one_json_envelope(techtree: Any) -> None:
     result = techtree("doctor", "--json")
 
     envelope = result.envelope()
-    assert envelope["schema_version"] == "techtree.cli.v1"
-    assert envelope["command"] == "doctor"
+    assert envelope["schema_version"] == "techtree.cli.v2"
+    assert envelope["operation"] == "plan.inspect"
     assert envelope["ok"] is (envelope["error"] is None)
     assert result.exit_code in (EXIT_OK, EXIT_PREREQUISITE)
 
@@ -120,7 +120,7 @@ def test_the_doctor_envelope_reports_the_normalized_host_platform(
 ) -> None:
     envelope = techtree("doctor", "--json").envelope()
 
-    report = envelope["data"]
+    report = envelope["facts"]
     assert re.fullmatch(r"(darwin|linux)/(arm64|amd64)", report["host_platform"])
 
     by_id = {check["id"]: check for check in report["checks"]}
@@ -135,7 +135,7 @@ def test_the_doctor_envelope_reports_the_normalized_host_platform(
 def test_the_doctor_envelope_runs_every_documented_check(techtree: Any) -> None:
     envelope = techtree("doctor", "--json").envelope()
 
-    assert [check["id"] for check in envelope["data"]["checks"]] == [
+    assert [check["id"] for check in envelope["facts"]["checks"]] == [
         "python_version",
         "host_platform",
         "techtree_home",
@@ -165,9 +165,9 @@ def test_debug_logging_goes_to_stderr_and_leaves_stdout_alone(techtree: Any) -> 
     result = techtree("doctor", "--json", "--debug")
 
     result.envelope()
-    assert "techtree: running doctor" in result.stderr
-    assert "techtree: doctor exited with code" in result.stderr
-    assert "techtree: running doctor" not in result.stdout
+    assert "techtree: running plan.inspect" in result.stderr
+    assert "techtree: plan.inspect exited with code" in result.stderr
+    assert "techtree: running plan.inspect" not in result.stdout
 
 
 def test_human_output_is_plain_text_when_stdout_is_a_pipe(techtree: Any) -> None:
@@ -197,7 +197,7 @@ def test_the_json_flag_is_understood_wherever_it_appears(
 ) -> None:
     result = techtree(*arguments)
 
-    assert result.envelope()["command"] == "doctor"
+    assert result.envelope()["operation"] == "plan.inspect"
 
 
 def test_no_input_never_prompts_and_never_waits(techtree: Any) -> None:
@@ -206,7 +206,7 @@ def test_no_input_never_prompts_and_never_waits(techtree: Any) -> None:
     result = techtree("--no-input", "doctor", "--json")
 
     assert result.exit_code in (EXIT_OK, EXIT_PREREQUISITE)
-    assert result.envelope()["command"] == "doctor"
+    assert result.envelope()["operation"] == "plan.inspect"
 
 
 def test_version_prints_the_package_version_and_nothing_else(techtree: Any) -> None:
@@ -232,22 +232,23 @@ _ABSENT_DRAFT = "draft_00000000000000000000000000000000"
 
 
 @pytest.mark.parametrize(
-    ("arguments", "command"),
+    ("arguments", "operation"),
     [
-        (("climb", "start", _ABSENT_DRAFT, "--yes"), "climb start"),
-        (("run", "status", _ABSENT_RUN), "run status"),
-        (("run", "logs", _ABSENT_RUN), "run logs"),
-        (("run", "cancel", _ABSENT_RUN, "--confirm"), "run cancel"),
-        (("run", "result", _ABSENT_RUN), "run result"),
+        (("climb", "start", _ABSENT_DRAFT, "--yes"), "action.execute"),
+        (("run", "status", _ABSENT_RUN), "run.status"),
+        (("run", "status", _ABSENT_RUN, "--timeout-seconds", "1"), "run.wait"),
+        (("run", "logs", _ABSENT_RUN), "run.status"),
+        (("run", "cancel", _ABSENT_RUN, "--confirm"), "run.cancel"),
+        (("run", "result", _ABSENT_RUN), "result.inspect"),
     ],
 )
-def test_a_registered_command_names_itself_in_one_envelope(
-    techtree: Any, arguments: tuple[str, ...], command: str
+def test_a_registered_command_names_the_operation_that_answered(
+    techtree: Any, arguments: tuple[str, ...], operation: str
 ) -> None:
     result = techtree(*arguments, "--json")
 
     envelope = result.envelope()
-    assert envelope["command"] == command
+    assert envelope["operation"] == operation
     assert envelope["ok"] is False
     assert envelope["error"]["code"] != ""
     assert result.exit_code != EXIT_OK
@@ -303,18 +304,23 @@ def test_unreadable_settings_still_produce_one_envelope(
     envelope = result.envelope()
     assert envelope["ok"] is False
     assert envelope["error"]["code"] == "validation_error"
-    assert envelope["command"] == "doctor"
+    assert envelope["operation"] == "plan.inspect"
     assert result.exit_code == 3
 
 
-def test_a_next_action_is_always_an_argument_vector(techtree: Any) -> None:
+def test_a_next_action_is_always_a_named_invocation(techtree: Any) -> None:
+    """Nothing a caller has to parse, and nothing that could be mis-quoted."""
     envelope = techtree("doctor", "--json").envelope()
 
     for step in envelope["next_actions"]:
-        assert step["cli"] is None or isinstance(step["cli"], list)
-        assert step["cli"] or step["hermes_tool"]
-        if step["cli"]:
-            assert all(isinstance(word, str) for word in step["cli"])
+        prepared = step["prepared_arguments"]
+        assert set(prepared) == {"command", "arguments", "options"}
+        assert prepared["command"]
+        assert all(
+            isinstance(word, str)
+            for word in (*prepared["command"], *prepared["arguments"])
+        )
+        assert all(name.startswith("--") for name in prepared["options"])
     assert len(envelope["next_actions"]) <= 3
 
 
