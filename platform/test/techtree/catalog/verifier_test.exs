@@ -49,10 +49,11 @@ defmodule Techtree.Catalog.VerifierTest do
     test "an unsupported schema version is rejected", %{tmp_dir: tmp_dir} do
       bundle = CatalogFixture.copy!(tmp_dir)
 
-      CatalogFixture.rewrite_index!(bundle, &Map.put(&1, "schema_version", "techtree.catalog.v2"))
+      CatalogFixture.rewrite_index!(bundle, &Map.put(&1, "schema_version", "techtree.catalog.v9"))
 
       assert {:error, error} = verify(bundle)
       assert error.code == :catalog_bundle_invalid
+      assert error.details["expected"] == "techtree.catalog.v2"
     end
 
     @tag :tmp_dir
@@ -116,6 +117,80 @@ defmodule Techtree.Catalog.VerifierTest do
       assert {:error, error} = verify(bundle)
       assert error.code == :catalog_object_missing
       assert error.details["digest"] == CatalogFixture.campaign_digest()
+    end
+  end
+
+  describe "the execution plan the Campaign binds" do
+    @tag :tmp_dir
+    test "one the catalog does not ship is rejected", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_index!(bundle, fn index ->
+        Map.update!(index, "objects", &Map.delete(&1, CatalogFixture.execution_plan_digest()))
+      end)
+
+      File.rm!(Path.join(bundle, "execution-plans/hello-world-climb.json"))
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_object_missing
+      assert error.details["digest"] == CatalogFixture.execution_plan_digest()
+      assert error.details["expected_kind"] == "execution_plan"
+    end
+
+    @tag :tmp_dir
+    test "one filed under another kind is rejected", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_index!(bundle, fn index ->
+        put_in(index, ["objects", CatalogFixture.execution_plan_digest(), "kind"], "data_policy")
+      end)
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_bundle_invalid
+      assert error.details["expected_kind"] == "execution_plan"
+      assert error.details["found_kind"] == "data_policy"
+    end
+
+    @tag :tmp_dir
+    test "one of another shape is rejected", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_execution_plan!(
+        bundle,
+        &Map.put(&1, "schema_version", "techtree.execution-plan.v9")
+      )
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_bundle_invalid
+      assert error.details["kind"] == "execution_plan"
+      assert error.details["expected"] == "techtree.execution-plan.v1"
+    end
+
+    @tag :tmp_dir
+    test "a Campaign that binds no plan is rejected", %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_campaign!(bundle, &Map.delete(&1, "execution_plan_digest"))
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_bundle_invalid
+      assert error.details["field"] == "execution_plan_digest"
+    end
+
+    @tag :tmp_dir
+    test "a Campaign of another shape is rejected before its plan is looked for",
+         %{tmp_dir: tmp_dir} do
+      bundle = CatalogFixture.copy!(tmp_dir)
+
+      CatalogFixture.rewrite_campaign!(
+        bundle,
+        &Map.put(&1, "schema_version", "techtree.campaign.v9")
+      )
+
+      assert {:error, error} = verify(bundle)
+      assert error.code == :catalog_bundle_invalid
+      assert error.details["kind"] == "campaign"
+      assert error.details["expected"] == "techtree.campaign.v2"
     end
   end
 

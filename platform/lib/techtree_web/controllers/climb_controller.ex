@@ -21,6 +21,7 @@ defmodule TechtreeWeb.ClimbController do
   @linked_objects [
     {"climb", "climb_digest"},
     {"campaign", "campaign_spec_digest"},
+    {"execution_plan", "execution_plan_digest"},
     {"data_policy", "data_policy_digest"},
     {"taskset_validation", "validation_receipt_digest"}
   ]

@@ -2,22 +2,25 @@ defmodule Techtree.Network.ConformanceTest do
   @moduledoc """
   The bytes the other half of this feature actually sends.
 
-  Everything else in this suite builds a submission out of a real proof bundle
+  Everything else in this suite builds a submission out of the synthetic v2 proof fixture
   using this repository's own fixture helper, which proves that the ingest
   agrees with this repository's reading of the wire contract. That is the one
   thing it was never in doubt about. The two halves of publishing were built at
   once from opposite ends and disagreed on four things, so the claim worth
   testing is a different one: that the document the CLI's real
-  publishing path produces for a real 36-task run is accepted here, unmodified,
+  publishing path produces for the 36-task fixture is accepted here, unmodified,
   byte for byte.
 
-  The CLI writes that document to
-  `cli/tests/fixtures/publication/conformance-submission.json` and this test reads
-  it from there rather than from a copy kept here. A copy would agree with
-  whatever it was copied from on the day it was copied, which is exactly the
-  drift the wire contract in decision 0038 was written down to stop. If that
-  file is not where it should be, this test fails, because a conformance claim
-  nobody can check is not a conformance claim.
+  The CLI's committed conformance submission,
+  `cli/tests/fixtures/publication/conformance-submission.json`, is the v0.1
+  certification run, and its Campaign is not one the v0.2 catalog publishes,
+  so new ingestion against the v2 catalog cannot accept it. The historical fixture
+  remains unchanged. The document tested here is built by the same CLI code path
+  — `PublicationService.submission_bytes` — over the v0.2 proof fixture, by
+  `scripts/build_v2_proof_fixture.py`, and committed at
+  `test/support/fixtures/publication/v2-submission.json`. It is still the
+  CLI's own bytes rather than this repository's reading of them, which is
+  what makes it a conformance check.
 
   The same is done in the other direction for what this site sends back. The
   two receipts and the withdrawal request are exported as JSON Schemas in
@@ -49,11 +52,6 @@ defmodule Techtree.Network.ConformanceTest do
   alias Techtree.Network.Seed
   alias Techtree.NetworkFixture
 
-  @conformance Path.expand(
-                 "../../../../cli/tests/fixtures/publication/conformance-submission.json",
-                 __DIR__
-               )
-
   @schemas Path.expand("../../../../cli/schemas/v1alpha1", __DIR__)
 
   setup do
@@ -62,8 +60,8 @@ defmodule Techtree.Network.ConformanceTest do
     :ok
   end
 
-  test "the submission the CLI builds for a real run is accepted here unmodified" do
-    submitted = File.read!(@conformance)
+  test "the submission the CLI's publishing path builds for the v2 proof is accepted here unmodified" do
+    submitted = NetworkFixture.cli_submission()
 
     assert {:ok, entry, :recorded} = NetworkFixture.publish(submitted)
 
@@ -77,14 +75,17 @@ defmodule Techtree.Network.ConformanceTest do
     # arrived at from opposite directions: the sender read them off its own
     # bundle, and the site recomputed them from the signed bytes.
     assert entry.bundle_digest == declared["bundle_digest"]
+    assert entry.bundle_digest == NetworkFixture.bundle_digest()
     assert entry.run_id == declared["run_id"]
+    assert entry.campaign_spec_digest == CatalogFixture.campaign_digest()
+    assert entry.subject_harness == "hermes-agent"
     assert entry.task_count == 36
     assert entry.verification_checks_passed == Bundle.check_count()
     assert entry.submission_bytes == submitted
   end
 
   test "the submission this site builds for a proof directory is the one the CLI sends" do
-    submitted = File.read!(@conformance)
+    submitted = NetworkFixture.cli_submission()
 
     # The fixture carries every byte of the proof it was built from, so the
     # directory can be rebuilt from it and the submission rebuilt from the

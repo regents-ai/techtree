@@ -371,8 +371,16 @@ defmodule Techtree.Network.Ingest do
     end
   end
 
+  # The subject facts come from the published definition the run was a run of,
+  # never from the bundle: the model from the Campaign, and the harness from
+  # the execution plan that Campaign binds, which is where a v2 Campaign keeps it.
   defp attributes(
-         %Bundle{manifest: manifest, report: report, campaign: campaign} = bundle,
+         %Bundle{
+           manifest: manifest,
+           report: report,
+           campaign: campaign,
+           execution_plan: execution_plan
+         } = bundle,
          metadata,
          key,
          origin
@@ -380,7 +388,8 @@ defmodule Techtree.Network.Ingest do
     payload = manifest["payload"]
     identity = payload["executor_identity"]
     result = report["primary_result"]
-    subject = get_in(campaign, ["agents", "subject"])
+    model = get_in(campaign, ["agents", "subject", "model"])
+    harness = execution_plan["subject"]
 
     entry = %{
       id: Ash.UUID.generate(),
@@ -399,10 +408,10 @@ defmodule Techtree.Network.Ingest do
       participant_kind: :local_ed25519,
       participant_key_id: identity["key_id"],
       participant_public_key: identity["public_key"],
-      subject_provider: get_in(subject, ["model", "provider"]),
-      subject_model: get_in(subject, ["model", "model_id"]),
-      subject_harness: get_in(subject, ["harness", "id"]),
-      subject_harness_version: get_in(subject, ["harness", "version"]),
+      subject_provider: field(model, "provider"),
+      subject_model: field(model, "model_id"),
+      subject_harness: field(harness, "harness_id"),
+      subject_harness_version: field(harness, "harness_version"),
       skill_digest: bundle.candidate_skill_digest,
       skill_name: metadata.skill_name,
       skill_github_url: metadata.skill_github_url,
@@ -428,6 +437,9 @@ defmodule Techtree.Network.Ingest do
     |> Map.put(:receipt_bytes, Receipt.encode(receipt))
     |> Map.put(:receipt_digest, Receipt.payload_digest(receipt))
   end
+
+  defp field(section, member) when is_map(section), do: section[member]
+  defp field(_section, _member), do: nil
 
   # The log sequence is a database sequence rather than a count of rows,
   # because a count read inside one transaction is already stale in another.

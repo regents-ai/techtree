@@ -9,7 +9,7 @@ defmodule Techtree.Catalog.BundleTest do
     test "reads the generated export as it was generated" do
       bundle = Bundle.load!(CatalogFixture.root())
 
-      assert bundle.catalog["schema_version"] == "techtree.catalog.v1alpha1"
+      assert bundle.catalog["schema_version"] == "techtree.catalog.v2"
       assert bundle.bootstrap["channel"] == "development"
       assert Bundle.catalog_digest(bundle) == CatalogFixture.catalog_digest()
       assert Bundle.source_revision(bundle) == bundle.source["techtree_python_revision"]
@@ -42,6 +42,7 @@ defmodule Techtree.Catalog.BundleTest do
                :climb,
                :taskset_validation,
                :data_policy,
+               :execution_plan,
                :validation_evidence,
                :campaign
              ]

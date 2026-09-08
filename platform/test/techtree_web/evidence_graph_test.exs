@@ -151,10 +151,12 @@ defmodule TechtreeWeb.EvidenceGraphTest do
     %{entries: [proof], truncated?: false} =
       NetworkQuery.for_campaign(CatalogFixture.campaign_digest())
 
+    result = NetworkFixture.report()["payload"]["primary_result"]
+
     assert proof.bundle_digest == NetworkFixture.bundle_digest()
-    assert proof.wins == 23
-    assert proof.ties == 13
-    assert proof.losses == 0
+    assert proof.wins == result["wins"]
+    assert proof.ties == result["ties"]
+    assert proof.losses == result["losses"]
     assert proof.task_count == 36
 
     graph_proofs =
@@ -169,7 +171,8 @@ defmodule TechtreeWeb.EvidenceGraphTest do
     assert graph_proofs.status == :published
 
     assert graph_proofs.links == [
-             {"23 better · 13 same · 0 worse", "/results/" <> proof.bundle_digest}
+             {"#{result["wins"]} better · #{result["ties"]} same · #{result["losses"]} worse",
+              "/results/" <> proof.bundle_digest}
            ]
   end
 

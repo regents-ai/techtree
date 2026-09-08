@@ -237,6 +237,8 @@ defmodule Techtree.Catalog.Importer do
 
     campaign_digest = fetch!(climb, ["campaign_spec_digest"], entry)
     campaign = decode_object!(bundle, campaign_digest)
+    plan_digest = fetch!(campaign, ["execution_plan_digest"], entry)
+    execution_plan = decode_object!(bundle, plan_digest)
     policy_digest = fetch!(campaign, ["data_policy_digest"], entry)
     data_policy = decode_object!(bundle, policy_digest)
     validation_digest = fetch!(campaign, ["taskset", "validation_receipt_digest"], entry)
@@ -252,6 +254,8 @@ defmodule Techtree.Catalog.Importer do
           metadata: metadata,
           campaign: campaign,
           campaign_digest: campaign_digest,
+          execution_plan: execution_plan,
+          plan_digest: plan_digest,
           data_policy: data_policy,
           policy_digest: policy_digest,
           validation_digest: validation_digest
@@ -261,8 +265,11 @@ defmodule Techtree.Catalog.Importer do
 
   defp describe(_bundle, _entry, _bytes), do: %{title: nil, summary: nil, status: nil}
 
+  # The harness a run measures and who orchestrates the comparison are facts of
+  # the plan the Campaign binds, not of the Campaign, and are projected from
+  # there — the same place the CLI's own Climb summary reads them from.
   defp climb_projection(%{entry: entry, climb: climb, metadata: metadata} = parts) do
-    %{campaign: campaign, data_policy: data_policy} = parts
+    %{campaign: campaign, execution_plan: execution_plan, data_policy: data_policy} = parts
 
     %{
       "reference" => entry.reference,
@@ -275,13 +282,14 @@ defmodule Techtree.Catalog.Importer do
       "closes_at" => metadata["closes_at"],
       "climb_digest" => entry.digest,
       "campaign_spec_digest" => parts.campaign_digest,
+      "execution_plan_digest" => parts.plan_digest,
       "data_policy_digest" => parts.policy_digest,
       "validation_receipt_digest" => parts.validation_digest,
       "purpose" => get_in(campaign, ["metadata", "purpose"]),
       "taskset_id" => get_in(campaign, ["taskset", "ref", "id"]),
       "task_count" => get_in(campaign, ["taskset", "selection", "num_tasks"]),
-      "subject_harness" => get_in(campaign, ["agents", "subject", "harness", "id"]),
-      "subject_harness_version" => get_in(campaign, ["agents", "subject", "harness", "version"]),
+      "subject_harness" => get_in(execution_plan, ["subject", "harness_id"]),
+      "subject_harness_version" => get_in(execution_plan, ["subject", "harness_version"]),
       "subject_model" => subject_model(campaign),
       "subject_runtime" =>
         take(campaign, ["agents", "subject", "runtime"], [
@@ -314,7 +322,7 @@ defmodule Techtree.Catalog.Importer do
           "minimum_absolute_delta",
           "require_candidate_above_baseline"
         ]),
-      "evaluation_backend" => get_in(campaign, ["evaluation_backend", "kind"]),
+      "execution_backend_kind" => get_in(execution_plan, ["execution", "kind"]),
       "candidate_skill_visibility" => get_in(climb, ["candidate_policy", "skill_visibility"]),
       "required_mutation" => get_in(climb, ["candidate_policy", "required_mutation"]),
       "publication" =>

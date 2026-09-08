@@ -58,7 +58,9 @@ defmodule Techtree.Network.Bundle do
    12. *Proof.* The Campaign the run names is one this site publishes. This is
        the check that makes spam uninteresting: a submission has to be a run of
        a comparison we defined, against tasks we committed to in advance, and
-       there is nothing to gain by sending anything else.
+       there is nothing to gain by sending anything else. The execution plan
+       that published Campaign binds is read beside it, because under v2 it is
+       the plan, not the Campaign, that names the harness the run measured.
    13. *Proof.* The report's wins, losses and ties recompute from its own task
        rows.
    14. *Proof.* Those task rows are the Campaign's committed task list, in the
@@ -176,7 +178,7 @@ defmodule Techtree.Network.Bundle do
     {:signatures, "every signature verifies under the key the bundle carries"},
     {:key_id, "the fingerprint names the key by hashing it rather than by claiming it"},
     {:report, "the bundle carries the signed result summary it commits to"},
-    {:campaign, "the campaign it names is one this site publishes"},
+    {:campaign, "the report binds a campaign and execution plan this site publishes"},
     {:counts, "the wins, losses and ties recompute from the task results"},
     {:membership, "the tasks are the list the campaign committed to, in order"},
     {:data_policy, "the terms the run was carried out under permit publishing this"},
@@ -189,6 +191,7 @@ defmodule Techtree.Network.Bundle do
     :manifest,
     :report,
     :campaign,
+    :execution_plan,
     :campaign_name,
     :candidate_skill_digest,
     :climb_reference,
@@ -200,6 +203,7 @@ defmodule Techtree.Network.Bundle do
           manifest: map(),
           report: map(),
           campaign: map(),
+          execution_plan: map(),
           campaign_name: String.t() | nil,
           candidate_skill_digest: String.t() | nil,
           climb_reference: String.t(),
@@ -242,7 +246,8 @@ defmodule Techtree.Network.Bundle do
          :ok <- signatures(envelopes, identity),
          :ok <- key_id(identity),
          {:ok, report} <- report(manifest, envelopes),
-         {:ok, campaign, reference, campaign_name} <- campaign(manifest),
+         {:ok, campaign, execution_plan, reference, campaign_name} <- campaign(manifest),
+         :ok <- report_context(report, manifest, campaign),
          :ok <- counts(report),
          :ok <- membership(report, campaign),
          {:ok, policy} <- data_policy(manifest, files),
@@ -254,6 +259,7 @@ defmodule Techtree.Network.Bundle do
          manifest: manifest,
          report: report,
          campaign: campaign,
+         execution_plan: execution_plan,
          campaign_name: campaign_name,
          candidate_skill_digest: candidate_skill_digest(report, files),
          climb_reference: reference,
@@ -705,9 +711,9 @@ defmodule Techtree.Network.Bundle do
          )}
 
       {:ok, climb} ->
-        with {:ok, bytes, _entry} <- Query.object_bytes(digest),
-             {:ok, campaign} when is_map(campaign) <- Jason.decode(bytes) do
-          {:ok, campaign, climb.reference, climb.title}
+        with {:ok, campaign} <- published_object(digest),
+             {:ok, execution_plan} <- published_object(campaign["execution_plan_digest"]) do
+          {:ok, campaign, execution_plan, climb.reference, climb.title}
         else
           _other ->
             {:error,
@@ -719,6 +725,42 @@ defmodule Techtree.Network.Bundle do
         end
     end
   end
+
+  defp report_context(report, manifest, campaign) do
+    expected = [
+      {"schema_version", "techtree.uplift-report.v2"},
+      {"campaign_spec_digest", manifest["payload"]["campaign_spec_digest"]},
+      {"execution_plan_digest", campaign["execution_plan_digest"]}
+    ]
+
+    case Enum.find(expected, fn {field, value} -> Map.get(report, field) != value end) do
+      nil ->
+        :ok
+
+      {field, value} ->
+        {:error,
+         Error.new(
+           :submission_report_context_mismatch,
+           "the signed v2 result summary must bind the published campaign and its execution plan",
+           %{"field" => field, "expected" => value, "found" => Map.get(report, field)}
+         )}
+    end
+  end
+
+  # An object this site publishes, read from the exact bytes it serves. The
+  # import already refused any catalog whose Campaign binds a plan it does not
+  # ship, so a plan that cannot be read here is a served object gone wrong,
+  # and the run is refused rather than published against half a definition.
+  defp published_object(digest) when is_binary(digest) do
+    with {:ok, bytes, _entry} <- Query.object_bytes(digest),
+         {:ok, document} when is_map(document) <- Jason.decode(bytes) do
+      {:ok, document}
+    else
+      _other -> :error
+    end
+  end
+
+  defp published_object(_digest), do: :error
 
   # The report commits to the candidate experiment by its artifact digest. The
   # artifact bytes have already passed the signed manifest's digest and size

@@ -3,10 +3,9 @@ defmodule Techtree.Network.IngestTest do
   A submission becomes a row only if every check holds, and each check has to
   be shown refusing on its own.
 
-  The honest bundle here is a real one — a finished run copied off the machine
-  that produced it, signatures and all — so "it accepts a good bundle" is a
-  claim about a bundle this repository did not make. Every refusal is that same
-  bundle with exactly one thing wrong with it.
+  The valid bundle is a synthetic v2 protocol fixture, signed and verified by
+  the CLI's production proof writer and verifier. It is not a real evaluation
+  or release certification. Every refusal changes one property of that bundle.
 
   Reaching the checks at the far end takes some care. A bundle whose numbers
   were edited fails the signature check long before anything reads the numbers,
@@ -37,7 +36,7 @@ defmodule Techtree.Network.IngestTest do
     end
   end
 
-  describe "a real proof bundle" do
+  describe "a CLI-verified v2 proof bundle" do
     setup :publish_the_catalog
 
     test "is accepted, and every published field is recomputed rather than copied" do
@@ -137,6 +136,33 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_publication_entries!() == []
     end
 
+    test "12. the signed report must bind this campaign and execution plan" do
+      for {field, value} <- [
+            {"schema_version", "techtree.uplift-report.v1alpha1"},
+            {"campaign_spec_digest", "sha256:" <> String.duplicate("f", 64)},
+            {"execution_plan_digest", "sha256:" <> String.duplicate("f", 64)},
+            {"execution_plan_digest", nil}
+          ] do
+        files = NetworkFixture.rewrite_payload(@report_path, &Map.put(&1, field, value))
+
+        report_digest =
+          files
+          |> Map.fetch!(@report_path)
+          |> Jason.decode!()
+          |> Map.fetch!("payload")
+          |> Techtree.Canonical.encode!()
+          |> Techtree.Catalog.Digest.hash_bytes()
+
+        files = NetworkFixture.resign(files, root_report_digest: report_digest)
+
+        assert {:error, %{code: :submission_report_context_mismatch, details: details}} =
+                 NetworkFixture.publish(NetworkFixture.submission(files))
+
+        assert details["field"] == field
+        assert Network.list_publication_entries!() == []
+      end
+    end
+
     test "3. more files than a proof bundle can have is refused" do
       crowd =
         Map.new(1..300, fn number -> {"filler/#{number}.json", "{}"} end)
@@ -147,7 +173,7 @@ defmodule Techtree.Network.IngestTest do
                NetworkFixture.publish(NetworkFixture.submission(files))
 
       assert details["maximum_files"] == 256
-      assert details["submitted_files"] == 384
+      assert details["submitted_files"] == map_size(files)
     end
 
     test "4. a path a bundle cannot have is refused, and told which way it is wrong" do

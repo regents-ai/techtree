@@ -20,8 +20,15 @@ defmodule Techtree.Catalog.Verifier do
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Error
 
-  @catalog_schema_version "techtree.catalog.v1alpha1"
+  @catalog_schema_version "techtree.catalog.v2"
   @bootstrap_schema_version "techtree.bootstrap.v1alpha1"
+
+  # The two shapes the Climb graph is walked through. A v2 Campaign binds the
+  # resolved execution plan it was defined against by digest, and the plan is
+  # a catalog object in its own right; both are named here so that a graph
+  # built from any other shape is refused before a page is built from it.
+  @campaign_schema_version "techtree.campaign.v2"
+  @execution_plan_schema_version "techtree.execution-plan.v1"
   @commit_length 40
 
   @doc """
@@ -48,7 +55,7 @@ defmodule Techtree.Catalog.Verifier do
   end
 
   @doc """
-  The index is a v1alpha1 catalog, it addresses each object once, and the
+  The index is a v2 catalog, it addresses each object once, and the
   provenance beside it describes the index that is actually present.
   """
   @spec verify_catalog_index(Bundle.t()) :: :ok | {:error, Error.t()}
@@ -132,9 +139,12 @@ defmodule Techtree.Catalog.Verifier do
   Every digest one shipped object references is an object this bundle ships.
 
   The Climb graph is walked the way a reader walks it: Climb to Campaign,
-  Campaign to DataPolicy and publisher validation, validation to its normalized
-  evidence. A public catalog with a dangling reference is a page that cannot be
-  rendered, so it is refused at import rather than at request time.
+  Campaign to the execution plan it binds, to its DataPolicy and to the
+  publisher validation, validation to its normalized evidence. The Campaign
+  and the plan are also held to the one shape each has — a Campaign that binds
+  no plan, or a plan of another shape, is a graph no page here can describe. A
+  public catalog with a dangling reference is a page that cannot be rendered,
+  so it is refused at import rather than at request time.
   """
   @spec verify_no_dangling_refs(Bundle.t()) :: :ok | {:error, Error.t()}
   def verify_no_dangling_refs(%Bundle{} = bundle) do
@@ -147,8 +157,11 @@ defmodule Techtree.Catalog.Verifier do
   defp verify_climb_graph(bundle, entry) do
     with {:ok, climb} <- decode_object(bundle, entry.digest, entry.relative_path),
          {:ok, campaign_digest} <- fetch_digest(climb, ["campaign_spec_digest"], entry),
-         :ok <- check_kind(bundle, campaign_digest, :campaign),
-         {:ok, campaign} <- decode_object(bundle, campaign_digest, "campaign"),
+         {:ok, campaign} <-
+           decode_shipped(bundle, campaign_digest, :campaign, @campaign_schema_version),
+         {:ok, plan_digest} <- fetch_digest(campaign, ["execution_plan_digest"], entry),
+         {:ok, _plan} <-
+           decode_shipped(bundle, plan_digest, :execution_plan, @execution_plan_schema_version),
          {:ok, policy_digest} <- fetch_digest(campaign, ["data_policy_digest"], entry),
          :ok <- check_kind(bundle, policy_digest, :data_policy),
          {:ok, validation_digest} <-
@@ -497,6 +510,27 @@ defmodule Techtree.Catalog.Verifier do
          "path" => entry.relative_path,
          "field" => Enum.join(path, ".")
        })}
+    end
+  end
+
+  # One object the graph depends on: filed under the kind the reference
+  # expects, readable, and of the one shape this application walks.
+  defp decode_shipped(bundle, digest, kind, schema_version) do
+    with :ok <- check_kind(bundle, digest, kind),
+         {:ok, document} <- decode_object(bundle, digest, to_string(kind)) do
+      case Map.get(document, "schema_version") do
+        ^schema_version ->
+          {:ok, document}
+
+        other ->
+          {:error,
+           Error.bundle_invalid("a shipped object is not the shape this catalog walks", %{
+             "digest" => digest,
+             "kind" => to_string(kind),
+             "expected" => schema_version,
+             "found" => inspect(other)
+           })}
+      end
     end
   end
 

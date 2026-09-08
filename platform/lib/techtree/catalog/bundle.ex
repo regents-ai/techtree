@@ -2,9 +2,10 @@ defmodule Techtree.Catalog.Bundle do
   @moduledoc """
   One generated catalog export, on disk, as this application may read it.
 
-  A bundle is the directory `techtree-python` produced (spec section 8.7): the
-  catalog index, the release provenance beside it, the bootstrap release for the
-  channel, and the content-addressed objects the index points at. This module is
+  A bundle is the directory the CLI produced (spec section 8.7): the
+  `techtree.catalog.v2` index, the release provenance beside it, the bootstrap
+  release for the channel, and the content-addressed objects the index points
+  at — including the resolved execution plan every v2 Campaign binds. This module is
   the only place that turns a catalog-relative path into a file, and it refuses
   every path that could name something the bundle does not contain — absolute
   paths, `..` segments, and paths that reach outside the root through a symlink.
@@ -22,16 +23,19 @@ defmodule Techtree.Catalog.Bundle do
   @catalog_filename "catalog.json"
   @bootstrap_filename "bootstrap.json"
 
-  # Every object a v1alpha1 catalog ships is a JSON document. The index states
-  # the media type for content-addressed objects; Climb manifests are named by
+  # Every object a v2 catalog ships is a JSON document. The index states the
+  # media type for content-addressed objects; Climb manifests are named by
   # reference rather than by digest, so their media type is fixed here.
   @json_media_type "application/json"
 
   # What the index calls each kind of object, and what this application calls
   # it. A kind outside this map becomes `:unknown`, which the verifier rejects.
+  # The mapping is spelled out rather than derived from the string so that an
+  # index can never mint an atom.
   @kinds %{
     "campaign" => :campaign,
     "data_policy" => :data_policy,
+    "execution_plan" => :execution_plan,
     "taskset_validation" => :taskset_validation,
     "validation_evidence" => :validation_evidence
   }
@@ -40,6 +44,7 @@ defmodule Techtree.Catalog.Bundle do
           :climb
           | :campaign
           | :data_policy
+          | :execution_plan
           | :taskset_validation
           | :validation_evidence
           | :unknown
@@ -249,13 +254,13 @@ defmodule Techtree.Catalog.Bundle do
   def bootstrap_digest(%__MODULE__{bootstrap_bytes: bytes}), do: Digest.hash_bytes(bytes)
 
   @doc """
-  The kinds of content-addressed object a v1alpha1 catalog may file.
+  The kinds of content-addressed object a v2 catalog may file.
   """
   @spec kinds() :: %{String.t() => kind()}
   def kinds, do: @kinds
 
   @doc """
-  The media type every object in a v1alpha1 catalog is served as.
+  The media type every object in a v2 catalog is served as.
   """
   @spec json_media_type() :: String.t()
   def json_media_type, do: @json_media_type

@@ -33,13 +33,14 @@ defmodule Techtree.Catalog.ImporterTest do
     test "stages one active entry per shipped object" do
       entries = Ash.read!(CatalogEntry)
 
-      assert length(entries) == 5
+      assert length(entries) == 6
       assert Enum.all?(entries, & &1.active)
 
       assert entries |> Enum.map(& &1.kind) |> Enum.sort() == [
                :campaign,
                :climb,
                :data_policy,
+               :execution_plan,
                :taskset_validation,
                :validation_evidence
              ]
@@ -64,12 +65,13 @@ defmodule Techtree.Catalog.ImporterTest do
                "slug" => "hello-world-climb",
                "version" => 1,
                "campaign_spec_digest" => campaign_digest,
+               "execution_plan_digest" => plan_digest,
                "purpose" => "component_uplift",
                "task_count" => 36,
                "taskset_id" => "procedure-transfer-v1",
                "subject_harness" => "hermes-agent",
                "subject_harness_version" => "0.19.0",
-               "evaluation_backend" => "local_techtree",
+               "execution_backend_kind" => "local",
                "proof_grade" => "development_only",
                "leaderboard_enabled" => false,
                "data_policy" => data_policy,
@@ -77,6 +79,7 @@ defmodule Techtree.Catalog.ImporterTest do
              } = climb.projection
 
       assert campaign_digest == CatalogFixture.campaign_digest()
+      assert plan_digest == CatalogFixture.execution_plan_digest()
       assert mutation_contract["kind"] == "skill_insertion"
 
       assert data_policy == %{
@@ -117,6 +120,15 @@ defmodule Techtree.Catalog.ImporterTest do
       assert {:ok, index, digest} = Query.catalog_bytes()
       assert index == CatalogFixture.read!(CatalogFixture.root(), "catalog.json")
       assert digest == CatalogFixture.catalog_digest()
+    end
+
+    test "serves the execution plan the Campaign binds, by its digest, as the CLI wrote it" do
+      assert {:ok, bytes, entry} = Query.object_bytes(CatalogFixture.execution_plan_digest())
+
+      assert entry.kind == :execution_plan
+      assert entry.relative_path == "execution-plans/hello-world-climb.json"
+      assert bytes == CatalogFixture.read!(CatalogFixture.root(), entry.relative_path)
+      assert Jason.decode!(bytes)["schema_version"] == "techtree.execution-plan.v1"
     end
 
     test "reimporting the same bundle is idempotent" do
@@ -191,7 +203,7 @@ defmodule Techtree.Catalog.ImporterTest do
       assert active.id == first.id
       assert active.catalog_digest == CatalogFixture.catalog_digest()
 
-      assert length(Ash.read!(CatalogEntry)) == 5
+      assert length(Ash.read!(CatalogEntry)) == 6
       assert Enum.all?(Ash.read!(CatalogEntry), & &1.active)
       assert Enum.count(Ash.read!(CatalogRelease), & &1.active) == 1
 
@@ -214,13 +226,32 @@ defmodule Techtree.Catalog.ImporterTest do
       assert failed.error_summary =~ "Ash.Error.Invalid"
     end
 
-    test "a partial bundle never reaches the database", %{first: first, bundle: bundle} do
-      File.rm!(Path.join(bundle, "campaigns/hello-world-climb.json"))
+    test "a partial bundle never reaches the database", %{first: first, tmp_dir: tmp_dir} do
+      for missing <- [
+            "campaigns/hello-world-climb.json",
+            "execution-plans/hello-world-climb.json"
+          ] do
+        bundle = CatalogFixture.copy!(Path.join(tmp_dir, Path.basename(missing, ".json")))
+        File.rm!(Path.join(bundle, missing))
+
+        error = assert_raise Error, fn -> Importer.import!(bundle) end
+        assert error.code == :catalog_object_missing
+
+        assert Ash.read!(CatalogRelease) |> Enum.map(& &1.id) == [first.id]
+        assert {:ok, active} = Query.active_catalog_release()
+        assert active.id == first.id
+      end
+    end
+
+    test "a Campaign that binds no execution plan never reaches the database",
+         %{first: first, bundle: bundle} do
+      CatalogFixture.rewrite_campaign!(bundle, &Map.delete(&1, "execution_plan_digest"))
 
       error = assert_raise Error, fn -> Importer.import!(bundle) end
-      assert error.code == :catalog_object_missing
+      assert error.code == :catalog_bundle_invalid
 
       assert Ash.read!(CatalogRelease) |> Enum.map(& &1.id) == [first.id]
+      assert length(Ash.read!(CatalogEntry)) == 6
       assert {:ok, active} = Query.active_catalog_release()
       assert active.id == first.id
     end

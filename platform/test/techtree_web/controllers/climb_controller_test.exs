@@ -48,6 +48,7 @@ defmodule TechtreeWeb.ClimbControllerTest do
                "campaign",
                "climb",
                "data_policy",
+               "execution_plan",
                "taskset_validation"
              ]
 
@@ -63,6 +64,9 @@ defmodule TechtreeWeb.ClimbControllerTest do
 
       assert summary["objects"]["campaign"]["digest"] == CatalogFixture.campaign_digest()
       assert summary["objects"]["climb"]["digest"] == CatalogFixture.climb_digest()
+
+      assert summary["objects"]["execution_plan"]["digest"] ==
+               CatalogFixture.execution_plan_digest()
     end
 
     test "a slug that names no Climb is not found", %{conn: conn} do

@@ -153,7 +153,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
       oversized =
         Jason.encode!(%{
           "schema_version" => "techtree.publication-submission.v1alpha1",
-          "run_id" => "run_c4758ddb5bba4023aa3530b47f4582e9",
+          "run_id" => NetworkFixture.report()["payload"]["run_id"],
           "bundle_digest" => NetworkFixture.bundle_digest(),
           "files" => %{"bundle.json" => String.duplicate("a", 3_000_000)}
         })
@@ -317,7 +317,11 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert entry["bundle_digest"] == NetworkFixture.bundle_digest()
       assert entry["entry_url"] == Endpoint.url() <> "/results/" <> NetworkFixture.bundle_digest()
       assert entry["subject"]["provider"] == "prime"
-      assert entry["result"]["wins"] == 23
+      assert entry["subject"]["harness"] == "hermes-agent"
+
+      assert entry["result"]["wins"] ==
+               NetworkFixture.report()["payload"]["primary_result"]["wins"]
+
       assert entry["checks"] == %{"run" => Bundle.check_count(), "passed" => Bundle.check_count()}
       assert is_nil(entry["withdrawn_at"])
 

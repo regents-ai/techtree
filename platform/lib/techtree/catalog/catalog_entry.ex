@@ -129,6 +129,7 @@ defmodule Techtree.Catalog.CatalogEntry do
                     :climb,
                     :campaign,
                     :data_policy,
+                    :execution_plan,
                     :taskset_validation,
                     :validation_evidence
                   ]

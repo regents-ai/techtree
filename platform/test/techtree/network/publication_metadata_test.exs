@@ -8,7 +8,7 @@ defmodule Techtree.Network.PublicationMetadataTest do
   alias Techtree.Network.Projection
   alias Techtree.NetworkFixture
 
-  @skill_digest "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+  @skill_digest "sha256:" <> String.duplicate("5c", 32)
 
   setup do
     CatalogFixture.use_bundle(CatalogFixture.root())

@@ -1,14 +1,24 @@
 defmodule Techtree.NetworkFixture do
   @moduledoc """
-  A real proof bundle, and ways to damage a copy of it.
+  A proof bundle of the Campaign this catalog publishes, and ways to damage a
+  copy of it.
 
-  `test/support/fixtures/proof` is one finished run, copied byte for byte off
-  the machine that produced it — eighty-four files, every digest and every
-  signature as they were written. A check that only ever sees a bundle this
-  repository built for the occasion is checking that the repository agrees with
-  itself, which is the one thing it was never in doubt about.
+  `test/support/fixtures/proof-v2` is one complete v0.2 proof of the
+  hello-world Campaign the fixture catalog ships — eighty-five files, every
+  digest and every signature as the CLI's bundle writer sealed them, and every
+  one of the CLI's own offline checks passing over it. It was written by
+  `scripts/build_v2_proof_fixture.py` out of the real Campaign graph, the real
+  manifest builder and the real report aggregation, under a key made for the
+  purpose, with synthetic rewards where a run would have evidence: a proof
+  that verifies, of a comparison nobody ran. This site never reads the
+  evidence, so that is exactly the fixture the checks it does run need.
 
-  So the honest bundle is read from disk, and every test that wants a refusal
+  `test/support/fixtures/proof` is the v0.1 certification run, kept byte for
+  byte as the read-only bundle the canonical encoder is pinned against. Its
+  Campaign is not one the v0.2 catalog publishes, so it is no longer something
+  this site would accept, and nothing here reads it.
+
+  The honest bundle is read from disk, and every test that wants a refusal
   spoils exactly one thing about a copy of it. Nothing here writes to the
   fixture; the damage is done to the submission document a test is about to
   send.
@@ -18,9 +28,11 @@ defmodule Techtree.NetworkFixture do
   alias Techtree.Catalog.Digest
   alias Techtree.Network.Key
 
-  @root Path.expand("fixtures/proof", __DIR__)
+  @root Path.expand("fixtures/proof-v2", __DIR__)
+  @cli_submission Path.expand("fixtures/publication/v2-submission.json", __DIR__)
   @schema_version "techtree.publication-submission.v1alpha1"
   @withdrawal_schema_version "techtree.publication-withdrawal.v1alpha1"
+  @report_schema_version "techtree.uplift-report.v2"
   @manifest "bundle.json"
 
   @doc """
@@ -70,6 +82,13 @@ defmodule Techtree.NetworkFixture do
       "files" => encoded
     })
   end
+
+  @doc """
+  The exact bytes the CLI's own publishing path puts on the wire for the
+  fixture proof, written beside it by the same script that wrote the proof.
+  """
+  @spec cli_submission() :: binary()
+  def cli_submission, do: File.read!(@cli_submission)
 
   @doc """
   The honest submission, with one file's member written a second time.
@@ -339,7 +358,7 @@ defmodule Techtree.NetworkFixture do
         envelope = files |> Map.fetch!(path) |> Jason.decode!()
 
         if is_map(envelope) and is_map(envelope["payload"]) and
-             envelope["payload"]["schema_version"] == "techtree.uplift-report.v1alpha1",
+             envelope["payload"]["schema_version"] == @report_schema_version,
            do: path
       end)
 
