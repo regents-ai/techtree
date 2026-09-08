@@ -6,6 +6,13 @@ Scope: v0.2.x, v0.3, and deferred v0.3.x studies
 
 ## Authority and sequence
 
+Founder amendment, 2026-09-08: [`repo2rlenv-v02x.md`](repo2rlenv-v02x.md)
+is binding for the narrow Repo Forge expansion. It admits qualified private
+artifact classes and a Python/pytest Repo2RLEnv lane in v0.2.x, removes that
+lane's private Skill Climb prerequisite, and admits separately qualified Prime
+Agent producer/native-subject work earlier. The unamended sections below retain
+their gates for broader Market/Foundry work; historical ticket IDs are references.
+
 This document is the implementation authority for work after the focused
 v0.2.0 execution-provenance release. The v0.2.0 contract remains
 [`v0.2.md`](v0.2.md). The release order is:
@@ -19,8 +26,8 @@ v0.2.0 execution-provenance release. The v0.2.0 contract remains
 4. Deferred v0.3.x studies (`techtree-5t7`).
 
 These are dependency gates, not a claim that implementation must proceed in
-one linear work-package sequence. The Beads dependency graph is authoritative
-for work that may run in parallel.
+one linear work-package sequence. The current assignment and actual component dependencies determine
+what may run in parallel; historical ticket IDs are reference labels only.
 
 All product and protocol names use Techtree: Techtree Market, Techtree
 Foundry, Techtree Climbs, Techtree Library, and `techtree.market.*`. Regents
@@ -87,17 +94,19 @@ packet and the required human or Safe signatures.
 A Library listing is backed by a verified proof and its declared source
 rights. Search and display preserve evidence facets and never create a
 performance leaderboard or upgrade a participant assertion to provider
-verification. The v0.2.x pilot distributes only public, digest-bound artifacts
-and never executes them on the platform. Private or server-executed artifact
-lanes remain blocked by the Foundry admission gate in `techtree-8dj.8`.
+verification. The original proof pilot distributes public, digest-bound artifacts.
+The approved Repo2RLEnv extension permits qualified private artifact classes and
+gated bytes only after their applicable Foundry admission gates pass. Repository
+execution belongs in isolated workers, never the Phoenix web process.
 
 ### x402 access contract (`techtree-33x.5`)
 
 Lock the exact x402 protocol, network, asset, price semantics, access grant,
 expiry, replay behavior, and artifact digest before implementation. Access to
 an artifact does not grant source, training, redistribution, or derivative
-rights unless the signed record explicitly says so. The v0.2.x lane does not
-execute purchased artifacts or admit private data.
+rights unless the signed record explicitly says so. Checkout itself does not
+execute artifacts. Private intake and worker execution require the separate
+admission and authorization contracts in the approved Repo2RLEnv amendment.
 
 ### Authenticated agent API (`techtree-33x.6`)
 
@@ -203,8 +212,10 @@ An artifact that cannot meet the declared boundary is rejected before use.
 
 ### Customer Foundry pilot (`techtree-8dj.9`)
 
-The pilot begins only after the private Skill Climb gate passes. Its packet
-binds the customer-authorized data, rights, participants, spend, disclosure,
+The general Foundry pilot retains its private Skill Climb prerequisite. The
+approved narrow Repo2RLEnv customer service instead requires its own qualified
+recipe, admission and delivery gates; positive Skill uplift is not a prerequisite.
+Both bind customer-authorized data, rights, participants, spend, disclosure,
 acceptance, and deletion policies.
 
 ## Deferred v0.3.x studies

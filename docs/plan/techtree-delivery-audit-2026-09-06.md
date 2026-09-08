@@ -4,6 +4,13 @@ Date: September 6, 2026. Baseline: `68d5fd3390c8e1c4dd2dee7916f2efc67369bd29`.
 Graph: Techtree’s own `.beads`, not Control’s graph.
 Documentation ticket: `techtree-a2v`.
 
+Status note, 2026-09-07: this audit is a dated snapshot. Its ticket IDs and
+tracker statuses are historical reference, not authority; the founder's current
+request defines scope and the workspace `regent-workflow` coordinates
+Hermes/Astra and Claude/Fable work. Where it says to dispatch, claim or update a
+ticket, read that as the current assignment. Current status lives in
+[`HANDOFF.md`](../../HANDOFF.md). The audit body is preserved as written.
+
 This is an evidence-backed delivery plan for the founder’s Techtree assignment.
 It explains the existing contracts and proposes the missing collaboration work;
 it does not silently replace upstream locks, release gates, or payment authority.
