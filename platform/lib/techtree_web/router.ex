@@ -52,6 +52,8 @@ defmodule TechtreeWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive
+    get "/blog", BlogController, :index
+    get "/blog/:slug", BlogController, :show
     live "/docs", DocsLive
     live "/proofs", ProofsLive
     live "/verify", ProofsLive

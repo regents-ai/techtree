@@ -61,6 +61,13 @@ npm-debug.log
 
 /assets/vendor/regent_identity/
 
+# Generated blog assets and application-only release contexts.
+/priv/static/images/blog/
+/vendor/regent_blog/
+/vendor/regent_blog_content/
+/vendor/.regent-blog-history/
+/vendor/.regent-blog-stage-*/
+
 /vendor/regent_identity/
 /vendor/regent_privy_shared/
 /vendor/.regent-identity-history/

@@ -1,4 +1,5 @@
 import {installSharedProfile} from "./shared_profile.js"
+import "../vendor/regent_ui/blog.mjs"
 
 installSharedProfile()
 // The pages are read-only documents. This bundle keeps the live connection,

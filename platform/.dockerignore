@@ -56,6 +56,8 @@ Dockerfile
 vendor/.regent-ui-history
 vendor/.regent-ui-stage-*
 vendor/.regent-identity-history
+vendor/.regent-blog-history
+vendor/.regent-blog-stage-*
 .envrc
 .env.local
 

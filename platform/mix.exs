@@ -58,6 +58,8 @@ defmodule Techtree.MixProject do
     [
       {:regent_ui,
        path: System.get_env("REGENT_UI_PATH", Path.join(shared, "design-system/regent_ui"))},
+      {:regent_blog,
+       path: System.get_env("REGENT_BLOG_PATH", Path.join(shared, "elixir-utils/blog"))},
       {:regent_privy,
        path: System.get_env("REGENT_PRIVY_PATH", Path.join(shared, "elixir-utils/privy"))},
       {:regent_identity,
@@ -102,12 +104,14 @@ defmodule Techtree.MixProject do
       "assets.build": [
         "compile",
         "regent_ui.assets",
+        "regent_blog.assets",
         "regent_identity.assets",
         "esbuild techtree",
         "esbuild techtree_privy"
       ],
       "assets.deploy": [
         "regent_ui.assets",
+        "regent_blog.assets",
         "regent_identity.assets",
         "esbuild techtree --minify",
         "esbuild techtree_privy --minify",

@@ -34,13 +34,7 @@ defmodule TechtreeWeb.Layouts do
   attr(:theme, :string, default: "light")
 
   defp masthead(assigns) do
-    assigns =
-      assign(assigns,
-        repository_url: @repository_url,
-        theme_name: theme_name(assigns.theme),
-        next_theme_name: next_theme_name(assigns.theme),
-        orange_active?: assigns.theme == "light"
-      )
+    assigns = assign(assigns, :repository_url, @repository_url)
 
     ~H"""
     <header class="masthead">
@@ -77,6 +71,7 @@ defmodule TechtreeWeb.Layouts do
               Verify
             </a>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
+            <a href={~p"/blog"} aria-current={current_section(@current_path, "/blog")}>Blog</a>
             <a
               class="masthead__service"
               href={~p"/repo2rlenv"}
@@ -102,29 +97,11 @@ defmodule TechtreeWeb.Layouts do
             </svg>
           </a>
         </nav>
-        <Regent.Primitives.button
-          variant="secondary"
+        <Regent.ThemeToggle.button
           id="site-theme-toggle"
-          class="theme-toggle"
-          type="button"
-          aria-label={"Color theme: #{@theme_name}. Activate #{@next_theme_name} theme."}
-          aria-pressed={to_string(@orange_active?)}
-          title={"Switch to #{@next_theme_name}"}
+          theme={@theme}
           data-theme-toggle
-        >
-          <span class="theme-toggle__stage" aria-hidden="true">
-            <span class="theme-toggle__laser"></span>
-            <span class="theme-toggle__cube">
-              <span class="theme-toggle__face theme-toggle__face--front"></span>
-              <span class="theme-toggle__face theme-toggle__face--back"></span>
-              <span class="theme-toggle__face theme-toggle__face--left"></span>
-              <span class="theme-toggle__face theme-toggle__face--right"></span>
-              <span class="theme-toggle__face theme-toggle__face--top"></span>
-              <span class="theme-toggle__face theme-toggle__face--bottom"></span>
-            </span>
-          </span>
-          <span class="offscreen" data-theme-toggle-state>{@theme_name} theme active</span>
-        </Regent.Primitives.button>
+        />
       </div>
     </header>
     """
@@ -145,12 +122,6 @@ defmodule TechtreeWeb.Layouts do
 
   defp request_path(%{conn: %Plug.Conn{request_path: path}}), do: path
   defp request_path(_assigns), do: "/"
-
-  defp theme_name("dark"), do: "Dark"
-  defp theme_name(_theme), do: "Light"
-
-  defp next_theme_name("dark"), do: "Light"
-  defp next_theme_name(_theme), do: "Dark"
 
   defp page_description(assigns) do
     assigns

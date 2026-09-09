@@ -20,6 +20,7 @@ fi
 # Stage the resolved shared package into this application-only build context.
 mix regent_ui.stage
 mix regent_identity.stage
+mix regent_blog.stage
 
 exec flyctl deploy \
   --app techtree-sh \

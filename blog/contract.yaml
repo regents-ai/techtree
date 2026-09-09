@@ -1,0 +1,10 @@
+version: 1
+owner: techtree
+shared_contract: ../../elixir-utils/blog/contract.yaml
+public_routes:
+  - "GET /blog"
+  - "GET /blog/:slug"
+content_root: blog/
+image_root: blog/images/
+components: Regent.Blog
+publication: "Only non-draft posts dated today or earlier (UTC); no category filters"
