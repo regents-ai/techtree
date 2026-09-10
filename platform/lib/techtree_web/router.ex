@@ -32,7 +32,8 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
-  # The one pipeline in front of the one address that accepts a body.
+  # The pipeline in front of the only write the public may make; the
+  # owner-only profile writes authenticate through RegentIdentity on :api.
   pipeline :publishing do
     plug :accepts, ["json"]
     plug :put_public_api_headers
@@ -86,9 +87,9 @@ defmodule TechtreeWeb.Router do
     get "/publication-keys/:key_id", PublicationKeyController, :show
   end
 
-  # The one address that accepts anything, on its own so that what stands in
-  # front of it is visible here rather than buried in a pipeline everything
-  # shares.
+  # The one public write address, on its own so that what stands in front of
+  # it is visible here rather than buried in a pipeline everything shares. The
+  # profile routes above accept bodies only from the signed-in owner.
   scope "/api/v1", TechtreeWeb do
     pipe_through :publishing
 

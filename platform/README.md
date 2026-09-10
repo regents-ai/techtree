@@ -67,9 +67,11 @@ letting a reader find them.
 
 > [!NOTE]
 > This application does not run evaluations, accept Skills, store Episodes or
-> Traces, authenticate anyone, or run a leaderboard. It accepts one thing: a
-> signed proof a participant chose to publish, and the signed withdrawal of one
-> they published earlier. Results are ordered by arrival and never ranked.
+> Traces, or run a leaderboard. It accepts one public write: a signed proof a
+> participant chose to publish, and the signed withdrawal of one they
+> published earlier. Results are ordered by arrival and never ranked.
+> A separate owner-only profile API signs its reader in through the Regents
+> identity; it grants no publication-key authority.
 > The local scientific loop in [`cli/`](../cli/) keeps working when
 > this site is offline — the site is discovery, onboarding and the log, never a
 > runtime dependency.
@@ -102,6 +104,8 @@ GET /docs                       operating and mechanism documentation
 GET /skill.md                   the released starter Skill
 GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
+GET /repo2rlenv                 the planned Repo2RLEnv service
+GET /blog, /blog/:slug          published posts
 
 GET /healthz                    is a catalog being served, and which one
 GET /api/v1/bootstrap           the installation contract, exact bytes
@@ -112,16 +116,20 @@ GET /api/v1/publications        the run log, newest first
 GET /api/v1/publications/:digest  one published run
 GET /api/v1/publications/:digest/bundle  what was submitted, exact bytes
 GET /api/v1/publication-keys/:key_id  the public half of this site's own key
+GET /api/v1/profile             the owner's shared profile
+PATCH /api/v1/profile           the owner updates the shared profile
+POST /api/v1/profile/sync       the owner re-reads their shared profile
 
 POST /api/v1/publications       a signed publication, or a signed withdrawal
 ```
 
-All but one route is a read. The exception is the single write address decision
-0038 allows: it takes a signed proof a participant chose to publish, or the
-signed withdrawal of one they published before, and the two are told apart by a
-member each document's own signature covers. There is no route that uploads a
-file, authenticates anybody, or ranks anything, and no second write may be
-added.
+`POST /api/v1/publications` is the only write the public may make — the single
+write address decision 0038 allows. It takes a signed proof a participant chose
+to publish, or the signed withdrawal of one they published before, and the two
+are told apart by a member each document's own signature covers. The profile
+routes are owner-only writes on the shared profile, authenticated by the
+Regents identity session; they grant no publication-key authority. There is no
+route that uploads a file or ranks anything.
 
 Caching follows how immutable each address is. A content-addressed object may be
 kept forever; the catalog index and the installation contract are cached briefly

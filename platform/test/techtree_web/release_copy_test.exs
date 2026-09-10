@@ -173,15 +173,16 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   # The GitHub addresses that are informational rather than installable: the
   # verifiers hover card links the library's home, and the masthead links this
-  # project's repository. Nothing a reader installs is ever taken from either,
-  # so the immutable-revision rule does not apply.
+  # project's repository and its stargazers page. Nothing a reader installs is
+  # ever taken from any of them, so the immutable-revision rule does not apply.
   @informational_addresses [
     "https://github.com/PrimeIntellect-ai/verifiers",
     "https://github.com/NousResearch/hermes-agent",
     "https://github.com/NVIDIA-NeMo",
     "https://github.com/NVIDIA/NeMo-Fabric",
     "https://github.com/NVIDIA/NeMo-Relay",
-    "https://github.com/regents-ai/techtree"
+    "https://github.com/regents-ai/techtree",
+    "https://github.com/regents-ai/techtree/stargazers"
   ]
   @unset_revision String.duplicate("0", 40)
 
