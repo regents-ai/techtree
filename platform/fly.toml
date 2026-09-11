@@ -26,9 +26,13 @@ swap_size_mb = 512
   # resolve.
   ECTO_IPV6 = "true"
 
-  # PHX_HOST, SECRET_KEY_BASE, DATABASE_URL, and TECHTREE_NETWORK_SIGNING_KEY
-  # are secrets, not settings, and are set with `flyctl secrets set` (see the
-  # runbook). The signing key is the private half of the key this site
+  # PHX_HOST, SECRET_KEY_BASE, DATABASE_URL, DATABASE_DIRECT_URL,
+  # TECHTREE_DB_SCHEMA and TECHTREE_NETWORK_SIGNING_KEY are secrets, not
+  # settings, and are set with `flyctl secrets set` (see the runbook). The two
+  # database URLs come from `flyctl mpg attach` against the shared
+  # regents-platform-prod cluster's regents_prod database, and
+  # TECHTREE_DB_SCHEMA is techtree_app there: Techtree owns that namespace and
+  # its migration ledger, alongside the other products' namespaces. The signing key is the private half of the key this site
   # countersigns publication receipts with; it belongs in no file here, and the
   # release refuses to start without it. PHX_SERVER is set by
   # bin/server alone, so that `bin/migrate` and `bin/techtree eval` can run on

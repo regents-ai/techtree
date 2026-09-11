@@ -303,10 +303,11 @@ No model-provider credential is read by this application.
 
 ## Shared database namespace
 
-Development and test databases use `public` by default. The reviewed shared-database
-cutover selects `TECHTREE_DB_SCHEMA=techtree_app` only after importing the complete
-product schema, publication sequence and migration ledger. Regents' historical
-`techtree` schema is a separate retained source.
+Development and test databases use `public` by default. Production runs on the shared
+`regents_prod` database (Fly Managed Postgres cluster `regents-platform-prod`) with
+`TECHTREE_DB_SCHEMA=techtree_app`, set as a Fly secret together with the two attached
+database URLs; that namespace holds the complete product schema, publication sequence
+and migration ledger. Regents' historical `techtree` schema is a separate retained source.
 
 Use `Techtree.Release.migrate()` for that destination. It selects Techtree's ledger
 and refuses to replay missing historical migrations containing public-qualified
