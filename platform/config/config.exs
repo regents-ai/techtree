@@ -57,7 +57,7 @@ config :spark,
 
 config :techtree,
   ecto_repos: [Techtree.Repo],
-  ash_domains: [Techtree.Catalog, Techtree.Network],
+  ash_domains: [Techtree.Catalog, Techtree.Network, Techtree.Safety],
   generators: [timestamp_type: :utc_datetime]
 
 # The catalog bundle this build serves, and the release channel it belongs to.
@@ -67,6 +67,13 @@ config :techtree,
 config :techtree, Techtree.Catalog,
   catalog_root: {:priv, "catalog"},
   channel: "development"
+
+# Monitor comparisons. The site funds their model calls, so a day has a cap on
+# how many may start; the module answering the calls is swapped for a scripted
+# one in test.
+config :techtree, Techtree.Safety,
+  model: Techtree.Safety.Model.Anthropic,
+  daily_run_cap: 25
 
 # The two addresses on this site that accept anything. A proof bundle carries
 # digests and scores and no transcripts, so a few hundred kilobytes is the

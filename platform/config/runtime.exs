@@ -85,6 +85,14 @@ config :techtree,
          fn {_key, value} -> is_nil(value) end
        )
 
+# The key the monitor-comparison demo makes its model calls with. It is the
+# only model-provider credential this site reads, it is read here and nowhere
+# else, and its value is never printed. Without it the demo page says
+# comparisons are not switched on and starts nothing.
+config :techtree,
+       Techtree.Safety.Model.Anthropic,
+       api_key: System.get_env("TECHTREE_SAFETY_ANTHROPIC_API_KEY")
+
 # The key this site countersigns publication receipts with. The private half is
 # operational configuration and lives nowhere in this repository: it is the
 # base64 of 32 bytes of Ed25519 private key, generated on a machine the operator
