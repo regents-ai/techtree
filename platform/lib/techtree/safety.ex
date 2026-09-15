@@ -134,14 +134,22 @@ defmodule Techtree.Safety do
   # The cap is checked and the run recorded under one lock, so two presses at
   # the day's last slot cannot both start.
   defp admit(pack, a, b) do
-    Techtree.Repo.transaction(fn ->
-      Techtree.Repo.query!("SELECT pg_advisory_xact_lock($1)", [@cap_lock])
+    # Ash.transaction rolls back on an `{:error, _}` return, so a refusal
+    # travels out under its own tag.
+    {:ok, outcome} =
+      Ash.transaction(Run, fn ->
+        Techtree.Repo.query!("SELECT pg_advisory_xact_lock($1)", [@cap_lock])
 
-      case under_cap() do
-        :ok -> start_run!(run_attributes(pack, a, b), @internal)
-        {:error, reason} -> Techtree.Repo.rollback(reason)
-      end
-    end)
+        case under_cap() do
+          :ok -> {:admitted, start_run!(run_attributes(pack, a, b), @internal)}
+          {:error, reason} -> {:refused, reason}
+        end
+      end)
+
+    case outcome do
+      {:admitted, run} -> {:ok, run}
+      {:refused, reason} -> {:error, reason}
+    end
   end
 
   defp run_attributes(pack, a, b) do
