@@ -105,6 +105,9 @@ GET /skill.md                   the released starter Skill
 GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
 GET /repo2rlenv                 the planned Repo2RLEnv service
+GET /safety/:slug               one safety test, and the button that compares two monitors on it
+GET /safety/runs/:id            one comparison: the table, the tradeoff, every case's evidence
+GET /safety/runs/:id/evidence   that comparison as one JSON file
 GET /blog, /blog/:slug          published posts
 
 GET /healthz                    is a catalog being served, and which one

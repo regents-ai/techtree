@@ -88,6 +88,9 @@ defmodule TechtreeWeb.RouterTest do
              "get /repo2rlenv",
              "get /results",
              "get /results/:bundle_digest",
+             "get /safety/:slug",
+             "get /safety/runs/:id",
+             "get /safety/runs/:id/evidence",
              "get /skill.md",
              "get /start",
              "get /verify",
@@ -97,7 +100,7 @@ defmodule TechtreeWeb.RouterTest do
            ]
   end
 
-  test "no route takes a path parameter other than a digest, a fingerprint or a slug" do
+  test "no route takes a path parameter other than a digest, a fingerprint, a slug or a run id" do
     parameters =
       @routes
       |> Enum.reject(&("#{&1.verb} #{&1.path}" in @previews))
@@ -106,7 +109,7 @@ defmodule TechtreeWeb.RouterTest do
       |> Enum.uniq()
       |> Enum.sort()
 
-    assert parameters == ["bundle_digest", "digest", "key_id", "slug"]
+    assert parameters == ["bundle_digest", "digest", "id", "key_id", "slug"]
   end
 
   test "no artifact, proof, bundle, or login route exists", %{conn: conn} do

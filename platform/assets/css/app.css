@@ -415,6 +415,47 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .evidence-graph__canvas, .evidence-node__details dl { grid-template-columns: minmax(0, 1fr); }
   .evidence-node { grid-column: 1; }
 }
+/* Safety: choose a test, compare two monitors, see what they missed. One
+   column, one primary action a page, thin rules, 48px rows. */
+.safety { max-width: 65rem; }
+.safety__facts { margin-top: var(--space-2); font-size: .875rem; color: var(--ink-quiet); }
+.safety__monitors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--rg-track-gap); margin-top: var(--space-4); }
+.safety__monitors select { width: 100%; min-height: 3rem; padding: 0 var(--space-2); border: 1px solid var(--rule-strong); background: var(--panel); color: inherit; font: inherit; }
+.safety__disclosure { margin-top: var(--space-3); font-size: .875rem; color: var(--ink-quiet); }
+.safety__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.safety__disclosures { display: grid; gap: var(--space-2); margin-top: var(--space-5); }
+.safety__policy { margin: var(--space-2) 0 0; padding: var(--space-2); border-left: 3px solid var(--accent); background: var(--panel); font-size: .875rem; }
+.safety__prompt { margin-top: var(--space-3); }
+.safety__prompt-text { max-width: 100%; margin: var(--space-2) 0 0; padding: var(--space-2); border: 1px solid var(--rule); background: var(--panel); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8125rem; line-height: 1.5; }
+.safety__tradeoff { margin-top: var(--space-3); font-size: 1rem; }
+.comparison { width: 100%; margin-top: var(--space-2); border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.comparison th, .comparison td { height: 3rem; padding: 0 var(--space-2); border-bottom: 1px solid var(--rule); text-align: left; font-size: .875rem; }
+.comparison thead th { font-size: .75rem; text-transform: uppercase; font-weight: 400; color: var(--ink-quiet); }
+.comparison tbody th { font-weight: 400; }
+.comparison td, .comparison thead th:not(:first-child) { text-align: right; }
+.cases { list-style: none; margin: 0; padding: 0; }
+.case__row { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) 1.5rem; align-items: center; gap: var(--space-2); min-height: 3rem; padding: var(--space-1) var(--space-1); border-bottom: 1px solid var(--rule); color: inherit; text-decoration: none; font-size: .875rem; }
+.case__head { margin-top: var(--space-3); min-height: 2.5rem; font-size: .75rem; text-transform: uppercase; color: var(--ink-quiet); }
+a.case__row:hover, a.case__row:focus-visible { background: var(--panel); color: inherit; }
+a.case__row[aria-expanded="true"] { background: var(--panel); border-left: 3px solid var(--accent); }
+.case__title { font-weight: 600; }
+.case__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.case__chevron { text-align: right; color: var(--ink-quiet); }
+.case__detail { display: grid; gap: var(--space-3); padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--rule); border-left: 3px solid var(--accent); background: var(--panel); font-size: .875rem; }
+.case__monitors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--rg-track-gap); }
+.finding { padding: var(--space-2); border: 1px solid var(--rule); background: var(--page); }
+.finding__rationale { color: var(--ink-quiet); }
+.transcript { display: grid; gap: var(--space-1); margin: var(--space-2) 0 0; padding-left: var(--space-3); font-size: .8125rem; }
+.transcript li { padding: .125rem var(--space-1); }
+.transcript li:target { outline: 2px solid var(--accent); outline-offset: 2px; }
+.transcript__kind { display: inline-block; min-width: 4.5rem; font-size: .75rem; text-transform: uppercase; color: var(--ink-quiet); }
+@media (max-width: 48rem) {
+  .safety__monitors, .case__monitors { grid-template-columns: minmax(0, 1fr); }
+  .case__row { grid-template-columns: minmax(0, 1fr) 1.5rem; }
+  .case__row > span:not(.case__title):not(.case__chevron) { grid-column: 1; }
+  .case__label { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; color: var(--ink-quiet); }
+  .case__head { display: none; }
+}
 @media (max-width: 24rem) {
   .masthead__selector { width: 100%; }
   .masthead__selector a { flex: 1 1 30%; padding-inline: var(--space-1); }

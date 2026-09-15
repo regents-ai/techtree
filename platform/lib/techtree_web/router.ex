@@ -59,6 +59,8 @@ defmodule TechtreeWeb.Router do
     live "/proofs", ProofsLive
     live "/verify", ProofsLive
     live "/repo2rlenv", Repo2RLEnvLive
+    live "/safety/runs/:id", SafetyLive.Run
+    live "/safety/:slug", SafetyLive.Test
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show
     get "/skill.md", SkillController, :show
@@ -72,6 +74,7 @@ defmodule TechtreeWeb.Router do
     pipe_through :api
 
     get "/healthz", HealthController, :show
+    get "/safety/runs/:id/evidence", SafetyEvidenceController, :show
   end
 
   scope "/api/v1", TechtreeWeb do
