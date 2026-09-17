@@ -359,6 +359,14 @@ Public proofs and their schemas are unchanged.
 
 The shipped Python/uv bootstrap exposes `/workspace/.venv/bin` in both login and non-login shells, so generation and qualification use the installed test tools.
 
+Generation keeps each runtime validation's raw pre/post output, parsed test
+statuses, candidate label and upstream reason under the private build's
+`generation-validation/` directory. When upstream reports no fail-to-pass tests
+after attempting validation, an empty parsed result in at least one stage is
+reported as `no_parseable_test_output`, not `no_fail_to_pass`. Earlier failures,
+such as patch application or fetching the base commit, keep their upstream
+classification. This changes diagnostics only, never which tasks upstream admits.
+
 Each build's `task_set` records every emitted task in `generation.tasks` order.
 Each task manifest lists every relative file and directory path (including empty
 directories), sorted by Unicode code point, with no filename exclusions. Files
