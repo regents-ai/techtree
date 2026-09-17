@@ -53,6 +53,8 @@ packages = ["src/techtree"]
 artifacts = [
   "src/techtree/resources/catalog/**/*",
   "src/techtree/resources/engines/**/*",
+  # The pinned Repo2RLEnv project the local task forge builds its environment from.
+  "src/techtree/resources/forge/**/*",
   # Decisions 0007 R9: the pinned harness tool surface a comparison checks the
   # Skill-index delta against.
   "src/techtree/resources/harness/**/*",
@@ -114,6 +116,7 @@ exclude = [
   "^tests/plugin/",
   "^tests/preflight/",
   "^src/techtree/resources/engines/",
+  "^src/techtree/resources/forge/",
 ]
 
 [tool.pytest.ini_options]

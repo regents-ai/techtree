@@ -1,0 +1,18 @@
+# The managed Repo2RLEnv environment for `techtree forge`.
+#
+# Hand-written and locked with `uv lock` at development time. A person's
+# machine runs `uv sync --frozen` against uv.lock and never resolves anything
+# itself, so every `forge build` on every machine uses the same Repo2RLEnv.
+
+[project]
+name = "techtree-forge"
+version = "0.1.0"
+description = "Pinned Repo2RLEnv environment for Techtree's local task forge."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "repo2rlenv==0.8.8",
+]
+
+[tool.uv]
+# The forge project is an environment, not a distribution. Nothing installs it.
+package = false
