@@ -16,6 +16,10 @@ ENV UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/workspace/.venv \
     PATH="/workspace/.venv/bin:${PATH}"
 
+# Repo2RLEnv validates in login shells, whose /etc/profile resets PATH.
+RUN printf '%s\n' 'export PATH="/workspace/.venv/bin:$PATH"' \
+    > /etc/profile.d/techtree-venv.sh
+
 COPY . /workspace
 WORKDIR /workspace
 

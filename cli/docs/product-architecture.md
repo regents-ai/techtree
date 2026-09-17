@@ -357,6 +357,8 @@ qualification records use `techtree.forge-build.v1alpha2` and
 local shape: old `v1alpha1` records fail validation, without a fallback reader.
 Public proofs and their schemas are unchanged.
 
+The shipped Python/uv bootstrap exposes `/workspace/.venv/bin` in both login and non-login shells, so generation and qualification use the installed test tools.
+
 Each build's `task_set` records every emitted task in `generation.tasks` order.
 Each task manifest lists every relative file and directory path (including empty
 directories), sorted by Unicode code point, with no filename exclusions. Files
