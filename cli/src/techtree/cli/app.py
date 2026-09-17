@@ -6,18 +6,18 @@ the command groups, and closes the last gap in the error boundary: a typed
 failure raised while the context is still being built still owes the caller one
 envelope and one documented exit code.
 
-``climb``, ``skill``, ``run``, ``engine``, ``proof``, ``release`` and
-``uplift`` are registered with their real names even where this build
+``climb``, ``skill``, ``run``, ``engine``, ``proof``, ``release``, ``uplift``
+and ``forge`` are registered with their real names even where this build
 implements only some of what each will eventually hold. ``publish`` and
 ``withdraw`` are commands rather than groups, because each is one thing a
 person does and neither has a second member to hold. A name
 that exists and answers ``not_implemented`` is discoverable and scriptable; a
 name that does not exist yet is indistinguishable from a typo. The reserved
-namespaces — ``program``, ``blueprint``, ``forge``, ``verify``, ``trace``,
-``lab`` — get no group at all, because an empty group in ``--help`` is a
-promise about a shape that has not been decided. ``uplift`` left that list when
-spec section 7.21's improvement commands landed and it stopped being a shape
-nobody had decided.
+namespaces — ``program``, ``blueprint``, ``verify``, ``trace``, ``lab`` — get
+no group at all, because an empty group in ``--help`` is a promise about a
+shape that has not been decided. ``uplift`` left that list when spec section
+7.21's improvement commands landed, and ``forge`` left it when the local task
+forge (``docs/plan/repo2rlenv-local-lane.md``) landed.
 
 Global options are accepted anywhere on the command line. ``techtree --json
 doctor`` and ``techtree doctor --json`` mean the same thing, because a caller
@@ -53,6 +53,7 @@ from techtree.cli.commands.engine import (
     status_engine_command,
     verify_engine_command,
 )
+from techtree.cli.commands.forge import build_forge_command, status_forge_command
 from techtree.cli.commands.profile import (
     get_profile_command,
     sync_profile_command,
@@ -109,7 +110,6 @@ BOUNDARY_OPERATION: Final = Operation.PLAN_INSPECT
 RESERVED_NAMESPACES: tuple[str, ...] = (
     "program",
     "blueprint",
-    "forge",
     "verify",
     "trace",
     "lab",
@@ -274,6 +274,7 @@ def create_app() -> typer.Typer:
     app.add_typer(_proof_app(), name="proof")
     app.add_typer(_release_app(), name="release")
     app.add_typer(_uplift_app(), name="uplift")
+    app.add_typer(_forge_app(), name="forge")
     return app
 
 
@@ -387,6 +388,17 @@ def _release_app() -> typer.Typer:
         "verify",
         help="Check that every release coordinate still names what it claims.",
     )(verify_release_command)
+    return app
+
+
+def _forge_app() -> typer.Typer:
+    app = typer.Typer(
+        help="Build and qualify tasks from a local repository.", no_args_is_help=True
+    )
+    app.command("build", help="Build and qualify tasks from a local repository.")(
+        build_forge_command
+    )
+    app.command("status", help="Show what one forge build made.")(status_forge_command)
     return app
 
 

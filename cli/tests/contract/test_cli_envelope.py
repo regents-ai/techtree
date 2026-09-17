@@ -710,7 +710,6 @@ def test_the_reserved_namespaces_are_the_ones_the_specification_names() -> None:
     assert RESERVED_NAMESPACES == (
         "program",
         "blueprint",
-        "forge",
         "verify",
         "trace",
         "lab",

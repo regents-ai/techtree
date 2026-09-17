@@ -341,9 +341,62 @@ src/techtree/
 │                       tree), checks.py (passed / failed / skipped, never two
 │                       verdicts), bootstrap.py (check the website's wrapper from the
 │                       producing end), provenance.py (read back the build stamp).
-└── resources/          catalog/, engines/default/, harness/, release/ — the embedded,
-                        generated payload the wheel carries.
+├── forge/              the local task forge (docs/plan/repo2rlenv-local-lane.md):
+│                       bundle.py (the pinned Repo2RLEnv project, uv sync --frozen),
+│                       generate.py (clone, bootstrap image, the driver), qualify.py
+│                       (model-free control and reference grading of every task),
+│                       content.py (complete task trees and ordered membership),
+│                       docker.py and process.py (the one command boundary).
+└── resources/          catalog/, engines/default/, forge/, harness/, release/ — the
+                        embedded, generated payload the wheel carries.
 ```
+
+**Forge task commitments (private, unqualified local lane).** Build and
+qualification records use `techtree.forge-build.v1alpha2` and
+`techtree.forge-qualification.v1alpha2`. This is a hard cutover of the unreleased
+local shape: old `v1alpha1` records fail validation, without a fallback reader.
+Public proofs and their schemas are unchanged.
+
+Each build's `task_set` records every emitted task in `generation.tasks` order.
+Each task manifest lists every relative file and directory path (including empty
+directories), sorted by Unicode code point, with no filename exclusions. Files
+carry their byte size and SHA-256 digest; directories carry size zero and no byte
+digest. Both record the owner-executable bit. Ownership, timestamps and other
+permission bits are deliberately outside the commitment. File bytes are hashed
+in bounded-memory chunks, with no file-size cap. Symlinks, special files, unsafe
+or non-UTF-8 paths, duplicate task IDs and observed concurrent mutation refuse
+the whole set; tasks are never silently dropped.
+
+The content digest hashes `{schema_version, entries}`, domain-separated by
+`techtree.forge-task-content.v1alpha1`. The membership digest hashes
+`{schema_version, tasks}`, with `techtree.forge-task-set.v1alpha1` and an ordered
+array of `{task_id, content_digest}`. Both use `techtree.canonical`, not another
+JSON encoder. Qualification verifies the live content before and after grading
+and binds its evidence to both commitments. Stored status validates those
+bindings without requiring `uv`, Docker, or a live content scan. This detects
+inconsistent evidence; it is not a signature, a pinned subject, or proof that a
+real container qualification has occurred.
+
+`progress.json` (`techtree.forge-progress.v1alpha1`) is atomically written before
+daemon/environment preparation, then at phase changes and task boundaries. It
+retains UTC timestamps, the last observed phase, the ordered prefix of actual
+task records, and any caught failure or cancellation. Partial task evidence is
+bound to the build commitments but never presented as final qualification.
+Status reports `generation_finished`, `qualification_finished`, and
+`usable_tasks` separately. Completion means a durable accepted stage record;
+its absence after terminal failure/cancellation means `false`, while unfinished
+observations remain unknown (`null`). Unknown usable counts are never zero.
+A progress receipt does not prove a process is still running. Completed alpha2 builds that
+have no progress receipt remain readable, with progress explicitly unknown.
+
+Ordinary errors and Ctrl-C produce a failure/cancellation receipt and a build ID
+with a status command. SIGKILL or disk-write failure can leave no final receipt;
+an unfinished last observation is not silently converted to a terminal outcome.
+Qualification that finishes with zero usable tasks is recorded as completed, but
+the build command returns `forge_no_usable_tasks` with skip reasons and a status
+instruction. Input rejection before build admission need not create a build.
+These offline behaviors are not real Docker qualification or restart/resume
+support; a fresh build is still required after fixing its failed prerequisites.
 
 **Tests.**
 
