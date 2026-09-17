@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from enum import Enum
 from pathlib import PurePath
-from typing import Final
+from typing import BinaryIO, Final
 
 import rfc8785
 from pydantic import BaseModel
@@ -54,6 +54,7 @@ __all__ = [
     "digest_object",
     "normalize_verifiers_task_hash",
     "sha256_digest_bytes",
+    "sha256_digest_stream",
     "to_json_value",
     "validate_digest",
     "verify_bytes_digest",
@@ -181,6 +182,14 @@ def canonical_json_text(value: object) -> str:
 def sha256_digest_bytes(data: bytes) -> Digest:
     """Return ``sha256:<hex>`` for raw bytes."""
     return f"{DIGEST_PREFIX}{hashlib.sha256(data).hexdigest()}"
+
+
+def sha256_digest_stream(stream: BinaryIO) -> Digest:
+    """Hash bytes from the current position to EOF without buffering the file."""
+    digest = hashlib.sha256()
+    while chunk := stream.read(1024 * 1024):
+        digest.update(chunk)
+    return f"{DIGEST_PREFIX}{digest.hexdigest()}"
 
 
 def digest_object(value: object) -> Digest:

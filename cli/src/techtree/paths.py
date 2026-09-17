@@ -1,9 +1,9 @@
 """Where Techtree keeps its local state. Spec sections 10.10 and 28.
 
 One root directory holds everything: the settings file, the download cache,
-submission drafts, runs, and installed managed engines. Resolving that root
-through ``platformdirs`` means the location follows each platform's own
-convention instead of hard-coding a Unix dotfile path.
+submission drafts, runs, installed managed engines, and forge builds. Resolving
+that root through ``platformdirs`` means the location follows each platform's
+own convention instead of hard-coding a Unix dotfile path.
 
 Nothing here touches the filesystem at import time. Directories are created
 only when :func:`ensure_path_layout` is called, which keeps ``import techtree``
@@ -51,6 +51,7 @@ class TechtreePaths:
     runs_dir: Path
     engines_dir: Path
     identities_dir: Path
+    forge_dir: Path
 
     def draft_dir(self, draft_id: str) -> Path:
         """Return the directory holding one submission draft."""
@@ -73,6 +74,20 @@ class TechtreePaths:
         """
         return self.skills_cache_dir() / validate_digest(digest).replace(":", "-", 1)
 
+    @property
+    def forge_env_dir(self) -> Path:
+        """Return where the managed Repo2RLEnv environment is built."""
+        return self.forge_dir / "env"
+
+    @property
+    def forge_builds_dir(self) -> Path:
+        """Return the directory holding every forge build."""
+        return self.forge_dir / "builds"
+
+    def forge_build_dir(self, build_id: str) -> Path:
+        """Return the directory holding one forge build."""
+        return self.forge_builds_dir / validate_id(build_id, "build")
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 
@@ -94,6 +109,7 @@ def paths_from_root(root: Path) -> TechtreePaths:
         runs_dir=resolved / "runs",
         engines_dir=resolved / "engines",
         identities_dir=resolved / "identities",
+        forge_dir=resolved / "forge",
     )
 
 

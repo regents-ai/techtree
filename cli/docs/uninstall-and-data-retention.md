@@ -99,7 +99,13 @@ environment variable a user sets to relocate it.
 │   └── proof/                           the signed, portable proof bundle
 ├── drafts/<draft-id>/                   prepared but unstarted submissions
 ├── cache/skills/<sha256-...>/           Skills Techtree fetched and verified
-└── engines/<sha256-...>/                the evaluation engine, with its .venv
+├── engines/<sha256-...>/                the evaluation engine, with its .venv
+└── forge/
+    ├── env/                             the Repo2RLEnv environment, with its .venv
+    └── builds/<build-id>/               one task build from one of your repositories
+        ├── checkout/<name>/             a clone of that repository's committed history
+        ├── tasks/<task-id>/             the generated tasks, each with its reference patch
+        └── qualification/               test output from grading each task
 ```
 
 `identities/executor-private-key.bin` is the file to think hardest about. It is
@@ -110,8 +116,12 @@ recovery. A new key is generated the next time one is needed, and proofs signed
 by the old key remain verifiable by anyone holding the matching
 `executor-public.json` — but you cannot sign as that identity again.
 
-`engines/` is usually the largest thing here by a wide margin: it contains a
-full Python environment for the evaluation engine.
+`engines/` and `forge/env/` are usually the largest things here by a wide
+margin: each contains a full Python environment. `forge/builds/` holds copies
+of your own repositories' history and the tasks made from it, so it is the
+part of the home that contains your code. The Docker images a build made are
+named `techtree-forge/...` in your Docker daemon and are not removed with the
+package.
 
 ### 2. uv's caches, outside the Techtree home
 
