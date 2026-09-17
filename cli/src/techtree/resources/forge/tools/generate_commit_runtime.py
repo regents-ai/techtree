@@ -31,9 +31,89 @@ from pathlib import Path
 
 from repo2rlenv.bootstrap.docker import DockerSandbox
 from repo2rlenv.bootstrap.spec import BootstrapResult, LanguageHint
+from repo2rlenv.log_parsers import parse_logs
+from repo2rlenv.pipelines import pr_runtime_validate
 from repo2rlenv.pipelines.commit_runtime import CommitRuntimePipeline
+from repo2rlenv.pipelines.pr_runtime_validate import _slice_test_output
 from repo2rlenv.spec.input import GenerationInput
 from repo2rlenv.spec.options import CommitRuntimeOptions
+
+
+class ValidationRecorder:
+    """Observe the pinned validator without changing its result or admission rules."""
+
+    def __init__(self, directory: Path):
+        self.directory = directory
+        self.original = pr_runtime_validate.validate_pr
+        self.records: list[dict] = []
+        self.pending: dict | None = None
+
+    def _save(self, record: dict) -> None:
+        path = self.directory / record["index"] / "record.json"
+        path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+
+    def validate(self, **kwargs):
+        result = self.original(**kwargs)
+        index = f"{len(self.records) + 1:04d}"
+        directory = self.directory / index
+        directory.mkdir(parents=True, exist_ok=False)
+        record = {
+            "index": index,
+            "label": None,
+            "parent_commit": kwargs["base_commit"],
+            "status": result.status,
+            "upstream_reason": result.reason,
+            "test_commands": list(kwargs["test_cmds"]),
+        }
+        for stage, log in (("pre", result.pre_log), ("post", result.post_log)):
+            (directory / f"{stage}.log").write_text(log, encoding="utf-8")
+            parsed = parse_logs(
+                kwargs["test_cmds"],
+                _slice_test_output(log),
+                language=kwargs["language"],
+            )
+            record[stage] = {
+                "parsed_count": len(parsed),
+                "test_status": parsed,
+            }
+        self.records.append(record)
+        self.pending = record
+        self._save(record)
+        return result
+
+    def progress(self, *, name: str, outcome: str, reason: str = "") -> None:
+        if self.pending is not None:
+            self.pending.update(
+                label=name, pipeline_outcome=outcome, pipeline_reason=reason
+            )
+            self._save(self.pending)
+            self.pending = None
+
+    def skip_reasons(self, original: dict[str, int]) -> dict[str, int]:
+        if self.pending is not None or any(r["label"] is None for r in self.records):
+            raise RuntimeError(
+                "the pinned pipeline did not label its validation output"
+            )
+        count = sum(
+            record["status"] == "failed"
+            and record["upstream_reason"] == "no fail-to-pass tests after validation"
+            and (
+                record["pre"]["parsed_count"] == 0
+                or record["post"]["parsed_count"] == 0
+            )
+            for record in self.records
+        )
+        reasons = dict(original)
+        if count > reasons.get("no_fail_to_pass", 0):
+            raise RuntimeError(
+                "validation observations disagree with upstream skip counts"
+            )
+        if count:
+            reasons["no_fail_to_pass"] -= count
+            if reasons["no_fail_to_pass"] == 0:
+                del reasons["no_fail_to_pass"]
+            reasons["no_parseable_test_output"] = count
+        return reasons
 
 
 class BoundedPipeline(CommitRuntimePipeline):
@@ -141,7 +221,19 @@ def main(argv: list[str]) -> int:
         container=dict(request["container"]),
         image_id=request["image_id"],
     )
-    result = pipeline.run(out_dir)
+    # commit_runtime 0.8.8 imports this function inside its serial candidate
+    # loop. Its callback supplies labels but omits raw logs; observe the original
+    # result at that narrow boundary, then restore the binding even on failure.
+    # This module hook and its private output slicer are specific to the exact
+    # 0.8.8 pin; an upstream bump requires real generation requalification.
+    recorder = ValidationRecorder(out_dir.parent / "generation-validation")
+    pipeline.set_progress_callback(recorder.progress)
+    pr_runtime_validate.validate_pr = recorder.validate
+    try:
+        result = pipeline.run(out_dir)
+    finally:
+        pr_runtime_validate.validate_pr = recorder.original
+    skip_reasons = recorder.skip_reasons(dict(result.skip_reasons))
 
     tasks = sorted(
         path.parent.name for path in out_dir.glob("*/task.toml") if path.is_file()
@@ -152,7 +244,7 @@ def main(argv: list[str]) -> int:
                 "candidates": result.candidates,
                 "emitted": result.emitted,
                 "skipped": result.skipped,
-                "skip_reasons": dict(result.skip_reasons),
+                "skip_reasons": skip_reasons,
                 "tasks": tasks,
             }
         )
