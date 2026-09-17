@@ -257,8 +257,9 @@ def test_a_registered_command_names_the_operation_that_answered(
 @pytest.mark.parametrize(
     "namespace",
     # ``uplift`` is no longer here: spec section 7.21 gives it real commands,
-    # and a name with commands behind it is not a reserved one.
-    ["program", "blueprint", "forge", "verify", "trace", "lab"],
+    # and a name with commands behind it is not a reserved one. ``forge`` left
+    # for the same reason when the local task forge landed.
+    ["program", "blueprint", "verify", "trace", "lab"],
 )
 def test_a_reserved_namespace_is_not_registered(techtree: Any, namespace: str) -> None:
     result = techtree(namespace, "--json")

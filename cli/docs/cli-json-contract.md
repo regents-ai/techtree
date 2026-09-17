@@ -189,13 +189,15 @@ uplift start
 engine install
 engine status
 engine verify
+forge build
+forge status
 ```
 
 Commands that are registered but not implemented in a given build answer with
 `ok: false` and error code `not_implemented`. A name that exists and says so is
 scriptable; a name that does not exist yet is indistinguishable from a typo.
 
-The namespaces `program`, `blueprint`, `forge`, `verify`, `trace`, and `lab`
+The namespaces `program`, `blueprint`, `verify`, `trace`, and `lab`
 are reserved and are not registered.
 
 ## Exit codes
