@@ -309,3 +309,38 @@ The long form is `cli/docs/decisions/0040-two-campaign-documents.md`.
   approval of one exact lock digest and carries the sixteen decisions this
   ledger and the WP0 contract documents left open. Adoption of the lock waits
   on the packet; the decisions themselves are stated there, not restated here.
+
+## Decisions, 2026-09-11
+
+Founder answers recorded in
+[`../plan/repo2rlenv-v02x.md`](../plan/repo2rlenv-v02x.md), section "Founder
+decisions, 2026-09-11": the local Repo2RLEnv lane runs ahead of WP2, WP3, WP5
+and WP6; the subject is the user's own local agent on the user's own repository;
+`commit_runtime` and `pr_diff` come first; Codex waits for Fabric and Relay; the
+lane is local-only; the proposed upstream lock is unfrozen for this lane pending
+a refreeze packet; model access is the end user's own account. Nothing here
+authorizes publication, paid platform inference, deployment or a package release.
+
+## Founder release assignment, 2026-09-17
+
+Source: the founder's "finish, release, and verify Techtree v0.2.0" assignment,
+SHA256 `122c42de2bd26d4b9a88cba1e349bcd648e7f9b927e5ec8eec81973477115828`.
+The current direction is recorded in
+[`../plan/repo2rlenv-v02x.md`](../plan/repo2rlenv-v02x.md#founder-release-assignment-2026-09-17).
+
+This supersedes the older Forge-after-execution-foundation sequencing and broad
+v0.2.0 release summary in `v0.2.md`, and the September 11 entry's absence of
+commit/package/site-release authority. It does not replace frozen proof bytes,
+waive qualification for advertised integrations, or authorize spending or private
+disclosure. Finish one real repository-to-comparison workflow, a useful local
+report, reproducible setup, a supported Prime handoff and independent-use evidence
+(or an explicit approved scope change), then verify the distributed/live release.
+
+Local-agent grading remains conditional on a demonstrated Verifiers handoff;
+direct Harbor-compatible grading needs explicit approval. The initial-state seed
+policy remains open; isolate the arms and do not silently impose memory-off.
+Hermes-owned authentication and explicit Skill preload are endorsed but remain
+unqualified in this lane. These are decision statuses, not a completed runner
+contract. Docker qualification, real attempts and fresh-worker reproduction have
+not occurred. A read-only Docker probe on September 17 timed out after eight
+seconds; Docker recovery remains coordinated with the founder.
