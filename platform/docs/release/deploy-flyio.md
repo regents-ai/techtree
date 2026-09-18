@@ -56,8 +56,7 @@ founder is asked to approve anything. Do it in that order.
          --bootstrap priv/bootstrap/development.json
 
    `.dockerignore` deliberately lets `priv/catalog` and `priv/release` into the
-   build context even though git ignores them. A build without them produces an
-   image that serves nothing.
+   build context. A build without them produces an image that serves nothing.
 
 ## Part 1 — hosting, safe before Gate 2
 

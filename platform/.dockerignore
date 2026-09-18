@@ -1,10 +1,10 @@
 # What the image build never needs to see.
 #
-# Read this beside `.gitignore` rather than as a copy of it. Two directories
-# are ignored by git and must still reach the build, because they are what the
-# deployed site publishes:
+# Read this beside `.gitignore` rather than as a copy of it. Two tracked
+# directories must reach the build, because they are what the deployed site
+# publishes:
 #
-#   priv/catalog   the generated bundle, synced by scripts/sync_catalog.exs
+#   priv/catalog   the immutable source snapshots, added by scripts/sync_catalog.exs
 #   priv/release   the starter Skill, byte-identical to its source of truth
 #
 # A build whose context is missing them produces an image that serves nothing.

@@ -1,0 +1,59 @@
+{
+  "channel": "stable",
+  "cli": {
+    "distribution": "techtree",
+    "install_argv": [
+      "uv",
+      "tool",
+      "install",
+      "--python",
+      "3.12",
+      "techtree==0.1.1"
+    ],
+    "source_revision": "614daffbcbd294be4646adfdec26f95337c4f7ed",
+    "version": "0.1.1",
+    "wheel_sha256": "sha256:51f720e0636d406d432a415b69001261744d4f70149307a0493a4f2019e4b5ce"
+  },
+  "hermes_plugin": {
+    "doctor_argv": [
+      "hermes",
+      "plugins",
+      "doctor",
+      "techtree",
+      "--ci"
+    ],
+    "install_argv": [
+      "hermes",
+      "plugins",
+      "install",
+      "regents-ai/techtree-hermes",
+      "--ref",
+      "ca22ee782f5572b179c665c2c2a33120171f0158",
+      "--enable"
+    ],
+    "plugin_id": "techtree",
+    "repository": "regents-ai/techtree-hermes",
+    "revision": "ca22ee782f5572b179c665c2c2a33120171f0158"
+  },
+  "introductory_climb": {
+    "host_prompt": "Set up Techtree and run the Hello World Climb.",
+    "reference": "hello-world-climb@1"
+  },
+  "minimums": {
+    "docker_required": true,
+    "hermes_version": "0.20.1",
+    "python": "3.12",
+    "uv": "0.10.2"
+  },
+  "placeholder_release": false,
+  "published_at": "2026-08-20T00:00:00Z",
+  "schema_version": "techtree.bootstrap.v1alpha1",
+  "starter_skill": {
+    "file_digest": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+    "media_type": "text/markdown",
+    "name": "hello-world-starter-v1",
+    "object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+    "size": 1496,
+    "tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+  }
+}
