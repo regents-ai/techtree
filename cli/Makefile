@@ -163,7 +163,6 @@ generated-check:
 	trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
 	tar -cf - \
 		--exclude .git \
-		--exclude .beads \
 		--exclude .venv \
 		--exclude __pycache__ \
 		--exclude '.*_cache' \

@@ -307,9 +307,6 @@ corrected release-identity decision and must not be merged. The remote
 `regent/regent-zs6.9-techtree-fast-wins` branch is preserved without a
 wholesale merge. Historical standalone repositories are untouched.
 
-The `.beads/` directory and its exports are historical tracker evidence. Do
-not run tracker commands or maintain a ticket graph for new work.
-
 ## Resume procedure
 
 1. Read the root instructions, both binding plans and the decision ledger.
