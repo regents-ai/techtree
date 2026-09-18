@@ -31,6 +31,7 @@
   Existing signed proof bundles remain readable without rewriting their files.
 - CLI, Hermes plugin, and website development now share one repository. Existing
   pinned installation instructions in the active Start guide remain authoritative.
+- The site header shows the GitHub star button and its star count as one button.
 
 ### Fixed
 

@@ -34,7 +34,7 @@ function showGitHubStars(count) {
   if (!Number.isInteger(count) || count < 0) return
 
   document.querySelectorAll("[data-github-stars]").forEach(node => {
-    node.textContent = formatGitHubStars(count)
+    node.querySelector("[data-github-stars-value]").textContent = formatGitHubStars(count)
     node.hidden = false
   })
 
