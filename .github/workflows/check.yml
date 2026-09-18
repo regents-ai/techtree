@@ -51,21 +51,21 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           repository: regents-ai/design-system
-          ref: 0ce0c3bfea98d86b3e395d2650bbfb493fd243b8
+          ref: 502d10b38fb91cdfd05b223909b7df7374d3a2c2
           path: .shared-deps/design-system
           persist-credentials: false
       - name: Checkout pinned Privy verifier
         uses: actions/checkout@v7.0.1
         with:
           repository: regents-ai/elixir-utils
-          ref: 17e9e356040c6322bdd8e84830eeef19c4ed3c42
+          ref: a12f8c888b63139b69ac96434b98f1afea976b5b
           path: .shared-deps/elixir-utils
           persist-credentials: false
       - name: Checkout pinned shared identity
         uses: actions/checkout@v7.0.1
         with:
           repository: regents-ai/regents
-          ref: 747c54169b338b4b832250173e37e05b26f74be7
+          ref: f2c53b7cbe07fe5aacb937561fc5ce54465f5f4c
           path: .shared-deps/regents
           persist-credentials: false
       - uses: erlef/setup-beam@v1.24.1

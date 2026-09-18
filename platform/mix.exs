@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   def project do
     [
       app: :techtree,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -67,7 +67,7 @@ defmodule Techtree.MixProject do
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_phoenix, "~> 2.0"},
       {:ash_postgres, "~> 2.13.0"},
-      {:ash, "~> 3.33.0"},
+      {:ash, "~> 3.33.4"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.4"},

@@ -1,5 +1,26 @@
 # Techtree v0.2 release identity
 
+## Released milestone scope — founder decision, 2026-09-18
+
+> yes ship v0.2.0 now. but before that, include a new 'Changelog' route and section in the header.
+
+The founder approved shipping the verified repair-task qualification milestone
+as v0.2.0, with the Changelog page and header link. CLI `forge build` and
+`forge status`, retained qualification evidence, CLI v2, and historical proof
+verification are included. One public repair was qualified locally and on a
+fresh Linux worker. This is pipeline qualification, not measured Skill benefit.
+
+`forge run/compare`, the default/named Hermes profile runner and verified grading
+handoff, Prime reference-agent handoff, independent case study, Fabric-backed
+subjects, and Relay qualification are deferred to follow-up v0.2.x work, subject
+to their existing acceptance gates. No unsupported integration is certified.
+See the [changelog](../../CHANGELOG.md) for the release's limits.
+
+The original target identity and matrix below are **superseded for v0.2.0** and
+retained as planning history, not as shipped capabilities.
+
+## Original target (superseded)
+
 Techtree v0.2 is the execution-provenance and subject-portability release.
 
 Its public summary is:

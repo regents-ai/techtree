@@ -14,16 +14,20 @@ are planned; the working entry point today is the Hello World Climb.
 
 [Start](https://techtree.sh/start) · [Results](https://techtree.sh/results) ·
 [Docs](https://techtree.sh/docs) · [Agent guide](https://techtree.sh/skill.md) ·
+[Changelog](https://techtree.sh/changelog) ·
 [Star on GitHub](https://github.com/regents-ai/techtree)
 
 [![The Techtree homepage](docs/assets/techtree-home.png)](https://techtree.sh/)
 
 ## What you can use today
 
-**Released baseline: v0.1.1. In development: v0.2.0.** The public
-[bootstrap contract](https://techtree.sh/api/v1/bootstrap) advertised v0.1.1
-when checked on September 6, 2026. Development on `main` includes partial v0.2
-protocol work; it is not the released installation.
+**v0.2.0 — repair-task qualification.** Build and inspect repair tasks from a
+local repository with `techtree forge build` and `techtree forge status`.
+The unrepaired control must fail the relevant tests and the reference repair
+must pass them. This milestone qualifies the task pipeline; it does not
+demonstrate an agent repair or measured Skill improvement. The active
+[bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
+for installable CLI and plugin coordinates.
 
 | Capability | Status |
 | --- | --- |
@@ -31,7 +35,10 @@ protocol work; it is not the released installation.
 | Signed result bundles and offline verification | Released |
 | Explicit publication and public result inspection | Released |
 | Hermes-guided replacement Skill | Experimental released workflow |
-| Fabric-backed Hermes and Codex, optional Relay evidence, CLI v2 | v0.2 implementation work; not a released end-to-end path |
+| Local repository repair-task building and offline status | v0.2.0 |
+| CLI v2 structured machine responses | v0.2.0; integrations must update with the CLI |
+| `forge run/compare`, default/named Hermes profile evaluation | Deferred to v0.2.x; not included in this release |
+| Fabric-backed Hermes and Codex, optional Relay evidence | Deferred to v0.2.x; not a qualified end-to-end path |
 | Public collaboration, forks, agent messages, and USDC bounties | Planned |
 | Prime-hosted execution and proof-backed Library | Planned for v0.2.x |
 | Foundry and separate private proving | Planned for v0.3 |
@@ -129,8 +136,8 @@ harness runtime, trajectory format, or trainer.
 | System | Role in the target integration |
 | --- | --- |
 | [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. Already used by the released path. |
-| [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs. Selected for v0.2 subject portability. |
-| [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional, observe-only in the v0.2 comparison path. |
+| [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs. Deferred v0.2.x subject portability. |
+| [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional, observe-only; deferred to v0.2.x. |
 | Techtree | Frozen comparisons, evidence reconciliation, signed results, publication, and later collaboration and payment records. |
 
 ```text
@@ -141,7 +148,7 @@ Techtree Campaign
     → Techtree comparison and signed result
 ```
 
-This is the **v0.2 target architecture**, not a claim that every bridge is
+This is the **follow-up v0.2.x target architecture**, not a claim that every bridge is
 finished. Each combination needs exact-version compatibility evidence. Fabric
 capabilities vary by harness; a successful invocation is not a correct task
 answer. Relay records what is instrumented and cannot prove lossless capture
@@ -155,8 +162,8 @@ execution remains a later workstream.
 
 | Stage | User outcome |
 | --- | --- |
-| **v0.2.0 — execution provenance** | Run a controlled comparison through admitted Hermes or Codex subjects; recover it through CLI v2; inspect evidence quality separately from score. Preserve historical proof verification. |
-| **v0.2.x — public participation and Market pilots** | Reproduce published work, distribute proof-backed artifacts, and reconcile accepted contributions with USDC payments. Add the bounded collaboration surface described in the delivery plan. Hosted execution has its own admission gate. |
+| **v0.2.0 — repair-task qualification** | Build and inspect qualified local repair tasks, retain validation evidence, use CLI v2, and preserve historical proof verification. |
+| **v0.2.x — comparisons and participation** | Complete profile-isolated repair-task comparisons, grading, Prime handoff and independent case study. Qualify subject portability and Relay before advertising them. Public participation, hosted execution and Market pilots retain their own admission gates. |
 | **v0.3 — Foundry and private Skill Climb** | Turn authorized source material into ordinary Verifiers packages; separate development, selection, and proving tasks; evaluate a frozen candidate on untouched proving membership. |
 | **Later research** | Managed candidate search, adaptive harnesses, learning streams, Prime Agent and `prime-rl` handoffs, and environment-quality studies. |
 

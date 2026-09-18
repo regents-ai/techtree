@@ -23,7 +23,9 @@ defmodule TechtreeWeb.DocsLive do
     <Layouts.page wide>
       <div class="docs-layout">
         <aside class="docs-nav" aria-label="Documentation sections" data-markdown-skip>
-          <p class="docs-nav__version">Techtree v0.1</p>
+          <p class="docs-nav__version">
+            Techtree{if @release, do: " " <> ReleaseInfo.label(@release)}
+          </p>
           <nav>
             <.docs_group
               title="Get started"

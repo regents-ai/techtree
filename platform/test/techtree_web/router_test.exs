@@ -81,6 +81,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/publications/:bundle_digest/bundle",
              "get /blog",
              "get /blog/:slug",
+             "get /changelog",
              "get /climbs/:slug",
              "get /docs",
              "get /healthz",

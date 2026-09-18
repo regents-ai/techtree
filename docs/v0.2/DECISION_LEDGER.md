@@ -1,5 +1,21 @@
 # Techtree v0.2 WP0 decision ledger
 
+## Founder release-scope amendment — 2026-09-18
+
+> yes ship v0.2.0 now. but before that, include a new 'Changelog' route and section in the header.
+
+v0.2.0 ships the verified repair-task qualification milestone and the Changelog
+route/header entry. `forge run/compare`, default/named Hermes profile execution
+with verified grading, Prime handoff, independent case study, Fabric-backed
+subjects, and Relay qualification are deferred to follow-up v0.2.x work.
+One qualified public repair is pipeline evidence, not measured Skill benefit.
+The prior stable matrix below is superseded for this release; its scientific,
+security, and historical-proof integrity requirements are not waived.
+See [RELEASE_IDENTITY.md](RELEASE_IDENTITY.md) and the
+[changelog](../../CHANGELOG.md). Earlier decisions remain recorded below.
+
+## Original ledger (superseded release scope)
+
 Status: binding input to WP0  
 Recorded: 2026-08-31  
 Authority: founder answers to the WP0 grilling pass

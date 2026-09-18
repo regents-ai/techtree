@@ -1,12 +1,11 @@
 # Changelog
 
-## Unreleased
-
-These notes describe completed development work proposed for the next release.
-They do not announce a published package or a production deployment.
+## v0.2.0 (2026-09-18)
 
 ### Added
 
+- Read release notes at [Changelog](https://techtree.sh/changelog), available from
+  the site header.
 - Build repair tasks from a local Git repository with `techtree forge build`.
   Each accepted task checks that the unrepaired code fails the relevant tests
   and that the reference repair passes them. Building tasks does not call a model.
@@ -26,12 +25,12 @@ They do not announce a published package or a production deployment.
   must update with the CLI rather than assume old responses still apply.
 - New comparisons record evaluation rules separately from execution settings.
   Existing signed proof bundles remain readable without rewriting their files.
-- CLI, Hermes plugin, and website development now share one repository.
-  Existing pinned installation instructions remain authoritative until a new
-  release is published.
+- CLI, Hermes plugin, and website development now share one repository. Existing
+  pinned installation instructions in the active Start guide remain authoritative.
 
 ### Fixed
 
+- Updated the website's Ash dependency to include its field-policy security fix.
 - The supplied Python build image keeps the project's installed test tools
   available when a login shell starts.
 - Task generation retains raw validation output and distinguishes missing test
