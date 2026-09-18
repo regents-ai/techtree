@@ -151,7 +151,9 @@ defmodule Techtree.Catalog.ImporterTest do
       CatalogFixture.use_bundle(CatalogFixture.root())
       first = Importer.import!(CatalogFixture.root())
 
-      %{first: first, bundle: CatalogFixture.copy!(tmp_dir)}
+      bundle = CatalogFixture.copy!(tmp_dir)
+      CatalogFixture.use_bundle(bundle)
+      %{first: first, bundle: bundle}
     end
 
     test "retires the object the new bundle replaced, and keeps it resolvable",
@@ -191,7 +193,9 @@ defmodule Techtree.Catalog.ImporterTest do
       CatalogFixture.use_bundle(CatalogFixture.root())
       first = Importer.import!(CatalogFixture.root())
 
-      %{first: first, bundle: CatalogFixture.copy!(tmp_dir)}
+      bundle = CatalogFixture.copy!(tmp_dir)
+      CatalogFixture.use_bundle(bundle)
+      %{first: first, bundle: bundle}
     end
 
     test "leaves the previously active release untouched", %{first: first, bundle: bundle} do
@@ -232,6 +236,7 @@ defmodule Techtree.Catalog.ImporterTest do
             "execution-plans/hello-world-climb.json"
           ] do
         bundle = CatalogFixture.copy!(Path.join(tmp_dir, Path.basename(missing, ".json")))
+        CatalogFixture.use_bundle(bundle)
         File.rm!(Path.join(bundle, missing))
 
         error = assert_raise Error, fn -> Importer.import!(bundle) end

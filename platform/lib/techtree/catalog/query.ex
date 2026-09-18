@@ -56,6 +56,19 @@ defmodule Techtree.Catalog.Query do
   @spec get_climb_by_campaign_digest(String.t()) :: {:ok, CatalogEntry.t()} | {:error, Error.t()}
   def get_climb_by_campaign_digest(digest) when is_binary(digest) do
     list_climbs()
+    |> find_climb_by_campaign_digest(digest)
+  end
+
+  @doc "Resolve a published Result's Climb, including retired catalog entries."
+  @spec get_any_climb_by_campaign_digest(String.t()) ::
+          {:ok, CatalogEntry.t()} | {:error, Error.t()}
+  def get_any_climb_by_campaign_digest(digest) when is_binary(digest) do
+    Catalog.list_catalog_entries!(%{}, query: [filter: [kind: :climb], sort: [active: :desc]])
+    |> find_climb_by_campaign_digest(digest)
+  end
+
+  defp find_climb_by_campaign_digest(climbs, digest) do
+    climbs
     |> Enum.find(&(&1.projection["campaign_spec_digest"] == digest))
     |> case do
       nil ->
@@ -120,7 +133,7 @@ defmodule Techtree.Catalog.Query do
   @spec catalog_bytes() :: {:ok, binary(), String.t()} | {:error, Error.t()}
   def catalog_bytes do
     with {:ok, release} <- active_catalog_release(),
-         {:ok, bytes} <- read_file(Bundle.catalog_filename()) do
+         {:ok, bytes} <- read_file(release.source_revision, Bundle.catalog_filename()) do
       verified(bytes, release.catalog_digest, Bundle.catalog_filename())
     end
   end
@@ -138,7 +151,7 @@ defmodule Techtree.Catalog.Query do
   def object_bytes(digest) do
     with {:ok, _release} <- active_catalog_release(),
          {:ok, entry} <- get_entry_by_digest(digest),
-         {:ok, bytes} <- read_file(entry.relative_path),
+         {:ok, bytes} <- read_file(entry.source_revision, entry.relative_path),
          {:ok, bytes, _digest} <- verified(bytes, entry.protocol_digest, entry.relative_path) do
       {:ok, bytes, entry}
     end
@@ -232,8 +245,13 @@ defmodule Techtree.Catalog.Query do
     end
   end
 
-  defp read_file(relative_path) do
-    with {:ok, path} <- Bundle.resolve(Catalog.catalog_root(), relative_path) do
+  defp read_file(revision, relative_path) do
+    with {:ok, _snapshot} <- Catalog.snapshot_path(revision),
+         {:ok, path} <-
+           Bundle.resolve(
+             Catalog.catalog_root(),
+             "sources/" <> revision <> "/" <> relative_path
+           ) do
       case File.read(path) do
         {:ok, bytes} ->
           {:ok, bytes}

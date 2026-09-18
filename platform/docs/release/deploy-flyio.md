@@ -1,5 +1,15 @@
 # Deploying techtree.sh on Fly.io
 
+## v0.2.0 catalog snapshots
+
+Stage each catalog under `priv/catalog/sources/FULL_SOURCE_REVISION/` and pass
+that full revision explicitly to the import command. Staging refuses to
+overwrite a snapshot. Keep earlier published snapshots in the image so their
+immutable object addresses remain readable. The v0.1-era channel/bootstrap
+examples below are historical: do not regenerate or re-import a v1 catalog
+with the current v2 importer. A catalog rollback must restore the matching
+catalog activation and bootstrap together, not only the bootstrap pointer.
+
 The commands that take this repository from nothing to `https://techtree.sh`
 answering, in order, with the point of no return marked.
 
@@ -35,8 +45,7 @@ founder is asked to approve anything. Do it in that order.
 3. The catalog bundle exists in the working tree. It is generated, not
    committed, and it is what the image publishes:
 
-       mix catalog.verify
-
+       mix catalog.verify --source-revision FULL_SOURCE_REVISION
    If `priv/catalog` is absent or stale, sync it first — the placeholder
    bootstrap, not the candidate:
 
@@ -143,13 +152,13 @@ variable before then, and read "The channel variable" below first.
 
 then, at the prompt:
 
-    /app/bin/techtree eval 'Techtree.Release.import_catalog()'
+    /app/bin/techtree eval 'Techtree.Release.import_catalog("FULL_SOURCE_REVISION")'
     exit
 
 As a single command instead:
 
     flyctl ssh console --app techtree-sh \
-      --command "/app/bin/techtree eval 'Techtree.Release.import_catalog()'"
+      --command "/app/bin/techtree eval 'Techtree.Release.import_catalog(\"FULL_SOURCE_REVISION\")'"
 
 It prints the catalog digest and the channel. The import stages the bundle's
 bootstrap release and publishes it. Before Gate 2 that release is the declared
@@ -293,9 +302,8 @@ In the repository:
       --generator-version 0.1.0 \
       --bootstrap priv/bootstrap/stable.json
 
-    mix catalog.verify
-
-    shasum -a 256 priv/catalog/bootstrap.json
+    mix catalog.verify --source-revision FULL_SOURCE_REVISION
+    shasum -a 256 priv/catalog/sources/FULL_SOURCE_REVISION/bootstrap.json
 
 The last command must print
 `d3fdb91588e897253af6e7c6c2bdc1fadc2b346d2e924c85f6e02c1393843191`.
@@ -317,7 +325,7 @@ bundle; nothing has imported it.
     flyctl secrets set --app techtree-sh TECHTREE_BOOTSTRAP_CHANNEL=stable
 
     flyctl ssh console --app techtree-sh \
-      --command "/app/bin/techtree eval 'Techtree.Release.import_catalog()'"
+      --command "/app/bin/techtree eval 'Techtree.Release.import_catalog(\"FULL_SOURCE_REVISION\")'"
 
 **Expect the site to be briefly unavailable between these two commands.**
 Setting the secret restarts the machine onto a channel that has nothing
@@ -401,9 +409,8 @@ In the repository:
       --generator-version 0.1.0 \
       --bootstrap priv/releases/climb-v0.1.0/bootstrap.json
 
-    mix catalog.verify
-
-    shasum -a 256 priv/catalog/bootstrap.json
+    mix catalog.verify --source-revision FULL_SOURCE_REVISION
+    shasum -a 256 priv/catalog/sources/FULL_SOURCE_REVISION/bootstrap.json
 
 The last command must print `3fdadeeb…`. The approved bytes are copied, never
 rewritten; a different digest here means something regenerated them and the
@@ -427,7 +434,7 @@ database still has the floor active.
 ### 15. Stage and publish the candidate — the point of no return
 
     flyctl ssh console --app techtree-sh
-    /app/bin/techtree eval 'Techtree.Release.import_catalog()'
+    /app/bin/techtree eval 'Techtree.Release.import_catalog("FULL_SOURCE_REVISION")'
 
 The import stages the candidate and publishes it in the same transaction, which
 is the activation. On any failure the floor keeps serving.
@@ -459,9 +466,9 @@ The stable floor stays staged forever, so going back is one command:
 Nothing is deleted, nothing is rewritten, and nothing on anyone's machine is
 touched. The full reasoning is in [rollback.md](rollback.md).
 
-Note that a later `import_catalog()` publishes whatever bootstrap the deployed
+Note that a later `import_catalog(source_revision)` publishes whatever bootstrap the deployed
 image carries, and would undo this. After a rollback, do not run
-`import_catalog()` on the current candidate image unless reactivation is
+`import_catalog(source_revision)` on the current candidate image unless reactivation is
 intended and approved; the pointer rollback itself needs no image change.
 
 ## The channel variable

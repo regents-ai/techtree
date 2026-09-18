@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Techtree.Catalog.Import do
   @moduledoc """
   Import a generated catalog bundle and make it the active release.
 
-      $ mix techtree.catalog.import --path priv/catalog
+      $ mix techtree.catalog.import --source-revision FULL_SOURCE_REVISION
 
   The bundle is verified before anything is written, and the whole import is one
   transaction: on any failure the previously active release keeps serving and
@@ -20,11 +20,18 @@ defmodule Mix.Tasks.Techtree.Catalog.Import do
   def run(argv) do
     Mix.Task.run("app.start")
 
-    {options, _rest} = OptionParser.parse!(argv, strict: [path: :string, channel: :string])
-    root = Keyword.get_lazy(options, :path, &Techtree.Catalog.catalog_root/0)
+    {options, _rest} =
+      OptionParser.parse!(argv, strict: [source_revision: :string, channel: :string])
+
     import_options = Keyword.take(options, [:channel])
 
     try do
+      root =
+        case Techtree.Catalog.snapshot_path(options[:source_revision]) do
+          {:ok, path} -> path
+          {:error, error} -> raise error
+        end
+
       release = Importer.import!(root, import_options)
 
       Mix.shell().info("""

@@ -28,17 +28,35 @@ defmodule Techtree.CatalogFixture do
   @object_url "https://techtree.test/api/v1/objects/" <> StarterSkill.file_digest()
 
   @doc """
-  The fixture bundle, as generated. Never write to this directory.
+  The fixture bundle root (`catalog_root/sources/REV`), not the serving root.
+  Each test owns its copy; tests that damage it must use `copy!/1`.
   """
   @spec root() :: Path.t()
-  def root, do: Path.expand("fixtures/catalog", __DIR__)
+  def root do
+    case Process.get({__MODULE__, :snapshot}) do
+      nil ->
+        source = Path.expand("fixtures/catalog", __DIR__)
+        revision = source |> Path.join("source.json") |> File.read!() |> Jason.decode!()
+        directory = Path.join(System.tmp_dir!(), "techtree-catalog-" <> Ecto.UUID.generate())
+        snapshot = Path.join([directory, "sources", revision["techtree_python_revision"]])
+        File.mkdir_p!(Path.dirname(snapshot))
+        File.cp_r!(source, snapshot)
+        Process.put({__MODULE__, :snapshot}, snapshot)
+        ExUnit.Callbacks.on_exit(fn -> File.rm_rf!(directory) end)
+        snapshot
+
+      snapshot ->
+        snapshot
+    end
+  end
 
   @doc """
   A writable copy of the fixture bundle inside `destination`.
   """
   @spec copy!(Path.t()) :: Path.t()
   def copy!(destination) do
-    bundle = Path.join(destination, "catalog")
+    revision = root() |> Path.join("source.json") |> File.read!() |> Jason.decode!()
+    bundle = Path.join([destination, "catalog", "sources", revision["techtree_python_revision"]])
     File.mkdir_p!(bundle)
     File.cp_r!(root(), bundle)
     bundle
@@ -54,7 +72,7 @@ defmodule Techtree.CatalogFixture do
     Application.put_env(
       :techtree,
       Techtree.Catalog,
-      Keyword.merge(previous, catalog_root: bundle)
+      Keyword.merge(previous, catalog_root: bundle |> Path.dirname() |> Path.dirname())
     )
 
     ExUnit.Callbacks.on_exit(fn ->

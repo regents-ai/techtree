@@ -47,6 +47,23 @@ defmodule Techtree.Catalog.Importer do
     channel = Keyword.get_lazy(opts, :channel, &Catalog.channel/0)
 
     bundle = Bundle.load!(root)
+
+    expected =
+      case Techtree.Catalog.snapshot_path(Bundle.source_revision(bundle)) do
+        {:ok, path} -> path
+        {:error, error} -> raise error
+      end
+
+    if Path.expand(root) != expected do
+      raise Error.bundle_invalid(
+              "the catalog snapshot path does not match its source revision",
+              %{
+                "snapshot_path" => Path.expand(root),
+                "expected_path" => expected
+              }
+            )
+    end
+
     Verifier.verify_bundle!(bundle)
     check_channel!(bundle, channel)
 

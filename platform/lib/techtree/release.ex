@@ -39,15 +39,21 @@ defmodule Techtree.Release do
   end
 
   @doc """
-  Import and activate a catalog bundle, defaulting to the one this release ships.
+  Import and activate the immutable catalog snapshot for a full source revision.
   """
-  @spec import_catalog(Path.t() | nil) :: :ok
-  def import_catalog(path \\ nil) do
+  @spec import_catalog(String.t()) :: :ok
+  def import_catalog(revision) do
     load_app()
 
     {:ok, _apps} = Application.ensure_all_started(@app)
 
-    release = Techtree.Catalog.Importer.import!(path || Techtree.Catalog.catalog_root())
+    path =
+      case Techtree.Catalog.snapshot_path(revision) do
+        {:ok, path} -> path
+        {:error, error} -> raise error
+      end
+
+    release = Techtree.Catalog.Importer.import!(path)
 
     IO.puts("imported catalog #{release.catalog_digest} on channel #{release.channel}")
     :ok

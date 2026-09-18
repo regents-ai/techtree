@@ -63,6 +63,19 @@ defmodule Techtree.Catalog do
     end
   end
 
+  @doc "The canonical immutable snapshot directory for a full source revision."
+  @spec snapshot_path(String.t()) :: {:ok, Path.t()} | {:error, Error.t()}
+  def snapshot_path(revision) do
+    if is_binary(revision) and Regex.match?(~r/\A[0-9a-f]{40}\z/, revision) do
+      Techtree.Catalog.Bundle.resolve(Path.expand(catalog_root()), "sources/" <> revision)
+    else
+      {:error,
+       Techtree.Catalog.Error.bundle_invalid(
+         "a catalog source revision must be 40 lowercase hex characters"
+       )}
+    end
+  end
+
   @doc """
   The release channel this build imports and serves.
   """

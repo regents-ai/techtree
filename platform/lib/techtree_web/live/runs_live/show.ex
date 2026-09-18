@@ -252,7 +252,7 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   defp assigns_for(entry) do
     climb =
-      case Catalog.get_climb_by_campaign_digest(entry.campaign_spec_digest) do
+      case Catalog.get_any_climb_by_campaign_digest(entry.campaign_spec_digest) do
         {:ok, found} -> found
         {:error, _reason} -> nil
       end

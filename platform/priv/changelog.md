@@ -20,6 +20,10 @@
 
 ### Changed
 
+- Results and objects published before this release stay available at their
+  existing addresses. New runs must be recorded with the current CLI against
+  the current catalog; uploads made with CLI 0.1.1 against the earlier campaign
+  are no longer accepted. Upgrade by following the [Start guide](https://techtree.sh/start).
 - CLI integrations receive structured facts, unknowns, blockers, and suggested
   next actions. The response format replaces the previous format; integrations
   must update with the CLI rather than assume old responses still apply.

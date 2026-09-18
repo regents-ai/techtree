@@ -1,5 +1,15 @@
 # Release runbook — techtree-ash
 
+## v0.2.0 catalog snapshots
+
+Stage each catalog under `priv/catalog/sources/FULL_SOURCE_REVISION/` and pass
+that full revision explicitly to the import command. Staging refuses to
+overwrite a snapshot. Keep earlier published snapshots in the image so their
+immutable object addresses remain readable. The v0.1-era channel/bootstrap
+examples below are historical: do not regenerate or re-import a v1 catalog
+with the current v2 importer. A catalog rollback must restore the matching
+catalog activation and bootstrap together, not only the bootstrap pointer.
+
 What this site publishes, how a new release becomes the published one, and how
 to check that it did. Rolling back is the same pointer move in the other
 direction and has its own page: [rollback.md](rollback.md).
@@ -84,7 +94,7 @@ step below is deliberate.
    anything is written, and the import is one transaction: on any failure the
    previously active release keeps serving.
 
-       bin/techtree eval 'Techtree.Release.import_catalog()'
+       bin/techtree eval 'Techtree.Release.import_catalog("FULL_SOURCE_REVISION")'
 
    Locally: `mix techtree.catalog.import`.
 
@@ -174,7 +184,7 @@ placeholder, and the public install flow stays shut. Once the public
 coordinates are approved, run the import on the existing image:
 
     flyctl ssh console --app techtree-sh \
-      --command "/app/bin/techtree eval 'Techtree.Release.import_catalog()'"
+      --command "/app/bin/techtree eval 'Techtree.Release.import_catalog(\"FULL_SOURCE_REVISION\")'"
 
 ## Verifying
 

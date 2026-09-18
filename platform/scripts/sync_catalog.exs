@@ -9,7 +9,7 @@
 # This is release engineering, not runtime behavior. The Python repository owns
 # catalog generation; this script never generates anything scientific. It copies
 # an export that already exists, writes the operational provenance beside it,
-# verifies the raw bytes, and only then replaces the destination.
+# verifies the raw bytes, and adds one immutable source snapshot.
 #
 # `--source-revision`, `--generator-version`, and `--bootstrap` are release
 # inputs and are always supplied explicitly: the pinned CLI version and the
@@ -44,7 +44,25 @@ case Enum.reject(required, &Keyword.has_key?(options, &1)) do
 end
 
 source = Path.expand(options[:source])
-destination = Path.expand(Keyword.get(options, :destination, "priv/catalog"))
+root = Path.expand(Keyword.get(options, :destination, "priv/catalog"))
+revision = options[:source_revision]
+
+unless Regex.match?(~r/\A[0-9a-f]{40}\z/, revision) do
+  raise Error.bundle_invalid("a catalog source revision must be 40 lowercase hex characters")
+end
+
+File.mkdir_p!(Path.join(root, "sources"))
+
+destination =
+  case Bundle.resolve(root, "sources") do
+    {:ok, path} -> Path.join(path, revision)
+    {:error, error} -> raise error
+  end
+
+unless File.lstat(destination) == {:error, :enoent} do
+  raise Error.bundle_invalid("the source snapshot already exists; it will not be overwritten")
+end
+
 # Stage beside the destination so that the final move is a same-filesystem
 # rename, and therefore atomic.
 staging = destination <> ".staging-#{System.unique_integer([:positive])}"
@@ -76,14 +94,7 @@ case Verifier.verify_bundle(Bundle.load!(staging)) do
     System.halt(1)
 end
 
-replaced = destination <> ".replaced-#{System.unique_integer([:positive])}"
-
-if File.exists?(destination) do
-  File.rename!(destination, replaced)
-end
-
 File.rename!(staging, destination)
-File.rm_rf!(replaced)
 
 IO.puts("synced #{destination}")
 IO.puts("catalog #{provenance["catalog_digest"]}")
