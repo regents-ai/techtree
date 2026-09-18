@@ -71,6 +71,9 @@ defmodule TechtreeWeb.Layouts do
               Verify
             </a>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
+            <a href={~p"/changelog"} aria-current={current_section(@current_path, "/changelog")}>
+              Changelog
+            </a>
             <a
               class="masthead__service"
               href={~p"/repo2rlenv"}
@@ -152,6 +155,9 @@ defmodule TechtreeWeb.Layouts do
 
   defp description_for_path("/docs"),
     do: "Install, operate, verify, publish, and integrate Techtree."
+
+  defp description_for_path("/changelog"),
+    do: "Techtree release notes: new features, fixes, and the limits of each release."
 
   defp description_for_path("/climbs/" <> _slug),
     do: "Inspect the fixed task contract for a published Techtree Climb."
