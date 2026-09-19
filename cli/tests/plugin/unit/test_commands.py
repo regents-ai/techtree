@@ -155,7 +155,7 @@ def test_nothing_a_user_types_becomes_a_command() -> None:
 def test_setup_reports_the_build_and_the_next_step() -> None:
     answer = handle_slash_command("setup", _services(bridge=FakeBridge()))
 
-    assert "Plugin 0.2.0" in answer
+    assert "Plugin 0.2.1" in answer
     assert "Techtree CLI" in answer
 
 

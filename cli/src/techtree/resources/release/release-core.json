@@ -1,6 +1,6 @@
 {
   "catalog_digest": "sha256:4d2165719e1e90cf838d284112fa3c1935ebc4b03917c178725c6d4ba57b7eb5",
-  "cli_version": "0.2.0",
+  "cli_version": "0.2.1",
   "engine_digest": "sha256:f56f15d0d2f80b838838ca4154d3d6922854ae93abe105c0325187648b036bc5",
   "intro_climb_reference": "hello-world-climb@1",
   "maximum_tested_host_hermes_version": "0.20.1",
@@ -15,7 +15,7 @@
     "public_log_url": "https://techtree.sh/results",
     "submission_endpoint": "https://techtree.sh/api/v1/publications"
   },
-  "release_id": "climb-v0.2.0",
+  "release_id": "climb-v0.2.1",
   "schema_version": "techtree.release-core.v1",
   "skill_improver_digest": "sha256:d5a381bed8ae5ddd5bbd6035775154dc47d2cb11b1da14f11d30ed47ff371678",
   "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",

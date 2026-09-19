@@ -21,11 +21,14 @@ are planned; the working entry point today is the Hello World Climb.
 
 ## What you can use today
 
-**v0.2.0 — repair-task qualification.** Build and inspect repair tasks from a
-local repository with `techtree forge build` and `techtree forge status`.
-The unrepaired control must fail the relevant tests and the reference repair
-must pass them. This milestone qualifies the task pipeline; it does not
-demonstrate an agent repair or measured Skill improvement. The active
+**v0.2.1 — repair-task experiments.** Build and inspect repair tasks from a
+local repository with `techtree forge build` and `techtree forge status`. Run
+your own Hermes on them with `techtree forge run`, once without a Skill and
+once with it, compare the two runs task by task with `techtree forge compare`,
+and revise the Skill once through `techtree uplift`. Every run is recorded with
+its patch, its test verdict and the usage Hermes reported. The one selected
+public repair has been reproduced end to end, locally and on a fresh Linux
+worker; it does not yet demonstrate measured Skill improvement. The active
 [bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
 for installable CLI and plugin coordinates.
 
@@ -37,7 +40,7 @@ for installable CLI and plugin coordinates.
 | Hermes-guided replacement Skill | Experimental released workflow |
 | Local repository repair-task building and offline status | v0.2.0 |
 | CLI v2 structured machine responses | v0.2.0; integrations must update with the CLI |
-| `forge run/compare`, default/named Hermes profile evaluation | Deferred to v0.2.x; not included in this release |
+| `forge run`, `forge compare` and one `uplift` revision on a comparison, in your own signed-in Hermes profile | v0.2.1 |
 | Fabric-backed Hermes and Codex, optional Relay evidence | Deferred to v0.2.x; not a qualified end-to-end path |
 | Public collaboration, forks, agent messages, and USDC bounties | Planned |
 | Prime-hosted execution and proof-backed Library | Planned for v0.2.x |

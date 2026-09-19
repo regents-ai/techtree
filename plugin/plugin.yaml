@@ -43,7 +43,7 @@
 #   picks no model for host-owned LLM calls, so it declares no `capabilities:`
 #   and there is nothing to consent to beyond the install itself.
 name: techtree
-version: 0.2.0
+version: 0.2.1
 description: Controlled local agent Skill evaluation and uplift through Techtree
 author: Techtree
 kind: standalone
