@@ -4,9 +4,10 @@
 their qualification evidence; ``forge run`` declares one arm of an experiment
 on those tasks and runs it with the person's own Hermes; ``forge compare``
 pairs a baseline run with a candidate run and writes the record and the
-report; ``forge status`` reads any of them back without requiring build
-tools. Build execution belongs to :class:`~techtree.forge.service.ForgeService`,
-run execution to :class:`~techtree.forge.run.ForgeRunner`, comparison to
+report; ``forge status`` reads any of them, or a Skill revision made through
+``uplift``, back without requiring build tools. Build execution belongs to
+:class:`~techtree.forge.service.ForgeService`, run execution to
+:class:`~techtree.forge.run.ForgeRunner`, comparison to
 :mod:`techtree.forge.compare`; inspection uses the separate record readers.
 What to say about each operation is here.
 """
@@ -36,12 +37,14 @@ from techtree.forge.models import (
     ForgeBuildStatus,
     ForgeComparisonStatus,
     ForgeLanguage,
+    ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
     ForgeUsage,
 )
 from techtree.forge.process import run_command
 from techtree.forge.report import OUTCOME_WORDS
+from techtree.forge.revision import read_revision_status
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
 from techtree.ids import id_prefix
@@ -59,12 +62,19 @@ from techtree.models.cli import (
 __all__ = [
     "ForgeRunReview",
     "HermesReasoning",
+    "ask_to_start",
     "build_forge_command",
     "compare_forge_command",
     "render_forge_comparison",
+    "render_forge_revision",
     "render_forge_run",
     "render_forge_status",
+    "review_run_spec",
+    "revision_status_action",
+    "revision_warnings",
     "run_forge_command",
+    "run_status_action",
+    "run_warnings",
     "status_forge_command",
 ]
 
@@ -221,7 +231,7 @@ def run_forge_command(
             reasoning=reasoning.value if reasoning is not None else None,
             repetitions=repetitions,
         )
-        review = _review(spec)
+        review = review_run_spec(spec)
         if not yes and context.no_input:
             return CommandResult(
                 data=review,
@@ -229,12 +239,12 @@ def run_forge_command(
                 next_actions=[_run_when_approved(review, ctx.params)],
             )
         if not yes:
-            _ask(context, review)
+            ask_to_start(context, review)
         status = ForgeRunner(context.paths, run_command).run(spec, skill)
         return CommandResult(
             data=status,
-            warnings=_run_warnings(status),
-            next_actions=[_run_status_action(status)],
+            warnings=run_warnings(status),
+            next_actions=[run_status_action(status)],
         )
 
     invoke_command(
@@ -277,25 +287,30 @@ def status_forge_command(
     record_id: Annotated[
         str,
         typer.Argument(
-            metavar="BUILD_ID|RUN_ID|COMPARISON_ID",
-            help="The build, run or comparison to show.",
+            metavar="BUILD_ID|RUN_ID|COMPARISON_ID|REVISION_ID",
+            help="The build, run, comparison or Skill revision to show.",
         ),
     ],
 ) -> None:
-    """Show what one forge build made, one run did, or one comparison found."""
+    """Show a forge build, run, comparison, or Skill revision."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[
-        ForgeBuildStatus | ForgeRunStatus | ForgeComparisonStatus
+        ForgeBuildStatus | ForgeRunStatus | ForgeComparisonStatus | ForgeRevisionStatus
     ]:
         match id_prefix(record_id):
             case "forgerun":
                 run = read_run_status(context.paths, record_id)
-                return CommandResult(data=run, warnings=_run_warnings(run))
+                return CommandResult(data=run, warnings=run_warnings(run))
             case "forgecmp":
                 comparison = read_comparison_status(context.paths, record_id)
                 return CommandResult(
                     data=comparison, warnings=_comparison_warnings(comparison)
+                )
+            case "forgerev":
+                revision = read_revision_status(context.paths, record_id)
+                return CommandResult(
+                    data=revision, warnings=revision_warnings(revision)
                 )
         status = read_build_status(context.paths, record_id)
         return CommandResult(data=status, warnings=_warnings(status))
@@ -329,7 +344,7 @@ COST_LINE = (
 )
 
 
-def _review(spec: ForgeRunSpec) -> ForgeRunReview:
+def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
     attempts = len(spec.task_ids) * spec.sampling.repetitions
     lines = [
         f"Arm: {spec.arm.value}"
@@ -357,7 +372,7 @@ def _review(spec: ForgeRunSpec) -> ForgeRunReview:
     )
 
 
-def _ask(context: CliContext, review: ForgeRunReview) -> None:
+def ask_to_start(context: CliContext, review: ForgeRunReview) -> None:
     console = human_console(no_color=context.no_color)
     for line in review.review:
         console.print(line, markup=False)
@@ -459,7 +474,7 @@ def _render_run(data: object, console: Console) -> None:
         render_forge_run(data, console)
 
 
-def _run_warnings(status: ForgeRunStatus) -> list[CliWarning]:
+def run_warnings(status: ForgeRunStatus) -> list[CliWarning]:
     """Say when attempts ended without a verdict, in one line."""
     ungraded = [
         attempt
@@ -480,7 +495,7 @@ def _run_warnings(status: ForgeRunStatus) -> list[CliWarning]:
     ]
 
 
-def _run_status_action(status: ForgeRunStatus) -> NextAction:
+def run_status_action(status: ForgeRunStatus) -> NextAction:
     return NextAction(
         operation=Operation.PLAN_INSPECT,
         prepared_arguments=invocation("forge", "status", arguments=[status.run_id]),
@@ -692,11 +707,86 @@ def _comparison_status_action(status: ForgeComparisonStatus) -> NextAction:
     )
 
 
+def render_forge_revision(status: ForgeRevisionStatus, console: Console) -> None:
+    """Print one Skill revision for a person: what it revises, and how it did."""
+    record = status.record
+    pairs = [
+        ("Revision", status.revision_id),
+        ("State", record.state),
+        ("Revised Skill", f"{record.skill.name} ({record.skill.root_digest[:19]})"),
+        ("Revises", f"{record.parent_skill_digest[:19]} from {record.comparison_id}"),
+        ("Baseline run", record.baseline_run_id),
+        ("Build", record.build_id),
+        ("Controlled", "yes" if record.comparability.controlled else "no"),
+        (
+            "Screening",
+            f"{len(record.screening)} shared "
+            f"{'line' if len(record.screening) == 1 else 'lines'} with hidden "
+            "material"
+            if record.screening
+            else "no line shared with hidden material",
+        ),
+    ]
+    if record.measured_run_id is not None:
+        pairs.append(("Measured run", record.measured_run_id))
+    if record.measured_comparison_id is not None:
+        pairs.append(("Comparison", record.measured_comparison_id))
+    pairs.append(("Evidence", status.path))
+    render_pairs(pairs, console)
+    for finding in record.screening:
+        console.print(
+            f"  {finding.skill_path}:{finding.line} matches the "
+            f"{finding.material.replace('_', ' ')} of {finding.task_id}: "
+            f"{finding.excerpt}",
+            markup=False,
+        )
+    if record.verdict is not None:
+        console.print()
+        console.print(record.verdict, markup=False)
+
+
+def revision_warnings(status: ForgeRevisionStatus) -> list[CliWarning]:
+    """Say when the revised Skill shares lines with hidden material."""
+    if not status.record.screening:
+        return []
+    return [
+        CliWarning(
+            id="forge_revision_shares_hidden_material",
+            text=(
+                f"{len(status.record.screening)} line(s) of the revised Skill "
+                "also occur in a task's reference fix or tests; a result with "
+                "it may measure recall rather than method. Each is listed on "
+                "the revision."
+            ),
+            resolvable_by=None,
+        )
+    ]
+
+
+def revision_status_action(status: ForgeRevisionStatus) -> NextAction:
+    return NextAction(
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation(
+            "forge", "status", arguments=[status.revision_id]
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason="The revision, its screening and its measurement can be read "
+        "back later.",
+    )
+
+
 def _render_status(data: object, console: Console) -> None:
     if isinstance(data, ForgeRunStatus):
         render_forge_run(data, console)
     elif isinstance(data, ForgeComparisonStatus):
         render_forge_comparison(data, console)
+    elif isinstance(data, ForgeRevisionStatus):
+        render_forge_revision(data, console)
     elif isinstance(data, ForgeBuildStatus):
         render_forge_status(data, console)
 

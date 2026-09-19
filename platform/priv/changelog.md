@@ -21,6 +21,21 @@
   carries. A pair without a verdict on both sides is shown as unresolved,
   never counted as zero, and the summary says "Partial" until every planned
   pair has one. Comparing calls no model.
+- A forge comparison can be revised once through `techtree uplift`, the same
+  way a Climb run can. `uplift context` on a comparison writes what a reviser
+  may read: the task instructions, both arms' results, and what the Skill is
+  meant to improve — never the reference fix, the tests, or either arm's
+  patch. `uplift skill-source` reads the Skill a candidate run measured back
+  from the run's own verified copy. `uplift prepare` takes one revised Skill,
+  keeps everything else about the experiment the same, refuses an unchanged
+  Skill or a changed Hermes, and screens the revision against every task's
+  reference fix and tests, recording each shared line rather than refusing.
+  `uplift start` shows what will run, asks, measures the revision against the
+  same baseline, and records whether it improved, regressed or matched. The
+  revision is kept either way, and is never measured twice. `techtree forge
+  status` reads a revision back.
+- A candidate run keeps its own copy of the Skill it measured, and every
+  attempt runs from that copy.
 - A forge experiment is declared before it runs, and two arms are compared only
   when nothing but the Skill differs between them.
 - A candidate Skill that names the cases a Climb scores it on is refused when

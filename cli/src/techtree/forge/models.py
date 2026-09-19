@@ -14,6 +14,11 @@ result exists: which qualified tasks, which grading, which Hermes, which model,
 what starting state, and which Skill, if any. Two specifications are comparable
 only when they differ in the Skill alone; :mod:`techtree.forge.comparability`
 computes that rather than asserting it.
+
+A revision (:class:`ForgeRevisionRecord`) is one more Skill declared against a
+finished comparison: the same specification with the Skill alone replaced,
+screened against the tasks' hidden material, and once measured, its own run
+and comparison named beside the verdict.
 """
 
 from __future__ import annotations
@@ -39,6 +44,7 @@ __all__ = [
     "FORGE_COMPARISON_SCHEMA_VERSION",
     "FORGE_PROGRESS_SCHEMA_VERSION",
     "FORGE_QUALIFICATION_SCHEMA_VERSION",
+    "FORGE_REVISION_SCHEMA_VERSION",
     "FORGE_RUN_SCHEMA_VERSION",
     "FORGE_RUN_SPEC_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
@@ -65,10 +71,13 @@ __all__ = [
     "ForgePairResult",
     "ForgePlatform",
     "ForgeQualification",
+    "ForgeRevisionRecord",
+    "ForgeRevisionStatus",
     "ForgeRunRecord",
     "ForgeRunSpec",
     "ForgeRunStatus",
     "ForgeSamplingSpec",
+    "ForgeScreeningFinding",
     "ForgeSkillName",
     "ForgeSkillSpec",
     "ForgeTaskId",
@@ -625,6 +634,78 @@ class ForgeComparisonStatus(ProtocolModel):
     path: NonEmptyString
     report_path: NonEmptyString
     record: ForgeComparisonRecord
+
+
+FORGE_REVISION_SCHEMA_VERSION: Final = "techtree.forge-revision.v1alpha1"
+
+
+class ForgeScreeningFinding(ProtocolModel):
+    """One line of a revised Skill that also occurs in a task's hidden material.
+
+    Screening is evidence, not a verdict: a line shared with the reference
+    patch or the tests is recorded here, on the revision, so the person who
+    approves the second run sees it, and the report can say the Skill may
+    carry the answer rather than the method. The excerpt is bounded and the
+    line is named by its number in the Skill, never by the hidden file's.
+    """
+
+    task_id: ForgeTaskId
+    material: Literal["reference_patch", "tests", "test_names"]
+    skill_path: NonEmptyString
+    line: int = Field(ge=1)
+    excerpt: NonEmptyString
+
+
+class ForgeRevisionRecord(ProtocolModel):
+    """One revised Skill declared against a finished comparison.
+
+    Written when the revision is prepared and once more when it has been
+    measured. ``state`` says which: a measured revision names the run it
+    made, the comparison of that run against the same baseline, and a
+    one-line verdict against the comparison it revised from. It is kept
+    whether it improved or regressed; nothing here chooses.
+    """
+
+    schema_version: Literal["techtree.forge-revision.v1alpha1"]
+    revision_id: NonEmptyString
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
+    comparison_id: NonEmptyString
+    build_id: NonEmptyString
+    baseline_run_id: NonEmptyString
+    parent_run_id: NonEmptyString
+    parent_skill_digest: Digest
+    skill: ForgeSkillSpec
+    spec_digest: Digest
+    comparability: ManifestComparison
+    screening: list[ForgeScreeningFinding]
+    state: Literal["prepared", "measured"]
+    measured_run_id: NonEmptyString | None
+    measured_comparison_id: NonEmptyString | None
+    verdict: NonEmptyString | None
+
+    @model_validator(mode="after")
+    def validate_measurement(self) -> Self:
+        measured = self.state == "measured"
+        facts = (self.measured_run_id, self.measured_comparison_id, self.verdict)
+        if measured != all(fact is not None for fact in facts):
+            raise ValueError(
+                "a measured revision names its run, its comparison and its verdict"
+            )
+        if not measured and any(fact is not None for fact in facts):
+            raise ValueError("a prepared revision has no measurement yet")
+        if self.skill.root_digest == self.parent_skill_digest:
+            raise ValueError("a revision differs from the Skill it revises")
+        return self
+
+
+class ForgeRevisionStatus(ProtocolModel):
+    """A revision read back from its directory, with the specification it runs."""
+
+    revision_id: NonEmptyString
+    path: NonEmptyString
+    spec: ForgeRunSpec
+    record: ForgeRevisionRecord
 
 
 class ForgeBuildFailure(ProtocolModel):

@@ -322,7 +322,9 @@ src/techtree/
 │                       be told — built by subtraction from the signed record),
 │                       public_tasks.py (per-taskset disclosure policy; absence is the
 │                       safe answer), source.py (the run's own re-verified Skill text),
-│                       service.py (the stage that closes a real run).
+│                       service.py (the stage that closes a real run). The same four
+│                       commands close a forge comparison through forge/improvement.py
+│                       and forge/revision.py.
 ├── cli/                app.py (wiring and global options), context.py (machine mode
 │                       is derived and implies --no-input), invoke.py (one envelope,
 │                       one exit code, always), output.py (JSON to stdout, logs to
@@ -348,6 +350,11 @@ src/techtree/
 │                       content.py (complete task trees and ordered membership),
 │                       experiment.py (one arm's run specification, declared from
 │                       checked facts), comparability.py (may two arms be compared),
+│                       run.py (one arm executed), compare.py (two arms paired),
+│                       skill.py (the copy of the Skill a run or revision owns, read
+│                       back verified), improvement.py (what a reviser may be told
+│                       about a comparison), revision.py (one revised Skill, screened,
+│                       measured against the same baseline, kept either way),
 │                       docker.py and process.py (the one command boundary).
 └── resources/          catalog/, engines/default/, forge/, harness/, release/ — the
                         embedded, generated payload the wheel carries.
@@ -439,7 +446,12 @@ lives at `forge/runs/<forgerun_id>/` with `spec.json` (the declared
 specification, canonical bytes) and `run.json`
 (`techtree.forge-run.v1alpha1`), written before the first attempt and after
 every one, so an interrupted run keeps what it had; its `state` is
-`unfinished`, `completed`, `failed` or `cancelled`. Each attempt, in task then
+`unfinished`, `completed`, `failed` or `cancelled`. A candidate run takes its
+own copy of the Skill's files under `skill/` before the first attempt, and every
+attempt's profile is filled from that copy, so the run measures a Skill it
+owns rather than a working directory free to change; `uplift skill-source`
+reads that copy back only after every listed file is re-hashed against the
+specification. Each attempt, in task then
 repetition order: the task image's `/workspace` is copied to the host at the
 base commit; a throwaway Hermes profile is created under the person's Hermes
 root (`profiles/techtree-<run>-<n>`, so the root's sign-ins are borrowed and
@@ -467,7 +479,7 @@ one outcome: `graded` (with a reward), `agent_timed_out`, `agent_failed` (a
 non-zero exit, or a usage report saying `failed` or not `completed`),
 `verifier_timed_out`, or `no_verdict`. Only a graded attempt has a reward;
 nothing is recorded as zero for want of evidence. Nothing retries an attempt.
-`forge status` reads a build id, a run id or a comparison id.
+`forge status` reads a build id, a run id, a comparison id or a revision id.
 
 **Forge compare (two arms, paired).** `forge compare BASELINE_RUN_ID
 CANDIDATE_RUN_ID` (`forge/compare.py`) reads two recorded runs, puts their
@@ -491,6 +503,44 @@ table, both arms' patches and grading details per pair, the differences the
 gate allowed, and the limits of the evidence including the specification's
 `not_established` list. A comparison makes no model call and nothing leaves the
 machine.
+
+**Forge revision (one Skill revised, measured against the same baseline).** The
+four `uplift` commands close the loop on a forge comparison the way they close
+it on a Climb run, with the same review-before-spend and the same refusal to
+hand a reviser hidden material. `uplift context FORGECMP_ID`
+(`forge/improvement.py`) writes `improvement/context.json`
+(`techtree.forge-improvement-context.v1alpha1`) beside the comparison: the
+repository and commit, the measured Skill's name and digests, the paired
+totals, an objective sentence, and per task the instruction the agent was given
+(shortened, and refused if it carries a local path), both arms' outcome and
+reward, the pair's result, and the candidate's seconds and model calls, ordered
+losses worst-first, then unresolved pairs, then tasks still at zero, then the
+narrowest wins, with at most three successful ties for contrast. Reference
+patches, tests, test names, either arm's patch, transcripts and local paths are
+excluded by construction and listed on the context as prohibited. `uplift
+prepare --from-run FORGECMP_ID --candidate-skill PATH [--label NAME]`
+(`forge/revision.py`) makes one revision: the candidate run's specification
+with the Skill alone replaced, refused when the Skill is unchanged
+(`forge_revision_unchanged`), when Hermes no longer reports the version the
+comparison used (`forge_agent_changed`), or when `compare_run_specs` finds any
+other difference against the baseline. The revised Skill is then screened
+against every task's reference patch and tests: each line of 24 characters or
+more that appears verbatim in a reference fix or a test file, and each scored
+test name it mentions, is recorded on the revision as a finding — evidence
+about the revision, not a refusal — and a revision with findings carries the
+`forge_revision_shares_hidden_material` warning wherever it is shown. It lives
+at `forge/revisions/<forgerev_id>/` with its own copy of the Skill under
+`skill/`, `spec.json` and `revision.json`
+(`techtree.forge-revision.v1alpha1`, state `prepared`). `uplift start
+FORGEREV_ID` shows the same review `forge run` shows, plus the revision, its
+baseline and the screening result, and asks; with `--yes` it runs the revision
+as a candidate arm, compares it against the baseline the parent comparison
+used, and records the measured run, the new comparison and a one-sentence
+verdict ("improved on", "regressed from" or "matched" the parent Skill, with
+both mean rewards and the paired counts, prefixed "Partial evidence" when
+either comparison is incomplete). The revision is kept as measured whether it
+improved or regressed, and is never measured twice (`forge_revision_measured`).
+No search is run: one explicit proposal, frozen, checked, approved, measured.
 
 Ordinary errors and Ctrl-C produce a failure/cancellation receipt and a build ID
 with a status command. SIGKILL or disk-write failure can leave no final receipt;

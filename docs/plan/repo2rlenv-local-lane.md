@@ -406,7 +406,11 @@ the first real run is announced before it starts.
 
 **Slice 3, `forge compare` and the loop.** Comparison output, `uplift context`
 reading a `forge` comparison, memory-off switch if wanted, `pr_diff` recipe with
-a Techtree-owned Dockerfile.
+a Techtree-owned Dockerfile. Done for 0.2.1 (memory is off on every arm since
+slice 2): `forge compare` with its report, and the four `uplift` commands on a
+forge comparison — context, verified Skill source, one screened revision, one
+measurement against the same baseline, kept either way. The `pr_diff` recipe
+is still open.
 
 Not in any slice here: publication, Prime Agent, Codex, Fabric, Relay, hosted
 execution, payments.

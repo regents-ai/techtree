@@ -30,6 +30,14 @@ asked passes ``--yes``. Spec section 7.20 requires it explicitly.
 Skill digests, the derived Campaign digest, the estimated episodes, and the
 DataPolicy digest, because that is what spec section 11.5 says a person must
 see before approving a second run.
+
+The same four verbs revise a Skill a forge experiment measured. The identifier
+says which loop a call is in: a forge comparison to ``context`` and to
+``prepare --from-run``, a forge run to ``skill-source``, a forge revision to
+``start``. The forge half writes its context beside the comparison, keeps the
+revised Skill under ``forge/revisions/<id>/``, and ``start`` runs the new arm
+with the person's own Hermes and compares it against the same baseline; the
+revision is kept whether it improved or regressed.
 """
 
 from __future__ import annotations
@@ -56,12 +64,41 @@ from techtree.cli.commands.climb import (
     start_when_approved,
     unknown_maximum,
 )
+from techtree.cli.commands.forge import (
+    ForgeRunReview,
+    ask_to_start,
+    render_forge_comparison,
+    render_forge_revision,
+    review_run_spec,
+    revision_status_action,
+    revision_warnings,
+    run_warnings,
+)
 from techtree.cli.commands.run import build_run_service, wait_for_change_action
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import render_pairs
 from techtree.drafts.store import DraftStore
+from techtree.errors import ValidationError
+from techtree.forge.improvement import (
+    ForgeImprovementContext,
+    build_forge_improvement_context,
+)
+from techtree.forge.models import (
+    ForgeComparisonStatus,
+    ForgeRevisionStatus,
+    ForgeRunStatus,
+)
+from techtree.forge.process import run_command
+from techtree.forge.revision import (
+    measure_revision,
+    prepare_revision,
+    read_revision_status,
+)
+from techtree.forge.run import ForgeRunner, read_run_status
+from techtree.forge.skill import SKILL_DIRNAME, read_owned_skill
 from techtree.fs import atomic_write_bytes, ensure_private_directory
+from techtree.ids import id_prefix
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.cli import (
     CliWarning,
@@ -74,7 +111,6 @@ from techtree.models.cli import (
 )
 from techtree.models.run import RunPhase
 from techtree.models.skill import PolicyAcceptanceRequirement
-from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.service import ApprovalActor
 from techtree.skills.service import PreparedDraft
@@ -83,6 +119,8 @@ from techtree.uplift.offer import revision_not_written_yet
 from techtree.uplift.service import UpliftService
 
 __all__ = [
+    "ForgeUpliftContextPayload",
+    "ForgeUpliftStartPayload",
     "UpliftContextPayload",
     "UpliftPreparePayload",
     "UpliftSkillSourcePayload",
@@ -100,6 +138,21 @@ class UpliftContextPayload(ProtocolModel):
 
     context: SkillImprovementContext
     relative_path: NonEmptyString
+
+
+class ForgeUpliftContextPayload(ProtocolModel):
+    """The sanitized forge context, and where the same bytes were written."""
+
+    context: ForgeImprovementContext
+    relative_path: NonEmptyString
+
+
+class ForgeUpliftStartPayload(ProtocolModel):
+    """What measuring a forge revision left: the run, and its comparison."""
+
+    revision: ForgeRevisionStatus
+    run: ForgeRunStatus
+    comparison: ForgeComparisonStatus
 
 
 class UpliftSkillSourcePayload(ProtocolModel):
@@ -209,20 +262,34 @@ def context_uplift_command(
     run_id: Annotated[
         str,
         typer.Argument(
-            metavar="RUN_ID",
-            help="The finished run to build improvement context from.",
+            metavar="RUN_ID|COMPARISON_ID",
+            help="The finished run, or the forge comparison, to build "
+            "improvement context from.",
         ),
     ],
 ) -> None:
-    """Export the sanitized local context for one finished run."""
+    """Export the sanitized local context for one finished run or comparison."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[UpliftContextPayload]:
+    def action() -> CommandResult[UpliftContextPayload | ForgeUpliftContextPayload]:
+        if id_prefix(run_id) == "forgecmp":
+            forge = build_forge_improvement_context(context.paths, run_id)
+            base = context.paths.forge_comparison_dir(run_id)
+            forge_path = _write_context(base, forge)
+            return CommandResult(
+                data=ForgeUpliftContextPayload(
+                    context=forge, relative_path=forge_path.relative_to(base).as_posix()
+                ),
+                state_digest=digest_object(forge),
+                unknowns=[revision_not_written_yet()],
+                warnings=[_context_is_not_proof()],
+                next_actions=[read_the_measured_skill(forge.candidate_run_id)],
+            )
         improvement = build_uplift_service(context).improvement_context(run_id)
-        path = _write_context(context.paths, run_id, improvement)
+        base = context.paths.run_dir(run_id)
+        path = _write_context(base, improvement)
         payload = UpliftContextPayload(
-            context=improvement,
-            relative_path=path.relative_to(context.paths.run_dir(run_id)).as_posix(),
+            context=improvement, relative_path=path.relative_to(base).as_posix()
         )
         return CommandResult(
             data=payload,
@@ -231,32 +298,34 @@ def context_uplift_command(
             # comparing two answers is comparing two real states.
             state_digest=digest_object(improvement),
             unknowns=[revision_not_written_yet()],
-            warnings=[
-                CliWarning(
-                    id="improvement_context_is_not_proof",
-                    text=(
-                        "This context is working material, not evidence. It is "
-                        "not signed, nothing verifies it, and nothing uploads it."
-                    ),
-                    resolvable_by=None,
-                )
-            ],
+            warnings=[_context_is_not_proof()],
             next_actions=[read_the_measured_skill(run_id)],
         )
 
     invoke_command(context, Operation.PLAN_PREPARE, action, render_data=_render_context)
 
 
+def _context_is_not_proof() -> CliWarning:
+    return CliWarning(
+        id="improvement_context_is_not_proof",
+        text=(
+            "This context is working material, not evidence. It is "
+            "not signed, nothing verifies it, and nothing uploads it."
+        ),
+        resolvable_by=None,
+    )
+
+
 def _write_context(
-    paths: TechtreePaths, run_id: str, context: SkillImprovementContext
+    base: Path, context: SkillImprovementContext | ForgeImprovementContext
 ) -> Path:
-    """Write the context beside the run it describes, replacing any older one.
+    """Write the context beside what it describes, replacing any older one.
 
     A run can be revised from more than once, and the context is derived rather
     than evidence, so it is a file that may be rewritten — unlike everything
     the run's proof covers, which is written exactly once.
     """
-    directory = paths.run_dir(run_id) / "improvement"
+    directory = base / "improvement"
     ensure_private_directory(directory)
     path = directory / "context.json"
     atomic_write_bytes(path, canonical_json_bytes(context), mode=0o600)
@@ -274,7 +343,7 @@ def skill_source_uplift_command(
         str,
         typer.Argument(
             metavar="RUN_ID",
-            help="The finished run whose Skill text to read.",
+            help="The finished run, or the forge run, whose Skill text to read.",
         ),
     ],
 ) -> None:
@@ -282,7 +351,20 @@ def skill_source_uplift_command(
     context = cli_context(ctx)
 
     def action() -> CommandResult[UpliftSkillSourcePayload]:
-        skill = build_uplift_service(context).verified_source_skill(run_id)
+        if id_prefix(run_id) == "forgerun":
+            run = read_run_status(context.paths, run_id)
+            if run.spec.skill is None:
+                raise ValidationError(
+                    "the baseline arm ran without a Skill, so there is no text "
+                    "to read; name the candidate run",
+                    code="forge_candidate_without_skill",
+                    details={"run_id": run_id},
+                )
+            skill = read_owned_skill(
+                run.spec.skill, Path(run.path) / SKILL_DIRNAME, owner_id=run_id
+            )
+        else:
+            skill = build_uplift_service(context).verified_source_skill(run_id)
         payload = UpliftSkillSourcePayload(
             source_run_id=skill.run_id,
             skill_name=skill.name,
@@ -314,8 +396,9 @@ def prepare_uplift_command(
         str,
         typer.Option(
             "--from-run",
-            metavar="RUN_ID",
-            help="The finished run whose Skill becomes the new baseline.",
+            metavar="RUN_ID|COMPARISON_ID",
+            help="The finished run whose Skill becomes the new baseline, or "
+            "the forge comparison whose candidate Skill is being revised.",
         ),
     ],
     candidate_skill: Annotated[
@@ -338,7 +421,20 @@ def prepare_uplift_command(
     """Prepare a Skill v1 against Skill v2 comparison from a finished run."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[UpliftPreparePayload]:
+    def action() -> CommandResult[UpliftPreparePayload | ForgeRevisionStatus]:
+        if id_prefix(from_run) == "forgecmp":
+            revision = prepare_revision(
+                context.paths,
+                comparison_id=from_run,
+                skill_root=candidate_skill,
+                label=label,
+            )
+            return CommandResult(
+                data=revision,
+                state_digest=revision.record.spec_digest,
+                warnings=revision_warnings(revision),
+                next_actions=[_measure_when_approved(revision)],
+            )
         prepared = build_uplift_service(context).prepare_replacement(
             source_run_id=from_run,
             candidate_skill_path=candidate_skill,
@@ -416,7 +512,10 @@ def start_uplift_command(
     ctx: typer.Context,
     draft_id: Annotated[
         str,
-        typer.Argument(metavar="DRAFT_ID", help="The prepared replacement to start."),
+        typer.Argument(
+            metavar="DRAFT_ID|REVISION_ID",
+            help="The prepared replacement, or the forge revision, to start.",
+        ),
     ],
     yes: Annotated[
         bool,
@@ -446,6 +545,12 @@ def start_uplift_command(
 ) -> None:
     """Review the prepared revision, approve it, and start the second run."""
     context = cli_context(ctx)
+
+    def forge_action() -> CommandResult[ForgeUpliftStartPayload | ForgeRunReview]:
+        require_the_review_surface_was_answered(
+            draft_id=draft_id, assume_yes=yes, reviewed_on=reviewed_on
+        )
+        return _measure(context, draft_id, assume_yes=yes)
 
     def action() -> CommandResult[UpliftStartPayload | StartReviewPayload]:
         service = build_run_service(context)
@@ -492,17 +597,96 @@ def start_uplift_command(
             ],
         )
 
-    invoke_command(
-        context,
-        approval_operation(context, assume_yes=yes),
-        action,
-        render_data=_render_start,
+    # Routed on the spelling alone, so a malformed identifier is refused inside
+    # the envelope by the reader it reaches rather than before one exists.
+    operation = approval_operation(context, assume_yes=yes)
+    if draft_id.startswith("forgerev_"):
+        invoke_command(context, operation, forge_action, render_data=_render_start)
+    else:
+        invoke_command(context, operation, action, render_data=_render_start)
+
+
+def _measure(
+    context: CliContext, revision_id: str, *, assume_yes: bool
+) -> CommandResult[ForgeUpliftStartPayload | ForgeRunReview]:
+    """Show what measuring the revision would do, ask, run it, compare it."""
+    revision = read_revision_status(context.paths, revision_id)
+    review = _revision_review(revision)
+    if not assume_yes and context.no_input:
+        return CommandResult(
+            data=review,
+            state_digest=revision.record.spec_digest,
+            warnings=revision_warnings(revision),
+            next_actions=[_measure_when_approved(revision)],
+        )
+    if not assume_yes:
+        ask_to_start(context, review)
+    measured = measure_revision(
+        context.paths, revision_id, ForgeRunner(context.paths, run_command)
+    )
+    return CommandResult(
+        data=ForgeUpliftStartPayload(
+            revision=measured.revision, run=measured.run, comparison=measured.comparison
+        ),
+        warnings=[*revision_warnings(measured.revision), *run_warnings(measured.run)],
+        next_actions=[revision_status_action(measured.revision)],
+    )
+
+
+def _revision_review(revision: ForgeRevisionStatus) -> ForgeRunReview:
+    """The forge run review, headed by what this run is a revision of."""
+    review = review_run_spec(revision.spec)
+    record = revision.record
+    screening = (
+        f"Screening: {len(record.screening)} line(s) of the revised Skill also "
+        "occur in a task's reference fix or tests; see the revision."
+        if record.screening
+        else "Screening: no line of the revised Skill occurs in a task's "
+        "reference fix or tests."
+    )
+    return review.model_copy(
+        update={
+            "review": [
+                f"Revision: {revision.revision_id} of Skill "
+                f"{record.parent_skill_digest[:12]} measured by "
+                f"{record.comparison_id}",
+                *review.review,
+                "Afterwards the run is compared against the same baseline, "
+                f"{record.baseline_run_id}, and the revision is kept whether "
+                "it improved or regressed.",
+                screening,
+            ]
+        }
     )
 
 
 # ---------------------------------------------------------------------------
 # Next actions
 # ---------------------------------------------------------------------------
+
+
+def _measure_when_approved(revision: ForgeRevisionStatus) -> NextAction:
+    """Return the start a person's agreement turns into a measured revision."""
+    return NextAction(
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation(
+            "uplift",
+            "start",
+            arguments=[revision.revision_id],
+            options={"--yes": True, "--reviewed-on": ReviewSurface.HOST_AGENT.value},
+        ),
+        expected_state_digest=revision.record.spec_digest,
+        side_effect=SideEffect.LOCAL_EXECUTION,
+        approval_required=True,
+        retry_class=RetryClass.HUMAN_DECISION_REQUIRED,
+        estimated_cost=None,
+        data_egress=DataEgress.MODEL_PROVIDER,
+        reason=(
+            f"It runs {revision.record.skill.name} on the same tasks with your "
+            "own Hermes and compares it against the same baseline. A person "
+            "approves the model calls it makes on their own account."
+        ),
+    )
 
 
 def read_the_measured_skill(run_id: str) -> NextAction:
@@ -531,6 +715,9 @@ def read_the_measured_skill(run_id: str) -> NextAction:
 
 def _render_context(data: object, console: Console) -> None:
     """Print a short summary and where the full context was written."""
+    if isinstance(data, ForgeUpliftContextPayload):
+        _render_forge_context(data, console)
+        return
     if not isinstance(data, UpliftContextPayload):
         return
     improvement = data.context
@@ -572,6 +759,58 @@ def _render_context(data: object, console: Console) -> None:
         console.print(f"  {item}")
 
 
+def _render_forge_context(data: ForgeUpliftContextPayload, console: Console) -> None:
+    improvement = data.context
+    result = improvement.current_result
+    console.print(
+        f"Built improvement context for {improvement.comparison_id} from "
+        f"{len(improvement.examples)} of its task attempts."
+    )
+    console.print()
+    render_pairs(
+        [
+            ("Comparison", improvement.comparison_id),
+            (
+                "Repository",
+                f"{improvement.repository} at {improvement.head_commit[:12]}",
+            ),
+            (
+                "Skill being revised",
+                f"{improvement.parent_skill_name} "
+                f"({improvement.parent_skill_digest[:19]})",
+            ),
+            (
+                "Pairs",
+                f"{result.wins} won, {result.losses} lost, {result.ties} tied, "
+                f"{result.unresolved} unresolved of {result.pairs_planned}",
+            ),
+            ("Written to", data.relative_path),
+        ],
+        console,
+    )
+    console.print()
+    console.print(improvement.objective)
+    console.print()
+    console.print("Task attempts worth looking at")
+    table = Table(box=None, pad_edge=False, padding=(0, 2))
+    table.add_column("Task", no_wrap=True)
+    table.add_column("Result", no_wrap=True)
+    table.add_column("Reward", justify="right", no_wrap=True)
+    for example in improvement.examples:
+        table.add_row(
+            f"{example.task_id} #{example.attempt}",
+            example.result.value,
+            f"{example.candidate_reward:.3f}"
+            if example.candidate_reward is not None
+            else "none",
+        )
+    console.print(table)
+    console.print()
+    console.print("Not included")
+    for item in improvement.prohibited_material:
+        console.print(f"  {item}")
+
+
 def _render_skill_source(data: object, console: Console) -> None:
     """Print what the text was verified against, then the text itself."""
     if not isinstance(data, UpliftSkillSourcePayload):
@@ -602,6 +841,14 @@ def _render_skill_source(data: object, console: Console) -> None:
 
 def _render_prepare(data: object, console: Console) -> None:
     """Print everything a person needs before approving a second run."""
+    if isinstance(data, ForgeRevisionStatus):
+        console.print(
+            f"Prepared {data.record.skill.name} against the Skill comparison "
+            f"{data.record.comparison_id} measured. Nothing has run yet."
+        )
+        console.print()
+        render_forge_revision(data, console)
+        return
     if not isinstance(data, UpliftPreparePayload):
         return
 
@@ -668,6 +915,22 @@ def _render_start(data: object, console: Console) -> None:
     if isinstance(data, StartReviewPayload):
         for line in data.review:
             console.print(line)
+        return
+    if isinstance(data, ForgeRunReview):
+        for line in data.review:
+            console.print(line, markup=False)
+        console.print()
+        console.print("Nothing has started. Run again with --yes to start it.")
+        return
+    if isinstance(data, ForgeUpliftStartPayload):
+        console.print(
+            f"Revision {data.revision.revision_id} measured as run "
+            f"{data.run.run_id} and compared as {data.comparison.comparison_id}."
+        )
+        console.print()
+        render_forge_revision(data.revision, console)
+        console.print()
+        render_forge_comparison(data.comparison, console)
         return
     if not isinstance(data, UpliftStartPayload):
         return

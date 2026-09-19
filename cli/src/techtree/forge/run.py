@@ -9,7 +9,7 @@ it says. For each named task and each repetition, in order:
 2. a throwaway Hermes profile is created under the person's own Hermes root
    with a ``config.yaml`` Techtree wrote — Docker sandbox from the task image,
    no network, memory off, no title generation — and, on the candidate arm,
-   the Skill copied under ``skills/<name>`` exactly as declared;
+   the Skill copied under ``skills/<name>`` from the run's own copy of it;
 3. the person's ``hermes`` runs one-shot in that profile, in the workspace,
    with the task's instruction, the Skill preloaded on the candidate arm and
    the task's own agent timeout as its run budget and as Techtree's deadline;
@@ -17,6 +17,11 @@ it says. For each named task and each repetition, in order:
    and the patch kept;
 5. the task's own tests grade the workspace the way qualification graded the
    reference repair, and the reward files are read the same way.
+
+On the candidate arm the run takes its own copy of the Skill under ``skill/``
+before the first attempt, once the directory it was declared from still
+hashes to what the specification says; every attempt is served from that
+copy, and it is what ``uplift skill-source`` reads back afterwards.
 
 The profile is a profile rather than a bare directory on purpose: Hermes
 reads the root's sign-ins from a profile and writes refreshed tokens back to
@@ -68,14 +73,11 @@ from techtree.forge.models import (
 from techtree.forge.process import CommandRunner
 from techtree.forge.qualify import grade_task, read_task_facts
 from techtree.forge.service import read_build_status
+from techtree.forge.skill import SKILL_DIRNAME, scan_skill_spec, snapshot_skill
 from techtree.fs import atomic_write_bytes, atomic_write_json, remove_tree
 from techtree.ids import new_id, validate_id
-from techtree.manifests.builder import skill_content_digest
 from techtree.models.base import Digest, JsonValue
-from techtree.models.skill import SkillFile
 from techtree.paths import TechtreePaths
-from techtree.skills.policy import default_instruction_skill_policy
-from techtree.skills.scanner import scan_skill
 
 __all__ = [
     "AgentLauncher",
@@ -274,6 +276,7 @@ class ForgeRunner:
         run_dir = self._paths.forge_run_dir(run_id)
         run_dir.mkdir(parents=True, mode=0o700)
         atomic_write_bytes(run_dir / _SPEC_FILENAME, canonical_json_bytes(spec))
+        snapshot_skill(skill_files, run_dir / SKILL_DIRNAME)
         now = datetime.now(UTC)
         record = ForgeRunRecord(
             schema_version=FORGE_RUN_SCHEMA_VERSION,
@@ -305,7 +308,6 @@ class ForgeRunner:
                         spec=spec,
                         build=build,
                         qualification=qualification,
-                        skill_files=skill_files,
                         run_dir=run_dir,
                         profile_name=f"techtree-{run_id[-12:]}-{counter}",
                         task_id=task_id,
@@ -363,7 +365,7 @@ class ForgeRunner:
     def _skill_files(
         self, spec: ForgeRunSpec, skill_root: Path | None
     ) -> list[tuple[Path, str]]:
-        """Return the Skill's files to deliver, once they are the declared ones."""
+        """Return the Skill's files to copy, once they are the declared ones."""
         if spec.skill is None:
             if skill_root is not None:
                 raise ValidationError(
@@ -376,28 +378,18 @@ class ForgeRunner:
                 "the candidate arm needs the Skill directory it declared",
                 code="forge_candidate_without_skill",
             )
-        scan = scan_skill(skill_root, default_instruction_skill_policy())
-        digest = skill_content_digest(
-            [
-                SkillFile(
-                    path=item.relative_path.as_posix(),
-                    media_type=item.media_type,
-                    size=item.size,
-                    digest=item.digest,
-                )
-                for item in scan.files
-            ]
-        )
-        if digest != spec.skill.root_digest:
+        found, files = scan_skill_spec(skill_root, name=spec.skill.name)
+        if found.root_digest != spec.skill.root_digest:
             raise ValidationError(
                 "the Skill directory no longer matches the Skill the "
                 "specification declared; declare it again",
                 code="forge_skill_changed",
-                details={"declared": spec.skill.root_digest, "found": digest},
+                details={
+                    "declared": spec.skill.root_digest,
+                    "found": found.root_digest,
+                },
             )
-        return [
-            (item.source_path, item.relative_path.as_posix()) for item in scan.files
-        ]
+        return files
 
     def _attempt(
         self,
@@ -405,7 +397,6 @@ class ForgeRunner:
         spec: ForgeRunSpec,
         build: ForgeBuildRecord,
         qualification: ForgeQualification,
-        skill_files: list[tuple[Path, str]],
         run_dir: Path,
         profile_name: str,
         task_id: str,
@@ -436,10 +427,13 @@ class ForgeRunner:
         (profile / "skills").mkdir(parents=True, mode=0o700)
         atomic_write_bytes(profile / "config.yaml", config)
         if spec.skill is not None:
-            for source, relative in skill_files:
-                target = profile / "skills" / spec.skill.name / relative
-                target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-                shutil.copyfile(source, target)
+            snapshot_skill(
+                [
+                    (run_dir / SKILL_DIRNAME / file.path, file.path)
+                    for file in spec.skill.files
+                ],
+                profile / "skills" / spec.skill.name,
+            )
 
         usage_file = attempt_dir / "usage.json"
         instruction = (task_dir / "instruction.md").read_text(encoding="utf-8")

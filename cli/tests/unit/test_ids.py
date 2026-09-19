@@ -32,6 +32,7 @@ EXPECTED_PREFIXES = frozenset(
         "build",
         "forgerun",
         "forgecmp",
+        "forgerev",
     }
 )
 

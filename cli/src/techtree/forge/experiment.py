@@ -33,17 +33,15 @@ from techtree.forge.models import (
 )
 from techtree.forge.process import run_command
 from techtree.forge.service import read_build_status
-from techtree.manifests.builder import skill_content_digest
+from techtree.forge.skill import scan_skill_spec
 from techtree.models.base import Digest, JsonValue
-from techtree.models.skill import SkillFile
 from techtree.paths import TechtreePaths
-from techtree.skills.policy import default_instruction_skill_policy
-from techtree.skills.scanner import scan_skill
 
 __all__ = [
     "CONTAINER_MEMORY_MB",
     "NOT_ESTABLISHED",
     "declare_run_spec",
+    "hermes_version",
     "run_spec_digest",
 ]
 
@@ -112,7 +110,7 @@ def declare_run_spec(
         agent=ForgeAgentSpec(
             harness="hermes",
             executable=str(executable),
-            version=_hermes_version(executable),
+            version=hermes_version(executable),
         ),
         model=ForgeModelSpec(
             provider=provider,
@@ -195,22 +193,8 @@ def _skill_for(arm: ForgeArm, skill_root: Path | None) -> ForgeSkillSpec | None:
             "the candidate arm needs the Skill it is measuring",
             code="forge_candidate_without_skill",
         )
-    scan = scan_skill(skill_root, default_instruction_skill_policy())
-    files = [
-        SkillFile(
-            path=item.relative_path.as_posix(),
-            media_type=item.media_type,
-            size=item.size,
-            digest=item.digest,
-        )
-        for item in scan.files
-    ]
-    return ForgeSkillSpec(
-        name=scan.root.name,
-        root_digest=skill_content_digest(files),
-        files=files,
-        exposure="preloaded",
-    )
+    spec, _ = scan_skill_spec(skill_root)
+    return spec
 
 
 def _hermes_executable() -> Path:
@@ -224,7 +208,8 @@ def _hermes_executable() -> Path:
     return Path(found)
 
 
-def _hermes_version(executable: Path) -> str:
+def hermes_version(executable: Path) -> str:
+    """Return the version the Hermes at ``executable`` prints for itself."""
     completed = run_command([str(executable), "--version"], _VERSION_TIMEOUT_SECONDS)
     first_line = completed.stdout.splitlines()[0] if completed.stdout else ""
     match = _VERSION_BANNER.match(first_line)
