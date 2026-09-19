@@ -1,4 +1,4 @@
-"""What a forge build records. ``docs/plan/repo2rlenv-local-lane.md``.
+"""What a forge build and a forge run record. ``docs/plan/repo2rlenv-local-lane.md``.
 
 Three documents live in a build directory. ``build.json`` says what was built
 from what: the repository, the commit, the bootstrap image, the test commands,
@@ -7,6 +7,13 @@ emitted tasks proved out under the model-free checks and which did not, with
 the rewards each check observed. ``progress.json`` preserves the last observed
 phase and partial evidence. All are private local evidence about a mutable local
 subject, not published artifacts.
+
+A forge run starts from a fourth document, the run specification
+(:class:`ForgeRunSpec`). It is the experiment's contract, written before any
+result exists: which qualified tasks, which grading, which Hermes, which model,
+what starting state, and which Skill, if any. Two specifications are comparable
+only when they differ in the Skill alone; :mod:`techtree.forge.comparability`
+computes that rather than asserting it.
 """
 
 from __future__ import annotations
@@ -18,21 +25,33 @@ from pydantic import Field, StringConstraints, field_validator, model_validator
 
 from techtree.canonical import verify_object_digest
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
+from techtree.models.skill import SkillFile
 
 __all__ = [
     "FORGE_BUILD_SCHEMA_VERSION",
     "FORGE_PROGRESS_SCHEMA_VERSION",
     "FORGE_QUALIFICATION_SCHEMA_VERSION",
+    "FORGE_RUN_SPEC_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
     "FORGE_TASK_SET_SCHEMA_VERSION",
+    "ForgeAgentSpec",
+    "ForgeArm",
     "ForgeBuildFailure",
     "ForgeBuildPhase",
     "ForgeBuildProgress",
     "ForgeBuildRecord",
     "ForgeBuildStatus",
+    "ForgeGradingSpec",
+    "ForgeInitialState",
     "ForgeLanguage",
+    "ForgeLimits",
+    "ForgeModelSpec",
     "ForgePlatform",
     "ForgeQualification",
+    "ForgeRunSpec",
+    "ForgeSamplingSpec",
+    "ForgeSkillName",
+    "ForgeSkillSpec",
     "ForgeTaskId",
     "GenerationSummary",
     "QualificationCheck",
@@ -45,6 +64,7 @@ __all__ = [
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha2"
 FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha1"
 FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha2"
+FORGE_RUN_SPEC_SCHEMA_VERSION: Final = "techtree.forge-run-spec.v1alpha1"
 FORGE_TASK_CONTENT_SCHEMA_VERSION: Final = "techtree.forge-task-content.v1alpha1"
 FORGE_TASK_SET_SCHEMA_VERSION: Final = "techtree.forge-task-set.v1alpha1"
 
@@ -239,6 +259,127 @@ class ForgeQualification(ProtocolModel):
             task.task_id for task in self.tasks if task.qualified
         ]:
             raise ValueError("qualified task count or order differs from task evidence")
+        return self
+
+
+#: The name a Skill is visible to Hermes under: its directory name, in the
+#: identifier form Hermes accepts for a Skill.
+type ForgeSkillName = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]*$")]
+
+
+class ForgeArm(StrEnum):
+    """Which side of the comparison a run specification describes."""
+
+    BASELINE = "baseline"
+    CANDIDATE = "candidate"
+
+
+class ForgeGradingSpec(ProtocolModel):
+    """How a run is scored.
+
+    The procedure is the Harbor task's: ``bash /tests/test.sh`` in a fresh
+    container from the task image with the agent's workspace mounted, the
+    reward read from ``/logs/verifier/reward.json`` then ``reward.txt``. It is
+    executed by this local experiment, not by Verifiers, and is labelled so.
+    """
+
+    procedure: Literal["harbor-compatible"]
+    executed_by: Literal["local-experiment"]
+
+
+class ForgeAgentSpec(ProtocolModel):
+    """The Hermes that will act: which executable, and what it says it is."""
+
+    harness: Literal["hermes"]
+    executable: NonEmptyString
+    version: NonEmptyString
+
+
+class ForgeModelSpec(ProtocolModel):
+    """The model the run asks Hermes for.
+
+    Techtree copies no credential: Hermes reads its own authentication store,
+    so whatever it can reach under that provider name is what answers.
+    """
+
+    provider: NonEmptyString
+    model_id: NonEmptyString
+    reasoning: NonEmptyString | None
+    credential_source: Literal["hermes-auth-store"]
+
+
+class ForgeInitialState(ProtocolModel):
+    """What Hermes starts from: an empty home written by Techtree, no memory."""
+
+    home: Literal["fresh-empty"]
+    memory_enabled: Literal[False]
+
+
+class ForgeSkillSpec(ProtocolModel):
+    """The one Skill the candidate arm carries, by content."""
+
+    name: ForgeSkillName
+    root_digest: Digest
+    files: list[SkillFile] = Field(min_length=1)
+    exposure: Literal["preloaded"]
+
+
+class ForgeLimits(ProtocolModel):
+    """Bounds on the agent's turn count and on its sandbox.
+
+    The agent's wall-clock allowance is the task's own ``[agent].timeout_sec``,
+    which is part of the committed task content rather than repeated here.
+    """
+
+    max_turns: int = Field(ge=1)
+    container_cpus: int = Field(ge=1)
+    container_memory_mb: int = Field(ge=1)
+    network: Literal[False]
+
+
+class ForgeSamplingSpec(ProtocolModel):
+    """How many attempts each task gets, and what is *not* controlled.
+
+    Hermes exposes no temperature or seed, so sampling is the provider's
+    default on every attempt and is declared as such.
+    """
+
+    control: Literal["provider-default"]
+    repetitions: int = Field(ge=1)
+
+
+class ForgeRunSpec(ProtocolModel):
+    """One arm of a forge experiment, declared before it runs.
+
+    Everything a Skill-effect claim depends on is here: the build and the
+    subset of its qualified tasks, the grading, the agent, the model, the
+    starting state, the limits, the sampling plan, and the Skill. Facts the
+    experiment cannot establish are listed under ``not_established`` so the
+    report can say so instead of implying them.
+    """
+
+    schema_version: Literal["techtree.forge-run-spec.v1alpha1"]
+    arm: ForgeArm
+    build_id: NonEmptyString
+    membership_digest: Digest
+    task_ids: list[ForgeTaskId] = Field(min_length=1)
+    grading: ForgeGradingSpec
+    agent: ForgeAgentSpec
+    model: ForgeModelSpec
+    initial_state: ForgeInitialState
+    skill: ForgeSkillSpec | None
+    limits: ForgeLimits
+    sampling: ForgeSamplingSpec
+    not_established: list[NonEmptyString]
+
+    @model_validator(mode="after")
+    def validate_arm_skill(self) -> Self:
+        if len(set(self.task_ids)) != len(self.task_ids):
+            raise ValueError("a task may be named once in a run specification")
+        if self.arm is ForgeArm.BASELINE and self.skill is not None:
+            raise ValueError("the baseline arm carries no Skill")
+        if self.arm is ForgeArm.CANDIDATE and self.skill is None:
+            raise ValueError("the candidate arm carries exactly one Skill")
         return self
 
 

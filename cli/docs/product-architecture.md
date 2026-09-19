@@ -346,6 +346,8 @@ src/techtree/
 │                       generate.py (clone, bootstrap image, the driver), qualify.py
 │                       (model-free control and reference grading of every task),
 │                       content.py (complete task trees and ordered membership),
+│                       experiment.py (one arm's run specification, declared from
+│                       checked facts), comparability.py (may two arms be compared),
 │                       docker.py and process.py (the one command boundary).
 └── resources/          catalog/, engines/default/, forge/, harness/, release/ — the
                         embedded, generated payload the wheel carries.
@@ -398,6 +400,34 @@ its absence after terminal failure/cancellation means `false`, while unfinished
 observations remain unknown (`null`). Unknown usable counts are never zero.
 A progress receipt does not prove a process is still running. Completed alpha2 builds that
 have no progress receipt remain readable, with progress explicitly unknown.
+
+**Forge run specification (the experiment's contract).** A forge run is
+declared before it produces anything, as a `techtree.forge-run-spec.v1alpha1`
+document per arm. `declare_run_spec` writes it from checked facts, never from
+typed claims: the build must have finished qualification, every named task must
+be one it qualified, `hermes --version` must answer, and a candidate Skill must
+scan under the instruction-Skill policy with a directory name Hermes accepts.
+The specification records the build and its membership digest, the ordered
+task subset, the grading (Harbor-compatible, executed by the local experiment,
+never labelled Verifiers), the Hermes executable and reported version, the
+requested provider and model with `hermes-auth-store` as the only credential
+source, the starting state (a fresh empty home, memory off), the Skill by name
+and content digest with `preloaded` exposure, the sandbox and turn limits, and
+the sampling plan (`provider-default`, since Hermes exposes no temperature or
+seed, plus the repetition count). The agent's wall-clock allowance is the
+task's own `[agent].timeout_sec`, part of the committed content. What the
+experiment cannot establish — the model actually served, an unmodified
+executable, the provider's sampling — is listed on the specification under
+`not_established` rather than implied. The baseline arm carries no Skill and
+the candidate arm exactly one; the model refuses anything else.
+
+`compare_run_specs` is the comparability gate, computed the way
+`manifests/compare.py` computes a Climb's: the arms must be a baseline and a
+candidate, and their canonical JSON is diffed to its leaves; only `/arm` and
+`/skill` may differ. Any other pointer — another build, task list, model,
+Hermes version, starting state, limit or repetition count — is a violation with
+code `forge_comparison_invalid`, and the pair is not compared. Nothing runs a
+specification yet: `forge run` and `forge compare` are not part of this build.
 
 Ordinary errors and Ctrl-C produce a failure/cancellation receipt and a build ID
 with a status command. SIGKILL or disk-write failure can leave no final receipt;
