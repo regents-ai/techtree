@@ -1,0 +1,119 @@
+"""The one Hermes profile forge experiments run in.
+
+Hermes keeps every profile's sign-ins to itself: a named profile never reads
+another profile's authentication store, and a copied OAuth token logs its
+other holder out. So Techtree does not make a profile per attempt. The person
+creates one profile named ``techtree`` and signs it in once::
+
+    hermes profile create techtree
+    hermes -p techtree auth add PROVIDER
+
+Techtree owns everything else in it. Before and after every attempt the
+profile is emptied of all but the sign-in, so each attempt starts from the
+same fresh state and leaves nothing for the next. A run holds the profile's
+lock from its first attempt to its last, so two runs never share it.
+"""
+
+from __future__ import annotations
+
+import fcntl
+import os
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Final
+
+from techtree.errors import PrerequisiteError, RunError
+from techtree.forge.process import CommandRunner
+from techtree.fs import remove_tree
+
+__all__ = [
+    "PROFILE_NAME",
+    "hermes_root",
+    "hold_profile",
+    "profile_dir",
+    "require_signed_in",
+    "reset_profile",
+]
+
+PROFILE_NAME: Final = "techtree"
+_LOCK_FILENAME: Final = "techtree-run.lock"
+#: What a sign-in is made of: Hermes' authentication store and its lock, and
+#: the file a provider's static key lives in. Nothing here is ever read.
+_KEPT: Final = frozenset({"auth.json", "auth.lock", ".env", _LOCK_FILENAME})
+_STATUS_TIMEOUT_SECONDS: Final = 60.0
+
+
+def hermes_root() -> Path:
+    """Return the person's Hermes root, the way Hermes itself resolves it.
+
+    ``HERMES_HOME`` names the root, or a profile under ``<root>/profiles``;
+    otherwise the root is ``~/.hermes``.
+    """
+    configured = os.environ.get("HERMES_HOME", "")
+    if not configured:
+        return Path.home() / ".hermes"
+    home = Path(configured).expanduser()
+    return home.parent.parent if home.parent.name == "profiles" else home
+
+
+def profile_dir(profiles_root: Path | None = None) -> Path:
+    """Return where the ``techtree`` profile lives, or is expected to."""
+    root = profiles_root if profiles_root is not None else hermes_root() / "profiles"
+    return root / PROFILE_NAME
+
+
+def require_signed_in(
+    run: CommandRunner, executable: Path, provider: str, profile: Path
+) -> None:
+    """Refuse unless the profile exists and Hermes says it is signed in.
+
+    Hermes is asked, read-only, whether the profile holds a sign-in for the
+    provider; its authentication store is never opened here.
+    """
+    sign_in = f"hermes -p {PROFILE_NAME} auth add {provider}"
+    if not profile.is_dir():
+        raise PrerequisiteError(
+            f"experiments run in a Hermes profile named {PROFILE_NAME}, and "
+            f"there is none yet. Create it with `hermes profile create "
+            f"{PROFILE_NAME}`, then sign it in with `{sign_in}`",
+            code="forge_profile_missing",
+            details={"profile": str(profile)},
+        )
+    completed = run(
+        [str(executable), "-p", PROFILE_NAME, "auth", "status", provider],
+        _STATUS_TIMEOUT_SECONDS,
+    )
+    if f"{provider}: logged in" not in completed.stdout.splitlines():
+        raise PrerequisiteError(
+            f"the Hermes profile {PROFILE_NAME} is not signed in to {provider}. "
+            f"Sign it in with `{sign_in}`",
+            code="forge_profile_signed_out",
+            details={"profile": str(profile), "provider": provider},
+        )
+
+
+@contextmanager
+def hold_profile(profile: Path) -> Iterator[None]:
+    """Hold the profile for one run; a second run is refused, not queued."""
+    descriptor = os.open(profile / _LOCK_FILENAME, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise RunError(
+                f"another experiment is running in the Hermes profile "
+                f"{PROFILE_NAME}; start this one when it has finished",
+                code="forge_profile_busy",
+                details={"profile": str(profile)},
+            ) from error
+        yield
+    finally:
+        os.close(descriptor)
+
+
+def reset_profile(profile: Path) -> None:
+    """Empty the profile of everything but the sign-in."""
+    for entry in profile.iterdir():
+        if entry.name not in _KEPT:
+            remove_tree(entry)

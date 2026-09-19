@@ -6,10 +6,10 @@ it says. For each named task and each repetition, in order:
 
 1. the task image's ``/workspace`` is copied out to the host at the base
    commit, so the agent works in a real directory Techtree can diff and grade;
-2. a throwaway Hermes profile is created under the person's own Hermes root
-   with a ``config.yaml`` Techtree wrote — Docker sandbox from the task image,
-   no network, memory off, no title generation — and, on the candidate arm,
-   the Skill copied under ``skills/<name>`` from the run's own copy of it;
+2. the person's ``techtree`` Hermes profile is emptied of everything but its
+   sign-in and given a ``config.yaml`` Techtree wrote — Docker sandbox from
+   the task image, no network, memory off, no title generation — and, on the
+   candidate arm, the Skill under ``skills/<name>`` from the run's own copy;
 3. the person's ``hermes`` runs one-shot in that profile, in the workspace,
    with the task's instruction, the Skill preloaded on the candidate arm and
    the task's own agent timeout as its run budget and as Techtree's deadline;
@@ -23,13 +23,14 @@ before the first attempt, once the directory it was declared from still
 hashes to what the specification says; every attempt is served from that
 copy, and it is what ``uplift skill-source`` reads back afterwards.
 
-The profile is a profile rather than a bare directory on purpose: Hermes
-reads the root's sign-ins from a profile and writes refreshed tokens back to
-the root, which is what lets Techtree copy no credential. After the attempt
-the profile's transcript database is kept beside the evidence, the profile
-is removed, and the sandbox containers Hermes stopped but left on the daemon
-are removed by the profile label Hermes gave them; nothing under the profile
-is read but that one file.
+The profile is one the person made and signed in once
+(:mod:`techtree.forge.profile`): Hermes keeps each profile's sign-ins to
+itself, which is what lets Techtree copy no credential. The run holds the
+profile from its first attempt to its last. After each attempt the profile's
+transcript database is kept beside the evidence, the profile is emptied again
+but for the sign-in, and the sandbox containers Hermes stopped but left on the
+daemon are removed by the profile label Hermes gave them; nothing under the
+profile is read but that one file.
 
 Every outcome is its own kind: a graded attempt has a reward, and an agent
 that timed out or failed, a verifier that timed out, or a verifier that left
@@ -71,10 +72,17 @@ from techtree.forge.models import (
     ForgeUsage,
 )
 from techtree.forge.process import CommandRunner
+from techtree.forge.profile import (
+    PROFILE_NAME,
+    hold_profile,
+    profile_dir,
+    require_signed_in,
+    reset_profile,
+)
 from techtree.forge.qualify import grade_task, read_task_facts
 from techtree.forge.service import read_build_status
 from techtree.forge.skill import SKILL_DIRNAME, scan_skill_spec, snapshot_skill
-from techtree.fs import atomic_write_bytes, atomic_write_json, remove_tree
+from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
 from techtree.models.base import Digest, JsonValue
 from techtree.paths import TechtreePaths
@@ -84,7 +92,6 @@ __all__ = [
     "AgentOutcome",
     "ForgeRunner",
     "hermes_config",
-    "hermes_root",
     "launch_agent",
     "read_run_status",
 ]
@@ -131,19 +138,6 @@ class AgentOutcome:
 type AgentLauncher = Callable[
     [list[str], dict[str, str], Path, Path, float], AgentOutcome
 ]
-
-
-def hermes_root() -> Path:
-    """Return the person's Hermes root, the way Hermes itself resolves it.
-
-    ``HERMES_HOME`` names the root, or a profile under ``<root>/profiles``;
-    otherwise the root is ``~/.hermes``.
-    """
-    configured = os.environ.get("HERMES_HOME", "")
-    if not configured:
-        return Path.home() / ".hermes"
-    home = Path(configured).expanduser()
-    return home.parent.parent if home.parent.name == "profiles" else home
 
 
 def hermes_config(
@@ -244,11 +238,10 @@ class ForgeRunner:
         profiles_root: Path | None = None,
     ) -> None:
         self._paths = paths
+        self._run = run
         self._docker = Docker(run)
         self._launch = launch
-        self._profiles_root = (
-            profiles_root if profiles_root is not None else hermes_root() / "profiles"
-        )
+        self._profile = profile_dir(profiles_root)
 
     def run(self, spec: ForgeRunSpec, skill_root: Path | None) -> ForgeRunStatus:
         """Execute every attempt the specification names and record each one."""
@@ -261,6 +254,9 @@ class ForgeRunner:
                 details={"build_id": spec.build_id},
             )
         build, qualification = status.build, status.qualification
+        require_signed_in(
+            self._run, Path(spec.agent.executable), spec.model.provider, self._profile
+        )
         if qualification.membership_digest != spec.membership_digest:
             raise ValidationError(
                 "the build's tasks are not the ones the specification was declared on",
@@ -300,27 +296,25 @@ class ForgeRunner:
         try:
             persist(record)
             self._docker.require_daemon()
-            counter = 0
-            for task_id in spec.task_ids:
-                for attempt in range(1, spec.sampling.repetitions + 1):
-                    counter += 1
-                    result = self._attempt(
-                        spec=spec,
-                        build=build,
-                        qualification=qualification,
-                        run_dir=run_dir,
-                        profile_name=f"techtree-{run_id[-12:]}-{counter}",
-                        task_id=task_id,
-                        attempt=attempt,
-                    )
-                    persist(
-                        record.model_copy(
-                            update={
-                                "updated_at": datetime.now(UTC),
-                                "attempts": [*record.attempts, result],
-                            }
+            with hold_profile(self._profile):
+                for task_id in spec.task_ids:
+                    for attempt in range(1, spec.sampling.repetitions + 1):
+                        result = self._attempt(
+                            spec=spec,
+                            build=build,
+                            qualification=qualification,
+                            run_dir=run_dir,
+                            task_id=task_id,
+                            attempt=attempt,
                         )
-                    )
+                        persist(
+                            record.model_copy(
+                                update={
+                                    "updated_at": datetime.now(UTC),
+                                    "attempts": [*record.attempts, result],
+                                }
+                            )
+                        )
             persist(
                 record.model_copy(
                     update={"updated_at": datetime.now(UTC), "state": "completed"}
@@ -398,7 +392,6 @@ class ForgeRunner:
         build: ForgeBuildRecord,
         qualification: ForgeQualification,
         run_dir: Path,
-        profile_name: str,
         task_id: str,
         attempt: int,
     ) -> ForgeAttemptRecord:
@@ -417,14 +410,9 @@ class ForgeRunner:
 
         config = hermes_config(spec, image, facts.agent_timeout, workspace)
         atomic_write_bytes(attempt_dir / "config.yaml", config)
-        profile = self._profiles_root / profile_name
-        if profile.exists():
-            raise RunError(
-                f"a Hermes profile named {profile_name} already exists",
-                code="forge_profile_exists",
-                details={"profile": str(profile)},
-            )
-        (profile / "skills").mkdir(parents=True, mode=0o700)
+        profile = self._profile
+        reset_profile(profile)
+        (profile / "skills").mkdir(mode=0o700)
         atomic_write_bytes(profile / "config.yaml", config)
         if spec.skill is not None:
             snapshot_skill(
@@ -473,8 +461,8 @@ class ForgeRunner:
             transcript = profile / _STATE_DB
             if transcript.is_file() and not transcript.is_symlink():
                 shutil.copyfile(transcript, attempt_dir / _STATE_DB)
-            remove_tree(profile)
-            self._docker.remove_labelled(_PROFILE_LABEL, profile_name)
+            reset_profile(profile)
+            self._docker.remove_labelled(_PROFILE_LABEL, PROFILE_NAME)
 
         usage = _read_usage(usage_file)
         patch_digest = self._patch(build, image, workspace, attempt_dir)

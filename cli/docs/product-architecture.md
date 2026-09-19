@@ -416,7 +416,9 @@ be one it qualified, `hermes --version` must answer, and a candidate Skill must
 scan under the instruction-Skill policy with a directory name Hermes accepts.
 The specification records the build and its membership digest, the ordered
 task subset, the grading (Harbor-compatible, executed by the local experiment,
-never labelled Verifiers), the Hermes executable and reported version, the
+never labelled Verifiers), the Hermes executable and the whole version line it
+reports (number, build date and upstream commit, because Hermes updates from
+its upstream without changing the number), the
 requested provider and model with `hermes-auth-store` as the only credential
 source, the starting state (a fresh empty home, memory off), the Skill by name
 and content digest with `preloaded` exposure, the sandbox and turn limits, and
@@ -451,11 +453,17 @@ own copy of the Skill's files under `skill/` before the first attempt, and every
 attempt's profile is filled from that copy, so the run measures a Skill it
 owns rather than a working directory free to change; `uplift skill-source`
 reads that copy back only after every listed file is re-hashed against the
-specification. Each attempt, in task then
+specification. Before a run is recorded, Hermes is asked, read-only, whether
+the `techtree` profile is signed in to the provider (`forge_profile_missing`,
+`forge_profile_signed_out` name the command to fix it; the authentication store
+is never opened), and the run holds the profile's lock from its first attempt
+to its last, so a second run is refused (`forge_profile_busy`) rather than
+sharing it. Each attempt, in task then
 repetition order: the task image's `/workspace` is copied to the host at the
-base commit; a throwaway Hermes profile is created under the person's Hermes
-root (`profiles/techtree-<run>-<n>`, so the root's sign-ins are borrowed and
-token refreshes are written back, and nothing is copied) with a `config.yaml`
+base commit; the person's Hermes profile `techtree` — one they created and
+signed in once, because Hermes keeps each profile's sign-ins to itself and a
+copied token would log its other holder out — is emptied of everything but that
+sign-in (`auth.json`, `auth.lock`, `.env`) and given a `config.yaml`
 Techtree wrote — Docker sandbox from the task image's content id with the
 exported workspace mounted at `/workspace` as the shell's directory, no network,
 2 CPUs, 4096 MB, memory and user profile off, title generation off, the task's
@@ -465,7 +473,7 @@ specification; `hermes --yolo -z` runs in the workspace with the instruction,
 `-t terminal,file,code_execution,skills`, `--usage-file`, and `-s <name>` on
 the candidate arm, under a Techtree deadline of the task timeout plus two
 minutes (interrupted, then killed); the profile's `state.db` is kept beside the
-evidence, the profile removed, and the sandbox containers Hermes stopped but
+evidence, the profile emptied again but for the sign-in, and the sandbox containers Hermes stopped but
 left on the daemon removed by their `hermes-profile` label; the workspace is
 diffed against the base
 commit in a fresh container (`patch.diff`); and the task's own tests grade it

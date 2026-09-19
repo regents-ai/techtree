@@ -59,7 +59,8 @@ def test_a_baseline_records_the_build_and_the_facts_it_checked(
     assert spec.build_id == build.build_id
     assert spec.task_ids == [build.task_id]
     assert spec.agent.executable == "/fake/bin/hermes"
-    assert spec.agent.version == HERMES_VERSION_LINE.split()[2].lstrip("v")
+    assert spec.agent.version == "0.21.3 (2026.9.14) · upstream 6d712cf8"
+    assert f"Hermes Agent v{spec.agent.version}\n" == HERMES_VERSION_LINE
     assert spec.model.credential_source == "hermes-auth-store"
     assert spec.initial_state.memory_enabled is False
     assert spec.limits.network is False

@@ -44,6 +44,7 @@ from typing import Final
 
 from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError
+from techtree.forge.profile import PROFILE_NAME, profile_dir
 from techtree.models.base import JsonValue
 from techtree.models.catalog import EngineCompatibilityStatus
 from techtree.models.cli import CheckStatus, DoctorCheck
@@ -61,6 +62,7 @@ __all__ = [
     "check_docker_cli",
     "check_docker_daemon",
     "check_hermes_cli",
+    "check_hermes_experiment_profile",
     "check_hermes_plugin",
     "check_host_platform",
     "check_python_version",
@@ -447,6 +449,41 @@ def check_hermes_cli() -> DoctorCheck:
         detail=probe.output or "hermes is available",
         blocking=False,
         metadata={"executable": probe.executable, "version": probe.output},
+    )
+
+
+def check_hermes_experiment_profile() -> DoctorCheck:
+    """Say whether the Hermes profile forge experiments run in exists; warning only.
+
+    Only its presence is looked at. Whether it is signed in depends on the
+    provider an experiment names, so ``forge run`` asks Hermes that before it
+    starts anything; the profile's authentication store is never opened.
+    """
+    profile = profile_dir()
+    if not profile.is_dir():
+        return DoctorCheck(
+            id="hermes_experiment_profile",
+            label="Hermes experiment profile",
+            status=CheckStatus.WARN,
+            detail=(
+                f"no Hermes profile named {PROFILE_NAME}. `techtree forge run` "
+                "runs experiments in it; create it with `hermes profile create "
+                f"{PROFILE_NAME}`, then sign it in with `hermes -p {PROFILE_NAME} "
+                "auth add PROVIDER`. Nothing else needs it"
+            ),
+            blocking=False,
+            metadata={"profile": str(profile)},
+        )
+    return DoctorCheck(
+        id="hermes_experiment_profile",
+        label="Hermes experiment profile",
+        status=CheckStatus.PASS,
+        detail=(
+            f"{profile} exists; `techtree forge run` confirms its sign-in for "
+            "the provider an experiment names"
+        ),
+        blocking=False,
+        metadata={"profile": str(profile)},
     )
 
 

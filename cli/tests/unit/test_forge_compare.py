@@ -24,6 +24,7 @@ from fixtures.forge.support import (
     QualifiedBuild,
     declare,
     qualified_build,
+    signed_in_profile,
     write_skill,
 )
 from techtree.cli.app import create_app
@@ -58,7 +59,9 @@ def skill(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def profiles(tmp_path: Path) -> Path:
-    return tmp_path / "profiles"
+    root = tmp_path / "profiles"
+    signed_in_profile(root)
+    return root
 
 
 def run_arm(

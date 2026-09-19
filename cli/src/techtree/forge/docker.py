@@ -237,7 +237,7 @@ class Docker:
 
         Hermes stops the sandbox it started for a one-shot run but leaves it
         on the daemon; it labels each with its profile, which is how the
-        forge takes back exactly the containers its throwaway profile made.
+        forge takes back exactly the containers its ``techtree`` profile made.
         """
         listed = self._run(
             ["docker", "ps", "--all", "--quiet", "--filter", f"label={label}={value}"],

@@ -31,6 +31,7 @@ from techtree.doctor.checks import (
     check_docker_cli,
     check_docker_daemon,
     check_hermes_cli,
+    check_hermes_experiment_profile,
     check_hermes_plugin,
     check_host_platform,
     check_python_version,
@@ -128,6 +129,7 @@ class DoctorService:
             check_docker_daemon(),
             check_hermes_cli(),
             check_hermes_plugin(),
+            check_hermes_experiment_profile(),
             check_active_engine(self._paths, self._settings),
         ]
         if not for_evaluation:

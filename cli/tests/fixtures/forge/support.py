@@ -46,6 +46,7 @@ __all__ = [
     "declare",
     "hermes_on_path",
     "qualified_build",
+    "signed_in_profile",
     "write_skill",
 ]
 
@@ -55,7 +56,7 @@ BASE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 INSTRUCTION = "Make the failing test pass.\n"
 AGENT_TIMEOUT = 60.0
 VERIFIER_TIMEOUT = 30.0
-HERMES_VERSION_LINE = "Hermes Agent v0.21.3 (2026.9.14) · upstream 0.21.3\n"
+HERMES_VERSION_LINE = "Hermes Agent v0.21.3 (2026.9.14) · upstream 6d712cf8\n"
 
 
 @dataclass(frozen=True)
@@ -230,13 +231,15 @@ class FakeDocker:
     ``"timeout"`` for a test run that hangs. ``export_error`` makes the
     workspace export fail the way a missing image would. ``left_behind`` is
     what ``docker ps`` lists for any label filter: the stopped containers
-    Hermes leaves on the daemon.
+    Hermes leaves on the daemon. The one ``hermes`` command that comes through
+    here is the sign-in question, answered from ``signed_in``.
     """
 
     reward: float | str | None = 1.0
     patch: str = "diff --git a/x b/x\n"
     export_error: bool = False
     left_behind: list[str] = field(default_factory=list)
+    signed_in: bool = True
     calls: list[list[str]] = field(default_factory=list)
 
     def __call__(
@@ -244,6 +247,9 @@ class FakeDocker:
     ) -> subprocess.CompletedProcess[str]:
         command = list(argv)
         self.calls.append(command)
+        if command[1:5] == ["-p", "techtree", "auth", "status"]:
+            state = "logged in" if self.signed_in else "logged out (no credentials)"
+            return _done(command, f"{command[5]}: {state}\n")
         match command[:2]:
             case ["docker", "version"]:
                 return _done(command, "linux/arm64\n")
@@ -286,6 +292,14 @@ class FakeDocker:
 
     def graded(self) -> bool:
         return any(call[-1] == "bash /tests/test.sh" for call in self.calls)
+
+
+def signed_in_profile(profiles: Path) -> Path:
+    """Make the ``techtree`` Hermes profile a person created and signed in."""
+    profile = profiles / "techtree"
+    profile.mkdir(parents=True)
+    (profile / "auth.json").write_text("{}", encoding="utf-8")
+    return profile
 
 
 def _done(command: list[str], stdout: str = "") -> subprocess.CompletedProcess[str]:

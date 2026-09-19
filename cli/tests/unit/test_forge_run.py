@@ -24,11 +24,12 @@ from fixtures.forge.support import (
     declare,
     hermes_on_path,
     qualified_build,
+    signed_in_profile,
     write_skill,
 )
 from techtree.canonical import sha256_digest_bytes
 from techtree.cli.app import create_app
-from techtree.errors import NotFoundError, RunError, ValidationError
+from techtree.errors import NotFoundError, PrerequisiteError, RunError, ValidationError
 from techtree.forge.models import (
     ForgeArm,
     ForgeAttemptOutcome,
@@ -37,11 +38,11 @@ from techtree.forge.models import (
     ForgeRunSpec,
     ForgeRunStatus,
 )
+from techtree.forge.profile import hermes_root, hold_profile
 from techtree.forge.run import (
     AgentOutcome,
     ForgeRunner,
     hermes_config,
-    hermes_root,
     read_run_status,
 )
 
@@ -58,7 +59,9 @@ def skill(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def profiles(tmp_path: Path) -> Path:
-    return tmp_path / "hermes" / "profiles"
+    root = tmp_path / "hermes" / "profiles"
+    signed_in_profile(root)
+    return root
 
 
 def runner(
@@ -141,22 +144,25 @@ def test_the_run_directory_holds_the_specification_and_the_record(
 # ---------------------------------------------------------------------------
 
 
-def test_hermes_runs_in_a_throwaway_profile_that_is_removed_afterwards(
+def test_hermes_runs_in_the_techtree_profile_emptied_of_all_but_the_sign_in(
     build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
     hermes = FakeHermes()
+    profile = profiles / "techtree"
+    (profile / "memories").mkdir()
+    (profile / "memories" / "MEMORY.md").write_text("earlier\n", encoding="utf-8")
+    (profile / "state.db").write_bytes(b"an earlier session")
 
     status = runner(build, FakeDocker(), hermes, profiles).run(spec, None)
 
     launch = hermes.launches[0]
-    profile = launch["profile"]
-    assert isinstance(profile, Path)
-    assert profile.parent == profiles
-    assert profile.name == f"techtree-{status.run_id[-12:]}-1"
-    assert launch["profile_files"] == ["config.yaml"]
-    assert not profile.exists()
-    assert not profiles.exists() or list(profiles.iterdir()) == []
+    assert launch["profile"] == profile
+    assert launch["profile_files"] == ["auth.json", "config.yaml", "techtree-run.lock"]
+    assert sorted(path.name for path in profile.iterdir()) == [
+        "auth.json",
+        "techtree-run.lock",
+    ]
     env = launch["env"]
     assert isinstance(env, dict)
     assert env["HERMES_HOME"] == str(profile)
@@ -166,15 +172,57 @@ def test_hermes_runs_in_a_throwaway_profile_that_is_removed_afterwards(
     assert launch["timeout"] == AGENT_TIMEOUT + 120.0
 
 
+def test_a_run_without_the_techtree_profile_is_refused_before_anything_is_recorded(
+    build: QualifiedBuild, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
+    hermes = FakeHermes()
+
+    with pytest.raises(PrerequisiteError) as caught:
+        runner(build, FakeDocker(), hermes, tmp_path / "nowhere").run(spec, None)
+
+    assert caught.value.code == "forge_profile_missing"
+    assert "hermes profile create techtree" in caught.value.message
+    assert hermes.launches == []
+    assert not (build.paths.root / "forge" / "runs").exists()
+
+
+def test_a_run_whose_profile_is_signed_out_is_refused_before_anything_is_recorded(
+    build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
+    hermes = FakeHermes()
+
+    with pytest.raises(PrerequisiteError) as caught:
+        runner(build, FakeDocker(signed_in=False), hermes, profiles).run(spec, None)
+
+    assert caught.value.code == "forge_profile_signed_out"
+    assert "hermes -p techtree auth add openai-codex" in caught.value.message
+    assert hermes.launches == []
+    assert not (build.paths.root / "forge" / "runs").exists()
+
+
+def test_a_second_run_in_the_profile_is_refused_while_the_first_holds_it(
+    build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
+    hermes = FakeHermes()
+
+    with hold_profile(profiles / "techtree"), pytest.raises(RunError) as caught:
+        runner(build, FakeDocker(), hermes, profiles).run(spec, None)
+
+    assert caught.value.code == "forge_profile_busy"
+    assert hermes.launches == []
+
+
 def test_the_containers_hermes_left_behind_are_removed_by_profile_label(
     build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
     docker = FakeDocker(left_behind=["abc123", "def456"])
 
-    status = runner(build, docker, FakeHermes(), profiles).run(spec, None)
+    runner(build, docker, FakeHermes(), profiles).run(spec, None)
 
-    profile_name = f"techtree-{status.run_id[-12:]}-1"
     listed = [call for call in docker.calls if call[:2] == ["docker", "ps"]]
     assert listed == [
         [
@@ -183,7 +231,7 @@ def test_the_containers_hermes_left_behind_are_removed_by_profile_label(
             "--all",
             "--quiet",
             "--filter",
-            f"label=hermes-profile={profile_name}",
+            "label=hermes-profile=techtree",
         ]
     ]
     removed = [call[-1] for call in docker.calls if call[:2] == ["docker", "rm"]]
@@ -246,7 +294,12 @@ def test_the_candidate_arm_preloads_the_declared_skill_and_nothing_else(
     runner(build, FakeDocker(), hermes, profiles).run(spec, skill)
 
     launch = hermes.launches[0]
-    assert launch["profile_files"] == ["config.yaml", "skills/demo-skill/SKILL.md"]
+    assert launch["profile_files"] == [
+        "auth.json",
+        "config.yaml",
+        "skills/demo-skill/SKILL.md",
+        "techtree-run.lock",
+    ]
     argv = launch["argv"]
     assert isinstance(argv, list)
     assert argv[argv.index("-s") + 1] == "demo-skill"
@@ -383,7 +436,7 @@ def test_a_zero_reward_is_a_graded_failure(
     assert attempt.reward == 0.0
 
 
-def test_repetitions_run_in_order_each_in_its_own_workspace_and_profile(
+def test_repetitions_run_in_order_each_in_its_own_workspace_and_a_fresh_profile(
     build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE, repetitions=3)
@@ -393,7 +446,9 @@ def test_repetitions_run_in_order_each_in_its_own_workspace_and_profile(
 
     assert [a.attempt for a in status.record.attempts] == [1, 2, 3]
     assert len({launch["cwd"] for launch in hermes.launches}) == 3
-    assert len({launch["profile"] for launch in hermes.launches}) == 3
+    assert [launch["profile_files"] for launch in hermes.launches] == [
+        ["auth.json", "config.yaml", "techtree-run.lock"]
+    ] * 3
     for number in (1, 2, 3):
         assert (attempt_dir(status, build.task_id, number) / "patch.diff").is_file()
 
@@ -423,7 +478,7 @@ def test_an_infrastructure_failure_is_recorded_and_raised(
     assert hermes.launches == []
 
 
-def test_ctrl_c_during_an_attempt_keeps_earlier_attempts_and_removes_the_profile(
+def test_ctrl_c_during_an_attempt_keeps_earlier_attempts_and_empties_the_profile(
     build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE, repetitions=2)
@@ -450,7 +505,10 @@ def test_ctrl_c_during_an_attempt_keeps_earlier_attempts_and_removes_the_profile
     status = read_run_status(build.paths, run_id)
     assert status.record.state == "cancelled"
     assert [a.attempt for a in status.record.attempts] == [1]
-    assert not profiles.exists() or list(profiles.iterdir()) == []
+    assert sorted(path.name for path in (profiles / "techtree").iterdir()) == [
+        "auth.json",
+        "techtree-run.lock",
+    ]
 
 
 def test_a_build_whose_tasks_changed_since_declaration_does_not_run(

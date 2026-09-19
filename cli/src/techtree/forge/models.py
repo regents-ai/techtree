@@ -339,7 +339,7 @@ class ForgeModelSpec(ProtocolModel):
 
 
 class ForgeInitialState(ProtocolModel):
-    """What Hermes starts from: an empty home written by Techtree, no memory."""
+    """What Hermes starts from: a home Techtree emptied of all but the sign-in."""
 
     home: Literal["fresh-empty"]
     memory_enabled: Literal[False]

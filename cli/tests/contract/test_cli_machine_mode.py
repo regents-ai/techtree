@@ -144,6 +144,7 @@ def test_the_doctor_envelope_runs_every_documented_check(techtree: Any) -> None:
         "docker_daemon",
         "hermes",
         "hermes_plugin",
+        "hermes_experiment_profile",
         "active_engine",
     ]
 

@@ -295,8 +295,9 @@ on the same warm machine alone does not establish independent reproduction.
 **Historical sketch, superseded 2026-09-19 by the implementation** described
 under "Forge run" in `cli/docs/product-architecture.md`. Where they differ the
 implementation controls: the arm is declared as a run specification before
-anything runs; the throwaway home is a profile under the person's Hermes root,
-so sign-ins are borrowed and nothing is copied; no model block is copied from
+anything runs; the home is the person's own Hermes profile `techtree`, signed
+in once by them and emptied of everything else around every attempt, so
+nothing is copied; no model block is copied from
 any profile — provider and model are named on the command line and recorded;
 every attempt starts from a fresh state with memory off; and the run keeps a
 `run.json` of per-attempt outcomes rather than a `result.json`.

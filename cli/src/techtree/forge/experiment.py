@@ -48,8 +48,10 @@ __all__ = [
 #: The sandbox memory bound, in the unit Hermes' Docker backend takes. It is
 #: the same 4g the forge grants its grading containers.
 CONTAINER_MEMORY_MB: Final = 4096
-#: The Hermes version banner: ``Hermes Agent v0.21.3 (2026.9.14) · upstream …``.
-_VERSION_BANNER: Final = re.compile(r"^Hermes Agent v(?P<version>\S+)")
+#: The Hermes version banner: ``Hermes Agent v0.21.3 (2026.9.14) · upstream 6d712cf8``.
+#: All of it is the version: Hermes updates from its upstream without changing
+#: the number, and only the build date and upstream commit tell two apart.
+_VERSION_BANNER: Final = re.compile(r"^Hermes Agent v(?P<version>\S.*?)\s*$")
 _VERSION_TIMEOUT_SECONDS: Final = 30.0
 
 #: What a local experiment cannot establish and therefore says out loud.

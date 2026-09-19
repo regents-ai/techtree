@@ -25,6 +25,7 @@ from fixtures.forge.support import (
     declare,
     hermes_on_path,
     qualified_build,
+    signed_in_profile,
     write_skill,
 )
 from techtree.cli.app import create_app
@@ -65,7 +66,9 @@ def skill(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def profiles(tmp_path: Path) -> Path:
-    return tmp_path / "profiles"
+    root = tmp_path / "profiles"
+    signed_in_profile(root)
+    return root
 
 
 def run_arm(
@@ -137,8 +140,10 @@ def test_a_candidate_run_keeps_its_own_copy_of_the_skill_and_serves_attempts_fro
     copy = Path(status.path) / SKILL_DIRNAME / "SKILL.md"
     assert copy.read_bytes() == (skill / "SKILL.md").read_bytes()
     assert hermes.launches[0]["profile_files"] == [
+        "auth.json",
         "config.yaml",
         "skills/demo-skill/SKILL.md",
+        "techtree-run.lock",
     ]
     assert spec.skill is not None
     verified = read_owned_skill(
@@ -563,7 +568,12 @@ def test_uplift_start_with_yes_runs_compares_and_keeps_a_regression(
     assert facts["comparison"]["record"]["skill_name"] == "demo-skill-v2"
     assert facts["run"]["spec"]["skill"]["name"] == "demo-skill-v2"
     [launch] = hermes.launches
-    assert launch["profile_files"] == ["config.yaml", "skills/demo-skill-v2/SKILL.md"]
+    assert launch["profile_files"] == [
+        "auth.json",
+        "config.yaml",
+        "skills/demo-skill-v2/SKILL.md",
+        "techtree-run.lock",
+    ]
     assert (
         read_revision_status(build.paths, revision.revision_id).record.state
         == "measured"

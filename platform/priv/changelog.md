@@ -13,6 +13,16 @@
   or left nothing readable. Nothing is scored as zero for want of evidence, and
   no attempt is retried on your account. `techtree forge status` reads a run
   back.
+- Experiments run in a Hermes profile of their own named `techtree`. Create it
+  with `hermes profile create techtree` and sign it in once with
+  `hermes -p techtree auth add PROVIDER`. Techtree copies no sign-in and reads
+  none; around every attempt it empties that profile of everything else, so each
+  attempt starts fresh. If the profile is missing or signed out, `forge run`
+  says so and names the command before anything starts, and `techtree doctor`
+  reports whether the profile exists. Two experiments never share it at once.
+- An experiment records the whole version line your Hermes reports, including
+  its build date and source commit, so a Hermes that was updated between two
+  runs is never compared as if it were the same.
 - `techtree forge compare` pairs a baseline run with a candidate run, task by
   task, and writes a self-contained HTML report you can open from disk beside
   the machine-readable record. It says whether the Skill won, lost or tied on

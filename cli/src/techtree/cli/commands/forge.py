@@ -43,6 +43,7 @@ from techtree.forge.models import (
     ForgeUsage,
 )
 from techtree.forge.process import run_command
+from techtree.forge.profile import PROFILE_NAME
 from techtree.forge.report import OUTCOME_WORDS
 from techtree.forge.revision import read_revision_status
 from techtree.forge.run import ForgeRunner, read_run_status
@@ -359,9 +360,10 @@ def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
         f"Agent: {spec.agent.executable} (Hermes Agent v{spec.agent.version})",
         f"Model: {spec.model.model_id} from {spec.model.provider}"
         + (f", reasoning {spec.model.reasoning}" if spec.model.reasoning else ""),
-        "Model calls go to that provider on your own Hermes sign-in; Techtree "
-        "copies no credential and reads none.",
-        "Each attempt starts from a fresh Hermes state with memory off, in a "
+        f"Model calls go to that provider on the sign-in of your Hermes profile "
+        f"{PROFILE_NAME}; Techtree copies no credential and reads none.",
+        "Each attempt empties that profile of everything but the sign-in, so "
+        "it starts from a fresh Hermes state with memory off, in a "
         "sandbox with no network, "
         f"{spec.limits.container_cpus} CPUs and "
         f"{spec.limits.container_memory_mb} MB, for the task's own time limit.",
