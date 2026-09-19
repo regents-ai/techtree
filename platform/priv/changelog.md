@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- A candidate Skill that names the cases a Climb scores it on is refused when
+  it is prepared, whether for a first submission or as a revision of a measured
+  Skill. A Skill describes the rule; it may not carry the scored inputs.
+
 ## v0.2.0 (2026-09-18)
 
 ### Added

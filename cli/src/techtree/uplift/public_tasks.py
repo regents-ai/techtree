@@ -53,6 +53,7 @@ from techtree.uplift.context import (
 )
 
 __all__ = [
+    "proving_inputs_for",
     "public_projection_for",
 ]
 
@@ -76,12 +77,39 @@ def public_projection_for(campaign: CampaignSpecV2) -> TaskPublicProjectionProvi
         A provider naming each task's public input when the taskset has a
         disclosure policy here, and the hash-only provider when it has none.
     """
-    reference = campaign.taskset.ref
-    if reference.id != _REFERENCE_TASKSET or reference.package.name != (
-        _REFERENCE_TASKSET
-    ):
+    if not _is_reference_taskset(campaign):
         return hash_only_projection
     return _branch_code_projection(campaign)
+
+
+def proving_inputs_for(campaign: CampaignSpecV2) -> tuple[str, ...]:
+    """Return the scored inputs a candidate Skill for this Campaign may not contain.
+
+    The reference taskset's dataset states the rule: none of its proving
+    inputs ever appears in a candidate Skill, because a Skill that names the
+    cases it is scored on is a lookup table, not a procedure. The inputs are
+    public (decision R1 shows them to the improver) and they are still the
+    one thing a Skill may not carry back.
+
+    Args:
+        campaign: The Campaign the Skill is being prepared for.
+
+    Returns:
+        The frozen proving inputs when the taskset is the reference taskset,
+        and nothing for a taskset this build has no disclosure policy for —
+        the same lookup, not a rule inferred from an unknown taskset.
+    """
+    if not _is_reference_taskset(campaign):
+        return ()
+    return _proving_inputs()
+
+
+def _is_reference_taskset(campaign: CampaignSpecV2) -> bool:
+    """Whether this Campaign's taskset is the one this build has a policy for."""
+    reference = campaign.taskset.ref
+    return reference.id == _REFERENCE_TASKSET and reference.package.name == (
+        _REFERENCE_TASKSET
+    )
 
 
 def _branch_code_projection(campaign: CampaignSpecV2) -> TaskPublicProjectionProvider:

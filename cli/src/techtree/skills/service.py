@@ -62,7 +62,7 @@ from techtree.manifests.builder import (
     skill_content_digest,
 )
 from techtree.manifests.compare import assert_controlled_comparison, compare_manifests
-from techtree.models.base import Digest
+from techtree.models.base import Digest, JsonValue
 from techtree.models.campaign import CampaignSpecV2, PublicContext, VariantSchedule
 from techtree.models.climb import ResolvedClimb
 from techtree.models.data_policy import DataPolicy
@@ -85,6 +85,7 @@ from techtree.uplift.derive import (
     derive_replacement_manifests,
     derive_skill_replacement_campaign,
 )
+from techtree.uplift.public_tasks import proving_inputs_for
 
 __all__ = [
     "PreparedDraft",
@@ -174,6 +175,7 @@ class SkillPreparationService:
 
         scan = self._scan(skill_path)
         self._validate_candidate_policy(resolved, scan)
+        self._require_no_proving_inputs(resolved.campaign, scan)
 
         ensure_private_directory(self._paths.drafts_dir)
         staging = self._paths.drafts_dir / f"{_STAGING_PREFIX}{uuid.uuid4().hex}"
@@ -272,6 +274,9 @@ class SkillPreparationService:
         created_at = self._clock()
         scan = self._scan(candidate_skill_path)
         self._require_candidate_files(scan)
+        # The derived Campaign keeps the source run's taskset byte for byte, so
+        # the source Campaign already names the inputs the revision may not carry.
+        self._require_no_proving_inputs(source_campaign, scan)
 
         ensure_private_directory(self._paths.drafts_dir)
         staging = self._paths.drafts_dir / f"{_STAGING_PREFIX}{uuid.uuid4().hex}"
@@ -417,6 +422,38 @@ class SkillPreparationService:
                 code=_CANDIDATE_POLICY_VIOLATION,
                 details={"file_count": len(scan.files)},
             )
+
+    def _require_no_proving_inputs(
+        self, campaign: CampaignSpecV2, scan: SkillScanResult
+    ) -> None:
+        """Refuse a Skill that names the cases the Campaign scores it on.
+
+        A Skill that lists the proving inputs is a lookup table wearing a
+        Skill's clothes: it would score once and teach nothing, and the number
+        it produced would be evidence of memorization rather than of a better
+        procedure. The inputs are public — the improvement context shows them
+        so a defect can be diagnosed — which is exactly why they have to be
+        checked for on the way back in. Which inputs to check is the taskset's
+        own policy, looked up rather than inferred, so a taskset with no policy
+        here is not scanned for anything.
+        """
+        inputs = proving_inputs_for(campaign)
+        if not inputs:
+            return
+        found = _proving_inputs_in(scan, inputs)
+        if not found:
+            return
+        reported: dict[str, JsonValue] = {
+            path: [word for word in words] for path, words in found.items()
+        }
+        raise PolicyError(
+            "this Skill names inputs the Climb scores it on, so it would be a "
+            "lookup table rather than a procedure; describe the rule and leave "
+            "the scored cases out: "
+            + "; ".join(f"{path}: {', '.join(words)}" for path, words in found.items()),
+            code=_CANDIDATE_POLICY_VIOLATION,
+            details={"proving_inputs_found": reported},
+        )
 
     # -- The snapshot ------------------------------------------------------
 
@@ -650,6 +687,28 @@ class SkillPreparationService:
 # ---------------------------------------------------------------------------
 # How the comparison is run
 # ---------------------------------------------------------------------------
+
+
+def _proving_inputs_in(
+    scan: SkillScanResult, inputs: tuple[str, ...]
+) -> dict[str, list[str]]:
+    """Report which proving inputs each scanned file contains, as whole words.
+
+    Matching is case-insensitive and on word boundaries, so ``Cedar`` and
+    ``cedar,`` are found and ``cedarwood`` is not. The scanner has already
+    proved every file is UTF-8 text, so the bytes are decoded without a second
+    set of refusals.
+    """
+    patterns = {
+        word: re.compile(rf"\b{re.escape(word)}\b", re.IGNORECASE) for word in inputs
+    }
+    found: dict[str, list[str]] = {}
+    for item in scan.files:
+        text = item.source_path.read_bytes().decode("utf-8")
+        words = [word for word, pattern in patterns.items() if pattern.search(text)]
+        if words:
+            found[item.relative_path.as_posix()] = words
+    return found
 
 
 def _comparison_warning(campaign: CampaignSpecV2) -> str:
