@@ -29,7 +29,13 @@ from fixtures.forge.support import (
 )
 from techtree.canonical import sha256_digest_bytes
 from techtree.cli.app import create_app
-from techtree.errors import NotFoundError, PrerequisiteError, RunError, ValidationError
+from techtree.errors import (
+    ConflictError,
+    NotFoundError,
+    PrerequisiteError,
+    RunError,
+    ValidationError,
+)
 from techtree.forge.models import (
     ForgeArm,
     ForgeAttemptOutcome,
@@ -208,11 +214,12 @@ def test_a_second_run_in_the_profile_is_refused_while_the_first_holds_it(
     spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
     hermes = FakeHermes()
 
-    with hold_profile(profiles / "techtree"), pytest.raises(RunError) as caught:
+    with hold_profile(profiles / "techtree"), pytest.raises(ConflictError) as caught:
         runner(build, FakeDocker(), hermes, profiles).run(spec, None)
 
     assert caught.value.code == "forge_profile_busy"
     assert hermes.launches == []
+    assert not (build.paths.root / "forge" / "runs").exists()
 
 
 def test_the_containers_hermes_left_behind_are_removed_by_profile_label(

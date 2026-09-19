@@ -267,7 +267,17 @@ class ForgeRunner:
                     "stored": qualification.membership_digest,
                 },
             )
+        with hold_profile(self._profile):
+            return self._recorded_run(spec, skill_files, build, qualification)
 
+    def _recorded_run(
+        self,
+        spec: ForgeRunSpec,
+        skill_files: list[tuple[Path, str]],
+        build: ForgeBuildRecord,
+        qualification: ForgeQualification,
+    ) -> ForgeRunStatus:
+        """Record the run and every attempt; the caller holds the profile."""
         run_id = new_id("forgerun")
         run_dir = self._paths.forge_run_dir(run_id)
         run_dir.mkdir(parents=True, mode=0o700)
@@ -296,25 +306,24 @@ class ForgeRunner:
         try:
             persist(record)
             self._docker.require_daemon()
-            with hold_profile(self._profile):
-                for task_id in spec.task_ids:
-                    for attempt in range(1, spec.sampling.repetitions + 1):
-                        result = self._attempt(
-                            spec=spec,
-                            build=build,
-                            qualification=qualification,
-                            run_dir=run_dir,
-                            task_id=task_id,
-                            attempt=attempt,
+            for task_id in spec.task_ids:
+                for attempt in range(1, spec.sampling.repetitions + 1):
+                    result = self._attempt(
+                        spec=spec,
+                        build=build,
+                        qualification=qualification,
+                        run_dir=run_dir,
+                        task_id=task_id,
+                        attempt=attempt,
+                    )
+                    persist(
+                        record.model_copy(
+                            update={
+                                "updated_at": datetime.now(UTC),
+                                "attempts": [*record.attempts, result],
+                            }
                         )
-                        persist(
-                            record.model_copy(
-                                update={
-                                    "updated_at": datetime.now(UTC),
-                                    "attempts": [*record.attempts, result],
-                                }
-                            )
-                        )
+                    )
             persist(
                 record.model_copy(
                     update={"updated_at": datetime.now(UTC), "state": "completed"}

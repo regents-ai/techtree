@@ -19,14 +19,15 @@ lock from its first attempt to its last, so two runs never share it.
 
 from __future__ import annotations
 
-import fcntl
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Final
 
-from techtree.errors import PrerequisiteError, RunError
+from filelock import FileLock, Timeout
+
+from techtree.errors import ConflictError, PrerequisiteError
 from techtree.forge.process import CommandRunner
 from techtree.fs import remove_tree
 
@@ -99,20 +100,20 @@ def require_signed_in(
 @contextmanager
 def hold_profile(profile: Path) -> Iterator[None]:
     """Hold the profile for one run; a second run is refused, not queued."""
-    descriptor = os.open(profile / _LOCK_FILENAME, os.O_RDWR | os.O_CREAT, 0o600)
+    lock = FileLock(profile / _LOCK_FILENAME, timeout=0, mode=0o600)
     try:
-        try:
-            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as error:
-            raise RunError(
-                f"another experiment is running in the Hermes profile "
-                f"{PROFILE_NAME}; start this one when it has finished",
-                code="forge_profile_busy",
-                details={"profile": str(profile)},
-            ) from error
+        lock.acquire()
+    except Timeout as error:
+        raise ConflictError(
+            f"another experiment is running in the Hermes profile "
+            f"{PROFILE_NAME}; start this one when it has finished",
+            code="forge_profile_busy",
+            details={"profile": str(profile)},
+        ) from error
+    try:
         yield
     finally:
-        os.close(descriptor)
+        lock.release()
 
 
 def reset_profile(profile: Path) -> None:
