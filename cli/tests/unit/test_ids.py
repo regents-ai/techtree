@@ -21,7 +21,17 @@ ID_SHAPE = re.compile(r"^[a-z]+_[0-9a-f]{32}$")
 #: The exact set spec section 10.6 lists. Written out rather than derived so a
 #: change to the module cannot silently change the contract.
 EXPECTED_PREFIXES = frozenset(
-    {"campaign", "climb", "draft", "run", "receipt", "uplift", "policy", "build"}
+    {
+        "campaign",
+        "climb",
+        "draft",
+        "run",
+        "receipt",
+        "uplift",
+        "policy",
+        "build",
+        "forgerun",
+    }
 )
 
 BODY = "0123456789abcdef" * 2

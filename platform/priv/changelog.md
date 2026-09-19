@@ -4,6 +4,17 @@
 
 ### Added
 
+- `techtree forge run` runs one arm of an experiment on the tasks a forge build
+  qualified, with your own Hermes and your own provider sign-in: the baseline
+  arm without the Skill, the candidate arm with it. Before anything runs it
+  shows what will run and asks. Every attempt is recorded with its patch, its
+  test verdict, the usage Hermes reported, and — when there is no verdict —
+  why: the agent ran out of time or did not finish, the tests ran out of time,
+  or left nothing readable. Nothing is scored as zero for want of evidence, and
+  no attempt is retried on your account. `techtree forge status` reads a run
+  back.
+- A forge experiment is declared before it runs, and two arms are compared only
+  when nothing but the Skill differs between them.
 - A candidate Skill that names the cases a Climb scores it on is refused when
   it is prepared, whether for a first submission or as a revision of a measured
   Skill. A Skill describes the rule; it may not carry the scored inputs.

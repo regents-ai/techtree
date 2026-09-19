@@ -88,6 +88,15 @@ class TechtreePaths:
         """Return the directory holding one forge build."""
         return self.forge_builds_dir / validate_id(build_id, "build")
 
+    @property
+    def forge_runs_dir(self) -> Path:
+        """Return the directory holding every forge run."""
+        return self.forge_dir / "runs"
+
+    def forge_run_dir(self, run_id: str) -> Path:
+        """Return the directory holding one forge run."""
+        return self.forge_runs_dir / validate_id(run_id, "forgerun")
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 

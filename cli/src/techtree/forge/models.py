@@ -24,23 +24,33 @@ from typing import Annotated, Final, Literal, Self
 from pydantic import Field, StringConstraints, field_validator, model_validator
 
 from techtree.canonical import verify_object_digest
-from techtree.models.base import Digest, NonEmptyString, ProtocolModel, UtcDateTime
+from techtree.models.base import (
+    Digest,
+    JsonValue,
+    NonEmptyString,
+    ProtocolModel,
+    UtcDateTime,
+)
 from techtree.models.skill import SkillFile
 
 __all__ = [
     "FORGE_BUILD_SCHEMA_VERSION",
     "FORGE_PROGRESS_SCHEMA_VERSION",
     "FORGE_QUALIFICATION_SCHEMA_VERSION",
+    "FORGE_RUN_SCHEMA_VERSION",
     "FORGE_RUN_SPEC_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
     "FORGE_TASK_SET_SCHEMA_VERSION",
     "ForgeAgentSpec",
     "ForgeArm",
+    "ForgeAttemptOutcome",
+    "ForgeAttemptRecord",
     "ForgeBuildFailure",
     "ForgeBuildPhase",
     "ForgeBuildProgress",
     "ForgeBuildRecord",
     "ForgeBuildStatus",
+    "ForgeEvidence",
     "ForgeGradingSpec",
     "ForgeInitialState",
     "ForgeLanguage",
@@ -48,11 +58,14 @@ __all__ = [
     "ForgeModelSpec",
     "ForgePlatform",
     "ForgeQualification",
+    "ForgeRunRecord",
     "ForgeRunSpec",
+    "ForgeRunStatus",
     "ForgeSamplingSpec",
     "ForgeSkillName",
     "ForgeSkillSpec",
     "ForgeTaskId",
+    "ForgeUsage",
     "GenerationSummary",
     "QualificationCheck",
     "TaskContentEntry",
@@ -64,6 +77,7 @@ __all__ = [
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha2"
 FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha1"
 FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha2"
+FORGE_RUN_SCHEMA_VERSION: Final = "techtree.forge-run.v1alpha1"
 FORGE_RUN_SPEC_SCHEMA_VERSION: Final = "techtree.forge-run-spec.v1alpha1"
 FORGE_TASK_CONTENT_SCHEMA_VERSION: Final = "techtree.forge-task-content.v1alpha1"
 FORGE_TASK_SET_SCHEMA_VERSION: Final = "techtree.forge-task-set.v1alpha1"
@@ -325,13 +339,16 @@ class ForgeSkillSpec(ProtocolModel):
 
 
 class ForgeLimits(ProtocolModel):
-    """Bounds on the agent's turn count and on its sandbox.
+    """Bounds on the agent's time and on its sandbox.
 
     The agent's wall-clock allowance is the task's own ``[agent].timeout_sec``,
-    which is part of the committed task content rather than repeated here.
+    part of the committed task content rather than repeated here; Hermes is
+    given it as its run budget and Techtree enforces it from outside. A
+    Hermes one-shot has no turn cap, so none is claimed.
     """
 
-    max_turns: int = Field(ge=1)
+    agent_budget: Literal["task-timeout"]
+    turns: Literal["unbounded"]
     container_cpus: int = Field(ge=1)
     container_memory_mb: int = Field(ge=1)
     network: Literal[False]
@@ -381,6 +398,103 @@ class ForgeRunSpec(ProtocolModel):
         if self.arm is ForgeArm.CANDIDATE and self.skill is None:
             raise ValueError("the candidate arm carries exactly one Skill")
         return self
+
+
+class ForgeEvidence(StrEnum):
+    """The evidence one attempt can leave; a claim needs all of it."""
+
+    USAGE_REPORT = "usage_report"
+    AGENT_TRANSCRIPT = "agent_transcript"
+    WORKSPACE_PATCH = "workspace_patch"
+    VERIFIER_VERDICT = "verifier_verdict"
+
+
+class ForgeAttemptOutcome(StrEnum):
+    """How one attempt ended. Only ``graded`` carries a reward."""
+
+    GRADED = "graded"
+    AGENT_TIMED_OUT = "agent_timed_out"
+    AGENT_FAILED = "agent_failed"
+    VERIFIER_TIMED_OUT = "verifier_timed_out"
+    NO_VERDICT = "no_verdict"
+
+
+class ForgeUsage(ProtocolModel):
+    """What Hermes reported about its own run, kept as reported.
+
+    Every field is Hermes' word: the model named here is the model it says
+    answered, the cost its own estimate, and ``cost_status`` and
+    ``cost_source`` say whether that estimate is one at all — a subscription
+    Hermes cannot price is recorded as unpriced, never as free. ``completed``
+    and ``failed`` are read rather than the exit code, because Hermes prints
+    a failure message and exits zero.
+    """
+
+    model: str | None
+    provider: str | None
+    input_tokens: int | None
+    output_tokens: int | None
+    total_tokens: int | None
+    api_calls: int | None
+    estimated_cost_usd: float | None
+    cost_status: str | None
+    cost_source: str | None
+    completed: bool | None
+    failed: bool | None
+    failure: str | None
+
+
+class ForgeAttemptRecord(ProtocolModel):
+    """One attempt at one task: what ran, what it left, how it was scored."""
+
+    task_id: ForgeTaskId
+    attempt: int = Field(ge=1)
+    started_at: UtcDateTime
+    finished_at: UtcDateTime
+    config_digest: Digest
+    hermes_arguments: list[NonEmptyString]
+    agent_exit_code: int | None
+    agent_timed_out: bool
+    agent_seconds: float = Field(ge=0.0)
+    usage: ForgeUsage | None
+    patch_digest: Digest | None
+    verifier_timed_out: bool
+    reward: float | None
+    reward_details: dict[str, JsonValue]
+    outcome: ForgeAttemptOutcome
+    evidence: list[ForgeEvidence]
+
+    @model_validator(mode="after")
+    def validate_reward_follows_outcome(self) -> Self:
+        if (self.reward is not None) != (self.outcome is ForgeAttemptOutcome.GRADED):
+            raise ValueError("a reward is recorded exactly when the attempt was graded")
+        return self
+
+
+class ForgeRunRecord(ProtocolModel):
+    """A forge run as it stands: its specification's digest and every attempt.
+
+    Written before the first attempt and after every one, so an interrupted
+    run keeps what it had. ``state`` says whether it ended, and how.
+    """
+
+    schema_version: Literal["techtree.forge-run.v1alpha1"]
+    run_id: NonEmptyString
+    spec_digest: Digest
+    started_at: UtcDateTime
+    updated_at: UtcDateTime
+    state: Literal["unfinished", "completed", "failed", "cancelled"]
+    attempts: list[ForgeAttemptRecord]
+    failure: ForgeBuildFailure | None
+
+
+class ForgeRunStatus(ProtocolModel):
+    """A run read back from its directory."""
+
+    run_id: NonEmptyString
+    path: NonEmptyString
+    spec: ForgeRunSpec
+    record: ForgeRunRecord
 
 
 class ForgeBuildFailure(ProtocolModel):

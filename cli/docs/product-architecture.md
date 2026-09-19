@@ -426,8 +426,46 @@ the candidate arm exactly one; the model refuses anything else.
 candidate, and their canonical JSON is diffed to its leaves; only `/arm` and
 `/skill` may differ. Any other pointer — another build, task list, model,
 Hermes version, starting state, limit or repetition count — is a violation with
-code `forge_comparison_invalid`, and the pair is not compared. Nothing runs a
-specification yet: `forge run` and `forge compare` are not part of this build.
+code `forge_comparison_invalid`, and the pair is not compared.
+
+**Forge run (one arm, executed).** `forge run` declares a specification and
+executes it with the person's own Hermes; `techtree.forge.run.ForgeRunner` is
+the executor. Before anything spends, the command shows what will run — arm,
+tasks, attempts, Hermes and model, that model calls go to the provider on the
+person's own sign-in, that no credential is copied, and that cost is not
+estimated in advance — and asks; `--yes` states an operator already answered,
+and where nobody can be asked the review is returned as `action.prepare`. A run
+lives at `forge/runs/<forgerun_id>/` with `spec.json` (the declared
+specification, canonical bytes) and `run.json`
+(`techtree.forge-run.v1alpha1`), written before the first attempt and after
+every one, so an interrupted run keeps what it had; its `state` is
+`unfinished`, `completed`, `failed` or `cancelled`. Each attempt, in task then
+repetition order: the task image's `/workspace` is copied to the host at the
+base commit; a throwaway Hermes profile is created under the person's Hermes
+root (`profiles/techtree-<run>-<n>`, so the root's sign-ins are borrowed and
+token refreshes are written back, and nothing is copied) with a `config.yaml`
+Techtree wrote — Docker sandbox from the task image's content id, no network,
+2 CPUs, 4096 MB, memory and user profile off, title generation off, the task's
+own `[agent].timeout_sec` as Hermes' run budget — and, on the candidate arm, the
+Skill's files under `skills/<name>` after their digest is re-checked against the
+specification; `hermes --yolo -z` runs in the workspace with the instruction,
+`-t terminal,file,code_execution,skills`, `--usage-file`, and `-s <name>` on
+the candidate arm, under a Techtree deadline of the task timeout plus two
+minutes (interrupted, then killed); the profile's `state.db` is kept beside the
+evidence and the profile removed; the workspace is diffed against the base
+commit in a fresh container (`patch.diff`); and the task's own tests grade it
+the way qualification graded the reference repair. Tests and reference
+solutions are never mounted into the agent's container. The attempt record
+carries the config digest, the Hermes arguments (instruction replaced by
+`instruction.md`), exit code, whether it timed out, seconds, the usage report
+as Hermes wrote it — including `cost_status`/`cost_source`, so an unpriced
+subscription is recorded as unpriced rather than free — the patch digest, and
+one outcome: `graded` (with a reward), `agent_timed_out`, `agent_failed` (a
+non-zero exit, or a usage report saying `failed` or not `completed`),
+`verifier_timed_out`, or `no_verdict`. Only a graded attempt has a reward;
+nothing is recorded as zero for want of evidence. Nothing retries an attempt.
+`forge status` reads a build id or a run id. `forge compare` is not part of
+this build.
 
 Ordinary errors and Ctrl-C produce a failure/cancellation receipt and a build ID
 with a status command. SIGKILL or disk-write failure can leave no final receipt;

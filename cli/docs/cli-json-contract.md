@@ -190,6 +190,7 @@ engine install
 engine status
 engine verify
 forge build
+forge run
 forge status
 ```
 

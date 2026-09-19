@@ -53,7 +53,11 @@ from techtree.cli.commands.engine import (
     status_engine_command,
     verify_engine_command,
 )
-from techtree.cli.commands.forge import build_forge_command, status_forge_command
+from techtree.cli.commands.forge import (
+    build_forge_command,
+    run_forge_command,
+    status_forge_command,
+)
 from techtree.cli.commands.profile import (
     get_profile_command,
     sync_profile_command,
@@ -393,12 +397,18 @@ def _release_app() -> typer.Typer:
 
 def _forge_app() -> typer.Typer:
     app = typer.Typer(
-        help="Build and qualify tasks from a local repository.", no_args_is_help=True
+        help="Build tasks from a local repository and run experiments on them.",
+        no_args_is_help=True,
     )
     app.command("build", help="Build and qualify tasks from a local repository.")(
         build_forge_command
     )
-    app.command("status", help="Show what one forge build made.")(status_forge_command)
+    app.command(
+        "run", help="Run one arm of an experiment on qualified tasks with your Hermes."
+    )(run_forge_command)
+    app.command("status", help="Show what one forge build made or one run did.")(
+        status_forge_command
+    )
     return app
 
 

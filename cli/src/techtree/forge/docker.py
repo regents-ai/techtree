@@ -1,10 +1,11 @@
 """Docker as the forge uses it. ``docs/plan/repo2rlenv-local-lane.md``.
 
-Four things and no more: build an image from a directory, ask the daemon what
+Five things and no more: build an image from a directory, ask the daemon what
 an image's content id is, run one command in a fresh container from an image
-with named directories mounted, and confirm the daemon answers at all. Nothing
-here pulls. The bootstrap image is built from the person's own checkout, the
-task images from the bootstrap image, and both live only in the local daemon.
+with named directories mounted, copy an image's workspace out to the host, and
+confirm the daemon answers at all. Nothing here pulls. The bootstrap image is
+built from the person's own checkout, the task images from the bootstrap
+image, and both live only in the local daemon.
 
 Every container the forge starts is bounded and disconnected: a fixed memory
 and CPU cap, no network, and a name the forge chose. Docker removes it on exit;
@@ -194,6 +195,42 @@ class Docker:
             stderr=completed.stderr,
             timed_out=False,
         )
+
+    def export_workspace(
+        self, *, image: str, platform: ForgePlatform, destination: Path
+    ) -> None:
+        """Copy ``/workspace`` out of ``image`` into ``destination`` on the host.
+
+        The container is created and never started: what is copied is the
+        image's own workspace at the task's base commit, which is what an
+        agent is then given to work in.
+        """
+        name = f"techtree-forge-{uuid.uuid4().hex}"
+        try:
+            created = self._run(
+                ["docker", "create", "--name", name, "--platform", platform, image],
+                DAEMON_TIMEOUT_SECONDS,
+            )
+            if created.returncode != 0:
+                raise RunError(
+                    f"a container from {image} could not be created: "
+                    f"{created.stderr.strip()[-300:]}",
+                    code="forge_workspace_export_failed",
+                    details={"image": image},
+                )
+            copied = self._run(
+                ["docker", "cp", f"{name}:/workspace/.", str(destination)],
+                BUILD_TIMEOUT_SECONDS,
+            )
+            if copied.returncode != 0:
+                raise RunError(
+                    f"the workspace of {image} could not be copied out: "
+                    f"{copied.stderr.strip()[-300:]}",
+                    code="forge_workspace_export_failed",
+                    details={"image": image, "destination": str(destination)},
+                )
+        finally:
+            self.remove(name)
 
     def remove(self, name: str) -> str:
         """Remove the container the forge named ``name`` and say what happened.

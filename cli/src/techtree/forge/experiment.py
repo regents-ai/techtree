@@ -42,7 +42,6 @@ from techtree.skills.scanner import scan_skill
 
 __all__ = [
     "CONTAINER_MEMORY_MB",
-    "DEFAULT_MAX_TURNS",
     "NOT_ESTABLISHED",
     "declare_run_spec",
     "run_spec_digest",
@@ -51,9 +50,6 @@ __all__ = [
 #: The sandbox memory bound, in the unit Hermes' Docker backend takes. It is
 #: the same 4g the forge grants its grading containers.
 CONTAINER_MEMORY_MB: Final = 4096
-#: Turns per task before Hermes stops. Generous for a small repair, bounded
-#: so that a loop is a recorded outcome rather than an open-ended bill.
-DEFAULT_MAX_TURNS: Final = 60
 #: The Hermes version banner: ``Hermes Agent v0.21.3 (2026.9.14) · upstream …``.
 _VERSION_BANNER: Final = re.compile(r"^Hermes Agent v(?P<version>\S+)")
 _VERSION_TIMEOUT_SECONDS: Final = 30.0
@@ -79,7 +75,6 @@ def declare_run_spec(
     model_id: str,
     reasoning: str | None,
     repetitions: int,
-    max_turns: int = DEFAULT_MAX_TURNS,
 ) -> ForgeRunSpec:
     """Declare one arm of an experiment from checked facts.
 
@@ -94,7 +89,6 @@ def declare_run_spec(
         model_id: The model Hermes will be asked for.
         reasoning: Hermes' reasoning setting, when one is requested.
         repetitions: Attempts per task.
-        max_turns: Turns per attempt before Hermes stops.
 
     Raises:
         PrerequisiteError: The build has not been qualified, or no ``hermes``
@@ -129,7 +123,8 @@ def declare_run_spec(
         initial_state=ForgeInitialState(home="fresh-empty", memory_enabled=False),
         skill=skill,
         limits=ForgeLimits(
-            max_turns=max_turns,
+            agent_budget="task-timeout",
+            turns="unbounded",
             container_cpus=int(CONTAINER_CPUS),
             container_memory_mb=CONTAINER_MEMORY_MB,
             network=False,

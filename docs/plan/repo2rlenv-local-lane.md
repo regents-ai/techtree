@@ -10,7 +10,9 @@ release, deployment, or platform-funded inference.
 The [current founder release assignment](repo2rlenv-v02x.md#founder-release-assignment-2026-09-17)
 supersedes conflicting proposals below. `forge build/status` is implemented and
 offline-reviewed; real Docker qualification and fresh-worker reproduction remain
-open. `forge run/compare` and their run/result storage are unimplemented design.
+open. `forge run` is implemented (2026-09-19; the run specification, gate and
+run storage are described under "Forge run" in `cli/docs/product-architecture.md`);
+`forge compare` and its report remain unimplemented design.
 No model quality, subscription compatibility or positive uplift is established.
 
 The local-agent contract is not complete. Prefer a demonstrated Verifiers
@@ -168,9 +170,11 @@ Only `build` and `status` are registered. `run` and `compare` below are proposed
 ```
 techtree forge build   --repo PATH [--dockerfile PATH] --test-cmd CMD [--test-cmd CMD]
                        [--limit N] [--language python|node|go|rust|java|c_cpp]
-techtree forge status  BUILD_ID
-techtree forge run     BUILD_ID [--skill PATH] [--tasks NAME,...] [--profile NAME]
-techtree forge compare RUN_ID RUN_ID
+techtree forge status  BUILD_ID|RUN_ID
+techtree forge run     --arm baseline|candidate --build BUILD_ID --provider NAME
+                       --model ID [--tasks ID,...] [--skill PATH] [--reasoning R]
+                       [--repetitions N] [--yes]
+techtree forge compare RUN_ID RUN_ID                      (unimplemented)
 ```
 
 `forge build` produces a build directory, qualifies every emitted task, and
@@ -286,8 +290,14 @@ on the same warm machine alone does not establish independent reproduction.
 
 ## `forge run` in detail
 
-**Unimplemented historical sketch.** The explicit contract above controls;
-steps 2 and 5 cannot preselect the unanswered seed or agent-grading policy.
+**Historical sketch, superseded 2026-09-19 by the implementation** described
+under "Forge run" in `cli/docs/product-architecture.md`. Where they differ the
+implementation controls: the arm is declared as a run specification before
+anything runs; the throwaway home is a profile under the person's Hermes root,
+so sign-ins are borrowed and nothing is copied; no model block is copied from
+any profile — provider and model are named on the command line and recorded;
+every attempt starts from a fresh state with memory off; and the run keeps a
+`run.json` of per-attempt outcomes rather than a `result.json`.
 
 For each qualified task, in sequence:
 

@@ -36,6 +36,7 @@ from techtree.forge.docker import Docker, Mount
 from techtree.forge.models import (
     FORGE_QUALIFICATION_SCHEMA_VERSION,
     ForgeBuildRecord,
+    ForgePlatform,
     ForgeQualification,
     QualificationCheck,
     TaskQualification,
@@ -43,7 +44,14 @@ from techtree.forge.models import (
 from techtree.fs import ensure_private_directory
 from techtree.models.base import Digest
 
-__all__ = ["qualify_build", "task_image_tag"]
+__all__ = [
+    "TaskFacts",
+    "Verdict",
+    "grade_task",
+    "qualify_build",
+    "read_task_facts",
+    "task_image_tag",
+]
 
 #: Added to the task's own verifier timeout: container start and image load.
 _RUN_MARGIN_SECONDS: Final = 120.0
@@ -55,17 +63,18 @@ _REWARD_FILE_LIMIT: Final = 64 * 1024
 
 
 @dataclass(frozen=True)
-class _TaskFacts:
+class TaskFacts:
     """What a task's ``task.toml`` says about itself."""
 
     base_commit: str
     fail_to_pass: list[str]
     pass_to_pass: list[str]
+    agent_timeout: float
     verifier_timeout: float
 
 
 @dataclass(frozen=True)
-class _Verdict:
+class Verdict:
     """The reward files one graded run left."""
 
     reward: float | None
@@ -121,7 +130,7 @@ def _qualify_task(
     content_digest: Digest,
 ) -> TaskQualification:
     task_id = task_dir.name
-    facts = _read_task(task_dir)
+    facts = read_task_facts(task_dir)
     tag = task_image_tag(build, task_id)
     ensure_private_directory(work_dir)
     checks: list[QualificationCheck] = []
@@ -158,9 +167,9 @@ def _qualify_task(
                 ),
             )
         )
-        control = _grade(
+        control = grade_task(
             docker,
-            build,
+            build.platform,
             image_id,
             task_dir,
             work_dir / "control",
@@ -169,9 +178,9 @@ def _qualify_task(
         )
         control_reward = control.reward
         checks.append(_control_check(control, facts))
-        reference = _grade(
+        reference = grade_task(
             docker,
-            build,
+            build.platform,
             image_id,
             task_dir,
             work_dir / "reference",
@@ -196,19 +205,21 @@ def _qualify_task(
     )
 
 
-def _read_task(task_dir: Path) -> _TaskFacts:
+def read_task_facts(task_dir: Path) -> TaskFacts:
+    """Read what one task's ``task.toml`` commits to."""
     document = tomllib.loads((task_dir / "task.toml").read_text(encoding="utf-8"))
     runtime = document["metadata"]["repo2env"]["commit_runtime"]
-    return _TaskFacts(
+    return TaskFacts(
         base_commit=str(runtime["parent_sha"]),
         fail_to_pass=[str(name) for name in runtime["fail_to_pass"]],
         pass_to_pass=[str(name) for name in runtime["pass_to_pass"]],
+        agent_timeout=float(document["agent"]["timeout_sec"]),
         verifier_timeout=float(document["verifier"]["timeout_sec"]),
     )
 
 
 def _workspace_check(
-    docker: Docker, build: ForgeBuildRecord, image: str, facts: _TaskFacts
+    docker: Docker, build: ForgeBuildRecord, image: str, facts: TaskFacts
 ) -> QualificationCheck:
     outcome = docker.run(
         image=image,
@@ -252,22 +263,26 @@ def _material_check(
     )
 
 
-def _grade(
+def grade_task(
     docker: Docker,
-    build: ForgeBuildRecord,
+    platform: ForgePlatform,
     image: str,
     task_dir: Path,
     run_dir: Path,
-    facts: _TaskFacts,
+    facts: TaskFacts,
     *,
     reference: bool,
-) -> _Verdict:
-    """Run the task's own test script once, with or without the reference patch.
+    workspace: Path | None = None,
+) -> Verdict:
+    """Run the task's own test script once and read the verdict it leaves.
 
-    Every container here runs from the image's content id, never its tag, so
-    the run graded is the image this build made. The tests write into
-    ``run_dir/verifier`` and nowhere else on the host; the transcript is kept
-    beside it, where they cannot reach.
+    Qualification grades the image's own workspace, unrepaired or with the
+    reference patch applied; a forge run grades an agent's ``workspace``,
+    mounted over the image's at ``/workspace``. Every container here runs
+    from the image's content id, never its tag, so the run graded is the
+    image this build made. The tests write into ``run_dir/verifier`` and
+    nowhere else on the host; the transcript is kept beside it, where they
+    cannot reach.
     """
     ensure_private_directory(run_dir)
     verifier_dir = run_dir / "verifier"
@@ -279,11 +294,13 @@ def _grade(
             Mount(source=task_dir / "solution", target="/solution", read_only=True)
         )
         script = "bash /solution/solve.sh && bash /tests/test.sh"
+    if workspace is not None:
+        mounts.append(Mount(source=workspace, target="/workspace", read_only=False))
     mounts.append(Mount(source=verifier_dir, target="/logs/verifier", read_only=False))
 
     outcome = docker.run(
         image=image,
-        platform=build.platform,
+        platform=platform,
         argv=["bash", "-c", script],
         mounts=mounts,
         timeout=facts.verifier_timeout + _RUN_MARGIN_SECONDS,
@@ -295,11 +312,11 @@ def _grade(
     )
     # A run that did not finish has no verdict, whatever it wrote before it hung.
     if outcome.timed_out:
-        return _Verdict(reward=None, details={"timed_out": True})
+        return Verdict(reward=None, details={"timed_out": True})
     return _read_verdict(verifier_dir)
 
 
-def _read_verdict(verifier_dir: Path) -> _Verdict:
+def _read_verdict(verifier_dir: Path) -> Verdict:
     """Read the reward the way Verifiers does: ``reward.json`` first, then text."""
     reward: float | None = None
     details: dict[str, object] = {}
@@ -317,7 +334,7 @@ def _read_verdict(verifier_dir: Path) -> _Verdict:
                 details = loaded
     except (KeyError, TypeError, ValueError):
         reward = None
-    return _Verdict(reward=reward, details=details)
+    return Verdict(reward=reward, details=details)
 
 
 def _reward_file(path: Path) -> str | None:
@@ -343,7 +360,7 @@ def _reward_file(path: Path) -> str | None:
         os.close(descriptor)
 
 
-def _control_check(verdict: _Verdict, facts: _TaskFacts) -> QualificationCheck:
+def _control_check(verdict: Verdict, facts: TaskFacts) -> QualificationCheck:
     f2p_passed = verdict.details.get("f2p_passed")
     status = str(verdict.details.get("parse_status", "absent"))
     passed = (
@@ -364,7 +381,7 @@ def _control_check(verdict: _Verdict, facts: _TaskFacts) -> QualificationCheck:
     )
 
 
-def _reference_check(verdict: _Verdict) -> QualificationCheck:
+def _reference_check(verdict: Verdict) -> QualificationCheck:
     resolved = verdict.details.get("resolved")
     passed = verdict.reward == 1.0 and resolved is True
     return QualificationCheck(
