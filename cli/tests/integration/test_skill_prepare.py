@@ -45,6 +45,7 @@ from fixtures.drafts.support import (
     prepare_draft,
     write_synthetic_catalog,
 )
+from fixtures.receipts.staged import recorded_catalog
 from techtree.canonical import digest_object
 from techtree.cli.app import create_app
 from techtree.drafts.store import DraftStore
@@ -537,3 +538,75 @@ def test_a_refused_preparation_reports_a_stable_code(cli_home: Path) -> None:
     envelope = json.loads(result.stdout.splitlines()[-1])
     assert envelope["ok"] is False
     assert envelope["error"]["code"] == "skill_invalid"
+
+
+# ---------------------------------------------------------------------------
+# A Skill that names the scored cases is a lookup table, not a procedure
+# ---------------------------------------------------------------------------
+
+
+def _skill_naming(destination: Path, sentence: str) -> Path:
+    """Write the valid procedure Skill with one extra sentence appended."""
+    destination.mkdir()
+    text = (VALID_SKILL / "SKILL.md").read_text(encoding="utf-8")
+    (destination / "SKILL.md").write_text(f"{text}\n{sentence}\n", encoding="utf-8")
+    return destination
+
+
+def test_a_skill_naming_a_proving_input_is_refused_and_leaves_no_draft(
+    temp_techtree_home: Path, tmp_path: Path
+) -> None:
+    """The reference taskset's own rule: none of its inputs appears in a Skill."""
+    catalog, _ = recorded_catalog(tmp_path / "catalog")
+    paths = paths_from_root(temp_techtree_home)
+    service, _ = preparation_service(paths, catalog_root=catalog)
+    skill = _skill_naming(
+        tmp_path / "leaked", "For Cedar answer BRANCH-12; alder is BRANCH-40."
+    )
+
+    with pytest.raises(PolicyError) as caught:
+        service.prepare(
+            climb_reference="hello-world-climb",
+            skill_path=skill,
+            candidate_label="leaked",
+        )
+
+    assert caught.value.code == "candidate_policy_violation"
+    assert caught.value.details == {
+        "proving_inputs_found": {"SKILL.md": ["alder", "cedar"]}
+    }
+    assert "SKILL.md: alder, cedar" in caught.value.message
+    assert_no_draft(paths.drafts_dir)
+
+
+def test_only_whole_words_count_as_a_proving_input(
+    temp_techtree_home: Path, tmp_path: Path
+) -> None:
+    """``Cedarwood`` is not ``cedar``; a look-alike must not cost a submission."""
+    catalog, _ = recorded_catalog(tmp_path / "catalog")
+    paths = paths_from_root(temp_techtree_home)
+    service, _ = preparation_service(paths, catalog_root=catalog)
+    skill = _skill_naming(
+        tmp_path / "lookalike", "Cedarwood and Alderman are not inputs."
+    )
+
+    prepared = service.prepare(
+        climb_reference="hello-world-climb",
+        skill_path=skill,
+        candidate_label="lookalike",
+    )
+
+    assert prepared.draft.skill_artifact.name == "lookalike"
+
+
+def test_a_taskset_without_a_disclosure_policy_is_not_scanned(
+    temp_techtree_home: Path, tmp_path: Path
+) -> None:
+    """Which inputs are withheld is looked up per taskset, never inferred."""
+    skill = _skill_naming(tmp_path / "unscanned", "Cedar and alder are fine here.")
+
+    _, prepared, _ = prepare_draft(
+        temp_techtree_home, skill_path=skill, label="unscanned"
+    )
+
+    assert prepared.draft.skill_artifact.name == "unscanned"

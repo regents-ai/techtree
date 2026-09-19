@@ -39,6 +39,7 @@ from fixtures.drafts.support import preparation_service
 from fixtures.receipts.replacement import (
     REVISED_SKILL_REFERENCE_PATH,
     REVISED_SKILL_REFERENCE_TEXT,
+    REVISED_SKILL_TEXT,
     ReplacementEvidenceExecutor,
     write_revised_skill,
 )
@@ -631,3 +632,24 @@ def test_the_cli_refuses_to_start_a_replacement_without_approval(
     assert refused.exit_code != 0
     assert refused.envelope()["error"]["code"] == "policy_acceptance_required"
     assert "--yes" in refused.envelope()["error"]["message"]
+
+
+def test_a_revision_naming_a_proving_input_is_refused(tmp_path: Path) -> None:
+    """A revision is held to the same rule as a first submission: no scored cases."""
+    first = _first_run(tmp_path / "home")
+    service = _uplift_service(first)
+    revised = write_revised_skill(tmp_path / "skill-v2")
+    (revised / "SKILL.md").write_text(
+        REVISED_SKILL_TEXT + "\nWhen the input is cedar the answer is BRANCH-12.\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PolicyError) as caught:
+        service.prepare_replacement(
+            source_run_id=first.run_id,
+            candidate_skill_path=revised,
+            candidate_label="branch-code-v2",
+        )
+
+    assert caught.value.code == "candidate_policy_violation"
+    assert caught.value.details == {"proving_inputs_found": {"SKILL.md": ["cedar"]}}
