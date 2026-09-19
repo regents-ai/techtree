@@ -232,6 +232,21 @@ class Docker:
         finally:
             self.remove(name)
 
+    def remove_labelled(self, label: str, value: str) -> list[str]:
+        """Remove every container carrying ``label=value`` and say what happened.
+
+        Hermes stops the sandbox it started for a one-shot run but leaves it
+        on the daemon; it labels each with its profile, which is how the
+        forge takes back exactly the containers its throwaway profile made.
+        """
+        listed = self._run(
+            ["docker", "ps", "--all", "--quiet", "--filter", f"label={label}={value}"],
+            DAEMON_TIMEOUT_SECONDS,
+        )
+        if listed.returncode != 0:
+            return [f"containers labelled {label}={value} were not listed"]
+        return [self.remove(name) for name in listed.stdout.split()]
+
     def remove(self, name: str) -> str:
         """Remove the container the forge named ``name`` and say what happened.
 

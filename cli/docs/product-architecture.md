@@ -444,7 +444,8 @@ repetition order: the task image's `/workspace` is copied to the host at the
 base commit; a throwaway Hermes profile is created under the person's Hermes
 root (`profiles/techtree-<run>-<n>`, so the root's sign-ins are borrowed and
 token refreshes are written back, and nothing is copied) with a `config.yaml`
-Techtree wrote — Docker sandbox from the task image's content id, no network,
+Techtree wrote — Docker sandbox from the task image's content id with the
+exported workspace mounted at `/workspace` as the shell's directory, no network,
 2 CPUs, 4096 MB, memory and user profile off, title generation off, the task's
 own `[agent].timeout_sec` as Hermes' run budget — and, on the candidate arm, the
 Skill's files under `skills/<name>` after their digest is re-checked against the
@@ -452,7 +453,9 @@ specification; `hermes --yolo -z` runs in the workspace with the instruction,
 `-t terminal,file,code_execution,skills`, `--usage-file`, and `-s <name>` on
 the candidate arm, under a Techtree deadline of the task timeout plus two
 minutes (interrupted, then killed); the profile's `state.db` is kept beside the
-evidence and the profile removed; the workspace is diffed against the base
+evidence, the profile removed, and the sandbox containers Hermes stopped but
+left on the daemon removed by their `hermes-profile` label; the workspace is
+diffed against the base
 commit in a fresh container (`patch.diff`); and the task's own tests grade it
 the way qualification graded the reference repair. Tests and reference
 solutions are never mounted into the agent's container. The attempt record

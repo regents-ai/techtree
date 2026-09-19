@@ -21,8 +21,10 @@ it says. For each named task and each repetition, in order:
 The profile is a profile rather than a bare directory on purpose: Hermes
 reads the root's sign-ins from a profile and writes refreshed tokens back to
 the root, which is what lets Techtree copy no credential. After the attempt
-the profile's transcript database is kept beside the evidence and the profile
-is removed; nothing under it is read but that one file.
+the profile's transcript database is kept beside the evidence, the profile
+is removed, and the sandbox containers Hermes stopped but left on the daemon
+are removed by the profile label Hermes gave them; nothing under the profile
+is read but that one file.
 
 Every outcome is its own kind: a graded attempt has a reward, and an agent
 that timed out or failed, a verifier that timed out, or a verifier that left
@@ -98,6 +100,7 @@ _AGENT_MARGIN_SECONDS: Final = 120.0
 _INTERRUPT_GRACE_SECONDS: Final = 30.0
 _PATCH_TIMEOUT_SECONDS: Final = 120.0
 _STATE_DB: Final = "state.db"
+_PROFILE_LABEL: Final = "hermes-profile"
 _USAGE_KEYS: Final = (
     "model",
     "provider",
@@ -141,18 +144,24 @@ def hermes_root() -> Path:
     return home.parent.parent if home.parent.name == "profiles" else home
 
 
-def hermes_config(spec: ForgeRunSpec, image: str, agent_timeout: float) -> bytes:
+def hermes_config(
+    spec: ForgeRunSpec, image: str, agent_timeout: float, workspace: Path
+) -> bytes:
     """Return the ``config.yaml`` Techtree writes for one attempt, as bytes.
 
-    JSON is YAML, and the canonical encoder is what makes the digest of this
-    file a fact two runs can compare.
+    The exported workspace is mounted at ``/workspace`` as an explicit volume
+    and the shell starts there: Hermes binds its own working directory only
+    for a shared container, and the sandbox here is per session. JSON is
+    YAML, and the canonical encoder is what makes the digest of this file the
+    fact the evidence records.
     """
     return canonical_json_bytes(
         {
             "terminal": {
                 "backend": "docker",
                 "docker_image": image,
-                "docker_mount_cwd_to_workspace": True,
+                "docker_volumes": [f"{workspace}:/workspace"],
+                "cwd": "/workspace",
                 "docker_network": spec.limits.network,
                 "container_persistent": False,
                 "docker_persist_across_processes": False,
@@ -415,7 +424,7 @@ class ForgeRunner:
             image=image, platform=build.platform, destination=workspace
         )
 
-        config = hermes_config(spec, image, facts.agent_timeout)
+        config = hermes_config(spec, image, facts.agent_timeout, workspace)
         atomic_write_bytes(attempt_dir / "config.yaml", config)
         profile = self._profiles_root / profile_name
         if profile.exists():
@@ -471,6 +480,7 @@ class ForgeRunner:
             if transcript.is_file() and not transcript.is_symlink():
                 shutil.copyfile(transcript, attempt_dir / _STATE_DB)
             remove_tree(profile)
+            self._docker.remove_labelled(_PROFILE_LABEL, profile_name)
 
         usage = _read_usage(usage_file)
         patch_digest = self._patch(build, image, workspace, attempt_dir)

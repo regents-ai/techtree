@@ -228,12 +228,15 @@ class FakeDocker:
 
     ``reward`` is what the tests leave: a number, ``None`` for no verdict, or
     ``"timeout"`` for a test run that hangs. ``export_error`` makes the
-    workspace export fail the way a missing image would.
+    workspace export fail the way a missing image would. ``left_behind`` is
+    what ``docker ps`` lists for any label filter: the stopped containers
+    Hermes leaves on the daemon.
     """
 
     reward: float | str | None = 1.0
     patch: str = "diff --git a/x b/x\n"
     export_error: bool = False
+    left_behind: list[str] = field(default_factory=list)
     calls: list[list[str]] = field(default_factory=list)
 
     def __call__(
@@ -244,6 +247,8 @@ class FakeDocker:
         match command[:2]:
             case ["docker", "version"]:
                 return _done(command, "linux/arm64\n")
+            case ["docker", "ps"]:
+                return _done(command, "".join(f"{c}\n" for c in self.left_behind))
             case ["docker", "create"]:
                 if self.export_error:
                     return subprocess.CompletedProcess(command, 1, "", "no such image")

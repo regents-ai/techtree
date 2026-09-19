@@ -166,6 +166,30 @@ def test_hermes_runs_in_a_throwaway_profile_that_is_removed_afterwards(
     assert launch["timeout"] == AGENT_TIMEOUT + 120.0
 
 
+def test_the_containers_hermes_left_behind_are_removed_by_profile_label(
+    build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
+    docker = FakeDocker(left_behind=["abc123", "def456"])
+
+    status = runner(build, docker, FakeHermes(), profiles).run(spec, None)
+
+    profile_name = f"techtree-{status.run_id[-12:]}-1"
+    listed = [call for call in docker.calls if call[:2] == ["docker", "ps"]]
+    assert listed == [
+        [
+            "docker",
+            "ps",
+            "--all",
+            "--quiet",
+            "--filter",
+            f"label=hermes-profile={profile_name}",
+        ]
+    ]
+    removed = [call[-1] for call in docker.calls if call[:2] == ["docker", "rm"]]
+    assert removed[-2:] == ["abc123", "def456"]
+
+
 def test_the_command_line_names_the_model_the_tools_and_the_instruction(
     build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -194,16 +218,18 @@ def test_the_config_is_the_sandbox_the_specification_promises(
     spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
     hermes = FakeHermes()
 
-    runner(build, FakeDocker(), hermes, profiles).run(spec, None)
+    status = runner(build, FakeDocker(), hermes, profiles).run(spec, None)
 
     config = hermes.launches[0]["config"]
+    workspace = attempt_dir(status, build.task_id) / "workspace"
     assert isinstance(config, bytes)
-    assert config == hermes_config(spec, IMAGE_ID, AGENT_TIMEOUT)
+    assert config == hermes_config(spec, IMAGE_ID, AGENT_TIMEOUT, workspace)
     loaded = json.loads(config)
     assert loaded["terminal"]["backend"] == "docker"
     assert loaded["terminal"]["docker_image"] == IMAGE_ID
     assert loaded["terminal"]["docker_network"] is False
-    assert loaded["terminal"]["docker_mount_cwd_to_workspace"] is True
+    assert loaded["terminal"]["docker_volumes"] == [f"{workspace}:/workspace"]
+    assert loaded["terminal"]["cwd"] == "/workspace"
     assert loaded["terminal"]["container_cpu"] == spec.limits.container_cpus
     assert loaded["terminal"]["container_memory"] == spec.limits.container_memory_mb
     assert loaded["memory"]["memory_enabled"] is False
