@@ -13,6 +13,14 @@
   or left nothing readable. Nothing is scored as zero for want of evidence, and
   no attempt is retried on your account. `techtree forge status` reads a run
   back.
+- `techtree forge compare` pairs a baseline run with a candidate run, task by
+  task, and writes a self-contained HTML report you can open from disk beside
+  the machine-readable record. It says whether the Skill won, lost or tied on
+  each task, what each arm used in time, model calls, tokens and reported
+  cost, what the two arms were allowed to differ in, and how far the evidence
+  carries. A pair without a verdict on both sides is shown as unresolved,
+  never counted as zero, and the summary says "Partial" until every planned
+  pair has one. Comparing calls no model.
 - A forge experiment is declared before it runs, and two arms are compared only
   when nothing but the Skill differs between them.
 - A candidate Skill that names the cases a Climb scores it on is refused when

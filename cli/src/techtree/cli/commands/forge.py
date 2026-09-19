@@ -1,12 +1,14 @@
-"""``techtree forge build|run|status``. ``docs/plan/repo2rlenv-local-lane.md``.
+"""``techtree forge build|run|compare|status``. ``docs/plan/repo2rlenv-local-lane.md``.
 
 ``forge build`` takes a local repository and retains generated Harbor tasks and
 their qualification evidence; ``forge run`` declares one arm of an experiment
-on those tasks and runs it with the person's own Hermes; ``forge status``
-reads either back without requiring build tools. Build execution belongs to
-:class:`~techtree.forge.service.ForgeService`, run execution to
-:class:`~techtree.forge.run.ForgeRunner`; inspection uses the separate record
-readers. What to say about each operation is here.
+on those tasks and runs it with the person's own Hermes; ``forge compare``
+pairs a baseline run with a candidate run and writes the record and the
+report; ``forge status`` reads any of them back without requiring build
+tools. Build execution belongs to :class:`~techtree.forge.service.ForgeService`,
+run execution to :class:`~techtree.forge.run.ForgeRunner`, comparison to
+:mod:`techtree.forge.compare`; inspection uses the separate record readers.
+What to say about each operation is here.
 """
 
 from __future__ import annotations
@@ -25,17 +27,21 @@ from techtree.cli.invoke import CommandResult, approval_operation, invoke_comman
 from techtree.cli.output import human_console, render_pairs
 from techtree.engines.installer import find_uv
 from techtree.errors import PolicyError
+from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
     ForgeArm,
+    ForgeArmTotals,
     ForgeAttemptOutcome,
     ForgeBuildStatus,
+    ForgeComparisonStatus,
     ForgeLanguage,
     ForgeRunSpec,
     ForgeRunStatus,
     ForgeUsage,
 )
 from techtree.forge.process import run_command
+from techtree.forge.report import OUTCOME_WORDS
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
 from techtree.ids import id_prefix
@@ -54,6 +60,8 @@ __all__ = [
     "ForgeRunReview",
     "HermesReasoning",
     "build_forge_command",
+    "compare_forge_command",
+    "render_forge_comparison",
     "render_forge_run",
     "render_forge_status",
     "run_forge_command",
@@ -237,20 +245,58 @@ def run_forge_command(
     )
 
 
+def compare_forge_command(
+    ctx: typer.Context,
+    baseline_run: Annotated[
+        str,
+        typer.Argument(metavar="BASELINE_RUN_ID", help="The run without the Skill."),
+    ],
+    candidate_run: Annotated[
+        str,
+        typer.Argument(metavar="CANDIDATE_RUN_ID", help="The run with the Skill."),
+    ],
+) -> None:
+    """Compare a baseline run with a candidate run and write the report."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeComparisonStatus]:
+        status = compare_runs(context.paths, baseline_run, candidate_run)
+        return CommandResult(
+            data=status,
+            warnings=_comparison_warnings(status),
+            next_actions=[_comparison_status_action(status)],
+        )
+
+    invoke_command(
+        context, Operation.RESULT_INSPECT, action, render_data=_render_compared
+    )
+
+
 def status_forge_command(
     ctx: typer.Context,
     record_id: Annotated[
         str,
-        typer.Argument(metavar="BUILD_ID|RUN_ID", help="The build or run to show."),
+        typer.Argument(
+            metavar="BUILD_ID|RUN_ID|COMPARISON_ID",
+            help="The build, run or comparison to show.",
+        ),
     ],
 ) -> None:
-    """Show what one forge build made, or what one forge run did."""
+    """Show what one forge build made, one run did, or one comparison found."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[ForgeBuildStatus | ForgeRunStatus]:
-        if id_prefix(record_id) == "forgerun":
-            run = read_run_status(context.paths, record_id)
-            return CommandResult(data=run, warnings=_run_warnings(run))
+    def action() -> CommandResult[
+        ForgeBuildStatus | ForgeRunStatus | ForgeComparisonStatus
+    ]:
+        match id_prefix(record_id):
+            case "forgerun":
+                run = read_run_status(context.paths, record_id)
+                return CommandResult(data=run, warnings=_run_warnings(run))
+            case "forgecmp":
+                comparison = read_comparison_status(context.paths, record_id)
+                return CommandResult(
+                    data=comparison, warnings=_comparison_warnings(comparison)
+                )
         status = read_build_status(context.paths, record_id)
         return CommandResult(data=status, warnings=_warnings(status))
 
@@ -380,7 +426,7 @@ def render_forge_run(status: ForgeRunStatus, console: Console) -> None:
         console.print()
     for attempt in record.attempts:
         usage = attempt.usage
-        words = _outcome_words(attempt.outcome)
+        words = OUTCOME_WORDS[attempt.outcome]
         parts = [f"{attempt.task_id} #{attempt.attempt}: {words}"]
         if attempt.reward is not None:
             parts.append(f"reward {attempt.reward:g}")
@@ -389,16 +435,6 @@ def render_forge_run(status: ForgeRunStatus, console: Console) -> None:
             parts.append(f"{usage.total_tokens} tokens")
         parts.append(_cost_words(usage))
         console.print(", ".join(parts), markup=False)
-
-
-def _outcome_words(outcome: ForgeAttemptOutcome) -> str:
-    return {
-        ForgeAttemptOutcome.GRADED: "graded",
-        ForgeAttemptOutcome.AGENT_TIMED_OUT: "agent ran out of time",
-        ForgeAttemptOutcome.AGENT_FAILED: "agent did not finish",
-        ForgeAttemptOutcome.VERIFIER_TIMED_OUT: "tests ran out of time",
-        ForgeAttemptOutcome.NO_VERDICT: "tests left no verdict",
-    }[outcome]
 
 
 def _cost_words(usage: ForgeUsage | None) -> str:
@@ -538,9 +574,129 @@ def _render_built(data: object, console: Console) -> None:
     render_forge_status(data, console)
 
 
+def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> None:
+    """Print one comparison for a person: the verdict, the totals, the pairs."""
+    record = status.record
+    pairs = [
+        ("Comparison", status.comparison_id),
+        ("Skill", f"{record.skill_name} ({record.skill_digest[:19]})"),
+        ("Baseline run", record.baseline_run_id),
+        ("Candidate run", record.candidate_run_id),
+        ("Build", record.build_id),
+        ("Result", "complete" if record.complete else "partial"),
+        (
+            "Pairs",
+            f"{record.wins} won, {record.losses} lost, {record.ties} tied, "
+            f"{record.unresolved} unresolved of {record.pairs_planned} planned",
+        ),
+        (
+            "Mean reward",
+            _arm_pair(record.baseline.mean_reward, record.candidate.mean_reward),
+        ),
+        (
+            "Agent time",
+            _arm_pair(
+                record.baseline.agent_seconds, record.candidate.agent_seconds, "s"
+            ),
+        ),
+        (
+            "Model calls",
+            _arm_pair(record.baseline.api_calls, record.candidate.api_calls),
+        ),
+        (
+            "Tokens",
+            _arm_pair(record.baseline.total_tokens, record.candidate.total_tokens),
+        ),
+        ("Cost", f"{_totals_cost(record.baseline)} → {_totals_cost(record.candidate)}"),
+        ("Report", status.report_path),
+        ("Record", status.path),
+    ]
+    render_pairs(pairs, console)
+    console.print()
+    console.print(record.summary, markup=False)
+    console.print()
+    for pair in record.pairs:
+        baseline = _side_words(pair.baseline_outcome, pair.baseline_reward)
+        candidate = _side_words(pair.candidate_outcome, pair.candidate_reward)
+        console.print(
+            f"{pair.task_id} #{pair.attempt}: {pair.result.value}"
+            + (f" ({pair.delta:+g})" if pair.delta is not None else "")
+            + f"; baseline {baseline}, candidate {candidate}",
+            markup=False,
+        )
+
+
+def _arm_pair(baseline: float | None, candidate: float | None, unit: str = "") -> str:
+    def one(value: float | None) -> str:
+        if value is None:
+            return "unknown"
+        return f"{value:g}{unit}" if isinstance(value, int) else f"{value:.3g}{unit}"
+
+    return f"{one(baseline)} → {one(candidate)}"
+
+
+def _totals_cost(totals: ForgeArmTotals) -> str:
+    statuses = f" ({', '.join(totals.cost_statuses)})" if totals.cost_statuses else ""
+    if totals.cost_usd is None:
+        return "no dollar figure" + statuses
+    return f"${totals.cost_usd:.4f}{statuses}"
+
+
+def _side_words(outcome: ForgeAttemptOutcome | None, reward: float | None) -> str:
+    if outcome is None:
+        return "not attempted"
+    return f"reward {reward:g}" if reward is not None else OUTCOME_WORDS[outcome]
+
+
+def _render_compared(data: object, console: Console) -> None:
+    if not isinstance(data, ForgeComparisonStatus):
+        return
+    console.print(
+        f"Forge comparison {data.comparison_id} written; no model was called."
+    )
+    console.print()
+    render_forge_comparison(data, console)
+
+
+def _comparison_warnings(status: ForgeComparisonStatus) -> list[CliWarning]:
+    """Say when the comparison is partial, in one line."""
+    record = status.record
+    if record.complete:
+        return []
+    return [
+        CliWarning(
+            id="forge_comparison_partial",
+            text=(
+                f"{record.unresolved} of {record.pairs_planned} planned pairs have "
+                "no verdict on both arms; the counts are over the graded pairs "
+                "only and this is not a complete result."
+            ),
+            resolvable_by=None,
+        )
+    ]
+
+
+def _comparison_status_action(status: ForgeComparisonStatus) -> NextAction:
+    return NextAction(
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation(
+            "forge", "status", arguments=[status.comparison_id]
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason="The comparison and where its report is can be read back later.",
+    )
+
+
 def _render_status(data: object, console: Console) -> None:
     if isinstance(data, ForgeRunStatus):
         render_forge_run(data, console)
+    elif isinstance(data, ForgeComparisonStatus):
+        render_forge_comparison(data, console)
     elif isinstance(data, ForgeBuildStatus):
         render_forge_status(data, console)
 

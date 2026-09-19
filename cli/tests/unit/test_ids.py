@@ -31,6 +31,7 @@ EXPECTED_PREFIXES = frozenset(
         "policy",
         "build",
         "forgerun",
+        "forgecmp",
     }
 )
 

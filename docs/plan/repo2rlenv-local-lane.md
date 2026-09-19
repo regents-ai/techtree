@@ -10,9 +10,9 @@ release, deployment, or platform-funded inference.
 The [current founder release assignment](repo2rlenv-v02x.md#founder-release-assignment-2026-09-17)
 supersedes conflicting proposals below. `forge build/status` is implemented and
 offline-reviewed; real Docker qualification and fresh-worker reproduction remain
-open. `forge run` is implemented (2026-09-19; the run specification, gate and
-run storage are described under "Forge run" in `cli/docs/product-architecture.md`);
-`forge compare` and its report remain unimplemented design.
+open. `forge run` and `forge compare` are implemented (2026-09-19; the run
+specification, gate, run storage, comparison record and report are described
+under "Forge run" and "Forge compare" in `cli/docs/product-architecture.md`).
 No model quality, subscription compatibility or positive uplift is established.
 
 The local-agent contract is not complete. Prefer a demonstrated Verifiers
@@ -174,14 +174,16 @@ techtree forge status  BUILD_ID|RUN_ID
 techtree forge run     --arm baseline|candidate --build BUILD_ID --provider NAME
                        --model ID [--tasks ID,...] [--skill PATH] [--reasoning R]
                        [--repetitions N] [--yes]
-techtree forge compare RUN_ID RUN_ID                      (unimplemented)
+techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID
 ```
 
 `forge build` produces a build directory, qualifies every emitted task, and
 prints the qualification receipt. `forge run` runs one arm over the qualified
 tasks with the person's own Hermes and writes a Result. `forge compare` reads
-two Results over the same build and prints the per-task and aggregate
-difference. `uplift context` learns to read a `forge` comparison in slice 3.
+two Results over the same build, refuses a pair that differs anywhere but the
+Skill, and writes the per-task and aggregate difference as a record and a
+self-contained HTML report. `uplift context` learns to read a `forge`
+comparison in slice 3.
 
 Implemented commands follow the existing envelope machinery: `--json`, warnings,
 blockers, next actions. Build and status make no model calls. The proposed

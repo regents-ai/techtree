@@ -37,6 +37,7 @@ ID_PREFIXES: Final[frozenset[str]] = frozenset(
         "policy",
         "build",
         "forgerun",
+        "forgecmp",
     }
 )
 

@@ -31,10 +31,12 @@ from techtree.models.base import (
     ProtocolModel,
     UtcDateTime,
 )
+from techtree.models.experiment import ManifestComparison
 from techtree.models.skill import SkillFile
 
 __all__ = [
     "FORGE_BUILD_SCHEMA_VERSION",
+    "FORGE_COMPARISON_SCHEMA_VERSION",
     "FORGE_PROGRESS_SCHEMA_VERSION",
     "FORGE_QUALIFICATION_SCHEMA_VERSION",
     "FORGE_RUN_SCHEMA_VERSION",
@@ -43,19 +45,24 @@ __all__ = [
     "FORGE_TASK_SET_SCHEMA_VERSION",
     "ForgeAgentSpec",
     "ForgeArm",
+    "ForgeArmTotals",
     "ForgeAttemptOutcome",
+    "ForgeAttemptPair",
     "ForgeAttemptRecord",
     "ForgeBuildFailure",
     "ForgeBuildPhase",
     "ForgeBuildProgress",
     "ForgeBuildRecord",
     "ForgeBuildStatus",
+    "ForgeComparisonRecord",
+    "ForgeComparisonStatus",
     "ForgeEvidence",
     "ForgeGradingSpec",
     "ForgeInitialState",
     "ForgeLanguage",
     "ForgeLimits",
     "ForgeModelSpec",
+    "ForgePairResult",
     "ForgePlatform",
     "ForgeQualification",
     "ForgeRunRecord",
@@ -495,6 +502,129 @@ class ForgeRunStatus(ProtocolModel):
     path: NonEmptyString
     spec: ForgeRunSpec
     record: ForgeRunRecord
+
+
+FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha1"
+
+
+class ForgePairResult(StrEnum):
+    """What one paired attempt says about the Skill.
+
+    A pair is resolved only when both arms were graded; any attempt that
+    ended another way leaves the pair ``unresolved``, never a loss and never
+    a zero.
+    """
+
+    WIN = "win"
+    LOSS = "loss"
+    TIE = "tie"
+    UNRESOLVED = "unresolved"
+
+
+class ForgeAttemptPair(ProtocolModel):
+    """The same task and repetition on both arms, side by side.
+
+    A side that has no recorded attempt is ``None`` on both of its fields:
+    the run was interrupted before it got there, and the pair says so.
+    """
+
+    task_id: ForgeTaskId
+    attempt: int = Field(ge=1)
+    baseline_outcome: ForgeAttemptOutcome | None
+    baseline_reward: float | None
+    candidate_outcome: ForgeAttemptOutcome | None
+    candidate_reward: float | None
+    delta: float | None
+    result: ForgePairResult
+
+    @model_validator(mode="after")
+    def validate_result_follows_rewards(self) -> Self:
+        graded = self.baseline_reward is not None and self.candidate_reward is not None
+        if graded != (self.result is not ForgePairResult.UNRESOLVED):
+            raise ValueError("a pair is resolved exactly when both arms were graded")
+        if graded != (self.delta is not None):
+            raise ValueError("a difference is recorded exactly when both were graded")
+        return self
+
+
+class ForgeArmTotals(ProtocolModel):
+    """What one arm did and used, added up over its recorded attempts.
+
+    ``mean_reward`` is over the arm's graded attempts alone. ``cost_usd`` is
+    a sum only when every attempt with a usage report carried a dollar
+    figure; otherwise it is ``None`` and ``cost_statuses`` says what Hermes
+    reported instead, because an unpriced attempt is not a free one.
+    """
+
+    run_id: NonEmptyString
+    state: Literal["unfinished", "completed", "failed", "cancelled"]
+    attempts_planned: int = Field(ge=0)
+    attempts_recorded: int = Field(ge=0)
+    attempts_graded: int = Field(ge=0)
+    mean_reward: float | None
+    agent_seconds: float = Field(ge=0.0)
+    api_calls: int | None
+    total_tokens: int | None
+    cost_usd: float | None
+    cost_statuses: list[NonEmptyString]
+
+
+class ForgeComparisonRecord(ProtocolModel):
+    """Two arms of one experiment, paired task by task.
+
+    ``complete`` is true only when every planned pair was graded on both
+    sides; anything less is a partial observation, and ``summary`` says so
+    before it says anything else. The comparability gate's finding is kept
+    whole so a reader can see what was allowed to differ.
+    """
+
+    schema_version: Literal["techtree.forge-comparison.v1alpha1"]
+    comparison_id: NonEmptyString
+    created_at: UtcDateTime
+    build_id: NonEmptyString
+    baseline_run_id: NonEmptyString
+    candidate_run_id: NonEmptyString
+    skill_name: ForgeSkillName
+    skill_digest: Digest
+    comparability: ManifestComparison
+    baseline: ForgeArmTotals
+    candidate: ForgeArmTotals
+    pairs: list[ForgeAttemptPair]
+    pairs_planned: int = Field(ge=0)
+    pairs_graded: int = Field(ge=0)
+    wins: int = Field(ge=0)
+    losses: int = Field(ge=0)
+    ties: int = Field(ge=0)
+    unresolved: int = Field(ge=0)
+    mean_delta: float | None
+    complete: bool
+    summary: NonEmptyString
+    not_established: list[NonEmptyString]
+
+    @model_validator(mode="after")
+    def validate_counts_agree(self) -> Self:
+        if self.wins + self.losses + self.ties != self.pairs_graded:
+            raise ValueError("wins, losses and ties add up to the graded pairs")
+        if self.pairs_graded + self.unresolved != self.pairs_planned:
+            raise ValueError("graded and unresolved pairs add up to the planned pairs")
+        if len(self.pairs) != self.pairs_planned:
+            raise ValueError("every planned pair is listed, resolved or not")
+        if self.complete != (self.unresolved == 0):
+            raise ValueError(
+                "a comparison is complete exactly when no pair is unresolved"
+            )
+        if (self.mean_delta is None) != (self.pairs_graded == 0):
+            raise ValueError("a mean difference exists exactly when a pair was graded")
+        return self
+
+
+class ForgeComparisonStatus(ProtocolModel):
+    """A comparison read back from its directory, with where its report is."""
+
+    comparison_id: NonEmptyString
+    path: NonEmptyString
+    report_path: NonEmptyString
+    record: ForgeComparisonRecord
 
 
 class ForgeBuildFailure(ProtocolModel):

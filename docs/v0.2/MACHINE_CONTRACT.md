@@ -284,7 +284,7 @@ gives. That is the point of describing rather than duplicating.
 | `run.wait` | `techtree.cli.commands.run:status_run_command` | — | The same snapshot, after waiting a bounded time for it to change. |
 | `run.reconcile` | `techtree.cli.commands.run:status_run_command` | — | Recompute durable state from the append-only log and reconcile it with observed reality. |
 | `run.cancel` | `techtree.cli.commands.run:cancel_run_command` | — | Ask a run to stop, durably and idempotently. |
-| `result.inspect` | `techtree.cli.commands.run:result_run_command` | `techtree.cli.commands.run:logs_run_command` | The finished Result: its report, its numbers, its execution record, and its files. |
+| `result.inspect` | `techtree.cli.commands.run:result_run_command` | `techtree.cli.commands.run:logs_run_command`, `techtree.cli.commands.forge:compare_forge_command` | The finished Result: its report, its numbers, its execution record, and its files. |
 | `claim.inspect` | `techtree.cli.commands.run:result_run_command` | `techtree.cli.commands.proof:verify_proof_command` | What that Result is entitled to assert: proof grade, decision, publication eligibility, weaker-claim warnings, and the v0.2 evidence facets. |
 | `proof.verify` | `techtree.cli.commands.proof:verify_proof_command` | — | Whether the stored bytes verify offline. |
 | `profile.get` | `techtree.cli.commands.profile:get_profile_command` | — | Read the owner's shared personal profile using paired Privy proof, independent of publication keys. |

@@ -97,6 +97,15 @@ class TechtreePaths:
         """Return the directory holding one forge run."""
         return self.forge_runs_dir / validate_id(run_id, "forgerun")
 
+    @property
+    def forge_comparisons_dir(self) -> Path:
+        """Return the directory holding every forge comparison."""
+        return self.forge_dir / "comparisons"
+
+    def forge_comparison_dir(self, comparison_id: str) -> Path:
+        """Return the directory holding one forge comparison and its report."""
+        return self.forge_comparisons_dir / validate_id(comparison_id, "forgecmp")
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 

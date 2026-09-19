@@ -191,6 +191,7 @@ engine status
 engine verify
 forge build
 forge run
+forge compare
 forge status
 ```
 

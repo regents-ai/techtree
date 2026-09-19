@@ -467,8 +467,30 @@ one outcome: `graded` (with a reward), `agent_timed_out`, `agent_failed` (a
 non-zero exit, or a usage report saying `failed` or not `completed`),
 `verifier_timed_out`, or `no_verdict`. Only a graded attempt has a reward;
 nothing is recorded as zero for want of evidence. Nothing retries an attempt.
-`forge status` reads a build id or a run id. `forge compare` is not part of
-this build.
+`forge status` reads a build id, a run id or a comparison id.
+
+**Forge compare (two arms, paired).** `forge compare BASELINE_RUN_ID
+CANDIDATE_RUN_ID` (`forge/compare.py`) reads two recorded runs, puts their
+specifications through `compare_run_specs` and refuses the pair with
+`forge_comparison_invalid` when anything but `/arm` and `/skill` differs;
+nothing is written for a refused pair. For a controlled pair it lists every
+planned pair (task × repetition) with the same task and attempt number on each
+arm: a pair graded on both sides is a `win`, `loss` or `tie` by the candidate's
+reward against the baseline's; any other pair — an attempt that timed out, did
+not finish, left no verdict, or was never reached — is `unresolved`, never a
+zero. Per-arm totals add up recorded and graded attempts, mean reward over
+graded attempts, agent seconds, model calls and tokens, and a dollar sum only
+when every usage report carried a figure (with the cost statuses Hermes reported
+listed beside it). The record (`techtree.forge-comparison.v1alpha1`) is written
+to `forge/comparisons/<forgecmp_id>/comparison.json` beside `report.html`, one
+self-contained page (own stylesheet, no script, nothing fetched) that says, in
+order: the repository and both runs, "Local evidence about a mutable subject",
+the question tested, a plain-language summary that opens with "Partial" when
+any pair is unresolved, baseline | candidate | difference, the task-by-task
+table, both arms' patches and grading details per pair, the differences the
+gate allowed, and the limits of the evidence including the specification's
+`not_established` list. A comparison makes no model call and nothing leaves the
+machine.
 
 Ordinary errors and Ctrl-C produce a failure/cancellation receipt and a build ID
 with a status command. SIGKILL or disk-write failure can leave no final receipt;

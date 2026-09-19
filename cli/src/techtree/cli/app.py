@@ -55,6 +55,7 @@ from techtree.cli.commands.engine import (
 )
 from techtree.cli.commands.forge import (
     build_forge_command,
+    compare_forge_command,
     run_forge_command,
     status_forge_command,
 )
@@ -406,9 +407,14 @@ def _forge_app() -> typer.Typer:
     app.command(
         "run", help="Run one arm of an experiment on qualified tasks with your Hermes."
     )(run_forge_command)
-    app.command("status", help="Show what one forge build made or one run did.")(
-        status_forge_command
-    )
+    app.command(
+        "compare",
+        help="Compare a baseline run with a candidate run and write the report.",
+    )(compare_forge_command)
+    app.command(
+        "status",
+        help="Show what one forge build made, one run did or one comparison found.",
+    )(status_forge_command)
     return app
 
 
