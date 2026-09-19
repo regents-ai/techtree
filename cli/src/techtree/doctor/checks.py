@@ -468,8 +468,8 @@ def check_hermes_experiment_profile() -> DoctorCheck:
             detail=(
                 f"no Hermes profile named {PROFILE_NAME}. `techtree forge run` "
                 "runs experiments in it; create it with `hermes profile create "
-                f"{PROFILE_NAME}`, then sign it in with `hermes -p {PROFILE_NAME} "
-                "auth add PROVIDER`. Nothing else needs it"
+                f"{PROFILE_NAME} --no-alias`, then sign it in with `hermes -p "
+                f"{PROFILE_NAME} auth add PROVIDER`. Nothing else needs it"
             ),
             blocking=False,
             metadata={"profile": str(profile)},

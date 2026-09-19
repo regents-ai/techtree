@@ -5,8 +5,11 @@ another profile's authentication store, and a copied OAuth token logs its
 other holder out. So Techtree does not make a profile per attempt. The person
 creates one profile named ``techtree`` and signs it in once::
 
-    hermes profile create techtree
+    hermes profile create techtree --no-alias
     hermes -p techtree auth add PROVIDER
+
+``--no-alias`` because Hermes would otherwise offer a ``techtree`` shortcut
+command, and that name is already Techtree's own.
 
 Techtree owns everything else in it. Before and after every attempt the
 profile is emptied of all but the sign-in, so each attempt starts from the
@@ -76,7 +79,7 @@ def require_signed_in(
         raise PrerequisiteError(
             f"experiments run in a Hermes profile named {PROFILE_NAME}, and "
             f"there is none yet. Create it with `hermes profile create "
-            f"{PROFILE_NAME}`, then sign it in with `{sign_in}`",
+            f"{PROFILE_NAME} --no-alias`, then sign it in with `{sign_in}`",
             code="forge_profile_missing",
             details={"profile": str(profile)},
         )

@@ -14,7 +14,7 @@
   no attempt is retried on your account. `techtree forge status` reads a run
   back.
 - Experiments run in a Hermes profile of their own named `techtree`. Create it
-  with `hermes profile create techtree` and sign it in once with
+  with `hermes profile create techtree --no-alias` and sign it in once with
   `hermes -p techtree auth add PROVIDER`. Techtree copies no sign-in and reads
   none; around every attempt it empties that profile of everything else, so each
   attempt starts fresh. If the profile is missing or signed out, `forge run`

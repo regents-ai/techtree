@@ -182,7 +182,7 @@ def test_a_run_without_the_techtree_profile_is_refused_before_anything_is_record
         runner(build, FakeDocker(), hermes, tmp_path / "nowhere").run(spec, None)
 
     assert caught.value.code == "forge_profile_missing"
-    assert "hermes profile create techtree" in caught.value.message
+    assert "hermes profile create techtree --no-alias" in caught.value.message
     assert hermes.launches == []
     assert not (build.paths.root / "forge" / "runs").exists()
 
