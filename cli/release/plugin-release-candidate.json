@@ -6,6 +6,6 @@
  "release_core_is_byte_identical_to_python": true,
  "repository": "github.com/regents-ai/techtree-hermes",
  "version": "0.2.1",
- "wheel_sha256": "2d29365dd3e2b9fc2590182589a76026ca040d12d481a55c09e86f8497592b66",
+ "wheel_sha256": "b25682472b76ec28d9cd25d05c4699e8ae458b728ef43b470c01f9f663fa3d76",
  "worktree": "candidate commit verified; the plugin checkout is clean"
 }
