@@ -26,29 +26,47 @@ from typing import Annotated, Literal
 
 import typer
 from rich.console import Console
+from rich.padding import Padding
+from rich.text import Text
 
 from techtree.canonical import digest_object
+from techtree.cli.commands.climb import (
+    ReviewSurface,
+    require_the_review_surface_was_answered,
+)
 from techtree.cli.confirm import confirmed
 from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import human_console, render_pairs
 from techtree.engines.installer import find_uv
-from techtree.errors import PolicyError, ValidationError
+from techtree.errors import PolicyError, RunError, TechtreeError, ValidationError
 from techtree.forge.compare import VERDICT_WORDS, compare_runs, read_comparison_status
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
+    MAX_PLANNED_TASKS,
     ForgeArm,
     ForgeArmTotals,
     ForgeAttemptOutcome,
     ForgeBuildStatus,
     ForgeComparisonStatus,
     ForgeLanguage,
+    ForgePlanRecord,
+    ForgePlanStatus,
+    ForgeProposalStatus,
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
     ForgeSourceStatus,
     ForgeTaskRegression,
     ForgeUsage,
+)
+from techtree.forge.planning import (
+    check_plan,
+    correct_proposal,
+    prepare_plan,
+    read_plan_status,
+    read_proposal_status,
+    start_plan,
 )
 from techtree.forge.process import run_command
 from techtree.forge.profile import PROFILE_NAME
@@ -86,8 +104,17 @@ __all__ = [
     "ask_to_start",
     "build_forge_command",
     "compare_forge_command",
+    "correct_proposal_forge_command",
     "inspect_skill_forge_command",
+    "plan_forge_command",
+    "plan_next_actions",
+    "plan_start_forge_command",
+    "plan_warnings",
+    "planning_review_lines",
+    "proposal_status_action",
     "render_forge_comparison",
+    "render_forge_plan",
+    "render_forge_proposal",
     "render_forge_revision",
     "render_forge_run",
     "render_forge_source",
@@ -364,13 +391,14 @@ def status_forge_command(
     record_id: Annotated[
         str,
         typer.Argument(
-            metavar="BUILD_ID|RUN_ID|COMPARISON_ID|REVISION_ID|SOURCE_ID",
-            help="The build, run, comparison, Skill revision or looked-at Skill "
-            "to show.",
+            metavar="BUILD_ID|RUN_ID|COMPARISON_ID|REVISION_ID|SOURCE_ID|PLAN_ID"
+            "|PROPOSAL_ID",
+            help="The build, run, comparison, Skill revision, looked-at Skill, "
+            "plan or proposal to show.",
         ),
     ],
 ) -> None:
-    """Show a forge build, run, comparison, Skill revision or looked-at Skill."""
+    """Show a forge build, run, comparison, revision, Skill, plan or proposal."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[
@@ -379,8 +407,20 @@ def status_forge_command(
         | ForgeComparisonStatus
         | ForgeRevisionStatus
         | ForgeSourceStatus
+        | ForgePlanStatus
+        | ForgeProposalStatus
     ]:
         match id_prefix(record_id):
+            case "forgeplan":
+                plan = read_plan_status(context.paths, record_id)
+                return CommandResult(
+                    data=plan,
+                    warnings=plan_warnings(plan),
+                    next_actions=plan_next_actions(plan),
+                )
+            case "forgeprop":
+                proposal = read_proposal_status(context.paths, record_id)
+                return CommandResult(data=proposal)
             case "forgesrc":
                 source = read_source_status(context.paths, record_id)
                 return CommandResult(data=source, warnings=source_warnings(source))
@@ -401,6 +441,172 @@ def status_forge_command(
         return CommandResult(data=status, warnings=_warnings(status))
 
     invoke_command(context, Operation.PLAN_INSPECT, action, render_data=_render_status)
+
+
+def plan_forge_command(
+    ctx: typer.Context,
+    source_id: Annotated[
+        str,
+        typer.Argument(
+            metavar="SOURCE_ID",
+            help="A Skill that forge inspect-skill recorded as usable.",
+        ),
+    ],
+    provider: Annotated[
+        str,
+        typer.Option(
+            "--provider",
+            help="The provider Hermes will be asked for, by the name Hermes uses.",
+        ),
+    ],
+    model: Annotated[
+        str, typer.Option("--model", help="The model Hermes will be asked for.")
+    ],
+    reasoning: Annotated[
+        HermesReasoning | None,
+        typer.Option("--reasoning", help="Hermes' reasoning setting, if one."),
+    ] = None,
+    tasks: Annotated[
+        int,
+        typer.Option(
+            "--tasks",
+            min=1,
+            max=MAX_PLANNED_TASKS,
+            help="The most tasks the planner may propose.",
+        ),
+    ] = 3,
+    retry_of: Annotated[
+        str | None,
+        typer.Option(
+            "--retry-of",
+            metavar="PLAN_ID",
+            help="An earlier plan of the same Skill that failed, was rejected "
+            "or whose outcome is unknown, which this one tries again.",
+        ),
+    ] = None,
+) -> None:
+    """Prepare the planning of tasks from a Skill, without calling the planner."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgePlanStatus]:
+        status = prepare_plan(
+            context.paths,
+            source_id=source_id,
+            provider=provider,
+            model_id=model,
+            reasoning=reasoning.value if reasoning is not None else None,
+            max_tasks=tasks,
+            retry_of=retry_of,
+        )
+        return CommandResult(
+            data=status,
+            state_digest=status.record.planning_digest,
+            next_actions=[_plan_when_approved(status)],
+        )
+
+    invoke_command(context, Operation.PLAN_PREPARE, action, render_data=_render_plan)
+
+
+def plan_start_forge_command(
+    ctx: typer.Context,
+    plan_id: Annotated[
+        str,
+        typer.Argument(metavar="PLAN_ID", help="The prepared plan to send."),
+    ],
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            help=(
+                "Send without being asked. For an operator running Techtree "
+                "where nobody can answer a prompt; it is never a shortcut for "
+                "an agent to take on a person's behalf."
+            ),
+        ),
+    ] = False,
+    reviewed_on: Annotated[
+        ReviewSurface,
+        typer.Option(
+            "--reviewed-on",
+            help=(
+                "Where the person who approved this plan answered. Pass "
+                "host-agent when the review was shown in a conversation and "
+                "confirmed there, so the approval records the surface the "
+                "answer was actually given on. Like --yes, it states what a "
+                "person already did and is never a shortcut a model may take."
+            ),
+        ),
+    ] = ReviewSurface.CLI,
+) -> None:
+    """Review a prepared plan, approve it, and send it to the planner once."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgePlanStatus]:
+        require_the_review_surface_was_answered(
+            draft_id=plan_id, assume_yes=yes, reviewed_on=reviewed_on
+        )
+        status = check_plan(context.paths, plan_id)
+        if not yes and context.no_input:
+            return CommandResult(
+                data=status,
+                state_digest=status.record.planning_digest,
+                next_actions=[_plan_when_approved(status)],
+            )
+        if not yes:
+            _ask_to_plan(context, status.record)
+        started = start_plan(
+            context.paths,
+            plan_id,
+            reviewed_on="host-agent"
+            if reviewed_on is ReviewSurface.HOST_AGENT
+            else "cli",
+            answered_with="yes-flag" if yes else "prompt",
+            run=run_command,
+        )
+        return CommandResult(
+            data=started,
+            warnings=plan_warnings(started),
+            next_actions=plan_next_actions(started),
+            error=_plan_error(started),
+        )
+
+    invoke_command(
+        context,
+        approval_operation(context, assume_yes=yes),
+        action,
+        render_data=_render_plan,
+    )
+
+
+def correct_proposal_forge_command(
+    ctx: typer.Context,
+    proposal_id: Annotated[
+        str,
+        typer.Argument(metavar="PROPOSAL_ID", help="The proposal you corrected."),
+    ],
+    tasks_file: Annotated[
+        Path,
+        typer.Argument(
+            metavar="FILE",
+            help='Your corrected tasks, as {"tasks": [...]}: a copy of the '
+            "proposal's tasks.json, edited.",
+        ),
+    ],
+) -> None:
+    """Record your corrections to proposed tasks as a new proposal."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeProposalStatus]:
+        status = correct_proposal(context.paths, proposal_id, tasks_file)
+        return CommandResult(
+            data=status,
+            state_digest=status.record.proposal_digest,
+            next_actions=[proposal_status_action(status)],
+        )
+
+    invoke_command(
+        context, Operation.PLAN_PREPARE, action, render_data=_render_proposal
+    )
 
 
 class ForgeRunReview(ProtocolModel):
@@ -1016,8 +1222,289 @@ def source_status_action(status: ForgeSourceStatus) -> NextAction:
     )
 
 
+# ---------------------------------------------------------------------------
+# Planning
+# ---------------------------------------------------------------------------
+
+#: Why a plan is refused without a person's answer.
+PLAN_NOT_APPROVED = "forge_planning_not_approved"
+
+_PLAN_STATE_WORDS: dict[str, str] = {
+    "prepared": "prepared; the planner has not been called",
+    "running": "the planner is working",
+    "succeeded": "answered; the proposed tasks wait for your review",
+    "rejected": "answered, but not with tasks Techtree can use",
+    "failed": "failed",
+    "outcome_unknown": "outcome unknown",
+}
+
+
+def planning_review_lines(record: ForgePlanRecord) -> list[str]:
+    """What sending this plan would do, in the words a person approves."""
+    review = record.review
+    disclosure = review.disclosure
+    limits = review.limits
+    files = len(disclosure.files)
+    file_bytes = sum(file.size for file in disclosure.files)
+    lines = [
+        f"Skill: {review.source_id}, {files} {_plural(files, 'file', 'files')} "
+        f"({file_bytes} bytes)",
+    ]
+    if review.retry_of is not None:
+        lines.append(f"Tries again: {review.retry_of}")
+    lines += [
+        f"What the model is sent: those files, word for word, inside "
+        f"Techtree's planning instructions; {disclosure.prompt_bytes} bytes in "
+        "all, kept beside the plan as prompt.md.",
+        *(f"  {file.path}, {file.size} bytes" for file in disclosure.files),
+        f"Model: {review.model.model_id} from {review.model.provider}"
+        + (f", reasoning {review.model.reasoning}" if review.model.reasoning else ""),
+        f"The model call goes to that provider only, on the sign-in of your "
+        f"Hermes profile {PROFILE_NAME} (Hermes Agent v{review.agent.version}); "
+        "Techtree copies no credential and reads none.",
+        "What the planner can do: answer in text. It has no tools, so it "
+        "cannot run commands, read or change files, search the web or "
+        "remember anything.",
+        f"Limits: one attempt, at most {limits.max_tasks} proposed "
+        f"{_plural(limits.max_tasks, 'task', 'tasks')}, {limits.wall_seconds} "
+        f"seconds, an answer of at most {limits.answer_bytes} bytes. Nothing "
+        "is retried; trying again needs a new approval.",
+        "Afterwards: the proposed tasks wait for you to review or correct. "
+        "Nothing is built from them without a further approval.",
+        "Cost: nothing is quoted in advance. What the call used is recorded "
+        "afterwards from Hermes' own usage report.",
+        f"This approval covers exactly this: {record.planning_digest[:19]}",
+    ]
+    return lines
+
+
+def _ask_to_plan(context: CliContext, record: ForgePlanRecord) -> None:
+    console = human_console(no_color=context.no_color)
+    for line in planning_review_lines(record):
+        console.print(line, markup=False)
+    console.print()
+    if not confirmed("Send this to the planner?"):
+        raise PolicyError(
+            "the plan was not approved, so the planner was not called",
+            code=PLAN_NOT_APPROVED,
+            details={"plan_id": record.plan_id},
+        )
+
+
+def _plan_when_approved(status: ForgePlanStatus) -> NextAction:
+    """Return the start of exactly this plan, for after a person agreed."""
+    return NextAction(
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation(
+            "forge",
+            "plan-start",
+            arguments=[status.plan_id],
+            options={"--yes": True, "--reviewed-on": ReviewSurface.HOST_AGENT.value},
+        ),
+        expected_state_digest=status.record.planning_digest,
+        side_effect=SideEffect.LOCAL_EXECUTION,
+        approval_required=True,
+        retry_class=RetryClass.HUMAN_DECISION_REQUIRED,
+        estimated_cost=None,
+        data_egress=DataEgress.MODEL_PROVIDER,
+        reason="It sends the Skill's files to the planner once, on the "
+        "person's own account. A person approves exactly the plan shown; a "
+        "changed Skill, model or Hermes is refused and prepared again.",
+    )
+
+
+def _plan_error(status: ForgePlanStatus) -> TechtreeError | None:
+    """Say why a finished attempt made no proposal, as the command's error."""
+    attempt = status.attempt
+    if attempt is None or status.state == "succeeded":
+        return None
+    if attempt.failure is not None:
+        return RunError(
+            f"{attempt.failure.message}. The planner is not called again; "
+            f"to try again, prepare a new plan with --retry-of {status.plan_id}",
+            code=attempt.failure.code,
+            details={"plan_id": status.plan_id, "path": status.path},
+        )
+    return RunError(
+        "the planner was stopped at its time limit, so the provider may or "
+        "may not have answered or charged. It is not called again; to try "
+        f"again, prepare a new plan with --retry-of {status.plan_id}",
+        code="forge_planning_outcome_unknown",
+        details={"plan_id": status.plan_id, "path": status.path},
+    )
+
+
+def plan_warnings(status: ForgePlanStatus) -> list[CliWarning]:
+    """Say when an attempt's outcome is not known."""
+    if status.state != "outcome_unknown":
+        return []
+    return [
+        CliWarning(
+            id="forge_planning_outcome_unknown",
+            text=(
+                "The planner call began and its end was never seen, so the "
+                "provider may or may not have answered or charged. Techtree "
+                "does not call it again on its own."
+            ),
+            resolvable_by=None,
+        )
+    ]
+
+
+def plan_next_actions(status: ForgePlanStatus) -> list[NextAction]:
+    """What can follow a plan: its proposal, or a new plan that tries again."""
+    attempt = status.attempt
+    if status.state == "prepared":
+        return [_plan_when_approved(status)]
+    if attempt is not None and attempt.proposal_id is not None:
+        return [
+            NextAction(
+                operation=Operation.PLAN_INSPECT,
+                prepared_arguments=invocation(
+                    "forge", "status", arguments=[attempt.proposal_id]
+                ),
+                expected_state_digest=None,
+                side_effect=SideEffect.NONE,
+                approval_required=False,
+                retry_class=RetryClass.SAFE,
+                estimated_cost=None,
+                data_egress=DataEgress.NONE,
+                reason="The proposed tasks wait for a person's review.",
+            )
+        ]
+    if status.state in {"rejected", "failed", "outcome_unknown"}:
+        review = status.record.review
+        options: dict[str, str | Literal[True]] = {
+            "--provider": review.model.provider,
+            "--model": review.model.model_id,
+            "--tasks": str(review.limits.max_tasks),
+            "--retry-of": status.plan_id,
+        }
+        if review.model.reasoning is not None:
+            options["--reasoning"] = review.model.reasoning
+        return [
+            NextAction(
+                operation=Operation.PLAN_PREPARE,
+                prepared_arguments=invocation(
+                    "forge", "plan", arguments=[review.source_id], options=options
+                ),
+                expected_state_digest=None,
+                side_effect=SideEffect.LOCAL_STATE,
+                approval_required=False,
+                retry_class=RetryClass.HUMAN_DECISION_REQUIRED,
+                estimated_cost=None,
+                data_egress=DataEgress.NONE,
+                reason="Trying again is a new plan that names this one, and it "
+                "needs its own approval before the planner is called.",
+            )
+        ]
+    return []
+
+
+def render_forge_plan(status: ForgePlanStatus, console: Console) -> None:
+    """Print one plan: what it covers, whether it was approved, how it went."""
+    pairs = [
+        ("Plan", status.plan_id),
+        ("State", _PLAN_STATE_WORDS[status.state]),
+    ]
+    approval = status.approval
+    if approval is not None:
+        pairs.append(
+            (
+                "Approved",
+                f"{approval.approved_at:%Y-%m-%d %H:%M:%S} UTC, "
+                + (
+                    "answered at the prompt"
+                    if approval.answered_with == "prompt"
+                    else f"answered on {approval.reviewed_on} and passed with --yes"
+                ),
+            )
+        )
+    attempt = status.attempt
+    if attempt is not None:
+        if attempt.seconds is not None:
+            pairs.append(("Took", f"{attempt.seconds:.0f} seconds"))
+        if attempt.stopped is not None:
+            pairs.append(
+                (
+                    "Stopped",
+                    "at its time limit"
+                    if attempt.stopped == "wall_time"
+                    else "with Ctrl-C",
+                )
+            )
+        pairs.append(("Cost", _cost_words(attempt.usage)))
+        if attempt.failure is not None:
+            pairs.append(("Why", attempt.failure.message))
+        if attempt.proposal_id is not None:
+            pairs.append(("Proposal", attempt.proposal_id))
+    pairs.append(("Evidence", status.path))
+    render_pairs(pairs, console)
+    console.print()
+    for line in planning_review_lines(status.record):
+        console.print(line, markup=False)
+
+
+def _render_plan(data: object, console: Console) -> None:
+    if isinstance(data, ForgePlanStatus):
+        render_forge_plan(data, console)
+
+
+def render_forge_proposal(status: ForgeProposalStatus, console: Console) -> None:
+    """Print one proposal: its tasks and the checks each is graded by."""
+    record = status.record
+    pairs = [
+        ("Proposal", status.proposal_id),
+        (
+            "From",
+            f"the planner, plan {record.plan_id}"
+            if record.parent is None
+            else f"your correction of {record.parent.proposal_id}",
+        ),
+        ("Skill", record.source_id),
+        ("Tasks", str(len(record.tasks))),
+        ("Digest", record.proposal_digest[:19]),
+        ("To correct", f"edit a copy of {Path(status.path) / 'tasks.json'}"),
+    ]
+    render_pairs(pairs, console)
+    for task in record.tasks:
+        console.print()
+        console.print(f"{task.name}: {task.summary}", markup=False)
+        for line in (
+            f"Starts from: {task.scenario}",
+            *(f"- {criterion}" for criterion in task.success_criteria),
+            f"Checked by: {task.verifier_strategy}",
+        ):
+            console.print(Padding(Text(line), (0, 0, 0, 2)))
+
+
+def _render_proposal(data: object, console: Console) -> None:
+    if isinstance(data, ForgeProposalStatus):
+        render_forge_proposal(data, console)
+
+
+def proposal_status_action(status: ForgeProposalStatus) -> NextAction:
+    return NextAction(
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation(
+            "forge", "status", arguments=[status.proposal_id]
+        ),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason="The corrected tasks can be read back and corrected again.",
+    )
+
+
 def _render_status(data: object, console: Console) -> None:
-    if isinstance(data, ForgeSourceStatus):
+    if isinstance(data, ForgePlanStatus):
+        render_forge_plan(data, console)
+    elif isinstance(data, ForgeProposalStatus):
+        render_forge_proposal(data, console)
+    elif isinstance(data, ForgeSourceStatus):
         render_forge_source(data, console)
     elif isinstance(data, ForgeRunStatus):
         render_forge_run(data, console)

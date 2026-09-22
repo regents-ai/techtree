@@ -356,8 +356,10 @@ src/techtree/
 │                       about a comparison), revision.py (one revised Skill, screened,
 │                       measured against the same baseline, kept either way),
 │                       source.py (a Source Skill looked at without running
-│                       any of it, and its source record), docker.py and
-│                       process.py (the one command boundary).
+│                       any of it, and its source record), planning.py (a
+│                       planning approval, the one planner call and the
+│                       proposal it answers with), docker.py and process.py
+│                       (the one command boundary).
 └── resources/          catalog/, engines/default/, forge/, harness/, release/ — the
                         embedded, generated payload the wheel carries.
 ```
@@ -397,6 +399,39 @@ reduced copy is looked at with `--derived-from`: it is a new source whose
 exactly what the original admits is refused as `forge_source_unchanged`
 without writing anything. Nothing is run, no model is called and nothing
 leaves the machine.
+
+**Forge planning (one approved planner call, then a proposal to review).**
+`forge plan SOURCE_ID --provider --model [--reasoning] [--tasks N]
+[--retry-of PLAN_ID]` (`forge/planning.py`, U3b) prepares a plan and calls
+nothing. It writes `forge/plans/<forgeplan_id>/prompt.md`, the exact bytes the
+model would be sent: Techtree's planning instructions
+(`resources/forge/skill2env/planner-prompt.md`, adapted from Skill2Env's
+planning stage with attribution) followed by every admitted file of the
+Source Skill, read back from the kept copy and checked against its recorded
+digests. Beside it, `plan.json` (`techtree.forge-plan.v1alpha1`) binds in one
+`planning_digest` the source and its digest, the instructions' digest, the
+Hermes executable and version, provider and model, the disclosed files and
+the prompt's size and digest, the egress (`model-provider`), the capabilities
+(no tools: Hermes' text-only `bot_room` toolset, run with `--ignore-rules` and
+memory off) and the limits (one attempt, at most N tasks, 600 seconds, a 64 KiB
+answer). `forge plan-start PLAN_ID` recomputes that review and refuses a plan
+whose Skill copy, instructions or Hermes changed (`forge_planning_stale`,
+naming what changed); a person approves at the prompt, or `--yes` records that
+one already did. Under the profile lock it writes `approval.json`, then
+`attempt.json` (`started`, with this process's id) before the call, empties
+the `techtree` profile to its sign-in, and runs Hermes once in an empty
+`workspace/` beside the plan with the prompt as its only input, keeping
+`answer.txt`, the log, the usage report and the transcript. The attempt ends
+`succeeded`, `rejected` (the answer is not one JSON object of well-formed,
+distinctly named tasks within the limit), `failed`, or `outcome_unknown` (the
+wall time ran out, the person pressed Ctrl-C, or `status` finds a `started`
+attempt whose process is gone). A plan is attempted at most once: trying again
+is a new plan prepared with `--retry-of`, and a new approval. A successful
+answer becomes `forge/proposals/<forgeprop_id>/proposal.json`
+(`techtree.forge-proposal.v1alpha1`) with `tasks.json` beside it, and stops
+there for review. `forge correct-proposal PROPOSAL_ID FILE` records a person's
+corrections as a new proposal whose `parent` names the original and its digest;
+the original is never rewritten. Nothing is constructed from a proposal here.
 
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and

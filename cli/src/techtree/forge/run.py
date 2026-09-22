@@ -50,7 +50,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final
+from typing import IO, Final
 
 from pydantic import ValidationError as ModelValidationError
 
@@ -94,6 +94,8 @@ __all__ = [
     "hermes_config",
     "launch_agent",
     "read_run_status",
+    "read_usage",
+    "supervise_hermes",
 ]
 
 _SPEC_FILENAME: Final = "spec.json"
@@ -179,51 +181,66 @@ def hermes_config(
 def launch_agent(
     argv: list[str], env: dict[str, str], cwd: Path, log: Path, timeout: float
 ) -> AgentOutcome:
-    """Run Hermes once, its output to ``log``, and stop it at ``timeout``.
+    """Run Hermes once, its output to ``log``, and stop it at ``timeout``."""
+    with log.open("wb") as output:
+        return supervise_hermes(
+            argv, env, cwd, stdout=output, stderr=subprocess.STDOUT, timeout=timeout
+        )
 
-    A timed-out Hermes is interrupted first so it can write its usage report,
-    and killed only if it does not exit in time.
+
+def supervise_hermes(
+    argv: list[str],
+    env: dict[str, str],
+    cwd: Path,
+    *,
+    stdout: IO[bytes],
+    stderr: IO[bytes] | int,
+    timeout: float,
+) -> AgentOutcome:
+    """Start Hermes and wait for it, stopping it at ``timeout`` or on Ctrl-C.
+
+    Hermes is interrupted first so it can write its usage report, and killed
+    only if it does not exit in time. A Ctrl-C is passed on and raised again
+    once Hermes has gone.
     """
     started = time.monotonic()
-    with log.open("wb") as output:
-        try:
-            process = subprocess.Popen(
-                argv,
-                cwd=cwd,
-                env=env,
-                stdin=subprocess.DEVNULL,
-                stdout=output,
-                stderr=subprocess.STDOUT,
-            )
-        except OSError as error:
-            raise RunError(
-                f"{argv[0]} could not be started: {error.strerror or error}",
-                code="hermes_unusable",
-                details={"executable": argv[0]},
-            ) from error
-        try:
-            exit_code = process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            process.send_signal(signal.SIGINT)
-            try:
-                process.wait(timeout=_INTERRUPT_GRACE_SECONDS)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-            return AgentOutcome(
-                exit_code=None, timed_out=True, seconds=time.monotonic() - started
-            )
-        except KeyboardInterrupt:
-            process.send_signal(signal.SIGINT)
-            try:
-                process.wait(timeout=_INTERRUPT_GRACE_SECONDS)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-            raise
+    try:
+        process = subprocess.Popen(
+            argv,
+            cwd=cwd,
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+        )
+    except OSError as error:
+        raise RunError(
+            f"{argv[0]} could not be started: {error.strerror or error}",
+            code="hermes_unusable",
+            details={"executable": argv[0]},
+        ) from error
+    try:
+        exit_code = process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _stop(process)
+        return AgentOutcome(
+            exit_code=None, timed_out=True, seconds=time.monotonic() - started
+        )
+    except KeyboardInterrupt:
+        _stop(process)
+        raise
     return AgentOutcome(
         exit_code=exit_code, timed_out=False, seconds=time.monotonic() - started
     )
+
+
+def _stop(process: subprocess.Popen[bytes]) -> None:
+    process.send_signal(signal.SIGINT)
+    try:
+        process.wait(timeout=_INTERRUPT_GRACE_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
 
 
 class ForgeRunner:
@@ -475,7 +492,7 @@ class ForgeRunner:
             reset_profile(profile)
             self._docker.remove_labelled(_PROFILE_LABEL, PROFILE_NAME)
 
-        usage = _read_usage(usage_file)
+        usage = read_usage(usage_file)
         patch_digest = self._patch(build, image, workspace, attempt_dir)
         evidence = [
             kind
@@ -592,7 +609,7 @@ def read_run_status(paths: TechtreePaths, run_id: str) -> ForgeRunStatus:
     return ForgeRunStatus(run_id=run_id, path=str(run_dir), spec=spec, record=record)
 
 
-def _read_usage(usage_file: Path) -> ForgeUsage | None:
+def read_usage(usage_file: Path) -> ForgeUsage | None:
     """Read Hermes' usage report as it reported it, or nothing."""
     try:
         loaded = json.loads(usage_file.read_text(encoding="utf-8"))

@@ -6,6 +6,10 @@ revision `9beb0b64a70290f862c8374bbef21f2ac88992ab` from
 Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 The upstream launcher and generator are not included or executed.
 
+`planner-prompt.md` is Techtree's own planning instructions for `forge plan`,
+adapted from the planning stage of the same revision and attributed in the
+text itself; it is not a copy of the upstream prompt.
+
 `contract.json` records the upstream pin, Harbor 0.16.0 dependency and
 authoritative Harbor task schema 1.3. Its fixed sections are derived from
 Skill2Env's host-authored `task_config.py` and Harbor 0.16.0's serialized defaults.

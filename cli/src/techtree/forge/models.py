@@ -45,7 +45,11 @@ __all__ = [
     "BASE_IMAGE_REFERENCE",
     "FORGE_BUILD_SCHEMA_VERSION",
     "FORGE_COMPARISON_SCHEMA_VERSION",
+    "FORGE_PLAN_APPROVAL_SCHEMA_VERSION",
+    "FORGE_PLAN_ATTEMPT_SCHEMA_VERSION",
+    "FORGE_PLAN_SCHEMA_VERSION",
     "FORGE_PROGRESS_SCHEMA_VERSION",
+    "FORGE_PROPOSAL_SCHEMA_VERSION",
     "FORGE_QUALIFICATION_SCHEMA_VERSION",
     "FORGE_REVISION_SCHEMA_VERSION",
     "FORGE_RUN_SCHEMA_VERSION",
@@ -53,6 +57,7 @@ __all__ = [
     "FORGE_SOURCE_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
     "FORGE_TASK_SET_SCHEMA_VERSION",
+    "MAX_PLANNED_TASKS",
     "VERDICT_MINIMUM_PAIRS",
     "AgentSkillName",
     "ForgeAgentSpec",
@@ -76,7 +81,23 @@ __all__ = [
     "ForgeLimits",
     "ForgeModelSpec",
     "ForgePairResult",
+    "ForgePlanApproval",
+    "ForgePlanAttempt",
+    "ForgePlanAttemptState",
+    "ForgePlanCapabilities",
+    "ForgePlanDisclosure",
+    "ForgePlanLimits",
+    "ForgePlanRecord",
+    "ForgePlanReview",
+    "ForgePlanState",
+    "ForgePlanStatus",
+    "ForgePlanningRecipe",
     "ForgePlatform",
+    "ForgeProposalParent",
+    "ForgeProposalRecord",
+    "ForgeProposalStatus",
+    "ForgeProposedTask",
+    "ForgeProposedTaskName",
     "ForgeQualification",
     "ForgeRefusalReason",
     "ForgeRepositorySource",
@@ -112,6 +133,7 @@ __all__ = [
     "TaskQualificationEvidence",
     "TaskSetCommitment",
     "forge_verdict",
+    "proposal_content",
 ]
 
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha3"
@@ -1202,3 +1224,254 @@ class ForgeSourceStatus(ProtocolModel):
     path: NonEmptyString
     snapshot_path: NonEmptyString | None
     record: ForgeSourceRecord
+
+
+FORGE_PLAN_SCHEMA_VERSION: Final = "techtree.forge-plan.v1alpha1"
+FORGE_PLAN_APPROVAL_SCHEMA_VERSION: Final = "techtree.forge-plan-approval.v1alpha1"
+FORGE_PLAN_ATTEMPT_SCHEMA_VERSION: Final = "techtree.forge-plan-attempt.v1alpha1"
+FORGE_PROPOSAL_SCHEMA_VERSION: Final = "techtree.forge-proposal.v1alpha1"
+
+#: The most tasks one plan may ask for: Skill2Env's own default workflow count.
+MAX_PLANNED_TASKS: Final = 8
+
+#: A proposed task's name: lowercase letters and digits in hyphen-separated runs.
+type ForgeProposedTaskName = Annotated[
+    str, StringConstraints(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", max_length=64)
+]
+
+
+class ForgePlanningRecipe(ProtocolModel):
+    """The planning instructions: Techtree's own text, adapted from Skill2Env."""
+
+    name: Literal["skill2env-planner"]
+    instructions_digest: Digest
+    upstream_url: NonEmptyString
+    upstream_revision: NonEmptyString
+
+
+class ForgePlanDisclosure(ProtocolModel):
+    """Exactly what leaves the machine: the Skill's kept files, inside the prompt.
+
+    ``files`` are the admitted files of the Source Skill, re-read and re-hashed
+    from the kept copy; ``prompt_digest`` and ``prompt_bytes`` describe the one
+    text sent, which is kept beside the plan as ``prompt.md``.
+    """
+
+    files: list[SkillFile] = Field(min_length=1)
+    prompt_bytes: int = Field(ge=1)
+    prompt_digest: Digest
+
+
+class ForgePlanCapabilities(ProtocolModel):
+    """What the planner may do besides answer: nothing.
+
+    Hermes is asked for its text-only toolset, which holds no tool, and runs
+    with memory off and without its rules, memory or Skills injected.
+    """
+
+    tools: Literal["none"]
+    toolset: Literal["bot_room"]
+    memory_enabled: Literal[False]
+
+
+class ForgePlanLimits(ProtocolModel):
+    """The bounds one planning approval covers."""
+
+    max_tasks: int = Field(ge=1, le=MAX_PLANNED_TASKS)
+    attempts: Literal[1]
+    wall_seconds: int = Field(ge=1)
+    answer_bytes: int = Field(ge=1)
+
+
+class ForgePlanReview(ProtocolModel):
+    """Everything one planning approval binds, and nothing else.
+
+    Its digest is the approval: a changed Skill copy, instruction text,
+    Hermes, model, capability or limit is a different review, and an
+    approval of the old one does not carry over.
+    """
+
+    source_id: NonEmptyString
+    source_digest: Digest
+    retry_of: NonEmptyString | None
+    recipe: ForgePlanningRecipe
+    agent: ForgeAgentSpec
+    model: ForgeModelSpec
+    disclosure: ForgePlanDisclosure
+    egress: Literal["model-provider"]
+    capabilities: ForgePlanCapabilities
+    limits: ForgePlanLimits
+
+
+class ForgePlanRecord(ProtocolModel):
+    """One prepared planning phase, written before anything is sent.
+
+    Never changed. ``planning_digest`` is the digest of ``review``; an
+    approval names it, and ``--yes`` continues this plan only while the
+    review it would make again is the same.
+    """
+
+    schema_version: Literal["techtree.forge-plan.v1alpha1"]
+    plan_id: NonEmptyString
+    created_at: UtcDateTime
+    review: ForgePlanReview
+    planning_digest: Digest
+
+    @model_validator(mode="after")
+    def validate_digest(self) -> Self:
+        if not verify_object_digest(self.review, self.planning_digest):
+            raise ValueError("planning digest does not describe the review")
+        return self
+
+
+class ForgePlanApproval(ProtocolModel):
+    """A person's approval of one prepared plan, written before the call."""
+
+    schema_version: Literal["techtree.forge-plan-approval.v1alpha1"]
+    plan_id: NonEmptyString
+    planning_digest: Digest
+    approved_at: UtcDateTime
+    reviewed_on: Literal["cli", "host-agent"]
+    answered_with: Literal["prompt", "yes-flag"]
+
+
+#: How a planning attempt stands. ``started`` is written before Hermes is
+#: launched; an attempt that stays ``started`` after its process has gone
+#: never recorded an end, and is read as ``outcome_unknown``.
+type ForgePlanAttemptState = Literal[
+    "started", "succeeded", "rejected", "failed", "outcome_unknown"
+]
+
+
+class ForgePlanAttempt(ProtocolModel):
+    """The one planner call a planning approval covers, checkpointed.
+
+    Written with ``started`` before Hermes is launched and again when it has
+    ended. ``succeeded`` names the proposal it made; ``rejected`` means the
+    planner answered with something that is not a usable proposal, kept as
+    ``answer.txt``; ``failed`` means Hermes said it failed; ``outcome_unknown``
+    means it was stopped mid-call, so the provider may or may not have
+    answered or charged. None of them is retried.
+    """
+
+    schema_version: Literal["techtree.forge-plan-attempt.v1alpha1"]
+    plan_id: NonEmptyString
+    planning_digest: Digest
+    process_id: int = Field(ge=1)
+    started_at: UtcDateTime
+    updated_at: UtcDateTime
+    state: ForgePlanAttemptState
+    hermes_arguments: list[NonEmptyString]
+    config_digest: Digest
+    exit_code: int | None
+    stopped: Literal["wall_time", "person"] | None
+    seconds: float | None = Field(ge=0.0)
+    usage: ForgeUsage | None
+    answer_bytes: int | None = Field(ge=0)
+    answer_digest: Digest | None
+    proposal_id: NonEmptyString | None
+    failure: ForgeBuildFailure | None
+
+    @model_validator(mode="after")
+    def validate_state(self) -> Self:
+        if (self.state == "succeeded") != (self.proposal_id is not None):
+            raise ValueError("an attempt names a proposal exactly when it succeeded")
+        if (self.state in {"rejected", "failed"}) != (self.failure is not None):
+            raise ValueError("a rejected or failed attempt says why, no other does")
+        if (self.state == "outcome_unknown") != (self.stopped is not None):
+            raise ValueError("an attempt with an unknown outcome says what stopped it")
+        return self
+
+
+class ForgeProposedTask(ProtocolModel):
+    """One task the planner or the contributor proposes, before anything is built."""
+
+    name: ForgeProposedTaskName
+    summary: Annotated[str, StringConstraints(min_length=1, max_length=500)]
+    scenario: Annotated[str, StringConstraints(min_length=1, max_length=4000)]
+    success_criteria: list[
+        Annotated[str, StringConstraints(min_length=1, max_length=1000)]
+    ] = Field(min_length=1, max_length=12)
+    verifier_strategy: Annotated[str, StringConstraints(min_length=1, max_length=4000)]
+
+
+class ForgeProposalParent(ProtocolModel):
+    """The proposal a contributor's correction was made from."""
+
+    proposal_id: NonEmptyString
+    proposal_digest: Digest
+
+
+class ForgeProposalRecord(ProtocolModel):
+    """A set of proposed tasks: the planner's, or a contributor's correction.
+
+    Never changed; a correction is a new proposal naming its parent.
+    ``proposal_digest`` covers the Source Skill's digest and the tasks, and is
+    what a construction approval will name.
+    """
+
+    schema_version: Literal["techtree.forge-proposal.v1alpha1"]
+    proposal_id: NonEmptyString
+    created_at: UtcDateTime
+    source_id: NonEmptyString
+    source_digest: Digest
+    plan_id: NonEmptyString
+    origin: Literal["planner", "contributor"]
+    parent: ForgeProposalParent | None
+    tasks: list[ForgeProposedTask] = Field(min_length=1)
+    proposal_digest: Digest
+
+    @model_validator(mode="after")
+    def validate_proposal(self) -> Self:
+        if (self.origin == "contributor") != (self.parent is not None):
+            raise ValueError("a contributor's proposal names its parent, no other does")
+        names = [task.name for task in self.tasks]
+        if len(set(names)) != len(names):
+            raise ValueError("each proposed task has its own name")
+        if not verify_object_digest(
+            proposal_content(self.source_digest, self.tasks), self.proposal_digest
+        ):
+            raise ValueError("proposal digest does not describe the tasks")
+        return self
+
+
+def proposal_content(
+    source_digest: Digest, tasks: list[ForgeProposedTask]
+) -> dict[str, object]:
+    """Return what a proposal digest covers."""
+    return {
+        "schema_version": FORGE_PROPOSAL_SCHEMA_VERSION,
+        "source_digest": source_digest,
+        "tasks": tasks,
+    }
+
+
+#: Where a plan stands, read from its records.
+type ForgePlanState = Literal[
+    "prepared", "running", "succeeded", "rejected", "failed", "outcome_unknown"
+]
+
+
+class ForgePlanStatus(ProtocolModel):
+    """A plan read back: its review, its approval and its attempt, if any.
+
+    ``state`` is the reading of those records: ``prepared`` until approved,
+    ``running`` while the process that started the attempt is still alive,
+    then the attempt's own state, where an attempt left ``started`` by a
+    process that is gone reads ``outcome_unknown``.
+    """
+
+    plan_id: NonEmptyString
+    path: NonEmptyString
+    state: ForgePlanState
+    record: ForgePlanRecord
+    approval: ForgePlanApproval | None
+    attempt: ForgePlanAttempt | None
+
+
+class ForgeProposalStatus(ProtocolModel):
+    """A proposal read back from its directory."""
+
+    proposal_id: NonEmptyString
+    path: NonEmptyString
+    record: ForgeProposalRecord

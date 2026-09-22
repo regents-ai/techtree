@@ -56,7 +56,10 @@ from techtree.cli.commands.engine import (
 from techtree.cli.commands.forge import (
     build_forge_command,
     compare_forge_command,
+    correct_proposal_forge_command,
     inspect_skill_forge_command,
+    plan_forge_command,
+    plan_start_forge_command,
     run_forge_command,
     status_forge_command,
 )
@@ -417,9 +420,21 @@ def _forge_app() -> typer.Typer:
         help="Look at a Skill without running any of it, and record what it holds.",
     )(inspect_skill_forge_command)
     app.command(
+        "plan",
+        help="Prepare the planning of tasks from a Skill, without calling the planner.",
+    )(plan_forge_command)
+    app.command(
+        "plan-start",
+        help="Review a prepared plan, approve it, and send it to the planner once.",
+    )(plan_start_forge_command)
+    app.command(
+        "correct-proposal",
+        help="Record your corrections to proposed tasks as a new proposal.",
+    )(correct_proposal_forge_command)
+    app.command(
         "status",
-        help="Show what one forge build made, one run did, one comparison found "
-        "or one looked-at Skill holds.",
+        help="Show what one forge build made, one run did, one comparison found, "
+        "one looked-at Skill holds, or where one plan or proposal stands.",
     )(status_forge_command)
     return app
 

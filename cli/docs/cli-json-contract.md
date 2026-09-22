@@ -193,6 +193,9 @@ forge build
 forge run
 forge compare
 forge inspect-skill
+forge plan
+forge plan-start
+forge correct-proposal
 forge status
 ```
 

@@ -124,6 +124,24 @@ class TechtreePaths:
         """Return the directory holding one Source Skill record and its snapshot."""
         return self.forge_sources_dir / validate_id(source_id, "forgesrc")
 
+    @property
+    def forge_plans_dir(self) -> Path:
+        """Return the directory holding every prepared planning phase."""
+        return self.forge_dir / "plans"
+
+    def forge_plan_dir(self, plan_id: str) -> Path:
+        """Return the directory holding one plan, its approval and its attempt."""
+        return self.forge_plans_dir / validate_id(plan_id, "forgeplan")
+
+    @property
+    def forge_proposals_dir(self) -> Path:
+        """Return the directory holding every proposed task set."""
+        return self.forge_dir / "proposals"
+
+    def forge_proposal_dir(self, proposal_id: str) -> Path:
+        """Return the directory holding one proposal."""
+        return self.forge_proposals_dir / validate_id(proposal_id, "forgeprop")
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 

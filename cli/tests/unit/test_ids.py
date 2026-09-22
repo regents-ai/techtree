@@ -34,6 +34,8 @@ EXPECTED_PREFIXES = frozenset(
         "forgecmp",
         "forgerev",
         "forgesrc",
+        "forgeplan",
+        "forgeprop",
     }
 )
 

@@ -17,6 +17,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -44,8 +45,10 @@ from techtree.fs import atomic_write_json
 from techtree.paths import TechtreePaths, paths_from_root
 
 __all__ = [
+    "PLANNER_ANSWER",
     "FakeDocker",
     "FakeHermes",
+    "FakePlanner",
     "QualifiedBuild",
     "declare",
     "hermes_on_path",
@@ -566,4 +569,78 @@ class FakeHermes:
             raise KeyboardInterrupt
         return AgentOutcome(
             exit_code=self.exit_code, timed_out=self.timed_out, seconds=1.5
+        )
+
+
+#: A planner's answer for a BranchCode Skill, written by hand as a stand-in for
+#: a provider transcript: three tasks in the shape the planning instructions
+#: ask for.
+PLANNER_ANSWER: Final = (Path(__file__).parent / "planner-answer.json").read_bytes()
+
+
+@dataclass
+class FakePlanner:
+    """The launcher that would start ``hermes`` for the planner.
+
+    It writes ``answer`` where Hermes prints its final text and the usage
+    report Hermes writes, and records the command line, environment and
+    profile it was started in. ``interrupt`` raises Ctrl-C mid-call, after
+    nothing was written; ``timed_out`` stops it at its time limit.
+    """
+
+    answer: bytes = PLANNER_ANSWER
+    exit_code: int | None = 0
+    timed_out: bool = False
+    interrupt: bool = False
+    completed: bool = True
+    launches: list[dict[str, object]] = field(default_factory=list)
+
+    def __call__(
+        self,
+        argv: list[str],
+        env: dict[str, str],
+        cwd: Path,
+        answer: Path,
+        log: Path,
+        timeout: float,
+    ) -> AgentOutcome:
+        profile = Path(env["HERMES_HOME"])
+        self.launches.append(
+            {
+                "argv": argv,
+                "cwd": cwd,
+                "timeout": timeout,
+                "profile": sorted(p.name for p in profile.iterdir()),
+                "config": (profile / "config.yaml").read_bytes(),
+            }
+        )
+        if self.interrupt:
+            raise KeyboardInterrupt
+        (profile / "state.db").write_bytes(b"transcript")
+        usage = Path(argv[argv.index("--usage-file") + 1])
+        usage.write_text(
+            json.dumps(
+                {
+                    "model": "gpt-5.6-sol",
+                    "provider": "openai-codex",
+                    "input_tokens": 900,
+                    "output_tokens": 400,
+                    "total_tokens": 1300,
+                    "api_calls": 1,
+                    "estimated_cost_usd": None,
+                    "cost_status": "unavailable",
+                    "cost_source": "subscription",
+                    "completed": self.completed and not self.timed_out,
+                    "failed": not self.completed,
+                }
+            ),
+            encoding="utf-8",
+        )
+        if not self.timed_out:
+            answer.write_bytes(self.answer)
+        log.write_text("", encoding="utf-8")
+        return AgentOutcome(
+            exit_code=None if self.timed_out else self.exit_code,
+            timed_out=self.timed_out,
+            seconds=timeout if self.timed_out else 12.0,
         )
