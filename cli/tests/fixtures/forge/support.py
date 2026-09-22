@@ -63,6 +63,58 @@ VERIFIER_TIMEOUT = 30.0
 HERMES_VERSION_LINE = "Hermes Agent v0.21.3 (2026.9.14) · upstream 6d712cf8\n"
 
 
+def skill2env_task(parent: Path) -> Path:
+    """A local reconciliation task using pinned Skill2Env/Harbor serialization.
+
+    The source identity is synthetic; no actual contributor Skill is selected.
+    """
+    task = parent / "task_reconcile_1234abcd"
+    for directory in ("environment", "tests", "solution"):
+        (task / directory).mkdir(parents=True)
+    (task / "task.toml").write_text(
+        'schema_version = "1.3"\nartifacts = ["/app/result.txt"]\n\n'
+        '[task]\nname = "skill2env/task_reconcile_1234abcd"\n'
+        'description = "Sum the supplied amounts."\nkeywords = ["reconcile"]\n'
+        '[[task.authors]]\nname = "skill2env"\n\n'
+        '[metadata]\nsource_skill = "local/reconcile"\n'
+        f'source_bundle_digest = "{"a" * 64}"\n\n'
+        '[verifier]\nnetwork_mode = "no-network"\nallowed_hosts = []\n'
+        "timeout_sec = 600.0\ncollect = []\n[verifier.env]\n\n"
+        '[agent]\nnetwork_mode = "no-network"\nallowed_hosts = []\n'
+        "timeout_sec = 1800.0\n\n"
+        '[environment]\nnetwork_mode = "no-network"\nallowed_hosts = []\n'
+        'build_timeout_sec = 1200.0\nos = "linux"\ncpus = 2\n'
+        "memory_mb = 4096\nstorage_mb = 4096\nmcp_servers = []\n"
+        "[environment.env]\n\n[solution.env]\n",
+        encoding="utf-8",
+    )
+    (task / "instruction.md").write_text(
+        "Sum /app/amounts.txt and write the integer to /app/result.txt.\n",
+        encoding="utf-8",
+    )
+    (task / "environment" / "Dockerfile").write_text(
+        f"FROM python:3.12-slim@sha256:{'b' * 64}\n"
+        "WORKDIR /app\nCOPY amounts.txt /app/amounts.txt\n"
+        "RUN printf 'ready' \\\n    > /app/ready.txt\n",
+        encoding="utf-8",
+    )
+    (task / "environment" / "amounts.txt").write_bytes(b"2\n3\n")
+    (task / "tests" / "rubric.md").write_text(
+        "The result equals the sum of the supplied amounts.\n", encoding="utf-8"
+    )
+    for relative, script in {
+        "solution/solve.sh": "#!/bin/sh\nprintf '5\\n' > /app/result.txt\n",
+        "tests/test.sh": "#!/bin/sh\nmkdir -p /logs/verifier\n"
+        'if [ "$(cat /app/result.txt 2>/dev/null)" = 5 ]; then\n'
+        "  echo 1 > /logs/verifier/reward.txt\nelse\n"
+        "  echo 0 > /logs/verifier/reward.txt\nfi\n",
+    }.items():
+        path = task / relative
+        path.write_text(script, encoding="utf-8")
+        path.chmod(0o700)
+    return task
+
+
 @dataclass(frozen=True)
 class QualifiedBuild:
     paths: TechtreePaths

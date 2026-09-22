@@ -41,7 +41,7 @@ def _directory(path: Path | str, parent: int | None = None) -> Iterator[int]:
         os.close(descriptor)
 
 
-def _signature(value: os.stat_result) -> tuple[int, ...]:
+def stat_signature(value: os.stat_result) -> tuple[int, ...]:
     return (
         value.st_dev,
         value.st_ino,
@@ -63,7 +63,7 @@ def _file(parent: int, name: str, relative: str) -> TaskContentEntry:
         if not stat.S_ISREG(before.st_mode):
             raise ValueError(f"not a regular file: {relative!r}")
         digest = sha256_digest_stream(stream)
-        if _signature(before) != _signature(os.fstat(stream.fileno())):
+        if stat_signature(before) != stat_signature(os.fstat(stream.fileno())):
             raise ValueError(f"file changed while hashing: {relative!r}")
     return TaskContentEntry(
         path=relative,
@@ -99,9 +99,9 @@ def _walk(descriptor: int, prefix: str = "") -> list[TaskContentEntry]:
             entries.append(_file(descriptor, name, relative))
         else:
             raise ValueError(f"symlink or special file in task content: {relative!r}")
-    if names != sorted(os.listdir(descriptor)) or _signature(before) != _signature(
-        os.fstat(descriptor)
-    ):
+    if names != sorted(os.listdir(descriptor)) or stat_signature(
+        before
+    ) != stat_signature(os.fstat(descriptor)):
         raise ValueError(f"directory changed while hashing: {prefix!r}")
     return entries
 
