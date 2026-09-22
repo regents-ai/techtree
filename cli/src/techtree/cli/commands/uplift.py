@@ -96,6 +96,7 @@ from techtree.forge.revision import (
     read_revision_status,
 )
 from techtree.forge.run import ForgeRunner, read_run_status
+from techtree.forge.service import read_build_status
 from techtree.forge.skill import SKILL_DIRNAME, read_owned_skill
 from techtree.fs import atomic_write_bytes, ensure_private_directory
 from techtree.ids import id_prefix
@@ -611,6 +612,7 @@ def _measure(
 ) -> CommandResult[ForgeUpliftStartPayload | ForgeRunReview]:
     """Show what measuring the revision would do, ask, run it, compare it."""
     revision = read_revision_status(context.paths, revision_id)
+    read_build_status(context.paths, revision.spec.build_id)
     review = _revision_review(revision)
     if not assume_yes and context.no_input:
         return CommandResult(

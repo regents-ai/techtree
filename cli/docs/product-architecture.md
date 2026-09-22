@@ -363,10 +363,9 @@ src/techtree/
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and
 `techtree.forge-qualification.v1alpha3`. This is a hard cutover of the unreleased
-local shape: an earlier build record returns `forge_schema_unsupported` with
-its path and schema version; an earlier qualification or progress record beside
-a current build returns `forge_evidence_invalid` ("unsupported forge schema
-version") with the file in its details. Neither has a fallback reader, and saved
+local shape: an earlier build, progress or qualification record returns
+`forge_schema_unsupported` with its path and schema version, checked before
+any of the build's records is parsed. There is no fallback reader, and saved
 bytes are never changed. Build provenance is one typed repository or Skill
 source; the task content and membership commitments remain
 shared. Each task's qualification evidence is likewise one typed branch by

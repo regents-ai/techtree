@@ -58,6 +58,7 @@ from techtree.forge.generate import (
 from techtree.forge.models import (
     FORGE_BUILD_SCHEMA_VERSION,
     FORGE_PROGRESS_SCHEMA_VERSION,
+    FORGE_QUALIFICATION_SCHEMA_VERSION,
     ForgeBaseImage,
     ForgeBuildFailure,
     ForgeBuildPhase,
@@ -509,51 +510,33 @@ def read_build_status(paths: TechtreePaths, build_id: str) -> ForgeBuildStatus:
             code="forge_build_not_found",
             details={"build_id": build_id, "path": str(build_dir)},
         )
+    qualification_file = build_dir / _QUALIFICATION_FILENAME
+    stored = {
+        file: _stored_bytes(build_id, file, schema_version)
+        for file, schema_version in (
+            (record_file, FORGE_BUILD_SCHEMA_VERSION),
+            (progress_file, FORGE_PROGRESS_SCHEMA_VERSION),
+            (qualification_file, FORGE_QUALIFICATION_SCHEMA_VERSION),
+        )
+        if file.is_file()
+    }
     evidence_file = progress_file
     try:
-        record_bytes = record_file.read_bytes() if record_file.is_file() else None
-        if record_bytes is not None:
-            evidence_file = record_file
-            try:
-                envelope = json.loads(record_bytes)
-            except (ValueError, UnicodeDecodeError) as error:
-                raise ValidationError(
-                    f"Invalid Forge build JSON in {record_file}",
-                    code="forge_evidence_invalid",
-                    details={"build_id": build_id, "file": str(record_file)},
-                ) from error
-            schema = (
-                envelope.get("schema_version") if isinstance(envelope, dict) else None
-            )
-            if schema != FORGE_BUILD_SCHEMA_VERSION:
-                raise ValidationError(
-                    f"Unsupported Forge build schema {schema!r} in {record_file}; "
-                    f"this CLI requires {FORGE_BUILD_SCHEMA_VERSION}. "
-                    "The saved record has not been changed.",
-                    code="forge_schema_unsupported",
-                    details={
-                        "file": str(record_file),
-                        "schema_version": str(schema),
-                        "supported_schema_version": FORGE_BUILD_SCHEMA_VERSION,
-                    },
-                )
-        evidence_file = progress_file
         progress = (
-            ForgeBuildProgress.model_validate_json(progress_file.read_bytes())
-            if progress_file.is_file()
+            ForgeBuildProgress.model_validate_json(stored[progress_file])
+            if progress_file in stored
             else None
         )
         evidence_file = record_file
         record = (
-            ForgeBuildRecord.model_validate_json(record_bytes)
-            if record_bytes is not None
+            ForgeBuildRecord.model_validate_json(stored[record_file])
+            if record_file in stored
             else None
         )
-        qualification_file = build_dir / _QUALIFICATION_FILENAME
         evidence_file = qualification_file
         qualification = (
-            ForgeQualification.model_validate_json(qualification_file.read_bytes())
-            if qualification_file.is_file()
+            ForgeQualification.model_validate_json(stored[qualification_file])
+            if qualification_file in stored
             else None
         )
         return ForgeBuildStatus(
@@ -598,6 +581,32 @@ def read_build_status(paths: TechtreePaths, build_id: str) -> ForgeBuildStatus:
             code="forge_evidence_invalid",
             details={"build_id": build_id, "file": str(evidence_file)},
         ) from error
+
+
+def _stored_bytes(build_id: str, file: Path, schema_version: str) -> bytes:
+    """Return a saved record's bytes once its schema is the one this CLI reads."""
+    stored = file.read_bytes()
+    try:
+        envelope = json.loads(stored)
+    except (ValueError, UnicodeDecodeError) as error:
+        raise ValidationError(
+            f"Invalid Forge JSON in {file}",
+            code="forge_evidence_invalid",
+            details={"build_id": build_id, "file": str(file)},
+        ) from error
+    schema = envelope.get("schema_version") if isinstance(envelope, dict) else None
+    if schema != schema_version:
+        raise ValidationError(
+            f"Unsupported Forge schema {schema!r} in {file}; this CLI requires "
+            f"{schema_version}. The saved record has not been changed.",
+            code="forge_schema_unsupported",
+            details={
+                "file": str(file),
+                "schema_version": str(schema),
+                "supported_schema_version": schema_version,
+            },
+        )
+    return stored
 
 
 def _validation_reason(error: ModelValidationError) -> str:
