@@ -28,6 +28,13 @@
   output that is not valid text stops the task generator (seen on
   `pelletier/go-toml`); that limit sits in the pinned generator and is
   recorded, not worked around.
+- A comparison now gives a verdict a person can act on: inconclusive, mixed,
+  improved, regressed or no difference, by fixed rules applied in that order,
+  with fewer than three graded pairs always inconclusive. The report names
+  every task the Skill lost, even when the average went up, and says for each
+  task whether it went both ways across attempts; with one attempt per task it
+  says plainly that consistency was not measured. The terminal output and the
+  machine-readable record carry the same three facts.
 
 ## v0.2.1 (2026-09-19)
 

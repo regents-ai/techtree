@@ -502,16 +502,28 @@ not finish, left no verdict, or was never reached — is `unresolved`, never a
 zero. Per-arm totals add up recorded and graded attempts, mean reward over
 graded attempts, agent seconds, model calls and tokens, and a dollar sum only
 when every usage report carried a figure (with the cost statuses Hermes reported
-listed beside it). The record (`techtree.forge-comparison.v1alpha1`) is written
-to `forge/comparisons/<forgecmp_id>/comparison.json` beside `report.html`, one
+listed beside it). The record carries a `verdict`, decided by these rules in
+this order: `inconclusive` when any planned pair is unresolved or fewer than
+three pairs were graded; `mixed` with at least one win and one loss;
+`improved` with wins and no losses; `regressed` with losses and no wins;
+`no_difference` when every graded pair tied. It lists `regressions` (every
+task the Skill lost at least once, with the attempts lost and won) and
+`consistency` (per task: wins, losses, ties, unresolved, and whether the task
+went both ways across attempts), and its `summary` opens with the verdict in
+words. The record (`techtree.forge-comparison.v1alpha2`, a hard cutover: the
+earlier shape fails validation, without a fallback reader) is written to
+`forge/comparisons/<forgecmp_id>/comparison.json` beside `report.html`, one
 self-contained page (own stylesheet, no script, nothing fetched) that says, in
 order: the repository and both runs, "Local evidence about a mutable subject",
-the question tested, a plain-language summary that opens with "Partial" when
-any pair is unresolved, baseline | candidate | difference, the task-by-task
-table, both arms' patches and grading details per pair, the differences the
-gate allowed, and the limits of the evidence including the specification's
-`not_established` list. A comparison makes no model call and nothing leaves the
-machine.
+the question tested, the summary, "Where the Skill lost" (shown even when the
+mean difference is positive), baseline | candidate | difference, the
+task-by-task table with an "Across attempts" column (or the sentence that one
+attempt per task measured no consistency), both arms' patches and grading
+details per pair, the differences the gate allowed, and the limits of the
+evidence including the specification's `not_established` list. `forge
+compare`, `forge status` and `uplift start` print the verdict, the regressions
+and the consistency, and their `--json` envelopes carry the whole record. A
+comparison makes no model call and nothing leaves the machine.
 
 **Forge revision (one Skill revised, measured against the same baseline).** The
 four `uplift` commands close the loop on a forge comparison the way they close

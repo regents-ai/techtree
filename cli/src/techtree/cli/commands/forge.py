@@ -28,7 +28,7 @@ from techtree.cli.invoke import CommandResult, approval_operation, invoke_comman
 from techtree.cli.output import human_console, render_pairs
 from techtree.engines.installer import find_uv
 from techtree.errors import PolicyError
-from techtree.forge.compare import compare_runs, read_comparison_status
+from techtree.forge.compare import VERDICT_WORDS, compare_runs, read_comparison_status
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
     ForgeArm,
@@ -40,6 +40,7 @@ from techtree.forge.models import (
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
+    ForgeTaskRegression,
     ForgeUsage,
 )
 from techtree.forge.process import run_command
@@ -607,6 +608,7 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
         ("Candidate run", record.candidate_run_id),
         ("Build", record.build_id),
         ("Result", "complete" if record.complete else "partial"),
+        ("Verdict", VERDICT_WORDS[record.verdict]),
         (
             "Pairs",
             f"{record.wins} won, {record.losses} lost, {record.ties} tied, "
@@ -638,6 +640,27 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
     console.print()
     console.print(record.summary, markup=False)
     console.print()
+    if record.regressions:
+        console.print("Where the Skill lost:")
+        for regression in record.regressions:
+            console.print(f"  {_regression_words(regression)}", markup=False)
+    else:
+        console.print("The Skill lost no graded pair.")
+    console.print()
+    if record.repetitions == 1:
+        console.print(
+            "One attempt per task; consistency across attempts was not measured."
+        )
+    else:
+        console.print("Across attempts:")
+        for task in record.consistency:
+            both = "; went both ways" if task.went_both_ways else ""
+            console.print(
+                f"  {task.task_id}: {task.wins} won, {task.losses} lost, "
+                f"{task.ties} tied, {task.unresolved} unresolved{both}",
+                markup=False,
+            )
+    console.print()
     for pair in record.pairs:
         baseline = _side_words(pair.baseline_outcome, pair.baseline_reward)
         candidate = _side_words(pair.candidate_outcome, pair.candidate_reward)
@@ -647,6 +670,20 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
             + f"; baseline {baseline}, candidate {candidate}",
             markup=False,
         )
+
+
+def _regression_words(regression: ForgeTaskRegression) -> str:
+    lost = _attempts(regression.attempts_lost)
+    if not regression.attempts_won:
+        return f"{regression.task_id}: lost {lost}"
+    return (
+        f"{regression.task_id}: lost {lost}; won {_attempts(regression.attempts_won)}"
+    )
+
+
+def _attempts(attempts: list[int]) -> str:
+    word = "attempt" if len(attempts) == 1 else "attempts"
+    return f"{word} {', '.join(str(a) for a in attempts)}"
 
 
 def _arm_pair(baseline: float | None, candidate: float | None, unit: str = "") -> str:

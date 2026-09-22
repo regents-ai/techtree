@@ -49,6 +49,7 @@ __all__ = [
     "FORGE_RUN_SPEC_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
     "FORGE_TASK_SET_SCHEMA_VERSION",
+    "VERDICT_MINIMUM_PAIRS",
     "ForgeAgentSpec",
     "ForgeArm",
     "ForgeArmTotals",
@@ -80,14 +81,18 @@ __all__ = [
     "ForgeScreeningFinding",
     "ForgeSkillName",
     "ForgeSkillSpec",
+    "ForgeTaskConsistency",
     "ForgeTaskId",
+    "ForgeTaskRegression",
     "ForgeUsage",
+    "ForgeVerdict",
     "GenerationSummary",
     "QualificationCheck",
     "TaskContentEntry",
     "TaskContentManifest",
     "TaskQualification",
     "TaskSetCommitment",
+    "forge_verdict",
 ]
 
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha2"
@@ -513,7 +518,10 @@ class ForgeRunStatus(ProtocolModel):
     record: ForgeRunRecord
 
 
-FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha1"
+FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha2"
+
+#: Fewer graded pairs than this and no verdict is given.
+VERDICT_MINIMUM_PAIRS: Final = 3
 
 
 class ForgePairResult(StrEnum):
@@ -556,6 +564,53 @@ class ForgeAttemptPair(ProtocolModel):
         return self
 
 
+class ForgeVerdict(StrEnum):
+    """What the comparison says about the Skill, decided by these rules in order.
+
+    ``inconclusive`` when any planned pair is unresolved or fewer than
+    :data:`VERDICT_MINIMUM_PAIRS` pairs were graded; ``mixed`` with at least
+    one win and one loss; ``improved`` with wins and no losses; ``regressed``
+    with losses and no wins; ``no_difference`` when every graded pair tied.
+    """
+
+    INCONCLUSIVE = "inconclusive"
+    MIXED = "mixed"
+    IMPROVED = "improved"
+    REGRESSED = "regressed"
+    NO_DIFFERENCE = "no_difference"
+
+
+class ForgeTaskRegression(ProtocolModel):
+    """One task the Skill lost at least once: which attempts, and which it won."""
+
+    task_id: ForgeTaskId
+    attempts_lost: list[int]
+    attempts_won: list[int]
+
+    @model_validator(mode="after")
+    def validate_lost_at_least_once(self) -> Self:
+        if not self.attempts_lost:
+            raise ValueError("a regression names at least one lost attempt")
+        return self
+
+
+class ForgeTaskConsistency(ProtocolModel):
+    """How one task went across its attempts, and whether it went both ways."""
+
+    task_id: ForgeTaskId
+    wins: int = Field(ge=0)
+    losses: int = Field(ge=0)
+    ties: int = Field(ge=0)
+    unresolved: int = Field(ge=0)
+    went_both_ways: bool
+
+    @model_validator(mode="after")
+    def validate_both_ways_follows_counts(self) -> Self:
+        if self.went_both_ways != (self.wins > 0 and self.losses > 0):
+            raise ValueError("a task went both ways exactly when it won and lost")
+        return self
+
+
 class ForgeArmTotals(ProtocolModel):
     """What one arm did and used, added up over its recorded attempts.
 
@@ -582,12 +637,15 @@ class ForgeComparisonRecord(ProtocolModel):
     """Two arms of one experiment, paired task by task.
 
     ``complete`` is true only when every planned pair was graded on both
-    sides; anything less is a partial observation, and ``summary`` says so
-    before it says anything else. The comparability gate's finding is kept
-    whole so a reader can see what was allowed to differ.
+    sides; anything less is a partial observation. ``verdict`` is the one
+    word the comparison stands behind, ``regressions`` every task the Skill
+    lost at least once, and ``consistency`` how each task went across its
+    attempts; ``summary`` leads with the verdict in words. The comparability
+    gate's finding is kept whole so a reader can see what was allowed to
+    differ.
     """
 
-    schema_version: Literal["techtree.forge-comparison.v1alpha1"]
+    schema_version: Literal["techtree.forge-comparison.v1alpha2"]
     comparison_id: NonEmptyString
     created_at: UtcDateTime
     build_id: NonEmptyString
@@ -607,6 +665,10 @@ class ForgeComparisonRecord(ProtocolModel):
     unresolved: int = Field(ge=0)
     mean_delta: float | None
     complete: bool
+    repetitions: int = Field(ge=1)
+    verdict: ForgeVerdict
+    regressions: list[ForgeTaskRegression]
+    consistency: list[ForgeTaskConsistency]
     summary: NonEmptyString
     not_established: list[NonEmptyString]
 
@@ -624,7 +686,41 @@ class ForgeComparisonRecord(ProtocolModel):
             )
         if (self.mean_delta is None) != (self.pairs_graded == 0):
             raise ValueError("a mean difference exists exactly when a pair was graded")
+        if self.verdict is not forge_verdict(
+            wins=self.wins,
+            losses=self.losses,
+            graded=self.pairs_graded,
+            unresolved=self.unresolved,
+        ):
+            raise ValueError("the verdict follows the rules from the counts")
+        if [r.task_id for r in self.regressions] != [
+            c.task_id for c in self.consistency if c.losses > 0
+        ]:
+            raise ValueError("the regressions are exactly the tasks with a loss")
+        if sum(c.wins for c in self.consistency) != self.wins:
+            raise ValueError("the tasks' wins add up to the comparison's")
+        if sum(c.losses for c in self.consistency) != self.losses:
+            raise ValueError("the tasks' losses add up to the comparison's")
+        if sum(c.ties for c in self.consistency) != self.ties:
+            raise ValueError("the tasks' ties add up to the comparison's")
+        if sum(c.unresolved for c in self.consistency) != self.unresolved:
+            raise ValueError("the tasks' unresolved pairs add up to the comparison's")
         return self
+
+
+def forge_verdict(
+    *, wins: int, losses: int, graded: int, unresolved: int
+) -> ForgeVerdict:
+    """Apply the verdict rules, in their order, to the counts."""
+    if unresolved > 0 or graded < VERDICT_MINIMUM_PAIRS:
+        return ForgeVerdict.INCONCLUSIVE
+    if wins and losses:
+        return ForgeVerdict.MIXED
+    if wins:
+        return ForgeVerdict.IMPROVED
+    if losses:
+        return ForgeVerdict.REGRESSED
+    return ForgeVerdict.NO_DIFFERENCE
 
 
 class ForgeComparisonStatus(ProtocolModel):

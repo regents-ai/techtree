@@ -29,6 +29,7 @@ from techtree.forge.comparability import (
 )
 from techtree.forge.models import (
     FORGE_COMPARISON_SCHEMA_VERSION,
+    VERDICT_MINIMUM_PAIRS,
     ForgeArmTotals,
     ForgeAttemptOutcome,
     ForgeAttemptPair,
@@ -37,6 +38,10 @@ from techtree.forge.models import (
     ForgeComparisonStatus,
     ForgePairResult,
     ForgeRunStatus,
+    ForgeTaskConsistency,
+    ForgeTaskRegression,
+    ForgeVerdict,
+    forge_verdict,
 )
 from techtree.forge.report import render_report
 from techtree.forge.run import read_run_status
@@ -49,6 +54,7 @@ from techtree.paths import TechtreePaths
 __all__ = [
     "COMPARISON_FILENAME",
     "REPORT_FILENAME",
+    "VERDICT_WORDS",
     "build_comparison",
     "compare_runs",
     "read_comparison_status",
@@ -132,6 +138,16 @@ def build_comparison(
     ties = sum(pair.result is ForgePairResult.TIE for pair in graded)
     deltas = [pair.delta for pair in graded if pair.delta is not None]
     mean_delta = fmean(deltas) if deltas else None
+    consistency = [_consistency(task_id, pairs) for task_id in spec.task_ids]
+    regressions = [
+        _regression(task.task_id, pairs) for task in consistency if task.losses > 0
+    ]
+    verdict = forge_verdict(
+        wins=wins,
+        losses=losses,
+        graded=len(graded),
+        unresolved=len(pairs) - len(graded),
+    )
 
     return ForgeComparisonRecord(
         schema_version=FORGE_COMPARISON_SCHEMA_VERSION,
@@ -154,7 +170,22 @@ def build_comparison(
         unresolved=len(pairs) - len(graded),
         mean_delta=mean_delta,
         complete=len(graded) == len(pairs),
-        summary=_summary(skill.name, pairs, graded, wins, losses, ties),
+        repetitions=spec.sampling.repetitions,
+        verdict=verdict,
+        regressions=regressions,
+        consistency=consistency,
+        summary=_summary(
+            skill.name,
+            pairs,
+            graded,
+            wins,
+            losses,
+            ties,
+            verdict=verdict,
+            regressions=regressions,
+            consistency=consistency,
+            repetitions=spec.sampling.repetitions,
+        ),
         not_established=list(spec.not_established),
     )
 
@@ -260,6 +291,39 @@ def _totals(status: ForgeRunStatus) -> ForgeArmTotals:
     )
 
 
+def _consistency(task_id: str, pairs: list[ForgeAttemptPair]) -> ForgeTaskConsistency:
+    own = [pair.result for pair in pairs if pair.task_id == task_id]
+    wins = own.count(ForgePairResult.WIN)
+    losses = own.count(ForgePairResult.LOSS)
+    return ForgeTaskConsistency(
+        task_id=task_id,
+        wins=wins,
+        losses=losses,
+        ties=own.count(ForgePairResult.TIE),
+        unresolved=own.count(ForgePairResult.UNRESOLVED),
+        went_both_ways=wins > 0 and losses > 0,
+    )
+
+
+def _regression(task_id: str, pairs: list[ForgeAttemptPair]) -> ForgeTaskRegression:
+    own = [pair for pair in pairs if pair.task_id == task_id]
+    return ForgeTaskRegression(
+        task_id=task_id,
+        attempts_lost=[p.attempt for p in own if p.result is ForgePairResult.LOSS],
+        attempts_won=[p.attempt for p in own if p.result is ForgePairResult.WIN],
+    )
+
+
+#: The verdict as the summary opens with it.
+VERDICT_WORDS: Final[dict[ForgeVerdict, str]] = {
+    ForgeVerdict.INCONCLUSIVE: "Inconclusive",
+    ForgeVerdict.MIXED: "Mixed",
+    ForgeVerdict.IMPROVED: "Improved with the Skill",
+    ForgeVerdict.REGRESSED: "Regressed with the Skill",
+    ForgeVerdict.NO_DIFFERENCE: "No difference",
+}
+
+
 def _summary(
     skill_name: str,
     pairs: list[ForgeAttemptPair],
@@ -267,15 +331,14 @@ def _summary(
     wins: int,
     losses: int,
     ties: int,
+    *,
+    verdict: ForgeVerdict,
+    regressions: list[ForgeTaskRegression],
+    consistency: list[ForgeTaskConsistency],
+    repetitions: int,
 ) -> str:
     planned = len(pairs)
-    sentences: list[str] = []
-    if len(graded) < planned:
-        sentences.append(
-            f"Partial: {len(graded)} of {planned} planned "
-            f"{'pair has' if planned == 1 else 'pairs have'} a verdict on both "
-            "arms, so this is not a complete result."
-        )
+    sentences: list[str] = [_verdict_sentence(verdict, planned, len(graded))]
     if not graded:
         sentences.append(f"Nothing can be said about {skill_name} yet.")
         return " ".join(sentences)
@@ -291,4 +354,37 @@ def _summary(
         f"{baseline_mean:.2f} without it and {candidate_mean:.2f} with it "
         f"({candidate_mean - baseline_mean:+.2f})."
     )
+    if regressions:
+        named = ", ".join(r.task_id for r in regressions)
+        sentences.append(
+            f"The Skill lost on {len(regressions)} "
+            f"{'task' if len(regressions) == 1 else 'tasks'}: {named}."
+        )
+    if repetitions == 1:
+        sentences.append(
+            "One attempt per task; consistency across attempts was not measured."
+        )
+    elif any(task.went_both_ways for task in consistency):
+        both = ", ".join(t.task_id for t in consistency if t.went_both_ways)
+        sentences.append(
+            f"The same task went both ways across attempts: {both}; the Skill's "
+            "effect there is not steady."
+        )
     return " ".join(sentences)
+
+
+def _verdict_sentence(verdict: ForgeVerdict, planned: int, graded: int) -> str:
+    opening = VERDICT_WORDS[verdict]
+    if verdict is not ForgeVerdict.INCONCLUSIVE:
+        return f"{opening}."
+    pairs = "pair" if planned == 1 else "pairs"
+    if graded < planned:
+        return (
+            f"{opening}: {graded} of {planned} planned {pairs} "
+            f"{'has' if planned == 1 else 'have'} a verdict on both arms, so this "
+            "is not a complete result."
+        )
+    return (
+        f"{opening}: {graded} of {planned} planned {pairs} graded, fewer than "
+        f"the {VERDICT_MINIMUM_PAIRS} a verdict needs."
+    )

@@ -28,6 +28,7 @@ from techtree.forge.models import (
     ForgePairResult,
     ForgeQualification,
     ForgeRunStatus,
+    ForgeTaskConsistency,
     GenerationSummary,
     QualificationCheck,
     TaskQualification,
@@ -236,6 +237,8 @@ def render_report(
         "<h2>In short</h2>",
         f'<p class="summary{"" if record.complete else " partial"}">'
         f"{_e(record.summary)}</p>",
+        "<h2>Where the Skill lost</h2>",
+        _regressions(record),
         "<h2>Baseline, candidate, difference</h2>",
         _totals_table(record.baseline, record.candidate),
         "<h2>Task by task</h2>",
@@ -320,16 +323,73 @@ def _totals_table(baseline: ForgeArmTotals, candidate: ForgeArmTotals) -> str:
     )
 
 
+def _regressions(record: ForgeComparisonRecord) -> str:
+    if not record.regressions:
+        return "<p>The Skill lost no graded pair.</p>"
+    items = "".join(
+        f"<li><code>{_e(r.task_id)}</code>: lost "
+        f"{_attempts(r.attempts_lost)}"
+        + (f"; won {_attempts(r.attempts_won)}" if r.attempts_won else "")
+        + "</li>"
+        for r in record.regressions
+    )
+    return (
+        f"<p>The Skill lost on {len(record.regressions)} "
+        f"{_plural(len(record.regressions), 'task', 'tasks')}, whatever the mean "
+        f'difference says.</p><ul class="plain">{items}</ul>'
+    )
+
+
+def _attempts(attempts: list[int]) -> str:
+    return _plural(len(attempts), "attempt ", "attempts ") + ", ".join(
+        str(a) for a in attempts
+    )
+
+
+def _consistency_words(task: ForgeTaskConsistency, repetitions: int) -> str:
+    if repetitions == 1:
+        return "one attempt"
+    parts = [
+        f"{task.wins} {_plural(task.wins, 'win', 'wins')}",
+        f"{task.losses} {_plural(task.losses, 'loss', 'losses')}",
+        f"{task.ties} {_plural(task.ties, 'tie', 'ties')}",
+    ]
+    if task.unresolved:
+        parts.append(f"{task.unresolved} unresolved")
+    words = ", ".join(parts)
+    return f"{words}; went both ways" if task.went_both_ways else words
+
+
 def _pairs_table(record: ForgeComparisonRecord) -> str:
-    body = "".join(
-        "<tr>"
-        f"<td>{_e(pair.task_id)}</td><td class=n>{pair.attempt}</td>"
-        f"<td>{_e(_side(pair.baseline_outcome, pair.baseline_reward))}</td>"
-        f"<td>{_e(_side(pair.candidate_outcome, pair.candidate_reward))}</td>"
-        f"<td class=n>{_e(_signed(pair.delta))}</td>"
-        f'<td class="{pair.result.value}">{_e(_RESULT_WORDS[pair.result])}</td>'
-        "</tr>"
-        for pair in record.pairs
+    consistency = {task.task_id: task for task in record.consistency}
+    rows: list[str] = []
+    seen: set[str] = set()
+    for pair in record.pairs:
+        first = pair.task_id not in seen
+        seen.add(pair.task_id)
+        across = ""
+        if first:
+            task = consistency[pair.task_id]
+            span = sum(p.task_id == pair.task_id for p in record.pairs)
+            both = ' class="loss"' if task.went_both_ways else ""
+            across = (
+                f"<td rowspan={span}{both}>"
+                f"{_e(_consistency_words(task, record.repetitions))}</td>"
+            )
+        rows.append(
+            "<tr>"
+            f"<td>{_e(pair.task_id)}</td><td class=n>{pair.attempt}</td>"
+            f"<td>{_e(_side(pair.baseline_outcome, pair.baseline_reward))}</td>"
+            f"<td>{_e(_side(pair.candidate_outcome, pair.candidate_reward))}</td>"
+            f"<td class=n>{_e(_signed(pair.delta))}</td>"
+            f'<td class="{pair.result.value}">{_e(_RESULT_WORDS[pair.result])}</td>'
+            f"{across}</tr>"
+        )
+    body = "".join(rows)
+    note = (
+        "<p>One attempt per task; consistency across attempts was not measured.</p>"
+        if record.repetitions == 1
+        else ""
     )
     counts = (
         f"{record.wins} {_plural(record.wins, 'win', 'wins')}, "
@@ -342,8 +402,8 @@ def _pairs_table(record: ForgeComparisonRecord) -> str:
         f"<p>{_e(counts)}</p>"
         '<div class="scroll"><table><thead><tr><th>Task</th><th class=n>Attempt</th>'
         "<th>Baseline</th><th>Candidate</th><th class=n>Difference</th>"
-        "<th>Result</th></tr></thead>"
-        f"<tbody>{body}</tbody></table></div>"
+        "<th>Result</th><th>Across attempts</th></tr></thead>"
+        f"<tbody>{body}</tbody></table></div>{note}"
     )
 
 

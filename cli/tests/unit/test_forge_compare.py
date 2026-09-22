@@ -4,8 +4,10 @@ The runs are made with the same stand-ins the run tests use, so what is
 compared here is real run evidence on disk. The tests hold the three things
 the comparison promises: a pair that differs anywhere but the Skill is
 refused and nothing is written; a pair without a verdict on both sides is
-unresolved, never a zero, and makes the whole comparison partial; and the
-page says the same numbers as the record, on its own, with nothing fetched.
+unresolved, never a zero, and makes the whole comparison inconclusive; and
+the page says the same numbers as the record, on its own, with nothing
+fetched. The verdict rules, the regressions and the per-task consistency are
+held on a synthetic record with a positive mean and one lost attempt.
 """
 
 from __future__ import annotations
@@ -43,7 +45,9 @@ from techtree.forge.models import (
     ForgeComparisonRecord,
     ForgePairResult,
     ForgeRunStatus,
+    ForgeVerdict,
 )
+from techtree.forge.report import render_report
 from techtree.forge.run import ForgeRunner
 
 
@@ -121,8 +125,20 @@ def test_a_controlled_pair_is_paired_task_by_task_and_written(
     assert record.candidate.total_tokens == 120
     assert record.candidate.cost_usd is None
     assert record.candidate.cost_statuses == ["unavailable"]
+    assert record.verdict is ForgeVerdict.INCONCLUSIVE
+    assert record.regressions == []
+    assert [
+        (c.task_id, c.wins, c.losses, c.ties, c.unresolved, c.went_both_ways)
+        for c in record.consistency
+    ] == [(build.task_id, 1, 0, 0, 0, False)]
+    assert record.repetitions == 1
+    assert record.summary.startswith(
+        "Inconclusive: 1 of 1 planned pair graded, fewer than the 3 a verdict needs."
+    )
     assert "demo-skill won 1, lost 0 and tied 0" in record.summary
-    assert not record.summary.startswith("Partial")
+    assert record.summary.endswith(
+        "One attempt per task; consistency across attempts was not measured."
+    )
 
     directory = Path(status.path)
     assert directory == build.paths.forge_comparison_dir(status.comparison_id)
@@ -149,6 +165,8 @@ def test_equal_rewards_are_a_tie(
     assert record.pairs[0].result is ForgePairResult.TIE
     assert (record.wins, record.losses, record.ties) == (0, 0, 1)
     assert record.mean_delta == 0.0
+    assert record.verdict is ForgeVerdict.INCONCLUSIVE
+    assert record.consistency[0].ties == 1
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +195,10 @@ def test_the_report_is_one_self_contained_page_that_says_what_the_record_says(
     assert "<title>demo-skill on demo</title>" in page
     assert "Local evidence about a mutable subject" in page
     assert status.record.summary in page
+    assert "<h2>Where the Skill lost</h2>" in page
+    assert "The Skill lost no graded pair." in page
+    assert "<th>Across attempts</th>" in page
+    assert "One attempt per task; consistency across attempts was not measured." in page
     assert baseline.run_id in page and candidate.run_id in page
     assert "/repo/demo" in page
     assert 'class="win"' in page
@@ -217,7 +239,8 @@ def test_an_attempt_without_a_verdict_leaves_its_pair_unresolved_and_the_result_
     assert (record.pairs_graded, record.unresolved) == (0, 1)
     assert (record.wins, record.losses, record.ties) == (0, 0, 0)
     assert record.mean_delta is None
-    assert record.summary.startswith("Partial: 0 of 1 planned pair has a verdict")
+    assert record.verdict is ForgeVerdict.INCONCLUSIVE
+    assert record.summary.startswith("Inconclusive: 0 of 1 planned pair has a verdict")
     assert "Nothing can be said about demo-skill yet." in record.summary
     page = Path(status.report_path).read_text(encoding="utf-8")
     assert 'class="unresolved"' in page
@@ -269,7 +292,71 @@ def test_an_attempt_never_reached_is_unresolved_not_a_zero(
     assert (record.pairs_graded, record.unresolved) == (1, 1)
     assert record.mean_delta == 1.0
     assert not record.complete
-    assert record.summary.startswith("Partial: 1 of 2 planned pairs have a verdict")
+    assert record.verdict is ForgeVerdict.INCONCLUSIVE
+    assert (record.consistency[0].wins, record.consistency[0].unresolved) == (1, 1)
+    assert record.summary.startswith(
+        "Inconclusive: 1 of 2 planned pairs have a verdict"
+    )
+
+
+def test_a_lost_attempt_is_a_regression_and_a_task_that_went_both_ways_is_said_so(
+    build: QualifiedBuild, skill: Path, profiles: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A positive mean over three attempts still names the one the Skill lost."""
+    baseline = run_arm(
+        build, profiles, monkeypatch, arm=ForgeArm.BASELINE, reward=0.0, repetitions=3
+    )
+    candidate = run_arm(
+        build,
+        profiles,
+        monkeypatch,
+        arm=ForgeArm.CANDIDATE,
+        skill=skill,
+        reward=1.0,
+        repetitions=3,
+    )
+    baseline = _with_rewards(baseline, [0.0, 1.0, 0.0])
+    candidate = _with_rewards(candidate, [1.0, 0.0, 1.0])
+
+    record = build_comparison(
+        baseline,
+        candidate,
+        compare_run_specs(baseline.spec, candidate.spec),
+        comparison_id="forgecmp_" + "1" * 32,
+        created_at=candidate.record.updated_at,
+    )
+
+    assert record.complete
+    assert (record.wins, record.losses, record.ties) == (2, 1, 0)
+    assert record.mean_delta == pytest.approx(1 / 3)
+    assert record.verdict is ForgeVerdict.MIXED
+    assert [
+        (r.task_id, r.attempts_lost, r.attempts_won) for r in record.regressions
+    ] == [(build.task_id, [2], [1, 3])]
+    assert record.consistency[0].went_both_ways
+    assert record.summary.startswith("Mixed.")
+    assert f"The Skill lost on 1 task: {build.task_id}." in record.summary
+    assert "went both ways across attempts" in record.summary
+    page = render_report(
+        record,
+        repository="/repo/demo",
+        head_commit="c" * 40,
+        baseline=baseline,
+        candidate=candidate,
+    )
+    assert "The Skill lost on 1 task, whatever the mean difference says." in page
+    assert f"<code>{build.task_id}</code>: lost attempt 2; won attempts 1, 3" in page
+    assert "2 wins, 1 loss, 0 ties; went both ways" in page
+
+
+def _with_rewards(status: ForgeRunStatus, rewards: list[float]) -> ForgeRunStatus:
+    attempts = [
+        attempt.model_copy(update={"reward": reward})
+        for attempt, reward in zip(status.record.attempts, rewards, strict=True)
+    ]
+    return status.model_copy(
+        update={"record": status.record.model_copy(update={"attempts": attempts})}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +439,9 @@ def test_forge_compare_writes_the_comparison_and_forge_status_reads_it_back(
     comparison_id = facts["comparison_id"]
     assert isinstance(comparison_id, str)
     assert facts["record"]["complete"] is False
+    assert facts["record"]["verdict"] == "inconclusive"
+    assert facts["record"]["regressions"] == []
+    assert facts["record"]["consistency"][0]["unresolved"] == 1
     assert Path(facts["report_path"]).is_file()
     assert [w["id"] for w in envelope["warnings"]] == ["forge_comparison_partial"]
     action = envelope["next_actions"][0]
@@ -379,7 +469,12 @@ def test_forge_compare_writes_the_comparison_and_forge_status_reads_it_back(
     human = " ".join(result.stdout.split())
     assert "no model was called" in human
     assert "0 won, 0 lost, 0 tied, 1 unresolved of 1 planned" in human
-    assert "Partial:" in human
+    assert "Verdict Inconclusive" in human
+    assert "Inconclusive:" in human
+    assert "The Skill lost no graded pair." in human
+    assert (
+        "One attempt per task; consistency across attempts was not measured." in human
+    )
     assert "tests left no verdict" in human
     assert "Report" in human
 
