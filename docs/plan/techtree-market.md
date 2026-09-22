@@ -6,6 +6,20 @@ Scope: v0.2.x, v0.3, and deferred v0.3.x studies
 
 ## Authority and sequence
 
+Founder amendment, 2026-09-22: after the accepted 0.2.2 items 4, 2, and 3,
+the next feature release is 0.3.0 Skill-created environments, specified in
+[`v0.3.0-skill-environments.md`](v0.3.0-skill-environments.md). Forge remains
+implementation machinery rather than a separate product milestone. Item 1 of
+the 0.2.2 packet and its real runs are deferred. A 0.2.3 release is reserved
+for verified maintenance or outside-developer findings if needed; no foundation
+feature is assigned to it in advance.
+
+The initial 0.3.0 release creates one qualified environment from a real
+contributor's supported Skill and proves local transfer to another user.
+Private hosting and managed creation become the commercial center of 0.3.x.
+The broader Market, payment, automatic optimization, training, and private Skill
+Climb work below remains later work and does not gate 0.3.0.
+
 Founder amendment, 2026-09-08: [`repo2rlenv-v02x.md`](repo2rlenv-v02x.md)
 is binding for the narrow Repo Forge expansion. It admits qualified private
 artifact classes and a Python/pytest Repo2RLEnv lane in v0.2.x, removes that
@@ -15,15 +29,17 @@ their gates for broader Market/Foundry work; historical ticket IDs are reference
 
 This document is the implementation authority for work after the focused
 v0.2.0 execution-provenance release. The v0.2.0 contract remains
-[`v0.2.md`](v0.2.md). The release order is:
+[`v0.2.md`](v0.2.md). The current release order is:
 
 1. v0.2.0 execution provenance and subject portability (`techtree-31k`).
-2. v0.2.x Techtree Market proof pilots (`techtree-33x`), alongside v0.2.x
-   hosted execution (`techtree-k7t`), which carries the Prime Hosted
-   Evaluations work package moved out of v0.2.0 on 2026-09-01 and is specified
-   in [`v0.2.md`](v0.2.md).
-3. v0.3 Techtree Foundry and the first private Skill Climb (`techtree-8dj`).
-4. Deferred v0.3.x studies (`techtree-5t7`).
+2. v0.2.2 qualification explanations, decision-grade reports, and reliable
+   release preparation; its guided repository walkthrough is deferred.
+3. v0.3.0 Skill-created environments under
+   [`v0.3.0-skill-environments.md`](v0.3.0-skill-environments.md).
+4. v0.3.x private hosting, managed creation, and maintained collections after
+   the local creator and transfer gates pass.
+5. Broader Market, payment, automatic optimization, training, and private
+   Skill Climb work after their own gates and founder assignments.
 
 These are dependency gates, not a claim that implementation must proceed in
 one linear work-package sequence. The current assignment and actual component dependencies determine
@@ -61,9 +77,9 @@ No optimizer sees hidden proving answers. No model or submitter approves its
 own paid proving run, submission acceptance, payout, challenge resolution, or
 private-data release.
 
-## v0.2.x — Techtree Market proof pilots
+## Later — Techtree Market proof pilots
 
-The Market epic is `techtree-33x` and is blocked by v0.2.0. Market code stays
+The Market epic is `techtree-33x`. It is not a 0.3.0 dependency. Market code stays
 inside `platform/`; the local CLI and plugins remain usable without it.
 
 ### Independent reproduction linkage (`techtree-33x.1`)
@@ -154,10 +170,11 @@ Before a Market pilot, focused review must establish:
 Failure of any applicable gate blocks the pilot. It is not converted into a
 weaker trust label.
 
-## v0.3 — Techtree Foundry and the first Skill Climb
+## Later — Techtree Foundry and the first private Skill Climb
 
-The Foundry epic is `techtree-8dj`. The first Skill Climb appears here, not in
-v0.2.0 or v0.2.x.
+The Foundry epic is `techtree-8dj`. This broader private optimization and
+training program follows the local 0.3.0 environment-creation release and is
+not part of its identity.
 
 ### Source rights (`techtree-8dj.1`)
 
@@ -218,7 +235,7 @@ recipe, admission and delivery gates; positive Skill uplift is not a prerequisit
 Both bind customer-authorized data, rights, participants, spend, disclosure,
 acceptance, and deletion policies.
 
-## Deferred v0.3.x studies
+## Deferred studies
 
 Epic `techtree-5t7` is deferred until Foundry and Skill Climb evidence exists.
 Its children study Prime Agent (`.1`), prime-rl (`.2`), model uplift (`.3`),
