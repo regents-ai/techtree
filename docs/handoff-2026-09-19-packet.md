@@ -114,8 +114,9 @@ What item 4 delivers (all in `cli/src/techtree/`):
 - Tests: `cli/tests/unit/test_forge_revision.py`; fakes in
   `cli/tests/fixtures/forge/support.py`.
 - Docs updated: `cli/docs/product-architecture.md` (forge paragraphs),
-  `platform/priv/changelog.md` (root `CHANGELOG.md` is a **symlink** to it;
-  edit once), `docs/plan/repo2rlenv-local-lane.md` slice 3.
+  `platform/priv/changelog.md` (root `CHANGELOG.md` is a real copy of it,
+  kept identical by `platform/test/techtree_web/live/changelog_live_test.exs`;
+  edit both), `docs/plan/repo2rlenv-local-lane.md` slice 3.
 
 ## 4. The blocker, exactly
 
