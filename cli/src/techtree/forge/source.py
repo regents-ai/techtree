@@ -565,10 +565,15 @@ def _header(text: str) -> tuple[dict[str, str], dict[str, str]]:
         nested = _NESTED.match(line)
         if nested is not None:
             key, value = nested.group(1), nested.group(2)
-            if not in_metadata or value is None:
+            if not in_metadata:
                 raise _HeaderError(
                     f"SKILL.md line {number} is indented outside metadata, YAML "
                     "Techtree does not read"
+                )
+            if value is None:
+                raise _HeaderError(
+                    f"SKILL.md line {number} nests another level under metadata; "
+                    "each metadata entry is one key: value line"
                 )
             _put(metadata, key, _scalar(value, number), number)
             continue

@@ -257,6 +257,11 @@ def test_a_link_is_recorded_and_never_followed(
             "---\nname: demo-skill\ndescription: x\nallowed-tools:\n  - Bash\n---\n",
             "line 4",
         ),
+        (
+            "---\nname: demo-skill\ndescription: x\nmetadata:\n  hermes:\n"
+            "    tags: x\n---\n",
+            "line 5 nests another level",
+        ),
         ("---\nname: other-name\ndescription: x\n---\n", "directory is demo-skill"),
         ("---\nname: demo-skill\n---\n", "description"),
         ("name: demo-skill\n", "does not begin"),
