@@ -20,11 +20,9 @@ attempt stopped mid-call, or left ``started`` by a process that has gone, has
 an unknown outcome: the provider may or may not have answered or charged.
 Nothing is retried; trying again is a new plan that names the old one.
 
-Hermes runs one-shot in the person's ``techtree`` profile, held and emptied
-of all but the sign-in exactly as an experiment does it
-(:mod:`techtree.forge.profile`), in the plan's own empty workspace, with its
-text-only toolset, memory off, and its rules, memory and Skills not injected.
-Techtree copies no credential and reads none.
+The call is made as :mod:`techtree.forge.authoring` makes every authoring
+call: Hermes one-shot, no tools, the person's ``techtree`` profile emptied to
+its sign-in, in the plan's own empty workspace.
 
 A planner answer that is a usable set of tasks becomes a proposal record and
 stops there for the contributor. A contributor's correction is a new
@@ -36,41 +34,49 @@ from __future__ import annotations
 import json
 import os
 import shlex
-import shutil
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final, Literal
+from typing import Final
 
 from pydantic import TypeAdapter
 from pydantic import ValidationError as ModelValidationError
 
-from techtree.canonical import (
-    canonical_json_bytes,
-    digest_object,
-    sha256_digest_bytes,
-)
+from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.errors import (
     ConflictError,
     NotFoundError,
-    PrerequisiteError,
     RunError,
     TechtreeError,
     ValidationError,
 )
+from techtree.forge.authoring import (
+    PROMPT_LIMIT,
+    TEXT_ONLY_TOOLSET,
+    AnsweredWith,
+    Launcher,
+    ReviewedOn,
+    agent_spec,
+    alive,
+    call_failure,
+    hermes_config,
+    hermes_executable,
+    kept_files,
+    launch_one_shot,
+    model_spec,
+    one_shot_argv,
+    run_one_shot,
+    skill_text,
+)
 from techtree.forge.bundle import embedded_forge_root
-from techtree.forge.experiment import hermes_version
 from techtree.forge.models import (
     FORGE_PLAN_APPROVAL_SCHEMA_VERSION,
     FORGE_PLAN_ATTEMPT_SCHEMA_VERSION,
     FORGE_PLAN_SCHEMA_VERSION,
     FORGE_PROPOSAL_SCHEMA_VERSION,
-    ForgeAgentSpec,
+    ForgeAuthoringCapabilities,
     ForgeBuildFailure,
-    ForgeModelSpec,
     ForgePlanApproval,
     ForgePlanAttempt,
-    ForgePlanCapabilities,
     ForgePlanDisclosure,
     ForgePlanLimits,
     ForgePlanningRecipe,
@@ -82,31 +88,22 @@ from techtree.forge.models import (
     ForgeProposalRecord,
     ForgeProposalStatus,
     ForgeProposedTask,
-    ForgeSourceStatus,
     proposal_content,
 )
 from techtree.forge.process import CommandRunner
-from techtree.forge.profile import (
-    hold_profile,
-    profile_dir,
-    require_signed_in,
-    reset_profile,
-)
-from techtree.forge.run import AgentOutcome, read_usage, supervise_hermes
+from techtree.forge.profile import hold_profile, profile_dir, require_signed_in
+from techtree.forge.run import read_usage
 from techtree.forge.source import read_source_status
 from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
 from techtree.models.base import Digest
-from techtree.models.skill import SkillFile
 from techtree.paths import TechtreePaths
 
 __all__ = [
     "ANSWER_BYTES",
     "PLAN_WALL_SECONDS",
-    "PlannerLauncher",
     "check_plan",
     "correct_proposal",
-    "launch_planner",
     "prepare_plan",
     "read_plan_status",
     "read_proposal_status",
@@ -126,36 +123,8 @@ TASKS_FILENAME: Final = "tasks.json"
 PLAN_WALL_SECONDS: Final = 600
 #: The largest answer read as a proposal.
 ANSWER_BYTES: Final = 64 * 1024
-#: The largest prompt handed to the planner. Hermes takes it as one
-#: command-line argument, and Linux caps one argument at 128 KiB.
-_PROMPT_LIMIT: Final = 120 * 1024
-#: Hermes' toolset with no tool in it.
-_TEXT_ONLY_TOOLSET: Final = "bot_room"
 _INSTRUCTIONS: Final = "planner-prompt.md"
-_STATE_DB: Final = "state.db"
 _TASKS_ADAPTER: Final = TypeAdapter(list[ForgeProposedTask])
-
-type ReviewedOn = Literal["cli", "host-agent"]
-type AnsweredWith = Literal["prompt", "yes-flag"]
-type PlannerLauncher = Callable[
-    [list[str], dict[str, str], Path, Path, Path, float], AgentOutcome
-]
-
-
-def launch_planner(
-    argv: list[str],
-    env: dict[str, str],
-    cwd: Path,
-    answer: Path,
-    log: Path,
-    timeout: float,
-) -> AgentOutcome:
-    """Run Hermes once: its answer to ``answer``, everything else to ``log``."""
-    with answer.open("wb") as stdout, log.open("wb") as stderr:
-        return supervise_hermes(
-            argv, env, cwd, stdout=stdout, stderr=stderr, timeout=timeout
-        )
-
 
 # ---------------------------------------------------------------------------
 # Preparing and checking
@@ -178,7 +147,7 @@ def prepare_plan(
     review, prompt = _review(
         paths,
         source_id=source_id,
-        executable=_hermes_executable(),
+        executable=hermes_executable(),
         provider=provider,
         model_id=model_id,
         reasoning=reasoning,
@@ -215,7 +184,7 @@ def check_plan(paths: TechtreePaths, plan_id: str) -> ForgePlanStatus:
     current, _ = _review(
         paths,
         source_id=stored.source_id,
-        executable=_hermes_executable(),
+        executable=hermes_executable(),
         provider=stored.model.provider,
         model_id=stored.model.model_id,
         reasoning=stored.model.reasoning,
@@ -265,15 +234,17 @@ def _review(
 ) -> tuple[ForgePlanReview, bytes]:
     """Make the review and the prompt from what is on disk now."""
     source = read_source_status(paths, source_id)
-    kept = _kept_files(source)
+    kept = kept_files(source, called="The planner")
     forge_root = embedded_forge_root() / "skill2env"
     instructions = (forge_root / _INSTRUCTIONS).read_bytes()
     contract = json.loads((forge_root / "contract.json").read_bytes())
-    prompt = _prompt(instructions, kept, max_tasks)
-    if len(prompt) > _PROMPT_LIMIT:
+    prompt = instructions.replace(b"{max_tasks}", str(max_tasks).encode()) + skill_text(
+        kept
+    )
+    if len(prompt) > PROMPT_LIMIT:
         raise ValidationError(
             f"this Skill's files make a planning prompt of {len(prompt)} bytes, "
-            f"and the planner is handed at most {_PROMPT_LIMIT}; a smaller "
+            f"and the planner is handed at most {PROMPT_LIMIT}; a smaller "
             "copy of the Skill is a different Skill, looked at with "
             f"forge inspect-skill --derived-from {source_id}",
             code="forge_planning_too_large",
@@ -289,25 +260,16 @@ def _review(
             upstream_url=contract["upstream_url"],
             upstream_revision=contract["upstream_revision"],
         ),
-        agent=ForgeAgentSpec(
-            harness="hermes",
-            executable=str(executable),
-            version=hermes_version(executable),
-        ),
-        model=ForgeModelSpec(
-            provider=provider,
-            model_id=model_id,
-            reasoning=reasoning,
-            credential_source="hermes-auth-store",
-        ),
+        agent=agent_spec(executable),
+        model=model_spec(provider, model_id, reasoning),
         disclosure=ForgePlanDisclosure(
             files=[file for file, _ in kept],
             prompt_bytes=len(prompt),
             prompt_digest=sha256_digest_bytes(prompt),
         ),
         egress="model-provider",
-        capabilities=ForgePlanCapabilities(
-            tools="none", toolset=_TEXT_ONLY_TOOLSET, memory_enabled=False
+        capabilities=ForgeAuthoringCapabilities(
+            tools="none", toolset=TEXT_ONLY_TOOLSET, memory_enabled=False
         ),
         limits=ForgePlanLimits(
             max_tasks=max_tasks,
@@ -317,68 +279,6 @@ def _review(
         ),
     )
     return review, prompt
-
-
-def _kept_files(source: ForgeSourceStatus) -> list[tuple[SkillFile, bytes]]:
-    """Read the admitted files back from the kept copy, as recorded."""
-    record = source.record
-    if source.snapshot_path is None:
-        raise ValidationError(
-            f"Techtree cannot use Source Skill {source.source_id} as it is: "
-            + "; ".join(refusal.message for refusal in record.refusals)
-            + ". The planner was not called. A copy without these is a "
-            "different Skill; look at that copy with forge inspect-skill "
-            "--derived-from "
-            f"{source.source_id}",
-            code="forge_skill_unsupported",
-            details={
-                "source_id": source.source_id,
-                "refusals": [
-                    refusal.model_dump(mode="json") for refusal in record.refusals
-                ],
-            },
-        )
-    snapshot = Path(source.snapshot_path)
-    kept: list[tuple[SkillFile, bytes]] = []
-    for file in record.admitted_files:
-        try:
-            data = (snapshot / file.path).read_bytes()
-        except OSError:
-            data = b""
-        if len(data) != file.size or sha256_digest_bytes(data) != file.digest:
-            raise ValidationError(
-                f"Techtree's kept copy of {file.path} no longer matches what "
-                f"Source Skill {source.source_id} recorded, so it cannot be "
-                "sent as that Skill. The planner was not called; look at the "
-                "Skill again with forge inspect-skill",
-                code="forge_source_changed",
-                details={"source_id": source.source_id, "path": file.path},
-            )
-        kept.append((file, data))
-    return kept
-
-
-def _prompt(
-    instructions: bytes, kept: list[tuple[SkillFile, bytes]], max_tasks: int
-) -> bytes:
-    """Return the one text sent: the instructions, then every kept file."""
-    parts = [instructions.replace(b"{max_tasks}", str(max_tasks).encode())]
-    for file, data in kept:
-        parts.append(f"\n===== {file.path} ({file.size} bytes) =====\n".encode())
-        parts.append(data if data.endswith(b"\n") else data + b"\n")
-        parts.append(f"===== end of {file.path} =====\n".encode())
-    return b"".join(parts)
-
-
-def _hermes_executable() -> Path:
-    found = shutil.which("hermes")
-    if found is None:
-        raise PrerequisiteError(
-            "no hermes on the path; install Hermes Agent and sign in to a "
-            "provider before planning",
-            code="hermes_not_found",
-        )
-    return Path(found)
 
 
 def _require_ended_without_proposal(
@@ -424,7 +324,7 @@ def start_plan(
     reviewed_on: ReviewedOn,
     answered_with: AnsweredWith,
     run: CommandRunner,
-    launch: PlannerLauncher = launch_planner,
+    launch: Launcher = launch_one_shot,
     profiles_root: Path | None = None,
 ) -> ForgePlanStatus:
     """Record the approval, make the one planner call, and keep what it left."""
@@ -444,7 +344,7 @@ def _call(
     status: ForgePlanStatus,
     reviewed_on: ReviewedOn,
     answered_with: AnsweredWith,
-    launch: PlannerLauncher,
+    launch: Launcher,
     profile: Path,
 ) -> None:
     plan = status.record
@@ -465,25 +365,16 @@ def _call(
     workspace = directory / "workspace"
     workspace.mkdir(mode=0o700)
     usage_file = directory / "usage.json"
-    config = _hermes_config(review.limits.wall_seconds)
+    config = hermes_config(review.limits.wall_seconds)
     atomic_write_bytes(directory / "config.yaml", config)
-    argv = [
-        review.agent.executable,
-        "--ignore-rules",
-        "--in",
-        str(workspace),
-        "-m",
-        review.model.model_id,
-        "--provider",
-        review.model.provider,
-        *(("--reasoning", review.model.reasoning) if review.model.reasoning else ()),
-        "-t",
-        review.capabilities.toolset,
-        "--usage-file",
-        str(usage_file),
-        "-z",
-        prompt.decode("utf-8"),
-    ]
+    argv = one_shot_argv(
+        review.agent,
+        review.model,
+        toolset=review.capabilities.toolset,
+        workspace=workspace,
+        usage_file=usage_file,
+        prompt=prompt,
+    )
     attempt = ForgePlanAttempt(
         schema_version=FORGE_PLAN_ATTEMPT_SCHEMA_VERSION,
         plan_id=plan.plan_id,
@@ -525,23 +416,18 @@ def _call(
     inspect = shlex.join(
         ["techtree", "--home", str(paths.root), "forge", "status", plan.plan_id]
     )
-    reset_profile(profile)
-    atomic_write_bytes(profile / "config.yaml", config)
     try:
-        try:
-            outcome = launch(
-                argv,
-                {**os.environ, "HERMES_HOME": str(profile)},
-                workspace,
-                directory / ANSWER_FILENAME,
-                directory / "hermes.log",
-                float(review.limits.wall_seconds),
-            )
-        finally:
-            transcript = profile / _STATE_DB
-            if transcript.is_file() and not transcript.is_symlink():
-                shutil.copyfile(transcript, directory / _STATE_DB)
-            reset_profile(profile)
+        outcome = run_one_shot(
+            launch,
+            argv,
+            profile=profile,
+            config=config,
+            workspace=workspace,
+            answer=directory / ANSWER_FILENAME,
+            log=directory / "hermes.log",
+            wall_seconds=review.limits.wall_seconds,
+            keep_in=directory,
+        )
     except KeyboardInterrupt as interrupt:
         finish(state="outcome_unknown", stopped="person")
         raise RunError(
@@ -569,22 +455,15 @@ def _call(
             seconds=outcome.seconds,
         )
         return
-    usage = read_usage(usage_file)
-    if outcome.exit_code != 0 or usage is None or usage.failed or not usage.completed:
-        reason = usage.failure if usage is not None and usage.failure else None
+    failure = call_failure(
+        outcome, usage_file, code="forge_planner_failed", error_type="PlannerFailure"
+    )
+    if failure is not None:
         finish(
             state="failed",
             exit_code=outcome.exit_code,
             seconds=outcome.seconds,
-            failure=ForgeBuildFailure(
-                code="forge_planner_failed",
-                message=(
-                    f"Hermes ended without an answer (exit {outcome.exit_code}"
-                    + (f": {reason}" if reason else "")
-                    + ")"
-                )[:512],
-                error_type="PlannerFailure",
-            ),
+            failure=failure,
         )
         return
     answer = (directory / ANSWER_FILENAME).read_bytes()
@@ -615,18 +494,6 @@ def _call(
         exit_code=outcome.exit_code,
         seconds=outcome.seconds,
         proposal_id=proposal.proposal_id,
-    )
-
-
-def _hermes_config(wall_seconds: int) -> bytes:
-    """Return the ``config.yaml`` Techtree writes for the planner, as bytes."""
-    return canonical_json_bytes(
-        {
-            "memory": {"memory_enabled": False, "user_profile_enabled": False},
-            "agent": {"run_budget_seconds": wall_seconds},
-            "auxiliary": {"title_generation": {"enabled": False}},
-            "skills": {"external_dirs": []},
-        }
     )
 
 
@@ -789,7 +656,7 @@ def read_plan_status(paths: TechtreePaths, plan_id: str) -> ForgePlanStatus:
     if attempt is None:
         state = "prepared"
     elif attempt.state == "started":
-        state = "running" if _alive(attempt.process_id) else "outcome_unknown"
+        state = "running" if alive(attempt.process_id) else "outcome_unknown"
     else:
         state = attempt.state
     return ForgePlanStatus(
@@ -830,14 +697,3 @@ def _optional[M: (ForgePlanApproval, ForgePlanAttempt)](
     path: Path, model: type[M]
 ) -> M | None:
     return model.model_validate_json(path.read_bytes()) if path.is_file() else None
-
-
-def _alive(process_id: int) -> bool:
-    """Whether a process with this id is running; a reused id reads as alive."""
-    try:
-        os.kill(process_id, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True

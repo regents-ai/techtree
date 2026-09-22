@@ -196,6 +196,8 @@ forge inspect-skill
 forge plan
 forge plan-start
 forge correct-proposal
+forge construct
+forge construct-start
 forge status
 ```
 

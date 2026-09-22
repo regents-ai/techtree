@@ -1,16 +1,18 @@
-"""``techtree forge build|run|compare|inspect-skill|status``.
+"""``techtree forge build|run|compare|inspect-skill|plan|construct|status``.
 
-``docs/plan/repo2rlenv-local-lane.md``; Source Skill inspection is
-``docs/plan/v0.3.0-skill-environments.md`` (U3a).
+``docs/plan/repo2rlenv-local-lane.md``; Source Skill inspection, planning and
+construction are ``docs/plan/v0.3.0-skill-environments.md`` (U3).
 
 ``forge build`` takes a local repository and retains generated Harbor tasks and
 their qualification evidence; ``forge run`` declares one arm of an experiment
 on those tasks and runs it with the person's own Hermes; ``forge compare``
 pairs a baseline run with a candidate run and writes the record and the
 report; ``forge inspect-skill`` looks at a Source Skill without running any
-of it and records what it holds; ``forge status`` reads any of them, or a
-Skill revision made through ``uplift``, back without requiring build
-tools. Build execution belongs to
+of it and records what it holds; ``forge plan`` and ``forge construct``
+prepare, and their ``-start`` commands send, the planning and the building of
+tasks from such a Skill; ``forge status`` reads any of them, or a Skill
+revision made through ``uplift``, back without requiring build tools.
+Build execution belongs to
 :class:`~techtree.forge.service.ForgeService`, run execution to
 :class:`~techtree.forge.run.ForgeRunner`, comparison to
 :mod:`techtree.forge.compare`, Source Skill inspection to
@@ -41,6 +43,12 @@ from techtree.cli.output import human_console, render_pairs
 from techtree.engines.installer import find_uv
 from techtree.errors import PolicyError, RunError, TechtreeError, ValidationError
 from techtree.forge.compare import VERDICT_WORDS, compare_runs, read_comparison_status
+from techtree.forge.construction import (
+    check_construction,
+    prepare_construction,
+    read_construction_status,
+    start_construction,
+)
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
     MAX_PLANNED_TASKS,
@@ -49,6 +57,9 @@ from techtree.forge.models import (
     ForgeAttemptOutcome,
     ForgeBuildStatus,
     ForgeComparisonStatus,
+    ForgeConstructionRecord,
+    ForgeConstructionStatus,
+    ForgeConstructionTaskStatus,
     ForgeLanguage,
     ForgePlanRecord,
     ForgePlanStatus,
@@ -104,6 +115,11 @@ __all__ = [
     "ask_to_start",
     "build_forge_command",
     "compare_forge_command",
+    "construct_forge_command",
+    "construct_start_forge_command",
+    "construction_next_actions",
+    "construction_review_lines",
+    "construction_warnings",
     "correct_proposal_forge_command",
     "inspect_skill_forge_command",
     "plan_forge_command",
@@ -111,8 +127,10 @@ __all__ = [
     "plan_start_forge_command",
     "plan_warnings",
     "planning_review_lines",
+    "proposal_next_actions",
     "proposal_status_action",
     "render_forge_comparison",
+    "render_forge_construction",
     "render_forge_plan",
     "render_forge_proposal",
     "render_forge_revision",
@@ -392,13 +410,14 @@ def status_forge_command(
         str,
         typer.Argument(
             metavar="BUILD_ID|RUN_ID|COMPARISON_ID|REVISION_ID|SOURCE_ID|PLAN_ID"
-            "|PROPOSAL_ID",
+            "|PROPOSAL_ID|CONSTRUCTION_ID",
             help="The build, run, comparison, Skill revision, looked-at Skill, "
-            "plan or proposal to show.",
+            "plan, proposal or construction to show.",
         ),
     ],
 ) -> None:
-    """Show a forge build, run, comparison, revision, Skill, plan or proposal."""
+    """Show a forge build, run, comparison, revision, Skill, plan, proposal or
+    construction."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[
@@ -409,6 +428,7 @@ def status_forge_command(
         | ForgeSourceStatus
         | ForgePlanStatus
         | ForgeProposalStatus
+        | ForgeConstructionStatus
     ]:
         match id_prefix(record_id):
             case "forgeplan":
@@ -420,7 +440,17 @@ def status_forge_command(
                 )
             case "forgeprop":
                 proposal = read_proposal_status(context.paths, record_id)
-                return CommandResult(data=proposal)
+                return CommandResult(
+                    data=proposal,
+                    next_actions=proposal_next_actions(context, proposal),
+                )
+            case "forgecon":
+                construction = read_construction_status(context.paths, record_id)
+                return CommandResult(
+                    data=construction,
+                    warnings=construction_warnings(construction),
+                    next_actions=construction_next_actions(construction),
+                )
             case "forgesrc":
                 source = read_source_status(context.paths, record_id)
                 return CommandResult(data=source, warnings=source_warnings(source))
@@ -601,11 +631,149 @@ def correct_proposal_forge_command(
         return CommandResult(
             data=status,
             state_digest=status.record.proposal_digest,
-            next_actions=[proposal_status_action(status)],
+            next_actions=[
+                proposal_status_action(status),
+                *proposal_next_actions(context, status),
+            ],
         )
 
     invoke_command(
         context, Operation.PLAN_PREPARE, action, render_data=_render_proposal
+    )
+
+
+def construct_forge_command(
+    ctx: typer.Context,
+    proposal_id: Annotated[
+        str,
+        typer.Argument(
+            metavar="PROPOSAL_ID",
+            help="The proposed tasks to build, as reviewed or corrected.",
+        ),
+    ],
+    provider: Annotated[
+        str,
+        typer.Option(
+            "--provider",
+            help="The provider Hermes will be asked for, by the name Hermes uses.",
+        ),
+    ],
+    model: Annotated[
+        str, typer.Option("--model", help="The model Hermes will be asked for.")
+    ],
+    reasoning: Annotated[
+        HermesReasoning | None,
+        typer.Option("--reasoning", help="Hermes' reasoning setting, if one."),
+    ] = None,
+    retry_of: Annotated[
+        str | None,
+        typer.Option(
+            "--retry-of",
+            metavar="CONSTRUCTION_ID",
+            help="An earlier construction of the same proposal whose tasks did "
+            "not all get a usable package; this one builds only those tasks.",
+        ),
+    ] = None,
+) -> None:
+    """Prepare the building of proposed tasks, without calling the creator."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeConstructionStatus]:
+        status = prepare_construction(
+            context.paths,
+            proposal_id=proposal_id,
+            provider=provider,
+            model_id=model,
+            reasoning=reasoning.value if reasoning is not None else None,
+            retry_of=retry_of,
+        )
+        return CommandResult(
+            data=status,
+            state_digest=status.record.construction_digest,
+            next_actions=[_construct_when_approved(status)],
+        )
+
+    invoke_command(
+        context, Operation.PLAN_PREPARE, action, render_data=_render_construction
+    )
+
+
+def construct_start_forge_command(
+    ctx: typer.Context,
+    construction_id: Annotated[
+        str,
+        typer.Argument(
+            metavar="CONSTRUCTION_ID", help="The prepared construction to send."
+        ),
+    ],
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            help=(
+                "Send without being asked. For an operator running Techtree "
+                "where nobody can answer a prompt; it is never a shortcut for "
+                "an agent to take on a person's behalf."
+            ),
+        ),
+    ] = False,
+    reviewed_on: Annotated[
+        ReviewSurface,
+        typer.Option(
+            "--reviewed-on",
+            help=(
+                "Where the person who approved this construction answered. "
+                "Pass host-agent when the review was shown in a conversation "
+                "and confirmed there, so the approval records the surface the "
+                "answer was actually given on. Like --yes, it states what a "
+                "person already did and is never a shortcut a model may take."
+            ),
+        ),
+    ] = ReviewSurface.CLI,
+) -> None:
+    """Review a prepared construction, approve it, and build its tasks once."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeConstructionStatus]:
+        require_the_review_surface_was_answered(
+            draft_id=construction_id, assume_yes=yes, reviewed_on=reviewed_on
+        )
+        status = check_construction(context.paths, construction_id)
+        if not yes and context.no_input:
+            return CommandResult(
+                data=status,
+                state_digest=status.record.construction_digest,
+                next_actions=[_construct_when_approved(status)],
+            )
+        if not yes:
+            _ask_to_construct(context, status.record)
+        service = ForgeService(context.paths, run_command, find_uv())
+        started = start_construction(
+            context.paths,
+            construction_id,
+            reviewed_on="host-agent"
+            if reviewed_on is ReviewSurface.HOST_AGENT
+            else "cli",
+            answered_with="yes-flag" if yes else "prompt",
+            run=run_command,
+            qualify=lambda task_dir, source_skill, source_digest: service.import_skill(
+                task_dir=task_dir,
+                source_skill=source_skill,
+                source_digest=source_digest,
+            ),
+        )
+        return CommandResult(
+            data=started,
+            warnings=construction_warnings(started),
+            next_actions=construction_next_actions(started),
+            error=_construction_error(started),
+        )
+
+    invoke_command(
+        context,
+        approval_operation(context, assume_yes=yes),
+        action,
+        render_data=_render_construction,
     )
 
 
@@ -1499,8 +1667,319 @@ def proposal_status_action(status: ForgeProposalStatus) -> NextAction:
     )
 
 
+def proposal_next_actions(
+    context: CliContext, status: ForgeProposalStatus
+) -> list[NextAction]:
+    """Preparing the building of these tasks, with the model that planned them."""
+    model = read_plan_status(context.paths, status.record.plan_id).record.review.model
+    options: dict[str, str | Literal[True]] = {
+        "--provider": model.provider,
+        "--model": model.model_id,
+    }
+    if model.reasoning is not None:
+        options["--reasoning"] = model.reasoning
+    return [
+        NextAction(
+            operation=Operation.PLAN_PREPARE,
+            prepared_arguments=invocation(
+                "forge", "construct", arguments=[status.proposal_id], options=options
+            ),
+            expected_state_digest=None,
+            side_effect=SideEffect.LOCAL_STATE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
+            reason="Preparing the building of these tasks shows exactly what "
+            "the creator would be sent, and calls no model yet; another model "
+            "may be named.",
+        )
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Construction
+# ---------------------------------------------------------------------------
+
+#: Why a construction is refused without a person's answer.
+CONSTRUCTION_NOT_APPROVED = "forge_construction_not_approved"
+
+_CONSTRUCTION_STATE_WORDS: dict[str, str] = {
+    "prepared": "prepared; the creator has not been called",
+    "running": "the creator is working",
+    "finished": "finished",
+    "stopped": "stopped before it finished",
+}
+
+_CALL_STATE_WORDS: dict[str, str] = {
+    "not_called": "not called",
+    "running": "the creator is working on it",
+    "succeeded": "written, not yet checked",
+    "rejected": "answered, but not with a package Techtree can use",
+    "failed": "failed",
+    "outcome_unknown": "outcome unknown",
+}
+
+
+def construction_review_lines(record: ForgeConstructionRecord) -> list[str]:
+    """What sending this construction would do, in the words a person approves."""
+    review = record.review
+    disclosure = review.disclosure
+    limits = review.limits
+    calls = len(disclosure.calls)
+    files = len(disclosure.files)
+    file_bytes = sum(file.size for file in disclosure.files)
+    image, digest = review.recipe.base_image.split("@")
+    lines = [
+        f"Proposal: {review.proposal_id}, {calls} "
+        f"{_plural(calls, 'task', 'tasks')} to build",
+        f"Skill: {review.source_id}, {files} {_plural(files, 'file', 'files')} "
+        f"({file_bytes} bytes)",
+    ]
+    if review.corrected_by:
+        lines.append(
+            "Corrected since: " + ", ".join(review.corrected_by) + ". This "
+            "builds the proposal as it stands, not those corrections."
+        )
+    if review.retry_of is not None:
+        lines.append(
+            f"Tries again: {review.retry_of}, only its tasks without a usable package"
+        )
+    lines += [
+        "What the model is sent, once for each task: that task as proposed "
+        "and the Skill's files, word for word, inside Techtree's building "
+        "instructions. Each prompt is kept in the construction's prompts "
+        "folder.",
+        *(
+            f"  {call.task_name}, {call.prompt_bytes} bytes"
+            for call in disclosure.calls
+        ),
+        f"Model: {review.model.model_id} from {review.model.provider}"
+        + (f", reasoning {review.model.reasoning}" if review.model.reasoning else ""),
+        f"The model calls go to that provider only, on the sign-in of your "
+        f"Hermes profile {PROFILE_NAME} (Hermes Agent v{review.agent.version}); "
+        "Techtree copies no credential and reads none.",
+        "What the creator can do: answer in text. It has no tools, so it "
+        "cannot run commands, read or change files, search the web or "
+        "remember anything. Techtree writes the files it answers with.",
+        f"Limits: one call per task, {limits.calls} in all, each of at most "
+        f"{limits.wall_seconds_per_call} seconds and an answer of at most "
+        f"{limits.answer_bytes_per_call} bytes. Nothing is retried; trying "
+        "again needs a new approval.",
+        "Afterwards: each package is checked on this computer with Docker, "
+        f"with no network: its image is built from {image} at the exact "
+        f"version {digest[:19]}, downloaded first if Docker does not have it, "
+        "and its tests must fail when nothing is done and pass for its own "
+        "solution. Only a package that passes is usable.",
+        "Cost: nothing is quoted in advance. What each call used is recorded "
+        "afterwards from Hermes' own usage report.",
+        f"This approval covers exactly this: {record.construction_digest[:19]}",
+    ]
+    return lines
+
+
+def _ask_to_construct(context: CliContext, record: ForgeConstructionRecord) -> None:
+    console = human_console(no_color=context.no_color)
+    for line in construction_review_lines(record):
+        console.print(line, markup=False)
+    console.print()
+    if not confirmed("Send these tasks to the creator?"):
+        raise PolicyError(
+            "the construction was not approved, so the creator was not called",
+            code=CONSTRUCTION_NOT_APPROVED,
+            details={"construction_id": record.construction_id},
+        )
+
+
+def _construct_when_approved(status: ForgeConstructionStatus) -> NextAction:
+    """Return the start of exactly this construction, for after a person agreed."""
+    return NextAction(
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation(
+            "forge",
+            "construct-start",
+            arguments=[status.construction_id],
+            options={"--yes": True, "--reviewed-on": ReviewSurface.HOST_AGENT.value},
+        ),
+        expected_state_digest=status.record.construction_digest,
+        side_effect=SideEffect.LOCAL_EXECUTION,
+        approval_required=True,
+        retry_class=RetryClass.HUMAN_DECISION_REQUIRED,
+        estimated_cost=None,
+        data_egress=DataEgress.MODEL_PROVIDER,
+        reason="It sends each proposed task with the Skill's files to the "
+        "creator once, on the person's own account, and checks what comes back "
+        "on this computer. A person approves exactly the construction shown; a "
+        "corrected proposal or a changed Skill, model or Hermes is refused and "
+        "prepared again.",
+    )
+
+
+def _usable(task: ForgeConstructionTaskStatus) -> bool:
+    return task.package is not None and task.package.usable_tasks > 0
+
+
+def _construction_error(status: ForgeConstructionStatus) -> TechtreeError | None:
+    """Say so as the command's error when no task got a usable package."""
+    if any(_usable(task) for task in status.tasks):
+        return None
+    return RunError(
+        "no task of this construction got a usable package. The creator is "
+        "not called again; to try again, prepare a new construction with "
+        f"--retry-of {status.construction_id}",
+        code="forge_construction_nothing_usable",
+        details={"construction_id": status.construction_id, "path": status.path},
+    )
+
+
+def construction_warnings(status: ForgeConstructionStatus) -> list[CliWarning]:
+    """Say which calls began and were never seen to end."""
+    unknown = [
+        task.task_name for task in status.tasks if task.state == "outcome_unknown"
+    ]
+    if not unknown:
+        return []
+    return [
+        CliWarning(
+            id="forge_construction_outcome_unknown",
+            text=(
+                "The creator call for "
+                + ", ".join(unknown)
+                + " began and its end was never seen, so the provider may or "
+                "may not have answered or charged. Techtree does not call it "
+                "again on its own."
+            ),
+            resolvable_by=None,
+        )
+    ]
+
+
+def construction_next_actions(status: ForgeConstructionStatus) -> list[NextAction]:
+    """What can follow: the start, each usable build, or a construction that
+    tries the rest again."""
+    if status.state == "prepared":
+        return [_construct_when_approved(status)]
+    actions = [
+        NextAction(
+            operation=Operation.PLAN_INSPECT,
+            prepared_arguments=invocation(
+                "forge", "status", arguments=[task.package.build_id]
+            ),
+            expected_state_digest=None,
+            side_effect=SideEffect.NONE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
+            reason=f"How {task.task_name} was checked, and the task it made.",
+        )
+        for task in status.tasks
+        if task.package is not None and _usable(task)
+    ]
+    if status.state in {"finished", "stopped"} and not all(
+        _usable(task) for task in status.tasks
+    ):
+        review = status.record.review
+        options: dict[str, str | Literal[True]] = {
+            "--provider": review.model.provider,
+            "--model": review.model.model_id,
+            "--retry-of": status.construction_id,
+        }
+        if review.model.reasoning is not None:
+            options["--reasoning"] = review.model.reasoning
+        actions.append(
+            NextAction(
+                operation=Operation.PLAN_PREPARE,
+                prepared_arguments=invocation(
+                    "forge",
+                    "construct",
+                    arguments=[review.proposal_id],
+                    options=options,
+                ),
+                expected_state_digest=None,
+                side_effect=SideEffect.LOCAL_STATE,
+                approval_required=False,
+                retry_class=RetryClass.HUMAN_DECISION_REQUIRED,
+                estimated_cost=None,
+                data_egress=DataEgress.NONE,
+                reason="Trying the tasks without a usable package again is a new "
+                "construction that names this one, and it needs its own "
+                "approval before the creator is called.",
+            )
+        )
+    return actions
+
+
+def _task_words(task: ForgeConstructionTaskStatus) -> str:
+    package = task.package
+    if package is None:
+        return _CALL_STATE_WORDS[task.state]
+    if package.failure is None:
+        return f"usable, checked as build {package.build_id}"
+    return f"written, but not usable: {package.failure.message}"
+
+
+def render_forge_construction(
+    status: ForgeConstructionStatus, console: Console
+) -> None:
+    """Print one construction: each task's call and package, then the review."""
+    pairs = [
+        ("Construction", status.construction_id),
+        ("State", _CONSTRUCTION_STATE_WORDS[status.state]),
+        ("Proposal", status.record.review.proposal_id),
+    ]
+    approval = status.approval
+    if approval is not None:
+        pairs.append(
+            (
+                "Approved",
+                f"{approval.approved_at:%Y-%m-%d %H:%M:%S} UTC, "
+                + (
+                    "answered at the prompt"
+                    if approval.answered_with == "prompt"
+                    else f"answered on {approval.reviewed_on} and passed with --yes"
+                ),
+            )
+        )
+    if status.run is not None and status.run.stopped is not None:
+        pairs.append(("Stopped", "with Ctrl-C"))
+    pairs.append(("Evidence", status.path))
+    render_pairs(pairs, console)
+    if status.state != "prepared":
+        for task in status.tasks:
+            console.print()
+            console.print(f"{task.task_name}: {_task_words(task)}", markup=False)
+            call = task.call
+            if call is None:
+                continue
+            lines = [f"Package: {task.package_name}"]
+            if call.seconds is not None:
+                lines.append(f"Took: {call.seconds:.0f} seconds")
+            if call.stopped is not None:
+                lines.append(
+                    "Stopped: at its time limit"
+                    if call.stopped == "wall_time"
+                    else "Stopped: with Ctrl-C"
+                )
+            lines.append(f"Cost: {_cost_words(call.usage)}")
+            if call.failure is not None:
+                lines.append(f"Why: {call.failure.message}")
+            for line in lines:
+                console.print(Padding(Text(line), (0, 0, 0, 2)))
+    console.print()
+    for line in construction_review_lines(status.record):
+        console.print(line, markup=False)
+
+
+def _render_construction(data: object, console: Console) -> None:
+    if isinstance(data, ForgeConstructionStatus):
+        render_forge_construction(data, console)
+
+
 def _render_status(data: object, console: Console) -> None:
-    if isinstance(data, ForgePlanStatus):
+    if isinstance(data, ForgeConstructionStatus):
+        render_forge_construction(data, console)
+    elif isinstance(data, ForgePlanStatus):
         render_forge_plan(data, console)
     elif isinstance(data, ForgeProposalStatus):
         render_forge_proposal(data, console)

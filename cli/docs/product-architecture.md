@@ -358,8 +358,11 @@ src/techtree/
 │                       source.py (a Source Skill looked at without running
 │                       any of it, and its source record), planning.py (a
 │                       planning approval, the one planner call and the
-│                       proposal it answers with), docker.py and process.py
-│                       (the one command boundary).
+│                       proposal it answers with), construction.py (a
+│                       construction approval, one creator call per proposed
+│                       task and each package's import and qualification),
+│                       authoring.py (what planning and construction share),
+│                       docker.py and process.py (the one command boundary).
 └── resources/          catalog/, engines/default/, forge/, harness/, release/ — the
                         embedded, generated payload the wheel carries.
 ```
@@ -431,7 +434,47 @@ answer becomes `forge/proposals/<forgeprop_id>/proposal.json`
 (`techtree.forge-proposal.v1alpha1`) with `tasks.json` beside it, and stops
 there for review. `forge correct-proposal PROPOSAL_ID FILE` records a person's
 corrections as a new proposal whose `parent` names the original and its digest;
-the original is never rewritten. Nothing is constructed from a proposal here.
+the original is never rewritten.
+
+**Forge construction (one approved creator call per task, then qualification).**
+`forge construct PROPOSAL_ID --provider --model [--reasoning]
+[--retry-of CONSTRUCTION_ID]` (`forge/construction.py`, U3b) prepares the
+building of a proposal's tasks and calls nothing. For each task it writes
+`forge/constructions/<forgecon_id>/prompts/<task>.md`, the exact bytes the
+creator would be sent: Techtree's building instructions
+(`resources/forge/skill2env/creator-prompt.md`, adapted from Skill2Env's
+task-construction stage with attribution, naming the one allow-listed base
+image by digest), the task as proposed, and the Source Skill's admitted files
+read back from the kept copy. `construction.json`
+(`techtree.forge-construction.v1alpha1`) binds in one `construction_digest`
+the proposal and its digest, the proposals that correct it (`corrected_by`),
+the source, the instructions', contract's and base image's pins, the Hermes
+executable and version, provider and model, the Docker platform, each call's
+task, package name (`task_<task>_<first 8 of the construction id>`) and
+prompt size and digest, the egress, the capabilities (no tools, as for
+planning) and the limits (one call per task, 900 seconds and a 512 KiB answer
+each). `forge construct-start CONSTRUCTION_ID` recomputes that review and
+refuses a construction whose proposal gained a correction, or whose Skill
+copy, instructions, Hermes or platform changed (`forge_construction_stale`,
+naming what changed); it asks Docker before any call and refuses without it.
+Under the profile lock it writes `approval.json` and `run.json` (this
+process's id), then for each task in turn writes `calls/<task>/call.json`
+(`started`) before the call and again when it ends, with the answer, log,
+usage report and transcript beside it. The creator answers with one JSON
+object of the package's files; Techtree checks every path (only
+`instruction.md`, `environment/`, `tests/` and `solution/`, no hidden or
+duplicate path, every required file present), writes the files, and writes
+`task.toml` itself from the pinned contract, as Skill2Env's host does. The
+package then goes through `ForgeService.import_skill` unchanged, and
+`package.json` records the build it became and how many usable tasks it has,
+or why it has none. A call ends `succeeded`, `rejected`, `failed` or
+`outcome_unknown` (its wall time ran out, Ctrl-C, or `status` finds it
+`started` by a process that is gone); every one is kept and shown, and the
+pass goes on to the next task, except that Ctrl-C ends the pass
+(`forge_construction_interrupted`). A construction is started at most once
+and nothing is retried: `--retry-of` prepares a new construction of only the
+tasks the earlier one, finished or stopped, left without a usable package, and
+it needs its own approval.
 
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and

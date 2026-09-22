@@ -45,6 +45,11 @@ __all__ = [
     "BASE_IMAGE_REFERENCE",
     "FORGE_BUILD_SCHEMA_VERSION",
     "FORGE_COMPARISON_SCHEMA_VERSION",
+    "FORGE_CONSTRUCTION_APPROVAL_SCHEMA_VERSION",
+    "FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION",
+    "FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION",
+    "FORGE_CONSTRUCTION_RUN_SCHEMA_VERSION",
+    "FORGE_CONSTRUCTION_SCHEMA_VERSION",
     "FORGE_PLAN_APPROVAL_SCHEMA_VERSION",
     "FORGE_PLAN_ATTEMPT_SCHEMA_VERSION",
     "FORGE_PLAN_SCHEMA_VERSION",
@@ -66,6 +71,7 @@ __all__ = [
     "ForgeAttemptOutcome",
     "ForgeAttemptPair",
     "ForgeAttemptRecord",
+    "ForgeAuthoringCapabilities",
     "ForgeBaseImage",
     "ForgeBuildFailure",
     "ForgeBuildPhase",
@@ -74,6 +80,22 @@ __all__ = [
     "ForgeBuildStatus",
     "ForgeComparisonRecord",
     "ForgeComparisonStatus",
+    "ForgeConstructionApproval",
+    "ForgeConstructionCall",
+    "ForgeConstructionCallReview",
+    "ForgeConstructionCallState",
+    "ForgeConstructionDisclosure",
+    "ForgeConstructionLimits",
+    "ForgeConstructionPackage",
+    "ForgeConstructionRecord",
+    "ForgeConstructionReview",
+    "ForgeConstructionRun",
+    "ForgeConstructionState",
+    "ForgeConstructionStatus",
+    "ForgeConstructionTaskStatus",
+    "ForgeCreatedFile",
+    "ForgeCreatedPackage",
+    "ForgeCreatorRecipe",
     "ForgeEvidence",
     "ForgeGradingSpec",
     "ForgeInitialState",
@@ -84,7 +106,6 @@ __all__ = [
     "ForgePlanApproval",
     "ForgePlanAttempt",
     "ForgePlanAttemptState",
-    "ForgePlanCapabilities",
     "ForgePlanDisclosure",
     "ForgePlanLimits",
     "ForgePlanRecord",
@@ -1230,6 +1251,19 @@ FORGE_PLAN_SCHEMA_VERSION: Final = "techtree.forge-plan.v1alpha1"
 FORGE_PLAN_APPROVAL_SCHEMA_VERSION: Final = "techtree.forge-plan-approval.v1alpha1"
 FORGE_PLAN_ATTEMPT_SCHEMA_VERSION: Final = "techtree.forge-plan-attempt.v1alpha1"
 FORGE_PROPOSAL_SCHEMA_VERSION: Final = "techtree.forge-proposal.v1alpha1"
+FORGE_CONSTRUCTION_SCHEMA_VERSION: Final = "techtree.forge-construction.v1alpha1"
+FORGE_CONSTRUCTION_APPROVAL_SCHEMA_VERSION: Final = (
+    "techtree.forge-construction-approval.v1alpha1"
+)
+FORGE_CONSTRUCTION_RUN_SCHEMA_VERSION: Final = (
+    "techtree.forge-construction-run.v1alpha1"
+)
+FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION: Final = (
+    "techtree.forge-construction-call.v1alpha1"
+)
+FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION: Final = (
+    "techtree.forge-construction-package.v1alpha1"
+)
 
 #: The most tasks one plan may ask for: Skill2Env's own default workflow count.
 MAX_PLANNED_TASKS: Final = 8
@@ -1262,8 +1296,8 @@ class ForgePlanDisclosure(ProtocolModel):
     prompt_digest: Digest
 
 
-class ForgePlanCapabilities(ProtocolModel):
-    """What the planner may do besides answer: nothing.
+class ForgeAuthoringCapabilities(ProtocolModel):
+    """What the planner or the creator may do besides answer: nothing.
 
     Hermes is asked for its text-only toolset, which holds no tool, and runs
     with memory off and without its rules, memory or Skills injected.
@@ -1299,7 +1333,7 @@ class ForgePlanReview(ProtocolModel):
     model: ForgeModelSpec
     disclosure: ForgePlanDisclosure
     egress: Literal["model-provider"]
-    capabilities: ForgePlanCapabilities
+    capabilities: ForgeAuthoringCapabilities
     limits: ForgePlanLimits
 
 
@@ -1475,3 +1509,256 @@ class ForgeProposalStatus(ProtocolModel):
     proposal_id: NonEmptyString
     path: NonEmptyString
     record: ForgeProposalRecord
+
+
+# ---------------------------------------------------------------------------
+# Construction: building task packages from one reviewed proposal
+# ---------------------------------------------------------------------------
+
+
+class ForgeCreatorRecipe(ProtocolModel):
+    """The building instructions and the package contract the creator follows."""
+
+    name: Literal["skill2env-creator"]
+    instructions_digest: Digest
+    contract_digest: Digest
+    base_image: NonEmptyString
+    upstream_url: NonEmptyString
+    upstream_revision: NonEmptyString
+
+
+class ForgeConstructionCallReview(ProtocolModel):
+    """One creator call an approval covers: the task and the exact prompt."""
+
+    task_name: ForgeProposedTaskName
+    package_name: Annotated[
+        str, StringConstraints(pattern=r"^task_[a-z0-9-]+_[a-z0-9]{8}$")
+    ]
+    prompt_bytes: int = Field(ge=1)
+    prompt_digest: Digest
+
+
+class ForgeConstructionDisclosure(ProtocolModel):
+    """What leaves the machine: per call, one task and the Skill's files."""
+
+    files: list[SkillFile] = Field(min_length=1)
+    calls: list[ForgeConstructionCallReview] = Field(min_length=1)
+
+
+class ForgeConstructionLimits(ProtocolModel):
+    """The bounds one construction approval covers."""
+
+    calls: int = Field(ge=1)
+    attempts_per_call: Literal[1]
+    wall_seconds_per_call: int = Field(ge=1)
+    answer_bytes_per_call: int = Field(ge=1)
+
+
+class ForgeConstructionReview(ProtocolModel):
+    """Everything one construction approval covers, bound by one digest.
+
+    ``corrected_by`` lists the corrections of the proposal that existed when
+    the review was made; a correction made after it makes the review stale.
+    ``source_skill`` is the ``provider/id`` every package's ``task.toml``
+    names, and ``platform`` the Docker platform its image is built for.
+    """
+
+    proposal_id: NonEmptyString
+    proposal_digest: Digest
+    corrected_by: list[NonEmptyString]
+    source_id: NonEmptyString
+    source_digest: Digest
+    source_skill: Annotated[
+        str, StringConstraints(pattern=r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9._-]+$")
+    ]
+    retry_of: NonEmptyString | None
+    recipe: ForgeCreatorRecipe
+    agent: ForgeAgentSpec
+    model: ForgeModelSpec
+    platform: ForgePlatform
+    disclosure: ForgeConstructionDisclosure
+    egress: Literal["model-provider"]
+    capabilities: ForgeAuthoringCapabilities
+    limits: ForgeConstructionLimits
+
+    @model_validator(mode="after")
+    def validate_calls(self) -> Self:
+        names = [call.task_name for call in self.disclosure.calls]
+        if len(set(names)) != len(names):
+            raise ValueError("a construction calls the creator once per task")
+        if self.limits.calls != len(names):
+            raise ValueError("the call limit is the number of calls reviewed")
+        return self
+
+
+class ForgeConstructionRecord(ProtocolModel):
+    """A prepared construction: its review and the digest an approval names."""
+
+    schema_version: Literal["techtree.forge-construction.v1alpha1"]
+    construction_id: NonEmptyString
+    created_at: UtcDateTime
+    review: ForgeConstructionReview
+    construction_digest: Digest
+
+    @model_validator(mode="after")
+    def validate_digest(self) -> Self:
+        if not verify_object_digest(self.review, self.construction_digest):
+            raise ValueError("construction digest does not describe its review")
+        return self
+
+
+class ForgeConstructionApproval(ProtocolModel):
+    """A person's approval of exactly one prepared construction."""
+
+    schema_version: Literal["techtree.forge-construction-approval.v1alpha1"]
+    construction_id: NonEmptyString
+    construction_digest: Digest
+    approved_at: UtcDateTime
+    reviewed_on: Literal["cli", "host-agent"]
+    answered_with: Literal["prompt", "yes-flag"]
+
+
+class ForgeConstructionRun(ProtocolModel):
+    """The one pass an approval covers, from its start to its end.
+
+    Written before the first call with the process that makes them, and again
+    when the pass ends: ``stopped`` is ``person`` when Ctrl-C ended it early.
+    """
+
+    schema_version: Literal["techtree.forge-construction-run.v1alpha1"]
+    construction_id: NonEmptyString
+    process_id: int = Field(ge=1)
+    started_at: UtcDateTime
+    ended_at: UtcDateTime | None
+    stopped: Literal["person"] | None
+
+    @model_validator(mode="after")
+    def validate_end(self) -> Self:
+        if self.stopped is not None and self.ended_at is None:
+            raise ValueError("a pass that was stopped has ended")
+        return self
+
+
+class ForgeConstructionCall(ProtocolModel):
+    """One creator call, checkpointed like a planner call.
+
+    Written with ``started`` before Hermes is launched and again when it has
+    ended. ``succeeded`` names the package Techtree wrote from the answer;
+    ``rejected`` means the answer is not a usable package, kept as
+    ``answer.txt``; ``failed`` means Hermes said it failed;
+    ``outcome_unknown`` means it was stopped mid-call. None is retried.
+    """
+
+    schema_version: Literal["techtree.forge-construction-call.v1alpha1"]
+    construction_id: NonEmptyString
+    construction_digest: Digest
+    task_name: ForgeProposedTaskName
+    process_id: int = Field(ge=1)
+    started_at: UtcDateTime
+    updated_at: UtcDateTime
+    state: ForgePlanAttemptState
+    hermes_arguments: list[NonEmptyString]
+    config_digest: Digest
+    exit_code: int | None
+    stopped: Literal["wall_time", "person"] | None
+    seconds: float | None = Field(ge=0.0)
+    usage: ForgeUsage | None
+    answer_bytes: int | None = Field(ge=0)
+    answer_digest: Digest | None
+    package_name: NonEmptyString | None
+    failure: ForgeBuildFailure | None
+
+    @model_validator(mode="after")
+    def validate_state(self) -> Self:
+        if (self.state == "succeeded") != (self.package_name is not None):
+            raise ValueError("a call names a package exactly when it succeeded")
+        if (self.state in {"rejected", "failed"}) != (self.failure is not None):
+            raise ValueError("a rejected or failed call says why, no other does")
+        if (self.state == "outcome_unknown") != (self.stopped is not None):
+            raise ValueError("a call with an unknown outcome says what stopped it")
+        return self
+
+
+class ForgeConstructionPackage(ProtocolModel):
+    """Where one written package went: the build that admitted and checked it.
+
+    ``usable_tasks`` is what that build's qualification kept for use; a
+    package the importer refused, or whose checks failed or were stopped,
+    names the build and says why.
+    """
+
+    schema_version: Literal["techtree.forge-construction-package.v1alpha1"]
+    construction_id: NonEmptyString
+    task_name: ForgeProposedTaskName
+    package_name: NonEmptyString
+    build_id: NonEmptyString
+    usable_tasks: int = Field(ge=0)
+    failure: ForgeBuildFailure | None
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> Self:
+        if (self.usable_tasks == 0) != (self.failure is not None):
+            raise ValueError("a package that cannot be used says why, no other does")
+        return self
+
+
+class ForgeCreatedFile(ProtocolModel):
+    """One file of a package, as the creator answered it."""
+
+    path: Annotated[str, StringConstraints(min_length=1, max_length=255)]
+    text: str
+    executable: bool
+
+
+class ForgeCreatedPackage(ProtocolModel):
+    """A creator's answer: the task's words and its files, but not ``task.toml``.
+
+    Techtree writes ``task.toml`` itself from the pinned contract, as
+    Skill2Env's host does; the creator gives the parts only it can know.
+    """
+
+    description: Annotated[str, StringConstraints(min_length=1, max_length=500)]
+    keywords: list[Annotated[str, StringConstraints(min_length=1, max_length=64)]] = (
+        Field(min_length=1, max_length=8)
+    )
+    artifacts: list[Annotated[str, StringConstraints(min_length=2, max_length=255)]] = (
+        Field(min_length=1, max_length=16)
+    )
+    files: list[ForgeCreatedFile] = Field(min_length=1, max_length=64)
+
+
+#: Where a construction stands, read from its records.
+type ForgeConstructionState = Literal["prepared", "running", "finished", "stopped"]
+#: Where one of its calls stands.
+type ForgeConstructionCallState = Literal[
+    "not_called", "running", "succeeded", "rejected", "failed", "outcome_unknown"
+]
+
+
+class ForgeConstructionTaskStatus(ProtocolModel):
+    """One task of a construction: its call, if made, and its package, if any."""
+
+    task_name: ForgeProposedTaskName
+    package_name: NonEmptyString
+    state: ForgeConstructionCallState
+    call: ForgeConstructionCall | None
+    package: ForgeConstructionPackage | None
+
+
+class ForgeConstructionStatus(ProtocolModel):
+    """A construction read back: review, approval, pass and every task.
+
+    ``state`` is ``prepared`` until approved, ``running`` while the process
+    making the pass is alive, ``finished`` when the pass ended on its own, and
+    ``stopped`` when Ctrl-C ended it or its process is gone before it ended.
+    A call left ``started`` by a process that is gone reads
+    ``outcome_unknown``.
+    """
+
+    construction_id: NonEmptyString
+    path: NonEmptyString
+    state: ForgeConstructionState
+    record: ForgeConstructionRecord
+    approval: ForgeConstructionApproval | None
+    run: ForgeConstructionRun | None
+    tasks: list[ForgeConstructionTaskStatus]

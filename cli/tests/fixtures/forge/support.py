@@ -46,10 +46,12 @@ from techtree.paths import TechtreePaths, paths_from_root
 
 __all__ = [
     "PLANNER_ANSWER",
+    "FakeCreator",
     "FakeDocker",
     "FakeHermes",
     "FakePlanner",
     "QualifiedBuild",
+    "created_package",
     "declare",
     "hermes_on_path",
     "qualified_build",
@@ -644,3 +646,78 @@ class FakePlanner:
             timed_out=self.timed_out,
             seconds=timeout if self.timed_out else 12.0,
         )
+
+
+def created_package(task_name: str) -> bytes:
+    """What the creator answers for one task: a package that builds offline.
+
+    Its tests fail when nothing is done and pass for its reference solution,
+    in the way ``skill2env_task`` does; FakeDocker decides the grades.
+    """
+    files = {
+        "instruction.md": (
+            f"For {task_name}, sum /app/amounts.txt and write the integer to "
+            "/app/result.txt.\n",
+            False,
+        ),
+        "environment/Dockerfile": (
+            f"FROM {PYTHON_SLIM}\nWORKDIR /app\nCOPY amounts.txt /app/amounts.txt\n",
+            False,
+        ),
+        "environment/amounts.txt": ("2\n3\n", False),
+        "tests/rubric.md": ("The result equals the sum of the amounts.\n", False),
+        "tests/test.sh": (
+            "#!/bin/sh\nmkdir -p /logs/verifier\n"
+            'if [ "$(cat /app/result.txt 2>/dev/null)" = 5 ]; then\n'
+            "  echo 1 > /logs/verifier/reward.txt\nelse\n"
+            "  echo 0 > /logs/verifier/reward.txt\nfi\n",
+            True,
+        ),
+        "solution/solve.sh": (
+            "#!/bin/sh\npython3 -c \"print(sum(map(int, open('/app/amounts.txt'))))\""
+            " > /app/result.txt\n",
+            True,
+        ),
+    }
+    return json.dumps(
+        {
+            "description": f"Sum the supplied amounts ({task_name}).",
+            "keywords": ["branch-code", "sum"],
+            "artifacts": ["/app/result.txt"],
+            "files": [
+                {"path": path, "text": text, "executable": executable}
+                for path, (text, executable) in files.items()
+            ],
+        }
+    ).encode()
+
+
+@dataclass
+class FakeCreator:
+    """The launcher that would start ``hermes`` for the creator, once per task.
+
+    Each call is answered by a FakePlanner holding ``created_package`` for
+    the task named in the prompt, unless ``calls`` gives that task another
+    stand-in: one that times out, is interrupted, fails or answers otherwise.
+    ``tasks`` records the task of every launch, in order.
+    """
+
+    calls: dict[str, FakePlanner] = field(default_factory=dict)
+    tasks: list[str] = field(default_factory=list)
+
+    def __call__(
+        self,
+        argv: list[str],
+        env: dict[str, str],
+        cwd: Path,
+        answer: Path,
+        log: Path,
+        timeout: float,
+    ) -> AgentOutcome:
+        prompt = argv[-1]
+        start = prompt.index("===== the task =====\n") + len("===== the task =====\n")
+        end = prompt.index("\n===== end of the task =====")
+        name = json.loads(prompt[start:end])["name"]
+        self.tasks.append(name)
+        call = self.calls.get(name, FakePlanner(answer=created_package(name)))
+        return call(argv, env, cwd, answer, log, timeout)

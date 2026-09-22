@@ -8,7 +8,11 @@ The upstream launcher and generator are not included or executed.
 
 `planner-prompt.md` is Techtree's own planning instructions for `forge plan`,
 adapted from the planning stage of the same revision and attributed in the
-text itself; it is not a copy of the upstream prompt.
+text itself; it is not a copy of the upstream prompt. `creator-prompt.md` is,
+in the same way, Techtree's own building instructions for `forge construct`,
+adapted from the task-construction stage. Techtree writes the package the
+creator answers with, and its `task.toml` from `contract.json`, and imports
+it here like any other task.
 
 `contract.json` records the upstream pin, Harbor 0.16.0 dependency and
 authoritative Harbor task schema 1.3. Its fixed sections are derived from

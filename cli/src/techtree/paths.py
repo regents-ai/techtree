@@ -142,6 +142,15 @@ class TechtreePaths:
         """Return the directory holding one proposal."""
         return self.forge_proposals_dir / validate_id(proposal_id, "forgeprop")
 
+    @property
+    def forge_constructions_dir(self) -> Path:
+        """Return the directory holding every prepared construction."""
+        return self.forge_dir / "constructions"
+
+    def forge_construction_dir(self, construction_id: str) -> Path:
+        """Return the directory holding one construction, its calls and packages."""
+        return self.forge_constructions_dir / validate_id(construction_id, "forgecon")
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 
