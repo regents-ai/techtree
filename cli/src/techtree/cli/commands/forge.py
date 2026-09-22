@@ -551,16 +551,27 @@ def render_forge_status(status: ForgeBuildStatus, console: Console) -> None:
     else:
         pairs.append(("Progress", "unknown; no progress receipt"))
     if build is not None:
-        pairs.extend(
-            [
-                ("Repository", build.repository),
-                ("Commit", build.head_commit),
-                ("Image", build.bootstrap_image_tag),
-                ("Tests", " && ".join(build.test_commands)),
-                ("Candidates", str(build.generation.candidates)),
-                ("Emitted", str(build.generation.emitted)),
-            ]
-        )
+        source = build.source
+        if source.kind == "repository":
+            pairs.extend(
+                [
+                    ("Repository", source.repository),
+                    ("Commit", source.head_commit),
+                    ("Image", source.bootstrap_image_tag),
+                    ("Tests", " && ".join(source.test_commands)),
+                    ("Candidates", str(source.generation.candidates)),
+                    ("Emitted", str(source.generation.emitted)),
+                ]
+            )
+        else:
+            pairs.extend(
+                [
+                    ("Source Skill", source.source_skill_digest),
+                    ("Recipe", f"{source.recipe} {source.recipe_version}"),
+                    ("Producer", f"{source.producer} {source.producer_version}"),
+                    ("Committed tasks", str(len(build.task_set.tasks))),
+                ]
+            )
     elif progress is not None:
         pairs.append(("Repository", progress.repository))
     render_pairs(pairs, console)
@@ -569,9 +580,11 @@ def render_forge_status(status: ForgeBuildStatus, console: Console) -> None:
             f"{progress.failure.code}: {progress.failure.message}", markup=False
         )
         console.print("Inspect the retained evidence before starting a new build.")
-    if build is not None:
+    if build is not None and build.source.kind == "repository":
         console.print()
-        console.print(build_summary(build.generation, qualification), markup=False)
+        console.print(
+            build_summary(build.source.generation, qualification), markup=False
+        )
     if qualification is not None:
         for task in qualification.tasks:
             console.print(task_verdict(task), markup=False)
@@ -839,7 +852,7 @@ def _render_status(data: object, console: Console) -> None:
 def _warnings(status: ForgeBuildStatus) -> list[CliWarning]:
     """Say when a build made nothing usable, in one line each."""
     warnings: list[CliWarning] = []
-    if status.build is not None and status.build.generation.emitted == 0:
+    if status.build is not None and not status.build.task_set.tasks:
         warnings.append(
             CliWarning(
                 id="forge_nothing_emitted",

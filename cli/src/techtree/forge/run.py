@@ -247,6 +247,8 @@ class ForgeRunner:
         """Execute every attempt the specification names and record each one."""
         skill_files = self._skill_files(spec, skill_root)
         status = read_build_status(self._paths, spec.build_id)
+        if status.build is not None:
+            status.build.require_repository_source("Repository task execution")
         if status.build is None or status.qualification is None:
             raise RunError(
                 f"build {spec.build_id} no longer has a complete record",

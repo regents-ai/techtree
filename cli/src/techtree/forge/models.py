@@ -1,8 +1,9 @@
 """What a forge build and a forge run record. ``docs/plan/repo2rlenv-local-lane.md``.
 
 Three documents live in a build directory. ``build.json`` says what was built
-from what: the repository, the commit, the bootstrap image, the test commands,
-and what Repo2RLEnv found and emitted. ``qualification.json`` says which of the
+from what: a typed repository or Skill source around shared task commitments.
+The repository branch owns its Git and Repo2RLEnv evidence.
+``qualification.json`` says which of the
 emitted tasks proved out under the model-free checks and which did not, with
 the rewards each check observed. ``progress.json`` preserves the last observed
 phase and partial evidence. All are private local evidence about a mutable local
@@ -29,6 +30,7 @@ from typing import Annotated, Final, Literal, Self
 from pydantic import Field, StringConstraints, field_validator, model_validator
 
 from techtree.canonical import verify_object_digest
+from techtree.errors import ValidationError
 from techtree.models.base import (
     Digest,
     JsonValue,
@@ -72,6 +74,7 @@ __all__ = [
     "ForgePairResult",
     "ForgePlatform",
     "ForgeQualification",
+    "ForgeRepositorySource",
     "ForgeRevisionRecord",
     "ForgeRevisionStatus",
     "ForgeRunRecord",
@@ -80,6 +83,7 @@ __all__ = [
     "ForgeSamplingSpec",
     "ForgeScreeningFinding",
     "ForgeSkillName",
+    "ForgeSkillSource",
     "ForgeSkillSpec",
     "ForgeTaskConsistency",
     "ForgeTaskId",
@@ -95,7 +99,7 @@ __all__ = [
     "forge_verdict",
 ]
 
-FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha2"
+FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha3"
 FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha1"
 FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha2"
 FORGE_RUN_SCHEMA_VERSION: Final = "techtree.forge-run.v1alpha1"
@@ -226,17 +230,14 @@ class TaskSetCommitment(ProtocolModel):
         return self
 
 
-class ForgeBuildRecord(ProtocolModel):
-    """One build: its inputs, its bootstrap image, and what was generated."""
+class ForgeRepositorySource(ProtocolModel):
+    """The repository inputs and commit-runtime producer's generation evidence."""
 
-    schema_version: Literal["techtree.forge-build.v1alpha2"]
-    build_id: NonEmptyString
-    created_at: UtcDateTime
+    kind: Literal["repository"]
     repository: NonEmptyString
     head_commit: NonEmptyString
     slug: NonEmptyString
     language: ForgeLanguage
-    platform: ForgePlatform
     dockerfile_digest: Digest
     test_commands: list[NonEmptyString] = Field(min_length=1)
     limit: int = Field(ge=1)
@@ -244,11 +245,61 @@ class ForgeBuildRecord(ProtocolModel):
     bootstrap_image_id: NonEmptyString
     repo2rlenv_version: NonEmptyString
     generation: GenerationSummary
+
+
+class ForgeSkillSource(ProtocolModel):
+    """Source Skill commitment and the pinned recipe that produced the tasks.
+
+    The source commitment identifies the retained private Skill snapshot, not
+    a Skill supplied to a subject agent. Upstream revision names exact Git
+    bytes of the producer, never a fabricated commit for the source Skill.
+    """
+
+    kind: Literal["skill"]
+    source_skill_digest: Digest
+    recipe: NonEmptyString
+    recipe_version: NonEmptyString
+    producer: NonEmptyString
+    producer_version: NonEmptyString
+    upstream_url: NonEmptyString
+    upstream_revision: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{40}$")]
+    harbor_version: NonEmptyString
+
+
+class ForgeBuildRecord(ProtocolModel):
+    """One producer's provenance around the shared committed task packages."""
+
+    schema_version: Literal["techtree.forge-build.v1alpha3"]
+    build_id: NonEmptyString
+    created_at: UtcDateTime
+    source: Annotated[
+        ForgeRepositorySource | ForgeSkillSource, Field(discriminator="kind")
+    ]
+    platform: ForgePlatform
     task_set: TaskSetCommitment
+
+    def require_repository_source(self, operation: str) -> ForgeRepositorySource:
+        """Refuse operations whose evidence still depends on repository tasks."""
+        if not isinstance(self.source, ForgeRepositorySource):
+            raise ValidationError(
+                f"{operation} currently supports only repository-sourced builds; "
+                f"build {self.build_id} has a {self.source.kind} source",
+                code="forge_source_unsupported",
+                details={
+                    "build_id": self.build_id,
+                    "source": self.source.kind,
+                    "operation": operation,
+                },
+            )
+        return self.source
 
     @model_validator(mode="after")
     def validate_task_set(self) -> Self:
-        if self.generation.tasks != [task.task_id for task in self.task_set.tasks]:
+        if isinstance(
+            self.source, ForgeRepositorySource
+        ) and self.source.generation.tasks != [
+            task.task_id for task in self.task_set.tasks
+        ]:
             raise ValueError("committed task count or order differs from generation")
         return self
 
@@ -883,7 +934,9 @@ class ForgeBuildStatus(ProtocolModel):
             )
         if qualification.membership_digest != build.task_set.membership_digest:
             raise ValueError("qualification membership digest differs from build")
-        if [task.task_id for task in qualification.tasks] != build.generation.tasks:
+        if [task.task_id for task in qualification.tasks] != [
+            task.task_id for task in build.task_set.tasks
+        ]:
             raise ValueError("qualification task count or order differs from build")
         if [task.task_content_digest for task in qualification.tasks] != [
             task.content_digest for task in build.task_set.tasks
@@ -929,6 +982,9 @@ class ForgeBuildStatus(ProtocolModel):
                 "partial task evidence is not the committed ordered prefix"
             )
         if progress.current_task_id is not None:
-            remaining = build.generation.tasks[len(progress.completed_tasks) :]
+            remaining = [
+                task.task_id
+                for task in build.task_set.tasks[len(progress.completed_tasks) :]
+            ]
             if not remaining or progress.current_task_id != remaining[0]:
                 raise ValueError("current task differs from next committed task")

@@ -7,16 +7,20 @@ at declaration, and the gate's pointers.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError as ModelValidationError
 
 from fixtures.forge.support import (
     HERMES_VERSION_LINE,
+    FakeDocker,
     QualifiedBuild,
     declare,
     hermes_on_path,
     qualified_build,
+    skill_build,
     write_skill,
 )
 from techtree.errors import PrerequisiteError, ValidationError, VerificationError
@@ -26,12 +30,16 @@ from techtree.forge.comparability import (
     assert_comparable_run_specs,
     compare_run_specs,
 )
+from techtree.forge.docker import Docker
 from techtree.forge.experiment import (
     NOT_ESTABLISHED,
     declare_run_spec,
     run_spec_digest,
 )
-from techtree.forge.models import ForgeArm
+from techtree.forge.models import ForgeArm, ForgeBuildRecord, ForgeSkillSource
+from techtree.forge.qualify import qualify_build
+from techtree.forge.service import read_build_status
+from techtree.paths import paths_from_root
 
 
 @pytest.fixture
@@ -47,6 +55,89 @@ def skill(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 # Declaration
 # ---------------------------------------------------------------------------
+
+
+def test_skill_build_preserves_content_without_repository_facts(tmp_path: Path) -> None:
+    build = skill_build(tmp_path)
+    paths = paths_from_root(tmp_path)
+    status = read_build_status(paths, build.build_id)
+    assert status.build == build
+    assert isinstance(build.source, ForgeSkillSource)
+    assert status.generation_finished is True
+    assert status.qualification_finished is None
+    assert status.progress is None
+    assert [task.task_id for task in build.task_set.tasks] == ["reconcile-ledger"]
+    with pytest.raises(PrerequisiteError) as caught:
+        declare_run_spec(
+            paths,
+            arm=ForgeArm.BASELINE,
+            build_id=build.build_id,
+            task_ids=None,
+            skill_root=None,
+            provider="fixture",
+            model_id="fixture",
+            reasoning=None,
+            repetitions=1,
+        )
+    assert caught.value.code == "forge_build_not_qualified"
+    with pytest.raises(ValidationError) as caught_source:
+        qualify_build(
+            docker=Docker(FakeDocker()),
+            build=build,
+            tasks_dir=Path(status.tasks_path),
+            work_dir=tmp_path / "qualification",
+        )
+    assert caught_source.value.code == "forge_source_unsupported"
+    assert not (tmp_path / "qualification").exists()
+
+
+def test_build_source_requires_one_complete_discriminated_identity(
+    tmp_path: Path,
+) -> None:
+    build = skill_build(tmp_path)
+    payload = build.model_dump(mode="json")
+    for field in (
+        "source_skill_digest",
+        "recipe_version",
+        "upstream_revision",
+        "producer_version",
+    ):
+        invalid = build.model_dump(mode="json")
+        del invalid["source"][field]
+        with pytest.raises(ModelValidationError):
+            ForgeBuildRecord.model_validate_json(json.dumps(invalid))
+    for changes in (
+        {"kind": "repository"},
+        {"kind": "unknown"},
+        {"head_commit": "a" * 40},
+        {"upstream_revision": "main"},
+    ):
+        invalid = build.model_dump(mode="json")
+        invalid["source"].update(changes)
+        with pytest.raises(ModelValidationError):
+            ForgeBuildRecord.model_validate_json(json.dumps(invalid))
+    payload["repository"] = "/fake/repository"
+    with pytest.raises(ModelValidationError):
+        ForgeBuildRecord.model_validate_json(json.dumps(payload))
+
+
+def test_old_build_schema_fails_without_changing_saved_bytes(
+    build: QualifiedBuild,
+) -> None:
+    path = build.paths.forge_build_dir(build.build_id) / "build.json"
+    payload = json.loads(path.read_bytes())
+    source = payload.pop("source")
+    source.pop("kind")
+    payload.update(source)
+    payload["schema_version"] = "techtree.forge-build.v1alpha2"
+    original = json.dumps(payload).encode()
+    path.write_bytes(original)
+    with pytest.raises(ValidationError) as caught:
+        read_build_status(build.paths, build.build_id)
+    assert caught.value.code == "forge_schema_unsupported"
+    assert caught.value.details["file"] == str(path)
+    assert caught.value.details["schema_version"] == payload["schema_version"]
+    assert path.read_bytes() == original
 
 
 def test_a_baseline_records_the_build_and_the_facts_it_checked(

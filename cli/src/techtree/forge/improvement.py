@@ -166,6 +166,7 @@ def build_forge_improvement_context(
             code=IMPROVEMENT_CONTEXT_INVALID,
             details={"comparison_id": comparison_id, "build_id": comparison.build_id},
         )
+    source = build.require_repository_source("Repository improvement context")
     entrypoint = next(
         (file.digest for file in skill.files if file.path == SKILL_ENTRY_FILE), None
     )
@@ -193,8 +194,8 @@ def build_forge_improvement_context(
         baseline_run_id=comparison.baseline_run_id,
         candidate_run_id=comparison.candidate_run_id,
         build_id=comparison.build_id,
-        repository=build.slug,
-        head_commit=build.head_commit,
+        repository=source.slug,
+        head_commit=source.head_commit,
         parent_skill_name=skill.name,
         parent_skill_digest=skill.root_digest,
         parent_skill_entrypoint_digest=entrypoint,

@@ -85,6 +85,7 @@ def compare_runs(
             details={"build_id": baseline.spec.build_id},
         )
 
+    source = build.require_repository_source("Repository comparison report")
     record = build_comparison(
         baseline,
         candidate,
@@ -97,8 +98,8 @@ def compare_runs(
     atomic_write_json(directory / COMPARISON_FILENAME, record.model_dump(mode="json"))
     page = render_report(
         record,
-        repository=build.repository,
-        head_commit=build.head_commit,
+        repository=source.repository,
+        head_commit=source.head_commit,
         baseline=baseline,
         candidate=candidate,
     )

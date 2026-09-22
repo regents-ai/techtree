@@ -22,13 +22,16 @@ import pytest
 
 from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.errors import RunError
+from techtree.forge.content import commit_task_set
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
     ForgeArm,
     ForgeBuildRecord,
     ForgeLanguage,
     ForgeQualification,
+    ForgeRepositorySource,
     ForgeRunSpec,
+    ForgeSkillSource,
     GenerationSummary,
     TaskContentEntry,
     TaskContentManifest,
@@ -47,6 +50,7 @@ __all__ = [
     "hermes_on_path",
     "qualified_build",
     "signed_in_profile",
+    "skill_build",
     "write_skill",
 ]
 
@@ -121,23 +125,26 @@ def qualified_build(home: Path, *, qualified: bool = True) -> QualifiedBuild:
     )
     now = datetime.now(UTC)
     build = ForgeBuildRecord(
-        schema_version="techtree.forge-build.v1alpha2",
+        schema_version="techtree.forge-build.v1alpha3",
         build_id=build_id,
         created_at=now,
-        repository="/repo/demo",
-        head_commit=BASE_COMMIT,
-        slug="demo",
-        language=ForgeLanguage.PYTHON,
-        platform="linux/arm64",
-        dockerfile_digest=sha256_digest_bytes(b"FROM scratch\n"),
-        test_commands=["uv run pytest"],
-        limit=1,
-        bootstrap_image_tag="techtree-forge/demo:bootstrap",
-        bootstrap_image_id="sha256:" + "cd" * 32,
-        repo2rlenv_version="0.0.0",
-        generation=GenerationSummary(
-            candidates=1, emitted=1, skipped=0, skip_reasons={}, tasks=[TASK_ID]
+        source=ForgeRepositorySource(
+            kind="repository",
+            repository="/repo/demo",
+            head_commit=BASE_COMMIT,
+            slug="demo",
+            language=ForgeLanguage.PYTHON,
+            dockerfile_digest=sha256_digest_bytes(b"FROM scratch\n"),
+            test_commands=["uv run pytest"],
+            limit=1,
+            bootstrap_image_tag="techtree-forge/demo:bootstrap",
+            bootstrap_image_id="sha256:" + "cd" * 32,
+            repo2rlenv_version="0.0.0",
+            generation=GenerationSummary(
+                candidates=1, emitted=1, skipped=0, skip_reasons={}, tasks=[TASK_ID]
+            ),
         ),
+        platform="linux/arm64",
         task_set=task_set,
     )
     qualification = ForgeQualification(
@@ -171,6 +178,38 @@ def qualified_build(home: Path, *, qualified: bool = True) -> QualifiedBuild:
     return QualifiedBuild(
         paths=paths, build_id=build_id, task_id=TASK_ID, task_dir=task_dir
     )
+
+
+def skill_build(home: Path) -> ForgeBuildRecord:
+    """Persist an unqualified Skill package with no repository task metadata."""
+    paths = paths_from_root(home)
+    build_id = "build_" + "2" * 32
+    directory = paths.forge_build_dir(build_id)
+    task = directory / "tasks" / "reconcile-ledger"
+    task.mkdir(parents=True)
+    (task / "instruction.md").write_text("Reconcile the supplied ledger.\n")
+    snapshot = b"Check every ledger entry against its receipt.\n"
+    (directory / "source-skill.md").write_bytes(snapshot)
+    build = ForgeBuildRecord(
+        schema_version="techtree.forge-build.v1alpha3",
+        build_id=build_id,
+        created_at=datetime.now(UTC),
+        source=ForgeSkillSource(
+            kind="skill",
+            source_skill_digest=sha256_digest_bytes(snapshot),
+            recipe="ledger-reconciliation",
+            recipe_version="fixture-v1",
+            producer="fixture-importer",
+            producer_version="fixture-v1",
+            upstream_url="https://example.org/fixture-producer",
+            upstream_revision="a" * 40,
+            harbor_version="fixture-v1",
+        ),
+        platform="linux/arm64",
+        task_set=commit_task_set(directory / "tasks", [task.name]),
+    )
+    atomic_write_json(directory / "build.json", build.model_dump(mode="json"))
+    return build
 
 
 def write_skill(

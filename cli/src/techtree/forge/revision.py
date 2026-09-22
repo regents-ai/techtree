@@ -50,6 +50,7 @@ from techtree.forge.models import (
 )
 from techtree.forge.qualify import read_task_facts
 from techtree.forge.run import ForgeRunner, read_run_status
+from techtree.forge.service import read_build_status
 from techtree.forge.skill import SKILL_DIRNAME, scan_skill_spec, snapshot_skill
 from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
@@ -250,6 +251,14 @@ def screen_skill(
     names the task grades by. A Skill line is compared after stripping, and
     only when it is long enough to be more than coincidence.
     """
+    build = read_build_status(paths, build_id).build
+    if build is None:
+        raise ValidationError(
+            f"build {build_id} has no build record for repository screening",
+            code="forge_build_not_qualified",
+            details={"build_id": build_id},
+        )
+    build.require_repository_source("Repository Skill screening")
     skill_lines = [
         (relative, number, line)
         for source, relative in files

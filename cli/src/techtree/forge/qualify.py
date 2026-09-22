@@ -84,7 +84,8 @@ class Verdict:
 
 
 def task_image_tag(build: ForgeBuildRecord, task_id: str) -> str:
-    return f"techtree-forge/{build.slug}/{task_id.lower()}:{build.build_id[-12:]}"
+    source = build.require_repository_source("Repository qualification")
+    return f"techtree-forge/{source.slug}/{task_id.lower()}:{build.build_id[-12:]}"
 
 
 def qualify_build(
@@ -96,6 +97,7 @@ def qualify_build(
     on_task: Callable[[str, TaskQualification | None], None] | None = None,
 ) -> ForgeQualification:
     """Qualify every task the build emitted and say which proved out."""
+    build.require_repository_source("Repository qualification")
     verify_task_set(tasks_dir, build.task_set)
     ensure_private_directory(work_dir)
     tasks = []

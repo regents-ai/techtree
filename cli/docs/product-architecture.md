@@ -361,9 +361,13 @@ src/techtree/
 ```
 
 **Forge task commitments (private, unqualified local lane).** Build and
-qualification records use `techtree.forge-build.v1alpha2` and
+qualification records use `techtree.forge-build.v1alpha3` and
 `techtree.forge-qualification.v1alpha2`. This is a hard cutover of the unreleased
-local shape: old `v1alpha1` records fail validation, without a fallback reader.
+local shape: earlier build records return `forge_schema_unsupported` with their
+path and schema version, without a fallback reader or changes to saved bytes.
+Build provenance is one typed repository or Skill source; the task content and
+membership commitments remain shared. Skill qualification and execution are not
+yet supported by the repository runner.
 Public proofs and their schemas are unchanged.
 
 The shipped Python/uv bootstrap exposes `/workspace/.venv/bin` in both login and non-login shells, so generation and qualification use the installed test tools.

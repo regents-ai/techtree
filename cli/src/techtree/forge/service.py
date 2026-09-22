@@ -20,6 +20,7 @@ grading. Last observed progress never asserts that a process is still running.
 
 from __future__ import annotations
 
+import json
 import platform
 import shlex
 import sys
@@ -62,6 +63,7 @@ from techtree.forge.models import (
     ForgeLanguage,
     ForgePlatform,
     ForgeQualification,
+    ForgeRepositorySource,
     TaskQualification,
 )
 from techtree.forge.process import CommandRunner
@@ -247,7 +249,12 @@ class ForgeService:
             ) from error
         if status.usable_tasks == 0:
             said = (
-                build_summary(status.build.generation, status.qualification)
+                build_summary(
+                    status.build.require_repository_source(
+                        "Repository build"
+                    ).generation,
+                    status.qualification,
+                )
                 if status.build is not None
                 else "no task was usable."
             )
@@ -328,18 +335,21 @@ class ForgeService:
             schema_version=FORGE_BUILD_SCHEMA_VERSION,
             build_id=build_id,
             created_at=datetime.now(UTC),
-            repository=str(repository),
-            head_commit=head_commit,
-            slug=slug,
-            language=language,
+            source=ForgeRepositorySource(
+                kind="repository",
+                repository=str(repository),
+                head_commit=head_commit,
+                slug=slug,
+                language=language,
+                dockerfile_digest=sha256_digest_bytes(dockerfile_text.encode("utf-8")),
+                test_commands=test_commands,
+                limit=limit,
+                bootstrap_image_tag=image_tag,
+                bootstrap_image_id=image_id,
+                repo2rlenv_version=REPO2RLENV_VERSION,
+                generation=generation,
+            ),
             platform=docker_platform,
-            dockerfile_digest=sha256_digest_bytes(dockerfile_text.encode("utf-8")),
-            test_commands=test_commands,
-            limit=limit,
-            bootstrap_image_tag=image_tag,
-            bootstrap_image_id=image_id,
-            repo2rlenv_version=REPO2RLENV_VERSION,
-            generation=generation,
             task_set=commit_task_set(tasks_dir, generation.tasks),
         )
         atomic_write_json(build_dir / _BUILD_FILENAME, record.model_dump(mode="json"))
@@ -377,6 +387,33 @@ def read_build_status(paths: TechtreePaths, build_id: str) -> ForgeBuildStatus:
         )
     evidence_file = progress_file
     try:
+        record_bytes = record_file.read_bytes() if record_file.is_file() else None
+        if record_bytes is not None:
+            evidence_file = record_file
+            try:
+                envelope = json.loads(record_bytes)
+            except (ValueError, UnicodeDecodeError) as error:
+                raise ValidationError(
+                    f"Invalid Forge build JSON in {record_file}",
+                    code="forge_evidence_invalid",
+                    details={"build_id": build_id, "file": str(record_file)},
+                ) from error
+            schema = (
+                envelope.get("schema_version") if isinstance(envelope, dict) else None
+            )
+            if schema != FORGE_BUILD_SCHEMA_VERSION:
+                raise ValidationError(
+                    f"Unsupported Forge build schema {schema!r} in {record_file}; "
+                    f"this CLI requires {FORGE_BUILD_SCHEMA_VERSION}. "
+                    "The saved record has not been changed.",
+                    code="forge_schema_unsupported",
+                    details={
+                        "file": str(record_file),
+                        "schema_version": str(schema),
+                        "supported_schema_version": FORGE_BUILD_SCHEMA_VERSION,
+                    },
+                )
+        evidence_file = progress_file
         progress = (
             ForgeBuildProgress.model_validate_json(progress_file.read_bytes())
             if progress_file.is_file()
@@ -384,8 +421,8 @@ def read_build_status(paths: TechtreePaths, build_id: str) -> ForgeBuildStatus:
         )
         evidence_file = record_file
         record = (
-            ForgeBuildRecord.model_validate_json(record_file.read_bytes())
-            if record_file.is_file()
+            ForgeBuildRecord.model_validate_json(record_bytes)
+            if record_bytes is not None
             else None
         )
         qualification_file = build_dir / _QUALIFICATION_FILENAME
