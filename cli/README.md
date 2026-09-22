@@ -62,7 +62,7 @@ Verifiers engine, and Campaign protocol kernel.
 | Layer | What | Pin |
 | --- | --- | --- |
 | Evaluation engine | Prime Intellect’s Verifiers | pinned to an exact commit |
-| Agent host | Nous Research’s Hermes, the operator | host Hermes 0.20.1 or newer |
+| Agent host | Nous Research’s Hermes, the operator | host Hermes 0.21.3 or newer |
 | Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
 | Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
 | Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |

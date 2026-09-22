@@ -1,8 +1,8 @@
 {
   "cli_version": "0.2.1",
   "intro_climb_reference": "hello-world-climb@1",
-  "maximum_tested_host_hermes_version": "0.20.1",
-  "minimum_host_hermes_version": "0.20.1",
+  "maximum_tested_host_hermes_version": "0.21.3",
+  "minimum_host_hermes_version": "0.21.3",
   "publication": {
     "network_key": {
       "algorithm": "ed25519",

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.2 (unreleased)
+
+### Changed
+
+- `techtree doctor` now says whether the `techtree` Hermes profile is signed
+  in, and to which providers, checked the same way `techtree forge run` checks
+  before it starts. A missing or signed-out profile is reported with the exact
+  command that resolves it.
+- The host Hermes this release is tested on is 0.21.3, and 0.21.3 is now the
+  minimum: experiments run in a Hermes profile of their own, and that is the
+  Hermes it was verified on.
+- The published package is built the same way every time, from a clean copy of
+  the release commit, so what is on PyPI is exactly what was approved.
+
 ## v0.2.1 (2026-09-19)
 
 ### Added

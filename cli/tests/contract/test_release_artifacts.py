@@ -226,8 +226,8 @@ def test_the_release_names_the_host_hermes_range_this_build_was_tested_on() -> N
     commit is what makes the pinned bootstrap argv honest.
     """
     core = parse_release_core(packaged_release_core_bytes())
-    assert core.minimum_host_hermes_version == "0.20.1"
-    assert core.maximum_tested_host_hermes_version == "0.20.1"
+    assert core.minimum_host_hermes_version == "0.21.3"
+    assert core.maximum_tested_host_hermes_version == "0.21.3"
 
 
 # ---------------------------------------------------------------------------

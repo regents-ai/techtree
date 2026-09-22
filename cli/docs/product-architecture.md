@@ -189,7 +189,7 @@ allowed to float:
   component: it appears in operational records and provenance, never in the
   TasksetLock, the subject manifest, the comparison invariants or the reward
   contract.
-- **Hermes** — host floor and ceiling `0.20.1`, installed with
+- **Hermes** — host floor and ceiling `0.21.3`, installed with
   `plugins install --ref <full commit>`; Hermes scans the plugin's source
   before installing and shows the findings. The *evaluated subject* stays the
   separately pinned Hermes `0.19.0` named by the Campaign. Those two are not
@@ -888,7 +888,7 @@ bytes are never served under any status.
 ```mermaid
 graph TB
     subgraph host["The user's machine"]
-        H["Hermes 0.20.1<br/>(the host agent)"]
+        H["Hermes 0.21.3<br/>(the host agent)"]
         P["techtree-plugin<br/>operator surface"]
         C["techtree CLI<br/>(techtree-python wheel)"]
         W["detached worker<br/>+ per-variant supervisor"]

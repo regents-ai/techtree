@@ -20,6 +20,7 @@ lock from its first attempt to its last, so two runs never share it.
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -35,9 +36,11 @@ __all__ = [
     "PROFILE_NAME",
     "hermes_root",
     "hold_profile",
+    "is_signed_in",
     "profile_dir",
     "require_signed_in",
     "reset_profile",
+    "signed_in_providers",
 ]
 
 PROFILE_NAME: Final = "techtree"
@@ -46,6 +49,10 @@ _LOCK_FILENAME: Final = "techtree-run.lock"
 #: the file a provider's static key lives in. Nothing here is ever read.
 _KEPT: Final = frozenset({"auth.json", "auth.lock", ".env", _LOCK_FILENAME})
 _STATUS_TIMEOUT_SECONDS: Final = 60.0
+#: How ``hermes auth list`` heads each provider that holds a credential:
+#: ``openai-codex (1 credentials):``. Only the heading is read; the lines
+#: under it describe the credentials and are never looked at.
+_PROVIDER_HEADING: Final = re.compile(r"^(\S+) \(\d+ credentials?\):$", re.MULTILINE)
 
 
 def hermes_root() -> Path:
@@ -84,17 +91,37 @@ def require_signed_in(
             code="forge_profile_missing",
             details={"profile": str(profile)},
         )
-    completed = run(
-        [str(executable), "-p", PROFILE_NAME, "auth", "status", provider],
-        _STATUS_TIMEOUT_SECONDS,
-    )
-    if f"{provider}: logged in" not in completed.stdout.splitlines():
+    if not is_signed_in(run, executable, provider):
         raise PrerequisiteError(
             f"the Hermes profile {PROFILE_NAME} is not signed in to {provider}. "
             f"Sign it in with `{sign_in}`",
             code="forge_profile_signed_out",
             details={"profile": str(profile), "provider": provider},
         )
+
+
+def is_signed_in(run: CommandRunner, executable: Path, provider: str) -> bool:
+    """Ask Hermes whether the ``techtree`` profile is signed in to ``provider``."""
+    completed = run(
+        [str(executable), "-p", PROFILE_NAME, "auth", "status", provider],
+        _STATUS_TIMEOUT_SECONDS,
+    )
+    return f"{provider}: logged in" in completed.stdout.splitlines()
+
+
+def signed_in_providers(run: CommandRunner, executable: Path) -> list[str]:
+    """The providers Hermes says the ``techtree`` profile is signed in to.
+
+    Hermes lists the providers the profile holds a credential for, and is then
+    asked about each one the way ``forge run`` asks before it starts, so a
+    provider whose credential has lapsed is not counted. Read-only throughout.
+    """
+    listed = run(
+        [str(executable), "-p", PROFILE_NAME, "auth", "list"],
+        _STATUS_TIMEOUT_SECONDS,
+    )
+    providers = _PROVIDER_HEADING.findall(listed.stdout)
+    return [name for name in providers if is_signed_in(run, executable, name)]
 
 
 @contextmanager

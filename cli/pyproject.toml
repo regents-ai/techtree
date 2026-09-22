@@ -33,9 +33,10 @@ techtree-worker = "techtree.worker.main:main"
 # Spec section 7.3.
 [dependency-groups]
 dev = [
-  # The build backend, so that the tests can exercise the build hook that
-  # stamps a wheel's source commit into it (decisions 0026).
-  "hatchling>=1.27,<2",
+  # The build backend, at the exact version [build-system] pins, so that the
+  # tests exercise the build hook that stamps a wheel's source commit into it
+  # (decisions 0026) with the backend that builds the release wheel.
+  "hatchling==1.32.4",
   "mypy>=2.3.1,<3",
   "pytest>=9.1.1,<10",
   "pytest-cov>=6,<8",
@@ -43,8 +44,11 @@ dev = [
   "ruff>=0.12,<1",
 ]
 
+# One exact backend version: hatchling 1.32.3 and 1.32.4 wrote different
+# WHEEL/RECORD files for the same sources, and the publish workflow refuses a
+# wheel whose digest differs from the approved one.
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]

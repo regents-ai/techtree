@@ -40,11 +40,13 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Final
 
 from techtree.engines.registry import EngineRegistry
-from techtree.errors import PrerequisiteError
-from techtree.forge.profile import PROFILE_NAME, profile_dir
+from techtree.errors import PrerequisiteError, RunError
+from techtree.forge.process import run_command
+from techtree.forge.profile import PROFILE_NAME, profile_dir, signed_in_providers
 from techtree.models.base import JsonValue
 from techtree.models.catalog import EngineCompatibilityStatus
 from techtree.models.cli import CheckStatus, DoctorCheck
@@ -453,13 +455,16 @@ def check_hermes_cli() -> DoctorCheck:
 
 
 def check_hermes_experiment_profile() -> DoctorCheck:
-    """Say whether the Hermes profile forge experiments run in exists; warning only.
+    """Say whether the Hermes profile forge experiments run in is ready; warning only.
 
-    Only its presence is looked at. Whether it is signed in depends on the
-    provider an experiment names, so ``forge run`` asks Hermes that before it
-    starts anything; the profile's authentication store is never opened.
+    Ready means it exists and Hermes says it is signed in to at least one
+    provider, asked the same read-only way ``forge run`` asks before it
+    starts; the profile's authentication store is never opened. The
+    ``code`` in the metadata is the one ``forge run`` would refuse with, so a
+    host agent reading the JSON can resolve it without starting a run.
     """
     profile = profile_dir()
+    sign_in = f"hermes -p {PROFILE_NAME} auth add PROVIDER"
     if not profile.is_dir():
         return DoctorCheck(
             id="hermes_experiment_profile",
@@ -468,22 +473,67 @@ def check_hermes_experiment_profile() -> DoctorCheck:
             detail=(
                 f"no Hermes profile named {PROFILE_NAME}. `techtree forge run` "
                 "runs experiments in it; create it with `hermes profile create "
-                f"{PROFILE_NAME} --no-alias`, then sign it in with `hermes -p "
-                f"{PROFILE_NAME} auth add PROVIDER`. Nothing else needs it"
+                f"{PROFILE_NAME} --no-alias`, then sign it in with `{sign_in}`. "
+                "Nothing else needs it"
             ),
             blocking=False,
-            metadata={"profile": str(profile)},
+            metadata={"profile": str(profile), "code": "forge_profile_missing"},
+        )
+
+    hermes = shutil.which("hermes")
+    if hermes is None:
+        return DoctorCheck(
+            id="hermes_experiment_profile",
+            label="Hermes experiment profile",
+            status=CheckStatus.WARN,
+            detail=(
+                f"{profile} exists, but whether it is signed in could not be "
+                "checked because hermes was not found on PATH"
+            ),
+            blocking=False,
+            metadata={"profile": str(profile), "sign_in": "unknown"},
+        )
+    try:
+        providers = signed_in_providers(run_command, Path(hermes))
+    except RunError as error:
+        return DoctorCheck(
+            id="hermes_experiment_profile",
+            label="Hermes experiment profile",
+            status=CheckStatus.WARN,
+            detail=(
+                f"{profile} exists, but whether it is signed in could not be "
+                f"checked: {error}"
+            ),
+            blocking=False,
+            metadata={"profile": str(profile), "sign_in": "unknown"},
+        )
+    if not providers:
+        return DoctorCheck(
+            id="hermes_experiment_profile",
+            label="Hermes experiment profile",
+            status=CheckStatus.WARN,
+            detail=(
+                f"{profile} exists but is not signed in to any provider. "
+                f"Sign it in with `{sign_in}`; `techtree forge run` refuses "
+                "until it is"
+            ),
+            blocking=False,
+            metadata={
+                "profile": str(profile),
+                "code": "forge_profile_signed_out",
+                "providers": [],
+            },
         )
     return DoctorCheck(
         id="hermes_experiment_profile",
         label="Hermes experiment profile",
         status=CheckStatus.PASS,
         detail=(
-            f"{profile} exists; `techtree forge run` confirms its sign-in for "
-            "the provider an experiment names"
+            f"{profile} is signed in to {', '.join(providers)}; `techtree forge "
+            "run` uses the one an experiment names"
         ),
         blocking=False,
-        metadata={"profile": str(profile)},
+        metadata={"profile": str(profile), "providers": list(providers)},
     )
 
 

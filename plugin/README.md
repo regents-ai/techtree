@@ -1,6 +1,6 @@
 # Techtree Hermes Plugin
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-lightgrey)](https://www.python.org/downloads/) [![host Hermes ≥ 0.20.1](https://img.shields.io/badge/host%20Hermes-%E2%89%A5%200.20.1-lightgrey)](https://techtree.sh/start)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE) [![Python 3.12](https://img.shields.io/badge/python-3.12-lightgrey)](https://www.python.org/downloads/) [![host Hermes ≥ 0.21.3](https://img.shields.io/badge/host%20Hermes-%E2%89%A5%200.21.3-lightgrey)](https://techtree.sh/start)
 
 ![The pinned installation guide at techtree.sh/start](docs/assets/start-page.png)
 
@@ -63,7 +63,7 @@ Paste this into Hermes:
 | Layer | What | Pin |
 | --- | --- | --- |
 | Evaluation engine | Prime Intellect's Verifiers | pinned to an exact commit |
-| Agent host | Nous Research's Hermes, the operator | host Hermes 0.20.1 or newer |
+| Agent host | Nous Research's Hermes, the operator | host Hermes 0.21.3 or newer |
 | Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
 | Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
 | Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
@@ -113,7 +113,7 @@ plugin at caution is refused rather than queried. That is not a fault and the
 step past it is a decision you make after reading what the scan found — see
 [Install-time security scanning](#install-time-security-scanning) below.
 
-Supported host: Hermes 0.20.1. The evaluated subject remains the separately
+Supported host: Hermes 0.21.3. The evaluated subject remains the separately
 pinned Hermes 0.19.0 named by the Campaign. The release this plugin belongs to
 is recorded in `release-core.json`.
 
