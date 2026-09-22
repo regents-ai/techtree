@@ -45,6 +45,7 @@ from techtree.fs import ensure_private_directory
 from techtree.models.base import Digest
 
 __all__ = [
+    "TIMED_OUT_DETAIL",
     "TaskFacts",
     "Verdict",
     "grade_task",
@@ -56,7 +57,8 @@ __all__ = [
 #: Added to the task's own verifier timeout: container start and image load.
 _RUN_MARGIN_SECONDS: Final = 120.0
 _PROBE_TIMEOUT_SECONDS: Final = 120.0
-_TIMED_OUT: Final = "the tests did not finish within the task's own timeout"
+#: The detail of a check whose verifier run hung; the CLI names it in words.
+TIMED_OUT_DETAIL: Final = "the tests did not finish within the task's own timeout"
 #: A reward file is a number or a small JSON document; anything larger is not
 #: a verdict.
 _REWARD_FILE_LIMIT: Final = 64 * 1024
@@ -372,7 +374,7 @@ def _control_check(verdict: Verdict, facts: TaskFacts) -> QualificationCheck:
     return QualificationCheck(
         name="control_fails",
         passed=passed,
-        detail=_TIMED_OUT
+        detail=TIMED_OUT_DETAIL
         if verdict.details.get("timed_out")
         else (
             f"reward {verdict.reward}, {f2p_passed} of {len(facts.fail_to_pass)} "
@@ -387,7 +389,7 @@ def _reference_check(verdict: Verdict) -> QualificationCheck:
     return QualificationCheck(
         name="reference_passes",
         passed=passed,
-        detail=_TIMED_OUT
+        detail=TIMED_OUT_DETAIL
         if verdict.details.get("timed_out")
         else f"reward {verdict.reward}, resolved {resolved}",
     )

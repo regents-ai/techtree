@@ -13,6 +13,21 @@
   Hermes it was verified on.
 - The published package is built the same way every time, from a clean copy of
   the release commit, so what is on PyPI is exactly what was approved.
+- `techtree forge build` and `techtree forge status` now say in plain words
+  what happened to every task and every candidate commit: each generated task
+  reads "qualified" or "rejected" with the reason a person can act on, and one
+  summary line says how many tasks qualified and why the other commits were
+  passed over. A build that leaves fewer than three usable tasks carries a
+  `forge_few_tasks` warning, since a comparison on so few can say how one
+  attempt went, not whether a Skill helps; the build stays usable.
+- Qualified for real on three public repositories with Docker and no model:
+  `pallets/click` (Python, 1 task from 10 recent commits), `pallets/jinja`
+  (Python, 4 tasks from 150 recent commits; the 30 most recent yielded none,
+  being merges and short messages) and `spf13/cobra` (Go, 1 task from 30
+  recent commits, with a Go image supplied through `--dockerfile`). Go test
+  output that is not valid text stops the task generator (seen on
+  `pelletier/go-toml`); that limit sits in the pinned generator and is
+  recorded, not worked around.
 
 ## v0.2.1 (2026-09-19)
 

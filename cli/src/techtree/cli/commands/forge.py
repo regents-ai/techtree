@@ -44,7 +44,13 @@ from techtree.forge.models import (
 )
 from techtree.forge.process import run_command
 from techtree.forge.profile import PROFILE_NAME
-from techtree.forge.report import OUTCOME_WORDS
+from techtree.forge.report import (
+    FEW_TASKS,
+    OUTCOME_WORDS,
+    build_summary,
+    first_failed_check,
+    task_verdict,
+)
 from techtree.forge.revision import read_revision_status
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
@@ -562,25 +568,25 @@ def render_forge_status(status: ForgeBuildStatus, console: Console) -> None:
             f"{progress.failure.code}: {progress.failure.message}", markup=False
         )
         console.print("Inspect the retained evidence before starting a new build.")
-    if build is not None and build.generation.skip_reasons:
+    if build is not None:
         console.print()
-        console.print("Skipped candidates:")
-        for reason, count in sorted(build.generation.skip_reasons.items()):
-            console.print(f"  {count:>4}  {reason}")
+        console.print(build_summary(build.generation, qualification), markup=False)
     if qualification is not None:
-        console.print()
         for task in qualification.tasks:
-            verdict = "qualified" if task.qualified else "not qualified"
-            console.print(f"{task.task_id}: {verdict}")
-            for check in task.checks:
-                if not check.passed:
-                    console.print(f"  {check.name}: {check.detail}")
+            console.print(task_verdict(task), markup=False)
+            failed = first_failed_check(task)
+            if failed is not None:
+                console.print(f"  ({failed.name}: {failed.detail})", markup=False)
     elif progress is not None and progress.completed_tasks:
         console.print("Partial task evidence only; qualification has not finished.")
         for task in progress.completed_tasks:
             console.print(
                 f"  {task.task_id}: checks recorded; not admitted for use", markup=False
             )
+
+
+def _plural(count: int, one: str, many: str) -> str:
+    return one if count == 1 else many
 
 
 def _render_built(data: object, console: Console) -> None:
@@ -814,8 +820,25 @@ def _warnings(status: ForgeBuildStatus) -> list[CliWarning]:
             CliWarning(
                 id="forge_nothing_qualified",
                 text=(
-                    "Every emitted task failed qualification; the failed checks "
-                    "are listed under each task."
+                    "Every generated task was rejected at qualification; each "
+                    "task says why."
+                ),
+                resolvable_by=None,
+            )
+        )
+    elif (
+        status.qualification is not None
+        and len(status.qualification.qualified_task_ids) < FEW_TASKS
+    ):
+        usable = len(status.qualification.qualified_task_ids)
+        warnings.append(
+            CliWarning(
+                id="forge_few_tasks",
+                text=(
+                    f"Only {usable} {_plural(usable, 'task', 'tasks')} qualified. "
+                    "A comparison on so few can say how one attempt went, not "
+                    "whether a Skill helps; a repository with more recent bug-fix "
+                    "commits, or a higher --limit, gives more."
                 ),
                 resolvable_by=None,
             )

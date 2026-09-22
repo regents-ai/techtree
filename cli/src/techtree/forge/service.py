@@ -66,6 +66,7 @@ from techtree.forge.models import (
 )
 from techtree.forge.process import CommandRunner
 from techtree.forge.qualify import qualify_build
+from techtree.forge.report import build_summary
 from techtree.fs import atomic_write_json, ensure_private_directory
 from techtree.ids import new_id, validate_id
 from techtree.models.engine import normalize_host_platform
@@ -245,10 +246,13 @@ class ForgeService:
                 },
             ) from error
         if status.usable_tasks == 0:
-            reasons = status.build.generation.skip_reasons if status.build else {}
+            said = (
+                build_summary(status.build.generation, status.qualification)
+                if status.build is not None
+                else "no task was usable."
+            )
             raise RunError(
-                "qualification finished with no usable tasks; "
-                f"skip reasons: {reasons}. "
+                f"Qualification finished with no usable task. {said} "
                 f"Inspect: {status_command}",
                 code="forge_no_usable_tasks",
                 details={

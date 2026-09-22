@@ -26,10 +26,25 @@ from techtree.forge.models import (
     ForgeAttemptPair,
     ForgeComparisonRecord,
     ForgePairResult,
+    ForgeQualification,
     ForgeRunStatus,
+    GenerationSummary,
+    QualificationCheck,
+    TaskQualification,
 )
+from techtree.forge.qualify import TIMED_OUT_DETAIL
 
-__all__ = ["OUTCOME_WORDS", "PATCH_LIMIT_BYTES", "render_report"]
+__all__ = [
+    "FEW_TASKS",
+    "OUTCOME_WORDS",
+    "PATCH_LIMIT_BYTES",
+    "REJECTION_WORDS",
+    "SKIP_WORDS",
+    "build_summary",
+    "first_failed_check",
+    "render_report",
+    "task_verdict",
+]
 
 #: How every attempt outcome is said to a person, in the terminal and on the page.
 OUTCOME_WORDS: Final[dict[ForgeAttemptOutcome, str]] = {
@@ -39,6 +54,94 @@ OUTCOME_WORDS: Final[dict[ForgeAttemptOutcome, str]] = {
     ForgeAttemptOutcome.VERIFIER_TIMED_OUT: "tests ran out of time",
     ForgeAttemptOutcome.NO_VERDICT: "tests left no verdict",
 }
+
+#: Fewer qualified tasks than this and a comparison can say how one attempt
+#: went, not whether the Skill helps.
+FEW_TASKS: Final = 3
+
+#: Why the task generator passed a candidate commit over, in a person's words,
+#: read as "N for <reason>". The keys are the generator's own; one it has not
+#: named before is shown as is.
+SKIP_WORDS: Final[dict[str, str]] = {
+    "merge_commit": "being a merge commit",
+    "excluded_author": "being by an excluded author",
+    "short_message": "having a message too short to describe a problem",
+    "problem_statement_too_short": "having a message too short to describe a problem",
+    "non_bugfix_type": "being marked as something other than a bug fix",
+    "no_bugfix_signal": "not saying it fixes a bug",
+    "diff_fetch_failed": "changes that could not be read",
+    "empty_source_patch": "changing no source file",
+    "no_test_patch": "changing no test",
+    "ci_only_patch": "changing only the automation setup",
+    "too_many_source_files": "touching too many source files",
+    "no_new_test_funcs": "adding no new test",
+    "root_commit": "being the repository's first commit",
+    "no_fail_to_pass": "new tests that did not go from failing to passing when run",
+    "no_parseable_test_output": "a test run that left no readable result",
+}
+
+#: Why a generated task was rejected at qualification, in a person's words,
+#: keyed by the first check that failed.
+REJECTION_WORDS: Final[dict[str, str]] = {
+    "image_build": "the task's environment image did not build",
+    "workspace_at_base_commit": (
+        "the image's copy of the repository is not clean at the task's starting commit"
+    ),
+    "verifier_material_absent": (
+        "the image already carries the tests or the reference repair"
+    ),
+    "tests_recognized": "no test was named that should go from failing to passing",
+    "control_fails": (
+        "the unrepaired code did not fail its tests the way the task requires"
+    ),
+    "reference_passes": "the reference repair did not make the tests pass",
+}
+
+
+def build_summary(
+    generation: GenerationSummary, qualification: ForgeQualification | None
+) -> str:
+    """What the build made, how much of it qualified, and what it passed over."""
+    emitted = generation.emitted
+    tasks = f"{emitted} generated {_plural(emitted, 'task', 'tasks')}"
+    if emitted == 0:
+        sentence = "No task was generated"
+    elif qualification is None:
+        sentence = f"{tasks}; qualification has not finished"
+    else:
+        sentence = f"{len(qualification.qualified_task_ids)} of {tasks} qualified"
+    if generation.skipped:
+        by_words: dict[str, int] = {}
+        for reason, count in generation.skip_reasons.items():
+            words = SKIP_WORDS.get(reason, reason)
+            by_words[words] = by_words.get(words, 0) + count
+        said = "; ".join(
+            f"{count} for {words}"
+            for words, count in sorted(by_words.items(), key=lambda i: (-i[1], i[0]))
+        )
+        sentence += (
+            f". {generation.skipped} of {generation.candidates} candidate "
+            f"{_plural(generation.candidates, 'commit', 'commits')} "
+            f"{_plural(generation.skipped, 'was', 'were')} passed over: {said}"
+        )
+    return sentence + "."
+
+
+def task_verdict(task: TaskQualification) -> str:
+    """``task: qualified``, or ``task: rejected, <why>`` in a person's words."""
+    failed = first_failed_check(task)
+    if failed is None:
+        return f"{task.task_id}: qualified"
+    if failed.detail == TIMED_OUT_DETAIL:
+        words = "its tests did not finish within the task's own time limit"
+    else:
+        words = REJECTION_WORDS.get(failed.name, failed.name)
+    return f"{task.task_id}: rejected, {words}"
+
+
+def first_failed_check(task: TaskQualification) -> QualificationCheck | None:
+    return next((check for check in task.checks if not check.passed), None)
+
 
 #: A patch longer than this is cut on the page; the file beside the run is whole.
 PATCH_LIMIT_BYTES: Final = 65_536

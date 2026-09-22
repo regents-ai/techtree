@@ -367,6 +367,7 @@ local shape: old `v1alpha1` records fail validation, without a fallback reader.
 Public proofs and their schemas are unchanged.
 
 The shipped Python/uv bootstrap exposes `/workspace/.venv/bin` in both login and non-login shells, so generation and qualification use the installed test tools.
+A Dockerfile given with `--dockerfile` has to do the same for its own tools: validation runs in a login shell, whose `/etc/profile` resets `PATH`, so an image whose toolchain lives only in an `ENV PATH` (the official `golang` image, for one) needs an `/etc/profile.d/` entry that exports it, or every test run ends in `command not found` and every candidate is passed over for a test run that left no readable result.
 
 Generation keeps each runtime validation's raw pre/post output, parsed test
 statuses, candidate label and upstream reason under the private build's
