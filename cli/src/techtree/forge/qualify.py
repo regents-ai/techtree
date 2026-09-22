@@ -48,6 +48,7 @@ __all__ = [
     "TIMED_OUT_DETAIL",
     "TaskFacts",
     "Verdict",
+    "build_task_image",
     "grade_task",
     "qualify_build",
     "read_task_facts",
@@ -84,8 +85,31 @@ class Verdict:
 
 
 def task_image_tag(build: ForgeBuildRecord, task_id: str) -> str:
-    source = build.require_repository_source("Repository qualification")
-    return f"techtree-forge/{source.slug}/{task_id.lower()}:{build.build_id[-12:]}"
+    """Return a tag no other build shares, under the producer's own name."""
+    source = build.source
+    namespace = source.slug if source.kind == "repository" else source.recipe
+    return f"techtree-forge/{namespace}/{task_id.lower()}:{build.build_id[-12:]}"
+
+
+def build_task_image(
+    docker: Docker, build: ForgeBuildRecord, task_dir: Path, work_dir: Path
+) -> str:
+    """Build one task's image offline from exactly its ``environment/`` tree.
+
+    The context is the committed directory and nothing else. The network is
+    disabled for every ``RUN`` step, so a recipe that fetches fails here with
+    its log retained at ``work_dir/image-build.log``; the base images come
+    from the daemon's store, pulled by digest when the build was imported.
+    """
+    ensure_private_directory(work_dir)
+    return docker.build(
+        context=task_dir / "environment",
+        dockerfile=task_dir / "environment" / "Dockerfile",
+        tag=task_image_tag(build, task_dir.name),
+        platform=build.platform,
+        offline=True,
+        log=work_dir / "image-build.log",
+    )
 
 
 def qualify_build(
@@ -136,20 +160,13 @@ def _qualify_task(
     task_id = task_dir.name
     facts = read_task_facts(task_dir)
     tag = task_image_tag(build, task_id)
-    ensure_private_directory(work_dir)
     checks: list[QualificationCheck] = []
     control_reward: float | None = None
     reference_reward: float | None = None
 
     image_id = ""
     try:
-        image_id = docker.build(
-            context=task_dir / "environment",
-            dockerfile=task_dir / "environment" / "Dockerfile",
-            tag=tag,
-            platform=build.platform,
-            log=work_dir / "image-build.log",
-        )
+        image_id = build_task_image(docker, build, task_dir, work_dir)
         checks.append(
             QualificationCheck(name="image_build", passed=True, detail=image_id)
         )

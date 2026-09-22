@@ -52,10 +52,30 @@ directives, ADD, dynamic or unpinned external FROM, COPY flags or sources outsid
 that context, RUN flags/mounts, heredocs, ARG and ONBUILD. COPY permits literal
 local files/directories only, never `--from`; multi-stage FROM may refer to an
 earlier stage.
-An existing build destination must be empty. A failed copy can retain partial
-files but never writes build.json, and its destination cannot be reused.
 
-An accepted build is unqualified. No image is acquired or built, no task code is
-executed, and no offline-execution or reference/no-op claim is made. Release-owned
-base-image acquisition, network-disabled builds and qualification remain U2b2.
-The current repository-only execution and qualification paths still refuse it.
+Every external FROM must name a base image from `base-images.json`, the
+release's allow-list: the exact name as listed (no registry prefix, no
+alias) pinned `@sha256:` to that name's multi-platform index digest or to the
+manifest digest of the platform being built for. A pin to another platform's
+manifest, an unlisted name or an unlisted digest rejects the task before
+anything is pulled. A recipe must name at least one such image; `scratch`
+alone is not enough. The list is release data, not user input; changing it
+is a release change.
+
+Admission copies the task into `<build>/tasks/`, which must not exist yet, and
+returns the content commitment with the base images the recipe named. It
+writes no build record. A failed copy can retain partial files under
+`tasks/`; that directory is never reused.
+
+The service then pulls each named base image by digest (never by tag), records
+the reference and the daemon's content id for it in the build record's
+`source.base_images`, and writes `build.json`. The recipe is built later, at
+qualification, with the network disabled (`docker build --network none`), from
+exactly the committed `environment/` directory, with no build arguments,
+secrets, SSH or cache mounts; its log is retained beside the qualification
+evidence whether it succeeded or not, and a failed build tags no image.
+
+An admitted build is unqualified: no task code has run, and no
+offline-execution or reference/no-op claim is made. Qualification of Skill
+builds is U2b3; until then the repository-only execution and qualification
+paths refuse it.

@@ -401,7 +401,7 @@ bindings without requiring `uv`, Docker, or a live content scan. This detects
 inconsistent evidence; it is not a signature, a pinned subject, or proof that a
 real container qualification has occurred.
 
-`progress.json` (`techtree.forge-progress.v1alpha1`) is atomically written before
+`progress.json` (`techtree.forge-progress.v1alpha2`) is atomically written before
 daemon/environment preparation, then at phase changes and task boundaries. It
 retains UTC timestamps, the last observed phase, the ordered prefix of actual
 task records, and any caught failure or cancellation. Partial task evidence is

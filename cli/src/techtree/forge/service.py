@@ -9,13 +9,16 @@ A build directory under the Techtree home holds everything one build made:
         qualification.json    which tasks proved out, with the evidence
         progress.json         last observed phase, partial task evidence, failures
         checkout/<name>/      the cloned history the bootstrap image was built from
-        tasks/<task_id>/      the Harbor tasks Repo2RLEnv emitted
+        tasks/<task_id>/      the Harbor tasks Repo2RLEnv emitted, or the one
+                              Skill2Env task admitted byte for byte
         log/                  the bootstrap build log and the generation log
         qualification/        per-task image build logs and graded run output
 
 ``progress.json`` is written before dependency setup. ``build.json`` records
-finished generation/content commitment; ``qualification.json`` records all-task
-grading. Last observed progress never asserts that a process is still running.
+finished generation/content commitment (for a Skill build, the admitted bytes
+and the allow-listed base images pulled by digest); ``qualification.json``
+records all-task grading. Last observed progress never asserts that a process
+is still running.
 """
 
 from __future__ import annotations
@@ -55,6 +58,7 @@ from techtree.forge.generate import (
 from techtree.forge.models import (
     FORGE_BUILD_SCHEMA_VERSION,
     FORGE_PROGRESS_SCHEMA_VERSION,
+    ForgeBaseImage,
     ForgeBuildFailure,
     ForgeBuildPhase,
     ForgeBuildProgress,
@@ -69,6 +73,7 @@ from techtree.forge.models import (
 from techtree.forge.process import CommandRunner
 from techtree.forge.qualify import qualify_build
 from techtree.forge.report import build_summary
+from techtree.forge.skill2env import admit_skill2env_task
 from techtree.fs import atomic_write_json, ensure_private_directory
 from techtree.ids import new_id, validate_id
 from techtree.models.engine import normalize_host_platform
@@ -143,13 +148,105 @@ class ForgeService:
         dockerfile_text = _dockerfile_text(dockerfile)
         docker_platform = host_docker_platform()
 
+        status = self._observe(
+            origin=str(repository),
+            work=lambda build_id, on_phase, on_task: self._build(
+                repository=repository,
+                dockerfile_text=dockerfile_text,
+                test_commands=test_commands,
+                limit=limit,
+                language=language,
+                docker_platform=docker_platform,
+                build_id=build_id,
+                on_phase=on_phase,
+                on_task=on_task,
+            ),
+        )
+        if status.usable_tasks == 0:
+            status_command = _status_command(self._paths, status.build_id)
+            said = (
+                build_summary(
+                    status.build.require_repository_source(
+                        "Repository build"
+                    ).generation,
+                    status.qualification,
+                )
+                if status.build is not None
+                else "no task was usable."
+            )
+            raise RunError(
+                f"Qualification finished with no usable task. {said} "
+                f"Inspect: {status_command}",
+                code="forge_no_usable_tasks",
+                details={
+                    "build_id": status.build_id,
+                    "path": status.path,
+                    "usable_tasks": 0,
+                },
+            )
+        return status
+
+    def import_skill(
+        self,
+        *,
+        task_dir: Path,
+        source_skill: str,
+        source_digest: str,
+    ) -> ForgeBuildStatus:
+        """Admit one Skill2Env task package and acquire its base images.
+
+        The task's exact bytes are committed, every external base image of
+        its recipe is checked against the release allow-list and pulled by
+        digest, and the build record is written. No recipe is built and no
+        task code runs here, so the receipt stays at the content phase: the
+        build is unfinished until it is qualified.
+        """
+        task_dir = task_dir.expanduser().resolve()
+        if not task_dir.is_dir():
+            raise UsageError(
+                f"{task_dir} is not a directory",
+                code="forge_task_dir_missing",
+                details={"task_dir": str(task_dir)},
+            )
+        docker_platform = host_docker_platform()
+        return self._observe(
+            origin=str(task_dir),
+            work=lambda build_id, on_phase, on_task: self._import_skill(
+                task_dir=task_dir,
+                source_skill=source_skill,
+                source_digest=source_digest,
+                docker_platform=docker_platform,
+                build_id=build_id,
+                on_phase=on_phase,
+            ),
+        )
+
+    def _observe(
+        self,
+        *,
+        origin: str,
+        work: Callable[
+            [
+                str,
+                Callable[[ForgeBuildPhase, ForgeBuildRecord | None], None],
+                Callable[[str, TaskQualification | None], None],
+            ],
+            ForgeBuildStatus,
+        ],
+    ) -> ForgeBuildStatus:
+        """Run ``work`` under a fresh build id with its progress receipts kept.
+
+        The receipt is written before anything else happens and again at every
+        phase and task boundary; a failure or Ctrl-C is recorded in it before
+        the error is raised with the command that reads the evidence back.
+        """
         build_id = new_id("build")
         build_dir = self._paths.forge_build_dir(build_id)
         now = datetime.now(UTC)
         progress = ForgeBuildProgress(
             schema_version=FORGE_PROGRESS_SCHEMA_VERSION,
             build_id=build_id,
-            repository=str(repository),
+            origin=origin,
             started_at=now,
             updated_at=now,
             phase="preparing",
@@ -198,22 +295,10 @@ class ForgeService:
                 )
             )
 
-        status_command = shlex.join(
-            ["techtree", "--home", str(self._paths.root), "forge", "status", build_id]
-        )
+        status_command = _status_command(self._paths, build_id)
         try:
             persist(progress)
-            status = self._build(
-                repository=repository,
-                dockerfile_text=dockerfile_text,
-                test_commands=test_commands,
-                limit=limit,
-                language=language,
-                docker_platform=docker_platform,
-                build_id=build_id,
-                on_phase=phase_changed,
-                on_task=task_changed,
-            )
+            return work(build_id, phase_changed, task_changed)
         except (Exception, KeyboardInterrupt) as error:
             failure = _build_failure(error)
             receipt_written = True
@@ -247,28 +332,46 @@ class ForgeService:
                     "failure_recorded": receipt_written,
                 },
             ) from error
-        if status.usable_tasks == 0:
-            said = (
-                build_summary(
-                    status.build.require_repository_source(
-                        "Repository build"
-                    ).generation,
-                    status.qualification,
-                )
-                if status.build is not None
-                else "no task was usable."
+
+    def _import_skill(
+        self,
+        *,
+        task_dir: Path,
+        source_skill: str,
+        source_digest: str,
+        docker_platform: ForgePlatform,
+        build_id: str,
+        on_phase: Callable[[ForgeBuildPhase, ForgeBuildRecord | None], None],
+    ) -> ForgeBuildStatus:
+        self._docker.require_daemon()
+        build_dir = self._paths.forge_build_dir(build_id)
+        on_phase("admission", None)
+        admission = admit_skill2env_task(
+            task_dir,
+            build_dir=build_dir,
+            expected_source_skill=source_skill,
+            expected_source_digest=source_digest,
+            platform=docker_platform,
+        )
+        on_phase("bootstrap", None)
+        base_images = [
+            ForgeBaseImage(
+                reference=reference,
+                image_id=self._docker.pull_pinned(reference, docker_platform),
             )
-            raise RunError(
-                f"Qualification finished with no usable task. {said} "
-                f"Inspect: {status_command}",
-                code="forge_no_usable_tasks",
-                details={
-                    "build_id": build_id,
-                    "path": str(build_dir),
-                    "usable_tasks": 0,
-                },
-            )
-        return status
+            for reference in admission.base_references
+        ]
+        record = ForgeBuildRecord(
+            schema_version=FORGE_BUILD_SCHEMA_VERSION,
+            build_id=build_id,
+            created_at=datetime.now(UTC),
+            source=admission.source(base_images),
+            platform=docker_platform,
+            task_set=admission.task_set,
+        )
+        atomic_write_json(build_dir / _BUILD_FILENAME, record.model_dump(mode="json"))
+        on_phase("content", record)
+        return read_build_status(self._paths, build_id)
 
     def _build(
         self,
@@ -310,6 +413,7 @@ class ForgeService:
             dockerfile=used_dockerfile,
             tag=image_tag,
             platform=docker_platform,
+            offline=False,
             log=log_dir / "bootstrap-build.log",
         )
         on_phase("generation", None)
@@ -367,6 +471,12 @@ class ForgeService:
         )
         on_phase("completed", record)
         return read_build_status(self._paths, build_id)
+
+
+def _status_command(paths: TechtreePaths, build_id: str) -> str:
+    return shlex.join(
+        ["techtree", "--home", str(paths.root), "forge", "status", build_id]
+    )
 
 
 def read_build_status(paths: TechtreePaths, build_id: str) -> ForgeBuildStatus:

@@ -26,6 +26,7 @@ from techtree.forge.content import commit_task_set
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
     ForgeArm,
+    ForgeBaseImage,
     ForgeBuildRecord,
     ForgeLanguage,
     ForgeQualification,
@@ -63,10 +64,18 @@ VERIFIER_TIMEOUT = 30.0
 HERMES_VERSION_LINE = "Hermes Agent v0.21.3 (2026.9.14) · upstream 6d712cf8\n"
 
 
+#: The release's python:3.12-slim pin by its multi-platform index digest.
+PYTHON_SLIM = (
+    "python:3.12-slim@sha256:"
+    "2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+)
+
+
 def skill2env_task(parent: Path) -> Path:
     """A local reconciliation task using pinned Skill2Env/Harbor serialization.
 
     The source identity is synthetic; no actual contributor Skill is selected.
+    The recipe builds offline from the release's allow-listed base image.
     """
     task = parent / "task_reconcile_1234abcd"
     for directory in ("environment", "tests", "solution"):
@@ -93,7 +102,7 @@ def skill2env_task(parent: Path) -> Path:
         encoding="utf-8",
     )
     (task / "environment" / "Dockerfile").write_text(
-        f"FROM python:3.12-slim@sha256:{'b' * 64}\n"
+        f"FROM {PYTHON_SLIM}\n"
         "WORKDIR /app\nCOPY amounts.txt /app/amounts.txt\n"
         "RUN printf 'ready' \\\n    > /app/ready.txt\n",
         encoding="utf-8",
@@ -256,6 +265,12 @@ def skill_build(home: Path) -> ForgeBuildRecord:
             upstream_url="https://example.org/fixture-producer",
             upstream_revision="a" * 40,
             harbor_version="fixture-v1",
+            base_images=[
+                ForgeBaseImage(
+                    reference="fixture/base@sha256:" + "e" * 64,
+                    image_id="sha256:" + "ef" * 32,
+                )
+            ],
         ),
         platform="linux/arm64",
         task_set=commit_task_set(directory / "tasks", [task.name]),
@@ -320,8 +335,10 @@ class FakeDocker:
 
     ``reward`` is what the tests leave: a number, ``None`` for no verdict, or
     ``"timeout"`` for a test run that hangs. ``export_error`` makes the
-    workspace export fail the way a missing image would. ``left_behind`` is
-    what ``docker ps`` lists for any label filter: the stopped containers
+    workspace export fail the way a missing image would; ``build_error`` and
+    ``pull_error`` are the stderr of an image build or a base pull that fails.
+    ``left_behind`` is what ``docker ps`` lists for any label filter: the
+    stopped containers
     Hermes leaves on the daemon. The one ``hermes`` command that comes through
     here is the sign-in question, answered from ``signed_in``.
     """
@@ -329,6 +346,8 @@ class FakeDocker:
     reward: float | str | None = 1.0
     patch: str = "diff --git a/x b/x\n"
     export_error: bool = False
+    build_error: str | None = None
+    pull_error: str | None = None
     left_behind: list[str] = field(default_factory=list)
     signed_in: bool = True
     calls: list[list[str]] = field(default_factory=list)
@@ -344,6 +363,16 @@ class FakeDocker:
         match command[:2]:
             case ["docker", "version"]:
                 return _done(command, "linux/arm64\n")
+            case ["docker", "pull"]:
+                if self.pull_error is not None:
+                    return subprocess.CompletedProcess(command, 1, "", self.pull_error)
+                return _done(command, f"{command[-1]}\n")
+            case ["docker", "image"]:
+                return _done(command, "sha256:" + command[3].encode().hex()[:64] + "\n")
+            case ["docker", "build"]:
+                if self.build_error is not None:
+                    return subprocess.CompletedProcess(command, 1, "", self.build_error)
+                return _done(command)
             case ["docker", "ps"]:
                 return _done(command, "".join(f"{c}\n" for c in self.left_behind))
             case ["docker", "create"]:

@@ -1,11 +1,13 @@
 """Docker as the forge uses it. ``docs/plan/repo2rlenv-local-lane.md``.
 
-Five things and no more: build an image from a directory, ask the daemon what
-an image's content id is, run one command in a fresh container from an image
-with named directories mounted, copy an image's workspace out to the host, and
-confirm the daemon answers at all. Nothing here pulls. The bootstrap image is
-built from the person's own checkout, the task images from the bootstrap
-image, and both live only in the local daemon.
+Six things and no more: pull one digest-pinned base image, build an image from
+a directory, ask the daemon what an image's content id is, run one command in a
+fresh container from an image with named directories mounted, copy an image's
+workspace out to the host, and confirm the daemon answers at all. The only
+pull is of a base image the release allow-lists, by digest, before a Skill
+task's recipe is built. The bootstrap image is built from the person's own
+checkout with the network, the task images from their recipes with the
+network disabled, and all of them live only in the local daemon.
 
 Every container the forge starts is bounded and disconnected: a fixed memory
 and CPU cap, no network, and a name the forge chose. Docker removes it on exit;
@@ -84,6 +86,26 @@ class Docker:
             )
         return completed.stdout.strip()
 
+    def pull_pinned(self, reference: str, platform: ForgePlatform) -> str:
+        """Pull ``reference``, a ``name@sha256:...`` pin, and return its content id.
+
+        Admission only ever hands over a digest-pinned reference, and the
+        daemon verifies that what it received is that digest; no tag is
+        resolved at pull time.
+        """
+        completed = self._run(
+            ["docker", "pull", "--quiet", "--platform", platform, reference],
+            BUILD_TIMEOUT_SECONDS,
+        )
+        if completed.returncode != 0:
+            raise RunError(
+                f"base image {reference} could not be pulled: "
+                f"{completed.stderr.strip()[-300:]}",
+                code="forge_base_image_unavailable",
+                details={"reference": reference, "exit_code": completed.returncode},
+            )
+        return self.image_id(reference)
+
     def build(
         self,
         *,
@@ -91,13 +113,16 @@ class Docker:
         dockerfile: Path,
         tag: str,
         platform: ForgePlatform,
+        offline: bool,
         log: Path,
     ) -> str:
         """Build ``tag`` from ``context`` and return the image's content id.
 
-        The build's whole output is written to ``log`` whether it succeeded
-        or not; a failed bootstrap build is the most common way a forge build
-        ends and the log is what says why.
+        ``offline`` disables the network for every ``RUN`` step: a task recipe
+        must build from its pinned base images and its own context alone. The
+        build's whole output is written to ``log`` whether it succeeded or
+        not; a failed build is the most common way a forge build ends and the
+        log is what says why.
         """
         completed = self._run(
             [
@@ -105,6 +130,7 @@ class Docker:
                 "build",
                 "--platform",
                 platform,
+                *(["--network", "none"] if offline else []),
                 "--file",
                 str(dockerfile),
                 "--tag",

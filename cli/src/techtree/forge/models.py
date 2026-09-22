@@ -42,6 +42,7 @@ from techtree.models.experiment import ManifestComparison
 from techtree.models.skill import SkillFile
 
 __all__ = [
+    "BASE_IMAGE_REFERENCE",
     "FORGE_BUILD_SCHEMA_VERSION",
     "FORGE_COMPARISON_SCHEMA_VERSION",
     "FORGE_PROGRESS_SCHEMA_VERSION",
@@ -58,6 +59,7 @@ __all__ = [
     "ForgeAttemptOutcome",
     "ForgeAttemptPair",
     "ForgeAttemptRecord",
+    "ForgeBaseImage",
     "ForgeBuildFailure",
     "ForgeBuildPhase",
     "ForgeBuildProgress",
@@ -100,7 +102,7 @@ __all__ = [
 ]
 
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha3"
-FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha1"
+FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha2"
 FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha2"
 FORGE_RUN_SCHEMA_VERSION: Final = "techtree.forge-run.v1alpha1"
 FORGE_RUN_SPEC_SCHEMA_VERSION: Final = "techtree.forge-run-spec.v1alpha1"
@@ -116,6 +118,7 @@ type ForgeTaskId = Annotated[
 type ForgePlatform = Literal["linux/arm64", "linux/amd64"]
 type ForgeBuildPhase = Literal[
     "preparing",
+    "admission",
     "cloning",
     "bootstrap",
     "generation",
@@ -247,12 +250,26 @@ class ForgeRepositorySource(ProtocolModel):
     generation: GenerationSummary
 
 
+#: An image name pinned to a content digest; the only form a task recipe may
+#: name an external base image in.
+BASE_IMAGE_REFERENCE: Final = r"[a-z0-9][a-z0-9._/:-]*@sha256:[0-9a-f]{64}"
+
+
+class ForgeBaseImage(ProtocolModel):
+    """One release-allow-listed base image, as pulled before the task build."""
+
+    reference: Annotated[str, StringConstraints(pattern=f"^{BASE_IMAGE_REFERENCE}$")]
+    image_id: NonEmptyString
+
+
 class ForgeSkillSource(ProtocolModel):
     """Source Skill commitment and the pinned recipe that produced the tasks.
 
     The source commitment identifies the retained private Skill snapshot, not
     a Skill supplied to a subject agent. Upstream revision names exact Git
     bytes of the producer, never a fabricated commit for the source Skill.
+    The base images are the recipe's external ``FROM`` references, every one
+    on the release allow-list and pulled by digest before the offline build.
     """
 
     kind: Literal["skill"]
@@ -264,6 +281,16 @@ class ForgeSkillSource(ProtocolModel):
     upstream_url: NonEmptyString
     upstream_revision: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{40}$")]
     harbor_version: NonEmptyString
+    base_images: list[ForgeBaseImage]
+
+    @field_validator("base_images")
+    @classmethod
+    def validate_base_images(cls, value: list[ForgeBaseImage]) -> list[ForgeBaseImage]:
+        if not value:
+            raise ValueError("a Skill build names at least one base image")
+        if len({image.reference for image in value}) != len(value):
+            raise ValueError("base images repeat a reference")
+        return value
 
 
 class ForgeBuildRecord(ProtocolModel):
@@ -866,9 +893,10 @@ class ForgeBuildFailure(ProtocolModel):
 class ForgeBuildProgress(ProtocolModel):
     """Last observed work, not evidence that a process is still running."""
 
-    schema_version: Literal["techtree.forge-progress.v1alpha1"]
+    schema_version: Literal["techtree.forge-progress.v1alpha2"]
     build_id: NonEmptyString
-    repository: NonEmptyString
+    #: The repository path or the imported task directory the build began from.
+    origin: NonEmptyString
     started_at: UtcDateTime
     updated_at: UtcDateTime
     phase: ForgeBuildPhase

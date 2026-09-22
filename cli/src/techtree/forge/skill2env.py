@@ -2,6 +2,9 @@
 
 Only the host-authored, single-task Harbor 1.3 shape is supported. No upstream
 launcher, model, Docker command, credential resolution or dependency is used.
+The recipe's external base images must be on the release allow-list
+(``resources/forge/skill2env/base-images.json``) by exact name and digest;
+the service pulls them by digest and builds the recipe with the network off.
 """
 
 from __future__ import annotations
@@ -14,7 +17,6 @@ import stat
 import tomllib
 import unicodedata
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -25,14 +27,24 @@ from techtree.errors import RunError
 from techtree.forge.bundle import embedded_forge_root
 from techtree.forge.content import commit_task_set, stat_signature
 from techtree.forge.models import (
-    FORGE_BUILD_SCHEMA_VERSION,
-    ForgeBuildRecord,
+    BASE_IMAGE_REFERENCE,
+    ForgeBaseImage,
     ForgePlatform,
     ForgeSkillSource,
     TaskContentEntry,
+    TaskSetCommitment,
 )
-from techtree.fs import atomic_write_json, ensure_private_directory
+from techtree.fs import ensure_private_directory
 from techtree.models.base import Digest
+
+__all__ = [
+    "MAX_TASK_BYTES",
+    "MAX_TASK_DEPTH",
+    "MAX_TASK_ENTRIES",
+    "Skill2EnvAdmission",
+    "admit_skill2env_task",
+    "allowed_base_images",
+]
 
 MAX_TASK_BYTES = 128 * 1024 * 1024
 MAX_TASK_ENTRIES = 4096
@@ -308,9 +320,35 @@ def _logical_lines(text: str) -> list[str]:
     return lines
 
 
-def _dockerfile(text: str, entries: dict[str, _Entry], platform: ForgePlatform) -> None:
-    """Fail closed on syntax that could bypass the local build context policy."""
+def allowed_base_images(platform: ForgePlatform) -> dict[str, frozenset[str]]:
+    """Return the release's base images: exact name to its accepted digests.
+
+    A recipe may pin a name to its multi-platform index digest or to the
+    manifest digest of ``platform``; a pin to another platform's manifest is
+    refused rather than emulated.
+    """
+    listed = TypeAdapter(dict[str, dict[str, str]]).validate_json(
+        (embedded_forge_root() / "skill2env" / "base-images.json").read_bytes()
+    )
+    return {
+        name: frozenset({digests["index"], digests[platform]})
+        for name, digests in listed.items()
+        if platform in digests
+    }
+
+
+def _dockerfile(
+    text: str,
+    entries: dict[str, _Entry],
+    platform: ForgePlatform,
+    allowed: dict[str, frozenset[str]],
+) -> tuple[str, ...]:
+    """Fail closed on syntax that could bypass the local build context policy.
+
+    Returns the external base images in the order they are first named.
+    """
     stages: set[str] = set()
+    bases: list[str] = []
     from_count = 0
     for logical in _logical_lines(text):
         parts = re.split(r"[ \t]+", logical.strip(), maxsplit=1)
@@ -330,16 +368,20 @@ def _dockerfile(text: str, entries: dict[str, _Entry], platform: ForgePlatform) 
                     "environment/Dockerfile: invalid FROM or platform mismatch"
                 )
             base = match[2]
-            if (
-                base.casefold() not in stages
-                and base != "scratch"
-                and not re.fullmatch(
-                    r"[a-z0-9][a-z0-9._/:-]*@sha256:[0-9a-f]{64}", base
-                )
-            ):
-                raise ValueError(
-                    "environment/Dockerfile: external FROM requires a static sha256 pin"
-                )
+            if base.casefold() not in stages and base != "scratch":
+                if not re.fullmatch(BASE_IMAGE_REFERENCE, base):
+                    raise ValueError(
+                        "environment/Dockerfile: external FROM requires a "
+                        "static sha256 pin"
+                    )
+                name, digest = base.split("@", 1)
+                if digest not in allowed.get(name, ()):
+                    raise ValueError(
+                        f"environment/Dockerfile: base image {base} is not on "
+                        f"the release allow-list for {platform}"
+                    )
+                if base not in bases:
+                    bases.append(base)
             if match[3]:
                 if match[3].casefold() in stages:
                     raise ValueError("environment/Dockerfile: duplicate stage")
@@ -378,28 +420,58 @@ def _dockerfile(text: str, entries: dict[str, _Entry], platform: ForgePlatform) 
                     )
     if not from_count:
         raise ValueError("environment/Dockerfile is incomplete")
+    if not bases:
+        raise ValueError("environment/Dockerfile names no allow-listed base image")
+    return tuple(bases)
 
 
-def import_skill2env_task(
+@dataclass(frozen=True)
+class Skill2EnvAdmission:
+    """Exact committed bytes and what the recipe needs; no image exists yet."""
+
+    task_set: TaskSetCommitment
+    base_references: tuple[str, ...]
+    source_skill_digest: Digest
+    recipe_version: str
+    producer_version: str
+    upstream_url: str
+    upstream_revision: str
+    harbor_version: str
+
+    def source(self, base_images: list[ForgeBaseImage]) -> ForgeSkillSource:
+        """Bind the pulled base images to the admitted provenance."""
+        return ForgeSkillSource(
+            kind="skill",
+            source_skill_digest=self.source_skill_digest,
+            recipe="skill2env",
+            recipe_version=self.recipe_version,
+            producer="skill2env",
+            producer_version=self.producer_version,
+            upstream_url=self.upstream_url,
+            upstream_revision=self.upstream_revision,
+            harbor_version=self.harbor_version,
+            base_images=base_images,
+        )
+
+
+def admit_skill2env_task(
     task_dir: Path,
     *,
     build_dir: Path,
-    build_id: str,
     expected_source_skill: str,
     expected_source_digest: Digest,
     platform: ForgePlatform,
-) -> ForgeBuildRecord:
-    """Admit exact local bytes into a new build. Failures leave no build.json.
+) -> Skill2EnvAdmission:
+    """Copy exact local bytes into ``build_dir/tasks`` and commit to them.
 
     The expected digest is the reviewed Skill2Env source bundle SHA-256, with
     Techtree's ``sha256:`` prefix. Source bytes stay private and are not copied.
-    A partial directory is retained on failure and must not be reused.
+    Nothing is pulled or built here. A failure leaves no commitment; a partial
+    ``tasks`` directory is retained and is never reused.
     """
     try:
         TypeAdapter(Digest).validate_python(expected_source_digest)
         TypeAdapter(ForgePlatform).validate_python(platform)
-        if not re.fullmatch(r"build_[0-9a-f]{32}", build_id):
-            raise ValueError("invalid build id")
         if not re.fullmatch(r"[a-zA-Z0-9_-]+/[a-zA-Z0-9._-]+", expected_source_skill):
             raise ValueError("expected Source Skill must be an explicit provider/id")
         if not re.fullmatch(r"task_[a-z0-9-]+_[a-z0-9]{8}", task_dir.name):
@@ -452,13 +524,17 @@ def import_skill2env_task(
             expected_source_digest.removeprefix("sha256:"),
             contract,
         )
-        _dockerfile(_text(entries, "environment/Dockerfile"), entries, platform)
+        bases = _dockerfile(
+            _text(entries, "environment/Dockerfile"),
+            entries,
+            platform,
+            allowed_base_images(platform),
+        )
         if entries != _snapshot(task_dir):
             raise ValueError("task changed during admission")
-        # The build id is fresh, so the destination is created exclusively; an
+        # The build id is fresh, so the task tree is created exclusively; an
         # existing directory, file or symlink of that name is never reused.
-        ensure_private_directory(build_dir.parent)
-        build_dir.mkdir(mode=0o700)
+        ensure_private_directory(build_dir)
         tasks_dir = build_dir / "tasks"
         tasks_dir.mkdir(mode=0o700)
         destination = tasks_dir / task_dir.name
@@ -483,26 +559,16 @@ def import_skill2env_task(
                 original.data
             ):
                 raise ValueError(f"copied task bytes changed: {committed.path}")
-        record = ForgeBuildRecord(
-            schema_version=FORGE_BUILD_SCHEMA_VERSION,
-            build_id=build_id,
-            created_at=datetime.now(UTC),
-            platform=platform,
+        return Skill2EnvAdmission(
             task_set=task_set,
-            source=ForgeSkillSource(
-                kind="skill",
-                source_skill_digest=expected_source_digest,
-                recipe="skill2env",
-                recipe_version=sha256_digest_bytes(contract_bytes),
-                producer="skill2env",
-                producer_version=contract["producer_version"],
-                upstream_url=contract["upstream_url"],
-                upstream_revision=contract["upstream_revision"],
-                harbor_version=contract["harbor_version"],
-            ),
+            base_references=bases,
+            source_skill_digest=expected_source_digest,
+            recipe_version=sha256_digest_bytes(contract_bytes),
+            producer_version=contract["producer_version"],
+            upstream_url=contract["upstream_url"],
+            upstream_revision=contract["upstream_revision"],
+            harbor_version=contract["harbor_version"],
         )
-        atomic_write_json(build_dir / "build.json", record.model_dump(mode="json"))
-        return record
     except (OSError, ValueError) as error:
         raise RunError(
             f"cannot import Skill2Env task {task_dir}: {error}",

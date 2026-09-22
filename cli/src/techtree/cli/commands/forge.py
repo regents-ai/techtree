@@ -569,11 +569,15 @@ def render_forge_status(status: ForgeBuildStatus, console: Console) -> None:
                     ("Source Skill", source.source_skill_digest),
                     ("Recipe", f"{source.recipe} {source.recipe_version}"),
                     ("Producer", f"{source.producer} {source.producer_version}"),
+                    (
+                        "Base images",
+                        ", ".join(image.reference for image in source.base_images),
+                    ),
                     ("Committed tasks", str(len(build.task_set.tasks))),
                 ]
             )
     elif progress is not None:
-        pairs.append(("Repository", progress.repository))
+        pairs.append(("Origin", progress.origin))
     render_pairs(pairs, console)
     if progress is not None and progress.failure is not None:
         console.print(

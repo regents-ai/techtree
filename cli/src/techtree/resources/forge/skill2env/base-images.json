@@ -1,0 +1,7 @@
+{
+  "python:3.12-slim": {
+    "index": "sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9",
+    "linux/amd64": "sha256:44ff437bba879d4941b710a369a8f19266aea34b29002807f0c487fabc9eec9b",
+    "linux/arm64": "sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5"
+  }
+}
