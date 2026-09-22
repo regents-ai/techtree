@@ -355,10 +355,48 @@ src/techtree/
 │                       back verified), improvement.py (what a reviser may be told
 │                       about a comparison), revision.py (one revised Skill, screened,
 │                       measured against the same baseline, kept either way),
-│                       docker.py and process.py (the one command boundary).
+│                       source.py (a Source Skill looked at without running
+│                       any of it, and its source record), docker.py and
+│                       process.py (the one command boundary).
 └── resources/          catalog/, engines/default/, forge/, harness/, release/ — the
                         embedded, generated payload the wheel carries.
 ```
+
+**Forge source (a Source Skill, looked at without running it).** `forge
+inspect-skill PATH [--derived-from SOURCE_ID]` (`forge/source.py`,
+`docs/plan/v0.3.0-skill-environments.md` U3a) is the first record of a
+Skill-created environment. It lists every entry under the Skill's directory and
+executes, follows and guesses nothing: a hidden path is recorded and never
+opened (a hidden directory is one entry), a link is recorded and not followed,
+anything but a regular file or readable directory is recorded as what it is,
+and every regular file is hashed on the host. A file is `admitted` when it is
+UTF-8 text with a suffix `skills/scanner.py` admits and within the per-file
+limit; otherwise it is `unsupported` with a reason (`hidden`, `symlink`,
+`special`, `unreadable`, `file_type`, `not_text`, `too_large`,
+`case_collision`). A file is `required` when the instructions name it:
+SKILL.md, and every path SKILL.md, or an admitted file it names, mentions as a
+Markdown link target or a bare path (a directory only with its trailing
+slash), followed through admitted text. A required file that is unsupported, a
+link to a file that is not in the Skill or is outside it, a SKILL.md header
+Techtree does not read, or more files or bytes than a Skill may carry refuses
+the Skill: the record is still written, with `state: refused` and every
+refusal, the command answers `forge_skill_unsupported` naming each, and no
+copy is kept. An unsupported file nothing names is left out and listed
+(`forge_source_files_left_out`). The header is read as the Agent Skills
+specification declares it with a deliberately small reader — top-level
+`key: value` lines with plain or quoted values and one level of `metadata` —
+and any other YAML is refused with its line number; `name` must equal the
+directory's name. What it declares, `allowed-tools` included, is recorded as a
+declaration and grants nothing. The record
+(`techtree.forge-source.v1alpha1`) is written to
+`forge/sources/<forgesrc_id>/source.json`; an admitted source also keeps the
+admitted bytes, exactly those hashed, under `skill/` beside it, and its
+`admitted_digest` is the same content digest a Skill copy carries elsewhere. A
+reduced copy is looked at with `--derived-from`: it is a new source whose
+`lineage` names the original record and its digest, and a copy that admits
+exactly what the original admits is refused as `forge_source_unchanged`
+without writing anything. Nothing is run, no model is called and nothing
+leaves the machine.
 
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and
@@ -503,7 +541,8 @@ one outcome: `graded` (with a reward), `agent_timed_out`, `agent_failed` (a
 non-zero exit, or a usage report saying `failed` or not `completed`),
 `verifier_timed_out`, or `no_verdict`. Only a graded attempt has a reward;
 nothing is recorded as zero for want of evidence. Nothing retries an attempt.
-`forge status` reads a build id, a run id, a comparison id or a revision id.
+`forge status` reads a build id, a run id, a comparison id, a revision id or
+a source id.
 
 **Forge compare (two arms, paired).** `forge compare BASELINE_RUN_ID
 CANDIDATE_RUN_ID` (`forge/compare.py`) reads two recorded runs, puts their

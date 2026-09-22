@@ -192,6 +192,7 @@ engine verify
 forge build
 forge run
 forge compare
+forge inspect-skill
 forge status
 ```
 

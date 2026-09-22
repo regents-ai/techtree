@@ -1,14 +1,20 @@
-"""``techtree forge build|run|compare|status``. ``docs/plan/repo2rlenv-local-lane.md``.
+"""``techtree forge build|run|compare|inspect-skill|status``.
+
+``docs/plan/repo2rlenv-local-lane.md``; Source Skill inspection is
+``docs/plan/v0.3.0-skill-environments.md`` (U3a).
 
 ``forge build`` takes a local repository and retains generated Harbor tasks and
 their qualification evidence; ``forge run`` declares one arm of an experiment
 on those tasks and runs it with the person's own Hermes; ``forge compare``
 pairs a baseline run with a candidate run and writes the record and the
-report; ``forge status`` reads any of them, or a Skill revision made through
-``uplift``, back without requiring build tools. Build execution belongs to
+report; ``forge inspect-skill`` looks at a Source Skill without running any
+of it and records what it holds; ``forge status`` reads any of them, or a
+Skill revision made through ``uplift``, back without requiring build
+tools. Build execution belongs to
 :class:`~techtree.forge.service.ForgeService`, run execution to
 :class:`~techtree.forge.run.ForgeRunner`, comparison to
-:mod:`techtree.forge.compare`; inspection uses the separate record readers.
+:mod:`techtree.forge.compare`, Source Skill inspection to
+:mod:`techtree.forge.source`; inspection uses the separate record readers.
 What to say about each operation is here.
 """
 
@@ -27,7 +33,7 @@ from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import human_console, render_pairs
 from techtree.engines.installer import find_uv
-from techtree.errors import PolicyError
+from techtree.errors import PolicyError, ValidationError
 from techtree.forge.compare import VERDICT_WORDS, compare_runs, read_comparison_status
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
@@ -40,6 +46,7 @@ from techtree.forge.models import (
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
+    ForgeSourceStatus,
     ForgeTaskRegression,
     ForgeUsage,
 )
@@ -56,6 +63,11 @@ from techtree.forge.report import (
 from techtree.forge.revision import read_revision_status
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
+from techtree.forge.source import (
+    UNSUPPORTED_WORDS,
+    inspect_source_skill,
+    read_source_status,
+)
 from techtree.ids import id_prefix
 from techtree.models.base import Digest, NonEmptyString, ProtocolModel
 from techtree.models.cli import (
@@ -74,9 +86,11 @@ __all__ = [
     "ask_to_start",
     "build_forge_command",
     "compare_forge_command",
+    "inspect_skill_forge_command",
     "render_forge_comparison",
     "render_forge_revision",
     "render_forge_run",
+    "render_forge_source",
     "render_forge_status",
     "review_run_spec",
     "revision_status_action",
@@ -84,6 +98,8 @@ __all__ = [
     "run_forge_command",
     "run_status_action",
     "run_warnings",
+    "source_status_action",
+    "source_warnings",
     "status_forge_command",
 ]
 
@@ -291,23 +307,83 @@ def compare_forge_command(
     )
 
 
+def inspect_skill_forge_command(
+    ctx: typer.Context,
+    skill: Annotated[
+        Path,
+        typer.Argument(
+            metavar="PATH",
+            help="The Skill's directory, or its SKILL.md.",
+        ),
+    ],
+    derived_from: Annotated[
+        str | None,
+        typer.Option(
+            "--derived-from",
+            metavar="SOURCE_ID",
+            help="The Skill this one is a reduced copy of, as an earlier look "
+            "recorded it.",
+        ),
+    ] = None,
+) -> None:
+    """Look at a Skill without running any of it, and record what it holds."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeSourceStatus]:
+        status = inspect_source_skill(context.paths, skill, derived_from=derived_from)
+        record = status.record
+        if record.state == "refused":
+            raise ValidationError(
+                "Techtree cannot use this Skill as it is: "
+                + "; ".join(refusal.message for refusal in record.refusals)
+                + ". Nothing in it was run and no model was asked about it. A copy "
+                "without these is a different Skill; look at that copy with "
+                f"--derived-from {status.source_id} so it records where it came "
+                "from.",
+                code="forge_skill_unsupported",
+                details={
+                    "source_id": status.source_id,
+                    "path": status.path,
+                    "refusals": [
+                        refusal.model_dump(mode="json") for refusal in record.refusals
+                    ],
+                },
+                next_actions=[source_status_action(status)],
+            )
+        return CommandResult(
+            data=status,
+            warnings=source_warnings(status),
+            next_actions=[source_status_action(status)],
+        )
+
+    invoke_command(context, Operation.PLAN_PREPARE, action, render_data=_render_source)
+
+
 def status_forge_command(
     ctx: typer.Context,
     record_id: Annotated[
         str,
         typer.Argument(
-            metavar="BUILD_ID|RUN_ID|COMPARISON_ID|REVISION_ID",
-            help="The build, run, comparison or Skill revision to show.",
+            metavar="BUILD_ID|RUN_ID|COMPARISON_ID|REVISION_ID|SOURCE_ID",
+            help="The build, run, comparison, Skill revision or looked-at Skill "
+            "to show.",
         ),
     ],
 ) -> None:
-    """Show a forge build, run, comparison, or Skill revision."""
+    """Show a forge build, run, comparison, Skill revision or looked-at Skill."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[
-        ForgeBuildStatus | ForgeRunStatus | ForgeComparisonStatus | ForgeRevisionStatus
+        ForgeBuildStatus
+        | ForgeRunStatus
+        | ForgeComparisonStatus
+        | ForgeRevisionStatus
+        | ForgeSourceStatus
     ]:
         match id_prefix(record_id):
+            case "forgesrc":
+                source = read_source_status(context.paths, record_id)
+                return CommandResult(data=source, warnings=source_warnings(source))
             case "forgerun":
                 run = read_run_status(context.paths, record_id)
                 return CommandResult(data=run, warnings=run_warnings(run))
@@ -846,8 +922,104 @@ def revision_status_action(status: ForgeRevisionStatus) -> NextAction:
     )
 
 
+def render_forge_source(status: ForgeSourceStatus, console: Console) -> None:
+    """Print one looked-at Skill: what it declares, what is kept, what is not."""
+    record = status.record
+    declaration = record.declaration
+    kept = [entry for entry in record.entries if entry.disposition == "admitted"]
+    pairs = [
+        ("Skill", status.source_id),
+        ("State", "can be used" if record.state == "admitted" else "cannot be used"),
+        ("From", record.origin),
+    ]
+    if record.lineage is not None:
+        pairs.append(
+            (
+                "Derived from",
+                f"{record.lineage.parent_source_id} "
+                f"({record.lineage.parent_admitted_digest[:19]})",
+            )
+        )
+    if declaration is not None:
+        pairs.append(("Name", declaration.name))
+        pairs.append(("Description", declaration.description))
+        if declaration.allowed_tools:
+            pairs.append(
+                (
+                    "Asks for tools",
+                    f"{' '.join(declaration.allowed_tools)} (asked for, not granted)",
+                )
+            )
+    pairs.append(
+        (
+            "Kept",
+            f"{len(kept)} {_plural(len(kept), 'file', 'files')} "
+            f"({record.admitted_digest[:19]})"
+            if record.state == "admitted"
+            else "nothing, because the Skill cannot be used as it is",
+        )
+    )
+    pairs.append(("Evidence", status.path))
+    render_pairs(pairs, console)
+    for entry in record.entries:
+        if entry.reason is not None and not entry.required:
+            console.print(
+                f"  left out {entry.path}: {UNSUPPORTED_WORDS[entry.reason]}",
+                markup=False,
+            )
+    for refusal in record.refusals:
+        console.print(f"  cannot use: {refusal.message}", markup=False)
+
+
+def _render_source(data: object, console: Console) -> None:
+    if isinstance(data, ForgeSourceStatus):
+        render_forge_source(data, console)
+
+
+def source_warnings(status: ForgeSourceStatus) -> list[CliWarning]:
+    """Say which files an admitted Skill leaves out because nothing needs them."""
+    if status.record.state != "admitted":
+        return []
+    left_out = [
+        entry.path
+        for entry in status.record.entries
+        if entry.disposition == "unsupported"
+    ]
+    if not left_out:
+        return []
+    return [
+        CliWarning(
+            id="forge_source_files_left_out",
+            text=(
+                f"{len(left_out)} {_plural(len(left_out), 'file', 'files')} "
+                "the instructions never name "
+                f"{_plural(len(left_out), 'is', 'are')} left out: "
+                + ", ".join(left_out)
+                + ". Each is listed with the reason."
+            ),
+            resolvable_by=None,
+        )
+    ]
+
+
+def source_status_action(status: ForgeSourceStatus) -> NextAction:
+    return NextAction(
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("forge", "status", arguments=[status.source_id]),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason="What the Skill holds and what was kept can be read back later.",
+    )
+
+
 def _render_status(data: object, console: Console) -> None:
-    if isinstance(data, ForgeRunStatus):
+    if isinstance(data, ForgeSourceStatus):
+        render_forge_source(data, console)
+    elif isinstance(data, ForgeRunStatus):
         render_forge_run(data, console)
     elif isinstance(data, ForgeComparisonStatus):
         render_forge_comparison(data, console)

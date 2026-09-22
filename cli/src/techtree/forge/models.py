@@ -50,9 +50,11 @@ __all__ = [
     "FORGE_REVISION_SCHEMA_VERSION",
     "FORGE_RUN_SCHEMA_VERSION",
     "FORGE_RUN_SPEC_SCHEMA_VERSION",
+    "FORGE_SOURCE_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
     "FORGE_TASK_SET_SCHEMA_VERSION",
     "VERDICT_MINIMUM_PAIRS",
+    "AgentSkillName",
     "ForgeAgentSpec",
     "ForgeArm",
     "ForgeArmTotals",
@@ -76,6 +78,7 @@ __all__ = [
     "ForgePairResult",
     "ForgePlatform",
     "ForgeQualification",
+    "ForgeRefusalReason",
     "ForgeRepositorySource",
     "ForgeRevisionRecord",
     "ForgeRevisionStatus",
@@ -84,12 +87,19 @@ __all__ = [
     "ForgeRunStatus",
     "ForgeSamplingSpec",
     "ForgeScreeningFinding",
+    "ForgeSkillDeclaration",
     "ForgeSkillName",
     "ForgeSkillSource",
     "ForgeSkillSpec",
+    "ForgeSourceEntry",
+    "ForgeSourceLineage",
+    "ForgeSourceRecord",
+    "ForgeSourceRefusal",
+    "ForgeSourceStatus",
     "ForgeTaskConsistency",
     "ForgeTaskId",
     "ForgeTaskRegression",
+    "ForgeUnsupportedReason",
     "ForgeUsage",
     "ForgeVerdict",
     "GenerationSummary",
@@ -1041,3 +1051,154 @@ class ForgeBuildStatus(ProtocolModel):
             ]
             if not remaining or progress.current_task_id != remaining[0]:
                 raise ValueError("current task differs from next committed task")
+
+
+FORGE_SOURCE_SCHEMA_VERSION: Final = "techtree.forge-source.v1alpha1"
+
+#: A Skill's name as the Agent Skills specification allows it: lowercase
+#: letters and digits in hyphen-separated runs, at most 64 characters.
+type AgentSkillName = Annotated[
+    str, StringConstraints(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", max_length=64)
+]
+
+#: Why one file of a Source Skill cannot be carried: a hidden path (never
+#: opened), a link, a device or other special file, a file or directory that
+#: cannot be read, a type Techtree does not admit (scripts, binaries,
+#: images), bytes that are not UTF-8 text, a file over the per-file limit,
+#: or a path that differs from another only by case.
+type ForgeUnsupportedReason = Literal[
+    "hidden",
+    "symlink",
+    "special",
+    "unreadable",
+    "file_type",
+    "not_text",
+    "too_large",
+    "case_collision",
+]
+
+#: Why a whole Source Skill is refused: a file its instructions need cannot
+#: be carried, a link names a file that is not there or one outside the
+#: Skill, the SKILL.md header is not one Techtree reads, or the admitted
+#: files exceed the count or byte limits.
+type ForgeRefusalReason = Literal[
+    "required_unsupported",
+    "missing_reference",
+    "outside_reference",
+    "declaration",
+    "too_many_files",
+    "too_many_bytes",
+]
+
+
+class ForgeSourceEntry(ProtocolModel):
+    """One entry of a Source Skill as it was found, and what became of it.
+
+    ``required`` means the Skill's instructions name it: SKILL.md itself, and
+    every path SKILL.md or a file it names mentions, followed through the
+    admitted text. A hidden directory, and a directory that cannot be read,
+    is one entry; nothing under it is opened.
+    """
+
+    path: NonEmptyString
+    kind: Literal["file", "symlink", "directory", "special"]
+    size: int | None = Field(ge=0)
+    digest: Digest | None
+    disposition: Literal["admitted", "unsupported"]
+    reason: ForgeUnsupportedReason | None
+    required: bool
+
+    @model_validator(mode="after")
+    def validate_disposition(self) -> Self:
+        if (self.disposition == "admitted") != (self.reason is None):
+            raise ValueError("an unsupported entry says why, an admitted one does not")
+        if self.disposition == "admitted" and (
+            self.kind != "file" or self.size is None or self.digest is None
+        ):
+            raise ValueError("an admitted entry is a file with its size and digest")
+        return self
+
+
+class ForgeSkillDeclaration(ProtocolModel):
+    """What SKILL.md's header declares, per the Agent Skills specification.
+
+    Declarations only: ``allowed_tools`` is what the Skill asks for, and it
+    grants nothing. Capabilities granted to authoring or to task execution
+    are separate facts on the approvals that grant them.
+    """
+
+    name: AgentSkillName
+    description: Annotated[str, StringConstraints(min_length=1, max_length=1024)]
+    license: NonEmptyString | None
+    compatibility: (
+        Annotated[str, StringConstraints(min_length=1, max_length=500)] | None
+    )
+    metadata: dict[NonEmptyString, str]
+    allowed_tools: list[NonEmptyString]
+    other_fields: dict[NonEmptyString, str]
+
+
+class ForgeSourceRefusal(ProtocolModel):
+    """One reason the Source Skill cannot be used, naming the path concerned."""
+
+    path: NonEmptyString
+    reason: ForgeRefusalReason
+    message: NonEmptyString
+
+
+class ForgeSourceLineage(ProtocolModel):
+    """The inspected Skill a reduced derivative was made from."""
+
+    parent_source_id: NonEmptyString
+    parent_admitted_digest: Digest
+
+
+class ForgeSourceRecord(ProtocolModel):
+    """One inspection of a Source Skill: the first record of an environment.
+
+    Written once and never changed. Every entry found is listed with its
+    disposition; ``admitted_files`` and ``admitted_digest`` describe exactly
+    the bytes an admitted source keeps under ``skill/`` beside this record,
+    the bytes that may later be disclosed to an authoring model. A refused
+    source keeps no bytes; its record is what a derivative's lineage names.
+    """
+
+    schema_version: Literal["techtree.forge-source.v1alpha1"]
+    source_id: NonEmptyString
+    created_at: UtcDateTime
+    origin: NonEmptyString
+    state: Literal["admitted", "refused"]
+    declaration: ForgeSkillDeclaration | None
+    entries: list[ForgeSourceEntry]
+    admitted_files: list[SkillFile]
+    admitted_digest: Digest
+    refusals: list[ForgeSourceRefusal]
+    lineage: ForgeSourceLineage | None
+
+    @model_validator(mode="after")
+    def validate_record(self) -> Self:
+        if (self.state == "refused") != bool(self.refusals):
+            raise ValueError(
+                "a refused source says why, an admitted one has no refusal"
+            )
+        if self.state == "admitted" and self.declaration is None:
+            raise ValueError("an admitted source carries its declaration")
+        admitted = [
+            (entry.path, entry.size, entry.digest)
+            for entry in self.entries
+            if entry.disposition == "admitted"
+        ]
+        if admitted != [(f.path, f.size, f.digest) for f in self.admitted_files]:
+            raise ValueError("admitted files differ from the admitted entries")
+        if not verify_object_digest(self.admitted_files, self.admitted_digest):
+            raise ValueError("admitted digest does not describe the admitted files")
+        return self
+
+
+class ForgeSourceStatus(ProtocolModel):
+    """A Source Skill record read back, with where its kept bytes are."""
+
+    source_id: NonEmptyString
+    path: NonEmptyString
+    snapshot_path: NonEmptyString | None
+    record: ForgeSourceRecord

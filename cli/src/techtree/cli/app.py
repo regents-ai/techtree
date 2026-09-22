@@ -56,6 +56,7 @@ from techtree.cli.commands.engine import (
 from techtree.cli.commands.forge import (
     build_forge_command,
     compare_forge_command,
+    inspect_skill_forge_command,
     run_forge_command,
     status_forge_command,
 )
@@ -412,8 +413,13 @@ def _forge_app() -> typer.Typer:
         help="Compare a baseline run with a candidate run and write the report.",
     )(compare_forge_command)
     app.command(
+        "inspect-skill",
+        help="Look at a Skill without running any of it, and record what it holds.",
+    )(inspect_skill_forge_command)
+    app.command(
         "status",
-        help="Show what one forge build made, one run did or one comparison found.",
+        help="Show what one forge build made, one run did, one comparison found "
+        "or one looked-at Skill holds.",
     )(status_forge_command)
     return app
 

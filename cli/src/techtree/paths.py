@@ -115,6 +115,15 @@ class TechtreePaths:
         """Return the directory holding one forge Skill revision and its Skill."""
         return self.forge_revisions_dir / validate_id(revision_id, "forgerev")
 
+    @property
+    def forge_sources_dir(self) -> Path:
+        """Return the directory holding every inspected Source Skill."""
+        return self.forge_dir / "sources"
+
+    def forge_source_dir(self, source_id: str) -> Path:
+        """Return the directory holding one Source Skill record and its snapshot."""
+        return self.forge_sources_dir / validate_id(source_id, "forgesrc")
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 
