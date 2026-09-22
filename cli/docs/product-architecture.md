@@ -362,13 +362,25 @@ src/techtree/
 
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and
-`techtree.forge-qualification.v1alpha2`. This is a hard cutover of the unreleased
-local shape: earlier build records return `forge_schema_unsupported` with their
-path and schema version, without a fallback reader or changes to saved bytes.
-Build provenance is one typed repository or Skill source; the task content and
-membership commitments remain shared. Skill qualification and execution are not
-yet supported by the repository runner.
-Public proofs and their schemas are unchanged.
+`techtree.forge-qualification.v1alpha3`. This is a hard cutover of the unreleased
+local shape: an earlier build record returns `forge_schema_unsupported` with
+its path and schema version; an earlier qualification or progress record beside
+a current build returns `forge_evidence_invalid` ("unsupported forge schema
+version") with the file in its details. Neither has a fallback reader, and saved
+bytes are never changed. Build provenance is one typed repository or Skill
+source; the task content and membership commitments remain
+shared. Each task's qualification evidence is likewise one typed branch by
+`kind`: a repository task records the commit and test names it graded, a Skill
+task records only the common checks plus the two an imported package needs (no
+file of `tests/` or `solution/` inside the instruction or environment, and
+bounded verifier output). A Skill task's reference run starts one container
+and runs `solve.sh` in it with the task's agent time, then the tests with the
+verifier time, each by `docker exec` under a deadline kept from the host (the
+image comes from the task's own recipe, so nothing inside it keeps time); a
+step still running at its deadline ends with the container removed and no
+verdict, as does a `solve.sh` that exits with an error or an image that cannot
+be started; each is rejected with its own words. The repository runner does not yet execute Skill
+tasks. Public proofs and their schemas are unchanged.
 
 The shipped Python/uv bootstrap exposes `/workspace/.venv/bin` in both login and non-login shells, so generation and qualification use the installed test tools.
 A Dockerfile given with `--dockerfile` has to do the same for its own tools: validation runs in a login shell, whose `/etc/profile` resets `PATH`, so an image whose toolchain lives only in an `ENV PATH` (the official `golang` image, for one) needs an `/etc/profile.d/` entry that exports it, or every test run ends in `command not found` and every candidate is passed over for a test run that left no readable result.
@@ -401,7 +413,7 @@ bindings without requiring `uv`, Docker, or a live content scan. This detects
 inconsistent evidence; it is not a signature, a pinned subject, or proof that a
 real container qualification has occurred.
 
-`progress.json` (`techtree.forge-progress.v1alpha2`) is atomically written before
+`progress.json` (`techtree.forge-progress.v1alpha3`) is atomically written before
 daemon/environment preparation, then at phase changes and task boundaries. It
 retains UTC timestamps, the last observed phase, the ordered prefix of actual
 task records, and any caught failure or cancellation. Partial task evidence is

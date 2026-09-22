@@ -34,9 +34,9 @@ from techtree.forge.models import (
     ForgeRunSpec,
     ForgeSkillSource,
     GenerationSummary,
+    RepositoryTaskQualification,
     TaskContentEntry,
     TaskContentManifest,
-    TaskQualification,
     TaskSetCommitment,
 )
 from techtree.forge.run import AgentOutcome
@@ -86,7 +86,9 @@ def skill2env_task(parent: Path) -> Path:
         'description = "Sum the supplied amounts."\nkeywords = ["reconcile"]\n'
         '[[task.authors]]\nname = "skill2env"\n\n'
         '[metadata]\nsource_skill = "local/reconcile"\n'
-        f'source_bundle_digest = "{"a" * 64}"\n\n'
+        f'source_bundle_digest = "{"a" * 64}"\n'
+        "[metadata.base_image_pins]\n"
+        f'"python:3.12-slim" = "{PYTHON_SLIM.split("@")[1]}"\n\n'
         '[verifier]\nnetwork_mode = "no-network"\nallowed_hosts = []\n'
         "timeout_sec = 600.0\ncollect = []\n[verifier.env]\n\n"
         '[agent]\nnetwork_mode = "no-network"\nallowed_hosts = []\n'
@@ -209,13 +211,14 @@ def qualified_build(home: Path, *, qualified: bool = True) -> QualifiedBuild:
         task_set=task_set,
     )
     qualification = ForgeQualification(
-        schema_version="techtree.forge-qualification.v1alpha2",
+        schema_version="techtree.forge-qualification.v1alpha3",
         build_id=build_id,
         membership_digest=task_set.membership_digest,
         qualified_at=now,
         model_calls=0,
         tasks=[
-            TaskQualification(
+            RepositoryTaskQualification(
+                kind="repository",
                 task_id=TASK_ID,
                 task_content_digest=manifest.content_digest,
                 image_tag="techtree-forge/demo/" + TASK_ID + ":111111111111",
@@ -334,23 +337,40 @@ class FakeDocker:
     """The command runner every ``docker`` call goes through.
 
     ``reward`` is what the tests leave: a number, ``None`` for no verdict, or
-    ``"timeout"`` for a test run that hangs. ``export_error`` makes the
+    ``"timeout"`` for a test run that hangs; ``reference_reward`` is the same
+    for the tests after the reference solution, which may also be
+    ``"solution_timeout"`` for a ``solve.sh`` that hangs or
+    ``"solution_fails"`` for one that exits 2. ``start_error`` is the stderr
+    of a container that will not start. ``verifier_output``
+    is how many extra bytes the tests leave beside the reward;
+    ``verifier_link`` makes them leave a link to a directory and
+    ``verifier_unreadable`` a directory nobody may read. ``material_present``
+    makes the image probe find verifier material. ``export_error`` makes the
     workspace export fail the way a missing image would; ``build_error`` and
     ``pull_error`` are the stderr of an image build or a base pull that fails.
     ``left_behind`` is what ``docker ps`` lists for any label filter: the
     stopped containers
     Hermes leaves on the daemon. The one ``hermes`` command that comes through
-    here is the sign-in question, answered from ``signed_in``.
+    here is the sign-in question, answered from ``signed_in``. ``timeouts``
+    holds the deadline of every command run in a container, in order.
     """
 
     reward: float | str | None = 1.0
+    reference_reward: float | str | None = 1.0
+    verifier_output: int = 0
+    verifier_link: bool = False
+    verifier_unreadable: bool = False
+    material_present: bool = False
     patch: str = "diff --git a/x b/x\n"
     export_error: bool = False
     build_error: str | None = None
+    start_error: str | None = None
     pull_error: str | None = None
     left_behind: list[str] = field(default_factory=list)
     signed_in: bool = True
     calls: list[list[str]] = field(default_factory=list)
+    timeouts: list[float] = field(default_factory=list)
+    started: dict[str, list[str]] = field(default_factory=dict)
 
     def __call__(
         self, argv: Sequence[str], timeout: float
@@ -385,29 +405,75 @@ class FakeDocker:
                 return _done(command)
             case ["docker", "rm"]:
                 return _done(command)
+            case ["docker", "run"] if command[2] == "--detach":
+                if self.start_error is not None:
+                    return subprocess.CompletedProcess(
+                        command, 125, "", self.start_error
+                    )
+                name = command[command.index("--name") + 1]
+                self.started[name] = command
+                return _done(command, f"{name}\n")
             case ["docker", "run"]:
                 return self._run(command, timeout)
+            case ["docker", "exec"]:
+                return self._exec(command, timeout)
         raise AssertionError(f"unexpected docker command {command}")
 
     def _run(
         self, command: list[str], timeout: float
     ) -> subprocess.CompletedProcess[str]:
         script = command[-1]
+        self.timeouts.append(timeout)
         if "git diff --cached" in script:
             return _done(command, self.patch)
+        if script.startswith("test ! -e /tests"):
+            found = int(self.material_present)
+            return subprocess.CompletedProcess(command, found, "", "")
+        if "bash /solution/solve.sh" in script:
+            return self._graded(command, command, self.reference_reward)
         assert script == "bash /tests/test.sh", script
         assert not any(":/solution" in part for part in command), (
             "the reference solution reached a grading container"
         )
+        return self._graded(command, command, self.reward)
+
+    def _exec(
+        self, command: list[str], timeout: float
+    ) -> subprocess.CompletedProcess[str]:
+        """A step of the reference run, in the container ``start`` named."""
+        self.timeouts.append(timeout)
+        container = self.started[command[2]]
+        match command[3:]:
+            case ["bash", "/solution/solve.sh"]:
+                if self.reference_reward == "solution_timeout":
+                    raise _timeout("solving\n")
+                if self.reference_reward == "solution_fails":
+                    return subprocess.CompletedProcess(command, 2, "", "no such file\n")
+                return _done(command)
+            case ["bash", "/tests/test.sh"]:
+                return self._graded(command, container, self.reference_reward)
+        raise AssertionError(f"unexpected docker exec {command}")
+
+    def _graded(
+        self, command: list[str], container: list[str], reward: float | str | None
+    ) -> subprocess.CompletedProcess[str]:
+        """What the tests leave in the verifier directory ``container`` mounts."""
         verifier = next(
             Path(part.removesuffix(":/logs/verifier"))
-            for part in command
+            for part in container
             if part.endswith(":/logs/verifier")
         )
-        if self.reward == "timeout":
-            raise RunError("hung", code="forge_command_timeout")
-        if self.reward is not None:
-            (verifier / "reward.txt").write_text(f"{self.reward}\n", encoding="utf-8")
+        if reward == "timeout":
+            raise _timeout("testing\n")
+        if reward is not None:
+            (verifier / "reward.txt").write_text(f"{reward}\n", encoding="utf-8")
+        if self.verifier_output:
+            (verifier / "output.log").write_bytes(b"x" * self.verifier_output)
+        if self.verifier_link:
+            (verifier / "elsewhere").symlink_to("/", target_is_directory=True)
+        if self.verifier_unreadable:
+            (verifier / "sealed").mkdir()
+            (verifier / "sealed").chmod(0)
         return _done(command)
 
     def graded(self) -> bool:
@@ -424,6 +490,15 @@ def signed_in_profile(profiles: Path) -> Path:
 
 def _done(command: list[str], stdout: str = "") -> subprocess.CompletedProcess[str]:
     return subprocess.CompletedProcess(command, 0, stdout, "")
+
+
+def _timeout(printed: str) -> RunError:
+    """The error ``run_command`` raises for a command still printing at its limit."""
+    return RunError(
+        "hung",
+        code="forge_command_timeout",
+        details={"stdout": printed, "stderr": ""},
+    )
 
 
 @dataclass

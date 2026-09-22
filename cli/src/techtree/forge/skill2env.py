@@ -162,7 +162,8 @@ def _text(entries: dict[str, _Entry], path: str) -> str:
 
 def _config(
     text: str, task_name: str, source_skill: str, digest: str, contract: dict[str, Any]
-) -> None:
+) -> dict[str, str]:
+    """Validate ``task.toml`` and return the base image pins it declares."""
     config = tomllib.loads(text)
     if set(config) != {
         "schema_version",
@@ -252,6 +253,7 @@ def _config(
         ):
             raise ValueError("task.toml artifacts overlap or use reserved paths")
         paths.append(path)
+    return pins
 
 
 _DOCKERFILE_INSTRUCTIONS = frozenset(
@@ -517,7 +519,7 @@ def admit_skill2env_task(
                 raise ValueError(
                     f"unsupported or privileged build context material: {path}"
                 )
-        _config(
+        pins = _config(
             _text(entries, "task.toml"),
             task_dir.name,
             expected_source_skill,
@@ -530,6 +532,12 @@ def admit_skill2env_task(
             platform,
             allowed_base_images(platform),
         )
+        # Skill2Env's build audit records the digest it pinned each FROM to;
+        # when the task carries that record it must be the recipe's own pins.
+        if pins and pins != dict(base.split("@", 1) for base in bases):
+            raise ValueError(
+                "task.toml metadata.base_image_pins differ from the recipe's FROM pins"
+            )
         if entries != _snapshot(task_dir):
             raise ValueError("task changed during admission")
         # The build id is fresh, so the task tree is created exclusively; an

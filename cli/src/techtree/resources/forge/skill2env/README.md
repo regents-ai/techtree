@@ -75,7 +75,29 @@ exactly the committed `environment/` directory, with no build arguments,
 secrets, SSH or cache mounts; its log is retained beside the qualification
 evidence whether it succeeded or not, and a failed build tags no image.
 
-An admitted build is unqualified: no task code has run, and no
-offline-execution or reference/no-op claim is made. Qualification of Skill
-builds is U2b3; until then the repository-only execution and qualification
-paths refuse it.
+When `task.toml` carries `metadata.base_image_pins` (Skill2Env's build audit
+records the digest it pinned each `FROM` to), those pins must be exactly the
+recipe's own `FROM` pins; a task without the record is admitted on the
+recipe's pins alone.
+
+The import then qualifies the task with the common profile
+(`forge/qualify.py`): the package must still hash to its commitment before
+and after; no file of `tests/` or `solution/` may appear inside
+`instruction.md` or any `environment/` file; the image must build offline;
+the image must hold no `/tests`, `/solution` or `/logs`; a run that does
+nothing must score 0; `solution/solve.sh` followed by `tests/test.sh` must
+score 1; and what the tests leave under `/logs/verifier` across both runs
+must be regular files, with no link of any kind, within 1 MiB and 1024
+entries. Both graded runs use the isolated runtime (`--network none`, memory
+and CPU caps, `tests/` and `solution/` mounted read-only, the verifier's
+output directory mounted writable at `/logs/verifier`, nothing else) bounded
+by the pinned `task.toml` times: the verifier's 600 s for the run that does
+nothing; in the reference run one container is started, `solve.sh` runs in
+it with the agent's 1800 s and then the tests with the verifier's 600 s, each
+deadline kept from the host, since the image comes from the task's own
+recipe. A step still running at its deadline ends with the container removed
+and leaves no verdict; so does a `solve.sh` that exits with an error (the
+tests then do not run) and an image that cannot be started. Every check and what it saw is written to
+`qualification.json` beside the build; a rejected task keeps its image build
+log and both containers' transcripts. The repository runner does not yet
+execute Skill tasks.

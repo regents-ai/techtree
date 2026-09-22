@@ -504,11 +504,11 @@ class ForgeRunner:
                 image,
                 task_dir,
                 attempt_dir / "grading",
-                facts,
+                time_limit=facts.verifier_timeout,
                 reference=False,
                 workspace=workspace,
             )
-            verifier_timed_out = bool(verdict.details.get("timed_out"))
+            verifier_timed_out = verdict.stopped == "tests_timed_out"
             if verifier_timed_out:
                 outcome = ForgeAttemptOutcome.VERIFIER_TIMED_OUT
             elif verdict.reward is None:

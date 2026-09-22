@@ -4,7 +4,7 @@ Three documents live in a build directory. ``build.json`` says what was built
 from what: a typed repository or Skill source around shared task commitments.
 The repository branch owns its Git and Repo2RLEnv evidence.
 ``qualification.json`` says which of the
-emitted tasks proved out under the model-free checks and which did not, with
+committed tasks proved out under the model-free checks and which did not, with
 the rewards each check observed. ``progress.json`` preserves the last observed
 phase and partial evidence. All are private local evidence about a mutable local
 subject, not published artifacts.
@@ -94,16 +94,19 @@ __all__ = [
     "ForgeVerdict",
     "GenerationSummary",
     "QualificationCheck",
+    "RepositoryTaskQualification",
+    "SkillTaskQualification",
     "TaskContentEntry",
     "TaskContentManifest",
     "TaskQualification",
+    "TaskQualificationEvidence",
     "TaskSetCommitment",
     "forge_verdict",
 ]
 
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha3"
-FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha2"
-FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha2"
+FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha3"
+FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha3"
 FORGE_RUN_SCHEMA_VERSION: Final = "techtree.forge-run.v1alpha1"
 FORGE_RUN_SPEC_SCHEMA_VERSION: Final = "techtree.forge-run-spec.v1alpha1"
 FORGE_TASK_CONTENT_SCHEMA_VERSION: Final = "techtree.forge-task-content.v1alpha1"
@@ -339,26 +342,48 @@ class QualificationCheck(ProtocolModel):
     detail: str
 
 
-class TaskQualification(ProtocolModel):
-    """Whether one emitted task proved out, and the evidence."""
+class TaskQualificationEvidence(ProtocolModel):
+    """What every producer's qualification records about one task.
+
+    The common profile builds the task's image offline, checks that the
+    image carries no verifier material, grades a run that does nothing and a
+    run of the reference, and keeps every check with what it saw.
+    """
 
     task_id: ForgeTaskId
     task_content_digest: Digest
     image_tag: NonEmptyString
     image_id: str
-    base_commit: NonEmptyString
-    fail_to_pass: int = Field(ge=0)
-    pass_to_pass: int = Field(ge=0)
     control_reward: float | None
     reference_reward: float | None
     checks: list[QualificationCheck]
     qualified: bool
 
 
-class ForgeQualification(ProtocolModel):
-    """The qualification of every task one build emitted."""
+class RepositoryTaskQualification(TaskQualificationEvidence):
+    """A repository task's evidence, with the commit and test names it graded."""
 
-    schema_version: Literal["techtree.forge-qualification.v1alpha2"]
+    kind: Literal["repository"]
+    base_commit: NonEmptyString
+    fail_to_pass: int = Field(ge=0)
+    pass_to_pass: int = Field(ge=0)
+
+
+class SkillTaskQualification(TaskQualificationEvidence):
+    """A Skill task's evidence: no commit and no test names, only the checks."""
+
+    kind: Literal["skill"]
+
+
+type TaskQualification = Annotated[
+    RepositoryTaskQualification | SkillTaskQualification, Field(discriminator="kind")
+]
+
+
+class ForgeQualification(ProtocolModel):
+    """The qualification of every task one build committed."""
+
+    schema_version: Literal["techtree.forge-qualification.v1alpha3"]
     build_id: NonEmptyString
     membership_digest: Digest
     qualified_at: UtcDateTime
@@ -893,7 +918,7 @@ class ForgeBuildFailure(ProtocolModel):
 class ForgeBuildProgress(ProtocolModel):
     """Last observed work, not evidence that a process is still running."""
 
-    schema_version: Literal["techtree.forge-progress.v1alpha2"]
+    schema_version: Literal["techtree.forge-progress.v1alpha3"]
     build_id: NonEmptyString
     #: The repository path or the imported task directory the build began from.
     origin: NonEmptyString

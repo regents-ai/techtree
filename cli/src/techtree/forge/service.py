@@ -72,7 +72,7 @@ from techtree.forge.models import (
 )
 from techtree.forge.process import CommandRunner
 from techtree.forge.qualify import qualify_build
-from techtree.forge.report import build_summary
+from techtree.forge.report import build_summary, task_verdict
 from techtree.forge.skill2env import admit_skill2env_task
 from techtree.fs import atomic_write_json, ensure_private_directory
 from techtree.ids import new_id, validate_id
@@ -162,29 +162,7 @@ class ForgeService:
                 on_task=on_task,
             ),
         )
-        if status.usable_tasks == 0:
-            status_command = _status_command(self._paths, status.build_id)
-            said = (
-                build_summary(
-                    status.build.require_repository_source(
-                        "Repository build"
-                    ).generation,
-                    status.qualification,
-                )
-                if status.build is not None
-                else "no task was usable."
-            )
-            raise RunError(
-                f"Qualification finished with no usable task. {said} "
-                f"Inspect: {status_command}",
-                code="forge_no_usable_tasks",
-                details={
-                    "build_id": status.build_id,
-                    "path": status.path,
-                    "usable_tasks": 0,
-                },
-            )
-        return status
+        return self._require_usable(status)
 
     def import_skill(
         self,
@@ -193,13 +171,13 @@ class ForgeService:
         source_skill: str,
         source_digest: str,
     ) -> ForgeBuildStatus:
-        """Admit one Skill2Env task package and acquire its base images.
+        """Admit one Skill2Env task package, acquire its base images, qualify it.
 
         The task's exact bytes are committed, every external base image of
         its recipe is checked against the release allow-list and pulled by
-        digest, and the build record is written. No recipe is built and no
-        task code runs here, so the receipt stays at the content phase: the
-        build is unfinished until it is qualified.
+        digest, the build record is written, and the task is qualified the
+        way a repository task is: its image built offline, a run that does
+        nothing and a run of the reference graded in the isolated runtime.
         """
         task_dir = task_dir.expanduser().resolve()
         if not task_dir.is_dir():
@@ -209,7 +187,7 @@ class ForgeService:
                 details={"task_dir": str(task_dir)},
             )
         docker_platform = host_docker_platform()
-        return self._observe(
+        status = self._observe(
             origin=str(task_dir),
             work=lambda build_id, on_phase, on_task: self._import_skill(
                 task_dir=task_dir,
@@ -218,7 +196,32 @@ class ForgeService:
                 docker_platform=docker_platform,
                 build_id=build_id,
                 on_phase=on_phase,
+                on_task=on_task,
             ),
+        )
+        return self._require_usable(status)
+
+    def _require_usable(self, status: ForgeBuildStatus) -> ForgeBuildStatus:
+        """Raise when qualification finished and admitted no task for use."""
+        if status.usable_tasks != 0:
+            return status
+        status_command = _status_command(self._paths, status.build_id)
+        build, qualification = status.build, status.qualification
+        if build is None or qualification is None:
+            said = "no task was usable."
+        elif build.source.kind == "repository":
+            said = build_summary(build.source.generation, qualification)
+        else:
+            said = "; ".join(task_verdict(task) for task in qualification.tasks)
+        raise RunError(
+            f"Qualification finished with no usable task. {said} "
+            f"Inspect: {status_command}",
+            code="forge_no_usable_tasks",
+            details={
+                "build_id": status.build_id,
+                "path": status.path,
+                "usable_tasks": 0,
+            },
         )
 
     def _observe(
@@ -342,6 +345,7 @@ class ForgeService:
         docker_platform: ForgePlatform,
         build_id: str,
         on_phase: Callable[[ForgeBuildPhase, ForgeBuildRecord | None], None],
+        on_task: Callable[[str, TaskQualification | None], None],
     ) -> ForgeBuildStatus:
         self._docker.require_daemon()
         build_dir = self._paths.forge_build_dir(build_id)
@@ -371,7 +375,29 @@ class ForgeService:
         )
         atomic_write_json(build_dir / _BUILD_FILENAME, record.model_dump(mode="json"))
         on_phase("content", record)
+        self._qualify(record, build_dir, on_phase, on_task)
         return read_build_status(self._paths, build_id)
+
+    def _qualify(
+        self,
+        record: ForgeBuildRecord,
+        build_dir: Path,
+        on_phase: Callable[[ForgeBuildPhase, ForgeBuildRecord | None], None],
+        on_task: Callable[[str, TaskQualification | None], None],
+    ) -> None:
+        """Qualify the committed tasks and write the record beside the build."""
+        on_phase("qualification", record)
+        qualification = qualify_build(
+            docker=self._docker,
+            build=record,
+            tasks_dir=build_dir / "tasks",
+            work_dir=build_dir / "qualification",
+            on_task=on_task,
+        )
+        atomic_write_json(
+            build_dir / _QUALIFICATION_FILENAME, qualification.model_dump(mode="json")
+        )
+        on_phase("completed", record)
 
     def _build(
         self,
@@ -457,19 +483,7 @@ class ForgeService:
             task_set=commit_task_set(tasks_dir, generation.tasks),
         )
         atomic_write_json(build_dir / _BUILD_FILENAME, record.model_dump(mode="json"))
-
-        on_phase("qualification", record)
-        qualification = qualify_build(
-            docker=self._docker,
-            build=record,
-            tasks_dir=tasks_dir,
-            work_dir=build_dir / "qualification",
-            on_task=on_task,
-        )
-        atomic_write_json(
-            build_dir / _QUALIFICATION_FILENAME, qualification.model_dump(mode="json")
-        )
-        on_phase("completed", record)
+        self._qualify(record, build_dir, on_phase, on_task)
         return read_build_status(self._paths, build_id)
 
 

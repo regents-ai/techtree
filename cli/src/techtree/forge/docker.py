@@ -1,9 +1,11 @@
 """Docker as the forge uses it. ``docs/plan/repo2rlenv-local-lane.md``.
 
-Six things and no more: pull one digest-pinned base image, build an image from
-a directory, ask the daemon what an image's content id is, run one command in a
-fresh container from an image with named directories mounted, copy an image's
-workspace out to the host, and confirm the daemon answers at all. The only
+Seven things and no more: pull one digest-pinned base image, build an image
+from a directory, ask the daemon what an image's content id is, run one command
+in a fresh container from an image with named directories mounted, start such a
+container and run commands in it one after another, each with its own deadline
+kept from the host, copy an image's workspace out to the host, and confirm the
+daemon answers at all. The only
 pull is of a base image the release allow-lists, by digest, before a Skill
 task's recipe is built. The bootstrap image is built from the person's own
 checkout with the network, the task images from their recipes with the
@@ -182,25 +184,51 @@ class Docker:
         the removal report is not proof that an unavailable daemon cleaned up.
         """
         name = f"techtree-forge-{uuid.uuid4().hex}"
+        command = ["docker", "run", *_bounds(name, platform, mounts), image, *argv]
+        return self._bounded(command, name, timeout)
+
+    def start(self, *, image: str, platform: ForgePlatform, mounts: list[Mount]) -> str:
+        """Start a fresh, bounded, offline container that waits, and name it.
+
+        The container only sleeps until ``exec`` runs commands in it; the
+        caller removes it with ``remove``. A container that cannot be started
+        is said so, with the daemon's words.
+        """
+        name = f"techtree-forge-{uuid.uuid4().hex}"
         command = [
             "docker",
             "run",
-            "--rm",
-            "--name",
-            name,
-            "--platform",
-            platform,
-            "--network",
-            "none",
-            "--memory",
-            CONTAINER_MEMORY,
-            "--cpus",
-            CONTAINER_CPUS,
+            "--detach",
+            *_bounds(name, platform, mounts),
+            image,
+            "sleep",
+            "infinity",
         ]
-        for mount in mounts:
-            suffix = ":ro" if mount.read_only else ""
-            command += ["--volume", f"{mount.source}:{mount.target}{suffix}"]
-        command += [image, *argv]
+        try:
+            completed = self._run(command, DAEMON_TIMEOUT_SECONDS)
+        except (KeyboardInterrupt, RunError) as error:
+            error.add_note(f"Container removal attempted: {self.remove(name)}")
+            raise
+        if completed.returncode != 0:
+            raise RunError(
+                f"a container from {image} could not be started: "
+                f"{completed.stderr.strip()[-300:]}",
+                code="forge_container_unavailable",
+                details={"image": image, "removal": self.remove(name)},
+            )
+        return name
+
+    def exec(self, name: str, argv: list[str], timeout: float) -> RunOutcome:
+        """Run ``argv`` in the container ``start`` named, until ``timeout``.
+
+        The deadline is kept here, on the host, not by anything in the image.
+        A command still running at it is ended with its whole container, which
+        is removed; the container cannot be used again after that.
+        """
+        return self._bounded(["docker", "exec", name, *argv], name, timeout)
+
+    def _bounded(self, command: list[str], name: str, timeout: float) -> RunOutcome:
+        """Run one container command; on timeout or interrupt remove ``name``."""
         try:
             completed = self._run(command, timeout)
         except KeyboardInterrupt as error:
@@ -211,8 +239,8 @@ class Docker:
                 raise
             return RunOutcome(
                 exit_code=-1,
-                stdout="",
-                stderr=f"{error}\n{self.remove(name)}",
+                stdout=str(error.details["stdout"]),
+                stderr=f"{error.details['stderr']}\n{error}\n{self.remove(name)}",
                 timed_out=True,
             )
         return RunOutcome(
@@ -292,3 +320,24 @@ class Docker:
                 f"container {name} was not removed: {completed.stderr.strip()[-300:]}"
             )
         return f"container {name} removed"
+
+
+def _bounds(name: str, platform: ForgePlatform, mounts: list[Mount]) -> list[str]:
+    """The ``docker run`` options every forge container gets."""
+    options = [
+        "--rm",
+        "--name",
+        name,
+        "--platform",
+        platform,
+        "--network",
+        "none",
+        "--memory",
+        CONTAINER_MEMORY,
+        "--cpus",
+        CONTAINER_CPUS,
+    ]
+    for mount in mounts:
+        suffix = ":ro" if mount.read_only else ""
+        options += ["--volume", f"{mount.source}:{mount.target}{suffix}"]
+    return options

@@ -50,6 +50,7 @@ from techtree.forge.report import (
     OUTCOME_WORDS,
     build_summary,
     first_failed_check,
+    import_summary,
     task_verdict,
 )
 from techtree.forge.revision import read_revision_status
@@ -584,10 +585,13 @@ def render_forge_status(status: ForgeBuildStatus, console: Console) -> None:
             f"{progress.failure.code}: {progress.failure.message}", markup=False
         )
         console.print("Inspect the retained evidence before starting a new build.")
-    if build is not None and build.source.kind == "repository":
+    if build is not None:
         console.print()
         console.print(
-            build_summary(build.source.generation, qualification), markup=False
+            build_summary(build.source.generation, qualification)
+            if build.source.kind == "repository"
+            else import_summary(len(build.task_set.tasks), qualification),
+            markup=False,
         )
     if qualification is not None:
         for task in qualification.tasks:
@@ -856,6 +860,7 @@ def _render_status(data: object, console: Console) -> None:
 def _warnings(status: ForgeBuildStatus) -> list[CliWarning]:
     """Say when a build made nothing usable, in one line each."""
     warnings: list[CliWarning] = []
+    imported = status.build is not None and status.build.source.kind == "skill"
     if status.build is not None and not status.build.task_set.tasks:
         warnings.append(
             CliWarning(
@@ -874,8 +879,8 @@ def _warnings(status: ForgeBuildStatus) -> list[CliWarning]:
             CliWarning(
                 id="forge_nothing_qualified",
                 text=(
-                    "Every generated task was rejected at qualification; each "
-                    "task says why."
+                    f"Every {'imported' if imported else 'generated'} task was "
+                    "rejected at qualification; each task says why."
                 ),
                 resolvable_by=None,
             )
@@ -891,8 +896,15 @@ def _warnings(status: ForgeBuildStatus) -> list[CliWarning]:
                 text=(
                     f"Only {usable} {_plural(usable, 'task', 'tasks')} qualified. "
                     "A comparison on so few can say how one attempt went, not "
-                    "whether a Skill helps; a repository with more recent bug-fix "
-                    "commits, or a higher --limit, gives more."
+                    "whether a Skill helps"
+                    + (
+                        "."
+                        if imported
+                        else (
+                            "; a repository with more recent bug-fix commits, or "
+                            "a higher --limit, gives more."
+                        )
+                    )
                 ),
                 resolvable_by=None,
             )

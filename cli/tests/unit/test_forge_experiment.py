@@ -15,7 +15,6 @@ from pydantic import ValidationError as ModelValidationError
 
 from fixtures.forge.support import (
     HERMES_VERSION_LINE,
-    FakeDocker,
     QualifiedBuild,
     declare,
     hermes_on_path,
@@ -30,14 +29,12 @@ from techtree.forge.comparability import (
     assert_comparable_run_specs,
     compare_run_specs,
 )
-from techtree.forge.docker import Docker
 from techtree.forge.experiment import (
     NOT_ESTABLISHED,
     declare_run_spec,
     run_spec_digest,
 )
 from techtree.forge.models import ForgeArm, ForgeBuildRecord, ForgeSkillSource
-from techtree.forge.qualify import qualify_build
 from techtree.forge.service import read_build_status
 from techtree.paths import paths_from_root
 
@@ -80,15 +77,6 @@ def test_skill_build_preserves_content_without_repository_facts(tmp_path: Path) 
             repetitions=1,
         )
     assert caught.value.code == "forge_build_not_qualified"
-    with pytest.raises(ValidationError) as caught_source:
-        qualify_build(
-            docker=Docker(FakeDocker()),
-            build=build,
-            tasks_dir=Path(status.tasks_path),
-            work_dir=tmp_path / "qualification",
-        )
-    assert caught_source.value.code == "forge_source_unsupported"
-    assert not (tmp_path / "qualification").exists()
 
 
 def test_build_source_requires_one_complete_discriminated_identity(

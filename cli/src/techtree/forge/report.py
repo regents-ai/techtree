@@ -33,7 +33,12 @@ from techtree.forge.models import (
     QualificationCheck,
     TaskQualification,
 )
-from techtree.forge.qualify import TIMED_OUT_DETAIL
+from techtree.forge.qualify import (
+    NOT_STARTED_DETAIL,
+    SOLUTION_FAILED_DETAIL,
+    SOLUTION_TIMED_OUT_DETAIL,
+    TIMED_OUT_DETAIL,
+)
 
 __all__ = [
     "FEW_TASKS",
@@ -43,6 +48,7 @@ __all__ = [
     "SKIP_WORDS",
     "build_summary",
     "first_failed_check",
+    "import_summary",
     "render_report",
     "task_verdict",
 ]
@@ -81,7 +87,7 @@ SKIP_WORDS: Final[dict[str, str]] = {
     "no_parseable_test_output": "a test run that left no readable result",
 }
 
-#: Why a generated task was rejected at qualification, in a person's words,
+#: Why a committed task was rejected at qualification, in a person's words,
 #: keyed by the first check that failed.
 REJECTION_WORDS: Final[dict[str, str]] = {
     "image_build": "the task's environment image did not build",
@@ -89,13 +95,34 @@ REJECTION_WORDS: Final[dict[str, str]] = {
         "the image's copy of the repository is not clean at the task's starting commit"
     ),
     "verifier_material_absent": (
-        "the image already carries the tests or the reference repair"
+        "the image already carries the tests or the reference solution"
     ),
     "tests_recognized": "no test was named that should go from failing to passing",
     "control_fails": (
         "the unrepaired code did not fail its tests the way the task requires"
     ),
     "reference_passes": "the reference repair did not make the tests pass",
+    "hidden_material_private": (
+        "the instruction or the environment carries a file of the tests or the "
+        "reference solution"
+    ),
+    "no_op_fails": "a run that did nothing did not score 0",
+    "reference_solution_passes": "the reference solution did not make the tests pass",
+    "verifier_output_bounded": (
+        "the tests left more output than a task may, or something other than "
+        "plain files"
+    ),
+}
+
+#: What a person is told when a graded run stopped before its tests gave a
+#: verdict, by the detail the check kept.
+_STOPPED_WORDS: Final[dict[str, str]] = {
+    TIMED_OUT_DETAIL: "its tests did not finish within the task's own time limit",
+    SOLUTION_TIMED_OUT_DETAIL: (
+        "its reference solution did not finish within the task's own time limit"
+    ),
+    SOLUTION_FAILED_DETAIL: "its reference solution stopped with an error",
+    NOT_STARTED_DETAIL: "its environment could not be started",
 }
 
 
@@ -128,15 +155,22 @@ def build_summary(
     return sentence + "."
 
 
+def import_summary(imported: int, qualification: ForgeQualification | None) -> str:
+    """How much of an imported package qualified."""
+    tasks = f"{imported} imported {_plural(imported, 'task', 'tasks')}"
+    if qualification is None:
+        return f"{tasks}; qualification has not finished"
+    return f"{len(qualification.qualified_task_ids)} of {tasks} qualified"
+
+
 def task_verdict(task: TaskQualification) -> str:
     """``task: qualified``, or ``task: rejected, <why>`` in a person's words."""
     failed = first_failed_check(task)
     if failed is None:
         return f"{task.task_id}: qualified"
-    if failed.detail == TIMED_OUT_DETAIL:
-        words = "its tests did not finish within the task's own time limit"
-    else:
-        words = REJECTION_WORDS.get(failed.name, failed.name)
+    words = _STOPPED_WORDS.get(failed.detail) or REJECTION_WORDS.get(
+        failed.name, failed.name
+    )
     return f"{task.task_id}: rejected, {words}"
 
 

@@ -1,16 +1,20 @@
-"""Model-free qualification of emitted tasks. ``docs/plan/repo2rlenv-local-lane.md``.
+"""Model-free qualification of committed tasks. ``docs/plan/repo2rlenv-local-lane.md``.
 
-Repo2RLEnv validated each task in a long-lived sandbox while it generated it.
-Qualification repeats the two decisive observations from a fresh container of
-the task's own image, the way a later evaluation will run it, and adds what a
-generator has no reason to check about itself:
+Both producers enter one committed task package, and one profile qualifies
+it from a fresh container of the task's own image, the way a later
+evaluation will run it. The checks every task gets:
 
-- the task image builds, and its workspace sits clean at the task's base
-  commit;
+- the task package still hashes to its commitment, before and after;
+- the task image builds offline from exactly its ``environment/`` tree;
 - the image carries none of the verifier material (``/tests``, ``/solution``);
-- the task names at least one fail-to-pass test;
-- an unrepaired container scores ``0.0`` with every fail-to-pass test failing;
-- a container with the reference patch applied scores ``1.0`` and is resolved.
+- a run that does nothing scores ``0.0``;
+- a run of the reference scores ``1.0``.
+
+A repository task adds what Repo2RLEnv committed to: its workspace sits
+clean at the base commit, at least one fail-to-pass test is named, and the
+graded details agree with those names. A Skill task adds what an imported
+package can hide: no file of ``tests/`` or ``solution/`` appears in the
+instruction or the environment, and the verifier's output stays bounded.
 
 Grading follows the procedure Verifiers applies to a Harbor task: the task's
 ``tests/`` directory is mounted at ``/tests``, ``bash /tests/test.sh`` runs,
@@ -28,7 +32,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 
 from techtree.errors import RunError
 from techtree.forge.content import verify_task_set
@@ -39,35 +43,60 @@ from techtree.forge.models import (
     ForgePlatform,
     ForgeQualification,
     QualificationCheck,
+    RepositoryTaskQualification,
+    SkillTaskQualification,
     TaskQualification,
 )
 from techtree.fs import ensure_private_directory
 from techtree.models.base import Digest
 
 __all__ = [
+    "NOT_STARTED_DETAIL",
+    "SOLUTION_FAILED_DETAIL",
+    "SOLUTION_TIMED_OUT_DETAIL",
     "TIMED_OUT_DETAIL",
     "TaskFacts",
     "Verdict",
     "build_task_image",
+    "grade_reference_solution",
     "grade_task",
     "qualify_build",
     "read_task_facts",
     "task_image_tag",
 ]
 
-#: Added to the task's own verifier timeout: container start and image load.
+#: Added to the task's own time limit: container start and image load.
 _RUN_MARGIN_SECONDS: Final = 120.0
+#: Added to each step's own time limit in a started container: the step is
+#: already running in it, so only ``docker exec`` itself needs the room.
+_STEP_GRACE_SECONDS: Final = 10.0
 _PROBE_TIMEOUT_SECONDS: Final = 120.0
 #: The detail of a check whose verifier run hung; the CLI names it in words.
 TIMED_OUT_DETAIL: Final = "the tests did not finish within the task's own timeout"
+#: The detail of a Skill reference run whose solution used up the agent's time.
+SOLUTION_TIMED_OUT_DETAIL: Final = (
+    "the reference solution did not finish within the task's own agent timeout"
+)
+#: The detail of a Skill reference run whose solution ended in an error.
+SOLUTION_FAILED_DETAIL: Final = (
+    "the reference solution stopped with an error, so the tests did not run"
+)
+#: The detail of a Skill reference run whose container never started.
+NOT_STARTED_DETAIL: Final = (
+    "the task's image could not be started for the reference solution"
+)
 #: A reward file is a number or a small JSON document; anything larger is not
 #: a verdict.
 _REWARD_FILE_LIMIT: Final = 64 * 1024
+#: Everything the tests leave under ``/logs/verifier`` across both graded runs
+#: of a Skill task fits in these; a verifier that leaves more is not qualified.
+_VERIFIER_OUTPUT_LIMIT: Final = 1024 * 1024
+_VERIFIER_OUTPUT_ENTRIES: Final = 1024
 
 
 @dataclass(frozen=True)
 class TaskFacts:
-    """What a task's ``task.toml`` says about itself."""
+    """What a repository task's ``task.toml`` says about itself."""
 
     base_commit: str
     fail_to_pass: list[str]
@@ -77,11 +106,37 @@ class TaskFacts:
 
 
 @dataclass(frozen=True)
+class SkillTaskFacts:
+    """The time limits a Skill task's ``task.toml`` commits to."""
+
+    agent_timeout: float
+    verifier_timeout: float
+
+
+#: Why a graded run left no verdict to read.
+type Stop = Literal[
+    "tests_timed_out", "solution_timed_out", "solution_failed", "not_started"
+]
+
+_STOP_DETAILS: Final[dict[Stop, str]] = {
+    "tests_timed_out": TIMED_OUT_DETAIL,
+    "solution_timed_out": SOLUTION_TIMED_OUT_DETAIL,
+    "solution_failed": SOLUTION_FAILED_DETAIL,
+    "not_started": NOT_STARTED_DETAIL,
+}
+
+
+@dataclass(frozen=True)
 class Verdict:
-    """The reward files one graded run left."""
+    """The reward files one graded run left, or why it left none.
+
+    ``details`` is what the tests wrote; ``stopped`` is set here, by the host,
+    and nothing the tests write can set it.
+    """
 
     reward: float | None
     details: dict[str, object]
+    stopped: Stop | None = None
 
 
 def task_image_tag(build: ForgeBuildRecord, task_id: str) -> str:
@@ -120,15 +175,19 @@ def qualify_build(
     work_dir: Path,
     on_task: Callable[[str, TaskQualification | None], None] | None = None,
 ) -> ForgeQualification:
-    """Qualify every task the build emitted and say which proved out."""
-    build.require_repository_source("Repository qualification")
+    """Qualify every task the build committed and say which proved out."""
     verify_task_set(tasks_dir, build.task_set)
     ensure_private_directory(work_dir)
-    tasks = []
+    qualify_task = (
+        _qualify_repository_task
+        if build.source.kind == "repository"
+        else _qualify_skill_task
+    )
+    tasks: list[TaskQualification] = []
     for task in build.task_set.tasks:
         if on_task is not None:
             on_task(task.task_id, None)
-        result = _qualify_task(
+        result = qualify_task(
             docker,
             build,
             tasks_dir / task.task_id,
@@ -150,31 +209,35 @@ def qualify_build(
     )
 
 
-def _qualify_task(
+def _image_build_check(
+    docker: Docker, build: ForgeBuildRecord, task_dir: Path, work_dir: Path
+) -> tuple[str, QualificationCheck]:
+    """Build the task image; the id is empty when the build failed."""
+    try:
+        image_id = build_task_image(docker, build, task_dir, work_dir)
+    except RunError as error:
+        failed = QualificationCheck(name="image_build", passed=False, detail=str(error))
+        return "", failed
+    return image_id, QualificationCheck(
+        name="image_build", passed=True, detail=image_id
+    )
+
+
+def _qualify_repository_task(
     docker: Docker,
     build: ForgeBuildRecord,
     task_dir: Path,
     work_dir: Path,
     content_digest: Digest,
-) -> TaskQualification:
+) -> RepositoryTaskQualification:
     task_id = task_dir.name
     facts = read_task_facts(task_dir)
     tag = task_image_tag(build, task_id)
-    checks: list[QualificationCheck] = []
     control_reward: float | None = None
     reference_reward: float | None = None
 
-    image_id = ""
-    try:
-        image_id = build_task_image(docker, build, task_dir, work_dir)
-        checks.append(
-            QualificationCheck(name="image_build", passed=True, detail=image_id)
-        )
-    except RunError as error:
-        checks.append(
-            QualificationCheck(name="image_build", passed=False, detail=str(error))
-        )
-
+    image_id, built = _image_build_check(docker, build, task_dir, work_dir)
+    checks = [built]
     if image_id:
         checks.append(_workspace_check(docker, build, image_id, facts))
         checks.append(_material_check(docker, build, image_id))
@@ -194,7 +257,7 @@ def _qualify_task(
             image_id,
             task_dir,
             work_dir / "control",
-            facts,
+            time_limit=facts.verifier_timeout,
             reference=False,
         )
         control_reward = control.reward
@@ -205,13 +268,14 @@ def _qualify_task(
             image_id,
             task_dir,
             work_dir / "reference",
-            facts,
+            time_limit=facts.verifier_timeout,
             reference=True,
         )
         reference_reward = reference.reward
         checks.append(_reference_check(reference))
 
-    return TaskQualification(
+    return RepositoryTaskQualification(
+        kind="repository",
         task_id=task_id,
         task_content_digest=content_digest,
         image_tag=tag,
@@ -226,8 +290,82 @@ def _qualify_task(
     )
 
 
+def _qualify_skill_task(
+    docker: Docker,
+    build: ForgeBuildRecord,
+    task_dir: Path,
+    work_dir: Path,
+    content_digest: Digest,
+) -> SkillTaskQualification:
+    """Qualify one imported package.
+
+    The run that does nothing is graded with the task's verifier time; the
+    reference run executes ``solution/solve.sh`` with the agent's time and
+    then the tests with the verifier's, each bounded on its own, both times
+    from the pinned ``task.toml``.
+    """
+    task_id = task_dir.name
+    facts = read_skill_task_facts(task_dir)
+    tag = task_image_tag(build, task_id)
+    control_reward: float | None = None
+    reference_reward: float | None = None
+
+    checks = [_hidden_material_check(task_dir)]
+    image_id, built = _image_build_check(docker, build, task_dir, work_dir)
+    checks.append(built)
+    if image_id:
+        checks.append(_material_check(docker, build, image_id))
+        control = grade_task(
+            docker,
+            build.platform,
+            image_id,
+            task_dir,
+            work_dir / "control",
+            time_limit=facts.verifier_timeout,
+            reference=False,
+        )
+        control_reward = control.reward
+        checks.append(
+            QualificationCheck(
+                name="no_op_fails",
+                passed=control.reward == 0.0,
+                detail=_STOP_DETAILS[control.stopped]
+                if control.stopped
+                else f"{_reward_words(control.reward)} with nothing done",
+            )
+        )
+        reference = grade_reference_solution(
+            docker,
+            build.platform,
+            image_id,
+            task_dir,
+            work_dir / "reference",
+            solution_time_limit=facts.agent_timeout,
+            tests_time_limit=facts.verifier_timeout,
+        )
+        reference_reward = reference.reward
+        checks.append(_reference_solution_check(reference))
+        checks.append(
+            _verifier_output_check(
+                [work_dir / "control" / "verifier", work_dir / "reference" / "verifier"]
+            )
+        )
+
+    return SkillTaskQualification(
+        kind="skill",
+        task_id=task_id,
+        task_content_digest=content_digest,
+        image_tag=tag,
+        image_id=image_id,
+        control_reward=control_reward,
+        reference_reward=reference_reward,
+        checks=checks,
+        qualified=all(check.passed for check in checks),
+    )
+
+
 def read_task_facts(task_dir: Path) -> TaskFacts:
-    """Read what one task's ``task.toml`` commits to."""
+    """Read what one repository task's ``task.toml`` commits to."""
     document = tomllib.loads((task_dir / "task.toml").read_text(encoding="utf-8"))
     runtime = document["metadata"]["repo2env"]["commit_runtime"]
     return TaskFacts(
@@ -236,6 +374,112 @@ def read_task_facts(task_dir: Path) -> TaskFacts:
         pass_to_pass=[str(name) for name in runtime["pass_to_pass"]],
         agent_timeout=float(document["agent"]["timeout_sec"]),
         verifier_timeout=float(document["verifier"]["timeout_sec"]),
+    )
+
+
+def _reference_solution_check(verdict: Verdict) -> QualificationCheck:
+    return QualificationCheck(
+        name="reference_solution_passes",
+        passed=verdict.reward == 1.0,
+        detail=_STOP_DETAILS[verdict.stopped]
+        if verdict.stopped
+        else f"{_reward_words(verdict.reward)} after the reference solution",
+    )
+
+
+def _reward_words(reward: float | None) -> str:
+    return "no reward" if reward is None else f"reward {reward}"
+
+
+def read_skill_task_facts(task_dir: Path) -> SkillTaskFacts:
+    """Read the time limits one Skill task's ``task.toml`` commits to."""
+    document = tomllib.loads((task_dir / "task.toml").read_text(encoding="utf-8"))
+    return SkillTaskFacts(
+        agent_timeout=float(document["agent"]["timeout_sec"]),
+        verifier_timeout=float(document["verifier"]["timeout_sec"]),
+    )
+
+
+def _hidden_material_check(task_dir: Path) -> QualificationCheck:
+    """No file of ``tests/`` or ``solution/`` appears in what the subject sees.
+
+    The subject sees the instruction and the ``environment/`` tree, and the
+    image is built offline from that tree alone, so a hidden file whose bytes
+    are inside neither cannot reach the subject. The package was committed
+    from regular files only, so every path here is a regular file. A file
+    that is empty or only whitespace says nothing and is not looked for; a
+    very short one can match ordinary text, and the check says where.
+    """
+    hidden = [
+        path
+        for root in ("tests", "solution")
+        for path in sorted((task_dir / root).rglob("*"))
+        if path.is_file()
+    ]
+    visible = {
+        path: path.read_bytes()
+        for path in [
+            task_dir / "instruction.md",
+            *sorted(
+                path for path in (task_dir / "environment").rglob("*") if path.is_file()
+            ),
+        ]
+    }
+    leaks = [
+        f"{secret.relative_to(task_dir)} inside {seen.relative_to(task_dir)}"
+        for secret in hidden
+        if (data := secret.read_bytes()).strip()
+        for seen, seen_bytes in visible.items()
+        if data in seen_bytes
+    ]
+    return QualificationCheck(
+        name="hidden_material_private",
+        passed=not leaks,
+        detail=", ".join(leaks)
+        if leaks
+        else "no tests or solution file appears in the instruction or environment",
+    )
+
+
+def _verifier_output_check(verifier_dirs: list[Path]) -> QualificationCheck:
+    """The tests left regular files only, within the output limits, in total.
+
+    Nothing is followed: a link, even one to a directory, is not a regular
+    file, and anything the walk cannot read fails the check.
+    """
+    total = 0
+    entries = 0
+    irregular: list[str] = []
+    for verifier_dir in verifier_dirs:
+        unreadable: list[OSError] = []
+        for directory, subdirectories, names in os.walk(
+            verifier_dir, onerror=unreadable.append, followlinks=False
+        ):
+            for name in [*subdirectories, *names]:
+                path = Path(directory) / name
+                entries += 1
+                try:
+                    status = os.lstat(path)
+                except OSError as error:
+                    unreadable.append(error)
+                    continue
+                if stat.S_ISREG(status.st_mode):
+                    total += status.st_size
+                elif not stat.S_ISDIR(status.st_mode):
+                    irregular.append(str(path.relative_to(verifier_dir)))
+        irregular.extend(
+            str(Path(error.filename).relative_to(verifier_dir)) for error in unreadable
+        )
+    passed = (
+        not irregular
+        and total <= _VERIFIER_OUTPUT_LIMIT
+        and entries <= _VERIFIER_OUTPUT_ENTRIES
+    )
+    detail = f"{total} bytes across {entries} entries"
+    if irregular:
+        detail += f"; not regular files: {', '.join(irregular)}"
+    return QualificationCheck(
+        name="verifier_output_bounded", passed=passed, detail=detail
     )
 
 
@@ -290,20 +534,21 @@ def grade_task(
     image: str,
     task_dir: Path,
     run_dir: Path,
-    facts: TaskFacts,
     *,
+    time_limit: float,
     reference: bool,
     workspace: Path | None = None,
 ) -> Verdict:
     """Run the task's own test script once and read the verdict it leaves.
 
     Qualification grades the image's own workspace, unrepaired or with the
-    reference patch applied; a forge run grades an agent's ``workspace``,
-    mounted over the image's at ``/workspace``. Every container here runs
-    from the image's content id, never its tag, so the run graded is the
-    image this build made. The tests write into ``run_dir/verifier`` and
-    nowhere else on the host; the transcript is kept beside it, where they
-    cannot reach.
+    reference applied; a forge run grades an agent's ``workspace``, mounted
+    over the image's at ``/workspace``. ``time_limit`` is the task's own
+    bound in seconds; the container gets it plus a fixed margin for starting.
+    Every container here runs from the image's content id, never its tag, so
+    the run graded is the image this build made. The tests write into
+    ``run_dir/verifier`` and nowhere else on the host; the transcript is kept
+    beside it, where they cannot reach.
     """
     ensure_private_directory(run_dir)
     verifier_dir = run_dir / "verifier"
@@ -324,7 +569,7 @@ def grade_task(
         platform=platform,
         argv=["bash", "-c", script],
         mounts=mounts,
-        timeout=facts.verifier_timeout + _RUN_MARGIN_SECONDS,
+        timeout=time_limit + _RUN_MARGIN_SECONDS,
     )
     (run_dir / "container.log").write_text(
         f"exit {outcome.exit_code}, timed out {outcome.timed_out}\n"
@@ -333,8 +578,83 @@ def grade_task(
     )
     # A run that did not finish has no verdict, whatever it wrote before it hung.
     if outcome.timed_out:
-        return Verdict(reward=None, details={"timed_out": True})
+        return Verdict(reward=None, details={}, stopped="tests_timed_out")
     return _read_verdict(verifier_dir)
+
+
+def grade_reference_solution(
+    docker: Docker,
+    platform: ForgePlatform,
+    image: str,
+    task_dir: Path,
+    run_dir: Path,
+    *,
+    solution_time_limit: float,
+    tests_time_limit: float,
+) -> Verdict:
+    """Run a Skill task's reference solution, then its tests, and read the verdict.
+
+    Both run in one container started from the image, each by ``docker exec``
+    under its own limit, and both limits are kept from the host: the image
+    was built from the task's own recipe, so nothing inside it is trusted to
+    keep time. A step still running at its limit ends with the container
+    removed and leaves no verdict, and says which step it was; a solution
+    that fails leaves no verdict either, since the tests never ran, and nor
+    does an image that cannot be started.
+    """
+    ensure_private_directory(run_dir)
+    verifier_dir = run_dir / "verifier"
+    ensure_private_directory(verifier_dir)
+    mounts = [
+        Mount(source=task_dir / "tests", target="/tests", read_only=True),
+        Mount(source=task_dir / "solution", target="/solution", read_only=True),
+        Mount(source=verifier_dir, target="/logs/verifier", read_only=False),
+    ]
+    log: list[str] = []
+    try:
+        name = docker.start(image=image, platform=platform, mounts=mounts)
+    except RunError as error:
+        if error.code != "forge_container_unavailable":
+            raise
+        (run_dir / "container.log").write_text(
+            f"{error}\n{error.details['removal']}\n", encoding="utf-8"
+        )
+        return Verdict(reward=None, details={}, stopped="not_started")
+    try:
+        verdict = _solve_then_test(
+            docker, name, solution_time_limit, tests_time_limit, log
+        )
+    finally:
+        log.append(docker.remove(name))
+        (run_dir / "container.log").write_text("\n".join(log) + "\n", encoding="utf-8")
+    return _read_verdict(verifier_dir) if verdict is None else verdict
+
+
+def _solve_then_test(
+    docker: Docker,
+    name: str,
+    solution_time_limit: float,
+    tests_time_limit: float,
+    log: list[str],
+) -> Verdict | None:
+    """Why the run left no verdict, or ``None`` when both steps ran."""
+    steps: tuple[tuple[str, str, float, Stop], ...] = (
+        ("solution", "/solution/solve.sh", solution_time_limit, "solution_timed_out"),
+        ("tests", "/tests/test.sh", tests_time_limit, "tests_timed_out"),
+    )
+    for step, script, limit, out_of_time in steps:
+        outcome = docker.exec(
+            name, ["bash", script], timeout=limit + _STEP_GRACE_SECONDS
+        )
+        log.append(
+            f"{step}: exit {outcome.exit_code}, timed out {outcome.timed_out}\n"
+            f"{outcome.stdout}\n{outcome.stderr}"
+        )
+        if outcome.timed_out:
+            return Verdict(reward=None, details={}, stopped=out_of_time)
+        if step == "solution" and outcome.exit_code != 0:
+            return Verdict(reward=None, details={}, stopped="solution_failed")
+    return None
 
 
 def _read_verdict(verifier_dir: Path) -> Verdict:
@@ -394,7 +714,7 @@ def _control_check(verdict: Verdict, facts: TaskFacts) -> QualificationCheck:
         name="control_fails",
         passed=passed,
         detail=TIMED_OUT_DETAIL
-        if verdict.details.get("timed_out")
+        if verdict.stopped == "tests_timed_out"
         else (
             f"reward {verdict.reward}, {f2p_passed} of {len(facts.fail_to_pass)} "
             f"fail-to-pass tests passed unrepaired, parse status {status}"
@@ -409,6 +729,6 @@ def _reference_check(verdict: Verdict) -> QualificationCheck:
         name="reference_passes",
         passed=passed,
         detail=TIMED_OUT_DETAIL
-        if verdict.details.get("timed_out")
+        if verdict.stopped == "tests_timed_out"
         else f"reward {verdict.reward}, resolved {resolved}",
     )
