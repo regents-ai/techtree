@@ -667,8 +667,9 @@ class FakePlanner:
 def created_package(task_name: str) -> bytes:
     """What the creator answers for one task: a package that builds offline.
 
-    Its tests fail when nothing is done and pass for its reference solution,
-    in the way ``skill2env_task`` does; FakeDocker decides the grades.
+    Its tests fail when nothing is done, pass for its reference and other
+    correct solutions and fail for its wrong one, in the way
+    ``skill2env_task`` does; FakeDocker decides the grades.
     """
     files = {
         "instruction.md": (

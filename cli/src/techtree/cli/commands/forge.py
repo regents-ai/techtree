@@ -1937,8 +1937,9 @@ def construction_review_lines(record: ForgeConstructionRecord) -> list[str]:
         "Afterwards: each package is checked on this computer with Docker, "
         f"with no network: its image is built from {image} at the exact "
         f"version {digest[:19]}, downloaded first if Docker does not have it, "
-        "and its tests must fail when nothing is done and pass for its own "
-        "solution. Only a package that passes is usable.",
+        "and its tests must fail when nothing is done, pass for its solution "
+        "and for its other correct solution, and fail for its deliberately "
+        "wrong one. Only a package that passes is usable.",
         "Cost: nothing is quoted in advance. What each call used is recorded "
         "afterwards from Hermes' own usage report.",
         f"This approval covers exactly this: {record.construction_digest[:19]}",
