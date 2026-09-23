@@ -12,7 +12,10 @@ Write these files:
 - `instruction.md`: what the agent is asked to do, stated completely, as the
   agent will read it. Name every input file and every file the agent must
   leave, by absolute path. Do not mention the tests, the solution or the
-  grading.
+  grading. The task is given to agents with and without the Skill, to show
+  whether the Skill helps, so ask for the result the way someone who uses
+  the Skill would: do not restate the Skill's procedure, rules or reference
+  material, in the instruction or in the input files.
 - `environment/Dockerfile`: the container the agent starts in. Its first line
   is exactly `FROM {base_image}`, and no other image may be named. Use only
   `FROM`, `RUN`, `COPY`, `WORKDIR` and `ENV`; `COPY` takes files from the
