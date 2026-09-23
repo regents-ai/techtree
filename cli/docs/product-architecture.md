@@ -362,6 +362,8 @@ src/techtree/
 │                       construction approval, one creator call per proposed
 │                       task and each package's import and qualification),
 │                       authoring.py (what planning and construction share),
+│                       collection.py (qualified tasks accepted as one frozen,
+│                       versioned collection, and checked again),
 │                       docker.py and process.py (the one command boundary).
 └── resources/          catalog/, engines/default/, forge/, harness/, release/ — the
                         embedded, generated payload the wheel carries.
@@ -475,6 +477,35 @@ pass goes on to the next task, except that Ctrl-C ends the pass
 and nothing is retried: `--retry-of` prepares a new construction of only the
 tasks the earlier one, finished or stopped, left without a usable package, and
 it needs its own approval.
+
+**Forge collection (qualified tasks, accepted and frozen).** `forge collect
+CONSTRUCTION_ID [--task NAME]... [--previous COLLECTION_ID]`
+(`forge/collection.py`, U4) prepares an acceptance and runs nothing. It reads
+the construction and every construction it retried, and writes
+`forge/collections/<forgecol_id>/collection.json`
+(`techtree.forge-collection.v1alpha1`): the proposal and Source Skill with
+their digests, the constructions, every proposed task in proposal order with
+how it went the last time it was tried (the call's state, the build its
+package became, whether that build qualified it, or what stopped the call),
+and the members, the qualified tasks being accepted (all of them unless
+`--task` names fewer), each by its build, task id, content digest and the
+digest of its qualification evidence, after its files are hashed against the
+build's commitment. One `collection_digest` binds it all. Preparing refuses
+when nothing qualified (`forge_collection_empty`) and a task that did not
+qualify (`forge_collection_task_not_usable`). `forge accept COLLECTION_ID`
+makes the review again, refuses one that changed (`forge_collection_stale`),
+asks, and writes `acceptance.json` with that digest; an accepted collection is
+frozen and never accepted again (`forge_collection_accepted`). A collection of
+fewer than three tasks is accepted with the `forge_few_tasks` warning. Any
+change is a new collection: `--previous` names an accepted collection of the
+same Skill, the new one is its version plus one, and one with exactly its
+members is refused (`forge_collection_unchanged`). `forge verify
+COLLECTION_ID` makes the review again from what is on disk and refuses a
+collection that was never accepted, or whose files, qualification, outcomes
+or records differ from the accepted digest (`forge_collection_changed`,
+naming what changed). Evaluation and export of a collection (T11, T12) call
+`verify_collection` first, so they refuse a changed one under the accepted
+identity.
 
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and

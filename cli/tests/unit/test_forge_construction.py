@@ -299,11 +299,11 @@ def test_two_packages_and_one_unknown_outcome_are_shown_and_nothing_is_retried(
     assert "branch-code-batch" in warning["text"]
     actions = envelope["next_actions"]
     assert [action["prepared_arguments"]["command"] for action in actions] == [
-        ["forge", "status"],
-        ["forge", "status"],
+        ["forge", "collect"],
         ["forge", "construct"],
+        ["forge", "status"],
     ]
-    assert actions[2]["prepared_arguments"]["options"]["--retry-of"] == (
+    assert actions[1]["prepared_arguments"]["options"]["--retry-of"] == (
         construction_id
     )
 

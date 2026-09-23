@@ -198,6 +198,9 @@ forge plan-start
 forge correct-proposal
 forge construct
 forge construct-start
+forge collect
+forge accept
+forge verify
 forge status
 ```
 

@@ -54,7 +54,9 @@ from techtree.cli.commands.engine import (
     verify_engine_command,
 )
 from techtree.cli.commands.forge import (
+    accept_forge_command,
     build_forge_command,
+    collect_forge_command,
     compare_forge_command,
     construct_forge_command,
     construct_start_forge_command,
@@ -64,6 +66,7 @@ from techtree.cli.commands.forge import (
     plan_start_forge_command,
     run_forge_command,
     status_forge_command,
+    verify_forge_command,
 )
 from techtree.cli.commands.profile import (
     get_profile_command,
@@ -442,10 +445,22 @@ def _forge_app() -> typer.Typer:
         help="Review a prepared construction, approve it, and build its tasks once.",
     )(construct_start_forge_command)
     app.command(
+        "collect",
+        help="Prepare the acceptance of qualified tasks as one collection.",
+    )(collect_forge_command)
+    app.command(
+        "accept",
+        help="Review a prepared collection and accept it, which freezes it.",
+    )(accept_forge_command)
+    app.command(
+        "verify",
+        help="Check that an accepted collection is unchanged since its acceptance.",
+    )(verify_forge_command)
+    app.command(
         "status",
         help="Show what one forge build made, one run did, one comparison found, "
-        "one looked-at Skill holds, or where one plan, proposal or construction "
-        "stands.",
+        "one looked-at Skill holds, or where one plan, proposal, construction or "
+        "collection stands.",
     )(status_forge_command)
     return app
 

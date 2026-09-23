@@ -151,6 +151,15 @@ class TechtreePaths:
         """Return the directory holding one construction, its calls and packages."""
         return self.forge_constructions_dir / validate_id(construction_id, "forgecon")
 
+    @property
+    def forge_collections_dir(self) -> Path:
+        """Return the directory holding every forge collection."""
+        return self.forge_dir / "collections"
+
+    def forge_collection_dir(self, collection_id: str) -> Path:
+        """Return the directory holding one collection and its acceptance."""
+        return self.forge_collections_dir / validate_id(collection_id, "forgecol")
+
     def engine_dir(self, digest: Digest) -> Path:
         """Return the install directory for one managed engine bundle.
 

@@ -1,4 +1,4 @@
-"""``techtree forge build|run|compare|inspect-skill|plan|construct|status``.
+"""``techtree forge build|run|compare|inspect-skill|plan|construct|collect|status``.
 
 ``docs/plan/repo2rlenv-local-lane.md``; Source Skill inspection, planning and
 construction are ``docs/plan/v0.3.0-skill-environments.md`` (U3).
@@ -10,8 +10,10 @@ pairs a baseline run with a candidate run and writes the record and the
 report; ``forge inspect-skill`` looks at a Source Skill without running any
 of it and records what it holds; ``forge plan`` and ``forge construct``
 prepare, and their ``-start`` commands send, the planning and the building of
-tasks from such a Skill; ``forge status`` reads any of them, or a Skill
-revision made through ``uplift``, back without requiring build tools.
+tasks from such a Skill; ``forge collect``, ``forge accept`` and ``forge
+verify`` freeze the tasks that qualified as a collection and check it again;
+``forge status`` reads any of them, or a Skill revision made through
+``uplift``, back without requiring build tools.
 Build execution belongs to
 :class:`~techtree.forge.service.ForgeService`, run execution to
 :class:`~techtree.forge.run.ForgeRunner`, comparison to
@@ -42,6 +44,13 @@ from techtree.cli.invoke import CommandResult, approval_operation, invoke_comman
 from techtree.cli.output import human_console, render_pairs
 from techtree.engines.installer import find_uv
 from techtree.errors import PolicyError, RunError, TechtreeError, ValidationError
+from techtree.forge.collection import (
+    accept_collection,
+    check_collection,
+    prepare_collection,
+    read_collection_status,
+    verify_collection,
+)
 from techtree.forge.compare import VERDICT_WORDS, compare_runs, read_comparison_status
 from techtree.forge.construction import (
     check_construction,
@@ -56,6 +65,8 @@ from techtree.forge.models import (
     ForgeArmTotals,
     ForgeAttemptOutcome,
     ForgeBuildStatus,
+    ForgeCollectionRecord,
+    ForgeCollectionStatus,
     ForgeComparisonStatus,
     ForgeConstructionRecord,
     ForgeConstructionStatus,
@@ -112,8 +123,12 @@ from techtree.models.cli import (
 __all__ = [
     "ForgeRunReview",
     "HermesReasoning",
+    "accept_forge_command",
     "ask_to_start",
     "build_forge_command",
+    "collect_forge_command",
+    "collection_review_lines",
+    "collection_warnings",
     "compare_forge_command",
     "construct_forge_command",
     "construct_start_forge_command",
@@ -129,6 +144,7 @@ __all__ = [
     "planning_review_lines",
     "proposal_next_actions",
     "proposal_status_action",
+    "render_forge_collection",
     "render_forge_comparison",
     "render_forge_construction",
     "render_forge_plan",
@@ -146,6 +162,7 @@ __all__ = [
     "source_status_action",
     "source_warnings",
     "status_forge_command",
+    "verify_forge_command",
 ]
 
 #: Why an experiment is refused without a person's answer, said the same way
@@ -410,14 +427,14 @@ def status_forge_command(
         str,
         typer.Argument(
             metavar="BUILD_ID|RUN_ID|COMPARISON_ID|REVISION_ID|SOURCE_ID|PLAN_ID"
-            "|PROPOSAL_ID|CONSTRUCTION_ID",
+            "|PROPOSAL_ID|CONSTRUCTION_ID|COLLECTION_ID",
             help="The build, run, comparison, Skill revision, looked-at Skill, "
-            "plan, proposal or construction to show.",
+            "plan, proposal, construction or collection to show.",
         ),
     ],
 ) -> None:
-    """Show a forge build, run, comparison, revision, Skill, plan, proposal or
-    construction."""
+    """Show a forge build, run, comparison, revision, Skill, plan, proposal,
+    construction or collection."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[
@@ -429,6 +446,7 @@ def status_forge_command(
         | ForgePlanStatus
         | ForgeProposalStatus
         | ForgeConstructionStatus
+        | ForgeCollectionStatus
     ]:
         match id_prefix(record_id):
             case "forgeplan":
@@ -443,6 +461,13 @@ def status_forge_command(
                 return CommandResult(
                     data=proposal,
                     next_actions=proposal_next_actions(context, proposal),
+                )
+            case "forgecol":
+                collection = read_collection_status(context.paths, record_id)
+                return CommandResult(
+                    data=collection,
+                    warnings=collection_warnings(collection),
+                    next_actions=collection_next_actions(collection),
                 )
             case "forgecon":
                 construction = read_construction_status(context.paths, record_id)
@@ -774,6 +799,149 @@ def construct_start_forge_command(
         approval_operation(context, assume_yes=yes),
         action,
         render_data=_render_construction,
+    )
+
+
+def collect_forge_command(
+    ctx: typer.Context,
+    construction_id: Annotated[
+        str,
+        typer.Argument(
+            metavar="CONSTRUCTION_ID",
+            help="The construction whose qualified tasks to collect; the "
+            "constructions it retried are included.",
+        ),
+    ],
+    task: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--task",
+            metavar="NAME",
+            help="A qualified task to accept. Repeatable; without it, every "
+            "task that qualified.",
+        ),
+    ] = None,
+    previous: Annotated[
+        str | None,
+        typer.Option(
+            "--previous",
+            metavar="COLLECTION_ID",
+            help="The accepted collection of the same Skill this one replaces, "
+            "as its next version.",
+        ),
+    ] = None,
+) -> None:
+    """Prepare the acceptance of qualified tasks as one collection."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeCollectionStatus]:
+        status = prepare_collection(
+            context.paths,
+            construction_id=construction_id,
+            task_names=task or None,
+            previous=previous,
+        )
+        return CommandResult(
+            data=status,
+            state_digest=status.record.collection_digest,
+            warnings=collection_warnings(status),
+            next_actions=[_accept_when_agreed(status)],
+        )
+
+    invoke_command(
+        context, Operation.PLAN_PREPARE, action, render_data=_render_collection
+    )
+
+
+def accept_forge_command(
+    ctx: typer.Context,
+    collection_id: Annotated[
+        str,
+        typer.Argument(metavar="COLLECTION_ID", help="The prepared collection."),
+    ],
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            help=(
+                "Accept without being asked. For an operator running Techtree "
+                "where nobody can answer a prompt; it is never a shortcut for "
+                "an agent to take on a person's behalf."
+            ),
+        ),
+    ] = False,
+    reviewed_on: Annotated[
+        ReviewSurface,
+        typer.Option(
+            "--reviewed-on",
+            help=(
+                "Where the person who accepted this collection answered. Pass "
+                "host-agent when the review was shown in a conversation and "
+                "confirmed there. Like --yes, it states what a person already "
+                "did and is never a shortcut a model may take."
+            ),
+        ),
+    ] = ReviewSurface.CLI,
+) -> None:
+    """Review a prepared collection and accept it, which freezes it."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeCollectionStatus]:
+        require_the_review_surface_was_answered(
+            draft_id=collection_id, assume_yes=yes, reviewed_on=reviewed_on
+        )
+        status = check_collection(context.paths, collection_id)
+        if not yes and context.no_input:
+            return CommandResult(
+                data=status,
+                state_digest=status.record.collection_digest,
+                warnings=collection_warnings(status),
+                next_actions=[_accept_when_agreed(status)],
+            )
+        if not yes:
+            _ask_to_accept(context, status.record)
+        accepted = accept_collection(
+            context.paths,
+            collection_id,
+            reviewed_on="host-agent"
+            if reviewed_on is ReviewSurface.HOST_AGENT
+            else "cli",
+            answered_with="yes-flag" if yes else "prompt",
+        )
+        return CommandResult(
+            data=accepted,
+            warnings=collection_warnings(accepted),
+            next_actions=collection_next_actions(accepted),
+        )
+
+    invoke_command(
+        context,
+        approval_operation(context, assume_yes=yes),
+        action,
+        render_data=_render_collection,
+    )
+
+
+def verify_forge_command(
+    ctx: typer.Context,
+    collection_id: Annotated[
+        str,
+        typer.Argument(metavar="COLLECTION_ID", help="The accepted collection."),
+    ],
+) -> None:
+    """Check that an accepted collection is unchanged since its acceptance."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeCollectionStatus]:
+        status = verify_collection(context.paths, collection_id)
+        return CommandResult(
+            data=status,
+            state_digest=status.record.collection_digest,
+            warnings=collection_warnings(status),
+        )
+
+    invoke_command(
+        context, Operation.PROOF_VERIFY, action, render_data=_render_verified
     )
 
 
@@ -1855,30 +2023,30 @@ def construction_warnings(status: ForgeConstructionStatus) -> list[CliWarning]:
 
 
 def construction_next_actions(status: ForgeConstructionStatus) -> list[NextAction]:
-    """What can follow: the start, each usable build, or a construction that
-    tries the rest again."""
+    """What can follow: the start; or collecting what qualified, a construction
+    that tries the rest again, and each usable build, in that order."""
     if status.state == "prepared":
         return [_construct_when_approved(status)]
-    actions = [
-        NextAction(
-            operation=Operation.PLAN_INSPECT,
-            prepared_arguments=invocation(
-                "forge", "status", arguments=[task.package.build_id]
-            ),
-            expected_state_digest=None,
-            side_effect=SideEffect.NONE,
-            approval_required=False,
-            retry_class=RetryClass.SAFE,
-            estimated_cost=None,
-            data_egress=DataEgress.NONE,
-            reason=f"How {task.task_name} was checked, and the task it made.",
+    ended = status.state in {"finished", "stopped"}
+    actions = []
+    if ended and any(_usable(task) for task in status.tasks):
+        actions.append(
+            NextAction(
+                operation=Operation.PLAN_PREPARE,
+                prepared_arguments=invocation(
+                    "forge", "collect", arguments=[status.construction_id]
+                ),
+                expected_state_digest=None,
+                side_effect=SideEffect.LOCAL_STATE,
+                approval_required=False,
+                retry_class=RetryClass.SAFE,
+                estimated_cost=None,
+                data_egress=DataEgress.NONE,
+                reason="The tasks that qualified can be collected for a "
+                "person to accept; every task's outcome is shown with them.",
+            )
         )
-        for task in status.tasks
-        if task.package is not None and _usable(task)
-    ]
-    if status.state in {"finished", "stopped"} and not all(
-        _usable(task) for task in status.tasks
-    ):
+    if ended and not all(_usable(task) for task in status.tasks):
         review = status.record.review
         options: dict[str, str | Literal[True]] = {
             "--provider": review.model.provider,
@@ -1907,6 +2075,23 @@ def construction_next_actions(status: ForgeConstructionStatus) -> list[NextActio
                 "approval before the creator is called.",
             )
         )
+    actions += [
+        NextAction(
+            operation=Operation.PLAN_INSPECT,
+            prepared_arguments=invocation(
+                "forge", "status", arguments=[task.package.build_id]
+            ),
+            expected_state_digest=None,
+            side_effect=SideEffect.NONE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
+            reason=f"How {task.task_name} was checked, and the task it made.",
+        )
+        for task in status.tasks
+        if task.package is not None and _usable(task)
+    ]
     return actions
 
 
@@ -1976,8 +2161,188 @@ def _render_construction(data: object, console: Console) -> None:
         render_forge_construction(data, console)
 
 
+# ---------------------------------------------------------------------------
+# Collection
+# ---------------------------------------------------------------------------
+
+#: Why a collection is refused without a person's answer.
+COLLECTION_NOT_ACCEPTED = "forge_collection_declined"
+
+
+def collection_review_lines(record: ForgeCollectionRecord) -> list[str]:
+    """What accepting this collection does, in the words a person accepts."""
+    review = record.review
+    proposed = len(review.tasks)
+    members = len(review.members)
+    lines = [
+        f"Proposal: {review.proposal_id}, {proposed} proposed "
+        f"{_plural(proposed, 'task', 'tasks')}, each as it went the last time "
+        "it was tried:",
+    ]
+    for task in review.tasks:
+        lines.append(
+            f"  {task.task_name}: "
+            + (
+                f"qualified, checked as build {task.build_id}"
+                if task.usable
+                else _CALL_STATE_WORDS[task.state]
+                if task.build_id is None
+                else f"built, but did not qualify; forge status {task.build_id} "
+                "says why"
+            )
+            + ("" if task.why is None else f": {task.why}")
+        )
+    lines += [
+        f"In the collection: {members} {_plural(members, 'task', 'tasks')}, "
+        + ", ".join(member.task_name for member in review.members),
+        f"Version: {review.version}"
+        + (
+            ""
+            if review.previous is None
+            else f", replacing {review.previous.collection_id} (version "
+            f"{review.previous.version})"
+        ),
+        "Accepting freezes exactly these tasks' files and qualification. Any "
+        "change afterwards is a new version, accepted again. Accepting runs "
+        "nothing and calls no model.",
+        f"This acceptance covers exactly this: {record.collection_digest[:19]}",
+    ]
+    return lines
+
+
+def _ask_to_accept(context: CliContext, record: ForgeCollectionRecord) -> None:
+    console = human_console(no_color=context.no_color)
+    _print_collection_review(record, console)
+    console.print()
+    if not confirmed("Accept these tasks as the collection?"):
+        raise PolicyError(
+            "the collection was not accepted, so nothing was frozen",
+            code=COLLECTION_NOT_ACCEPTED,
+            details={"collection_id": record.collection_id},
+        )
+
+
+def _accept_when_agreed(status: ForgeCollectionStatus) -> NextAction:
+    """Return the acceptance of exactly this collection, for after a person agreed."""
+    return NextAction(
+        operation=Operation.ACTION_EXECUTE,
+        prepared_arguments=invocation(
+            "forge",
+            "accept",
+            arguments=[status.collection_id],
+            options={"--yes": True, "--reviewed-on": ReviewSurface.HOST_AGENT.value},
+        ),
+        expected_state_digest=status.record.collection_digest,
+        side_effect=SideEffect.LOCAL_STATE,
+        approval_required=True,
+        retry_class=RetryClass.HUMAN_DECISION_REQUIRED,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason="Accepting is the person's decision about which tasks make the "
+        "collection. It freezes exactly the tasks shown; a changed task is "
+        "refused and collected again.",
+    )
+
+
+def collection_warnings(status: ForgeCollectionStatus) -> list[CliWarning]:
+    """Say when a collection holds too few tasks to say much."""
+    members = len(status.record.review.members)
+    if members >= FEW_TASKS:
+        return []
+    return [
+        CliWarning(
+            id="forge_few_tasks",
+            text=(
+                f"Only {members} {_plural(members, 'task is', 'tasks are')} in "
+                "this collection. A run on so few can say how one attempt "
+                "went, not whether a Skill helps."
+            ),
+            resolvable_by=None,
+        )
+    ]
+
+
+def collection_next_actions(status: ForgeCollectionStatus) -> list[NextAction]:
+    """What can follow: accepting it, or checking it once accepted."""
+    if status.acceptance is None:
+        return [_accept_when_agreed(status)]
+    return [
+        NextAction(
+            operation=Operation.PROOF_VERIFY,
+            prepared_arguments=invocation(
+                "forge", "verify", arguments=[status.collection_id]
+            ),
+            expected_state_digest=status.record.collection_digest,
+            side_effect=SideEffect.NONE,
+            approval_required=False,
+            retry_class=RetryClass.SAFE,
+            estimated_cost=None,
+            data_egress=DataEgress.NONE,
+            reason="It checks that every accepted task's files and "
+            "qualification are unchanged since the acceptance.",
+        )
+    ]
+
+
+def render_forge_collection(status: ForgeCollectionStatus, console: Console) -> None:
+    """Print one collection: whether it is accepted, then what it holds."""
+    pairs = [
+        ("Collection", status.collection_id),
+        (
+            "State",
+            "prepared; not accepted yet"
+            if status.acceptance is None
+            else "accepted; frozen",
+        ),
+    ]
+    acceptance = status.acceptance
+    if acceptance is not None:
+        pairs.append(
+            (
+                "Accepted",
+                f"{acceptance.accepted_at:%Y-%m-%d %H:%M:%S} UTC, "
+                + (
+                    "answered at the prompt"
+                    if acceptance.answered_with == "prompt"
+                    else f"answered on {acceptance.reviewed_on} and passed with --yes"
+                ),
+            )
+        )
+    pairs.append(("Evidence", status.path))
+    render_pairs(pairs, console)
+    console.print()
+    _print_collection_review(status.record, console)
+
+
+def _print_collection_review(record: ForgeCollectionRecord, console: Console) -> None:
+    for line in collection_review_lines(record):
+        if line.startswith("  "):
+            console.print(Padding(Text(line.strip()), (0, 0, 0, 2)))
+        else:
+            console.print(line, markup=False)
+
+
+def _render_collection(data: object, console: Console) -> None:
+    if isinstance(data, ForgeCollectionStatus):
+        render_forge_collection(data, console)
+
+
+def _render_verified(data: object, console: Console) -> None:
+    if isinstance(data, ForgeCollectionStatus):
+        members = len(data.record.review.members)
+        console.print(
+            f"Verified: collection {data.collection_id}, version "
+            f"{data.record.review.version}, holds exactly the files and "
+            f"qualification accepted for its {members} "
+            f"{_plural(members, 'task', 'tasks')}.",
+            markup=False,
+        )
+
+
 def _render_status(data: object, console: Console) -> None:
-    if isinstance(data, ForgeConstructionStatus):
+    if isinstance(data, ForgeCollectionStatus):
+        render_forge_collection(data, console)
+    elif isinstance(data, ForgeConstructionStatus):
         render_forge_construction(data, console)
     elif isinstance(data, ForgePlanStatus):
         render_forge_plan(data, console)

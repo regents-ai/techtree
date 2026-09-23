@@ -37,6 +37,7 @@ EXPECTED_PREFIXES = frozenset(
         "forgeplan",
         "forgeprop",
         "forgecon",
+        "forgecol",
     }
 )
 

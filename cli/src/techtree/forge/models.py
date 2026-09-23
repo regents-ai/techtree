@@ -44,6 +44,8 @@ from techtree.models.skill import SkillFile
 __all__ = [
     "BASE_IMAGE_REFERENCE",
     "FORGE_BUILD_SCHEMA_VERSION",
+    "FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION",
+    "FORGE_COLLECTION_SCHEMA_VERSION",
     "FORGE_COMPARISON_SCHEMA_VERSION",
     "FORGE_CONSTRUCTION_APPROVAL_SCHEMA_VERSION",
     "FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION",
@@ -78,6 +80,14 @@ __all__ = [
     "ForgeBuildProgress",
     "ForgeBuildRecord",
     "ForgeBuildStatus",
+    "ForgeCollectionAcceptance",
+    "ForgeCollectionCandidate",
+    "ForgeCollectionMember",
+    "ForgeCollectionParent",
+    "ForgeCollectionRecord",
+    "ForgeCollectionReview",
+    "ForgeCollectionState",
+    "ForgeCollectionStatus",
     "ForgeComparisonRecord",
     "ForgeComparisonStatus",
     "ForgeConstructionApproval",
@@ -1264,6 +1274,10 @@ FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION: Final = (
 FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION: Final = (
     "techtree.forge-construction-package.v1alpha1"
 )
+FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha1"
+FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION: Final = (
+    "techtree.forge-collection-acceptance.v1alpha1"
+)
 
 #: The most tasks one plan may ask for: Skill2Env's own default workflow count.
 MAX_PLANNED_TASKS: Final = 8
@@ -1762,3 +1776,118 @@ class ForgeConstructionStatus(ProtocolModel):
     approval: ForgeConstructionApproval | None
     run: ForgeConstructionRun | None
     tasks: list[ForgeConstructionTaskStatus]
+
+
+class ForgeCollectionCandidate(ProtocolModel):
+    """One proposed task as acceptance shows it: how it went, last time tried.
+
+    ``construction_id`` is the construction that last called the creator for
+    it. ``build_id`` names the build its package became, if one was written,
+    and ``usable`` is whether that build qualified it; the build's status says
+    why one did not. ``why`` is what stopped a call that made no package.
+    """
+
+    task_name: ForgeProposedTaskName
+    construction_id: NonEmptyString
+    state: ForgeConstructionCallState
+    build_id: NonEmptyString | None
+    usable: bool
+    why: NonEmptyString | None
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> Self:
+        if self.usable and (self.build_id is None or self.why is not None):
+            raise ValueError("a usable task names its build and no reason it stopped")
+        return self
+
+
+class ForgeCollectionMember(ProtocolModel):
+    """One accepted task: exactly the bytes and the qualification it had."""
+
+    task_name: ForgeProposedTaskName
+    build_id: NonEmptyString
+    task_id: ForgeTaskId
+    content_digest: Digest
+    qualification_digest: Digest
+
+
+class ForgeCollectionParent(ProtocolModel):
+    """The accepted collection a new version replaces."""
+
+    collection_id: NonEmptyString
+    collection_digest: Digest
+    version: int = Field(ge=1)
+
+
+class ForgeCollectionReview(ProtocolModel):
+    """What accepting a collection covers.
+
+    Every task of the proposal with its outcome, so nothing that failed is
+    out of sight, and the exact members: the qualified tasks being accepted,
+    each by its content and qualification digests. ``constructions`` is the
+    retry chain the outcomes come from, newest first.
+    """
+
+    proposal_id: NonEmptyString
+    proposal_digest: Digest
+    source_id: NonEmptyString
+    source_digest: Digest
+    constructions: list[NonEmptyString] = Field(min_length=1)
+    previous: ForgeCollectionParent | None
+    version: int = Field(ge=1)
+    tasks: list[ForgeCollectionCandidate] = Field(min_length=1)
+    members: list[ForgeCollectionMember] = Field(min_length=1)
+    membership_digest: Digest
+
+    @model_validator(mode="after")
+    def validate_membership(self) -> Self:
+        usable = {task.task_name for task in self.tasks if task.usable}
+        names = [member.task_name for member in self.members]
+        if len(set(names)) != len(names) or not set(names) <= usable:
+            raise ValueError("members are distinct tasks that qualified")
+        if not verify_object_digest(self.members, self.membership_digest):
+            raise ValueError("membership digest does not describe the members")
+        expected = 1 if self.previous is None else self.previous.version + 1
+        if self.version != expected:
+            raise ValueError("a collection is one version after the one it replaces")
+        return self
+
+
+class ForgeCollectionRecord(ProtocolModel):
+    """A prepared collection: its review and the digest acceptance names."""
+
+    schema_version: Literal["techtree.forge-collection.v1alpha1"]
+    collection_id: NonEmptyString
+    created_at: UtcDateTime
+    review: ForgeCollectionReview
+    collection_digest: Digest
+
+    @model_validator(mode="after")
+    def validate_digest(self) -> Self:
+        if not verify_object_digest(self.review, self.collection_digest):
+            raise ValueError("collection digest does not describe its review")
+        return self
+
+
+class ForgeCollectionAcceptance(ProtocolModel):
+    """A person's acceptance of exactly one prepared collection; it freezes it."""
+
+    schema_version: Literal["techtree.forge-collection-acceptance.v1alpha1"]
+    collection_id: NonEmptyString
+    collection_digest: Digest
+    accepted_at: UtcDateTime
+    reviewed_on: Literal["cli", "host-agent"]
+    answered_with: Literal["prompt", "yes-flag"]
+
+
+type ForgeCollectionState = Literal["prepared", "accepted"]
+
+
+class ForgeCollectionStatus(ProtocolModel):
+    """A collection read back; ``accepted`` means frozen."""
+
+    collection_id: NonEmptyString
+    path: NonEmptyString
+    state: ForgeCollectionState
+    record: ForgeCollectionRecord
+    acceptance: ForgeCollectionAcceptance | None
