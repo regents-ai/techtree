@@ -14,7 +14,12 @@ A repository task adds what Repo2RLEnv committed to: its workspace sits
 clean at the base commit, at least one fail-to-pass test is named, and the
 graded details agree with those names. A Skill task adds what an imported
 package can hide: no file of ``tests/`` or ``solution/`` appears in the
-instruction or the environment, and the verifier's output stays bounded.
+instruction or the environment, and the verifier's output stays bounded. It
+also adds its recipe cases (R31): the package's other correct solution,
+``solution/alternative.sh``, must pass the tests as the reference does, and
+its deliberately wrong one, ``solution/wrong.sh``, must finish and fail them,
+so tests that accept only one way of working, or any answer shaped like the
+right one, are caught here.
 
 Grading follows the procedure Verifiers applies to a Harbor task: the task's
 ``tests/`` directory is mounted at ``/tests``, ``bash /tests/test.sh`` runs,
@@ -309,6 +314,8 @@ def _qualify_skill_task(
     tag = task_image_tag(build, task_id)
     control_reward: float | None = None
     reference_reward: float | None = None
+    alternative_reward: float | None = None
+    wrong_reward: float | None = None
 
     checks = [_hidden_material_check(task_dir)]
     image_id, built = _image_build_check(docker, build, task_dir, work_dir)
@@ -334,20 +341,42 @@ def _qualify_skill_task(
                 else f"{_reward_words(control.reward)} with nothing done",
             )
         )
-        reference = grade_reference_solution(
-            docker,
-            build.platform,
-            image_id,
-            task_dir,
-            work_dir / "reference",
-            solution_time_limit=facts.agent_timeout,
-            tests_time_limit=facts.verifier_timeout,
+        graded = {
+            case: grade_reference_solution(
+                docker,
+                build.platform,
+                image_id,
+                task_dir,
+                work_dir / case,
+                script=f"/solution/{script}",
+                solution_time_limit=facts.agent_timeout,
+                tests_time_limit=facts.verifier_timeout,
+            )
+            for case, script in _SOLUTIONS.items()
+        }
+        reference_reward = graded["reference"].reward
+        alternative_reward = graded["alternative"].reward
+        wrong_reward = graded["wrong"].reward
+        checks.append(_reference_solution_check(graded["reference"]))
+        checks.append(
+            _case_check(
+                "alternative_solution_passes",
+                "the other correct solution",
+                graded["alternative"],
+                expected=1.0,
+            )
         )
-        reference_reward = reference.reward
-        checks.append(_reference_solution_check(reference))
+        checks.append(
+            _case_check(
+                "wrong_solution_fails",
+                "the deliberately wrong solution",
+                graded["wrong"],
+                expected=0.0,
+            )
+        )
         checks.append(
             _verifier_output_check(
-                [work_dir / "control" / "verifier", work_dir / "reference" / "verifier"]
+                [work_dir / run / "verifier" for run in ("control", *_SOLUTIONS)]
             )
         )
 
@@ -359,8 +388,41 @@ def _qualify_skill_task(
         image_id=image_id,
         control_reward=control_reward,
         reference_reward=reference_reward,
+        alternative_reward=alternative_reward,
+        wrong_reward=wrong_reward,
         checks=checks,
         qualified=all(check.passed for check in checks),
+    )
+
+
+#: Each graded solution of a Skill task, by the run it is kept under.
+_SOLUTIONS: Final = {
+    "reference": "solve.sh",
+    "alternative": "alternative.sh",
+    "wrong": "wrong.sh",
+}
+
+#: Why a recipe case left no verdict, said of the solution it ran.
+_CASE_STOP_WORDS: Final[dict[Stop, str]] = {
+    "tests_timed_out": "the tests did not finish within the task's own timeout "
+    "after {solution}",
+    "solution_timed_out": "{solution} did not finish within the task's own agent "
+    "timeout",
+    "solution_failed": "{solution} stopped with an error, so the tests did not run",
+    "not_started": "the task's image could not be started for {solution}",
+}
+
+
+def _case_check(
+    name: str, solution: str, verdict: Verdict, *, expected: float
+) -> QualificationCheck:
+    """A recipe case passes when its solution ran and the tests gave ``expected``."""
+    return QualificationCheck(
+        name=name,
+        passed=verdict.stopped is None and verdict.reward == expected,
+        detail=_CASE_STOP_WORDS[verdict.stopped].format(solution=solution)
+        if verdict.stopped
+        else f"{_reward_words(verdict.reward)} after {solution}",
     )
 
 
@@ -589,10 +651,13 @@ def grade_reference_solution(
     task_dir: Path,
     run_dir: Path,
     *,
+    script: str,
     solution_time_limit: float,
     tests_time_limit: float,
 ) -> Verdict:
-    """Run a Skill task's reference solution, then its tests, and read the verdict.
+    """Run one of a Skill task's solutions, then its tests, and read the verdict.
+
+    ``script`` is the solution's path in the container, under ``/solution``.
 
     Both run in one container started from the image, each by ``docker exec``
     under its own limit, and both limits are kept from the host: the image
@@ -622,7 +687,7 @@ def grade_reference_solution(
         return Verdict(reward=None, details={}, stopped="not_started")
     try:
         verdict = _solve_then_test(
-            docker, name, solution_time_limit, tests_time_limit, log
+            docker, name, script, solution_time_limit, tests_time_limit, log
         )
     finally:
         log.append(docker.remove(name))
@@ -633,13 +698,14 @@ def grade_reference_solution(
 def _solve_then_test(
     docker: Docker,
     name: str,
+    script: str,
     solution_time_limit: float,
     tests_time_limit: float,
     log: list[str],
 ) -> Verdict | None:
     """Why the run left no verdict, or ``None`` when both steps ran."""
     steps: tuple[tuple[str, str, float, Stop], ...] = (
-        ("solution", "/solution/solve.sh", solution_time_limit, "solution_timed_out"),
+        ("solution", script, solution_time_limit, "solution_timed_out"),
         ("tests", "/tests/test.sh", tests_time_limit, "tests_timed_out"),
     )
     for step, script, limit, out_of_time in steps:

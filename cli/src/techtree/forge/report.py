@@ -108,6 +108,8 @@ REJECTION_WORDS: Final[dict[str, str]] = {
     ),
     "no_op_fails": "a run that did nothing did not score 0",
     "reference_solution_passes": "the reference solution did not make the tests pass",
+    "alternative_solution_passes": "the task's other correct solution did not score 1",
+    "wrong_solution_fails": "the task's deliberately wrong solution did not score 0",
     "verifier_output_bounded": (
         "the tests left more output than a task may, or something other than "
         "plain files"

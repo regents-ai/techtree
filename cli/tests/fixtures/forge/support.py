@@ -120,6 +120,10 @@ def skill2env_task(parent: Path) -> Path:
     )
     for relative, script in {
         "solution/solve.sh": "#!/bin/sh\nprintf '5\\n' > /app/result.txt\n",
+        "solution/alternative.sh": "#!/bin/sh\n"
+        "python3 -c \"print(sum(map(int, open('/app/amounts.txt'))))\""
+        " > /app/result.txt\n",
+        "solution/wrong.sh": "#!/bin/sh\nprintf '6\\n' > /app/result.txt\n",
         "tests/test.sh": "#!/bin/sh\nmkdir -p /logs/verifier\n"
         'if [ "$(cat /app/result.txt 2>/dev/null)" = 5 ]; then\n'
         "  echo 1 > /logs/verifier/reward.txt\nelse\n"
@@ -216,7 +220,7 @@ def qualified_build(home: Path, *, qualified: bool = True) -> QualifiedBuild:
         task_set=task_set,
     )
     qualification = ForgeQualification(
-        schema_version="techtree.forge-qualification.v1alpha3",
+        schema_version="techtree.forge-qualification.v1alpha4",
         build_id=build_id,
         membership_digest=task_set.membership_digest,
         qualified_at=now,
@@ -345,7 +349,9 @@ class FakeDocker:
     ``"timeout"`` for a test run that hangs; ``reference_reward`` is the same
     for the tests after the reference solution, which may also be
     ``"solution_timeout"`` for a ``solve.sh`` that hangs or
-    ``"solution_fails"`` for one that exits 2. ``start_error`` is the stderr
+    ``"solution_fails"`` for one that exits 2; ``alternative_reward`` and
+    ``wrong_reward`` are the same for the tests after the package's other
+    correct solution and its deliberately wrong one. ``start_error`` is the stderr
     of a container that will not start. ``verifier_output``
     is how many extra bytes the tests leave beside the reward;
     ``verifier_link`` makes them leave a link to a directory and
@@ -362,6 +368,8 @@ class FakeDocker:
 
     reward: float | str | None = 1.0
     reference_reward: float | str | None = 1.0
+    alternative_reward: float | str | None = 1.0
+    wrong_reward: float | str | None = 0.0
     verifier_output: int = 0
     verifier_link: bool = False
     verifier_unreadable: bool = False
@@ -376,6 +384,7 @@ class FakeDocker:
     calls: list[list[str]] = field(default_factory=list)
     timeouts: list[float] = field(default_factory=list)
     started: dict[str, list[str]] = field(default_factory=dict)
+    solved: dict[str, str] = field(default_factory=dict)
 
     def __call__(
         self, argv: Sequence[str], timeout: float
@@ -445,18 +454,25 @@ class FakeDocker:
     def _exec(
         self, command: list[str], timeout: float
     ) -> subprocess.CompletedProcess[str]:
-        """A step of the reference run, in the container ``start`` named."""
+        """A step of a solution's run, in the container ``start`` named."""
         self.timeouts.append(timeout)
         container = self.started[command[2]]
+        rewards = {
+            "/solution/solve.sh": self.reference_reward,
+            "/solution/alternative.sh": self.alternative_reward,
+            "/solution/wrong.sh": self.wrong_reward,
+        }
         match command[3:]:
-            case ["bash", "/solution/solve.sh"]:
-                if self.reference_reward == "solution_timeout":
+            case ["bash", script] if script in rewards:
+                self.solved[command[2]] = script
+                if rewards[script] == "solution_timeout":
                     raise _timeout("solving\n")
-                if self.reference_reward == "solution_fails":
+                if rewards[script] == "solution_fails":
                     return subprocess.CompletedProcess(command, 2, "", "no such file\n")
                 return _done(command)
             case ["bash", "/tests/test.sh"]:
-                return self._graded(command, container, self.reference_reward)
+                reward = rewards[self.solved[command[2]]]
+                return self._graded(command, container, reward)
         raise AssertionError(f"unexpected docker exec {command}")
 
     def _graded(
@@ -676,6 +692,16 @@ def created_package(task_name: str) -> bytes:
         "solution/solve.sh": (
             "#!/bin/sh\npython3 -c \"print(sum(map(int, open('/app/amounts.txt'))))\""
             " > /app/result.txt\n",
+            True,
+        ),
+        "solution/alternative.sh": (
+            "#!/bin/sh\ntotal=0\nwhile read -r amount; do\n"
+            "  total=$((total + amount))\ndone < /app/amounts.txt\n"
+            'echo "$total" > /app/result.txt\n',
+            True,
+        ),
+        "solution/wrong.sh": (
+            "#!/bin/sh\nwc -l < /app/amounts.txt > /app/result.txt\n",
             True,
         ),
     }

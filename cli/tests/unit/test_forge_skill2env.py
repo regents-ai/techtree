@@ -92,10 +92,7 @@ def test_import_commits_exact_bytes_and_qualifies_the_task_offline(
         "image",
         "run",
         "run",
-        "run",
-        "exec",
-        "exec",
-        "rm",
+        *(["run", "exec", "exec", "rm"] * 3),
     ]
     assert docker.calls[1] == [
         "docker",
@@ -108,7 +105,8 @@ def test_import_commits_exact_bytes_and_qualifies_the_task_offline(
     build_call = next(call for call in docker.calls if call[1] == "build")
     assert build_call[4:6] == ["--network", "none"]
     assert build_call[-1] == str(task_dir / "environment")
-    probe, no_op, reference = [call for call in docker.calls if call[1] == "run"]
+    probe, no_op, *solutions = [call for call in docker.calls if call[1] == "run"]
+    reference = solutions[0]
     assert probe[-1].startswith("test ! -e /tests") and mounts(probe) == []
     assert reference[2] == "--detach" and reference[-2:] == ["sleep", "infinity"]
     assert mounts(no_op) == [
@@ -122,15 +120,35 @@ def test_import_commits_exact_bytes_and_qualifies_the_task_offline(
         f"{build_dir / 'qualification' / task.name / 'reference' / 'verifier'}"
         ":/logs/verifier",
     ]
-    name = reference[reference.index("--name") + 1]
-    solve, test, removal = docker.calls[-3:]
-    assert solve == ["docker", "exec", name, "bash", "/solution/solve.sh"]
-    assert test == ["docker", "exec", name, "bash", "/tests/test.sh"]
-    assert removal == ["docker", "rm", "--force", name]
+    # Each solution runs in its own container: the reference, then the other
+    # correct one, then the deliberately wrong one, each followed by the tests.
+    for started, (run, script) in zip(
+        solutions,
+        [
+            ("reference", "solve.sh"),
+            ("alternative", "alternative.sh"),
+            ("wrong", "wrong.sh"),
+        ],
+        strict=True,
+    ):
+        assert mounts(started)[-1] == (
+            f"{build_dir / 'qualification' / task.name / run / 'verifier'}"
+            ":/logs/verifier"
+        )
+        name = started[started.index("--name") + 1]
+        assert [call for call in docker.calls if call[1] != "run" and name in call] == [
+            ["docker", "exec", name, "bash", f"/solution/{script}"],
+            ["docker", "exec", name, "bash", "/tests/test.sh"],
+            ["docker", "rm", "--force", name],
+        ]
     assert all(
-        call[call.index("--network") + 1] == "none" for call in (no_op, reference)
+        call[call.index("--network") + 1] == "none" for call in (no_op, *solutions)
     )
-    assert docker.timeouts == [PROBE_BOUND, NO_OP_BOUND, SOLUTION_BOUND, TESTS_BOUND]
+    assert docker.timeouts == [
+        PROBE_BOUND,
+        NO_OP_BOUND,
+        *[SOLUTION_BOUND, TESTS_BOUND] * 3,
+    ]
 
     status = read_build_status(paths, record.build_id)
     qualification = status.qualification
@@ -144,9 +162,12 @@ def test_import_commits_exact_bytes_and_qualifies_the_task_offline(
         ("verifier_material_absent", True),
         ("no_op_fails", True),
         ("reference_solution_passes", True),
+        ("alternative_solution_passes", True),
+        ("wrong_solution_fails", True),
         ("verifier_output_bounded", True),
     ]
     assert evidence.control_reward == 0.0 and evidence.reference_reward == 1.0
+    assert evidence.alternative_reward == 1.0 and evidence.wrong_reward == 0.0
     saved_task = json.loads((build_dir / "qualification.json").read_bytes())["tasks"][0]
     assert saved_task["kind"] == "skill" and saved_task["image_id"] == evidence.image_id
     assert "base_commit" not in saved_task and "fail_to_pass" not in saved_task
@@ -155,7 +176,7 @@ def test_import_commits_exact_bytes_and_qualifies_the_task_offline(
     assert status.progress.membership_digest == record.task_set.membership_digest
     assert status.progress.origin == str(task)
     assert task_verdict(evidence) == f"{task.name}: qualified"
-    for run in ("control", "reference"):
+    for run in ("control", "reference", "alternative", "wrong"):
         run_dir = build_dir / "qualification" / task.name / run
         assert (run_dir / "container.log").is_file()
         assert (run_dir / "verifier" / "reward.txt").is_file()
@@ -215,6 +236,21 @@ def test_a_changed_package_byte_fails_re_verification_before_anything_runs(
             "its environment could not be started",
         ),
         (
+            "alternative_rejected",
+            "alternative_solution_passes",
+            "the task's other correct solution did not score 1",
+        ),
+        (
+            "wrong_accepted",
+            "wrong_solution_fails",
+            "the task's deliberately wrong solution did not score 0",
+        ),
+        (
+            "wrong_stops",
+            "wrong_solution_fails",
+            "the task's deliberately wrong solution did not score 0",
+        ),
+        (
             "planted",
             "hidden_material_private",
             "the instruction or the environment carries a file of the tests or the "
@@ -259,6 +295,12 @@ def test_rejections_keep_their_evidence_and_are_said_in_words(
         docker.reference_reward = "solution_timeout"
     elif case == "solution_fails":
         docker.reference_reward = "solution_fails"
+    elif case == "alternative_rejected":
+        docker.alternative_reward = 0.0
+    elif case == "wrong_accepted":
+        docker.wrong_reward = 1.0
+    elif case == "wrong_stops":
+        docker.wrong_reward = "solution_fails"
     elif case == "image_will_not_start":
         docker.start_error = "sleep: executable file not found"
     elif case == "reference_hangs":
@@ -301,9 +343,11 @@ def test_rejections_keep_their_evidence_and_are_said_in_words(
     if case == "planted":
         assert failed.detail == "tests/test.sh inside environment/notes.sh"
     if case == "verifier_links":
-        assert failed.detail.endswith("not regular files: elsewhere, elsewhere")
+        assert failed.detail.endswith(
+            "not regular files: " + ", ".join(["elsewhere"] * 4)
+        )
     if case == "verifier_unreadable":
-        assert failed.detail.endswith("not regular files: sealed, sealed")
+        assert failed.detail.endswith("not regular files: " + ", ".join(["sealed"] * 4))
     reference_log = build_dir / "qualification" / task.name / "reference"
     if case in {"reference_hangs", "solution_out_of_time"}:
         # The container of a step that ran out of time is removed at once, and
@@ -314,7 +358,15 @@ def test_rejections_keep_their_evidence_and_are_said_in_words(
         transcript = (reference_log / "container.log").read_text(encoding="utf-8")
         assert f"timed out True\n{printed}\n" in transcript
     if case == "solution_fails":
-        assert not any(call[3:] == ["bash", "/tests/test.sh"] for call in docker.calls)
+        name = next(iter(docker.started))
+        assert ["docker", "exec", name, "bash", "/tests/test.sh"] not in docker.calls
+    if case == "wrong_stops":
+        assert failed.detail == (
+            "the deliberately wrong solution stopped with an error, so the tests "
+            "did not run"
+        )
+    if case == "wrong_accepted":
+        assert failed.detail == "reward 1.0 after the deliberately wrong solution"
     if case == "image_will_not_start":
         transcript = (reference_log / "container.log").read_text(encoding="utf-8")
         assert "sleep: executable file not found" in transcript

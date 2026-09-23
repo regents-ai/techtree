@@ -509,7 +509,7 @@ identity.
 
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and
-`techtree.forge-qualification.v1alpha3`. This is a hard cutover of the unreleased
+`techtree.forge-qualification.v1alpha4`. This is a hard cutover of the unreleased
 local shape: an earlier build, progress or qualification record returns
 `forge_schema_unsupported` with its path and schema version, checked before
 any of the build's records is parsed. There is no fallback reader, and saved
@@ -517,15 +517,20 @@ bytes are never changed. Build provenance is one typed repository or Skill
 source; the task content and membership commitments remain
 shared. Each task's qualification evidence is likewise one typed branch by
 `kind`: a repository task records the commit and test names it graded, a Skill
-task records only the common checks plus the two an imported package needs (no
+task records the common checks plus the two an imported package needs (no
 file of `tests/` or `solution/` inside the instruction or environment, and
-bounded verifier output). A Skill task's reference run starts one container
-and runs `solve.sh` in it with the task's agent time, then the tests with the
-verifier time, each by `docker exec` under a deadline kept from the host (the
-image comes from the task's own recipe, so nothing inside it keeps time); a
-step still running at its deadline ends with the container removed and no
-verdict, as does a `solve.sh` that exits with an error or an image that cannot
-be started; each is rejected with its own words. The repository runner does not yet execute Skill
+bounded verifier output) and its recipe cases (R31): every Skill package
+carries, beside `solution/solve.sh`, another correct solution
+(`solution/alternative.sh`, which must score 1 as the reference does, recorded
+as `alternative_reward`) and a deliberately wrong one (`solution/wrong.sh`,
+which must finish and score 0, recorded as `wrong_reward`). Each of the three
+solutions runs in its own container: the solution with the task's agent
+time, then the tests with the verifier time, each by `docker exec` under a
+deadline kept from the host (the image comes from the task's own recipe, so
+nothing inside it keeps time); a step still running at its deadline ends with
+the container removed and no verdict, as does a solution that exits with an
+error or an image that cannot be started; each is rejected with its own
+words. The repository runner does not yet execute Skill
 tasks. Public proofs and their schemas are unchanged.
 
 The shipped Python/uv bootstrap exposes `/workspace/.venv/bin` in both login and non-login shells, so generation and qualification use the installed test tools.

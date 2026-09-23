@@ -36,8 +36,9 @@ and Linux platform. The digest commits to the reviewed private source bundle;
 the importer does not receive or independently reconstruct private source bytes.
 Package metadata must match both expected values. Task bytes are never rewritten.
 
-Admission requires the six upstream files, separate environment/tests/solution
-trees, explicit offline network policies, and the pinned host-authored limits.
+Admission requires the six upstream files and Techtree's two recipe cases,
+`solution/alternative.sh` (another correct solution) and `solution/wrong.sh`
+(a deliberately wrong one), separate environment/tests/solution trees, explicit offline network policies, and the pinned host-authored limits.
 Only literal absolute artifact paths without overlaps are supported. There are
 no fallback schemas, supplied images, host environment variables, MCP servers,
 alternate verifier environments or multi-step tasks.
@@ -94,18 +95,20 @@ and after; no file of `tests/` or `solution/` may appear inside
 `instruction.md` or any `environment/` file; the image must build offline;
 the image must hold no `/tests`, `/solution` or `/logs`; a run that does
 nothing must score 0; `solution/solve.sh` followed by `tests/test.sh` must
-score 1; and what the tests leave under `/logs/verifier` across both runs
-must be regular files, with no link of any kind, within 1 MiB and 1024
+score 1; so must `solution/alternative.sh`, while `solution/wrong.sh` must
+finish and score 0 (the recipe cases, R31); and what the tests leave under
+`/logs/verifier` across all four runs must be regular files, with no link of any kind, within 1 MiB and 1024
 entries. Both graded runs use the isolated runtime (`--network none`, memory
 and CPU caps, `tests/` and `solution/` mounted read-only, the verifier's
 output directory mounted writable at `/logs/verifier`, nothing else) bounded
 by the pinned `task.toml` times: the verifier's 600 s for the run that does
-nothing; in the reference run one container is started, `solve.sh` runs in
-it with the agent's 1800 s and then the tests with the verifier's 600 s, each
-deadline kept from the host, since the image comes from the task's own
-recipe. A step still running at its deadline ends with the container removed
-and leaves no verdict; so does a `solve.sh` that exits with an error (the
-tests then do not run) and an image that cannot be started. Every check and what it saw is written to
-`qualification.json` beside the build; a rejected task keeps its image build
-log and both containers' transcripts. The repository runner does not yet
+nothing; for each of the three solutions one container is started, the
+solution runs in it with the agent's 1800 s and then the tests with the
+verifier's 600 s, each deadline kept from the host, since the image comes
+from the task's own recipe. A step still running at its deadline ends with
+the container removed and leaves no verdict; so does a solution that exits
+with an error (the tests then do not run) and an image that cannot be
+started. Every check and what it saw is written to `qualification.json`
+beside the build; a rejected task keeps its image build log and every
+container's transcript. The repository runner does not yet
 execute Skill tasks.

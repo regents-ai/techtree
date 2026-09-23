@@ -6,7 +6,7 @@
   "task_schema": "1.3",
   "license": "Apache-2.0",
   "harbor_sdist_sha256": "c5ee624c0a09eb21156e650d3696f4c72c7b622ed0d84ef89d3a37f97d8d2842",
-  "required_files": ["instruction.md", "task.toml", "environment/Dockerfile", "tests/rubric.md", "tests/test.sh", "solution/solve.sh"],
+  "required_files": ["instruction.md", "task.toml", "environment/Dockerfile", "tests/rubric.md", "tests/test.sh", "solution/solve.sh", "solution/alternative.sh", "solution/wrong.sh"],
   "fixed_sections": {
     "agent": {"network_mode": "no-network", "allowed_hosts": [], "timeout_sec": 1800.0},
     "verifier": {"network_mode": "no-network", "allowed_hosts": [], "timeout_sec": 600.0, "env": {}, "collect": []},

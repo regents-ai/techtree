@@ -31,11 +31,18 @@ Write these files:
   `/solution/solve.sh` in a fresh container, that leaves a result the tests
   accept. It must work out the answer the way the Skill teaches rather than
   contain a copied answer where the task is to compute one.
+- `solution/alternative.sh`: a second correct solution, run the same way,
+  that reaches a correct result differently from `solve.sh`, for example in
+  another order or in another form the success criteria allow.
+- `solution/wrong.sh`: a deliberately wrong solution, run the same way, that
+  finishes without an error and leaves a plausible wrong result, such as one
+  that follows a rule the Skill does not teach.
 
-The tests must fail when the agent does nothing, and pass for the reference
-solution. They must accept every correct result and reject a plausible wrong
-one, such as a result that follows a rule the Skill does not teach. Mark
-`tests/test.sh` and `solution/solve.sh` executable.
+Techtree runs each of them in a fresh container before anyone may use the
+task. The tests must fail when the agent does nothing, pass for `solve.sh`
+and for `alternative.sh`, and fail for `wrong.sh`. They must accept every
+correct result and reject every wrong one, not only these. Mark
+`tests/test.sh` and the three solutions executable.
 
 Do not include the Skill's own files, `SKILL.md`, `task.toml`, hidden files,
 or any credential. Do not write the reward file anywhere but in the tests.

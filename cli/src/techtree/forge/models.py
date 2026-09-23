@@ -169,7 +169,7 @@ __all__ = [
 
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha3"
 FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha3"
-FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha3"
+FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha4"
 FORGE_RUN_SCHEMA_VERSION: Final = "techtree.forge-run.v1alpha1"
 FORGE_RUN_SPEC_SCHEMA_VERSION: Final = "techtree.forge-run-spec.v1alpha1"
 FORGE_TASK_CONTENT_SCHEMA_VERSION: Final = "techtree.forge-task-content.v1alpha1"
@@ -433,9 +433,16 @@ class RepositoryTaskQualification(TaskQualificationEvidence):
 
 
 class SkillTaskQualification(TaskQualificationEvidence):
-    """A Skill task's evidence: no commit and no test names, only the checks."""
+    """A Skill task's evidence: no commit and no test names, only the checks.
+
+    Its recipe cases are graded as the reference is: ``alternative_reward``
+    after the package's other correct solution, which must pass, and
+    ``wrong_reward`` after its deliberately wrong one, which must fail.
+    """
 
     kind: Literal["skill"]
+    alternative_reward: float | None
+    wrong_reward: float | None
 
 
 type TaskQualification = Annotated[
@@ -446,7 +453,7 @@ type TaskQualification = Annotated[
 class ForgeQualification(ProtocolModel):
     """The qualification of every task one build committed."""
 
-    schema_version: Literal["techtree.forge-qualification.v1alpha3"]
+    schema_version: Literal["techtree.forge-qualification.v1alpha4"]
     build_id: NonEmptyString
     membership_digest: Digest
     qualified_at: UtcDateTime
