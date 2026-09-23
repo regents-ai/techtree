@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Final, Literal
 
 import typer
 from rich.console import Console
@@ -65,13 +65,16 @@ from techtree.forge.models import (
     ForgeArmTotals,
     ForgeAttemptOutcome,
     ForgeBuildStatus,
+    ForgeBuildTasks,
     ForgeCollectionRecord,
     ForgeCollectionStatus,
+    ForgeCollectionTasks,
     ForgeComparisonStatus,
     ForgeConstructionRecord,
     ForgeConstructionStatus,
     ForgeConstructionTaskStatus,
     ForgeLanguage,
+    ForgeOutputs,
     ForgePlanRecord,
     ForgePlanStatus,
     ForgeProposalStatus,
@@ -79,6 +82,7 @@ from techtree.forge.models import (
     ForgeRunSpec,
     ForgeRunStatus,
     ForgeSourceStatus,
+    ForgeSubjectToolset,
     ForgeTaskRegression,
     ForgeUsage,
 )
@@ -95,6 +99,7 @@ from techtree.forge.profile import PROFILE_NAME
 from techtree.forge.report import (
     FEW_TASKS,
     OUTCOME_WORDS,
+    OUTPUT_FAILURE_WORDS,
     build_summary,
     first_failed_check,
     import_summary,
@@ -249,12 +254,6 @@ def run_forge_command(
             "without the Skill, the candidate with it.",
         ),
     ],
-    build_id: Annotated[
-        str,
-        typer.Option(
-            "--build", metavar="BUILD_ID", help="A build that finished qualification."
-        ),
-    ],
     provider: Annotated[
         str,
         typer.Option(
@@ -265,13 +264,29 @@ def run_forge_command(
     model: Annotated[
         str, typer.Option("--model", help="The model Hermes will be asked for.")
     ],
+    build_id: Annotated[
+        str | None,
+        typer.Option(
+            "--build",
+            metavar="BUILD_ID",
+            help="A repository build that finished qualification. Name this "
+            "or --collection.",
+        ),
+    ] = None,
+    collection_id: Annotated[
+        str | None,
+        typer.Option(
+            "--collection",
+            metavar="COLLECTION_ID",
+            help="An accepted Skill collection. Name this or --build.",
+        ),
+    ] = None,
     tasks: Annotated[
         str | None,
         typer.Option(
             "--tasks",
             metavar="TASK_ID[,TASK_ID...]",
-            help="The qualified tasks to run, in order. Every qualified task "
-            "when omitted.",
+            help="The tasks to run, in order. Every one of them when omitted.",
         ),
     ] = None,
     skill: Annotated[
@@ -311,6 +326,7 @@ def run_forge_command(
             context.paths,
             arm=arm,
             build_id=build_id,
+            collection_id=collection_id,
             task_ids=tasks.split(",") if tasks is not None else None,
             skill_root=skill,
             provider=provider,
@@ -980,7 +996,7 @@ def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
             if spec.skill is not None
             else ", without a Skill"
         ),
-        f"Build: {spec.build_id}",
+        _tasks_from_line(spec),
         f"Tasks: {len(spec.task_ids)} ({', '.join(spec.task_ids)})",
         f"Attempts: {attempts} ({spec.sampling.repetitions} per task)",
         f"Agent: {spec.agent.executable} (Hermes Agent v{spec.agent.version})",
@@ -993,11 +1009,55 @@ def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
         "sandbox with no network, "
         f"{spec.limits.container_cpus} CPUs and "
         f"{spec.limits.container_memory_mb} MB, for the task's own time limit.",
+        f"The agent can use {_toolset_words(spec)}, all inside that sandbox, "
+        "and nothing else.",
+        *(
+            ()
+            if spec.limits.outputs is None
+            else (
+                "The agent works in the task's own working directory. Before "
+                "any test runs, everything it added, changed or deleted there "
+                "is recorded, keeping up to "
+                f"{_size_words(spec.limits.outputs.kept_bytes)} of the files it "
+                "left; an attempt whose outputs cannot be recorded as they are "
+                "is not graded.",
+            )
+        ),
         COST_LINE,
     ]
     return ForgeRunReview(
         spec_digest=digest_object(spec), spec=spec, attempts=attempts, review=lines
     )
+
+
+def _tasks_from_line(spec: ForgeRunSpec) -> str:
+    match spec.tasks_from:
+        case ForgeBuildTasks(build_id=build_id):
+            return f"Build: {build_id}"
+        case ForgeCollectionTasks(collection_id=collection_id, version=version):
+            return f"Collection: {collection_id}, version {version}, as accepted"
+
+
+def _size_words(size: int) -> str:
+    megabyte = 1024 * 1024
+    if size % (1024 * megabyte) == 0:
+        return f"{size // (1024 * megabyte)} GB"
+    if size % megabyte == 0:
+        return f"{size // megabyte} MB"
+    return f"{size} bytes"
+
+
+_TOOLSET_WORDS: Final[dict[ForgeSubjectToolset, str]] = {
+    "terminal": "a shell",
+    "file": "files",
+    "code_execution": "code",
+    "skills": "Skills",
+}
+
+
+def _toolset_words(spec: ForgeRunSpec) -> str:
+    words = [_TOOLSET_WORDS[toolset] for toolset in spec.toolsets]
+    return words[0] if len(words) == 1 else f"{', '.join(words[:-1])} and {words[-1]}"
 
 
 def ask_to_start(context: CliContext, review: ForgeRunReview) -> None:
@@ -1024,7 +1084,9 @@ def _run_when_approved(review: ForgeRunReview, params: dict[str, object]) -> Nex
     for name, value in params.items():
         if name == "yes" or value is None:
             continue
-        flag = "--build" if name == "build_id" else f"--{name}"
+        flag = {"build_id": "--build", "collection_id": "--collection"}.get(
+            name, f"--{name}"
+        )
         options[flag] = value.value if isinstance(value, StrEnum) else str(value)
     return NextAction(
         operation=Operation.ACTION_EXECUTE,
@@ -1052,9 +1114,11 @@ def render_forge_run(status: ForgeRunStatus, console: Console) -> None:
             spec.arm.value
             + (f" with Skill {spec.skill.name}" if spec.skill is not None else ""),
         ),
-        ("Build", spec.build_id),
+        _tasks_from_pair(spec),
         ("Model", f"{spec.model.model_id} from {spec.model.provider}"),
         ("Agent", f"Hermes Agent v{spec.agent.version}"),
+        ("Tools", _toolset_words(spec)),
+        ("Limits", _limits_words(spec)),
         (
             "Attempts",
             f"{len(record.attempts)} of "
@@ -1077,7 +1141,48 @@ def render_forge_run(status: ForgeRunStatus, console: Console) -> None:
         if usage is not None and usage.total_tokens is not None:
             parts.append(f"{usage.total_tokens} tokens")
         parts.append(_cost_words(usage))
+        if attempt.outputs is not None:
+            parts.append(_outputs_words(attempt.outputs))
         console.print(", ".join(parts), markup=False)
+        if attempt.outputs is not None:
+            for failure in attempt.outputs.failures:
+                console.print(
+                    "  "
+                    + (f"{failure.path}: " if failure.path is not None else "")
+                    + f"{OUTPUT_FAILURE_WORDS[failure.kind]} ({failure.detail})",
+                    markup=False,
+                )
+
+
+def _tasks_from_pair(spec: ForgeRunSpec) -> tuple[str, str]:
+    match spec.tasks_from:
+        case ForgeBuildTasks(build_id=build_id):
+            return ("Build", build_id)
+        case ForgeCollectionTasks(collection_id=collection_id, version=version):
+            return ("Collection", f"{collection_id} (version {version})")
+
+
+def _limits_words(spec: ForgeRunSpec) -> str:
+    words = (
+        f"{spec.limits.container_cpus} CPUs, {spec.limits.container_memory_mb} MB, "
+        f"{'network' if spec.limits.network else 'no network'}, "
+        "the task's own time limit"
+    )
+    outputs = spec.limits.outputs
+    if outputs is None:
+        return words
+    return (
+        f"{words}; outputs read up to {outputs.entries} entries and "
+        f"{_size_words(outputs.checked_bytes)}, keeping up to "
+        f"{_size_words(outputs.kept_bytes)}"
+    )
+
+
+def _outputs_words(outputs: ForgeOutputs) -> str:
+    return (
+        f"{outputs.added} added, {outputs.modified} changed, "
+        f"{outputs.deleted} deleted in {outputs.work_dir}"
+    )
 
 
 def _cost_words(usage: ForgeUsage | None) -> str:

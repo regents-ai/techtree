@@ -1,27 +1,33 @@
 """Declaring one arm of a forge experiment before it runs.
 
 A :class:`~techtree.forge.models.ForgeRunSpec` is written from facts that are
-checked here, not typed in: the build must have finished qualification, every
-named task must be one it qualified, the Hermes on the path must answer
-``--version``, and a candidate Skill must scan cleanly and carry a name Hermes
+checked here, not typed in: a repository build must have finished
+qualification and every named task must be one it qualified; a Skill
+collection must be accepted and still exactly what was accepted, and every
+named task must be one of its members; the Hermes on the path must answer
+``--version``; and a candidate Skill must scan cleanly and carry a name Hermes
 would accept. What cannot be checked is not guessed; it is listed on the
 specification under ``not_established``.
 """
 
 from __future__ import annotations
 
-import re
 import shutil
 from pathlib import Path
 from typing import Final
 
 from techtree.canonical import digest_object
 from techtree.errors import PrerequisiteError, ValidationError
+from techtree.forge.capture import OUTPUT_LIMITS
+from techtree.forge.collection import verify_collection
 from techtree.forge.docker import CONTAINER_CPUS
+from techtree.forge.hermes import hermes_version
 from techtree.forge.models import (
     FORGE_RUN_SPEC_SCHEMA_VERSION,
     ForgeAgentSpec,
     ForgeArm,
+    ForgeBuildTasks,
+    ForgeCollectionTasks,
     ForgeGradingSpec,
     ForgeInitialState,
     ForgeLimits,
@@ -30,8 +36,8 @@ from techtree.forge.models import (
     ForgeRunSpec,
     ForgeSamplingSpec,
     ForgeSkillSpec,
+    ForgeSubjectToolset,
 )
-from techtree.forge.process import run_command
 from techtree.forge.service import read_build_status
 from techtree.forge.skill import scan_skill_spec
 from techtree.models.base import Digest, JsonValue
@@ -40,19 +46,23 @@ from techtree.paths import TechtreePaths
 __all__ = [
     "CONTAINER_MEMORY_MB",
     "NOT_ESTABLISHED",
+    "SUBJECT_TOOLSETS",
     "declare_run_spec",
-    "hermes_version",
     "run_spec_digest",
 ]
 
 #: The sandbox memory bound, in the unit Hermes' Docker backend takes. It is
 #: the same 4g the forge grants its grading containers.
 CONTAINER_MEMORY_MB: Final = 4096
-#: The Hermes version banner: ``Hermes Agent v0.21.3 (2026.9.14) · upstream 6d712cf8``.
-#: All of it is the version: Hermes updates from its upstream without changing
-#: the number, and only the build date and upstream commit tell two apart.
-_VERSION_BANNER: Final = re.compile(r"^Hermes Agent v(?P<version>\S.*?)\s*$")
-_VERSION_TIMEOUT_SECONDS: Final = 30.0
+
+#: The tools every subject is given: shell, files, code and Skills, each
+#: routed through its sandbox.
+SUBJECT_TOOLSETS: Final[tuple[ForgeSubjectToolset, ...]] = (
+    "terminal",
+    "file",
+    "code_execution",
+    "skills",
+)
 
 #: What a local experiment cannot establish and therefore says out loud.
 NOT_ESTABLISHED: Final[tuple[str, ...]] = (
@@ -68,7 +78,8 @@ def declare_run_spec(
     paths: TechtreePaths,
     *,
     arm: ForgeArm,
-    build_id: str,
+    build_id: str | None = None,
+    collection_id: str | None = None,
     task_ids: list[str] | None,
     skill_root: Path | None,
     provider: str,
@@ -79,10 +90,12 @@ def declare_run_spec(
     """Declare one arm of an experiment from checked facts.
 
     Args:
-        paths: The Techtree home holding the build.
+        paths: The Techtree home holding the tasks.
         arm: Which side of the comparison this is.
-        build_id: A build that has finished qualification.
-        task_ids: The qualified tasks to run, in order; all of them when omitted.
+        build_id: A repository build that has finished qualification.
+        collection_id: An accepted Skill collection; exactly one of this and
+            ``build_id`` is given.
+        task_ids: The tasks to run, in order; all of them when omitted.
         skill_root: The candidate Skill's directory; required on the candidate
             arm and refused on the baseline arm.
         provider: The provider name Hermes will be asked for.
@@ -93,18 +106,52 @@ def declare_run_spec(
     Raises:
         PrerequisiteError: The build has not been qualified, or no ``hermes``
             is on the path.
-        ValidationError: A named task was not qualified, or the Skill does
-            not fit the arm.
+        ValidationError: Not exactly one of a build and a collection was
+            named, the build holds Skill tasks, the collection is not accepted
+            as it is, a named task is not one of theirs, or the Skill does not
+            fit the arm.
     """
-    qualification = _qualification(paths, build_id)
-    tasks = _qualified_subset(qualification, task_ids)
+    match (build_id, collection_id):
+        case (str(), None):
+            qualification = _qualification(paths, build_id)
+            tasks_from: ForgeBuildTasks | ForgeCollectionTasks = ForgeBuildTasks(
+                kind="build",
+                build_id=build_id,
+                membership_digest=qualification.membership_digest,
+            )
+            tasks = _subset(
+                task_ids,
+                qualification.qualified_task_ids,
+                where=f"build {build_id}",
+                details={"build_id": build_id},
+            )
+        case (None, str()):
+            status = verify_collection(paths, collection_id)
+            review = status.record.review
+            tasks_from = ForgeCollectionTasks(
+                kind="collection",
+                collection_id=collection_id,
+                collection_digest=status.record.collection_digest,
+                version=review.version,
+                membership_digest=review.membership_digest,
+            )
+            tasks = _subset(
+                task_ids,
+                [member.task_id for member in review.members],
+                where=f"collection {collection_id}",
+                details={"collection_id": collection_id},
+            )
+        case _:
+            raise ValidationError(
+                "a run is declared on exactly one build or one collection",
+                code="forge_run_tasks_unnamed",
+            )
     skill = _skill_for(arm, skill_root)
     executable = _hermes_executable()
     return ForgeRunSpec(
         schema_version=FORGE_RUN_SPEC_SCHEMA_VERSION,
         arm=arm,
-        build_id=build_id,
-        membership_digest=qualification.membership_digest,
+        tasks_from=tasks_from,
         task_ids=tasks,
         grading=ForgeGradingSpec(
             procedure="harbor-compatible", executed_by="local-experiment"
@@ -114,6 +161,7 @@ def declare_run_spec(
             executable=str(executable),
             version=hermes_version(executable),
         ),
+        toolsets=list(SUBJECT_TOOLSETS),
         model=ForgeModelSpec(
             provider=provider,
             model_id=model_id,
@@ -128,6 +176,7 @@ def declare_run_spec(
             container_cpus=int(CONTAINER_CPUS),
             container_memory_mb=CONTAINER_MEMORY_MB,
             network=False,
+            outputs=None if isinstance(tasks_from, ForgeBuildTasks) else OUTPUT_LIMITS,
         ),
         sampling=ForgeSamplingSpec(control="provider-default", repetitions=repetitions),
         not_established=list(NOT_ESTABLISHED),
@@ -141,6 +190,14 @@ def run_spec_digest(spec: ForgeRunSpec) -> Digest:
 
 def _qualification(paths: TechtreePaths, build_id: str) -> ForgeQualification:
     status = read_build_status(paths, build_id)
+    if status.build is not None and status.build.source.kind == "skill":
+        raise ValidationError(
+            f"build {build_id} holds Skill tasks, which run only once a person "
+            "has accepted them: collect and accept them with forge collect and "
+            "forge accept, then run the collection with --collection",
+            code="forge_source_unsupported",
+            details={"build_id": build_id, "source": "skill"},
+        )
     if status.qualification is None:
         raise PrerequisiteError(
             f"build {build_id} has not finished qualification, so it has no "
@@ -151,30 +208,34 @@ def _qualification(paths: TechtreePaths, build_id: str) -> ForgeQualification:
     return status.qualification
 
 
-def _qualified_subset(
-    qualification: ForgeQualification, task_ids: list[str] | None
+def _subset(
+    task_ids: list[str] | None,
+    usable: list[str],
+    *,
+    where: str,
+    details: dict[str, JsonValue],
 ) -> list[str]:
-    qualified = qualification.qualified_task_ids
+    """Return the named tasks, each one of ``usable``; all of them when unnamed."""
     if task_ids is None:
-        if not qualified:
+        if not usable:
             raise ValidationError(
-                f"build {qualification.build_id} qualified no tasks",
+                f"{where} has no tasks that can run",
                 code="forge_no_usable_tasks",
-                details={"build_id": qualification.build_id},
+                details=details,
             )
-        return list(qualified)
-    unqualified: list[JsonValue] = [
-        task_id for task_id in task_ids if task_id not in qualified
+        return list(usable)
+    unusable: list[JsonValue] = [
+        task_id for task_id in task_ids if task_id not in usable
     ]
-    if unqualified:
+    if unusable:
         raise ValidationError(
-            "only a task the build qualified can be run: "
-            + ", ".join(str(task_id) for task_id in unqualified),
+            f"only a task of {where} can be run: "
+            + ", ".join(str(task_id) for task_id in unusable),
             code="forge_task_not_qualified",
             details={
-                "build_id": qualification.build_id,
-                "unqualified": unqualified,
-                "qualified": [task_id for task_id in qualified],
+                **details,
+                "unqualified": unusable,
+                "qualified": list(usable),
             },
         )
     return list(task_ids)
@@ -208,21 +269,3 @@ def _hermes_executable() -> Path:
             code="hermes_not_found",
         )
     return Path(found)
-
-
-def hermes_version(executable: Path) -> str:
-    """Return the version the Hermes at ``executable`` prints for itself."""
-    completed = run_command([str(executable), "--version"], _VERSION_TIMEOUT_SECONDS)
-    first_line = completed.stdout.splitlines()[0] if completed.stdout else ""
-    match = _VERSION_BANNER.match(first_line)
-    if completed.returncode != 0 or match is None:
-        raise PrerequisiteError(
-            f"{executable} did not report a Hermes Agent version",
-            code="hermes_version_unreadable",
-            details={
-                "executable": str(executable),
-                "exit_code": completed.returncode,
-                "first_line": first_line,
-            },
-        )
-    return match.group("version")

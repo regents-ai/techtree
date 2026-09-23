@@ -37,7 +37,8 @@ from techtree.forge.comparability import (
     compare_run_specs,
 )
 from techtree.forge.compare import compare_runs, read_comparison_status
-from techtree.forge.experiment import hermes_version, run_spec_digest
+from techtree.forge.experiment import run_spec_digest
+from techtree.forge.hermes import hermes_version
 from techtree.forge.models import (
     FORGE_REVISION_SCHEMA_VERSION,
     ForgeComparisonRecord,
@@ -124,8 +125,9 @@ def prepare_revision(
     spec = parent.spec.model_copy(update={"skill": skill})
     comparability = compare_run_specs(baseline.spec, spec)
     assert_comparable_run_specs(comparability)
+    build_id = spec.require_build("Repository Skill screening").build_id
     screening = screen_skill(
-        paths, build_id=spec.build_id, task_ids=spec.task_ids, files=files
+        paths, build_id=build_id, task_ids=spec.task_ids, files=files
     )
 
     revision_id = new_id("forgerev")
@@ -140,7 +142,7 @@ def prepare_revision(
         created_at=now,
         updated_at=now,
         comparison_id=comparison.comparison_id,
-        build_id=spec.build_id,
+        build_id=build_id,
         baseline_run_id=comparison.baseline_run_id,
         parent_run_id=comparison.candidate_run_id,
         parent_skill_digest=parent.spec.skill.root_digest,

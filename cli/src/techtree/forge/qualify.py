@@ -66,6 +66,7 @@ __all__ = [
     "grade_reference_solution",
     "grade_task",
     "qualify_build",
+    "read_skill_task_facts",
     "read_task_facts",
     "task_image_tag",
 ]
@@ -112,10 +113,11 @@ class TaskFacts:
 
 @dataclass(frozen=True)
 class SkillTaskFacts:
-    """The time limits a Skill task's ``task.toml`` commits to."""
+    """The time limits and required outputs a Skill task's ``task.toml`` commits to."""
 
     agent_timeout: float
     verifier_timeout: float
+    artifacts: tuple[str, ...]
 
 
 #: Why a graded run left no verdict to read.
@@ -454,11 +456,12 @@ def _reward_words(reward: float | None) -> str:
 
 
 def read_skill_task_facts(task_dir: Path) -> SkillTaskFacts:
-    """Read the time limits one Skill task's ``task.toml`` commits to."""
+    """Read the time limits and required outputs one Skill task commits to."""
     document = tomllib.loads((task_dir / "task.toml").read_text(encoding="utf-8"))
     return SkillTaskFacts(
         agent_timeout=float(document["agent"]["timeout_sec"]),
         verifier_timeout=float(document["verifier"]["timeout_sec"]),
+        artifacts=tuple(str(artifact) for artifact in document["artifacts"]),
     )
 
 
@@ -599,16 +602,18 @@ def grade_task(
     *,
     time_limit: float,
     reference: bool,
-    workspace: Path | None = None,
+    workspace: Mount | None = None,
 ) -> Verdict:
     """Run the task's own test script once and read the verdict it leaves.
 
     Qualification grades the image's own workspace, unrepaired or with the
-    reference applied; a forge run grades an agent's ``workspace``, mounted
-    over the image's at ``/workspace``. ``time_limit`` is the task's own
-    bound in seconds; the container gets it plus a fixed margin for starting.
-    Every container here runs from the image's content id, never its tag, so
-    the run graded is the image this build made. The tests write into
+    reference applied; a forge run grades what an agent left, its
+    ``workspace`` mounted over the image's own directory: ``/workspace`` for
+    a repository task, the image's working directory for a Skill task.
+    ``time_limit`` is the task's own bound in seconds; the container gets it
+    plus a fixed margin for starting. Every container here runs from the
+    image's content id, never its tag, so the run graded is the image this
+    build made. The tests write into
     ``run_dir/verifier`` and nowhere else on the host; the transcript is kept
     beside it, where they cannot reach.
     """
@@ -623,7 +628,7 @@ def grade_task(
         )
         script = "bash /solution/solve.sh && bash /tests/test.sh"
     if workspace is not None:
-        mounts.append(Mount(source=workspace, target="/workspace", read_only=False))
+        mounts.append(workspace)
     mounts.append(Mount(source=verifier_dir, target="/logs/verifier", read_only=False))
 
     outcome = docker.run(

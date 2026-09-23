@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import subprocess
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,6 +25,7 @@ from techtree.canonical import digest_object, sha256_digest_bytes
 from techtree.errors import RunError
 from techtree.forge.content import commit_task_set
 from techtree.forge.experiment import declare_run_spec
+from techtree.forge.hermes import AgentOutcome
 from techtree.forge.models import (
     ForgeArm,
     ForgeBaseImage,
@@ -40,7 +41,6 @@ from techtree.forge.models import (
     TaskContentManifest,
     TaskSetCommitment,
 )
-from techtree.forge.run import AgentOutcome
 from techtree.fs import atomic_write_json
 from techtree.paths import TechtreePaths, paths_from_root
 
@@ -311,7 +311,7 @@ def hermes_on_path(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda name: "/fake/bin/hermes" if name == "hermes" else None,
     )
     monkeypatch.setattr(
-        "techtree.forge.experiment.run_command",
+        "techtree.forge.hermes.run_command",
         lambda argv, timeout: subprocess.CompletedProcess(
             list(argv), 0, HERMES_VERSION_LINE, ""
         ),
@@ -360,9 +360,10 @@ class FakeDocker:
     workspace export fail the way a missing image would; ``build_error`` and
     ``pull_error`` are the stderr of an image build or a base pull that fails.
     ``left_behind`` is what ``docker ps`` lists for any label filter: the
-    stopped containers
-    Hermes leaves on the daemon. The one ``hermes`` command that comes through
-    here is the sign-in question, answered from ``signed_in``. ``timeouts``
+    stopped containers Hermes leaves on the daemon. ``work_dir`` is the
+    working directory every image names, and an export of it holds a
+    ``README.md``. The one ``hermes`` command that comes through here is the
+    sign-in question, answered from ``signed_in``. ``timeouts``
     holds the deadline of every command run in a container, in order.
     """
 
@@ -380,6 +381,7 @@ class FakeDocker:
     start_error: str | None = None
     pull_error: str | None = None
     left_behind: list[str] = field(default_factory=list)
+    work_dir: str = "/app"
     signed_in: bool = True
     calls: list[list[str]] = field(default_factory=list)
     timeouts: list[float] = field(default_factory=list)
@@ -401,6 +403,8 @@ class FakeDocker:
                 if self.pull_error is not None:
                     return subprocess.CompletedProcess(command, 1, "", self.pull_error)
                 return _done(command, f"{command[-1]}\n")
+            case ["docker", "image"] if command[-1] == "{{.Config.WorkingDir}}":
+                return _done(command, f"{self.work_dir}\n")
             case ["docker", "image"]:
                 return _done(command, "sha256:" + command[3].encode().hex()[:64] + "\n")
             case ["docker", "build"]:
@@ -529,7 +533,8 @@ class FakeHermes:
     It writes the usage report Hermes writes, leaves a transcript database
     and an ``auth.json`` in the profile so the tests can check which one the
     run keeps, and records the command line, environment and profile contents
-    it was started with.
+    it was started with. ``leaves`` is what it does to the directory it works
+    in, the way a subject's commands would.
     """
 
     exit_code: int | None = 0
@@ -550,6 +555,7 @@ class FakeHermes:
         )
     )
     interrupt: bool = False
+    leaves: Callable[[Path], object] | None = None
     launches: list[dict[str, object]] = field(default_factory=list)
 
     def __call__(
@@ -583,6 +589,8 @@ class FakeHermes:
         usage_file = Path(argv[argv.index("--usage-file") + 1])
         if self.usage is not None:
             usage_file.write_text(json.dumps(self.usage), encoding="utf-8")
+        if self.leaves is not None:
+            self.leaves(cwd)
         if self.interrupt:
             raise KeyboardInterrupt
         return AgentOutcome(

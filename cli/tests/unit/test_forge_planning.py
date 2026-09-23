@@ -287,7 +287,7 @@ def test_a_changed_hermes_refuses_the_approval_it_was_not_given(
     signed_in_profile(tmp_path / "profiles")
     plan_id = prepare(home, source_id)["facts"]["plan_id"]
     monkeypatch.setattr(
-        "techtree.forge.experiment.run_command",
+        "techtree.forge.hermes.run_command",
         lambda argv, timeout: subprocess.CompletedProcess(
             list(argv), 0, "Hermes Agent v0.22.0 (2026.9.21) · upstream 1a2b3c4d\n", ""
         ),

@@ -36,6 +36,7 @@ from techtree.errors import (
     RunError,
     ValidationError,
 )
+from techtree.forge.hermes import AgentOutcome
 from techtree.forge.models import (
     ForgeArm,
     ForgeAttemptOutcome,
@@ -45,12 +46,7 @@ from techtree.forge.models import (
     ForgeRunStatus,
 )
 from techtree.forge.profile import hermes_root, hold_profile
-from techtree.forge.run import (
-    AgentOutcome,
-    ForgeRunner,
-    hermes_config,
-    read_run_status,
-)
+from techtree.forge.run import ForgeRunner, hermes_config, read_run_status
 
 
 @pytest.fixture
@@ -278,7 +274,9 @@ def test_the_config_is_the_sandbox_the_specification_promises(
     config = hermes.launches[0]["config"]
     workspace = attempt_dir(status, build.task_id) / "workspace"
     assert isinstance(config, bytes)
-    assert config == hermes_config(spec, IMAGE_ID, AGENT_TIMEOUT, workspace)
+    assert config == hermes_config(
+        spec, IMAGE_ID, AGENT_TIMEOUT, workspace, "/workspace"
+    )
     loaded = json.loads(config)
     assert loaded["terminal"]["backend"] == "docker"
     assert loaded["terminal"]["docker_image"] == IMAGE_ID
@@ -522,7 +520,13 @@ def test_a_build_whose_tasks_changed_since_declaration_does_not_run(
     build: QualifiedBuild, profiles: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
-    moved = spec.model_copy(update={"membership_digest": "sha256:" + "0" * 64})
+    moved = spec.model_copy(
+        update={
+            "tasks_from": spec.tasks_from.model_copy(
+                update={"membership_digest": "sha256:" + "0" * 64}
+            )
+        }
+    )
 
     with pytest.raises(ValidationError) as caught:
         runner(build, FakeDocker(), FakeHermes(), profiles).run(moved, None)

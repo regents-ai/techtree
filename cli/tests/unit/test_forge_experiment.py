@@ -34,7 +34,12 @@ from techtree.forge.experiment import (
     declare_run_spec,
     run_spec_digest,
 )
-from techtree.forge.models import ForgeArm, ForgeBuildRecord, ForgeSkillSource
+from techtree.forge.models import (
+    ForgeArm,
+    ForgeBuildRecord,
+    ForgeBuildTasks,
+    ForgeSkillSource,
+)
 from techtree.forge.service import read_build_status
 from techtree.paths import paths_from_root
 
@@ -64,7 +69,7 @@ def test_skill_build_preserves_content_without_repository_facts(tmp_path: Path) 
     assert status.qualification_finished is None
     assert status.progress is None
     assert [task.task_id for task in build.task_set.tasks] == ["reconcile-ledger"]
-    with pytest.raises(PrerequisiteError) as caught:
+    with pytest.raises(ValidationError) as caught:
         declare_run_spec(
             paths,
             arm=ForgeArm.BASELINE,
@@ -76,7 +81,7 @@ def test_skill_build_preserves_content_without_repository_facts(tmp_path: Path) 
             reasoning=None,
             repetitions=1,
         )
-    assert caught.value.code == "forge_build_not_qualified"
+    assert caught.value.code == "forge_source_unsupported"
 
 
 def test_build_source_requires_one_complete_discriminated_identity(
@@ -135,7 +140,8 @@ def test_a_baseline_records_the_build_and_the_facts_it_checked(
 
     assert spec.arm is ForgeArm.BASELINE
     assert spec.skill is None
-    assert spec.build_id == build.build_id
+    assert isinstance(spec.tasks_from, ForgeBuildTasks)
+    assert spec.tasks_from.build_id == build.build_id
     assert spec.task_ids == [build.task_id]
     assert spec.agent.executable == "/fake/bin/hermes"
     assert spec.agent.version == "0.21.3 (2026.9.14) · upstream 6d712cf8"
@@ -245,7 +251,7 @@ def test_a_hermes_without_a_version_banner_is_refused(
 
     hermes_on_path(monkeypatch)
     monkeypatch.setattr(
-        "techtree.forge.experiment.run_command",
+        "techtree.forge.hermes.run_command",
         lambda argv, timeout: subprocess.CompletedProcess(list(argv), 0, "hi\n", ""),
     )
     with pytest.raises(PrerequisiteError) as caught:

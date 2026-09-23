@@ -6,13 +6,22 @@ qualified ones; nothing is frozen until a person accepts it; a collection of
 fewer than three tasks is accepted with the few-tasks warning; a changed
 byte in an accepted task, or a rewritten membership, fails verification; an
 accepted collection is never accepted again, and a different membership is
-a new version naming the one it replaces. The creator and Docker are the
-stand-ins of the construction tests; no model is called.
+a new version naming the one it replaces. A baseline runs on the accepted
+collection (U4b, R35, R37): the subject works in the task's own working
+directory with the tools and bounds the approved specification names, what
+it left is recorded before any test runs, outputs that cannot be taken as
+they are are not graded, and a missing required output still is; a
+collection changed since it was declared, or a working directory that could
+never be read back, stops the run before any agent starts. The creator,
+Docker and Hermes are the stand-ins of the construction and run tests; no
+model is called.
 """
 
 from __future__ import annotations
 
 import json
+import subprocess
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +31,7 @@ from typer.testing import CliRunner
 from fixtures.forge.support import (
     FakeCreator,
     FakeDocker,
+    FakeHermes,
     FakePlanner,
     created_package,
     hermes_on_path,
@@ -29,10 +39,24 @@ from fixtures.forge.support import (
 )
 from techtree.canonical import digest_object
 from techtree.cli.app import create_app
+from techtree.errors import RunError, TechtreeError, ValidationError
+from techtree.forge.capture import MANIFEST_FILENAME
 from techtree.forge.collection import read_collection_status
 from techtree.forge.construction import start_construction
-from techtree.forge.models import ForgeBuildStatus, ForgeCollectionReview
+from techtree.forge.experiment import declare_run_spec
+from techtree.forge.models import (
+    ForgeArm,
+    ForgeAttemptOutcome,
+    ForgeBuildStatus,
+    ForgeCollectionReview,
+    ForgeCollectionTasks,
+    ForgeEvidence,
+    ForgeOutputLimits,
+    ForgeOutputManifest,
+    ForgeRunSpec,
+)
 from techtree.forge.planning import read_plan_status, start_plan
+from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
 from techtree.forge.source import inspect_source_skill
 from techtree.fs import atomic_write_json
@@ -381,3 +405,266 @@ def test_a_retried_task_joins_as_a_new_version(
     ]
     assert envelope["warnings"] == []
     assert invoke(home, "verify", v1)[0] == 0
+
+
+# ---------------------------------------------------------------------------
+# A baseline on the accepted collection
+# ---------------------------------------------------------------------------
+
+
+def accepted(home: Path, proposal_id: str, profiles: Path) -> str:
+    """An accepted collection of the one task that qualified."""
+    construction_id = construct(home, proposal_id, profiles, ae5_creator())
+    collection_id: str = collect(home, construction_id)["facts"]["collection_id"]
+    assert invoke(home, "accept", collection_id, "--yes")[0] == 0
+    return collection_id
+
+
+def baseline(home: Path, collection_id: str, *, repetitions: int = 1) -> ForgeRunSpec:
+    return declare_run_spec(
+        paths_from_root(home),
+        arm=ForgeArm.BASELINE,
+        collection_id=collection_id,
+        task_ids=None,
+        skill_root=None,
+        provider="openai-codex",
+        model_id="gpt-5.6-sol",
+        reasoning=None,
+        repetitions=repetitions,
+    )
+
+
+class GradingThatWrites(FakeDocker):
+    """Docker whose tests leave a file in the directory they grade."""
+
+    def __call__(
+        self, argv: Sequence[str], timeout: float
+    ) -> subprocess.CompletedProcess[str]:
+        command = list(argv)
+        if command[-1] == "bash /tests/test.sh":
+            mounted = next(
+                part.removesuffix(":/app") for part in command if part.endswith(":/app")
+            )
+            (Path(mounted) / "left-by-tests.txt").write_text("x\n", encoding="utf-8")
+        return super().__call__(argv, timeout)
+
+
+def test_a_baseline_on_the_accepted_collection_records_its_outputs_before_grading(
+    home: Path, proposal_id: str, profiles: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    collection_id = accepted(home, proposal_id, profiles)
+    docker = GradingThatWrites(reward=1.0)
+    hermes = FakeHermes(
+        leaves=lambda directory: (directory / "result.txt").write_text(
+            "5\n", encoding="utf-8"
+        )
+    )
+    monkeypatch.setattr(
+        "techtree.cli.commands.forge.ForgeRunner",
+        lambda paths, run: ForgeRunner(
+            paths, docker, launch=hermes, profiles_root=profiles
+        ),
+    )
+    options = [
+        "run",
+        "--arm",
+        "baseline",
+        "--collection",
+        collection_id,
+        "--provider",
+        "openai-codex",
+        "--model",
+        "gpt-5.6-sol",
+    ]
+    code, review = invoke(home, *options)
+    assert code == 0, review
+    lines = review["facts"]["review"]
+    assert f"Collection: {collection_id}, version 1, as accepted" in lines
+    assert any("Before any test runs" in line for line in lines)
+    [action] = review["next_actions"]
+    assert action["prepared_arguments"]["options"]["--collection"] == collection_id
+    assert hermes.launches == []
+
+    code, envelope = invoke(home, *options, "--yes")
+
+    assert code == 0, envelope
+    status = read_run_status(paths_from_root(home), envelope["facts"]["run_id"])
+    [attempt] = status.record.attempts
+    assert attempt.outcome is ForgeAttemptOutcome.GRADED and attempt.reward == 1.0
+    assert attempt.patch_digest is None
+    assert ForgeEvidence.OUTPUT_MANIFEST in attempt.evidence
+    assert ForgeEvidence.WORKSPACE_PATCH not in attempt.evidence
+    outputs = attempt.outputs
+    assert outputs is not None and outputs.failures == []
+    assert (outputs.work_dir, outputs.added, outputs.modified) == ("/app", 1, 0)
+    attempt_dir = Path(status.path) / "tasks" / attempt.task_id / "1"
+    workspace = attempt_dir / "workspace"
+    written = ForgeOutputManifest.model_validate_json(
+        (attempt_dir / "outputs" / MANIFEST_FILENAME).read_bytes()
+    )
+    assert [change.path for change in written.changes] == ["result.txt"]
+    assert (attempt_dir / "outputs" / "files" / "result.txt").read_text() == "5\n"
+    assert (workspace / "left-by-tests.txt").is_file()
+    written_config = hermes.launches[0]["config"]
+    assert isinstance(written_config, bytes)
+    config = json.loads(written_config)
+    assert config["terminal"]["docker_volumes"] == [f"{workspace}:/app"]
+    assert config["terminal"]["cwd"] == "/app"
+    [grading] = [call for call in docker.calls if call[-1] == "bash /tests/test.sh"]
+    assert f"{workspace}:/app" in grading
+    shown = CliRunner().invoke(
+        create_app(), ["--home", str(home), "forge", "status", status.run_id]
+    )
+    text = " ".join(shown.output.split())
+    assert f"{collection_id} (version 1)" in text
+    assert "1 added, 0 changed, 0 deleted in /app" in text
+    assert "outputs read up to 10000 entries and 1 GB, keeping up to 64 MB" in text
+    assert "Tools a shell, files, code and Skills" in text
+
+
+def test_outputs_that_cannot_be_taken_are_not_graded_and_a_missing_one_still_is(
+    home: Path, proposal_id: str, profiles: Path
+) -> None:
+    collection_id = accepted(home, proposal_id, profiles)
+    left: list[str] = []
+
+    def leaves(directory: Path) -> None:
+        if not left:
+            (directory / "result.txt").symlink_to("/etc/hostname")
+        left.append(directory.name)
+
+    docker = FakeDocker(reward=0.0)
+    runner = ForgeRunner(
+        paths_from_root(home),
+        docker,
+        launch=FakeHermes(leaves=leaves),
+        profiles_root=profiles,
+    )
+    declared = baseline(home, collection_id, repetitions=2)
+    limits = ForgeOutputLimits(entries=50, checked_bytes=5_000, kept_bytes=500)
+    spec = declared.model_copy(
+        update={
+            "toolsets": ["terminal", "file"],
+            "limits": declared.limits.model_copy(update={"outputs": limits}),
+        }
+    )
+
+    status = runner.run(spec, None)
+
+    rejected, missing = status.record.attempts
+    assert rejected.outcome is ForgeAttemptOutcome.OUTPUTS_REJECTED
+    assert rejected.reward is None
+    assert ForgeEvidence.VERIFIER_VERDICT not in rejected.evidence
+    assert rejected.outputs is not None
+    assert [(f.kind, f.path) for f in rejected.outputs.failures] == [
+        ("escaping_link", "result.txt")
+    ]
+    assert missing.outcome is ForgeAttemptOutcome.GRADED and missing.reward == 0.0
+    assert missing.outputs is not None
+    assert [(f.kind, f.path) for f in missing.outputs.failures] == [
+        ("artifact_missing", "result.txt")
+    ]
+    assert [call[-1] for call in docker.calls].count("bash /tests/test.sh") == 1
+    assert "terminal,file" in rejected.hermes_arguments
+    attempt_dir = Path(status.path) / "tasks" / rejected.task_id / "1"
+    written = ForgeOutputManifest.model_validate_json(
+        (attempt_dir / "outputs" / MANIFEST_FILENAME).read_bytes()
+    )
+    assert written.limits == limits
+
+
+def test_a_working_directory_that_cannot_give_back_its_outputs_does_not_run(
+    home: Path, proposal_id: str, profiles: Path
+) -> None:
+    collection_id = accepted(home, proposal_id, profiles)
+    declared = baseline(home, collection_id)
+    tiny = declared.model_copy(
+        update={
+            "limits": declared.limits.model_copy(
+                update={
+                    "outputs": ForgeOutputLimits(
+                        entries=50, checked_bytes=1, kept_bytes=1
+                    )
+                }
+            )
+        }
+    )
+    cases = [
+        ("/", declared, "forge_work_dir_unusable"),
+        ("/srv", declared, "forge_work_dir_unusable"),
+        ("/root", declared, "forge_work_dir_unusable"),
+        ("/home/agent", declared, "forge_work_dir_unusable"),
+        ("/app", tiny, "forge_work_dir_unreadable"),
+    ]
+
+    for work_dir, spec, code in cases:
+        hermes = FakeHermes()
+        runner = ForgeRunner(
+            paths_from_root(home),
+            FakeDocker(work_dir=work_dir),
+            launch=hermes,
+            profiles_root=profiles,
+        )
+        with pytest.raises(RunError) as caught:
+            runner.run(spec, None)
+
+        assert caught.value.code == code, work_dir
+        recorded = read_run_status(
+            paths_from_root(home), str(caught.value.details["run_id"])
+        )
+        assert recorded.record.state == "failed" and recorded.record.attempts == []
+        assert hermes.launches == []
+
+
+def test_a_collection_changed_since_its_declaration_does_not_run(
+    home: Path, proposal_id: str, profiles: Path
+) -> None:
+    paths = paths_from_root(home)
+    collection_id = accepted(home, proposal_id, profiles)
+    spec = baseline(home, collection_id)
+    hermes = FakeHermes()
+    runner = ForgeRunner(paths, FakeDocker(), launch=hermes, profiles_root=profiles)
+    assert isinstance(spec.tasks_from, ForgeCollectionTasks)
+    other = spec.model_copy(
+        update={
+            "tasks_from": spec.tasks_from.model_copy(
+                update={"collection_digest": "sha256:" + "0" * 64}
+            )
+        }
+    )
+
+    with pytest.raises(ValidationError) as mismatch:
+        runner.run(other, None)
+    [instruction] = Path(member_build(paths, collection_id).tasks_path).glob(
+        "*/instruction.md"
+    )
+    instruction.write_bytes(instruction.read_bytes() + b" ")
+    with pytest.raises(TechtreeError) as changed:
+        runner.run(spec, None)
+
+    assert mismatch.value.code == "forge_membership_mismatch"
+    assert changed.value.code == "forge_collection_changed"
+    assert hermes.launches == []
+
+
+def test_a_run_is_declared_on_one_build_or_one_collection(
+    home: Path, proposal_id: str, profiles: Path
+) -> None:
+    collection_id = accepted(home, proposal_id, profiles)
+    build_id = member_build(paths_from_root(home), collection_id).build_id
+
+    for sources in ({}, {"build_id": build_id, "collection_id": collection_id}):
+        with pytest.raises(ValidationError) as caught:
+            declare_run_spec(
+                paths_from_root(home),
+                arm=ForgeArm.BASELINE,
+                task_ids=None,
+                skill_root=None,
+                provider="openai-codex",
+                model_id="gpt-5.6-sol",
+                reasoning=None,
+                repetitions=1,
+                **sources,
+            )
+
+        assert caught.value.code == "forge_run_tasks_unnamed"

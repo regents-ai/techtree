@@ -25,6 +25,7 @@ from techtree.forge.models import (
     ForgeAttemptOutcome,
     ForgeAttemptPair,
     ForgeComparisonRecord,
+    ForgeOutputFailureKind,
     ForgePairResult,
     ForgeQualification,
     ForgeRunStatus,
@@ -43,6 +44,7 @@ from techtree.forge.qualify import (
 __all__ = [
     "FEW_TASKS",
     "OUTCOME_WORDS",
+    "OUTPUT_FAILURE_WORDS",
     "PATCH_LIMIT_BYTES",
     "REJECTION_WORDS",
     "SKIP_WORDS",
@@ -58,8 +60,18 @@ OUTCOME_WORDS: Final[dict[ForgeAttemptOutcome, str]] = {
     ForgeAttemptOutcome.GRADED: "graded",
     ForgeAttemptOutcome.AGENT_TIMED_OUT: "agent ran out of time",
     ForgeAttemptOutcome.AGENT_FAILED: "agent did not finish",
+    ForgeAttemptOutcome.OUTPUTS_REJECTED: "outputs refused before grading",
     ForgeAttemptOutcome.VERIFIER_TIMED_OUT: "tests ran out of time",
     ForgeAttemptOutcome.NO_VERDICT: "tests left no verdict",
+}
+
+#: How each reason an attempt's outputs were not taken as they are is said.
+OUTPUT_FAILURE_WORDS: Final[dict[ForgeOutputFailureKind, str]] = {
+    "escaping_link": "link that may leave the working directory",
+    "special_entry": "not a file, folder or link",
+    "artifact_missing": "required output not left",
+    "output_too_large": "output too large to keep",
+    "capture_incomplete": "outputs not fully read",
 }
 
 #: Fewer qualified tasks than this and a comparison can say how one attempt

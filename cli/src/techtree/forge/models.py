@@ -52,6 +52,7 @@ __all__ = [
     "FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION",
     "FORGE_CONSTRUCTION_RUN_SCHEMA_VERSION",
     "FORGE_CONSTRUCTION_SCHEMA_VERSION",
+    "FORGE_OUTPUT_MANIFEST_SCHEMA_VERSION",
     "FORGE_PLAN_APPROVAL_SCHEMA_VERSION",
     "FORGE_PLAN_ATTEMPT_SCHEMA_VERSION",
     "FORGE_PLAN_SCHEMA_VERSION",
@@ -80,6 +81,7 @@ __all__ = [
     "ForgeBuildProgress",
     "ForgeBuildRecord",
     "ForgeBuildStatus",
+    "ForgeBuildTasks",
     "ForgeCollectionAcceptance",
     "ForgeCollectionCandidate",
     "ForgeCollectionMember",
@@ -88,6 +90,7 @@ __all__ = [
     "ForgeCollectionReview",
     "ForgeCollectionState",
     "ForgeCollectionStatus",
+    "ForgeCollectionTasks",
     "ForgeComparisonRecord",
     "ForgeComparisonStatus",
     "ForgeConstructionApproval",
@@ -112,6 +115,15 @@ __all__ = [
     "ForgeLanguage",
     "ForgeLimits",
     "ForgeModelSpec",
+    "ForgeOutputChange",
+    "ForgeOutputChangeKind",
+    "ForgeOutputEntry",
+    "ForgeOutputFailure",
+    "ForgeOutputFailureKind",
+    "ForgeOutputKind",
+    "ForgeOutputLimits",
+    "ForgeOutputManifest",
+    "ForgeOutputs",
     "ForgePairResult",
     "ForgePlanApproval",
     "ForgePlanAttempt",
@@ -148,6 +160,7 @@ __all__ = [
     "ForgeSourceRecord",
     "ForgeSourceRefusal",
     "ForgeSourceStatus",
+    "ForgeSubjectToolset",
     "ForgeTaskConsistency",
     "ForgeTaskId",
     "ForgeTaskRegression",
@@ -170,8 +183,8 @@ __all__ = [
 FORGE_BUILD_SCHEMA_VERSION: Final = "techtree.forge-build.v1alpha3"
 FORGE_PROGRESS_SCHEMA_VERSION: Final = "techtree.forge-progress.v1alpha3"
 FORGE_QUALIFICATION_SCHEMA_VERSION: Final = "techtree.forge-qualification.v1alpha4"
-FORGE_RUN_SCHEMA_VERSION: Final = "techtree.forge-run.v1alpha1"
-FORGE_RUN_SPEC_SCHEMA_VERSION: Final = "techtree.forge-run-spec.v1alpha1"
+FORGE_RUN_SCHEMA_VERSION: Final = "techtree.forge-run.v1alpha2"
+FORGE_RUN_SPEC_SCHEMA_VERSION: Final = "techtree.forge-run-spec.v1alpha2"
 FORGE_TASK_CONTENT_SCHEMA_VERSION: Final = "techtree.forge-task-content.v1alpha1"
 FORGE_TASK_SET_SCHEMA_VERSION: Final = "techtree.forge-task-set.v1alpha1"
 
@@ -486,9 +499,10 @@ class ForgeGradingSpec(ProtocolModel):
     """How a run is scored.
 
     The procedure is the Harbor task's: ``bash /tests/test.sh`` in a fresh
-    container from the task image with the agent's workspace mounted, the
-    reward read from ``/logs/verifier/reward.json`` then ``reward.txt``. It is
-    executed by this local experiment, not by Verifiers, and is labelled so.
+    container from the task image with the directory the agent worked in
+    mounted where it had it, the reward read from
+    ``/logs/verifier/reward.json`` then ``reward.txt``. It is executed by
+    this local experiment, not by Verifiers, and is labelled so.
     """
 
     procedure: Literal["harbor-compatible"]
@@ -532,13 +546,29 @@ class ForgeSkillSpec(ProtocolModel):
     exposure: Literal["preloaded"]
 
 
+class ForgeOutputLimits(ProtocolModel):
+    """The bounds a capture keeps to, recorded with what it found."""
+
+    entries: int = Field(ge=1)
+    checked_bytes: int = Field(ge=1)
+    kept_bytes: int = Field(ge=1)
+
+
+#: The Hermes toolsets a subject may be given, all routed through its sandbox:
+#: shell, files, code, Skills. No web, no browser, no memory, no delegation:
+#: the host process must not reach what the container cannot.
+type ForgeSubjectToolset = Literal["terminal", "file", "code_execution", "skills"]
+
+
 class ForgeLimits(ProtocolModel):
     """Bounds on the agent's time and on its sandbox.
 
     The agent's wall-clock allowance is the task's own ``[agent].timeout_sec``,
     part of the committed task content rather than repeated here; Hermes is
     given it as its run budget and Techtree enforces it from outside. A
-    Hermes one-shot has no turn cap, so none is claimed.
+    Hermes one-shot has no turn cap, so none is claimed. ``outputs`` bounds
+    the capture of what the subject left, on a run over a Skill collection
+    only; a repository task leaves a patch instead.
     """
 
     agent_budget: Literal["task-timeout"]
@@ -546,6 +576,7 @@ class ForgeLimits(ProtocolModel):
     container_cpus: int = Field(ge=1)
     container_memory_mb: int = Field(ge=1)
     network: Literal[False]
+    outputs: ForgeOutputLimits | None
 
 
 class ForgeSamplingSpec(ProtocolModel):
@@ -559,23 +590,44 @@ class ForgeSamplingSpec(ProtocolModel):
     repetitions: int = Field(ge=1)
 
 
+class ForgeBuildTasks(ProtocolModel):
+    """A repository build's qualified tasks, by its qualification's membership."""
+
+    kind: Literal["build"]
+    build_id: NonEmptyString
+    membership_digest: Digest
+
+
+class ForgeCollectionTasks(ProtocolModel):
+    """An accepted Skill collection's tasks: exactly the version a person froze."""
+
+    kind: Literal["collection"]
+    collection_id: NonEmptyString
+    collection_digest: Digest
+    version: int = Field(ge=1)
+    membership_digest: Digest
+
+
 class ForgeRunSpec(ProtocolModel):
     """One arm of a forge experiment, declared before it runs.
 
-    Everything a Skill-effect claim depends on is here: the build and the
-    subset of its qualified tasks, the grading, the agent, the model, the
-    starting state, the limits, the sampling plan, and the Skill. Facts the
+    Everything a Skill-effect claim depends on is here: where the tasks come
+    from and which of them run, the grading, the agent, the model, the
+    tools the agent may use, the starting state, the limits, the sampling
+    plan, and the Skill. Facts the
     experiment cannot establish are listed under ``not_established`` so the
     report can say so instead of implying them.
     """
 
-    schema_version: Literal["techtree.forge-run-spec.v1alpha1"]
+    schema_version: Literal["techtree.forge-run-spec.v1alpha2"]
     arm: ForgeArm
-    build_id: NonEmptyString
-    membership_digest: Digest
+    tasks_from: Annotated[
+        ForgeBuildTasks | ForgeCollectionTasks, Field(discriminator="kind")
+    ]
     task_ids: list[ForgeTaskId] = Field(min_length=1)
     grading: ForgeGradingSpec
     agent: ForgeAgentSpec
+    toolsets: list[ForgeSubjectToolset] = Field(min_length=1)
     model: ForgeModelSpec
     initial_state: ForgeInitialState
     skill: ForgeSkillSpec | None
@@ -591,15 +643,40 @@ class ForgeRunSpec(ProtocolModel):
             raise ValueError("the baseline arm carries no Skill")
         if self.arm is ForgeArm.CANDIDATE and self.skill is None:
             raise ValueError("the candidate arm carries exactly one Skill")
+        if len(set(self.toolsets)) != len(self.toolsets):
+            raise ValueError("a toolset may be named once in a run specification")
+        if (self.limits.outputs is None) != isinstance(
+            self.tasks_from, ForgeBuildTasks
+        ):
+            raise ValueError("output limits bound exactly a run on a collection")
         return self
+
+    def require_build(self, operation: str) -> ForgeBuildTasks:
+        """Refuse operations that still work on one repository build only."""
+        if not isinstance(self.tasks_from, ForgeBuildTasks):
+            raise ValidationError(
+                f"{operation} currently supports only runs on a repository "
+                f"build; this run is on collection {self.tasks_from.collection_id}",
+                code="forge_source_unsupported",
+                details={
+                    "collection_id": self.tasks_from.collection_id,
+                    "operation": operation,
+                },
+            )
+        return self.tasks_from
 
 
 class ForgeEvidence(StrEnum):
-    """The evidence one attempt can leave; a claim needs all of it."""
+    """The evidence one attempt can leave.
+
+    A repository task leaves a patch and a Skill task an output manifest,
+    never both; a claim needs every other kind.
+    """
 
     USAGE_REPORT = "usage_report"
     AGENT_TRANSCRIPT = "agent_transcript"
     WORKSPACE_PATCH = "workspace_patch"
+    OUTPUT_MANIFEST = "output_manifest"
     VERIFIER_VERDICT = "verifier_verdict"
 
 
@@ -609,6 +686,7 @@ class ForgeAttemptOutcome(StrEnum):
     GRADED = "graded"
     AGENT_TIMED_OUT = "agent_timed_out"
     AGENT_FAILED = "agent_failed"
+    OUTPUTS_REJECTED = "outputs_rejected"
     VERIFIER_TIMED_OUT = "verifier_timed_out"
     NO_VERDICT = "no_verdict"
 
@@ -638,8 +716,119 @@ class ForgeUsage(ProtocolModel):
     failure: str | None
 
 
+FORGE_OUTPUT_MANIFEST_SCHEMA_VERSION: Final = "techtree.forge-output-manifest.v1alpha1"
+
+type ForgeOutputKind = Literal["file", "directory", "symlink", "other"]
+
+
+class ForgeOutputEntry(ProtocolModel):
+    """One entry of a working directory, read without following links.
+
+    ``path`` is relative to the working directory, as the names were
+    found: a name of spaces alone is a name. A regular file has its ``size``
+    and ``digest``; a link its ``target``, as written.
+    """
+
+    path: str = Field(min_length=1)
+    kind: ForgeOutputKind
+    size: int | None = Field(ge=0)
+    digest: Digest | None
+    executable: bool
+    target: str | None
+
+    @model_validator(mode="after")
+    def validate_kind(self) -> Self:
+        if (self.kind == "file") != (self.size is not None and self.digest is not None):
+            raise ValueError("exactly a regular file has a size and a digest")
+        if (self.kind == "symlink") != (self.target is not None):
+            raise ValueError("exactly a link has a target")
+        return self
+
+
+type ForgeOutputChangeKind = Literal["added", "modified", "deleted"]
+
+
+class ForgeOutputChange(ProtocolModel):
+    """One entry the subject added, modified or deleted.
+
+    ``kept`` says the regular file it left was copied beside the manifest,
+    under ``files/`` at the same relative path.
+    """
+
+    change: ForgeOutputChangeKind
+    path: str = Field(min_length=1)
+    before: ForgeOutputEntry | None
+    after: ForgeOutputEntry | None
+    kept: bool
+
+    @model_validator(mode="after")
+    def validate_sides(self) -> Self:
+        expected = {
+            "added": (False, True),
+            "modified": (True, True),
+            "deleted": (True, False),
+        }[self.change]
+        if (self.before is not None, self.after is not None) != expected:
+            raise ValueError(f"an entry {self.change} has the wrong sides")
+        if self.kept and (self.after is None or self.after.kind != "file"):
+            raise ValueError("only a regular file the subject left is kept")
+        return self
+
+
+type ForgeOutputFailureKind = Literal[
+    "escaping_link",
+    "special_entry",
+    "artifact_missing",
+    "output_too_large",
+    "capture_incomplete",
+]
+
+
+class ForgeOutputFailure(ProtocolModel):
+    """Why what the subject left could not be taken as it is.
+
+    ``artifact_missing`` is a required output the subject did not leave; the
+    tests still grade the attempt. Any other failure stops the attempt before
+    grading: a link out of the working directory could hand the tests
+    something the subject did not make, and an entry that is not a file,
+    folder or link, an output too large or a capture left incomplete means
+    the evidence would not show what was graded.
+    """
+
+    kind: ForgeOutputFailureKind
+    path: str | None
+    detail: NonEmptyString
+
+
+class ForgeOutputManifest(ProtocolModel):
+    """What one subject left in its working directory, before any grading."""
+
+    schema_version: Literal["techtree.forge-output-manifest.v1alpha1"]
+    work_dir: NonEmptyString
+    limits: ForgeOutputLimits
+    changes: list[ForgeOutputChange]
+    kept_bytes: int = Field(ge=0)
+    failures: list[ForgeOutputFailure]
+
+
+class ForgeOutputs(ProtocolModel):
+    """An attempt's outputs in brief: its manifest by digest, and the counts."""
+
+    work_dir: NonEmptyString
+    manifest_digest: Digest
+    added: int = Field(ge=0)
+    modified: int = Field(ge=0)
+    deleted: int = Field(ge=0)
+    kept_bytes: int = Field(ge=0)
+    failures: list[ForgeOutputFailure]
+
+
 class ForgeAttemptRecord(ProtocolModel):
-    """One attempt at one task: what ran, what it left, how it was scored."""
+    """One attempt at one task: what ran, what it left, how it was scored.
+
+    A repository task leaves a ``patch_digest``; a Skill task leaves its
+    ``outputs``, captured before grading.
+    """
 
     task_id: ForgeTaskId
     attempt: int = Field(ge=1)
@@ -652,6 +841,7 @@ class ForgeAttemptRecord(ProtocolModel):
     agent_seconds: float = Field(ge=0.0)
     usage: ForgeUsage | None
     patch_digest: Digest | None
+    outputs: ForgeOutputs | None
     verifier_timed_out: bool
     reward: float | None
     reward_details: dict[str, JsonValue]
@@ -662,6 +852,8 @@ class ForgeAttemptRecord(ProtocolModel):
     def validate_reward_follows_outcome(self) -> Self:
         if (self.reward is not None) != (self.outcome is ForgeAttemptOutcome.GRADED):
             raise ValueError("a reward is recorded exactly when the attempt was graded")
+        if self.patch_digest is not None and self.outputs is not None:
+            raise ValueError("an attempt leaves a patch or captured outputs, not both")
         return self
 
 
@@ -672,7 +864,7 @@ class ForgeRunRecord(ProtocolModel):
     run keeps what it had. ``state`` says whether it ended, and how.
     """
 
-    schema_version: Literal["techtree.forge-run.v1alpha1"]
+    schema_version: Literal["techtree.forge-run.v1alpha2"]
     run_id: NonEmptyString
     spec_digest: Digest
     started_at: UtcDateTime

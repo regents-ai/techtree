@@ -1,11 +1,11 @@
 """Docker as the forge uses it. ``docs/plan/repo2rlenv-local-lane.md``.
 
-Seven things and no more: pull one digest-pinned base image, build an image
-from a directory, ask the daemon what an image's content id is, run one command
-in a fresh container from an image with named directories mounted, start such a
-container and run commands in it one after another, each with its own deadline
-kept from the host, copy an image's workspace out to the host, and confirm the
-daemon answers at all. The only
+Eight things and no more: pull one digest-pinned base image, build an image
+from a directory, ask the daemon what an image's content id and working
+directory are, run one command in a fresh container from an image with named
+directories mounted, start such a container and run commands in it one after
+another, each with its own deadline kept from the host, copy a directory of an
+image out to the host, and confirm the daemon answers at all. The only
 pull is of a base image the release allow-lists, by digest, before a Skill
 task's recipe is built. The bootstrap image is built from the person's own
 checkout with the network, the task images from their recipes with the
@@ -168,6 +168,24 @@ class Docker:
             )
         return completed.stdout.strip()
 
+    def working_dir(self, image: str) -> str:
+        """Return the working directory ``image`` starts its commands in.
+
+        An image that names none starts them in ``/``, and that is what is
+        returned.
+        """
+        completed = self._run(
+            ["docker", "image", "inspect", image, "--format", "{{.Config.WorkingDir}}"],
+            DAEMON_TIMEOUT_SECONDS,
+        )
+        if completed.returncode != 0:
+            raise RunError(
+                f"the Docker daemon does not hold {image}",
+                code="forge_image_missing",
+                details={"tag": image},
+            )
+        return completed.stdout.strip() or "/"
+
     def run(
         self,
         *,
@@ -250,14 +268,15 @@ class Docker:
             timed_out=False,
         )
 
-    def export_workspace(
-        self, *, image: str, platform: ForgePlatform, destination: Path
+    def export_directory(
+        self, *, image: str, platform: ForgePlatform, source: str, destination: Path
     ) -> None:
-        """Copy ``/workspace`` out of ``image`` into ``destination`` on the host.
+        """Copy the directory ``source`` out of ``image`` into ``destination``.
 
         The container is created and never started: what is copied is the
-        image's own workspace at the task's base commit, which is what an
-        agent is then given to work in.
+        image's own directory as it was built, a repository task's workspace
+        at its base commit or a Skill task's working directory, which is what
+        an agent is then given to work in.
         """
         name = f"techtree-forge-{uuid.uuid4().hex}"
         try:
@@ -273,12 +292,12 @@ class Docker:
                     details={"image": image},
                 )
             copied = self._run(
-                ["docker", "cp", f"{name}:/workspace/.", str(destination)],
+                ["docker", "cp", f"{name}:{source.rstrip('/')}/.", str(destination)],
                 BUILD_TIMEOUT_SECONDS,
             )
             if copied.returncode != 0:
                 raise RunError(
-                    f"the workspace of {image} could not be copied out: "
+                    f"{source} of {image} could not be copied out: "
                     f"{copied.stderr.strip()[-300:]}",
                     code="forge_workspace_export_failed",
                     details={"image": image, "destination": str(destination)},

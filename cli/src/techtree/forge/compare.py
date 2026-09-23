@@ -76,13 +76,13 @@ def compare_runs(
     candidate = read_run_status(paths, candidate_id)
     comparability = compare_run_specs(baseline.spec, candidate.spec)
     assert_comparable_run_specs(comparability)
-    build = read_build_status(paths, baseline.spec.build_id).build
+    build_id = baseline.spec.require_build("Repository comparison report").build_id
+    build = read_build_status(paths, build_id).build
     if build is None:
         raise NotFoundError(
-            f"the build {baseline.spec.build_id} these runs were made on has no "
-            "build record",
+            f"the build {build_id} these runs were made on has no build record",
             code="forge_build_not_found",
-            details={"build_id": baseline.spec.build_id},
+            details={"build_id": build_id},
         )
 
     source = build.require_repository_source("Repository comparison report")
@@ -154,7 +154,7 @@ def build_comparison(
         schema_version=FORGE_COMPARISON_SCHEMA_VERSION,
         comparison_id=comparison_id,
         created_at=created_at,
-        build_id=spec.build_id,
+        build_id=spec.require_build("Repository comparison report").build_id,
         baseline_run_id=baseline.run_id,
         candidate_run_id=candidate.run_id,
         skill_name=skill.name,

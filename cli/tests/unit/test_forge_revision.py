@@ -388,7 +388,7 @@ def test_a_hermes_that_changed_since_the_comparison_is_refused(
 ) -> None:
     comparison_id = compared(build, profiles, monkeypatch, skill)
     monkeypatch.setattr(
-        "techtree.forge.experiment.run_command",
+        "techtree.forge.hermes.run_command",
         lambda argv, timeout: __import__("subprocess").CompletedProcess(
             list(argv), 0, "Hermes Agent v0.99.0 (2027.1.1)\n", ""
         ),

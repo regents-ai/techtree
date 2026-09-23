@@ -2,21 +2,38 @@
 
 A run executes a :class:`~techtree.forge.models.ForgeRunSpec` and nothing
 else: the specification was declared first, and every attempt here is what
-it says. For each named task and each repetition, in order:
+it says. Its tasks come from a repository build, or from an accepted Skill
+collection that is checked byte for byte against what a person accepted
+before anything starts. Before the first attempt, every Skill task's working
+directory is checked: it must hold all the task's required outputs, lie
+where the sandbox does not cover it with empty folders of its own, and be
+readable within the declared bounds as the image left it, so that no model
+is paid for an attempt whose outputs could never be taken. For each named
+task and each repetition, in order:
 
-1. the task image's ``/workspace`` is copied out to the host at the base
-   commit, so the agent works in a real directory Techtree can diff and grade;
+1. the directory the agent works in is copied out of the task image to the
+   host, so the agent works in a real directory Techtree can read and grade:
+   a repository task's ``/workspace`` at its base commit, a Skill task's
+   working directory as its image was built, read once before the agent
+   starts;
 2. the person's ``techtree`` Hermes profile is emptied of everything but its
    sign-in and given a ``config.yaml`` Techtree wrote — Docker sandbox from
-   the task image, no network, memory off, no title generation — and, on the
-   candidate arm, the Skill under ``skills/<name>`` from the run's own copy;
-3. the person's ``hermes`` runs one-shot in that profile, in the workspace,
+   the task image with that directory mounted back where it came from, no
+   network, memory off, no title generation — and, on the candidate arm, the
+   Skill under ``skills/<name>`` from the run's own copy;
+3. the person's ``hermes`` runs one-shot in that profile, in the directory,
    with the task's instruction, the Skill preloaded on the candidate arm and
    the task's own agent timeout as its run budget and as Techtree's deadline;
-4. the workspace is diffed against the base commit inside a fresh container
-   and the patch kept;
-5. the task's own tests grade the workspace the way qualification graded the
-   reference repair, and the reward files are read the same way.
+4. what the agent left is recorded before any grading: a repository task's
+   workspace is diffed against the base commit inside a fresh container and
+   the patch kept; a Skill task's directory is read again and every entry
+   added, modified or deleted is written to a manifest, with the bytes of the
+   files it left, within the bounds the specification declared
+   (:mod:`techtree.forge.capture`);
+5. the task's own tests grade the directory the way qualification graded the
+   reference, and the reward files are read the same way. A Skill task whose
+   outputs could not be taken as they are is not graded; one that is only
+   missing a required output still is, and the tests decide.
 
 On the candidate arm the run takes its own copy of the Skill under ``skill/``
 before the first attempt, once the directory it was declared from still
@@ -33,8 +50,9 @@ daemon are removed by the profile label Hermes gave them; nothing under the
 profile is read but that one file.
 
 Every outcome is its own kind: a graded attempt has a reward, and an agent
-that timed out or failed, a verifier that timed out, or a verifier that left
-no readable verdict are recorded as exactly that, never as zero.
+that timed out or failed, outputs that were rejected, a verifier that timed
+out, or a verifier that left no readable verdict are recorded as exactly
+that, never as zero.
 """
 
 from __future__ import annotations
@@ -43,33 +61,38 @@ import json
 import os
 import shlex
 import shutil
-import signal
-import subprocess
-import time
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import IO, Final
+from functools import partial
+from pathlib import Path, PurePosixPath
+from typing import Final
 
 from pydantic import ValidationError as ModelValidationError
 
 from techtree.canonical import canonical_json_bytes, sha256_digest_bytes
 from techtree.errors import NotFoundError, RunError, TechtreeError, ValidationError
+from techtree.forge.capture import capture_outputs, take_snapshot
+from techtree.forge.collection import verify_collection
 from techtree.forge.docker import Docker, Mount
 from techtree.forge.experiment import run_spec_digest
+from techtree.forge.hermes import AgentLauncher, launch_agent, read_usage
 from techtree.forge.models import (
     FORGE_RUN_SCHEMA_VERSION,
     ForgeAttemptOutcome,
     ForgeAttemptRecord,
     ForgeBuildFailure,
     ForgeBuildRecord,
+    ForgeBuildTasks,
+    ForgeCollectionTasks,
     ForgeEvidence,
+    ForgeOutputLimits,
+    ForgeOutputs,
     ForgeQualification,
     ForgeRunRecord,
     ForgeRunSpec,
     ForgeRunStatus,
-    ForgeUsage,
 )
 from techtree.forge.process import CommandRunner
 from techtree.forge.profile import (
@@ -79,7 +102,11 @@ from techtree.forge.profile import (
     require_signed_in,
     reset_profile,
 )
-from techtree.forge.qualify import grade_task, read_task_facts
+from techtree.forge.qualify import (
+    grade_task,
+    read_skill_task_facts,
+    read_task_facts,
+)
 from techtree.forge.service import read_build_status
 from techtree.forge.skill import SKILL_DIRNAME, scan_skill_spec, snapshot_skill
 from techtree.fs import atomic_write_bytes, atomic_write_json
@@ -88,78 +115,72 @@ from techtree.models.base import Digest, JsonValue
 from techtree.paths import TechtreePaths
 
 __all__ = [
-    "AgentLauncher",
-    "AgentOutcome",
     "ForgeRunner",
     "hermes_config",
-    "launch_agent",
     "read_run_status",
-    "read_usage",
-    "supervise_hermes",
 ]
 
 _SPEC_FILENAME: Final = "spec.json"
 _RUN_FILENAME: Final = "run.json"
-#: The Hermes toolsets the sandbox routes: shell, files, code, Skills. No web,
-#: no browser, no memory, no delegation — the host process must not reach
-#: what the container cannot.
-_TOOLSETS: Final = "terminal,file,code_execution,skills"
 #: Added to the task's agent timeout before Techtree stops Hermes itself;
 #: Hermes is given the timeout as its own budget and should stop first.
 _AGENT_MARGIN_SECONDS: Final = 120.0
-#: After an interrupt Hermes writes its usage report and exits; then it is killed.
-_INTERRUPT_GRACE_SECONDS: Final = 30.0
 _PATCH_TIMEOUT_SECONDS: Final = 120.0
+_WORKSPACE: Final = "/workspace"
+#: Where Hermes' Docker sandbox mounts empty folders of its own over the
+#: image, whatever else it is given: a Skill task cannot work under them.
+_SANDBOX_HOMES: Final = (PurePosixPath("/home"), PurePosixPath("/root"))
 _STATE_DB: Final = "state.db"
 _PROFILE_LABEL: Final = "hermes-profile"
-_USAGE_KEYS: Final = (
-    "model",
-    "provider",
-    "input_tokens",
-    "output_tokens",
-    "total_tokens",
-    "api_calls",
-    "estimated_cost_usd",
-    "cost_status",
-    "cost_source",
-    "completed",
-    "failed",
-    "failure",
-)
 
 
 @dataclass(frozen=True)
-class AgentOutcome:
-    """What one Hermes process did."""
+class _TaskOutputs:
+    """A Skill task's required outputs, and the bounds its capture keeps to."""
 
-    exit_code: int | None
-    timed_out: bool
-    seconds: float
+    artifacts: tuple[str, ...]
+    limits: ForgeOutputLimits
 
 
-type AgentLauncher = Callable[
-    [list[str], dict[str, str], Path, Path, float], AgentOutcome
-]
+@dataclass(frozen=True)
+class _RunTask:
+    """One task a run names, read once before the first attempt.
+
+    ``outputs`` is set for a Skill task, whose outputs are captured; a
+    repository task leaves a patch instead.
+    """
+
+    task_id: str
+    build: ForgeBuildRecord
+    image: str
+    task_dir: Path
+    agent_timeout: float
+    verifier_timeout: float
+    outputs: _TaskOutputs | None
 
 
 def hermes_config(
-    spec: ForgeRunSpec, image: str, agent_timeout: float, workspace: Path
+    spec: ForgeRunSpec,
+    image: str,
+    agent_timeout: float,
+    workspace: Path,
+    directory: str,
 ) -> bytes:
     """Return the ``config.yaml`` Techtree writes for one attempt, as bytes.
 
-    The exported workspace is mounted at ``/workspace`` as an explicit volume
-    and the shell starts there: Hermes binds its own working directory only
-    for a shared container, and the sandbox here is per session. JSON is
-    YAML, and the canonical encoder is what makes the digest of this file the
-    fact the evidence records.
+    The exported ``workspace`` is mounted back at ``directory``, where it was
+    copied from, as an explicit volume and the shell starts there: Hermes
+    binds its own working directory only for a shared container, and the
+    sandbox here is per session. JSON is YAML, and the canonical encoder is
+    what makes the digest of this file the fact the evidence records.
     """
     return canonical_json_bytes(
         {
             "terminal": {
                 "backend": "docker",
                 "docker_image": image,
-                "docker_volumes": [f"{workspace}:/workspace"],
-                "cwd": "/workspace",
+                "docker_volumes": [f"{workspace}:{directory}"],
+                "cwd": directory,
                 "docker_network": spec.limits.network,
                 "container_persistent": False,
                 "docker_persist_across_processes": False,
@@ -176,71 +197,6 @@ def hermes_config(
             "skills": {"external_dirs": []},
         }
     )
-
-
-def launch_agent(
-    argv: list[str], env: dict[str, str], cwd: Path, log: Path, timeout: float
-) -> AgentOutcome:
-    """Run Hermes once, its output to ``log``, and stop it at ``timeout``."""
-    with log.open("wb") as output:
-        return supervise_hermes(
-            argv, env, cwd, stdout=output, stderr=subprocess.STDOUT, timeout=timeout
-        )
-
-
-def supervise_hermes(
-    argv: list[str],
-    env: dict[str, str],
-    cwd: Path,
-    *,
-    stdout: IO[bytes],
-    stderr: IO[bytes] | int,
-    timeout: float,
-) -> AgentOutcome:
-    """Start Hermes and wait for it, stopping it at ``timeout`` or on Ctrl-C.
-
-    Hermes is interrupted first so it can write its usage report, and killed
-    only if it does not exit in time. A Ctrl-C is passed on and raised again
-    once Hermes has gone.
-    """
-    started = time.monotonic()
-    try:
-        process = subprocess.Popen(
-            argv,
-            cwd=cwd,
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=stdout,
-            stderr=stderr,
-        )
-    except OSError as error:
-        raise RunError(
-            f"{argv[0]} could not be started: {error.strerror or error}",
-            code="hermes_unusable",
-            details={"executable": argv[0]},
-        ) from error
-    try:
-        exit_code = process.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        _stop(process)
-        return AgentOutcome(
-            exit_code=None, timed_out=True, seconds=time.monotonic() - started
-        )
-    except KeyboardInterrupt:
-        _stop(process)
-        raise
-    return AgentOutcome(
-        exit_code=exit_code, timed_out=False, seconds=time.monotonic() - started
-    )
-
-
-def _stop(process: subprocess.Popen[bytes]) -> None:
-    process.send_signal(signal.SIGINT)
-    try:
-        process.wait(timeout=_INTERRUPT_GRACE_SECONDS)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait()
 
 
 class ForgeRunner:
@@ -263,38 +219,115 @@ class ForgeRunner:
     def run(self, spec: ForgeRunSpec, skill_root: Path | None) -> ForgeRunStatus:
         """Execute every attempt the specification names and record each one."""
         skill_files = self._skill_files(spec, skill_root)
-        status = read_build_status(self._paths, spec.build_id)
+        match spec.tasks_from:
+            case ForgeBuildTasks() as tasks_from:
+                tasks = self._build_tasks(spec, tasks_from)
+            case ForgeCollectionTasks() as tasks_from:
+                tasks = self._collection_tasks(spec, tasks_from)
+        with hold_profile(self._profile):
+            return self._recorded_run(spec, skill_files, tasks)
+
+    def _build_tasks(
+        self, spec: ForgeRunSpec, tasks_from: ForgeBuildTasks
+    ) -> list[_RunTask]:
+        """Read a repository build's named tasks, once it is still as declared."""
+        status = read_build_status(self._paths, tasks_from.build_id)
         if status.build is not None:
-            status.build.require_repository_source("Repository task execution")
+            status.build.require_repository_source("A run on a build")
         if status.build is None or status.qualification is None:
             raise RunError(
-                f"build {spec.build_id} no longer has a complete record",
+                f"build {tasks_from.build_id} no longer has a complete record",
                 code="forge_build_not_qualified",
-                details={"build_id": spec.build_id},
+                details={"build_id": tasks_from.build_id},
             )
         build, qualification = status.build, status.qualification
-        require_signed_in(
-            self._run, Path(spec.agent.executable), spec.model.provider, self._profile
-        )
-        if qualification.membership_digest != spec.membership_digest:
+        self._require_signed_in(spec)
+        if qualification.membership_digest != tasks_from.membership_digest:
             raise ValidationError(
                 "the build's tasks are not the ones the specification was declared on",
                 code="forge_membership_mismatch",
                 details={
-                    "build_id": spec.build_id,
-                    "declared": spec.membership_digest,
+                    "build_id": tasks_from.build_id,
+                    "declared": tasks_from.membership_digest,
                     "stored": qualification.membership_digest,
                 },
             )
-        with hold_profile(self._profile):
-            return self._recorded_run(spec, skill_files, build, qualification)
+        tasks = []
+        for task_id in spec.task_ids:
+            task_dir = self._paths.forge_build_dir(build.build_id) / "tasks" / task_id
+            facts = read_task_facts(task_dir)
+            tasks.append(
+                _RunTask(
+                    task_id=task_id,
+                    build=build,
+                    image=_image(qualification, task_id),
+                    task_dir=task_dir,
+                    agent_timeout=facts.agent_timeout,
+                    verifier_timeout=facts.verifier_timeout,
+                    outputs=None,
+                )
+            )
+        return tasks
+
+    def _collection_tasks(
+        self, spec: ForgeRunSpec, tasks_from: ForgeCollectionTasks
+    ) -> list[_RunTask]:
+        """Read an accepted collection's named tasks, once it is still as accepted.
+
+        The collection is verified byte for byte against its acceptance, and
+        must be the very version the specification was declared on.
+        """
+        status = verify_collection(self._paths, tasks_from.collection_id)
+        self._require_signed_in(spec)
+        if status.record.collection_digest != tasks_from.collection_digest:
+            raise ValidationError(
+                "the collection is not the one the specification was declared on",
+                code="forge_membership_mismatch",
+                details={
+                    "collection_id": tasks_from.collection_id,
+                    "declared": tasks_from.collection_digest,
+                    "stored": status.record.collection_digest,
+                },
+            )
+        limits = spec.limits.outputs
+        # The specification's own validator pairs a collection with its limits.
+        assert limits is not None
+        members = {member.task_id: member for member in status.record.review.members}
+        tasks = []
+        for task_id in spec.task_ids:
+            member = members[task_id]
+            built = read_build_status(self._paths, member.build_id)
+            if built.build is None or built.qualification is None:
+                raise RunError(
+                    f"build {member.build_id} no longer has a complete record",
+                    code="forge_build_not_qualified",
+                    details={"build_id": member.build_id},
+                )
+            task_dir = self._paths.forge_build_dir(member.build_id) / "tasks" / task_id
+            facts = read_skill_task_facts(task_dir)
+            tasks.append(
+                _RunTask(
+                    task_id=task_id,
+                    build=built.build,
+                    image=_image(built.qualification, task_id),
+                    task_dir=task_dir,
+                    agent_timeout=facts.agent_timeout,
+                    verifier_timeout=facts.verifier_timeout,
+                    outputs=_TaskOutputs(artifacts=facts.artifacts, limits=limits),
+                )
+            )
+        return tasks
+
+    def _require_signed_in(self, spec: ForgeRunSpec) -> None:
+        require_signed_in(
+            self._run, Path(spec.agent.executable), spec.model.provider, self._profile
+        )
 
     def _recorded_run(
         self,
         spec: ForgeRunSpec,
         skill_files: list[tuple[Path, str]],
-        build: ForgeBuildRecord,
-        qualification: ForgeQualification,
+        tasks: list[_RunTask],
     ) -> ForgeRunStatus:
         """Record the run and every attempt; the caller holds the profile."""
         run_id = new_id("forgerun")
@@ -325,14 +358,14 @@ class ForgeRunner:
         try:
             persist(record)
             self._docker.require_daemon()
-            for task_id in spec.task_ids:
+            directories = [self._directory(spec, task, run_dir) for task in tasks]
+            for task, directory in zip(tasks, directories, strict=True):
                 for attempt in range(1, spec.sampling.repetitions + 1):
                     result = self._attempt(
                         spec=spec,
-                        build=build,
-                        qualification=qualification,
+                        task=task,
+                        directory=directory,
                         run_dir=run_dir,
-                        task_id=task_id,
                         attempt=attempt,
                     )
                     persist(
@@ -413,30 +446,92 @@ class ForgeRunner:
             )
         return files
 
+    def _directory(self, spec: ForgeRunSpec, task: _RunTask, run_dir: Path) -> str:
+        """Return where the task's agent works, in the task's containers.
+
+        A repository task works in ``/workspace``. A Skill task works in its
+        image's working directory: every output it must leave has to be
+        inside it, the sandbox must not cover it, and it must be readable
+        within the declared bounds as the image left it, or no attempt runs.
+        """
+        if task.outputs is None:
+            return _WORKSPACE
+        directory = self._docker.working_dir(task.image)
+        base = PurePosixPath(directory)
+        outside = [
+            artifact
+            for artifact in task.outputs.artifacts
+            if not PurePosixPath(artifact).is_relative_to(base)
+        ]
+        if base == PurePosixPath("/"):
+            reason = "the whole filesystem cannot be read back as its outputs"
+        elif any(base.is_relative_to(home) for home in _SANDBOX_HOMES):
+            reason = "the agent's sandbox puts an empty folder of its own there"
+        elif outside:
+            reason = f"its required outputs {', '.join(outside)} are outside it"
+        else:
+            self._require_readable(task, task.outputs.limits, directory, run_dir)
+            return directory
+        raise ValidationError(
+            f"task {task.task_id} cannot be run: its image works in "
+            f"{directory}, and {reason}",
+            code="forge_work_dir_unusable",
+            details={
+                "task_id": task.task_id,
+                "work_dir": directory,
+                "artifacts": list(task.outputs.artifacts),
+            },
+        )
+
+    def _require_readable(
+        self,
+        task: _RunTask,
+        limits: ForgeOutputLimits,
+        directory: str,
+        run_dir: Path,
+    ) -> None:
+        """Refuse a working directory the image leaves past the declared bounds."""
+        with tempfile.TemporaryDirectory(dir=run_dir) as scratch:
+            self._docker.export_directory(
+                image=task.image,
+                platform=task.build.platform,
+                source=directory,
+                destination=Path(scratch),
+            )
+            start = take_snapshot(Path(scratch), limits)
+        if start.incomplete:
+            raise ValidationError(
+                f"task {task.task_id} cannot be run: its image leaves {directory} "
+                "past what can be read back as its outputs ("
+                + "; ".join(failure.detail for failure in start.incomplete)
+                + ")",
+                code="forge_work_dir_unreadable",
+                details={"task_id": task.task_id, "work_dir": directory},
+            )
+
     def _attempt(
         self,
         *,
         spec: ForgeRunSpec,
-        build: ForgeBuildRecord,
-        qualification: ForgeQualification,
+        task: _RunTask,
+        directory: str,
         run_dir: Path,
-        task_id: str,
         attempt: int,
     ) -> ForgeAttemptRecord:
         started = datetime.now(UTC)
-        task_dir = self._paths.forge_build_dir(spec.build_id) / "tasks" / task_id
-        facts = read_task_facts(task_dir)
-        image = next(
-            task.image_id for task in qualification.tasks if task.task_id == task_id
-        )
-        attempt_dir = run_dir / "tasks" / task_id / str(attempt)
+        build, image = task.build, task.image
+        attempt_dir = run_dir / "tasks" / task.task_id / str(attempt)
         workspace = attempt_dir / "workspace"
         workspace.mkdir(parents=True, mode=0o700)
-        self._docker.export_workspace(
-            image=image, platform=build.platform, destination=workspace
+        self._docker.export_directory(
+            image=image,
+            platform=build.platform,
+            source=directory,
+            destination=workspace,
         )
+        capture = self._capture(task, workspace, directory, attempt_dir)
 
-        config = hermes_config(spec, image, facts.agent_timeout, workspace)
+        config = hermes_config(spec, image, task.agent_timeout, workspace, directory)
         atomic_write_bytes(attempt_dir / "config.yaml", config)
         profile = self._profile
         reset_profile(profile)
@@ -452,7 +547,7 @@ class ForgeRunner:
             )
 
         usage_file = attempt_dir / "usage.json"
-        instruction = (task_dir / "instruction.md").read_text(encoding="utf-8")
+        instruction = (task.task_dir / "instruction.md").read_text(encoding="utf-8")
         argv = [
             spec.agent.executable,
             "--yolo",
@@ -464,7 +559,7 @@ class ForgeRunner:
             spec.model.provider,
             *(("--reasoning", spec.model.reasoning) if spec.model.reasoning else ()),
             "-t",
-            _TOOLSETS,
+            ",".join(spec.toolsets),
             "--usage-file",
             str(usage_file),
             *(("-s", spec.skill.name) if spec.skill is not None else ()),
@@ -483,7 +578,7 @@ class ForgeRunner:
                 env,
                 workspace,
                 attempt_dir / "agent.log",
-                facts.agent_timeout + _AGENT_MARGIN_SECONDS,
+                task.agent_timeout + _AGENT_MARGIN_SECONDS,
             )
         finally:
             transcript = profile / _STATE_DB
@@ -493,13 +588,19 @@ class ForgeRunner:
             self._docker.remove_labelled(_PROFILE_LABEL, PROFILE_NAME)
 
         usage = read_usage(usage_file)
-        patch_digest = self._patch(build, image, workspace, attempt_dir)
+        patch_digest: Digest | None = None
+        outputs: ForgeOutputs | None = None
+        if capture is None:
+            patch_digest = self._patch(build, image, workspace, attempt_dir)
+        else:
+            outputs = capture()
         evidence = [
             kind
             for kind, present in (
                 (ForgeEvidence.USAGE_REPORT, usage is not None),
                 (ForgeEvidence.AGENT_TRANSCRIPT, (attempt_dir / _STATE_DB).is_file()),
                 (ForgeEvidence.WORKSPACE_PATCH, patch_digest is not None),
+                (ForgeEvidence.OUTPUT_MANIFEST, outputs is not None),
             )
             if present
         ]
@@ -514,16 +615,20 @@ class ForgeRunner:
             outcome = ForgeAttemptOutcome.AGENT_TIMED_OUT
         elif agent_failed:
             outcome = ForgeAttemptOutcome.AGENT_FAILED
+        elif outputs is not None and any(
+            failure.kind != "artifact_missing" for failure in outputs.failures
+        ):
+            outcome = ForgeAttemptOutcome.OUTPUTS_REJECTED
         else:
             verdict = grade_task(
                 self._docker,
                 build.platform,
                 image,
-                task_dir,
+                task.task_dir,
                 attempt_dir / "grading",
-                time_limit=facts.verifier_timeout,
+                time_limit=task.verifier_timeout,
                 reference=False,
-                workspace=workspace,
+                workspace=Mount(source=workspace, target=directory, read_only=False),
             )
             verifier_timed_out = verdict.stopped == "tests_timed_out"
             if verifier_timed_out:
@@ -537,7 +642,7 @@ class ForgeRunner:
                 evidence.append(ForgeEvidence.VERIFIER_VERDICT)
 
         return ForgeAttemptRecord(
-            task_id=task_id,
+            task_id=task.task_id,
             attempt=attempt,
             started_at=started,
             finished_at=datetime.now(UTC),
@@ -550,11 +655,32 @@ class ForgeRunner:
             agent_seconds=agent.seconds,
             usage=usage,
             patch_digest=patch_digest,
+            outputs=outputs,
             verifier_timed_out=verifier_timed_out,
             reward=reward,
             reward_details=details,
             outcome=outcome,
             evidence=evidence,
+        )
+
+    def _capture(
+        self, task: _RunTask, workspace: Path, directory: str, attempt_dir: Path
+    ) -> Callable[[], ForgeOutputs] | None:
+        """Read a Skill task's directory before the agent starts.
+
+        Return what reads it again afterwards and records the difference; a
+        repository task has no such reading.
+        """
+        if task.outputs is None:
+            return None
+        return partial(
+            capture_outputs,
+            workspace,
+            take_snapshot(workspace, task.outputs.limits),
+            work_dir=directory,
+            artifacts=list(task.outputs.artifacts),
+            limits=task.outputs.limits,
+            destination=attempt_dir / "outputs",
         )
 
     def _patch(
@@ -567,10 +693,10 @@ class ForgeRunner:
             argv=[
                 "sh",
                 "-c",
-                "git config --global --add safe.directory /workspace && "
-                "cd /workspace && git add -A && git diff --cached --binary HEAD",
+                f"git config --global --add safe.directory {_WORKSPACE} && "
+                f"cd {_WORKSPACE} && git add -A && git diff --cached --binary HEAD",
             ],
-            mounts=[Mount(source=workspace, target="/workspace", read_only=False)],
+            mounts=[Mount(source=workspace, target=_WORKSPACE, read_only=False)],
             timeout=_PATCH_TIMEOUT_SECONDS,
         )
         if outcome.exit_code != 0 or outcome.timed_out:
@@ -609,18 +735,11 @@ def read_run_status(paths: TechtreePaths, run_id: str) -> ForgeRunStatus:
     return ForgeRunStatus(run_id=run_id, path=str(run_dir), spec=spec, record=record)
 
 
-def read_usage(usage_file: Path) -> ForgeUsage | None:
-    """Read Hermes' usage report as it reported it, or nothing."""
-    try:
-        loaded = json.loads(usage_file.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if not isinstance(loaded, dict):
-        return None
-    try:
-        return ForgeUsage.model_validate({key: loaded.get(key) for key in _USAGE_KEYS})
-    except ModelValidationError:
-        return None
+def _image(qualification: ForgeQualification, task_id: str) -> str:
+    """Return the image qualification built for a task."""
+    return next(
+        task.image_id for task in qualification.tasks if task.task_id == task_id
+    )
 
 
 def _json_details(details: dict[str, object]) -> dict[str, JsonValue]:

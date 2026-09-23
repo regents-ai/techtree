@@ -577,19 +577,29 @@ A progress receipt does not prove a process is still running. Completed alpha2 b
 have no progress receipt remain readable, with progress explicitly unknown.
 
 **Forge run specification (the experiment's contract).** A forge run is
-declared before it produces anything, as a `techtree.forge-run-spec.v1alpha1`
+declared before it produces anything, as a `techtree.forge-run-spec.v1alpha2`
 document per arm. `declare_run_spec` writes it from checked facts, never from
-typed claims: the build must have finished qualification, every named task must
-be one it qualified, `hermes --version` must answer, and a candidate Skill must
+typed claims. Its tasks come from exactly one place (`tasks_from`): a
+repository build (`kind: "build"`), which must have finished qualification,
+every named task one it qualified; or an accepted Skill collection
+(`kind: "collection"`), which `verify_collection` must find still exactly what a
+person accepted, every named task one of its members. A build of Skill tasks
+is refused with `forge_source_unsupported`, pointing to `forge collect`,
+`forge accept` and `--collection`: Skill tasks run only once accepted.
+`hermes --version` must answer, and a candidate Skill must
 scan under the instruction-Skill policy with a directory name Hermes accepts.
-The specification records the build and its membership digest, the ordered
+The specification records the build and its membership digest, or the
+collection with its digest, version and membership digest, the ordered
 task subset, the grading (Harbor-compatible, executed by the local experiment,
 never labelled Verifiers), the Hermes executable and the whole version line it
 reports (number, build date and upstream commit, because Hermes updates from
 its upstream without changing the number), the
 requested provider and model with `hermes-auth-store` as the only credential
-source, the starting state (a fresh empty home, memory off), the Skill by name
-and content digest with `preloaded` exposure, the sandbox and turn limits, and
+source, the tools the agent is given (`toolsets`: shell, files, code and
+Skills, each once, the only ones it accepts), the starting state (a fresh empty
+home, memory off), the Skill by name and content digest with `preloaded`
+exposure, the sandbox and turn limits with, exactly on a run over a collection,
+the bounds on capturing what the subject left (`limits.outputs`), and
 the sampling plan (`provider-default`, since Hermes exposes no temperature or
 seed, plus the repetition count). The agent's wall-clock allowance is the
 task's own `[agent].timeout_sec`, part of the committed content. What the
@@ -601,7 +611,7 @@ the candidate arm exactly one; the model refuses anything else.
 `compare_run_specs` is the comparability gate, computed the way
 `manifests/compare.py` computes a Climb's: the arms must be a baseline and a
 candidate, and their canonical JSON is diffed to its leaves; only `/arm` and
-`/skill` may differ. Any other pointer — another build, task list, model,
+`/skill` may differ. Any other pointer — another build or collection, task list, model,
 Hermes version, starting state, limit or repetition count — is a violation with
 code `forge_comparison_invalid`, and the pair is not compared.
 
@@ -614,7 +624,7 @@ estimated in advance — and asks; `--yes` states an operator already answered,
 and where nobody can be asked the review is returned as `action.prepare`. A run
 lives at `forge/runs/<forgerun_id>/` with `spec.json` (the declared
 specification, canonical bytes) and `run.json`
-(`techtree.forge-run.v1alpha1`), written before the first attempt and after
+(`techtree.forge-run.v1alpha2`), written before the first attempt and after
 every one, so an interrupted run keeps what it had; its `state` is
 `unfinished`, `completed`, `failed` or `cancelled`. A candidate run takes its
 own copy of the Skill's files under `skill/` before the first attempt, and every
@@ -626,34 +636,72 @@ the `techtree` profile is signed in to the provider (`forge_profile_missing`,
 `forge_profile_signed_out` name the command to fix it; the authentication store
 is never opened), and the run holds the profile's lock from its first attempt
 to its last, so a second run is refused (`forge_profile_busy`) rather than
-sharing it. Each attempt, in task then
-repetition order: the task image's `/workspace` is copied to the host at the
-base commit; the person's Hermes profile `techtree` — one they created and
+sharing it. A run on a collection verifies the collection again, byte for byte,
+and checks it is the version the specification was declared on
+(`forge_membership_mismatch` otherwise); then, once the Docker daemon answers,
+it reads each Skill task image's working directory (`WORKDIR`, `/` when the
+image names none) and refuses the run before any attempt, recorded as the
+run's failure, when that is `/`, lies at or under `/home` or `/root` (where
+Hermes' Docker sandbox always mounts empty folders of its own), or leaves a
+required output of the task outside it (`forge_work_dir_unusable`), or when
+the directory as the image left it cannot be read within the specification's
+output bounds (`forge_work_dir_unreadable`), so no model is paid for an
+attempt whose outputs could never be taken. Each attempt, in task then repetition order: the
+directory the agent works in is copied out of the task image to the host — a
+repository task's `/workspace` at the base commit, a Skill task's working
+directory as the image was built, read once (`forge/capture.py`) before the
+agent starts; the person's Hermes profile `techtree` — one they created and
 signed in once, because Hermes keeps each profile's sign-ins to itself and a
 copied token would log its other holder out — is emptied of everything but that
 sign-in (`auth.json`, `auth.lock`, `.env`) and given a `config.yaml`
 Techtree wrote — Docker sandbox from the task image's content id with the
-exported workspace mounted at `/workspace` as the shell's directory, no network,
+exported directory mounted back where it came from as the shell's directory, no network,
 2 CPUs, 4096 MB, memory and user profile off, title generation off, the task's
 own `[agent].timeout_sec` as Hermes' run budget — and, on the candidate arm, the
 Skill's files under `skills/<name>` after their digest is re-checked against the
 specification; `hermes --yolo -z` runs in the workspace with the instruction,
-`-t terminal,file,code_execution,skills`, `--usage-file`, and `-s <name>` on
+`-t` with the specification's `toolsets` (`terminal,file,code_execution,skills`,
+the only ones it accepts, all routed through the sandbox), `--usage-file`, and `-s <name>` on
 the candidate arm, under a Techtree deadline of the task timeout plus two
 minutes (interrupted, then killed); the profile's `state.db` is kept beside the
 evidence, the profile emptied again but for the sign-in, and the sandbox containers Hermes stopped but
-left on the daemon removed by their `hermes-profile` label; the workspace is
-diffed against the base
-commit in a fresh container (`patch.diff`); and the task's own tests grade it
-the way qualification graded the reference repair. Tests and reference
+left on the daemon removed by their `hermes-profile` label; what the agent
+left is recorded before any grading — a repository task's workspace is diffed
+against the base commit in a fresh container (`patch.diff`); a Skill task's
+directory is read again, without following a link, and every entry added,
+modified or deleted is written with its type, size and digest to
+`outputs/manifest.json` (`techtree.forge-output-manifest.v1alpha1`), with the
+bytes of every regular file it left under `outputs/files/`, within the
+bounds the specification declares under `limits.outputs` and the manifest
+records (10,000 entries, 1 GiB read, 64 MiB kept); and
+the task's own tests grade the directory, mounted where the agent had it, the
+way qualification graded the reference. A link that, followed part by part as
+the container's kernel would follow it through the other links in the
+directory, names at any step something not recorded there exactly (a disk that
+ignores case or spelling would match it to something else), passes outside
+other than through the folders above on the way back in, ends outside, or
+needs more than 40 links or 4,096 steps (`escaping_link`) — the same for a
+link of the image's that the subject left alone but that stayed inside before
+and does not after what it changed — an entry
+that is not a file, folder or link (`special_entry`), a file past the kept
+bound (`output_too_large`), and a read or a copy left incomplete by a bound or
+an entry that could not be read or kept (`capture_incomplete`, and an entry
+whose state is unknown is not reported as deleted) are explicit failures, and the attempt is `outputs_rejected` without grading; a
+required output the agent did not leave (`artifact_missing`) is recorded and
+the tests still grade it. Tests and reference
 solutions are never mounted into the agent's container. The attempt record
 carries the config digest, the Hermes arguments (instruction replaced by
 `instruction.md`), exit code, whether it timed out, seconds, the usage report
 as Hermes wrote it — including `cost_status`/`cost_source`, so an unpriced
-subscription is recorded as unpriced rather than free — the patch digest, and
+subscription is recorded as unpriced rather than free — the patch digest or,
+for a Skill task, the outputs in brief (working directory, manifest digest,
+counts, kept bytes, failures), and
 one outcome: `graded` (with a reward), `agent_timed_out`, `agent_failed` (a
 non-zero exit, or a usage report saying `failed` or not `completed`),
-`verifier_timed_out`, or `no_verdict`. Only a graded attempt has a reward;
+`outputs_rejected`, `verifier_timed_out`, or `no_verdict`. A run on a
+collection is a baseline, or a candidate on its own; `forge compare`,
+revision and improvement still take repository runs only
+(`forge_source_unsupported`). Only a graded attempt has a reward;
 nothing is recorded as zero for want of evidence. Nothing retries an attempt.
 `forge status` reads a build id, a run id, a comparison id, a revision id or
 a source id.
