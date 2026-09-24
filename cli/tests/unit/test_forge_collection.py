@@ -12,7 +12,9 @@ directory with the tools and bounds the approved specification names, what
 it left is recorded before any test runs, outputs that cannot be taken as
 they are are not graded, and a missing required output still is; a
 collection changed since it was declared, or a working directory that could
-never be read back, stops the run before any agent starts. The creator,
+never be read back, stops the run before any agent starts. A baseline and a
+candidate on the collection compare task by task, and the page says the
+tasks were written from a Skill and shows what each attempt left. The creator,
 Docker and Hermes are the stand-ins of the construction and run tests; no
 model is called.
 """
@@ -37,12 +39,14 @@ from fixtures.forge.support import (
     created_package,
     hermes_on_path,
     signed_in_profile,
+    write_skill,
 )
 from techtree.canonical import digest_object
 from techtree.cli.app import create_app
 from techtree.errors import RunError, TechtreeError, ValidationError
 from techtree.forge.capture import MANIFEST_FILENAME
 from techtree.forge.collection import read_collection_status
+from techtree.forge.compare import compare_runs
 from techtree.forge.construction import start_construction
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.models import (
@@ -523,6 +527,58 @@ def test_a_baseline_on_the_accepted_collection_records_its_outputs_before_gradin
     assert "Tools a shell, files, code and Skills" in text
 
 
+def test_a_pair_on_the_collection_compares_and_says_its_tasks_came_from_a_skill(
+    tmp_path: Path, home: Path, proposal_id: str, profiles: Path
+) -> None:
+    collection_id = accepted(home, proposal_id, profiles)
+    paths = paths_from_root(home)
+    skill = write_skill(tmp_path / "skills")
+    hermes = FakeHermes(
+        leaves=lambda directory: (directory / "result.txt").write_text(
+            "5\n", encoding="utf-8"
+        )
+    )
+
+    def run(spec: ForgeRunSpec, reward: float, skill_root: Path | None) -> str:
+        runner = ForgeRunner(
+            paths, FakeDocker(reward=reward), launch=hermes, profiles_root=profiles
+        )
+        return runner.run(spec, skill_root).run_id
+
+    baseline_id = run(baseline(home, collection_id), 0.0, None)
+    candidate_spec = declare_run_spec(
+        paths,
+        arm=ForgeArm.CANDIDATE,
+        collection_id=collection_id,
+        task_ids=None,
+        skill_root=skill,
+        provider="openai-codex",
+        model_id="gpt-5.6-sol",
+        reasoning=None,
+        repetitions=1,
+    )
+    candidate_id = run(candidate_spec, 1.0, skill)
+
+    status = compare_runs(paths, baseline_id, candidate_id)
+
+    record = status.record
+    assert isinstance(record.tasks_from, ForgeCollectionTasks)
+    assert (record.tasks_from.collection_id, record.tasks_from.version) == (
+        collection_id,
+        1,
+    )
+    assert record.comparability.controlled
+    assert (record.wins, record.losses) == (1, 0)
+    page = Path(status.report_path).read_text(encoding="utf-8")
+    assert f"<title>demo-skill on collection {collection_id}</title>" in page
+    assert "Evaluation on Skill-derived tasks" in page
+    assert f"{collection_id}, version 1" in page
+    assert "complete these tasks, which were written from a Skill?" in page
+    assert "1 added, 0 changed, 0 deleted in <code>/app</code>" in page
+    assert "outputs/manifest.json" in page
+    assert "Repository" not in page and "patch" not in page.lower()
+
+
 def test_outputs_that_cannot_be_taken_are_not_graded_and_a_missing_one_still_is(
     home: Path, proposal_id: str, profiles: Path
 ) -> None:
@@ -593,8 +649,6 @@ def test_a_working_directory_that_cannot_give_back_its_outputs_does_not_run(
     cases = [
         ("/", declared, "forge_work_dir_unusable"),
         ("/srv", declared, "forge_work_dir_unusable"),
-        ("/root", declared, "forge_work_dir_unusable"),
-        ("/home/agent", declared, "forge_work_dir_unusable"),
         ("/app", tiny, "forge_work_dir_unreadable"),
     ]
 

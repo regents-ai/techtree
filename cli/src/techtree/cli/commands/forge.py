@@ -70,6 +70,7 @@ from techtree.forge.models import (
     ForgeCollectionRecord,
     ForgeCollectionStatus,
     ForgeCollectionTasks,
+    ForgeComparisonRecord,
     ForgeComparisonStatus,
     ForgeConstructionRecord,
     ForgeConstructionStatus,
@@ -1246,8 +1247,10 @@ def render_forge_run(status: ForgeRunStatus, console: Console) -> None:
                 )
 
 
-def _tasks_from_pair(spec: ForgeRunSpec) -> tuple[str, str]:
-    match spec.tasks_from:
+def _tasks_from_pair(
+    source: ForgeRunSpec | ForgeComparisonRecord,
+) -> tuple[str, str]:
+    match source.tasks_from:
         case ForgeBuildTasks(build_id=build_id):
             return ("Build", build_id)
         case ForgeCollectionTasks(collection_id=collection_id, version=version):
@@ -1442,7 +1445,7 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
         ("Skill", f"{record.skill_name} ({record.skill_digest[:19]})"),
         ("Baseline run", record.baseline_run_id),
         ("Candidate run", record.candidate_run_id),
-        ("Build", record.build_id),
+        _tasks_from_pair(record),
         ("Result", "complete" if record.complete else "partial"),
         ("Verdict", VERDICT_WORDS[record.verdict]),
         (

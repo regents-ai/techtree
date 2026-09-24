@@ -34,9 +34,12 @@ from techtree.forge.models import (
     ForgeAttemptOutcome,
     ForgeAttemptPair,
     ForgeAttemptRecord,
+    ForgeBuildTasks,
+    ForgeCollectionTasks,
     ForgeComparisonRecord,
     ForgeComparisonStatus,
     ForgePairResult,
+    ForgeRepositorySource,
     ForgeRunStatus,
     ForgeTaskConsistency,
     ForgeTaskRegression,
@@ -76,16 +79,6 @@ def compare_runs(
     candidate = read_run_status(paths, candidate_id)
     comparability = compare_run_specs(baseline.spec, candidate.spec)
     assert_comparable_run_specs(comparability)
-    build_id = baseline.spec.require_build("Repository comparison report").build_id
-    build = read_build_status(paths, build_id).build
-    if build is None:
-        raise NotFoundError(
-            f"the build {build_id} these runs were made on has no build record",
-            code="forge_build_not_found",
-            details={"build_id": build_id},
-        )
-
-    source = build.require_repository_source("Repository comparison report")
     record = build_comparison(
         baseline,
         candidate,
@@ -98,8 +91,7 @@ def compare_runs(
     atomic_write_json(directory / COMPARISON_FILENAME, record.model_dump(mode="json"))
     page = render_report(
         record,
-        repository=source.repository,
-        head_commit=source.head_commit,
+        repository=_repository(paths, record.tasks_from),
         baseline=baseline,
         candidate=candidate,
     )
@@ -110,6 +102,23 @@ def compare_runs(
         report_path=str(directory / REPORT_FILENAME),
         record=record,
     )
+
+
+def _repository(
+    paths: TechtreePaths, tasks_from: ForgeBuildTasks | ForgeCollectionTasks
+) -> ForgeRepositorySource | None:
+    """Return the repository a build's tasks came from; a collection has none."""
+    if isinstance(tasks_from, ForgeCollectionTasks):
+        return None
+    build = read_build_status(paths, tasks_from.build_id).build
+    if build is None:
+        raise NotFoundError(
+            f"the build {tasks_from.build_id} these runs were made on has no "
+            "build record",
+            code="forge_build_not_found",
+            details={"build_id": tasks_from.build_id},
+        )
+    return build.require_repository_source("Repository comparison report")
 
 
 def build_comparison(
@@ -154,7 +163,7 @@ def build_comparison(
         schema_version=FORGE_COMPARISON_SCHEMA_VERSION,
         comparison_id=comparison_id,
         created_at=created_at,
-        build_id=spec.require_build("Repository comparison report").build_id,
+        tasks_from=spec.tasks_from,
         baseline_run_id=baseline.run_id,
         candidate_run_id=candidate.run_id,
         skill_name=skill.name,

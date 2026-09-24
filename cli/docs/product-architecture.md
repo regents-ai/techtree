@@ -666,9 +666,8 @@ and checks it is the version the specification was declared on
 (`forge_membership_mismatch` otherwise); then, once the Docker daemon answers,
 it reads each Skill task image's working directory (`WORKDIR`, `/` when the
 image names none) and refuses the run before any attempt, recorded as the
-run's failure, when that is `/`, lies at or under `/home` or `/root` (where
-Hermes' Docker sandbox always mounts empty folders of its own), or leaves a
-required output of the task outside it (`forge_work_dir_unusable`), or when
+run's failure, when that is `/` or leaves a required output of the task
+outside it (`forge_work_dir_unusable`), or when
 the directory as the image left it cannot be read within the specification's
 output bounds (`forge_work_dir_unreadable`), so no model is paid for an
 attempt whose outputs could never be taken. Each attempt, in task then repetition order: the
@@ -731,9 +730,9 @@ counts, kept bytes, failures), and
 one outcome: `graded` (with a reward), `agent_timed_out`, `agent_failed` (a
 non-zero exit, or a usage report saying `failed` or not `completed`),
 `outputs_rejected`, `verifier_timed_out`, or `no_verdict`. A run on a
-collection is a baseline, or a candidate on its own; `forge compare`,
-revision and improvement still take repository runs only
-(`forge_source_unsupported`). Only a graded attempt has a reward;
+collection is a baseline or a candidate, and `forge compare` pairs two runs
+on the same collection; revision and improvement still take repository runs
+only (`forge_source_unsupported`). Only a graded attempt has a reward;
 nothing is recorded as zero for want of evidence. Nothing retries an attempt.
 `forge status` reads a build id, a run id, a comparison id, a revision id or
 a source id.
@@ -758,17 +757,23 @@ three pairs were graded; `mixed` with at least one win and one loss;
 task the Skill lost at least once, with the attempts lost and won) and
 `consistency` (per task: wins, losses, ties, unresolved, and whether the task
 went both ways across attempts), and its `summary` opens with the verdict in
-words. The record (`techtree.forge-comparison.v1alpha2`, a hard cutover: the
-earlier shape fails validation, without a fallback reader) is written to
+words. The record (`techtree.forge-comparison.v1alpha3`, a hard cutover: the
+earlier shape fails validation, without a fallback reader) names where its
+tasks came from in `tasks_from`, the run specification's own build or
+collection, and is written to
 `forge/comparisons/<forgecmp_id>/comparison.json` beside `report.html`, one
 self-contained page (own stylesheet, no script, nothing fetched) that says, in
-order: the repository and both runs, "Local evidence about a mutable subject",
+order: the repository, commit and build, or the collection and its version,
+and both runs; "Local evidence about a mutable subject", headed "Evaluation on
+Skill-derived tasks" for a collection;
 the question tested, the summary, "Where the Skill lost" (shown even when the
 mean difference is positive), baseline | candidate | difference, the
 task-by-task table with an "Across attempts" column (or the sentence that one
-attempt per task measured no consistency), both arms' patches and grading
+attempt per task measured no consistency), both arms' patches, or for a
+Skill task what each attempt left in its working directory, and grading
 details per pair, the differences the gate allowed, and the limits of the
-evidence including the specification's `not_established` list. `forge
+evidence including the specification's `not_established` list and, for a
+collection, that tasks written from a Skill say nothing about other work. `forge
 compare`, `forge status` and `uplift start` print the verdict, the regressions
 and the consistency, and their `--json` envelopes carry the whole record. A
 comparison makes no model call and nothing leaves the machine.

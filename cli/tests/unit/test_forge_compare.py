@@ -49,6 +49,7 @@ from techtree.forge.models import (
 )
 from techtree.forge.report import render_report
 from techtree.forge.run import ForgeRunner
+from techtree.forge.service import read_build_status
 
 
 @pytest.fixture
@@ -107,7 +108,8 @@ def test_a_controlled_pair_is_paired_task_by_task_and_written(
     record = status.record
     assert record.baseline_run_id == baseline.run_id
     assert record.candidate_run_id == candidate.run_id
-    assert record.build_id == build.build_id
+    assert record.tasks_from == baseline.spec.tasks_from
+    assert record.tasks_from.kind == "build"
     assert record.skill_name == "demo-skill"
     assert record.comparability.controlled
     assert record.complete
@@ -337,10 +339,11 @@ def test_a_lost_attempt_is_a_regression_and_a_task_that_went_both_ways_is_said_s
     assert record.summary.startswith("Mixed.")
     assert f"The Skill lost on 1 task: {build.task_id}." in record.summary
     assert "went both ways across attempts" in record.summary
+    source = read_build_status(build.paths, build.build_id).build
+    assert source is not None
     page = render_report(
         record,
-        repository="/repo/demo",
-        head_commit="c" * 40,
+        repository=source.require_repository_source("test"),
         baseline=baseline,
         candidate=candidate,
     )

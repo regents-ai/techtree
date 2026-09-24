@@ -158,13 +158,13 @@ def build_forge_improvement_context(
             code=IMPROVEMENT_CONTEXT_INVALID,
             details={"comparison_id": comparison_id},
         )
-    build = read_build_status(paths, comparison.build_id).build
+    build_id = candidate.spec.require_build("Repository improvement context").build_id
+    build = read_build_status(paths, build_id).build
     if build is None:
         raise ValidationError(
-            f"the build {comparison.build_id} this comparison was made on has "
-            "no build record",
+            f"the build {build_id} this comparison was made on has no build record",
             code=IMPROVEMENT_CONTEXT_INVALID,
-            details={"comparison_id": comparison_id, "build_id": comparison.build_id},
+            details={"comparison_id": comparison_id, "build_id": build_id},
         )
     source = build.require_repository_source("Repository improvement context")
     entrypoint = next(
@@ -177,7 +177,7 @@ def build_forge_improvement_context(
             details={"comparison_id": comparison_id, "skill": skill.root_digest},
         )
 
-    tasks_dir = paths.forge_build_dir(comparison.build_id) / "tasks"
+    tasks_dir = paths.forge_build_dir(build_id) / "tasks"
     prompts = {
         task_id: (tasks_dir / task_id / "instruction.md").read_text(encoding="utf-8")
         for task_id in candidate.spec.task_ids
@@ -193,7 +193,7 @@ def build_forge_improvement_context(
         comparison_id=comparison.comparison_id,
         baseline_run_id=comparison.baseline_run_id,
         candidate_run_id=comparison.candidate_run_id,
-        build_id=comparison.build_id,
+        build_id=build_id,
         repository=source.slug,
         head_commit=source.head_commit,
         parent_skill_name=skill.name,

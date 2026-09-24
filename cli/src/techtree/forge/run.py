@@ -127,9 +127,6 @@ _RUN_FILENAME: Final = "run.json"
 _AGENT_MARGIN_SECONDS: Final = 120.0
 _PATCH_TIMEOUT_SECONDS: Final = 120.0
 _WORKSPACE: Final = "/workspace"
-#: Where Hermes' Docker sandbox mounts empty folders of its own over the
-#: image, whatever else it is given: a Skill task cannot work under them.
-_SANDBOX_HOMES: Final = (PurePosixPath("/home"), PurePosixPath("/root"))
 _STATE_DB: Final = "state.db"
 _PROFILE_LABEL: Final = "hermes-profile"
 
@@ -451,8 +448,8 @@ class ForgeRunner:
 
         A repository task works in ``/workspace``. A Skill task works in its
         image's working directory: every output it must leave has to be
-        inside it, the sandbox must not cover it, and it must be readable
-        within the declared bounds as the image left it, or no attempt runs.
+        inside it, and it must be readable within the declared bounds as the
+        image left it, or no attempt runs.
         """
         if task.outputs is None:
             return _WORKSPACE
@@ -465,8 +462,6 @@ class ForgeRunner:
         ]
         if base == PurePosixPath("/"):
             reason = "the whole filesystem cannot be read back as its outputs"
-        elif any(base.is_relative_to(home) for home in _SANDBOX_HOMES):
-            reason = "the agent's sandbox puts an empty folder of its own there"
         elif outside:
             reason = f"its required outputs {', '.join(outside)} are outside it"
         else:

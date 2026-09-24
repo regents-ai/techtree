@@ -887,7 +887,7 @@ class ForgeRunStatus(ProtocolModel):
     record: ForgeRunRecord
 
 
-FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha2"
+FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha3"
 
 #: Fewer graded pairs than this and no verdict is given.
 VERDICT_MINIMUM_PAIRS: Final = 3
@@ -1014,10 +1014,12 @@ class ForgeComparisonRecord(ProtocolModel):
     differ.
     """
 
-    schema_version: Literal["techtree.forge-comparison.v1alpha2"]
+    schema_version: Literal["techtree.forge-comparison.v1alpha3"]
     comparison_id: NonEmptyString
     created_at: UtcDateTime
-    build_id: NonEmptyString
+    tasks_from: Annotated[
+        ForgeBuildTasks | ForgeCollectionTasks, Field(discriminator="kind")
+    ]
     baseline_run_id: NonEmptyString
     candidate_run_id: NonEmptyString
     skill_name: ForgeSkillName

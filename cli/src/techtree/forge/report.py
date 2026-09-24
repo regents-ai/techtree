@@ -24,10 +24,14 @@ from techtree.forge.models import (
     ForgeArmTotals,
     ForgeAttemptOutcome,
     ForgeAttemptPair,
+    ForgeBuildTasks,
+    ForgeCollectionTasks,
     ForgeComparisonRecord,
     ForgeOutputFailureKind,
+    ForgeOutputs,
     ForgePairResult,
     ForgeQualification,
+    ForgeRepositorySource,
     ForgeRunStatus,
     ForgeTaskConsistency,
     GenerationSummary,
@@ -237,26 +241,46 @@ footer { margin-top: 3rem; font-size: .85rem; opacity: .7; }
 def render_report(
     record: ForgeComparisonRecord,
     *,
-    repository: str,
-    head_commit: str,
+    repository: ForgeRepositorySource | None,
     baseline: ForgeRunStatus,
     candidate: ForgeRunStatus,
 ) -> str:
-    """Return the page for ``record`` as one HTML document."""
+    """Return the page for ``record`` as one HTML document.
+
+    ``repository`` is where a build's tasks came from; a comparison on a
+    collection has none, and its page says the tasks were written from a
+    Skill.
+    """
     spec = candidate.spec
+    match record.tasks_from:
+        case ForgeBuildTasks(build_id=build_id):
+            assert repository is not None  # a build's tasks come from a repository
+            subject = _short_name(repository.repository)
+            label = "Local evidence about a mutable subject"
+            source = [
+                _dd("Repository", repository.repository),
+                _dd("Commit", repository.head_commit),
+                _dd("Build", build_id),
+            ]
+            task = "repair this repository"
+        case ForgeCollectionTasks(collection_id=collection_id, version=version):
+            subject = f"collection {collection_id}"
+            label = (
+                "Evaluation on Skill-derived tasks: local evidence about a "
+                "mutable subject"
+            )
+            source = [_dd("Collection", f"{collection_id}, version {version}")]
+            task = "complete these tasks, which were written from a Skill"
     parts = [
         "<!doctype html>",
         '<html lang="en"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
-        f"<title>{_e(record.skill_name)} on {_e(_short_name(repository))}</title>",
+        f"<title>{_e(record.skill_name)} on {_e(subject)}</title>",
         f"<style>{_STYLE}</style></head><body>",
-        f"<h1>Skill experiment: {_e(record.skill_name)} on "
-        f"{_e(_short_name(repository))}</h1>",
-        '<div class="label">Local evidence about a mutable subject</div>',
+        f"<h1>Skill experiment: {_e(record.skill_name)} on {_e(subject)}</h1>",
+        f'<div class="label">{_e(label)}</div>',
         '<dl class="meta">',
-        _dd("Repository", repository),
-        _dd("Commit", head_commit),
-        _dd("Build", record.build_id),
+        *source,
         _dd("Baseline run", record.baseline_run_id),
         _dd("Candidate run", record.candidate_run_id),
         _dd("Comparison", record.comparison_id),
@@ -273,7 +297,9 @@ def render_report(
         + _e(spec.model.model_id)
         + " from "
         + _e(spec.model.provider)
-        + " repair this repository? Both arms ran the same "
+        + " "
+        + _e(task)
+        + "? Both arms ran the same "
         + str(len(spec.task_ids))
         + _plural(len(spec.task_ids), " task", " tasks")
         + ", "
@@ -291,7 +317,7 @@ def render_report(
         _totals_table(record.baseline, record.candidate),
         "<h2>Task by task</h2>",
         _pairs_table(record),
-        "<h2>Patches and grading</h2>",
+        "<h2>What each attempt left, and its grading</h2>",
         *(_pair_details(pair, baseline, candidate) for pair in record.pairs),
         "<h2>What differed between the arms</h2>",
         _differences(record),
@@ -473,8 +499,18 @@ def _arm_details(label: str, status: ForgeRunStatus, task_id: str, attempt: int)
     attempt_dir = Path(status.path) / "tasks" / task_id / str(attempt)
     patch = _read_text(attempt_dir / "patch.diff")
     details = _read_text(attempt_dir / "grading" / "verifier" / "reward-details.json")
+    record = next(
+        (
+            a
+            for a in status.record.attempts
+            if (a.task_id, a.attempt) == (task_id, attempt)
+        ),
+        None,
+    )
     parts = [f"<h3>{_e(label)}</h3>"]
-    if patch is None:
+    if record is not None and record.outputs is not None:
+        parts.append(_outputs_details(record.outputs, attempt_dir))
+    elif patch is None:
         parts.append("<p>No patch was recorded for this attempt.</p>")
     elif not patch.strip():
         parts.append("<p>The agent changed nothing.</p>")
@@ -486,6 +522,22 @@ def _arm_details(label: str, status: ForgeRunStatus, task_id: str, attempt: int)
     if details is not None:
         parts.append("<p>Grading</p>")
         parts.append(f"<pre>{_e(_pretty_json(details))}</pre>")
+    return "".join(parts)
+
+
+def _outputs_details(outputs: ForgeOutputs, attempt_dir: Path) -> str:
+    manifest = attempt_dir / "outputs" / "manifest.json"
+    parts = [
+        f"<p>{outputs.added} added, {outputs.modified} changed, "
+        f"{outputs.deleted} deleted in <code>{_e(outputs.work_dir)}</code> "
+        f"(<code>{_e(str(manifest))}</code>)</p>"
+    ]
+    parts.extend(
+        "<p>"
+        + (f"<code>{_e(failure.path)}</code>: " if failure.path is not None else "")
+        + f"{_e(OUTPUT_FAILURE_WORDS[failure.kind])} ({_e(failure.detail)})</p>"
+        for failure in outputs.failures
+    )
     return "".join(parts)
 
 
@@ -510,13 +562,27 @@ def _differences(record: ForgeComparisonRecord) -> str:
 
 
 def _limits(record: ForgeComparisonRecord) -> str:
+    match record.tasks_from:
+        case ForgeBuildTasks():
+            tasks = "this repository's tasks"
+            graded = "the reference repair was graded when the build was qualified"
+            derived = []
+        case ForgeCollectionTasks():
+            tasks = "these tasks"
+            graded = "the reference solutions were graded when the tasks were qualified"
+            derived = [
+                "The tasks were written from a Skill, so they test whether the "
+                "agent can use what that Skill teaches. They say nothing about "
+                "how it does on other work, and a win here is not evidence that "
+                "Skills help in general.",
+            ]
     items = [
         "This is evidence about one agent, as configured on this machine, on "
-        "this repository's tasks. The subject can change: a different Hermes "
+        f"{tasks}. The subject can change: a different Hermes "
         "build, a provider routing the same model name elsewhere, or another "
         "day may give a different result.",
-        "Rewards come from the tasks' own tests, run locally the way the "
-        "reference repair was graded when the build was qualified.",
+        *derived,
+        f"Rewards come from the tasks' own tests, run locally the way {graded}.",
         "A cost is what Hermes reported; an attempt Hermes could not put a "
         "dollar figure on is listed with its status, not as free.",
     ]
