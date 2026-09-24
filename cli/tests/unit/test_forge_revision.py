@@ -31,7 +31,10 @@ from fixtures.forge.support import (
 from techtree.cli.app import create_app
 from techtree.errors import PrerequisiteError, ValidationError, VerificationError
 from techtree.forge.compare import compare_runs
-from techtree.forge.improvement import build_forge_improvement_context
+from techtree.forge.improvement import (
+    ForgeImprovementRepository,
+    build_forge_improvement_context,
+)
 from techtree.forge.models import ForgeArm, ForgePairResult, ForgeRunStatus
 from techtree.forge.revision import (
     measure_revision,
@@ -200,7 +203,7 @@ def test_uplift_skill_source_reads_a_forge_run_and_refuses_the_baseline(
         build.paths.root, "--json", "uplift", "skill-source", baseline.run_id
     )
     assert code != 0
-    assert envelope["error"]["code"] == "forge_candidate_without_skill"
+    assert envelope["error"]["code"] == "forge_run_without_skill"
 
 
 # ---------------------------------------------------------------------------
@@ -216,7 +219,8 @@ def test_the_context_carries_the_instruction_and_the_result_and_nothing_hidden(
     context = build_forge_improvement_context(build.paths, comparison_id)
 
     assert context.comparison_id == comparison_id
-    assert context.repository == "demo"
+    assert isinstance(context.tasks_from, ForgeImprovementRepository)
+    assert context.tasks_from.repository == "demo"
     assert context.parent_skill_name == "demo-skill"
     assert context.current_result.wins == 1
     assert context.current_result.candidate_mean_reward == 0.5
@@ -254,7 +258,7 @@ def test_uplift_context_writes_the_context_beside_the_comparison(
         comparison_id
     )
     assert facts["context"]["schema_version"] == (
-        "techtree.forge-improvement-context.v1alpha1"
+        "techtree.forge-improvement-context.v1alpha2"
     )
     assert [w["id"] for w in envelope["warnings"]] == [
         "improvement_context_is_not_proof"
@@ -565,7 +569,7 @@ def test_uplift_start_with_yes_runs_compares_and_keeps_a_regression(
         facts["comparison"]["record"]["baseline_run_id"]
         == (facts["revision"]["record"]["baseline_run_id"])
     )
-    assert facts["comparison"]["record"]["skill_name"] == "demo-skill-v2"
+    assert facts["comparison"]["record"]["candidate_skill"]["name"] == "demo-skill-v2"
     assert facts["run"]["spec"]["skill"]["name"] == "demo-skill-v2"
     [launch] = hermes.launches
     assert launch["profile_files"] == [

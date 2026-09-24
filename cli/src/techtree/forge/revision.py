@@ -8,12 +8,13 @@ the same baseline by construction rather than by promise. The Hermes the
 specification names is asked for its version again, and a different answer
 is a refusal, because the run would otherwise claim an agent it did not use.
 
-Before anything runs the revised Skill is screened against what a repository
-task hides: the reference patch, the tests, and the tests' names. Screening
-is evidence-based and recorded, not a refusal — a Skill may legitimately name
-the function it repairs — so every line the Skill shares with that material
-is written on the revision for the person who approves the run to see, and
-the run's report carries it.
+Before anything runs the revised Skill is screened against what a task
+hides from the agent: for a repository task the reference patch, the tests,
+and the tests' names; for a task written from a Skill its reference
+solutions and its tests. Screening is evidence-based and recorded, not a
+refusal — a Skill may legitimately name the function it repairs — so every
+line the Skill shares with that material is written on the revision for the
+person who approves the run to see, and the run's report carries it.
 
 Measuring runs the new arm and compares it against the same baseline the
 parent was compared against. The revision then names its run, its comparison
@@ -32,6 +33,7 @@ from pydantic import ValidationError as ModelValidationError
 
 from techtree.canonical import canonical_json_bytes
 from techtree.errors import NotFoundError, PrerequisiteError, ValidationError
+from techtree.forge.collection import read_collection_status
 from techtree.forge.comparability import (
     assert_comparable_run_specs,
     compare_run_specs,
@@ -41,6 +43,8 @@ from techtree.forge.experiment import run_spec_digest
 from techtree.forge.hermes import hermes_version
 from techtree.forge.models import (
     FORGE_REVISION_SCHEMA_VERSION,
+    ForgeBuildTasks,
+    ForgeCollectionTasks,
     ForgeComparisonRecord,
     ForgeComparisonStatus,
     ForgeRevisionRecord,
@@ -125,9 +129,8 @@ def prepare_revision(
     spec = parent.spec.model_copy(update={"skill": skill})
     comparability = compare_run_specs(baseline.spec, spec)
     assert_comparable_run_specs(comparability)
-    build_id = spec.require_build("Repository Skill screening").build_id
     screening = screen_skill(
-        paths, build_id=build_id, task_ids=spec.task_ids, files=files
+        paths, tasks_from=spec.tasks_from, task_ids=spec.task_ids, files=files
     )
 
     revision_id = new_id("forgerev")
@@ -142,7 +145,7 @@ def prepare_revision(
         created_at=now,
         updated_at=now,
         comparison_id=comparison.comparison_id,
-        build_id=build_id,
+        tasks_from=spec.tasks_from,
         baseline_run_id=comparison.baseline_run_id,
         parent_run_id=comparison.candidate_run_id,
         parent_skill_digest=parent.spec.skill.root_digest,
@@ -239,57 +242,32 @@ def read_revision_status(paths: TechtreePaths, revision_id: str) -> ForgeRevisio
 # ---------------------------------------------------------------------------
 
 
+_Material = Literal["reference_patch", "reference_solution", "tests"]
+
+
 def screen_skill(
     paths: TechtreePaths,
     *,
-    build_id: str,
+    tasks_from: ForgeBuildTasks | ForgeCollectionTasks,
     task_ids: list[str],
     files: list[tuple[Path, str]],
 ) -> list[ForgeScreeningFinding]:
     """Record every Skill line that also occurs in a task's hidden material.
 
-    Three kinds of material are read per task: the added lines of the
+    A repository task hides three kinds of material: the added lines of the
     reference patch, every line of every file under ``tests``, and the test
-    names the task grades by. A Skill line is compared after stripping, and
-    only when it is long enough to be more than coincidence.
+    names the task grades by. A task written from a Skill hides every line
+    of every file under ``solution`` and under ``tests``. A Skill line is
+    compared after stripping, and only when it is long enough to be more
+    than coincidence.
     """
-    build = read_build_status(paths, build_id).build
-    if build is None:
-        raise ValidationError(
-            f"build {build_id} has no build record for repository screening",
-            code="forge_build_not_qualified",
-            details={"build_id": build_id},
-        )
-    build.require_repository_source("Repository Skill screening")
     skill_lines = [
         (relative, number, line)
         for source, relative in files
         for number, line in _text_lines(source)
     ]
     findings: list[ForgeScreeningFinding] = []
-    for task_id in task_ids:
-        task_dir = paths.forge_build_dir(build_id) / "tasks" / task_id
-        patch = {
-            line[1:].strip()
-            for _, line in _text_lines(task_dir / "solution" / "patch.diff")
-            if line.startswith("+") and not line.startswith("+++")
-        }
-        tests = {
-            line.strip()
-            for path in sorted(
-                p for p in (task_dir / "tests").rglob("*") if p.is_file()
-            )
-            for _, line in _text_lines(path)
-        }
-        facts = read_task_facts(task_dir)
-        names = {
-            _test_name(test_id)
-            for test_id in (*facts.fail_to_pass, *facts.pass_to_pass)
-        }
-        materials: list[tuple[Literal["reference_patch", "tests"], set[str]]] = [
-            ("reference_patch", patch),
-            ("tests", tests),
-        ]
+    for task_id, materials, names in _hidden_material(paths, tasks_from, task_ids):
         for relative, number, line in skill_lines:
             stripped = line.strip()
             if len(stripped) < _MINIMUM_LINE:
@@ -316,6 +294,68 @@ def screen_skill(
                     )
                 )
     return findings
+
+
+def _hidden_material(
+    paths: TechtreePaths,
+    tasks_from: ForgeBuildTasks | ForgeCollectionTasks,
+    task_ids: list[str],
+) -> list[tuple[str, list[tuple[_Material, set[str]]], set[str]]]:
+    """Return, per task, the hidden lines by kind and the test names it grades by."""
+    match tasks_from:
+        case ForgeBuildTasks(build_id=build_id):
+            build = read_build_status(paths, build_id).build
+            if build is None:
+                raise ValidationError(
+                    f"build {build_id} has no build record for repository screening",
+                    code="forge_build_not_qualified",
+                    details={"build_id": build_id},
+                )
+            build.require_repository_source("Repository Skill screening")
+            hidden = []
+            for task_id in task_ids:
+                task_dir = paths.forge_build_dir(build_id) / "tasks" / task_id
+                patch = {
+                    line[1:].strip()
+                    for _, line in _text_lines(task_dir / "solution" / "patch.diff")
+                    if line.startswith("+") and not line.startswith("+++")
+                }
+                facts = read_task_facts(task_dir)
+                names = {
+                    _test_name(test_id)
+                    for test_id in (*facts.fail_to_pass, *facts.pass_to_pass)
+                }
+                materials: list[tuple[_Material, set[str]]] = [
+                    ("reference_patch", patch),
+                    ("tests", _lines_under(task_dir / "tests")),
+                ]
+                hidden.append((task_id, materials, names))
+            return hidden
+        case ForgeCollectionTasks(collection_id=collection_id):
+            members = {
+                member.task_id: member.build_id
+                for member in read_collection_status(
+                    paths, collection_id
+                ).record.review.members
+            }
+            hidden = []
+            for task_id in task_ids:
+                task_dir = paths.forge_build_dir(members[task_id]) / "tasks" / task_id
+                materials = [
+                    ("reference_solution", _lines_under(task_dir / "solution")),
+                    ("tests", _lines_under(task_dir / "tests")),
+                ]
+                hidden.append((task_id, materials, set()))
+            return hidden
+
+
+def _lines_under(directory: Path) -> set[str]:
+    """Return every stripped line of every text file under ``directory``."""
+    return {
+        line.strip()
+        for path in sorted(p for p in directory.rglob("*") if p.is_file())
+        for _, line in _text_lines(path)
+    }
 
 
 def _text_lines(path: Path) -> list[tuple[int, str]]:
@@ -354,9 +394,9 @@ def _verdict(parent: ForgeComparisonRecord, revised: ForgeComparisonRecord) -> s
         "improved on" if change > 0 else "regressed from" if change < 0 else "matched"
     )
     return sanitize_label(
-        f"{partial} Against the same baseline, {revised.skill_name} {word} "
-        f"{parent.skill_name}: mean reward {after:.2f} against {before:.2f} "
-        f"({change:+.2f}); {revised.wins} won, {revised.losses} lost, "
+        f"{partial} Against the same baseline, {revised.candidate_skill.name} "
+        f"{word} {parent.candidate_skill.name}: mean reward {after:.2f} against "
+        f"{before:.2f} ({change:+.2f}); {revised.wins} won, {revised.losses} lost, "
         f"{revised.ties} tied of {revised.pairs_planned}. Kept as measured.".strip(),
         maximum=_VERDICT_LIMIT,
     )

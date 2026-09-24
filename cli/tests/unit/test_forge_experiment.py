@@ -177,12 +177,13 @@ def test_the_digest_follows_the_content(
     assert run_spec_digest(first) != run_spec_digest(changed)
 
 
-def test_a_baseline_may_not_carry_a_skill(
+def test_a_baseline_may_carry_the_earlier_skill_a_candidate_is_measured_against(
     build: QualifiedBuild, skill: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with pytest.raises(ValidationError) as caught:
-        declare(build, monkeypatch, arm=ForgeArm.BASELINE, skill_root=skill)
-    assert caught.value.code == "forge_baseline_with_skill"
+    """R36: a Skill-v1-to-Skill-v2 comparison starts from a baseline with v1."""
+    spec = declare(build, monkeypatch, arm=ForgeArm.BASELINE, skill_root=skill)
+    assert spec.skill is not None
+    assert spec.skill.name == "demo-skill"
 
 
 def test_a_candidate_must_carry_a_skill(

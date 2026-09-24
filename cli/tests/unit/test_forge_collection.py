@@ -14,9 +14,15 @@ they are are not graded, and a missing required output still is; a
 collection changed since it was declared, or a working directory that could
 never be read back, stops the run before any agent starts. A baseline and a
 candidate on the collection compare task by task, and the page says the
-tasks were written from a Skill and shows what each attempt left. The creator,
-Docker and Hermes are the stand-ins of the construction and run tests; no
-model is called.
+tasks were written from a Skill and shows what each attempt left. Every
+Skill keeps its own role there (T13, R19, R36, AE8): the Source Skill, the
+baseline's Skill if it has one, and the candidate's, each by its own digest
+even when two are the same bytes. A Skill-v1-to-Skill-v2 comparison is
+judged by the same rules, a run on a different version of the collection is
+not comparable, and a comparison on the collection is revised there, screened
+against the tasks' reference solutions and tests. The creator, Docker and
+Hermes are the stand-ins of the construction and run tests; no model is
+called.
 """
 
 from __future__ import annotations
@@ -43,12 +49,20 @@ from fixtures.forge.support import (
 )
 from techtree.canonical import digest_object
 from techtree.cli.app import create_app
-from techtree.errors import RunError, TechtreeError, ValidationError
+from techtree.errors import RunError, TechtreeError, ValidationError, VerificationError
 from techtree.forge.capture import MANIFEST_FILENAME
 from techtree.forge.collection import read_collection_status
+from techtree.forge.comparability import (
+    assert_comparable_run_specs,
+    compare_run_specs,
+)
 from techtree.forge.compare import compare_runs
 from techtree.forge.construction import start_construction
 from techtree.forge.experiment import declare_run_spec
+from techtree.forge.improvement import (
+    ForgeImprovementCollection,
+    build_forge_improvement_context,
+)
 from techtree.forge.models import (
     ForgeArm,
     ForgeAttemptOutcome,
@@ -59,8 +73,10 @@ from techtree.forge.models import (
     ForgeOutputLimits,
     ForgeOutputManifest,
     ForgeRunSpec,
+    ForgeVerdict,
 )
 from techtree.forge.planning import read_plan_status, start_plan
+from techtree.forge.revision import prepare_revision
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
 from techtree.forge.source import inspect_source_skill
@@ -530,9 +546,10 @@ def test_a_baseline_on_the_accepted_collection_records_its_outputs_before_gradin
 def test_a_pair_on_the_collection_compares_and_says_its_tasks_came_from_a_skill(
     tmp_path: Path, home: Path, proposal_id: str, profiles: Path
 ) -> None:
+    """AE8: the Source Skill's own bytes as the candidate keep both roles."""
     collection_id = accepted(home, proposal_id, profiles)
     paths = paths_from_root(home)
-    skill = write_skill(tmp_path / "skills")
+    skill = tmp_path / "branch-code"
     hermes = FakeHermes(
         leaves=lambda directory: (directory / "result.txt").write_text(
             "5\n", encoding="utf-8"
@@ -569,14 +586,188 @@ def test_a_pair_on_the_collection_compares_and_says_its_tasks_came_from_a_skill(
     )
     assert record.comparability.controlled
     assert (record.wins, record.losses) == (1, 0)
+    source, candidate = record.source_skill, record.candidate_skill
+    assert source is not None and source.name == candidate.name == "branch-code"
+    assert source.digest == candidate.digest
+    assert record.baseline_skill is None
     page = Path(status.report_path).read_text(encoding="utf-8")
-    assert f"<title>demo-skill on collection {collection_id}</title>" in page
+    assert f"<title>branch-code on collection {collection_id}</title>" in page
     assert "Evaluation on Skill-derived tasks" in page
+    assert f"<dt>Tasks written from</dt><dd>branch-code ({source.digest})" in page
+    assert f"<dt>Candidate Skill</dt><dd>branch-code ({candidate.digest})" in page
+    assert "<dt>Baseline Skill</dt><dd>none</dd>" in page
+    assert "a win here is not evidence that Skills help in general" in page
     assert f"{collection_id}, version 1" in page
     assert "complete these tasks, which were written from a Skill?" in page
     assert "1 added, 0 changed, 0 deleted in <code>/app</code>" in page
     assert "outputs/manifest.json" in page
     assert "Repository" not in page and "patch" not in page.lower()
+
+
+#: One line of the task's reference solution, and one of its tests.
+SOLUTION_LINE = (
+    "python3 -c \"print(sum(map(int, open('/app/amounts.txt'))))\" > /app/result.txt"
+)
+TEST_LINE = 'if [ "$(cat /app/result.txt 2>/dev/null)" = 5 ]; then'
+
+
+def test_skill_v1_to_v2_on_the_collection_keeps_every_role_and_is_revised_there(
+    tmp_path: Path,
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """R19, R36: v1 is the Source Skill's own bytes; v2 is measured against it.
+
+    The comparison is then revised on the same collection: the reviser sees
+    the tasks' instructions with their sandbox paths, never the reference
+    solutions or tests, and the revised Skill is screened against both.
+    """
+    collection_id = accepted(home, proposal_id, profiles)
+    paths = paths_from_root(home)
+    v1 = tmp_path / "branch-code"
+    v2 = write_skill(tmp_path / "v2", name="branch-code", body="Sum, then write.")
+    hermes = FakeHermes(
+        leaves=lambda directory: (directory / "result.txt").write_text(
+            "5\n", encoding="utf-8"
+        )
+    )
+
+    def run(arm: ForgeArm, skill_root: Path, reward: float) -> str:
+        spec = declare_run_spec(
+            paths,
+            arm=arm,
+            collection_id=collection_id,
+            task_ids=None,
+            skill_root=skill_root,
+            provider="openai-codex",
+            model_id="gpt-5.6-sol",
+            reasoning=None,
+            repetitions=3,
+        )
+        runner = ForgeRunner(
+            paths, FakeDocker(reward=reward), launch=hermes, profiles_root=profiles
+        )
+        return runner.run(spec, skill_root).run_id
+
+    baseline_id = run(ForgeArm.BASELINE, v1, 0.0)
+    candidate_id = run(ForgeArm.CANDIDATE, v2, 1.0)
+
+    status = compare_runs(paths, baseline_id, candidate_id)
+
+    record = status.record
+    source, earlier, later = (
+        record.source_skill,
+        record.baseline_skill,
+        record.candidate_skill,
+    )
+    assert source is not None and earlier is not None
+    assert source.digest == earlier.digest != later.digest
+    assert record.verdict is ForgeVerdict.IMPROVED
+    assert record.summary.startswith(
+        "Improved on the baseline Skill. Over 3 graded pairs, the candidate Skill "
+        "won 3, lost 0 and tied 0 against the baseline Skill"
+    )
+    page = Path(status.report_path).read_text(encoding="utf-8")
+    assert "Evaluation on Skill-derived tasks" in page
+    for role, skill in (
+        ("Tasks written from", source),
+        ("Baseline Skill", earlier),
+        ("Candidate Skill", later),
+    ):
+        assert f"<dt>{role}</dt><dd>branch-code ({skill.digest})</dd>" in page
+    assert "written from a Skill, more than the Skill <strong>branch-code" in page
+    assert "Each arm had its own Skill preloaded" in page
+    assert "The candidate Skill lost no graded pair." in page
+
+    context = build_forge_improvement_context(paths, status.comparison_id)
+
+    assert isinstance(context.tasks_from, ForgeImprovementCollection)
+    assert (context.tasks_from.collection_id, context.tasks_from.version) == (
+        collection_id,
+        1,
+    )
+    assert "sum /app/amounts.txt" in context.examples[0].public_prompt
+    serialized = context.model_dump_json()
+    assert SOLUTION_LINE not in serialized and TEST_LINE not in serialized
+    assert "the reference solutions of any task" in context.prohibited_material
+
+    v3 = write_skill(
+        tmp_path / "v3", name="branch-code", body=f"{SOLUTION_LINE}\n{TEST_LINE}"
+    )
+    revision = prepare_revision(
+        paths, comparison_id=status.comparison_id, skill_root=v3, label=None
+    )
+
+    assert revision.record.tasks_from == record.tasks_from
+    assert [(f.material, f.excerpt) for f in revision.record.screening] == [
+        ("reference_solution", SOLUTION_LINE),
+        ("tests", TEST_LINE),
+    ]
+    monkeypatch.setattr(
+        "techtree.cli.commands.uplift.ForgeRunner",
+        lambda paths, run: ForgeRunner(
+            paths, FakeDocker(reward=1.0), launch=hermes, profiles_root=profiles
+        ),
+    )
+    result = CliRunner().invoke(
+        create_app(),
+        [
+            *("--home", str(home), "--json", "uplift", "start", "--yes"),
+            *("--reviewed-on", "host-agent", revision.revision_id),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    measured = json.loads(result.stdout)["facts"]["revision"]["record"]
+    assert measured["state"] == "measured"
+    assert "matched branch-code" in measured["verdict"]
+
+    # Paths in the task's own sandbox reach the reviser; a home folder does not.
+    [member] = read_collection_status(paths, collection_id).record.review.members
+    task_dir = paths.forge_build_dir(member.build_id) / "tasks" / member.task_id
+    (task_dir / "instruction.md").write_text(
+        "Read /Users/someone/notes.txt first.\n", encoding="utf-8"
+    )
+    with pytest.raises(ValidationError) as refused:
+        build_forge_improvement_context(paths, status.comparison_id)
+    assert refused.value.code == "improvement_context_forbidden_material"
+
+
+def test_runs_on_two_versions_of_a_collection_are_not_compared(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    """T13: the tasks a comparison pairs are one version's members, never two."""
+    first = construct(home, proposal_id, profiles, ae5_creator())
+    v1 = collect(home, first)["facts"]["collection_id"]
+    assert invoke(home, "accept", v1, "--yes")[0] == 0
+    retry = construct(home, proposal_id, profiles, FakeCreator(), retry_of=first)
+    v2 = collect(home, retry, "--previous", v1)["facts"]["collection_id"]
+    assert invoke(home, "accept", v2, "--yes")[0] == 0
+    paths = paths_from_root(home)
+    candidate = declare_run_spec(
+        paths,
+        arm=ForgeArm.CANDIDATE,
+        collection_id=v2,
+        task_ids=[
+            member.task_id
+            for member in read_collection_status(paths, v1).record.review.members
+        ],
+        skill_root=write_skill(tmp_path / "skills"),
+        provider="openai-codex",
+        model_id="gpt-5.6-sol",
+        reasoning=None,
+        repetitions=1,
+    )
+
+    comparison = compare_run_specs(baseline(home, v1), candidate)
+
+    with pytest.raises(VerificationError) as refused:
+        assert_comparable_run_specs(comparison)
+    assert refused.value.code == "forge_comparison_invalid"
+    assert "/tasks_from/collection_id differs between the arms" in (
+        comparison.violations
+    )
 
 
 def test_outputs_that_cannot_be_taken_are_not_graded_and_a_missing_one_still_is(

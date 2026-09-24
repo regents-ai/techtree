@@ -19,10 +19,10 @@ task and each repetition, in order:
 2. the person's ``techtree`` Hermes profile is emptied of everything but its
    sign-in and given a ``config.yaml`` Techtree wrote — Docker sandbox from
    the task image with that directory mounted back where it came from, no
-   network, memory off, no title generation — and, on the candidate arm, the
-   Skill under ``skills/<name>`` from the run's own copy;
+   network, memory off, no title generation — and, on an arm that carries a
+   Skill, that Skill under ``skills/<name>`` from the run's own copy;
 3. the person's ``hermes`` runs one-shot in that profile, in the directory,
-   with the task's instruction, the Skill preloaded on the candidate arm and
+   with the task's instruction, the arm's Skill preloaded if it has one, and
    the task's own agent timeout as its run budget and as Techtree's deadline;
 4. what the agent left is recorded before any grading: a repository task's
    workspace is diffed against the base commit inside a fresh container and
@@ -35,7 +35,7 @@ task and each repetition, in order:
    outputs could not be taken as they are is not graded; one that is only
    missing a required output still is, and the tests decide.
 
-On the candidate arm the run takes its own copy of the Skill under ``skill/``
+On an arm that carries a Skill the run takes its own copy of it under ``skill/``
 before the first attempt, once the directory it was declared from still
 hashes to what the specification says; every attempt is served from that
 copy, and it is what ``uplift skill-source`` reads back afterwards.
@@ -421,14 +421,14 @@ class ForgeRunner:
         if spec.skill is None:
             if skill_root is not None:
                 raise ValidationError(
-                    "the baseline arm runs without a Skill",
-                    code="forge_baseline_with_skill",
+                    "this run was declared without a Skill, so it takes none",
+                    code="forge_skill_not_declared",
                 )
             return []
         if skill_root is None:
             raise ValidationError(
-                "the candidate arm needs the Skill directory it declared",
-                code="forge_candidate_without_skill",
+                "this run needs the Skill directory it was declared with",
+                code="forge_skill_not_given",
             )
         found, files = scan_skill_spec(skill_root, name=spec.skill.name)
         if found.root_digest != spec.skill.root_digest:

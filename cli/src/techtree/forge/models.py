@@ -157,6 +157,7 @@ __all__ = [
     "ForgeScreeningFinding",
     "ForgeSkillDeclaration",
     "ForgeSkillName",
+    "ForgeSkillRef",
     "ForgeSkillSource",
     "ForgeSkillSpec",
     "ForgeSourceEntry",
@@ -542,7 +543,7 @@ class ForgeInitialState(ProtocolModel):
 
 
 class ForgeSkillSpec(ProtocolModel):
-    """The one Skill the candidate arm carries, by content."""
+    """The one Skill an arm carries, by content."""
 
     name: ForgeSkillName
     root_digest: Digest
@@ -618,9 +619,10 @@ class ForgeRunSpec(ProtocolModel):
     Everything a Skill-effect claim depends on is here: where the tasks come
     from and which of them run, the grading, the agent, the model, the
     tools the agent may use, the starting state, the limits, the sampling
-    plan, and the Skill. Facts the
-    experiment cannot establish are listed under ``not_established`` so the
-    report can say so instead of implying them.
+    plan, and the Skill. The candidate arm carries exactly one Skill; the
+    baseline carries none, or the earlier Skill a candidate is measured
+    against. Facts the experiment cannot establish are listed under
+    ``not_established`` so the report can say so instead of implying them.
     """
 
     schema_version: Literal["techtree.forge-run-spec.v1alpha2"]
@@ -643,8 +645,6 @@ class ForgeRunSpec(ProtocolModel):
     def validate_arm_skill(self) -> Self:
         if len(set(self.task_ids)) != len(self.task_ids):
             raise ValueError("a task may be named once in a run specification")
-        if self.arm is ForgeArm.BASELINE and self.skill is not None:
-            raise ValueError("the baseline arm carries no Skill")
         if self.arm is ForgeArm.CANDIDATE and self.skill is None:
             raise ValueError("the candidate arm carries exactly one Skill")
         if len(set(self.toolsets)) != len(self.toolsets):
@@ -654,20 +654,6 @@ class ForgeRunSpec(ProtocolModel):
         ):
             raise ValueError("output limits bound exactly a run on a collection")
         return self
-
-    def require_build(self, operation: str) -> ForgeBuildTasks:
-        """Refuse operations that still work on one repository build only."""
-        if not isinstance(self.tasks_from, ForgeBuildTasks):
-            raise ValidationError(
-                f"{operation} currently supports only runs on a repository "
-                f"build; this run is on collection {self.tasks_from.collection_id}",
-                code="forge_source_unsupported",
-                details={
-                    "collection_id": self.tasks_from.collection_id,
-                    "operation": operation,
-                },
-            )
-        return self.tasks_from
 
 
 class ForgeEvidence(StrEnum):
@@ -887,7 +873,7 @@ class ForgeRunStatus(ProtocolModel):
     record: ForgeRunRecord
 
 
-FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha3"
+FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha4"
 
 #: Fewer graded pairs than this and no verdict is given.
 VERDICT_MINIMUM_PAIRS: Final = 3
@@ -1002,8 +988,21 @@ class ForgeArmTotals(ProtocolModel):
     cost_statuses: list[NonEmptyString]
 
 
+class ForgeSkillRef(ProtocolModel):
+    """One Skill in one role, by the name it carries and its content digest."""
+
+    name: NonEmptyString
+    digest: Digest
+
+
 class ForgeComparisonRecord(ProtocolModel):
     """Two arms of one experiment, paired task by task.
+
+    Each Skill is recorded in its own role: ``source_skill`` is the Skill a
+    collection's tasks were written from, ``baseline_skill`` the Skill the
+    baseline carried, if any, and ``candidate_skill`` the Skill the candidate
+    carried. The same bytes in two roles give equal digests, and the roles
+    stay separate.
 
     ``complete`` is true only when every planned pair was graded on both
     sides; anything less is a partial observation. ``verdict`` is the one
@@ -1014,7 +1013,7 @@ class ForgeComparisonRecord(ProtocolModel):
     differ.
     """
 
-    schema_version: Literal["techtree.forge-comparison.v1alpha3"]
+    schema_version: Literal["techtree.forge-comparison.v1alpha4"]
     comparison_id: NonEmptyString
     created_at: UtcDateTime
     tasks_from: Annotated[
@@ -1022,8 +1021,9 @@ class ForgeComparisonRecord(ProtocolModel):
     ]
     baseline_run_id: NonEmptyString
     candidate_run_id: NonEmptyString
-    skill_name: ForgeSkillName
-    skill_digest: Digest
+    source_skill: ForgeSkillRef | None
+    baseline_skill: ForgeSkillRef | None
+    candidate_skill: ForgeSkillRef
     comparability: ManifestComparison
     baseline: ForgeArmTotals
     candidate: ForgeArmTotals
@@ -1045,6 +1045,8 @@ class ForgeComparisonRecord(ProtocolModel):
 
     @model_validator(mode="after")
     def validate_counts_agree(self) -> Self:
+        if (self.source_skill is None) != isinstance(self.tasks_from, ForgeBuildTasks):
+            raise ValueError("a Source Skill is named exactly for a collection's tasks")
         if self.wins + self.losses + self.ties != self.pairs_graded:
             raise ValueError("wins, losses and ties add up to the graded pairs")
         if self.pairs_graded + self.unresolved != self.pairs_planned:
@@ -1103,7 +1105,7 @@ class ForgeComparisonStatus(ProtocolModel):
     record: ForgeComparisonRecord
 
 
-FORGE_REVISION_SCHEMA_VERSION: Final = "techtree.forge-revision.v1alpha1"
+FORGE_REVISION_SCHEMA_VERSION: Final = "techtree.forge-revision.v1alpha2"
 
 
 class ForgeScreeningFinding(ProtocolModel):
@@ -1112,12 +1114,14 @@ class ForgeScreeningFinding(ProtocolModel):
     Screening is evidence, not a verdict: a line shared with the reference
     patch or the tests is recorded here, on the revision, so the person who
     approves the second run sees it, and the report can say the Skill may
-    carry the answer rather than the method. The excerpt is bounded and the
-    line is named by its number in the Skill, never by the hidden file's.
+    carry the answer rather than the method. A repository task hides its
+    reference patch, tests and test names; a Skill task hides its reference
+    solutions and tests. The excerpt is bounded and the line is named by its
+    number in the Skill, never by the hidden file's.
     """
 
     task_id: ForgeTaskId
-    material: Literal["reference_patch", "tests", "test_names"]
+    material: Literal["reference_patch", "reference_solution", "tests", "test_names"]
     skill_path: NonEmptyString
     line: int = Field(ge=1)
     excerpt: NonEmptyString
@@ -1133,12 +1137,14 @@ class ForgeRevisionRecord(ProtocolModel):
     whether it improved or regressed; nothing here chooses.
     """
 
-    schema_version: Literal["techtree.forge-revision.v1alpha1"]
+    schema_version: Literal["techtree.forge-revision.v1alpha2"]
     revision_id: NonEmptyString
     created_at: UtcDateTime
     updated_at: UtcDateTime
     comparison_id: NonEmptyString
-    build_id: NonEmptyString
+    tasks_from: Annotated[
+        ForgeBuildTasks | ForgeCollectionTasks, Field(discriminator="kind")
+    ]
     baseline_run_id: NonEmptyString
     parent_run_id: NonEmptyString
     parent_skill_digest: Digest

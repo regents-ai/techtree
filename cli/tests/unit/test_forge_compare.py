@@ -110,7 +110,8 @@ def test_a_controlled_pair_is_paired_task_by_task_and_written(
     assert record.candidate_run_id == candidate.run_id
     assert record.tasks_from == baseline.spec.tasks_from
     assert record.tasks_from.kind == "build"
-    assert record.skill_name == "demo-skill"
+    assert record.candidate_skill.name == "demo-skill"
+    assert (record.source_skill, record.baseline_skill) == (None, None)
     assert record.comparability.controlled
     assert record.complete
     assert (record.pairs_planned, record.pairs_graded) == (1, 1)
@@ -276,6 +277,7 @@ def test_an_attempt_never_reached_is_unresolved_not_a_zero(
         interrupted,
         candidate,
         compare_run_specs(interrupted.spec, candidate.spec),
+        source_skill=None,
         comparison_id="forgecmp_" + "0" * 32,
         created_at=candidate.record.updated_at,
     )
@@ -324,6 +326,7 @@ def test_a_lost_attempt_is_a_regression_and_a_task_that_went_both_ways_is_said_s
         baseline,
         candidate,
         compare_run_specs(baseline.spec, candidate.spec),
+        source_skill=None,
         comparison_id="forgecmp_" + "1" * 32,
         created_at=candidate.record.updated_at,
     )

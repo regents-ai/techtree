@@ -51,7 +51,7 @@ from techtree.forge.collection import (
     read_collection_status,
     verify_collection,
 )
-from techtree.forge.compare import VERDICT_WORDS, compare_runs, read_comparison_status
+from techtree.forge.compare import compare_runs, read_comparison_status, verdict_words
 from techtree.forge.construction import (
     check_construction,
     prepare_construction,
@@ -81,9 +81,11 @@ from techtree.forge.models import (
     ForgePlanRecord,
     ForgePlanStatus,
     ForgeProposalStatus,
+    ForgeRevisionRecord,
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
+    ForgeSkillRef,
     ForgeSourceStatus,
     ForgeSubjectToolset,
     ForgeTaskRegression,
@@ -253,8 +255,9 @@ def run_forge_command(
         ForgeArm,
         typer.Option(
             "--arm",
-            help="Which side of the comparison this run is: the baseline runs "
-            "without the Skill, the candidate with it.",
+            help="Which side of the comparison this run is: the candidate "
+            "carries the Skill being measured, the baseline no Skill or the "
+            "earlier Skill it is measured against.",
         ),
     ],
     provider: Annotated[
@@ -297,8 +300,9 @@ def run_forge_command(
         typer.Option(
             "--skill",
             metavar="PATH",
-            help="The Skill directory the candidate arm measures. Refused on "
-            "the baseline arm.",
+            help="The Skill directory this arm carries. Required on the "
+            "candidate arm; on the baseline arm, only to measure against an "
+            "earlier Skill.",
         ),
     ] = None,
     reasoning: Annotated[
@@ -365,11 +369,16 @@ def compare_forge_command(
     ctx: typer.Context,
     baseline_run: Annotated[
         str,
-        typer.Argument(metavar="BASELINE_RUN_ID", help="The run without the Skill."),
+        typer.Argument(
+            metavar="BASELINE_RUN_ID",
+            help="The baseline run: without a Skill, or with the earlier Skill.",
+        ),
     ],
     candidate_run: Annotated[
         str,
-        typer.Argument(metavar="CANDIDATE_RUN_ID", help="The run with the Skill."),
+        typer.Argument(
+            metavar="CANDIDATE_RUN_ID", help="The run with the Skill being measured."
+        ),
     ],
 ) -> None:
     """Compare a baseline run with a candidate run and write the report."""
@@ -1248,13 +1257,17 @@ def render_forge_run(status: ForgeRunStatus, console: Console) -> None:
 
 
 def _tasks_from_pair(
-    source: ForgeRunSpec | ForgeComparisonRecord,
+    source: ForgeRunSpec | ForgeComparisonRecord | ForgeRevisionRecord,
 ) -> tuple[str, str]:
     match source.tasks_from:
         case ForgeBuildTasks(build_id=build_id):
             return ("Build", build_id)
         case ForgeCollectionTasks(collection_id=collection_id, version=version):
             return ("Collection", f"{collection_id} (version {version})")
+
+
+def _skill_words(skill: ForgeSkillRef) -> str:
+    return f"{skill.name} ({skill.digest[:19]})"
 
 
 def _limits_words(spec: ForgeRunSpec) -> str:
@@ -1442,12 +1455,23 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
     record = status.record
     pairs = [
         ("Comparison", status.comparison_id),
-        ("Skill", f"{record.skill_name} ({record.skill_digest[:19]})"),
         ("Baseline run", record.baseline_run_id),
         ("Candidate run", record.candidate_run_id),
         _tasks_from_pair(record),
+        *(
+            []
+            if record.source_skill is None
+            else [("Tasks written from", _skill_words(record.source_skill))]
+        ),
+        (
+            "Baseline Skill",
+            "none"
+            if record.baseline_skill is None
+            else _skill_words(record.baseline_skill),
+        ),
+        ("Candidate Skill", _skill_words(record.candidate_skill)),
         ("Result", "complete" if record.complete else "partial"),
-        ("Verdict", VERDICT_WORDS[record.verdict]),
+        ("Verdict", verdict_words(record.verdict, record.baseline_skill)),
         (
             "Pairs",
             f"{record.wins} won, {record.losses} lost, {record.ties} tied, "
@@ -1600,7 +1624,7 @@ def render_forge_revision(status: ForgeRevisionStatus, console: Console) -> None
         ("Revised Skill", f"{record.skill.name} ({record.skill.root_digest[:19]})"),
         ("Revises", f"{record.parent_skill_digest[:19]} from {record.comparison_id}"),
         ("Baseline run", record.baseline_run_id),
-        ("Build", record.build_id),
+        _tasks_from_pair(record),
         ("Controlled", "yes" if record.comparability.controlled else "no"),
         (
             "Screening",
@@ -1638,7 +1662,7 @@ def revision_warnings(status: ForgeRevisionStatus) -> list[CliWarning]:
             id="forge_revision_shares_hidden_material",
             text=(
                 f"{len(status.record.screening)} line(s) of the revised Skill "
-                "also occur in a task's reference fix or tests; a result with "
+                "also occur in a task's reference answer or tests; a result with "
                 "it may measure recall rather than method. Each is listed on "
                 "the revision."
             ),

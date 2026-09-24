@@ -630,8 +630,12 @@ seed, plus the repetition count). The agent's wall-clock allowance is the
 task's own `[agent].timeout_sec`, part of the committed content. What the
 experiment cannot establish — the model actually served, an unmodified
 executable, the provider's sampling — is listed on the specification under
-`not_established` rather than implied. The baseline arm carries no Skill and
-the candidate arm exactly one; the model refuses anything else.
+`not_established` rather than implied. The candidate arm carries exactly one
+Skill; the baseline carries none, or the earlier Skill a candidate is
+measured against (Skill v1 against Skill v2). A run takes exactly the Skill
+it was declared with: a Skill handed to a run declared without one is
+refused (`forge_skill_not_declared`), and so is a run declared with a Skill
+and handed none (`forge_skill_not_given`).
 
 `compare_run_specs` is the comparability gate, computed the way
 `manifests/compare.py` computes a Climb's: the arms must be a baseline and a
@@ -651,7 +655,7 @@ lives at `forge/runs/<forgerun_id>/` with `spec.json` (the declared
 specification, canonical bytes) and `run.json`
 (`techtree.forge-run.v1alpha2`), written before the first attempt and after
 every one, so an interrupted run keeps what it had; its `state` is
-`unfinished`, `completed`, `failed` or `cancelled`. A candidate run takes its
+`unfinished`, `completed`, `failed` or `cancelled`. A run with a Skill takes its
 own copy of the Skill's files under `skill/` before the first attempt, and every
 attempt's profile is filled from that copy, so the run measures a Skill it
 owns rather than a working directory free to change; `uplift skill-source`
@@ -730,9 +734,9 @@ counts, kept bytes, failures), and
 one outcome: `graded` (with a reward), `agent_timed_out`, `agent_failed` (a
 non-zero exit, or a usage report saying `failed` or not `completed`),
 `outputs_rejected`, `verifier_timed_out`, or `no_verdict`. A run on a
-collection is a baseline or a candidate, and `forge compare` pairs two runs
-on the same collection; revision and improvement still take repository runs
-only (`forge_source_unsupported`). Only a graded attempt has a reward;
+collection is a baseline or a candidate, and `forge compare`, `uplift
+context`, `uplift prepare` and `uplift start` work on two runs on the same
+collection version as they do on a build. Only a graded attempt has a reward;
 nothing is recorded as zero for want of evidence. Nothing retries an attempt.
 `forge status` reads a build id, a run id, a comparison id, a revision id or
 a source id.
@@ -757,17 +761,31 @@ three pairs were graded; `mixed` with at least one win and one loss;
 task the Skill lost at least once, with the attempts lost and won) and
 `consistency` (per task: wins, losses, ties, unresolved, and whether the task
 went both ways across attempts), and its `summary` opens with the verdict in
-words. The record (`techtree.forge-comparison.v1alpha3`, a hard cutover: the
-earlier shape fails validation, without a fallback reader) names where its
-tasks came from in `tasks_from`, the run specification's own build or
-collection, and is written to
+words. Two modes are judged by those same rules: a baseline without a Skill
+against a candidate with one ("Improved with the Skill", "Regressed with the
+Skill"), and a baseline with an earlier Skill against a candidate with a later
+one ("Improved on the baseline Skill", "Regressed from the baseline Skill",
+and a summary that names the roles, since two versions of a Skill often
+share a name). The record (`techtree.forge-comparison.v1alpha4`, a hard
+cutover: the earlier shape fails validation, without a fallback reader)
+names where its tasks came from in `tasks_from`, the run specification's own
+build or collection, and every Skill in its own role, each by name and
+digest: `source_skill`, the Source Skill a collection's tasks were written
+from (read from the collection's review and the Source Skill record; none for
+a build), `baseline_skill` (none when the baseline had no Skill) and
+`candidate_skill`. The same bytes in two roles give equal digests and both
+roles are still recorded; nothing is merged or inferred from digest equality.
+Runs on two versions of a collection, or two collections, differ at
+`/tasks_from` and are refused by the gate. The record is written to
 `forge/comparisons/<forgecmp_id>/comparison.json` beside `report.html`, one
 self-contained page (own stylesheet, no script, nothing fetched) that says, in
-order: the repository, commit and build, or the collection and its version,
-and both runs; "Local evidence about a mutable subject", headed "Evaluation on
-Skill-derived tasks" for a collection;
-the question tested, the summary, "Where the Skill lost" (shown even when the
-mean difference is positive), baseline | candidate | difference, the
+order: the repository, commit and build, or the collection, its version and
+the Skill its tasks were written from, then the baseline's Skill (or none),
+the candidate's Skill and both runs; "Local evidence about a mutable
+subject", headed "Evaluation on Skill-derived tasks" for a collection;
+the question tested (against the baseline's Skill when it had one), the
+summary, "Where the Skill lost" or "Where the candidate Skill lost" (shown
+even when the mean difference is positive), baseline | candidate | difference, the
 task-by-task table with an "Across attempts" column (or the sentence that one
 attempt per task measured no consistency), both arms' patches, or for a
 Skill task what each attempt left in its working directory, and grading
@@ -783,29 +801,37 @@ four `uplift` commands close the loop on a forge comparison the way they close
 it on a Climb run, with the same review-before-spend and the same refusal to
 hand a reviser hidden material. `uplift context FORGECMP_ID`
 (`forge/improvement.py`) writes `improvement/context.json`
-(`techtree.forge-improvement-context.v1alpha1`) beside the comparison: the
-repository and commit, the measured Skill's name and digests, the paired
-totals, an objective sentence, and per task the instruction the agent was given
-(shortened, and refused if it carries a local path), both arms' outcome and
+(`techtree.forge-improvement-context.v1alpha2`) beside the comparison: where
+the tasks came from in `tasks_from` (a build with its repository and commit,
+or a collection with its version), the measured Skill's name and digests, the
+paired totals, an objective sentence, and per task the instruction the agent
+was given (shortened, and refused if it carries a local path; for a Skill
+task a path under the folders its required outputs go in, such as `/app`, is
+inside the task's sandbox and allowed), both arms' outcome and
 reward, the pair's result, and the candidate's seconds and model calls, ordered
 losses worst-first, then unresolved pairs, then tasks still at zero, then the
 narrowest wins, with at most three successful ties for contrast. Reference
 patches, tests, test names, either arm's patch, transcripts and local paths are
-excluded by construction and listed on the context as prohibited. `uplift
+excluded by construction and listed on the context as prohibited; for a
+collection, the reference solutions, the tests, what either arm left,
+transcripts and local paths. `uplift
 prepare --from-run FORGECMP_ID --candidate-skill PATH [--label NAME]`
 (`forge/revision.py`) makes one revision: the candidate run's specification
 with the Skill alone replaced, refused when the Skill is unchanged
 (`forge_revision_unchanged`), when Hermes no longer reports the version the
 comparison used (`forge_agent_changed`), or when `compare_run_specs` finds any
 other difference against the baseline. The revised Skill is then screened
-against every task's reference patch and tests: each line of 24 characters or
-more that appears verbatim in a reference fix or a test file, and each scored
-test name it mentions, is recorded on the revision as a finding — evidence
+against every task's hidden material: each line of 24 characters or more that
+appears verbatim in a reference fix or a test file, and each scored test name
+it mentions (`reference_patch`, `tests`, `test_names`), or for a Skill task
+in any file of its reference solutions or tests (`reference_solution`,
+`tests`), is recorded on the revision as a finding — evidence
 about the revision, not a refusal — and a revision with findings carries the
 `forge_revision_shares_hidden_material` warning wherever it is shown. It lives
 at `forge/revisions/<forgerev_id>/` with its own copy of the Skill under
 `skill/`, `spec.json` and `revision.json`
-(`techtree.forge-revision.v1alpha1`, state `prepared`). `uplift start
+(`techtree.forge-revision.v1alpha2`, naming its build or collection in
+`tasks_from`, state `prepared`). `uplift start
 FORGEREV_ID` shows the same review `forge run` shows, plus the revision, its
 baseline and the screening result, and asks; with `--yes` it runs the revision
 as a candidate arm, compares it against the baseline the parent comparison

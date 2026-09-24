@@ -5,9 +5,9 @@ checked here, not typed in: a repository build must have finished
 qualification and every named task must be one it qualified; a Skill
 collection must be accepted and still exactly what was accepted, and every
 named task must be one of its members; the Hermes on the path must answer
-``--version``; and a candidate Skill must scan cleanly and carry a name Hermes
-would accept. What cannot be checked is not guessed; it is listed on the
-specification under ``not_established``.
+``--version``; and a Skill, on whichever arm carries one, must scan cleanly
+and carry a name Hermes would accept. What cannot be checked is not
+guessed; it is listed on the specification under ``not_established``.
 """
 
 from __future__ import annotations
@@ -96,8 +96,8 @@ def declare_run_spec(
         collection_id: An accepted Skill collection; exactly one of this and
             ``build_id`` is given.
         task_ids: The tasks to run, in order; all of them when omitted.
-        skill_root: The candidate Skill's directory; required on the candidate
-            arm and refused on the baseline arm.
+        skill_root: The Skill's directory: required on the candidate arm,
+            and on the baseline arm only when it measures an earlier Skill.
         provider: The provider name Hermes will be asked for.
         model_id: The model Hermes will be asked for.
         reasoning: Hermes' reasoning setting, when one is requested.
@@ -242,14 +242,7 @@ def _subset(
 
 
 def _skill_for(arm: ForgeArm, skill_root: Path | None) -> ForgeSkillSpec | None:
-    if arm is ForgeArm.BASELINE:
-        if skill_root is not None:
-            raise ValidationError(
-                "the baseline arm runs without a Skill; name the Skill on the "
-                "candidate arm only",
-                code="forge_baseline_with_skill",
-                details={"skill_root": str(skill_root)},
-            )
+    if skill_root is None and arm is ForgeArm.BASELINE:
         return None
     if skill_root is None:
         raise ValidationError(

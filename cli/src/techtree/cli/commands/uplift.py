@@ -80,11 +80,16 @@ from techtree.cli.invoke import CommandResult, approval_operation, invoke_comman
 from techtree.cli.output import render_pairs
 from techtree.drafts.store import DraftStore
 from techtree.errors import ValidationError
+from techtree.forge.collection import verify_collection
 from techtree.forge.improvement import (
+    ForgeImprovementCollection,
     ForgeImprovementContext,
+    ForgeImprovementRepository,
     build_forge_improvement_context,
 )
 from techtree.forge.models import (
+    ForgeBuildTasks,
+    ForgeCollectionTasks,
     ForgeComparisonStatus,
     ForgeRevisionStatus,
     ForgeRunStatus,
@@ -356,9 +361,9 @@ def skill_source_uplift_command(
             run = read_run_status(context.paths, run_id)
             if run.spec.skill is None:
                 raise ValidationError(
-                    "the baseline arm ran without a Skill, so there is no text "
-                    "to read; name the candidate run",
-                    code="forge_candidate_without_skill",
+                    "this run carried no Skill, so there is no text to read; "
+                    "name a run that carried one",
+                    code="forge_run_without_skill",
                     details={"run_id": run_id},
                 )
             skill = read_owned_skill(
@@ -612,10 +617,11 @@ def _measure(
 ) -> CommandResult[ForgeUpliftStartPayload | ForgeRunReview]:
     """Show what measuring the revision would do, ask, run it, compare it."""
     revision = read_revision_status(context.paths, revision_id)
-    read_build_status(
-        context.paths,
-        revision.spec.require_build("Repository Skill measurement").build_id,
-    )
+    match revision.spec.tasks_from:
+        case ForgeBuildTasks(build_id=build_id):
+            read_build_status(context.paths, build_id)
+        case ForgeCollectionTasks(collection_id=collection_id):
+            verify_collection(context.paths, collection_id)
     review = _revision_review(revision)
     if not assume_yes and context.no_input:
         return CommandResult(
@@ -644,10 +650,10 @@ def _revision_review(revision: ForgeRevisionStatus) -> ForgeRunReview:
     record = revision.record
     screening = (
         f"Screening: {len(record.screening)} line(s) of the revised Skill also "
-        "occur in a task's reference fix or tests; see the revision."
+        "occur in a task's reference answer or tests; see the revision."
         if record.screening
         else "Screening: no line of the revised Skill occurs in a task's "
-        "reference fix or tests."
+        "reference answer or tests."
     )
     return review.model_copy(
         update={
@@ -764,6 +770,14 @@ def _render_context(data: object, console: Console) -> None:
         console.print(f"  {item}")
 
 
+def _improvement_tasks_pair(improvement: ForgeImprovementContext) -> tuple[str, str]:
+    match improvement.tasks_from:
+        case ForgeImprovementRepository(repository=repository, head_commit=commit):
+            return ("Repository", f"{repository} at {commit[:12]}")
+        case ForgeImprovementCollection(collection_id=collection_id, version=version):
+            return ("Collection", f"{collection_id} (version {version})")
+
+
 def _render_forge_context(data: ForgeUpliftContextPayload, console: Console) -> None:
     improvement = data.context
     result = improvement.current_result
@@ -775,10 +789,7 @@ def _render_forge_context(data: ForgeUpliftContextPayload, console: Console) -> 
     render_pairs(
         [
             ("Comparison", improvement.comparison_id),
-            (
-                "Repository",
-                f"{improvement.repository} at {improvement.head_commit[:12]}",
-            ),
+            _improvement_tasks_pair(improvement),
             (
                 "Skill being revised",
                 f"{improvement.parent_skill_name} "

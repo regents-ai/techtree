@@ -3,9 +3,10 @@
 A Skill-effect claim rests on the two arms having been the same experiment
 apart from the Skill. That is the same claim :mod:`techtree.manifests.compare`
 computes for a Climb, and it is computed the same way here: the arms are
-required to be a baseline without a Skill and a candidate with one, then their
-canonical JSON is walked to its leaves and every disagreement is reported as a
-JSON Pointer. Only ``/arm`` and ``/skill`` may differ. A different build, task
+required to be a baseline and a candidate, the baseline without a Skill or
+with an earlier one, then their canonical JSON is walked to its leaves and
+every disagreement is reported as a JSON Pointer. Only ``/arm`` and
+``/skill`` may differ. A different build, task
 list, model, Hermes version, starting state, limit or repetition count is a
 violation, and the pair is not compared.
 

@@ -325,7 +325,7 @@ def test_a_skill_that_changed_since_declaration_does_not_run(
     assert not build.paths.forge_runs_dir.exists()
 
 
-def test_the_arms_are_held_to_their_skill_at_run_time_too(
+def test_a_run_is_held_to_the_skill_it_was_declared_with(
     build: QualifiedBuild, skill: Path, profiles: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     baseline = declare(build, monkeypatch, arm=ForgeArm.BASELINE)
@@ -337,8 +337,8 @@ def test_the_arms_are_held_to_their_skill_at_run_time_too(
     with pytest.raises(ValidationError) as without:
         forge.run(candidate, None)
 
-    assert with_skill.value.code == "forge_baseline_with_skill"
-    assert without.value.code == "forge_candidate_without_skill"
+    assert with_skill.value.code == "forge_skill_not_declared"
+    assert without.value.code == "forge_skill_not_given"
 
 
 # ---------------------------------------------------------------------------

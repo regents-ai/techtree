@@ -33,6 +33,7 @@ from techtree.forge.models import (
     ForgeQualification,
     ForgeRepositorySource,
     ForgeRunStatus,
+    ForgeSkillRef,
     ForgeTaskConsistency,
     GenerationSummary,
     QualificationCheck,
@@ -249,9 +250,11 @@ def render_report(
 
     ``repository`` is where a build's tasks came from; a comparison on a
     collection has none, and its page says the tasks were written from a
-    Skill.
+    Skill and names that Skill beside the Skill each arm carried, every one
+    in its own role.
     """
     spec = candidate.spec
+    name = record.candidate_skill.name
     match record.tasks_from:
         case ForgeBuildTasks(build_id=build_id):
             assert repository is not None  # a build's tasks come from a repository
@@ -269,18 +272,45 @@ def render_report(
                 "Evaluation on Skill-derived tasks: local evidence about a "
                 "mutable subject"
             )
-            source = [_dd("Collection", f"{collection_id}, version {version}")]
+            # A collection's comparison always names the Skill it was written from.
+            assert record.source_skill is not None
+            source = [
+                _dd("Collection", f"{collection_id}, version {version}"),
+                _dd("Tasks written from", _skill(record.source_skill)),
+            ]
             task = "complete these tasks, which were written from a Skill"
+    if record.baseline_skill is None:
+        than = ""
+        preloaded = (
+            "The candidate had the Skill preloaded; the baseline had nothing "
+            "else different."
+        )
+        loser = "Skill"
+    else:
+        than = (
+            ", more than the Skill <strong>"
+            + _e(record.baseline_skill.name)
+            + "</strong> (<code>"
+            + _e(record.baseline_skill.digest[:19])
+            + "</code>) does"
+        )
+        preloaded = "Each arm had its own Skill preloaded; nothing else was different."
+        loser = "candidate Skill"
     parts = [
         "<!doctype html>",
         '<html lang="en"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
-        f"<title>{_e(record.skill_name)} on {_e(subject)}</title>",
+        f"<title>{_e(name)} on {_e(subject)}</title>",
         f"<style>{_STYLE}</style></head><body>",
-        f"<h1>Skill experiment: {_e(record.skill_name)} on {_e(subject)}</h1>",
+        f"<h1>Skill experiment: {_e(name)} on {_e(subject)}</h1>",
         f'<div class="label">{_e(label)}</div>',
         '<dl class="meta">',
         *source,
+        _dd(
+            "Baseline Skill",
+            "none" if record.baseline_skill is None else _skill(record.baseline_skill),
+        ),
+        _dd("Candidate Skill", _skill(record.candidate_skill)),
         _dd("Baseline run", record.baseline_run_id),
         _dd("Candidate run", record.candidate_run_id),
         _dd("Comparison", record.comparison_id),
@@ -288,9 +318,9 @@ def render_report(
         "</dl>",
         "<h2>The question</h2>",
         "<p>Does the Skill <strong>"
-        + _e(record.skill_name)
+        + _e(name)
         + "</strong> (<code>"
-        + _e(record.skill_digest[:19])
+        + _e(record.candidate_skill.digest[:19])
         + "</code>) help Hermes Agent v"
         + _e(spec.agent.version)
         + " with "
@@ -299,6 +329,7 @@ def render_report(
         + _e(spec.model.provider)
         + " "
         + _e(task)
+        + than
         + "? Both arms ran the same "
         + str(len(spec.task_ids))
         + _plural(len(spec.task_ids), " task", " tasks")
@@ -306,13 +337,12 @@ def render_report(
         + str(spec.sampling.repetitions)
         + _plural(spec.sampling.repetitions, " attempt", " attempts")
         + " each, from a fresh Hermes state with memory off, in a sandbox with "
-        "no network. The candidate had the Skill preloaded; the baseline had "
-        "nothing else different.</p>",
+        "no network. " + preloaded + "</p>",
         "<h2>In short</h2>",
         f'<p class="summary{"" if record.complete else " partial"}">'
         f"{_e(record.summary)}</p>",
-        "<h2>Where the Skill lost</h2>",
-        _regressions(record),
+        f"<h2>Where the {loser} lost</h2>",
+        _regressions(record, f"The {loser}"),
         "<h2>Baseline, candidate, difference</h2>",
         _totals_table(record.baseline, record.candidate),
         "<h2>Task by task</h2>",
@@ -397,9 +427,9 @@ def _totals_table(baseline: ForgeArmTotals, candidate: ForgeArmTotals) -> str:
     )
 
 
-def _regressions(record: ForgeComparisonRecord) -> str:
+def _regressions(record: ForgeComparisonRecord, loser: str) -> str:
     if not record.regressions:
-        return "<p>The Skill lost no graded pair.</p>"
+        return f"<p>{loser} lost no graded pair.</p>"
     items = "".join(
         f"<li><code>{_e(r.task_id)}</code>: lost "
         f"{_attempts(r.attempts_lost)}"
@@ -408,7 +438,7 @@ def _regressions(record: ForgeComparisonRecord) -> str:
         for r in record.regressions
     )
     return (
-        f"<p>The Skill lost on {len(record.regressions)} "
+        f"<p>{loser} lost on {len(record.regressions)} "
         f"{_plural(len(record.regressions), 'task', 'tasks')}, whatever the mean "
         f'difference says.</p><ul class="plain">{items}</ul>'
     )
@@ -686,6 +716,10 @@ def _read_text(path: Path) -> str | None:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
+
+
+def _skill(skill: ForgeSkillRef) -> str:
+    return f"{skill.name} ({skill.digest})"
 
 
 def _dd(label: str, value: str) -> str:
