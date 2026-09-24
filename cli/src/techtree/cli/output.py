@@ -33,6 +33,7 @@ from __future__ import annotations
 import shlex
 import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from rich.console import Console
@@ -52,6 +53,7 @@ from techtree.models.cli import (
     NextAction,
     command_line,
 )
+from techtree.paths import default_paths
 
 __all__ = [
     "DataRenderer",
@@ -91,12 +93,17 @@ def emit_envelope(
     *,
     render_data: DataRenderer | None = None,
 ) -> None:
-    """Write one JSON object or render human output."""
+    """Write one JSON object or render human output.
+
+    A person who named their own home with ``--home`` is shown next steps
+    that name it too, so a step copied as printed acts on the same home.
+    """
     write_envelope(
         envelope,
         json_output=context.json_output,
         no_color=context.no_color,
         render_data=render_data,
+        home=None if context.paths.root == default_paths().root else context.paths.root,
     )
 
 
@@ -106,6 +113,7 @@ def write_envelope(
     json_output: bool,
     no_color: bool,
     render_data: DataRenderer | None = None,
+    home: Path | None = None,
 ) -> None:
     """Write one envelope without needing a fully built context.
 
@@ -115,7 +123,9 @@ def write_envelope(
     if json_output:
         json_stdout(envelope)
         return
-    render_human(envelope, human_console(no_color=no_color), render_data=render_data)
+    render_human(
+        envelope, human_console(no_color=no_color), render_data=render_data, home=home
+    )
 
 
 def render_human(
@@ -123,6 +133,7 @@ def render_human(
     console: Console,
     *,
     render_data: DataRenderer | None = None,
+    home: Path | None = None,
 ) -> None:
     """Render the payload, then everything the caller still has to know.
 
@@ -144,11 +155,17 @@ def render_human(
         console.print()
         _render_error(envelope.error, console)
 
-    render_next_actions(envelope.next_actions, console)
+    render_next_actions(envelope.next_actions, console, home=home)
 
 
-def render_next_actions(actions: list[NextAction], console: Console) -> None:
-    """Render ordered next steps with display-only shell quoting."""
+def render_next_actions(
+    actions: list[NextAction], console: Console, *, home: Path | None = None
+) -> None:
+    """Render ordered next steps with display-only shell quoting.
+
+    ``home`` is the ``--home`` the command was given, if any, and each step
+    names it the same way.
+    """
     if not actions:
         return
 
@@ -168,7 +185,7 @@ def render_next_actions(actions: list[NextAction], console: Console) -> None:
     # One step is not a list, so it is not numbered like one.
     numbered = len(actions) > 1
     for position, action in enumerate(actions, start=1):
-        table.add_row(f"{position}." if numbered else "", _step_text(action))
+        table.add_row(f"{position}." if numbered else "", _step_text(action, home))
 
     console.print(table)
 
@@ -255,7 +272,7 @@ def _render_content_refs(refs: list[ContentRef], console: Console) -> None:
     )
 
 
-def _step_text(action: NextAction) -> Text:
+def _step_text(action: NextAction, home: Path | None) -> Text:
     """Return one next step with the line a person types set apart.
 
     A step is the command, then why it is offered. The command is the only one
@@ -269,7 +286,9 @@ def _step_text(action: NextAction) -> Text:
     characters it is made of and cannot choose a colour for itself.
     """
     step = Text()
-    step.append(shell_display(command_line(action)), style="bold")
+    program, *rest = command_line(action)
+    argv = [program, *(() if home is None else ("--home", str(home))), *rest]
+    step.append(shell_display(argv), style="bold")
     step.append("\n")
     step.append(action.reason, style="dim")
     if action.approval_required:

@@ -523,7 +523,9 @@ def test_the_refusal_to_watch_and_wait_at_once_offers_the_wait(
 
     assert result.exit_code == EXIT_USAGE
     assert RUN_WATCH_NOT_SUPPORTED_WITH_WAIT in printed
-    assert f"techtree run status {started}" in printed
+    assert f"techtree--home{temp_techtree_home}runstatus{started}" in "".join(
+        result.stdout.split()
+    )
 
 
 def test_the_refusal_to_watch_in_machine_mode_offers_the_wait(

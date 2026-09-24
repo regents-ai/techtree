@@ -52,6 +52,7 @@ __all__ = [
     "FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION",
     "FORGE_CONSTRUCTION_RUN_SCHEMA_VERSION",
     "FORGE_CONSTRUCTION_SCHEMA_VERSION",
+    "FORGE_EXPORT_SCHEMA_VERSION",
     "FORGE_OUTPUT_MANIFEST_SCHEMA_VERSION",
     "FORGE_PLAN_APPROVAL_SCHEMA_VERSION",
     "FORGE_PLAN_ATTEMPT_SCHEMA_VERSION",
@@ -110,6 +111,9 @@ __all__ = [
     "ForgeCreatedPackage",
     "ForgeCreatorRecipe",
     "ForgeEvidence",
+    "ForgeExport",
+    "ForgeExportTask",
+    "ForgeExportVerification",
     "ForgeGradingSpec",
     "ForgeInitialState",
     "ForgeLanguage",
@@ -1477,6 +1481,7 @@ FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha1"
 FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION: Final = (
     "techtree.forge-collection-acceptance.v1alpha1"
 )
+FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha1"
 
 #: The most tasks one plan may ask for: Skill2Env's own default workflow count.
 MAX_PLANNED_TASKS: Final = 8
@@ -2090,3 +2095,43 @@ class ForgeCollectionStatus(ProtocolModel):
     state: ForgeCollectionState
     record: ForgeCollectionRecord
     acceptance: ForgeCollectionAcceptance | None
+
+
+class ForgeExportTask(ProtocolModel):
+    """One accepted task as an export carries it.
+
+    ``build`` is its build's record: where the task came from and the
+    commitment to its files. ``qualification`` is the evidence the
+    collection's member digest names.
+    """
+
+    build: ForgeBuildRecord
+    qualification: TaskQualification
+
+
+class ForgeExport(ProtocolModel):
+    """``export.json``: one accepted collection, exactly as it was accepted.
+
+    ``tasks`` follows the collection's members, one for one and in order.
+    """
+
+    schema_version: Literal["techtree.forge-export.v1alpha1"]
+    exported_at: UtcDateTime
+    collection: ForgeCollectionRecord
+    acceptance: ForgeCollectionAcceptance
+    tasks: list[ForgeExportTask] = Field(min_length=1)
+
+
+class ForgeExportVerification(ProtocolModel):
+    """What checking an export found, from its folder alone.
+
+    ``checked`` is what was worked out again from the files there;
+    ``recorded_only`` is what the export states and its files cannot show.
+    """
+
+    path: NonEmptyString
+    collection_id: NonEmptyString
+    version: int = Field(ge=1)
+    tasks: int = Field(ge=1)
+    checked: list[NonEmptyString] = Field(min_length=1)
+    recorded_only: list[NonEmptyString] = Field(min_length=1)

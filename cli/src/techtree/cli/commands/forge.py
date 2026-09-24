@@ -59,6 +59,7 @@ from techtree.forge.construction import (
     start_construction,
 )
 from techtree.forge.experiment import declare_run_spec
+from techtree.forge.export import export_collection, verify_export
 from techtree.forge.models import (
     MAX_PLANNED_TASKS,
     ForgeArm,
@@ -73,6 +74,7 @@ from techtree.forge.models import (
     ForgeConstructionRecord,
     ForgeConstructionStatus,
     ForgeConstructionTaskStatus,
+    ForgeExportVerification,
     ForgeLanguage,
     ForgeOutputs,
     ForgePlanRecord,
@@ -414,10 +416,10 @@ def inspect_skill_forge_command(
             raise ValidationError(
                 "Techtree cannot use this Skill as it is: "
                 + "; ".join(refusal.message for refusal in record.refusals)
-                + ". Nothing in it was run and no model was asked about it. A copy "
-                "without these is a different Skill; look at that copy with "
-                f"--derived-from {status.source_id} so it records where it came "
-                "from.",
+                + ". Nothing in it was run and no model was asked about it. Fix "
+                "this and look at the Skill again. If fixing it changed the "
+                f"Skill's files, add --derived-from {status.source_id} so the "
+                "new look records where it came from.",
                 code="forge_skill_unsupported",
                 details={
                     "source_id": status.source_id,
@@ -961,6 +963,87 @@ def verify_forge_command(
     )
 
 
+def export_forge_command(
+    ctx: typer.Context,
+    collection_id: Annotated[
+        str,
+        typer.Argument(metavar="COLLECTION_ID", help="The accepted collection."),
+    ],
+    to: Annotated[
+        Path,
+        typer.Option(
+            "--to",
+            metavar="FOLDER",
+            help="A new folder to write the copy into. It must not exist yet.",
+        ),
+    ],
+) -> None:
+    """Write a private copy of an accepted collection into a new folder."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeExportVerification]:
+        return CommandResult(data=export_collection(context.paths, collection_id, to))
+
+    invoke_command(
+        context, Operation.ACTION_EXECUTE, action, render_data=_render_exported
+    )
+
+
+def verify_export_forge_command(
+    ctx: typer.Context,
+    folder: Annotated[
+        Path,
+        typer.Argument(metavar="FOLDER", help="A folder forge export wrote."),
+    ],
+) -> None:
+    """Check an exported collection from its folder alone."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeExportVerification]:
+        return CommandResult(data=verify_export(folder))
+
+    invoke_command(context, Operation.PROOF_VERIFY, action, render_data=_render_export)
+
+
+def _render_exported(data: object, console: Console) -> None:
+    if isinstance(data, ForgeExportVerification):
+        console.print(
+            f"Exported: collection {data.collection_id}, version {data.version}, "
+            f"with its {data.tasks} {_plural(data.tasks, 'task', 'tasks')}, "
+            "into a new folder only you can open. It stays on this computer until "
+            "you share it.",
+            markup=False,
+        )
+        render_pairs([("Folder", data.path)], console)
+        console.print()
+        console.print(
+            "Left out: the Skill's text, the logs from writing and checking the "
+            "tasks, and everything else in this Techtree home. The tests and "
+            "reference solutions are in it, so anyone who has the folder can "
+            "read the answers.",
+            markup=False,
+        )
+        console.print("Check it anywhere with: techtree forge verify-export FOLDER")
+
+
+def _render_export(data: object, console: Console) -> None:
+    if isinstance(data, ForgeExportVerification):
+        console.print(
+            f"Verified: this folder holds collection {data.collection_id}, "
+            f"version {data.version}, exactly as accepted, with its {data.tasks} "
+            f"{_plural(data.tasks, 'task', 'tasks')}.",
+            markup=False,
+        )
+        render_pairs([("Folder", data.path)], console)
+        console.print()
+        console.print("Checked from the files there:", markup=False)
+        for line in data.checked:
+            console.print(Padding(Text(line), (0, 0, 0, 2)))
+        console.print("Recorded only, not something the files can show:", markup=False)
+        for line in data.recorded_only:
+            console.print(Padding(Text(line), (0, 0, 0, 2)))
+
+
 class ForgeRunReview(ProtocolModel):
     """What running this arm would do, for a caller that has to show it.
 
@@ -1067,7 +1150,9 @@ def ask_to_start(context: CliContext, review: ForgeRunReview) -> None:
     console.print()
     if not confirmed("Start this experiment?"):
         raise PolicyError(
-            "the experiment was not approved, so nothing was started",
+            "the experiment was not approved, so nothing was started. "
+            "To go ahead, run this again and answer y. Where no one can answer "
+            "here, show the person this review and, once they agree, add --yes",
             code=RUN_NOT_APPROVED,
             details={"spec_digest": review.spec_digest},
         )
@@ -1127,6 +1212,13 @@ def render_forge_run(status: ForgeRunStatus, console: Console) -> None:
         ("Evidence", status.path),
     ]
     render_pairs(pairs, console)
+    if record.state == "unfinished":
+        console.print(
+            "No end is recorded for this run. If it is not still running "
+            "somewhere, it was stopped before it could record one, for example "
+            "when its window was closed. Its recorded attempts stay as they are; "
+            "start a new run to try again."
+        )
     if record.failure is not None:
         console.print(f"{record.failure.code}: {record.failure.message}", markup=False)
     if record.attempts:
@@ -1726,7 +1818,10 @@ def _ask_to_plan(context: CliContext, record: ForgePlanRecord) -> None:
     console.print()
     if not confirmed("Send this to the planner?"):
         raise PolicyError(
-            "the plan was not approved, so the planner was not called",
+            "the plan was not approved, so the planner was not called. "
+            "To go ahead, run this again and answer y. Where no one can answer "
+            "here, show the person this review and, once they agree, add "
+            "--yes --reviewed-on host-agent",
             code=PLAN_NOT_APPROVED,
             details={"plan_id": record.plan_id},
         )
@@ -2059,7 +2154,10 @@ def _ask_to_construct(context: CliContext, record: ForgeConstructionRecord) -> N
     console.print()
     if not confirmed("Send these tasks to the creator?"):
         raise PolicyError(
-            "the construction was not approved, so the creator was not called",
+            "the construction was not approved, so the creator was not called. "
+            "To go ahead, run this again and answer y. Where no one can answer "
+            "here, show the person this review and, once they agree, add "
+            "--yes --reviewed-on host-agent",
             code=CONSTRUCTION_NOT_APPROVED,
             details={"construction_id": record.construction_id},
         )
@@ -2322,7 +2420,10 @@ def _ask_to_accept(context: CliContext, record: ForgeCollectionRecord) -> None:
     console.print()
     if not confirmed("Accept these tasks as the collection?"):
         raise PolicyError(
-            "the collection was not accepted, so nothing was frozen",
+            "the collection was not accepted, so nothing was frozen. "
+            "To go ahead, run this again and answer y. Where no one can answer "
+            "here, show the person this review and, once they agree, add "
+            "--yes --reviewed-on host-agent",
             code=COLLECTION_NOT_ACCEPTED,
             details={"collection_id": record.collection_id},
         )

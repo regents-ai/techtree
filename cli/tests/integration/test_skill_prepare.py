@@ -514,9 +514,9 @@ def test_the_human_rendering_shows_the_whole_display_list(cli_home: Path) -> Non
         "Acceptance required before starting",
         "You own the candidate skill",
         "development Climb",
-        "techtree climb start",
     ):
         assert expected in output, f"{expected!r} is missing from climb prepare"
+    assert f"techtree--home{cli_home}climbstart" in "".join(result.stdout.split())
 
 
 def test_a_refused_preparation_reports_a_stable_code(cli_home: Path) -> None:

@@ -15,6 +15,7 @@ than as a printed remark.
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import shutil
@@ -22,11 +23,14 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from rich.console import Console
 
 from fixtures.receipts.staged import RecordedEvidenceExecutor, staged_recorded_run
 from fixtures.runs.support import run_cli
 from techtree.canonical import canonical_json_bytes
+from techtree.cli.output import render_next_actions
 from techtree.errors import EXIT_OK, EXIT_VERIFICATION
+from techtree.models.cli import NextAction
 from techtree.paths import paths_from_root
 from techtree.presentation.compact import UNVERIFIED_HEADLINE
 from techtree.receipts.bundle import (
@@ -152,10 +156,29 @@ def test_the_compact_result_is_short_enough_to_send(
 
     What the bound is really protecting is that the table cannot grow with the
     membership: thirty-six tasks render in the same handful of rows two did.
+
+    A home named with ``--home`` is named in each next step too, so a step
+    copied from the chat acts on that home. The fixture's home is a long
+    temporary folder; the lines its name adds are not charged to the budget,
+    which is for the usual home.
     """
     text = compact(finished)
+    envelope = json.loads(
+        run_cli(finished["home"], "run", "result", finished["run_id"]).stdout
+    )
+    steps = [
+        NextAction.model_validate_json(json.dumps(step))
+        for step in envelope["next_actions"]
+    ]
 
-    assert len(text.splitlines()) < 56
+    def steps_lines(home: Path | None) -> int:
+        printed = io.StringIO()
+        render_next_actions(steps, Console(file=printed, width=80), home=home)
+        return len(printed.getvalue().splitlines())
+
+    naming_home = steps_lines(finished["home"]) - steps_lines(None)
+    assert naming_home > 0
+    assert len(text.splitlines()) - naming_home < 56
 
 
 def test_a_piped_reader_who_asks_for_every_task_is_given_them(

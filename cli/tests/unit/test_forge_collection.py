@@ -20,6 +20,7 @@ model is called.
 from __future__ import annotations
 
 import json
+import stat
 import subprocess
 from collections.abc import Sequence
 from pathlib import Path
@@ -668,3 +669,80 @@ def test_a_run_is_declared_on_one_build_or_one_collection(
             )
 
         assert caught.value.code == "forge_run_tasks_unnamed"
+
+
+# ---------------------------------------------------------------------------
+# An export of the accepted collection
+# ---------------------------------------------------------------------------
+
+
+def test_an_export_is_checked_from_its_folder_alone_and_holds_nothing_private(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    paths = paths_from_root(home)
+    collection_id = accepted(home, proposal_id, profiles)
+    build = member_build(paths, collection_id)
+    secret = "sk-decoy-4f1c9a7e2b"
+    for place in (
+        home / "auth.json",
+        paths.forge_collection_dir(collection_id) / "notes.txt",
+        Path(build.path) / "credentials.env",
+    ):
+        place.write_text(secret, encoding="utf-8")
+
+    code, envelope = invoke(
+        home, "export", collection_id, "--to", str(tmp_path / "export")
+    )
+    assert code == 0, envelope
+    moved = tmp_path / "elsewhere"
+    (tmp_path / "export").rename(moved)
+    fresh = tmp_path / "fresh-home"
+    fresh.mkdir()
+    code, envelope = invoke(fresh, "verify-export", str(moved))
+
+    assert code == 0, envelope
+    assert envelope["facts"]["collection_id"] == collection_id
+    assert build.build is not None
+    [manifest] = build.build.task_set.tasks
+    files = sorted(path for path in moved.rglob("*") if path.is_file())
+    assert [str(path.relative_to(moved)) for path in files] == sorted(
+        [
+            "README.md",
+            "export.json",
+            *(
+                f"tasks/{manifest.task_id}/{entry.path}"
+                for entry in manifest.entries
+                if entry.kind == "file"
+            ),
+        ]
+    )
+    for path in files:
+        data = path.read_bytes()
+        assert secret.encode() not in data, path
+        assert b"keep only the letters a to z" not in data, path
+    assert stat.S_IMODE(moved.stat().st_mode) == 0o700
+
+
+def test_a_changed_or_added_file_in_an_export_is_refused_by_name(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    [task] = (export / "tasks").iterdir()
+    instruction = task / "instruction.md"
+    original = instruction.read_bytes()
+
+    instruction.write_bytes(original + b" ")
+    changed = invoke(home, "verify-export", str(export))
+    instruction.write_bytes(original)
+    (task / "tests" / "expected.json").write_text("{}", encoding="utf-8")
+    added = invoke(home, "verify-export", str(export))
+
+    for (code, envelope), name in (
+        (changed, "instruction.md"),
+        (added, "tests/expected.json"),
+    ):
+        assert code != 0
+        assert envelope["error"]["code"] == "forge_export_changed"
+        assert f"differ from what was accepted: {name}" in envelope["error"]["message"]

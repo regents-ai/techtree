@@ -507,6 +507,31 @@ naming what changed). Evaluation and export of a collection (T11, T12) call
 `verify_collection` first, so they refuse a changed one under the accepted
 identity.
 
+**Forge export (a private copy of an accepted collection).** `forge export
+COLLECTION_ID --to FOLDER` (`forge/export.py`, T12) verifies the collection,
+then writes a new folder (refused if it exists, `forge_export_exists`) under a
+hidden name beside it, checks the copy, and only then renames it into place;
+the folder and everything in it are the owner's alone (0700/0600), and nothing
+is published. It holds exactly: `tasks/<task_id>/`, each member's files copied
+entry by entry from its build's commitment without following links;
+`export.json` (`techtree.forge-export.v1alpha1`), the collection record and
+acceptance with each member's build record and qualification evidence; and a
+`README.md` made from `export.json` alone, saying what the folder holds and
+leaves out and that its tests and reference solutions let anyone who has it
+read the answers. The Source Skill's bytes, the planning, construction and
+qualification logs, run material and everything else in the home are never
+read. `forge verify-export FOLDER` needs no home: it refuses anything in the
+folder beyond the collection, anything missing and any link; recomputes every
+task file against the accepted content digests (naming each file that
+differs), each qualification record against its member digest, and the
+membership and collection digests against the acceptance; and compares the
+README with `export.json`. Any difference is `forge_export_changed`. It
+reports what it recomputed and what is recorded only: the Source Skill (its
+digest, not its text), the proposal and construction, the qualification runs,
+the images, and the acceptance's time and answer. Including the Source Skill
+or authoring transcripts with a rights statement, attribution, and running a
+baseline from an export in a fresh home are not built yet.
+
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and
 `techtree.forge-qualification.v1alpha4`. This is a hard cutover of the unreleased
@@ -688,7 +713,14 @@ bound (`output_too_large`), and a read or a copy left incomplete by a bound or
 an entry that could not be read or kept (`capture_incomplete`, and an entry
 whose state is unknown is not reported as deleted) are explicit failures, and the attempt is `outputs_rejected` without grading; a
 required output the agent did not leave (`artifact_missing`) is recorded and
-the tests still grade it. Tests and reference
+the tests still grade it. A Python virtual environment made the usual way
+inside the working directory is refused for this reason: its `bin/python` is
+a link to the image's own Python. One made there with `python -m venv
+--copies` is accepted within the bounds (about 1,000 entries and 11 MB with
+pip), and one made outside the directory, such as in `/root`, is not read at
+all; in Hermes' sandbox `/tmp` does not let programs run from it, so only a
+`/tmp` environment's `bin/python` works there
+(`release-v030/U4b-venv/`). Tests and reference
 solutions are never mounted into the agent's container. The attempt record
 carries the config digest, the Hermes arguments (instruction replaced by
 `instruction.md`), exit code, whether it timed out, seconds, the usage report

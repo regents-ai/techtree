@@ -25,7 +25,7 @@ from techtree.forge.models import (
     TaskSetCommitment,
 )
 
-__all__ = ["commit_task_set", "verify_task_set"]
+__all__ = ["changed_entries", "commit_task_set", "verify_task_set"]
 
 
 @contextmanager
@@ -151,14 +151,34 @@ def commit_task_set(tasks_dir: Path, task_ids: list[str]) -> TaskSetCommitment:
 
 
 def verify_task_set(tasks_dir: Path, expected: TaskSetCommitment) -> None:
-    """Refuse qualification if any committed task bytes or membership have drifted."""
+    """Refuse when any task's files differ from the ones committed at build time."""
     observed = commit_task_set(tasks_dir, [task.task_id for task in expected.tasks])
     if observed.membership_digest != expected.membership_digest:
+        changed = [
+            f"in task {built.task_id}, " + ", ".join(changed_entries(built, found))
+            for built, found in zip(expected.tasks, observed.tasks, strict=True)
+            if found.content_digest != built.content_digest
+        ]
         raise RunError(
-            "task content changed since the build commitment",
+            "these files changed after the tasks were built: "
+            + "; ".join(changed)
+            + ". Put them back as they were built",
             code="forge_task_content_changed",
             details={
                 "expected": expected.membership_digest,
                 "observed": observed.membership_digest,
             },
         )
+
+
+def changed_entries(
+    built: TaskContentManifest, found: TaskContentManifest
+) -> list[str]:
+    """Name every entry that was added, removed or changed since ``built``."""
+    before = {entry.path: entry for entry in built.entries}
+    after = {entry.path: entry for entry in found.entries}
+    return sorted(
+        path
+        for path in before.keys() | after.keys()
+        if before.get(path) != after.get(path)
+    )

@@ -130,9 +130,9 @@ def capture_outputs(
                     ForgeOutputFailure(
                         kind="escaping_link",
                         path=path,
-                        detail=f"the link points to {new.target}, which stayed "
-                        f"among the entries in {work_dir} until the subject's "
-                        "changes and does not now",
+                        detail=f"the link points to {new.target}, and following "
+                        f"it may now lead out of {work_dir}, which it did not "
+                        "before the subject's changes",
                     )
                 )
             continue
@@ -165,8 +165,8 @@ def capture_outputs(
                 ForgeOutputFailure(
                     kind="escaping_link",
                     path=path,
-                    detail=f"the link points to {new.target}, which does not stay "
-                    f"among the entries in {work_dir}",
+                    detail=f"the link points to {new.target}, and following it "
+                    f"may lead out of {work_dir}",
                 )
             )
         if new is not None and new.kind == "other":

@@ -730,7 +730,9 @@ def test_list_renders_one_readable_row_per_climb(populated_home: Path) -> None:
     assert "synthetic-open@1" in result.stdout
     assert "synthetic-closed@1" not in result.stdout
     assert "Next:" in result.stdout
-    assert "techtree climb show synthetic-open@1" in result.stdout
+    assert f"techtree--home{populated_home}climbshowsynthetic-open@1" in "".join(
+        result.stdout.split()
+    )
 
 
 def test_show_returns_a_summary_a_host_agent_can_validate(

@@ -61,11 +61,13 @@ from techtree.cli.commands.forge import (
     construct_forge_command,
     construct_start_forge_command,
     correct_proposal_forge_command,
+    export_forge_command,
     inspect_skill_forge_command,
     plan_forge_command,
     plan_start_forge_command,
     run_forge_command,
     status_forge_command,
+    verify_export_forge_command,
     verify_forge_command,
 )
 from techtree.cli.commands.profile import (
@@ -456,6 +458,14 @@ def _forge_app() -> typer.Typer:
         "verify",
         help="Check that an accepted collection is unchanged since its acceptance.",
     )(verify_forge_command)
+    app.command(
+        "export",
+        help="Write a private copy of an accepted collection into a new folder.",
+    )(export_forge_command)
+    app.command(
+        "verify-export",
+        help="Check an exported collection from its folder alone.",
+    )(verify_export_forge_command)
     app.command(
         "status",
         help="Show what one forge build made, one run did, one comparison found, "

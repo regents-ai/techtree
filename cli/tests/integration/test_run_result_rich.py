@@ -175,7 +175,7 @@ def test_the_result_offers_the_next_steps_this_build_can_carry_out(
 ) -> None:
     text = human(finished, "--format", "rich")
 
-    assert "techtree proof verify" in text
+    assert f"techtree--home{finished['home']}proofverify" in "".join(text.split())
     assert "--show-tasks all" in text
 
 

@@ -135,7 +135,7 @@ def test_a_required_script_refuses_the_skill_by_name_and_keeps_no_copy(
     error = envelope["error"]
     assert error["code"] == "forge_skill_unsupported"
     assert "scripts/setup.sh" in error["message"]
-    assert "different Skill" in error["message"]
+    assert "look at the Skill again" in error["message"]
     [refusal] = error["details"]["refusals"]
     assert refusal == {
         "path": "scripts/setup.sh",
@@ -262,7 +262,7 @@ def test_a_link_is_recorded_and_never_followed(
             "    tags: x\n---\n",
             "line 5 nests another level",
         ),
-        ("---\nname: other-name\ndescription: x\n---\n", "directory is demo-skill"),
+        ("---\nname: other-name\ndescription: x\n---\n", "folder is called demo-skill"),
         ("---\nname: demo-skill\n---\n", "description"),
         ("name: demo-skill\n", "does not begin"),
     ],

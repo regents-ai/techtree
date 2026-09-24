@@ -308,9 +308,10 @@ class Docker:
     def remove_labelled(self, label: str, value: str) -> list[str]:
         """Remove every container carrying ``label=value`` and say what happened.
 
-        Hermes stops the sandbox it started for a one-shot run but leaves it
-        on the daemon; it labels each with its profile, which is how the
-        forge takes back exactly the containers its ``techtree`` profile made.
+        Hermes removes the sandbox it started when it exits normally; this
+        takes back what a Hermes that crashed or was killed left behind. Hermes
+        labels each sandbox with its profile, which is how the forge finds
+        exactly the containers its ``techtree`` profile made.
         """
         listed = self._run(
             ["docker", "ps", "--all", "--quiet", "--filter", f"label={label}={value}"],

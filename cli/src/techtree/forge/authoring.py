@@ -124,9 +124,10 @@ def kept_files(
         raise ValidationError(
             f"Techtree cannot use Source Skill {source.source_id} as it is: "
             + "; ".join(refusal.message for refusal in record.refusals)
-            + f". {called} was not called. A copy without these is a "
-            "different Skill; look at that copy with forge inspect-skill "
-            f"--derived-from {source.source_id}",
+            + f". {called} was not called. Fix this and look at the Skill again "
+            "with forge inspect-skill. If fixing it changed the Skill's files, "
+            f"add --derived-from {source.source_id} so the new look records "
+            "where it came from.",
             code="forge_skill_unsupported",
             details={
                 "source_id": source.source_id,

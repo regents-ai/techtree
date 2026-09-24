@@ -201,6 +201,8 @@ forge construct-start
 forge collect
 forge accept
 forge verify
+forge export
+forge verify-export
 forge status
 ```
 

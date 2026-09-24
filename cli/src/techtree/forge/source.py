@@ -536,9 +536,10 @@ def _declaration(
             _refusal(
                 SKILL_ENTRY_FILE,
                 "declaration",
-                f"SKILL.md names the Skill {declaration.name} but its directory is "
-                f"{directory_name}; the Agent Skills specification requires them "
-                "to match",
+                f"SKILL.md names the Skill {declaration.name} but its folder is "
+                f"called {directory_name}, and the Agent Skills specification "
+                "requires them to match: rename the folder to "
+                f"{declaration.name}, or change the name in SKILL.md",
             )
         ]
     return declaration, []

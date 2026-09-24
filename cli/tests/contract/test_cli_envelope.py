@@ -677,6 +677,27 @@ def test_global_options_are_understood_wherever_they_are_written(
     assert hoist_global_options(given) == expected
 
 
+def test_a_next_step_names_the_home_the_command_was_given(
+    temp_techtree_home: Path, tmp_path: Path
+) -> None:
+    """A step copied as printed acts on the same home as the command before it."""
+    skill = tmp_path / "demo-skill"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text(
+        "---\nname: demo-skill\ndescription: A demo.\n---\n\nSay hello.\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        create_app(),
+        ["--home", str(temp_techtree_home), "forge", "inspect-skill", str(skill)],
+    )
+
+    assert result.exit_code == 0, result.output
+    shown = "".join(result.output.split())
+    assert f"techtree--home{temp_techtree_home}forgestatusforgesrc_" in shown
+
+
 def test_machine_mode_never_leaves_input_enabled(temp_techtree_home: Path) -> None:
     context = build_cli_context(
         home=temp_techtree_home,
