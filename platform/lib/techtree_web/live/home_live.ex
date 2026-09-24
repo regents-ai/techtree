@@ -9,13 +9,10 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ReleaseInfo
+  alias TechtreeWeb.StartLive
 
   # Install coordinates come from the published release, never marketing copy.
   @preview_label "Controlled agent evaluations"
-
-  # This names a stable page and introductory Climb rather than a release
-  # coordinate, so it remains safe to hand to an agent as the release moves.
-  @agent_line "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
 
   @crown_studies [
     %{id: "1", label: "Graze"},
@@ -35,7 +32,7 @@ defmodule TechtreeWeb.HomeLive do
     {:ok,
      assign(socket,
        page_title: nil,
-       agent_line: @agent_line,
+       agent_line: StartLive.instruction(),
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
@@ -114,7 +111,7 @@ defmodule TechtreeWeb.HomeLive do
                 class="rg-button rg-button--primary button--primary"
                 navigate={~p"/start"}
               >
-                <span class="rg-button__label">Start your first Climb</span>
+                <span class="rg-button__label">Create an environment</span>
               </.link>
               <a class="text-link" href={~p"/results"}>
                 View published Results <span aria-hidden="true">→</span>
@@ -243,17 +240,15 @@ defmodule TechtreeWeb.HomeLive do
             <p class="release-state">
               This channel publishes stand-in coordinates, so there is no command to copy yet.
             </p>
-          <% @release.introductory_reference -> %>
+          <% true -> %>
             <.command_block
               id="copy-home-cli"
               lines={[
                 {:command, @release.install_argv},
-                {:command, ["techtree", "doctor", "--climb", @release.introductory_reference]}
+                {:command, ["techtree", "forge", "inspect-skill", "path/to/your-skill"]}
               ]}
-              label="Install, then check this machine"
+              label="Install, then look at your Skill"
             />
-          <% true -> %>
-            <p class="release-state">This release does not name an introductory Climb.</p>
         <% end %>
       </div>
     </div>

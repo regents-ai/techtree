@@ -16,6 +16,8 @@
 .start-guide .setup-unavailable { padding: var(--rg-panel-padding); }
 .setup-unavailable h2 { max-width: 36ch; font-size: 1.75rem; }
 .setup-unavailable p { max-width: 65ch; }
+.start-guide__direct { display: grid; gap: var(--space-3); }
+.start-guide__direct > h2 { font-size: 1.375rem; letter-spacing: -.025em; }
 .start-guide__next { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-4); border-top: 1px solid var(--rule); }
 .start-guide__next > div { max-width: 60ch; }
 .start-guide__next h2 { margin-top: var(--space-1); font-size: 1.75rem; }

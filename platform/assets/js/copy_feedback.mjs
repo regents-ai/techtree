@@ -64,8 +64,8 @@ export function mountCommandCopyButton(hook, copyValue, writeText) {
   mountCopyButton(hook, {
     copyValue,
     idleLabel: "Copy",
-    successMessage: "Command copied.",
-    failureMessage: "Copy failed. Select the command text and copy it manually.",
+    successMessage: "Copied.",
+    failureMessage: "Copy failed. Select the text and copy it manually.",
     writeText,
   })
 }

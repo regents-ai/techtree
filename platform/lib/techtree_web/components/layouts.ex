@@ -137,7 +137,7 @@ defmodule TechtreeWeb.Layouts do
   end
 
   defp description_for_path("/start"),
-    do: "Set up Techtree with the CLI or Hermes plugin and run the Hello World Climb."
+    do: "Give your local agent one instruction to create a Techtree environment from your Skill."
 
   defp description_for_path("/results"),
     do: "Browse participant-attested Results from controlled Skill comparisons."

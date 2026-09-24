@@ -9,6 +9,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
+  alias TechtreeWeb.StartLive
 
   describe "with a release published" do
     setup do
@@ -100,7 +101,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, ~s|a[href="/start"]|, "Start your first Climb")
+      assert has_element?(live, ~s|a[href="/start"]|, "Create an environment")
       assert has_element?(live, "#copy-home-agent-line")
       assert text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
@@ -120,13 +121,13 @@ defmodule TechtreeWeb.HomeLiveTest do
       expected =
         Enum.join(release.install_argv, " ") <>
           "\n" <>
-          "techtree doctor --climb #{release.introductory_reference}"
+          "techtree forge inspect-skill path/to/your-skill"
 
       assert has_element?(live, "#copy-home-cli")
       assert html =~ ~s|data-copy-value="#{expected}"|
       refute html =~ "Doctor checks prerequisites"
 
-      assert has_element?(live, ".installer__manual .command", "Install, then check this machine")
+      assert has_element?(live, ".installer__manual .command", "Install, then look at your Skill")
       refute has_element?(live, ".installer__doctor-note")
       refute has_element?(live, ".compatibility")
       refute has_element?(live, ".release-coordinate")
@@ -194,12 +195,11 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert text =~ "Give this to your agent"
 
-      assert text =~
-               "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
+      assert text =~ StartLive.instruction()
 
       assert has_element?(
                live,
-               ~s|#copy-home-agent-line[data-copy-value="Go to techtree.sh/start and set up Techtree and run the Hello World Climb."]|
+               ~s|#copy-home-agent-line[data-copy-value="#{StartLive.instruction()}"]|
              )
 
       refute text =~ "One concrete Result"
@@ -232,8 +232,8 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert text =~ "Improve a Skill."
     refute text =~ "Evidence graph"
-    assert text =~ "Start your first Climb"
-    assert text =~ "Go to techtree.sh/start and set up Techtree and run the Hello World Climb."
+    assert text =~ "Create an environment"
+    assert text =~ StartLive.instruction()
     refute html =~ "copy-home-cli"
   end
 

@@ -1,19 +1,22 @@
 # Techtree
 
-> Controlled Skill evaluations and signed, independently verifiable results.
+> Environments created from a person's Skill, controlled Skill evaluations, and signed, independently verifiable results.
 
 [Website](https://techtree.sh) · [Source](https://github.com/regents-ai/techtree)
 
-## Local evaluation and optional publication
+## Local work and optional publication
 
-- [Pinned start guide](https://techtree.sh/start).
-- [Agent installation guide](https://techtree.sh/skill.md).
+- [Start](https://techtree.sh/start): one instruction a person gives their local agent to create an environment from their Skill.
+- [Agent installation guide](https://techtree.sh/skill.md): the exact release to install, and the steps to follow. Each review waits for the person's own answer; never approve on their behalf.
 - [Bootstrap contract](https://techtree.sh/api/v1/bootstrap): use its exact released versions and arguments. Reject placeholder releases.
 - [Catalog](https://techtree.sh/api/v1/catalog).
 - [CLI](https://github.com/regents-ai/techtree/blob/main/cli/README.md) and [Hermes plugin](https://github.com/regents-ai/techtree/blob/main/plugin/README.md).
 - [Published results](https://techtree.sh/results).
 
-The Python CLI owns local campaigns and offline proof verification. The plugin
+The Python CLI owns local environments, campaigns and offline proof
+verification. Creating an environment uploads nothing to Techtree; its planning
+and building steps send the Skill's files to the model provider the person
+chose, only after they approve that review. The plugin
 operates the CLI; it is not a second evaluation engine. Running models can spend
 the participant's budget. Publishing is optional and uses signed publication
 material; a web profile does not grant authority over another publication key.

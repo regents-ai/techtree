@@ -157,7 +157,7 @@ test("command copy blocks overlap and reannounces repeated success", async () =>
   assert.equal(button.nextElementSibling.textContent, "")
   assert.equal(button.label.textContent, "Copied")
   assert.equal(clock.runFrame(secondFrameId), true)
-  assert.equal(button.nextElementSibling.textContent, "Command copied.")
+  assert.equal(button.nextElementSibling.textContent, "Copied.")
 
   await button.click()
   const [thirdFrameId] = clock.pendingFrameIds()
@@ -175,9 +175,9 @@ test("command copy blocks overlap and reannounces repeated success", async () =>
   assert.deepEqual(button.nextElementSibling.values, [
     "",
     "",
-    "Command copied.",
+    "Copied.",
     "",
-    "Command copied.",
+    "Copied.",
   ])
   assert.deepEqual(clock.pendingTimerIds(), [thirdTimerId])
   assert.equal(clock.timerDelay(thirdTimerId), 1800)

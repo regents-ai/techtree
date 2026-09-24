@@ -67,6 +67,25 @@ the mechanism, not a measure of broad capability. The first result is the
 If someone says "the Skill improved", be sure everyone means the subject
 Skill, and name the comparison whose measured difference they mean.
 
+## Creating an environment from a Skill
+
+Someone may ask you to turn one of their Skills into an environment: a set of
+checked tasks written from it. That work happens through the Techtree CLI in
+the terminal, `techtree forge`, and this plugin has no tools for it. The
+agent page at techtree.sh/skill.md lists the steps.
+
+- Ask where the Skill is. Never pick one for them.
+- Run one step at a time and show each review exactly as Techtree prints it.
+- A review that asks for approval waits for the person's yes to that review.
+  Only then run the command Techtree printed, with
+  `--yes --reviewed-on host-agent`. Never approve anything for them.
+- Ask which provider and model to plan with; do not choose one.
+
+Planning and building send the Skill's files to the model provider the person
+chose, on their own sign-in, and only after they approve the review that says
+so. What Techtree prints to you also passes through your own provider, as
+everything in this conversation does.
+
 ## Before anything runs
 
 Inspect first, always. `techtree_climb_inspect` tells you what a Climb
@@ -273,6 +292,8 @@ Do not work around it.
 
 - Say what v0.1 is: a proof of concept for a stack, with the parts attributed.
 - Inspect before preparing; prepare before starting.
+- Creating an environment: one `techtree forge` step at a time, each review
+  shown as printed, and every approval the person's own.
 - Show the episode count, the policy, and what changes — then ask.
 - Never quote a price or a finishing time; neither one exists.
 - Long work returns an identifier; poll gently.
