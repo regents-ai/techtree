@@ -128,6 +128,8 @@ def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
         "openai-codex",
         "--model",
         "gpt-5.6-sol",
+        "--tasks",
+        "5",
     )
     assert code == 0, envelope
     plan_id = envelope["facts"]["plan_id"]

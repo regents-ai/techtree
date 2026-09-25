@@ -15,7 +15,9 @@ of the claim it is:
   correct outcome. It guards against the Skill overreaching.
 
 Build the task so that its tests check that observable behavior for this
-case, and nothing the claim does not cover.
+case, and nothing the claim does not cover. The claim and its observable are
+for building the tests only: they must not appear in `instruction.md` or in
+the input files.
 
 An agent will later be given the task in a Linux container with no network. It
 reads `instruction.md`, works in the files the environment gives it, and leaves

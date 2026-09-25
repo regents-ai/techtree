@@ -54,8 +54,9 @@ For each task give:
 - `verifier_strategy`: how the checking program decides each criterion,
   including how it tells a correct answer from a plausible wrong one.
 
-Answer with one JSON object and nothing else, no prose and no code fence,
-giving the claims first and then the tasks:
+Write every text value as plain text on one line, with no line breaks, tabs
+or formatting codes. Answer with one JSON object and nothing else, no prose
+and no code fence, giving the claims first and then the tasks:
 
 {"claims": [{"claim_id": "C1", "statement": "...", "observable": "..."}], "tasks": [{"name": "...", "claim": "C1", "kind": "positive", "summary": "...", "scenario": "...", "success_criteria": ["..."], "verifier_strategy": "..."}]}
 

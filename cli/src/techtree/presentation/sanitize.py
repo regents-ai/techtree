@@ -47,6 +47,7 @@ from techtree.verifiers.models import NormalizedExecutionError
 
 __all__ = [
     "PRESENTATION_REDACTION_FAILED",
+    "carries_control",
     "ensure_no_control_or_local_path",
     "ensure_no_hidden_task_material",
     "sanitize_error_summary",
@@ -102,6 +103,15 @@ def sanitize_error_summary(error: NormalizedExecutionError, maximum: int = 200) 
     return sanitize_label(summary, maximum)
 
 
+def carries_control(value: str) -> bool:
+    """Return whether a string holds an escape sequence or a control character.
+
+    Newline and tab count: text that a terminal shows a person may not break
+    its own lines or move the cursor.
+    """
+    return bool(_ANSI.search(value) or _CONTROL.search(value))
+
+
 def ensure_no_control_or_local_path(value: str, *, field: str) -> None:
     """Raise when one string would carry a terminal command or a local path.
 
@@ -110,7 +120,7 @@ def ensure_no_control_or_local_path(value: str, *, field: str) -> None:
     a payload is read by a terminal and a context is read by a model, and
     neither may be handed an escape sequence or somebody's home directory.
     """
-    if _ANSI.search(value) or _CONTROL.search(value):
+    if carries_control(value):
         raise ValidationError(
             "a result rendering may not carry terminal control sequences",
             code=PRESENTATION_REDACTION_FAILED,

@@ -436,7 +436,7 @@ def _forge_app() -> typer.Typer:
     )(plan_start_forge_command)
     app.command(
         "correct-proposal",
-        help="Record your corrections to proposed tasks as a new proposal.",
+        help="Record your corrections to proposed claims and tasks as a new proposal.",
     )(correct_proposal_forge_command)
     app.command(
         "construct",

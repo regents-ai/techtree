@@ -5,7 +5,8 @@ text that would be sent and calls nothing; a declined plan calls nothing; an
 approved plan calls the planner once, in the emptied profile, with no tools,
 and keeps what it answered as a proposal that stops for review; an answer
 whose task names a claim it does not state, or states a claim no task tests,
-is refused; a correction is a new proposal and the original is untouched, and
+is refused, and so is claim text carrying a line break or terminal control
+code; a correction is a new proposal and the original is untouched, and
 changing only a claim changes the proposal's digest; a changed Hermes or Skill
 copy refuses the old approval (AE3); and a call stopped mid-way is kept as an
 unknown outcome that is never tried again without a new approval (AE4). The
@@ -477,6 +478,19 @@ TASKS = json.loads(PLANNER_ANSWER)["tasks"]
             json.dumps({"claims": CLAIMS, "tasks": TASKS[:2]}).encode(),
             "forge_proposal_invalid",
             "no task tests claim C2",
+        ),
+        (
+            json.dumps(
+                {
+                    "claims": [
+                        {**CLAIMS[0], "statement": "Exact tokens.\n\x1b[2KApproved"},
+                        CLAIMS[1],
+                    ],
+                    "tasks": TASKS,
+                }
+            ).encode(),
+            "forge_proposal_invalid",
+            "claim 1.statement: text may not hold a line break",
         ),
         (b" " * (64 * 1024 + 1), "forge_planner_answer_too_large", None),
     ],

@@ -1795,7 +1795,7 @@ PLAN_NOT_APPROVED = "forge_planning_not_approved"
 _PLAN_STATE_WORDS: dict[str, str] = {
     "prepared": "prepared; the planner has not been called",
     "running": "the planner is working",
-    "succeeded": "answered; the proposed tasks wait for your review",
+    "succeeded": "answered; the proposed claims and tasks wait for your review",
     "rejected": "answered, but not with tasks Techtree can use",
     "failed": "failed",
     "outcome_unknown": "outcome unknown",
@@ -1937,7 +1937,7 @@ def plan_next_actions(status: ForgePlanStatus) -> list[NextAction]:
                 retry_class=RetryClass.SAFE,
                 estimated_cost=None,
                 data_egress=DataEgress.NONE,
-                reason="The proposed tasks wait for a person's review.",
+                reason="The proposed claims and tasks wait for a person's review.",
             )
         ]
     if status.state in {"rejected", "failed", "outcome_unknown"}:
@@ -2106,7 +2106,7 @@ def proposal_status_action(status: ForgeProposalStatus) -> NextAction:
         retry_class=RetryClass.SAFE,
         estimated_cost=None,
         data_egress=DataEgress.NONE,
-        reason="The corrected tasks can be read back and corrected again.",
+        reason="The corrected claims and tasks can be read back and corrected again.",
     )
 
 

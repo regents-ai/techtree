@@ -506,12 +506,23 @@ def _planner_content(answer: bytes, limits: ForgePlanLimits) -> ForgeProposalCon
             f"{limits.answer_bytes} the plan allowed",
             code="forge_planner_answer_too_large",
         )
-    content = _content(answer, who="the planner's answer")
-    if len(content.tasks) > limits.max_tasks:
+    return _within_limit(
+        _content(answer, who="the planner's answer"),
+        limits.max_tasks,
+        who="the planner's answer",
+        code="forge_planner_too_many_tasks",
+    )
+
+
+def _within_limit(
+    content: ForgeProposalContent, max_tasks: int, *, who: str, code: str
+) -> ForgeProposalContent:
+    """Refuse more tasks than the plan allowed."""
+    if len(content.tasks) > max_tasks:
         raise ValidationError(
-            f"the planner proposed {len(content.tasks)} tasks, over the "
-            f"{limits.max_tasks} the plan allowed",
-            code="forge_planner_too_many_tasks",
+            f"{who} proposes {len(content.tasks)} tasks, over the {max_tasks} "
+            "the plan allowed",
+            code=code,
         )
     return content
 
@@ -573,7 +584,12 @@ def correct_proposal(
             code="forge_proposal_file_unreadable",
             details={"path": str(correction_file)},
         ) from error
-    content = _content(data, who=str(correction_file))
+    content = _within_limit(
+        _content(data, who=str(correction_file)),
+        read_plan_status(paths, parent.plan_id).record.review.limits.max_tasks,
+        who=str(correction_file),
+        code="forge_proposal_too_many_tasks",
+    )
     found = digest_object(
         proposal_content(parent.source_digest, content.claims, content.tasks)
     )

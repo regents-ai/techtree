@@ -27,7 +27,13 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Final, Literal, Self
 
-from pydantic import Field, StringConstraints, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from techtree.canonical import verify_object_digest
 from techtree.errors import ValidationError
@@ -40,6 +46,7 @@ from techtree.models.base import (
 )
 from techtree.models.experiment import ManifestComparison
 from techtree.models.skill import SkillFile
+from techtree.presentation.sanitize import carries_control
 
 __all__ = [
     "BASE_IMAGE_REFERENCE",
@@ -1501,8 +1508,21 @@ MAX_PLANNED_TASKS: Final = 8
 #: The most claims one proposal may state; each claim needs a task of its own.
 MAX_CLAIMS: Final = MAX_PLANNED_TASKS
 
-#: A claim's id: ``C`` and its number, as the planner numbers them.
-type ForgeClaimId = Annotated[str, StringConstraints(pattern=r"^C[1-9][0-9]*$")]
+#: A claim's id: ``C`` and its place in the proposal's claims, ``C1`` first.
+type ForgeClaimId = Annotated[str, StringConstraints(min_length=1, max_length=8)]
+
+
+def _one_plain_line(value: str) -> str:
+    """Refuse model-written text that could break or rewrite a review screen."""
+    if carries_control(value):
+        raise ValueError(
+            "text may not hold a line break, a tab or a terminal control code"
+        )
+    return value
+
+
+#: Text a model wrote that a person reads when approving: one plain line.
+_PLAIN: Final = AfterValidator(_one_plain_line)
 
 #: Which case of its claim a task is; see :class:`ForgeProposedTask`.
 type ForgeTaskKind = Literal["positive", "boundary", "counterexample"]
@@ -1664,8 +1684,8 @@ class ForgeSkillClaim(ProtocolModel):
     """
 
     claim_id: ForgeClaimId
-    statement: Annotated[str, StringConstraints(min_length=1, max_length=500)]
-    observable: Annotated[str, StringConstraints(min_length=1, max_length=1000)]
+    statement: Annotated[str, StringConstraints(min_length=1, max_length=500), _PLAIN]
+    observable: Annotated[str, StringConstraints(min_length=1, max_length=1000), _PLAIN]
 
 
 class ForgeProposedTask(ProtocolModel):
@@ -1683,12 +1703,14 @@ class ForgeProposedTask(ProtocolModel):
     name: ForgeProposedTaskName
     claim: ForgeClaimId
     kind: ForgeTaskKind
-    summary: Annotated[str, StringConstraints(min_length=1, max_length=500)]
-    scenario: Annotated[str, StringConstraints(min_length=1, max_length=4000)]
+    summary: Annotated[str, StringConstraints(min_length=1, max_length=500), _PLAIN]
+    scenario: Annotated[str, StringConstraints(min_length=1, max_length=4000), _PLAIN]
     success_criteria: list[
-        Annotated[str, StringConstraints(min_length=1, max_length=1000)]
+        Annotated[str, StringConstraints(min_length=1, max_length=1000), _PLAIN]
     ] = Field(min_length=1, max_length=12)
-    verifier_strategy: Annotated[str, StringConstraints(min_length=1, max_length=4000)]
+    verifier_strategy: Annotated[
+        str, StringConstraints(min_length=1, max_length=4000), _PLAIN
+    ]
 
 
 class ForgeProposalParent(ProtocolModel):
@@ -1704,8 +1726,8 @@ def _check_claims(
     """Raise unless claims and tasks fit: every task tests a stated claim, and
     every claim is tested by a task."""
     ids = [claim.claim_id for claim in claims]
-    if len(set(ids)) != len(ids):
-        raise ValueError("two claims have the same id")
+    if ids != [f"C{number}" for number in range(1, len(ids) + 1)]:
+        raise ValueError("claims must be numbered C1, C2, and so on, in order")
     names = [task.name for task in tasks]
     if len(set(names)) != len(names):
         raise ValueError("two tasks have the same name")
