@@ -19,10 +19,16 @@ an earlier Skill against a candidate with a later one. Every Skill is
 recorded in its own role, and on a collection the Skill its tasks were
 written from is a role of its own, even when it is byte for byte the Skill
 one of the arms carried.
+
+On a collection each part is also added up and judged on its own by those
+same rules: the tasks an improving agent may see, and the held-out tasks it
+never sees, on which a revision's verdict is computed. The overall verdict
+is the whole comparison's, as for a build's tasks, which have no parts.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from statistics import fmean
 from typing import Final
@@ -43,10 +49,12 @@ from techtree.forge.models import (
     ForgeAttemptPair,
     ForgeAttemptRecord,
     ForgeBuildTasks,
+    ForgeCollectionPart,
     ForgeCollectionTasks,
     ForgeComparisonRecord,
     ForgeComparisonStatus,
     ForgePairResult,
+    ForgePartSummary,
     ForgeRepositorySource,
     ForgeRunStatus,
     ForgeSkillRef,
@@ -56,7 +64,7 @@ from techtree.forge.models import (
     ForgeVerdict,
     forge_verdict,
 )
-from techtree.forge.report import render_report
+from techtree.forge.report import render_report, verdict_words
 from techtree.forge.run import read_run_status
 from techtree.forge.service import read_build_status
 from techtree.forge.source import read_source_status
@@ -71,7 +79,6 @@ __all__ = [
     "build_comparison",
     "compare_runs",
     "read_comparison_status",
-    "verdict_words",
 ]
 
 COMPARISON_FILENAME: Final = "comparison.json"
@@ -90,11 +97,13 @@ def compare_runs(
     candidate = read_run_status(paths, candidate_id)
     comparability = compare_run_specs(baseline.spec, candidate.spec)
     assert_comparable_run_specs(comparability)
+    source_skill, parts = _collection(paths, baseline.spec.tasks_from)
     record = build_comparison(
         baseline,
         candidate,
         comparability,
-        source_skill=_source_skill(paths, baseline.spec.tasks_from),
+        source_skill=source_skill,
+        parts=parts,
         comparison_id=new_id("forgecmp"),
         created_at=datetime.now(UTC),
     )
@@ -133,12 +142,13 @@ def _repository(
     return build.require_repository_source("Repository comparison report")
 
 
-def _source_skill(
+def _collection(
     paths: TechtreePaths, tasks_from: ForgeBuildTasks | ForgeCollectionTasks
-) -> ForgeSkillRef | None:
-    """Return the Skill a collection's tasks were written from; a build has none."""
+) -> tuple[ForgeSkillRef | None, dict[str, ForgeCollectionPart] | None]:
+    """Return the Skill a collection's tasks were written from, and each task's
+    part; a build has neither."""
     if isinstance(tasks_from, ForgeBuildTasks):
-        return None
+        return None, None
     record = read_collection_status(paths, tasks_from.collection_id).record
     if record.collection_digest != tasks_from.collection_digest:
         raise ValidationError(
@@ -153,7 +163,10 @@ def _source_skill(
     declaration = read_source_status(paths, record.review.source_id).record.declaration
     # Only an admitted Source Skill is planned from, and it carries its declaration.
     assert declaration is not None
-    return ForgeSkillRef(name=declaration.name, digest=record.review.source_digest)
+    return (
+        ForgeSkillRef(name=declaration.name, digest=record.review.source_digest),
+        record.review.parts(),
+    )
 
 
 def build_comparison(
@@ -162,10 +175,15 @@ def build_comparison(
     comparability: ManifestComparison,
     *,
     source_skill: ForgeSkillRef | None,
+    parts: dict[str, ForgeCollectionPart] | None,
     comparison_id: str,
     created_at: datetime,
 ) -> ForgeComparisonRecord:
-    """Pair the two arms' attempts and add them up; nothing is read from disk."""
+    """Pair the two arms' attempts and add them up; nothing is read from disk.
+
+    ``parts`` gives each task of a collection its part, and each part is
+    added up on its own; a build's tasks have none.
+    """
     skill = candidate.spec.skill
     if skill is None:
         raise ValidationError(
@@ -195,6 +213,11 @@ def build_comparison(
         graded=len(graded),
         unresolved=len(pairs) - len(graded),
     )
+    study, held_out = (
+        (None, None)
+        if parts is None
+        else (_part(pairs, parts, "study"), _part(pairs, parts, "held_out"))
+    )
 
     return ForgeComparisonRecord(
         schema_version=FORGE_COMPARISON_SCHEMA_VERSION,
@@ -222,6 +245,8 @@ def build_comparison(
         verdict=verdict,
         regressions=regressions,
         consistency=consistency,
+        study=study,
+        held_out=held_out,
         summary=_summary(
             skill.name,
             baseline_skill,
@@ -234,6 +259,7 @@ def build_comparison(
             regressions=regressions,
             consistency=consistency,
             repetitions=spec.sampling.repetitions,
+            held_out=held_out,
         ),
         not_established=list(spec.not_established),
     )
@@ -354,6 +380,42 @@ def _consistency(task_id: str, pairs: list[ForgeAttemptPair]) -> ForgeTaskConsis
     )
 
 
+def _part(
+    pairs: list[ForgeAttemptPair],
+    parts: dict[str, ForgeCollectionPart],
+    part: ForgeCollectionPart,
+) -> ForgePartSummary:
+    """Add up and judge the pairs of one part's tasks on their own."""
+    own = [pair for pair in pairs if parts[pair.task_id] == part]
+    graded = [pair for pair in own if pair.result is not ForgePairResult.UNRESOLVED]
+    wins = sum(pair.result is ForgePairResult.WIN for pair in graded)
+    losses = sum(pair.result is ForgePairResult.LOSS for pair in graded)
+    return ForgePartSummary(
+        task_ids=list(dict.fromkeys(pair.task_id for pair in own)),
+        pairs_planned=len(own),
+        pairs_graded=len(graded),
+        wins=wins,
+        losses=losses,
+        ties=len(graded) - wins - losses,
+        unresolved=len(own) - len(graded),
+        baseline_mean_reward=_mean(pair.baseline_reward for pair in graded),
+        candidate_mean_reward=_mean(pair.candidate_reward for pair in graded),
+        mean_delta=_mean(pair.delta for pair in graded),
+        complete=len(graded) == len(own),
+        verdict=forge_verdict(
+            wins=wins,
+            losses=losses,
+            graded=len(graded),
+            unresolved=len(own) - len(graded),
+        ),
+    )
+
+
+def _mean(values: Iterable[float | None]) -> float | None:
+    present = [value for value in values if value is not None]
+    return fmean(present) if present else None
+
+
 def _regression(task_id: str, pairs: list[ForgeAttemptPair]) -> ForgeTaskRegression:
     own = [pair for pair in pairs if pair.task_id == task_id]
     return ForgeTaskRegression(
@@ -365,28 +427,6 @@ def _regression(task_id: str, pairs: list[ForgeAttemptPair]) -> ForgeTaskRegress
 
 def _ref(skill: ForgeSkillSpec) -> ForgeSkillRef:
     return ForgeSkillRef(name=skill.name, digest=skill.root_digest)
-
-
-#: The verdict as the summary opens with it, against a baseline without a
-#: Skill and against a baseline with an earlier one.
-_VERDICT_WORDS: Final[dict[ForgeVerdict, str]] = {
-    ForgeVerdict.INCONCLUSIVE: "Inconclusive",
-    ForgeVerdict.MIXED: "Mixed",
-    ForgeVerdict.IMPROVED: "Improved with the Skill",
-    ForgeVerdict.REGRESSED: "Regressed with the Skill",
-    ForgeVerdict.NO_DIFFERENCE: "No difference",
-}
-_VERDICT_WORDS_AGAINST_SKILL: Final[dict[ForgeVerdict, str]] = {
-    **_VERDICT_WORDS,
-    ForgeVerdict.IMPROVED: "Improved on the baseline Skill",
-    ForgeVerdict.REGRESSED: "Regressed from the baseline Skill",
-}
-
-
-def verdict_words(verdict: ForgeVerdict, baseline_skill: ForgeSkillRef | None) -> str:
-    """Return the verdict as the summary opens with it."""
-    words = _VERDICT_WORDS if baseline_skill is None else _VERDICT_WORDS_AGAINST_SKILL
-    return words[verdict]
 
 
 def _summary(
@@ -402,6 +442,7 @@ def _summary(
     regressions: list[ForgeTaskRegression],
     consistency: list[ForgeTaskConsistency],
     repetitions: int,
+    held_out: ForgePartSummary | None,
 ) -> str:
     planned = len(pairs)
     sentences: list[str] = [
@@ -409,7 +450,7 @@ def _summary(
     ]
     if not graded:
         sentences.append(f"Nothing can be said about {skill_name} yet.")
-        return " ".join(sentences)
+        return " ".join([*sentences, *_held_out_sentence(held_out, baseline_skill)])
     baseline_mean = fmean(
         pair.baseline_reward for pair in graded if pair.baseline_reward is not None
     )
@@ -451,7 +492,22 @@ def _summary(
             f"The same task went both ways across attempts: {both}; the "
             "difference there is not steady."
         )
-    return " ".join(sentences)
+    return " ".join([*sentences, *_held_out_sentence(held_out, baseline_skill)])
+
+
+def _held_out_sentence(
+    held_out: ForgePartSummary | None, baseline_skill: ForgeSkillRef | None
+) -> list[str]:
+    """Say how the held-out tasks alone went; a build's tasks have none."""
+    if held_out is None:
+        return []
+    words = verdict_words(held_out.verdict, baseline_skill)
+    pairs = "pair" if held_out.pairs_planned == 1 else "pairs"
+    return [
+        f"On the held-out tasks alone: {words[0].lower()}{words[1:]}, "
+        f"{held_out.wins} won, {held_out.losses} lost and {held_out.ties} tied "
+        f"of {held_out.pairs_planned} planned {pairs}."
+    ]
 
 
 def _verdict_sentence(

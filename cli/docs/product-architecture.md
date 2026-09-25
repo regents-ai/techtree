@@ -497,16 +497,24 @@ CONSTRUCTION_ID [--task NAME]... [--previous COLLECTION_ID]`
 (`forge/collection.py`, U4) prepares an acceptance and runs nothing. It reads
 the construction and every construction it retried, and writes
 `forge/collections/<forgecol_id>/collection.json`
-(`techtree.forge-collection.v1alpha1`): the proposal and Source Skill with
+(`techtree.forge-collection.v1alpha2`): the proposal and Source Skill with
 their digests, the constructions, every proposed task in proposal order with
 how it went the last time it was tried (the call's state, the build its
 package became, whether that build qualified it, or what stopped the call),
 and the members, the qualified tasks being accepted (all of them unless
 `--task` names fewer), each by its build, task id, content digest and the
 digest of its qualification evidence, after its files are hashed against the
-build's commitment. One `collection_digest` binds it all. Preparing refuses
-when nothing qualified (`forge_collection_empty`) and a task that did not
-qualify (`forge_collection_task_not_usable`). `forge accept COLLECTION_ID`
+build's commitment, and its `part`, `study` or `held_out`. Nobody chooses the
+parts: the members are ordered by the sha256 of `proposal_digest + ":" +
+content_digest`, ascending (the task name breaks a tie), and the first half,
+rounded down, are held out. The improving agent never sees a held-out task,
+and a revision's verdict is worked out on them alone. The membership digest
+covers the parts, and one `collection_digest` binds it all. Preparing refuses
+when nothing qualified (`forge_collection_empty`), a collection of one task,
+which could not have a task in each part (`forge_collection_too_few`, telling
+the person to propose more tasks), and a task that did not qualify
+(`forge_collection_task_not_usable`). The review shows which tasks are held
+out and says the improving agent will never see them. `forge accept COLLECTION_ID`
 makes the review again, refuses one that changed (`forge_collection_stale`),
 asks, and writes `acceptance.json` with that digest; an accepted collection is
 frozen and never accepted again (`forge_collection_accepted`). A collection of
@@ -528,17 +536,18 @@ hidden name beside it, checks the copy, and only then renames it into place;
 the folder and everything in it are the owner's alone (0700/0600), and nothing
 is published. It holds exactly: `tasks/<task_id>/`, each member's files copied
 entry by entry from its build's commitment without following links;
-`export.json` (`techtree.forge-export.v1alpha1`), the collection record and
+`export.json` (`techtree.forge-export.v1alpha2`), the collection record and
 acceptance with each member's build record and qualification evidence; and a
 `README.md` made from `export.json` alone, saying what the folder holds and
-leaves out and that its tests and reference solutions let anyone who has it
-read the answers. The Source Skill's bytes, the planning, construction and
+leaves out, which tasks are held out, and that its tests and reference
+solutions let anyone who has it read the answers. The Source Skill's bytes, the planning, construction and
 qualification logs, run material and everything else in the home are never
 read. `forge verify-export FOLDER` needs no home: it refuses anything in the
 folder beyond the collection, anything missing and any link; recomputes every
 task file against the accepted content digests (naming each file that
-differs), each qualification record against its member digest, and the
-membership and collection digests against the acceptance; and compares the
+differs), each qualification record against its member digest, which tasks
+are held out against the rule that picks them, and the membership and
+collection digests against the acceptance; and compares the
 README with `export.json`. Any difference is `forge_export_changed`. It
 reports what it recomputed and what is recorded only: the Source Skill (its
 digest, not its text), the proposal and construction, the qualification runs,
@@ -780,8 +789,13 @@ against a candidate with one ("Improved with the Skill", "Regressed with the
 Skill"), and a baseline with an earlier Skill against a candidate with a later
 one ("Improved on the baseline Skill", "Regressed from the baseline Skill",
 and a summary that names the roles, since two versions of a Skill often
-share a name). The record (`techtree.forge-comparison.v1alpha4`, a hard
+share a name). The record (`techtree.forge-comparison.v1alpha5`, a hard
 cutover: the earlier shape fails validation, without a fallback reader)
+carries, for a collection, a summary per part (`study` and `held_out`: the
+part's tasks, pairs, wins, losses, ties, unresolved, both arms' mean reward
+over its graded pairs and its own verdict by the same rules), and none for a
+build; the overall verdict is still over every pair, and the summary adds one
+sentence on the held-out tasks alone. It
 names where its tasks came from in `tasks_from`, the run specification's own
 build or collection, and every Skill in its own role, each by name and
 digest: `source_skill`, the Source Skill a collection's tasks were written
@@ -798,8 +812,10 @@ the Skill its tasks were written from, then the baseline's Skill (or none),
 the candidate's Skill and both runs; "Local evidence about a mutable
 subject", headed "Evaluation on Skill-derived tasks" for a collection;
 the question tested (against the baseline's Skill when it had one), the
-summary, "Where the Skill lost" or "Where the candidate Skill lost" (shown
-even when the mean difference is positive), baseline | candidate | difference, the
+summary, for a collection the parts ("Tasks the improving agent could see"
+and "Held-out tasks", each with its pairs, means and verdict), "Where the
+Skill lost" or "Where the candidate Skill lost" (shown even when the mean
+difference is positive), baseline | candidate | difference, the
 task-by-task table with an "Across attempts" column (or the sentence that one
 attempt per task measured no consistency), both arms' patches, or for a
 Skill task what each attempt left in its working directory, and grading
@@ -815,10 +831,11 @@ four `uplift` commands close the loop on a forge comparison the way they close
 it on a Climb run, with the same review-before-spend and the same refusal to
 hand a reviser hidden material. `uplift context FORGECMP_ID`
 (`forge/improvement.py`) writes `improvement/context.json`
-(`techtree.forge-improvement-context.v1alpha2`) beside the comparison: where
+(`techtree.forge-improvement-context.v1alpha3`) beside the comparison: where
 the tasks came from in `tasks_from` (a build with its repository and commit,
-or a collection with its version), the measured Skill's name and digests, the
-paired totals, an objective sentence, and per task the instruction the agent
+or a collection with its version and how many tasks are held out), the
+measured Skill's name and digests, the paired totals (for a collection, those
+of the tasks it may study), an objective sentence, and per task the instruction the agent
 was given (shortened, and refused if it carries a local path; for a Skill
 task a path under the folders its required outputs go in, such as `/app`, is
 inside the task's sandbox and allowed), both arms' outcome and
@@ -828,7 +845,10 @@ narrowest wins, with at most three successful ties for contrast. Reference
 patches, tests, test names, either arm's patch, transcripts and local paths are
 excluded by construction and listed on the context as prohibited; for a
 collection, the reference solutions, the tests, what either arm left,
-transcripts and local paths. `uplift
+transcripts, local paths and anything about the held-out tasks but how many
+there are: a collection's context reads only the tasks it may study, so no
+held-out task's id, name, instruction or outcome reaches it, even from runs
+that covered them. `uplift
 prepare --from-run FORGECMP_ID --candidate-skill PATH [--label NAME]`
 (`forge/revision.py`) makes one revision: the candidate run's specification
 with the Skill alone replaced, refused when the Skill is unchanged
@@ -839,12 +859,14 @@ against every task's hidden material: each line of 24 characters or more that
 appears verbatim in a reference fix or a test file, and each scored test name
 it mentions (`reference_patch`, `tests`, `test_names`), or for a Skill task
 in any file of its reference solutions or tests (`reference_solution`,
-`tests`), is recorded on the revision as a finding — evidence
+`tests`), and for a held-out task of a collection also in its instruction or
+the inputs under its `environment/` other than the Dockerfile
+(`instruction`, `inputs`), is recorded on the revision as a finding — evidence
 about the revision, not a refusal — and a revision with findings carries the
 `forge_revision_shares_hidden_material` warning wherever it is shown. It lives
 at `forge/revisions/<forgerev_id>/` with its own copy of the Skill under
 `skill/`, `spec.json` and `revision.json`
-(`techtree.forge-revision.v1alpha2`, naming its build or collection in
+(`techtree.forge-revision.v1alpha3`, naming its build or collection in
 `tasks_from`, state `prepared`). `uplift start
 FORGEREV_ID` shows the same review `forge run` shows, plus the revision, its
 baseline and the screening result, and asks; with `--yes` it runs the revision
@@ -852,7 +874,10 @@ as a candidate arm, compares it against the baseline the parent comparison
 used, and records the measured run, the new comparison and a one-sentence
 verdict ("improved on", "regressed from" or "matched" the parent Skill, with
 both mean rewards and the paired counts, prefixed "Partial evidence" when
-either comparison is incomplete). The revision is kept as measured whether it
+either comparison is incomplete). On a collection every task still runs, but
+`verdict` is worked out on the held-out pairs alone, and `study_verdict`, a
+second sentence labelled as such, on the tasks the reviser could see; a
+build's revision has no `study_verdict`. The revision is kept as measured whether it
 improved or regressed, and is never measured twice (`forge_revision_measured`).
 No search is run: one explicit proposal, frozen, checked, approved, measured.
 

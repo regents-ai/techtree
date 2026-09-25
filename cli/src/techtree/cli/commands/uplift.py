@@ -648,12 +648,25 @@ def _revision_review(revision: ForgeRevisionStatus) -> ForgeRunReview:
     """The forge run review, headed by what this run is a revision of."""
     review = review_run_spec(revision.spec)
     record = revision.record
+    on_collection = isinstance(record.tasks_from, ForgeCollectionTasks)
+    hidden = (
+        "a task's reference answer or tests, or a held-out task's instruction or inputs"
+        if on_collection
+        else "a task's reference answer or tests"
+    )
     screening = (
         f"Screening: {len(record.screening)} line(s) of the revised Skill also "
-        "occur in a task's reference answer or tests; see the revision."
+        f"occur in {hidden}; see the revision."
         if record.screening
-        else "Screening: no line of the revised Skill occurs in a task's "
-        "reference answer or tests."
+        else f"Screening: no line of the revised Skill occurs in {hidden}."
+    )
+    judged = (
+        [
+            "Every task runs, but the revision's verdict is worked out on the "
+            "held-out tasks alone, which the agent that wrote it never saw."
+        ]
+        if on_collection
+        else []
     )
     return review.model_copy(
         update={
@@ -665,6 +678,7 @@ def _revision_review(revision: ForgeRevisionStatus) -> ForgeRunReview:
                 "Afterwards the run is compared against the same baseline, "
                 f"{record.baseline_run_id}, and the revision is kept whether "
                 "it improved or regressed.",
+                *judged,
                 screening,
             ]
         }
@@ -774,8 +788,14 @@ def _improvement_tasks_pair(improvement: ForgeImprovementContext) -> tuple[str, 
     match improvement.tasks_from:
         case ForgeImprovementRepository(repository=repository, head_commit=commit):
             return ("Repository", f"{repository} at {commit[:12]}")
-        case ForgeImprovementCollection(collection_id=collection_id, version=version):
-            return ("Collection", f"{collection_id} (version {version})")
+        case ForgeImprovementCollection(
+            collection_id=collection_id, version=version, held_out_tasks=held_out
+        ):
+            return (
+                "Collection",
+                f"{collection_id} (version {version}); {held_out} held-out "
+                f"{'task' if held_out == 1 else 'tasks'} not shown",
+            )
 
 
 def _render_forge_context(data: ForgeUpliftContextPayload, console: Console) -> None:

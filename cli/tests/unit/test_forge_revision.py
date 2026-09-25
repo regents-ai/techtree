@@ -258,7 +258,7 @@ def test_uplift_context_writes_the_context_beside_the_comparison(
         comparison_id
     )
     assert facts["context"]["schema_version"] == (
-        "techtree.forge-improvement-context.v1alpha2"
+        "techtree.forge-improvement-context.v1alpha3"
     )
     assert [w["id"] for w in envelope["warnings"]] == [
         "improvement_context_is_not_proof"

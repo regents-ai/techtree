@@ -11,11 +11,16 @@ own instruction, which is the text the agent was shown and nothing more.
 What never comes out, for a repository task: the reference patch, the tests
 and their names, either arm's patch, any transcript, the repository's local
 path; for a task written from a Skill: its reference solutions and tests,
-what either arm left, any transcript, any local path. A task is named by its
-id, a repository by its build slug and commit, and a collection by its id and
-version. Every free-text field is checked for control sequences and absolute
-paths before the context is returned, and a value that carries one is
-refused, not edited. The one exception is a Skill task's own sandbox: its
+what either arm left, any transcript, any local path. Nothing at all comes
+out about a collection's held-out tasks, not even when the runs covered
+them: no id, no name, no instruction and no result; only how many there are.
+They are the tasks a revision's verdict is computed on, so the agent writing
+it never sees them (founder decision 2a). The headline and the examples are
+the tasks it may study alone. A task is named by its id, a repository by its
+build slug and commit, and a collection by its id and version. Every
+free-text field is checked for control sequences and absolute paths before
+the context is returned, and a value that carries one is refused, not
+edited. The one exception is a Skill task's own sandbox: its
 instruction may name paths under the folders its required outputs go in,
 such as ``/app``, because those are inside the task, not on anyone's
 computer.
@@ -77,7 +82,7 @@ __all__ = [
 ]
 
 FORGE_IMPROVEMENT_CONTEXT_SCHEMA_VERSION: Final = (
-    "techtree.forge-improvement-context.v1alpha2"
+    "techtree.forge-improvement-context.v1alpha3"
 )
 
 #: How much of a task's instruction a context carries.
@@ -100,6 +105,8 @@ FORGE_REVISION_CONSTRAINTS: Final[dict[_Kind, tuple[str, ...]]] = {
         "The revision must not carry the tasks' reference solutions or their "
         "tests, in whole or in part. It is screened against both before it "
         "runs, and every line it shares with them is recorded on the revision.",
+        "The revision is judged on held-out tasks this context does not show. "
+        "A Skill that fits only the tasks shown here will not carry over.",
     ),
 }
 
@@ -120,6 +127,7 @@ FORGE_PROHIBITED_MATERIAL: Final[dict[_Kind, tuple[str, ...]]] = {
         "agent transcripts and logs",
         "any local path",
         "private environment values",
+        "anything about the held-out tasks but how many there are",
     ),
 }
 
@@ -141,7 +149,11 @@ class ForgeImprovementExample(ProtocolModel):
 
 
 class ForgeImprovementResult(ProtocolModel):
-    """The headline the revision has to beat, copied from the comparison."""
+    """The headline the revision has to beat, copied from the comparison.
+
+    On a collection it is the part the reviser may study, never the whole:
+    the means are then over that part's graded pairs.
+    """
 
     pairs_planned: int
     pairs_graded: int
@@ -165,11 +177,16 @@ class ForgeImprovementRepository(ProtocolModel):
 
 
 class ForgeImprovementCollection(ProtocolModel):
-    """A collection of tasks written from a Skill, by its id and version."""
+    """A collection of tasks written from a Skill, by its id and version.
+
+    ``held_out_tasks`` is how many of its tasks are held out; nothing else
+    about them is here.
+    """
 
     kind: Literal["collection"]
     collection_id: NonEmptyString
     version: int = Field(ge=1)
+    held_out_tasks: int = Field(ge=1)
 
 
 class ForgeImprovementContext(ProtocolModel):
@@ -182,7 +199,7 @@ class ForgeImprovementContext(ProtocolModel):
     it against these same digests.
     """
 
-    schema_version: Literal["techtree.forge-improvement-context.v1alpha2"]
+    schema_version: Literal["techtree.forge-improvement-context.v1alpha3"]
     comparison_id: NonEmptyString
     baseline_run_id: NonEmptyString
     candidate_run_id: NonEmptyString
@@ -237,6 +254,7 @@ def build_forge_improvement_context(
                 candidate.record.attempts,
             )
             for pair in comparison.pairs
+            if pair.task_id in tasks
         ]
     )
     context = ForgeImprovementContext(
@@ -248,19 +266,8 @@ def build_forge_improvement_context(
         parent_skill_name=skill.name,
         parent_skill_digest=skill.root_digest,
         parent_skill_entrypoint_digest=entrypoint,
-        objective=_objective(comparison),
-        current_result=ForgeImprovementResult(
-            pairs_planned=comparison.pairs_planned,
-            pairs_graded=comparison.pairs_graded,
-            wins=comparison.wins,
-            losses=comparison.losses,
-            ties=comparison.ties,
-            unresolved=comparison.unresolved,
-            baseline_mean_reward=comparison.baseline.mean_reward,
-            candidate_mean_reward=comparison.candidate.mean_reward,
-            mean_delta=comparison.mean_delta,
-            complete=comparison.complete,
-        ),
+        objective=_objective(comparison, tasks_from),
+        current_result=_current_result(comparison),
         examples=examples,
         constraints=list(FORGE_REVISION_CONSTRAINTS[tasks_from.kind]),
         prohibited_material=list(FORGE_PROHIBITED_MATERIAL[tasks_from.kind]),
@@ -308,19 +315,24 @@ def _tasks(
                 {task_id: _Task(tasks_dir / task_id, ()) for task_id in spec.task_ids},
             )
         case ForgeCollectionTasks(collection_id=collection_id, version=version):
-            members = {
+            members = read_collection_status(paths, collection_id).record.review.members
+            # Only the tasks the reviser may study are read at all.
+            study = {
                 member.task_id: member.build_id
-                for member in read_collection_status(
-                    paths, collection_id
-                ).record.review.members
+                for member in members
+                if member.part == "study"
             }
             directories = {
-                task_id: paths.forge_build_dir(members[task_id]) / "tasks" / task_id
+                task_id: paths.forge_build_dir(study[task_id]) / "tasks" / task_id
                 for task_id in spec.task_ids
+                if task_id in study
             }
             return (
                 ForgeImprovementCollection(
-                    kind="collection", collection_id=collection_id, version=version
+                    kind="collection",
+                    collection_id=collection_id,
+                    version=version,
+                    held_out_tasks=sum(m.part == "held_out" for m in members),
                 ),
                 {
                     task_id: _Task(directory, _sandbox(directory))
@@ -422,18 +434,67 @@ def _select(examples: list[ForgeImprovementExample]) -> list[ForgeImprovementExa
     return chosen
 
 
-def _objective(comparison: ForgeComparisonRecord) -> str:
+def _current_result(comparison: ForgeComparisonRecord) -> ForgeImprovementResult:
+    """The whole comparison's headline, or on a collection its study part's."""
+    study = comparison.study
+    if study is None:
+        return ForgeImprovementResult(
+            pairs_planned=comparison.pairs_planned,
+            pairs_graded=comparison.pairs_graded,
+            wins=comparison.wins,
+            losses=comparison.losses,
+            ties=comparison.ties,
+            unresolved=comparison.unresolved,
+            baseline_mean_reward=comparison.baseline.mean_reward,
+            candidate_mean_reward=comparison.candidate.mean_reward,
+            mean_delta=comparison.mean_delta,
+            complete=comparison.complete,
+        )
+    return ForgeImprovementResult(
+        pairs_planned=study.pairs_planned,
+        pairs_graded=study.pairs_graded,
+        wins=study.wins,
+        losses=study.losses,
+        ties=study.ties,
+        unresolved=study.unresolved,
+        baseline_mean_reward=study.baseline_mean_reward,
+        candidate_mean_reward=study.candidate_mean_reward,
+        mean_delta=study.mean_delta,
+        complete=study.complete,
+    )
+
+
+def _objective(
+    comparison: ForgeComparisonRecord,
+    tasks_from: ForgeImprovementRepository | ForgeImprovementCollection,
+) -> str:
     """State, in one sentence a model can act on, what a revision has to beat."""
-    current = comparison.candidate.mean_reward
+    name = comparison.candidate_skill.name
+    result = _current_result(comparison)
+    current = result.candidate_mean_reward
+    if isinstance(tasks_from, ForgeImprovementCollection):
+        held_out = tasks_from.held_out_tasks
+        seen = (
+            f"its mean reward is {current:.3f}"
+            if current is not None
+            else "no pair was graded yet"
+        )
+        return sanitize_label(
+            f"Revise {name} so that it does better on the {held_out} held-out "
+            f"{'task' if held_out == 1 else 'tasks'} this context does not show, "
+            "without changing anything else about the experiment. Over the "
+            f"{result.pairs_planned} task attempts shown here, {seen}.",
+            maximum=400,
+        )
     beat = (
         f"rises above {current:.3f}"
         if current is not None
         else "is established, since no pair was graded with it"
     )
     return sanitize_label(
-        f"Revise {comparison.candidate_skill.name} so that the mean reward over "
-        f"the same {comparison.pairs_planned} planned task attempts {beat}, without "
-        "changing anything else about the experiment.",
+        f"Revise {name} so that the mean reward over the same "
+        f"{result.pairs_planned} planned task attempts {beat}, without changing "
+        "anything else about the experiment.",
         maximum=400,
     )
 

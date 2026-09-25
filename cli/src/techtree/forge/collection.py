@@ -15,6 +15,12 @@ changed. A different membership, or a task built again, is a new collection
 naming the one it replaces, one version later; one with the same members as
 the version it replaces is refused.
 
+Every member is in one of two parts, fixed by the tasks' fingerprints rather
+than chosen by anyone (founder decision 2a, ``docs/plan/v0.3.0-task-set.md``
+§6): the tasks an improving agent may study, and the tasks held out from it,
+on which a revised Skill's verdict is computed. So a collection holds at least
+two tasks, one in each part, and preparing refuses fewer.
+
 Verifying an accepted collection makes its review again from what is on disk
 now: every member's files are hashed against their build's commitment, every
 qualification is read back, and the digest must be the one accepted. Anything
@@ -25,7 +31,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final
+from typing import Final, NamedTuple
 
 from pydantic import ValidationError as ModelValidationError
 
@@ -37,6 +43,7 @@ from techtree.forge.content import verify_task_set
 from techtree.forge.models import (
     FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION,
     FORGE_COLLECTION_SCHEMA_VERSION,
+    MINIMUM_COLLECTION_TASKS,
     ForgeCollectionAcceptance,
     ForgeCollectionCandidate,
     ForgeCollectionMember,
@@ -47,6 +54,7 @@ from techtree.forge.models import (
     ForgeCollectionStatus,
     ForgeConstructionStatus,
     ForgeConstructionTaskStatus,
+    collection_parts,
 )
 from techtree.forge.planning import read_proposal_status
 from techtree.forge.service import read_build_status
@@ -253,7 +261,30 @@ def _review(
                 code="forge_collection_task_not_usable",
                 details={"task_name": name, "proposal_id": proposal.proposal_id},
             )
-    members = [_member(paths, by_name[name]) for name in names]
+    if len(names) < MINIMUM_COLLECTION_TASKS:
+        raise ValidationError(
+            f"this collection would hold only {', '.join(names)}, and a collection "
+            f"needs at least {MINIMUM_COLLECTION_TASKS} tasks: some the improving "
+            "agent may study, and some held out from it that decide whether a "
+            "revised Skill improved. Propose more tasks, or build the ones that "
+            f"did not qualify again with forge construct --retry-of {construction_id}, "
+            "then collect again",
+            code="forge_collection_too_few",
+            details={
+                "construction_id": construction_id,
+                "tasks": list(names),
+                "minimum": MINIMUM_COLLECTION_TASKS,
+            },
+        )
+    committed = [_commit(paths, by_name[name]) for name in names]
+    parts = collection_parts(
+        proposal.proposal_digest,
+        [(task.task_name, task.content_digest) for task in committed],
+    )
+    members = [
+        ForgeCollectionMember(**task._asdict(), part=part)
+        for task, part in zip(committed, parts, strict=True)
+    ]
     parent = None if previous is None else _parent(paths, previous, newest.source_id)
     if parent is not None and members == (
         read_collection_status(paths, parent.collection_id).record.review.members
@@ -321,9 +352,17 @@ def _why(task: ForgeConstructionTaskStatus) -> str | None:
     return None
 
 
-def _member(
-    paths: TechtreePaths, candidate: ForgeCollectionCandidate
-) -> ForgeCollectionMember:
+class _Committed(NamedTuple):
+    """One qualified task by its files and its qualification, before its part."""
+
+    task_name: str
+    build_id: str
+    task_id: str
+    content_digest: str
+    qualification_digest: str
+
+
+def _commit(paths: TechtreePaths, candidate: ForgeCollectionCandidate) -> _Committed:
     """Commit one qualified task by its files, checked on disk, and qualification."""
     assert candidate.build_id is not None  # a usable candidate names its build
     status = read_build_status(paths, candidate.build_id)
@@ -335,7 +374,7 @@ def _member(
     evidence = next(
         task for task in qualification.tasks if task.task_id == manifest.task_id
     )
-    return ForgeCollectionMember(
+    return _Committed(
         task_name=candidate.task_name,
         build_id=candidate.build_id,
         task_id=manifest.task_id,

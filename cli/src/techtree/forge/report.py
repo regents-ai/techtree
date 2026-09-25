@@ -30,11 +30,13 @@ from techtree.forge.models import (
     ForgeOutputFailureKind,
     ForgeOutputs,
     ForgePairResult,
+    ForgePartSummary,
     ForgeQualification,
     ForgeRepositorySource,
     ForgeRunStatus,
     ForgeSkillRef,
     ForgeTaskConsistency,
+    ForgeVerdict,
     GenerationSummary,
     QualificationCheck,
     TaskQualification,
@@ -50,6 +52,7 @@ __all__ = [
     "FEW_TASKS",
     "OUTCOME_WORDS",
     "OUTPUT_FAILURE_WORDS",
+    "PART_WORDS",
     "PATCH_LIMIT_BYTES",
     "REJECTION_WORDS",
     "SKIP_WORDS",
@@ -58,6 +61,7 @@ __all__ = [
     "import_summary",
     "render_report",
     "task_verdict",
+    "verdict_words",
 ]
 
 #: How every attempt outcome is said to a person, in the terminal and on the page.
@@ -341,6 +345,7 @@ def render_report(
         "<h2>In short</h2>",
         f'<p class="summary{"" if record.complete else " partial"}">'
         f"{_e(record.summary)}</p>",
+        *_parts(record),
         f"<h2>Where the {loser} lost</h2>",
         _regressions(record, f"The {loser}"),
         "<h2>Baseline, candidate, difference</h2>",
@@ -424,6 +429,68 @@ def _totals_table(baseline: ForgeArmTotals, candidate: ForgeArmTotals) -> str:
         '<div class="scroll"><table><thead><tr><th></th><th class=n>Baseline</th>'
         "<th class=n>Candidate</th><th class=n>Difference</th></tr></thead>"
         f"<tbody>{body}</tbody></table></div>"
+    )
+
+
+#: The verdict as the summary opens with it, against a baseline without a
+#: Skill and against a baseline with an earlier one.
+_VERDICT_WORDS: Final[dict[ForgeVerdict, str]] = {
+    ForgeVerdict.INCONCLUSIVE: "Inconclusive",
+    ForgeVerdict.MIXED: "Mixed",
+    ForgeVerdict.IMPROVED: "Improved with the Skill",
+    ForgeVerdict.REGRESSED: "Regressed with the Skill",
+    ForgeVerdict.NO_DIFFERENCE: "No difference",
+}
+_VERDICT_WORDS_AGAINST_SKILL: Final[dict[ForgeVerdict, str]] = {
+    **_VERDICT_WORDS,
+    ForgeVerdict.IMPROVED: "Improved on the baseline Skill",
+    ForgeVerdict.REGRESSED: "Regressed from the baseline Skill",
+}
+
+
+def verdict_words(verdict: ForgeVerdict, baseline_skill: ForgeSkillRef | None) -> str:
+    """Return the verdict as the summary opens with it."""
+    words = _VERDICT_WORDS if baseline_skill is None else _VERDICT_WORDS_AGAINST_SKILL
+    return words[verdict]
+
+
+#: Each part of a collection, as the page and the terminal name it.
+PART_WORDS: Final = {
+    "study": "Tasks the improving agent could see",
+    "held_out": "Held-out tasks",
+}
+
+
+def _parts(record: ForgeComparisonRecord) -> list[str]:
+    """The two parts of a collection side by side; a build's tasks have none."""
+    if record.study is None or record.held_out is None:
+        return []
+    rows = "".join(
+        f"<tr><th>{_e(PART_WORDS[name])}</th>"
+        f"<td>{_e(', '.join(part.task_ids) or 'none in these runs')}</td>"
+        f"<td class=n>{_e(_part_pairs(part))}</td>"
+        f"<td class=n>{_e(_number(part.baseline_mean_reward))}</td>"
+        f"<td class=n>{_e(_number(part.candidate_mean_reward))}</td>"
+        f"<td>{_e(verdict_words(part.verdict, record.baseline_skill))}</td></tr>"
+        for name, part in (("study", record.study), ("held_out", record.held_out))
+    )
+    return [
+        "<h2>Held-out tasks</h2>",
+        "<p>The collection holds some tasks out. An agent revising the Skill "
+        "from this comparison is shown only the tasks it could see, never the "
+        "held-out ones, and a revised Skill's verdict is computed on the "
+        "held-out tasks alone.</p>",
+        '<div class="scroll"><table><thead><tr><th></th><th>Tasks</th>'
+        "<th class=n>Pairs</th><th class=n>Baseline mean</th>"
+        "<th class=n>Candidate mean</th><th>Verdict</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>",
+    ]
+
+
+def _part_pairs(part: ForgePartSummary) -> str:
+    return (
+        f"{part.wins} won, {part.losses} lost, {part.ties} tied, "
+        f"{part.unresolved} unresolved of {part.pairs_planned}"
     )
 
 

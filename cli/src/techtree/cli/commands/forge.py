@@ -51,7 +51,7 @@ from techtree.forge.collection import (
     read_collection_status,
     verify_collection,
 )
-from techtree.forge.compare import compare_runs, read_comparison_status, verdict_words
+from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.construction import (
     check_construction,
     prepare_construction,
@@ -78,6 +78,7 @@ from techtree.forge.models import (
     ForgeExportVerification,
     ForgeLanguage,
     ForgeOutputs,
+    ForgePartSummary,
     ForgePlanRecord,
     ForgePlanStatus,
     ForgeProposalStatus,
@@ -107,10 +108,12 @@ from techtree.forge.report import (
     FEW_TASKS,
     OUTCOME_WORDS,
     OUTPUT_FAILURE_WORDS,
+    PART_WORDS,
     build_summary,
     first_failed_check,
     import_summary,
     task_verdict,
+    verdict_words,
 )
 from techtree.forge.revision import read_revision_status
 from techtree.forge.run import ForgeRunner, read_run_status
@@ -1023,8 +1026,8 @@ def _render_exported(data: object, console: Console) -> None:
         console.print(
             f"Exported: collection {data.collection_id}, version {data.version}, "
             f"with its {data.tasks} {_plural(data.tasks, 'task', 'tasks')}, "
-            "into a new folder only you can open. It stays on this computer until "
-            "you share it.",
+            f"{data.held_out} of them held out, into a new folder only you can "
+            "open. It stays on this computer until you share it.",
             markup=False,
         )
         render_pairs([("Folder", data.path)], console)
@@ -1044,7 +1047,8 @@ def _render_export(data: object, console: Console) -> None:
         console.print(
             f"Verified: this folder holds collection {data.collection_id}, "
             f"version {data.version}, exactly as accepted, with its {data.tasks} "
-            f"{_plural(data.tasks, 'task', 'tasks')}.",
+            f"{_plural(data.tasks, 'task', 'tasks')}, {data.held_out} of them "
+            "held out.",
             markup=False,
         )
         render_pairs([("Folder", data.path)], console)
@@ -1480,6 +1484,11 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
             f"{record.wins} won, {record.losses} lost, {record.ties} tied, "
             f"{record.unresolved} unresolved of {record.pairs_planned} planned",
         ),
+        *(
+            (PART_WORDS[name], _part_words(part, record.baseline_skill))
+            for name, part in (("study", record.study), ("held_out", record.held_out))
+            if part is not None
+        ),
         (
             "Mean reward",
             _arm_pair(record.baseline.mean_reward, record.candidate.mean_reward),
@@ -1536,6 +1545,17 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
             + f"; baseline {baseline}, candidate {candidate}",
             markup=False,
         )
+
+
+def _part_words(part: ForgePartSummary, baseline_skill: ForgeSkillRef | None) -> str:
+    tasks = len(part.task_ids)
+    return (
+        f"{tasks} {_plural(tasks, 'task', 'tasks')}; "
+        f"{verdict_words(part.verdict, baseline_skill)}; {part.wins} won, "
+        f"{part.losses} lost, {part.ties} tied, {part.unresolved} unresolved of "
+        f"{part.pairs_planned}; mean reward "
+        + _arm_pair(part.baseline_mean_reward, part.candidate_mean_reward)
+    )
 
 
 def _regression_words(regression: ForgeTaskRegression) -> str:
@@ -1654,6 +1674,8 @@ def render_forge_revision(status: ForgeRevisionStatus, console: Console) -> None
     if record.verdict is not None:
         console.print()
         console.print(record.verdict, markup=False)
+    if record.study_verdict is not None:
+        console.print(record.study_verdict, markup=False)
 
 
 def revision_warnings(status: ForgeRevisionStatus) -> list[CliWarning]:
@@ -1665,9 +1687,10 @@ def revision_warnings(status: ForgeRevisionStatus) -> list[CliWarning]:
             id="forge_revision_shares_hidden_material",
             text=(
                 f"{len(status.record.screening)} line(s) of the revised Skill "
-                "also occur in a task's reference answer or tests; a result with "
-                "it may measure recall rather than method. Each is listed on "
-                "the revision."
+                "also occur in material hidden from the agent that improved it: a "
+                "task's reference answer or tests, or a held-out task's "
+                "instruction or inputs. A result with it may measure recall "
+                "rather than method. Each is listed on the revision."
             ),
             resolvable_by=None,
         )
@@ -2475,9 +2498,17 @@ def collection_review_lines(record: ForgeCollectionRecord) -> list[str]:
             )
             + ("" if task.why is None else f": {task.why}")
         )
+    held_out = [m.task_name for m in review.members if m.part == "held_out"]
+    study = [m.task_name for m in review.members if m.part == "study"]
     lines += [
         f"In the collection: {members} {_plural(members, 'task', 'tasks')}, "
         + ", ".join(member.task_name for member in review.members),
+        f"Held out: {', '.join(held_out)}. The agent that improves the Skill "
+        "will never see these tasks, and a revised Skill's verdict is worked "
+        "out on them alone.",
+        f"The improving agent may see: {', '.join(study)}.",
+        "Which tasks are held out follows from the tasks' fingerprints; "
+        "nobody chooses it.",
         f"Version: {review.version}"
         + (
             ""
@@ -2615,12 +2646,14 @@ def _render_collection(data: object, console: Console) -> None:
 
 def _render_verified(data: object, console: Console) -> None:
     if isinstance(data, ForgeCollectionStatus):
-        members = len(data.record.review.members)
+        members = data.record.review.members
+        held_out = sum(member.part == "held_out" for member in members)
         console.print(
             f"Verified: collection {data.collection_id}, version "
             f"{data.record.review.version}, holds exactly the files and "
-            f"qualification accepted for its {members} "
-            f"{_plural(members, 'task', 'tasks')}.",
+            f"qualification accepted for its {len(members)} "
+            f"{_plural(len(members), 'task', 'tasks')}, {held_out} of them "
+            "held out.",
             markup=False,
         )
 

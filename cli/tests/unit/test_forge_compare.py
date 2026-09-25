@@ -278,6 +278,7 @@ def test_an_attempt_never_reached_is_unresolved_not_a_zero(
         candidate,
         compare_run_specs(interrupted.spec, candidate.spec),
         source_skill=None,
+        parts=None,
         comparison_id="forgecmp_" + "0" * 32,
         created_at=candidate.record.updated_at,
     )
@@ -327,6 +328,7 @@ def test_a_lost_attempt_is_a_regression_and_a_task_that_went_both_ways_is_said_s
         candidate,
         compare_run_specs(baseline.spec, candidate.spec),
         source_skill=None,
+        parts=None,
         comparison_id="forgecmp_" + "1" * 32,
         created_at=candidate.record.updated_at,
     )
