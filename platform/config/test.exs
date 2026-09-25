@@ -25,6 +25,12 @@ config :techtree, TechtreeWeb.Endpoint,
   secret_key_base: "fJEVwbcHenhXO0I0VkIPCVbw+UngMhEYquu/I6Vvo87vhMrsp4BT5B6GM8Nkr+q7",
   server: false
 
+# The example comparison reads test data made with the CLI's scripted stand-ins,
+# and links its export at a stand-in revision.
+config :techtree, TechtreeWeb.TddShowcase,
+  folder: Path.expand("../test/support/fixtures/tdd-showcase", __DIR__),
+  export_revision: "1234567890abcdef1234567890abcdef12345678"
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

@@ -153,6 +153,20 @@ defmodule TechtreeWeb.ResultAssessment do
   end
 
   @doc """
+  One reward as a reader reads it, the way a task's score reads on a Result's
+  page.
+  """
+  @spec reward(number()) :: String.t()
+  def reward(number), do: number |> exact() |> score()
+
+  @doc """
+  The change from one reward to another, the way a task's change reads on a
+  Result's page.
+  """
+  @spec reward_change(number(), number()) :: String.t()
+  def reward_change(baseline, candidate), do: task_change(exact(baseline), exact(candidate))
+
+  @doc """
   A digest cut to a length a reader can compare by eye.
   """
   @spec short_digest(String.t()) :: String.t()

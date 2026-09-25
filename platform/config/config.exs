@@ -82,6 +82,14 @@ config :techtree, Techtree.Network,
 # the starter Skill: one `SKILL.md`, served at the digest of its exact bytes.
 config :techtree, Techtree.Release, starter_skill_root: {:priv, "release"}
 
+# The example comparison at /examples/tdd: the files one local `techtree forge`
+# comparison wrote, committed as they are. See `TechtreeWeb.TddShowcase`.
+# `export_revision` is the full revision of the commit that adds those files;
+# it is set in the commit after that one, and the page cannot load without it.
+config :techtree, TechtreeWeb.TddShowcase,
+  folder: {:priv, "examples/tdd-showcase"},
+  repository_url: "https://github.com/regents-ai/techtree"
+
 # Configure the endpoint
 config :techtree, TechtreeWeb.Endpoint,
   url: [host: "localhost"],
