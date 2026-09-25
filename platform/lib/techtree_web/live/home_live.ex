@@ -1,12 +1,14 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
-  Why Techtree exists, followed by one copyable instruction for getting started.
+  Why Techtree exists, what a controlled comparison is, what works today, and
+  one copyable instruction for getting started.
   """
 
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.Capabilities
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
@@ -14,20 +16,9 @@ defmodule TechtreeWeb.HomeLive do
   # Install coordinates come from the published release, never marketing copy.
   @preview_label "Controlled agent evaluations"
 
-  @crown_studies [
-    %{id: "1", label: "Graze"},
-    %{id: "2", label: "Orange"},
-    %{id: "3", label: "White"},
-    %{id: "4", label: "Titanium"}
-  ]
-  @crown_actions %{crown_1: "1", crown_2: "2", crown_3: "3", crown_4: "4"}
-
   @impl true
   def mount(_params, _session, socket) do
     campaign = Query.list_climbs() |> List.first()
-    release = ReleaseInfo.current()
-    crown_variant = Map.get(@crown_actions, socket.assigns.live_action, "1")
-    crown_study? = Map.has_key?(@crown_actions, socket.assigns.live_action)
 
     {:ok,
      assign(socket,
@@ -36,11 +27,9 @@ defmodule TechtreeWeb.HomeLive do
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
-       release: release,
-       preview_label: @preview_label,
-       crown_studies: @crown_studies,
-       crown_variant: crown_variant,
-       crown_study?: crown_study?
+       capabilities: Capabilities.all(),
+       release: ReleaseInfo.current(),
+       preview_label: @preview_label
      )}
   end
 
@@ -48,26 +37,7 @@ defmodule TechtreeWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <Layouts.page wide flush>
-      <section
-        class="hero hero--landing"
-        data-crown-variant={@crown_variant}
-        data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
-        aria-labelledby="hero-title"
-      >
-        <nav :if={@crown_study?} class="crown-studies" aria-label="Crown material studies">
-          <span>Material study</span>
-          <a
-            :for={study <- @crown_studies}
-            id={"crown-study-#{study.id}"}
-            href={"/crown/#{study.id}"}
-            data-crown-study={study.id}
-            class={["crown-studies__link", study.id == @crown_variant && "is-active"]}
-            aria-current={if(study.id == @crown_variant, do: "page")}
-          >
-            <b>{study.id}</b> {study.label}
-          </a>
-        </nav>
-
+      <section class="hero hero--landing" aria-labelledby="hero-title">
         <div class="hero__stage">
           <div
             id="hero-crown"
@@ -77,16 +47,9 @@ defmodule TechtreeWeb.HomeLive do
             data-optics-kind="crown"
             data-optics-source={~p"/assets/js/crown_island.js"}
             data-optics-pointer="parent"
-            data-crown-variant={@crown_variant}
-            data-crown-theme-controlled={if(@crown_study?, do: "false", else: "true")}
             aria-hidden="true"
           >
-            <canvas
-              id="hero-crown-canvas"
-              class="hero__crown"
-              data-optics-canvas
-              data-crown-variant={@crown_variant}
-            ></canvas>
+            <canvas id="hero-crown-canvas" class="hero__crown" data-optics-canvas></canvas>
           </div>
 
           <div class="hero__copy">
@@ -101,7 +64,7 @@ defmodule TechtreeWeb.HomeLive do
                 Built on
                 <a class="hero__source-link" href="https://github.com/PrimeIntellect-ai/verifiers">Prime Intellect</a>
                 and
-                <a class="hero__source-link" href="https://github.com/NVIDIA/NeMo-Relay">NVIDIA&nbsp;NeMo</a>
+                <a class="hero__source-link" href="https://github.com/NousResearch/hermes-agent">Nous&nbsp;Research</a>
               </span>
             </p>
             <.installer release={@release} agent_line={@agent_line} />
@@ -111,7 +74,7 @@ defmodule TechtreeWeb.HomeLive do
                 class="rg-button rg-button--primary button--primary"
                 navigate={~p"/start"}
               >
-                <span class="rg-button__label">Create an environment</span>
+                <span class="rg-button__label">Choose where to start</span>
               </.link>
               <a class="text-link" href={~p"/results"}>
                 View published Results <span aria-hidden="true">→</span>
@@ -120,11 +83,7 @@ defmodule TechtreeWeb.HomeLive do
           </div>
         </div>
 
-        <a
-          class="hero__more"
-          href="#first-service"
-          aria-label="Explore Techtree’s first planned service"
-        >
+        <a class="hero__more" href="#controlled-comparison" aria-label="How a comparison works">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m6 5 6 6 6-6" />
             <path d="m6 12 6 6 6-6" />
@@ -133,56 +92,25 @@ defmodule TechtreeWeb.HomeLive do
       </section>
 
       <section
-        id="first-service"
-        class="home-section service-intro"
-        aria-labelledby="service-intro-title"
+        id="controlled-comparison"
+        class="home-section featured"
+        aria-labelledby="featured-title"
       >
-        <Regent.Structure.section_bar>
-          <p class="rg-section-bar__label">First service</p>
-          <Regent.Primitives.status>Planned</Regent.Primitives.status>
-        </Regent.Structure.section_bar>
-        <div class="service-intro__body">
-          <div>
-            <h2 id="service-intro-title">Your repo. A repeatable environment.</h2>
-            <p>
-              Repo2RLEnv will turn a pinned repository into a reproducible reinforcement-learning
-              environment: buildable runtime, bounded tasks, a scorer, and an evidence report.
-            </p>
-            <.link navigate={~p"/repo2rlenv"} class="rg-button rg-button--secondary">
-              Explore Repo2RLEnv <span aria-hidden="true">→</span>
-            </.link>
-          </div>
-          <ol class="service-flow" aria-label="Planned Repo2RLEnv workflow">
-            <li>
-              <span>01 / Source</span><strong>Pinned repository</strong><small>Commit + rights</small>
-            </li>
-            <li>
-              <span>02 / Build</span><strong>RL environment</strong><small>Runtime + tasks + scorer</small>
-            </li>
-            <li>
-              <span>03 / Evidence</span><strong>Validation report</strong><small>What passed. What did not.</small>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <.proof_of_concept
-        class="home-section proof-of-concept"
-        eyebrow="hermes + prime + nvidia agent stack"
-        title="v0.1 release"
-        nemo_roadmap
-      />
-
-      <section :if={@campaign} class="home-section featured" aria-labelledby="featured-title">
         <div>
-          <p class="eyebrow">Introductory Climb</p>
-          <h2 id="featured-title">{@campaign.title}</h2>
+          <p class="eyebrow">A controlled comparison</p>
+          <h2 id="featured-title">Only the Skill changes.</h2>
           <p>
-            {(@campaign_copy && @campaign_copy.scope) ||
+            Your agent works the same fixed tasks twice: once without the Skill and once with it.
+            The model, the tools and the limits stay the same, so any difference in the results
+            comes from the Skill. Techtree calls this a Climb.
+          </p>
+          <p :if={@campaign}>
+            The introductory Climb is <strong>{@campaign.title}</strong>. {(@campaign_copy &&
+                                                                              @campaign_copy.scope) ||
               "A fixed comparison that changes one Skill and nothing else."}
           </p>
         </div>
-        <dl class="featured__facts">
+        <dl :if={@campaign} class="featured__facts">
           <div>
             <dt>Tasks</dt>
             <dd>{CampaignFacts.membership_words(@campaign_facts.membership) || "Not published"}</dd>
@@ -199,9 +127,77 @@ defmodule TechtreeWeb.HomeLive do
             <dd>{CampaignFacts.validation_words(@campaign_facts.validation) || "Not published"}</dd>
           </div>
         </dl>
-        <a class="text-link" href={~p"/climbs/#{@campaign.projection["slug"]}"}>
+        <a :if={@campaign} class="text-link" href={~p"/climbs/#{@campaign.projection["slug"]}"}>
           Inspect the Climb <span aria-hidden="true">→</span>
         </a>
+      </section>
+
+      <section id="capabilities" class="home-section" aria-labelledby="capabilities-title">
+        <Regent.Structure.section_bar class="section-heading rg-support-band">
+          <h2 id="capabilities-title" class="rg-section-bar__label">What works today</h2>
+        </Regent.Structure.section_bar>
+        <div class="capabilities">
+          <div class="capabilities__summary">
+            <p>
+              Techtree is a working technical preview built from three independent parts:
+              <a href="https://github.com/PrimeIntellect-ai/verifiers">Prime Intellect’s Verifiers</a>
+              scores the tasks,
+              <a href="https://github.com/NousResearch/hermes-agent">Nous Research’s Hermes</a>
+              runs the agent, and Techtree runs the comparison and keeps the evidence.
+            </p>
+            <p :if={@release} class="small quiet">
+              Current release: {ReleaseInfo.label(@release)} ·
+              <.link navigate={~p"/changelog"}>Changelog</.link>
+            </p>
+          </div>
+          <ul class="capabilities__list">
+            <li :for={capability <- @capabilities} class="capabilities__item">
+              <span>{capability.name}</span>
+              <.capability_status capability={capability.id} />
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section
+        id="from-a-repository"
+        class="home-section service-intro"
+        aria-labelledby="service-intro-title"
+      >
+        <Regent.Structure.section_bar>
+          <p class="rg-section-bar__label">From a repository</p>
+          <.capability_status capability={:repository_tasks} />
+        </Regent.Structure.section_bar>
+        <div class="service-intro__body">
+          <div>
+            <h2 id="service-intro-title">Your repo. A repeatable environment.</h2>
+            <p>
+              Techtree can turn past fixes in a local git repository into repair tasks and check
+              each one on your computer. The hosted Repo2RLEnv service, which will do this for a
+              pinned repository and deliver a buildable runtime, tasks, a scorer and an evidence
+              report, is planned.
+            </p>
+            <div class="service-intro__actions">
+              <.link navigate={~p"/start#repository"} class="rg-button rg-button--secondary">
+                Build tasks from my repository <span aria-hidden="true">→</span>
+              </.link>
+              <.link navigate={~p"/repo2rlenv"} class="text-link">
+                About Repo2RLEnv <span aria-hidden="true">→</span>
+              </.link>
+            </div>
+          </div>
+          <ol class="service-flow" aria-label="From a repository to an environment">
+            <li>
+              <span>01 / Source</span><strong>Pinned repository</strong><small>Commit + rights</small>
+            </li>
+            <li>
+              <span>02 / Build</span><strong>RL environment</strong><small>Runtime + tasks + scorer</small>
+            </li>
+            <li>
+              <span>03 / Evidence</span><strong>Validation report</strong><small>What passed. What did not.</small>
+            </li>
+          </ol>
+        </div>
       </section>
 
       <section class="home-section trust" aria-labelledby="trust-title">

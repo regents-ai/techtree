@@ -94,19 +94,12 @@ config :techtree, TechtreeWeb.Endpoint,
   live_view: [signing_salt: "TLsHrJnt"]
 
 # Configure esbuild (the version is required). The crown is a separate entry so
-# the homepage can load it on demand; the source-faithful prism ships as a
-# prebuilt, route-only module under priv/static/vendor.
+# the homepage can load it on demand.
 config :esbuild,
   version: "0.28.2",
   techtree: [
     args:
-      ~w(js/site.js js/crown_island.js js/background_island.js css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
-    cd: Path.expand("../assets", __DIR__),
-    env: %{"NODE_PATH" => [Mix.Project.deps_path(), Mix.Project.build_path()]}
-  ],
-  techtree_privy: [
-    args:
-      ~w(js/privy_bridge.jsx --bundle --format=esm --splitting --target=es2022 --outdir=../priv/static/assets/js),
+      ~w(js/site.js js/crown_island.js css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Mix.Project.deps_path(), Mix.Project.build_path()]}
   ]

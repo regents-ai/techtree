@@ -24,7 +24,10 @@ defmodule TechtreeWeb.ResearchContent do
           How can someone else check the result without running the whole evaluation again?
         </strong>
       </p>
-      <p>Techtree v0.1 is our first answer.</p>
+      <p>
+        Techtree’s first answer is a controlled comparison: the same agent works the same tasks
+        twice, and only the Skill changes. Techtree calls this a Climb.
+      </p>
     </section>
 
     <section id="proof-bundle" class="doc-section">
@@ -143,11 +146,12 @@ defmodule TechtreeWeb.ResearchContent do
     </section>
 
     <section id="environments" class="doc-section">
-      <h2>Planned execution portability in v0.2</h2>
+      <h2>Execution portability</h2>
+      <p><.capability_status capability={:nemo} /></p>
       <p>
-        These paths are not available in v0.1, and their exact upstream contracts
-        are still being tested. v0.2 is planned to make the same controlled-comparison
-        protocol portable across:
+        These paths are not available yet, and their exact upstream contracts are still
+        being tested. The plan is to make the same controlled-comparison protocol portable
+        across:
       </p>
       <ul class="doc-list">
         <li>local execution, with provider-hosted evaluation planned for a later release;</li>
@@ -165,15 +169,18 @@ defmodule TechtreeWeb.ResearchContent do
         benchmark of model capability.
       </p>
       <p>
-        Environment creation, automatic Skill optimization, held-out proving workflows,
-        training, and a local control-plane dashboard remain later work.
+        Creating an environment from a Skill and building tasks from a repository are
+        experimental today; <.link navigate={~p"/start"}>Start</.link> shows both.
+        Automatic Skill optimization, held-out proving workflows, training, and a local
+        control-plane dashboard remain later work.
       </p>
     </section>
 
     <section id="agent-stack" class="doc-section">
-      <h2>The planned v0.2 agent stack</h2>
+      <h2>The agent stack</h2>
+      <p><.capability_status capability={:nemo} /></p>
       <p>
-        v0.2 is intended to broaden the systems Techtree can study without merging
+        The next step is to broaden the systems Techtree can study without merging
         their responsibilities.
       </p>
       <p>

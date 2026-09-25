@@ -7,6 +7,8 @@ defmodule TechtreeWeb.Layouts do
 
   use TechtreeWeb, :html
 
+  alias TechtreeWeb.Capabilities
+
   embed_templates("layouts/*")
 
   @repository_url "https://github.com/regents-ai/techtree"
@@ -114,13 +116,6 @@ defmodule TechtreeWeb.Layouts do
     """
   end
 
-  defp masthead_visible?(assigns) do
-    case assigns[:conn] do
-      %Plug.Conn{request_path: "/prism"} -> false
-      _conn -> true
-    end
-  end
-
   defp current_section("/proofs", "/verify"), do: "page"
 
   defp current_section(path, root) when is_binary(path) do
@@ -137,7 +132,7 @@ defmodule TechtreeWeb.Layouts do
   end
 
   defp description_for_path("/start"),
-    do: "Give your local agent one instruction to create a Techtree environment from your Skill."
+    do: "Try the example Climb, evaluate your own Skill, or build tasks from your repository."
 
   defp description_for_path("/results"),
     do: "Browse participant-attested Results from controlled Skill comparisons."
@@ -172,7 +167,9 @@ defmodule TechtreeWeb.Layouts do
       <footer aria-label="Project links" class="product-links">
         <a href="https://github.com/regents-ai/techtree" rel="noopener noreferrer">Star on GitHub</a>
         <a href="/llms.txt">For agents</a>
-        <a href={~p"/repo2rlenv"}>Repo2RLEnv · Planned</a>
+        <a href={~p"/repo2rlenv"}>
+          Repo2RLEnv · {Capabilities.label(Capabilities.status(:hosted_building))}
+        </a>
         <Regent.Primitives.disclosure id="related-products" summary="Regents Labs">
           <nav aria-label="Related products" class="product-links__related">
             <a href="https://regents.sh">Regents</a>

@@ -1,13 +1,13 @@
 defmodule TechtreeWeb.RunsLive.Index do
   @moduledoc """
-  Every run somebody has published, in the order they arrived.
+  Every run somebody has published, newest arrival first.
 
   This page is a log and not a table of standings, and the difference is the
-  whole design of it. Entries are ordered by when they landed and by nothing
-  else. There is no position number, no "best", no control that would reorder
-  them, and no way for a reader to ask for one — because an ordering is a
-  ranking whatever it is called, and the Climb these runs belong to says in its
-  own manifest that it has no leaderboard.
+  whole design of it. Entries are ordered by when they landed, newest first,
+  and by nothing else. There is no position number, no "best", no control that
+  would reorder them, and no way for a reader to ask for one — because an
+  ordering is a ranking whatever it is called, and the Climb these runs belong
+  to says in its own manifest that it has no leaderboard.
 
   Everything on a row was recomputed from bytes that verify. The publisher is
   the fingerprint of the key that signed the bundle; the agent and the model
@@ -28,9 +28,10 @@ defmodule TechtreeWeb.RunsLive.Index do
   can weigh who is saying it, which is exactly what they cannot do with a
   label sitting on somebody's result.
 
-  The page reads one keyset page at a time, twenty-five at a time, oldest link
-  first — the same rule the read endpoint follows, so the two cannot disagree
-  about what "the next page" means.
+  The page reads one keyset page at a time, twenty-five at a time, newest
+  first, and the next page holds the entries that arrived before it — the same
+  rule the read endpoint follows, so the two cannot disagree about what "the
+  next page" means.
 
   The page says what the checking was and what it was not. This site checked
   that a receipt is internally consistent and signed by the key it names. It
@@ -216,9 +217,9 @@ defmodule TechtreeWeb.RunsLive.Index do
           :if={@entries == [] && !@selection_error && @families == []}
           class="runs-index__empty empty-state"
         >
-          Nobody has published a Result yet.
+          Nobody has published a Result yet. Each Result comes from a Climb: the same agent on the same tasks, once without a Skill and once with it.
           <.link navigate={~p"/start"}>Start your first Climb</.link>
-          to create one locally.
+          to make one on your computer.
         </p>
 
         <p :if={@entries == [] && @selection} class="empty-state">

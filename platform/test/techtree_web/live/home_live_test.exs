@@ -25,7 +25,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert text =~ "Improve a Skill."
       assert text =~ "Prove it worked."
       assert text =~ "Same agent. Same tasks. One Skill upgraded."
-      assert text =~ "Built on Prime Intellect and NVIDIA NeMo"
+      assert text =~ "Built on Prime Intellect and Nous"
 
       assert has_element?(
                live,
@@ -41,8 +41,8 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               ".hero__source-link[href='https://github.com/NVIDIA/NeMo-Relay']",
-               "NVIDIA NeMo"
+               ".hero__source-link[href='https://github.com/NousResearch/hermes-agent']",
+               "Nous"
              )
 
       assert has_element?(
@@ -74,25 +74,12 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert css =~ ~s|@import "./techtree_home.css"|
     end
 
-    test "the crown comparison route retains the bounded homepage study", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/crown/1")
-
-      assert visible_text(html) =~ "Improve a Skill."
-
-      assert has_element?(
-               live,
-               ~s|#hero-crown[data-crown-variant="1"] canvas#hero-crown-canvas|
-             )
-
-      assert has_element?(live, "#crown-study-1[aria-current=page]")
-    end
-
-    test "the hero points to the planned service below it", %{conn: conn} do
+    test "the hero points to the controlled comparison below it", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(
                live,
-               ~s|a.hero__more[href="#first-service"][aria-label="Explore Techtree’s first planned service"] svg|
+               ~s|a.hero__more[href="#controlled-comparison"][aria-label="How a comparison works"] svg|
              )
     end
 
@@ -101,7 +88,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, ~s|a[href="/start"]|, "Create an environment")
+      assert has_element?(live, ~s|a[href="/start"]|, "Choose where to start")
       assert has_element?(live, "#copy-home-agent-line")
       assert text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
@@ -167,16 +154,15 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, "#what-this-release-is")
+      assert has_element?(live, "#capabilities")
       refute has_element?(live, "#home-evidence-graph")
       refute has_element?(live, ".home-section.process")
       assert has_element?(live, ".home-section.featured")
       assert has_element?(live, ".home-section.trust")
-      assert text =~ "v0.1 release"
       refute text =~ "standing on giants"
       refute text =~ "What it demonstrates is that the three pin together tightly enough"
       refute text =~ "Run. Improve. Prove."
-      assert text =~ "Introductory Climb"
+      assert text =~ "The introductory Climb is"
       assert text =~ "Your work stays local."
     end
 
@@ -232,7 +218,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert text =~ "Improve a Skill."
     refute text =~ "Evidence graph"
-    assert text =~ "Create an environment"
+    assert text =~ "Choose where to start"
     assert text =~ StartLive.instruction()
     refute html =~ "copy-home-cli"
   end

@@ -15,7 +15,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
         <header class="editorial-heading">
           <div class="service-kicker">
             <p class="eyebrow">Techtree’s first service / Repo2RLEnv</p>
-            <Regent.Primitives.status>Planned</Regent.Primitives.status>
+            <.capability_status capability={:hosted_building} />
           </div>
           <h1 id="repo-service-title">Real code.<br />Stronger agents.</h1>
           <p class="lede">
@@ -194,11 +194,19 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
 
         <div class="start-guide__next">
           <div>
-            <p class="eyebrow">Available workflow</p><h2>Explore controlled Skill comparisons.</h2><p>
-              Start with the existing local Techtree workflow while the repository service is being developed.
+            <div class="service-kicker">
+              <p class="eyebrow">Try it on your computer</p>
+              <.capability_status capability={:repository_tasks} />
+            </div>
+            <h2>Build tasks from your repository.</h2>
+            <p>
+              While the hosted service is being built, Techtree can already turn past fixes in a
+              local git repository into repair tasks and check each one on your computer.
             </p>
           </div>
-          <.link navigate={~p"/start"} class="rg-button rg-button--primary">Start with Techtree →</.link>
+          <.link navigate={~p"/start#repository"} class="rg-button rg-button--primary">
+            Build tasks from my repository →
+          </.link>
         </div>
       </article>
     </Layouts.page>

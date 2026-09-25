@@ -63,7 +63,7 @@ defmodule TechtreeWeb.DocsLive do
               title="Where this goes"
               links={[
                 {"Beyond the model", "#beyond-model"},
-                {"Planned execution portability", "#environments"},
+                {"Execution portability", "#environments"},
                 {"The agent stack", "#agent-stack"},
                 {"Regents and the network", "#regents"}
               ]}

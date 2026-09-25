@@ -8,7 +8,7 @@ defmodule TechtreeWeb.StartLiveTest do
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
 
-  @title "Create an environment from your Skill."
+  @title "Choose where to start."
 
   describe "with an installable release" do
     setup %{tmp_dir: tmp_dir} do
@@ -56,7 +56,25 @@ defmodule TechtreeWeb.StartLiveTest do
       assert html =~ ~s|data-copy-value="#{escape.(expected_cli)}"|
       assert html =~ ~s|data-copy-value="#{escape.(expected_hermes)}"|
 
-      for id <- ["copy-start-instruction", "copy-setup-cli", "copy-setup-hermes"] do
+      expected_example =
+        [
+          Enum.join(release.install_argv, " "),
+          "techtree doctor --climb #{release.introductory_reference}",
+          "techtree skill starter",
+          "# Prepare with the Skill it placed, then run the start command it prints:",
+          "techtree climb prepare #{release.introductory_reference} --skill path/to/skill"
+        ]
+        |> Enum.join("\n")
+
+      assert html =~ ~s|data-copy-value="#{escape.(expected_example)}"|
+
+      for id <- [
+            "copy-start-example",
+            "copy-start-instruction",
+            "copy-setup-cli",
+            "copy-setup-hermes",
+            "copy-start-repository"
+          ] do
         assert has_element?(live, "##{id}", "Copy")
         assert has_element?(live, "##{id} + [data-copy-status][role=status][aria-live=polite]")
       end
@@ -93,8 +111,14 @@ defmodule TechtreeWeb.StartLiveTest do
              "No concrete release is available to install yet."
            )
 
-    refute html =~ "copy-start-instruction"
-    refute html =~ "copy-setup-cli"
-    refute html =~ "copy-setup-hermes"
+    for id <- [
+          "copy-start-example",
+          "copy-start-instruction",
+          "copy-setup-cli",
+          "copy-setup-hermes",
+          "copy-start-repository"
+        ] do
+      refute html =~ id
+    end
   end
 end

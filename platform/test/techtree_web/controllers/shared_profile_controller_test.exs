@@ -45,12 +45,10 @@ defmodule TechtreeWeb.SharedProfileControllerTest do
     assert json_response(updated, 200)["profile"]["display_name"] == "Shared name"
   end
 
-  test "withdrawn profile documents expose no Privy permissions or metadata" do
+  test "withdrawn profile documents grant no Privy permissions" do
     for path <- ["/profile", "/profile/"] do
       conn = build_conn() |> get(path)
-      html = html_response(conn, 404)
-      refute html =~ ~s(name="privy-app-id")
-      refute html =~ ~s(name="privy-bridge-src")
+      assert html_response(conn, 404)
       policy = Enum.join(get_resp_header(conn, "content-security-policy"), "; ")
       refute policy =~ "https://auth.privy.io"
       refute policy =~ "unsafe-eval"
@@ -58,9 +56,7 @@ defmodule TechtreeWeb.SharedProfileControllerTest do
 
     for path <- ["/", "/docs", "/results"] do
       conn = build_conn() |> get(path)
-      html = html_response(conn, 200)
-      refute html =~ ~s(name="privy-app-id")
-      refute html =~ ~s(name="privy-bridge-src")
+      assert html_response(conn, 200)
       assert [policy] = get_resp_header(conn, "content-security-policy")
       refute policy =~ "auth.privy.io"
       refute policy =~ "unsafe-eval"
