@@ -16,33 +16,37 @@ defmodule TechtreeWeb.CampaignFacts do
   this site. The limits this module returns are the ones a reader can act on:
   calls and tokens.
 
-  Every limit is per try. A run tries each task once without the Skill and once
-  with it, and each try stops starting model calls once it reaches any one of
-  them; the call that crosses a limit still finishes.
+  Every limit is per try. A run tries each task without the Skill and with it,
+  as many times as the Campaign's rollouts say, and a failed try may be run
+  again up to the Campaign's retry limit. Each try stops starting model calls
+  once it reaches any one of its limits; the call that crosses a limit still
+  finishes.
   """
 
   alias Techtree.Catalog.Query
 
-  @type t :: %{budget: map(), membership: map(), validation: map()}
+  @type t :: %{membership: map(), validation: map()}
 
   @type trial :: %{
           provider: String.t(),
           model_id: String.t(),
           credential_env: String.t(),
           tasks: pos_integer(),
+          rollouts: pos_integer(),
+          retries: non_neg_integer(),
           calls: pos_integer(),
           input_tokens: pos_integer(),
           output_tokens: pos_integer()
         }
 
-  # Each task is tried once without the Skill and once with it.
-  @tries_per_task 2
+  # Each task is tried without the Skill and with it.
+  @sides 2
 
-  @empty %{budget: %{}, membership: %{}, validation: %{}}
+  @empty %{membership: %{}, validation: %{}}
 
   @doc """
-  The published budget, task membership, and validation outcome behind one
-  Climb, or empty values when this release publishes none of them.
+  The published task membership and validation outcome behind one Climb, or
+  empty values when this release publishes neither.
   """
   @spec for_climb(map() | nil) :: t()
   def for_climb(nil), do: @empty
@@ -54,7 +58,6 @@ defmodule TechtreeWeb.CampaignFacts do
 
       campaign ->
         %{
-          budget: budget(campaign),
           membership: membership(campaign),
           validation: validation(facts["validation_receipt_digest"])
         }
@@ -85,33 +88,41 @@ defmodule TechtreeWeb.CampaignFacts do
   Climb without them is a broken catalog and raises here.
   """
   @spec trial!(map()) :: trial()
-  def trial!(%{projection: %{"campaign_spec_digest" => digest}}) do
+  def trial!(climb), do: climb |> campaign!() |> trial()
+
+  @doc """
+  The Campaign one Climb runs, decoded from the exact bytes this site serves.
+  """
+  @spec campaign!(map()) :: map()
+  def campaign!(%{projection: %{"campaign_spec_digest" => digest}}) do
     {:ok, bytes, _entry} = Query.object_bytes(digest)
-    bytes |> Jason.decode!() |> trial()
+    Jason.decode!(bytes)
   end
 
   @doc """
-  The most model calls a whole run of this trial can start: both tries of every
-  task, each at its own limit.
-  """
-  @spec run_calls(trial()) :: pos_integer()
-  def run_calls(%{tasks: tasks, calls: calls}), do: tasks * @tries_per_task * calls
+  The per-try limits of a trial added up over a whole run: every try of every
+  task on both sides, retries included, each at its own limits.
 
-  @doc """
-  The limits on each try, in the units a reader can act on.
+  These are the most a run can reach. The calls are the most it can start. The
+  tokens are where every try stops starting calls, and the call that crosses a
+  limit still finishes.
   """
-  @spec budget_words(map()) :: String.t() | nil
-  def budget_words(%{
-        "maximum_model_calls" => calls,
-        "maximum_input_tokens" => input,
-        "maximum_output_tokens" => output
-      })
-      when is_integer(calls) and is_integer(input) and is_integer(output) do
-    "Each try: #{count(calls)} model calls · #{count(input)} input tokens · " <>
-      "#{count(output)} output tokens"
+  @spec run_total(trial()) :: %{
+          tries: pos_integer(),
+          calls: pos_integer(),
+          input_tokens: pos_integer(),
+          output_tokens: pos_integer()
+        }
+  def run_total(%{tasks: tasks, rollouts: rollouts, retries: retries} = trial) do
+    tries = tasks * @sides * rollouts * (1 + retries)
+
+    %{
+      tries: tries,
+      calls: tries * trial.calls,
+      input_tokens: tries * trial.input_tokens,
+      output_tokens: tries * trial.output_tokens
+    }
   end
-
-  def budget_words(_budget), do: nil
 
   @doc """
   A whole number written with thousands separators, as in 900,000.
@@ -137,44 +148,46 @@ defmodule TechtreeWeb.CampaignFacts do
   def membership_words(%{"count" => count}) when is_integer(count), do: "#{count} tasks"
   def membership_words(_membership), do: nil
 
-  # -- Internals ------------------------------------------------------------
-
-  defp trial(%{
-         "agents" => %{
-           "subject" => %{
-             "model" => %{
-               "provider" => provider,
-               "model_id" => model_id,
-               "credential_env" => credential_env
-             }
-           }
-         },
-         "budgets" => %{
-           "maximum_model_calls" => calls,
-           "maximum_input_tokens" => input_tokens,
-           "maximum_output_tokens" => output_tokens
-         },
-         "taskset" => %{"selection" => %{"num_tasks" => tasks}}
-       })
-       when is_binary(provider) and is_binary(model_id) and is_binary(credential_env) and
-              is_integer(tasks) and is_integer(calls) and is_integer(input_tokens) and
-              is_integer(output_tokens) do
+  @doc """
+  What a Campaign asks of the person running it. `trial!/1` reads it for a
+  Climb; a page that already holds the Campaign reads it here.
+  """
+  @spec trial(map()) :: trial()
+  def trial(%{
+        "agents" => %{
+          "subject" => %{
+            "model" => %{
+              "provider" => provider,
+              "model_id" => model_id,
+              "credential_env" => credential_env
+            }
+          }
+        },
+        "budgets" => %{
+          "maximum_model_calls" => calls,
+          "maximum_input_tokens" => input_tokens,
+          "maximum_output_tokens" => output_tokens
+        },
+        "execution" => %{"retry_limit" => retries},
+        "taskset" => %{"selection" => %{"num_tasks" => tasks, "num_rollouts" => rollouts}}
+      })
+      when is_binary(provider) and is_binary(model_id) and is_binary(credential_env) and
+             is_integer(tasks) and is_integer(rollouts) and is_integer(retries) and
+             is_integer(calls) and is_integer(input_tokens) and is_integer(output_tokens) do
     %{
       provider: provider,
       model_id: model_id,
       credential_env: credential_env,
       tasks: tasks,
+      rollouts: rollouts,
+      retries: retries,
       calls: calls,
       input_tokens: input_tokens,
       output_tokens: output_tokens
     }
   end
 
-  defp budget(campaign) do
-    campaign
-    |> Map.get("budgets", %{})
-    |> Map.take(["maximum_model_calls", "maximum_input_tokens", "maximum_output_tokens"])
-  end
+  # -- Internals ------------------------------------------------------------
 
   defp membership(campaign) do
     %{

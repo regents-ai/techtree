@@ -19,9 +19,12 @@ defmodule Techtree.Network.PublicationEntry do
 
   ## The row is written once and never rewritten
 
-  There is no update action here but the one that records that a signed
-  withdrawal arrived, and there is no destroy action at all. Everything an
-  entry will ever say is written in the single insert that creates it —
+  There are two update actions here: the one that records that a signed
+  withdrawal arrived, and the one that stores an assessment for an entry
+  published before assessments were stored with entries, which writes nothing
+  over an assessment already there. There is no destroy action at all.
+  Everything else an entry will ever say is written in the single insert that
+  creates it —
   including its own log sequence, when it was accepted, and the receipt this
   site handed back — because a row that is completed by a second write is a row
   that can exist half-written.
@@ -134,6 +137,13 @@ defmodule Techtree.Network.PublicationEntry do
       filter expr(bundle_digest == ^arg(:bundle_digest))
     end
 
+    read :unassessed do
+      description "Entries with no stored assessment, oldest first. The release task only."
+
+      filter expr(is_nil(assessment))
+      prepare build(sort: [log_sequence: :asc])
+    end
+
     read :for_campaign do
       description "Published proofs for one Campaign, newest arrival first."
 
@@ -205,10 +215,21 @@ defmodule Techtree.Network.PublicationEntry do
         :verification_checks_run,
         :verification_checks_passed,
         :task_deltas,
+        :assessment,
         :receipt_bytes,
         :receipt_digest,
         :network_key_id
       ]
+
+      require_attributes [:assessment]
+    end
+
+    update :record_assessment do
+      description "Store the assessment of an entry that has none. The release task only."
+      accept [:assessment]
+      require_attributes [:assessment]
+
+      change filter(expr(is_nil(assessment)))
     end
 
     update :mark_withdrawn do
@@ -338,6 +359,7 @@ defmodule Techtree.Network.PublicationEntry do
 
     attribute :skill_digest, :string do
       description "The content digest of the Skill in the verified candidate experiment."
+      allow_nil? false
       public? true
     end
 
@@ -352,19 +374,19 @@ defmodule Techtree.Network.PublicationEntry do
     end
 
     attribute :baseline_mean, :float do
-      description "The mean reward of the run without the Skill."
+      description "The mean reward of the run without the Skill, recomputed from the task list."
       allow_nil? false
       public? true
     end
 
     attribute :candidate_mean, :float do
-      description "The mean reward of the run with the Skill."
+      description "The mean reward of the run with the Skill, recomputed from the task list."
       allow_nil? false
       public? true
     end
 
     attribute :absolute_delta, :float do
-      description "How far apart the two means are."
+      description "The mean with the Skill less the mean without it, recomputed from the task list."
       allow_nil? false
       public? true
     end
@@ -405,7 +427,7 @@ defmodule Techtree.Network.PublicationEntry do
     end
 
     attribute :decision, :string do
-      description "What the signed report concluded."
+      description "What the signed report concluded, which the Campaign's rule gives for its tasks."
       allow_nil? false
       public? true
     end
@@ -434,6 +456,11 @@ defmodule Techtree.Network.PublicationEntry do
       description "Both sides' reward for every task, in the Campaign's committed order."
       allow_nil? false
       default []
+      public? true
+    end
+
+    attribute :assessment, Techtree.Network.Assessment do
+      description "The result and the Skill change as this site worked them out, for the page."
       public? true
     end
 

@@ -7,6 +7,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
 
   alias Techtree.Catalog.Query
   alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.Providers
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -77,7 +78,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
 
   defp held_fixed_words(climb) do
     "#{climb.projection["subject_harness"]} #{climb.projection["subject_harness_version"]}, " <>
-      "#{climb.projection["subject_model"]["provider"]} " <>
+      "#{Providers.name!(climb.projection["subject_model"]["provider"])} " <>
       climb.projection["subject_model"]["model_id"]
   end
 end

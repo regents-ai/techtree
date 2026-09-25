@@ -25,8 +25,8 @@
 .start-path__head h2 { font-size: 1.75rem; letter-spacing: -.025em; }
 .start-path__head p { color: var(--ink-quiet); }
 .start-path .facts { margin-top: 0; }
-.start-path__needs { display: grid; gap: var(--space-1); list-style: square; padding-left: var(--space-3); }
-.start-path__needs + p { margin-top: var(--space-2); }
+.needs { display: grid; gap: var(--space-1); list-style: square; padding-left: var(--space-3); }
+.needs + p { margin-top: var(--space-2); }
 .later-note { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); margin-top: var(--space-2); font-size: .875rem; color: var(--ink-quiet); }
 .start-steps h3 { margin-top: var(--space-2); font-size: 1.375rem; letter-spacing: -.025em; }
 .start-guide__direct > h3 { font-size: 1.375rem; letter-spacing: -.025em; }
@@ -119,6 +119,35 @@
 .results-ledger .results-ledger__evidence a { display: inline-flex; align-items: center; min-height: 2.75rem; white-space: nowrap; }
 .results-ledger .is-withdrawn .results-ledger__skill > a { text-decoration: line-through; }
 .results-ledger tbody tr:focus-within { background: var(--panel); }
+
+/* One Result as a decision: the answer, then examples, the change, the evidence. */
+.section-note { max-width: var(--measure); margin-top: var(--space-2); }
+.assessment { margin-top: var(--space-4); padding: var(--rg-panel-padding); border: 1px solid var(--rule-strong); border-left-width: 4px; background: var(--panel); }
+.assessment--improved { border-left-color: var(--complete); }
+.assessment--regressed { border-left-color: var(--failed); }
+.assessment--not_enough_evidence { border-left-color: var(--running); }
+.assessment__verdict { display: grid; gap: var(--space-1); }
+.assessment__reason, .assessment__outcome, .assessment__means { max-width: var(--measure); margin-top: var(--space-2); }
+.assessment__means { font-size: .875rem; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
+.assessment__tasks { display: grid; gap: var(--space-1); margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--rule); font-size: .875rem; }
+.task-examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--rg-track-gap); margin-top: var(--space-3); }
+.task-example { display: grid; align-content: start; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--rule); }
+.task-example__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1); }
+.task-example__outcome { font-size: .75rem; text-transform: uppercase; }
+.task-example__outcome--better { color: var(--complete); }
+.task-example__outcome--worse { color: var(--failed); }
+.task-example__scores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin-top: var(--space-1); }
+.task-example__scores dt { font-size: .75rem; color: var(--ink-quiet); }
+.task-example__scores dd { font-variant-numeric: tabular-nums; }
+.skill-change { margin-top: var(--space-3); }
+.skill-change__item + .skill-change__item { margin-top: var(--space-3); }
+.evidence-badges { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
+.evidence-badge { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 1fr); gap: var(--space-2); align-items: baseline; padding-bottom: var(--space-2); border-bottom: 1px solid var(--rule); }
+.evidence-badge p { font-size: .875rem; }
+.rerun { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--rg-track-gap); align-items: start; margin-top: var(--space-3); }
+.rerun .command { margin: 0; }
+.rerun__needs h3 { margin-bottom: var(--space-2); }
+.rerun__heading { margin-top: var(--space-4); }
 @media (hover: hover) and (pointer: fine) {
   .results-ledger tbody tr:hover { background: var(--panel); }
   .results-filter-choices .result-choice:not([aria-current]):hover { background: var(--panel); }
@@ -145,6 +174,7 @@
   .results-filter-label { min-height: 2rem; }
   .results-filter-choices .result-choice { max-width: min(26rem, 75vw); }
   .results-ledger .results-ledger__skill > a { min-height: 2.75rem; }
+  .rerun, .evidence-badge { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 29.99rem) {
   .verify-check-grid { grid-template-columns: 1fr; }

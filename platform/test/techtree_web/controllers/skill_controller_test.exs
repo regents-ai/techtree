@@ -28,7 +28,7 @@ defmodule TechtreeWeb.SkillControllerTest do
     assert conn.resp_body =~ "techtree forge inspect-skill PATH"
     assert conn.resp_body =~ "`--yes --reviewed-on host-agent`"
     assert conn.resp_body =~ "Never approve anything on\n   the person's behalf"
-    assert conn.resp_body =~ "techtree doctor --climb hello-world-climb@1"
+    assert conn.resp_body =~ "techtree setup\ntechtree doctor --climb hello-world-climb@1"
     assert conn.resp_body =~ "macOS or Linux · Python 3.12, provided by the installer"
     assert conn.resp_body =~ "Creating an environment uploads nothing to Techtree."
 

@@ -27,6 +27,15 @@ zero, ``relative_delta`` is null. Reporting zero or infinity would each be a
 different false statement, and the recorded evidence this was built against has
 a zero baseline, so it is the ordinary case rather than the edge one.
 
+*The verdict is exact arithmetic.* Each score is read as the shortest decimal
+that reads back as it, which is the number the report's JSON text writes for
+it, and the sums and the rule are worked out in decimal with no rounding. A
+binary mean of six tenths less five tenths is a hair under a tenth, so a
+Campaign that asks for a tenth would turn down exactly the improvement it asked
+for. The means and the change the report writes are those exact values,
+rounded once to the nearest binary number. Anyone checking the verdict,
+Techtree's site included, can reach the same one from the report alone.
+
 *A tie is exact equality.* Spec section 7.10 permits a Campaign-declared
 tolerance instead, and the frozen
 :class:`~techtree.models.campaign.ScoringSpec` declares none, so there is no
@@ -62,8 +71,9 @@ accepted, rejected or inconclusive, by the Campaign's own predeclared rules.
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from datetime import datetime
+from decimal import Context, Decimal, Inexact, localcontext
 from enum import StrEnum
 from typing import Literal
 
@@ -256,9 +266,10 @@ def aggregate_primary_result(
         _require_finite(delta.baseline_reward, "baseline", delta.task_hash)
         _require_finite(delta.candidate_reward, "candidate", delta.task_hash)
 
-    baseline_mean = _mean(delta.baseline_reward for delta in deltas)
-    candidate_mean = _mean(delta.candidate_reward for delta in deltas)
-    absolute = candidate_mean - baseline_mean
+    baseline_total, candidate_total = _totals(deltas)
+    baseline_mean = _mean(baseline_total, len(deltas))
+    candidate_mean = _mean(candidate_total, len(deltas))
+    absolute = _mean(candidate_total - baseline_total, len(deltas))
     for value, label in (
         (baseline_mean, "baseline mean"),
         (candidate_mean, "candidate mean"),
@@ -291,9 +302,35 @@ def aggregate_primary_result(
     )
 
 
-def _mean(values: Iterable[float]) -> float:
-    collected = list(values)
-    return sum(collected) / len(collected)
+#: Wide enough that adding scores written as shortest decimals never rounds: a
+#: double spans about 650 decimal digits from its largest to its smallest. Any
+#: rounding would raise rather than pass unnoticed.
+_EXACT = Context(prec=1000, traps=[Inexact])
+
+#: Wide enough that dividing an exact total leaves nothing for the one rounding
+#: to a binary number to disagree with.
+_DIVIDE = Context(prec=1000)
+
+
+def _exact(value: float) -> Decimal:
+    """Return the shortest decimal that reads back as this score."""
+    return Decimal(repr(float(value)))
+
+
+def _totals(deltas: Sequence[TaskDelta]) -> tuple[Decimal, Decimal]:
+    """Return the exact sums of the baseline and candidate scores."""
+    with localcontext(_EXACT):
+        baseline = sum((_exact(delta.baseline_reward) for delta in deltas), Decimal(0))
+        candidate = sum(
+            (_exact(delta.candidate_reward) for delta in deltas), Decimal(0)
+        )
+    return baseline, candidate
+
+
+def _mean(total: Decimal, count: int) -> float:
+    """Return an exact total over ``count`` tasks, rounded once to a double."""
+    with localcontext(_DIVIDE):
+        return float(total / count)
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +342,7 @@ def decide_uplift(
     *,
     campaign: CampaignSpecV2,
     comparison: RealComparisonResult,
-    primary: PrimaryUpliftResult,
+    deltas: Sequence[TaskDelta],
 ) -> UpliftDecision:
     """Apply the Campaign's own acceptance rules, and no others.
 
@@ -313,18 +350,26 @@ def decide_uplift(
     decide: a scoring contract that neither requires the candidate to out-score
     the baseline nor sets a minimum delta would accept a regression, so calling
     such a result "accepted" would report a verdict nobody specified.
+
+    The change in the mean clears the minimum exactly when the gap between the
+    two exact totals clears the minimum times the number of tasks, so the rule
+    is applied with no division and no rounding anywhere.
     """
     if not comparison.controlled:
         return UpliftDecision.INVALID
 
     scoring = campaign.scoring
-    if not scoring.require_candidate_above_baseline and (
-        scoring.minimum_absolute_delta == 0.0
-    ):
+    minimum = _exact(scoring.minimum_absolute_delta)
+    if not scoring.require_candidate_above_baseline and minimum == 0:
         return UpliftDecision.INCONCLUSIVE
-    if scoring.require_candidate_above_baseline and primary.absolute_delta <= 0.0:
+
+    baseline_total, candidate_total = _totals(deltas)
+    with localcontext(_EXACT):
+        gap = candidate_total - baseline_total
+        required = minimum * len(deltas)
+    if scoring.require_candidate_above_baseline and gap <= 0:
         return UpliftDecision.REJECTED
-    if primary.absolute_delta < scoring.minimum_absolute_delta:
+    if gap < required:
         return UpliftDecision.REJECTED
     return UpliftDecision.ACCEPTED
 
@@ -500,7 +545,7 @@ def build_uplift_report(
     )
     publication = publication_status_for(data_policy)
     decision = (
-        decide_uplift(campaign=campaign, comparison=comparison, primary=primary)
+        decide_uplift(campaign=campaign, comparison=comparison, deltas=task_deltas)
         if grade == "P1"
         # An unsigned real report withholds the verdict rather than presenting
         # one the frozen model would have to grade P1. See the module docstring.

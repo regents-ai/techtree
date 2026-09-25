@@ -292,12 +292,20 @@ defmodule TechtreeWeb.RunsLiveTest do
       text = visible_text(html)
 
       assert text =~ "36 tasks, fixed before either run"
-      assert text =~ "44 model calls"
+
+      assert text =~
+               "Stops starting model calls at 44 calls, 900,000 input tokens or 16,000 output tokens"
+
+      assert text =~
+               "36 tasks, each tried once without the Skill and once with it: up to 72 tries. " <>
+                 "At most 3,168 model calls."
+
+      assert text =~ "add up to 64,800,000 input tokens and 1,152,000 output tokens"
       assert text =~ entry.campaign_spec_digest
-      assert text =~ entry.skill_digest
       assert text =~ entry.data_policy_digest
       assert text =~ entry.run_id
-      assert text =~ "prime"
+      assert text =~ "qwen/qwen3.7-flash from Prime Intellect"
+      refute text =~ ~r/\bprime\b/
       assert html =~ ~s|href="/climbs/hello-world-climb"|
     end
 
@@ -330,17 +338,88 @@ defmodule TechtreeWeb.RunsLiveTest do
       end
     end
 
-    test "summarizes passed verification and links to its exact meaning",
+    test "leads with the verdict this site recomputed and names the tasks each way",
          %{conn: conn, entry: entry} do
-      {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
-      text = visible_text(html)
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
-      count = Techtree.Network.Bundle.check_count()
+      assert entry.decision == "accepted"
+      assert has_element?(live, "#run-verdict", "Keep this Skill change?")
+      assert has_element?(live, "#run-verdict", "Improved")
+      assert has_element?(live, "#tasks-worse", "Worse on 1 task: Task 01")
 
-      assert text =~ "#{count} checks passed"
-      assert text =~ "Result verification passed."
-      assert text =~ "How verification works."
-      refute text =~ "the submission is small enough to be a proof bundle"
+      assert has_element?(
+               live,
+               "#tasks-better",
+               "Better on 9 tasks: Task 03, Task 07, Task 11, Task 15, Task 19, Task 23, " <>
+                 "Task 27, Task 31, Task 35"
+             )
+
+      assert has_element?(live, "#tasks-same", "No change on 26 tasks.")
+      assert has_element?(live, "#example-worse", "Task 01")
+    end
+
+    test "a regressing result says so and names the tasks the Skill made worse",
+         %{conn: conn} do
+      files = NetworkFixture.resign(swapped_sides_files())
+      {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
+
+      assert {entry.decision, entry.losses, entry.wins} == {"rejected", 9, 1}
+
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
+
+      assert has_element?(live, "#run-verdict", "Regressed")
+      refute has_element?(live, "#run-verdict", "Improved")
+      assert has_element?(live, "#run-outcome", "-22.2 percentage points")
+
+      assert has_element?(
+               live,
+               "#tasks-worse",
+               "Worse on 9 tasks: Task 03, Task 07, Task 11, Task 15, Task 19, Task 23, " <>
+                 "Task 27, Task 31, Task 35"
+             )
+
+      assert has_element?(live, "#tasks-better", "Better on 1 task: Task 01")
+    end
+
+    test "shows only the evidence the Result proves, each on its own",
+         %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
+
+      assert has_element?(
+               live,
+               "#badge-files-verified",
+               "This site ran its #{Techtree.Network.Bundle.check_count()} checks on the " <>
+                 "Result's files, including one that worked out the averages, the change " <>
+                 "and the decision again from the task scores"
+             )
+
+      assert has_element?(live, "#badge-reported", "Reported by the person who ran it")
+
+      # Nothing on this site records a rerun, so the Result is never shown as reproduced.
+      assert has_element?(live, "#badge-not-reproduced", "Not yet reproduced")
+      refute has_element?(live, "#badge-reproduced")
+      refute visible_text(render(live)) =~ "Independently reproduced"
+    end
+
+    test "shows the Skill change the signed report found", %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
+
+      [%{"candidate" => skill}] =
+        NetworkFixture.report()["payload"]["manifest_comparison"]["differences"]
+
+      assert has_element?(live, "#run-skill-change", "The Skill")
+      refute has_element?(live, "#run-skill-change", "Skill 1")
+      assert has_element?(live, "#run-skill-change", "No Skill")
+      assert has_element?(live, "#run-skill-change", skill["digest"])
+      assert has_element?(live, "#run-skill-change", "4,096 bytes")
+      assert has_element?(live, "#run-skill-change", "found only this difference")
+
+      # The Campaign names no build of its model, so the report carries the caveat.
+      assert has_element?(
+               live,
+               "#run-model-build",
+               "Prime Intellect does not publish a build number for qwen/qwen3.7-flash"
+             )
     end
 
     test "filters task evidence by outcome", %{conn: conn, entry: entry} do
@@ -368,8 +447,16 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute has_element?(live, "#task-results .tasks__empty")
     end
 
+    test "says why there are no commands instead of showing any", %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
+
+      refute has_element?(live, "#copy-run-rerun")
+      assert has_element?(live, "#run-rerun", "not serving a release you can install")
+      assert has_element?(live, "#run-rerun", "Stops starting model calls at 44 calls")
+    end
+
     test "explains an empty outcome filter", %{conn: conn} do
-      files = NetworkFixture.resign(worse_by_files(36))
+      files = NetworkFixture.resign(NetworkFixture.worse_by(36))
       {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
       assert entry.wins == 0
 
@@ -483,7 +570,7 @@ defmodule TechtreeWeb.RunsLiveTest do
     published =
       for dropped <- [0, 10, 20] do
         keys = NetworkFixture.key_pair()
-        files = NetworkFixture.resign(worse_by_files(dropped), keys: keys)
+        files = NetworkFixture.resign(NetworkFixture.worse_by(dropped), keys: keys)
 
         {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
 
@@ -495,40 +582,37 @@ defmodule TechtreeWeb.RunsLiveTest do
      keys: Map.new(published, &{elem(&1, 0).bundle_digest, elem(&1, 1)})}
   end
 
-  # The same run with the first `dropped` tasks scoring nothing on the candidate
-  # side, and the counts recomputed so that the bundle is honest about itself.
-  defp worse_by_files(dropped) do
+  # The same run with the two sides swapped: every task the Skill helped, it now
+  # hurts, and the signed report says so, with the decision the Campaign's rule
+  # reaches on a lower score.
+  defp swapped_sides_files do
     Map.update!(NetworkFixture.files(), "uplift-report.json", fn bytes ->
       bytes
       |> Jason.decode!()
-      |> update_in(["payload", "task_deltas"], &lose_first(&1, dropped))
-      |> recount()
+      |> update_in(["payload", "task_deltas"], fn deltas -> Enum.map(deltas, &swap_sides/1) end)
+      |> update_in(["payload", "primary_result"], fn result ->
+        %{
+          result
+          | "baseline_mean" => result["candidate_mean"],
+            "candidate_mean" => result["baseline_mean"],
+            "absolute_delta" => -result["absolute_delta"],
+            "relative_delta" =>
+              (result["baseline_mean"] - result["candidate_mean"]) / result["candidate_mean"],
+            "wins" => result["losses"],
+            "losses" => result["wins"]
+        }
+      end)
+      |> put_in(["payload", "decision"], "rejected")
       |> Jason.encode!()
     end)
   end
 
-  defp lose_first(deltas, dropped) do
-    deltas
-    |> Enum.with_index()
-    |> Enum.map(fn {delta, index} ->
-      if index < dropped, do: Map.put(delta, "candidate_reward", 0), else: delta
-    end)
-  end
-
-  defp recount(envelope) do
-    tally =
-      Enum.frequencies_by(envelope["payload"]["task_deltas"], fn delta ->
-        cond do
-          delta["candidate_reward"] > delta["baseline_reward"] -> "wins"
-          delta["candidate_reward"] < delta["baseline_reward"] -> "losses"
-          true -> "ties"
-        end
-      end)
-
-    update_in(envelope, ["payload", "primary_result"], fn result ->
-      Enum.reduce(["wins", "losses", "ties"], result, fn outcome, acc ->
-        Map.put(acc, outcome, Map.get(tally, outcome, 0))
-      end)
-    end)
+  defp swap_sides(delta) do
+    %{
+      delta
+      | "baseline_reward" => delta["candidate_reward"],
+        "candidate_reward" => delta["baseline_reward"],
+        "delta" => -delta["delta"]
+    }
   end
 end

@@ -60,6 +60,33 @@ defmodule Techtree.Release do
   end
 
   @doc """
+  Store the assessment of every published Result that has none, worked out
+  again from its stored bytes, and print each Result that does not pass the
+  result and Skill change checks. Nothing is deleted or withdrawn.
+  """
+  @spec assess_publications() :: :ok
+  def assess_publications do
+    load_app()
+
+    {:ok, _apps} = Application.ensure_all_started(@app)
+
+    for {entry, outcome} <- Techtree.Network.Ingest.record_assessments() do
+      case outcome do
+        :ok ->
+          IO.puts("assessed #{entry.log_sequence} #{entry.bundle_digest}")
+
+        {:error, error} ->
+          IO.puts(
+            "not assessed #{entry.log_sequence} #{entry.bundle_digest}: " <>
+              "#{error.code}: #{error.message} #{inspect(error.details)}"
+          )
+      end
+    end
+
+    :ok
+  end
+
+  @doc """
   Publish one already-staged bootstrap release on its channel.
 
   This is the rollback command: releases are immutable, and which one a channel

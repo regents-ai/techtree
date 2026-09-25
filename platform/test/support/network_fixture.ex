@@ -152,6 +152,68 @@ defmodule Techtree.NetworkFixture do
   end
 
   @doc """
+  The same bundle with the first `dropped` tasks scoring nothing with the
+  Skill, and the report's result written as the CLI would write it for those
+  scores. The files still need `resign/2` before they verify.
+
+  The fixture's Campaign requires the Skill to score higher and sets no
+  minimum change, so any rise is accepted and anything else rejected.
+  """
+  @spec worse_by(non_neg_integer()) :: %{String.t() => binary()}
+  def worse_by(dropped) do
+    Map.update!(files(), "uplift-report.json", fn bytes ->
+      bytes
+      |> Jason.decode!()
+      |> update_in(["payload"], fn report ->
+        report
+        |> Map.update!("task_deltas", &lose_first(&1, dropped))
+        |> rescore()
+      end)
+      |> Jason.encode!()
+    end)
+  end
+
+  defp lose_first(deltas, dropped) do
+    deltas
+    |> Enum.with_index()
+    |> Enum.map(fn {delta, index} ->
+      if index < dropped,
+        do: %{delta | "candidate_reward" => 0, "delta" => -delta["baseline_reward"]},
+        else: delta
+    end)
+  end
+
+  defp rescore(%{"task_deltas" => deltas} = report) do
+    tally = Enum.frequencies_by(deltas, &outcome/1)
+    baseline = mean(deltas, "baseline_reward")
+    candidate = mean(deltas, "candidate_reward")
+
+    report
+    |> Map.update!("primary_result", fn result ->
+      Map.merge(result, %{
+        "baseline_mean" => baseline,
+        "candidate_mean" => candidate,
+        "absolute_delta" => candidate - baseline,
+        "relative_delta" => if(baseline == 0.0, do: nil, else: (candidate - baseline) / baseline),
+        "wins" => Map.get(tally, "wins", 0),
+        "losses" => Map.get(tally, "losses", 0),
+        "ties" => Map.get(tally, "ties", 0)
+      })
+    end)
+    |> Map.put("decision", if(candidate > baseline, do: "accepted", else: "rejected"))
+  end
+
+  defp outcome(%{"candidate_reward" => candidate, "baseline_reward" => baseline}) do
+    cond do
+      candidate > baseline -> "wins"
+      candidate < baseline -> "losses"
+      true -> "ties"
+    end
+  end
+
+  defp mean(deltas, side), do: Enum.sum_by(deltas, & &1[side]) / length(deltas)
+
+  @doc """
   The same bundle, made entirely consistent again under a key made here.
 
   This is what lets a test reach the checks at the far end of the list. A
@@ -294,6 +356,7 @@ defmodule Techtree.NetworkFixture do
         subject_model: "qwen/qwen3.7-flash",
         subject_harness: "hermes-agent",
         subject_harness_version: "0.19.0",
+        skill_digest: Digest.hash_bytes("skill"),
         baseline_mean: 0.0,
         candidate_mean: 1.0,
         absolute_delta: 1.0,
@@ -307,6 +370,25 @@ defmodule Techtree.NetworkFixture do
         verification_checks_run: 1,
         verification_checks_passed: 1,
         task_deltas: [],
+        assessment: %{
+          reason: :cleared_rule,
+          baseline_total: 0,
+          candidate_total: 1,
+          task_count: 1,
+          minimum: 0,
+          wins: 1,
+          losses: 0,
+          ties: 0,
+          model_build_unproven: true,
+          skill_changes: [
+            %{
+              skill: 0,
+              field: nil,
+              without: %{kind: :none},
+              with: %{kind: :skill, digest: Digest.hash_bytes("skill"), size: 1}
+            }
+          ]
+        },
         receipt_bytes: "{}",
         receipt_digest: Digest.hash_bytes("{}"),
         network_key_id: Digest.hash_bytes("key")

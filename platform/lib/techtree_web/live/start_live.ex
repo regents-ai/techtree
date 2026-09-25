@@ -237,27 +237,6 @@ defmodule TechtreeWeb.StartLive do
     """
   end
 
-  attr :minimums, :map, required: true
-  attr :provider, :boolean, required: true
-  attr :hermes, :boolean, required: true
-  slot :inner_block
-
-  defp requirements(assigns) do
-    ~H"""
-    <ul class="start-path__needs">
-      <li>macOS or Linux</li>
-      <li :if={@minimums["uv"]}>uv {@minimums["uv"]} or later</li>
-      <li :if={@minimums["python"]}>Python {@minimums["python"]}, installed for you by uv</li>
-      <li :if={@minimums["docker_required"]}>Docker, running</li>
-      <li :if={@hermes && @minimums["hermes_version"]}>
-        Hermes {@minimums["hermes_version"]} or later
-      </li>
-      <li :if={@provider}>An account with a model provider you choose; its calls may cost money</li>
-      {render_slot(@inner_block)}
-    </ul>
-    """
-  end
-
   defp setup_commands(%{
          installable?: true,
          install_argv: [_ | _] = install_argv,
@@ -306,7 +285,7 @@ defmodule TechtreeWeb.StartLive do
       calls: CampaignFacts.count(trial.calls),
       input_tokens: CampaignFacts.count(trial.input_tokens),
       output_tokens: CampaignFacts.count(trial.output_tokens),
-      run_calls: trial |> CampaignFacts.run_calls() |> CampaignFacts.count()
+      run_calls: trial |> CampaignFacts.run_total() |> Map.fetch!(:calls) |> CampaignFacts.count()
     }
   end
 
@@ -315,6 +294,7 @@ defmodule TechtreeWeb.StartLive do
   defp example_commands(install_argv, reference) do
     [
       {:command, install_argv},
+      {:command, ["techtree", "setup"]},
       {:command, ["techtree", "doctor", "--climb", reference]},
       {:command, ["techtree", "skill", "starter"]},
       {:comment, "Prepare with the Skill it placed, then run the start command it prints:"},

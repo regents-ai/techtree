@@ -101,7 +101,16 @@ step below is deliberate.
    An import stages its bootstrap release and publishes it. Every bootstrap
    release imported before it stays staged and stays publishable.
 
-5. **Verify** (below).
+5. **Assess** every published Result that has no stored assessment yet. Each
+   Result's page reads its assessment, which is worked out when the Result is
+   published; this works it out again from the stored bytes for Results
+   published before that. It prints every Result that does not pass the result
+   and Skill change checks and leaves it as it is — nothing is deleted or
+   withdrawn — and running it again does nothing to a Result already assessed.
+
+       bin/techtree eval 'Techtree.Release.assess_publications()'
+
+6. **Verify** (below).
 
 ### What the import refuses
 
