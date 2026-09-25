@@ -125,6 +125,8 @@ class WithdrawalService:
             endpoint=self.endpoint,
             body=canonical_json_bytes(signed),
             contributor_address=None,
+            skill_name=None,
+            skill_github_url=None,
         )
         receipt = self._receipt(response, bundle_digest)
         return WithdrawalOutcome(

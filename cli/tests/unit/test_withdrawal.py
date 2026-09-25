@@ -73,7 +73,13 @@ class WithdrawalTransport(StubTransport):
     """The seam, answering as a run log that marked the entry withdrawn."""
 
     def submit(
-        self, *, endpoint: str, body: bytes, contributor_address: str | None
+        self,
+        *,
+        endpoint: str,
+        body: bytes,
+        contributor_address: str | None,
+        skill_name: str | None,
+        skill_github_url: str | None,
     ) -> bytes:
         """Record the request and answer with a countersigned receipt."""
         self.endpoints.append(endpoint)

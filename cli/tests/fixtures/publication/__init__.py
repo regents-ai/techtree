@@ -142,7 +142,13 @@ class StubTransport:
         self._answer = answer
 
     def submit(
-        self, *, endpoint: str, body: bytes, contributor_address: str | None
+        self,
+        *,
+        endpoint: str,
+        body: bytes,
+        contributor_address: str | None,
+        skill_name: str | None,
+        skill_github_url: str | None,
     ) -> bytes:
         """Record what was sent and return what the test wants back."""
         self.endpoints.append(endpoint)
@@ -164,7 +170,13 @@ class RefusingTransport:
     """A run log nobody can reach, which is every run log today."""
 
     def submit(
-        self, *, endpoint: str, body: bytes, contributor_address: str | None
+        self,
+        *,
+        endpoint: str,
+        body: bytes,
+        contributor_address: str | None,
+        skill_name: str | None,
+        skill_github_url: str | None,
     ) -> bytes:
         """Fail the way an unreachable address fails."""
         raise TechtreeError(

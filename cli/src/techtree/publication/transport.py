@@ -68,7 +68,6 @@ __all__ = [
     "SKILL_GITHUB_URL_HEADER",
     "SKILL_NAME_HEADER",
     "HttpsPublicationTransport",
-    "PublicationMetadataTransport",
     "PublicationTransport",
     "resolved_endpoint",
     "validated_endpoint",
@@ -109,17 +108,11 @@ MAX_RESPONSE_BYTES: Final = 4 * 1024 * 1024
 
 
 class PublicationTransport(Protocol):
-    """Send one submission and return whatever came back."""
+    """Send one request and return whatever came back.
 
-    def submit(
-        self, *, endpoint: str, body: bytes, contributor_address: str | None
-    ) -> bytes:
-        """Return the response body, or raise a typed failure."""
-        ...
-
-
-class PublicationMetadataTransport(Protocol):
-    """Transport seam extended with optional public Skill metadata headers."""
+    The Skill's public name and GitHub address travel as headers beside a
+    submission; a withdrawal names no Skill and passes ``None`` for both.
+    """
 
     def submit(
         self,
@@ -127,8 +120,8 @@ class PublicationMetadataTransport(Protocol):
         endpoint: str,
         body: bytes,
         contributor_address: str | None,
-        skill_name: str | None = None,
-        skill_github_url: str | None = None,
+        skill_name: str | None,
+        skill_github_url: str | None,
     ) -> bytes:
         """Return the response body, or raise a typed failure."""
         ...
@@ -177,8 +170,8 @@ class HttpsPublicationTransport:
         endpoint: str,
         body: bytes,
         contributor_address: str | None,
-        skill_name: str | None = None,
-        skill_github_url: str | None = None,
+        skill_name: str | None,
+        skill_github_url: str | None,
     ) -> bytes:
         """POST ``body`` to ``endpoint`` and return the response bytes."""
         headers = {

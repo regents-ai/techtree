@@ -201,7 +201,11 @@ def run_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[LocalRu
 def _submit(run_log: LocalRunLog, *, address: str | None = None) -> bytes:
     """Make the real request the real way."""
     return HttpsPublicationTransport().submit(
-        endpoint=run_log.url, body=b'{"hello":true}', contributor_address=address
+        endpoint=run_log.url,
+        body=b'{"hello":true}',
+        contributor_address=address,
+        skill_name=None,
+        skill_github_url=None,
     )
 
 

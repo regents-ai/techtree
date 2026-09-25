@@ -71,8 +71,8 @@ class RecordingTransport(StubTransport):
         endpoint: str,
         body: bytes,
         contributor_address: str | None,
-        skill_name: str | None = None,
-        skill_github_url: str | None = None,
+        skill_name: str | None,
+        skill_github_url: str | None,
     ) -> bytes:
         """Record the request where the test can read it, then answer."""
         SENT.append(body)
@@ -80,7 +80,11 @@ class RecordingTransport(StubTransport):
         SENT_SKILL_NAMES.append(skill_name)
         SENT_SKILL_GITHUB_URLS.append(skill_github_url)
         return super().submit(
-            endpoint=endpoint, body=body, contributor_address=contributor_address
+            endpoint=endpoint,
+            body=body,
+            contributor_address=contributor_address,
+            skill_name=skill_name,
+            skill_github_url=skill_github_url,
         )
 
 

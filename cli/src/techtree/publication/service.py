@@ -52,7 +52,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Final, TypeVar, cast
+from typing import Final, TypeVar
 
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
@@ -83,7 +83,6 @@ from techtree.publication.models import (
     PublicationSubmission,
 )
 from techtree.publication.transport import (
-    PublicationMetadataTransport,
     PublicationTransport,
     resolved_endpoint,
 )
@@ -412,23 +411,13 @@ class PublicationService:
         skill_github_url: str | None,
     ) -> ObjectEnvelope[PublicationReceiptPayload]:
         """Send one submission and return the receipt it came back with."""
-        body = plan.body
-        if plan.skill_name is None and skill_github_url is None:
-            # Keep compatibility with transports supplied by callers that
-            # predate the optional metadata headers.
-            response = self._transport.submit(
-                endpoint=plan.endpoint,
-                body=body,
-                contributor_address=contributor_address,
-            )
-        else:
-            response = cast(PublicationMetadataTransport, self._transport).submit(
-                endpoint=plan.endpoint,
-                body=body,
-                contributor_address=contributor_address,
-                skill_name=plan.skill_name,
-                skill_github_url=skill_github_url,
-            )
+        response = self._transport.submit(
+            endpoint=plan.endpoint,
+            body=plan.body,
+            contributor_address=contributor_address,
+            skill_name=plan.skill_name,
+            skill_github_url=skill_github_url,
+        )
         return self._receipt(response, plan)
 
     def _receipt(
