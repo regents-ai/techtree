@@ -1,5 +1,7 @@
 # Agent-version browsing
 
+> Historical (2026-09-25): shipped in climb-v0.2.0 (commit `1e9b775`), so the status line below is out of date; current releases are in [release compatibility](../../README.md#release-compatibility). Kept as a record.
+
 Status: implemented locally; awaiting founder review. New upstream runtimes have
 not been executed or certified as part of this change.
 

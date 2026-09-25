@@ -1,5 +1,7 @@
 # Techtree v0.2 implementation order
 
+> Historical (2026-09-25): superseded by [the 0.3.0 plan](../plan/v0.3.0-skill-environments.md) and [its task set](../plan/v0.3.0-task-set.md). Kept as a record.
+
 The sole architecture authority is the
 [`v0.2 implementation contract`](../plan/v0.2.md). The
 [`ticket ledger`](TICKETS.md) is its actionable backlog, not a second design.

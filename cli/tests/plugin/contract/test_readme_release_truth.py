@@ -1,4 +1,4 @@
-"""Release-truth regression checks for the Hermes v0.1 README."""
+"""Release-truth regression checks for the Hermes plugin README."""
 
 import re
 
@@ -28,9 +28,10 @@ def test_readme_names_the_supported_host_and_open_release_path() -> None:
         assert stale not in README
 
     for required in (
-        "This build carries the concrete Climb v0.1 release contract.",
+        "This directory carries the release contract in `release-core.json`, "
+        "release\n`climb-v0.2.1`",
         "It names the\nstarter Skill and the founder-frozen `skill-improver`",
-        "The stable release remains an inactive candidate",
+        "Which plugin commit is installable is decided by the active\nrelease",
     ):
         assert required in README
 

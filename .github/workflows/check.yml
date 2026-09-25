@@ -5,13 +5,18 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   python:
     name: CLI and Hermes plugin
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Check CLI
         working-directory: cli
         run: make check
@@ -46,29 +51,31 @@ jobs:
       MIX_TEST_PARTITION: _github
       REGENT_DEPS_ROOT: ${{ github.workspace }}/.shared-deps
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Checkout pinned Regent UI
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: regents-ai/design-system
           ref: 502d10b38fb91cdfd05b223909b7df7374d3a2c2
           path: .shared-deps/design-system
           persist-credentials: false
       - name: Checkout pinned Privy verifier
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: regents-ai/elixir-utils
           ref: a12f8c888b63139b69ac96434b98f1afea976b5b
           path: .shared-deps/elixir-utils
           persist-credentials: false
       - name: Checkout pinned shared identity
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: regents-ai/regents
           ref: f2c53b7cbe07fe5aacb937561fc5ce54465f5f4c
           path: .shared-deps/regents
           persist-credentials: false
-      - uses: erlef/setup-beam@v1.24.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           elixir-version: 1.19.5
           otp-version: 28.3.1
@@ -86,10 +93,11 @@ jobs:
     name: Registry contracts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
-      - uses: foundry-rs/foundry-toolchain@v1.9.1
+          persist-credentials: false
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
         with:
           version: v1.8.1
       - name: Materialize Solidity compiler

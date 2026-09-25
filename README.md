@@ -21,35 +21,78 @@ are planned; the working entry point today is the Hello World Climb.
 
 ## What you can use today
 
-**v0.2.1 — repair-task experiments.** Build and inspect repair tasks from a
-local repository with `techtree forge build` and `techtree forge status`. Run
-your own Hermes on them with `techtree forge run`, once without a Skill and
-once with it, compare the two runs task by task with `techtree forge compare`,
-and revise the Skill once through `techtree uplift`. Every run is recorded with
-its patch, its test verdict and the usage Hermes reported. The one selected
-public repair has been reproduced end to end, locally and on a fresh Linux
-worker; it does not yet demonstrate measured Skill improvement. The active
+The live release is **0.2.1**. It carries the Hello World Climb and the first
+repository experiments: build repair tasks from a local repository with
+`techtree forge build` and `techtree forge status`, run your own Hermes on them
+with `techtree forge run`, once without a Skill and once with it, compare the
+two runs task by task with `techtree forge compare`, and revise the Skill once
+through `techtree uplift`. Every run is recorded with its patch, its test
+verdict and the usage Hermes reported. The one selected public repair has been
+reproduced end to end, locally and on a fresh Linux worker; it does not yet
+demonstrate measured Skill improvement. The active
 [bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
 for installable CLI and plugin coordinates.
 
-| Capability | Status |
-| --- | --- |
-| Local Hermes/Verifiers Skill comparisons | Released Hello World workflow |
-| Signed result bundles and offline verification | Released |
-| Explicit publication and public result inspection | Released |
-| Hermes-guided replacement Skill | Experimental released workflow |
-| Local repository repair-task building and offline status | v0.2.0 |
-| CLI v2 structured machine responses | v0.2.0; integrations must update with the CLI |
-| `forge run`, `forge compare` and one `uplift` revision on a comparison, in your own signed-in Hermes profile | v0.2.1 |
-| Fabric-backed Hermes and Codex, optional Relay evidence | Deferred to v0.2.x; not a qualified end-to-end path |
-| Public collaboration, forks, agent messages, and USDC bounties | Planned |
-| Prime-hosted execution and proof-backed Library | Planned for v0.2.x |
-| Foundry and separate private proving | Planned for v0.3 |
+**0.3.0 is in preparation** and is not released: create an environment from a
+Skill. Techtree looks at a Skill without running it, plans tasks from it with
+your approval, builds and checks them offline, and lets you accept them as a
+frozen collection you can run, verify and export. The commands are in this
+repository today; see the [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md)
+and its [task set](docs/plan/v0.3.0-task-set.md).
+
+| Capability | Status | Where it lives |
+| --- | --- | --- |
+| Hello World Climb: a local Skill comparison with Hermes and Verifiers | Available now | [`cli/`](cli/) (`techtree climb`), [`plugin/`](plugin/) (`/techtree demo`) |
+| Signed result bundles and offline verification | Available now | [`cli/`](cli/) (`techtree proof verify`) |
+| Publishing a verified run, and public Results pages | Available now | [`cli/`](cli/) (`techtree publish`, `techtree withdraw`), [`platform/`](platform/) ([Results](https://techtree.sh/results)) |
+| Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Start](https://techtree.sh/start), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
+| Structured machine responses (`techtree.cli.v2`) for agents and scripts | Available now | [`cli/`](cli/) ([contract](cli/docs/cli-json-contract.md)) |
+| Guided revision of a Skill after a comparison | Experimental | [`cli/`](cli/) (`techtree uplift`), [`plugin/`](plugin/) (`/techtree improve`) |
+| Build tasks from a repository; run, compare and revise a Skill on them in your own signed-in Hermes | Experimental | [`cli/`](cli/) (`techtree forge build`, `status`, `run`, `compare`) |
+| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export | Experimental, in preparation for 0.3.0 | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge verify-export`) |
+| Agent connectors (MCP, WebMCP) | Planned | — |
+| Hosted environment building and hosted execution | Planned | — |
+| NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
+| Public collaboration, forks, agent messages, and USDC bounties | Planned | — |
 
 The active start guide controls exact installation coordinates. Historical
 release documents can still name the old plugin repository; development now
 lives in this monorepo’s `plugin/` directory. Do not replace a pinned release
 coordinate with an arbitrary branch.
+
+## Release compatibility
+
+Each release record under [`platform/priv/releases/`](platform/priv/releases/)
+pins one CLI build, one Hermes plugin commit and one catalog. The values below
+are read from those records (`bootstrap.json`, `release-core.json`,
+`checksums.json`) and from `platform/priv/catalog/sources/`.
+
+| Release record | CLI (`techtree` on PyPI) | CLI source revision | Hermes plugin (`regents-ai/techtree-hermes`) | Catalog source revision | Catalog index | Host Hermes | Published to the stable channel |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [`climb-v0.1.0`](platform/priv/releases/climb-v0.1.0/) | 0.1.1 | `614daff` (former `regents-ai/techtree-python`) | `ca22ee7` | `614daff` | `sha256:10a7fcc5…` | 0.20.1 | 2026-08-20 |
+| [`climb-v0.2.0`](platform/priv/releases/climb-v0.2.0/) | 0.2.0 | `70e75c7` (tag `v0.2.0`) | `4567937` | `70e75c7` | `sha256:4d216571…` | 0.20.1 | 2026-09-18 |
+| [`climb-v0.2.1`](platform/priv/releases/climb-v0.2.1/) | 0.2.1 | `a1b9c05` (tag `v0.2.1`) | `d891b3b` | `a1b9c05` | `sha256:4d216571…` | 0.20.1 | 2026-09-21 |
+| 0.3.0 | In preparation: no release record, package or plugin commit yet | | | | | | |
+
+The evaluated subject in all three records is Hermes 0.19.0, and each names
+the Hello World Climb (`hello-world-climb@1`) as its introduction. The full
+40-character revisions and digests are in the records themselves.
+
+Host Hermes is the minimum Hermes version each published record accepts, and
+that published value is the one that applies. `plugin/release-core.json` in
+this repository names 0.21.3 instead; that is an unreleased change and applies
+to no published release.
+
+The site at techtree.sh serves one active release per channel; the live answer
+is always [`/api/v1/bootstrap`](https://techtree.sh/api/v1/bootstrap). Which
+revision of the site itself is deployed is known only from
+`deployed_source_revision` on [`/healthz`](https://techtree.sh/healthz). On
+2026-09-25 it reported site revision `7e713d7` serving `climb-v0.2.1` on the
+stable channel.
+
+The top of the [changelog](CHANGELOG.md) lists changes accepted for 0.2.2,
+which is not released. The 0.3.0 changes will be listed there when 0.3.0 is
+released.
 
 ## Start with Hello World
 
@@ -124,9 +167,8 @@ while changing the declared Skill. Equal limits do not require equal actual
 spend; both arms should report their observed usage.
 
 Identical Skill bytes do not guarantee identical exposure in different
-harnesses. v0.2 adds a Skill projection record distinguishing intended files,
-observed exposure, and unknown loading behavior. Compare each harness with and
-without the Skill before attributing a cross-harness difference to the Skill.
+harnesses. Compare each harness with and without the Skill before attributing a
+cross-harness difference to the Skill.
 A mutable model alias is also weaker evidence than an immutable model build.
 
 </details>
@@ -136,12 +178,14 @@ A mutable model alias is also weaker evidence than an immutable model build.
 Techtree connects existing systems instead of building another evaluator,
 harness runtime, trajectory format, or trainer.
 
-| System | Role in the target integration |
-| --- | --- |
-| [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. Already used by the released path. |
-| [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs. Deferred v0.2.x subject portability. |
-| [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional, observe-only; deferred to v0.2.x. |
-| Techtree | Frozen comparisons, evidence reconciliation, signed results, publication, and later collaboration and payment records. |
+| System | Role | Status |
+| --- | --- | --- |
+| [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. The Hello World Climb runs through a pinned Verifiers engine. | Available now |
+| Repo2RLEnv | Turns a repository's history into repair tasks, pinned to version 0.8.8. | Experimental |
+| [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental, in preparation for 0.3.0 |
+| [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs, so other agents can be evaluated. | Planned |
+| [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional and observe-only. | Planned |
+| Techtree | Frozen comparisons, evidence reconciliation, signed results, publication, and later collaboration and payment records. | — |
 
 ```text
 Techtree Campaign
@@ -151,31 +195,28 @@ Techtree Campaign
     → Techtree comparison and signed result
 ```
 
-This is the **follow-up v0.2.x target architecture**, not a claim that every bridge is
+This is the **planned** architecture, not a claim that every bridge is
 finished. Each combination needs exact-version compatibility evidence. Fabric
 capabilities vary by harness; a successful invocation is not a correct task
 answer. Relay records what is instrumented and cannot prove lossless capture
 merely because an export completed.
 
 Using Verifiers, calling a model through Prime, and using Prime-hosted
-execution are three different choices. v0.2.0 targets local execution; hosted
-execution remains a later workstream.
+execution are three different choices. Every released path runs on your own
+machine; hosted execution is planned.
 
-## Where we are going
+## Roadmap
 
 | Stage | User outcome |
 | --- | --- |
-| **v0.2.0 — repair-task qualification** | Build and inspect qualified local repair tasks, retain validation evidence, use CLI v2, and preserve historical proof verification. |
-| **v0.2.x — comparisons and participation** | Complete profile-isolated repair-task comparisons, grading, Prime handoff and independent case study. Qualify subject portability and Relay before advertising them. Public participation, hosted execution and Market pilots retain their own admission gates. |
-| **v0.3 — Foundry and private Skill Climb** | Turn authorized source material into ordinary Verifiers packages; separate development, selection, and proving tasks; evaluate a frozen candidate on untouched proving membership. |
-| **Later research** | Managed candidate search, adaptive harnesses, learning streams, Prime Agent and `prime-rl` handoffs, and environment-quality studies. |
+| **0.3.0 — create an environment from a Skill** (in preparation) | Inspect a supported Skill without running it; review and approve a plan; build and check tasks offline; accept a frozen collection; run one agent on it without any comparison; verify it and export a private copy for someone else. Comparing Skills on the collection stays optional. |
+| **Later** (planned) | Agent connectors (MCP, WebMCP), hosted environment building and execution, private hosting, NeMo Fabric and Relay, public collaboration, and USDC bounties. |
 
-The [v0.2 contract](docs/plan/v0.2.md) and
-[Market and Foundry plan](docs/plan/techtree-market.md) contain existing release
-boundaries. The [delivery audit and implementation sequence](docs/plan/techtree-delivery-audit-2026-09-06.md)
-reconciles current work and identifies the additional forum scope. The
-[ticket ledger](docs/v0.2/TICKETS.md) maps the original work packages as
-historical reference; [HANDOFF.md](HANDOFF.md) carries current status.
+The [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
+[task set](docs/plan/v0.3.0-task-set.md) are the current product and delivery
+documents. Earlier plans and handoffs (for example
+[`docs/plan/v0.2.md`](docs/plan/v0.2.md) and [HANDOFF.md](HANDOFF.md)) are kept
+as historical records and say so at the top.
 
 <details>
 <summary>Collaboration, competition, and USDC</summary>
@@ -203,10 +244,10 @@ network, asset, limits, signers, and reconciliation must be explicit. x402 may
 support paid artifact access; it is not the mechanism that judges a bounty.
 Reuse, redistribution, and training rights must be stated separately.
 
-Foundry will accept authorized failures, traces, data, or repositories and
-produce qualified Prime-compatible environments. Private sources and executable
-artifacts need their own access and isolation boundary. GEPA is a possible
-managed candidate producer, not a prerequisite for the first private Climb.
+Later environment producers may accept authorized failures, traces or data as
+well as Skills and repositories. Private sources and executable artifacts need
+their own access and isolation boundary. GEPA is a possible managed candidate
+producer, not a prerequisite for any release.
 
 </details>
 
@@ -221,14 +262,20 @@ Public result material must exclude credentials and private evidence. Downloadin
 or buying an artifact does not make it safe to execute. A shared Regent profile
 does not grant authority over another participant’s publication key or wallet.
 
-## Work on the monorepo
+[SECURITY.md](SECURITY.md#where-code-runs) says where code runs: which steps may
+use the internet, and which run offline in throwaway containers.
 
-| Component | Responsibility | Development guide |
-| --- | --- | --- |
-| `cli/` | Python CLI, scientific kernel, local state, proof verification, publication transport, and plugin tests | [CLI](cli/README.md) |
-| `plugin/` | Thin Hermes operator integration; Codex packaging is planned | [Plugin](plugin/README.md) |
-| `platform/` | Ash/Phoenix site, catalog, publication ingestion, public results, and profiles | [Platform](platform/README.md) |
-| `contracts/` | Graph registry Solidity, scripts, and local checks | [Contracts](contracts/README.md) |
+## How the repository is organised
+
+The CLI executes, the plugin adapts, the platform publishes, and the contracts
+own the registry.
+
+| Directory | Role | What it owns | Guide |
+| --- | --- | --- | --- |
+| [`cli/`](cli/) | **Executes** | Everything that runs, builds or verifies, on your own machine: Climbs and runs, repository and Skill environments (`techtree forge`), signing and offline proof checks, publication transport, and the machine contract. It also holds the plugin's test suite. | [CLI](cli/README.md) |
+| [`plugin/`](plugin/) | **Adapts** | A thin Hermes adapter over the CLI: it runs `techtree` with fixed arguments, reads one JSON answer back, and asks the person before anything that spends or publishes. No evaluation logic, and no network of its own. | [Plugin](plugin/README.md) |
+| [`platform/`](platform/) | **Publishes** | techtree.sh: the install guide and bootstrap, the catalog, publication intake, Results and verification pages, and the changelog. | [Platform](platform/README.md) |
+| [`contracts/`](contracts/) | **Registry** | The `TechtreeGraphRegistryV1` Solidity contract, its deployment scripts and Foundry tests. | [Contracts](contracts/README.md) |
 
 For CLI/plugin development, install Python 3.12 and
 [uv](https://docs.astral.sh/uv/), then:

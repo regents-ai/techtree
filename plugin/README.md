@@ -19,7 +19,7 @@ Paste this into Hermes:
 > Techtree Doctor and the Hello World Climb.
 
 > [!IMPORTANT]
-> Techtree Climb v0.1 is a working technical preview of a stack of three independent
+> Techtree is a working technical preview of a stack of three independent
 > parts: Prime Intellect's Verifiers as the evaluation engine,
 > Nous Research's Hermes as the agent host, and
 > Techtree as the campaign kernel and evidence layer.
@@ -74,6 +74,19 @@ local receipt you can verify offline.
 
 This plugin is the operator surface for that: it lets Hermes inspect what a
 Climb measures, prepare a run, start it, follow it, and read the result.
+
+## Repository experiments and Skill environments
+
+The plugin has no tools for building tasks from a repository or for creating
+an environment from a Skill (in preparation for 0.3.0). Both run through the
+Techtree CLI in a terminal, as `techtree forge` commands. The bundled operator
+Skill tells Hermes how to walk a person through creating an environment: ask
+where the Skill is and never pick one, run one step at a time, show each
+review exactly as Techtree prints it, and run an approving command only after
+the person says yes to that review. Planning and building send the Skill's
+files to the model provider the person chose, on their own sign-in. The steps
+are listed on the agent page at
+[techtree.sh/skill.md](https://techtree.sh/skill.md).
 
 > [!NOTE]
 > Techtree uploads nothing unless you publish a run yourself. Publishing uploads
@@ -398,9 +411,15 @@ not the plugin's to delete:
 
 ## Release status
 
-This build carries the concrete Climb v0.1 release contract. It names the
+This directory carries the release contract in `release-core.json`, release
+`climb-v0.2.1`, with host Hermes 0.21.3 as its minimum. It names the
 starter Skill and the founder-frozen `skill-improver`, so the installed plugin
 can prepare Techtree Hello World and offer one guided revision after a finished
-comparison. The stable release remains an inactive candidate until the Gate-2
-packet is approved. Repository presence alone is not a public release signal;
-use the exact pinned installation guide.
+comparison. The 0.21.3 minimum is an unreleased change, listed under 0.2.2 in
+the changelog; the published `climb-v0.2.1` record requires Hermes 0.20.1, and
+that is what applies to the plugin commit it installs.
+Which plugin commit is installable is decided by the active
+release that [techtree.sh/start](https://techtree.sh/start) publishes;
+repository presence alone is not a public release signal. The monorepo
+[README](../README.md#release-compatibility) lists every released plugin commit
+beside its CLI version and catalog.

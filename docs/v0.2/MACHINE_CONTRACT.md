@@ -1,5 +1,7 @@
 # Techtree v0.2 CLI machine contract
 
+> Current (2026-09-25): first written for v0.2, this is still the current operation inventory for `techtree.cli.v2`, and tests check it against the code. The reader's guide to the envelope is [the CLI JSON contract](../../cli/docs/cli-json-contract.md).
+
 Status: binding for v0.2 (WP0.6 decision)
 Envelope version: `techtree.cli.v2`
 Authority: [`docs/plan/v0.2.md`](../plan/v0.2.md), sections "Operator contract"
