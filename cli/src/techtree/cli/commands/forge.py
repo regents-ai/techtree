@@ -1,4 +1,5 @@
-"""``techtree forge build|run|compare|inspect-skill|plan|construct|collect|status``.
+"""``techtree forge``: build, run, compare, inspect-skill, plan, construct,
+collect, export, import and status.
 
 ``docs/plan/repo2rlenv-local-lane.md``; Source Skill inspection, planning and
 construction are ``docs/plan/v0.3.0-skill-environments.md`` (U3).
@@ -12,6 +13,9 @@ of it and records what it holds; ``forge plan`` and ``forge construct``
 prepare, and their ``-start`` commands send, the planning and the building of
 tasks from such a Skill; ``forge collect``, ``forge accept`` and ``forge
 verify`` freeze the tasks that qualified as a collection and check it again;
+``forge export`` copies an accepted collection into a folder,
+``forge verify-export`` checks such a folder alone, and ``forge import``
+brings one into another home to be run and compared there;
 ``forge status`` reads any of them, or a Skill revision made through
 ``uplift``, back without requiring build tools.
 Build execution belongs to
@@ -63,7 +67,12 @@ from techtree.forge.construction import (
     start_construction,
 )
 from techtree.forge.experiment import declare_run_spec
-from techtree.forge.export import export_collection, verify_export
+from techtree.forge.export import (
+    SAME_COLLECTION_ONLY_IF,
+    export_collection,
+    import_export,
+    verify_export,
+)
 from techtree.forge.models import (
     MAX_PLANNED_TASKS,
     MINIMUM_COLLECTION_TASKS,
@@ -143,6 +152,7 @@ from techtree.models.cli import (
     RetryClass,
     SideEffect,
     invocation,
+    invocation_line,
 )
 from techtree.paths import TechtreePaths
 
@@ -162,6 +172,7 @@ __all__ = [
     "construction_review_lines",
     "construction_warnings",
     "correct_proposal_forge_command",
+    "import_forge_command",
     "inspect_skill_forge_command",
     "plan_forge_command",
     "plan_next_actions",
@@ -1046,6 +1057,68 @@ def verify_export_forge_command(
     invoke_command(context, Operation.PROOF_VERIFY, action, render_data=_render_export)
 
 
+def import_forge_command(
+    ctx: typer.Context,
+    folder: Annotated[
+        Path,
+        typer.Argument(metavar="FOLDER", help="A folder forge export wrote."),
+    ],
+) -> None:
+    """Bring an exported collection into this Techtree home to run it here."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeCollectionStatus]:
+        status = import_export(context.paths, folder, run_command)
+        return CommandResult(
+            data=status,
+            state_digest=status.record.collection_digest,
+            warnings=collection_warnings(status),
+            next_actions=collection_next_actions(status),
+        )
+
+    invoke_command(
+        context, Operation.ACTION_EXECUTE, action, render_data=_render_imported
+    )
+
+
+def _render_imported(data: object, console: Console) -> None:
+    if isinstance(data, ForgeCollectionStatus):
+        members = data.record.review.members
+        held_out = sum(member.part == "held_out" for member in members)
+        console.print(
+            f"Imported: collection {data.collection_id}, version "
+            f"{data.record.review.version}, as the export records it, with its "
+            f"{len(members)} {_plural(len(members), 'task', 'tasks')}, "
+            f"{held_out} of them held out. Its base images were pulled from the "
+            "network, then every task was built and checked again on this "
+            "computer with the network off; no model was called.",
+            markup=False,
+        )
+        render_pairs(
+            [
+                ("Fingerprint", data.record.collection_digest),
+                ("Evidence", data.path),
+            ],
+            console,
+        )
+        console.print(SAME_COLLECTION_ONLY_IF, markup=False)
+        console.print()
+        baseline = invocation(
+            "forge",
+            "run",
+            options={
+                "--arm": "baseline",
+                "--collection": data.collection_id,
+                "--provider": "PROVIDER",
+                "--model": "MODEL",
+            },
+        )
+        console.print(
+            "Run it without the Skill with: " + " ".join(invocation_line(baseline)),
+            markup=False,
+        )
+
+
 def _render_exported(data: object, console: Console) -> None:
     if isinstance(data, ForgeExportVerification):
         console.print(
@@ -1070,13 +1143,16 @@ def _render_exported(data: object, console: Console) -> None:
 def _render_export(data: object, console: Console) -> None:
     if isinstance(data, ForgeExportVerification):
         console.print(
-            f"Verified: this folder holds collection {data.collection_id}, "
-            f"version {data.version}, exactly as accepted, with its {data.tasks} "
+            f"Verified: this folder agrees with its own records of collection "
+            f"{data.collection_id}, version {data.version}, with its {data.tasks} "
             f"{_plural(data.tasks, 'task', 'tasks')}, {data.held_out} of them "
             "held out.",
             markup=False,
         )
-        render_pairs([("Folder", data.path)], console)
+        render_pairs(
+            [("Folder", data.path), ("Fingerprint", data.collection_digest)], console
+        )
+        console.print(SAME_COLLECTION_ONLY_IF, markup=False)
         console.print()
         console.print("Checked from the files there:", markup=False)
         for line in data.checked:
@@ -1775,12 +1851,13 @@ def render_forge_source(status: ForgeSourceStatus, console: Console) -> None:
     pairs.append(
         (
             "Kept",
-            f"{len(kept)} {_plural(len(kept), 'file', 'files')} "
-            f"({record.admitted_digest[:19]})"
+            f"{len(kept)} {_plural(len(kept), 'file', 'files')}"
             if record.state == "admitted"
             else "nothing, because the Skill cannot be used as it is",
         )
     )
+    if record.state == "admitted":
+        pairs.append(("Fingerprint", record.admitted_digest))
     pairs.append(("Evidence", status.path))
     render_pairs(pairs, console)
     for entry in record.entries:
@@ -2711,6 +2788,16 @@ def render_forge_collection(status: ForgeCollectionStatus, console: Console) -> 
                     if acceptance.answered_with == "prompt"
                     else f"answered on {acceptance.reviewed_on} and passed with --yes"
                 ),
+            )
+        )
+    imported = status.imported
+    if imported is not None:
+        pairs.append(
+            (
+                "Imported",
+                f"{imported.imported_at:%Y-%m-%d %H:%M:%S} UTC from "
+                f"{imported.origin}, exported "
+                f"{imported.exported_at:%Y-%m-%d %H:%M:%S} UTC",
             )
         )
     pairs.append(("Evidence", status.path))

@@ -113,11 +113,14 @@ class TaskFacts:
 
 @dataclass(frozen=True)
 class SkillTaskFacts:
-    """The time limits and required outputs a Skill task's ``task.toml`` commits to."""
+    """The time limits, required outputs and Source Skill a Skill task's
+    ``task.toml`` commits to."""
 
     agent_timeout: float
     verifier_timeout: float
     artifacts: tuple[str, ...]
+    source_skill: str
+    source_digest: str
 
 
 #: Why a graded run left no verdict to read.
@@ -456,12 +459,16 @@ def _reward_words(reward: float | None) -> str:
 
 
 def read_skill_task_facts(task_dir: Path) -> SkillTaskFacts:
-    """Read the time limits and required outputs one Skill task commits to."""
+    """Read the time limits, required outputs and Source Skill one Skill task
+    commits to."""
     document = tomllib.loads((task_dir / "task.toml").read_text(encoding="utf-8"))
     return SkillTaskFacts(
         agent_timeout=float(document["agent"]["timeout_sec"]),
         verifier_timeout=float(document["verifier"]["timeout_sec"]),
         artifacts=tuple(str(artifact) for artifact in document["artifacts"]),
+        source_skill=str(document["metadata"]["source_skill"]),
+        # task.toml holds the bare hex; Techtree writes digests with a prefix.
+        source_digest="sha256:" + str(document["metadata"]["source_bundle_digest"]),
     )
 
 

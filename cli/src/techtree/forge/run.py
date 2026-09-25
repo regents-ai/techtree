@@ -115,6 +115,7 @@ from techtree.models.base import Digest, JsonValue
 from techtree.paths import TechtreePaths
 
 __all__ = [
+    "AGENT_MARGIN_SECONDS",
     "ForgeRunner",
     "hermes_config",
     "read_run_status",
@@ -124,7 +125,7 @@ _SPEC_FILENAME: Final = "spec.json"
 _RUN_FILENAME: Final = "run.json"
 #: Added to the task's agent timeout before Techtree stops Hermes itself;
 #: Hermes is given the timeout as its own budget and should stop first.
-_AGENT_MARGIN_SECONDS: Final = 120.0
+AGENT_MARGIN_SECONDS: Final = 120.0
 _PATCH_TIMEOUT_SECONDS: Final = 120.0
 _WORKSPACE: Final = "/workspace"
 _STATE_DB: Final = "state.db"
@@ -573,7 +574,7 @@ class ForgeRunner:
                 env,
                 workspace,
                 attempt_dir / "agent.log",
-                task.agent_timeout + _AGENT_MARGIN_SECONDS,
+                task.agent_timeout + AGENT_MARGIN_SECONDS,
             )
         finally:
             transcript = profile / _STATE_DB

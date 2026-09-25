@@ -33,6 +33,7 @@ from techtree.forge.process import CommandRunner
 from techtree.fs import remove_tree
 
 __all__ = [
+    "CREATE_PROFILE_COMMAND",
     "PROFILE_NAME",
     "hermes_root",
     "hold_profile",
@@ -40,10 +41,13 @@ __all__ = [
     "profile_dir",
     "require_signed_in",
     "reset_profile",
+    "sign_in_command",
     "signed_in_providers",
 ]
 
 PROFILE_NAME: Final = "techtree"
+#: How a person makes the profile, once.
+CREATE_PROFILE_COMMAND: Final = f"hermes profile create {PROFILE_NAME} --no-alias"
 _LOCK_FILENAME: Final = "techtree-run.lock"
 #: What a sign-in is made of: Hermes' authentication store and its lock, and
 #: the file a provider's static key lives in. Nothing here is ever read.
@@ -74,6 +78,11 @@ def profile_dir(profiles_root: Path | None = None) -> Path:
     return root / PROFILE_NAME
 
 
+def sign_in_command(provider: str) -> str:
+    """How a person signs the profile in to ``provider``."""
+    return f"hermes -p {PROFILE_NAME} auth add {provider}"
+
+
 def require_signed_in(
     run: CommandRunner, executable: Path, provider: str, profile: Path
 ) -> None:
@@ -82,12 +91,12 @@ def require_signed_in(
     Hermes is asked, read-only, whether the profile holds a sign-in for the
     provider; its authentication store is never opened here.
     """
-    sign_in = f"hermes -p {PROFILE_NAME} auth add {provider}"
+    sign_in = sign_in_command(provider)
     if not profile.is_dir():
         raise PrerequisiteError(
             f"experiments run in a Hermes profile named {PROFILE_NAME}, and "
-            f"there is none yet. Create it with `hermes profile create "
-            f"{PROFILE_NAME} --no-alias`, then sign it in with `{sign_in}`",
+            f"there is none yet. Create it with `{CREATE_PROFILE_COMMAND}`, "
+            f"then sign it in with `{sign_in}`",
             code="forge_profile_missing",
             details={"profile": str(profile)},
         )

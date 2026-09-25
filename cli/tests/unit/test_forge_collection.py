@@ -25,14 +25,23 @@ against the tasks' reference solutions and tests. Which tasks are held out
 follows from the tasks alone, whatever order they come in, and puts a task in
 each part (founder decision 2a); the improving agent's context never names a
 held-out task or shows its instruction, and a revision's verdict is worked
-out on the held-out tasks alone. The creator, Docker and Hermes are the
-stand-ins of the construction and run tests; no model is called.
+out on the held-out tasks alone. An export's own README commands, followed
+in a fresh home with only the export and the Skill, import it, run both arms
+and compare them on the same collection, tasks and parts as where it was
+accepted (item 19). Checking an export shows it agrees with its own records,
+so its README, verify-export and import show the collection's fingerprint for
+its reader to match; a changed export, one whose tasks name another Skill than
+its collection, one built for another Docker platform, or one whose task does
+not qualify on the importing computer, leaves nothing behind, and an import
+that fails never removes what another made. The creator, Docker and Hermes
+are the stand-ins of the construction and run tests; no model is called.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import shlex
 import shutil
 import stat
 import subprocess
@@ -62,7 +71,7 @@ from techtree.forge.comparability import (
     assert_comparable_run_specs,
     compare_run_specs,
 )
-from techtree.forge.compare import compare_runs
+from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.construction import start_construction
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.improvement import (
@@ -76,9 +85,11 @@ from techtree.forge.models import (
     ForgeCollectionReview,
     ForgeCollectionTasks,
     ForgeEvidence,
+    ForgeExport,
     ForgeOutputLimits,
     ForgeOutputManifest,
     ForgeRunSpec,
+    ForgeSkillSource,
     ForgeVerdict,
     collection_parts,
 )
@@ -89,7 +100,11 @@ from techtree.forge.revision import (
     read_revision_status,
 )
 from techtree.forge.run import ForgeRunner, read_run_status
-from techtree.forge.service import ForgeService, read_build_status
+from techtree.forge.service import (
+    ForgeService,
+    host_docker_platform,
+    read_build_status,
+)
 from techtree.forge.source import inspect_source_skill
 from techtree.fs import atomic_write_json
 from techtree.models.base import Digest
@@ -1085,6 +1100,330 @@ def test_a_changed_or_added_file_in_an_export_is_refused_by_name(
         assert code != 0
         assert envelope["error"]["code"] == "forge_export_changed"
         assert f"differ from what was accepted: {name}" in envelope["error"]["message"]
+
+
+def readme_commands(export: Path) -> list[list[str]]:
+    """The commands an export's README lists in order, as argv."""
+    readme = (export / "README.md").read_text(encoding="utf-8")
+    block = readme.split("### The commands, in order\n\n```\n", 1)[1]
+    return [shlex.split(line) for line in block.split("\n```", 1)[0].splitlines()]
+
+
+def test_an_export_followed_by_its_readme_in_a_fresh_home_compares_as_the_original(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Item 19: only the export folder and the Skill, and the README's commands
+    exactly as printed, give a comparison on the same collection, the same
+    tasks and the same parts as one made where the collection was accepted."""
+    collection_id = accepted(home, proposal_id, profiles)
+    skill = tmp_path / "branch-code"
+    hermes = FakeHermes(
+        leaves=lambda directory: (directory / "result.txt").write_text(
+            "5\n", encoding="utf-8"
+        )
+    )
+    rewards = iter([0.0, 1.0, 0.0, 1.0])
+    monkeypatch.setattr(
+        "techtree.cli.commands.forge.ForgeRunner",
+        lambda paths, run: ForgeRunner(
+            paths,
+            FakeDocker(reward=next(rewards)),
+            launch=hermes,
+            profiles_root=profiles,
+        ),
+    )
+    monkeypatch.setattr(
+        "techtree.cli.commands.forge.run_command",
+        FakeDocker(reward=0.0, reference_reward=1.0),
+    )
+    common = ["--collection", collection_id, "--provider", "openai-codex"]
+    original_runs = [
+        invoke(home, "run", "--arm", arm, *common, "--model", "gpt-5.6-sol", *extra)[1][
+            "facts"
+        ]["run_id"]
+        for arm, extra in (
+            ("baseline", ["--yes"]),
+            ("candidate", ["--skill", str(skill), "--yes"]),
+        )
+    ]
+    code, compared = invoke(home, "compare", *original_runs)
+    assert code == 0, compared
+    original = read_comparison_status(
+        paths_from_root(home), compared["facts"]["comparison_id"]
+    ).record
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    moved = tmp_path / "elsewhere"
+    export.rename(moved)
+    fresh = tmp_path / "fresh-home"
+    fresh.mkdir()
+
+    values = {
+        "EXPORT_FOLDER": str(moved),
+        "SKILL_FOLDER": str(skill),
+        "PROVIDER": "openai-codex",
+        "MODEL": "gpt-5.6-sol",
+    }
+    commands = readme_commands(moved)
+    assert [argv[:3] for argv in commands] == [
+        ["techtree", "forge", verb]
+        for verb in (
+            "verify-export",
+            "import",
+            "inspect-skill",
+            "run",
+            "run",
+            "compare",
+        )
+    ]
+    fingerprint = read_collection_status(
+        paths_from_root(home), collection_id
+    ).record.collection_digest
+    readme = (moved / "README.md").read_text(encoding="utf-8")
+    shown: dict[str, str] = {}
+    for argv in commands:
+        filled = [values.get(word, word) for word in argv[1:]]
+        # A person answers yes where a run asks before it starts.
+        code, envelope = invoke(fresh, *filled[1:], *(["--yes"] * (argv[2] == "run")))
+        assert code == 0, (argv, envelope)
+        shown[argv[2]] = json.dumps(envelope)
+        if argv[2] == "run":
+            arm = argv[argv.index("--arm") + 1]
+            values[f"{arm.upper()}_RUN_ID"] = envelope["facts"]["run_id"]
+
+    paths = paths_from_root(fresh)
+    [comparison_dir] = paths.forge_comparisons_dir.iterdir()
+    record = read_comparison_status(paths, comparison_dir.name).record
+    imported = read_collection_status(paths, collection_id)
+    assert imported.imported is not None
+    assert (
+        imported.record
+        == read_collection_status(paths_from_root(home), collection_id).record
+    )
+    assert record.tasks_from == original.tasks_from
+    assert [pair.task_id for pair in record.pairs] == [
+        pair.task_id for pair in original.pairs
+    ]
+    assert record.study is not None and original.study is not None
+    assert record.held_out is not None and original.held_out is not None
+    assert record.study.task_ids == original.study.task_ids
+    assert record.held_out.task_ids == original.held_out.task_ids
+    assert (record.source_skill, record.candidate_skill) == (
+        original.source_skill,
+        original.candidate_skill,
+    )
+    assert (record.wins, record.losses) == (original.wins, original.losses) == (2, 0)
+    # The reader can match the collection and the Skill against what the
+    # sender gave, in full, at each step that shows them.
+    assert fingerprint in readme
+    assert fingerprint in shown["verify-export"] and fingerprint in shown["import"]
+    skill_digest = imported.record.review.source_digest
+    assert skill_digest in readme and skill_digest in shown["inspect-skill"]
+    with pytest.raises(ValidationError) as refused:
+        prepare_revision(
+            paths, comparison_id=comparison_dir.name, skill_root=skill, label=None
+        )
+    assert refused.value.code == "forge_revision_imported"
+
+
+def reseal(export: Path, forged: ForgeExport) -> None:
+    """Write ``forged`` as the export's records, its collection and
+    acceptance digests made to agree with its review again."""
+    review = forged.collection.review
+    record = forged.collection.model_copy(
+        update={"collection_digest": digest_object(review)}
+    )
+    acceptance = forged.acceptance.model_copy(
+        update={"collection_digest": record.collection_digest}
+    )
+    forged = forged.model_copy(update={"collection": record, "acceptance": acceptance})
+    (export / "export.json").write_text(forged.model_dump_json(), encoding="utf-8")
+
+
+def test_an_export_whose_tasks_name_another_skill_is_refused(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    """Each task's build and its own task.toml have to name the Skill the
+    collection says the tasks were written from, even in records made to
+    agree with each other again."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    records = ForgeExport.model_validate_json((export / "export.json").read_bytes())
+    other = "sha256:" + "ab" * 32
+    first = records.tasks[0]
+    assert isinstance(first.build.source, ForgeSkillSource)
+    other_build = first.build.model_copy(
+        update={
+            "source": first.build.source.model_copy(
+                update={"source_skill_digest": other}
+            )
+        }
+    )
+    review = records.collection.review
+    for forged in (
+        records.model_copy(
+            update={
+                "tasks": [
+                    first.model_copy(update={"build": other_build}),
+                    *records.tasks[1:],
+                ]
+            }
+        ),
+        records.model_copy(
+            update={
+                "collection": records.collection.model_copy(
+                    update={
+                        "review": review.model_copy(update={"source_name": "other"})
+                    }
+                )
+            }
+        ),
+    ):
+        reseal(export, forged)
+
+        code, envelope = invoke(home, "verify-export", str(export))
+
+        assert code != 0
+        assert envelope["error"]["code"] == "forge_export_changed"
+
+
+def test_an_export_readme_is_checked_against_its_recorded_fingerprint(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The README is checked byte for byte against the sha256 export.json
+    records for it, never written again, so a later Techtree that words its
+    READMEs differently still checks an earlier export."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+
+    def never(*_: object, **__: object) -> str:
+        raise AssertionError("checking an export does not write its README")
+
+    monkeypatch.setattr("techtree.forge.export.export_readme", never)
+    assert invoke(home, "verify-export", str(export))[0] == 0
+
+    readme = export / "README.md"
+    readme.write_bytes(readme.read_bytes() + b"\n")
+    code, envelope = invoke(home, "verify-export", str(export))
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_export_changed"
+
+
+def test_an_export_is_imported_whole_or_not_at_all(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A changed export is refused before anything is written, and one whose
+    task does not qualify on the importing computer leaves nothing behind."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    fresh = tmp_path / "fresh-home"
+    fresh.mkdir()
+    paths = paths_from_root(fresh)
+    # Tests that pass when nothing is done do not qualify a task.
+    docker = FakeDocker(reward=1.0)
+    monkeypatch.setattr("techtree.cli.commands.forge.run_command", docker)
+    instruction = min((export / "tasks").iterdir()) / "instruction.md"
+    original = instruction.read_bytes()
+
+    instruction.write_bytes(original + b" ")
+    code, changed = invoke(fresh, "import", str(export))
+
+    assert code != 0
+    assert changed["error"]["code"] == "forge_export_changed"
+    assert docker.calls == []
+    assert not paths.forge_collections_dir.exists()
+
+    instruction.write_bytes(original)
+    code, unqualified = invoke(fresh, "import", str(export))
+
+    assert code != 0
+    assert unqualified["error"]["code"] == "forge_import_not_qualified"
+    assert "Nothing was imported" in unqualified["error"]["message"]
+    assert docker.graded()
+    assert not paths.forge_collections_dir.exists()
+    assert list(paths.forge_builds_dir.iterdir()) == []
+
+
+def test_an_export_built_for_another_platform_is_not_imported(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Techtree runs tasks only on the Docker platform they were built for."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    fresh = tmp_path / "fresh-home"
+    fresh.mkdir()
+    docker = FakeDocker(reward=0.0, reference_reward=1.0)
+    monkeypatch.setattr("techtree.cli.commands.forge.run_command", docker)
+    built_for = host_docker_platform()
+    other = "linux/arm64" if built_for == "linux/amd64" else "linux/amd64"
+    monkeypatch.setattr("techtree.forge.export.host_docker_platform", lambda: other)
+
+    code, envelope = invoke(fresh, "import", str(export))
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_import_other_platform"
+    assert envelope["error"]["details"] == {
+        "platform": other,
+        "built_for": [built_for],
+    }
+    assert docker.calls == []
+    assert not paths_from_root(fresh).forge_builds_dir.exists()
+
+
+def test_a_failed_import_removes_only_the_folders_it_made(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Another import that makes the collection's folder while this one is
+    qualifying its tasks keeps it; this one removes only its own builds."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    fresh = tmp_path / "fresh-home"
+    fresh.mkdir()
+    paths = paths_from_root(fresh)
+    theirs = paths.forge_collection_dir(collection_id)
+    docker = FakeDocker(reward=0.0, reference_reward=1.0)
+
+    def racing(argv: Sequence[str], timeout: float) -> Any:
+        if not theirs.exists():
+            theirs.mkdir(parents=True)
+            (theirs / "collection.json").write_text("{}", encoding="utf-8")
+        return docker(argv, timeout)
+
+    monkeypatch.setattr("techtree.cli.commands.forge.run_command", racing)
+
+    code, envelope = invoke(fresh, "import", str(export))
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_import_exists"
+    assert docker.graded()
+    assert (theirs / "collection.json").read_text(encoding="utf-8") == "{}"
+    assert list(paths.forge_builds_dir.iterdir()) == []
 
 
 # ---------------------------------------------------------------------------

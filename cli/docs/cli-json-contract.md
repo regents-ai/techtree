@@ -287,6 +287,7 @@ forge accept
 forge verify
 forge export
 forge verify-export
+forge import
 forge status
 ```
 

@@ -46,7 +46,13 @@ from typing import Final
 from techtree.engines.registry import EngineRegistry
 from techtree.errors import PrerequisiteError, RunError
 from techtree.forge.process import run_command
-from techtree.forge.profile import PROFILE_NAME, profile_dir, signed_in_providers
+from techtree.forge.profile import (
+    CREATE_PROFILE_COMMAND,
+    PROFILE_NAME,
+    profile_dir,
+    sign_in_command,
+    signed_in_providers,
+)
 from techtree.models.base import JsonValue
 from techtree.models.catalog import EngineCompatibilityStatus
 from techtree.models.cli import CheckStatus, DoctorCheck
@@ -464,7 +470,7 @@ def check_hermes_experiment_profile() -> DoctorCheck:
     host agent reading the JSON can resolve it without starting a run.
     """
     profile = profile_dir()
-    sign_in = f"hermes -p {PROFILE_NAME} auth add PROVIDER"
+    sign_in = sign_in_command("PROVIDER")
     if not profile.is_dir():
         return DoctorCheck(
             id="hermes_experiment_profile",
@@ -472,8 +478,8 @@ def check_hermes_experiment_profile() -> DoctorCheck:
             status=CheckStatus.WARN,
             detail=(
                 f"no Hermes profile named {PROFILE_NAME}. `techtree forge run` "
-                "runs experiments in it; create it with `hermes profile create "
-                f"{PROFILE_NAME} --no-alias`, then sign it in with `{sign_in}`. "
+                f"runs experiments in it; create it with `{CREATE_PROFILE_COMMAND}`, "
+                f"then sign it in with `{sign_in}`. "
                 "Nothing else needs it"
             ),
             blocking=False,

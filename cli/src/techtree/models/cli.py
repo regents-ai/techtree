@@ -72,6 +72,7 @@ __all__ = [
     "SideEffect",
     "command_line",
     "invocation",
+    "invocation_line",
 ]
 
 #: A host agent that is offered ten choices is being asked to plan, not to act.
@@ -352,7 +353,11 @@ def command_line(action: NextAction) -> list[str]:
     Display and invocation are the same list, which is the point: a person
     reading the line and a host agent running it are looking at one thing.
     """
-    prepared = action.prepared_arguments
+    return invocation_line(action.prepared_arguments)
+
+
+def invocation_line(prepared: Mapping[str, JsonValue]) -> list[str]:
+    """Return the argv of one :func:`invocation`, ``techtree`` first."""
     command = [str(segment) for segment in _sequence(prepared["command"])]
     arguments = [str(value) for value in _sequence(prepared["arguments"])]
     options: list[str] = []

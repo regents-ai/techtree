@@ -38,6 +38,17 @@ Verifying an accepted collection makes its review again from what is on disk
 now: every member's files are hashed against their build's commitment, every
 qualification is read back, and the digest must be the one accepted. Anything
 else is refused as a changed collection.
+
+A collection ``forge import`` brought in from an export
+(:mod:`techtree.forge.export`) is accepted where it was made, and the proposal
+and constructions its review names stay in that home, so its review cannot be
+made again here. It is verified against the records it was imported with
+instead: every member's build record and exported qualification must be the
+ones its digests name, its files must be the ones the build committed to, and
+the task must have qualified again in this home. For the parts its tasks give
+later collections, and for which collections earlier ones inherited from, a
+collection counts from when this home came to hold it: its acceptance here,
+or its import.
 """
 
 from __future__ import annotations
@@ -62,8 +73,10 @@ from techtree.forge.models import (
     FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION,
     FORGE_COLLECTION_SCHEMA_VERSION,
     MINIMUM_COLLECTION_TASKS,
+    ForgeBuildRecord,
     ForgeCollectionAcceptance,
     ForgeCollectionCandidate,
+    ForgeCollectionImport,
     ForgeCollectionMember,
     ForgeCollectionParent,
     ForgeCollectionPart,
@@ -74,7 +87,9 @@ from techtree.forge.models import (
     ForgeCollectionStatus,
     ForgeConstructionStatus,
     ForgeConstructionTaskStatus,
+    ForgeSkillSource,
     ForgeTaskKind,
+    TaskQualification,
     collection_parts,
 )
 from techtree.forge.planning import read_proposal_status
@@ -85,19 +100,32 @@ from techtree.ids import new_id, validate_id
 from techtree.paths import TechtreePaths
 
 __all__ = [
+    "SEPARATE_HOME",
     "accept_collection",
+    "accepted_evidence",
     "already_collected",
     "changed_member_files",
     "check_collection",
+    "check_importable",
     "latest_collection",
+    "member_records_match",
     "prepare_collection",
     "qualified_tasks",
     "read_collection_status",
+    "record_imported_collection",
     "verify_collection",
 ]
 
 COLLECTION_FILENAME: Final = "collection.json"
 ACCEPTANCE_FILENAME: Final = "acceptance.json"
+IMPORT_FILENAME: Final = "import.json"
+
+#: How to give an imported collection a Techtree home of its own, said the
+#: same way where an import is refused and in an export's README.
+SEPARATE_HOME: Final = (
+    "To give it a Techtree home of its own, add --home FOLDER, naming a new "
+    "folder, to techtree forge import and to every command after it."
+)
 
 
 def prepare_collection(
@@ -183,10 +211,9 @@ def _latest(paths: TechtreePaths, line_digest: str) -> ForgeCollectionStatus | N
     )
 
 
-def _accepted(
-    paths: TechtreePaths,
-) -> list[tuple[ForgeCollectionStatus, ForgeCollectionAcceptance]]:
-    """Return every accepted collection in the home with its acceptance.
+def _accepted(paths: TechtreePaths) -> list[tuple[ForgeCollectionStatus, datetime]]:
+    """Return every accepted collection in the home with when the home came to
+    hold it: its acceptance here, or its import.
 
     Every collection is read, so one that cannot be read is refused by its
     path, for a person to fix or move: leaving it out could give a task it
@@ -210,7 +237,14 @@ def _accepted(
                 details={"path": str(child), "cause": error.code},
             ) from error
         if status.acceptance is not None:
-            accepted.append((status, status.acceptance))
+            accepted.append(
+                (
+                    status,
+                    status.acceptance.accepted_at
+                    if status.imported is None
+                    else status.imported.imported_at,
+                )
+            )
     return accepted
 
 
@@ -223,14 +257,15 @@ def _inherited(
     a name or a fingerprint with one of ``members``, with its part (studied
     when collections disagree), whichever Skill the collection was of.
 
-    ``accepted_before`` leaves out the collections accepted at or after it,
-    so a collection verified later is made again from what it inherited.
+    ``accepted_before`` leaves out the collections the home came to hold at
+    or after it, so a collection verified later is made again from what it
+    inherited.
     """
     names = {name for name, _ in members}
     fingerprints = {fingerprint for _, fingerprint in members}
     parts: dict[tuple[str, str], ForgeCollectionPart] = {}
-    for status, acceptance in _accepted(paths):
-        if accepted_before is not None and acceptance.accepted_at >= accepted_before:
+    for status, held_since in _accepted(paths):
+        if accepted_before is not None and held_since >= accepted_before:
             continue
         for member in status.record.review.members:
             if member.task_name in names or member.fingerprint in fingerprints:
@@ -340,13 +375,145 @@ def verify_collection(
                 "found": status.record.collection_digest,
             },
         )
-    _require_same(
-        paths,
-        status,
-        code="forge_collection_changed",
-        accepted_before=status.acceptance.accepted_at,
-    )
+    if status.imported is None:
+        _require_same(
+            paths,
+            status,
+            code="forge_collection_changed",
+            accepted_before=status.acceptance.accepted_at,
+        )
+    else:
+        _require_as_imported(paths, status, status.imported)
     return status
+
+
+def _require_as_imported(
+    paths: TechtreePaths, status: ForgeCollectionStatus, imported: ForgeCollectionImport
+) -> None:
+    """Check an imported collection against the records it was imported with
+    and the builds its tasks were admitted into here."""
+    try:
+        problem = _imported_problem(paths, status, imported)
+    except TechtreeError as error:
+        problem = error.message
+    if problem is not None:
+        raise ValidationError(
+            f"collection {status.collection_id} no longer matches its records: "
+            f"{problem}",
+            code="forge_collection_changed",
+            details={"collection_id": status.collection_id},
+        )
+
+
+def _imported_problem(
+    paths: TechtreePaths, status: ForgeCollectionStatus, imported: ForgeCollectionImport
+) -> str | None:
+    """Say what of an imported collection differs from its records, if anything."""
+    members = status.record.review.members
+    if imported.collection_id != status.collection_id or len(
+        imported.qualifications
+    ) != len(members):
+        return "the qualification records it was imported with changed"
+    for member, evidence in zip(members, imported.qualifications, strict=True):
+        built = read_build_status(paths, member.build_id)
+        if built.build is None or not member_records_match(
+            status.record.review, member, built.build, evidence
+        ):
+            return f"the records of task {member.task_name} changed"
+        if changed := changed_member_files(paths, member):
+            return f"in task {member.task_name}, these files changed: " + ", ".join(
+                changed
+            )
+        if (
+            built.qualification is None
+            or member.task_id not in built.qualification.qualified_task_ids
+        ):
+            return f"task {member.task_name} has not qualified in this home"
+    return None
+
+
+def member_records_match(
+    review: ForgeCollectionReview,
+    member: ForgeCollectionMember,
+    build: ForgeBuildRecord,
+    evidence: TaskQualification,
+) -> bool:
+    """Whether a build record and a qualification record are the ones an
+    accepted member names by its digests, the build written from the
+    collection's Source Skill."""
+    manifests = build.task_set.tasks
+    return (
+        build.build_id == member.build_id
+        and isinstance(build.source, ForgeSkillSource)
+        and build.source.source_skill_digest == review.source_digest
+        and [manifest.task_id for manifest in manifests] == [member.task_id]
+        and manifests[0].content_digest == member.content_digest
+        and task_fingerprint(manifests[0]) == member.fingerprint
+        and evidence.task_id == member.task_id
+        and evidence.task_content_digest == member.content_digest
+        and evidence.qualified
+        and digest_object(evidence) == member.qualification_digest
+    )
+
+
+def accepted_evidence(
+    paths: TechtreePaths, status: ForgeCollectionStatus
+) -> list[TaskQualification]:
+    """Return the qualification record each member's digest names, in member
+    order: its build's own, or, for an imported collection, the one it was
+    exported with."""
+    if status.imported is not None:
+        return list(status.imported.qualifications)
+    evidence = []
+    for member in status.record.review.members:
+        qualification = read_build_status(paths, member.build_id).qualification
+        assert qualification is not None  # a verified member qualified
+        evidence.append(
+            next(task for task in qualification.tasks if task.task_id == member.task_id)
+        )
+    return evidence
+
+
+def check_importable(paths: TechtreePaths, record: ForgeCollectionRecord) -> None:
+    """Refuse to import a collection this home already holds, or one of a
+    Skill whose collections this home already holds, whose versions would then
+    be two lines."""
+    if paths.forge_collection_dir(record.collection_id).exists():
+        raise ConflictError(
+            f"collection {record.collection_id} is already in this Techtree home",
+            code="forge_import_exists",
+            details={"collection_id": record.collection_id},
+        )
+    held = _latest(paths, record.review.line_digest)
+    if held is not None:
+        raise ConflictError(
+            f"this Techtree home already holds collection {held.collection_id} "
+            f"(version {held.record.review.version}) of the same Skill, and a "
+            "Skill's collections are one line of versions in a home. " + SEPARATE_HOME,
+            code="forge_import_same_line",
+            details={
+                "collection_id": record.collection_id,
+                "held": held.collection_id,
+            },
+        )
+
+
+def record_imported_collection(
+    paths: TechtreePaths,
+    record: ForgeCollectionRecord,
+    acceptance: ForgeCollectionAcceptance,
+    imported: ForgeCollectionImport,
+) -> ForgeCollectionStatus:
+    """Write an exported collection's records into the folder the import made
+    for it, as the export states them, with where it came from, once its
+    tasks' builds are here; then verify it."""
+    directory = paths.forge_collection_dir(record.collection_id)
+    atomic_write_json(directory / COLLECTION_FILENAME, record.model_dump(mode="json"))
+    atomic_write_json(
+        directory / ACCEPTANCE_FILENAME, acceptance.model_dump(mode="json")
+    )
+    atomic_write_json(directory / IMPORT_FILENAME, imported.model_dump(mode="json"))
+    return verify_collection(paths, record.collection_id)
 
 
 def _require_same(
@@ -404,6 +571,7 @@ _CHANGED_WORDS: Final = {
     "proposal_digest": "the proposal",
     "claims": "the proposal",
     "source_id": "the Skill",
+    "source_name": "the Skill",
     "source_digest": "the Skill",
     "line_digest": "the Skill",
     "constructions": "the constructions",
@@ -485,7 +653,10 @@ def _review(
                 "minimum": MINIMUM_COLLECTION_TASKS,
             },
         )
-    line_digest = read_source_status(paths, newest.source_id).record.line_digest
+    source = read_source_status(paths, newest.source_id).record
+    # Only an admitted Source Skill is planned from, and it carries its declaration.
+    assert source.declaration is not None
+    line_digest = source.line_digest
     parent = None if previous is None else _parent(paths, previous, line_digest)
     committed = [_commit(paths, _last_try(name, chain)[1]) for name in names]
     for index, task in enumerate(committed):
@@ -554,6 +725,7 @@ def _review(
         proposal_digest=proposal.proposal_digest,
         claims=proposal.claims,
         source_id=newest.source_id,
+        source_name=source.declaration.name,
         source_digest=newest.source_digest,
         line_digest=line_digest,
         constructions=[status.construction_id for status in chain],
@@ -731,6 +903,13 @@ def read_collection_status(
             if (directory / ACCEPTANCE_FILENAME).is_file()
             else None
         )
+        imported = (
+            ForgeCollectionImport.model_validate_json(
+                (directory / IMPORT_FILENAME).read_bytes()
+            )
+            if (directory / IMPORT_FILENAME).is_file()
+            else None
+        )
     except ModelValidationError as error:
         issue = error.errors(include_input=False, include_url=False)[0]
         raise ValidationError(
@@ -745,4 +924,5 @@ def read_collection_status(
         state=state,
         record=record,
         acceptance=acceptance,
+        imported=imported,
     )
