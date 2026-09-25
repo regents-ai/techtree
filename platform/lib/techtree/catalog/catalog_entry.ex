@@ -39,13 +39,13 @@ defmodule Techtree.Catalog.CatalogEntry do
     end
 
     read :get_by_reference do
-      description "Resolve one object by its public reference within a kind."
+      description "Resolve the active object one public reference names within a kind."
       get? true
 
       argument :kind, :atom, allow_nil?: false
       argument :reference, :string, allow_nil?: false
 
-      filter expr(kind == ^arg(:kind) and reference == ^arg(:reference))
+      filter expr(kind == ^arg(:kind) and reference == ^arg(:reference) and active == true)
     end
 
     read :list_active_climbs do

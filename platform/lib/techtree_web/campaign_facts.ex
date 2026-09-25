@@ -4,35 +4,45 @@ defmodule TechtreeWeb.CampaignFacts do
   not carry, read from the published documents themselves.
 
   A Climb's summary is a projection, and projections are deliberately small.
-  Three things a reader needs are not in it: what the run is allowed to spend,
-  which key the subject's model calls use, and what the publisher's own check
-  of the tasks concluded.
-  Both are written in documents this site already publishes under a content
-  address, so they are read from those exact bytes here rather than added to
-  the summary — a page that shows them is showing the document, not a copy of
-  it that could drift.
+  What a reader needs beyond it — the limits on each try, the key the subject's
+  model calls use, how many tasks the run covers, and what the publisher's own
+  check of the tasks concluded — is written in documents this site already
+  publishes under a content address. It is read from those exact bytes here
+  rather than added to the summary, so a page that shows it is showing the
+  document, not a copy of it that could drift.
 
-  One field is read and never published. A run's ceiling includes a money
+  One field is read and never published. A Campaign's budget includes a money
   figure, and what a trial costs is set by the reader's model provider, not by
-  this site. The ceilings this module returns are the ones a reader can act on:
+  this site. The limits this module returns are the ones a reader can act on:
   calls and tokens.
+
+  Every limit is per try. A run tries each task once without the Skill and once
+  with it, and each try stops starting model calls once it reaches any one of
+  them; the call that crosses a limit still finishes.
   """
 
   alias Techtree.Catalog.Query
 
-  @type t :: %{
-          budget: map(),
-          credential_env: String.t() | nil,
-          membership: map(),
-          validation: map()
+  @type t :: %{budget: map(), membership: map(), validation: map()}
+
+  @type trial :: %{
+          provider: String.t(),
+          model_id: String.t(),
+          credential_env: String.t(),
+          tasks: pos_integer(),
+          calls: pos_integer(),
+          input_tokens: pos_integer(),
+          output_tokens: pos_integer()
         }
 
-  @empty %{budget: %{}, credential_env: nil, membership: %{}, validation: %{}}
+  # Each task is tried once without the Skill and once with it.
+  @tries_per_task 2
+
+  @empty %{budget: %{}, membership: %{}, validation: %{}}
 
   @doc """
-  The published budget, credential name, task membership, and validation
-  outcome behind one Climb, or empty values when this release publishes none of
-  them.
+  The published budget, task membership, and validation outcome behind one
+  Climb, or empty values when this release publishes none of them.
   """
   @spec for_climb(map() | nil) :: t()
   def for_climb(nil), do: @empty
@@ -45,7 +55,6 @@ defmodule TechtreeWeb.CampaignFacts do
       campaign ->
         %{
           budget: budget(campaign),
-          credential_env: get_in(campaign, ["agents", "subject", "model", "credential_env"]),
           membership: membership(campaign),
           validation: validation(facts["validation_receipt_digest"])
         }
@@ -68,20 +77,55 @@ defmodule TechtreeWeb.CampaignFacts do
   def validation_words(_validation), do: nil
 
   @doc """
-  The run ceiling, in the two units a reader can act on.
+  What one Climb asks of the person running it, read from its Campaign: the
+  model and provider its calls go to, the key they are charged to, how many
+  tasks it runs, and the limits on each try.
+
+  The importer refuses a Climb whose Campaign leaves any of these out, so a
+  Climb without them is a broken catalog and raises here.
+  """
+  @spec trial!(map()) :: trial()
+  def trial!(%{projection: %{"campaign_spec_digest" => digest}}) do
+    {:ok, bytes, _entry} = Query.object_bytes(digest)
+    bytes |> Jason.decode!() |> trial()
+  end
+
+  @doc """
+  The most model calls a whole run of this trial can start: both tries of every
+  task, each at its own limit.
+  """
+  @spec run_calls(trial()) :: pos_integer()
+  def run_calls(%{tasks: tasks, calls: calls}), do: tasks * @tries_per_task * calls
+
+  @doc """
+  The limits on each try, in the units a reader can act on.
   """
   @spec budget_words(map()) :: String.t() | nil
-  def budget_words(%{"maximum_model_calls" => calls} = budget) when is_integer(calls) do
-    [
-      "#{calls} model calls",
-      token_words(budget["maximum_input_tokens"], "input tokens"),
-      token_words(budget["maximum_output_tokens"], "output tokens")
-    ]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join(" · ")
+  def budget_words(%{
+        "maximum_model_calls" => calls,
+        "maximum_input_tokens" => input,
+        "maximum_output_tokens" => output
+      })
+      when is_integer(calls) and is_integer(input) and is_integer(output) do
+    "Each try: #{count(calls)} model calls · #{count(input)} input tokens · " <>
+      "#{count(output)} output tokens"
   end
 
   def budget_words(_budget), do: nil
+
+  @doc """
+  A whole number written with thousands separators, as in 900,000.
+  """
+  @spec count(non_neg_integer()) :: String.t()
+  def count(number) when is_integer(number) and number >= 0 do
+    number
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.graphemes()
+    |> Enum.chunk_every(3)
+    |> Enum.join(",")
+    |> String.reverse()
+  end
 
   @doc """
   Whether the published task list is fixed in advance, said plainly.
@@ -94,6 +138,37 @@ defmodule TechtreeWeb.CampaignFacts do
   def membership_words(_membership), do: nil
 
   # -- Internals ------------------------------------------------------------
+
+  defp trial(%{
+         "agents" => %{
+           "subject" => %{
+             "model" => %{
+               "provider" => provider,
+               "model_id" => model_id,
+               "credential_env" => credential_env
+             }
+           }
+         },
+         "budgets" => %{
+           "maximum_model_calls" => calls,
+           "maximum_input_tokens" => input_tokens,
+           "maximum_output_tokens" => output_tokens
+         },
+         "taskset" => %{"selection" => %{"num_tasks" => tasks}}
+       })
+       when is_binary(provider) and is_binary(model_id) and is_binary(credential_env) and
+              is_integer(tasks) and is_integer(calls) and is_integer(input_tokens) and
+              is_integer(output_tokens) do
+    %{
+      provider: provider,
+      model_id: model_id,
+      credential_env: credential_env,
+      tasks: tasks,
+      calls: calls,
+      input_tokens: input_tokens,
+      output_tokens: output_tokens
+    }
+  end
 
   defp budget(campaign) do
     campaign
@@ -137,7 +212,4 @@ defmodule TechtreeWeb.CampaignFacts do
   end
 
   defp object(_digest), do: nil
-
-  defp token_words(count, unit) when is_integer(count), do: "#{count} #{unit}"
-  defp token_words(_count, _unit), do: nil
 end

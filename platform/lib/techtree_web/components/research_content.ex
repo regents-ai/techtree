@@ -115,6 +115,27 @@ defmodule TechtreeWeb.ResearchContent do
       </p>
     </section>
 
+    <section id="skill-revision" class="doc-section">
+      <h2>Revising a Skill once</h2>
+      <p><.capability_status capability={:skill_revision} /></p>
+      <p>
+        After a comparison finishes, Techtree can export what an agent needs to write one
+        revision of the Skill: the tasks it may study, how each side did on them, and what
+        the Skill is meant to improve. It leaves out anything that would give the answers
+        away.
+      </p>
+      <p>
+        You, or an agent you direct, write the revision. After your approval, Techtree then
+        compares the original Skill with the revision under the same fixed conditions. For
+        a task collection, the revision is judged only on held-out tasks the improving
+        agent never saw.
+      </p>
+      <p>
+        Nothing revises a Skill or repeats that comparison on its own: automatic Skill
+        improvement and training remain later work.
+      </p>
+    </section>
+
     <section id="beyond-model" class="doc-section">
       <h2>An agent is more than a model</h2>
       <p>
@@ -169,10 +190,8 @@ defmodule TechtreeWeb.ResearchContent do
       </p>
       <p>
         Creating an environment from a Skill and building tasks from a repository are
-        experimental today; <.link navigate={~p"/start"}>Start</.link> shows both.
-        Techtree can also prepare a comparison between a Skill and one revision of it
-        that you name. Nothing revises a Skill or repeats that comparison on its own:
-        automatic Skill improvement, training, and a local dashboard remain later work.
+        experimental today; <.link navigate={~p"/start"}>Start</.link> shows both. A local
+        dashboard remains later work.
       </p>
     </section>
 

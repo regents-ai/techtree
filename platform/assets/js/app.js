@@ -143,14 +143,9 @@ function syncThemeControl(theme) {
 function syncCrownTheme(theme) {
   const variant = THEMES[theme].crownVariant
 
-  document.querySelectorAll('[data-optics-kind="crown"]').forEach(root => {
-    const canvas = root.querySelector("[data-optics-canvas]")
-    const hero = root.closest(".hero")
-    root.dataset.crownVariant = variant
-    if (canvas) canvas.dataset.crownVariant = variant
-    if (hero) hero.dataset.crownVariant = variant
+  document.querySelectorAll('[data-optics-kind="crown"] [data-optics-canvas]').forEach(canvas => {
+    canvas.dataset.crownVariant = variant
   })
-
 }
 
 function applyTheme(theme) {

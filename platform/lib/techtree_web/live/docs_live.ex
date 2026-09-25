@@ -56,7 +56,8 @@ defmodule TechtreeWeb.DocsLive do
                 {"The question", "#method"},
                 {"The proof bundle", "#proof-bundle"},
                 {"The trust boundary", "#trust-boundary"},
-                {"Hello World", "#hello-world"}
+                {"Hello World", "#hello-world"},
+                {"Revising a Skill", "#skill-revision"}
               ]}
             />
             <.docs_group

@@ -10,6 +10,7 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.Providers
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
 
@@ -62,7 +63,9 @@ defmodule TechtreeWeb.HomeLive do
               <span>Same agent. Same tasks. One Skill upgraded.</span>
               <span>
                 Built on
-                <a class="hero__source-link" href="https://github.com/PrimeIntellect-ai/verifiers">Prime Intellect</a>
+                <a class="hero__source-link" href="https://github.com/PrimeIntellect-ai/verifiers">{Providers.name!(
+                  "prime"
+                )}</a>
                 and
                 <a class="hero__source-link" href="https://github.com/NousResearch/hermes-agent">Nous&nbsp;Research</a>
               </span>
@@ -176,7 +179,7 @@ defmodule TechtreeWeb.HomeLive do
               before the fix and pass after it, and turns each one into a repair task. Every task
               is checked again in a fresh container on your computer, and no model is called.
             </p>
-            <p class="service-intro__later">
+            <p class="later-note">
               <.capability_status capability={:hosted_building} />
               <span>
                 The hosted Repo2RLEnv service, which will do this for a pinned repository, comes later.

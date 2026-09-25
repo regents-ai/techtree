@@ -185,7 +185,9 @@ export const CROWN_VARIANTS = {
 } as const;
 
 export function crownVariant(value: string | undefined): CrownVariant {
-  return value === "4" ? 4 : 2;
+  if (value === "2") return 2;
+  if (value === "4") return 4;
+  throw new Error(`The crown has no variant ${value}.`);
 }
 
 export function quantizeCrownAim(aim: Vec2): Vec2 {

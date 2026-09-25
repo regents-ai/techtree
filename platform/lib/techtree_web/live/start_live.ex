@@ -5,9 +5,9 @@ defmodule TechtreeWeb.StartLive do
 
   Each path names what it needs, roughly how long it takes and where its data
   goes. The version requirements and the install line come from the active
-  release, and the example's model and ceilings from the Climb that release
-  introduces; the steps after the install line are written for the release
-  being installed.
+  release, and the example's model, key, tasks and limits from the Campaign of
+  the Climb that release introduces; the steps after the install line are
+  written for the release being installed.
 
   The page holds no state and no authority: every review and approval happens
   in Techtree on the person's machine.
@@ -17,6 +17,7 @@ defmodule TechtreeWeb.StartLive do
 
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.Providers
   alias TechtreeWeb.ReleaseInfo
 
   @title "Choose where to start."
@@ -99,27 +100,30 @@ defmodule TechtreeWeb.StartLive do
               The Hello World Climb is a small, fixed challenge. It runs the same tasks without a Skill and with a starter Skill that ships with the release, then shows the difference.
             </p>
           </header>
-          <.definition_list>
+          <.definition_list :if={@example}>
             <:fact term="You need">
               <.requirements minimums={@minimums} provider={false} hermes={false}>
-                <li :if={@example}>
-                  An API key for <code>{@example.provider}</code>, set as <code>{@example.credential_env}</code>; the model calls are charged to your account
+                <li>
+                  An API key for {@example.provider}, set as <code>{@example.credential_env}</code>; the model calls are charged to your account
                 </li>
               </.requirements>
             </:fact>
-            <:fact :if={@example} term="Model">
-              The Climb fixes the model: <code>{@example.model_id}</code>
-              from <code>{@example.provider}</code>. A run stops at {@example.ceiling}, and Techtree shows its spending cap and waits for your yes before anything runs.
+            <:fact term="Model">
+              The Climb fixes the model: <code>{@example.model_id}</code> from {@example.provider}.
+            </:fact>
+            <:fact term="Limits">
+              Each task is tried once with the Skill and once without. Each try stops starting model calls after {@example.calls} calls, {@example.input_tokens} input tokens or {@example.output_tokens} output tokens. With {@example.tasks} tasks, a run can make up to {@example.run_calls} model calls. Before anything runs, Techtree shows the most the run may spend and waits for your yes.
             </:fact>
             <:fact term="Time">
-              About 15 minutes to set up. The run is small; how long it takes depends on your provider.
+              About 15 minutes to set up. How long the run takes depends on your provider.
             </:fact>
             <:fact term="Where your data goes">
-              The model calls go to the Climb's provider on your key, only after you approve. Episodes and traces stay on your computer. Publishing a finished result is optional and uploads its proof bundle to Techtree.
+              The model calls go to {@example.provider} on your <code>{@example.credential_env}</code>
+              key, only after you approve. Episodes and traces stay on your computer. Publishing a finished result is optional and uploads its proof bundle to Techtree.
             </:fact>
           </.definition_list>
           <.command_block
-            :if={@setup_commands && @setup_commands.example}
+            :if={@setup_commands}
             id="copy-start-example"
             label="Run the example"
             lines={@setup_commands.example}
@@ -213,7 +217,7 @@ defmodule TechtreeWeb.StartLive do
             label="Build tasks"
             lines={@setup_commands.repository}
           />
-          <p class="start-path__later">
+          <p class="later-note">
             <.capability_status capability={:hosted_building} />
             <span>A hosted service that builds these environments for you.</span>
             <.link navigate={~p"/repo2rlenv"} class="text-link">About Repo2RLEnv →</.link>
@@ -288,27 +292,27 @@ defmodule TechtreeWeb.StartLive do
 
   defp setup_commands(_release), do: nil
 
-  # The model, key and ceiling of the Climb this release introduces, read from
-  # its published Campaign.
-  defp example(%{introductory_reference: reference}) when is_binary(reference) do
-    with %{projection: %{"subject_model" => model}} = climb <-
-           Enum.find(Query.list_climbs(), &(&1.reference == reference)),
-         %{budget: budget, credential_env: credential_env} when is_binary(credential_env) <-
-           CampaignFacts.for_climb(climb) do
-      %{
-        provider: model["provider"],
-        model_id: model["model_id"],
-        credential_env: credential_env,
-        ceiling: CampaignFacts.budget_words(budget)
-      }
-    else
-      _missing -> nil
-    end
+  # What the Climb this release introduces asks of the person running it, read
+  # from its Campaign. A release always names a Climb its catalog ships, and the
+  # import refuses a Campaign that leaves any of these out.
+  defp example(%{introductory_reference: reference}) do
+    trial = reference |> Query.get_climb_by_reference!() |> CampaignFacts.trial!()
+
+    %{
+      provider: Providers.name!(trial.provider),
+      model_id: trial.model_id,
+      credential_env: trial.credential_env,
+      tasks: CampaignFacts.count(trial.tasks),
+      calls: CampaignFacts.count(trial.calls),
+      input_tokens: CampaignFacts.count(trial.input_tokens),
+      output_tokens: CampaignFacts.count(trial.output_tokens),
+      run_calls: trial |> CampaignFacts.run_calls() |> CampaignFacts.count()
+    }
   end
 
-  defp example(_release), do: nil
+  defp example(nil), do: nil
 
-  defp example_commands(install_argv, reference) when is_binary(reference) do
+  defp example_commands(install_argv, reference) do
     [
       {:command, install_argv},
       {:command, ["techtree", "doctor", "--climb", reference]},
@@ -317,6 +321,4 @@ defmodule TechtreeWeb.StartLive do
       {:command, ["techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]}
     ]
   end
-
-  defp example_commands(_install_argv, _reference), do: nil
 end

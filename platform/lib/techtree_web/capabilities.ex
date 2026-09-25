@@ -19,6 +19,11 @@ defmodule TechtreeWeb.Capabilities do
     %{id: :skill_environment, name: "Create an environment from a Skill", status: :experimental},
     %{id: :repository_tasks, name: "Build tasks from a repository", status: :experimental},
     %{
+      id: :skill_revision,
+      name: "Revise a Skill once and compare the revision with it",
+      status: :experimental
+    },
+    %{
       id: :hosted_building,
       name: "Hosted environment building (Repo2RLEnv service)",
       status: :planned

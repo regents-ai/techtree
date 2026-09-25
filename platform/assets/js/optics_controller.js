@@ -267,7 +267,6 @@ export function createOpticsController(root) {
     const onThemeChange = event => {
       const crownVariant = event.detail?.crownVariant
       if (root.dataset.opticsKind !== "crown" || !crownVariant) return
-      root.dataset.crownVariant = crownVariant
       canvas.dataset.crownVariant = crownVariant
 
       const variant = opticsVariant(canvas)

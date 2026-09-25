@@ -120,7 +120,7 @@ defmodule TechtreeWeb.RunsLive.Show do
           <:fact term="Tasks">
             {comparison_membership_words(@published.membership)}
           </:fact>
-          <:fact term="Ceiling">
+          <:fact term="Limits">
             {CampaignFacts.budget_words(@published.budget) || "Not published"}
           </:fact>
           <:fact term="Agent host">

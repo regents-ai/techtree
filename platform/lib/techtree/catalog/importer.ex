@@ -29,6 +29,22 @@ defmodule Techtree.Catalog.Importer do
 
   @internal [authorize?: false]
 
+  # What a page tells a person before they run a Climb: the model and provider
+  # its calls go to, the key they are charged to, how many tasks it runs, and
+  # the limits on each try. Pages read these from the Campaign and show them as
+  # facts, so every Climb's Campaign must state them.
+  @trial_names [
+    ["agents", "subject", "model", "provider"],
+    ["agents", "subject", "model", "model_id"],
+    ["agents", "subject", "model", "credential_env"]
+  ]
+  @trial_counts [
+    ["budgets", "maximum_model_calls"],
+    ["budgets", "maximum_input_tokens"],
+    ["budgets", "maximum_output_tokens"],
+    ["taskset", "selection", "num_tasks"]
+  ]
+
   @doc """
   Import and activate the bundle at `root`.
 
@@ -254,6 +270,7 @@ defmodule Techtree.Catalog.Importer do
 
     campaign_digest = fetch!(climb, ["campaign_spec_digest"], entry)
     campaign = decode_object!(bundle, campaign_digest)
+    require_trial!(campaign, entry)
     plan_digest = fetch!(campaign, ["execution_plan_digest"], entry)
     execution_plan = decode_object!(bundle, plan_digest)
     policy_digest = fetch!(campaign, ["data_policy_digest"], entry)
@@ -396,6 +413,27 @@ defmodule Techtree.Catalog.Importer do
         raise Error.bundle_invalid("a catalog object is not a JSON object", %{
                 "path" => relative_path
               })
+    end
+  end
+
+  defp require_trial!(campaign, entry) do
+    Enum.each(
+      @trial_names,
+      &require!(campaign, &1, entry, fn name -> is_binary(name) and name != "" end)
+    )
+
+    Enum.each(
+      @trial_counts,
+      &require!(campaign, &1, entry, fn count -> is_integer(count) and count > 0 end)
+    )
+  end
+
+  defp require!(document, path, entry, valid?) do
+    unless valid?.(get_in(document, path)) do
+      raise Error.bundle_invalid("a Climb's Campaign does not state what a run needs", %{
+              "path" => entry.relative_path,
+              "field" => Enum.join(path, ".")
+            })
     end
   end
 

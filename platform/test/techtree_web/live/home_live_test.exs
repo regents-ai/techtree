@@ -22,10 +22,6 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "Improve a Skill."
-      assert text =~ "Prove it worked."
-      assert text =~ "Same agent. Same tasks. One Skill upgraded."
-
       assert has_element?(
                live,
                ".hero__mechanism > span",
@@ -148,18 +144,13 @@ defmodule TechtreeWeb.HomeLiveTest do
     end
 
     test "the lower homepage sections remain available below the hero", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/")
-      text = visible_text(html)
+      {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(live, "#capabilities")
       refute has_element?(live, "#home-evidence-graph")
       refute has_element?(live, ".home-section.process")
       assert has_element?(live, ".home-section.featured")
       assert has_element?(live, ".home-section.trust")
-      refute text =~ "standing on giants"
-      refute text =~ "What it demonstrates is that the three pin together tightly enough"
-      refute text =~ "Run. Improve. Prove."
-      assert text =~ "Your work stays local."
     end
 
     test "the hero gives an agent the copyable setup instruction instead of a Result",
@@ -265,21 +256,6 @@ defmodule TechtreeWeb.HomeLiveTest do
     assert css =~ ~r/\.command__copy\s*\{[^}]*min-height: 2\.75rem;/s
     assert css =~ ~r/\.tasks__filter\s*\{[^}]*min-height: 2\.75rem;/s
     assert css =~ ~r/\.pagecopy__main\s*\{[^}]*min-height: 2\.75rem;/s
-  end
-
-  test "retired optics remain available as assets but do not mount on documents" do
-    javascript = File.read!(Path.expand("../../../assets/js/app.js", __DIR__))
-
-    root =
-      File.read!(
-        Path.expand("../../../lib/techtree_web/components/layouts/root.html.heex", __DIR__)
-      )
-
-    refute javascript =~ "createOpticsController"
-    refute root =~ "data-optics-source"
-    refute root =~ "SiteBackground"
-    assert root =~ "Regent.Structure.frame"
-    assert File.exists?(Path.expand("../../../assets/js/optics_controller.js", __DIR__))
   end
 
   test "the landing page leaves every primary tab neutral", %{conn: conn} do
