@@ -356,6 +356,7 @@ defmodule Techtree.NetworkFixture do
         subject_model: "qwen/qwen3.7-flash",
         subject_harness: "hermes-agent",
         subject_harness_version: "0.19.0",
+        skill_digest: Digest.hash_bytes("skill"),
         baseline_mean: 0.0,
         candidate_mean: 1.0,
         absolute_delta: 1.0,
@@ -369,6 +370,25 @@ defmodule Techtree.NetworkFixture do
         verification_checks_run: 1,
         verification_checks_passed: 1,
         task_deltas: [],
+        assessment: %{
+          reason: :cleared_rule,
+          baseline_total: 0,
+          candidate_total: 1,
+          task_count: 1,
+          minimum: 0,
+          wins: 1,
+          losses: 0,
+          ties: 0,
+          model_build_unproven: true,
+          skill_changes: [
+            %{
+              skill: 0,
+              field: nil,
+              without: %{kind: :none},
+              with: %{kind: :skill, digest: Digest.hash_bytes("skill"), size: 1}
+            }
+          ]
+        },
         receipt_bytes: "{}",
         receipt_digest: Digest.hash_bytes("{}"),
         network_key_id: Digest.hash_bytes("key")

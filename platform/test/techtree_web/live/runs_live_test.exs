@@ -389,8 +389,8 @@ defmodule TechtreeWeb.RunsLiveTest do
                live,
                "#badge-files-verified",
                "This site ran its #{Techtree.Network.Bundle.check_count()} checks on the " <>
-                 "Result's files, including working out the scores, the change and the " <>
-                 "decision again from the task results"
+                 "Result's files, including one that worked out the averages, the change " <>
+                 "and the decision again from the task scores"
              )
 
       assert has_element?(live, "#badge-reported", "Reported by the person who ran it")

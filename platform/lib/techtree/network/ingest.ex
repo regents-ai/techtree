@@ -132,6 +132,33 @@ defmodule Techtree.Network.Ingest do
   end
 
   @doc """
+  Store an assessment for every entry that has none, worked out again from its
+  stored bytes under the Campaign it names.
+
+  An entry whose bytes do not pass the result and Skill change checks is left
+  exactly as it is and comes back with the reason. Nothing is deleted or
+  withdrawn.
+  """
+  @spec record_assessments() :: [{PublicationEntry.t(), :ok | {:error, Error.t()}}]
+  def record_assessments do
+    Enum.map(Network.list_unassessed_publication_entries!(@internal), fn entry ->
+      case Bundle.reassess(entry.submission_bytes) do
+        {:ok, assessment} ->
+          Network.record_publication_entry_assessment!(
+            entry,
+            %{assessment: assessment},
+            @internal
+          )
+
+          {entry, :ok}
+
+        {:error, error} ->
+          {entry, {:error, error}}
+      end
+    end)
+  end
+
+  @doc """
   Take one published entry off the log, on the signed word of whoever published
   it.
 
@@ -380,7 +407,7 @@ defmodule Techtree.Network.Ingest do
            report: report,
            campaign: campaign,
            execution_plan: execution_plan,
-           result: result
+           assessment: assessment
          } = bundle,
          metadata,
          key,
@@ -412,24 +439,28 @@ defmodule Techtree.Network.Ingest do
       subject_model: field(model, "model_id"),
       subject_harness: field(harness, "harness_id"),
       subject_harness_version: field(harness, "harness_version"),
-      skill_digest: bundle.candidate_skill_digest,
+      skill_digest: bundle.skill_digest,
       skill_name: metadata.skill_name,
       skill_github_url: metadata.skill_github_url,
-      # The result as this site recomputed it, which the bundle check has
-      # already shown agrees with what the report wrote.
-      baseline_mean: Decimal.to_float(result.baseline_mean),
-      candidate_mean: Decimal.to_float(result.candidate_mean),
-      absolute_delta: Decimal.to_float(result.absolute_delta),
-      wins: result.wins,
-      losses: result.losses,
-      ties: result.ties,
-      task_count: length(report["task_deltas"]),
+      # The result as this site recomputed it. The means are its exact totals
+      # over the task count, as the nearest doubles, for the list of Results.
+      baseline_mean: mean(assessment.baseline_total, assessment.task_count),
+      candidate_mean: mean(assessment.candidate_total, assessment.task_count),
+      absolute_delta:
+        assessment.candidate_total
+        |> Decimal.sub(assessment.baseline_total)
+        |> mean(assessment.task_count),
+      wins: assessment.wins,
+      losses: assessment.losses,
+      ties: assessment.ties,
+      task_count: assessment.task_count,
       statuses: report["statuses"],
-      decision: result.decision,
+      decision: report["decision"],
       proof_grade: report["proof_grade"],
       verification_checks_run: Bundle.check_count(),
       verification_checks_passed: Bundle.check_count(),
       task_deltas: report["task_deltas"],
+      assessment: assessment,
       network_key_id: key.key_id
     }
 
@@ -439,6 +470,8 @@ defmodule Techtree.Network.Ingest do
     |> Map.put(:receipt_bytes, Receipt.encode(receipt))
     |> Map.put(:receipt_digest, Receipt.payload_digest(receipt))
   end
+
+  defp mean(total, count), do: total |> Decimal.div(count) |> Decimal.to_float()
 
   defp field(section, member) when is_map(section), do: section[member]
   defp field(_section, _member), do: nil

@@ -65,6 +65,12 @@ defmodule Techtree.Network.IngestTest do
       assert length(entry.task_deltas) == 36
       assert entry.statuses == report["statuses"]
       assert entry.decision == "accepted"
+      assert entry.assessment.reason == :cleared_rule
+      assert entry.assessment.wins == entry.wins
+
+      [%{"candidate" => candidate}] = report["manifest_comparison"]["differences"]
+      assert entry.skill_digest == candidate["digest"]
+      assert [%{skill: 0, with: %{kind: :skill}}] = entry.assessment.skill_changes
       assert entry.proof_grade == "P1"
       assert entry.verification_checks_run == Bundle.check_count()
       assert entry.verification_checks_passed == Bundle.check_count()
@@ -92,6 +98,28 @@ defmodule Techtree.Network.IngestTest do
 
       assert entry.receipt_digest ==
                payload |> Techtree.Canonical.encode!() |> Techtree.Catalog.Digest.hash_bytes()
+    end
+
+    test "stored with no assessment, gets one worked out again from its stored bytes" do
+      {:ok, entry, :recorded} = NetworkFixture.publish()
+
+      # The state a Result published before assessments were stored is in.
+      {1, _rows} =
+        Techtree.Repo.update_all(
+          from(row in "network_publication_entries",
+            where: row.id == type(^entry.id, Ecto.UUID)
+          ),
+          set: [assessment: nil]
+        )
+
+      assert [{%{id: id}, :ok}] = Ingest.record_assessments()
+      assert id == entry.id
+
+      stored = Network.get_publication_entry_by_digest!(entry.bundle_digest)
+      assert stored.assessment.reason == entry.assessment.reason
+      assert Decimal.eq?(stored.assessment.candidate_total, entry.assessment.candidate_total)
+      assert stored.assessment.skill_changes == entry.assessment.skill_changes
+      assert Ingest.record_assessments() == []
     end
 
     test "appends an acceptance event carrying the participant's own signature" do
@@ -360,27 +388,7 @@ defmodule Techtree.Network.IngestTest do
         )
       end
 
-      # The means and change still claim the improvement: they are refused.
       files = rewritten_report(every_task_worse)
-
-      assert {:error, %{code: :submission_result_inconsistent, details: %{"field" => _field}}} =
-               NetworkFixture.publish(NetworkFixture.submission(files))
-
-      # The means and change are true, and only the decision still says accepted.
-      files =
-        rewritten_report(fn report ->
-          report
-          |> every_task_worse.()
-          |> update_in(
-            ["primary_result"],
-            &Map.merge(&1, %{
-              "baseline_mean" => 1.0,
-              "candidate_mean" => 0.0,
-              "absolute_delta" => -1.0,
-              "relative_delta" => -1.0
-            })
-          )
-        end)
 
       assert {:error, %{code: :submission_result_inconsistent, details: details}} =
                NetworkFixture.publish(NetworkFixture.submission(files))

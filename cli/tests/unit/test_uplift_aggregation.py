@@ -261,7 +261,7 @@ def test_the_recorded_uplift_is_accepted(
         decide_uplift(
             campaign=pair.campaign,
             comparison=controlled,
-            primary=aggregate_primary_result(_deltas(pair), _PRIMARY),
+            deltas=_deltas(pair),
         )
         is UpliftDecision.ACCEPTED
     )
@@ -271,10 +271,10 @@ def test_a_candidate_that_did_not_improve_is_rejected(
     pair: RecordedPair, controlled: RealComparisonResult
 ) -> None:
     """``require_candidate_above_baseline`` means strictly above."""
-    tied = aggregate_primary_result([_delta("a", 1.0, 1.0)], _PRIMARY)
+    tied = [_delta("a", 1.0, 1.0)]
 
     assert (
-        decide_uplift(campaign=pair.campaign, comparison=controlled, primary=tied)
+        decide_uplift(campaign=pair.campaign, comparison=controlled, deltas=tied)
         is UpliftDecision.REJECTED
     )
 
@@ -286,11 +286,30 @@ def test_an_improvement_below_the_declared_minimum_is_rejected(
     campaign = _with_scoring(
         pair.campaign, require_above=True, minimum_absolute_delta=0.1
     )
-    small = aggregate_primary_result([_delta("a", 0.5, 0.52)], _PRIMARY)
+    small = [_delta("a", 0.5, 0.52)]
 
     assert (
-        decide_uplift(campaign=campaign, comparison=controlled, primary=small)
+        decide_uplift(campaign=campaign, comparison=controlled, deltas=small)
         is UpliftDecision.REJECTED
+    )
+
+
+def test_an_improvement_exactly_at_the_declared_minimum_is_accepted(
+    pair: RecordedPair, controlled: RealComparisonResult
+) -> None:
+    """One more task out of ten clears a tenth, though 0.6 - 0.5 < 0.1 in binary."""
+    campaign = _with_scoring(
+        pair.campaign, require_above=True, minimum_absolute_delta=0.1
+    )
+    deltas = [_delta(str(task), float(task < 5), float(task < 6)) for task in range(10)]
+    primary = aggregate_primary_result(deltas, _PRIMARY)
+
+    assert 0.6 - 0.5 < 0.1
+    assert (primary.baseline_mean, primary.candidate_mean) == (0.5, 0.6)
+    assert primary.absolute_delta == 0.1
+    assert (
+        decide_uplift(campaign=campaign, comparison=controlled, deltas=deltas)
+        is UpliftDecision.ACCEPTED
     )
 
 
@@ -306,7 +325,7 @@ def test_a_campaign_that_predeclared_no_rule_is_inconclusive(
         decide_uplift(
             campaign=campaign,
             comparison=controlled,
-            primary=aggregate_primary_result(_deltas(pair), _PRIMARY),
+            deltas=_deltas(pair),
         )
         is UpliftDecision.INCONCLUSIVE
     )
@@ -321,7 +340,7 @@ def test_an_uncontrolled_comparison_decides_invalid(pair: RecordedPair) -> None:
         decide_uplift(
             campaign=pair.campaign,
             comparison=broken,
-            primary=aggregate_primary_result(_deltas(pair), _PRIMARY),
+            deltas=_deltas(pair),
         )
         is UpliftDecision.INVALID
     )

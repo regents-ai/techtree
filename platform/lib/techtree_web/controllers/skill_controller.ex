@@ -91,6 +91,7 @@ defmodule TechtreeWeb.SkillController do
     without a starter Skill:
 
     ```sh
+    techtree setup
     techtree doctor --climb #{reference}
     techtree climb prepare #{reference} --skill path/to/skill
     ```
