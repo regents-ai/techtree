@@ -54,6 +54,7 @@ __all__ = [
     "BASE_IMAGE_REFERENCE",
     "FORGE_BUILD_SCHEMA_VERSION",
     "FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION",
+    "FORGE_COLLECTION_IMPORT_SCHEMA_VERSION",
     "FORGE_COLLECTION_SCHEMA_VERSION",
     "FORGE_COMPARISON_SCHEMA_VERSION",
     "FORGE_CONSTRUCTION_APPROVAL_SCHEMA_VERSION",
@@ -99,6 +100,7 @@ __all__ = [
     "ForgeClaimId",
     "ForgeCollectionAcceptance",
     "ForgeCollectionCandidate",
+    "ForgeCollectionImport",
     "ForgeCollectionMember",
     "ForgeCollectionParent",
     "ForgeCollectionPart",
@@ -1607,11 +1609,14 @@ FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION: Final = (
 FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION: Final = (
     "techtree.forge-construction-package.v1alpha2"
 )
-FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha2"
+FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha3"
 FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION: Final = (
     "techtree.forge-collection-acceptance.v1alpha1"
 )
-FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha2"
+FORGE_COLLECTION_IMPORT_SCHEMA_VERSION: Final = (
+    "techtree.forge-collection-import.v1alpha1"
+)
+FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha3"
 
 #: The most tasks one plan may ask for: Skill2Env's own default workflow count.
 MAX_PLANNED_TASKS: Final = 8
@@ -2346,7 +2351,10 @@ class ForgeCollectionReview(ProtocolModel):
     out of sight, and the exact members: the qualified tasks being accepted,
     each by its content and qualification digests and the part it is in,
     with at least one task in each part. ``claims`` are the proposal's
-    claims, which the members name. ``constructions`` is the retry chain the
+    claims, which the members name. ``source_name`` is the name the Source
+    Skill declares, so that the collection says which Skill its tasks were
+    written from by name and digest wherever it is read. ``constructions`` is
+    the retry chain the
     outcomes come from, newest first. ``line_digest`` is the Skill the
     source's line starts at (``ForgeSourceRecord.line_digest``): the
     collections of a Skill and of every Skill derived from it form one line
@@ -2360,6 +2368,7 @@ class ForgeCollectionReview(ProtocolModel):
     proposal_digest: Digest
     claims: list[ForgeSkillClaim] = Field(min_length=1, max_length=MAX_CLAIMS)
     source_id: NonEmptyString
+    source_name: AgentSkillName
     source_digest: Digest
     line_digest: Digest
     constructions: list[NonEmptyString] = Field(min_length=1)
@@ -2405,7 +2414,7 @@ class ForgeCollectionReview(ProtocolModel):
 class ForgeCollectionRecord(ProtocolModel):
     """A prepared collection: its review and the digest acceptance names."""
 
-    schema_version: Literal["techtree.forge-collection.v1alpha2"]
+    schema_version: Literal["techtree.forge-collection.v1alpha3"]
     collection_id: NonEmptyString
     created_at: UtcDateTime
     review: ForgeCollectionReview
@@ -2429,17 +2438,38 @@ class ForgeCollectionAcceptance(ProtocolModel):
     answered_with: Literal["prompt", "yes-flag"]
 
 
+class ForgeCollectionImport(ProtocolModel):
+    """Where an accepted collection came from when ``forge import`` brought it
+    into this home from an export, rather than a person accepting it here.
+
+    ``exported_at`` and ``origin`` are the export's time and the folder it
+    was read from. ``qualifications`` are the exported qualification records,
+    one per member in order: the evidence each member's qualification digest
+    names. Every task was admitted and qualified again in this home, and that
+    qualification is its build's own.
+    """
+
+    schema_version: Literal["techtree.forge-collection-import.v1alpha1"]
+    collection_id: NonEmptyString
+    imported_at: UtcDateTime
+    exported_at: UtcDateTime
+    origin: NonEmptyString
+    qualifications: list[TaskQualification] = Field(min_length=MINIMUM_COLLECTION_TASKS)
+
+
 type ForgeCollectionState = Literal["prepared", "accepted"]
 
 
 class ForgeCollectionStatus(ProtocolModel):
-    """A collection read back; ``accepted`` means frozen."""
+    """A collection read back; ``accepted`` means frozen. ``imported`` is set
+    for a collection ``forge import`` brought in from an export."""
 
     collection_id: NonEmptyString
     path: NonEmptyString
     state: ForgeCollectionState
     record: ForgeCollectionRecord
     acceptance: ForgeCollectionAcceptance | None
+    imported: ForgeCollectionImport | None
 
 
 class ForgeExportTask(ProtocolModel):
@@ -2460,7 +2490,7 @@ class ForgeExport(ProtocolModel):
     ``tasks`` follows the collection's members, one for one and in order.
     """
 
-    schema_version: Literal["techtree.forge-export.v1alpha2"]
+    schema_version: Literal["techtree.forge-export.v1alpha3"]
     exported_at: UtcDateTime
     collection: ForgeCollectionRecord
     acceptance: ForgeCollectionAcceptance

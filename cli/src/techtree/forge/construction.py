@@ -104,6 +104,7 @@ from techtree.forge.planning import read_proposal_status
 from techtree.forge.process import CommandRunner
 from techtree.forge.profile import hold_profile, profile_dir, require_signed_in
 from techtree.forge.service import host_docker_platform
+from techtree.forge.skill2env import local_source_skill
 from techtree.forge.source import read_source_status
 from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
@@ -329,7 +330,7 @@ def _review(
         corrected_by=_corrections(paths, proposal.proposal_id),
         source_id=proposal.source_id,
         source_digest=proposal.source_digest,
-        source_skill=f"local/{declaration.name}",
+        source_skill=local_source_skill(declaration.name),
         retry_of=retry_of,
         recipe=ForgeCreatorRecipe(
             name="skill2env-creator",

@@ -67,7 +67,6 @@ from techtree.forge.models import (
 from techtree.forge.report import render_report, verdict_words
 from techtree.forge.run import read_run_status
 from techtree.forge.service import read_build_status
-from techtree.forge.source import read_source_status
 from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
 from techtree.models.experiment import ManifestComparison
@@ -160,11 +159,10 @@ def _collection(
                 "stored": record.collection_digest,
             },
         )
-    declaration = read_source_status(paths, record.review.source_id).record.declaration
-    # Only an admitted Source Skill is planned from, and it carries its declaration.
-    assert declaration is not None
     return (
-        ForgeSkillRef(name=declaration.name, digest=record.review.source_digest),
+        ForgeSkillRef(
+            name=record.review.source_name, digest=record.review.source_digest
+        ),
         record.review.parts(),
     )
 

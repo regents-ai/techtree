@@ -19,6 +19,10 @@ finished generation/content commitment (for a Skill build, the admitted bytes
 and the allow-listed base images pulled by digest); ``qualification.json``
 records all-task grading. Last observed progress never asserts that a process
 is still running.
+
+A Skill build another home made comes in through :func:`import_build` under
+its own id, with its ``build.json`` as it was written there and a
+``qualification.json`` of this home's own; it has no ``progress.json``.
 """
 
 from __future__ import annotations
@@ -69,6 +73,7 @@ from techtree.forge.models import (
     ForgePlatform,
     ForgeQualification,
     ForgeRepositorySource,
+    ForgeSkillSource,
     TaskQualification,
 )
 from techtree.forge.process import CommandRunner
@@ -84,6 +89,7 @@ __all__ = [
     "ForgeService",
     "default_dockerfile",
     "host_docker_platform",
+    "import_build",
     "read_build_status",
 ]
 
@@ -486,6 +492,67 @@ class ForgeService:
         atomic_write_json(build_dir / _BUILD_FILENAME, record.model_dump(mode="json"))
         self._qualify(record, build_dir, on_phase, on_task)
         return read_build_status(self._paths, build_id)
+
+
+def import_build(
+    paths: TechtreePaths,
+    docker: Docker,
+    record: ForgeBuildRecord,
+    task_dir: Path,
+    *,
+    source_skill: str,
+) -> ForgeBuildStatus:
+    """Take one Skill build another Techtree home made into this one.
+
+    The task at ``task_dir`` is admitted again exactly as a construction
+    admits a package, against the release allow-list of this Techtree, and
+    must commit to the files and provenance ``record`` states; the record is
+    then kept as it was written, under its own build id. Its base images are
+    pulled by digest and the task is qualified here as it was there: its
+    image built offline and every graded run made again. That qualification
+    is this home's own, and is returned whether or not the task passed it.
+    """
+    source = record.source
+    if not isinstance(source, ForgeSkillSource):
+        raise ValidationError(
+            f"build {record.build_id} holds repository tasks; only Skill tasks "
+            "are imported",
+            code="forge_source_unsupported",
+            details={"build_id": record.build_id, "source": source.kind},
+        )
+    build_dir = paths.forge_build_dir(record.build_id)
+    admission = admit_skill2env_task(
+        task_dir,
+        build_dir=build_dir,
+        expected_source_skill=source_skill,
+        expected_source_digest=source.source_skill_digest,
+        platform=record.platform,
+    )
+    if (
+        admission.task_set != record.task_set
+        or admission.source(source.base_images) != source
+        or list(admission.base_references)
+        != [image.reference for image in source.base_images]
+    ):
+        raise ValidationError(
+            f"task {task_dir.name} is not what its build record says, as this "
+            "Techtree admits it: its files, its recipe or its base images differ",
+            code="forge_import_not_admitted",
+            details={"build_id": record.build_id, "task_id": task_dir.name},
+        )
+    for image in source.base_images:
+        docker.pull_pinned(image.reference, record.platform)
+    atomic_write_json(build_dir / _BUILD_FILENAME, record.model_dump(mode="json"))
+    qualification = qualify_build(
+        docker=docker,
+        build=record,
+        tasks_dir=build_dir / "tasks",
+        work_dir=build_dir / "qualification",
+    )
+    atomic_write_json(
+        build_dir / _QUALIFICATION_FILENAME, qualification.model_dump(mode="json")
+    )
+    return read_build_status(paths, record.build_id)
 
 
 def _status_command(paths: TechtreePaths, build_id: str) -> str:

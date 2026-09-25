@@ -62,6 +62,7 @@ from techtree.cli.commands.forge import (
     construct_start_forge_command,
     correct_proposal_forge_command,
     export_forge_command,
+    import_forge_command,
     inspect_skill_forge_command,
     plan_forge_command,
     plan_start_forge_command,
@@ -466,6 +467,10 @@ def _forge_app() -> typer.Typer:
         "verify-export",
         help="Check an exported collection from its folder alone.",
     )(verify_export_forge_command)
+    app.command(
+        "import",
+        help="Bring an exported collection into this Techtree home to run it here.",
+    )(import_forge_command)
     app.command(
         "status",
         help="Show what one forge build made, one run did, one comparison found, "

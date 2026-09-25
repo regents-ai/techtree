@@ -44,6 +44,7 @@ __all__ = [
     "Skill2EnvAdmission",
     "admit_skill2env_task",
     "allowed_base_images",
+    "local_source_skill",
 ]
 
 MAX_TASK_BYTES = 128 * 1024 * 1024
@@ -69,6 +70,12 @@ _SECRET = re.compile(
     rb"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|"
     rb"\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})\b"
 )
+
+
+def local_source_skill(name: str) -> str:
+    """The Source Skill identity a package written from a Skill named ``name``
+    on this computer carries in ``task.toml``."""
+    return f"local/{name}"
 
 
 @dataclass(frozen=True)

@@ -49,7 +49,7 @@ and its [task set](docs/plan/v0.3.0-task-set.md).
 | Structured machine responses (`techtree.cli.v2`) for agents and scripts | Available now | [`cli/`](cli/) ([contract](cli/docs/cli-json-contract.md)) |
 | Guided revision of a Skill after a comparison | Experimental | [`cli/`](cli/) (`techtree uplift`), [`plugin/`](plugin/) (`/techtree improve`) |
 | Build tasks from a repository; run, compare and revise a Skill on them in your own signed-in Hermes | Experimental | [`cli/`](cli/) (`techtree forge build`, `status`, `run`, `compare`) |
-| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export | Experimental, in preparation for 0.3.0 | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge verify-export`) |
+| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export, import | Experimental, in preparation for 0.3.0 | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge import`) |
 | Agent connectors (MCP, WebMCP) | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
 | NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
