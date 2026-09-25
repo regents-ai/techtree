@@ -234,7 +234,7 @@ def _subset(
         raise ValidationError(
             ", ".join(str(task_id) for task_id in unusable)
             + f" {'is' if len(unusable) == 1 else 'are'} not among the tasks of "
-            f"{where} {owner} that can run; forge status {owner} lists them",
+            f"{where} {owner} that can run",
             code="forge_task_not_qualified",
             details={**details, "unqualified": unusable},
         )

@@ -173,18 +173,36 @@ def inspect_source_skill(
         for entry in admitted
     ]
     admitted_digest = skill_content_digest(admitted_files)
-    if (
-        lineage is not None
-        and lineage.kind == "source"
-        and lineage.parent_digest == admitted_digest
-    ):
-        raise ValidationError(
-            "this copy admits exactly what the Skill it was derived from admits, "
-            "so it is not a different Skill; a derivative has to differ from "
-            "its original",
-            code="forge_source_unchanged",
-            details={"derived_from": lineage.parent_id, "digest": admitted_digest},
-        )
+    match lineage:
+        case ForgeSourceLineage(kind="source") if (
+            lineage.parent_digest == admitted_digest
+        ):
+            raise ValidationError(
+                "this copy admits exactly what the Skill it was derived from "
+                "admits, so it is not a different Skill; a derivative has to "
+                "differ from its original",
+                code="forge_source_unchanged",
+                details={"derived_from": lineage.parent_id, "digest": admitted_digest},
+            )
+        case ForgeSourceLineage(kind="revision") if (
+            lineage.parent_digest != admitted_digest
+        ):
+            raise ValidationError(
+                f"this is not the Skill revision {lineage.parent_id} measured: "
+                "its files differ from the revision's, and --derived-from a "
+                "revision records that the Skill looked at is that revision's. "
+                "Copy the revision's own Skill, kept in "
+                f"{paths.forge_revision_dir(lineage.parent_id) / SKILL_DIRNAME}, "
+                "to a folder named after the Skill and look at that with "
+                f"--derived-from {lineage.parent_id}; look at a changed copy of it "
+                "with --derived-from that look",
+                code="forge_source_not_revision",
+                details={
+                    "derived_from": lineage.parent_id,
+                    "expected": lineage.parent_digest,
+                    "found": admitted_digest,
+                },
+            )
 
     source_id = new_id("forgesrc")
     directory = paths.forge_source_dir(source_id)

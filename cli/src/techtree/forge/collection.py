@@ -19,16 +19,17 @@ Every member is in one of two parts, given by a fixed rule rather than
 chosen by anyone (founder decision 2a, ``docs/plan/v0.3.0-task-set.md`` §6):
 the tasks an improving agent may study, and the tasks held out from it, on
 which a revised Skill's verdict is computed. A task takes the part of every
-task an earlier version of the collection held under its name or with its
-files, and is studied when those disagree, so a task built again keeps its
-part and a task once studied is never held out; only a task that shares
-neither with an earlier one is given a part by its fingerprint. Earlier
-versions are the chain ``--previous`` names, and one line of versions holds
-the collections of a Skill and of every Skill derived from it (a reduced
-copy looked at with ``--derived-from``, or a revision uplift wrote), keyed
-by the Skill at the root of that derivation: a collection is prepared and
-accepted only as a new version of the latest accepted collection of its
-line, or as the first when there is none, and is refused otherwise. A
+task a collection accepted earlier in the home held under its name or with
+its files, whichever Skill that collection was of, and is studied when those
+disagree, so a task built again keeps its part and a task once studied is
+never held out; only a task that shares neither with an earlier one is given
+a part by its fingerprint. Versions follow the chain ``--previous`` names,
+and one line of versions holds the collections of a Skill and of every
+Skill derived from it (a reduced copy looked at with ``--derived-from``, or
+a revision uplift wrote), keyed by the Skill at the root of that
+derivation: a collection is prepared and accepted only as a new version of
+the latest accepted collection of its line, or as the first when there is
+none, and is refused otherwise. A
 collection holds at least one task in each part and no two tasks with the
 same files, and preparing refuses one that would not; tasks whose files
 differ only slightly are not recognised as the same.
@@ -65,6 +66,8 @@ from techtree.forge.models import (
     ForgeCollectionCandidate,
     ForgeCollectionMember,
     ForgeCollectionParent,
+    ForgeCollectionPart,
+    ForgeCollectionPartFixed,
     ForgeCollectionRecord,
     ForgeCollectionReview,
     ForgeCollectionState,
@@ -110,6 +113,7 @@ def prepare_collection(
         construction_id=construction_id,
         task_names=task_names,
         previous=previous,
+        accepted_before=None,
     )
     _require_latest(paths, review)
     collection_id = new_id("forgecol")
@@ -166,8 +170,27 @@ def _latest(paths: TechtreePaths, line_digest: str) -> ForgeCollectionStatus | N
     A line is a Skill and every Skill derived from it: the collections whose
     Source Skills share the root of what they were derived from, whichever
     time a Skill was looked at or planned for. The latest is the highest
-    version. Every collection in the home is read, so one that cannot be read
-    is refused by its path, for a person to fix or move.
+    version.
+    """
+    return max(
+        (
+            status
+            for status, _ in _accepted(paths)
+            if status.record.review.line_digest == line_digest
+        ),
+        key=lambda status: status.record.review.version,
+        default=None,
+    )
+
+
+def _accepted(
+    paths: TechtreePaths,
+) -> list[tuple[ForgeCollectionStatus, ForgeCollectionAcceptance]]:
+    """Return every accepted collection in the home with its acceptance.
+
+    Every collection is read, so one that cannot be read is refused by its
+    path, for a person to fix or move: leaving it out could give a task it
+    holds another part, or miss the latest version of a line.
     """
     directory = paths.forge_collections_dir
     accepted = []
@@ -180,17 +203,44 @@ def _latest(paths: TechtreePaths, line_digest: str) -> ForgeCollectionStatus | N
             raise ValidationError(
                 f"the collection record in {child} cannot be read "
                 f"({error.message}), and every collection in {directory} is "
-                "read to find the latest version of a Skill's tasks. Fix it, or "
-                f"move its folder out of {directory}",
+                "read to find the parts its tasks were given and the latest "
+                f"version of each Skill's tasks. Fix it, or move its folder out "
+                f"of {directory}",
                 code="forge_collection_unreadable",
                 details={"path": str(child), "cause": error.code},
             ) from error
-        if (
-            status.acceptance is not None
-            and status.record.review.line_digest == line_digest
-        ):
-            accepted.append(status)
-    return max(accepted, key=lambda status: status.record.review.version, default=None)
+        if status.acceptance is not None:
+            accepted.append((status, status.acceptance))
+    return accepted
+
+
+def _inherited(
+    paths: TechtreePaths,
+    members: list[tuple[str, str]],
+    accepted_before: datetime | None,
+) -> list[ForgeCollectionPartFixed]:
+    """Return every task a collection accepted in the home held that shares
+    a name or a fingerprint with one of ``members``, with its part (studied
+    when collections disagree), whichever Skill the collection was of.
+
+    ``accepted_before`` leaves out the collections accepted at or after it,
+    so a collection verified later is made again from what it inherited.
+    """
+    names = {name for name, _ in members}
+    fingerprints = {fingerprint for _, fingerprint in members}
+    parts: dict[tuple[str, str], ForgeCollectionPart] = {}
+    for status, acceptance in _accepted(paths):
+        if accepted_before is not None and acceptance.accepted_at >= accepted_before:
+            continue
+        for member in status.record.review.members:
+            if member.task_name in names or member.fingerprint in fingerprints:
+                key = (member.task_name, member.fingerprint)
+                if parts.get(key) != "study":
+                    parts[key] = member.part
+    return [
+        ForgeCollectionPartFixed(task_name=name, fingerprint=fingerprint, part=part)
+        for (name, fingerprint), part in sorted(parts.items())
+    ]
 
 
 def _require_latest(paths: TechtreePaths, review: ForgeCollectionReview) -> None:
@@ -239,8 +289,8 @@ def check_collection(paths: TechtreePaths, collection_id: str) -> ForgeCollectio
             code="forge_collection_accepted",
             details={"collection_id": collection_id},
         )
-    _require_same(paths, status, code="forge_collection_stale")
     _require_latest(paths, status.record.review)
+    _require_same(paths, status, code="forge_collection_stale", accepted_before=None)
     return status
 
 
@@ -290,14 +340,27 @@ def verify_collection(
                 "found": status.record.collection_digest,
             },
         )
-    _require_same(paths, status, code="forge_collection_changed")
+    _require_same(
+        paths,
+        status,
+        code="forge_collection_changed",
+        accepted_before=status.acceptance.accepted_at,
+    )
     return status
 
 
 def _require_same(
-    paths: TechtreePaths, status: ForgeCollectionStatus, *, code: str
+    paths: TechtreePaths,
+    status: ForgeCollectionStatus,
+    *,
+    code: str,
+    accepted_before: datetime | None,
 ) -> None:
-    """Make the review again from disk and refuse it when it differs."""
+    """Make the review again from disk and refuse it when it differs.
+
+    Before acceptance the parts are inherited from every collection accepted
+    so far; afterwards from those accepted before it, as they were.
+    """
     stored = status.record.review
     try:
         current = _review(
@@ -305,6 +368,7 @@ def _require_same(
             construction_id=stored.constructions[0],
             task_names=[member.task_name for member in stored.members],
             previous=None if stored.previous is None else stored.previous.collection_id,
+            accepted_before=accepted_before,
         )
     except TechtreeError as error:
         raise ValidationError(
@@ -345,6 +409,7 @@ _CHANGED_WORDS: Final = {
     "constructions": "the constructions",
     "previous": "the version it replaces",
     "version": "the version number",
+    "inherited": "the parts earlier collections gave its tasks",
     "tasks": "the tasks' outcomes",
     "members": "the accepted tasks' files or qualification",
 }
@@ -361,6 +426,7 @@ def _review(
     construction_id: str,
     task_names: list[str] | None,
     previous: str | None,
+    accepted_before: datetime | None,
 ) -> ForgeCollectionReview:
     chain = _chain(paths, construction_id)
     newest = chain[0].record.review
@@ -441,11 +507,9 @@ def _review(
                     "fingerprint": task.fingerprint,
                 },
             )
-    parts = collection_parts(
-        proposal.proposal_digest,
-        [(task.task_name, task.fingerprint) for task in committed],
-        [] if parent is None else parent.parts,
-    )
+    named = [(task.task_name, task.fingerprint) for task in committed]
+    inherited = _inherited(paths, named, accepted_before)
+    parts = collection_parts(proposal.proposal_digest, named, inherited)
     for missing in ("study", "held_out"):
         if missing not in parts:
             raise ValidationError(
@@ -455,10 +519,11 @@ def _review(
                     if missing == "study"
                     else "one the improving agent may study"
                 )
-                + ", because each takes the part an earlier version gave a task "
-                "with its name or its files, and a collection needs at least one "
-                "task in each part. Add a task no earlier version held, which is "
-                "given the missing part, or keep a task an earlier version "
+                + ", because each takes the part an earlier accepted collection "
+                "gave a task with its name or its files, and a collection needs "
+                "at least one task in each part. Add a task no earlier collection "
+                "held, which is given the missing part, or keep a task an earlier "
+                "collection "
                 + (
                     "let the improving agent study"
                     if missing == "study"
@@ -494,6 +559,7 @@ def _review(
         constructions=[status.construction_id for status in chain],
         previous=parent,
         version=1 if parent is None else parent.version + 1,
+        inherited=inherited,
         tasks=candidates,
         members=members,
         membership_digest=digest_object(members),
@@ -635,7 +701,6 @@ def _parent(
         collection_id=previous,
         collection_digest=status.record.collection_digest,
         version=status.record.review.version,
-        parts=status.record.review.fixed_parts(),
     )
 
 

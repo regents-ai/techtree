@@ -406,9 +406,11 @@ names that revision. It is a new source whose `lineage` records its `kind`
 made from, and `root_digest`, the admitted digest of the source its line of
 derivation starts at, which is the line of collections its tasks join. A
 reduced copy that admits exactly what the original admits is refused as
-`forge_source_unchanged`, and a revision of a build's tasks, which belongs to
-no line of collections, as `forge_revision_without_line`, both without
-writing anything. Nothing is run, no model is called and nothing
+`forge_source_unchanged`; a Skill looked at `--derived-from` a revision must
+admit exactly the Skill that revision measured, or it is refused as
+`forge_source_not_revision`; and a revision of a build's tasks, which belongs
+to no line of collections, is refused as `forge_revision_without_line`, all
+without writing anything. Nothing is run, no model is called and nothing
 leaves the machine.
 
 **Forge planning (one approved planner call, then a proposal to review).**
@@ -520,18 +522,22 @@ tasks that differ only in their required outputs therefore count as the same
 task twice, and a rebuild that changes only those keeps its part)
 and the digest of its qualification evidence, after its files are hashed
 against the build's commitment, and its `part`, `study` or `held_out`.
-Nobody chooses the parts, and a part follows the task, not its bytes: a new
-version carries, in `previous.parts`, every task (by name and fingerprint)
-that version or any before it held, with its part, and a member takes the
-part of every one that shares its name or its fingerprint, so a task built
-again keeps its part, and so does the same task under another name; when
-those disagree it is studied, so a task once studied is never held out, even
-after it was left out for a while. Only a member that shares neither with an
-earlier task is given a part: those are ordered by the sha256 of
+Nobody chooses the parts, and a part follows the task, not its bytes: a
+collection carries, in `inherited`, every task (by name and fingerprint) a
+collection accepted earlier in the same home held that shares a member's
+name or fingerprint, with its part, whichever Skill that collection was of,
+and a member takes the part of every one that shares its name or its
+fingerprint, so a task built again keeps its part, and so does the same task
+under another name or in a collection of another Skill, even one looked at
+without `--derived-from`; when those disagree it is studied, so a task once
+studied is never held out, even after it was left out for a while. Only a
+member that shares neither with an earlier task is given a part: those are ordered by the sha256 of
 `proposal_digest + ":" + fingerprint`, ascending (the task name breaks a
 tie), and the first half, rounded down, are held out; a single one takes the
-part that leaves the collection more even, held out when either would. The
-earlier tasks are those of the chain `--previous` names, and a Skill's
+part that leaves the collection more even, held out when either would.
+Accepting makes the review again against every collection accepted by then,
+and `forge verify` against those accepted before it, so a collection
+accepted later never changes what an earlier one inherited. A Skill's
 collections, and those of every Skill derived from it, form one line of
 versions: `forge collect` and `forge accept` refuse a collection that is not
 a new version of the latest accepted collection in its Source Skill's line,
@@ -549,13 +555,12 @@ its `source_id` or the proposal: the tasks are written from those bytes, and
 looking at the same Skill again or planning it again gives a new source or
 proposal that would otherwise start a new line silently, while a reduced
 copy or a revised Skill looked at with `--derived-from` stays in the line,
-so a task keeps its part in every later version of the collections for this
-Skill and Skills derived from it. `--previous` likewise requires a
+and its versions stay one chain. `--previous` likewise requires a
 collection of the same line (`forge_collection_other_source`). Every
-collection record is read to find the latest, and one that cannot be read
-refuses `forge collect`, `forge accept` and `forge status` alike
-(`forge_collection_unreadable`, naming its path) rather than being skipped,
-since skipping it could hand out a part twice. A collection
+collection record is read to find the parts and the latest, and one that
+cannot be read refuses `forge collect`, `forge accept`, `forge verify` and
+`forge status` alike (`forge_collection_unreadable`, naming its path) rather
+than being skipped, since skipping it could hand out a part twice. A collection
 whose members include two tasks with the same fingerprint is refused
 (`forge_collection_duplicate_task`, naming both). Tasks whose files differ
 even slightly have different fingerprints, so near-duplicates, such as the
@@ -920,11 +925,16 @@ of their collection (`forge_revision_partial_collection`, before anything is
 written, so a revision's `uplift start` always measures the whole
 collection), when Hermes no longer reports the version the
 comparison used (`forge_agent_changed`), or when `compare_run_specs` finds any
-other difference against the baseline. What the revision adds is then
-screened against every task's hidden material. Only lines it adds are
-screened: a line the measured Skill already had, or one that appears in the
-instruction or inputs of a task the reviser was shown, is not the reviser's
-doing and is skipped. Each added line of 24 characters or more that
+other difference against the baseline. The revised Skill is then screened
+against every task's hidden material. On a collection two kinds of line are
+skipped, because the reviser had them without seeing anything hidden: the
+lines of the Source Skill the collection's tasks were written from (its kept
+copy proved against the digests its look recorded, or refused as
+`forge_source_changed`), and the lines of the instruction and inputs of a
+task the reviser may study. Every other line is screened, whichever Skill
+the revision was made from, so held-out material a revision carries stays a
+finding in every revision made from it. Each line of 24 characters or more
+that
 appears verbatim in a reference fix or a test file, and each scored test name
 it mentions (`reference_patch`, `tests`, `test_names`), or for a Skill task
 in any file of its reference solutions or tests (`reference_solution`,

@@ -329,9 +329,10 @@ def export_readme(export: ForgeExport) -> str:
         "The tasks marked held out are kept from any agent that improves a "
         "Skill on this collection, and a revised Skill's verdict is worked out "
         "on them alone. Which tasks are held out follows from a fixed rule; "
-        "nobody chose it. A task keeps its part in every later version of the "
-        "collections for this Skill and Skills derived from it, even when it is "
-        "built again or appears under another name with the same files; one "
+        "nobody chose it. A task keeps its part in every collection accepted "
+        "after this one in the same Techtree home, whichever Skill it is for, "
+        "even when it is built again or appears under another name with the "
+        "same files; one "
         "that was ever studied is never held out. Tasks whose files differ only "
         "slightly are not recognised as the same task.",
         "",

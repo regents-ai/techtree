@@ -13,10 +13,12 @@ hides from the agent: for a repository task the reference patch, the tests,
 and the tests' names; for a task written from a Skill its reference
 solutions and its tests, and for a held-out task of a collection also its
 instruction and its inputs, which the agent that wrote the revision never
-saw. Only what the revision adds is screened: a line the Skill it revises
-already had, or one that also appears in what the reviser was shown (the
-instruction and inputs of a collection's tasks it may study), is not
-evidence of anything it learned. Screening is evidence-based and recorded,
+saw. On a collection two kinds of line are not screened, because the
+reviser had them without seeing anything hidden: the lines of the Skill
+the collection's tasks were written from, and the lines of the instruction
+and inputs of the tasks it may study. Every other line is screened,
+whichever Skill the revision was made from, so material a revision copied
+stays evidence in every revision made from it. Screening is evidence-based and recorded,
 not a refusal — a Skill may legitimately name the function it repairs — so
 every added line the Skill shares with that material is written on the
 revision for the person who approves the run to see, and the run's report
@@ -41,7 +43,7 @@ from typing import Final, Literal, NamedTuple
 
 from pydantic import ValidationError as ModelValidationError
 
-from techtree.canonical import canonical_json_bytes
+from techtree.canonical import canonical_json_bytes, sha256_digest_bytes
 from techtree.errors import NotFoundError, PrerequisiteError, ValidationError
 from techtree.forge.collection import read_collection_status
 from techtree.forge.comparability import (
@@ -65,18 +67,13 @@ from techtree.forge.models import (
     ForgeRunSpec,
     ForgeRunStatus,
     ForgeScreeningFinding,
-    ForgeSkillSpec,
     ForgeSourceLineage,
 )
 from techtree.forge.qualify import read_task_facts
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import read_build_status
-from techtree.forge.skill import (
-    SKILL_DIRNAME,
-    read_owned_skill,
-    scan_skill_spec,
-    snapshot_skill,
-)
+from techtree.forge.skill import SKILL_DIRNAME, scan_skill_spec, snapshot_skill
+from techtree.forge.source import read_source_status
 from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
 from techtree.paths import TechtreePaths
@@ -156,7 +153,6 @@ def prepare_revision(
         tasks_from=spec.tasks_from,
         task_ids=spec.task_ids,
         files=files,
-        known=_inherited(parent.spec.skill, parent),
     )
 
     revision_id = new_id("forgerev")
@@ -306,10 +302,9 @@ def screen_skill(
     tasks_from: ForgeBuildTasks | ForgeCollectionTasks,
     task_ids: list[str],
     files: list[tuple[Path, str]],
-    known: set[str],
 ) -> list[ForgeScreeningFinding]:
-    """Record every line a revision adds that also occurs in a task's hidden
-    material.
+    """Record every line of a revised Skill that also occurs in a task's
+    hidden material.
 
     A repository task hides three kinds of material: the added lines of the
     reference patch, every line of every file under ``tests``, and the test
@@ -318,23 +313,21 @@ def screen_skill(
     a collection also hides every line of its ``instruction.md`` and of its
     inputs, the files under ``environment`` other than the ``Dockerfile``
     that only builds its image. A Skill line is compared after stripping,
-    and only when it is long enough to be more than coincidence. Lines in
-    ``known`` (those of the Skill being revised) are not screened, and on a
-    collection neither are lines of the instruction or inputs of a task the
-    reviser may study: the reviser had them without seeing anything hidden.
+    and only when it is long enough to be more than coincidence. On a
+    collection, lines of the Skill its tasks were written from and of the
+    instruction or inputs of a task the reviser may study are not screened:
+    the reviser had them without seeing anything hidden.
     """
-    hidden, shown = _material(paths, tasks_from, task_ids)
-    added = [
+    hidden, given = _material(paths, tasks_from, task_ids)
+    screened = [
         (relative, number, stripped)
         for source, relative in files
         for number, line in _text_lines(source)
-        if len(stripped := line.strip()) >= _MINIMUM_LINE
-        and stripped not in known
-        and stripped not in shown
+        if len(stripped := line.strip()) >= _MINIMUM_LINE and stripped not in given
     ]
     findings: list[ForgeScreeningFinding] = []
     for task_id, materials, names in hidden:
-        for relative, number, stripped in added:
+        for relative, number, stripped in screened:
             for material, haystack in materials:
                 if stripped in haystack:
                     findings.append(
@@ -359,14 +352,6 @@ def screen_skill(
     return findings
 
 
-def _inherited(skill: ForgeSkillSpec, parent: ForgeRunStatus) -> set[str]:
-    """Every stripped line of the Skill a revision revises, as its run kept
-    it, each file proved against the digest the run recorded."""
-    directory = Path(parent.path) / SKILL_DIRNAME
-    read_owned_skill(skill, directory, owner_id=parent.run_id)
-    return {line for file in skill.files for line in _lines_of(directory / file.path)}
-
-
 _Hidden = list[tuple[str, list[tuple[_Material, set[str]]], set[str]]]
 
 
@@ -376,7 +361,9 @@ def _material(
     task_ids: list[str],
 ) -> tuple[_Hidden, set[str]]:
     """Return, per task, the hidden lines by kind and the test names it
-    grades by; and the lines of what the reviser was shown."""
+    grades by; and the lines the reviser was given: on a collection those of
+    the Skill its tasks were written from and of the instruction and inputs
+    of the tasks it may study, on a build none."""
     match tasks_from:
         case ForgeBuildTasks(build_id=build_id):
             build = read_build_status(paths, build_id).build
@@ -407,29 +394,53 @@ def _material(
                 hidden.append((task_id, materials, names))
             return hidden, set()
         case ForgeCollectionTasks(collection_id=collection_id):
-            members = {
-                member.task_id: member
-                for member in read_collection_status(
-                    paths, collection_id
-                ).record.review.members
-            }
+            review = read_collection_status(paths, collection_id).record.review
+            members = {member.task_id: member for member in review.members}
             hidden = []
-            shown: set[str] = set()
+            given = _source_lines(paths, review.source_id)
             for task_id in task_ids:
                 member = members[task_id]
                 task_dir = paths.forge_build_dir(member.build_id) / "tasks" / task_id
-                given = _lines_of(task_dir / "instruction.md")
+                instruction = _lines_of(task_dir / "instruction.md")
                 inputs = _lines_under(task_dir / "environment", "Dockerfile")
                 materials = [
                     ("reference_solution", _lines_under(task_dir / "solution")),
                     ("tests", _lines_under(task_dir / "tests")),
                 ]
                 if member.part == "held_out":
-                    materials += [("instruction", given), ("inputs", inputs)]
+                    materials += [("instruction", instruction), ("inputs", inputs)]
                 else:
-                    shown |= given | inputs
+                    given |= instruction | inputs
                 hidden.append((task_id, materials, set()))
-            return hidden, shown
+            return hidden, given
+
+
+def _source_lines(paths: TechtreePaths, source_id: str) -> set[str]:
+    """Every stripped line of the Source Skill a collection's tasks were
+    written from, as its look kept it, each file proved against the digest
+    the look recorded."""
+    source = read_source_status(paths, source_id)
+    directory = Path(source.path) / SKILL_DIRNAME
+    lines: set[str] = set()
+    for file in source.record.admitted_files:
+        data = _kept(directory / file.path)
+        if len(data) != file.size or sha256_digest_bytes(data) != file.digest:
+            raise ValidationError(
+                f"Techtree's kept copy of {file.path} no longer matches what "
+                f"Source Skill {source_id} recorded, so the revision cannot be "
+                "screened against it. Nothing was written",
+                code="forge_source_changed",
+                details={"source_id": source_id, "path": file.path},
+            )
+        lines |= {line.strip() for line in data.decode("utf-8").splitlines()}
+    return lines
+
+
+def _kept(path: Path) -> bytes:
+    try:
+        return path.read_bytes()
+    except OSError:
+        return b""
 
 
 def _lines_under(directory: Path, *leaving_out: str) -> set[str]:

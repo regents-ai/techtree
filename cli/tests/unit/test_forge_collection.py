@@ -782,6 +782,13 @@ def test_skill_v1_to_v2_on_the_collection_keeps_every_role_and_is_revised_there(
         "the revised Skill contains material from held-out tasks"
         in (measured["verdict"])
     )
+    changed = shutil.copytree(v3, tmp_path / "changed" / "branch-code")
+    with (changed / "SKILL.md").open("a", encoding="utf-8") as skill_file:
+        skill_file.write("Check twice.\n")
+    _, other = invoke(
+        home, "inspect-skill", str(changed), "--derived-from", revision.revision_id
+    )
+    assert other["error"]["code"] == "forge_source_not_revision"
     revised = shutil.copytree(v3, tmp_path / "revised" / "branch-code")
     _, looked = invoke(
         home, "inspect-skill", str(revised), "--derived-from", revision.revision_id
@@ -1321,10 +1328,12 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
     tmp_path: Path, home: Path, proposal_id: str, profiles: Path
 ) -> None:
     """Invariant (c): the verdict follows the held-out pairs, whatever the rest
-    do, and needs as many graded pairs as every other verdict; a line the
-    revision kept from the Skill it revised, or had from a task it could
-    see, does not stop it being judged."""
+    do, and needs as many graded pairs as every other verdict; a line of the
+    Skill the tasks were written from, or of a task the reviser could see,
+    does not stop it being judged, but held-out material any Skill before it
+    carried does, however many revisions it passed through."""
     shared = "Each line of amounts.txt holds one whole number, nothing else."
+    original = SKILL.splitlines()[-1]
 
     def with_notes(name: str) -> FakePlanner:
         answer = json.loads(created_package(name))
@@ -1335,6 +1344,10 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
                 "executable": False,
             }
         )
+        [rubric] = [
+            file for file in answer["files"] if file["path"] == "tests/rubric.md"
+        ]
+        rubric["text"] += original + "\n"
         return FakePlanner(answer=json.dumps(answer).encode())
 
     creator = ae5_creator()
@@ -1395,7 +1408,7 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
         v3 = write_skill(
             tmp_path / f"v3-{index}",
             name="branch-code",
-            body=f"Add them, then write.\n\n{SOLVE_LINE}\n\n{shared}",
+            body=f"Add them, then write.\n\n{original}\n\n{shared}",
         )
         revision = prepare_revision(
             paths, comparison_id=comparison_id, skill_root=v3, label=None
@@ -1411,14 +1424,35 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
         assert verdict in record.verdict
         assert study_verdict in record.study_verdict
 
+    parent = judged
+    for generation, body in enumerate(
+        (f"Sum.\n\n{SOLVE_LINE}", f"Sum, then check.\n\n{SOLVE_LINE}")
+    ):
+        revised = write_skill(
+            tmp_path / f"laundered-{generation}", name="branch-code", body=body
+        )
+        revision = prepare_revision(
+            paths, comparison_id=parent, skill_root=revised, label=None
+        )
+        assert held_out in {finding.task_id for finding in revision.record.screening}
+        measured = measure_revision(
+            paths,
+            revision.revision_id,
+            runner(RewardByTask({studied: 0.0, held_out: 1.0})),
+        )
+        assert measured.revision.record.verdict is not None
+        assert "is not judged" in measured.revision.record.verdict
+        parent = measured.comparison.comparison_id
+
 
 def test_a_task_keeps_its_part_in_every_later_version(
     tmp_path: Path, home: Path, proposal_id: str, profiles: Path
 ) -> None:
     """Invariant: a task's part, once given, holds as tasks are added,
-    removed, added again and built again, and a new first version of the
-    same Skill's tasks, a version of an older one, and a second version of
-    the same one are refused; a Skill derived from it stays in its line."""
+    removed, added again and built again, and in a collection of another
+    Skill; a new first version of the same Skill's tasks, a version of an
+    older one, and a second version of the same one are refused; a Skill
+    derived from it stays in its line."""
     first = construct(home, proposal_id, profiles, ae5_creator())
     retry = construct(home, proposal_id, profiles, FakeCreator(), retry_of=first)
     paths = paths_from_root(home)
@@ -1468,6 +1502,20 @@ def test_a_task_keeps_its_part_in_every_later_version(
     )
     _, fresh_derived = invoke(home, "collect", derived)
     v6 = accepted_version(derived, "--previous", versions[-1])
+    unrelated = tmp_path / "unrelated" / "branch-code"
+    unrelated.mkdir(parents=True)
+    (unrelated / "SKILL.md").write_text(
+        SKILL + "2. Answer in capitals.\n", encoding="utf-8"
+    )
+    _, apart = invoke(home, "inspect-skill", str(unrelated))
+    v7 = accepted_version(
+        construct(
+            home,
+            propose(tmp_path, home, profiles, apart["facts"]["source_id"]),
+            profiles,
+            FakeCreator(),
+        )
+    )
 
     assert len(v1) < len(v2) and dropped not in v3 and dropped in v4
     assert fresh["error"]["code"] == "forge_collection_has_versions"
@@ -1488,9 +1536,11 @@ def test_a_task_keeps_its_part_in_every_later_version(
     ]
     assert not fingerprints[4] & set().union(*fingerprints[:4])
     given: dict[str, str] = {}
-    for version in (v1, v2, v3, v4, v5, v6):
+    for version in (v1, v2, v3, v4, v5, v6, v7):
         for name, part in version.items():
             assert given.setdefault(name, part) == part, name
+    for collection_id in versions:
+        assert invoke(home, "verify", collection_id)[0] == 0, collection_id
 
     unreadable = paths.forge_collections_dir / ("forgecol_" + "0" * 32)
     unreadable.mkdir()

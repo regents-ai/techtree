@@ -2258,8 +2258,8 @@ def collection_parts(
 ) -> list[ForgeCollectionPart]:
     """Return each task's part, in the order given; nobody chooses it.
 
-    ``members`` are (task name, fingerprint) pairs, and ``earlier`` every
-    task an earlier version of the collection held, with the part it had. A
+    ``members`` are (task name, fingerprint) pairs, and ``earlier`` the
+    tasks collections accepted earlier in the home held, with their parts. A
     task inherits the part of every earlier task that shares its name or its
     fingerprint, so a task built again keeps its part, and so does the same
     task under another name; when those parts disagree, it is studied, since
@@ -2323,8 +2323,8 @@ class ForgeCollectionMember(ProtocolModel):
 
 
 class ForgeCollectionPartFixed(ProtocolModel):
-    """The part a version of a collection gave one task, by its name and
-    fingerprint; later versions inherit it."""
+    """The part an accepted collection gave one task, by its name and
+    fingerprint; every collection accepted after it in the home inherits it."""
 
     task_name: ForgeProposedTaskName
     fingerprint: Digest
@@ -2332,17 +2332,11 @@ class ForgeCollectionPartFixed(ProtocolModel):
 
 
 class ForgeCollectionParent(ProtocolModel):
-    """The accepted collection a new version replaces.
-
-    ``parts`` is every task that version or any before it held, by name and
-    fingerprint, with the part it was given, so a task keeps its part in
-    every later version, even one that left it out for a while.
-    """
+    """The accepted collection a new version replaces."""
 
     collection_id: NonEmptyString
     collection_digest: Digest
     version: int = Field(ge=1)
-    parts: list[ForgeCollectionPartFixed] = Field(min_length=MINIMUM_COLLECTION_TASKS)
 
 
 class ForgeCollectionReview(ProtocolModel):
@@ -2356,7 +2350,10 @@ class ForgeCollectionReview(ProtocolModel):
     outcomes come from, newest first. ``line_digest`` is the Skill the
     source's line starts at (``ForgeSourceRecord.line_digest``): the
     collections of a Skill and of every Skill derived from it form one line
-    of versions.
+    of versions. ``inherited`` is every task a collection accepted earlier in
+    the home held that shares a member's name or fingerprint, with the part
+    it was given there (studied, when collections disagree), whichever Skill
+    that collection was of: the parts the members take from them.
     """
 
     proposal_id: NonEmptyString
@@ -2368,6 +2365,7 @@ class ForgeCollectionReview(ProtocolModel):
     constructions: list[NonEmptyString] = Field(min_length=1)
     previous: ForgeCollectionParent | None
     version: int = Field(ge=1)
+    inherited: list[ForgeCollectionPartFixed]
     tasks: list[ForgeCollectionCandidate] = Field(min_length=1)
     members: list[ForgeCollectionMember] = Field(min_length=MINIMUM_COLLECTION_TASKS)
     membership_digest: Digest
@@ -2387,7 +2385,7 @@ class ForgeCollectionReview(ProtocolModel):
         if [member.part for member in self.members] != collection_parts(
             self.proposal_digest,
             [(member.task_name, member.fingerprint) for member in self.members],
-            [] if self.previous is None else self.previous.parts,
+            self.inherited,
         ):
             raise ValueError("each task's part is the one the rule gives it")
         if {member.part for member in self.members} != {"study", "held_out"}:
@@ -2402,22 +2400,6 @@ class ForgeCollectionReview(ProtocolModel):
     def parts(self) -> dict[str, ForgeCollectionPart]:
         """Return each member's part by its task id."""
         return {member.task_id: member.part for member in self.members}
-
-    def fixed_parts(self) -> list[ForgeCollectionPartFixed]:
-        """Return every task this version or one before it held, by name and
-        fingerprint, with its part."""
-        fixed = {
-            (task.task_name, task.fingerprint): task.part
-            for task in ([] if self.previous is None else self.previous.parts)
-        }
-        fixed |= {
-            (member.task_name, member.fingerprint): member.part
-            for member in self.members
-        }
-        return [
-            ForgeCollectionPartFixed(task_name=name, fingerprint=digest, part=part)
-            for (name, digest), part in sorted(fixed.items())
-        ]
 
 
 class ForgeCollectionRecord(ProtocolModel):
