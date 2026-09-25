@@ -9,8 +9,8 @@ together. A result whose own proof fails is never offered as something that
 could be published, because a published number whose evidence does not check out
 is the one outcome this product exists to prevent.
 
-*Everything that will be sent is shown first.* How many files, how many bytes,
-and the address they go to. The proof directory carries no transcripts — an
+*Everything that will be sent is shown first.* Every file by name and size,
+the total, and the address they go to. The proof directory carries no transcripts — an
 episode receipt holds digests, task hashes and scores, and the raw episodes are
 outside it entirely — and the summary says so rather than leaving a reader to
 wonder what is in three hundred kilobytes.
@@ -49,6 +49,7 @@ own, which is what append-only permits and the whole of what it permits.
 from __future__ import annotations
 
 from typing import Annotated, Final, Literal
+from urllib.parse import urlsplit
 
 import typer
 from rich.console import Console
@@ -86,6 +87,7 @@ __all__ = [
     "NOTHING_IS_OFFERED",
     "PUBLICATION_CONFIRMATION_REQUIRED",
     "PUBLISH_COMMAND",
+    "PublicationFileFacts",
     "PublicationPayload",
     "PublicationReviewPayload",
     "publish_run_command",
@@ -157,6 +159,13 @@ class PublicationPayload(ProtocolModel):
     skill_github_url: NonEmptyString | None = None
 
 
+class PublicationFileFacts(ProtocolModel):
+    """One file publishing would send, by its path in the proof directory."""
+
+    path: NonEmptyString
+    size: int
+
+
 class PublicationReviewPayload(ProtocolModel):
     """What publishing this run would do, for a caller that has to show it.
 
@@ -172,6 +181,8 @@ class PublicationReviewPayload(ProtocolModel):
     endpoint: NonEmptyString
     file_count: int
     byte_count: int
+    #: Every file that would be sent, in the order the submission carries them.
+    files: list[PublicationFileFacts]
     skill_name: NonEmptyString | None
     skill_github_url: NonEmptyString | None
     #: The address the caller supplied, in the form it would be sent, or
@@ -395,6 +406,10 @@ def _publication_review(
             endpoint=plan.endpoint,
             file_count=plan.file_count,
             byte_count=plan.byte_count,
+            files=[
+                PublicationFileFacts(path=file.path, size=file.size)
+                for file in plan.files
+            ],
             skill_name=plan.skill_name,
             skill_github_url=skill_github_url,
             contributor_address=contributor_address,
@@ -523,7 +538,7 @@ def publication_review_lines(
     """Return what a person reads before they answer.
 
     Exactly what would leave this machine, in the order somebody would ask it:
-    what it is, how much of it there is, where it is going, and what it does not
+    every file and its size, where they are going, and what they do not
     contain. An address appears only when the caller supplied one: at a
     terminal the question comes after the review, so a line saying "none"
     here would answer it before it was asked.
@@ -531,7 +546,11 @@ def publication_review_lines(
     return [
         f"Publishing run {plan.run_id}",
         "",
-        f"{plan.file_count} files, {plan.byte_count} bytes, to {plan.endpoint}",
+        f"These {plan.file_count} files, {plan.byte_count} bytes in all, will be "
+        f"sent to {urlsplit(plan.endpoint).hostname}:",
+        *(f"  {file.path} ({file.size} bytes)" for file in plan.files),
+        f"They go to {plan.endpoint}",
+        "",
         f"Proof {plan.bundle_digest}",
         f"Skill {plan.skill_name or 'candidate Skill'}",
         f"GitHub {skill_github_url or 'none'}",
