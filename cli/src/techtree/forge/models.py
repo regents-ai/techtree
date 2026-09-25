@@ -2485,9 +2485,11 @@ class ForgeExportTask(ProtocolModel):
 
 
 class ForgeExport(ProtocolModel):
-    """``export.json``: one accepted collection, exactly as it was accepted.
+    """``export.json``: one accepted collection, as its records state it.
 
     ``tasks`` follows the collection's members, one for one and in order.
+    ``readme_digest`` is the sha256 of the README written beside it, which is
+    checked against it byte for byte rather than written again.
     """
 
     schema_version: Literal["techtree.forge-export.v1alpha3"]
@@ -2495,6 +2497,7 @@ class ForgeExport(ProtocolModel):
     collection: ForgeCollectionRecord
     acceptance: ForgeCollectionAcceptance
     tasks: list[ForgeExportTask] = Field(min_length=MINIMUM_COLLECTION_TASKS)
+    readme_digest: Digest
 
 
 class ForgeExportVerification(ProtocolModel):
@@ -2506,6 +2509,7 @@ class ForgeExportVerification(ProtocolModel):
 
     path: NonEmptyString
     collection_id: NonEmptyString
+    collection_digest: Digest
     version: int = Field(ge=1)
     tasks: int = Field(ge=MINIMUM_COLLECTION_TASKS)
     held_out: int = Field(ge=1)

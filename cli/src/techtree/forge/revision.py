@@ -109,6 +109,21 @@ def prepare_revision(
 ) -> ForgeRevisionStatus:
     """Declare and screen one revised Skill against a finished comparison."""
     comparison = read_comparison_status(paths, comparison_id).record
+    tasks_from = comparison.tasks_from
+    if (
+        isinstance(tasks_from, ForgeCollectionTasks)
+        and read_collection_status(paths, tasks_from.collection_id).imported is not None
+    ):
+        raise ValidationError(
+            f"collection {tasks_from.collection_id} was imported from an export: "
+            "an imported collection can be run and compared, not revised. "
+            "Nothing was written",
+            code="forge_revision_imported",
+            details={
+                "comparison_id": comparison_id,
+                "collection_id": tasks_from.collection_id,
+            },
+        )
     parent = read_run_status(paths, comparison.candidate_run_id)
     baseline = read_run_status(paths, comparison.baseline_run_id)
     if parent.spec.skill is None:

@@ -523,8 +523,8 @@ task twice, and a rebuild that changes only those keeps its part)
 and the digest of its qualification evidence, after its files are hashed
 against the build's commitment, and its `part`, `study` or `held_out`.
 Nobody chooses the parts, and a part follows the task, not its bytes: a
-collection carries, in `inherited`, every task (by name and fingerprint) a
-collection held earlier in the same home held that shares a member's
+collection carries, in `inherited`, every task (by name and fingerprint) of
+a collection held earlier in the same home that shares a member's
 name or fingerprint, with its part, whichever Skill that collection was of,
 and a member takes the part of every one that shares its name or its
 fingerprint, so a task built again keeps its part, and so does the same task
@@ -606,43 +606,61 @@ the folder and everything in it are the owner's alone (0700/0600), and nothing
 is published. It holds exactly: `tasks/<task_id>/`, each member's files copied
 entry by entry from its build's commitment without following links;
 `export.json` (`techtree.forge-export.v1alpha3`), the collection record and
-acceptance with each member's build record and qualification evidence; and a
-`README.md` made from `export.json` and the tasks' own `task.toml` time
-limits alone, saying what the folder holds and
+acceptance with each member's build record and qualification evidence, and
+`readme_digest`, the sha256 of the README; and a
+`README.md` made from what `export.json` holds and the tasks' own `task.toml` time
+limits, opening with the collection's fingerprint and the Source Skill's
+name and fingerprint in full, and saying that it is the same collection only
+if that fingerprint matches the one its sender gave; then what the folder holds and
 leaves out, which tasks are held out, the claims and which claim and kind
 each task tests, and that its tests and reference
 solutions let anyone who has it read the answers. Its "Running the tasks
-yourself" section lists what is needed (Docker with the network off,
-Techtree on a supported Python installed with uv, Hermes Agent with the
-`techtree` profile signed in, and the Skill by name and digest), what bounds
+yourself" section lists what is needed (Docker running the tasks' platform,
+with the base images pulled from the network at import and the network off
+afterwards, Techtree on a supported Python installed with uv, Hermes Agent
+with the `techtree` profile signed in, and the Skill, whose full fingerprint
+`forge inspect-skill` prints on its Fingerprint line to match against the
+README's), what bounds
 the model calls (time only: each try's agent time limit plus
 `AGENT_MARGIN_SECONDS`, no turn or token limit, and no money figure), and the
 commands in order, each made by the same `invocation_line` the envelope's
 next actions use: `forge verify-export`, `forge import`, `forge
 inspect-skill`, `forge run --arm baseline --collection`, `forge run --arm
 candidate ... --skill` and `forge compare`, with upper-case placeholders the
-README explains. The Source Skill's bytes, the planning, construction and
+README explains, and how to give the import a home of its own with
+`--home` (`collection.SEPARATE_HOME`, the same words `forge_import_same_line`
+uses). The Source Skill's bytes, the planning, construction and
 qualification logs, run material and everything else in the home are never
 read. `forge verify-export FOLDER` needs no home: it refuses anything in the
 folder beyond the collection, anything missing and any link; recomputes every
 task file against the accepted content digests (naming each file that
-differs), each qualification record against its member digest, which tasks
+differs), each qualification record against its member digest, each
+build's Source Skill digest and each task's `task.toml` Source Skill name and
+digest against the collection's, which tasks
 are held out against the rule that picks them, each member's fingerprint
 against its build record, and the membership and
-collection digests against the acceptance; and compares the
-README with `export.json`. Any difference is `forge_export_changed`. It
-reports what it recomputed and what is recorded only: the Source Skill (its
+collection digests against the acceptance; and checks the README's bytes
+against `readme_digest`, never writing it again, so a later Techtree that
+words its README differently still checks an earlier export. Any difference
+is `forge_export_changed`. It
+reports the collection's full fingerprint, what it recomputed and what is
+recorded only: the Source Skill (its
 digest, not its text), the proposal and construction, the qualification runs,
-the images, and the acceptance's time and answer. Including the Source Skill
+the images, and the acceptance's time and answer. All of this shows only that
+the folder agrees with its own records: a folder rewritten whole, with every
+digest made again, agrees with itself too, which is why the fingerprint is
+printed for its reader to match against the sender's. Including the Source Skill
 or authoring transcripts with a rights statement, and attribution, are not
 built yet.
 
 **Forge import (running an export in another home).** `forge import FOLDER`
 (`forge/export.py`, P3) runs `verify-export` first and refuses any failure.
-It refuses a home that already holds the collection or one of its builds
-(`forge_import_exists`) or another collection of the same Skill's line
-(`forge_import_same_line`, suggesting `techtree --home FOLDER forge
-import`). For each task it admits the exported files again through the same
+It refuses tasks built for another Docker platform than
+`host_docker_platform()`, the one Techtree builds its own tasks for
+(`forge_import_other_platform`), a home that already holds the collection or
+one of its builds (`forge_import_exists`), and another collection of the same
+Skill's line (`forge_import_same_line`, saying to add `--home FOLDER` to the
+import and every later command). For each task it admits the exported files again through the same
 checks as a construction (`service.import_build`), requiring the same task
 set, source and base images as the recorded build
 (`forge_import_not_admitted`), pulls the pinned base images, writes the
@@ -652,12 +670,15 @@ writes the collection record and acceptance exactly as exported, so the
 collection keeps its id, digests, members and parts, and `import.json`
 (`techtree.forge-collection-import.v1alpha1`): the import and export times,
 the folder it came from, and the exported qualification evidence the member
-digests were taken over. Any failure removes everything the import wrote.
-It makes no model call. After it, `forge run --collection` and `forge
+digests were taken over. Each build folder and the collection folder is
+created exclusively before it is written, and a failure removes exactly the
+folders this import created, never one another import made
+(`forge_import_exists`). It makes no model call and prints the collection's
+full fingerprint. After it, `forge run --collection` and `forge
 compare` work on the collection as on any other; the comparison names the
-Source Skill from `source_name`, so it needs no source record. Revising
-(uplift) an imported collection is not supported, since it reads the Source
-Skill's record.
+Source Skill from `source_name`, so it needs no source record. Revising an
+imported collection is refused (`forge_revision_imported`): it can be run and
+compared, not revised, since revising reads the Source Skill's record.
 
 **Forge task commitments (private, unqualified local lane).** Build and
 qualification records use `techtree.forge-build.v1alpha3` and

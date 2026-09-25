@@ -14,22 +14,28 @@ nothing is published.
 
 ``forge verify-export`` trusts nothing but the folder: every file is hashed
 again against the accepted content digests, each qualification record against
-its member digest, which tasks are held out against the rule that picks
-them, the membership and collection digests against the acceptance, and the
-README against ``export.json`` and the tasks' own time limits. Anything the
-folder holds beyond the collection, or lacks, is a changed export. What the
-folder can only state, not show, is listed as recorded only.
+its member digest, each task's Source Skill against the collection's, which
+tasks are held out against the rule that picks them, the membership and
+collection digests against the acceptance, and the README against the sha256
+``export.json`` records for it. Anything the folder holds beyond the
+collection, or lacks, is a changed export. What the folder can only state,
+not show, is listed as recorded only. All of that shows the folder agrees
+with its own records, not where it came from: a folder rewritten whole agrees
+with itself too, so the collection's fingerprint is printed in full for its
+reader to match against the one its sender gave.
 
 ``forge import`` brings a verified export into a Techtree home so that
 ``forge run --collection`` and ``forge compare`` work on it as on a collection
 accepted there. It checks the folder first and refuses anything
-``verify-export`` refuses. Every task is admitted again and qualified on this
-computer, under the build id it had, and the collection is written exactly as
-it was accepted, with the same id, the same parts and the same digests, so a
-comparison made here names the same collection as one made where it was
-accepted. Beside it, a record says where it came from and keeps the exported
-qualification records its digests name. Nothing is written until every task
-has qualified here; a failure removes what the import wrote.
+``verify-export`` refuses, and tasks built for another Docker platform than
+this computer's. Every task is admitted again and qualified on this
+computer, under the build id it had, and the collection is written as the
+export states it, with the same id, the same parts and the same digests, so a
+comparison made here names the same collection as one made from the same
+records elsewhere. Beside it, a record says where it came from and keeps the
+exported qualification records its digests name. Each folder the import
+makes is created exclusively before it is written, and a failure removes
+exactly those.
 """
 
 from __future__ import annotations
@@ -38,15 +44,24 @@ import os
 import shutil
 import stat
 import tempfile
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
 
 from pydantic import ValidationError as ModelValidationError
 
+from techtree.canonical import sha256_digest_bytes
 from techtree.doctor.checks import SUPPORTED_PYTHON
-from techtree.errors import ConflictError, NotFoundError, RunError, ValidationError
+from techtree.errors import (
+    ConflictError,
+    NotFoundError,
+    PrerequisiteError,
+    RunError,
+    ValidationError,
+)
 from techtree.forge.collection import (
+    SEPARATE_HOME,
     accepted_evidence,
     check_importable,
     member_records_match,
@@ -60,8 +75,11 @@ from techtree.forge.models import (
     FORGE_EXPORT_SCHEMA_VERSION,
     TASK_KIND_WORDS,
     TASK_KINDS_EXPLAINED,
+    ForgeCollectionAcceptance,
     ForgeCollectionImport,
     ForgeCollectionMember,
+    ForgeCollectionRecord,
+    ForgeCollectionReview,
     ForgeCollectionStatus,
     ForgeExport,
     ForgeExportTask,
@@ -74,11 +92,16 @@ from techtree.forge.profile import CREATE_PROFILE_COMMAND, PROFILE_NAME, sign_in
 from techtree.forge.qualify import read_skill_task_facts
 from techtree.forge.report import first_failed_check
 from techtree.forge.run import AGENT_MARGIN_SECONDS
-from techtree.forge.service import import_build, read_build_status
+from techtree.forge.service import (
+    host_docker_platform,
+    import_build,
+    read_build_status,
+)
 from techtree.forge.skill2env import local_source_skill
 from techtree.fs import (
     atomic_write_json,
     atomic_write_text,
+    ensure_private_directory,
     open_exclusive,
     remove_tree,
 )
@@ -87,6 +110,7 @@ from techtree.paths import TechtreePaths
 
 __all__ = [
     "README_PLACEHOLDERS",
+    "SAME_COLLECTION_ONLY_IF",
     "export_collection",
     "export_readme",
     "import_export",
@@ -97,14 +121,23 @@ EXPORT_FILENAME: Final = "export.json"
 README_FILENAME: Final = "README.md"
 TASKS_DIRNAME: Final = "tasks"
 
+#: What checking or importing an export cannot show, said beside the
+#: collection's fingerprint wherever it is printed.
+SAME_COLLECTION_ONLY_IF: Final = (
+    "This is the same collection only if this fingerprint matches the one the "
+    "sender gave you."
+)
+
 #: What checking an export works out again from its files.
 CHECKED: Final = (
-    "every file of every task, against the fingerprints the collection accepted",
+    "every file of every task, against the fingerprints the collection records",
     "each task's qualification record, against the collection",
-    "the collection's members and fingerprint, against the acceptance",
+    "the Skill each task was written from, by name and fingerprint, against "
+    "the collection's",
+    "the collection's members and fingerprint, against its acceptance",
     "which tasks are held out, against the rule that picks them from the "
     "tasks and the parts earlier versions gave them",
-    "the README, against export.json and the tasks' own time limits",
+    "the README, against the fingerprint export.json records for it",
 )
 
 #: What an export states and its files cannot show.
@@ -153,17 +186,24 @@ def export_collection(
                 strict=True,
             )
         ]
+        exported_at = datetime.now(UTC)
+        readme = export_readme(
+            status.record,
+            status.acceptance,
+            tasks,
+            exported_at=exported_at,
+            tasks_dir=staging / TASKS_DIRNAME,
+        )
         export = ForgeExport(
             schema_version=FORGE_EXPORT_SCHEMA_VERSION,
-            exported_at=datetime.now(UTC),
+            exported_at=exported_at,
             collection=status.record,
             acceptance=status.acceptance,
             tasks=tasks,
+            readme_digest=sha256_digest_bytes(readme.encode()),
         )
         atomic_write_json(staging / EXPORT_FILENAME, export.model_dump(mode="json"))
-        atomic_write_text(
-            staging / README_FILENAME, export_readme(export, staging / TASKS_DIRNAME)
-        )
+        atomic_write_text(staging / README_FILENAME, readme)
         verification = verify_export(staging)
         staging.rename(destination)
     except BaseException:
@@ -234,7 +274,7 @@ def _verified(root: Path) -> tuple[ForgeExport, ForgeExportVerification]:
     if len(export.tasks) != len(review.members):
         raise _changed(root, "its task records do not match the collection's tasks")
     for member, task in zip(review.members, export.tasks, strict=True):
-        _require_records(root, member, task)
+        _require_records(root, review, member, task)
     try:
         observed = commit_task_set(
             root / TASKS_DIRNAME, [member.task_id for member in review.members]
@@ -251,12 +291,14 @@ def _verified(root: Path) -> tuple[ForgeExport, ForgeExportVerification]:
                 f"in task {member.task_name}, these differ from what was "
                 "accepted: " + ", ".join(changed_entries(accepted, found)),
             )
-    readme = export_readme(export, root / TASKS_DIRNAME)
-    if (root / README_FILENAME).read_bytes() != readme.encode():
-        raise _changed(root, "the README differs from what export.json says")
+        _require_written_from(root, review, member)
+    readme = (root / README_FILENAME).read_bytes()
+    if sha256_digest_bytes(readme) != export.readme_digest:
+        raise _changed(root, "the README is not the one written with export.json")
     return export, ForgeExportVerification(
         path=str(root),
         collection_id=export.collection.collection_id,
+        collection_digest=export.collection.collection_digest,
         version=review.version,
         tasks=len(review.members),
         held_out=sum(member.part == "held_out" for member in review.members),
@@ -312,12 +354,35 @@ def _require_listing(root: Path, expected: dict[str, bool], within: str = "") ->
 
 
 def _require_records(
-    root: Path, member: ForgeCollectionMember, task: ForgeExportTask
+    root: Path,
+    review: ForgeCollectionReview,
+    member: ForgeCollectionMember,
+    task: ForgeExportTask,
 ) -> None:
     """A member's build and qualification records are the ones it accepted."""
-    if not member_records_match(member, task.build, task.qualification):
+    if not member_records_match(review, member, task.build, task.qualification):
         raise _changed(
             root, f"the records of task {member.task_name} are not the ones accepted"
+        )
+
+
+def _require_written_from(
+    root: Path, review: ForgeCollectionReview, member: ForgeCollectionMember
+) -> None:
+    """A task's own ``task.toml`` names the collection's Source Skill."""
+    try:
+        facts = read_skill_task_facts(root / TASKS_DIRNAME / member.task_id)
+    except (KeyError, TypeError, ValueError) as error:
+        raise _changed(
+            root, f"the task.toml of task {member.task_name} cannot be read"
+        ) from error
+    if (facts.source_skill, facts.source_digest) != (
+        local_source_skill(review.source_name),
+        review.source_digest,
+    ):
+        raise _changed(
+            root,
+            f"task {member.task_name} names another Skill than the collection's",
         )
 
 
@@ -339,15 +404,29 @@ def import_export(
 ) -> ForgeCollectionStatus:
     """Bring a verified export into this home as the collection it copies.
 
-    Refuses anything ``verify-export`` refuses, a collection or build this
-    home already holds, and a collection of a Skill whose collections this
-    home already holds. Each task is admitted again from the folder and
-    qualified here under its own build id; one that does not qualify stops
-    the import, and everything it wrote is removed.
+    Refuses anything ``verify-export`` refuses, tasks built for another
+    Docker platform than this computer's, a collection or build this home
+    already holds, and a collection of a Skill whose collections this home
+    already holds. Each task is admitted again from the folder and qualified
+    here under its own build id; one that does not qualify stops the import,
+    and every folder it made is removed.
     """
     export, verification = _verified(root)
     root = Path(verification.path)
     record = export.collection
+    platform = host_docker_platform()
+    built_for = _platforms(export.tasks)
+    if built_for != [platform]:
+        built = " and ".join(built_for)
+        raise PrerequisiteError(
+            f"these tasks were built for {built} containers, and Docker on this "
+            f"computer runs {platform} ones. Techtree runs tasks only on the "
+            "platform they were built for, as it builds its own for this "
+            f"computer's, so import them on a computer whose Docker runs {built}. "
+            "Nothing was imported",
+            code="forge_import_other_platform",
+            details={"platform": platform, "built_for": list(built_for)},
+        )
     check_importable(paths, record)
     for task in export.tasks:
         if paths.forge_build_dir(task.build.build_id).exists():
@@ -361,7 +440,7 @@ def import_export(
     written: list[Path] = []
     try:
         for member, task in zip(record.review.members, export.tasks, strict=True):
-            written.append(paths.forge_build_dir(task.build.build_id))
+            written.append(_claim(paths.forge_build_dir(task.build.build_id)))
             qualification = import_build(
                 paths,
                 docker,
@@ -380,7 +459,7 @@ def import_export(
                     code="forge_import_not_qualified",
                     details={"task_id": member.task_id, "build_id": member.build_id},
                 )
-        written.append(paths.forge_collection_dir(record.collection_id))
+        written.append(_claim(paths.forge_collection_dir(record.collection_id)))
         return record_imported_collection(
             paths,
             record,
@@ -398,6 +477,26 @@ def import_export(
         for directory in written:
             remove_tree(directory)
         raise
+
+
+def _claim(directory: Path) -> Path:
+    """Create ``directory`` for this import alone, refusing one that exists,
+    so a failure never removes a folder another import made."""
+    ensure_private_directory(directory.parent)
+    try:
+        directory.mkdir(mode=0o700)
+    except FileExistsError as error:
+        raise ConflictError(
+            f"{directory.name} is already in this Techtree home",
+            code="forge_import_exists",
+            details={"path": str(directory)},
+        ) from error
+    return directory
+
+
+def _platforms(tasks: Sequence[ForgeExportTask]) -> list[str]:
+    """The Docker platforms an export's tasks were built for, in order."""
+    return sorted({task.build.platform for task in tasks})
 
 
 # ---------------------------------------------------------------------------
@@ -450,19 +549,32 @@ def _duration(seconds: float) -> str:
     return f"{minutes:g} {'minute' if minutes == 1 else 'minutes'}"
 
 
-def export_readme(export: ForgeExport, tasks_dir: Path) -> str:
-    """The README an export carries, made from its ``export.json`` and its
-    tasks' ``task.toml`` time limits, read from ``tasks_dir``."""
-    record = export.collection
+def export_readme(
+    record: ForgeCollectionRecord,
+    acceptance: ForgeCollectionAcceptance,
+    tasks: Sequence[ForgeExportTask],
+    *,
+    exported_at: datetime,
+    tasks_dir: Path,
+) -> str:
+    """The README an export carries, made from what its ``export.json``
+    holds and its tasks' ``task.toml`` time limits, read from ``tasks_dir``."""
     review = record.review
-    accepted = export.acceptance.accepted_at
     members = review.members
+    platforms = " and ".join(_platforms(tasks))
     lines = [
         f"# Collection {record.collection_id}, version {review.version}",
         "",
         "This folder is a private copy of one accepted collection of tasks, "
-        f"made by Techtree on {export.exported_at:%Y-%m-%d at %H:%M} UTC. "
+        f"made by Techtree on {exported_at:%Y-%m-%d at %H:%M} UTC. "
         "Nothing in it has been published.",
+        "",
+        f"The collection's fingerprint is `{record.collection_digest}`. "
+        f"{SAME_COLLECTION_ONLY_IF} Checking this folder shows only that it "
+        "agrees with its own records, not where it came from.",
+        "",
+        f"The tasks were written from the Skill {review.source_name}, whose "
+        f"fingerprint is `{review.source_digest}`.",
         "",
         "## What it holds",
         "",
@@ -474,9 +586,9 @@ def export_readme(export: ForgeExport, tasks_dir: Path) -> str:
             "solutions."
             for member in members
         ),
-        f"- `{EXPORT_FILENAME}`: the collection as it was accepted on "
-        f"{accepted:%Y-%m-%d at %H:%M} UTC, each task's qualification record, "
-        "and where each task came from.",
+        f"- `{EXPORT_FILENAME}`: the collection's records and its acceptance, "
+        f"dated {acceptance.accepted_at:%Y-%m-%d at %H:%M} UTC, each task's "
+        "qualification record, and where each task came from.",
         "",
         "The tasks marked held out are kept from any agent that improves a "
         "Skill on this collection, and a revised Skill's verdict is worked out "
@@ -532,17 +644,21 @@ def export_readme(export: ForgeExport, tasks_dir: Path) -> str:
         "check the folder, run the tasks on your own computer without the Skill "
         "and with it, and compare the two. You need:",
         "",
-        "- Docker, running. Every task is built and run in a container on your "
-        "computer, with the network off.",
+        f"- Docker, running {platforms} containers, the platform these tasks "
+        "were built for; they are imported only on a computer whose Docker runs "
+        "that platform. `techtree forge import` pulls the tasks' base images "
+        "from the network; after that every task is built and run in a "
+        "container on your computer with the network off.",
         "- Techtree, installed the way https://techtree.sh/start says. It is "
         "installed with uv, which also installs the Python it runs on, Python "
         f"{_python_versions()}.",
         "- Hermes Agent, as `hermes` on your PATH, with a profile named "
         f"{PROFILE_NAME} signed in to the provider you will use.",
         f"- The Skill the tasks were written from, {review.source_name}, in a "
-        f"folder of its own. Its fingerprint is {review.source_digest}. `techtree "
-        "forge inspect-skill` prints the start of it on its Kept line, so you "
-        "can check you have the same Skill.",
+        "folder of its own. `techtree forge inspect-skill` prints its full "
+        "fingerprint on its Fingerprint line: compare it with the Skill's "
+        "fingerprint at the top of this README. A different fingerprint is a "
+        "different Skill.",
         "",
         "Make the Hermes profile once:",
         "",
@@ -579,14 +695,19 @@ def export_readme(export: ForgeExport, tasks_dir: Path) -> str:
         )
         + ".",
         "",
-        "`techtree forge import` checks this folder as `verify-export` does, then "
-        "admits each task again and checks it on your computer the way it was "
-        "checked when it was built: its image is built with the network off, a "
-        "run that does nothing must fail its tests, and its solutions must pass "
-        "or fail them as they should. It calls no model. The collection keeps "
-        "its id, its parts and its fingerprint, so the comparison names the same "
-        "collection and the same tasks as one made where it was accepted. Each "
-        "run shows what it will do and asks before it starts.",
+        "`techtree forge import` checks this folder as `verify-export` does, "
+        "pulls the tasks' base images from the network, then admits each task "
+        "again and checks it on your computer the way it was checked when it "
+        "was built: its image is built with the network off, a run that does "
+        "nothing must fail its tests, and its solutions must pass or fail them "
+        "as they should. It calls no model. The collection keeps its id, its "
+        "parts and its fingerprint, so when the fingerprint matches the "
+        "sender's, the comparison names the same collection and the same tasks "
+        "as one made where it was accepted. Each run shows what it will do and "
+        "asks before it starts.",
+        "",
+        "`techtree forge import` refuses a Techtree home that already holds a "
+        f"collection of this Skill. {SEPARATE_HOME}",
         "",
         "Running every task, the held-out ones too, is right for checking a "
         "result: they are kept from an agent that improves the Skill, not from "

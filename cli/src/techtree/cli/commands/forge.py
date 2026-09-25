@@ -67,7 +67,12 @@ from techtree.forge.construction import (
     start_construction,
 )
 from techtree.forge.experiment import declare_run_spec
-from techtree.forge.export import export_collection, import_export, verify_export
+from techtree.forge.export import (
+    SAME_COLLECTION_ONLY_IF,
+    export_collection,
+    import_export,
+    verify_export,
+)
 from techtree.forge.models import (
     MAX_PLANNED_TASKS,
     MINIMUM_COLLECTION_TASKS,
@@ -147,6 +152,7 @@ from techtree.models.cli import (
     RetryClass,
     SideEffect,
     invocation,
+    invocation_line,
 )
 from techtree.paths import TechtreePaths
 
@@ -1081,17 +1087,34 @@ def _render_imported(data: object, console: Console) -> None:
         held_out = sum(member.part == "held_out" for member in members)
         console.print(
             f"Imported: collection {data.collection_id}, version "
-            f"{data.record.review.version}, exactly as it was accepted, with its "
+            f"{data.record.review.version}, as the export records it, with its "
             f"{len(members)} {_plural(len(members), 'task', 'tasks')}, "
-            f"{held_out} of them held out. Every task was checked again on this "
-            "computer, with the network off; no model was called.",
+            f"{held_out} of them held out. Its base images were pulled from the "
+            "network, then every task was built and checked again on this "
+            "computer with the network off; no model was called.",
             markup=False,
         )
-        render_pairs([("Evidence", data.path)], console)
+        render_pairs(
+            [
+                ("Fingerprint", data.record.collection_digest),
+                ("Evidence", data.path),
+            ],
+            console,
+        )
+        console.print(SAME_COLLECTION_ONLY_IF, markup=False)
         console.print()
+        baseline = invocation(
+            "forge",
+            "run",
+            options={
+                "--arm": "baseline",
+                "--collection": data.collection_id,
+                "--provider": "PROVIDER",
+                "--model": "MODEL",
+            },
+        )
         console.print(
-            "Run it without the Skill with: techtree forge run --arm baseline "
-            f"--collection {data.collection_id} --provider PROVIDER --model MODEL",
+            "Run it without the Skill with: " + " ".join(invocation_line(baseline)),
             markup=False,
         )
 
@@ -1120,13 +1143,16 @@ def _render_exported(data: object, console: Console) -> None:
 def _render_export(data: object, console: Console) -> None:
     if isinstance(data, ForgeExportVerification):
         console.print(
-            f"Verified: this folder holds collection {data.collection_id}, "
-            f"version {data.version}, exactly as accepted, with its {data.tasks} "
+            f"Verified: this folder agrees with its own records of collection "
+            f"{data.collection_id}, version {data.version}, with its {data.tasks} "
             f"{_plural(data.tasks, 'task', 'tasks')}, {data.held_out} of them "
             "held out.",
             markup=False,
         )
-        render_pairs([("Folder", data.path)], console)
+        render_pairs(
+            [("Folder", data.path), ("Fingerprint", data.collection_digest)], console
+        )
+        console.print(SAME_COLLECTION_ONLY_IF, markup=False)
         console.print()
         console.print("Checked from the files there:", markup=False)
         for line in data.checked:
@@ -1825,12 +1851,13 @@ def render_forge_source(status: ForgeSourceStatus, console: Console) -> None:
     pairs.append(
         (
             "Kept",
-            f"{len(kept)} {_plural(len(kept), 'file', 'files')} "
-            f"({record.admitted_digest[:19]})"
+            f"{len(kept)} {_plural(len(kept), 'file', 'files')}"
             if record.state == "admitted"
             else "nothing, because the Skill cannot be used as it is",
         )
     )
+    if record.state == "admitted":
+        pairs.append(("Fingerprint", record.admitted_digest))
     pairs.append(("Evidence", status.path))
     render_pairs(pairs, console)
     for entry in record.entries:

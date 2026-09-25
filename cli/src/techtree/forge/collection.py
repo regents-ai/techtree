@@ -87,6 +87,7 @@ from techtree.forge.models import (
     ForgeCollectionStatus,
     ForgeConstructionStatus,
     ForgeConstructionTaskStatus,
+    ForgeSkillSource,
     ForgeTaskKind,
     TaskQualification,
     collection_parts,
@@ -99,6 +100,7 @@ from techtree.ids import new_id, validate_id
 from techtree.paths import TechtreePaths
 
 __all__ = [
+    "SEPARATE_HOME",
     "accept_collection",
     "accepted_evidence",
     "already_collected",
@@ -117,6 +119,13 @@ __all__ = [
 COLLECTION_FILENAME: Final = "collection.json"
 ACCEPTANCE_FILENAME: Final = "acceptance.json"
 IMPORT_FILENAME: Final = "import.json"
+
+#: How to give an imported collection a Techtree home of its own, said the
+#: same way where an import is refused and in an export's README.
+SEPARATE_HOME: Final = (
+    "To give it a Techtree home of its own, add --home FOLDER, naming a new "
+    "folder, to techtree forge import and to every command after it."
+)
 
 
 def prepare_collection(
@@ -408,7 +417,7 @@ def _imported_problem(
     for member, evidence in zip(members, imported.qualifications, strict=True):
         built = read_build_status(paths, member.build_id)
         if built.build is None or not member_records_match(
-            member, built.build, evidence
+            status.record.review, member, built.build, evidence
         ):
             return f"the records of task {member.task_name} changed"
         if changed := changed_member_files(paths, member):
@@ -424,15 +433,19 @@ def _imported_problem(
 
 
 def member_records_match(
+    review: ForgeCollectionReview,
     member: ForgeCollectionMember,
     build: ForgeBuildRecord,
     evidence: TaskQualification,
 ) -> bool:
     """Whether a build record and a qualification record are the ones an
-    accepted member names by its digests."""
+    accepted member names by its digests, the build written from the
+    collection's Source Skill."""
     manifests = build.task_set.tasks
     return (
         build.build_id == member.build_id
+        and isinstance(build.source, ForgeSkillSource)
+        and build.source.source_skill_digest == review.source_digest
         and [manifest.task_id for manifest in manifests] == [member.task_id]
         and manifests[0].content_digest == member.content_digest
         and task_fingerprint(manifests[0]) == member.fingerprint
@@ -476,8 +489,7 @@ def check_importable(paths: TechtreePaths, record: ForgeCollectionRecord) -> Non
         raise ConflictError(
             f"this Techtree home already holds collection {held.collection_id} "
             f"(version {held.record.review.version}) of the same Skill, and a "
-            "Skill's collections are one line of versions in a home. Import "
-            "into another home with techtree --home FOLDER forge import",
+            "Skill's collections are one line of versions in a home. " + SEPARATE_HOME,
             code="forge_import_same_line",
             details={
                 "collection_id": record.collection_id,
@@ -492,10 +504,10 @@ def record_imported_collection(
     acceptance: ForgeCollectionAcceptance,
     imported: ForgeCollectionImport,
 ) -> ForgeCollectionStatus:
-    """Write an exported collection into this home exactly as it was accepted,
-    with where it came from, once its tasks' builds are here; then verify it."""
+    """Write an exported collection's records into the folder the import made
+    for it, as the export states them, with where it came from, once its
+    tasks' builds are here; then verify it."""
     directory = paths.forge_collection_dir(record.collection_id)
-    directory.mkdir(parents=True, mode=0o700)
     atomic_write_json(directory / COLLECTION_FILENAME, record.model_dump(mode="json"))
     atomic_write_json(
         directory / ACCEPTANCE_FILENAME, acceptance.model_dump(mode="json")

@@ -28,8 +28,12 @@ held-out task or shows its instruction, and a revision's verdict is worked
 out on the held-out tasks alone. An export's own README commands, followed
 in a fresh home with only the export and the Skill, import it, run both arms
 and compare them on the same collection, tasks and parts as where it was
-accepted (item 19); a changed export, or one whose task does not qualify on
-the importing computer, leaves nothing behind. The creator, Docker and Hermes
+accepted (item 19). Checking an export shows it agrees with its own records,
+so its README, verify-export and import show the collection's fingerprint for
+its reader to match; a changed export, one whose tasks name another Skill than
+its collection, one built for another Docker platform, or one whose task does
+not qualify on the importing computer, leaves nothing behind, and an import
+that fails never removes what another made. The creator, Docker and Hermes
 are the stand-ins of the construction and run tests; no model is called.
 """
 
@@ -81,9 +85,11 @@ from techtree.forge.models import (
     ForgeCollectionReview,
     ForgeCollectionTasks,
     ForgeEvidence,
+    ForgeExport,
     ForgeOutputLimits,
     ForgeOutputManifest,
     ForgeRunSpec,
+    ForgeSkillSource,
     ForgeVerdict,
     collection_parts,
 )
@@ -94,7 +100,11 @@ from techtree.forge.revision import (
     read_revision_status,
 )
 from techtree.forge.run import ForgeRunner, read_run_status
-from techtree.forge.service import ForgeService, read_build_status
+from techtree.forge.service import (
+    ForgeService,
+    host_docker_platform,
+    read_build_status,
+)
 from techtree.forge.source import inspect_source_skill
 from techtree.fs import atomic_write_json
 from techtree.models.base import Digest
@@ -1170,11 +1180,17 @@ def test_an_export_followed_by_its_readme_in_a_fresh_home_compares_as_the_origin
             "compare",
         )
     ]
+    fingerprint = read_collection_status(
+        paths_from_root(home), collection_id
+    ).record.collection_digest
+    readme = (moved / "README.md").read_text(encoding="utf-8")
+    shown: dict[str, str] = {}
     for argv in commands:
         filled = [values.get(word, word) for word in argv[1:]]
         # A person answers yes where a run asks before it starts.
         code, envelope = invoke(fresh, *filled[1:], *(["--yes"] * (argv[2] == "run")))
         assert code == 0, (argv, envelope)
+        shown[argv[2]] = json.dumps(envelope)
         if argv[2] == "run":
             arm = argv[argv.index("--arm") + 1]
             values[f"{arm.upper()}_RUN_ID"] = envelope["facts"]["run_id"]
@@ -1201,6 +1217,107 @@ def test_an_export_followed_by_its_readme_in_a_fresh_home_compares_as_the_origin
         original.candidate_skill,
     )
     assert (record.wins, record.losses) == (original.wins, original.losses) == (2, 0)
+    # The reader can match the collection and the Skill against what the
+    # sender gave, in full, at each step that shows them.
+    assert fingerprint in readme
+    assert fingerprint in shown["verify-export"] and fingerprint in shown["import"]
+    skill_digest = imported.record.review.source_digest
+    assert skill_digest in readme and skill_digest in shown["inspect-skill"]
+    with pytest.raises(ValidationError) as refused:
+        prepare_revision(
+            paths, comparison_id=comparison_dir.name, skill_root=skill, label=None
+        )
+    assert refused.value.code == "forge_revision_imported"
+
+
+def reseal(export: Path, forged: ForgeExport) -> None:
+    """Write ``forged`` as the export's records, its collection and
+    acceptance digests made to agree with its review again."""
+    review = forged.collection.review
+    record = forged.collection.model_copy(
+        update={"collection_digest": digest_object(review)}
+    )
+    acceptance = forged.acceptance.model_copy(
+        update={"collection_digest": record.collection_digest}
+    )
+    forged = forged.model_copy(update={"collection": record, "acceptance": acceptance})
+    (export / "export.json").write_text(forged.model_dump_json(), encoding="utf-8")
+
+
+def test_an_export_whose_tasks_name_another_skill_is_refused(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    """Each task's build and its own task.toml have to name the Skill the
+    collection says the tasks were written from, even in records made to
+    agree with each other again."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    records = ForgeExport.model_validate_json((export / "export.json").read_bytes())
+    other = "sha256:" + "ab" * 32
+    first = records.tasks[0]
+    assert isinstance(first.build.source, ForgeSkillSource)
+    other_build = first.build.model_copy(
+        update={
+            "source": first.build.source.model_copy(
+                update={"source_skill_digest": other}
+            )
+        }
+    )
+    review = records.collection.review
+    for forged in (
+        records.model_copy(
+            update={
+                "tasks": [
+                    first.model_copy(update={"build": other_build}),
+                    *records.tasks[1:],
+                ]
+            }
+        ),
+        records.model_copy(
+            update={
+                "collection": records.collection.model_copy(
+                    update={
+                        "review": review.model_copy(update={"source_name": "other"})
+                    }
+                )
+            }
+        ),
+    ):
+        reseal(export, forged)
+
+        code, envelope = invoke(home, "verify-export", str(export))
+
+        assert code != 0
+        assert envelope["error"]["code"] == "forge_export_changed"
+
+
+def test_an_export_readme_is_checked_against_its_recorded_fingerprint(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The README is checked byte for byte against the sha256 export.json
+    records for it, never written again, so a later Techtree that words its
+    READMEs differently still checks an earlier export."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+
+    def never(*_: object, **__: object) -> str:
+        raise AssertionError("checking an export does not write its README")
+
+    monkeypatch.setattr("techtree.forge.export.export_readme", never)
+    assert invoke(home, "verify-export", str(export))[0] == 0
+
+    readme = export / "README.md"
+    readme.write_bytes(readme.read_bytes() + b"\n")
+    code, envelope = invoke(home, "verify-export", str(export))
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_export_changed"
 
 
 def test_an_export_is_imported_whole_or_not_at_all(
@@ -1240,6 +1357,72 @@ def test_an_export_is_imported_whole_or_not_at_all(
     assert "Nothing was imported" in unqualified["error"]["message"]
     assert docker.graded()
     assert not paths.forge_collections_dir.exists()
+    assert list(paths.forge_builds_dir.iterdir()) == []
+
+
+def test_an_export_built_for_another_platform_is_not_imported(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Techtree runs tasks only on the Docker platform they were built for."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    fresh = tmp_path / "fresh-home"
+    fresh.mkdir()
+    docker = FakeDocker(reward=0.0, reference_reward=1.0)
+    monkeypatch.setattr("techtree.cli.commands.forge.run_command", docker)
+    built_for = host_docker_platform()
+    other = "linux/arm64" if built_for == "linux/amd64" else "linux/amd64"
+    monkeypatch.setattr("techtree.forge.export.host_docker_platform", lambda: other)
+
+    code, envelope = invoke(fresh, "import", str(export))
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_import_other_platform"
+    assert envelope["error"]["details"] == {
+        "platform": other,
+        "built_for": [built_for],
+    }
+    assert docker.calls == []
+    assert not paths_from_root(fresh).forge_builds_dir.exists()
+
+
+def test_a_failed_import_removes_only_the_folders_it_made(
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Another import that makes the collection's folder while this one is
+    qualifying its tasks keeps it; this one removes only its own builds."""
+    collection_id = accepted(home, proposal_id, profiles)
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+    fresh = tmp_path / "fresh-home"
+    fresh.mkdir()
+    paths = paths_from_root(fresh)
+    theirs = paths.forge_collection_dir(collection_id)
+    docker = FakeDocker(reward=0.0, reference_reward=1.0)
+
+    def racing(argv: Sequence[str], timeout: float) -> Any:
+        if not theirs.exists():
+            theirs.mkdir(parents=True)
+            (theirs / "collection.json").write_text("{}", encoding="utf-8")
+        return docker(argv, timeout)
+
+    monkeypatch.setattr("techtree.cli.commands.forge.run_command", racing)
+
+    code, envelope = invoke(fresh, "import", str(export))
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_import_exists"
+    assert docker.graded()
+    assert (theirs / "collection.json").read_text(encoding="utf-8") == "{}"
     assert list(paths.forge_builds_dir.iterdir()) == []
 
 
