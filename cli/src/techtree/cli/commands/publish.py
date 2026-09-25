@@ -10,7 +10,9 @@ could be published, because a published number whose evidence does not check out
 is the one outcome this product exists to prevent.
 
 *Everything that will be sent is shown first.* Every file by name and size,
-the total, and the address they go to. The proof directory carries no transcripts — an
+the total, and the address they go to. Before that, every one of those files
+is checked for credential signatures, and a finding stops the command before
+anything is shown or sent. The proof directory carries no transcripts — an
 episode receipt holds digests, task hashes and scores, and the raw episodes are
 outside it entirely — and the summary says so rather than leaving a reader to
 wonder what is in three hundred kilobytes.

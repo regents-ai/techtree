@@ -23,6 +23,7 @@ from typing import Any
 from pydantic import TypeAdapter
 
 from techtree.canonical import sha256_digest_bytes
+from techtree.credential_signatures import credential_findings
 from techtree.errors import RunError
 from techtree.forge.bundle import embedded_forge_root
 from techtree.forge.content import commit_task_set, stat_signature
@@ -65,10 +66,6 @@ _PRIVATE_NAMES = {
     "reward.txt",
     "reward.json",
 }
-_SECRET = re.compile(
-    rb"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|"
-    rb"\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})\b"
-)
 
 
 @dataclass(frozen=True)
@@ -132,8 +129,9 @@ def _snapshot(root: Path) -> dict[str, _Entry]:
                     ) != stat_signature(os.fstat(stream.fileno())):
                         raise ValueError(f"file changed while reading: {relative}")
                 total += len(data)
-                if _SECRET.search(data):
-                    raise ValueError(f"credential material: {relative}")
+                findings = credential_findings(data, relative)
+                if findings:
+                    raise ValueError(f"credential material: {findings[0].describe()}")
                 entries[relative] = _Entry(data, bool(info.st_mode & stat.S_IXUSR))
             else:
                 raise ValueError(f"symlink or special file: {relative}")

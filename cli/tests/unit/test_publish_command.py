@@ -38,10 +38,11 @@ from techtree.cli.commands.publish import (
     PUBLICATION_CONFIRMATION_REQUIRED,
     publication_review_lines,
 )
-from techtree.errors import EXIT_OK, EXIT_USAGE, EXIT_VERIFICATION
+from techtree.errors import EXIT_OK, EXIT_POLICY, EXIT_USAGE, EXIT_VERIFICATION
 from techtree.models.cli import NextAction, command_line
 from techtree.publication.journal import PublicationJournal
 from techtree.publication.service import (
+    PUBLICATION_CREDENTIAL_FOUND,
     PUBLICATION_RECEIPT_FILENAME,
     PublicationPlan,
     PublicationService,
@@ -292,6 +293,29 @@ def test_a_proof_that_does_not_verify_is_refused_before_anything_is_asked(
 
     assert result.exit_code == EXIT_VERIFICATION
     assert SENT == []
+
+
+def test_a_file_holding_a_credential_stops_publication_before_anything_is_sent(
+    home: Path,
+) -> None:
+    """The whole proof folder travels, so every file in it is checked first.
+
+    The refusal names the file, the line and the kind, and never the key.
+    """
+    key = "-----BEGIN " + "RSA PRIVATE KEY-----\nMIIEow" + "Q" * 40
+    stray = home / "runs" / PROOF_RUN_ID / "proof" / "notes.txt"
+    stray.write_text(f"setup notes\n\n{key}\n", encoding="utf-8")
+
+    result = invoke(home, "--json", "publish", PROOF_RUN_ID, "--yes")
+    envelope = json.loads(result.stdout)
+
+    assert result.exit_code == EXIT_POLICY
+    assert SENT == []
+    assert envelope["error"]["code"] == PUBLICATION_CREDENTIAL_FOUND
+    assert envelope["error"]["details"]["findings"] == [
+        {"path": "notes.txt", "line": 3, "kind": "private key block"}
+    ]
+    assert "MIIEow" not in result.stdout
 
 
 def test_a_build_with_nothing_configured_publishes_to_the_pinned_address(

@@ -21,6 +21,11 @@ plan is made. The submission's bytes are built from that one reading, the
 files a person is shown are listed from it, and after they agree those same
 bytes are sent. Nothing reads the directory a second time in between.
 
+*Nothing shaped like a credential is offered.* Every file in that one reading
+is checked for credential signatures before anybody is asked; one finding
+stops publication with the file, the line and the kind of signature named,
+and never the text that matched.
+
 *Nothing about the run is written back.* A completed run's files are final. This
 adds two: the countersigned receipt, and a journal of its own that says what was
 attempted and how it went. Neither is inside the proof, and nothing already in
@@ -62,6 +67,7 @@ from techtree.constants import (
     PUBLICATION_JOURNAL_SCHEMA_VERSION,
     PUBLICATION_SUBMISSION_SCHEMA_VERSION,
 )
+from techtree.credential_signatures import credential_findings
 from techtree.errors import (
     ConflictError,
     NotFoundError,
@@ -103,6 +109,7 @@ from techtree.receipts.verify import LocalProofVerifier
 from techtree.release.models import PublicationCoordinates
 
 __all__ = [
+    "PUBLICATION_CREDENTIAL_FOUND",
     "PUBLICATION_NOT_ELIGIBLE",
     "PUBLICATION_PROOF_NOT_FOUND",
     "PUBLICATION_RECEIPT_CONFLICT",
@@ -124,6 +131,8 @@ PUBLICATION_NOT_ELIGIBLE: Final = "publication_not_eligible"
 #: brings back the same entry and therefore the same bytes.
 PUBLICATION_RECEIPT_CONFLICT: Final = "publication_receipt_conflict"
 RUN_ALREADY_PUBLISHED: Final = "run_already_published"
+#: A file that would be sent carries something shaped like a credential.
+PUBLICATION_CREDENTIAL_FOUND: Final = "publication_credential_found"
 
 _INPUTS_DIRECTORY: Final = "inputs"
 _DRAFT_FILENAME: Final = "draft.json"
@@ -275,6 +284,7 @@ class PublicationService:
             )
 
         stored = self._proof_files(directory)
+        _refuse_credentials(run_id, directory, stored)
         bundle_digest = self._bundle_digest(stored, run_id)
         return PublicationPlan(
             run_id=run_id,
@@ -652,3 +662,38 @@ class PublicationService:
         actually going to.
         """
         return resolved_endpoint(self._coordinates, self._endpoint_override)
+
+
+def _refuse_credentials(run_id: str, directory: Path, stored: dict[str, bytes]) -> None:
+    """Stop before anything is offered when a file that would leave holds a key.
+
+    Every file the submission would carry is checked, not only the ones the
+    signed manifest names: the whole directory travels. The refusal names each
+    file, line and kind of signature, and never the text that matched.
+    """
+    findings = [
+        finding
+        for path, data in stored.items()
+        for finding in credential_findings(data, path)
+    ]
+    if not findings:
+        return
+    raise PolicyError(
+        f"run {run_id} was not published and nothing was sent, because what "
+        "it would send holds what looks like a credential: "
+        + "; ".join(finding.describe() for finding in findings)
+        + f". The files are in {directory}. Take the credential out of each "
+        "file named, or remove the file if "
+        "it is not part of the proof, then run techtree publish again. A file "
+        "the signed proof covers cannot be changed without breaking the proof, "
+        "so a credential in one of those means making the run again without it.",
+        code=PUBLICATION_CREDENTIAL_FOUND,
+        details={
+            "run_id": run_id,
+            "proof_dir": str(directory),
+            "findings": [
+                {"path": finding.path, "line": finding.line, "kind": finding.kind}
+                for finding in findings
+            ],
+        },
+    )
