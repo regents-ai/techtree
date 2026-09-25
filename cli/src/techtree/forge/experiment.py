@@ -122,7 +122,8 @@ def declare_run_spec(
             tasks = _subset(
                 task_ids,
                 qualification.qualified_task_ids,
-                where=f"build {build_id}",
+                where="build",
+                owner=build_id,
                 details={"build_id": build_id},
             )
         case (None, str()):
@@ -138,7 +139,8 @@ def declare_run_spec(
             tasks = _subset(
                 task_ids,
                 [member.task_id for member in review.members],
-                where=f"collection {collection_id}",
+                where="collection",
+                owner=collection_id,
                 details={"collection_id": collection_id},
             )
         case _:
@@ -213,13 +215,14 @@ def _subset(
     usable: list[str],
     *,
     where: str,
+    owner: str,
     details: dict[str, JsonValue],
 ) -> list[str]:
     """Return the named tasks, each one of ``usable``; all of them when unnamed."""
     if task_ids is None:
         if not usable:
             raise ValidationError(
-                f"{where} has no tasks that can run",
+                f"{where} {owner} has no tasks that can run",
                 code="forge_no_usable_tasks",
                 details=details,
             )
@@ -229,14 +232,11 @@ def _subset(
     ]
     if unusable:
         raise ValidationError(
-            f"only a task of {where} can be run: "
-            + ", ".join(str(task_id) for task_id in unusable),
+            ", ".join(str(task_id) for task_id in unusable)
+            + f" {'is' if len(unusable) == 1 else 'are'} not among the tasks of "
+            f"{where} {owner} that can run",
             code="forge_task_not_qualified",
-            details={
-                **details,
-                "unqualified": unusable,
-                "qualified": list(usable),
-            },
+            details={**details, "unqualified": unusable},
         )
     return list(task_ids)
 

@@ -24,6 +24,7 @@ What to say about each operation is here.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final, Literal
@@ -46,12 +47,15 @@ from techtree.engines.installer import find_uv
 from techtree.errors import PolicyError, RunError, TechtreeError, ValidationError
 from techtree.forge.collection import (
     accept_collection,
+    already_collected,
     check_collection,
+    latest_collection,
     prepare_collection,
+    qualified_tasks,
     read_collection_status,
     verify_collection,
 )
-from techtree.forge.compare import compare_runs, read_comparison_status, verdict_words
+from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.construction import (
     check_construction,
     prepare_construction,
@@ -62,6 +66,10 @@ from techtree.forge.experiment import declare_run_spec
 from techtree.forge.export import export_collection, verify_export
 from techtree.forge.models import (
     MAX_PLANNED_TASKS,
+    MINIMUM_COLLECTION_TASKS,
+    TASK_KIND_WORDS,
+    TASK_KINDS_EXPLAINED,
+    VERDICT_MINIMUM_PAIRS,
     ForgeArm,
     ForgeArmTotals,
     ForgeAttemptOutcome,
@@ -78,6 +86,7 @@ from techtree.forge.models import (
     ForgeExportVerification,
     ForgeLanguage,
     ForgeOutputs,
+    ForgePartSummary,
     ForgePlanRecord,
     ForgePlanStatus,
     ForgeProposalStatus,
@@ -85,6 +94,7 @@ from techtree.forge.models import (
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
+    ForgeScreeningFinding,
     ForgeSkillClaim,
     ForgeSkillRef,
     ForgeSourceStatus,
@@ -107,17 +117,20 @@ from techtree.forge.report import (
     FEW_TASKS,
     OUTCOME_WORDS,
     OUTPUT_FAILURE_WORDS,
+    PART_WORDS,
     build_summary,
     first_failed_check,
     import_summary,
     task_verdict,
+    verdict_words,
 )
-from techtree.forge.revision import read_revision_status
+from techtree.forge.revision import lineage_from_revision, read_revision_status
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
 from techtree.forge.source import (
     UNSUPPORTED_WORDS,
     inspect_source_skill,
+    lineage_from_source,
     read_source_status,
 )
 from techtree.ids import id_prefix
@@ -131,6 +144,7 @@ from techtree.models.cli import (
     SideEffect,
     invocation,
 )
+from techtree.paths import TechtreePaths
 
 __all__ = [
     "ForgeRunReview",
@@ -166,9 +180,9 @@ __all__ = [
     "render_forge_source",
     "render_forge_status",
     "review_run_spec",
-    "revision_status_action",
     "revision_warnings",
     "run_forge_command",
+    "run_review_lines",
     "run_status_action",
     "run_warnings",
     "source_status_action",
@@ -351,7 +365,7 @@ def run_forge_command(
                 next_actions=[_run_when_approved(review, ctx.params)],
             )
         if not yes:
-            ask_to_start(context, review)
+            ask_to_start(context, review.review, review.spec_digest)
         status = ForgeRunner(context.paths, run_command).run(spec, skill)
         return CommandResult(
             data=status,
@@ -412,9 +426,10 @@ def inspect_skill_forge_command(
         str | None,
         typer.Option(
             "--derived-from",
-            metavar="SOURCE_ID",
-            help="The Skill this one is a reduced copy of, as an earlier look "
-            "recorded it.",
+            metavar="ID",
+            help="What this Skill was made from: the Skill it is a reduced copy "
+            "of, as an earlier look recorded it, or the uplift revision that "
+            "wrote it.",
         ),
     ] = None,
 ) -> None:
@@ -422,7 +437,14 @@ def inspect_skill_forge_command(
     context = cli_context(ctx)
 
     def action() -> CommandResult[ForgeSourceStatus]:
-        status = inspect_source_skill(context.paths, skill, derived_from=derived_from)
+        lineage = (
+            None
+            if derived_from is None
+            else lineage_from_revision(context.paths, derived_from)
+            if id_prefix(derived_from) == "forgerev"
+            else lineage_from_source(context.paths, derived_from)
+        )
+        status = inspect_source_skill(context.paths, skill, lineage=lineage)
         record = status.record
         if record.state == "refused":
             raise ValidationError(
@@ -503,8 +525,8 @@ def status_forge_command(
                 construction = read_construction_status(context.paths, record_id)
                 return CommandResult(
                     data=construction,
-                    warnings=construction_warnings(construction),
-                    next_actions=construction_next_actions(construction),
+                    warnings=construction_warnings(context.paths, construction),
+                    next_actions=construction_next_actions(context.paths, construction),
                 )
             case "forgesrc":
                 source = read_source_status(context.paths, record_id)
@@ -520,7 +542,13 @@ def status_forge_command(
             case "forgerev":
                 revision = read_revision_status(context.paths, record_id)
                 return CommandResult(
-                    data=revision, warnings=revision_warnings(revision)
+                    data=revision,
+                    warnings=revision_warnings(
+                        revision.record.screening,
+                        held_out=isinstance(
+                            revision.record.tasks_from, ForgeCollectionTasks
+                        ),
+                    ),
                 )
         status = read_build_status(context.paths, record_id)
         return CommandResult(data=status, warnings=_warnings(status))
@@ -820,8 +848,8 @@ def construct_start_forge_command(
         )
         return CommandResult(
             data=started,
-            warnings=construction_warnings(started),
-            next_actions=construction_next_actions(started),
+            warnings=construction_warnings(context.paths, started),
+            next_actions=construction_next_actions(context.paths, started),
             error=_construction_error(started),
         )
 
@@ -857,8 +885,8 @@ def collect_forge_command(
         typer.Option(
             "--previous",
             metavar="COLLECTION_ID",
-            help="The accepted collection of the same Skill this one replaces, "
-            "as its next version.",
+            help="The latest accepted collection of the same Skill, which this "
+            "one replaces as its next version.",
         ),
     ] = None,
 ) -> None:
@@ -1023,8 +1051,8 @@ def _render_exported(data: object, console: Console) -> None:
         console.print(
             f"Exported: collection {data.collection_id}, version {data.version}, "
             f"with its {data.tasks} {_plural(data.tasks, 'task', 'tasks')}, "
-            "into a new folder only you can open. It stays on this computer until "
-            "you share it.",
+            f"{data.held_out} of them held out, into a new folder only you can "
+            "open. It stays on this computer until you share it.",
             markup=False,
         )
         render_pairs([("Folder", data.path)], console)
@@ -1044,7 +1072,8 @@ def _render_export(data: object, console: Console) -> None:
         console.print(
             f"Verified: this folder holds collection {data.collection_id}, "
             f"version {data.version}, exactly as accepted, with its {data.tasks} "
-            f"{_plural(data.tasks, 'task', 'tasks')}.",
+            f"{_plural(data.tasks, 'task', 'tasks')}, {data.held_out} of them "
+            "held out.",
             markup=False,
         )
         render_pairs([("Folder", data.path)], console)
@@ -1084,8 +1113,26 @@ COST_LINE = (
 
 
 def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
-    attempts = len(spec.task_ids) * spec.sampling.repetitions
-    lines = [
+    return ForgeRunReview(
+        spec_digest=digest_object(spec),
+        spec=spec,
+        attempts=len(spec.task_ids) * spec.sampling.repetitions,
+        review=run_review_lines(spec, held_out=frozenset()),
+    )
+
+
+def run_review_lines(spec: ForgeRunSpec, *, held_out: frozenset[str]) -> list[str]:
+    """What running this arm would do, in lines; ``held_out`` tasks are
+    counted, not named, for a caller that may be the improving agent."""
+    shown = [task_id for task_id in spec.task_ids if task_id not in held_out]
+    hidden = len(spec.task_ids) - len(shown)
+    listed = ", ".join(shown) + (
+        f", and {hidden} held-out {'task' if hidden == 1 else 'tasks'} the "
+        "improving agent never sees"
+        if hidden
+        else ""
+    )
+    return [
         f"Arm: {spec.arm.value}"
         + (
             f", with Skill {spec.skill.name} ({spec.skill.root_digest[:12]})"
@@ -1093,8 +1140,9 @@ def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
             else ", without a Skill"
         ),
         _tasks_from_line(spec),
-        f"Tasks: {len(spec.task_ids)} ({', '.join(spec.task_ids)})",
-        f"Attempts: {attempts} ({spec.sampling.repetitions} per task)",
+        f"Tasks: {len(spec.task_ids)} ({listed})",
+        f"Attempts: {len(spec.task_ids) * spec.sampling.repetitions} "
+        f"({spec.sampling.repetitions} per task)",
         f"Agent: {spec.agent.executable} (Hermes Agent v{spec.agent.version})",
         f"Model: {spec.model.model_id} from {spec.model.provider}"
         + (f", reasoning {spec.model.reasoning}" if spec.model.reasoning else ""),
@@ -1121,9 +1169,6 @@ def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
         ),
         COST_LINE,
     ]
-    return ForgeRunReview(
-        spec_digest=digest_object(spec), spec=spec, attempts=attempts, review=lines
-    )
 
 
 def _tasks_from_line(spec: ForgeRunSpec) -> str:
@@ -1156,9 +1201,9 @@ def _toolset_words(spec: ForgeRunSpec) -> str:
     return words[0] if len(words) == 1 else f"{', '.join(words[:-1])} and {words[-1]}"
 
 
-def ask_to_start(context: CliContext, review: ForgeRunReview) -> None:
+def ask_to_start(context: CliContext, review: list[str], spec_digest: str) -> None:
     console = human_console(no_color=context.no_color)
-    for line in review.review:
+    for line in review:
         console.print(line, markup=False)
     console.print()
     if not confirmed("Start this experiment?"):
@@ -1167,7 +1212,7 @@ def ask_to_start(context: CliContext, review: ForgeRunReview) -> None:
             "To go ahead, run this again and answer y. Where no one can answer "
             "here, show the person this review and, once they agree, add --yes",
             code=RUN_NOT_APPROVED,
-            details={"spec_digest": review.spec_digest},
+            details={"spec_digest": spec_digest},
         )
 
 
@@ -1480,6 +1525,11 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
             f"{record.wins} won, {record.losses} lost, {record.ties} tied, "
             f"{record.unresolved} unresolved of {record.pairs_planned} planned",
         ),
+        *(
+            (PART_WORDS[name], _part_words(part, record.baseline_skill))
+            for name, part in (("study", record.study), ("held_out", record.held_out))
+            if part is not None
+        ),
         (
             "Mean reward",
             _arm_pair(record.baseline.mean_reward, record.candidate.mean_reward),
@@ -1536,6 +1586,17 @@ def render_forge_comparison(status: ForgeComparisonStatus, console: Console) -> 
             + f"; baseline {baseline}, candidate {candidate}",
             markup=False,
         )
+
+
+def _part_words(part: ForgePartSummary, baseline_skill: ForgeSkillRef | None) -> str:
+    tasks = len(part.task_ids)
+    return (
+        f"{tasks} {_plural(tasks, 'task', 'tasks')}; "
+        f"{verdict_words(part.verdict, baseline_skill)}; {part.wins} won, "
+        f"{part.losses} lost, {part.ties} tied, {part.unresolved} unresolved of "
+        f"{part.pairs_planned}; mean reward "
+        + _arm_pair(part.baseline_mean_reward, part.candidate_mean_reward)
+    )
 
 
 def _regression_words(regression: ForgeTaskRegression) -> str:
@@ -1654,41 +1715,34 @@ def render_forge_revision(status: ForgeRevisionStatus, console: Console) -> None
     if record.verdict is not None:
         console.print()
         console.print(record.verdict, markup=False)
+    if record.study_verdict is not None:
+        console.print(record.study_verdict, markup=False)
 
 
-def revision_warnings(status: ForgeRevisionStatus) -> list[CliWarning]:
-    """Say when the revised Skill shares lines with hidden material."""
-    if not status.record.screening:
+def revision_warnings(
+    findings: Sequence[ForgeScreeningFinding], *, held_out: bool
+) -> list[CliWarning]:
+    """Say when the revised Skill shares lines with hidden material.
+
+    ``held_out`` says whether ``findings`` may include held-out tasks'
+    instructions and inputs, which only a person is told of.
+    """
+    if not findings:
         return []
     return [
         CliWarning(
             id="forge_revision_shares_hidden_material",
             text=(
-                f"{len(status.record.screening)} line(s) of the revised Skill "
-                "also occur in a task's reference answer or tests; a result with "
-                "it may measure recall rather than method. Each is listed on "
-                "the revision."
+                f"{len(findings)} line(s) of the revised Skill also occur in "
+                "material hidden from the agent that improved it: a task's "
+                "reference answer or tests"
+                + (", or a held-out task's instruction or inputs" if held_out else "")
+                + ". A result with it may measure recall rather than method. "
+                "Each is listed on the revision."
             ),
             resolvable_by=None,
         )
     ]
-
-
-def revision_status_action(status: ForgeRevisionStatus) -> NextAction:
-    return NextAction(
-        operation=Operation.PLAN_INSPECT,
-        prepared_arguments=invocation(
-            "forge", "status", arguments=[status.revision_id]
-        ),
-        expected_state_digest=None,
-        side_effect=SideEffect.NONE,
-        approval_required=False,
-        retry_class=RetryClass.SAFE,
-        estimated_cost=None,
-        data_egress=DataEgress.NONE,
-        reason="The revision, its screening and its measurement can be read "
-        "back later.",
-    )
 
 
 def render_forge_source(status: ForgeSourceStatus, console: Console) -> None:
@@ -1705,8 +1759,7 @@ def render_forge_source(status: ForgeSourceStatus, console: Console) -> None:
         pairs.append(
             (
                 "Derived from",
-                f"{record.lineage.parent_source_id} "
-                f"({record.lineage.parent_admitted_digest[:19]})",
+                f"{record.lineage.parent_id} ({record.lineage.parent_digest[:19]})",
             )
         )
     if declaration is not None:
@@ -2019,17 +2072,7 @@ def _render_plan(data: object, console: Console) -> None:
 
 
 #: What each kind of task is, in the words a person reads.
-_KIND_WORDS: Final[dict[ForgeTaskKind, str]] = {
-    "positive": "positive case",
-    "boundary": "boundary case",
-    "counterexample": "counterexample",
-}
-_KINDS_EXPLAINED: Final = (
-    "Each task tests one claim. A positive case is one where following the "
-    "Skill should give the right result; a boundary case sits at the edge of "
-    "where the claim applies; a counterexample checks that the Skill is not "
-    "overused where it would give a wrong result or should change nothing."
-)
+_KINDS_EXPLAINED: Final = f"Each task tests one claim. {TASK_KINDS_EXPLAINED}"
 
 
 def _claim_lines(claims: list[ForgeSkillClaim]) -> list[str]:
@@ -2045,7 +2088,7 @@ def _claim_lines(claims: list[ForgeSkillClaim]) -> list[str]:
 
 
 def _task_label(name: str, claim: str, kind: ForgeTaskKind) -> str:
-    return f"{name} ({claim}, {_KIND_WORDS[kind]})"
+    return f"{name} ({claim}, {TASK_KIND_WORDS[kind]})"
 
 
 def render_forge_proposal(status: ForgeProposalStatus, console: Console) -> None:
@@ -2283,41 +2326,77 @@ def _construction_error(status: ForgeConstructionStatus) -> TechtreeError | None
     )
 
 
-def construction_warnings(status: ForgeConstructionStatus) -> list[CliWarning]:
-    """Say which calls began and were never seen to end."""
+def construction_warnings(
+    paths: TechtreePaths, status: ForgeConstructionStatus
+) -> list[CliWarning]:
+    """Say which calls began and were never seen to end, and when too few
+    tasks qualified to make a collection."""
+    warnings = []
     unknown = [
         task.task_name for task in status.tasks if task.state == "outcome_unknown"
     ]
-    if not unknown:
-        return []
-    return [
-        CliWarning(
-            id="forge_construction_outcome_unknown",
-            text=(
-                "The creator call for "
-                + ", ".join(unknown)
-                + " began and its end was never seen, so the provider may or "
-                "may not have answered or charged. Techtree does not call it "
-                "again on its own."
-            ),
-            resolvable_by=None,
+    if unknown:
+        warnings.append(
+            CliWarning(
+                id="forge_construction_outcome_unknown",
+                text=(
+                    "The creator call for "
+                    + ", ".join(unknown)
+                    + " began and its end was never seen, so the provider may or "
+                    "may not have answered or charged. Techtree does not call it "
+                    "again on its own."
+                ),
+                resolvable_by=None,
+            )
         )
-    ]
+    if status.state in {"finished", "stopped"}:
+        qualified = qualified_tasks(paths, status.construction_id)
+        if len(qualified) < MINIMUM_COLLECTION_TASKS:
+            warnings.append(
+                CliWarning(
+                    id="forge_construction_too_few_usable",
+                    text=(
+                        f"{len(qualified)} usable "
+                        f"{'task' if len(qualified) == 1 else 'tasks'} so far, and "
+                        f"a collection needs at least {MINIMUM_COLLECTION_TASKS}: "
+                        "some the improving agent may study and some held out "
+                        "from it. Correct the proposal to add tasks with forge "
+                        "correct-proposal, or build the others again with forge "
+                        f"construct --retry-of {status.construction_id}."
+                    ),
+                    resolvable_by=None,
+                )
+            )
+    return warnings
 
 
-def construction_next_actions(status: ForgeConstructionStatus) -> list[NextAction]:
-    """What can follow: the start; or collecting what qualified, a construction
-    that tries the rest again, and each usable build, in that order."""
+def construction_next_actions(
+    paths: TechtreePaths, status: ForgeConstructionStatus
+) -> list[NextAction]:
+    """What can follow: the start; or collecting what qualified, when enough
+    did for a collection, a construction that tries the rest again, and each
+    usable build, in that order."""
     if status.state == "prepared":
         return [_construct_when_approved(status)]
     ended = status.state in {"finished", "stopped"}
     actions = []
-    if ended and any(_usable(task) for task in status.tasks):
+    if (
+        ended
+        and len(qualified_tasks(paths, status.construction_id))
+        >= MINIMUM_COLLECTION_TASKS
+        and not already_collected(paths, status.construction_id)
+    ):
+        latest = latest_collection(paths, status.construction_id)
         actions.append(
             NextAction(
                 operation=Operation.PLAN_PREPARE,
                 prepared_arguments=invocation(
-                    "forge", "collect", arguments=[status.construction_id]
+                    "forge",
+                    "collect",
+                    arguments=[status.construction_id],
+                    options=None
+                    if latest is None
+                    else {"--previous": latest.collection_id},
                 ),
                 expected_state_digest=None,
                 side_effect=SideEffect.LOCAL_STATE,
@@ -2326,7 +2405,13 @@ def construction_next_actions(status: ForgeConstructionStatus) -> list[NextActio
                 estimated_cost=None,
                 data_egress=DataEgress.NONE,
                 reason="The tasks that qualified can be collected for a "
-                "person to accept; every task's outcome is shown with them.",
+                "person to accept; every task's outcome is shown with them."
+                + (
+                    ""
+                    if latest is None
+                    else f" It is the next version of {latest.collection_id}, "
+                    "the latest accepted collection in this Skill's line."
+                ),
             )
         )
     if ended and not all(_usable(task) for task in status.tasks):
@@ -2475,9 +2560,17 @@ def collection_review_lines(record: ForgeCollectionRecord) -> list[str]:
             )
             + ("" if task.why is None else f": {task.why}")
         )
+    held_out = [m.task_name for m in review.members if m.part == "held_out"]
+    study = [m.task_name for m in review.members if m.part == "study"]
     lines += [
         f"In the collection: {members} {_plural(members, 'task', 'tasks')}, "
         + ", ".join(member.task_name for member in review.members),
+        f"Held out: {', '.join(held_out)}. The agent that improves the Skill "
+        "will never see these tasks, and a revised Skill's verdict is worked "
+        "out on them alone.",
+        f"The improving agent may see: {', '.join(study)}.",
+        "Which tasks are held out follows from the tasks' fingerprints; "
+        "nobody chooses it, and a task keeps its part in every later version.",
         f"Version: {review.version}"
         + (
             ""
@@ -2531,20 +2624,46 @@ def _accept_when_agreed(status: ForgeCollectionStatus) -> NextAction:
 
 
 def collection_warnings(status: ForgeCollectionStatus) -> list[CliWarning]:
-    """Say when a collection holds too few tasks to say much."""
-    members = len(status.record.review.members)
-    if members >= FEW_TASKS:
-        return []
+    """Say when a collection holds too few tasks to say much, and when too
+    few are held out for a revision's verdict on one attempt each."""
+    members = status.record.review.members
+    held_out = sum(member.part == "held_out" for member in members)
+    repetitions = -(-VERDICT_MINIMUM_PAIRS // held_out)
     return [
-        CliWarning(
-            id="forge_few_tasks",
-            text=(
-                f"Only {members} {_plural(members, 'task is', 'tasks are')} in "
-                "this collection. A run on so few can say how one attempt "
-                "went, not whether a Skill helps."
-            ),
-            resolvable_by=None,
-        )
+        *(
+            [
+                CliWarning(
+                    id="forge_few_tasks",
+                    text=(
+                        f"Only {len(members)} "
+                        f"{_plural(len(members), 'task is', 'tasks are')} in "
+                        "this collection. A run on so few can say how one "
+                        "attempt went, not whether a Skill helps."
+                    ),
+                    resolvable_by=None,
+                )
+            ]
+            if len(members) < FEW_TASKS
+            else []
+        ),
+        *(
+            [
+                CliWarning(
+                    id="forge_few_held_out",
+                    text=(
+                        f"Only {held_out} "
+                        f"{_plural(held_out, 'task is', 'tasks are')} held out. "
+                        "A revised Skill's verdict needs at least "
+                        f"{VERDICT_MINIMUM_PAIRS} graded attempts on them, so "
+                        f"runs for one need at least {repetitions} repetitions "
+                        "per task."
+                    ),
+                    resolvable_by=None,
+                )
+            ]
+            if held_out < VERDICT_MINIMUM_PAIRS
+            else []
+        ),
     ]
 
 
@@ -2615,12 +2734,14 @@ def _render_collection(data: object, console: Console) -> None:
 
 def _render_verified(data: object, console: Console) -> None:
     if isinstance(data, ForgeCollectionStatus):
-        members = len(data.record.review.members)
+        members = data.record.review.members
+        held_out = sum(member.part == "held_out" for member in members)
         console.print(
             f"Verified: collection {data.collection_id}, version "
             f"{data.record.review.version}, holds exactly the files and "
-            f"qualification accepted for its {members} "
-            f"{_plural(members, 'task', 'tasks')}.",
+            f"qualification accepted for its {len(members)} "
+            f"{_plural(len(members), 'task', 'tasks')}, {held_out} of them "
+            "held out.",
             markup=False,
         )
 

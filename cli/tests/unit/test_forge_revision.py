@@ -30,7 +30,7 @@ from fixtures.forge.support import (
 )
 from techtree.cli.app import create_app
 from techtree.errors import PrerequisiteError, ValidationError, VerificationError
-from techtree.forge.compare import compare_runs
+from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.improvement import (
     ForgeImprovementRepository,
     build_forge_improvement_context,
@@ -82,8 +82,11 @@ def run_arm(
     arm: ForgeArm,
     skill: Path | None = None,
     reward: float | str | None,
+    repetitions: int = 1,
 ) -> ForgeRunStatus:
-    spec = declare(build, monkeypatch, arm=arm, skill_root=skill)
+    spec = declare(
+        build, monkeypatch, arm=arm, skill_root=skill, repetitions=repetitions
+    )
     runner = ForgeRunner(
         build.paths,
         FakeDocker(reward=reward),
@@ -101,10 +104,16 @@ def compared(
     *,
     baseline_reward: float = 0.0,
     candidate_reward: float = 0.5,
+    repetitions: int = 1,
 ) -> str:
     """Return the id of a comparison of a baseline and a candidate run."""
     baseline = run_arm(
-        build, profiles, monkeypatch, arm=ForgeArm.BASELINE, reward=baseline_reward
+        build,
+        profiles,
+        monkeypatch,
+        arm=ForgeArm.BASELINE,
+        reward=baseline_reward,
+        repetitions=repetitions,
     )
     candidate = run_arm(
         build,
@@ -113,6 +122,7 @@ def compared(
         arm=ForgeArm.CANDIDATE,
         skill=skill,
         reward=candidate_reward,
+        repetitions=repetitions,
     )
     return compare_runs(build.paths, baseline.run_id, candidate.run_id).comparison_id
 
@@ -258,7 +268,7 @@ def test_uplift_context_writes_the_context_beside_the_comparison(
         comparison_id
     )
     assert facts["context"]["schema_version"] == (
-        "techtree.forge-improvement-context.v1alpha2"
+        "techtree.forge-improvement-context.v1alpha3"
     )
     assert [w["id"] for w in envelope["warnings"]] == [
         "improvement_context_is_not_proof"
@@ -466,8 +476,8 @@ def test_uplift_prepare_on_a_comparison_returns_the_revision_and_the_start_to_ap
     assert code == 0
     assert envelope["operation"] == "plan.prepare"
     facts = envelope["facts"]
-    assert facts["record"]["state"] == "prepared"
-    assert envelope["state_digest"] == facts["record"]["spec_digest"]
+    assert facts["state"] == "prepared"
+    assert envelope["state_digest"] == facts["spec_digest"]
     [action] = envelope["next_actions"]
     assert action["operation"] == "action.execute"
     assert action["approval_required"] is True
@@ -477,7 +487,7 @@ def test_uplift_prepare_on_a_comparison_returns_the_revision_and_the_start_to_ap
         "--yes": True,
         "--reviewed-on": "host-agent",
     }
-    assert action["expected_state_digest"] == facts["record"]["spec_digest"]
+    assert action["expected_state_digest"] == facts["spec_digest"]
 
 
 # ---------------------------------------------------------------------------
@@ -529,7 +539,9 @@ def test_uplift_start_with_yes_runs_compares_and_keeps_a_regression(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    comparison_id = compared(build, profiles, monkeypatch, skill, candidate_reward=1.0)
+    comparison_id = compared(
+        build, profiles, monkeypatch, skill, candidate_reward=1.0, repetitions=3
+    )
     revision = prepare_revision(
         build.paths,
         comparison_id=comparison_id,
@@ -557,22 +569,19 @@ def test_uplift_start_with_yes_runs_compares_and_keeps_a_regression(
 
     assert code == 0
     assert envelope["operation"] == "action.execute"
-    facts = envelope["facts"]
-    record = facts["revision"]["record"]
+    record = envelope["facts"]["revision"]
     assert record["state"] == "measured"
-    assert record["measured_run_id"] == facts["run"]["run_id"]
-    assert record["measured_comparison_id"] == facts["comparison"]["comparison_id"]
     assert "regressed from demo-skill" in record["verdict"]
     assert "0.00 against 1.00 (-1.00)" in record["verdict"]
     assert record["verdict"].endswith("Kept as measured.")
-    assert (
-        facts["comparison"]["record"]["baseline_run_id"]
-        == (facts["revision"]["record"]["baseline_run_id"])
-    )
-    assert facts["comparison"]["record"]["candidate_skill"]["name"] == "demo-skill-v2"
-    assert facts["run"]["spec"]["skill"]["name"] == "demo-skill-v2"
-    [launch] = hermes.launches
-    assert launch["profile_files"] == [
+    comparison = read_comparison_status(
+        build.paths, record["measured_comparison_id"]
+    ).record
+    assert comparison.candidate_run_id == record["measured_run_id"]
+    assert comparison.baseline_run_id == record["baseline_run_id"]
+    assert comparison.candidate_skill.name == "demo-skill-v2"
+    assert len(hermes.launches) == 3
+    assert hermes.launches[0]["profile_files"] == [
         "auth.json",
         "config.yaml",
         "skills/demo-skill-v2/SKILL.md",
@@ -597,7 +606,7 @@ def test_a_measured_revision_is_not_measured_again(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    comparison_id = compared(build, profiles, monkeypatch, skill)
+    comparison_id = compared(build, profiles, monkeypatch, skill, repetitions=3)
     revision = prepare_revision(
         build.paths,
         comparison_id=comparison_id,

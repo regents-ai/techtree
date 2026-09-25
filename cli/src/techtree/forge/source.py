@@ -25,7 +25,10 @@ An unsupported file nothing names is left out and listed as left out. The
 record is written either way; an admitted source also keeps the admitted
 bytes, exactly the bytes that were hashed, under ``skill/`` beside it, and a
 refused one keeps none. A reduced copy the contributor makes is inspected as
-a new source whose lineage names the record it was derived from (R17).
+a new source whose lineage names the record it was derived from (R17), and a
+revised Skill uplift wrote as one whose lineage names that revision; either
+way the lineage carries the Skill at the root of the chain, so the
+collections of every Skill derived from one form one line of versions.
 
 SKILL.md's header is read as the Agent Skills specification declares it,
 with a deliberately small reader: top-level ``key: value`` lines with plain,
@@ -80,6 +83,7 @@ from techtree.skills.scanner import MEDIA_TYPES, resolve_skill_root
 __all__ = [
     "SOURCE_FILENAME",
     "inspect_source_skill",
+    "lineage_from_source",
     "read_source_status",
 ]
 
@@ -129,14 +133,9 @@ class _Entry:
 
 
 def inspect_source_skill(
-    paths: TechtreePaths, skill_path: Path, *, derived_from: str | None
+    paths: TechtreePaths, skill_path: Path, *, lineage: ForgeSourceLineage | None
 ) -> ForgeSourceStatus:
     """Inventory one Source Skill and write its record, admitted or refused."""
-    parent = (
-        read_source_status(paths, derived_from).record
-        if derived_from is not None
-        else None
-    )
     root = resolve_skill_root(skill_path)
     if root.is_symlink():
         raise ValidationError(
@@ -174,14 +173,36 @@ def inspect_source_skill(
         for entry in admitted
     ]
     admitted_digest = skill_content_digest(admitted_files)
-    if parent is not None and parent.admitted_digest == admitted_digest:
-        raise ValidationError(
-            "this copy admits exactly what the Skill it was derived from admits, "
-            "so it is not a different Skill; a derivative has to differ from "
-            "its original",
-            code="forge_source_unchanged",
-            details={"derived_from": parent.source_id, "digest": admitted_digest},
-        )
+    match lineage:
+        case ForgeSourceLineage(kind="source") if (
+            lineage.parent_digest == admitted_digest
+        ):
+            raise ValidationError(
+                "this copy admits exactly what the Skill it was derived from "
+                "admits, so it is not a different Skill; a derivative has to "
+                "differ from its original",
+                code="forge_source_unchanged",
+                details={"derived_from": lineage.parent_id, "digest": admitted_digest},
+            )
+        case ForgeSourceLineage(kind="revision") if (
+            lineage.parent_digest != admitted_digest
+        ):
+            raise ValidationError(
+                f"this is not the Skill revision {lineage.parent_id} measured: "
+                "its files differ from the revision's, and --derived-from a "
+                "revision records that the Skill looked at is that revision's. "
+                "Copy the revision's own Skill, kept in "
+                f"{paths.forge_revision_dir(lineage.parent_id) / SKILL_DIRNAME}, "
+                "to a folder named after the Skill and look at that with "
+                f"--derived-from {lineage.parent_id}; look at a changed copy of it "
+                "with --derived-from that look",
+                code="forge_source_not_revision",
+                details={
+                    "derived_from": lineage.parent_id,
+                    "expected": lineage.parent_digest,
+                    "found": admitted_digest,
+                },
+            )
 
     source_id = new_id("forgesrc")
     directory = paths.forge_source_dir(source_id)
@@ -207,14 +228,7 @@ def inspect_source_skill(
         admitted_files=admitted_files,
         admitted_digest=admitted_digest,
         refusals=refusals,
-        lineage=(
-            ForgeSourceLineage(
-                parent_source_id=parent.source_id,
-                parent_admitted_digest=parent.admitted_digest,
-            )
-            if parent is not None
-            else None
-        ),
+        lineage=lineage,
     )
     directory.mkdir(parents=True, mode=0o700)
     if record.state == "admitted":
@@ -224,6 +238,17 @@ def inspect_source_skill(
             )
     atomic_write_json(directory / SOURCE_FILENAME, record.model_dump(mode="json"))
     return _status(directory, record)
+
+
+def lineage_from_source(paths: TechtreePaths, source_id: str) -> ForgeSourceLineage:
+    """The lineage of a reduced copy of the Skill an earlier look recorded."""
+    parent = read_source_status(paths, source_id).record
+    return ForgeSourceLineage(
+        kind="source",
+        parent_id=parent.source_id,
+        parent_digest=parent.admitted_digest,
+        root_digest=parent.line_digest,
+    )
 
 
 def read_source_status(paths: TechtreePaths, source_id: str) -> ForgeSourceStatus:

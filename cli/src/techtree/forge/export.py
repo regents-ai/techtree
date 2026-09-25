@@ -5,18 +5,19 @@ collection in this home first, then writes a new folder holding exactly:
 each member's task files, copied entry by entry from its build's commitment;
 ``export.json``, the collection record and acceptance with each member's
 build record and qualification evidence; and a README saying what the folder
-holds and leaves out. The Source Skill's bytes, the authoring and
-qualification logs, and everything else in the home are never read. The
-folder is written beside its destination under a hidden name, checked, and
-only then renamed into place; it is the owner's alone, and nothing is
-published.
+holds and leaves out, and which tasks are held out. The Source Skill's
+bytes, the authoring and qualification logs, and everything else in the home
+are never read. The folder is written beside its destination under a hidden
+name, checked, and only then renamed into place; it is the owner's alone, and
+nothing is published.
 
 ``forge verify-export`` trusts nothing but the folder: every file is hashed
 again against the accepted content digests, each qualification record against
-its member digest, the membership and collection digests against the
-acceptance, and the README against ``export.json``. Anything the folder holds
-beyond the collection, or lacks, is a changed export. What the folder can
-only state, not show, is listed as recorded only.
+its member digest, which tasks are held out against the rule that picks
+them, the membership and collection digests against the acceptance, and the
+README against ``export.json``. Anything the folder holds beyond the
+collection, or lacks, is a changed export. What the folder can only state,
+not show, is listed as recorded only.
 """
 
 from __future__ import annotations
@@ -34,9 +35,11 @@ from pydantic import ValidationError as ModelValidationError
 from techtree.canonical import digest_object
 from techtree.errors import ConflictError, NotFoundError, RunError, ValidationError
 from techtree.forge.collection import verify_collection
-from techtree.forge.content import changed_entries, commit_task_set
+from techtree.forge.content import changed_entries, commit_task_set, task_fingerprint
 from techtree.forge.models import (
     FORGE_EXPORT_SCHEMA_VERSION,
+    TASK_KIND_WORDS,
+    TASK_KINDS_EXPLAINED,
     ForgeCollectionMember,
     ForgeExport,
     ForgeExportTask,
@@ -63,6 +66,8 @@ CHECKED: Final = (
     "every file of every task, against the fingerprints the collection accepted",
     "each task's qualification record, against the collection",
     "the collection's members and fingerprint, against the acceptance",
+    "which tasks are held out, against the rule that picks them from the "
+    "tasks and the parts earlier versions gave them",
     "the README, against export.json",
 )
 
@@ -74,6 +79,7 @@ RECORDED_ONLY: Final = (
     "the qualification runs: their results are recorded, not run again",
     "the images the tasks were built and checked with",
     "the acceptance itself: when it was given and how it was answered",
+    "the parts earlier versions of the collection gave their tasks",
 )
 
 
@@ -208,6 +214,7 @@ def verify_export(root: Path) -> ForgeExportVerification:
         collection_id=export.collection.collection_id,
         version=review.version,
         tasks=len(review.members),
+        held_out=sum(member.part == "held_out" for member in review.members),
         checked=list(CHECKED),
         recorded_only=list(RECORDED_ONLY),
     )
@@ -269,6 +276,7 @@ def _require_records(
         task.build.build_id != member.build_id
         or [manifest.task_id for manifest in manifests] != [member.task_id]
         or manifests[0].content_digest != member.content_digest
+        or task_fingerprint(manifests[0]) != member.fingerprint
         or evidence.task_id != member.task_id
         or evidence.task_content_digest != member.content_digest
         or not evidence.qualified
@@ -307,14 +315,40 @@ def export_readme(export: ForgeExport) -> str:
         "## What it holds",
         "",
         *(
-            f"- `{TASKS_DIRNAME}/{member.task_id}/`: the task {member.task_name}, "
-            "with its instruction, the files it starts from, its tests and its "
-            "reference solutions."
+            f"- `{TASKS_DIRNAME}/{member.task_id}/`: the task {member.task_name}"
+            + (" (held out)" if member.part == "held_out" else "")
+            + f", a {TASK_KIND_WORDS[member.kind]} for claim {member.claim}, with its "
+            "instruction, the files it starts from, its tests and its reference "
+            "solutions."
             for member in review.members
         ),
         f"- `{EXPORT_FILENAME}`: the collection as it was accepted on "
         f"{accepted:%Y-%m-%d at %H:%M} UTC, each task's qualification record, "
         "and where each task came from.",
+        "",
+        "The tasks marked held out are kept from any agent that improves a "
+        "Skill on this collection, and a revised Skill's verdict is worked out "
+        "on them alone. Which tasks are held out follows from a fixed rule; "
+        "nobody chose it. A task keeps its part in every collection accepted "
+        "after this one in the same Techtree home, whichever Skill it is for, "
+        "even when it is built again or appears under another name with the "
+        "same files; one "
+        "that was ever studied is never held out. Tasks whose files differ only "
+        "slightly are not recognised as the same task.",
+        "",
+        "## What the tasks test",
+        "",
+        *(
+            line
+            for claim in review.claims
+            if claim.claim_id in {member.claim for member in review.members}
+            for line in (
+                f"- {claim.claim_id}: {claim.statement}",
+                f"  - What shows it: {claim.observable}",
+            )
+        ),
+        "",
+        TASK_KINDS_EXPLAINED,
         "",
         "## What it leaves out",
         "",

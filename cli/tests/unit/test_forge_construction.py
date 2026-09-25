@@ -80,7 +80,7 @@ def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
     root.mkdir()
     (root / "SKILL.md").write_text(SKILL, encoding="utf-8")
     paths = paths_from_root(home)
-    source = inspect_source_skill(paths, root, derived_from=None)
+    source = inspect_source_skill(paths, root, lineage=None)
     code, envelope = invoke(
         home,
         "plan",

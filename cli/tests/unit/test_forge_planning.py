@@ -66,7 +66,7 @@ def source_id(tmp_path: Path, home: Path) -> str:
     (root / "references").mkdir(parents=True)
     (root / "SKILL.md").write_text(SKILL, encoding="utf-8")
     (root / "references" / "examples.md").write_text(EXAMPLES, encoding="utf-8")
-    status = inspect_source_skill(paths_from_root(home), root, derived_from=None)
+    status = inspect_source_skill(paths_from_root(home), root, lineage=None)
     assert status.record.state == "admitted"
     return status.source_id
 
@@ -529,7 +529,7 @@ def test_a_skill_that_cannot_be_used_is_refused_before_anything_is_prepared(
         SKILL.replace("references/examples.md", "scripts/run.sh"), encoding="utf-8"
     )
     (root / "scripts" / "run.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-    refused = inspect_source_skill(paths_from_root(home), root, derived_from=None)
+    refused = inspect_source_skill(paths_from_root(home), root, lineage=None)
 
     code, envelope = invoke(
         home,

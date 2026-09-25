@@ -11,15 +11,27 @@ is a refusal, because the run would otherwise claim an agent it did not use.
 Before anything runs the revised Skill is screened against what a task
 hides from the agent: for a repository task the reference patch, the tests,
 and the tests' names; for a task written from a Skill its reference
-solutions and its tests. Screening is evidence-based and recorded, not a
-refusal — a Skill may legitimately name the function it repairs — so every
-line the Skill shares with that material is written on the revision for the
-person who approves the run to see, and the run's report carries it.
+solutions and its tests, and for a held-out task of a collection also its
+instruction and its inputs, which the agent that wrote the revision never
+saw. On a collection two kinds of line are not screened, because the
+reviser had them without seeing anything hidden: the lines of the Skill
+the collection's tasks were written from, and the lines of the instruction
+and inputs of the tasks it may study. Every other line is screened,
+whichever Skill the revision was made from, so material a revision copied
+stays evidence in every revision made from it. Screening is evidence-based and recorded,
+not a refusal — a Skill may legitimately name the function it repairs — so
+every added line the Skill shares with that material is written on the
+revision for the person who approves the run to see, and the run's report
+carries it.
 
-Measuring runs the new arm and compares it against the same baseline the
-parent was compared against. The revision then names its run, its comparison
-and a one-line verdict against the comparison it revised from, and is kept
-whether it improved or regressed. Nothing here proposes, chooses or loops.
+Measuring runs the new arm on every task and compares it against the same
+baseline the parent was compared against. The revision then names its run,
+its comparison and a one-line verdict against the comparison it revised
+from, and is kept whether it improved or regressed. On a collection that
+verdict is computed on the held-out tasks alone (founder decision 2a), so a
+Skill that memorised the tasks it studied cannot pass for an improvement;
+how it did on the tasks it could see is recorded beside it, labelled as
+such. Nothing here proposes, chooses or loops.
 """
 
 from __future__ import annotations
@@ -27,11 +39,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final, Literal
+from typing import Final, Literal, NamedTuple
 
 from pydantic import ValidationError as ModelValidationError
 
-from techtree.canonical import canonical_json_bytes
+from techtree.canonical import canonical_json_bytes, sha256_digest_bytes
 from techtree.errors import NotFoundError, PrerequisiteError, ValidationError
 from techtree.forge.collection import read_collection_status
 from techtree.forge.comparability import (
@@ -41,22 +53,27 @@ from techtree.forge.comparability import (
 from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.experiment import run_spec_digest
 from techtree.forge.hermes import hermes_version
+from techtree.forge.improvement import require_whole_collection
 from techtree.forge.models import (
     FORGE_REVISION_SCHEMA_VERSION,
+    VERDICT_MINIMUM_PAIRS,
     ForgeBuildTasks,
     ForgeCollectionTasks,
     ForgeComparisonRecord,
     ForgeComparisonStatus,
+    ForgePartSummary,
     ForgeRevisionRecord,
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
     ForgeScreeningFinding,
+    ForgeSourceLineage,
 )
 from techtree.forge.qualify import read_task_facts
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import read_build_status
 from techtree.forge.skill import SKILL_DIRNAME, scan_skill_spec, snapshot_skill
+from techtree.forge.source import read_source_status
 from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
 from techtree.paths import TechtreePaths
@@ -66,6 +83,7 @@ __all__ = [
     "REVISION_FILENAME",
     "SPEC_FILENAME",
     "MeasuredRevision",
+    "lineage_from_revision",
     "measure_revision",
     "prepare_revision",
     "read_revision_status",
@@ -99,6 +117,7 @@ def prepare_revision(
             code="forge_candidate_without_skill",
             details={"comparison_id": comparison_id},
         )
+    require_whole_collection(paths, comparison)
     try:
         skill, files = scan_skill_spec(skill_root, name=label)
     except ModelValidationError as error:
@@ -130,7 +149,10 @@ def prepare_revision(
     comparability = compare_run_specs(baseline.spec, spec)
     assert_comparable_run_specs(comparability)
     screening = screen_skill(
-        paths, tasks_from=spec.tasks_from, task_ids=spec.task_ids, files=files
+        paths,
+        tasks_from=spec.tasks_from,
+        task_ids=spec.task_ids,
+        files=files,
     )
 
     revision_id = new_id("forgerev")
@@ -157,6 +179,7 @@ def prepare_revision(
         measured_run_id=None,
         measured_comparison_id=None,
         verdict=None,
+        study_verdict=None,
     )
     atomic_write_json(directory / REVISION_FILENAME, record.model_dump(mode="json"))
     return ForgeRevisionStatus(
@@ -192,13 +215,15 @@ def measure_revision(
     run = runner.run(status.spec, Path(status.path) / SKILL_DIRNAME)
     comparison = compare_runs(paths, record.baseline_run_id, run.run_id)
     parent = read_comparison_status(paths, record.comparison_id).record
+    verdict, study_verdict = _verdicts(parent, comparison.record, record.screening)
     measured = record.model_copy(
         update={
             "updated_at": datetime.now(UTC),
             "state": "measured",
             "measured_run_id": run.run_id,
             "measured_comparison_id": comparison.comparison_id,
-            "verdict": _verdict(parent, comparison.record),
+            "verdict": verdict,
+            "study_verdict": study_verdict,
         }
     )
     atomic_write_json(
@@ -237,12 +262,38 @@ def read_revision_status(paths: TechtreePaths, revision_id: str) -> ForgeRevisio
     )
 
 
+def lineage_from_revision(paths: TechtreePaths, revision_id: str) -> ForgeSourceLineage:
+    """The lineage of a revised Skill looked at as a Source Skill: it joins
+    the line of the collection it was revised on."""
+    record = read_revision_status(paths, revision_id).record
+    match record.tasks_from:
+        case ForgeBuildTasks():
+            raise ValidationError(
+                f"revision {revision_id} was made on a repository's tasks, not "
+                "on a collection of tasks written from a Skill, so there is no "
+                "line of collections for this Skill to join. Look at it without "
+                "--derived-from",
+                code="forge_revision_without_line",
+                details={"revision_id": revision_id},
+            )
+        case ForgeCollectionTasks(collection_id=collection_id):
+            line = read_collection_status(paths, collection_id).record.review
+            return ForgeSourceLineage(
+                kind="revision",
+                parent_id=revision_id,
+                parent_digest=record.skill.root_digest,
+                root_digest=line.line_digest,
+            )
+
+
 # ---------------------------------------------------------------------------
 # Screening
 # ---------------------------------------------------------------------------
 
 
-_Material = Literal["reference_patch", "reference_solution", "tests"]
+_Material = Literal[
+    "reference_patch", "reference_solution", "tests", "instruction", "inputs"
+]
 
 
 def screen_skill(
@@ -252,26 +303,31 @@ def screen_skill(
     task_ids: list[str],
     files: list[tuple[Path, str]],
 ) -> list[ForgeScreeningFinding]:
-    """Record every Skill line that also occurs in a task's hidden material.
+    """Record every line of a revised Skill that also occurs in a task's
+    hidden material.
 
     A repository task hides three kinds of material: the added lines of the
     reference patch, every line of every file under ``tests``, and the test
     names the task grades by. A task written from a Skill hides every line
-    of every file under ``solution`` and under ``tests``. A Skill line is
-    compared after stripping, and only when it is long enough to be more
-    than coincidence.
+    of every file under ``solution`` and under ``tests``; a held-out task of
+    a collection also hides every line of its ``instruction.md`` and of its
+    inputs, the files under ``environment`` other than the ``Dockerfile``
+    that only builds its image. A Skill line is compared after stripping,
+    and only when it is long enough to be more than coincidence. On a
+    collection, lines of the Skill its tasks were written from and of the
+    instruction or inputs of a task the reviser may study are not screened:
+    the reviser had them without seeing anything hidden.
     """
-    skill_lines = [
-        (relative, number, line)
+    hidden, given = _material(paths, tasks_from, task_ids)
+    screened = [
+        (relative, number, stripped)
         for source, relative in files
         for number, line in _text_lines(source)
+        if len(stripped := line.strip()) >= _MINIMUM_LINE and stripped not in given
     ]
     findings: list[ForgeScreeningFinding] = []
-    for task_id, materials, names in _hidden_material(paths, tasks_from, task_ids):
-        for relative, number, line in skill_lines:
-            stripped = line.strip()
-            if len(stripped) < _MINIMUM_LINE:
-                continue
+    for task_id, materials, names in hidden:
+        for relative, number, stripped in screened:
             for material, haystack in materials:
                 if stripped in haystack:
                     findings.append(
@@ -296,12 +352,18 @@ def screen_skill(
     return findings
 
 
-def _hidden_material(
+_Hidden = list[tuple[str, list[tuple[_Material, set[str]]], set[str]]]
+
+
+def _material(
     paths: TechtreePaths,
     tasks_from: ForgeBuildTasks | ForgeCollectionTasks,
     task_ids: list[str],
-) -> list[tuple[str, list[tuple[_Material, set[str]]], set[str]]]:
-    """Return, per task, the hidden lines by kind and the test names it grades by."""
+) -> tuple[_Hidden, set[str]]:
+    """Return, per task, the hidden lines by kind and the test names it
+    grades by; and the lines the reviser was given: on a collection those of
+    the Skill its tasks were written from and of the instruction and inputs
+    of the tasks it may study, on a build none."""
     match tasks_from:
         case ForgeBuildTasks(build_id=build_id):
             build = read_build_status(paths, build_id).build
@@ -330,32 +392,71 @@ def _hidden_material(
                     ("tests", _lines_under(task_dir / "tests")),
                 ]
                 hidden.append((task_id, materials, names))
-            return hidden
+            return hidden, set()
         case ForgeCollectionTasks(collection_id=collection_id):
-            members = {
-                member.task_id: member.build_id
-                for member in read_collection_status(
-                    paths, collection_id
-                ).record.review.members
-            }
+            review = read_collection_status(paths, collection_id).record.review
+            members = {member.task_id: member for member in review.members}
             hidden = []
+            given = _source_lines(paths, review.source_id)
             for task_id in task_ids:
-                task_dir = paths.forge_build_dir(members[task_id]) / "tasks" / task_id
+                member = members[task_id]
+                task_dir = paths.forge_build_dir(member.build_id) / "tasks" / task_id
+                instruction = _lines_of(task_dir / "instruction.md")
+                inputs = _lines_under(task_dir / "environment", "Dockerfile")
                 materials = [
                     ("reference_solution", _lines_under(task_dir / "solution")),
                     ("tests", _lines_under(task_dir / "tests")),
                 ]
+                if member.part == "held_out":
+                    materials += [("instruction", instruction), ("inputs", inputs)]
+                else:
+                    given |= instruction | inputs
                 hidden.append((task_id, materials, set()))
-            return hidden
+            return hidden, given
 
 
-def _lines_under(directory: Path) -> set[str]:
-    """Return every stripped line of every text file under ``directory``."""
+def _source_lines(paths: TechtreePaths, source_id: str) -> set[str]:
+    """Every stripped line of the Source Skill a collection's tasks were
+    written from, as its look kept it, each file proved against the digest
+    the look recorded."""
+    source = read_source_status(paths, source_id)
+    directory = Path(source.path) / SKILL_DIRNAME
+    lines: set[str] = set()
+    for file in source.record.admitted_files:
+        data = _kept(directory / file.path)
+        if len(data) != file.size or sha256_digest_bytes(data) != file.digest:
+            raise ValidationError(
+                f"Techtree's kept copy of {file.path} no longer matches what "
+                f"Source Skill {source_id} recorded, so the revision cannot be "
+                "screened against it. Nothing was written",
+                code="forge_source_changed",
+                details={"source_id": source_id, "path": file.path},
+            )
+        lines |= {line.strip() for line in data.decode("utf-8").splitlines()}
+    return lines
+
+
+def _kept(path: Path) -> bytes:
+    try:
+        return path.read_bytes()
+    except OSError:
+        return b""
+
+
+def _lines_under(directory: Path, *leaving_out: str) -> set[str]:
+    """Return every stripped line of every text file under ``directory``,
+    except the files at ``leaving_out``, relative to it."""
     return {
-        line.strip()
+        line
         for path in sorted(p for p in directory.rglob("*") if p.is_file())
-        for _, line in _text_lines(path)
+        if path.relative_to(directory).as_posix() not in leaving_out
+        for line in _lines_of(path)
     }
+
+
+def _lines_of(path: Path) -> set[str]:
+    """Return every stripped line of one text file."""
+    return {line.strip() for _, line in _text_lines(path)}
 
 
 def _text_lines(path: Path) -> list[tuple[int, str]]:
@@ -378,25 +479,140 @@ def _test_name(test_id: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _verdict(parent: ForgeComparisonRecord, revised: ForgeComparisonRecord) -> str:
-    """Say, in one sentence, how the revision did against the Skill it revised."""
-    before = parent.candidate.mean_reward
-    after = revised.candidate.mean_reward
-    partial = "" if parent.complete and revised.complete else " Partial evidence:"
-    if before is None or after is None:
-        return sanitize_label(
-            f"{partial} the revision could not be placed against the Skill it "
-            "revised, because one of the two has no graded pair.".strip(),
-            maximum=_VERDICT_LIMIT,
+class _Measure(NamedTuple):
+    """What one comparison says about its candidate on the tasks a verdict is over."""
+
+    mean: float | None
+    wins: int
+    losses: int
+    ties: int
+    graded: int
+    planned: int
+    complete: bool
+
+
+def _verdicts(
+    parent: ForgeComparisonRecord,
+    revised: ForgeComparisonRecord,
+    screening: list[ForgeScreeningFinding],
+) -> tuple[str, str | None]:
+    """Return a revision's verdict and, on a collection, its study verdict.
+
+    On a collection the verdict is over the held-out pairs alone, and the
+    study verdict over the pairs of the tasks the reviser could see; on a
+    build's tasks the one verdict is over them all. A revised Skill that
+    shares a line with a held-out task's material is not judged on them,
+    since it may carry what it was never meant to see.
+    """
+    if (
+        parent.held_out is None
+        or parent.study is None
+        or revised.held_out is None
+        or revised.study is None
+    ):
+        return (
+            _verdict("", parent, revised, _whole(parent), _whole(revised)),
+            None,
         )
-    change = after - before
+    held_out = len(revised.held_out.task_ids)
+    scope = (
+        f"On the {held_out} held-out {'task' if held_out == 1 else 'tasks'}, "
+        "which the agent that wrote the revision never saw"
+    )
+    carries = {finding.task_id for finding in screening} & set(
+        revised.held_out.task_ids
+    )
+    return (
+        _lead(
+            "",
+            scope,
+            "the revision is not judged, because the revised Skill contains "
+            "material from held-out tasks. Kept as measured.",
+        )
+        if carries
+        else _verdict(
+            scope, parent, revised, _part(parent.held_out), _part(revised.held_out)
+        ),
+        _verdict(
+            "On the tasks the agent that wrote the revision could see",
+            parent,
+            revised,
+            _part(parent.study),
+            _part(revised.study),
+        ),
+    )
+
+
+def _whole(record: ForgeComparisonRecord) -> _Measure:
+    return _Measure(
+        mean=record.candidate.mean_reward,
+        wins=record.wins,
+        losses=record.losses,
+        ties=record.ties,
+        graded=record.pairs_graded,
+        planned=record.pairs_planned,
+        complete=record.complete,
+    )
+
+
+def _part(part: ForgePartSummary) -> _Measure:
+    return _Measure(
+        mean=part.candidate_mean_reward,
+        wins=part.wins,
+        losses=part.losses,
+        ties=part.ties,
+        graded=part.pairs_graded,
+        planned=part.pairs_planned,
+        complete=part.complete,
+    )
+
+
+def _verdict(
+    scope: str,
+    parent: ForgeComparisonRecord,
+    revised: ForgeComparisonRecord,
+    before: _Measure,
+    after: _Measure,
+) -> str:
+    """Say, in one sentence, how the revision did against the Skill it revised.
+
+    Like every other verdict, it needs at least ``VERDICT_MINIMUM_PAIRS``
+    graded pairs, here on each side, and is inconclusive below that.
+    """
+    partial = "" if before.complete and after.complete else "Partial evidence:"
+    if before.mean is None or after.mean is None:
+        return _lead(
+            partial,
+            scope,
+            "the revision could not be placed against the Skill it revised, "
+            "because one of the two has no graded pair.",
+        )
+    if min(before.graded, after.graded) < VERDICT_MINIMUM_PAIRS:
+        return _lead(
+            partial,
+            scope,
+            "the revision is inconclusive against the Skill it revised: "
+            f"{after.graded} graded {'pair' if after.graded == 1 else 'pairs'} "
+            f"for the revision and {before.graded} for the Skill it revised, "
+            f"and a verdict needs at least {VERDICT_MINIMUM_PAIRS} on each. "
+            "Kept as measured.",
+        )
+    change = after.mean - before.mean
     word = (
         "improved on" if change > 0 else "regressed from" if change < 0 else "matched"
     )
-    return sanitize_label(
-        f"{partial} Against the same baseline, {revised.candidate_skill.name} "
-        f"{word} {parent.candidate_skill.name}: mean reward {after:.2f} against "
-        f"{before:.2f} ({change:+.2f}); {revised.wins} won, {revised.losses} lost, "
-        f"{revised.ties} tied of {revised.pairs_planned}. Kept as measured.".strip(),
-        maximum=_VERDICT_LIMIT,
+    return _lead(
+        partial,
+        scope,
+        f"against the same baseline, {revised.candidate_skill.name} {word} "
+        f"{parent.candidate_skill.name}: mean reward {after.mean:.2f} against "
+        f"{before.mean:.2f} ({change:+.2f}); {after.wins} won, {after.losses} lost, "
+        f"{after.ties} tied of {after.planned}. Kept as measured.",
     )
+
+
+def _lead(partial: str, scope: str, said: str) -> str:
+    """Join a verdict's parts into one sentence: what it is partial on, what
+    it is over, and what it says."""
+    body = f"{scope}, {said}" if scope else said[0].upper() + said[1:]
+    return sanitize_label(f"{partial} {body}".strip(), maximum=_VERDICT_LIMIT)

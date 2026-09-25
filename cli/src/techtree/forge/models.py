@@ -24,6 +24,8 @@ and comparison named beside the verdict.
 
 from __future__ import annotations
 
+import hashlib
+from collections.abc import Sequence
 from enum import StrEnum
 from typing import Annotated, Final, Literal, Self
 
@@ -75,6 +77,9 @@ __all__ = [
     "FORGE_TASK_SET_SCHEMA_VERSION",
     "MAX_CLAIMS",
     "MAX_PLANNED_TASKS",
+    "MINIMUM_COLLECTION_TASKS",
+    "TASK_KINDS_EXPLAINED",
+    "TASK_KIND_WORDS",
     "VERDICT_MINIMUM_PAIRS",
     "AgentSkillName",
     "ForgeAgentSpec",
@@ -96,6 +101,8 @@ __all__ = [
     "ForgeCollectionCandidate",
     "ForgeCollectionMember",
     "ForgeCollectionParent",
+    "ForgeCollectionPart",
+    "ForgeCollectionPartFixed",
     "ForgeCollectionRecord",
     "ForgeCollectionReview",
     "ForgeCollectionState",
@@ -138,6 +145,7 @@ __all__ = [
     "ForgeOutputManifest",
     "ForgeOutputs",
     "ForgePairResult",
+    "ForgePartSummary",
     "ForgePlanApproval",
     "ForgePlanAttempt",
     "ForgePlanAttemptState",
@@ -193,6 +201,7 @@ __all__ = [
     "TaskQualification",
     "TaskQualificationEvidence",
     "TaskSetCommitment",
+    "collection_parts",
     "forge_verdict",
     "proposal_content",
 ]
@@ -885,7 +894,7 @@ class ForgeRunStatus(ProtocolModel):
     record: ForgeRunRecord
 
 
-FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha4"
+FORGE_COMPARISON_SCHEMA_VERSION: Final = "techtree.forge-comparison.v1alpha5"
 
 #: Fewer graded pairs than this and no verdict is given.
 VERDICT_MINIMUM_PAIRS: Final = 3
@@ -1007,6 +1016,50 @@ class ForgeSkillRef(ProtocolModel):
     digest: Digest
 
 
+class ForgePartSummary(ProtocolModel):
+    """The pairs of one part of a collection, added up and judged on their own.
+
+    ``task_ids`` are the part's tasks the runs covered, in run order. The
+    means are over the part's graded pairs, both arms alike, and the verdict
+    follows the same rules, in the same order, as the whole comparison's.
+    """
+
+    task_ids: list[ForgeTaskId]
+    pairs_planned: int = Field(ge=0)
+    pairs_graded: int = Field(ge=0)
+    wins: int = Field(ge=0)
+    losses: int = Field(ge=0)
+    ties: int = Field(ge=0)
+    unresolved: int = Field(ge=0)
+    baseline_mean_reward: float | None
+    candidate_mean_reward: float | None
+    mean_delta: float | None
+    complete: bool
+    verdict: ForgeVerdict
+
+    @model_validator(mode="after")
+    def validate_counts_agree(self) -> Self:
+        if self.wins + self.losses + self.ties != self.pairs_graded:
+            raise ValueError(
+                "a part's wins, losses and ties add up to its graded pairs"
+            )
+        if self.pairs_graded + self.unresolved != self.pairs_planned:
+            raise ValueError("a part's graded and unresolved pairs add up to its plan")
+        if self.complete != (self.unresolved == 0):
+            raise ValueError("a part is complete exactly when no pair is unresolved")
+        means = (self.baseline_mean_reward, self.candidate_mean_reward, self.mean_delta)
+        if any((mean is None) != (self.pairs_graded == 0) for mean in means):
+            raise ValueError("a part has means exactly when a pair was graded")
+        if self.verdict is not forge_verdict(
+            wins=self.wins,
+            losses=self.losses,
+            graded=self.pairs_graded,
+            unresolved=self.unresolved,
+        ):
+            raise ValueError("a part's verdict follows the rules from its counts")
+        return self
+
+
 class ForgeComparisonRecord(ProtocolModel):
     """Two arms of one experiment, paired task by task.
 
@@ -1023,9 +1076,14 @@ class ForgeComparisonRecord(ProtocolModel):
     attempts; ``summary`` leads with the verdict in words. The comparability
     gate's finding is kept whole so a reader can see what was allowed to
     differ.
+
+    On a collection, ``study`` and ``held_out`` add up and judge each part
+    of it on its own: the tasks an improving agent may see, and the tasks it
+    never sees, on which a revision's verdict is computed. A build's tasks
+    have no parts, and both are ``None``.
     """
 
-    schema_version: Literal["techtree.forge-comparison.v1alpha4"]
+    schema_version: Literal["techtree.forge-comparison.v1alpha5"]
     comparison_id: NonEmptyString
     created_at: UtcDateTime
     tasks_from: Annotated[
@@ -1052,13 +1110,25 @@ class ForgeComparisonRecord(ProtocolModel):
     verdict: ForgeVerdict
     regressions: list[ForgeTaskRegression]
     consistency: list[ForgeTaskConsistency]
+    study: ForgePartSummary | None
+    held_out: ForgePartSummary | None
     summary: NonEmptyString
     not_established: list[NonEmptyString]
 
     @model_validator(mode="after")
     def validate_counts_agree(self) -> Self:
-        if (self.source_skill is None) != isinstance(self.tasks_from, ForgeBuildTasks):
+        on_build = isinstance(self.tasks_from, ForgeBuildTasks)
+        if (self.source_skill is None) != on_build:
             raise ValueError("a Source Skill is named exactly for a collection's tasks")
+        parts = [part for part in (self.study, self.held_out) if part is not None]
+        if len(parts) != (0 if on_build else 2):
+            raise ValueError("both parts are summed exactly for a collection's tasks")
+        if parts and (
+            sorted(task for part in parts for task in part.task_ids)
+            != sorted(task.task_id for task in self.consistency)
+            or sum(part.pairs_planned for part in parts) != self.pairs_planned
+        ):
+            raise ValueError("the parts divide the comparison's tasks between them")
         if self.wins + self.losses + self.ties != self.pairs_graded:
             raise ValueError("wins, losses and ties add up to the graded pairs")
         if self.pairs_graded + self.unresolved != self.pairs_planned:
@@ -1117,7 +1187,7 @@ class ForgeComparisonStatus(ProtocolModel):
     record: ForgeComparisonRecord
 
 
-FORGE_REVISION_SCHEMA_VERSION: Final = "techtree.forge-revision.v1alpha2"
+FORGE_REVISION_SCHEMA_VERSION: Final = "techtree.forge-revision.v1alpha3"
 
 
 class ForgeScreeningFinding(ProtocolModel):
@@ -1128,12 +1198,21 @@ class ForgeScreeningFinding(ProtocolModel):
     approves the second run sees it, and the report can say the Skill may
     carry the answer rather than the method. A repository task hides its
     reference patch, tests and test names; a Skill task hides its reference
-    solutions and tests. The excerpt is bounded and the line is named by its
-    number in the Skill, never by the hidden file's.
+    solutions and tests, and a held-out task of a collection also hides its
+    instruction and its inputs, since the improving agent never sees them.
+    The excerpt is bounded and the line is named by its number in the Skill,
+    never by the hidden file's.
     """
 
     task_id: ForgeTaskId
-    material: Literal["reference_patch", "reference_solution", "tests", "test_names"]
+    material: Literal[
+        "reference_patch",
+        "reference_solution",
+        "tests",
+        "test_names",
+        "instruction",
+        "inputs",
+    ]
     skill_path: NonEmptyString
     line: int = Field(ge=1)
     excerpt: NonEmptyString
@@ -1147,9 +1226,14 @@ class ForgeRevisionRecord(ProtocolModel):
     made, the comparison of that run against the same baseline, and a
     one-line verdict against the comparison it revised from. It is kept
     whether it improved or regressed; nothing here chooses.
+
+    On a collection the verdict is computed on the held-out tasks alone, the
+    ones the improving agent never saw, and ``study_verdict`` says the same
+    of the tasks it could see, labelled as such. On a build's tasks there is
+    one verdict over all of them and no study verdict.
     """
 
-    schema_version: Literal["techtree.forge-revision.v1alpha2"]
+    schema_version: Literal["techtree.forge-revision.v1alpha3"]
     revision_id: NonEmptyString
     created_at: UtcDateTime
     updated_at: UtcDateTime
@@ -1168,6 +1252,7 @@ class ForgeRevisionRecord(ProtocolModel):
     measured_run_id: NonEmptyString | None
     measured_comparison_id: NonEmptyString | None
     verdict: NonEmptyString | None
+    study_verdict: NonEmptyString | None
 
     @model_validator(mode="after")
     def validate_measurement(self) -> Self:
@@ -1179,6 +1264,12 @@ class ForgeRevisionRecord(ProtocolModel):
             )
         if not measured and any(fact is not None for fact in facts):
             raise ValueError("a prepared revision has no measurement yet")
+        on_collection = isinstance(self.tasks_from, ForgeCollectionTasks)
+        if (self.study_verdict is not None) != (measured and on_collection):
+            raise ValueError(
+                "a measured revision on a collection has a study verdict beside "
+                "its held-out verdict, and no other revision has one"
+            )
         if self.skill.root_digest == self.parent_skill_digest:
             raise ValueError("a revision differs from the Skill it revises")
         return self
@@ -1423,10 +1514,21 @@ class ForgeSourceRefusal(ProtocolModel):
 
 
 class ForgeSourceLineage(ProtocolModel):
-    """The inspected Skill a reduced derivative was made from."""
+    """What an inspected Skill was made from, and the Skill its line starts at.
 
-    parent_source_id: NonEmptyString
-    parent_admitted_digest: Digest
+    ``kind`` says what the parent is: ``source``, an earlier look at a Skill
+    this one is a reduced copy of, or ``revision``, a revised Skill uplift
+    wrote on a collection's tasks. ``parent_id`` names it and
+    ``parent_digest`` is its content digest. ``root_digest`` is the admitted
+    digest of the Skill at the start of the chain, which every Skill derived
+    from it carries: the collections of all of them form one line of
+    versions.
+    """
+
+    kind: Literal["source", "revision"]
+    parent_id: NonEmptyString
+    parent_digest: Digest
+    root_digest: Digest
 
 
 class ForgeSourceRecord(ProtocolModel):
@@ -1450,6 +1552,14 @@ class ForgeSourceRecord(ProtocolModel):
     admitted_digest: Digest
     refusals: list[ForgeSourceRefusal]
     lineage: ForgeSourceLineage | None
+
+    @property
+    def line_digest(self) -> str:
+        """The Skill this one's line of collections starts at: the root of
+        what it was derived from, or itself."""
+        return (
+            self.admitted_digest if self.lineage is None else self.lineage.root_digest
+        )
 
     @model_validator(mode="after")
     def validate_record(self) -> Self:
@@ -1497,11 +1607,11 @@ FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION: Final = (
 FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION: Final = (
     "techtree.forge-construction-package.v1alpha2"
 )
-FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha1"
+FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha2"
 FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION: Final = (
     "techtree.forge-collection-acceptance.v1alpha1"
 )
-FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha1"
+FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha2"
 
 #: The most tasks one plan may ask for: Skill2Env's own default workflow count.
 MAX_PLANNED_TASKS: Final = 8
@@ -1526,6 +1636,20 @@ _PLAIN: Final = AfterValidator(_one_plain_line)
 
 #: Which case of its claim a task is; see :class:`ForgeProposedTask`.
 type ForgeTaskKind = Literal["positive", "boundary", "counterexample"]
+
+#: Which case of its claim a task is, in words a person reads.
+TASK_KIND_WORDS: Final[dict[ForgeTaskKind, str]] = {
+    "positive": "positive case",
+    "boundary": "boundary case",
+    "counterexample": "counterexample",
+}
+#: What each case of a claim is, in words a person reads.
+TASK_KINDS_EXPLAINED: Final = (
+    "A positive case is one where following the Skill should give the right "
+    "result; a boundary case sits at the edge of where the claim applies; a "
+    "counterexample checks that the Skill is not overused where it would give "
+    "a wrong result or should change nothing."
+)
 
 #: A proposed task's name: lowercase letters and digits in hyphen-separated runs.
 type ForgeProposedTaskName = Annotated[
@@ -2119,14 +2243,92 @@ class ForgeCollectionCandidate(ProtocolModel):
         return self
 
 
+#: Which part of a collection a task is in: the tasks an improving agent may
+#: study, or the tasks held out from it, on which a revision is judged.
+type ForgeCollectionPart = Literal["study", "held_out"]
+
+#: The fewest tasks a collection holds: at least one in each part.
+MINIMUM_COLLECTION_TASKS: Final = 2
+
+
+def collection_parts(
+    proposal_digest: str,
+    members: Sequence[tuple[str, str]],
+    earlier: Sequence[ForgeCollectionPartFixed],
+) -> list[ForgeCollectionPart]:
+    """Return each task's part, in the order given; nobody chooses it.
+
+    ``members`` are (task name, fingerprint) pairs, and ``earlier`` the
+    tasks collections accepted earlier in the home held, with their parts. A
+    task inherits the part of every earlier task that shares its name or its
+    fingerprint, so a task built again keeps its part, and so does the same
+    task under another name; when those parts disagree, it is studied, since
+    a task the improving agent has seen can never be held out again. The
+    tasks that inherit nothing are put in the order of the SHA-256 of
+    ``proposal_digest:fingerprint``, ties broken by name, and the first
+    half, rounded down, are held out; the rest are studied. A single such
+    task takes the part that leaves the collection more even, held out when
+    it is even either way. The result depends on the tasks, never on their
+    order.
+    """
+    parts: dict[int, ForgeCollectionPart] = {}
+    for index, (name, fingerprint) in enumerate(members):
+        inherited = {
+            task.part
+            for task in earlier
+            if task.task_name == name or task.fingerprint == fingerprint
+        }
+        if inherited:
+            parts[index] = "study" if "study" in inherited else "held_out"
+    new = [index for index in range(len(members)) if index not in parts]
+    if len(new) == 1:
+        held_out = sum(part == "held_out" for part in parts.values())
+        parts[new[0]] = "study" if held_out > len(parts) - held_out else "held_out"
+    else:
+        ranked = sorted(
+            new,
+            key=lambda index: (
+                hashlib.sha256(
+                    f"{proposal_digest}:{members[index][1]}".encode()
+                ).hexdigest(),
+                members[index][0],
+            ),
+        )
+        parts |= {
+            index: "held_out" if rank < len(new) // 2 else "study"
+            for rank, index in enumerate(ranked)
+        }
+    return [parts[index] for index in range(len(members))]
+
+
 class ForgeCollectionMember(ProtocolModel):
-    """One accepted task: exactly the bytes and the qualification it had."""
+    """One accepted task: exactly the bytes and the qualification it had.
+
+    ``claim`` and ``kind`` are the claim the task tests and which case of it,
+    as its construction package recorded them. ``fingerprint`` identifies
+    the task whatever it was built as: the digest of its files other than
+    the ``task.toml`` Techtree writes. ``part`` is given by
+    :func:`collection_parts`, not by the author.
+    """
 
     task_name: ForgeProposedTaskName
+    claim: ForgeClaimId
+    kind: ForgeTaskKind
     build_id: NonEmptyString
     task_id: ForgeTaskId
     content_digest: Digest
+    fingerprint: Digest
     qualification_digest: Digest
+    part: ForgeCollectionPart
+
+
+class ForgeCollectionPartFixed(ProtocolModel):
+    """The part an accepted collection gave one task, by its name and
+    fingerprint; every collection accepted after it in the home inherits it."""
+
+    task_name: ForgeProposedTaskName
+    fingerprint: Digest
+    part: ForgeCollectionPart
 
 
 class ForgeCollectionParent(ProtocolModel):
@@ -2142,19 +2344,30 @@ class ForgeCollectionReview(ProtocolModel):
 
     Every task of the proposal with its outcome, so nothing that failed is
     out of sight, and the exact members: the qualified tasks being accepted,
-    each by its content and qualification digests. ``constructions`` is the
-    retry chain the outcomes come from, newest first.
+    each by its content and qualification digests and the part it is in,
+    with at least one task in each part. ``claims`` are the proposal's
+    claims, which the members name. ``constructions`` is the retry chain the
+    outcomes come from, newest first. ``line_digest`` is the Skill the
+    source's line starts at (``ForgeSourceRecord.line_digest``): the
+    collections of a Skill and of every Skill derived from it form one line
+    of versions. ``inherited`` is every task a collection accepted earlier in
+    the home held that shares a member's name or fingerprint, with the part
+    it was given there (studied, when collections disagree), whichever Skill
+    that collection was of: the parts the members take from them.
     """
 
     proposal_id: NonEmptyString
     proposal_digest: Digest
+    claims: list[ForgeSkillClaim] = Field(min_length=1, max_length=MAX_CLAIMS)
     source_id: NonEmptyString
     source_digest: Digest
+    line_digest: Digest
     constructions: list[NonEmptyString] = Field(min_length=1)
     previous: ForgeCollectionParent | None
     version: int = Field(ge=1)
+    inherited: list[ForgeCollectionPartFixed]
     tasks: list[ForgeCollectionCandidate] = Field(min_length=1)
-    members: list[ForgeCollectionMember] = Field(min_length=1)
+    members: list[ForgeCollectionMember] = Field(min_length=MINIMUM_COLLECTION_TASKS)
     membership_digest: Digest
 
     @model_validator(mode="after")
@@ -2163,6 +2376,20 @@ class ForgeCollectionReview(ProtocolModel):
         names = [member.task_name for member in self.members]
         if len(set(names)) != len(names) or not set(names) <= usable:
             raise ValueError("members are distinct tasks that qualified")
+        fingerprints = {member.fingerprint for member in self.members}
+        if len(fingerprints) != len(self.members):
+            raise ValueError("no two members have the same files")
+        claims = {claim.claim_id for claim in self.claims}
+        if not {member.claim for member in self.members} <= claims:
+            raise ValueError("every member tests one of the proposal's claims")
+        if [member.part for member in self.members] != collection_parts(
+            self.proposal_digest,
+            [(member.task_name, member.fingerprint) for member in self.members],
+            self.inherited,
+        ):
+            raise ValueError("each task's part is the one the rule gives it")
+        if {member.part for member in self.members} != {"study", "held_out"}:
+            raise ValueError("a collection has a task in each part")
         if not verify_object_digest(self.members, self.membership_digest):
             raise ValueError("membership digest does not describe the members")
         expected = 1 if self.previous is None else self.previous.version + 1
@@ -2170,11 +2397,15 @@ class ForgeCollectionReview(ProtocolModel):
             raise ValueError("a collection is one version after the one it replaces")
         return self
 
+    def parts(self) -> dict[str, ForgeCollectionPart]:
+        """Return each member's part by its task id."""
+        return {member.task_id: member.part for member in self.members}
+
 
 class ForgeCollectionRecord(ProtocolModel):
     """A prepared collection: its review and the digest acceptance names."""
 
-    schema_version: Literal["techtree.forge-collection.v1alpha1"]
+    schema_version: Literal["techtree.forge-collection.v1alpha2"]
     collection_id: NonEmptyString
     created_at: UtcDateTime
     review: ForgeCollectionReview
@@ -2229,11 +2460,11 @@ class ForgeExport(ProtocolModel):
     ``tasks`` follows the collection's members, one for one and in order.
     """
 
-    schema_version: Literal["techtree.forge-export.v1alpha1"]
+    schema_version: Literal["techtree.forge-export.v1alpha2"]
     exported_at: UtcDateTime
     collection: ForgeCollectionRecord
     acceptance: ForgeCollectionAcceptance
-    tasks: list[ForgeExportTask] = Field(min_length=1)
+    tasks: list[ForgeExportTask] = Field(min_length=MINIMUM_COLLECTION_TASKS)
 
 
 class ForgeExportVerification(ProtocolModel):
@@ -2246,6 +2477,7 @@ class ForgeExportVerification(ProtocolModel):
     path: NonEmptyString
     collection_id: NonEmptyString
     version: int = Field(ge=1)
-    tasks: int = Field(ge=1)
+    tasks: int = Field(ge=MINIMUM_COLLECTION_TASKS)
+    held_out: int = Field(ge=1)
     checked: list[NonEmptyString] = Field(min_length=1)
     recorded_only: list[NonEmptyString] = Field(min_length=1)

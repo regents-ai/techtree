@@ -3,7 +3,8 @@
 The tests hold what an acceptance promises: a collection shows every
 proposed task with how it went, failures included, and accepts only the
 qualified ones; nothing is frozen until a person accepts it; a collection of
-fewer than three tasks is accepted with the few-tasks warning; a changed
+fewer than three tasks is accepted with the few-tasks warning, and one of a
+single task is refused; a changed
 byte in an accepted task, or a rewritten membership, fails verification; an
 accepted collection is never accepted again, and a different membership is
 a new version naming the one it replaces. A baseline runs on the accepted
@@ -20,14 +21,19 @@ baseline's Skill if it has one, and the candidate's, each by its own digest
 even when two are the same bytes. A Skill-v1-to-Skill-v2 comparison is
 judged by the same rules, a run on a different version of the collection is
 not comparable, and a comparison on the collection is revised there, screened
-against the tasks' reference solutions and tests. The creator, Docker and
-Hermes are the stand-ins of the construction and run tests; no model is
-called.
+against the tasks' reference solutions and tests. Which tasks are held out
+follows from the tasks alone, whatever order they come in, and puts a task in
+each part (founder decision 2a); the improving agent's context never names a
+held-out task or shows its instruction, and a revision's verdict is worked
+out on the held-out tasks alone. The creator, Docker and Hermes are the
+stand-ins of the construction and run tests; no model is called.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import shutil
 import stat
 import subprocess
 from collections.abc import Sequence
@@ -74,9 +80,14 @@ from techtree.forge.models import (
     ForgeOutputManifest,
     ForgeRunSpec,
     ForgeVerdict,
+    collection_parts,
 )
 from techtree.forge.planning import read_plan_status, start_plan
-from techtree.forge.revision import prepare_revision
+from techtree.forge.revision import (
+    measure_revision,
+    prepare_revision,
+    read_revision_status,
+)
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
 from techtree.forge.source import inspect_source_skill
@@ -97,7 +108,8 @@ FAILS = "branch-code-batch"
 REJECTED = "branch-code-audit"
 TIMES_OUT = "branch-code-empty"
 DOES_NOT_QUALIFY = "branch-code-unicode"
-FIVE = [QUALIFIES, FAILS, REJECTED, TIMES_OUT, DOES_NOT_QUALIFY]
+ALSO_QUALIFIES = "branch-code-twice"
+PROPOSED = [QUALIFIES, FAILS, REJECTED, TIMES_OUT, DOES_NOT_QUALIFY, ALSO_QUALIFIES]
 
 
 @pytest.fixture
@@ -114,22 +126,27 @@ def profiles(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
-    """The planner's proposal, corrected by a person to the five tasks of AE5."""
     root = tmp_path / "branch-code"
     root.mkdir()
     (root / "SKILL.md").write_text(SKILL, encoding="utf-8")
+    source = inspect_source_skill(paths_from_root(home), root, lineage=None)
+    return propose(tmp_path, home, profiles, source.source_id)
+
+
+def propose(tmp_path: Path, home: Path, profiles: Path, source_id: str) -> str:
+    """The planner's proposal, corrected by a person to the five tasks of AE5
+    and one more that qualifies, so that a collection has a task in each part."""
     paths = paths_from_root(home)
-    source = inspect_source_skill(paths, root, derived_from=None)
     code, envelope = invoke(
         home,
         "plan",
-        source.source_id,
+        source_id,
         "--provider",
         "openai-codex",
         "--model",
         "gpt-5.6-sol",
         "--tasks",
-        "5",
+        str(len(PROPOSED)),
     )
     assert code == 0, envelope
     plan_id = envelope["facts"]["plan_id"]
@@ -149,9 +166,9 @@ def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
             paths.forge_proposal_dir(attempt.proposal_id) / "claims-and-tasks.json"
         ).read_bytes()
     )
-    for name in (TIMES_OUT, DOES_NOT_QUALIFY):
+    for name in (TIMES_OUT, DOES_NOT_QUALIFY, ALSO_QUALIFIES):
         edited["tasks"].append({**edited["tasks"][0], "name": name})
-    corrected = tmp_path / "corrected.json"
+    corrected = tmp_path / f"corrected-{source_id}.json"
     corrected.write_text(json.dumps(edited), encoding="utf-8")
     code, envelope = invoke(
         home, "correct-proposal", attempt.proposal_id, str(corrected)
@@ -216,7 +233,8 @@ def construct(
 
 
 def ae5_creator() -> FakeCreator:
-    """One task of each outcome: qualified, failed, rejected, unknown, unqualified."""
+    """One task of each outcome: qualified, failed, rejected, unknown, unqualified;
+    and the one more that qualifies."""
     answer = json.loads(created_package(REJECTED))
     answer["files"].append({"path": "task.toml", "text": "", "executable": False})
     return FakeCreator(
@@ -235,11 +253,11 @@ def collect(home: Path, *arguments: str) -> dict[str, Any]:
 
 
 def member_build(paths: TechtreePaths, collection_id: str) -> ForgeBuildStatus:
-    [member] = read_collection_status(paths, collection_id).record.review.members
+    member = read_collection_status(paths, collection_id).record.review.members[0]
     return read_build_status(paths, member.build_id)
 
 
-def test_five_proposed_one_qualified_all_shown_and_frozen_only_when_accepted(
+def test_six_proposed_two_qualified_all_shown_and_frozen_only_when_accepted(
     home: Path, proposal_id: str, profiles: Path
 ) -> None:
     construction_id = construct(home, proposal_id, profiles, ae5_creator())
@@ -257,13 +275,14 @@ def test_five_proposed_one_qualified_all_shown_and_frozen_only_when_accepted(
     review = status["record"]["review"]
     assert status["state"] == "prepared" and status["acceptance"] is None
     assert envelope["state_digest"] == status["record"]["collection_digest"]
-    assert [task["task_name"] for task in review["tasks"]] == FIVE
+    assert [task["task_name"] for task in review["tasks"]] == PROPOSED
     assert [(task["state"], task["usable"]) for task in review["tasks"]] == [
         ("succeeded", True),
         ("failed", False),
         ("rejected", False),
         ("outcome_unknown", False),
         ("succeeded", False),
+        ("succeeded", True),
     ]
     assert (
         review["tasks"][2]["why"] is not None
@@ -271,11 +290,15 @@ def test_five_proposed_one_qualified_all_shown_and_frozen_only_when_accepted(
     )
     assert review["tasks"][4]["build_id"] is not None
     assert review["tasks"][4]["why"] is None
-    [member] = review["members"]
-    assert member["task_name"] == QUALIFIES
+    assert [member["task_name"] for member in review["members"]] == [
+        QUALIFIES,
+        ALSO_QUALIFIES,
+    ]
     assert review["version"] == 1 and review["previous"] is None
-    [warning] = envelope["warnings"]
-    assert warning["id"] == "forge_few_tasks"
+    assert [warning["id"] for warning in envelope["warnings"]] == [
+        "forge_few_tasks",
+        "forge_few_held_out",
+    ]
     [accept] = envelope["next_actions"]
     assert accept["prepared_arguments"]["command"] == ["forge", "accept"]
     assert accept["expected_state_digest"] == status["record"]["collection_digest"]
@@ -291,20 +314,25 @@ def test_five_proposed_one_qualified_all_shown_and_frozen_only_when_accepted(
     )
 
     assert result.exit_code == 0, result.output
-    for name in FIVE:
+    for name in PROPOSED:
         assert name in result.output
     assert "built, but did not qualify" in result.output
     assert "outcome unknown" in result.output
     assert "Accept these tasks as the collection?" in result.output
-    assert "Only 1 task is in this collection" in result.output
+    assert "Only 2 tasks are in this collection" in result.output
+    assert "at least 3 repetitions per task" in " ".join(result.output.split())
     accepted = read_collection_status(paths_from_root(home), collection_id)
     assert accepted.state == "accepted" and accepted.acceptance is not None
     assert accepted.acceptance.answered_with == "prompt"
     assert accepted.acceptance.collection_digest == accepted.record.collection_digest
 
     code, verified = invoke(home, "verify", collection_id)
+    _, collected = invoke(home, "status", construction_id)
 
     assert code == 0, verified
+    assert ["forge", "collect"] not in [
+        action["prepared_arguments"]["command"] for action in collected["next_actions"]
+    ]
     assert verified["operation"] == "proof.verify"
     assert verified["warnings"][0]["id"] == "forge_few_tasks"
     code, again = invoke(home, "accept", collection_id, "--yes")
@@ -353,13 +381,15 @@ def test_a_rewritten_membership_fails_verification(
     paths = paths_from_root(home)
     first = construct(home, proposal_id, profiles, ae5_creator())
     retry = construct(home, proposal_id, profiles, FakeCreator(), retry_of=first)
-    collection_id = collect(home, retry, "--task", QUALIFIES)["facts"]["collection_id"]
+    collection_id = collect(home, retry, "--task", QUALIFIES, "--task", ALSO_QUALIFIES)[
+        "facts"
+    ]["collection_id"]
+    other = collect(home, retry)["facts"]["record"]["review"]
     assert invoke(home, "accept", collection_id, "--yes")[0] == 0
     # Someone adds a qualified task to the accepted collection and makes every
     # digest in the record agree again; the acceptance still names the old one.
     path = paths.forge_collection_dir(collection_id) / "collection.json"
     record = json.loads(path.read_bytes())
-    other = collect(home, retry)["facts"]["record"]["review"]
     record["review"]["members"] = other["members"]
     record["review"]["membership_digest"] = other["membership_digest"]
     record["collection_digest"] = digest_object(
@@ -377,7 +407,9 @@ def test_a_rewritten_membership_fails_verification(
 def test_nothing_qualified_means_nothing_to_accept(
     home: Path, proposal_id: str, profiles: Path
 ) -> None:
-    creator = FakeCreator(calls={name: FakePlanner(timed_out=True) for name in FIVE})
+    creator = FakeCreator(
+        calls={name: FakePlanner(timed_out=True) for name in PROPOSED}
+    )
     construction_id = construct(home, proposal_id, profiles, creator)
 
     code, envelope = invoke(home, "collect", construction_id)
@@ -427,8 +459,11 @@ def test_a_retried_task_joins_as_a_new_version(
         FAILS,
         REJECTED,
         TIMES_OUT,
+        ALSO_QUALIFIES,
     ]
-    assert envelope["warnings"] == []
+    [warning] = envelope["warnings"]
+    assert warning["id"] == "forge_few_held_out"
+    assert "at least 2 repetitions per task" in warning["text"]
     assert invoke(home, "verify", v1)[0] == 0
 
 
@@ -438,19 +473,25 @@ def test_a_retried_task_joins_as_a_new_version(
 
 
 def accepted(home: Path, proposal_id: str, profiles: Path) -> str:
-    """An accepted collection of the one task that qualified."""
+    """An accepted collection of the two tasks that qualified, one in each part."""
     construction_id = construct(home, proposal_id, profiles, ae5_creator())
     collection_id: str = collect(home, construction_id)["facts"]["collection_id"]
     assert invoke(home, "accept", collection_id, "--yes")[0] == 0
     return collection_id
 
 
-def baseline(home: Path, collection_id: str, *, repetitions: int = 1) -> ForgeRunSpec:
+def baseline(
+    home: Path,
+    collection_id: str,
+    *,
+    repetitions: int = 1,
+    task_ids: list[str] | None = None,
+) -> ForgeRunSpec:
     return declare_run_spec(
         paths_from_root(home),
         arm=ForgeArm.BASELINE,
         collection_id=collection_id,
-        task_ids=None,
+        task_ids=task_ids,
         skill_root=None,
         provider="openai-codex",
         model_id="gpt-5.6-sol",
@@ -514,29 +555,34 @@ def test_a_baseline_on_the_accepted_collection_records_its_outputs_before_gradin
 
     assert code == 0, envelope
     status = read_run_status(paths_from_root(home), envelope["facts"]["run_id"])
-    [attempt] = status.record.attempts
-    assert attempt.outcome is ForgeAttemptOutcome.GRADED and attempt.reward == 1.0
-    assert attempt.patch_digest is None
-    assert ForgeEvidence.OUTPUT_MANIFEST in attempt.evidence
-    assert ForgeEvidence.WORKSPACE_PATCH not in attempt.evidence
-    outputs = attempt.outputs
-    assert outputs is not None and outputs.failures == []
-    assert (outputs.work_dir, outputs.added, outputs.modified) == ("/app", 1, 0)
-    attempt_dir = Path(status.path) / "tasks" / attempt.task_id / "1"
-    workspace = attempt_dir / "workspace"
-    written = ForgeOutputManifest.model_validate_json(
-        (attempt_dir / "outputs" / MANIFEST_FILENAME).read_bytes()
-    )
-    assert [change.path for change in written.changes] == ["result.txt"]
-    assert (attempt_dir / "outputs" / "files" / "result.txt").read_text() == "5\n"
-    assert (workspace / "left-by-tests.txt").is_file()
-    written_config = hermes.launches[0]["config"]
-    assert isinstance(written_config, bytes)
-    config = json.loads(written_config)
-    assert config["terminal"]["docker_volumes"] == [f"{workspace}:/app"]
-    assert config["terminal"]["cwd"] == "/app"
-    [grading] = [call for call in docker.calls if call[-1] == "bash /tests/test.sh"]
-    assert f"{workspace}:/app" in grading
+    attempts = status.record.attempts
+    gradings = [call for call in docker.calls if call[-1] == "bash /tests/test.sh"]
+    assert len(attempts) == len(hermes.launches) == len(gradings) == 2
+    for attempt, launch, grading in zip(
+        attempts, hermes.launches, gradings, strict=True
+    ):
+        assert attempt.outcome is ForgeAttemptOutcome.GRADED
+        assert attempt.reward == 1.0 and attempt.patch_digest is None
+        assert ForgeEvidence.OUTPUT_MANIFEST in attempt.evidence
+        assert ForgeEvidence.WORKSPACE_PATCH not in attempt.evidence
+        outputs = attempt.outputs
+        assert outputs is not None and outputs.failures == []
+        assert (outputs.work_dir, outputs.added, outputs.modified) == ("/app", 1, 0)
+        attempt_dir = Path(status.path) / "tasks" / attempt.task_id / "1"
+        workspace = attempt_dir / "workspace"
+        written = ForgeOutputManifest.model_validate_json(
+            (attempt_dir / "outputs" / MANIFEST_FILENAME).read_bytes()
+        )
+        assert [change.path for change in written.changes] == ["result.txt"]
+        kept = attempt_dir / "outputs" / "files" / "result.txt"
+        assert kept.read_text() == "5\n"
+        assert (workspace / "left-by-tests.txt").is_file()
+        written_config = launch["config"]
+        assert isinstance(written_config, bytes)
+        config = json.loads(written_config)
+        assert config["terminal"]["docker_volumes"] == [f"{workspace}:/app"]
+        assert config["terminal"]["cwd"] == "/app"
+        assert f"{workspace}:/app" in grading
     shown = CliRunner().invoke(
         create_app(), ["--home", str(home), "forge", "status", status.run_id]
     )
@@ -589,7 +635,7 @@ def test_a_pair_on_the_collection_compares_and_says_its_tasks_came_from_a_skill(
         1,
     )
     assert record.comparability.controlled
-    assert (record.wins, record.losses) == (1, 0)
+    assert (record.wins, record.losses) == (2, 0)
     source, candidate = record.source_skill, record.candidate_skill
     assert source is not None and source.name == candidate.name == "branch-code"
     assert source.digest == candidate.digest
@@ -670,8 +716,8 @@ def test_skill_v1_to_v2_on_the_collection_keeps_every_role_and_is_revised_there(
     assert source.digest == earlier.digest != later.digest
     assert record.verdict is ForgeVerdict.IMPROVED
     assert record.summary.startswith(
-        "Improved on the baseline Skill. Over 3 graded pairs, the candidate Skill "
-        "won 3, lost 0 and tied 0 against the baseline Skill"
+        "Improved on the baseline Skill. Over 6 graded pairs, the candidate Skill "
+        "won 6, lost 0 and tied 0 against the baseline Skill"
     )
     page = Path(status.report_path).read_text(encoding="utf-8")
     assert "Evaluation on Skill-derived tasks" in page
@@ -705,10 +751,17 @@ def test_skill_v1_to_v2_on_the_collection_keeps_every_role_and_is_revised_there(
     )
 
     assert revision.record.tasks_from == record.tasks_from
-    assert [(f.material, f.excerpt) for f in revision.record.screening] == [
-        ("reference_solution", SOLUTION_LINE),
-        ("tests", TEST_LINE),
-    ]
+    members = read_collection_status(paths, collection_id).record.review.members
+    assert sorted(
+        (f.task_id, f.material, f.excerpt) for f in revision.record.screening
+    ) == sorted(
+        (member.task_id, material, excerpt)
+        for member in members
+        for material, excerpt in (
+            ("reference_solution", SOLUTION_LINE),
+            ("tests", TEST_LINE),
+        )
+    )
     monkeypatch.setattr(
         "techtree.cli.commands.uplift.ForgeRunner",
         lambda paths, run: ForgeRunner(
@@ -723,12 +776,34 @@ def test_skill_v1_to_v2_on_the_collection_keeps_every_role_and_is_revised_there(
         ],
     )
     assert result.exit_code == 0, result.stdout
-    measured = json.loads(result.stdout)["facts"]["revision"]["record"]
+    measured = json.loads(result.stdout)["facts"]["revision"]
     assert measured["state"] == "measured"
-    assert "matched branch-code" in measured["verdict"]
+    assert (
+        "the revised Skill contains material from held-out tasks"
+        in (measured["verdict"])
+    )
+    changed = shutil.copytree(v3, tmp_path / "changed" / "branch-code")
+    with (changed / "SKILL.md").open("a", encoding="utf-8") as skill_file:
+        skill_file.write("Check twice.\n")
+    _, other = invoke(
+        home, "inspect-skill", str(changed), "--derived-from", revision.revision_id
+    )
+    assert other["error"]["code"] == "forge_source_not_revision"
+    revised = shutil.copytree(v3, tmp_path / "revised" / "branch-code")
+    _, looked = invoke(
+        home, "inspect-skill", str(revised), "--derived-from", revision.revision_id
+    )
+    assert looked["facts"]["record"]["lineage"] == {
+        "kind": "revision",
+        "parent_id": revision.revision_id,
+        "parent_digest": revision.record.skill.root_digest,
+        "root_digest": read_collection_status(
+            paths, collection_id
+        ).record.review.line_digest,
+    }
 
     # Paths in the task's own sandbox reach the reviser; a home folder does not.
-    [member] = read_collection_status(paths, collection_id).record.review.members
+    [member] = [member for member in members if member.part == "study"]
     task_dir = paths.forge_build_dir(member.build_id) / "tasks" / member.task_id
     (task_dir / "instruction.md").write_text(
         "Read /Users/someone/notes.txt first.\n", encoding="utf-8"
@@ -792,7 +867,10 @@ def test_outputs_that_cannot_be_taken_are_not_graded_and_a_missing_one_still_is(
         launch=FakeHermes(leaves=leaves),
         profiles_root=profiles,
     )
-    declared = baseline(home, collection_id, repetitions=2)
+    task = read_collection_status(paths_from_root(home), collection_id).record.review
+    declared = baseline(
+        home, collection_id, repetitions=2, task_ids=[task.members[0].task_id]
+    )
     limits = ForgeOutputLimits(entries=50, checked_bytes=5_000, kept_bytes=500)
     spec = declared.model_copy(
         update={
@@ -930,7 +1008,9 @@ def test_an_export_is_checked_from_its_folder_alone_and_holds_nothing_private(
 ) -> None:
     paths = paths_from_root(home)
     collection_id = accepted(home, proposal_id, profiles)
-    build = member_build(paths, collection_id)
+    members = read_collection_status(paths, collection_id).record.review.members
+    builds = [read_build_status(paths, member.build_id) for member in members]
+    build = builds[0]
     secret = "sk-decoy-4f1c9a7e2b"
     for place in (
         home / "auth.json",
@@ -951,8 +1031,13 @@ def test_an_export_is_checked_from_its_folder_alone_and_holds_nothing_private(
 
     assert code == 0, envelope
     assert envelope["facts"]["collection_id"] == collection_id
-    assert build.build is not None
-    [manifest] = build.build.task_set.tasks
+    manifests = [
+        manifest
+        for member_build in builds
+        if member_build.build is not None
+        for manifest in member_build.build.task_set.tasks
+    ]
+    assert len(manifests) == 2
     files = sorted(path for path in moved.rglob("*") if path.is_file())
     assert [str(path.relative_to(moved)) for path in files] == sorted(
         [
@@ -960,6 +1045,7 @@ def test_an_export_is_checked_from_its_folder_alone_and_holds_nothing_private(
             "export.json",
             *(
                 f"tasks/{manifest.task_id}/{entry.path}"
+                for manifest in manifests
                 for entry in manifest.entries
                 if entry.kind == "file"
             ),
@@ -970,6 +1056,10 @@ def test_an_export_is_checked_from_its_folder_alone_and_holds_nothing_private(
         assert secret.encode() not in data, path
         assert b"keep only the letters a to z" not in data, path
     assert stat.S_IMODE(moved.stat().st_mode) == 0o700
+    readme = (moved / "README.md").read_text(encoding="utf-8")
+    assert {member.claim for member in members} == {"C1"}
+    assert "- C1: " in readme and "  - What shows it: " in readme
+    assert "C2" not in readme
 
 
 def test_a_changed_or_added_file_in_an_export_is_refused_by_name(
@@ -978,7 +1068,7 @@ def test_a_changed_or_added_file_in_an_export_is_refused_by_name(
     collection_id = accepted(home, proposal_id, profiles)
     export = tmp_path / "export"
     assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
-    [task] = (export / "tasks").iterdir()
+    task = min((export / "tasks").iterdir())
     instruction = task / "instruction.md"
     original = instruction.read_bytes()
 
@@ -995,3 +1085,467 @@ def test_a_changed_or_added_file_in_an_export_is_refused_by_name(
         assert code != 0
         assert envelope["error"]["code"] == "forge_export_changed"
         assert f"differ from what was accepted: {name}" in envelope["error"]["message"]
+
+
+# ---------------------------------------------------------------------------
+# Held-out tasks
+# ---------------------------------------------------------------------------
+
+
+def test_the_held_out_tasks_follow_from_the_tasks_alone_whatever_their_order() -> None:
+    """Invariant (a): deterministic, independent of order, a task in each part."""
+    proposal = "sha256:" + hashlib.sha256(b"proposal").hexdigest()
+    for size in range(2, 9):
+        members = [
+            (f"task-{index}", "sha256:" + hashlib.sha256(bytes([index])).hexdigest())
+            for index in range(size)
+        ]
+        parts = dict(zip(members, collection_parts(proposal, members, []), strict=True))
+
+        assert list(parts.values()).count("held_out") == size // 2
+        assert set(parts.values()) == {"study", "held_out"}
+        for reordered in (members[::-1], members[1:] + members[:1]):
+            assert collection_parts(proposal, reordered, []) == [
+                parts[member] for member in reordered
+            ]
+
+
+def test_a_collection_of_one_task_is_refused(
+    home: Path, proposal_id: str, profiles: Path
+) -> None:
+    """Invariant (d): a collection needs a task in each part."""
+    construction_id = construct(home, proposal_id, profiles, ae5_creator())
+
+    code, envelope = invoke(home, "collect", construction_id, "--task", QUALIFIES)
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_collection_too_few"
+    assert (
+        f"{ALSO_QUALIFIES} also qualified but was left out by --task"
+        in (envelope["error"]["message"])
+    )
+
+
+def test_the_same_task_twice_under_two_names_is_refused(
+    home: Path, proposal_id: str, profiles: Path
+) -> None:
+    """One task written twice could be studied under one name and held out
+    under the other."""
+    twice = FakeCreator(
+        calls={ALSO_QUALIFIES: FakePlanner(answer=created_package(QUALIFIES))}
+    )
+    construction_id = construct(home, proposal_id, profiles, twice)
+
+    code, envelope = invoke(home, "collect", construction_id)
+
+    assert code != 0
+    assert envelope["error"]["code"] == "forge_collection_duplicate_task"
+    assert (
+        f"{QUALIFIES} and {ALSO_QUALIFIES} have exactly the same files"
+        in (envelope["error"]["message"])
+    )
+
+
+def test_the_improving_agent_never_sees_a_held_out_task(
+    tmp_path: Path,
+    home: Path,
+    proposal_id: str,
+    profiles: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invariant (b): no held-out id, name or instruction, though its runs did,
+    in the context or in preparing, reviewing and measuring a revision, even
+    one that copies a held-out task's instruction; runs that leave out tasks
+    of either part give no context and no revision, and naming a task that
+    is not in the collection lists none that are."""
+    collection_id = accepted(home, proposal_id, profiles)
+    paths = paths_from_root(home)
+    members = read_collection_status(paths, collection_id).record.review.members
+    [studied] = [member for member in members if member.part == "study"]
+    [held_out] = [member for member in members if member.part == "held_out"]
+    instruction = (
+        paths.forge_build_dir(held_out.build_id)
+        / "tasks"
+        / held_out.task_id
+        / "instruction.md"
+    ).read_text(encoding="utf-8")
+    hermes = FakeHermes(
+        leaves=lambda directory: (directory / "result.txt").write_text(
+            "5\n", encoding="utf-8"
+        )
+    )
+
+    def run(
+        arm: ForgeArm,
+        skill_root: Path,
+        reward: float,
+        task_ids: list[str] | None = None,
+    ) -> str:
+        spec = declare_run_spec(
+            paths,
+            arm=arm,
+            collection_id=collection_id,
+            task_ids=task_ids,
+            skill_root=skill_root,
+            provider="openai-codex",
+            model_id="gpt-5.6-sol",
+            reasoning=None,
+            repetitions=1,
+        )
+        runner = ForgeRunner(
+            paths, FakeDocker(reward=reward), launch=hermes, profiles_root=profiles
+        )
+        return runner.run(spec, skill_root).run_id
+
+    v2 = write_skill(tmp_path / "v2", name="branch-code", body="Sum, then write.")
+    comparison = compare_runs(
+        paths,
+        run(ForgeArm.BASELINE, tmp_path / "branch-code", 0.0),
+        run(ForgeArm.CANDIDATE, v2, 1.0),
+    )
+    assert comparison.record.held_out is not None
+    assert comparison.record.held_out.task_ids == [held_out.task_id]
+
+    shown = [
+        CliRunner().invoke(
+            create_app(),
+            [
+                "--home",
+                str(home),
+                *flags,
+                "uplift",
+                "context",
+                comparison.comparison_id,
+            ],
+        )
+        for flags in ([], ["--json"])
+    ]
+    written = (Path(comparison.path) / "improvement" / "context.json").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (*(result.stdout for result in shown), written):
+        assert studied.task_id in text
+        for hidden in (held_out.task_id, held_out.task_name, instruction.strip()):
+            assert hidden not in text
+
+    v3 = write_skill(tmp_path / "v3", name="branch-code", body=instruction.strip())
+    monkeypatch.setattr(
+        "techtree.cli.commands.uplift.ForgeRunner",
+        lambda paths, run: ForgeRunner(
+            paths, FakeDocker(reward=1.0), launch=hermes, profiles_root=profiles
+        ),
+    )
+
+    def uplift(*arguments: str) -> str:
+        result = CliRunner().invoke(
+            create_app(), ["--home", str(home), *arguments], terminal_width=500
+        )
+        assert result.exit_code == 0, result.stdout
+        return result.stdout
+
+    revisions: set[str] = set()
+    for flags in ([], ["--json"]):
+        prepared = uplift(
+            *flags,
+            *("uplift", "prepare", "--from-run", comparison.comparison_id),
+            *("--candidate-skill", str(v3)),
+        )
+        [revision] = {path.name for path in paths.forge_revisions_dir.iterdir()} - (
+            revisions
+        )
+        revisions.add(revision)
+        screened = read_revision_status(paths, revision).record.screening
+        assert held_out.task_id in {finding.task_id for finding in screened}
+        reviewed = uplift("--no-input", *flags, "uplift", "start", revision)
+        started = uplift(
+            *flags,
+            *("uplift", "start", "--yes", "--reviewed-on", "host-agent", revision),
+        )
+        for text in (prepared, reviewed, started):
+            assert studied.task_id in text
+            for hidden in (held_out.task_id, held_out.task_name, held_out.build_id):
+                assert hidden not in text
+
+    for part in (studied, held_out):
+        partial = compare_runs(
+            paths,
+            run(ForgeArm.BASELINE, tmp_path / "branch-code", 0.0, [part.task_id]),
+            run(ForgeArm.CANDIDATE, v2, 1.0, [part.task_id]),
+        )
+        for arguments in (
+            ["uplift", "context", partial.comparison_id],
+            [
+                *("uplift", "prepare", "--from-run", partial.comparison_id),
+                *("--candidate-skill", str(v3)),
+            ],
+        ):
+            refused = CliRunner().invoke(
+                create_app(), ["--home", str(home), "--json", *arguments]
+            )
+            assert refused.exit_code != 0
+            assert '"forge_revision_partial_collection"' in refused.stdout
+            for hidden in (held_out.task_id, held_out.task_name, held_out.build_id):
+                assert hidden not in refused.stdout
+        assert not (Path(partial.path) / "improvement").exists()
+    assert {path.name for path in paths.forge_revisions_dir.iterdir()} == revisions
+    with pytest.raises(ValidationError) as unknown:
+        baseline(home, collection_id, task_ids=["local__other-000000000002"])
+    said = unknown.value.message + json.dumps(unknown.value.details)
+    assert unknown.value.code == "forge_task_not_qualified"
+    assert held_out.task_id not in said and studied.task_id not in said
+
+
+#: The line the tasks' reference solution runs, which only a Skill may hold
+#: that already had it.
+SOLVE_LINE = (
+    "python3 -c \"print(sum(map(int, open('/app/amounts.txt'))))\" > /app/result.txt"
+)
+
+
+class RewardByTask(FakeDocker):
+    """Docker whose tests grade each task by the reward named for it."""
+
+    def __init__(self, rewards: dict[str, float]) -> None:
+        super().__init__()
+        self.rewards = rewards
+
+    def __call__(
+        self, argv: Sequence[str], timeout: float
+    ) -> subprocess.CompletedProcess[str]:
+        command = list(argv)
+        if command[-1] == "bash /tests/test.sh":
+            mounted = next(part for part in command if part.endswith(":/app"))
+            [self.reward] = [
+                reward
+                for task_id, reward in self.rewards.items()
+                if f"/tasks/{task_id}/" in mounted
+            ]
+        return super().__call__(argv, timeout)
+
+
+def test_a_revision_is_judged_on_its_held_out_tasks_alone(
+    tmp_path: Path, home: Path, proposal_id: str, profiles: Path
+) -> None:
+    """Invariant (c): the verdict follows the held-out pairs, whatever the rest
+    do, and needs as many graded pairs as every other verdict; a line of the
+    Skill the tasks were written from, or of a task the reviser could see,
+    does not stop it being judged, but held-out material any Skill before it
+    carried does, however many revisions it passed through."""
+    shared = "Each line of amounts.txt holds one whole number, nothing else."
+    original = SKILL.splitlines()[-1]
+
+    def with_notes(name: str) -> FakePlanner:
+        answer = json.loads(created_package(name))
+        answer["files"].append(
+            {
+                "path": "environment/notes.txt",
+                "text": shared + "\n",
+                "executable": False,
+            }
+        )
+        [rubric] = [
+            file for file in answer["files"] if file["path"] == "tests/rubric.md"
+        ]
+        rubric["text"] += original + "\n"
+        return FakePlanner(answer=json.dumps(answer).encode())
+
+    creator = ae5_creator()
+    creator.calls.update(
+        {name: with_notes(name) for name in (QUALIFIES, ALSO_QUALIFIES)}
+    )
+    collection_id = collect(home, construct(home, proposal_id, profiles, creator))[
+        "facts"
+    ]["collection_id"]
+    assert invoke(home, "accept", collection_id, "--yes")[0] == 0
+    paths = paths_from_root(home)
+    parts = read_collection_status(paths, collection_id).record.review.parts()
+    [studied] = [task_id for task_id, part in parts.items() if part == "study"]
+    [held_out] = [task_id for task_id, part in parts.items() if part == "held_out"]
+    hermes = FakeHermes(
+        leaves=lambda directory: (directory / "result.txt").write_text(
+            "5\n", encoding="utf-8"
+        )
+    )
+
+    def runner(docker: FakeDocker) -> ForgeRunner:
+        return ForgeRunner(paths, docker, launch=hermes, profiles_root=profiles)
+
+    def run(arm: ForgeArm, skill_root: Path, repetitions: int) -> str:
+        spec = declare_run_spec(
+            paths,
+            arm=arm,
+            collection_id=collection_id,
+            task_ids=None,
+            skill_root=skill_root,
+            provider="openai-codex",
+            model_id="gpt-5.6-sol",
+            reasoning=None,
+            repetitions=repetitions,
+        )
+        return runner(FakeDocker(reward=0.0)).run(spec, skill_root).run_id
+
+    v2 = write_skill(
+        tmp_path / "v2", name="branch-code", body=f"Sum, then write.\n\n{SOLVE_LINE}"
+    )
+
+    def compared(repetitions: int) -> str:
+        return compare_runs(
+            paths,
+            run(ForgeArm.BASELINE, tmp_path / "branch-code", repetitions),
+            run(ForgeArm.CANDIDATE, v2, repetitions),
+        ).comparison_id
+
+    judged = compared(3)
+    moved = "branch-code {} branch-code"
+    cases = [
+        (judged, {studied: 1.0, held_out: 0.0}, moved.format("matched"), "improved on"),
+        (judged, {studied: 0.0, held_out: 1.0}, moved.format("improved on"), "matched"),
+        (compared(1), {studied: 0.0, held_out: 1.0}, "is inconclusive", "inconclusive"),
+    ]
+
+    for index, (comparison_id, rewards, verdict, study_verdict) in enumerate(cases):
+        v3 = write_skill(
+            tmp_path / f"v3-{index}",
+            name="branch-code",
+            body=f"Add them, then write.\n\n{original}\n\n{shared}",
+        )
+        revision = prepare_revision(
+            paths, comparison_id=comparison_id, skill_root=v3, label=None
+        )
+        assert revision.record.screening == []
+
+        record = measure_revision(
+            paths, revision.revision_id, runner(RewardByTask(rewards))
+        ).revision.record
+
+        assert record.verdict is not None and record.study_verdict is not None
+        assert record.verdict.startswith("On the 1 held-out task, which the agent")
+        assert verdict in record.verdict
+        assert study_verdict in record.study_verdict
+
+    parent = judged
+    for generation, body in enumerate(
+        (f"Sum.\n\n{SOLVE_LINE}", f"Sum, then check.\n\n{SOLVE_LINE}")
+    ):
+        revised = write_skill(
+            tmp_path / f"laundered-{generation}", name="branch-code", body=body
+        )
+        revision = prepare_revision(
+            paths, comparison_id=parent, skill_root=revised, label=None
+        )
+        assert held_out in {finding.task_id for finding in revision.record.screening}
+        measured = measure_revision(
+            paths,
+            revision.revision_id,
+            runner(RewardByTask({studied: 0.0, held_out: 1.0})),
+        )
+        assert measured.revision.record.verdict is not None
+        assert "is not judged" in measured.revision.record.verdict
+        parent = measured.comparison.comparison_id
+
+
+def test_a_task_keeps_its_part_in_every_later_version(
+    tmp_path: Path, home: Path, proposal_id: str, profiles: Path
+) -> None:
+    """Invariant: a task's part, once given, holds as tasks are added,
+    removed, added again and built again, and in a collection of another
+    Skill; a new first version of the same Skill's tasks, a version of an
+    older one, and a second version of the same one are refused; a Skill
+    derived from it stays in its line."""
+    first = construct(home, proposal_id, profiles, ae5_creator())
+    retry = construct(home, proposal_id, profiles, FakeCreator(), retry_of=first)
+    paths = paths_from_root(home)
+
+    def accepted_version(construction_id: str, *arguments: str) -> dict[str, str]:
+        collection_id = collect(home, construction_id, *arguments)["facts"][
+            "collection_id"
+        ]
+        assert invoke(home, "accept", collection_id, "--yes")[0] == 0
+        versions.append(collection_id)
+        review = read_collection_status(paths, collection_id).record.review
+        return {member.task_name: member.part for member in review.members}
+
+    versions: list[str] = []
+    v1 = accepted_version(first)
+    v2 = accepted_version(retry, "--previous", versions[-1])
+    [dropped] = [name for name, part in v1.items() if part == "study"]
+    kept = [arg for name in v2 if name != dropped for arg in ("--task", name)]
+    v3 = accepted_version(retry, *kept, "--previous", versions[-1])
+    v4 = accepted_version(retry, "--previous", versions[-1])
+    reworded = FakeCreator(
+        calls={
+            name: FakePlanner(
+                answer=created_package(name).replace(b", sum ", b", add up ")
+            )
+            for name in PROPOSED
+        }
+    )
+    rebuilt = construct(home, proposal_id, profiles, reworded)
+    _, fresh = invoke(home, "collect", rebuilt)
+    _, older = invoke(home, "collect", rebuilt, "--previous", versions[1])
+    sibling = collect(home, rebuilt, "--previous", versions[-1])["facts"][
+        "collection_id"
+    ]
+    v5 = accepted_version(rebuilt, "--previous", versions[-1])
+    _, second = invoke(home, "accept", sibling, "--yes")
+    reduced = tmp_path / "reduced" / "branch-code"
+    reduced.mkdir(parents=True)
+    (reduced / "SKILL.md").write_text(SKILL + "2. Keep it short.\n", encoding="utf-8")
+    original = read_collection_status(paths, versions[0]).record.review.source_id
+    _, looked = invoke(home, "inspect-skill", str(reduced), "--derived-from", original)
+    derived = construct(
+        home,
+        propose(tmp_path, home, profiles, looked["facts"]["source_id"]),
+        profiles,
+        FakeCreator(),
+    )
+    _, fresh_derived = invoke(home, "collect", derived)
+    v6 = accepted_version(derived, "--previous", versions[-1])
+    unrelated = tmp_path / "unrelated" / "branch-code"
+    unrelated.mkdir(parents=True)
+    (unrelated / "SKILL.md").write_text(
+        SKILL + "2. Answer in capitals.\n", encoding="utf-8"
+    )
+    _, apart = invoke(home, "inspect-skill", str(unrelated))
+    v7 = accepted_version(
+        construct(
+            home,
+            propose(tmp_path, home, profiles, apart["facts"]["source_id"]),
+            profiles,
+            FakeCreator(),
+        )
+    )
+
+    assert len(v1) < len(v2) and dropped not in v3 and dropped in v4
+    assert fresh["error"]["code"] == "forge_collection_has_versions"
+    assert older["error"]["code"] == "forge_collection_not_latest"
+    assert second["error"]["code"] == "forge_collection_not_latest"
+    for refused, latest in ((fresh, versions[3]), (older, versions[3])):
+        assert f"--previous {latest}" in refused["error"]["message"]
+    assert f"--previous {versions[4]}" in second["error"]["message"]
+    assert fresh_derived["error"]["code"] == "forge_collection_has_versions"
+    assert f"--previous {versions[4]}" in fresh_derived["error"]["message"]
+    assert read_collection_status(paths, sibling).acceptance is None
+    fingerprints = [
+        {
+            member.fingerprint
+            for member in read_collection_status(paths, version).record.review.members
+        }
+        for version in versions
+    ]
+    assert not fingerprints[4] & set().union(*fingerprints[:4])
+    given: dict[str, str] = {}
+    for version in (v1, v2, v3, v4, v5, v6, v7):
+        for name, part in version.items():
+            assert given.setdefault(name, part) == part, name
+    for collection_id in versions:
+        assert invoke(home, "verify", collection_id)[0] == 0, collection_id
+
+    unreadable = paths.forge_collections_dir / ("forgecol_" + "0" * 32)
+    unreadable.mkdir()
+    (unreadable / "collection.json").write_text("{}", encoding="utf-8")
+    for arguments in (("status", derived), ("collect", derived)):
+        _, refused = invoke(home, *arguments)
+        assert refused["error"]["code"] == "forge_collection_unreadable"
+        assert str(unreadable) in refused["error"]["message"]
