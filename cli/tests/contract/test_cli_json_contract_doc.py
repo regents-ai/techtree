@@ -1,4 +1,4 @@
-"""The v1 CLI contract document, bound to the application it describes.
+"""The CLI contract document, bound to the application it describes.
 
 ``cli/docs/cli-json-contract.md`` is what a host agent programs from. It lists
 the stable command names and the namespaces that are reserved and not
