@@ -16,6 +16,11 @@ send something nobody signed. The directory holds no transcripts: an episode
 receipt carries digests, task hashes and scores, and the raw episodes are
 outside it.
 
+*What is shown is what is sent.* The proof directory is read once, when the
+plan is made. The submission's bytes are built from that one reading, the
+files a person is shown are listed from it, and after they agree those same
+bytes are sent. Nothing reads the directory a second time in between.
+
 *Nothing about the run is written back.* A completed run's files are final. This
 adds two: the countersigned receipt, and a journal of its own that says what was
 attempted and how it went. Neither is inside the proof, and nothing already in
@@ -44,7 +49,7 @@ from __future__ import annotations
 import base64
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Final, TypeVar, cast
@@ -103,6 +108,7 @@ __all__ = [
     "PUBLICATION_RECEIPT_CONFLICT",
     "PUBLICATION_RECEIPT_FILENAME",
     "RUN_ALREADY_PUBLISHED",
+    "PublicationFile",
     "PublicationOutcome",
     "PublicationPlan",
     "PublicationService",
@@ -130,26 +136,32 @@ _ModelT = TypeVar("_ModelT", bound=BaseModel)
 
 
 @dataclass(frozen=True)
+class PublicationFile:
+    """One file a publication would send: its path in the proof directory and
+    its size in bytes as stored, before base64 widens it on the wire."""
+
+    path: str
+    size: int
+
+
+@dataclass(frozen=True)
 class PublicationPlan:
     """Exactly what one publication would send, worked out before it is asked.
 
     The plan is what a person is shown so that they can agree to something they
-    have actually seen, so it carries the two numbers that answer "how much of
-    my machine is about to leave it" — how many files, and how many bytes — and
-    not the files themselves. The bytes on the wire are
-    :meth:`PublicationService.submission_bytes`'s answer and nobody else's, so
-    there is one place a submission is built and one shape it can have.
+    have actually seen. It holds the submission itself, ``body``, built once
+    from one reading of the proof directory, and ``files``, every file in that
+    body by path and size in the order the body carries them. Publishing sends
+    ``body`` and nothing else, so the files a person agreed to are the files
+    that leave.
     """
 
     run_id: str
     bundle_digest: Digest
     endpoint: str
-    #: How many files would travel, counted off the proof directory.
-    file_count: int
-    #: How many bytes of proof would travel, before base64 widens them on the
-    #: wire. It is the size of the thing a person recognises — the proof
-    #: directory — rather than the size of its encoding.
-    byte_count: int
+    files: tuple[PublicationFile, ...]
+    #: The exact bytes the request carries.
+    body: bytes = field(repr=False)
     report: UpliftReportV2
     verification: VerificationResult
     #: The candidate Skill's prepared public label, when the run still carries
@@ -157,6 +169,18 @@ class PublicationPlan:
     #: candidate experiment. Older runs predate publication metadata and leave
     #: this absent rather than inventing a name.
     skill_name: str | None = None
+
+    @property
+    def file_count(self) -> int:
+        """How many files would travel."""
+        return len(self.files)
+
+    @property
+    def byte_count(self) -> int:
+        """How many bytes of proof would travel, as the proof directory holds
+        them: the size of the thing a person recognises rather than of its
+        encoding."""
+        return sum(file.size for file in self.files)
 
 
 @dataclass(frozen=True)
@@ -251,12 +275,16 @@ class PublicationService:
             )
 
         stored = self._proof_files(directory)
+        bundle_digest = self._bundle_digest(stored, run_id)
         return PublicationPlan(
             run_id=run_id,
-            bundle_digest=self._bundle_digest(directory, run_id),
+            bundle_digest=bundle_digest,
             endpoint=self.endpoint,
-            file_count=len(stored),
-            byte_count=sum(len(data) for data in stored.values()),
+            files=tuple(
+                PublicationFile(path=path, size=len(data))
+                for path, data in stored.items()
+            ),
+            body=self._submission(run_id, bundle_digest, stored),
             report=report,
             verification=verification,
             skill_name=self._skill_name(run_id, directory),
@@ -336,24 +364,44 @@ class PublicationService:
     def submission_bytes(self, run_id: str) -> bytes:
         """Return the exact bytes a submission for this run puts on the wire.
 
-        This is the whole of the wire shape and the only place it is built, so
-        the request the transport sends and the conformance fixture the
-        receiving side is tested against cannot be two different documents that
-        happen to look alike. Decisions 0038 fixes the four members; the model
-        refuses a fifth, and the canonical encoding fixes the byte order, so
-        the same proof directory produces the same bytes on any machine.
+        It is built by the same encoder as a plan's ``body``, the one place the
+        wire shape is built, so the request the transport sends and the
+        conformance fixture the receiving side is tested against cannot be two
+        different documents that happen to look alike. Decisions 0038 fixes
+        the four members; the model refuses a fifth, and the canonical
+        encoding fixes the byte order, so the same proof directory produces
+        the same bytes on any machine.
 
         It describes rather than sends. Whether this run *may* be published is
         :meth:`plan`'s question, asked of the run's own verified proof and its
         rights statement before anybody is offered anything, and :meth:`publish`
         is the only method here that opens a socket.
         """
-        directory = self._bundle_dir(run_id)
+        stored = self._proof_files(self._bundle_dir(run_id))
+        return self._submission(run_id, self._bundle_digest(stored, run_id), stored)
+
+    @staticmethod
+    def _submission(
+        run_id: str, bundle_digest: Digest, stored: dict[str, bytes]
+    ) -> bytes:
+        """Encode one reading of the proof directory as the wire carries it.
+
+        Path against base64 of the stored bytes, and nothing else. No digest
+        and no size travel beside a file, because both would be the submitter's
+        own arithmetic over the submitter's own bytes: they prove nothing, and
+        a receiving side that read them instead of the bundle's signed manifest
+        would be trusting the one party the manifest exists to avoid trusting.
+        Decisions 0038 fixes this, and the reason is worth more than the eight
+        bytes it saves.
+        """
         submission = PublicationSubmission(
             schema_version=PUBLICATION_SUBMISSION_SCHEMA_VERSION,
             run_id=run_id,
-            bundle_digest=self._bundle_digest(directory, run_id),
-            files=self._files(directory),
+            bundle_digest=bundle_digest,
+            files={
+                path: base64.b64encode(data).decode("ascii")
+                for path, data in stored.items()
+            },
         )
         return canonical_json_bytes(submission)
 
@@ -364,7 +412,7 @@ class PublicationService:
         skill_github_url: str | None,
     ) -> ObjectEnvelope[PublicationReceiptPayload]:
         """Send one submission and return the receipt it came back with."""
-        body = self.submission_bytes(plan.run_id)
+        body = plan.body
         if plan.skill_name is None and skill_github_url is None:
             # Keep compatibility with transports supplied by callers that
             # predate the optional metadata headers.
@@ -548,13 +596,14 @@ class PublicationService:
             )
         return directory
 
-    def _bundle_digest(self, directory: Path, run_id: str) -> Digest:
+    def _bundle_digest(self, stored: dict[str, bytes], run_id: str) -> Digest:
         """Return the digest of the signed manifest that commits to the bundle.
 
         One value identifies the whole submission, and it is the one the
-        verification that just passed checked every file against.
+        verification that just passed checked every file against. It is read
+        from the same reading of the directory the submission is built from.
         """
-        raw = (directory / BUNDLE_MANIFEST_FILENAME).read_bytes()
+        raw = stored.get(BUNDLE_MANIFEST_FILENAME, b"")
         try:
             envelope = ObjectEnvelope[LocalProofBundleManifest].model_validate_json(raw)
         except PydanticValidationError as error:
@@ -583,29 +632,16 @@ class PublicationService:
 
         The whole directory rather than the manifest's list: the manifest does
         not commit to itself, and a submission without the signed manifest is a
-        submission nothing can be checked against.
+        submission nothing can be checked against. Ordered by path, the order
+        the canonical encoding puts them on the wire, so a plan lists them in
+        the order they travel.
         """
-        return {
+        stored = {
             path.relative_to(directory).as_posix(): path.read_bytes()
-            for path in sorted(directory.rglob("*"))
+            for path in directory.rglob("*")
             if path.is_file()
         }
-
-    def _files(self, directory: Path) -> dict[str, str]:
-        """Return the proof directory in the shape the wire carries it.
-
-        Path against base64 of the stored bytes, and nothing else. No digest
-        and no size travel beside a file, because both would be the submitter's
-        own arithmetic over the submitter's own bytes: they prove nothing, and
-        a receiving side that read them instead of the bundle's signed manifest
-        would be trusting the one party the manifest exists to avoid trusting.
-        Decisions 0038 fixes this, and the reason is worth more than the eight
-        bytes it saves.
-        """
-        return {
-            path: base64.b64encode(data).decode("ascii")
-            for path, data in self._proof_files(directory).items()
-        }
+        return dict(sorted(stored.items()))
 
     @property
     def endpoint(self) -> str:

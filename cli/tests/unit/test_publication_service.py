@@ -640,6 +640,32 @@ def test_the_plan_says_what_a_person_is_shown(
     assert plan.bundle_digest.startswith("sha256:")
 
 
+def test_the_files_shown_are_exactly_the_files_in_the_bytes_sent(
+    proof: RecordedProof, runs_dir: Path
+) -> None:
+    """What a person agrees to, file by file, is what leaves, in the same order.
+
+    A stray file in the proof folder when the plan is made travels, so it is
+    shown; one that appears after the person was shown the plan does not.
+    """
+    folder = runs_dir / PROOF_RUN_ID / "proof"
+    (folder / "notes.txt").write_text("hello\n")
+    transport = StubTransport()
+    publisher = service(runs_dir, transport)
+
+    plan = publisher.plan(PROOF_RUN_ID)
+    (folder / "late.txt").write_text("after the review\n")
+    publisher.publish(plan)
+
+    [sent] = transport.bodies
+    files = json.loads(sent)["files"]
+    assert [(file.path, file.size) for file in plan.files] == [
+        (path, len(base64.b64decode(content))) for path, content in files.items()
+    ]
+    assert "notes.txt" in files
+    assert "late.txt" not in files
+
+
 # ---------------------------------------------------------------------------
 # The countersignature
 #

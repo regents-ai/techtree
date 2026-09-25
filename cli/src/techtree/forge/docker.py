@@ -11,10 +11,12 @@ task's recipe is built. The bootstrap image is built from the person's own
 checkout with the network, the task images from their recipes with the
 network disabled, and all of them live only in the local daemon.
 
-Every container the forge starts is bounded and disconnected: a fixed memory
-and CPU cap, no network, and a name the forge chose. Docker removes it on exit;
-on timeout or interruption the forge attempts bounded removal and reports the
-outcome. A task's tests are run to be graded, not to reach anything.
+Every container the forge starts is bounded and disconnected: a fixed memory,
+CPU and process cap, no network, one Linux capability and no other, no way to
+gain privileges through a setuid program, and a name the forge chose. Docker
+removes it on exit; on timeout or interruption the forge attempts bounded
+removal and reports the outcome. A task's tests are run to be graded, not to
+reach anything.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ __all__ = [
     "BUILD_TIMEOUT_SECONDS",
     "CONTAINER_CPUS",
     "CONTAINER_MEMORY",
+    "CONTAINER_PIDS",
     "DAEMON_TIMEOUT_SECONDS",
     "Docker",
     "Mount",
@@ -46,6 +49,8 @@ DAEMON_TIMEOUT_SECONDS: Final = 30.0
 #: qualification as the bound the tests ran under.
 CONTAINER_MEMORY: Final = "4g"
 CONTAINER_CPUS: Final = "2"
+#: Enough for a test suite's worker processes; a fork bomb stops here.
+CONTAINER_PIDS: Final = "512"
 
 
 @dataclass(frozen=True)
@@ -343,7 +348,17 @@ class Docker:
 
 
 def _bounds(name: str, platform: ForgePlatform, mounts: list[Mount]) -> list[str]:
-    """The ``docker run`` options every forge container gets."""
+    """The ``docker run`` options every forge container gets.
+
+    The task runs as the image's own user, root in every task image so far,
+    with every capability dropped but ``CAP_DAC_OVERRIDE``. That one stays
+    because of Linux hosts: there a bind-mounted folder keeps the host user's
+    ownership, so the task's tests, the solution, the private verifier folder
+    and a forge run's workspace all belong to somebody other than root, and
+    root without it can neither run the scripts, write the verdict nor let git
+    write its index. Docker Desktop on macOS shows the same folders as owned
+    by root and needs nothing.
+    """
     options = [
         "--rm",
         "--name",
@@ -356,6 +371,14 @@ def _bounds(name: str, platform: ForgePlatform, mounts: list[Mount]) -> list[str
         CONTAINER_MEMORY,
         "--cpus",
         CONTAINER_CPUS,
+        "--pids-limit",
+        CONTAINER_PIDS,
+        "--cap-drop",
+        "ALL",
+        "--cap-add",
+        "DAC_OVERRIDE",
+        "--security-opt",
+        "no-new-privileges",
     ]
     for mount in mounts:
         suffix = ":ro" if mount.read_only else ""
