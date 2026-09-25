@@ -82,8 +82,11 @@ def run_arm(
     arm: ForgeArm,
     skill: Path | None = None,
     reward: float | str | None,
+    repetitions: int = 1,
 ) -> ForgeRunStatus:
-    spec = declare(build, monkeypatch, arm=arm, skill_root=skill)
+    spec = declare(
+        build, monkeypatch, arm=arm, skill_root=skill, repetitions=repetitions
+    )
     runner = ForgeRunner(
         build.paths,
         FakeDocker(reward=reward),
@@ -101,10 +104,16 @@ def compared(
     *,
     baseline_reward: float = 0.0,
     candidate_reward: float = 0.5,
+    repetitions: int = 1,
 ) -> str:
     """Return the id of a comparison of a baseline and a candidate run."""
     baseline = run_arm(
-        build, profiles, monkeypatch, arm=ForgeArm.BASELINE, reward=baseline_reward
+        build,
+        profiles,
+        monkeypatch,
+        arm=ForgeArm.BASELINE,
+        reward=baseline_reward,
+        repetitions=repetitions,
     )
     candidate = run_arm(
         build,
@@ -113,6 +122,7 @@ def compared(
         arm=ForgeArm.CANDIDATE,
         skill=skill,
         reward=candidate_reward,
+        repetitions=repetitions,
     )
     return compare_runs(build.paths, baseline.run_id, candidate.run_id).comparison_id
 
@@ -529,7 +539,9 @@ def test_uplift_start_with_yes_runs_compares_and_keeps_a_regression(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    comparison_id = compared(build, profiles, monkeypatch, skill, candidate_reward=1.0)
+    comparison_id = compared(
+        build, profiles, monkeypatch, skill, candidate_reward=1.0, repetitions=3
+    )
     revision = prepare_revision(
         build.paths,
         comparison_id=comparison_id,
@@ -568,8 +580,8 @@ def test_uplift_start_with_yes_runs_compares_and_keeps_a_regression(
     assert comparison.candidate_run_id == record["measured_run_id"]
     assert comparison.baseline_run_id == record["baseline_run_id"]
     assert comparison.candidate_skill.name == "demo-skill-v2"
-    [launch] = hermes.launches
-    assert launch["profile_files"] == [
+    assert len(hermes.launches) == 3
+    assert hermes.launches[0]["profile_files"] == [
         "auth.json",
         "config.yaml",
         "skills/demo-skill-v2/SKILL.md",
@@ -594,7 +606,7 @@ def test_a_measured_revision_is_not_measured_again(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    comparison_id = compared(build, profiles, monkeypatch, skill)
+    comparison_id = compared(build, profiles, monkeypatch, skill, repetitions=3)
     revision = prepare_revision(
         build.paths,
         comparison_id=comparison_id,

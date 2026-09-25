@@ -35,9 +35,11 @@ from pydantic import ValidationError as ModelValidationError
 from techtree.canonical import digest_object
 from techtree.errors import ConflictError, NotFoundError, RunError, ValidationError
 from techtree.forge.collection import verify_collection
-from techtree.forge.content import changed_entries, commit_task_set
+from techtree.forge.content import changed_entries, commit_task_set, task_fingerprint
 from techtree.forge.models import (
     FORGE_EXPORT_SCHEMA_VERSION,
+    TASK_KIND_WORDS,
+    TASK_KINDS_EXPLAINED,
     ForgeCollectionMember,
     ForgeExport,
     ForgeExportTask,
@@ -65,7 +67,7 @@ CHECKED: Final = (
     "each task's qualification record, against the collection",
     "the collection's members and fingerprint, against the acceptance",
     "which tasks are held out, against the rule that picks them from the "
-    "tasks' fingerprints and the parts earlier versions gave them",
+    "tasks and the parts earlier versions gave them",
     "the README, against export.json",
 )
 
@@ -274,6 +276,7 @@ def _require_records(
         task.build.build_id != member.build_id
         or [manifest.task_id for manifest in manifests] != [member.task_id]
         or manifests[0].content_digest != member.content_digest
+        or task_fingerprint(manifests[0]) != member.fingerprint
         or evidence.task_id != member.task_id
         or evidence.task_content_digest != member.content_digest
         or not evidence.qualified
@@ -297,14 +300,6 @@ def _changed(root: Path, what: str) -> ValidationError:
 # ---------------------------------------------------------------------------
 
 
-#: Which case of its claim a task is, in words.
-_KIND_WORDS: Final = {
-    "positive": "positive case",
-    "boundary": "boundary case",
-    "counterexample": "counterexample",
-}
-
-
 def export_readme(export: ForgeExport) -> str:
     """The README an export carries, made from its ``export.json`` alone."""
     record = export.collection
@@ -322,7 +317,7 @@ def export_readme(export: ForgeExport) -> str:
         *(
             f"- `{TASKS_DIRNAME}/{member.task_id}/`: the task {member.task_name}"
             + (" (held out)" if member.part == "held_out" else "")
-            + f", a {_KIND_WORDS[member.kind]} for claim {member.claim}, with its "
+            + f", a {TASK_KIND_WORDS[member.kind]} for claim {member.claim}, with its "
             "instruction, the files it starts from, its tests and its reference "
             "solutions."
             for member in review.members
@@ -333,9 +328,12 @@ def export_readme(export: ForgeExport) -> str:
         "",
         "The tasks marked held out are kept from any agent that improves a "
         "Skill on this collection, and a revised Skill's verdict is worked out "
-        "on them alone. Which tasks are held out follows from the tasks' "
-        "fingerprints; nobody chose it, and a task keeps its part in every "
-        "later version of the collection.",
+        "on them alone. Which tasks are held out follows from a fixed rule; "
+        "nobody chose it. A task keeps its part in every later version of the "
+        "collection, even when it is built again or appears under another name "
+        "with the same files; one that was ever studied is never held out. "
+        "Tasks whose files differ only slightly are not recognised as the "
+        "same task.",
         "",
         "## What the tasks test",
         "",
@@ -344,10 +342,7 @@ def export_readme(export: ForgeExport) -> str:
             for claim in review.claims
         ),
         "",
-        "A positive case is one where following the Skill should give the "
-        "right result; a boundary case sits at the edge of where the claim "
-        "applies; a counterexample is one where applying the Skill too eagerly "
-        "would give a wrong result.",
+        TASK_KINDS_EXPLAINED,
         "",
         "## What it leaves out",
         "",

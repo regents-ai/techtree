@@ -49,6 +49,7 @@ from techtree.forge.experiment import run_spec_digest
 from techtree.forge.hermes import hermes_version
 from techtree.forge.models import (
     FORGE_REVISION_SCHEMA_VERSION,
+    VERDICT_MINIMUM_PAIRS,
     ForgeBuildTasks,
     ForgeCollectionTasks,
     ForgeComparisonRecord,
@@ -104,6 +105,15 @@ def prepare_revision(
         raise ValidationError(
             "the candidate run carries no Skill, so there is nothing to revise",
             code="forge_candidate_without_skill",
+            details={"comparison_id": comparison_id},
+        )
+    if comparison.study is not None and not comparison.study.task_ids:
+        raise ValidationError(
+            f"the runs compared in {comparison_id} cover only held-out tasks, "
+            "so the agent revising the Skill has no task it may learn from. "
+            "Run the baseline and the candidate on tasks that include ones it "
+            "may study, compare them, and revise from that comparison",
+            code="forge_revision_no_study_task",
             details={"comparison_id": comparison_id},
         )
     try:
@@ -200,7 +210,7 @@ def measure_revision(
     run = runner.run(status.spec, Path(status.path) / SKILL_DIRNAME)
     comparison = compare_runs(paths, record.baseline_run_id, run.run_id)
     parent = read_comparison_status(paths, record.comparison_id).record
-    verdict, study_verdict = _verdicts(parent, comparison.record)
+    verdict, study_verdict = _verdicts(parent, comparison.record, record.screening)
     measured = record.model_copy(
         update={
             "updated_at": datetime.now(UTC),
@@ -415,18 +425,23 @@ class _Measure(NamedTuple):
     wins: int
     losses: int
     ties: int
+    graded: int
     planned: int
     complete: bool
 
 
 def _verdicts(
-    parent: ForgeComparisonRecord, revised: ForgeComparisonRecord
+    parent: ForgeComparisonRecord,
+    revised: ForgeComparisonRecord,
+    screening: list[ForgeScreeningFinding],
 ) -> tuple[str, str | None]:
     """Return a revision's verdict and, on a collection, its study verdict.
 
     On a collection the verdict is over the held-out pairs alone, and the
     study verdict over the pairs of the tasks the reviser could see; on a
-    build's tasks the one verdict is over them all.
+    build's tasks the one verdict is over them all. A revised Skill that
+    shares a line with a held-out task's material is not judged on them,
+    since it may carry what it was never meant to see.
     """
     if (
         parent.held_out is None
@@ -435,24 +450,27 @@ def _verdicts(
         or revised.study is None
     ):
         return (
-            _verdict(
-                "",
-                parent,
-                revised,
-                _whole(parent),
-                _whole(revised),
-            ),
+            _verdict("", parent, revised, _whole(parent), _whole(revised)),
             None,
         )
     held_out = len(revised.held_out.task_ids)
+    scope = (
+        f"On the {held_out} held-out {'task' if held_out == 1 else 'tasks'}, "
+        "which the agent that wrote the revision never saw"
+    )
+    carries = {finding.task_id for finding in screening} & set(
+        revised.held_out.task_ids
+    )
     return (
-        _verdict(
-            f"On the {held_out} held-out {'task' if held_out == 1 else 'tasks'}, "
-            "which the agent that wrote the revision never saw",
-            parent,
-            revised,
-            _part(parent.held_out),
-            _part(revised.held_out),
+        _lead(
+            "",
+            scope,
+            "the revision is not judged, because the revised Skill contains "
+            "material from held-out tasks. Kept as measured.",
+        )
+        if carries
+        else _verdict(
+            scope, parent, revised, _part(parent.held_out), _part(revised.held_out)
         ),
         _verdict(
             "On the tasks the agent that wrote the revision could see",
@@ -470,6 +488,7 @@ def _whole(record: ForgeComparisonRecord) -> _Measure:
         wins=record.wins,
         losses=record.losses,
         ties=record.ties,
+        graded=record.pairs_graded,
         planned=record.pairs_planned,
         complete=record.complete,
     )
@@ -481,6 +500,7 @@ def _part(part: ForgePartSummary) -> _Measure:
         wins=part.wins,
         losses=part.losses,
         ties=part.ties,
+        graded=part.pairs_graded,
         planned=part.pairs_planned,
         complete=part.complete,
     )
@@ -493,26 +513,45 @@ def _verdict(
     before: _Measure,
     after: _Measure,
 ) -> str:
-    """Say, in one sentence, how the revision did against the Skill it revised."""
-    partial = "" if before.complete and after.complete else " Partial evidence:"
+    """Say, in one sentence, how the revision did against the Skill it revised.
+
+    Like every other verdict, it needs at least ``VERDICT_MINIMUM_PAIRS``
+    graded pairs, here on each side, and is inconclusive below that.
+    """
+    partial = "" if before.complete and after.complete else "Partial evidence:"
     if before.mean is None or after.mean is None:
-        placed = "the revision could not be placed"
-        return sanitize_label(
-            f"{partial} {f'{scope}, {placed}' if scope else placed.capitalize()} "
-            "against the Skill it revised, because one of the two has no graded "
-            "pair.".strip(),
-            maximum=_VERDICT_LIMIT,
+        return _lead(
+            partial,
+            scope,
+            "the revision could not be placed against the Skill it revised, "
+            "because one of the two has no graded pair.",
+        )
+    if min(before.graded, after.graded) < VERDICT_MINIMUM_PAIRS:
+        return _lead(
+            partial,
+            scope,
+            "the revision is inconclusive against the Skill it revised: "
+            f"{after.graded} graded {'pair' if after.graded == 1 else 'pairs'} "
+            f"for the revision and {before.graded} for the Skill it revised, "
+            f"and a verdict needs at least {VERDICT_MINIMUM_PAIRS} on each. "
+            "Kept as measured.",
         )
     change = after.mean - before.mean
     word = (
         "improved on" if change > 0 else "regressed from" if change < 0 else "matched"
     )
-    against = "against the same baseline"
-    return sanitize_label(
-        f"{partial} {f'{scope}, {against}' if scope else against.capitalize()}, "
-        f"{revised.candidate_skill.name} {word} {parent.candidate_skill.name}: "
-        f"mean reward {after.mean:.2f} against "
+    return _lead(
+        partial,
+        scope,
+        f"against the same baseline, {revised.candidate_skill.name} {word} "
+        f"{parent.candidate_skill.name}: mean reward {after.mean:.2f} against "
         f"{before.mean:.2f} ({change:+.2f}); {after.wins} won, {after.losses} lost, "
-        f"{after.ties} tied of {after.planned}. Kept as measured.".strip(),
-        maximum=_VERDICT_LIMIT,
+        f"{after.ties} tied of {after.planned}. Kept as measured.",
     )
+
+
+def _lead(partial: str, scope: str, said: str) -> str:
+    """Join a verdict's parts into one sentence: what it is partial on, what
+    it is over, and what it says."""
+    body = f"{scope}, {said}" if scope else said[0].upper() + said[1:]
+    return sanitize_label(f"{partial} {body}".strip(), maximum=_VERDICT_LIMIT)

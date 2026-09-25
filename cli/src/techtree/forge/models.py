@@ -25,7 +25,7 @@ and comparison named beside the verdict.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from enum import StrEnum
 from typing import Annotated, Final, Literal, Self
 
@@ -78,6 +78,8 @@ __all__ = [
     "MAX_CLAIMS",
     "MAX_PLANNED_TASKS",
     "MINIMUM_COLLECTION_TASKS",
+    "TASK_KINDS_EXPLAINED",
+    "TASK_KIND_WORDS",
     "VERDICT_MINIMUM_PAIRS",
     "AgentSkillName",
     "ForgeAgentSpec",
@@ -1616,6 +1618,20 @@ _PLAIN: Final = AfterValidator(_one_plain_line)
 #: Which case of its claim a task is; see :class:`ForgeProposedTask`.
 type ForgeTaskKind = Literal["positive", "boundary", "counterexample"]
 
+#: Which case of its claim a task is, in words a person reads.
+TASK_KIND_WORDS: Final[dict[ForgeTaskKind, str]] = {
+    "positive": "positive case",
+    "boundary": "boundary case",
+    "counterexample": "counterexample",
+}
+#: What each case of a claim is, in words a person reads.
+TASK_KINDS_EXPLAINED: Final = (
+    "A positive case is one where following the Skill should give the right "
+    "result; a boundary case sits at the edge of where the claim applies; a "
+    "counterexample checks that the Skill is not overused where it would give "
+    "a wrong result or should change nothing."
+)
+
 #: A proposed task's name: lowercase letters and digits in hyphen-separated runs.
 type ForgeProposedTaskName = Annotated[
     str, StringConstraints(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", max_length=64)
@@ -2219,21 +2235,32 @@ MINIMUM_COLLECTION_TASKS: Final = 2
 def collection_parts(
     proposal_digest: str,
     members: Sequence[tuple[str, str]],
-    fixed: Mapping[tuple[str, str], ForgeCollectionPart],
+    earlier: Sequence[ForgeCollectionPartFixed],
 ) -> list[ForgeCollectionPart]:
     """Return each task's part, in the order given; nobody chooses it.
 
-    ``members`` are (task name, content digest) pairs, and ``fixed`` the part
-    an earlier version of the collection gave each task, by the same pair: a
-    task keeps it, so a task once studied is never held out, nor the reverse.
-    A task whose files changed is a new task. The new tasks are put in the
-    order of the SHA-256 of ``proposal_digest:content_digest``, ties broken by
-    name, and the first half, rounded down, are held out; the rest are
-    studied. A single new task takes the part that leaves the collection more
-    even, held out when it is even either way. The result depends on the
-    tasks, never on their order.
+    ``members`` are (task name, fingerprint) pairs, and ``earlier`` every
+    task an earlier version of the collection held, with the part it had. A
+    task inherits the part of every earlier task that shares its name or its
+    fingerprint, so a task built again keeps its part, and so does the same
+    task under another name; when those parts disagree, it is studied, since
+    a task the improving agent has seen can never be held out again. The
+    tasks that inherit nothing are put in the order of the SHA-256 of
+    ``proposal_digest:fingerprint``, ties broken by name, and the first
+    half, rounded down, are held out; the rest are studied. A single such
+    task takes the part that leaves the collection more even, held out when
+    it is even either way. The result depends on the tasks, never on their
+    order.
     """
-    parts = {index: fixed[task] for index, task in enumerate(members) if task in fixed}
+    parts: dict[int, ForgeCollectionPart] = {}
+    for index, (name, fingerprint) in enumerate(members):
+        inherited = {
+            task.part
+            for task in earlier
+            if task.task_name == name or task.fingerprint == fingerprint
+        }
+        if inherited:
+            parts[index] = "study" if "study" in inherited else "held_out"
     new = [index for index in range(len(members)) if index not in parts]
     if len(new) == 1:
         held_out = sum(part == "held_out" for part in parts.values())
@@ -2259,7 +2286,9 @@ class ForgeCollectionMember(ProtocolModel):
     """One accepted task: exactly the bytes and the qualification it had.
 
     ``claim`` and ``kind`` are the claim the task tests and which case of it,
-    as its construction package recorded them. ``part`` is given by
+    as its construction package recorded them. ``fingerprint`` identifies
+    the task whatever it was built as: the digest of its files other than
+    the ``task.toml`` Techtree writes. ``part`` is given by
     :func:`collection_parts`, not by the author.
     """
 
@@ -2269,34 +2298,32 @@ class ForgeCollectionMember(ProtocolModel):
     build_id: NonEmptyString
     task_id: ForgeTaskId
     content_digest: Digest
+    fingerprint: Digest
     qualification_digest: Digest
     part: ForgeCollectionPart
 
 
 class ForgeCollectionPartFixed(ProtocolModel):
-    """The part an earlier version of a collection gave one task, for good."""
+    """The part a version of a collection gave one task, by its name and
+    fingerprint; later versions inherit it."""
 
     task_name: ForgeProposedTaskName
-    content_digest: Digest
+    fingerprint: Digest
     part: ForgeCollectionPart
 
 
 class ForgeCollectionParent(ProtocolModel):
     """The accepted collection a new version replaces.
 
-    ``parts`` is every task that version or any before it held, with the
-    part it was given, so a task keeps its part in every later version, even
-    one that left it out for a while.
+    ``parts`` is every task that version or any before it held, by name and
+    fingerprint, with the part it was given, so a task keeps its part in
+    every later version, even one that left it out for a while.
     """
 
     collection_id: NonEmptyString
     collection_digest: Digest
     version: int = Field(ge=1)
     parts: list[ForgeCollectionPartFixed] = Field(min_length=MINIMUM_COLLECTION_TASKS)
-
-    def fixed(self) -> dict[tuple[str, str], ForgeCollectionPart]:
-        """Return each task's part by its name and content digest."""
-        return {(task.task_name, task.content_digest): task.part for task in self.parts}
 
 
 class ForgeCollectionReview(ProtocolModel):
@@ -2328,15 +2355,18 @@ class ForgeCollectionReview(ProtocolModel):
         names = [member.task_name for member in self.members]
         if len(set(names)) != len(names) or not set(names) <= usable:
             raise ValueError("members are distinct tasks that qualified")
+        fingerprints = {member.fingerprint for member in self.members}
+        if len(fingerprints) != len(self.members):
+            raise ValueError("no two members have the same files")
         claims = {claim.claim_id for claim in self.claims}
         if not {member.claim for member in self.members} <= claims:
             raise ValueError("every member tests one of the proposal's claims")
         if [member.part for member in self.members] != collection_parts(
             self.proposal_digest,
-            [(member.task_name, member.content_digest) for member in self.members],
-            {} if self.previous is None else self.previous.fixed(),
+            [(member.task_name, member.fingerprint) for member in self.members],
+            [] if self.previous is None else self.previous.parts,
         ):
-            raise ValueError("each task's part is the one its fingerprint gives it")
+            raise ValueError("each task's part is the one the rule gives it")
         if {member.part for member in self.members} != {"study", "held_out"}:
             raise ValueError("a collection has a task in each part")
         if not verify_object_digest(self.members, self.membership_digest):
@@ -2351,14 +2381,18 @@ class ForgeCollectionReview(ProtocolModel):
         return {member.task_id: member.part for member in self.members}
 
     def fixed_parts(self) -> list[ForgeCollectionPartFixed]:
-        """Return every task this version or one before it held, with its part."""
-        fixed = {} if self.previous is None else self.previous.fixed()
+        """Return every task this version or one before it held, by name and
+        fingerprint, with its part."""
+        fixed = {
+            (task.task_name, task.fingerprint): task.part
+            for task in ([] if self.previous is None else self.previous.parts)
+        }
         fixed |= {
-            (member.task_name, member.content_digest): member.part
+            (member.task_name, member.fingerprint): member.part
             for member in self.members
         }
         return [
-            ForgeCollectionPartFixed(task_name=name, content_digest=digest, part=part)
+            ForgeCollectionPartFixed(task_name=name, fingerprint=digest, part=part)
             for (name, digest), part in sorted(fixed.items())
         ]
 
@@ -2425,7 +2459,7 @@ class ForgeExport(ProtocolModel):
     exported_at: UtcDateTime
     collection: ForgeCollectionRecord
     acceptance: ForgeCollectionAcceptance
-    tasks: list[ForgeExportTask] = Field(min_length=1)
+    tasks: list[ForgeExportTask] = Field(min_length=MINIMUM_COLLECTION_TASKS)
 
 
 class ForgeExportVerification(ProtocolModel):

@@ -506,25 +506,45 @@ how it went the last time it was tried (the call's state, the build its
 package became, whether that build qualified it, or what stopped the call),
 and the members, the qualified tasks being accepted (all of them unless
 `--task` names fewer), each by the claim it tests and its kind (as its
-construction package recorded them), its build, task id, content digest and the
-digest of its qualification evidence, after its files are hashed against the
-build's commitment, and its `part`, `study` or `held_out`. Nobody chooses the
-parts, and a task keeps its part for good: a new version carries, in
-`previous.parts`, every task (by name and content digest) that version or any
-before it held, with its part, and each such task keeps it, so a task once
-studied is never held out, even after it was left out for a while. A task
-whose files changed is a new task. Only new tasks are given a part: they are
-ordered by the sha256 of `proposal_digest + ":" + content_digest`, ascending
-(the task name breaks a tie), and the first half, rounded down, are held out;
-a single new task takes the part that leaves the collection more even, held
-out when either would. The improving agent never sees a held-out task, and a
+construction package recorded them), its build, task id, content digest, its
+`fingerprint` (the digest of its files other than the `task.toml` Techtree
+writes, which names the package and so differs every time a task is built)
+and the digest of its qualification evidence, after its files are hashed
+against the build's commitment, and its `part`, `study` or `held_out`.
+Nobody chooses the parts, and a part follows the task, not its bytes: a new
+version carries, in `previous.parts`, every task (by name and fingerprint)
+that version or any before it held, with its part, and a member takes the
+part of every one that shares its name or its fingerprint, so a task built
+again keeps its part, and so does the same task under another name; when
+those disagree it is studied, so a task once studied is never held out, even
+after it was left out for a while. Only a member that shares neither with an
+earlier task is given a part: those are ordered by the sha256 of
+`proposal_digest + ":" + fingerprint`, ascending (the task name breaks a
+tie), and the first half, rounded down, are held out; a single one takes the
+part that leaves the collection more even, held out when either would. The
+earlier tasks are those of the chain `--previous` names, so a Skill's
+collections form one line of versions: `forge collect` without `--previous`
+is refused (`forge_collection_has_versions`) when the home holds an accepted
+collection whose Source Skill has the same admitted files, naming the latest
+(highest version, then last accepted) and the `--previous` to use, and
+`forge construct`'s next action offers that `--previous`. The link is the
+Source Skill's admitted digest, not its `source_id` or the proposal: the
+tasks are written from those bytes, and looking at the same Skill again or
+planning it again gives a new source or proposal that would otherwise start
+a new line silently; `--previous` likewise requires a collection of a Skill
+with the same admitted files (`forge_collection_other_source`). A collection
+whose members include two tasks with the same fingerprint is refused
+(`forge_collection_duplicate_task`, naming both). Tasks whose files differ
+even slightly have different fingerprints, so near-duplicates, such as the
+same task with one word changed, are not recognised and can land in
+different parts; that is a known limit. The improving agent never sees a held-out task, and a
 revision's verdict is worked out on them alone. The membership digest covers
 the parts, and one `collection_digest` binds it all. Preparing refuses when
 nothing qualified (`forge_collection_empty`), a task that did not qualify
 (`forge_collection_task_not_usable`), and a collection without a task in each
 part (`forge_collection_too_few`): one of a single task, saying which other
 qualified tasks `--task` left out or else to propose more, and one whose
-carried parts are all the same, naming the missing part. The review shows
+inherited parts are all the same, naming the missing part. The review shows
 which tasks are held out and says the improving agent will never see them. `forge accept COLLECTION_ID`
 makes the review again, refuses one that changed (`forge_collection_stale`),
 asks, and writes `acceptance.json` with that digest; an accepted collection is
@@ -558,7 +578,8 @@ read. `forge verify-export FOLDER` needs no home: it refuses anything in the
 folder beyond the collection, anything missing and any link; recomputes every
 task file against the accepted content digests (naming each file that
 differs), each qualification record against its member digest, which tasks
-are held out against the rule that picks them, and the membership and
+are held out against the rule that picks them, each member's fingerprint
+against its build record, and the membership and
 collection digests against the acceptance; and compares the
 README with `export.json`. Any difference is `forge_export_changed`. It
 reports what it recomputed and what is recorded only: the Source Skill (its
@@ -864,7 +885,9 @@ that covered them. `uplift
 prepare --from-run FORGECMP_ID --candidate-skill PATH [--label NAME]`
 (`forge/revision.py`) makes one revision: the candidate run's specification
 with the Skill alone replaced, refused when the Skill is unchanged
-(`forge_revision_unchanged`), when Hermes no longer reports the version the
+(`forge_revision_unchanged`), when the compared runs cover no task of a
+collection the reviser may study (`forge_revision_no_study_task`, before
+anything is written), when Hermes no longer reports the version the
 comparison used (`forge_agent_changed`), or when `compare_run_specs` finds any
 other difference against the baseline. The revised Skill is then screened
 against every task's hidden material: each line of 24 characters or more that
@@ -886,26 +909,41 @@ as a candidate arm, compares it against the baseline the parent comparison
 used, and records the measured run, the new comparison and a one-sentence
 verdict ("improved on", "regressed from" or "matched" the parent Skill, with
 both mean rewards and the paired counts, prefixed "Partial evidence" when
-either comparison is incomplete). On a collection every task still runs, but
-`verdict` is worked out on the held-out pairs alone, and `study_verdict`, a
-second sentence labelled as such, on the tasks the reviser could see; a
-build's revision has no `study_verdict`. The revision is kept as measured whether it
+either comparison is incomplete). Like every other verdict it needs at least
+three graded pairs, here on each side, and below that says the revision is
+inconclusive. On a collection every task still runs, but `verdict` is worked
+out on the held-out pairs alone, and `study_verdict`, a second sentence
+labelled as such, on the tasks the reviser could see; a build's revision has
+no `study_verdict`. A revision with a screening finding on a held-out task is
+not judged on them: its `verdict` says so ("the revised Skill contains
+material from held-out tasks") instead of improved or regressed. The revision is kept as measured whether it
 improved or regressed, and is never measured twice (`forge_revision_measured`).
 What `uplift prepare` and `uplift start` answer may be read by the agent that
 wrote the revision, so they show the revision as `ForgeRevisionShown` and the
 review before a start as `ForgeRevisionReview`: the tasks it could see by id,
-and a collection's held-out tasks, and screening findings on them, only as
-counts; after a start they show the revision's verdicts, not the comparison's
-task-by-task rows. `forge status` shows a person the whole revision and
-comparison.
+a collection's held-out tasks only as a count, and screening findings (in the
+answer, its warning and the review) only on the tasks it could see, with no
+count of those on held-out tasks; after a start they show the revision's
+verdicts, not the comparison's task-by-task rows, and the next action is the
+next round's `uplift context` on the new comparison, never a `forge status`.
+An error on the way that names a held-out task is replaced: a failed
+measured run by `forge_held_out_task_failed`, which says a held-out task
+failed and that a person can see which with `forge status` on the run, with
+no task, file or folder named, and a collection whose held-out tasks changed
+since acceptance by `forge_collection_changed` with how many of their files
+differ, never which, and `forge verify` for a person. `forge status` shows a
+person the whole revision, its held-out findings included, and comparison.
 
 The held-out guarantee covers what Techtree gives the improving agent: the
 improvement context and the `uplift` answers. An agent that can read the
 Techtree folder directly, such as the collection, a comparison or its report,
 could find the held-out tasks there; nothing stops it. What the screening
 does is record, on the revision, any line of a revised Skill that also occurs
-in a held-out task's instruction or inputs, so a person sees it before the
-revision is measured and wherever it is shown.
+in a held-out task's instruction or inputs, so a person sees it with `forge
+status` and the revision is not judged on the held-out tasks. One bit still
+reaches the agent: a completed `uplift start` shows the verdict, and a
+not-judged verdict tells it that some line of its revision matched held-out
+material, though not which line or task.
 No search is run: one explicit proposal, frozen, checked, approved, measured.
 
 Ordinary errors and Ctrl-C produce a failure/cancellation receipt and a build ID

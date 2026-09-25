@@ -39,12 +39,15 @@ revised Skill under ``forge/revisions/<id>/``, and ``start`` runs the new arm
 with the person's own Hermes and compares it against the same baseline; the
 revision is kept whether it improved or regressed. What these commands answer
 may be read by the agent that wrote the revision, so on a collection they
-count the held-out tasks and never name them; ``forge status`` shows a person
-everything.
+count the held-out tasks and never name them, say nothing of how the revised
+Skill screened against them, and report a failure on one without saying
+which; ``forge status`` shows a person everything.
 """
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -69,7 +72,6 @@ from techtree.cli.commands.climb import (
 )
 from techtree.cli.commands.forge import (
     ask_to_start,
-    revision_status_action,
     revision_warnings,
     run_review_lines,
     run_warnings,
@@ -79,8 +81,12 @@ from techtree.cli.context import CliContext, cli_context
 from techtree.cli.invoke import CommandResult, approval_operation, invoke_command
 from techtree.cli.output import render_pairs
 from techtree.drafts.store import DraftStore
-from techtree.errors import ValidationError
-from techtree.forge.collection import read_collection_status, verify_collection
+from techtree.errors import RunError, TechtreeError, ValidationError
+from techtree.forge.collection import (
+    changed_member_files,
+    read_collection_status,
+    verify_collection,
+)
 from techtree.forge.improvement import (
     ForgeImprovementCollection,
     ForgeImprovementContext,
@@ -89,6 +95,7 @@ from techtree.forge.improvement import (
 )
 from techtree.forge.models import (
     ForgeBuildTasks,
+    ForgeCollectionMember,
     ForgeCollectionTasks,
     ForgeRevisionStatus,
     ForgeScreeningFinding,
@@ -163,9 +170,9 @@ class ForgeRevisionShown(ProtocolModel):
 
     ``task_ids`` are the tasks that agent could see: every task of a build,
     the study tasks of a collection. A collection's held-out tasks are only
-    counted, and so are screening findings on them; the verdicts say how the
-    revision did on them together. ``forge status`` shows a person the whole
-    revision.
+    counted, and ``screening`` holds the findings on the tasks it could see
+    alone; the verdict says how the revision did on the held-out tasks
+    together. ``forge status`` shows a person the whole revision.
     """
 
     revision_id: NonEmptyString
@@ -182,7 +189,6 @@ class ForgeRevisionShown(ProtocolModel):
     spec_digest: Digest
     controlled: bool
     screening: list[ForgeScreeningFinding]
-    held_out_findings: int = Field(ge=0)
     measured_run_id: NonEmptyString | None
     measured_comparison_id: NonEmptyString | None
     verdict: NonEmptyString | None
@@ -480,9 +486,9 @@ def prepare_uplift_command(
                 label=label,
             )
             return CommandResult(
-                data=_shown(context.paths, revision),
+                data=(shown := _shown(context.paths, revision)),
                 state_digest=revision.record.spec_digest,
-                warnings=revision_warnings(revision),
+                warnings=revision_warnings(shown.screening, held_out=False),
                 next_actions=[_measure_when_approved(revision)],
             )
         prepared = build_uplift_service(context).prepare_replacement(
@@ -661,47 +667,133 @@ def _measure(
 ) -> CommandResult[ForgeUpliftStartPayload | ForgeRevisionReview]:
     """Show what measuring the revision would do, ask, run it, compare it."""
     revision = read_revision_status(context.paths, revision_id)
+    held_out = _held_out(context.paths, revision)
+    markers = frozenset(
+        marker
+        for member in held_out
+        for marker in (member.task_id, member.task_name, member.build_id)
+    )
     match revision.spec.tasks_from:
         case ForgeBuildTasks(build_id=build_id):
             read_build_status(context.paths, build_id)
         case ForgeCollectionTasks(collection_id=collection_id):
-            verify_collection(context.paths, collection_id)
-    review = _revision_review(revision, _held_out(context.paths, revision))
+            try:
+                verify_collection(context.paths, collection_id)
+            except TechtreeError as error:
+                if not _names(error, markers):
+                    raise
+                raise _held_out_changed(
+                    context.paths, collection_id, held_out
+                ) from None
+    shown = _shown(context.paths, revision)
+    review = _revision_review(revision, shown)
+    warnings = revision_warnings(shown.screening, held_out=False)
     if not assume_yes and context.no_input:
         return CommandResult(
             data=review,
             state_digest=revision.record.spec_digest,
-            warnings=revision_warnings(revision),
+            warnings=warnings,
             next_actions=[_measure_when_approved(revision)],
         )
     if not assume_yes:
         ask_to_start(context, review.review, review.spec_digest)
-    measured = measure_revision(
-        context.paths, revision_id, ForgeRunner(context.paths, run_command)
-    )
+    try:
+        measured = measure_revision(
+            context.paths, revision_id, ForgeRunner(context.paths, run_command)
+        )
+    except TechtreeError as error:
+        if not _names(error, markers):
+            raise
+        run_id = error.details.get("run_id")
+        raise RunError(
+            "a held-out task failed while the revised Skill was measured, so the "
+            "revision was not measured. A person can see which task and why with "
+            + (f"forge status {run_id}" if run_id else "forge status on the run"),
+            code="forge_held_out_task_failed",
+            exit_code=error.exit_code,
+        ) from None
     return CommandResult(
         data=ForgeUpliftStartPayload(revision=_shown(context.paths, measured.revision)),
-        warnings=[*revision_warnings(measured.revision), *run_warnings(measured.run)],
-        next_actions=[revision_status_action(measured.revision)],
+        warnings=[*warnings, *run_warnings(measured.run)],
+        next_actions=[_next_round(measured.comparison.comparison_id)],
     )
 
 
-def _held_out(paths: TechtreePaths, revision: ForgeRevisionStatus) -> frozenset[str]:
+def _names(error: TechtreeError, markers: frozenset[str]) -> bool:
+    """Whether an error names a held-out task, by its id, name or build."""
+    said = error.message + " " + json.dumps(error.details)
+    return any(
+        re.search(rf"(?<![a-z0-9_-]){re.escape(marker)}(?![a-z0-9_-])", said)
+        for marker in markers
+    )
+
+
+def _held_out_changed(
+    paths: TechtreePaths,
+    collection_id: str,
+    held_out: list[ForgeCollectionMember],
+) -> ValidationError:
+    """The error for a collection whose held-out tasks changed since it was
+    accepted: how many of their files, never which."""
+    changed = unreadable = 0
+    for member in held_out:
+        try:
+            changed += len(changed_member_files(paths, member))
+        except TechtreeError:
+            unreadable += 1
+    found = [
+        *(
+            (
+                f"{changed} {'file' if changed == 1 else 'files'} of its held-out "
+                f"tasks {'differs' if changed == 1 else 'differ'} from what was "
+                "accepted",
+            )
+            if changed
+            else ()
+        ),
+        *(
+            (
+                f"{unreadable} of its held-out "
+                f"{'task' if unreadable == 1 else 'tasks'} can no longer be read",
+            )
+            if unreadable
+            else ()
+        ),
+    ]
+    return ValidationError(
+        f"collection {collection_id} changed after its acceptance: "
+        + (
+            ", and ".join(found)
+            if found
+            else "the records of its held-out tasks differ from what was accepted"
+        )
+        + ", so the revision cannot be measured on it. A person can see what "
+        f"changed with forge verify {collection_id}",
+        code="forge_collection_changed",
+        details={
+            "collection_id": collection_id,
+            "held_out_files_changed": changed,
+            "held_out_tasks_unreadable": unreadable,
+        },
+    )
+
+
+def _held_out(
+    paths: TechtreePaths, revision: ForgeRevisionStatus
+) -> list[ForgeCollectionMember]:
     """The held-out tasks of a revision's collection; none on a build."""
     match revision.record.tasks_from:
         case ForgeBuildTasks():
-            return frozenset()
+            return []
         case ForgeCollectionTasks(collection_id=collection_id):
-            parts = read_collection_status(paths, collection_id).record.review.parts()
-            return frozenset(
-                task_id for task_id, part in parts.items() if part == "held_out"
-            )
+            members = read_collection_status(paths, collection_id).record.review.members
+            return [member for member in members if member.part == "held_out"]
 
 
 def _shown(paths: TechtreePaths, revision: ForgeRevisionStatus) -> ForgeRevisionShown:
     """The revision without anything that names a held-out task."""
     record = revision.record
-    held_out = _held_out(paths, revision)
+    held_out = {member.task_id for member in _held_out(paths, revision)}
     return ForgeRevisionShown(
         revision_id=revision.revision_id,
         state=record.state,
@@ -719,9 +811,6 @@ def _shown(paths: TechtreePaths, revision: ForgeRevisionStatus) -> ForgeRevision
         screening=[
             finding for finding in record.screening if finding.task_id not in held_out
         ],
-        held_out_findings=sum(
-            finding.task_id in held_out for finding in record.screening
-        ),
         measured_run_id=record.measured_run_id,
         measured_comparison_id=record.measured_comparison_id,
         verdict=record.verdict,
@@ -730,21 +819,22 @@ def _shown(paths: TechtreePaths, revision: ForgeRevisionStatus) -> ForgeRevision
 
 
 def _revision_review(
-    revision: ForgeRevisionStatus, held_out: frozenset[str]
+    revision: ForgeRevisionStatus, shown: ForgeRevisionShown
 ) -> ForgeRevisionReview:
-    """The forge run review, headed by what this run is a revision of."""
+    """The forge run review, headed by what this run is a revision of; it
+    counts held-out tasks and says nothing of how they screened."""
     spec = revision.spec
     record = revision.record
     on_collection = isinstance(record.tasks_from, ForgeCollectionTasks)
     hidden = (
-        "a task's reference answer or tests, or a held-out task's instruction or inputs"
+        "the reference answer or tests of a task the improving agent could see"
         if on_collection
         else "a task's reference answer or tests"
     )
     screening = (
-        f"Screening: {len(record.screening)} line(s) of the revised Skill also "
+        f"Screening: {len(shown.screening)} line(s) of the revised Skill also "
         f"occur in {hidden}; see the revision."
-        if record.screening
+        if shown.screening
         else f"Screening: no line of the revised Skill occurs in {hidden}."
     )
     judged = (
@@ -763,7 +853,9 @@ def _revision_review(
             f"Revision: {revision.revision_id} of Skill "
             f"{record.parent_skill_digest[:12]} measured by "
             f"{record.comparison_id}",
-            *run_review_lines(spec, held_out=held_out),
+            *run_review_lines(
+                spec, held_out=frozenset(spec.task_ids) - set(shown.task_ids)
+            ),
             "Afterwards the run is compared against the same baseline, "
             f"{record.baseline_run_id}, and the revision is kept whether "
             "it improved or regressed.",
@@ -798,6 +890,25 @@ def _measure_when_approved(revision: ForgeRevisionStatus) -> NextAction:
             f"It runs {revision.record.skill.name} on the same tasks with your "
             "own Hermes and compares it against the same baseline. A person "
             "approves the model calls it makes on their own account."
+        ),
+    )
+
+
+def _next_round(comparison_id: str) -> NextAction:
+    """Return the read that starts the next revision: what the measured run
+    showed, on the tasks the improving agent may see."""
+    return NextAction(
+        operation=Operation.PLAN_INSPECT,
+        prepared_arguments=invocation("uplift", "context", arguments=[comparison_id]),
+        expected_state_digest=None,
+        side_effect=SideEffect.NONE,
+        approval_required=False,
+        retry_class=RetryClass.SAFE,
+        estimated_cost=None,
+        data_egress=DataEgress.NONE,
+        reason=(
+            "It says what the revised Skill's run showed, which is where a "
+            "further revision starts."
         ),
     )
 
@@ -1067,7 +1178,7 @@ def _render_revision(revision: ForgeRevisionShown, console: Console) -> None:
         ),
         ("Controlled", "yes" if revision.controlled else "no"),
     ]
-    shared = len(revision.screening) + revision.held_out_findings
+    shared = len(revision.screening)
     pairs.append(
         (
             "Screening",
@@ -1086,14 +1197,6 @@ def _render_revision(revision: ForgeRevisionShown, console: Console) -> None:
             f"  {finding.skill_path}:{finding.line} matches the "
             f"{finding.material.replace('_', ' ')} of {finding.task_id}: "
             f"{finding.excerpt}",
-            markup=False,
-        )
-    if hidden := revision.held_out_findings:
-        console.print(
-            f"  {hidden} {'line matches' if hidden == 1 else 'lines match'} the "
-            "material of held-out tasks; a person can read "
-            f"{'it' if hidden == 1 else 'them'} with forge status "
-            f"{revision.revision_id}.",
             markup=False,
         )
     if revision.verdict is not None:

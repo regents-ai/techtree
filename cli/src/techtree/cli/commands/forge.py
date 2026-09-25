@@ -24,6 +24,7 @@ What to say about each operation is here.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final, Literal
@@ -47,6 +48,7 @@ from techtree.errors import PolicyError, RunError, TechtreeError, ValidationErro
 from techtree.forge.collection import (
     accept_collection,
     check_collection,
+    latest_collection,
     prepare_collection,
     qualified_tasks,
     read_collection_status,
@@ -64,6 +66,8 @@ from techtree.forge.export import export_collection, verify_export
 from techtree.forge.models import (
     MAX_PLANNED_TASKS,
     MINIMUM_COLLECTION_TASKS,
+    TASK_KIND_WORDS,
+    TASK_KINDS_EXPLAINED,
     ForgeArm,
     ForgeArmTotals,
     ForgeAttemptOutcome,
@@ -88,6 +92,7 @@ from techtree.forge.models import (
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
+    ForgeScreeningFinding,
     ForgeSkillClaim,
     ForgeSkillRef,
     ForgeSourceStatus,
@@ -172,7 +177,6 @@ __all__ = [
     "render_forge_source",
     "render_forge_status",
     "review_run_spec",
-    "revision_status_action",
     "revision_warnings",
     "run_forge_command",
     "run_review_lines",
@@ -527,7 +531,13 @@ def status_forge_command(
             case "forgerev":
                 revision = read_revision_status(context.paths, record_id)
                 return CommandResult(
-                    data=revision, warnings=revision_warnings(revision)
+                    data=revision,
+                    warnings=revision_warnings(
+                        revision.record.screening,
+                        held_out=isinstance(
+                            revision.record.tasks_from, ForgeCollectionTasks
+                        ),
+                    ),
                 )
         status = read_build_status(context.paths, record_id)
         return CommandResult(data=status, warnings=_warnings(status))
@@ -1105,6 +1115,17 @@ def run_review_lines(spec: ForgeRunSpec, *, held_out: frozenset[str]) -> list[st
     counted, not named, for a caller that may be the improving agent."""
     shown = [task_id for task_id in spec.task_ids if task_id not in held_out]
     hidden = len(spec.task_ids) - len(shown)
+    listed = ", and ".join(
+        words
+        for words in (
+            ", ".join(shown),
+            f"{hidden} held-out {'task' if hidden == 1 else 'tasks'} the "
+            "improving agent never sees"
+            if hidden
+            else "",
+        )
+        if words
+    )
     return [
         f"Arm: {spec.arm.value}"
         + (
@@ -1113,14 +1134,7 @@ def run_review_lines(spec: ForgeRunSpec, *, held_out: frozenset[str]) -> list[st
             else ", without a Skill"
         ),
         _tasks_from_line(spec),
-        f"Tasks: {len(spec.task_ids)} ({', '.join(shown)}"
-        + (
-            f", and {hidden} held-out {'task' if hidden == 1 else 'tasks'} the "
-            "improving agent never sees"
-            if hidden
-            else ""
-        )
-        + ")",
+        f"Tasks: {len(spec.task_ids)} ({listed})",
         f"Attempts: {len(spec.task_ids) * spec.sampling.repetitions} "
         f"({spec.sampling.repetitions} per task)",
         f"Agent: {spec.agent.executable} (Hermes Agent v{spec.agent.version})",
@@ -1699,40 +1713,30 @@ def render_forge_revision(status: ForgeRevisionStatus, console: Console) -> None
         console.print(record.study_verdict, markup=False)
 
 
-def revision_warnings(status: ForgeRevisionStatus) -> list[CliWarning]:
-    """Say when the revised Skill shares lines with hidden material."""
-    if not status.record.screening:
+def revision_warnings(
+    findings: Sequence[ForgeScreeningFinding], *, held_out: bool
+) -> list[CliWarning]:
+    """Say when the revised Skill shares lines with hidden material.
+
+    ``held_out`` says whether ``findings`` may include held-out tasks'
+    instructions and inputs, which only a person is told of.
+    """
+    if not findings:
         return []
     return [
         CliWarning(
             id="forge_revision_shares_hidden_material",
             text=(
-                f"{len(status.record.screening)} line(s) of the revised Skill "
-                "also occur in material hidden from the agent that improved it: a "
-                "task's reference answer or tests, or a held-out task's "
-                "instruction or inputs. A result with it may measure recall "
-                "rather than method. Each is listed on the revision."
+                f"{len(findings)} line(s) of the revised Skill also occur in "
+                "material hidden from the agent that improved it: a task's "
+                "reference answer or tests"
+                + (", or a held-out task's instruction or inputs" if held_out else "")
+                + ". A result with it may measure recall rather than method. "
+                "Each is listed on the revision."
             ),
             resolvable_by=None,
         )
     ]
-
-
-def revision_status_action(status: ForgeRevisionStatus) -> NextAction:
-    return NextAction(
-        operation=Operation.PLAN_INSPECT,
-        prepared_arguments=invocation(
-            "forge", "status", arguments=[status.revision_id]
-        ),
-        expected_state_digest=None,
-        side_effect=SideEffect.NONE,
-        approval_required=False,
-        retry_class=RetryClass.SAFE,
-        estimated_cost=None,
-        data_egress=DataEgress.NONE,
-        reason="The revision, its screening and its measurement can be read "
-        "back later.",
-    )
 
 
 def render_forge_source(status: ForgeSourceStatus, console: Console) -> None:
@@ -2063,17 +2067,7 @@ def _render_plan(data: object, console: Console) -> None:
 
 
 #: What each kind of task is, in the words a person reads.
-_KIND_WORDS: Final[dict[ForgeTaskKind, str]] = {
-    "positive": "positive case",
-    "boundary": "boundary case",
-    "counterexample": "counterexample",
-}
-_KINDS_EXPLAINED: Final = (
-    "Each task tests one claim. A positive case is one where following the "
-    "Skill should give the right result; a boundary case sits at the edge of "
-    "where the claim applies; a counterexample checks that the Skill is not "
-    "overused where it would give a wrong result or should change nothing."
-)
+_KINDS_EXPLAINED: Final = f"Each task tests one claim. {TASK_KINDS_EXPLAINED}"
 
 
 def _claim_lines(claims: list[ForgeSkillClaim]) -> list[str]:
@@ -2089,7 +2083,7 @@ def _claim_lines(claims: list[ForgeSkillClaim]) -> list[str]:
 
 
 def _task_label(name: str, claim: str, kind: ForgeTaskKind) -> str:
-    return f"{name} ({claim}, {_KIND_WORDS[kind]})"
+    return f"{name} ({claim}, {TASK_KIND_WORDS[kind]})"
 
 
 def render_forge_proposal(status: ForgeProposalStatus, console: Console) -> None:
@@ -2386,11 +2380,17 @@ def construction_next_actions(
         and len(qualified_tasks(paths, status.construction_id))
         >= MINIMUM_COLLECTION_TASKS
     ):
+        latest = latest_collection(paths, status.construction_id)
         actions.append(
             NextAction(
                 operation=Operation.PLAN_PREPARE,
                 prepared_arguments=invocation(
-                    "forge", "collect", arguments=[status.construction_id]
+                    "forge",
+                    "collect",
+                    arguments=[status.construction_id],
+                    options=None
+                    if latest is None
+                    else {"--previous": latest.collection_id},
                 ),
                 expected_state_digest=None,
                 side_effect=SideEffect.LOCAL_STATE,
@@ -2399,7 +2399,13 @@ def construction_next_actions(
                 estimated_cost=None,
                 data_egress=DataEgress.NONE,
                 reason="The tasks that qualified can be collected for a "
-                "person to accept; every task's outcome is shown with them.",
+                "person to accept; every task's outcome is shown with them."
+                + (
+                    ""
+                    if latest is None
+                    else f" It is the next version of {latest.collection_id}, "
+                    "the latest accepted collection of this Skill."
+                ),
             )
         )
     if ended and not all(_usable(task) for task in status.tasks):
