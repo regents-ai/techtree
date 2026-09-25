@@ -30,7 +30,7 @@ from fixtures.forge.support import (
 )
 from techtree.cli.app import create_app
 from techtree.errors import PrerequisiteError, ValidationError, VerificationError
-from techtree.forge.compare import compare_runs
+from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.improvement import (
     ForgeImprovementRepository,
     build_forge_improvement_context,
@@ -466,8 +466,8 @@ def test_uplift_prepare_on_a_comparison_returns_the_revision_and_the_start_to_ap
     assert code == 0
     assert envelope["operation"] == "plan.prepare"
     facts = envelope["facts"]
-    assert facts["record"]["state"] == "prepared"
-    assert envelope["state_digest"] == facts["record"]["spec_digest"]
+    assert facts["state"] == "prepared"
+    assert envelope["state_digest"] == facts["spec_digest"]
     [action] = envelope["next_actions"]
     assert action["operation"] == "action.execute"
     assert action["approval_required"] is True
@@ -477,7 +477,7 @@ def test_uplift_prepare_on_a_comparison_returns_the_revision_and_the_start_to_ap
         "--yes": True,
         "--reviewed-on": "host-agent",
     }
-    assert action["expected_state_digest"] == facts["record"]["spec_digest"]
+    assert action["expected_state_digest"] == facts["spec_digest"]
 
 
 # ---------------------------------------------------------------------------
@@ -557,20 +557,17 @@ def test_uplift_start_with_yes_runs_compares_and_keeps_a_regression(
 
     assert code == 0
     assert envelope["operation"] == "action.execute"
-    facts = envelope["facts"]
-    record = facts["revision"]["record"]
+    record = envelope["facts"]["revision"]
     assert record["state"] == "measured"
-    assert record["measured_run_id"] == facts["run"]["run_id"]
-    assert record["measured_comparison_id"] == facts["comparison"]["comparison_id"]
     assert "regressed from demo-skill" in record["verdict"]
     assert "0.00 against 1.00 (-1.00)" in record["verdict"]
     assert record["verdict"].endswith("Kept as measured.")
-    assert (
-        facts["comparison"]["record"]["baseline_run_id"]
-        == (facts["revision"]["record"]["baseline_run_id"])
-    )
-    assert facts["comparison"]["record"]["candidate_skill"]["name"] == "demo-skill-v2"
-    assert facts["run"]["spec"]["skill"]["name"] == "demo-skill-v2"
+    comparison = read_comparison_status(
+        build.paths, record["measured_comparison_id"]
+    ).record
+    assert comparison.candidate_run_id == record["measured_run_id"]
+    assert comparison.baseline_run_id == record["baseline_run_id"]
+    assert comparison.candidate_skill.name == "demo-skill-v2"
     [launch] = hermes.launches
     assert launch["profile_files"] == [
         "auth.json",

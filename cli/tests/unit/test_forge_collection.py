@@ -758,7 +758,7 @@ def test_skill_v1_to_v2_on_the_collection_keeps_every_role_and_is_revised_there(
         ],
     )
     assert result.exit_code == 0, result.stdout
-    measured = json.loads(result.stdout)["facts"]["revision"]["record"]
+    measured = json.loads(result.stdout)["facts"]["revision"]
     assert measured["state"] == "measured"
     assert "matched branch-code" in measured["verdict"]
 
@@ -1056,12 +1056,12 @@ def test_the_held_out_tasks_follow_from_the_tasks_alone_whatever_their_order() -
             (f"task-{index}", "sha256:" + hashlib.sha256(bytes([index])).hexdigest())
             for index in range(size)
         ]
-        parts = dict(zip(members, collection_parts(proposal, members), strict=True))
+        parts = dict(zip(members, collection_parts(proposal, members, {}), strict=True))
 
         assert list(parts.values()).count("held_out") == size // 2
         assert set(parts.values()) == {"study", "held_out"}
         for reordered in (members[::-1], members[1:] + members[:1]):
-            assert collection_parts(proposal, reordered) == [
+            assert collection_parts(proposal, reordered, {}) == [
                 parts[member] for member in reordered
             ]
 
@@ -1076,7 +1076,10 @@ def test_a_collection_of_one_task_is_refused(
 
     assert code != 0
     assert envelope["error"]["code"] == "forge_collection_too_few"
-    assert "Propose more tasks" in envelope["error"]["message"]
+    assert (
+        f"{ALSO_QUALIFIES} also qualified but was left out by --task"
+        in (envelope["error"]["message"])
+    )
 
 
 def test_the_improving_agent_never_sees_a_held_out_task(
@@ -1230,3 +1233,36 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
         assert record.verdict.startswith("On the 1 held-out task, which the agent")
         assert f"branch-code {verdict} branch-code" in record.verdict
         assert f"branch-code {study_verdict} branch-code" in record.study_verdict
+
+
+def test_a_task_keeps_its_part_in_every_later_version(
+    home: Path, proposal_id: str, profiles: Path
+) -> None:
+    """Invariant: a task's part, once given, holds as tasks are added,
+    removed and added again."""
+    first = construct(home, proposal_id, profiles, ae5_creator())
+    retry = construct(home, proposal_id, profiles, FakeCreator(), retry_of=first)
+    paths = paths_from_root(home)
+
+    def accepted_version(construction_id: str, *arguments: str) -> dict[str, str]:
+        collection_id = collect(home, construction_id, *arguments)["facts"][
+            "collection_id"
+        ]
+        assert invoke(home, "accept", collection_id, "--yes")[0] == 0
+        versions.append(collection_id)
+        review = read_collection_status(paths, collection_id).record.review
+        return {member.task_name: member.part for member in review.members}
+
+    versions: list[str] = []
+    v1 = accepted_version(first)
+    v2 = accepted_version(retry, "--previous", versions[-1])
+    [dropped] = [name for name, part in v1.items() if part == "study"]
+    kept = [arg for name in v2 if name != dropped for arg in ("--task", name)]
+    v3 = accepted_version(retry, *kept, "--previous", versions[-1])
+    v4 = accepted_version(retry, "--previous", versions[-1])
+
+    assert len(v1) < len(v2) and dropped not in v3 and dropped in v4
+    given: dict[str, str] = {}
+    for version in (v1, v2, v3, v4):
+        for name, part in version.items():
+            assert given.setdefault(name, part) == part, name

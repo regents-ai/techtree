@@ -15,11 +15,13 @@ changed. A different membership, or a task built again, is a new collection
 naming the one it replaces, one version later; one with the same members as
 the version it replaces is refused.
 
-Every member is in one of two parts, fixed by the tasks' fingerprints rather
+Every member is in one of two parts, given by the tasks' fingerprints rather
 than chosen by anyone (founder decision 2a, ``docs/plan/v0.3.0-task-set.md``
 §6): the tasks an improving agent may study, and the tasks held out from it,
-on which a revised Skill's verdict is computed. So a collection holds at least
-two tasks, one in each part, and preparing refuses fewer.
+on which a revised Skill's verdict is computed. A task keeps its part in every
+later version of the collection, so a task once studied is never held out;
+only tasks no earlier version held are given one. A collection holds at least
+one task in each part, and preparing refuses one that would not.
 
 Verifying an accepted collection makes its review again from what is on disk
 now: every member's files are hashed against their build's commitment, every
@@ -66,6 +68,7 @@ __all__ = [
     "accept_collection",
     "check_collection",
     "prepare_collection",
+    "qualified_tasks",
     "read_collection_status",
     "verify_collection",
 ]
@@ -262,30 +265,70 @@ def _review(
                 details={"task_name": name, "proposal_id": proposal.proposal_id},
             )
     if len(names) < MINIMUM_COLLECTION_TASKS:
+        left_out = [
+            candidate.task_name
+            for candidate in candidates
+            if candidate.usable and candidate.task_name not in names
+        ]
         raise ValidationError(
             f"this collection would hold only {', '.join(names)}, and a collection "
             f"needs at least {MINIMUM_COLLECTION_TASKS} tasks: some the improving "
             "agent may study, and some held out from it that decide whether a "
-            "revised Skill improved. Propose more tasks, or build the ones that "
-            f"did not qualify again with forge construct --retry-of {construction_id}, "
-            "then collect again",
+            "revised Skill improved. "
+            + (
+                f"{', '.join(left_out)} also qualified but "
+                f"{'was' if len(left_out) == 1 else 'were'} left out by --task; "
+                "name more tasks, or leave out --task to collect every one that "
+                "qualified"
+                if left_out
+                else "Propose more tasks, or build the ones that did not qualify "
+                f"again with forge construct --retry-of {construction_id}, then "
+                "collect again"
+            ),
             code="forge_collection_too_few",
             details={
                 "construction_id": construction_id,
                 "tasks": list(names),
+                "left_out": list(left_out),
                 "minimum": MINIMUM_COLLECTION_TASKS,
             },
         )
+    parent = None if previous is None else _parent(paths, previous, newest.source_id)
     committed = [_commit(paths, by_name[name]) for name in names]
     parts = collection_parts(
         proposal.proposal_digest,
         [(task.task_name, task.content_digest) for task in committed],
+        {} if parent is None else parent.fixed(),
     )
+    for missing in ("study", "held_out"):
+        if missing not in parts:
+            raise ValidationError(
+                "every task of this collection would be "
+                + (
+                    "held out"
+                    if missing == "study"
+                    else "one the improving agent may study"
+                )
+                + ", because each keeps the part an earlier version gave it, and a "
+                "collection needs at least one task in each part. Add a task no "
+                "earlier version held, which is given the missing part, or keep "
+                "a task an earlier version "
+                + (
+                    "let the improving agent study"
+                    if missing == "study"
+                    else "held out"
+                ),
+                code="forge_collection_too_few",
+                details={
+                    "construction_id": construction_id,
+                    "tasks": list(names),
+                    "missing": missing,
+                },
+            )
     members = [
         ForgeCollectionMember(**task._asdict(), part=part)
         for task, part in zip(committed, parts, strict=True)
     ]
-    parent = None if previous is None else _parent(paths, previous, newest.source_id)
     if parent is not None and members == (
         read_collection_status(paths, parent.collection_id).record.review.members
     ):
@@ -307,6 +350,15 @@ def _review(
         members=members,
         membership_digest=digest_object(members),
     )
+
+
+def qualified_tasks(paths: TechtreePaths, construction_id: str) -> list[str]:
+    """Return the tasks a collection of this ended construction could hold:
+    those of its proposal whose last try, here or in a construction it
+    retried, qualified."""
+    chain = _chain(paths, construction_id)
+    proposal = read_proposal_status(paths, chain[0].record.review.proposal_id).record
+    return [task.name for task in proposal.tasks if _candidate(task.name, chain).usable]
 
 
 def _chain(paths: TechtreePaths, construction_id: str) -> list[ForgeConstructionStatus]:
@@ -407,6 +459,7 @@ def _parent(
         collection_id=previous,
         collection_digest=status.record.collection_digest,
         version=status.record.review.version,
+        parts=status.record.review.fixed_parts(),
     )
 
 

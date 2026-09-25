@@ -25,7 +25,7 @@ and comparison named beside the verdict.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Annotated, Final, Literal, Self
 
@@ -100,6 +100,7 @@ __all__ = [
     "ForgeCollectionMember",
     "ForgeCollectionParent",
     "ForgeCollectionPart",
+    "ForgeCollectionPartFixed",
     "ForgeCollectionRecord",
     "ForgeCollectionReview",
     "ForgeCollectionState",
@@ -2216,34 +2217,48 @@ MINIMUM_COLLECTION_TASKS: Final = 2
 
 
 def collection_parts(
-    proposal_digest: str, members: Sequence[tuple[str, str]]
+    proposal_digest: str,
+    members: Sequence[tuple[str, str]],
+    fixed: Mapping[tuple[str, str], ForgeCollectionPart],
 ) -> list[ForgeCollectionPart]:
     """Return each task's part, in the order given; nobody chooses it.
 
-    ``members`` are (task name, content digest) pairs. The tasks are put in
-    the order of the SHA-256 of ``proposal_digest:content_digest``, ties
-    broken by name, and the first half, rounded down, are held out; the rest
-    are studied. The result depends on the tasks, never on their order.
+    ``members`` are (task name, content digest) pairs, and ``fixed`` the part
+    an earlier version of the collection gave each task, by the same pair: a
+    task keeps it, so a task once studied is never held out, nor the reverse.
+    A task whose files changed is a new task. The new tasks are put in the
+    order of the SHA-256 of ``proposal_digest:content_digest``, ties broken by
+    name, and the first half, rounded down, are held out; the rest are
+    studied. A single new task takes the part that leaves the collection more
+    even, held out when it is even either way. The result depends on the
+    tasks, never on their order.
     """
-    ranked = sorted(
-        range(len(members)),
-        key=lambda index: (
-            hashlib.sha256(
-                f"{proposal_digest}:{members[index][1]}".encode()
-            ).hexdigest(),
-            members[index][0],
-        ),
-    )
-    held_out = set(ranked[: len(members) // 2])
-    return [
-        "held_out" if index in held_out else "study" for index in range(len(members))
-    ]
+    parts = {index: fixed[task] for index, task in enumerate(members) if task in fixed}
+    new = [index for index in range(len(members)) if index not in parts]
+    if len(new) == 1:
+        held_out = sum(part == "held_out" for part in parts.values())
+        parts[new[0]] = "study" if held_out > len(parts) - held_out else "held_out"
+    else:
+        ranked = sorted(
+            new,
+            key=lambda index: (
+                hashlib.sha256(
+                    f"{proposal_digest}:{members[index][1]}".encode()
+                ).hexdigest(),
+                members[index][0],
+            ),
+        )
+        parts |= {
+            index: "held_out" if rank < len(new) // 2 else "study"
+            for rank, index in enumerate(ranked)
+        }
+    return [parts[index] for index in range(len(members))]
 
 
 class ForgeCollectionMember(ProtocolModel):
     """One accepted task: exactly the bytes and the qualification it had.
 
-    ``part`` is fixed by :func:`collection_parts`, not by the author.
+    ``part`` is given by :func:`collection_parts`, not by the author.
     """
 
     task_name: ForgeProposedTaskName
@@ -2254,12 +2269,30 @@ class ForgeCollectionMember(ProtocolModel):
     part: ForgeCollectionPart
 
 
+class ForgeCollectionPartFixed(ProtocolModel):
+    """The part an earlier version of a collection gave one task, for good."""
+
+    task_name: ForgeProposedTaskName
+    content_digest: Digest
+    part: ForgeCollectionPart
+
+
 class ForgeCollectionParent(ProtocolModel):
-    """The accepted collection a new version replaces."""
+    """The accepted collection a new version replaces.
+
+    ``parts`` is every task that version or any before it held, with the
+    part it was given, so a task keeps its part in every later version, even
+    one that left it out for a while.
+    """
 
     collection_id: NonEmptyString
     collection_digest: Digest
     version: int = Field(ge=1)
+    parts: list[ForgeCollectionPartFixed] = Field(min_length=MINIMUM_COLLECTION_TASKS)
+
+    def fixed(self) -> dict[tuple[str, str], ForgeCollectionPart]:
+        """Return each task's part by its name and content digest."""
+        return {(task.task_name, task.content_digest): task.part for task in self.parts}
 
 
 class ForgeCollectionReview(ProtocolModel):
@@ -2267,8 +2300,9 @@ class ForgeCollectionReview(ProtocolModel):
 
     Every task of the proposal with its outcome, so nothing that failed is
     out of sight, and the exact members: the qualified tasks being accepted,
-    each by its content and qualification digests and the part it is in.
-    ``constructions`` is the retry chain the outcomes come from, newest first.
+    each by its content and qualification digests and the part it is in,
+    with at least one task in each part. ``constructions`` is the retry chain
+    the outcomes come from, newest first.
     """
 
     proposal_id: NonEmptyString
@@ -2291,8 +2325,11 @@ class ForgeCollectionReview(ProtocolModel):
         if [member.part for member in self.members] != collection_parts(
             self.proposal_digest,
             [(member.task_name, member.content_digest) for member in self.members],
+            {} if self.previous is None else self.previous.fixed(),
         ):
             raise ValueError("each task's part is the one its fingerprint gives it")
+        if {member.part for member in self.members} != {"study", "held_out"}:
+            raise ValueError("a collection has a task in each part")
         if not verify_object_digest(self.members, self.membership_digest):
             raise ValueError("membership digest does not describe the members")
         expected = 1 if self.previous is None else self.previous.version + 1
@@ -2303,6 +2340,18 @@ class ForgeCollectionReview(ProtocolModel):
     def parts(self) -> dict[str, ForgeCollectionPart]:
         """Return each member's part by its task id."""
         return {member.task_id: member.part for member in self.members}
+
+    def fixed_parts(self) -> list[ForgeCollectionPartFixed]:
+        """Return every task this version or one before it held, with its part."""
+        fixed = {} if self.previous is None else self.previous.fixed()
+        fixed |= {
+            (member.task_name, member.content_digest): member.part
+            for member in self.members
+        }
+        return [
+            ForgeCollectionPartFixed(task_name=name, content_digest=digest, part=part)
+            for (name, digest), part in sorted(fixed.items())
+        ]
 
 
 class ForgeCollectionRecord(ProtocolModel):

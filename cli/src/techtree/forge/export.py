@@ -65,7 +65,7 @@ CHECKED: Final = (
     "each task's qualification record, against the collection",
     "the collection's members and fingerprint, against the acceptance",
     "which tasks are held out, against the rule that picks them from the "
-    "tasks' fingerprints",
+    "tasks' fingerprints and the parts earlier versions gave them",
     "the README, against export.json",
 )
 
@@ -77,6 +77,7 @@ RECORDED_ONLY: Final = (
     "the qualification runs: their results are recorded, not run again",
     "the images the tasks were built and checked with",
     "the acceptance itself: when it was given and how it was answered",
+    "the parts earlier versions of the collection gave their tasks",
 )
 
 
@@ -324,7 +325,8 @@ def export_readme(export: ForgeExport) -> str:
         "The tasks marked held out are kept from any agent that improves a "
         "Skill on this collection, and a revised Skill's verdict is worked out "
         "on them alone. Which tasks are held out follows from the tasks' "
-        "fingerprints; nobody chose it.",
+        "fingerprints; nobody chose it, and a task keeps its part in every "
+        "later version of the collection.",
         "",
         "## What it leaves out",
         "",

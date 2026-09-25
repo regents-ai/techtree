@@ -48,6 +48,7 @@ from techtree.forge.collection import (
     accept_collection,
     check_collection,
     prepare_collection,
+    qualified_tasks,
     read_collection_status,
     verify_collection,
 )
@@ -62,6 +63,7 @@ from techtree.forge.experiment import declare_run_spec
 from techtree.forge.export import export_collection, verify_export
 from techtree.forge.models import (
     MAX_PLANNED_TASKS,
+    MINIMUM_COLLECTION_TASKS,
     ForgeArm,
     ForgeArmTotals,
     ForgeAttemptOutcome,
@@ -134,6 +136,7 @@ from techtree.models.cli import (
     SideEffect,
     invocation,
 )
+from techtree.paths import TechtreePaths
 
 __all__ = [
     "ForgeRunReview",
@@ -172,6 +175,7 @@ __all__ = [
     "revision_status_action",
     "revision_warnings",
     "run_forge_command",
+    "run_review_lines",
     "run_status_action",
     "run_warnings",
     "source_status_action",
@@ -354,7 +358,7 @@ def run_forge_command(
                 next_actions=[_run_when_approved(review, ctx.params)],
             )
         if not yes:
-            ask_to_start(context, review)
+            ask_to_start(context, review.review, review.spec_digest)
         status = ForgeRunner(context.paths, run_command).run(spec, skill)
         return CommandResult(
             data=status,
@@ -506,8 +510,8 @@ def status_forge_command(
                 construction = read_construction_status(context.paths, record_id)
                 return CommandResult(
                     data=construction,
-                    warnings=construction_warnings(construction),
-                    next_actions=construction_next_actions(construction),
+                    warnings=construction_warnings(context.paths, construction),
+                    next_actions=construction_next_actions(context.paths, construction),
                 )
             case "forgesrc":
                 source = read_source_status(context.paths, record_id)
@@ -823,8 +827,8 @@ def construct_start_forge_command(
         )
         return CommandResult(
             data=started,
-            warnings=construction_warnings(started),
-            next_actions=construction_next_actions(started),
+            warnings=construction_warnings(context.paths, started),
+            next_actions=construction_next_actions(context.paths, started),
             error=_construction_error(started),
         )
 
@@ -1088,8 +1092,20 @@ COST_LINE = (
 
 
 def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
-    attempts = len(spec.task_ids) * spec.sampling.repetitions
-    lines = [
+    return ForgeRunReview(
+        spec_digest=digest_object(spec),
+        spec=spec,
+        attempts=len(spec.task_ids) * spec.sampling.repetitions,
+        review=run_review_lines(spec, held_out=frozenset()),
+    )
+
+
+def run_review_lines(spec: ForgeRunSpec, *, held_out: frozenset[str]) -> list[str]:
+    """What running this arm would do, in lines; ``held_out`` tasks are
+    counted, not named, for a caller that may be the improving agent."""
+    shown = [task_id for task_id in spec.task_ids if task_id not in held_out]
+    hidden = len(spec.task_ids) - len(shown)
+    return [
         f"Arm: {spec.arm.value}"
         + (
             f", with Skill {spec.skill.name} ({spec.skill.root_digest[:12]})"
@@ -1097,8 +1113,16 @@ def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
             else ", without a Skill"
         ),
         _tasks_from_line(spec),
-        f"Tasks: {len(spec.task_ids)} ({', '.join(spec.task_ids)})",
-        f"Attempts: {attempts} ({spec.sampling.repetitions} per task)",
+        f"Tasks: {len(spec.task_ids)} ({', '.join(shown)}"
+        + (
+            f", and {hidden} held-out {'task' if hidden == 1 else 'tasks'} the "
+            "improving agent never sees"
+            if hidden
+            else ""
+        )
+        + ")",
+        f"Attempts: {len(spec.task_ids) * spec.sampling.repetitions} "
+        f"({spec.sampling.repetitions} per task)",
         f"Agent: {spec.agent.executable} (Hermes Agent v{spec.agent.version})",
         f"Model: {spec.model.model_id} from {spec.model.provider}"
         + (f", reasoning {spec.model.reasoning}" if spec.model.reasoning else ""),
@@ -1125,9 +1149,6 @@ def review_run_spec(spec: ForgeRunSpec) -> ForgeRunReview:
         ),
         COST_LINE,
     ]
-    return ForgeRunReview(
-        spec_digest=digest_object(spec), spec=spec, attempts=attempts, review=lines
-    )
 
 
 def _tasks_from_line(spec: ForgeRunSpec) -> str:
@@ -1160,9 +1181,9 @@ def _toolset_words(spec: ForgeRunSpec) -> str:
     return words[0] if len(words) == 1 else f"{', '.join(words[:-1])} and {words[-1]}"
 
 
-def ask_to_start(context: CliContext, review: ForgeRunReview) -> None:
+def ask_to_start(context: CliContext, review: list[str], spec_digest: str) -> None:
     console = human_console(no_color=context.no_color)
-    for line in review.review:
+    for line in review:
         console.print(line, markup=False)
     console.print()
     if not confirmed("Start this experiment?"):
@@ -1171,7 +1192,7 @@ def ask_to_start(context: CliContext, review: ForgeRunReview) -> None:
             "To go ahead, run this again and answer y. Where no one can answer "
             "here, show the person this review and, once they agree, add --yes",
             code=RUN_NOT_APPROVED,
-            details={"spec_digest": review.spec_digest},
+            details={"spec_digest": spec_digest},
         )
 
 
@@ -2306,36 +2327,65 @@ def _construction_error(status: ForgeConstructionStatus) -> TechtreeError | None
     )
 
 
-def construction_warnings(status: ForgeConstructionStatus) -> list[CliWarning]:
-    """Say which calls began and were never seen to end."""
+def construction_warnings(
+    paths: TechtreePaths, status: ForgeConstructionStatus
+) -> list[CliWarning]:
+    """Say which calls began and were never seen to end, and when too few
+    tasks qualified to make a collection."""
+    warnings = []
     unknown = [
         task.task_name for task in status.tasks if task.state == "outcome_unknown"
     ]
-    if not unknown:
-        return []
-    return [
-        CliWarning(
-            id="forge_construction_outcome_unknown",
-            text=(
-                "The creator call for "
-                + ", ".join(unknown)
-                + " began and its end was never seen, so the provider may or "
-                "may not have answered or charged. Techtree does not call it "
-                "again on its own."
-            ),
-            resolvable_by=None,
+    if unknown:
+        warnings.append(
+            CliWarning(
+                id="forge_construction_outcome_unknown",
+                text=(
+                    "The creator call for "
+                    + ", ".join(unknown)
+                    + " began and its end was never seen, so the provider may or "
+                    "may not have answered or charged. Techtree does not call it "
+                    "again on its own."
+                ),
+                resolvable_by=None,
+            )
         )
-    ]
+    if status.state in {"finished", "stopped"}:
+        qualified = qualified_tasks(paths, status.construction_id)
+        if len(qualified) < MINIMUM_COLLECTION_TASKS:
+            warnings.append(
+                CliWarning(
+                    id="forge_construction_too_few_usable",
+                    text=(
+                        f"{len(qualified)} usable "
+                        f"{'task' if len(qualified) == 1 else 'tasks'} so far, and "
+                        f"a collection needs at least {MINIMUM_COLLECTION_TASKS}: "
+                        "some the improving agent may study and some held out "
+                        "from it. Correct the proposal to add tasks with forge "
+                        "correct-proposal, or build the others again with forge "
+                        f"construct --retry-of {status.construction_id}."
+                    ),
+                    resolvable_by=None,
+                )
+            )
+    return warnings
 
 
-def construction_next_actions(status: ForgeConstructionStatus) -> list[NextAction]:
-    """What can follow: the start; or collecting what qualified, a construction
-    that tries the rest again, and each usable build, in that order."""
+def construction_next_actions(
+    paths: TechtreePaths, status: ForgeConstructionStatus
+) -> list[NextAction]:
+    """What can follow: the start; or collecting what qualified, when enough
+    did for a collection, a construction that tries the rest again, and each
+    usable build, in that order."""
     if status.state == "prepared":
         return [_construct_when_approved(status)]
     ended = status.state in {"finished", "stopped"}
     actions = []
-    if ended and any(_usable(task) for task in status.tasks):
+    if (
+        ended
+        and len(qualified_tasks(paths, status.construction_id))
+        >= MINIMUM_COLLECTION_TASKS
+    ):
         actions.append(
             NextAction(
                 operation=Operation.PLAN_PREPARE,
@@ -2508,7 +2558,7 @@ def collection_review_lines(record: ForgeCollectionRecord) -> list[str]:
         "out on them alone.",
         f"The improving agent may see: {', '.join(study)}.",
         "Which tasks are held out follows from the tasks' fingerprints; "
-        "nobody chooses it.",
+        "nobody chooses it, and a task keeps its part in every later version.",
         f"Version: {review.version}"
         + (
             ""

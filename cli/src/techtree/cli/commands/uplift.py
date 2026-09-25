@@ -37,7 +37,10 @@ says which loop a call is in: a forge comparison to ``context`` and to
 ``start``. The forge half writes its context beside the comparison, keeps the
 revised Skill under ``forge/revisions/<id>/``, and ``start`` runs the new arm
 with the person's own Hermes and compares it against the same baseline; the
-revision is kept whether it improved or regressed.
+revision is kept whether it improved or regressed. What these commands answer
+may be read by the agent that wrote the revision, so on a collection they
+count the held-out tasks and never name them; ``forge status`` shows a person
+everything.
 """
 
 from __future__ import annotations
@@ -46,7 +49,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import typer
-from pydantic import PositiveFloat
+from pydantic import Field, PositiveFloat
 from rich.console import Console
 from rich.table import Table
 
@@ -65,13 +68,10 @@ from techtree.cli.commands.climb import (
     unknown_maximum,
 )
 from techtree.cli.commands.forge import (
-    ForgeRunReview,
     ask_to_start,
-    render_forge_comparison,
-    render_forge_revision,
-    review_run_spec,
     revision_status_action,
     revision_warnings,
+    run_review_lines,
     run_warnings,
 )
 from techtree.cli.commands.run import build_run_service, wait_for_change_action
@@ -80,7 +80,7 @@ from techtree.cli.invoke import CommandResult, approval_operation, invoke_comman
 from techtree.cli.output import render_pairs
 from techtree.drafts.store import DraftStore
 from techtree.errors import ValidationError
-from techtree.forge.collection import verify_collection
+from techtree.forge.collection import read_collection_status, verify_collection
 from techtree.forge.improvement import (
     ForgeImprovementCollection,
     ForgeImprovementContext,
@@ -90,9 +90,10 @@ from techtree.forge.improvement import (
 from techtree.forge.models import (
     ForgeBuildTasks,
     ForgeCollectionTasks,
-    ForgeComparisonStatus,
     ForgeRevisionStatus,
-    ForgeRunStatus,
+    ForgeScreeningFinding,
+    ForgeSkillSpec,
+    ForgeTaskId,
 )
 from techtree.forge.process import run_command
 from techtree.forge.revision import (
@@ -117,6 +118,7 @@ from techtree.models.cli import (
 )
 from techtree.models.run import RunPhase
 from techtree.models.skill import PolicyAcceptanceRequirement
+from techtree.paths import TechtreePaths
 from techtree.runs.artifacts import RunArtifactStore
 from techtree.runs.service import ApprovalActor
 from techtree.skills.service import PreparedDraft
@@ -125,6 +127,8 @@ from techtree.uplift.offer import revision_not_written_yet
 from techtree.uplift.service import UpliftService
 
 __all__ = [
+    "ForgeRevisionReview",
+    "ForgeRevisionShown",
     "ForgeUpliftContextPayload",
     "ForgeUpliftStartPayload",
     "UpliftContextPayload",
@@ -153,12 +157,52 @@ class ForgeUpliftContextPayload(ProtocolModel):
     relative_path: NonEmptyString
 
 
-class ForgeUpliftStartPayload(ProtocolModel):
-    """What measuring a forge revision left: the run, and its comparison."""
+class ForgeRevisionShown(ProtocolModel):
+    """A forge revision as ``uplift`` shows it, to a caller that may be the
+    agent that wrote it.
 
-    revision: ForgeRevisionStatus
-    run: ForgeRunStatus
-    comparison: ForgeComparisonStatus
+    ``task_ids`` are the tasks that agent could see: every task of a build,
+    the study tasks of a collection. A collection's held-out tasks are only
+    counted, and so are screening findings on them; the verdicts say how the
+    revision did on them together. ``forge status`` shows a person the whole
+    revision.
+    """
+
+    revision_id: NonEmptyString
+    state: Literal["prepared", "measured"]
+    skill: ForgeSkillSpec
+    parent_skill_digest: Digest
+    comparison_id: NonEmptyString
+    baseline_run_id: NonEmptyString
+    tasks_from: Annotated[
+        ForgeBuildTasks | ForgeCollectionTasks, Field(discriminator="kind")
+    ]
+    task_ids: list[ForgeTaskId] = Field(min_length=1)
+    held_out_tasks: int = Field(ge=0)
+    spec_digest: Digest
+    controlled: bool
+    screening: list[ForgeScreeningFinding]
+    held_out_findings: int = Field(ge=0)
+    measured_run_id: NonEmptyString | None
+    measured_comparison_id: NonEmptyString | None
+    verdict: NonEmptyString | None
+    study_verdict: NonEmptyString | None
+
+
+class ForgeRevisionReview(ProtocolModel):
+    """What measuring a revision would do, as ``uplift start`` shows it before
+    it asks; held-out tasks are counted, not named. Nothing has started."""
+
+    revision_id: NonEmptyString
+    spec_digest: Digest
+    attempts: int
+    review: list[NonEmptyString]
+
+
+class ForgeUpliftStartPayload(ProtocolModel):
+    """What measuring a forge revision left, as the revision now reads."""
+
+    revision: ForgeRevisionShown
 
 
 class UpliftSkillSourcePayload(ProtocolModel):
@@ -427,7 +471,7 @@ def prepare_uplift_command(
     """Prepare a Skill v1 against Skill v2 comparison from a finished run."""
     context = cli_context(ctx)
 
-    def action() -> CommandResult[UpliftPreparePayload | ForgeRevisionStatus]:
+    def action() -> CommandResult[UpliftPreparePayload | ForgeRevisionShown]:
         if id_prefix(from_run) == "forgecmp":
             revision = prepare_revision(
                 context.paths,
@@ -436,7 +480,7 @@ def prepare_uplift_command(
                 label=label,
             )
             return CommandResult(
-                data=revision,
+                data=_shown(context.paths, revision),
                 state_digest=revision.record.spec_digest,
                 warnings=revision_warnings(revision),
                 next_actions=[_measure_when_approved(revision)],
@@ -552,7 +596,7 @@ def start_uplift_command(
     """Review the prepared revision, approve it, and start the second run."""
     context = cli_context(ctx)
 
-    def forge_action() -> CommandResult[ForgeUpliftStartPayload | ForgeRunReview]:
+    def forge_action() -> CommandResult[ForgeUpliftStartPayload | ForgeRevisionReview]:
         require_the_review_surface_was_answered(
             draft_id=draft_id, assume_yes=yes, reviewed_on=reviewed_on
         )
@@ -614,7 +658,7 @@ def start_uplift_command(
 
 def _measure(
     context: CliContext, revision_id: str, *, assume_yes: bool
-) -> CommandResult[ForgeUpliftStartPayload | ForgeRunReview]:
+) -> CommandResult[ForgeUpliftStartPayload | ForgeRevisionReview]:
     """Show what measuring the revision would do, ask, run it, compare it."""
     revision = read_revision_status(context.paths, revision_id)
     match revision.spec.tasks_from:
@@ -622,7 +666,7 @@ def _measure(
             read_build_status(context.paths, build_id)
         case ForgeCollectionTasks(collection_id=collection_id):
             verify_collection(context.paths, collection_id)
-    review = _revision_review(revision)
+    review = _revision_review(revision, _held_out(context.paths, revision))
     if not assume_yes and context.no_input:
         return CommandResult(
             data=review,
@@ -631,22 +675,65 @@ def _measure(
             next_actions=[_measure_when_approved(revision)],
         )
     if not assume_yes:
-        ask_to_start(context, review)
+        ask_to_start(context, review.review, review.spec_digest)
     measured = measure_revision(
         context.paths, revision_id, ForgeRunner(context.paths, run_command)
     )
     return CommandResult(
-        data=ForgeUpliftStartPayload(
-            revision=measured.revision, run=measured.run, comparison=measured.comparison
-        ),
+        data=ForgeUpliftStartPayload(revision=_shown(context.paths, measured.revision)),
         warnings=[*revision_warnings(measured.revision), *run_warnings(measured.run)],
         next_actions=[revision_status_action(measured.revision)],
     )
 
 
-def _revision_review(revision: ForgeRevisionStatus) -> ForgeRunReview:
+def _held_out(paths: TechtreePaths, revision: ForgeRevisionStatus) -> frozenset[str]:
+    """The held-out tasks of a revision's collection; none on a build."""
+    match revision.record.tasks_from:
+        case ForgeBuildTasks():
+            return frozenset()
+        case ForgeCollectionTasks(collection_id=collection_id):
+            parts = read_collection_status(paths, collection_id).record.review.parts()
+            return frozenset(
+                task_id for task_id, part in parts.items() if part == "held_out"
+            )
+
+
+def _shown(paths: TechtreePaths, revision: ForgeRevisionStatus) -> ForgeRevisionShown:
+    """The revision without anything that names a held-out task."""
+    record = revision.record
+    held_out = _held_out(paths, revision)
+    return ForgeRevisionShown(
+        revision_id=revision.revision_id,
+        state=record.state,
+        skill=record.skill,
+        parent_skill_digest=record.parent_skill_digest,
+        comparison_id=record.comparison_id,
+        baseline_run_id=record.baseline_run_id,
+        tasks_from=record.tasks_from,
+        task_ids=[
+            task_id for task_id in revision.spec.task_ids if task_id not in held_out
+        ],
+        held_out_tasks=len(held_out),
+        spec_digest=record.spec_digest,
+        controlled=record.comparability.controlled,
+        screening=[
+            finding for finding in record.screening if finding.task_id not in held_out
+        ],
+        held_out_findings=sum(
+            finding.task_id in held_out for finding in record.screening
+        ),
+        measured_run_id=record.measured_run_id,
+        measured_comparison_id=record.measured_comparison_id,
+        verdict=record.verdict,
+        study_verdict=record.study_verdict,
+    )
+
+
+def _revision_review(
+    revision: ForgeRevisionStatus, held_out: frozenset[str]
+) -> ForgeRevisionReview:
     """The forge run review, headed by what this run is a revision of."""
-    review = review_run_spec(revision.spec)
+    spec = revision.spec
     record = revision.record
     on_collection = isinstance(record.tasks_from, ForgeCollectionTasks)
     hidden = (
@@ -668,20 +755,21 @@ def _revision_review(revision: ForgeRevisionStatus) -> ForgeRunReview:
         if on_collection
         else []
     )
-    return review.model_copy(
-        update={
-            "review": [
-                f"Revision: {revision.revision_id} of Skill "
-                f"{record.parent_skill_digest[:12]} measured by "
-                f"{record.comparison_id}",
-                *review.review,
-                "Afterwards the run is compared against the same baseline, "
-                f"{record.baseline_run_id}, and the revision is kept whether "
-                "it improved or regressed.",
-                *judged,
-                screening,
-            ]
-        }
+    return ForgeRevisionReview(
+        revision_id=revision.revision_id,
+        spec_digest=record.spec_digest,
+        attempts=len(spec.task_ids) * spec.sampling.repetitions,
+        review=[
+            f"Revision: {revision.revision_id} of Skill "
+            f"{record.parent_skill_digest[:12]} measured by "
+            f"{record.comparison_id}",
+            *run_review_lines(spec, held_out=held_out),
+            "Afterwards the run is compared against the same baseline, "
+            f"{record.baseline_run_id}, and the revision is kept whether "
+            "it improved or regressed.",
+            *judged,
+            screening,
+        ],
     )
 
 
@@ -877,13 +965,13 @@ def _render_skill_source(data: object, console: Console) -> None:
 
 def _render_prepare(data: object, console: Console) -> None:
     """Print everything a person needs before approving a second run."""
-    if isinstance(data, ForgeRevisionStatus):
+    if isinstance(data, ForgeRevisionShown):
         console.print(
-            f"Prepared {data.record.skill.name} against the Skill comparison "
-            f"{data.record.comparison_id} measured. Nothing has run yet."
+            f"Prepared {data.skill.name} against the Skill comparison "
+            f"{data.comparison_id} measured. Nothing has run yet."
         )
         console.print()
-        render_forge_revision(data, console)
+        _render_revision(data, console)
         return
     if not isinstance(data, UpliftPreparePayload):
         return
@@ -946,27 +1034,96 @@ def _render_prepare(data: object, console: Console) -> None:
     console.print(PUBLICATION_TERMS_LINE)
 
 
+def _render_revision(revision: ForgeRevisionShown, console: Console) -> None:
+    """Print a revision as the agent that wrote it may read it."""
+    match revision.tasks_from:
+        case ForgeBuildTasks(build_id=build_id):
+            tasks_from = ("Build", build_id)
+        case ForgeCollectionTasks(collection_id=collection_id, version=version):
+            tasks_from = ("Collection", f"{collection_id} (version {version})")
+    held_out = revision.held_out_tasks
+    pairs = [
+        ("Revision", revision.revision_id),
+        ("State", revision.state),
+        (
+            "Revised Skill",
+            f"{revision.skill.name} ({revision.skill.root_digest[:19]})",
+        ),
+        (
+            "Revises",
+            f"{revision.parent_skill_digest[:19]} from {revision.comparison_id}",
+        ),
+        ("Baseline run", revision.baseline_run_id),
+        tasks_from,
+        (
+            "Tasks",
+            ", ".join(revision.task_ids)
+            + (
+                f", and {held_out} held-out {'task' if held_out == 1 else 'tasks'} "
+                "the improving agent never sees"
+                if held_out
+                else ""
+            ),
+        ),
+        ("Controlled", "yes" if revision.controlled else "no"),
+    ]
+    shared = len(revision.screening) + revision.held_out_findings
+    pairs.append(
+        (
+            "Screening",
+            f"{shared} shared {'line' if shared == 1 else 'lines'} with hidden material"
+            if shared
+            else "no line shared with hidden material",
+        )
+    )
+    if revision.measured_run_id is not None:
+        pairs.append(("Measured run", revision.measured_run_id))
+    if revision.measured_comparison_id is not None:
+        pairs.append(("Comparison", revision.measured_comparison_id))
+    render_pairs(pairs, console)
+    for finding in revision.screening:
+        console.print(
+            f"  {finding.skill_path}:{finding.line} matches the "
+            f"{finding.material.replace('_', ' ')} of {finding.task_id}: "
+            f"{finding.excerpt}",
+            markup=False,
+        )
+    if hidden := revision.held_out_findings:
+        console.print(
+            f"  {hidden} {'line matches' if hidden == 1 else 'lines match'} the "
+            "material of held-out tasks; a person can read "
+            f"{'it' if hidden == 1 else 'them'} with forge status "
+            f"{revision.revision_id}.",
+            markup=False,
+        )
+    if revision.verdict is not None:
+        console.print()
+        console.print(revision.verdict, markup=False)
+    if revision.study_verdict is not None:
+        console.print(revision.study_verdict, markup=False)
+
+
 def _render_start(data: object, console: Console) -> None:
     """Print what was started, or what starting it would do."""
     if isinstance(data, StartReviewPayload):
         for line in data.review:
             console.print(line)
         return
-    if isinstance(data, ForgeRunReview):
+    if isinstance(data, ForgeRevisionReview):
         for line in data.review:
             console.print(line, markup=False)
         console.print()
         console.print("Nothing has started. Run again with --yes to start it.")
         return
     if isinstance(data, ForgeUpliftStartPayload):
+        revision = data.revision
         console.print(
-            f"Revision {data.revision.revision_id} measured as run "
-            f"{data.run.run_id} and compared as {data.comparison.comparison_id}."
+            f"Revision {revision.revision_id} measured as run "
+            f"{revision.measured_run_id} and compared as "
+            f"{revision.measured_comparison_id}."
         )
         console.print()
-        render_forge_revision(data.revision, console)
-        console.print()
-        render_forge_comparison(data.comparison, console)
+        _render_revision(revision, console)
         return
     if not isinstance(data, UpliftStartPayload):
         return

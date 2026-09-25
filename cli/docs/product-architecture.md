@@ -490,7 +490,10 @@ pass goes on to the next task, except that Ctrl-C ends the pass
 (`forge_construction_interrupted`). A construction is started at most once
 and nothing is retried: `--retry-of` prepares a new construction of only the
 tasks the earlier one, finished or stopped, left without a usable package, and
-it needs its own approval.
+it needs its own approval. `forge collect` is offered as the next step only
+once at least two tasks of the construction and those it retried are usable;
+with fewer, the `forge_construction_too_few_usable` warning says a collection
+needs two and suggests correcting the proposal or building the rest again.
 
 **Forge collection (qualified tasks, accepted and frozen).** `forge collect
 CONSTRUCTION_ID [--task NAME]... [--previous COLLECTION_ID]`
@@ -505,16 +508,23 @@ and the members, the qualified tasks being accepted (all of them unless
 `--task` names fewer), each by its build, task id, content digest and the
 digest of its qualification evidence, after its files are hashed against the
 build's commitment, and its `part`, `study` or `held_out`. Nobody chooses the
-parts: the members are ordered by the sha256 of `proposal_digest + ":" +
-content_digest`, ascending (the task name breaks a tie), and the first half,
-rounded down, are held out. The improving agent never sees a held-out task,
-and a revision's verdict is worked out on them alone. The membership digest
-covers the parts, and one `collection_digest` binds it all. Preparing refuses
-when nothing qualified (`forge_collection_empty`), a collection of one task,
-which could not have a task in each part (`forge_collection_too_few`, telling
-the person to propose more tasks), and a task that did not qualify
-(`forge_collection_task_not_usable`). The review shows which tasks are held
-out and says the improving agent will never see them. `forge accept COLLECTION_ID`
+parts, and a task keeps its part for good: a new version carries, in
+`previous.parts`, every task (by name and content digest) that version or any
+before it held, with its part, and each such task keeps it, so a task once
+studied is never held out, even after it was left out for a while. A task
+whose files changed is a new task. Only new tasks are given a part: they are
+ordered by the sha256 of `proposal_digest + ":" + content_digest`, ascending
+(the task name breaks a tie), and the first half, rounded down, are held out;
+a single new task takes the part that leaves the collection more even, held
+out when either would. The improving agent never sees a held-out task, and a
+revision's verdict is worked out on them alone. The membership digest covers
+the parts, and one `collection_digest` binds it all. Preparing refuses when
+nothing qualified (`forge_collection_empty`), a task that did not qualify
+(`forge_collection_task_not_usable`), and a collection without a task in each
+part (`forge_collection_too_few`): one of a single task, saying which other
+qualified tasks `--task` left out or else to propose more, and one whose
+carried parts are all the same, naming the missing part. The review shows
+which tasks are held out and says the improving agent will never see them. `forge accept COLLECTION_ID`
 makes the review again, refuses one that changed (`forge_collection_stale`),
 asks, and writes `acceptance.json` with that digest; an accepted collection is
 frozen and never accepted again (`forge_collection_accepted`). A collection of
@@ -822,8 +832,8 @@ Skill task what each attempt left in its working directory, and grading
 details per pair, the differences the gate allowed, and the limits of the
 evidence including the specification's `not_established` list and, for a
 collection, that tasks written from a Skill say nothing about other work. `forge
-compare`, `forge status` and `uplift start` print the verdict, the regressions
-and the consistency, and their `--json` envelopes carry the whole record. A
+compare` and `forge status` print the verdict, the regressions and the
+consistency, and their `--json` envelopes carry the whole record. A
 comparison makes no model call and nothing leaves the machine.
 
 **Forge revision (one Skill revised, measured against the same baseline).** The
@@ -879,6 +889,21 @@ either comparison is incomplete). On a collection every task still runs, but
 second sentence labelled as such, on the tasks the reviser could see; a
 build's revision has no `study_verdict`. The revision is kept as measured whether it
 improved or regressed, and is never measured twice (`forge_revision_measured`).
+What `uplift prepare` and `uplift start` answer may be read by the agent that
+wrote the revision, so they show the revision as `ForgeRevisionShown` and the
+review before a start as `ForgeRevisionReview`: the tasks it could see by id,
+and a collection's held-out tasks, and screening findings on them, only as
+counts; after a start they show the revision's verdicts, not the comparison's
+task-by-task rows. `forge status` shows a person the whole revision and
+comparison.
+
+The held-out guarantee covers what Techtree gives the improving agent: the
+improvement context and the `uplift` answers. An agent that can read the
+Techtree folder directly, such as the collection, a comparison or its report,
+could find the held-out tasks there; nothing stops it. What the screening
+does is record, on the revision, any line of a revised Skill that also occurs
+in a held-out task's instruction or inputs, so a person sees it before the
+revision is measured and wherever it is shown.
 No search is run: one explicit proposal, frozen, checked, approved, measured.
 
 Ordinary errors and Ctrl-C produce a failure/cancellation receipt and a build ID
