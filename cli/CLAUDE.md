@@ -25,7 +25,10 @@ kernel (a CampaignSpec is the scientific contract, a ClimbManifest its public
 wrapper), the content-addressed catalog, the run lifecycle, receipts, signed
 uplift reports, offline proof verification, and the terminal and compact
 renderers. It also holds the decision records, the specs, the release
-artifacts, and the plugin's tests and tooling.
+artifacts, and the plugin's tests and tooling. `techtree forge`
+(`src/techtree/forge/`) builds tasks from a repository and, for 0.3.0 (in
+preparation), creates environments from a Skill; the current plan is
+`../docs/plan/v0.3.0-skill-environments.md` with its task set beside it.
 
 `docs/product-architecture.md` is the long form.
 
@@ -44,7 +47,7 @@ artifacts, and the plugin's tests and tooling.
 
 ### Work coordination
 
-Follow the workspace `regent-workflow`. The founder's current request defines scope; Hermes/Astra coordinates scoped Claude/Fable assignments. Historical ticket IDs and triage labels are reference only and do not impose a tracker workflow. See `docs/agents/issue-tracker.md`.
+Follow the workspace `regent-workflow`. The founder's current request defines scope; a single engineering agent works each lane and the founder reviews it. Historical ticket IDs and triage labels are reference only and do not impose a tracker workflow. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

@@ -26,7 +26,7 @@ a package.
 - Keep public web and publication-ingestion behavior in `platform/`.
 - When a shared contract changes, update every affected component in the same
   pull request and add an integration check.
-- Do not rewrite frozen v0.1 release records as part of ordinary v0.2 work.
+- Do not rewrite frozen release records as part of ordinary development.
 
 Use focused commits and explain user-visible behavior in the pull request.
 Deployment and release instructions live with the component they affect and
@@ -34,6 +34,9 @@ are run only with explicit founder approval.
 
 ## Work coordination
 
-Use the founder's current task and the workspace `regent-workflow`. Hermes/Astra
-coordinates bounded Claude/Fable implementation and verifies the integrated result.
-Historical ticket maps remain available as context; no tracker command is required.
+Use the founder's current task and the workspace `regent-workflow`. A single
+engineering agent works each lane and verifies its own result; the founder
+reviews it. The current plan is
+[`docs/plan/v0.3.0-skill-environments.md`](docs/plan/v0.3.0-skill-environments.md)
+with its [task set](docs/plan/v0.3.0-task-set.md). Historical ticket maps remain
+available as context; no tracker command is required.
