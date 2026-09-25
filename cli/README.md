@@ -14,10 +14,10 @@ controlled trials, and every improvement produces reproducible evidence.
 The [`cli/`](./) component contains the Techtree CLI, detached worker, managed
 Verifiers engine, and Campaign protocol kernel.
 
-## Climb v0.1
+## What this release is
 
 > [!IMPORTANT]
-> Techtree Climb v0.1 is a working technical preview of a stack of three independent
+> Techtree is a working technical preview of a stack of three independent
 > parts: Prime Intellect's Verifiers as the evaluation engine,
 > Nous Research's Hermes as the agent host, and
 > Techtree as the campaign kernel and evidence layer.
@@ -67,7 +67,7 @@ Verifiers engine, and Campaign protocol kernel.
 | Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
 | Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
 
-Techtree Climb v0.1 (“Techtree Hello World”) is a toy, synthetic demonstration
+The Hello World Climb (“Techtree Hello World”) is a toy, synthetic demonstration
 of Skill uplift. It runs the same pinned agent on the same tasks twice, changes
 only the declared Skill, shows the measured difference, and creates a signed
 local receipt with an offline proof check.
@@ -75,9 +75,11 @@ local receipt with an offline proof check.
 The CLI component contains the real evaluation path: managed engine installation,
 containerized subject runs, append-only run records, signed receipts and
 reports, local proof verification, and one guided single-`SKILL.md` revision
-flow. The release candidate remains inactive until the release gates in
-`docs/v0.1-remaining-tickets.md` are complete and the founder gives the exact
-final approval phrase.
+flow. It also contains `techtree forge`: building tasks from a local
+repository and running experiments on them (Experimental, released in 0.2.0
+and 0.2.1), and creating an environment from a Skill (Experimental, in
+preparation for 0.3.0). The live release is 0.2.1; which build is installable
+is decided by the active release at [techtree.sh/start](https://techtree.sh/start).
 
 > [!NOTE]
 > No Techtree account is required. A model-provider account and an active Prime
@@ -177,6 +179,8 @@ NeMo Relay.
 | Runs | `techtree run status <run-id> --watch`<br>`techtree run logs <run-id> --tail 200`<br>`techtree run result <run-id>` | Shows how a run is progressing, shows its log output, and shows the finished report for a run. |
 | Proof | `techtree proof verify <run-id>` | Checks a local proof offline, from the bytes the run stored. |
 | Improving a Skill | `techtree uplift context <run-id>`<br>`techtree uplift prepare --from-run <run-id> --candidate-skill <path>`<br>`techtree uplift start <draft-id>` | Exports the sanitized improvement context for a finished run, prepares a comparison between that run’s Skill and a revision of it, and starts the prepared comparison. |
+| Tasks from a repository | `techtree forge build`<br>`techtree forge run`<br>`techtree forge compare`<br>`techtree forge status` | Builds and qualifies repair tasks from a local repository, runs one arm of an experiment on them with your own Hermes, compares a baseline run with a candidate run, and shows what any forge record holds. |
+| An environment from a Skill (in preparation for 0.3.0) | `techtree forge inspect-skill`<br>`techtree forge plan` / `plan-start`<br>`techtree forge correct-proposal`<br>`techtree forge construct` / `construct-start`<br>`techtree forge collect` / `accept`<br>`techtree forge verify`<br>`techtree forge export` / `verify-export` | Looks at a Skill without running any of it; prepares and, after your approval, runs the planning of tasks; records your corrections; prepares and, after your approval, builds the tasks; accepts the qualified tasks as one frozen collection; checks it is unchanged; and writes and checks a private copy for someone else. `techtree forge run` runs an accepted collection. |
 
 The detached worker is started by the CLI and is not a user-facing command.
 Every command has rendered output for a person and, with `--json`, exactly one
@@ -315,5 +319,5 @@ the working tree.
 - `docs/cli-json-contract.md` — machine-mode CLI contract
 - `docs/run-state-machine.md` — internal lifecycle and public projection
 - `docs/agent-handoff.md` — historical v0.1 handoff
-- `docs/v0.1-remaining-tickets.md` — remaining release work and contracts
+- `docs/v0.1-remaining-tickets.md` — historical v0.1 release work and contracts
 - `docs/decisions/` — binding decisions
