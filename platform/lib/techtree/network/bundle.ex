@@ -269,6 +269,24 @@ defmodule Techtree.Network.Bundle do
   end
 
   @doc """
+  The signed result summary inside a submission this site already accepted.
+
+  The stored bytes passed every check on the way in and are never rewritten,
+  so the summary is read out of them the same way the checks read it, without
+  running the checks again. Bytes that do not hold one are not stored bytes,
+  and raise.
+  """
+  @spec stored_report!(binary()) :: map()
+  def stored_report!(raw) when is_binary(raw) do
+    {:ok, document} = decode_submission(raw)
+    {:ok, files} = decode_files(document)
+    {:ok, manifest} = manifest(files)
+    {:ok, envelopes} = payload_digests(files)
+    {:ok, report} = report(manifest, envelopes)
+    report
+  end
+
+  @doc """
   The digest that addresses this bundle: the manifest's own payload digest.
   """
   @spec digest(t()) :: String.t()

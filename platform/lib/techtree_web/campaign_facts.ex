@@ -23,7 +23,7 @@ defmodule TechtreeWeb.CampaignFacts do
 
   alias Techtree.Catalog.Query
 
-  @type t :: %{budget: map(), membership: map(), validation: map()}
+  @type t :: %{membership: map(), validation: map()}
 
   @type trial :: %{
           provider: String.t(),
@@ -38,11 +38,11 @@ defmodule TechtreeWeb.CampaignFacts do
   # Each task is tried once without the Skill and once with it.
   @tries_per_task 2
 
-  @empty %{budget: %{}, membership: %{}, validation: %{}}
+  @empty %{membership: %{}, validation: %{}}
 
   @doc """
-  The published budget, task membership, and validation outcome behind one
-  Climb, or empty values when this release publishes none of them.
+  The published task membership and validation outcome behind one Climb, or
+  empty values when this release publishes neither.
   """
   @spec for_climb(map() | nil) :: t()
   def for_climb(nil), do: @empty
@@ -54,7 +54,6 @@ defmodule TechtreeWeb.CampaignFacts do
 
       campaign ->
         %{
-          budget: budget(campaign),
           membership: membership(campaign),
           validation: validation(facts["validation_receipt_digest"])
         }
@@ -91,27 +90,28 @@ defmodule TechtreeWeb.CampaignFacts do
   end
 
   @doc """
-  The most model calls a whole run of this trial can start: both tries of every
-  task, each at its own limit.
-  """
-  @spec run_calls(trial()) :: pos_integer()
-  def run_calls(%{tasks: tasks, calls: calls}), do: tasks * @tries_per_task * calls
+  The per-try limits of a trial added up over a whole run: both tries of every
+  task, each at its own limits.
 
-  @doc """
-  The limits on each try, in the units a reader can act on.
+  The calls are the most a run can start. The tokens are where every try
+  stops starting calls, and the call that crosses a limit still finishes.
   """
-  @spec budget_words(map()) :: String.t() | nil
-  def budget_words(%{
-        "maximum_model_calls" => calls,
-        "maximum_input_tokens" => input,
-        "maximum_output_tokens" => output
-      })
-      when is_integer(calls) and is_integer(input) and is_integer(output) do
-    "Each try: #{count(calls)} model calls · #{count(input)} input tokens · " <>
-      "#{count(output)} output tokens"
+  @spec run_total(trial()) :: %{
+          tries: pos_integer(),
+          calls: pos_integer(),
+          input_tokens: pos_integer(),
+          output_tokens: pos_integer()
+        }
+  def run_total(%{tasks: tasks} = trial) do
+    tries = tasks * @tries_per_task
+
+    %{
+      tries: tries,
+      calls: tries * trial.calls,
+      input_tokens: tries * trial.input_tokens,
+      output_tokens: tries * trial.output_tokens
+    }
   end
-
-  def budget_words(_budget), do: nil
 
   @doc """
   A whole number written with thousands separators, as in 900,000.
@@ -168,12 +168,6 @@ defmodule TechtreeWeb.CampaignFacts do
       input_tokens: input_tokens,
       output_tokens: output_tokens
     }
-  end
-
-  defp budget(campaign) do
-    campaign
-    |> Map.get("budgets", %{})
-    |> Map.take(["maximum_model_calls", "maximum_input_tokens", "maximum_output_tokens"])
   end
 
   defp membership(campaign) do

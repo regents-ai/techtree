@@ -152,6 +152,31 @@ defmodule TechtreeWeb.CoreComponents do
   end
 
   @doc """
+  What a machine needs before a Climb can run on it, from the release's
+  published minimums, with any needs particular to one page added after them.
+  """
+  attr :minimums, :map, required: true
+  attr :provider, :boolean, required: true
+  attr :hermes, :boolean, required: true
+  slot :inner_block
+
+  def requirements(assigns) do
+    ~H"""
+    <ul class="needs">
+      <li>macOS or Linux</li>
+      <li :if={@minimums["uv"]}>uv {@minimums["uv"]} or later</li>
+      <li :if={@minimums["python"]}>Python {@minimums["python"]}, installed for you by uv</li>
+      <li :if={@minimums["docker_required"]}>Docker, running</li>
+      <li :if={@hermes && @minimums["hermes_version"]}>
+        Hermes {@minimums["hermes_version"]} or later
+      </li>
+      <li :if={@provider}>An account with a model provider you choose; its calls may cost money</li>
+      {render_slot(@inner_block)}
+    </ul>
+    """
+  end
+
+  @doc """
   A list of short facts, one per row.
   """
   slot :fact do
@@ -203,19 +228,6 @@ defmodule TechtreeWeb.CoreComponents do
     do: "One skill is replaced by another. Nothing else may differ."
 
   def mutation_words(other), do: plain_words(other)
-
-  @doc """
-  What a result from this Climb may be presented as.
-  """
-  @spec proof_grade_words(String.t()) :: String.t()
-  def proof_grade_words("development_only"),
-    do: "Development only. Results exercise the machinery and are not evidence of anything."
-
-  def proof_grade_words("P1"),
-    do:
-      "Participant-signed on the machine that produced it and internally checkable. Not independently repeated."
-
-  def proof_grade_words(other), do: plain_words(other)
 
   # A Climb's terms describe a published result. Read alone, "is published as
   # part of entering" tells someone their Skill will be taken; two agents
