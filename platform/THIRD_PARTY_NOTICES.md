@@ -1,6 +1,6 @@
 # Third-party notices
 
-## VGPU prism and crown renderers
+## VGPU crown renderer
 
 The 13-cube crown under `assets/js/optics/crown/` is adapted from the public
 VGPU homepage prism and from the Regents crown adaptation of that renderer.
@@ -10,19 +10,6 @@ VGPU homepage prism and from the Regents crown adaptation of that renderer.
 - Commit: `bd3b05101fdd1193a1593558d3c52a0b2b18f31d`
 - Source directory: `apps/docs/app/[lang]/(home)/components/prism-background`
 - License: MIT
-
-The `/prism` renderer is a source-built copy of the current public dark homepage
-pipeline from the same project:
-
-- Commit: `ef2418bc13269cc4b3198ecfebf34a26f6a1073e`
-- Source directory: `apps/docs/app/[lang]/(home)/components/prism-background`
-- Package: `vgpu@0.3.1`
-
-Only the production dark pipeline and its required chunks are vendored. The
-React control panel, debug renderer, performance sampler, and light-mode
-pipeline are not included. Phoenix renders the page copy, while the local
-WebGPU canvas loads only on `/prism` and pauses when it is offscreen or hidden.
-The inline VGPU wordmark outlines come from the same current repository.
 
 ### MIT License
 

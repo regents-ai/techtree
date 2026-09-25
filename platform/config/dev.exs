@@ -68,9 +68,6 @@ config :techtree, TechtreeWeb.Endpoint,
     ]
   ]
 
-# Enable dev routes for dashboard and mailbox
-config :techtree, dev_routes: true
-
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

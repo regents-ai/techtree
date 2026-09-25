@@ -56,14 +56,15 @@ defmodule TechtreeWeb.DocsLive do
                 {"The question", "#method"},
                 {"The proof bundle", "#proof-bundle"},
                 {"The trust boundary", "#trust-boundary"},
-                {"Hello World", "#hello-world"}
+                {"Hello World", "#hello-world"},
+                {"Revising a Skill", "#skill-revision"}
               ]}
             />
             <.docs_group
               title="Where this goes"
               links={[
                 {"Beyond the model", "#beyond-model"},
-                {"Planned execution portability", "#environments"},
+                {"Execution portability", "#environments"},
                 {"The agent stack", "#agent-stack"},
                 {"Regents and the network", "#regents"}
               ]}

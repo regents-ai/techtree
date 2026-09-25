@@ -55,7 +55,6 @@ export interface PrismScene {
   readonly crown: Geometry
   readonly lightSheet: Geometry
   readonly variant: CrownVariant
-  readonly backgroundPreset: number
   readonly environmentRotation: Float32Array
   readonly sceneSampler: ReturnType<typeof sampler>
   orbit: Vec2
@@ -69,7 +68,6 @@ export function createScene(
   gpu: Gpu,
   output: readonly [number, number],
   variant: CrownVariant,
-  backgroundPreset: number,
   label: string,
 ): PrismScene {
   const aspect = output[0] / Math.max(1, output[1])
@@ -123,7 +121,6 @@ export function createScene(
     crown,
     lightSheet,
     variant,
-    backgroundPreset,
     environmentRotation: rotationMatrix(CROWN_VARIANTS[variant].environmentRotation),
     sceneSampler: sampler(gpu, {
       minFilter: "linear",
@@ -246,7 +243,6 @@ function bind(scene: PrismScene): void {
       baseColor: material.backgroundColor,
       antiColor,
       resolution: scene.outputSize,
-      preset: scene.backgroundPreset,
       intensity: scene.variant === 2 ? 0.085 : 0.095,
     },
   })

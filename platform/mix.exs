@@ -105,16 +105,12 @@ defmodule Techtree.MixProject do
         "compile",
         "regent_ui.assets",
         "regent_blog.assets",
-        "regent_identity.assets",
-        "esbuild techtree",
-        "esbuild techtree_privy"
+        "esbuild techtree"
       ],
       "assets.deploy": [
         "regent_ui.assets",
         "regent_blog.assets",
-        "regent_identity.assets",
         "esbuild techtree --minify",
-        "esbuild techtree_privy --minify",
         "phx.digest"
       ]
     ]

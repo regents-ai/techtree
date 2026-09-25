@@ -54,8 +54,6 @@ npm-debug.log
 /priv/static/images/regent-ui/
 /priv/static/fonts/regent-ui/
 
-/assets/vendor/regent_identity/
-
 # Generated blog assets and application-only release contexts.
 /priv/static/images/blog/
 /vendor/regent_blog/

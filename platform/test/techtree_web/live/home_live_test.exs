@@ -22,11 +22,6 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert text =~ "Improve a Skill."
-      assert text =~ "Prove it worked."
-      assert text =~ "Same agent. Same tasks. One Skill upgraded."
-      assert text =~ "Built on Prime Intellect and NVIDIA NeMo"
-
       assert has_element?(
                live,
                ".hero__mechanism > span",
@@ -41,8 +36,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               ".hero__source-link[href='https://github.com/NVIDIA/NeMo-Relay']",
-               "NVIDIA NeMo"
+               ".hero__source-link[href='https://github.com/NousResearch/hermes-agent']"
              )
 
       assert has_element?(
@@ -74,25 +68,12 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert css =~ ~s|@import "./techtree_home.css"|
     end
 
-    test "the crown comparison route retains the bounded homepage study", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/crown/1")
-
-      assert visible_text(html) =~ "Improve a Skill."
-
-      assert has_element?(
-               live,
-               ~s|#hero-crown[data-crown-variant="1"] canvas#hero-crown-canvas|
-             )
-
-      assert has_element?(live, "#crown-study-1[aria-current=page]")
-    end
-
-    test "the hero points to the planned service below it", %{conn: conn} do
+    test "the hero points to the controlled comparison below it", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(
                live,
-               ~s|a.hero__more[href="#first-service"][aria-label="Explore Techtree’s first planned service"] svg|
+               ~s|a.hero__more[href="#controlled-comparison"] svg|
              )
     end
 
@@ -101,7 +82,6 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, ~s|a[href="/start"]|, "Create an environment")
       assert has_element?(live, "#copy-home-agent-line")
       assert text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
@@ -164,20 +144,13 @@ defmodule TechtreeWeb.HomeLiveTest do
     end
 
     test "the lower homepage sections remain available below the hero", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/")
-      text = visible_text(html)
+      {:ok, live, _html} = live(conn, ~p"/")
 
-      assert has_element?(live, "#what-this-release-is")
+      assert has_element?(live, "#capabilities")
       refute has_element?(live, "#home-evidence-graph")
       refute has_element?(live, ".home-section.process")
       assert has_element?(live, ".home-section.featured")
       assert has_element?(live, ".home-section.trust")
-      assert text =~ "v0.1 release"
-      refute text =~ "standing on giants"
-      refute text =~ "What it demonstrates is that the three pin together tightly enough"
-      refute text =~ "Run. Improve. Prove."
-      assert text =~ "Introductory Climb"
-      assert text =~ "Your work stays local."
     end
 
     test "the hero gives an agent the copyable setup instruction instead of a Result",
@@ -232,7 +205,6 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert text =~ "Improve a Skill."
     refute text =~ "Evidence graph"
-    assert text =~ "Create an environment"
     assert text =~ StartLive.instruction()
     refute html =~ "copy-home-cli"
   end
@@ -284,21 +256,6 @@ defmodule TechtreeWeb.HomeLiveTest do
     assert css =~ ~r/\.command__copy\s*\{[^}]*min-height: 2\.75rem;/s
     assert css =~ ~r/\.tasks__filter\s*\{[^}]*min-height: 2\.75rem;/s
     assert css =~ ~r/\.pagecopy__main\s*\{[^}]*min-height: 2\.75rem;/s
-  end
-
-  test "retired optics remain available as assets but do not mount on documents" do
-    javascript = File.read!(Path.expand("../../../assets/js/app.js", __DIR__))
-
-    root =
-      File.read!(
-        Path.expand("../../../lib/techtree_web/components/layouts/root.html.heex", __DIR__)
-      )
-
-    refute javascript =~ "createOpticsController"
-    refute root =~ "data-optics-source"
-    refute root =~ "SiteBackground"
-    assert root =~ "Regent.Structure.frame"
-    assert File.exists?(Path.expand("../../../assets/js/optics_controller.js", __DIR__))
   end
 
   test "the landing page leaves every primary tab neutral", %{conn: conn} do

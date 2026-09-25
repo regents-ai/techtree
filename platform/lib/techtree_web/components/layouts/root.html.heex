@@ -5,16 +5,6 @@
     <link rel="alternate" type="text/plain" title="Agent guide" href={~p"/llms.txt"} />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <meta
-      :if={assigns[:shared_profile_page]}
-      name="privy-app-id"
-      content={Application.get_env(:techtree, :privy, [])[:app_id]}
-    />
-    <meta
-      :if={assigns[:shared_profile_page]}
-      name="privy-bridge-src"
-      content={~p"/assets/js/privy_bridge.js"}
-    />
     <meta name="techtree-revision" content={Techtree.BuildInfo.source_revision()} />
     <meta
       name="color-scheme"
@@ -49,12 +39,11 @@
     </script>
   </head>
   <body>
-    <a :if={masthead_visible?(assigns)} class="skip-link" href="#main-content">
+    <a class="skip-link" href="#main-content">
       Skip to main content
     </a>
     <Regent.Structure.frame class="techtree-frame">
       <.masthead
-        :if={masthead_visible?(assigns)}
         current_path={request_path(assigns)}
         theme={assigns[:theme] || "light"}
       />

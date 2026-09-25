@@ -24,6 +24,17 @@ defmodule Techtree.Catalog.Query do
   end
 
   @doc """
+  The active Climb one public reference names, such as `hello-world-climb@1`.
+
+  The import refuses a release whose first-run instructions name a Climb its
+  catalog does not ship, so the reference a release names always resolves.
+  """
+  @spec get_climb_by_reference!(String.t()) :: CatalogEntry.t()
+  def get_climb_by_reference!(reference) when is_binary(reference) do
+    Catalog.get_entry_by_reference!(:climb, reference)
+  end
+
+  @doc """
   The highest active version of one Climb slug.
 
   A reader who did not name a version is asking for the current one, which is

@@ -24,7 +24,10 @@ defmodule TechtreeWeb.ResearchContent do
           How can someone else check the result without running the whole evaluation again?
         </strong>
       </p>
-      <p>Techtree v0.1 is our first answer.</p>
+      <p>
+        Techtree’s first answer is a controlled comparison: the same agent works the same tasks
+        twice, and only the Skill changes. Techtree calls this a Climb.
+      </p>
     </section>
 
     <section id="proof-bundle" class="doc-section">
@@ -112,6 +115,27 @@ defmodule TechtreeWeb.ResearchContent do
       </p>
     </section>
 
+    <section id="skill-revision" class="doc-section">
+      <h2>Revising a Skill once</h2>
+      <p><.capability_status capability={:skill_revision} /></p>
+      <p>
+        After a comparison finishes, Techtree can export what an agent needs to write one
+        revision of the Skill: the tasks it may study, how each side did on them, and what
+        the Skill is meant to improve. It leaves out anything that would give the answers
+        away.
+      </p>
+      <p>
+        You, or an agent you direct, write the revision. After your approval, Techtree then
+        compares the original Skill with the revision under the same fixed conditions. For
+        a task collection, the revision is judged only on held-out tasks the improving
+        agent never saw.
+      </p>
+      <p>
+        Nothing revises a Skill or repeats that comparison on its own: automatic Skill
+        improvement and training remain later work.
+      </p>
+    </section>
+
     <section id="beyond-model" class="doc-section">
       <h2>An agent is more than a model</h2>
       <p>
@@ -143,11 +167,12 @@ defmodule TechtreeWeb.ResearchContent do
     </section>
 
     <section id="environments" class="doc-section">
-      <h2>Planned execution portability in v0.2</h2>
+      <h2>Execution portability</h2>
+      <p><.capability_status capability={:nemo} /></p>
       <p>
-        These paths are not available in v0.1, and their exact upstream contracts
-        are still being tested. v0.2 is planned to make the same controlled-comparison
-        protocol portable across:
+        These paths are not available yet, and their exact upstream contracts are still
+        being tested. The plan is to make the same controlled-comparison protocol portable
+        across:
       </p>
       <ul class="doc-list">
         <li>local execution, with provider-hosted evaluation planned for a later release;</li>
@@ -155,25 +180,26 @@ defmodule TechtreeWeb.ResearchContent do
         <li>native Verifiers evidence, optionally supplemented by NeMo Relay.</li>
       </ul>
       <p>
-        Each admitted variant will be a separate immutable Campaign. Changing the
-        execution, subject, or evidence backend will never silently change what an
-        existing Campaign means.
+        Each admitted variant will be a separate immutable Campaign. Changing where a run
+        executes, which agent is tested, or how its evidence is recorded will never
+        silently change what an existing Campaign means.
       </p>
       <p>
-        One small deterministic Prime environment will validate the hosted path. It is
-        infrastructure conformance material, not an environment-authoring product or a
-        benchmark of model capability.
+        One small, deterministic Prime environment will check that the hosted path
+        behaves like a local run. It is not a benchmark of model capability.
       </p>
       <p>
-        Environment creation, automatic Skill optimization, held-out proving workflows,
-        training, and a local control-plane dashboard remain later work.
+        Creating an environment from a Skill and building tasks from a repository are
+        experimental today; <.link navigate={~p"/start"}>Start</.link> shows both. A local
+        dashboard remains later work.
       </p>
     </section>
 
     <section id="agent-stack" class="doc-section">
-      <h2>The planned v0.2 agent stack</h2>
+      <h2>The agent stack</h2>
+      <p><.capability_status capability={:nemo} /></p>
       <p>
-        v0.2 is intended to broaden the systems Techtree can study without merging
+        The next step is to broaden the systems Techtree can study without merging
         their responsibilities.
       </p>
       <p>

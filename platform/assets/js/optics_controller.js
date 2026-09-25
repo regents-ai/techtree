@@ -1,4 +1,4 @@
-// A small lifecycle shell shared by both optical demos. The page owns the
+// A small lifecycle shell for the homepage crown. The page owns the
 // server-rendered copy; the canvas island is loaded only when it can be seen,
 // draws on demand, and then sleeps until resize or pointer input changes it.
 
@@ -49,13 +49,8 @@ function loadRenderer(kind, source, module) {
   return pending
 }
 
-function opticsVariant(root, canvas) {
-  if (root.dataset.opticsKind === "crown") {
-    return `${canvas.dataset.crownVariant || ""}:${canvas.dataset.backgroundPreset || "10"}`
-  }
-  if (root.dataset.opticsKind === "background") {
-    return `${canvas.dataset.backgroundTheme || "orange"}:${canvas.dataset.backgroundPreset || "10"}`
-  }
+function opticsVariant(canvas) {
+  return canvas.dataset.crownVariant
 }
 
 export function createOpticsController(root) {
@@ -209,7 +204,7 @@ export function createOpticsController(root) {
       }
 
       renderer = loaded
-      rendererVariant = opticsVariant(root, canvas)
+      rendererVariant = opticsVariant(canvas)
       starting = false
       if (mobileCrownActive()) aimCrownFromScroll()
       else invalidate()
@@ -270,23 +265,11 @@ export function createOpticsController(root) {
       invalidate()
     }
     const onThemeChange = event => {
-      const kind = root.dataset.opticsKind
-      const theme = event.detail?.theme
       const crownVariant = event.detail?.crownVariant
-      const backgroundPreset = event.detail?.backgroundPreset || "10"
-      if (kind === "crown" && crownVariant) {
-        root.dataset.crownVariant = crownVariant
-        canvas.dataset.crownVariant = crownVariant
-      } else if (kind === "background" && theme) {
-        root.dataset.backgroundTheme = theme
-        canvas.dataset.backgroundTheme = theme
-      } else {
-        return
-      }
-      root.dataset.backgroundPreset = backgroundPreset
-      canvas.dataset.backgroundPreset = backgroundPreset
+      if (root.dataset.opticsKind !== "crown" || !crownVariant) return
+      canvas.dataset.crownVariant = crownVariant
 
-      const variant = opticsVariant(root, canvas)
+      const variant = opticsVariant(canvas)
       if (rendererVariant === variant) return
       retired = false
       delete root.dataset.opticsFailed

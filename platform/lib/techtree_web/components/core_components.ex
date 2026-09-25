@@ -16,27 +16,20 @@ defmodule TechtreeWeb.CoreComponents do
 
   use Phoenix.Component
 
+  alias TechtreeWeb.Capabilities
+
   @doc """
-  Name a protocol document, in the spelling the protocol uses.
+  How ready a capability is, in the words every page uses for it.
   """
-  attr :name, :string, required: true
+  attr :capability, :atom, required: true
   attr :rest, :global
 
-  def protocol_badge(assigns) do
-    ~H"""
-    <Regent.Primitives.status class="badge badge--exact" {@rest}>{@name}</Regent.Primitives.status>
-    """
-  end
+  def capability_status(assigns) do
+    assigns = assign(assigns, :status, Capabilities.status(assigns.capability))
 
-  @doc """
-  Say where a Climb is in its life, in words rather than a code.
-  """
-  attr :status, :string, required: true
-
-  def status_badge(assigns) do
     ~H"""
-    <Regent.Primitives.status class={["badge", @status == "development" && "badge--attention"]}>
-      {status_words(@status)}
+    <Regent.Primitives.status class="badge" tone={status_tone(@status)} {@rest}>
+      {Capabilities.label(@status)}
     </Regent.Primitives.status>
     """
   end
@@ -60,127 +53,6 @@ defmodule TechtreeWeb.CoreComponents do
         {@value}
       <% end %>
     </span>
-    """
-  end
-
-  @doc """
-  The word "verifiers", with what it is one hover away.
-
-  Founder ruling 2026-08-26: wherever the library is named, a reader can hover
-  (or focus, on a keyboard or a phone) to learn that verifiers is Prime
-  Intellect's library for building evaluation environments, with one link to
-  its repository. The card is plain markup — no script, nothing submitted.
-  """
-  attr :label, :string, default: "verifiers"
-  attr :code, :boolean, default: false
-
-  def verifiers_term(assigns) do
-    ~H"""
-    <span class="hoverdef">
-      <%= if @code do %>
-        <code class="hoverdef__term" tabindex="0">{@label}</code>
-      <% else %>
-        <span class="hoverdef__term" tabindex="0">{@label}</span>
-      <% end %>
-      <span class="hoverdef__card" role="note">
-        <span>
-          verifiers is a library by Prime Intellect for creating environments to
-          train and evaluate LLMs.
-        </span>
-        <a
-          class="hoverdef__button"
-          href="https://github.com/PrimeIntellect-ai/verifiers"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          GitHub
-        </a>
-      </span>
-    </span>
-    """
-  end
-
-  @doc """
-  What this release is, written once and shown wherever a page says so.
-
-  Decision 0035: v0.1 is a working technical preview of a stack of three independent
-  parts, and two of the three are other people's work. A page that says what
-  this release is has to name all three with the projects that made them.
-  Written in one place so that two pages cannot drift into two different claims.
-  """
-  attr :class, :string, default: "section"
-  attr :eyebrow, :string, default: nil
-  attr :title, :string, default: "What v0.1 is"
-  attr :title_suffix, :string, default: nil
-
-  attr :compact, :boolean,
-    default: false,
-    doc: "The proofs page carries the shared v0.1 frame without page-specific roadmap copy."
-
-  attr :nemo_roadmap, :boolean, default: false
-
-  slot :inner_block,
-    doc: "Optional page-specific evidence placed beside the shared release description."
-
-  def proof_of_concept(assigns) do
-    ~H"""
-    <section class={@class} aria-labelledby="what-this-release-is">
-      <Regent.Structure.section_bar class="section-heading rg-support-band">
-        <p :if={@eyebrow} class="eyebrow">{@eyebrow}</p>
-        <h2 id="what-this-release-is" class="rg-section-bar__label">
-          {@title}
-          <%= if @title_suffix do %>
-            <span class="section-heading__nowrap">{@title_suffix}</span>
-          <% end %>
-        </h2>
-      </Regent.Structure.section_bar>
-      <div class={[
-        "proof-of-concept__body",
-        @inner_block != [] && "proof-of-concept__body--with-evidence"
-      ]}>
-        <div class="what-this-is">
-          <p>
-            Techtree Climb v0.1 is a working technical preview of a stack of three independent parts:
-            <a
-              href="https://github.com/PrimeIntellect-ai/verifiers"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Prime Intellect’s Verifiers
-            </a>
-            as the evaluation engine,
-            <a
-              href="https://github.com/NousResearch/hermes-agent"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Nous Research’s Hermes
-            </a>
-            as the agent host, and Techtree as the comparison and evidence layer.
-          </p>
-          <p :if={@nemo_roadmap and not @compact} class="small quiet what-this-is__roadmap">
-            Support for NVIDIA
-            <a
-              href="https://github.com/NVIDIA/NeMo-Fabric"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              NeMo Fabric
-            </a>
-            and
-            <a
-              href="https://github.com/NVIDIA/NeMo-Relay"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              NeMo Relay
-            </a>
-            is planned for v0.2.
-          </p>
-        </div>
-        {render_slot(@inner_block)}
-      </div>
-    </section>
     """
   end
 
@@ -298,24 +170,6 @@ defmodule TechtreeWeb.CoreComponents do
   end
 
   @doc """
-  Set two things side by side that are easy to confuse.
-  """
-  slot :side do
-    attr :title, :string, required: true
-  end
-
-  def comparison_boundary(assigns) do
-    ~H"""
-    <div class="boundary">
-      <section :for={side <- @side} class="boundary__side">
-        <h3 class="boundary__title">{side.title}</h3>
-        {render_slot(side)}
-      </section>
-    </div>
-    """
-  end
-
-  @doc """
   Say something the reader would be worse off for missing.
   """
   attr :title, :string, required: true
@@ -328,21 +182,6 @@ defmodule TechtreeWeb.CoreComponents do
       <p class="callout__title">{@title}</p>
       {render_slot(@inner_block)}
     </aside>
-    """
-  end
-
-  @doc """
-  One step of something the reader is being asked to do.
-  """
-  attr :title, :string, required: true
-  slot :inner_block
-
-  def next_step(assigns) do
-    ~H"""
-    <li>
-      <p class="next-step-title">{@title}</p>
-      {render_slot(@inner_block)}
-    </li>
     """
   end
 
@@ -447,16 +286,15 @@ defmodule TechtreeWeb.CoreComponents do
   defp report_words("prohibited"), do: "Is not published."
   defp report_words(other), do: plain_words(other)
 
+  defp status_tone(:available), do: "success"
+  defp status_tone(:experimental), do: "warning"
+  defp status_tone(:planned), do: "neutral"
+
   defp plain_words(value) when is_binary(value) do
     value |> String.replace("_", " ") |> String.capitalize()
   end
 
   defp plain_words(value), do: to_string(value)
-
-  defp status_words("open"), do: "Open"
-  defp status_words("closed"), do: "Closed"
-  defp status_words("development"), do: "In development"
-  defp status_words(other), do: plain_words(other)
 
   # Display only. An argument that would need quoting in a shell is shown
   # quoted, so that what a reader copies is what the argument list means.

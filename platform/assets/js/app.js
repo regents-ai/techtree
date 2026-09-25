@@ -1,7 +1,5 @@
-import {installSharedProfile} from "./shared_profile.js"
 import "../vendor/regent_ui/blog.mjs"
 
-installSharedProfile()
 // The pages are read-only documents. This bundle keeps the live connection,
 // copies published commands, remembers the reader's color preference, and
 // reads the repository's public star
@@ -123,15 +121,7 @@ function writeThemeCookie(theme) {
 
 let savedTheme = readThemeCookie()
 
-const resolvedTheme = () => savedTheme || "light"
-
-function previewRouteTheme() {
-  if (/^\/crown\/2\/?$/.test(window.location.pathname)) return "light"
-  if (/^\/crown\/4\/?$/.test(window.location.pathname)) return "dark"
-  return undefined
-}
-
-const pageTheme = () => previewRouteTheme() || resolvedTheme()
+const pageTheme = () => savedTheme || "light"
 
 function syncThemeControl(theme) {
   const selected = THEMES[theme]
@@ -153,37 +143,9 @@ function syncThemeControl(theme) {
 function syncCrownTheme(theme) {
   const variant = THEMES[theme].crownVariant
 
-  document.querySelectorAll('[data-optics-kind="crown"]').forEach(root => {
-    if (root.dataset.crownThemeControlled !== "true") return
-
-    const canvas = root.querySelector("[data-optics-canvas]")
-    const hero = root.closest(".hero")
-    root.dataset.crownVariant = variant
-    if (canvas) canvas.dataset.crownVariant = variant
-    if (hero) hero.dataset.crownVariant = variant
+  document.querySelectorAll('[data-optics-kind="crown"] [data-optics-canvas]').forEach(canvas => {
+    canvas.dataset.crownVariant = variant
   })
-
-}
-
-function requestedBackgroundPreset() {
-  const value = new URLSearchParams(window.location.search).get("bg") || "10"
-  return /^(?:[1-9]|10)$/.test(value) ? value : "10"
-}
-
-function syncBackground(theme) {
-  const preset = requestedBackgroundPreset()
-
-  document.querySelectorAll("[data-optics-kind]").forEach(root => {
-    const canvas = root.querySelector("[data-optics-canvas]")
-    root.dataset.backgroundPreset = preset
-    if (canvas) canvas.dataset.backgroundPreset = preset
-
-    if (root.dataset.opticsKind !== "background") return
-    root.dataset.backgroundTheme = theme === "dark" ? "titanium" : "orange"
-    if (canvas) canvas.dataset.backgroundTheme = theme === "dark" ? "titanium" : "orange"
-  })
-
-  return preset
 }
 
 function applyTheme(theme) {
@@ -192,12 +154,8 @@ function applyTheme(theme) {
   document.querySelector("meta[name='theme-color']")?.setAttribute("content", selected.browserColor)
   syncThemeControl(theme)
   syncCrownTheme(theme)
-  const backgroundPreset = syncBackground(theme)
-  // Study routes select a material independently of the reader's page theme.
-  const study = document.querySelector('[data-optics-kind="crown"][data-crown-theme-controlled="false"]')
-  const crownVariant = study?.dataset.crownVariant || selected.crownVariant
   document.dispatchEvent(new CustomEvent("techtree:themechange", {
-    detail: {theme, crownVariant, backgroundPreset},
+    detail: {theme, crownVariant: selected.crownVariant},
   }))
 }
 
@@ -224,7 +182,6 @@ const Hooks = {
       // A connected render can restore server attributes after initial theme sync.
       // Resolve them before the existing controller creates its first renderer.
       syncCrownTheme(pageTheme())
-      syncBackground(pageTheme())
       Optics.mounted.call(this)
     },
   },

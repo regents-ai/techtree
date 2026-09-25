@@ -60,7 +60,6 @@ async function equip(
   canvas: HTMLCanvasElement,
   size: readonly [number, number],
   variant: CrownVariant,
-  backgroundPreset: number,
 ) {
   const canvasSurface = surface(gpu, canvas, {autoResize: false, label: "home-prism"})
   canvasSurface.resize(size)
@@ -68,7 +67,6 @@ async function equip(
     gpu,
     canvasSurface.size,
     variant,
-    backgroundPreset,
     `home-crown-${variant}`,
   )
   await prepareScene(scene, canvasSurface)
@@ -82,12 +80,10 @@ export async function createPrismRenderer(
 ): Promise<PrismRenderer> {
   const gpu = await init()
   const variant = crownVariant(canvas.dataset.crownVariant)
-  const requestedPreset = Number.parseInt(canvas.dataset.backgroundPreset || "10", 10)
-  const backgroundPreset = requestedPreset >= 1 && requestedPreset <= 10 ? requestedPreset : 10
   let disposed = false
   // A device this call created and could not finish equipping is still this call's
   // to release; the caller only ever learns that the renderer did not arrive.
-  const {canvasSurface, scene} = await equip(gpu, canvas, size, variant, backgroundPreset).catch(error => {
+  const {canvasSurface, scene} = await equip(gpu, canvas, size, variant).catch(error => {
     gpu.dispose()
     throw error
   })

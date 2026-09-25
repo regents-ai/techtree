@@ -11,13 +11,28 @@
 .start-steps > li { padding: var(--space-3); border-right: 1px solid var(--rule); }
 .start-steps > li:first-child { padding-left: 0; }
 .start-steps > li:last-child { border-right: 0; }
-.start-steps h2 { margin-top: var(--space-2); font-size: 1.375rem; letter-spacing: -.025em; }
 .start-steps p { margin-top: var(--space-2); font-size: .875rem; color: var(--ink-quiet); }
 .start-guide .setup-unavailable { padding: var(--rg-panel-padding); }
+.start-paths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--rule); }
+.start-paths__item { display: grid; align-content: start; justify-items: start; gap: var(--space-1); padding: var(--space-3); border-right: 1px solid var(--rule); color: inherit; text-decoration: none; }
+.start-paths__item:first-child { padding-left: 0; }
+.start-paths__item:last-child { border-right: 0; }
+.start-paths__name { font-size: 1.375rem; letter-spacing: -.025em; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: .2em; }
+.start-paths__item:focus-visible .start-paths__name { text-decoration-color: currentColor; }
+.start-paths__note { font-size: .875rem; color: var(--ink-quiet); }
+.start-path { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--rule); scroll-margin-top: var(--space-4); }
+.start-path__head { display: grid; justify-items: start; gap: var(--space-2); max-width: 65ch; }
+.start-path__head h2 { font-size: 1.75rem; letter-spacing: -.025em; }
+.start-path__head p { color: var(--ink-quiet); }
+.start-path .facts { margin-top: 0; }
+.start-path__needs { display: grid; gap: var(--space-1); list-style: square; padding-left: var(--space-3); }
+.start-path__needs + p { margin-top: var(--space-2); }
+.later-note { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); margin-top: var(--space-2); font-size: .875rem; color: var(--ink-quiet); }
+.start-steps h3 { margin-top: var(--space-2); font-size: 1.375rem; letter-spacing: -.025em; }
+.start-guide__direct > h3 { font-size: 1.375rem; letter-spacing: -.025em; }
 .setup-unavailable h2 { max-width: 36ch; font-size: 1.75rem; }
 .setup-unavailable p { max-width: 65ch; }
 .start-guide__direct { display: grid; gap: var(--space-3); }
-.start-guide__direct > h2 { font-size: 1.375rem; letter-spacing: -.025em; }
 .start-guide__next { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-4); border-top: 1px solid var(--rule); }
 .start-guide__next > div { max-width: 60ch; }
 .start-guide__next h2 { margin-top: var(--space-1); font-size: 1.75rem; }
@@ -47,7 +62,7 @@
 .service-intro__body { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-top: var(--space-4); }
 .service-intro__body h2 { max-width: 24ch; }
 .service-intro__body p { max-width: 55ch; color: var(--ink-quiet); }
-.service-intro__body .rg-button { margin-top: var(--space-3); }
+.service-intro__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
 .service-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: center; }
 .service-flow > li { min-width: 0; padding: var(--space-3) var(--space-2); border-block: 1px solid var(--rg-local-rule, var(--rule)); border-left: 1px solid var(--rg-local-rule, var(--rule)); }
 .service-flow > li:last-child { border-right: 1px solid var(--rg-local-rule, var(--rule)); }
@@ -107,6 +122,7 @@
 @media (hover: hover) and (pointer: fine) {
   .results-ledger tbody tr:hover { background: var(--panel); }
   .results-filter-choices .result-choice:not([aria-current]):hover { background: var(--panel); }
+  .start-paths__item:hover .start-paths__name { text-decoration-color: currentColor; }
 }
 @media (max-width: 63.99rem) {
   .verification-page .verification-boundary, .service-intro__body { grid-template-columns: 1fr; }
@@ -115,7 +131,9 @@
 }
 @media (max-width: 47.99rem) {
   .editorial-heading h1 { font-size: clamp(2rem, 8vw, 3.5rem); }
-  .start-steps { grid-template-columns: 1fr; }
+  .start-steps, .start-paths { grid-template-columns: 1fr; }
+  .start-paths__item { padding: var(--space-3) 0; border-right: 0; border-bottom: 1px solid var(--rule); }
+  .start-paths__item:last-child { border-bottom: 0; }
   .start-steps > li { padding: var(--space-3) 0; border-right: 0; border-bottom: 1px solid var(--rule); }
   .start-steps > li:last-child { border-bottom: 0; }
   .start-guide .setup-page__plans, .repo-service__contract { grid-template-columns: 1fr; }

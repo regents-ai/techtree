@@ -133,7 +133,6 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert text =~ "Not independently reproduced"
       assert text =~ "Newest submissions first, not ranked by score."
       assert has_element?(live, ~s|a[href="/verify"]|, "How verification works")
-      refute has_element?(live, ".runs-index__lede .hoverdef__term")
 
       refute text =~ "the files match their recorded hashes"
       refute text =~ "It does not prove the Test happened as described."

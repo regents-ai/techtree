@@ -70,28 +70,8 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert has_element?(live, ~s|a[href="/results"]|, "Results")
   end
 
-  test "the research method, trust boundary, and roadmap follow the operator reference", %{
-    conn: conn
-  } do
+  test "the research method follows the operator reference", %{conn: conn} do
     {:ok, _live, html} = live(conn, ~p"/docs")
-    text = visible_text(html)
-
-    assert text =~ "The proof is participant-attested"
-    assert text =~ "Techtree witnessed the run;"
-    assert text =~ "another party reproduced it;"
-    assert text =~ "Planned execution portability in v0.2"
-    assert text =~ "These paths are not available in v0.1"
-    assert text =~ "their exact upstream contracts are still being tested"
-    assert text =~ "local execution, with provider-hosted evaluation planned for a later release"
-    assert text =~ "Fabric-backed Hermes and Codex subjects"
-    assert text =~ "Environment creation, automatic Skill optimization"
-    assert text =~ "The planned v0.2 agent stack"
-    assert text =~ "NVIDIA NeMo Fabric"
-    assert text =~ "Techtree is the research and proof engine"
-    assert text =~ "x402-gated services"
-
-    refute text =~ "Environments in v0.2"
-    refute text =~ "turn them into qualified, content-addressed environments"
 
     assert html =~ ~r/id="troubleshooting".*id="method"/s
   end

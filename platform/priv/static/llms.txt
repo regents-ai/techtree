@@ -6,7 +6,7 @@
 
 ## Local work and optional publication
 
-- [Start](https://techtree.sh/start): one instruction a person gives their local agent to create an environment from their Skill.
+- [Start](https://techtree.sh/start): three ways to begin: try the example Climb, evaluate a Skill by creating an environment from it (with one instruction for the person's local agent), or build tasks from a local repository. Each names what it needs and where its data goes.
 - [Agent installation guide](https://techtree.sh/skill.md): the exact release to install, and the steps to follow. Each review waits for the person's own answer; never approve on their behalf.
 - [Bootstrap contract](https://techtree.sh/api/v1/bootstrap): use its exact released versions and arguments. Reject placeholder releases.
 - [Catalog](https://techtree.sh/api/v1/catalog).

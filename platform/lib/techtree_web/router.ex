@@ -109,39 +109,9 @@ defmodule TechtreeWeb.Router do
   end
 
   defp put_theme(conn, _opts) do
-    theme =
-      case conn.request_path do
-        "/crown/2" -> "light"
-        "/crown/4" -> "dark"
-        _path -> saved_theme(conn.req_cookies[@theme_cookie])
-      end
-
-    assign(conn, :theme, theme)
+    assign(conn, :theme, saved_theme(conn.req_cookies[@theme_cookie]))
   end
 
   defp saved_theme(value) when value in ["light", "dark"], do: value
   defp saved_theme(_value), do: "light"
-
-  # Previews of work heading for `/`, and nothing a release publishes.
-  #
-  # Founder ruling 2026-08-28: these are for him to look at while the front
-  # page is being reworked, and they are not v0.1 routes. They live behind
-  # `dev_routes` rather than in the scope above because the routing table IS
-  # the published surface — `router_test.exs` pins it and the Gate-2 packet
-  # asserts it, so a preview sitting in that table would be a coordinate
-  # somebody had to have decided rather than a page somebody wanted to see.
-  #
-  # `dev_routes` is set only in `config/dev.exs`, so these compile away
-  # entirely in test and in a release.
-  if Application.compile_env(:techtree, :dev_routes) do
-    scope "/", TechtreeWeb do
-      pipe_through :browser
-
-      live "/crown/1", HomeLive, :crown_1
-      live "/crown/2", HomeLive, :crown_2
-      live "/crown/3", HomeLive, :crown_3
-      live "/crown/4", HomeLive, :crown_4
-      live "/prism", PrismLive
-    end
-  end
 end
