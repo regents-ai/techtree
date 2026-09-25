@@ -85,9 +85,11 @@ from techtree.forge.models import (
     ForgeRevisionStatus,
     ForgeRunSpec,
     ForgeRunStatus,
+    ForgeSkillClaim,
     ForgeSkillRef,
     ForgeSourceStatus,
     ForgeSubjectToolset,
+    ForgeTaskKind,
     ForgeTaskRegression,
     ForgeUsage,
 )
@@ -667,20 +669,21 @@ def correct_proposal_forge_command(
         str,
         typer.Argument(metavar="PROPOSAL_ID", help="The proposal you corrected."),
     ],
-    tasks_file: Annotated[
+    correction_file: Annotated[
         Path,
         typer.Argument(
             metavar="FILE",
-            help='Your corrected tasks, as {"tasks": [...]}: a copy of the '
-            "proposal's tasks.json, edited.",
+            help='Your corrected claims and tasks, as {"claims": [...], '
+            '"tasks": [...]}: a copy of the proposal\'s claims-and-tasks.json, '
+            "edited.",
         ),
     ],
 ) -> None:
-    """Record your corrections to proposed tasks as a new proposal."""
+    """Record your corrections to proposed claims and tasks as a new proposal."""
     context = cli_context(ctx)
 
     def action() -> CommandResult[ForgeProposalStatus]:
-        status = correct_proposal(context.paths, proposal_id, tasks_file)
+        status = correct_proposal(context.paths, proposal_id, correction_file)
         return CommandResult(
             data=status,
             state_digest=status.record.proposal_digest,
@@ -1829,8 +1832,10 @@ def planning_review_lines(record: ForgePlanRecord) -> list[str]:
         f"{_plural(limits.max_tasks, 'task', 'tasks')}, {limits.wall_seconds} "
         f"seconds, an answer of at most {limits.answer_bytes} bytes. Nothing "
         "is retried; trying again needs a new approval.",
-        "Afterwards: the proposed tasks wait for you to review or correct. "
-        "Nothing is built from them without a further approval.",
+        "Afterwards: the planner's answer says what the Skill claims to "
+        "improve and what would show it, then proposes tasks that each test "
+        "one of those claims. The claims and tasks wait for you to review or "
+        "correct. Nothing is built from them without a further approval.",
         "Cost: nothing is quoted in advance. What the call used is recorded "
         "afterwards from Hermes' own usage report.",
         f"This approval covers exactly this: {record.planning_digest[:19]}",
@@ -2013,8 +2018,38 @@ def _render_plan(data: object, console: Console) -> None:
         render_forge_plan(data, console)
 
 
+#: What each kind of task is, in the words a person reads.
+_KIND_WORDS: Final[dict[ForgeTaskKind, str]] = {
+    "positive": "positive case",
+    "boundary": "boundary case",
+    "counterexample": "counterexample",
+}
+_KINDS_EXPLAINED: Final = (
+    "Each task tests one claim. A positive case is one where following the "
+    "Skill should give the right result; a boundary case sits at the edge of "
+    "where the claim applies; a counterexample checks that the Skill is not "
+    "overused where it would give a wrong result or should change nothing."
+)
+
+
+def _claim_lines(claims: list[ForgeSkillClaim]) -> list[str]:
+    """The claims, each with what would show it."""
+    return [
+        line
+        for claim in claims
+        for line in (
+            f"{claim.claim_id}: {claim.statement}",
+            f"  Shown by: {claim.observable}",
+        )
+    ]
+
+
+def _task_label(name: str, claim: str, kind: ForgeTaskKind) -> str:
+    return f"{name} ({claim}, {_KIND_WORDS[kind]})"
+
+
 def render_forge_proposal(status: ForgeProposalStatus, console: Console) -> None:
-    """Print one proposal: its tasks and the checks each is graded by."""
+    """Print one proposal: what the Skill claims, then the tasks testing each."""
     record = status.record
     pairs = [
         ("Proposal", status.proposal_id),
@@ -2025,14 +2060,27 @@ def render_forge_proposal(status: ForgeProposalStatus, console: Console) -> None
             else f"your correction of {record.parent.proposal_id}",
         ),
         ("Skill", record.source_id),
+        ("Claims", str(len(record.claims))),
         ("Tasks", str(len(record.tasks))),
         ("Digest", record.proposal_digest[:19]),
-        ("To correct", f"edit a copy of {Path(status.path) / 'tasks.json'}"),
+        (
+            "To correct",
+            f"edit a copy of {Path(status.path) / 'claims-and-tasks.json'}",
+        ),
     ]
     render_pairs(pairs, console)
+    console.print()
+    console.print("What this Skill claims to improve")
+    for line in _claim_lines(record.claims):
+        console.print(Padding(Text(line), (0, 0, 0, 2)))
+    console.print()
+    console.print(_KINDS_EXPLAINED, markup=False)
     for task in record.tasks:
         console.print()
-        console.print(f"{task.name}: {task.summary}", markup=False)
+        console.print(
+            f"{_task_label(task.name, task.claim, task.kind)}: {task.summary}",
+            markup=False,
+        )
         for line in (
             f"Starts from: {task.scenario}",
             *(f"- {criterion}" for criterion in task.success_criteria),
@@ -2141,12 +2189,16 @@ def construction_review_lines(record: ForgeConstructionRecord) -> list[str]:
             f"Tries again: {review.retry_of}, only its tasks without a usable package"
         )
     lines += [
-        "What the model is sent, once for each task: that task as proposed "
-        "and the Skill's files, word for word, inside Techtree's building "
-        "instructions. Each prompt is kept in the construction's prompts "
-        "folder.",
+        "What this Skill claims to improve:",
+        *(f"  {line}" for line in _claim_lines(review.claims)),
+        _KINDS_EXPLAINED,
+        "What the model is sent, once for each task: that task as proposed, "
+        "the claim it tests, and the Skill's files, word for word, inside "
+        "Techtree's building instructions. Each prompt is kept in the "
+        "construction's prompts folder.",
         *(
-            f"  {call.task_name}, {call.prompt_bytes} bytes"
+            f"  {_task_label(call.task_name, call.claim, call.kind)}, "
+            f"{call.prompt_bytes} bytes"
             for call in disclosure.calls
         ),
         f"Model: {review.model.model_id} from {review.model.provider}"

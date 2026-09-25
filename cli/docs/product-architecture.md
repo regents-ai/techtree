@@ -427,16 +427,27 @@ one already did. Under the profile lock it writes `approval.json`, then
 the `techtree` profile to its sign-in, and runs Hermes once in an empty
 `workspace/` beside the plan with the prompt as its only input, keeping
 `answer.txt`, the log, the usage report and the transcript. The attempt ends
-`succeeded`, `rejected` (the answer is not one JSON object of well-formed,
-distinctly named tasks within the limit), `failed`, or `outcome_unknown` (the
+`succeeded`, `rejected` (the answer is not one JSON object of claims and
+well-formed, distinctly named tasks within the limit, where every task tests a
+stated claim and every claim is tested by a task), `failed`, or
+`outcome_unknown` (the
 wall time ran out, the person pressed Ctrl-C, or `status` finds a `started`
 attempt whose process is gone). A plan is attempted at most once: trying again
 is a new plan prepared with `--retry-of`, and a new approval. A successful
 answer becomes `forge/proposals/<forgeprop_id>/proposal.json`
-(`techtree.forge-proposal.v1alpha1`) with `tasks.json` beside it, and stops
-there for review. `forge correct-proposal PROPOSAL_ID FILE` records a person's
-corrections as a new proposal whose `parent` names the original and its digest;
-the original is never rewritten.
+(`techtree.forge-proposal.v1alpha2`) with `claims-and-tasks.json` beside it,
+and stops there for review. In the same one call the planner first states what
+the Skill claims to improve (`claims`: `claim_id` `C1`, `C2`, ..., a
+`statement` and the `observable` behavior that would show it, one to eight),
+then proposes tasks that each name one `claim` and a `kind`: `positive` (following
+the Skill should give the correct observable behavior), `boundary` (the edge of
+where the claim applies) or `counterexample` (a naive or over-eager application
+of the Skill would go wrong, or the Skill should change nothing). The
+`proposal_digest` covers the claims with the tasks, so the construction
+approval that names it approves both. `forge correct-proposal PROPOSAL_ID FILE`
+records a person's corrections to the claims, the tasks or both, checked as the
+planner's answer is, as a new proposal whose `parent` names the original and
+its digest; the original is never rewritten.
 
 **Forge construction (one approved creator call per task, then qualification).**
 `forge construct PROPOSAL_ID --provider --model [--reasoning]
@@ -446,13 +457,15 @@ building of a proposal's tasks and calls nothing. For each task it writes
 creator would be sent: Techtree's building instructions
 (`resources/forge/skill2env/creator-prompt.md`, adapted from Skill2Env's
 task-construction stage with attribution, naming the one allow-listed base
-image by digest), the task as proposed, and the Source Skill's admitted files
-read back from the kept copy. `construction.json`
-(`techtree.forge-construction.v1alpha1`) binds in one `construction_digest`
-the proposal and its digest, the proposals that correct it (`corrected_by`),
+image by digest, and telling the creator what each kind of case means), the
+claim the task tests, the task as proposed, and the Source Skill's admitted
+files read back from the kept copy. `construction.json`
+(`techtree.forge-construction.v1alpha2`) binds in one `construction_digest`
+the proposal and its digest, the claims its tasks test, the proposals that
+correct it (`corrected_by`),
 the source, the instructions', contract's and base image's pins, the Hermes
 executable and version, provider and model, the Docker platform, each call's
-task, package name (`task_<task>_<first 8 of the construction id>`) and
+task, its claim and kind, package name (`task_<task>_<first 8 of the construction id>`) and
 prompt size and digest, the egress, the capabilities (no tools, as for
 planning) and the limits (one call per task, 900 seconds and a 512 KiB answer
 each). `forge construct-start CONSTRUCTION_ID` recomputes that review and
@@ -468,7 +481,8 @@ object of the package's files; Techtree checks every path (only
 duplicate path, every required file present), writes the files, and writes
 `task.toml` itself from the pinned contract, as Skill2Env's host does. The
 package then goes through `ForgeService.import_skill` unchanged, and
-`package.json` records the build it became and how many usable tasks it has,
+`package.json` (`techtree.forge-construction-package.v1alpha2`) records the
+task's claim and kind, the build it became and how many usable tasks it has,
 or why it has none. A call ends `succeeded`, `rejected`, `failed` or
 `outcome_unknown` (its wall time ran out, Ctrl-C, or `status` finds it
 `started` by a process that is gone); every one is kept and shown, and the

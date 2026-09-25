@@ -24,9 +24,12 @@ The call is made as :mod:`techtree.forge.authoring` makes every authoring
 call: Hermes one-shot, no tools, the person's ``techtree`` profile emptied to
 its sign-in, in the plan's own empty workspace.
 
-A planner answer that is a usable set of tasks becomes a proposal record and
-stops there for the contributor. A contributor's correction is a new
-proposal naming its parent; no proposal is ever changed.
+The planner answers in one call with what the Skill claims to improve and
+what observable behavior would show it, then tasks that each test one of
+those claims as a positive, boundary or counterexample case. An answer that
+is a usable set of claims and tasks becomes a proposal record and stops there
+for the contributor. A contributor's correction is a new proposal naming its
+parent; no proposal is ever changed.
 """
 
 from __future__ import annotations
@@ -38,7 +41,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
 
-from pydantic import TypeAdapter
 from pydantic import ValidationError as ModelValidationError
 
 from techtree.canonical import digest_object, sha256_digest_bytes
@@ -85,10 +87,10 @@ from techtree.forge.models import (
     ForgePlanReview,
     ForgePlanState,
     ForgePlanStatus,
+    ForgeProposalContent,
     ForgeProposalParent,
     ForgeProposalRecord,
     ForgeProposalStatus,
-    ForgeProposedTask,
     proposal_content,
 )
 from techtree.forge.process import CommandRunner
@@ -116,15 +118,14 @@ APPROVAL_FILENAME: Final = "approval.json"
 ATTEMPT_FILENAME: Final = "attempt.json"
 ANSWER_FILENAME: Final = "answer.txt"
 PROPOSAL_FILENAME: Final = "proposal.json"
-#: The proposal's tasks alone, in the shape a correction is written in.
-TASKS_FILENAME: Final = "tasks.json"
+#: The proposal's claims and tasks alone, in the shape a correction is written in.
+CONTENT_FILENAME: Final = "claims-and-tasks.json"
 
 #: How long the planner may take, from launch to answer.
 PLAN_WALL_SECONDS: Final = 600
 #: The largest answer read as a proposal.
 ANSWER_BYTES: Final = 64 * 1024
 _INSTRUCTIONS: Final = "planner-prompt.md"
-_TASKS_ADAPTER: Final = TypeAdapter(list[ForgeProposedTask])
 
 # ---------------------------------------------------------------------------
 # Preparing and checking
@@ -468,7 +469,7 @@ def _call(
         return
     answer = (directory / ANSWER_FILENAME).read_bytes()
     try:
-        tasks = _planner_tasks(answer, review.limits)
+        content = _planner_content(answer, review.limits)
     except ValidationError as rejection:
         finish(
             state="rejected",
@@ -487,7 +488,7 @@ def _call(
         source_digest=review.source_digest,
         plan_id=plan.plan_id,
         parent=None,
-        tasks=tasks,
+        content=content,
     )
     finish(
         state="succeeded",
@@ -497,26 +498,26 @@ def _call(
     )
 
 
-def _planner_tasks(answer: bytes, limits: ForgePlanLimits) -> list[ForgeProposedTask]:
-    """Read the planner's answer as proposed tasks within the plan's limits."""
+def _planner_content(answer: bytes, limits: ForgePlanLimits) -> ForgeProposalContent:
+    """Read the planner's answer as claims and tasks within the plan's limits."""
     if len(answer) > limits.answer_bytes:
         raise ValidationError(
             f"the planner's answer is {len(answer)} bytes, over the "
             f"{limits.answer_bytes} the plan allowed",
             code="forge_planner_answer_too_large",
         )
-    tasks = _tasks(answer, who="the planner's answer")
-    if len(tasks) > limits.max_tasks:
+    content = _content(answer, who="the planner's answer")
+    if len(content.tasks) > limits.max_tasks:
         raise ValidationError(
-            f"the planner proposed {len(tasks)} tasks, over the "
+            f"the planner proposed {len(content.tasks)} tasks, over the "
             f"{limits.max_tasks} the plan allowed",
             code="forge_planner_too_many_tasks",
         )
-    return tasks
+    return content
 
 
-def _tasks(data: bytes, *, who: str) -> list[ForgeProposedTask]:
-    """Read ``{"tasks": [...]}`` and nothing else."""
+def _content(data: bytes, *, who: str) -> ForgeProposalContent:
+    """Read ``{"claims": [...], "tasks": [...]}`` and nothing else."""
     try:
         loaded = json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as error:
@@ -524,31 +525,30 @@ def _tasks(data: bytes, *, who: str) -> list[ForgeProposedTask]:
             f"{who} is not one JSON object",
             code="forge_proposal_invalid",
         ) from error
-    if not isinstance(loaded, dict) or set(loaded) != {"tasks"}:
+    if not isinstance(loaded, dict) or set(loaded) != {"claims", "tasks"}:
         raise ValidationError(
-            f'{who} is not one JSON object with "tasks" and nothing else',
+            f'{who} is not one JSON object with "claims" and "tasks" and nothing else',
             code="forge_proposal_invalid",
         )
     try:
-        tasks = _TASKS_ADAPTER.validate_python(loaded["tasks"], strict=True)
+        return ForgeProposalContent.model_validate(loaded, strict=True)
     except ModelValidationError as error:
         issue = error.errors(include_input=False, include_url=False)[0]
-        place = ".".join(
-            f"task {item + 1}" if isinstance(item, int) else str(item)
-            for item in issue["loc"]
-        )
+        reason = issue["msg"].removeprefix("Value error, ")
+        if not issue["loc"]:
+            raise ValidationError(
+                f"{who} cannot be used: {reason}", code="forge_proposal_invalid"
+            ) from error
+        place: list[str] = []
+        for item in issue["loc"]:
+            if isinstance(item, int) and place[-1:] in (["claims"], ["tasks"]):
+                place[-1] = f"{place[-1].removesuffix('s')} {item + 1}"
+            else:
+                place.append(str(item))
         raise ValidationError(
-            f"{who} has a task that cannot be used: {place}: {issue['msg']}",
+            f"{who} cannot be used: {'.'.join(place)}: {reason}",
             code="forge_proposal_invalid",
         ) from error
-    if not tasks:
-        raise ValidationError(f"{who} proposes no task", code="forge_proposal_invalid")
-    names = [task.name for task in tasks]
-    if len(set(names)) != len(names):
-        raise ValidationError(
-            f"{who} names two tasks the same", code="forge_proposal_invalid"
-        )
-    return tasks
 
 
 # ---------------------------------------------------------------------------
@@ -557,25 +557,30 @@ def _tasks(data: bytes, *, who: str) -> list[ForgeProposedTask]:
 
 
 def correct_proposal(
-    paths: TechtreePaths, proposal_id: str, tasks_file: Path
+    paths: TechtreePaths, proposal_id: str, correction_file: Path
 ) -> ForgeProposalStatus:
-    """Record a contributor's correction as a new proposal naming its parent."""
+    """Record a contributor's correction as a new proposal naming its parent.
+
+    A correction may change the claims, the tasks, or both; it is checked as
+    the planner's answer is.
+    """
     parent = read_proposal_status(paths, proposal_id).record
     try:
-        data = tasks_file.read_bytes()
+        data = correction_file.read_bytes()
     except OSError as error:
         raise NotFoundError(
-            f"cannot read {tasks_file}",
+            f"cannot read {correction_file}",
             code="forge_proposal_file_unreadable",
-            details={"path": str(tasks_file)},
+            details={"path": str(correction_file)},
         ) from error
-    tasks = _tasks(data, who=str(tasks_file))
-    if digest_object(proposal_content(parent.source_digest, tasks)) == (
-        parent.proposal_digest
-    ):
+    content = _content(data, who=str(correction_file))
+    found = digest_object(
+        proposal_content(parent.source_digest, content.claims, content.tasks)
+    )
+    if found == parent.proposal_digest:
         raise ValidationError(
-            f"{tasks_file} proposes exactly the tasks of {proposal_id}; a "
-            "correction has to change something",
+            f"{correction_file} states exactly the claims and tasks of "
+            f"{proposal_id}; a correction has to change something",
             code="forge_proposal_unchanged",
             details={"proposal_id": proposal_id},
         )
@@ -587,7 +592,7 @@ def correct_proposal(
         parent=ForgeProposalParent(
             proposal_id=parent.proposal_id, proposal_digest=parent.proposal_digest
         ),
-        tasks=tasks,
+        content=content,
     )
 
 
@@ -598,7 +603,7 @@ def _write_proposal(
     source_digest: Digest,
     plan_id: str,
     parent: ForgeProposalParent | None,
-    tasks: list[ForgeProposedTask],
+    content: ForgeProposalContent,
 ) -> ForgeProposalStatus:
     proposal_id = new_id("forgeprop")
     directory = paths.forge_proposal_dir(proposal_id)
@@ -612,13 +617,13 @@ def _write_proposal(
         plan_id=plan_id,
         origin="planner" if parent is None else "contributor",
         parent=parent,
-        tasks=tasks,
-        proposal_digest=digest_object(proposal_content(source_digest, tasks)),
+        claims=content.claims,
+        tasks=content.tasks,
+        proposal_digest=digest_object(
+            proposal_content(source_digest, content.claims, content.tasks)
+        ),
     )
-    atomic_write_json(
-        directory / TASKS_FILENAME,
-        {"tasks": [task.model_dump(mode="json") for task in tasks]},
-    )
+    atomic_write_json(directory / CONTENT_FILENAME, content.model_dump(mode="json"))
     atomic_write_json(directory / PROPOSAL_FILENAME, record.model_dump(mode="json"))
     return ForgeProposalStatus(
         proposal_id=proposal_id, path=str(directory), record=record

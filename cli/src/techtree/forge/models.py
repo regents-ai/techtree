@@ -66,6 +66,7 @@ __all__ = [
     "FORGE_SOURCE_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
     "FORGE_TASK_SET_SCHEMA_VERSION",
+    "MAX_CLAIMS",
     "MAX_PLANNED_TASKS",
     "VERDICT_MINIMUM_PAIRS",
     "AgentSkillName",
@@ -83,6 +84,7 @@ __all__ = [
     "ForgeBuildRecord",
     "ForgeBuildStatus",
     "ForgeBuildTasks",
+    "ForgeClaimId",
     "ForgeCollectionAcceptance",
     "ForgeCollectionCandidate",
     "ForgeCollectionMember",
@@ -140,6 +142,7 @@ __all__ = [
     "ForgePlanStatus",
     "ForgePlanningRecipe",
     "ForgePlatform",
+    "ForgeProposalContent",
     "ForgeProposalParent",
     "ForgeProposalRecord",
     "ForgeProposalStatus",
@@ -155,6 +158,7 @@ __all__ = [
     "ForgeRunStatus",
     "ForgeSamplingSpec",
     "ForgeScreeningFinding",
+    "ForgeSkillClaim",
     "ForgeSkillDeclaration",
     "ForgeSkillName",
     "ForgeSkillRef",
@@ -168,6 +172,7 @@ __all__ = [
     "ForgeSubjectToolset",
     "ForgeTaskConsistency",
     "ForgeTaskId",
+    "ForgeTaskKind",
     "ForgeTaskRegression",
     "ForgeUnsupportedReason",
     "ForgeUsage",
@@ -1471,8 +1476,8 @@ class ForgeSourceStatus(ProtocolModel):
 FORGE_PLAN_SCHEMA_VERSION: Final = "techtree.forge-plan.v1alpha1"
 FORGE_PLAN_APPROVAL_SCHEMA_VERSION: Final = "techtree.forge-plan-approval.v1alpha1"
 FORGE_PLAN_ATTEMPT_SCHEMA_VERSION: Final = "techtree.forge-plan-attempt.v1alpha1"
-FORGE_PROPOSAL_SCHEMA_VERSION: Final = "techtree.forge-proposal.v1alpha1"
-FORGE_CONSTRUCTION_SCHEMA_VERSION: Final = "techtree.forge-construction.v1alpha1"
+FORGE_PROPOSAL_SCHEMA_VERSION: Final = "techtree.forge-proposal.v1alpha2"
+FORGE_CONSTRUCTION_SCHEMA_VERSION: Final = "techtree.forge-construction.v1alpha2"
 FORGE_CONSTRUCTION_APPROVAL_SCHEMA_VERSION: Final = (
     "techtree.forge-construction-approval.v1alpha1"
 )
@@ -1483,7 +1488,7 @@ FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION: Final = (
     "techtree.forge-construction-call.v1alpha1"
 )
 FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION: Final = (
-    "techtree.forge-construction-package.v1alpha1"
+    "techtree.forge-construction-package.v1alpha2"
 )
 FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha1"
 FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION: Final = (
@@ -1493,6 +1498,14 @@ FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha1"
 
 #: The most tasks one plan may ask for: Skill2Env's own default workflow count.
 MAX_PLANNED_TASKS: Final = 8
+#: The most claims one proposal may state; each claim needs a task of its own.
+MAX_CLAIMS: Final = MAX_PLANNED_TASKS
+
+#: A claim's id: ``C`` and its number, as the planner numbers them.
+type ForgeClaimId = Annotated[str, StringConstraints(pattern=r"^C[1-9][0-9]*$")]
+
+#: Which case of its claim a task is; see :class:`ForgeProposedTask`.
+type ForgeTaskKind = Literal["positive", "boundary", "counterexample"]
 
 #: A proposed task's name: lowercase letters and digits in hyphen-separated runs.
 type ForgeProposedTaskName = Annotated[
@@ -1643,10 +1656,33 @@ class ForgePlanAttempt(ProtocolModel):
         return self
 
 
+class ForgeSkillClaim(ProtocolModel):
+    """One thing a Skill claims to improve, and what would show it.
+
+    ``statement`` is what the Skill claims to improve; ``observable`` is the
+    behavior, visible in what an agent leaves, that would show it.
+    """
+
+    claim_id: ForgeClaimId
+    statement: Annotated[str, StringConstraints(min_length=1, max_length=500)]
+    observable: Annotated[str, StringConstraints(min_length=1, max_length=1000)]
+
+
 class ForgeProposedTask(ProtocolModel):
-    """One task the planner or the contributor proposes, before anything is built."""
+    """One task the planner or the contributor proposes, before anything is built.
+
+    Each task tests exactly one claim, named by ``claim``, and ``kind`` says
+    which case of it: ``positive``, a case where following the Skill should
+    produce the correct observable behavior; ``boundary``, a case at the edge
+    of where the claim applies; ``counterexample``, a case where a naive or
+    over-eager application of the Skill would give a wrong result, or where
+    the Skill should not change the correct outcome, which guards against
+    the Skill overreaching.
+    """
 
     name: ForgeProposedTaskName
+    claim: ForgeClaimId
+    kind: ForgeTaskKind
     summary: Annotated[str, StringConstraints(min_length=1, max_length=500)]
     scenario: Annotated[str, StringConstraints(min_length=1, max_length=4000)]
     success_criteria: list[
@@ -1662,15 +1698,52 @@ class ForgeProposalParent(ProtocolModel):
     proposal_digest: Digest
 
 
-class ForgeProposalRecord(ProtocolModel):
-    """A set of proposed tasks: the planner's, or a contributor's correction.
+def _check_claims(
+    claims: list[ForgeSkillClaim], tasks: list[ForgeProposedTask]
+) -> None:
+    """Raise unless claims and tasks fit: every task tests a stated claim, and
+    every claim is tested by a task."""
+    ids = [claim.claim_id for claim in claims]
+    if len(set(ids)) != len(ids):
+        raise ValueError("two claims have the same id")
+    names = [task.name for task in tasks]
+    if len(set(names)) != len(names):
+        raise ValueError("two tasks have the same name")
+    for task in tasks:
+        if task.claim not in ids:
+            raise ValueError(
+                f"task {task.name} tests claim {task.claim}, which is not "
+                "one of the claims"
+            )
+    tested = {task.claim for task in tasks}
+    for claim_id in ids:
+        if claim_id not in tested:
+            raise ValueError(f"no task tests claim {claim_id}")
 
-    Never changed; a correction is a new proposal naming its parent.
-    ``proposal_digest`` covers the Source Skill's digest and the tasks, and is
-    what a construction approval will name.
+
+class ForgeProposalContent(ProtocolModel):
+    """What the planner answers and a contributor corrects: claims, then tasks."""
+
+    claims: list[ForgeSkillClaim] = Field(min_length=1, max_length=MAX_CLAIMS)
+    tasks: list[ForgeProposedTask] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_claims(self) -> Self:
+        _check_claims(self.claims, self.tasks)
+        return self
+
+
+class ForgeProposalRecord(ProtocolModel):
+    """What a Skill claims to improve and the tasks that test each claim.
+
+    The planner's, or a contributor's correction. Never changed; a correction
+    is a new proposal naming its parent. ``proposal_digest`` covers the
+    Source Skill's digest, the claims and the tasks, and is what a
+    construction approval will name, so approving the tasks approves the
+    claims with them.
     """
 
-    schema_version: Literal["techtree.forge-proposal.v1alpha1"]
+    schema_version: Literal["techtree.forge-proposal.v1alpha2"]
     proposal_id: NonEmptyString
     created_at: UtcDateTime
     source_id: NonEmptyString
@@ -1678,6 +1751,7 @@ class ForgeProposalRecord(ProtocolModel):
     plan_id: NonEmptyString
     origin: Literal["planner", "contributor"]
     parent: ForgeProposalParent | None
+    claims: list[ForgeSkillClaim] = Field(min_length=1, max_length=MAX_CLAIMS)
     tasks: list[ForgeProposedTask] = Field(min_length=1)
     proposal_digest: Digest
 
@@ -1685,23 +1759,25 @@ class ForgeProposalRecord(ProtocolModel):
     def validate_proposal(self) -> Self:
         if (self.origin == "contributor") != (self.parent is not None):
             raise ValueError("a contributor's proposal names its parent, no other does")
-        names = [task.name for task in self.tasks]
-        if len(set(names)) != len(names):
-            raise ValueError("each proposed task has its own name")
+        _check_claims(self.claims, self.tasks)
         if not verify_object_digest(
-            proposal_content(self.source_digest, self.tasks), self.proposal_digest
+            proposal_content(self.source_digest, self.claims, self.tasks),
+            self.proposal_digest,
         ):
-            raise ValueError("proposal digest does not describe the tasks")
+            raise ValueError("proposal digest does not describe the claims and tasks")
         return self
 
 
 def proposal_content(
-    source_digest: Digest, tasks: list[ForgeProposedTask]
+    source_digest: Digest,
+    claims: list[ForgeSkillClaim],
+    tasks: list[ForgeProposedTask],
 ) -> dict[str, object]:
-    """Return what a proposal digest covers."""
+    """Return what a proposal digest covers: the Skill, its claims, the tasks."""
     return {
         "schema_version": FORGE_PROPOSAL_SCHEMA_VERSION,
         "source_digest": source_digest,
+        "claims": claims,
         "tasks": tasks,
     }
 
@@ -1754,9 +1830,12 @@ class ForgeCreatorRecipe(ProtocolModel):
 
 
 class ForgeConstructionCallReview(ProtocolModel):
-    """One creator call an approval covers: the task and the exact prompt."""
+    """One creator call an approval covers: the task, the claim it tests and
+    which case of it, and the exact prompt."""
 
     task_name: ForgeProposedTaskName
+    claim: ForgeClaimId
+    kind: ForgeTaskKind
     package_name: Annotated[
         str, StringConstraints(pattern=r"^task_[a-z0-9-]+_[a-z0-9]{8}$")
     ]
@@ -1783,6 +1862,7 @@ class ForgeConstructionLimits(ProtocolModel):
 class ForgeConstructionReview(ProtocolModel):
     """Everything one construction approval covers, bound by one digest.
 
+    ``claims`` are the proposal's claims that the calls test, in its order.
     ``corrected_by`` lists the corrections of the proposal that existed when
     the review was made; a correction made after it makes the review stale.
     ``source_skill`` is the ``provider/id`` every package's ``task.toml``
@@ -1791,6 +1871,7 @@ class ForgeConstructionReview(ProtocolModel):
 
     proposal_id: NonEmptyString
     proposal_digest: Digest
+    claims: list[ForgeSkillClaim] = Field(min_length=1, max_length=MAX_CLAIMS)
     corrected_by: list[NonEmptyString]
     source_id: NonEmptyString
     source_digest: Digest
@@ -1820,7 +1901,7 @@ class ForgeConstructionReview(ProtocolModel):
 class ForgeConstructionRecord(ProtocolModel):
     """A prepared construction: its review and the digest an approval names."""
 
-    schema_version: Literal["techtree.forge-construction.v1alpha1"]
+    schema_version: Literal["techtree.forge-construction.v1alpha2"]
     construction_id: NonEmptyString
     created_at: UtcDateTime
     review: ForgeConstructionReview
@@ -1908,14 +1989,17 @@ class ForgeConstructionCall(ProtocolModel):
 class ForgeConstructionPackage(ProtocolModel):
     """Where one written package went: the build that admitted and checked it.
 
+    ``claim`` and ``kind`` are the claim the task tests and which case of it.
     ``usable_tasks`` is what that build's qualification kept for use; a
     package the importer refused, or whose checks failed or were stopped,
     names the build and says why.
     """
 
-    schema_version: Literal["techtree.forge-construction-package.v1alpha1"]
+    schema_version: Literal["techtree.forge-construction-package.v1alpha2"]
     construction_id: NonEmptyString
     task_name: ForgeProposedTaskName
+    claim: ForgeClaimId
+    kind: ForgeTaskKind
     package_name: NonEmptyString
     build_id: NonEmptyString
     usable_tasks: int = Field(ge=0)

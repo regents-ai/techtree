@@ -143,7 +143,9 @@ def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
     attempt = read_plan_status(paths, plan_id).attempt
     assert attempt is not None and attempt.proposal_id is not None
     edited = json.loads(
-        (paths.forge_proposal_dir(attempt.proposal_id) / "tasks.json").read_bytes()
+        (
+            paths.forge_proposal_dir(attempt.proposal_id) / "claims-and-tasks.json"
+        ).read_bytes()
     )
     for name in (TIMES_OUT, DOES_NOT_QUALIFY):
         edited["tasks"].append({**edited["tasks"][0], "name": name})

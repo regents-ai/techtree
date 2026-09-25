@@ -198,12 +198,12 @@ def test_preparing_writes_each_prompt_and_calls_nothing(
     suffix = status["construction_id"].split("_", 1)[1][:8]
     calls = review["disclosure"]["calls"]
     assert [call["task_name"] for call in calls] == TASKS
-    tasks = {
-        task.name: task.model_dump(mode="json")
-        for task in read_proposal_status(
-            paths_from_root(home), proposal_id
-        ).record.tasks
+    proposed = read_proposal_status(paths_from_root(home), proposal_id).record
+    tasks = {task.name: task.model_dump(mode="json") for task in proposed.tasks}
+    claims = {
+        claim.claim_id: claim.model_dump(mode="json") for claim in proposed.claims
     }
+    assert review["claims"] == list(claims.values())
     for call in calls:
         assert call["package_name"] == f"task_{call['task_name']}_{suffix}"
         prompt = (
@@ -213,10 +213,10 @@ def test_preparing_writes_each_prompt_and_calls_nothing(
         assert SKILL.encode() in prompt
         assert review["recipe"]["base_image"].encode() in prompt
         assert b"{base_image}" not in prompt
-        assert (
-            json.dumps(tasks[call["task_name"]], indent=2, ensure_ascii=False).encode()
-            in prompt
-        )
+        task = tasks[call["task_name"]]
+        assert (call["claim"], call["kind"]) == (task["claim"], task["kind"])
+        for part in (claims[task["claim"]], task):
+            assert json.dumps(part, indent=2, ensure_ascii=False).encode() in prompt
     [action] = envelope["next_actions"]
     assert action["prepared_arguments"]["command"] == ["forge", "construct-start"]
     assert action["expected_state_digest"] == record["construction_digest"]
@@ -362,7 +362,7 @@ def test_a_corrected_proposal_refuses_the_construction_approved_before(
     paths = paths_from_root(home)
     construction_id = prepare(home, proposal_id)["facts"]["construction_id"]
     edited = json.loads(
-        (paths.forge_proposal_dir(proposal_id) / "tasks.json").read_bytes()
+        (paths.forge_proposal_dir(proposal_id) / "claims-and-tasks.json").read_bytes()
     )
     edited["tasks"][0]["success_criteria"].append("The file ends with a newline.")
     corrected = tmp_path / "corrected.json"
@@ -499,8 +499,9 @@ def test_only_a_finished_construction_of_the_same_proposal_is_retried(
         FakeCreator(calls={"branch-code-audit": FakePlanner(timed_out=True)}),
     )
     edited = json.loads(
-        (paths.forge_proposal_dir(proposal_id) / "tasks.json").read_bytes()
+        (paths.forge_proposal_dir(proposal_id) / "claims-and-tasks.json").read_bytes()
     )
+    edited["claims"] = edited["claims"][:1]
     edited["tasks"] = edited["tasks"][:1]
     corrected = tmp_path / "corrected.json"
     corrected.write_text(json.dumps(edited), encoding="utf-8")

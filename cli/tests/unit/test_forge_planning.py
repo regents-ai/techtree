@@ -3,8 +3,10 @@
 The tests hold what a planning approval promises: preparing writes the exact
 text that would be sent and calls nothing; a declined plan calls nothing; an
 approved plan calls the planner once, in the emptied profile, with no tools,
-and keeps what it answered as a proposal that stops for review; a correction
-is a new proposal and the original is untouched; a changed Hermes or Skill
+and keeps what it answered as a proposal that stops for review; an answer
+whose task names a claim it does not state, or states a claim no task tests,
+is refused; a correction is a new proposal and the original is untouched, and
+changing only a claim changes the proposal's digest; a changed Hermes or Skill
 copy refuses the old approval (AE3); and a call stopped mid-way is kept as an
 unknown outcome that is never tried again without a new approval (AE4). The
 planner is a stand-in that answers from a fixture; no model is called.
@@ -31,7 +33,11 @@ from fixtures.forge.support import (
 )
 from techtree.cli.app import create_app
 from techtree.errors import ConflictError, RunError, ValidationError
-from techtree.forge.planning import read_plan_status, start_plan
+from techtree.forge.planning import (
+    read_plan_status,
+    read_proposal_status,
+    start_plan,
+)
 from techtree.forge.source import inspect_source_skill
 from techtree.paths import TechtreePaths, paths_from_root
 
@@ -250,7 +256,8 @@ def test_a_correction_is_a_new_proposal_and_the_original_is_untouched(
     original_id = read_plan_status(paths, plan_id).attempt.proposal_id  # type: ignore[union-attr]
     original_dir = paths.forge_proposal_dir(str(original_id))
     original_bytes = (original_dir / "proposal.json").read_bytes()
-    edited = json.loads((original_dir / "tasks.json").read_bytes())
+    edited = json.loads((original_dir / "claims-and-tasks.json").read_bytes())
+    edited["claims"] = edited["claims"][:1]
     edited["tasks"] = edited["tasks"][:2]
     edited["tasks"][0]["success_criteria"].append("The file ends with a newline.")
     corrected = tmp_path / "corrected.json"
@@ -272,9 +279,44 @@ def test_a_correction_is_a_new_proposal_and_the_original_is_untouched(
     assert (original_dir / "proposal.json").read_bytes() == original_bytes
 
     code, unchanged = invoke(
-        home, "correct-proposal", str(original_id), str(original_dir / "tasks.json")
+        home,
+        "correct-proposal",
+        str(original_id),
+        str(original_dir / "claims-and-tasks.json"),
     )
     assert unchanged["error"]["code"] == "forge_proposal_unchanged"
+
+
+def test_a_changed_claim_is_a_correction_with_its_own_digest(
+    home: Path,
+    source_id: str,
+    tmp_path: Path,
+) -> None:
+    paths = paths_from_root(home)
+    signed_in_profile(tmp_path / "profiles")
+    plan_id = prepare(home, source_id)["facts"]["plan_id"]
+    start(paths, plan_id, tmp_path / "profiles", FakePlanner())
+    original = read_proposal_status(
+        paths,
+        str(read_plan_status(paths, plan_id).attempt.proposal_id),  # type: ignore[union-attr]
+    ).record
+    edited = json.loads(
+        (
+            paths.forge_proposal_dir(original.proposal_id) / "claims-and-tasks.json"
+        ).read_bytes()
+    )
+    edited["claims"][1]["observable"] = "No correct row is changed."
+    corrected = tmp_path / "corrected.json"
+    corrected.write_text(json.dumps(edited), encoding="utf-8")
+
+    code, envelope = invoke(
+        home, "correct-proposal", original.proposal_id, str(corrected)
+    )
+
+    assert code == 0, envelope
+    record = envelope["facts"]["record"]
+    assert record["tasks"] == json.loads(PLANNER_ANSWER)["tasks"]
+    assert record["proposal_digest"] != original.proposal_digest
 
 
 def test_a_changed_hermes_refuses_the_approval_it_was_not_given(
@@ -399,35 +441,44 @@ def test_an_attempt_left_started_by_a_gone_process_reads_as_unknown(
     assert status.state == "outcome_unknown"
 
 
+CLAIMS = json.loads(PLANNER_ANSWER)["claims"]
+TASKS = json.loads(PLANNER_ANSWER)["tasks"]
+
+
 @pytest.mark.parametrize(
-    ("answer", "code"),
+    ("answer", "code", "reason"),
     [
-        (b"Here are some tasks you could try.", "forge_proposal_invalid"),
+        (b"Here are some tasks you could try.", "forge_proposal_invalid", None),
         (
             json.dumps(
-                {
-                    "tasks": [
-                        *json.loads(PLANNER_ANSWER)["tasks"],
-                        {**json.loads(PLANNER_ANSWER)["tasks"][0], "name": "fourth"},
-                    ]
-                }
+                {"claims": CLAIMS, "tasks": [*TASKS, {**TASKS[0], "name": "fourth"}]}
             ).encode(),
             "forge_planner_too_many_tasks",
+            None,
         ),
         (
             json.dumps(
                 {
-                    "tasks": [
-                        {
-                            **json.loads(PLANNER_ANSWER)["tasks"][0],
-                            "success_criteria": [],
-                        }
-                    ]
+                    "claims": CLAIMS[:1],
+                    "tasks": [{**TASKS[0], "success_criteria": []}],
                 }
             ).encode(),
             "forge_proposal_invalid",
+            None,
         ),
-        (b" " * (64 * 1024 + 1), "forge_planner_answer_too_large"),
+        (
+            json.dumps(
+                {"claims": CLAIMS, "tasks": [*TASKS[:2], {**TASKS[2], "claim": "C3"}]}
+            ).encode(),
+            "forge_proposal_invalid",
+            "task branch-code-audit tests claim C3, which is not one of the claims",
+        ),
+        (
+            json.dumps({"claims": CLAIMS, "tasks": TASKS[:2]}).encode(),
+            "forge_proposal_invalid",
+            "no task tests claim C2",
+        ),
+        (b" " * (64 * 1024 + 1), "forge_planner_answer_too_large", None),
     ],
 )
 def test_an_answer_that_is_not_a_usable_proposal_is_rejected_and_kept(
@@ -436,6 +487,7 @@ def test_an_answer_that_is_not_a_usable_proposal_is_rejected_and_kept(
     tmp_path: Path,
     answer: bytes,
     code: str,
+    reason: str | None,
 ) -> None:
     paths = paths_from_root(home)
     signed_in_profile(tmp_path / "profiles")
@@ -447,6 +499,8 @@ def test_an_answer_that_is_not_a_usable_proposal_is_rejected_and_kept(
     assert status.state == "rejected"
     assert status.attempt is not None and status.attempt.failure is not None
     assert status.attempt.failure.code == code
+    if reason is not None:
+        assert reason in status.attempt.failure.message
     assert (paths.forge_plan_dir(plan_id) / "answer.txt").read_bytes() == answer
     assert not paths.forge_proposals_dir.exists()
 

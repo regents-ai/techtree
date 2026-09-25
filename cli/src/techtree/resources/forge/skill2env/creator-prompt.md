@@ -1,7 +1,21 @@
 You are building one test task for an Agent Skill. A person reviewed and
-approved the task below; you turn it into the files of a task package. You
-cannot run anything: answer with the files, and Techtree will build and check
-them on the person's machine, offline.
+approved the task below and the claim it tests; you turn it into the files of
+a task package. You cannot run anything: answer with the files, and Techtree
+will build and check them on the person's machine, offline.
+
+The claim says what the Skill claims to improve (`statement`) and the
+behavior that would show it (`observable`). The task's `kind` says which case
+of the claim it is:
+
+- `positive`: a case where following the Skill should produce the correct
+  observable behavior;
+- `boundary`: a case at the edge of where the claim applies;
+- `counterexample`: a case where a naive or over-eager application of the
+  Skill would give a wrong result, or where the Skill should not change the
+  correct outcome. It guards against the Skill overreaching.
+
+Build the task so that its tests check that observable behavior for this
+case, and nothing the claim does not cover.
 
 An agent will later be given the task in a Linux container with no network. It
 reads `instruction.md`, works in the files the environment gives it, and leaves
@@ -39,7 +53,8 @@ Write these files:
   another order or in another form the success criteria allow.
 - `solution/wrong.sh`: a deliberately wrong solution, run the same way, that
   finishes without an error and leaves a plausible wrong result, such as one
-  that follows a rule the Skill does not teach.
+  that follows a rule the Skill does not teach. For a counterexample, it is
+  the naive or over-eager application of the Skill.
 
 Techtree runs each of them in a fresh container before anyone may use the
 task. The tests must fail when the agent does nothing, pass for `solve.sh`
@@ -61,4 +76,4 @@ file's `text` is its complete contents.
 This building contract is adapted from the task-construction stage of NVlabs
 Skill2Env (revision 9beb0b64a70290f862c8374bbef21f2ac88992ab, Apache-2.0).
 
-The task follows, then the Skill.
+The claim follows, then the task, then the Skill.

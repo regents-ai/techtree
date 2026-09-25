@@ -5,12 +5,13 @@
 A construction is prepared before anything leaves the machine. Preparing
 reads the proposal and the Source Skill's kept copy and writes, for each task,
 the exact prompt the creator would be sent: Techtree's building instructions,
-the task as proposed, and the Skill's files. What an approval covers is
-recorded beside them and bound by one digest: the proposal and the
-corrections it had, those prompts, the instructions and package contract, the
-Hermes and model that would answer, the Docker platform the packages are built
-for, what the creator may do (answer in text, nothing else) and the limits
-(one call per task, a wall time and an answer size per call).
+the claim the task tests, the task as proposed, and the Skill's files. What
+an approval covers is recorded beside them and bound by one digest: the
+proposal, the claims its tasks test and the corrections it had, those
+prompts, the instructions and package contract, the Hermes and model that
+would answer, the Docker platform the packages are built for, what the
+creator may do (answer in text, nothing else) and the limits (one call per
+task, a wall time and an answer size per call).
 
 Starting a construction makes the review again from what is on disk now; a
 changed Skill copy, instruction text, Hermes, model, platform, or a new
@@ -97,6 +98,7 @@ from techtree.forge.models import (
     ForgePlatform,
     ForgeProposalRecord,
     ForgeProposedTask,
+    ForgeSkillClaim,
 )
 from techtree.forge.planning import read_proposal_status
 from techtree.forge.process import CommandRunner
@@ -286,14 +288,16 @@ def _review(
         ]
     )
     tasks = {task.name: task for task in proposal.tasks}
+    claims = {claim.claim_id: claim for claim in proposal.claims}
     suffix = construction_id.split("_", 1)[1][:8]
     skill = skill_text(kept)
     prompts: dict[str, bytes] = {}
     calls: list[ForgeConstructionCallReview] = []
     for name in task_names:
+        task = tasks[name]
         prompt = (
             instructions.replace(b"{base_image}", base_image.encode())
-            + _task_text(tasks[name])
+            + _task_text(claims[task.claim], task)
             + skill
         )
         if len(prompt) > PROMPT_LIMIT:
@@ -310,14 +314,18 @@ def _review(
         calls.append(
             ForgeConstructionCallReview(
                 task_name=name,
+                claim=task.claim,
+                kind=task.kind,
                 package_name=f"task_{name}_{suffix}",
                 prompt_bytes=len(prompt),
                 prompt_digest=sha256_digest_bytes(prompt),
             )
         )
+    tested = {call.claim for call in calls}
     review = ForgeConstructionReview(
         proposal_id=proposal.proposal_id,
         proposal_digest=proposal.proposal_digest,
+        claims=[claim for claim in proposal.claims if claim.claim_id in tested],
         corrected_by=_corrections(paths, proposal.proposal_id),
         source_id=proposal.source_id,
         source_digest=proposal.source_digest,
@@ -351,10 +359,14 @@ def _review(
     return review, prompts
 
 
-def _task_text(task: ForgeProposedTask) -> bytes:
-    """Return the one task, as the proposal has it, between two marker lines."""
+def _task_text(claim: ForgeSkillClaim, task: ForgeProposedTask) -> bytes:
+    """Return the claim the task tests, then the task, as the proposal has them."""
     return (
-        b"\n===== the task =====\n"
+        b"\n===== the claim this task tests =====\n"
+        + json.dumps(
+            claim.model_dump(mode="json"), indent=2, ensure_ascii=False
+        ).encode()
+        + b"\n===== the task =====\n"
         + json.dumps(
             task.model_dump(mode="json"), indent=2, ensure_ascii=False
         ).encode()
@@ -706,6 +718,8 @@ def _qualify(
         schema_version=FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION,
         construction_id=record.construction_id,
         task_name=call_review.task_name,
+        claim=call_review.claim,
+        kind=call_review.kind,
         package_name=call_review.package_name,
         build_id=build_id,
         usable_tasks=usable,
