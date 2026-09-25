@@ -5,7 +5,8 @@ Source, deployment scripts and tests were imported unchanged from Regent Contrac
 commit `9ddae75`, whose history is retained as a merge parent. The forge-std gitlink
 remains `77041d2ce690e692d6e03cc812b57d1ddaa4d505`.
 
-After materializing the pinned submodule and Solidity 0.8.28, run from this directory:
+After materializing the pinned submodule and Solidity 0.8.36 (the `solc_version` in
+`foundry.toml`), run from this directory:
 
 ```sh
 forge fmt --check
