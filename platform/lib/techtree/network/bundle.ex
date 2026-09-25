@@ -9,9 +9,11 @@ defmodule Techtree.Network.Bundle do
   did not hold. `Techtree.Network.Ingest` cannot write without one, and there
   is no other way to get one.
 
-  Seventeen checks run, in the order below, and each of them refuses a
-  different lie. Eight of them — the ones marked *proof* — are the ones the
-  founder settled on as the verification depth of this service. The rest are
+  Eighteen checks run, in the order below, and each of them refuses a
+  different lie. Nine of them are marked *proof*: the eight the founder
+  settled on as the verification depth of this service, with the recount of
+  the wins, losses and ties widened into a recomputation of the whole result,
+  and the check that the runs differ only in the Skill. The rest are
   admission checks: they are about what this site is willing to store and serve
   at a public address, not about whether the proof holds together.
 
@@ -61,19 +63,25 @@ defmodule Techtree.Network.Bundle do
        there is nothing to gain by sending anything else. The execution plan
        that published Campaign binds is read beside it, because under v2 it is
        the plan, not the Campaign, that names the harness the run measured.
-   13. *Proof.* The report's wins, losses and ties recompute from its own task
-       rows.
-   14. *Proof.* Those task rows are the Campaign's committed task list, in the
+   13. *Proof.* The report's result recomputes from its own task rows: the
+       wins, losses and ties, the two means and the change between them,
+       exactly, and the decision, by the rule the published Campaign set before
+       either run. `Techtree.Network.Result` says how, and what this site then
+       reads as a regression.
+   14. *Proof.* The only setting the two runs differ in is a Skill the
+       Campaign lets differ, written the way the CLI writes one, so every
+       published result can show the change it measured.
+   15. *Proof.* Those task rows are the Campaign's committed task list, in the
        same order, exactly — not a subset, not a superset, not a reordering.
-   15. **The terms.** The DataPolicy the run cites is carried in the bundle and
+   16. **The terms.** The DataPolicy the run cites is carried in the bundle and
        permits exactly this: a public uplift report and public aggregate
        scores. A run carried out under terms that do not permit publication is
        refused rather than published against its owner's own stated wishes.
-   16. **The content.** No submitted file carries a raw episode, a transcript, a
+   17. **The content.** No submitted file carries a raw episode, a transcript, a
        prompt, a reply, a worker log, or a path on somebody's own machine. The
        proof format has nowhere to put one, which is exactly why a submission
        carrying one is not a proof bundle and is not stored here.
-   17. *Proof.* What the submission claims about the bundle is what the bundle
+   18. *Proof.* What the submission claims about the bundle is what the bundle
        says. `run_id` and `bundle_digest` are read for nothing else — every
        column the site records comes from the signed bytes — but a submission
        whose declared digest is not the manifest's own payload digest, or whose
@@ -103,10 +111,10 @@ defmodule Techtree.Network.Bundle do
   * **The receipt sets.** That each variant's `ordered_receipt_digests` are the
     receipts the bundle carries, in the committed task order, one per task.
   * **The aggregate, recomputed from the episode receipts.** This site
-    recomputes the wins, losses and ties from the report's own task rows
-    (check 13) and checks those rows against the Campaign's committed task list
-    (check 14). It does not go the further step of recomputing the report's
-    task rows from the seventy-two signed episode receipts underneath them.
+    recomputes the result from the report's own task rows (check 13) and checks
+    those rows against the Campaign's committed task list (check 15). It does
+    not go the further step of recomputing the report's task rows from the
+    seventy-two signed episode receipts underneath them.
   * **The execution record**, and the `P1` conditions the grade rests on.
 
   Those are proof-grade bookkeeping, and the reason for leaving them out is
@@ -128,6 +136,7 @@ defmodule Techtree.Network.Bundle do
   alias Techtree.Catalog.Query
   alias Techtree.Network
   alias Techtree.Network.Error
+  alias Techtree.Network.Result
 
   @schema_version "techtree.publication-submission.v1alpha1"
   @manifest_path "bundle.json"
@@ -179,7 +188,11 @@ defmodule Techtree.Network.Bundle do
     {:key_id, "the fingerprint names the key by hashing it rather than by claiming it"},
     {:report, "the bundle carries the signed result summary it commits to"},
     {:campaign, "the report binds a campaign and execution plan this site publishes"},
-    {:counts, "the wins, losses and ties recompute from the task results"},
+    {:result,
+     "the means, the change between them and the decision recompute from the task results " <>
+       "under the rule the campaign set"},
+    {:skill_change,
+     "the only setting the two runs differ in is a Skill the campaign lets differ"},
     {:membership, "the tasks are the list the campaign committed to, in order"},
     {:data_policy, "the terms the run was carried out under permit publishing this"},
     {:content, "no file in it holds an episode, a transcript, or a path on a machine"},
@@ -195,7 +208,8 @@ defmodule Techtree.Network.Bundle do
     :campaign_name,
     :candidate_skill_digest,
     :climb_reference,
-    :data_policy
+    :data_policy,
+    :result
   ]
 
   @type t :: %__MODULE__{
@@ -207,7 +221,8 @@ defmodule Techtree.Network.Bundle do
           campaign_name: String.t() | nil,
           candidate_skill_digest: String.t() | nil,
           climb_reference: String.t(),
-          data_policy: map()
+          data_policy: map(),
+          result: Result.t()
         }
 
   @doc """
@@ -248,7 +263,8 @@ defmodule Techtree.Network.Bundle do
          {:ok, report} <- report(manifest, envelopes),
          {:ok, campaign, execution_plan, reference, campaign_name} <- campaign(manifest),
          :ok <- report_context(report, manifest, campaign),
-         :ok <- counts(report),
+         {:ok, result} <- Result.assess(report, campaign),
+         {:ok, _changes} <- Result.skill_change(report, campaign),
          :ok <- membership(report, campaign),
          {:ok, policy} <- data_policy(manifest, files),
          :ok <- content(files),
@@ -263,7 +279,8 @@ defmodule Techtree.Network.Bundle do
          campaign_name: campaign_name,
          candidate_skill_digest: candidate_skill_digest(report, files),
          climb_reference: reference,
-         data_policy: policy
+         data_policy: policy,
+         result: result
        }}
     end
   end
@@ -825,45 +842,9 @@ defmodule Techtree.Network.Bundle do
 
   defp candidate_experiment(_digest, _files), do: nil
 
-  # -- 13. The counts --------------------------------------------------------
+  # -- 13 and 14. The result and the Skill change are `Techtree.Network.Result`.
 
-  defp counts(report) do
-    deltas = report["task_deltas"]
-    result = report["primary_result"]
-
-    with true <- is_list(deltas) and deltas != [],
-         true <- is_map(result),
-         recounted <- recount(deltas),
-         true <- recounted == Map.take(result, ["wins", "losses", "ties"]) do
-      :ok
-    else
-      _other ->
-        {:error,
-         Error.new(
-           :submission_counts_inconsistent,
-           "the wins, losses and ties in this result do not recompute from its own tasks",
-           %{"recomputed" => recount(List.wrap(deltas))}
-         )}
-    end
-  end
-
-  defp recount(deltas) do
-    Enum.reduce(deltas, %{"wins" => 0, "losses" => 0, "ties" => 0}, fn delta, acc ->
-      Map.update!(acc, outcome(delta["candidate_reward"], delta["baseline_reward"]), &(&1 + 1))
-    end)
-  end
-
-  defp outcome(candidate, baseline) when is_number(candidate) and is_number(baseline) do
-    cond do
-      candidate > baseline -> "wins"
-      candidate < baseline -> "losses"
-      true -> "ties"
-    end
-  end
-
-  defp outcome(_candidate, _baseline), do: "ties"
-
-  # -- 14. The committed task list -------------------------------------------
+  # -- 15. The committed task list -------------------------------------------
 
   defp membership(report, campaign) do
     committed = get_in(campaign, ["taskset", "membership", "ordered_task_hashes"])
@@ -884,7 +865,7 @@ defmodule Techtree.Network.Bundle do
     end
   end
 
-  # -- 15. The terms the run was carried out under ---------------------------
+  # -- 16. The terms the run was carried out under ---------------------------
 
   # The policy is found the way everything else in a bundle is found: by its
   # digest. The manifest names the DataPolicy the run was carried out under,
@@ -936,12 +917,12 @@ defmodule Techtree.Network.Bundle do
   defp derived_term(derived, member) when is_map(derived), do: derived[member]
   defp derived_term(_derived, _member), do: nil
 
-  # -- 16. What is in the files ----------------------------------------------
+  # -- 17. What is in the files ----------------------------------------------
 
   # A proof bundle has nowhere to put an episode, a transcript, a prompt, a
   # reply or a worker log: it carries digests, task hashes and scores, and the
   # eleven megabytes of raw episodes stay on the participant's own machine by
-  # the same DataPolicy check 15 just read. So this looks for the two shapes
+  # the same DataPolicy check 16 just read. So this looks for the two shapes
   # that would mean the format had been stretched — a member named for content
   # the format does not carry, and a string that is a path on somebody's own
   # machine rather than a path inside the bundle.
@@ -1022,7 +1003,7 @@ defmodule Techtree.Network.Bundle do
     )
   end
 
-  # -- 17. What the submitter said they were sending -------------------------
+  # -- 18. What the submitter said they were sending -------------------------
 
   defp declarations(document, manifest, report) do
     with :ok <- declared_digest(document["bundle_digest"], manifest["payload_digest"]) do

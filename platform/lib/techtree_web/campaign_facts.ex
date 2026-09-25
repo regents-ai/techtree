@@ -16,9 +16,11 @@ defmodule TechtreeWeb.CampaignFacts do
   this site. The limits this module returns are the ones a reader can act on:
   calls and tokens.
 
-  Every limit is per try. A run tries each task once without the Skill and once
-  with it, and each try stops starting model calls once it reaches any one of
-  them; the call that crosses a limit still finishes.
+  Every limit is per try. A run tries each task without the Skill and with it,
+  as many times as the Campaign's rollouts say, and a failed try may be run
+  again up to the Campaign's retry limit. Each try stops starting model calls
+  once it reaches any one of its limits; the call that crosses a limit still
+  finishes.
   """
 
   alias Techtree.Catalog.Query
@@ -30,13 +32,15 @@ defmodule TechtreeWeb.CampaignFacts do
           model_id: String.t(),
           credential_env: String.t(),
           tasks: pos_integer(),
+          rollouts: pos_integer(),
+          retries: non_neg_integer(),
           calls: pos_integer(),
           input_tokens: pos_integer(),
           output_tokens: pos_integer()
         }
 
-  # Each task is tried once without the Skill and once with it.
-  @tries_per_task 2
+  # Each task is tried without the Skill and with it.
+  @sides 2
 
   @empty %{membership: %{}, validation: %{}}
 
@@ -84,17 +88,24 @@ defmodule TechtreeWeb.CampaignFacts do
   Climb without them is a broken catalog and raises here.
   """
   @spec trial!(map()) :: trial()
-  def trial!(%{projection: %{"campaign_spec_digest" => digest}}) do
+  def trial!(climb), do: climb |> campaign!() |> trial()
+
+  @doc """
+  The Campaign one Climb runs, decoded from the exact bytes this site serves.
+  """
+  @spec campaign!(map()) :: map()
+  def campaign!(%{projection: %{"campaign_spec_digest" => digest}}) do
     {:ok, bytes, _entry} = Query.object_bytes(digest)
-    bytes |> Jason.decode!() |> trial()
+    Jason.decode!(bytes)
   end
 
   @doc """
-  The per-try limits of a trial added up over a whole run: both tries of every
-  task, each at its own limits.
+  The per-try limits of a trial added up over a whole run: every try of every
+  task on both sides, retries included, each at its own limits.
 
-  The calls are the most a run can start. The tokens are where every try
-  stops starting calls, and the call that crosses a limit still finishes.
+  These are the most a run can reach. The calls are the most it can start. The
+  tokens are where every try stops starting calls, and the call that crosses a
+  limit still finishes.
   """
   @spec run_total(trial()) :: %{
           tries: pos_integer(),
@@ -102,8 +113,8 @@ defmodule TechtreeWeb.CampaignFacts do
           input_tokens: pos_integer(),
           output_tokens: pos_integer()
         }
-  def run_total(%{tasks: tasks} = trial) do
-    tries = tasks * @tries_per_task
+  def run_total(%{tasks: tasks, rollouts: rollouts, retries: retries} = trial) do
+    tries = tasks * @sides * rollouts * (1 + retries)
 
     %{
       tries: tries,
@@ -137,38 +148,46 @@ defmodule TechtreeWeb.CampaignFacts do
   def membership_words(%{"count" => count}) when is_integer(count), do: "#{count} tasks"
   def membership_words(_membership), do: nil
 
-  # -- Internals ------------------------------------------------------------
-
-  defp trial(%{
-         "agents" => %{
-           "subject" => %{
-             "model" => %{
-               "provider" => provider,
-               "model_id" => model_id,
-               "credential_env" => credential_env
-             }
-           }
-         },
-         "budgets" => %{
-           "maximum_model_calls" => calls,
-           "maximum_input_tokens" => input_tokens,
-           "maximum_output_tokens" => output_tokens
-         },
-         "taskset" => %{"selection" => %{"num_tasks" => tasks}}
-       })
-       when is_binary(provider) and is_binary(model_id) and is_binary(credential_env) and
-              is_integer(tasks) and is_integer(calls) and is_integer(input_tokens) and
-              is_integer(output_tokens) do
+  @doc """
+  What a Campaign asks of the person running it. `trial!/1` reads it for a
+  Climb; a page that already holds the Campaign reads it here.
+  """
+  @spec trial(map()) :: trial()
+  def trial(%{
+        "agents" => %{
+          "subject" => %{
+            "model" => %{
+              "provider" => provider,
+              "model_id" => model_id,
+              "credential_env" => credential_env
+            }
+          }
+        },
+        "budgets" => %{
+          "maximum_model_calls" => calls,
+          "maximum_input_tokens" => input_tokens,
+          "maximum_output_tokens" => output_tokens
+        },
+        "execution" => %{"retry_limit" => retries},
+        "taskset" => %{"selection" => %{"num_tasks" => tasks, "num_rollouts" => rollouts}}
+      })
+      when is_binary(provider) and is_binary(model_id) and is_binary(credential_env) and
+             is_integer(tasks) and is_integer(rollouts) and is_integer(retries) and
+             is_integer(calls) and is_integer(input_tokens) and is_integer(output_tokens) do
     %{
       provider: provider,
       model_id: model_id,
       credential_env: credential_env,
       tasks: tasks,
+      rollouts: rollouts,
+      retries: retries,
       calls: calls,
       input_tokens: input_tokens,
       output_tokens: output_tokens
     }
   end
+
+  # -- Internals ------------------------------------------------------------
 
   defp membership(campaign) do
     %{

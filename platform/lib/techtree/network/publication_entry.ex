@@ -352,19 +352,19 @@ defmodule Techtree.Network.PublicationEntry do
     end
 
     attribute :baseline_mean, :float do
-      description "The mean reward of the run without the Skill."
+      description "The mean reward of the run without the Skill, recomputed from the task list."
       allow_nil? false
       public? true
     end
 
     attribute :candidate_mean, :float do
-      description "The mean reward of the run with the Skill."
+      description "The mean reward of the run with the Skill, recomputed from the task list."
       allow_nil? false
       public? true
     end
 
     attribute :absolute_delta, :float do
-      description "How far apart the two means are."
+      description "The mean with the Skill less the mean without it, recomputed from the task list."
       allow_nil? false
       public? true
     end
@@ -405,7 +405,7 @@ defmodule Techtree.Network.PublicationEntry do
     end
 
     attribute :decision, :string do
-      description "What the signed report concluded."
+      description "What the signed report concluded, which the Campaign's rule gives for its tasks."
       allow_nil? false
       public? true
     end

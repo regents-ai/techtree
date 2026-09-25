@@ -62,6 +62,7 @@ from techtree.canonical import digest_object  # noqa: E402
 from techtree.catalog.repository import EmbeddedCatalogRepository  # noqa: E402
 from techtree.identity.service import IdentityService  # noqa: E402
 from techtree.identity.store import IdentityStore  # noqa: E402
+from techtree.manifests.compare import compare_manifests  # noqa: E402
 from techtree.models.base import ArtifactRef  # noqa: E402
 from techtree.models.episode_receipt import ScoreStatus  # noqa: E402
 from techtree.models.experiment import ExperimentVariant  # noqa: E402
@@ -73,6 +74,7 @@ from techtree.receipts.verify import LocalProofVerifier  # noqa: E402
 
 CLIMB_REFERENCE = "hello-world-climb@1"
 HISTORICAL_LOCK = FIXTURES / "proof" / "taskset-lock.json"
+TEST_CATALOG = FIXTURES / "catalog"
 PROOF_DESTINATION = FIXTURES / "proof-v2"
 SUBMISSION_DESTINATION = FIXTURES / "publication" / "v2-submission.json"
 
@@ -87,7 +89,7 @@ SKILL = ArtifactRef(
 
 
 def main() -> int:
-    catalog = EmbeddedCatalogRepository.packaged()
+    catalog = EmbeddedCatalogRepository(TEST_CATALOG)
     entry = catalog.climb_entry(CLIMB_REFERENCE)
     climb = catalog.load_climb(entry.reference)
     campaign = catalog.load_campaign(climb.campaign_spec_digest)
@@ -164,6 +166,18 @@ def main() -> int:
             decision=UpliftDecision.ACCEPTED,
             comparison=ComparisonStatus.CONTROLLED_WITH_WARNINGS,
             score=ScoreStatus.VALID,
+        ).model_copy(
+            # The CLI's test report carries a stand-in difference. A published
+            # report carries the comparison of the two manifests it cites, so
+            # that is what this one carries: the real comparison, computed by
+            # the CLI's own code over the two experiments above.
+            update={
+                "manifest_comparison": compare_manifests(
+                    experiments[ExperimentVariant.BASELINE],
+                    experiments[ExperimentVariant.CANDIDATE],
+                    campaign.mutation_contract,
+                )
+            }
         )
         proof = RecordedProof(
             identity=identity,

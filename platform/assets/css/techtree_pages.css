@@ -126,7 +126,7 @@
 .assessment--improved { border-left-color: var(--complete); }
 .assessment--regressed { border-left-color: var(--failed); }
 .assessment--not_enough_evidence { border-left-color: var(--running); }
-.assessment__verdict { margin-top: var(--space-1); }
+.assessment__verdict { display: grid; gap: var(--space-1); }
 .assessment__reason, .assessment__outcome, .assessment__means { max-width: var(--measure); margin-top: var(--space-2); }
 .assessment__means { font-size: .875rem; color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
 .assessment__tasks { display: grid; gap: var(--space-1); margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--rule); font-size: .875rem; }

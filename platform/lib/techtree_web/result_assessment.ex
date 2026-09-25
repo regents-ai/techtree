@@ -1,25 +1,23 @@
 defmodule TechtreeWeb.ResultAssessment do
   @moduledoc """
-  What one published Result says about keeping its Skill change, read only
-  from what the Result carries.
+  How one published Result reads on its page: the verdict in words, the tasks
+  by name and score, and the Skill change as values a reader can compare.
 
-  The verdict is the signed report's own decision, which applied the rule the
-  Campaign declared before either run, together with the sign of the mean
-  change. Nothing here re-decides it: a page that ran its own rule would be
-  asserting a verdict nobody declared in advance.
+  Nothing here decides anything. The verdict and the reason for it come from
+  `Techtree.Network.Result`, which recomputed them from the Result's own task
+  scores and its Campaign's rule before the Result was published, and does the
+  same over the stored bytes when the page is read. This module only puts them
+  into words.
 
   Tasks are named by their place in the Campaign's committed order and their
   fingerprint, because that is all a published Result holds about a task. It
   keeps neither the task's words nor the agent's answers.
 
-  The Skill change is the difference the signed report found between the two
-  runs' settings, read from the stored bytes this site accepted.
+  Every number is shown from its exact decimal value, so a change that is zero
+  reads as zero and a change that is not never rounds into the wrong sign.
   """
 
-  alias Techtree.Network.Bundle
-  alias Techtree.Network.PublicationEntry
-
-  @skill_pointer "/agents/subject/harness/skills/"
+  alias Techtree.Network.Result
 
   @type outcome :: :better | :worse | :same
 
@@ -33,66 +31,80 @@ defmodule TechtreeWeb.ResultAssessment do
           outcome: outcome()
         }
 
-  @type verdict :: %{outcome: :improved | :regressed | :not_enough_evidence, reason: String.t()}
-
-  @type value ::
-          :no_skill | :not_set | {:artifact, String.t(), non_neg_integer()} | {:text, String.t()}
+  @doc """
+  The verdict as the page's heading says it.
+  """
+  @spec verdict_label(Result.t()) :: String.t()
+  def verdict_label(%Result{verdict: :improved}), do: "Improved"
+  def verdict_label(%Result{verdict: :regressed}), do: "Regressed"
+  def verdict_label(%Result{verdict: :not_enough_evidence}), do: "Not enough evidence"
 
   @doc """
-  Improved, regressed, or not enough evidence, with the reason in words.
+  Why the verdict is what it is, in one or two sentences, naming the smallest
+  change the Climb's rule accepts where that is the reason.
   """
-  @spec verdict(PublicationEntry.t()) :: verdict()
-  def verdict(%{decision: "accepted"}) do
-    %{
-      outcome: :improved,
-      reason:
-        "With the Skill, the agent scored higher, and the result clears the rule " <>
-          "this Climb set before either run."
-    }
+  @spec reason(Result.t()) :: String.t()
+  def reason(%Result{why: :cleared_rule}) do
+    "With the Skill, the agent scored higher, and the result clears the rule this Climb set " <>
+      "before either run."
   end
 
-  def verdict(%{decision: "rejected", absolute_delta: delta}) when delta < 0 do
-    %{
-      outcome: :regressed,
-      reason:
-        "With the Skill, the agent scored lower overall, so the rule this Climb set " <>
-          "before either run turns it down."
-    }
+  def reason(%Result{why: :worse_past_rule, minimum: minimum} = result) do
+    if Decimal.eq?(minimum, 0) do
+      "With the Skill, the agent scored lower overall."
+    else
+      "With the Skill, the agent scored lower overall, by at least the " <>
+        amount(result, minimum) <> " this Climb asks of an improvement."
+    end
   end
 
-  def verdict(%{decision: "rejected"}) do
-    %{
-      outcome: :not_enough_evidence,
-      reason:
-        "With the Skill, the agent did not score higher by enough to clear the rule " <>
-          "this Climb set before either run."
-    }
+  def reason(%Result{why: {:short_of_rule, :higher}, minimum: minimum} = result) do
+    "With the Skill, the agent scored higher, but by less than the " <>
+      amount(result, minimum) <> " this Climb set before either run."
   end
 
-  def verdict(%{decision: "inconclusive"}) do
-    %{
-      outcome: :not_enough_evidence,
-      reason: "This Climb set no rule before the runs that can decide between them."
-    }
+  def reason(%Result{why: {:short_of_rule, :same}}) do
+    "With and without the Skill, the agent scored exactly the same overall."
   end
 
-  def verdict(%{decision: "invalid"}) do
-    %{
-      outcome: :not_enough_evidence,
-      reason:
-        "The two runs differed in more than the Skill, so the difference cannot be put " <>
-          "down to it."
-    }
+  def reason(%Result{why: {:short_of_rule, :lower}, minimum: minimum} = result) do
+    "With the Skill, the agent scored lower, but by less than the " <>
+      amount(result, minimum) <>
+      " this Climb set before either run, so it is not shown to be worse either."
   end
 
-  def verdict(%{decision: "development_only"}) do
-    %{
-      outcome: :not_enough_evidence,
-      reason:
-        "The run's own report makes no call, because it was not signed in a way that " <>
-          "lets it decide."
-    }
+  def reason(%Result{why: :no_rule}) do
+    "This Climb set no rule before the runs that could decide between them."
   end
+
+  def reason(%Result{why: {:score_not_valid, status}}) do
+    "The run's scores #{score_status_words(status)}, so its own report makes no call."
+  end
+
+  def reason(%Result{why: :not_controlled}) do
+    "The run did not show that its two sides differed only in the Skill, so its own report " <>
+      "makes no call."
+  end
+
+  def reason(%Result{why: :not_sealed}) do
+    "When the run wrote its report, its evidence did not meet every condition for making a " <>
+      "call, so the report makes no call."
+  end
+
+  @doc """
+  The change in the mean score: in percentage points when both means are
+  shares between 0 and 1, and as a plain signed number otherwise.
+  """
+  @spec mean_change(Result.t()) :: String.t()
+  def mean_change(%Result{absolute_delta: delta} = result) do
+    if shares?(result), do: points(delta) <> " percentage points", else: signed(delta)
+  end
+
+  @doc """
+  One mean score as a reader reads it.
+  """
+  @spec mean(Result.t(), :baseline_mean | :candidate_mean) :: String.t()
+  def mean(%Result{} = result, side), do: score(Map.fetch!(result, side))
 
   @doc """
   Every task in the Campaign's committed order, with both scores and the change.
@@ -121,50 +133,31 @@ defmodule TechtreeWeb.ResultAssessment do
   end
 
   @doc """
-  Whether every check this site ran on the Result's files passed.
+  What one Skill difference is about, in words: the Skill itself, or one of its
+  fields. A Climb that lets only one Skill differ calls it "the Skill".
   """
-  @spec files_verified?(PublicationEntry.t()) :: boolean()
-  def files_verified?(%{verification_checks_run: run, verification_checks_passed: passed}),
-    do: run > 0 and passed == run
+  @spec change_label(Result.change(), boolean()) :: String.t()
+  def change_label(%{skill: skill, field: field}, one_skill?) do
+    name = if one_skill?, do: "The Skill", else: "Skill #{skill + 1}"
 
-  @doc """
-  Whether the numbers are signed by the key of the person who ran both runs.
-  """
-  @spec reported_by_runner?(PublicationEntry.t()) :: boolean()
-  def reported_by_runner?(%{participant_kind: kind}), do: kind == :local_ed25519
-
-  @doc """
-  What the signed report found differed between the two runs' settings, and
-  whether that was only what the Climb allows to differ.
-  """
-  @spec skill_change(PublicationEntry.t()) :: %{
-          controlled?: boolean(),
-          differences: [%{place: String.t(), without: value(), with: value()}]
-        }
-  def skill_change(%{submission_bytes: bytes}) do
-    %{"controlled" => controlled, "differences" => differences} =
-      Bundle.stored_report!(bytes)["manifest_comparison"]
-
-    %{controlled?: controlled, differences: Enum.map(differences, &difference/1)}
+    case field do
+      nil -> name
+      field -> name <> "'s " <> field_words(field)
+    end
   end
 
   @doc """
-  A score as a reader reads it: a share for rewards between 0 and 1.
+  The fingerprint of the Skill the run used, as the preparation step prints it,
+  when the Skill change names one.
   """
-  @spec score(number()) :: String.t()
-  def score(value) when value >= 0 and value <= 1, do: "#{Float.round(value * 100.0, 1)}%"
-  def score(value), do: number(value)
-
-  @doc """
-  The change in the mean score, in percentage points for rewards between 0 and 1.
-  """
-  @spec mean_change(PublicationEntry.t()) :: String.t()
-  def mean_change(%{baseline_mean: baseline, candidate_mean: candidate, absolute_delta: delta})
-      when baseline >= 0 and baseline <= 1 and candidate >= 0 and candidate <= 1 do
-    signed_points(delta) <> " percentage points"
+  @spec skill_fingerprint([Result.change()]) :: String.t() | nil
+  def skill_fingerprint(changes) do
+    Enum.find_value(changes, fn
+      %{field: nil, with: {:skill, digest, _size}} -> digest
+      %{field: "digest", with: {:digest, digest}} -> digest
+      _change -> nil
+    end)
   end
-
-  def mean_change(%{absolute_delta: delta}), do: signed(delta)
 
   @doc """
   A digest cut to a length a reader can compare by eye.
@@ -176,8 +169,8 @@ defmodule TechtreeWeb.ResultAssessment do
   # -- Internals ------------------------------------------------------------
 
   defp task(delta, index) do
-    baseline = delta["baseline_reward"]
-    candidate = delta["candidate_reward"]
+    baseline = exact(delta["baseline_reward"])
+    candidate = exact(delta["candidate_reward"])
 
     %{
       hash: delta["task_hash"],
@@ -185,66 +178,79 @@ defmodule TechtreeWeb.ResultAssessment do
       short_hash: short_digest(delta["task_hash"]),
       baseline: score(baseline),
       candidate: score(candidate),
-      delta: task_change(candidate - baseline, baseline, candidate),
-      outcome: outcome(candidate, baseline)
+      delta: task_change(baseline, candidate),
+      outcome: outcome(Decimal.compare(candidate, baseline))
     }
   end
 
-  defp outcome(candidate, baseline) when candidate > baseline, do: :better
-  defp outcome(candidate, baseline) when candidate < baseline, do: :worse
-  defp outcome(_candidate, _baseline), do: :same
+  defp outcome(:gt), do: :better
+  defp outcome(:lt), do: :worse
+  defp outcome(:eq), do: :same
 
-  defp task_change(delta, baseline, candidate)
-       when baseline >= 0 and baseline <= 1 and candidate >= 0 and candidate <= 1,
-       do: signed_points(delta) <> " pts"
-
-  defp task_change(delta, _baseline, _candidate), do: signed(delta)
-
-  defp signed_points(delta) do
-    points = Float.round(delta * 100.0, 1)
-    if points > 0, do: "+#{points}", else: "#{points}"
+  defp task_change(baseline, candidate) do
+    change = Decimal.sub(candidate, baseline)
+    if share?(baseline) and share?(candidate), do: points(change) <> " pts", else: signed(change)
   end
 
-  defp signed(value) do
-    rounded = value |> Kernel./(1) |> Float.round(3)
-    if rounded > 0, do: "+#{rounded}", else: to_string(rounded)
+  defp amount(result, minimum) do
+    if shares?(result), do: plain_points(minimum) <> " percentage points", else: plain(minimum)
   end
 
-  defp number(value) when is_integer(value), do: to_string(value)
-  defp number(value) when is_float(value), do: value |> Float.round(3) |> to_string()
+  defp shares?(%Result{baseline_mean: baseline, candidate_mean: candidate}),
+    do: share?(baseline) and share?(candidate)
 
-  defp difference(%{"pointer" => pointer, "baseline" => baseline, "candidate" => candidate}) do
-    whole_skill? = whole_skill?(pointer)
+  defp share?(value), do: not Decimal.lt?(value, 0) and not Decimal.gt?(value, 1)
 
-    %{
-      place: place(pointer),
-      without: value(baseline, whole_skill?),
-      with: value(candidate, whole_skill?)
-    }
+  defp score(value) do
+    if share?(value),
+      do: plain_points(value) <> "%",
+      else: plain(value)
   end
 
-  defp whole_skill?(@skill_pointer <> rest), do: not String.contains?(rest, "/")
-  defp whole_skill?(_pointer), do: false
+  # A change in percentage points, to one place, with its sign. A change too
+  # small to show at one place says so rather than rounding to zero.
+  defp points(delta) do
+    scaled = Decimal.mult(delta, 100)
+    rounded = Decimal.round(scaled, 1)
 
-  defp place(@skill_pointer <> rest) do
-    case String.split(rest, "/") do
-      [index] -> skill_label(index)
-      [index, field] -> skill_label(index) <> " " <> field_words(field)
+    cond do
+      Decimal.eq?(scaled, 0) -> "0.0"
+      Decimal.eq?(rounded, 0) and Decimal.gt?(scaled, 0) -> "between 0 and +0.1"
+      Decimal.eq?(rounded, 0) -> "between 0 and -0.1"
+      Decimal.gt?(rounded, 0) -> "+" <> Decimal.to_string(rounded, :normal)
+      true -> Decimal.to_string(rounded, :normal)
     end
   end
 
-  defp place(pointer), do: pointer
+  # A share in percent, always to one place, so "25.0" sits beside "47.2".
+  defp plain_points(value),
+    do: value |> Decimal.mult(100) |> Decimal.round(1) |> Decimal.to_string(:normal)
 
-  defp skill_label(index), do: "Skill #{String.to_integer(index) + 1}"
+  defp signed(value) do
+    rounded = Decimal.round(value, 3)
+
+    cond do
+      Decimal.eq?(value, 0) -> "0"
+      Decimal.gt?(value, 0) -> "+" <> text(rounded)
+      true -> text(rounded)
+    end
+  end
+
+  defp plain(value), do: value |> Decimal.round(3) |> text()
+
+  defp text(value), do: value |> Decimal.normalize() |> Decimal.to_string(:normal)
+
+  defp exact(number) when is_integer(number), do: Decimal.new(number)
+  defp exact(number) when is_float(number), do: Decimal.from_float(number)
 
   defp field_words("digest"), do: "fingerprint"
   defp field_words("size"), do: "size"
   defp field_words("media_type"), do: "file type"
   defp field_words("relative_path"), do: "file name"
 
-  defp value(nil, true), do: :no_skill
-  defp value(nil, false), do: :not_set
-  defp value(%{"digest" => digest, "size" => size}, true), do: {:artifact, digest, size}
-  defp value(text, _whole_skill?) when is_binary(text), do: {:text, text}
-  defp value(other, _whole_skill?), do: {:text, Jason.encode!(other)}
+  defp score_status_words("invalid"), do: "were marked not valid"
+  defp score_status_words("errored"), do: "failed with an error"
+  defp score_status_words("missing"), do: "are missing"
+  defp score_status_words("pending"), do: "were never finished"
+  defp score_status_words("development_only"), do: "were marked as practice only"
 end

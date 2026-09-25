@@ -369,10 +369,16 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
   describe "reading the log a page at a time" do
     setup %{conn: conn} do
+      # Four bundles of the same run under four keys, the first `dropped` tasks
+      # flattened in each, which keeps the task list intact.
       entries =
         for dropped <- [0, 1, 2, 3] do
           {:ok, entry, :recorded} =
-            NetworkFixture.publish(NetworkFixture.submission(shortened_by(dropped)))
+            dropped
+            |> NetworkFixture.worse_by()
+            |> NetworkFixture.resign()
+            |> NetworkFixture.submission()
+            |> NetworkFixture.publish()
 
           entry
         end
@@ -430,44 +436,6 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
         assert refused.status == 400, "#{query} was not refused"
       end
-    end
-
-    # Four bundles of the same run under four keys, each one task shorter than
-    # the campaign committed to would be — so instead the reward of the first
-    # `dropped` tasks is flattened, which keeps the membership intact.
-    defp shortened_by(dropped) do
-      NetworkFixture.files()
-      |> Map.update!("uplift-report.json", fn bytes ->
-        bytes
-        |> Jason.decode!()
-        |> update_in(["payload", "task_deltas"], fn deltas ->
-          deltas
-          |> Enum.with_index()
-          |> Enum.map(fn {delta, index} ->
-            if index < dropped, do: Map.put(delta, "candidate_reward", 0), else: delta
-          end)
-        end)
-        |> tally()
-        |> Jason.encode!()
-      end)
-      |> NetworkFixture.resign()
-    end
-
-    defp tally(envelope) do
-      counted =
-        Enum.frequencies_by(envelope["payload"]["task_deltas"], fn delta ->
-          cond do
-            delta["candidate_reward"] > delta["baseline_reward"] -> "wins"
-            delta["candidate_reward"] < delta["baseline_reward"] -> "losses"
-            true -> "ties"
-          end
-        end)
-
-      update_in(envelope, ["payload", "primary_result"], fn result ->
-        Enum.reduce(["wins", "losses", "ties"], result, fn outcome, acc ->
-          Map.put(acc, outcome, Map.get(counted, outcome, 0))
-        end)
-      end)
     end
   end
 

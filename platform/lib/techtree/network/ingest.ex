@@ -379,7 +379,8 @@ defmodule Techtree.Network.Ingest do
            manifest: manifest,
            report: report,
            campaign: campaign,
-           execution_plan: execution_plan
+           execution_plan: execution_plan,
+           result: result
          } = bundle,
          metadata,
          key,
@@ -387,7 +388,6 @@ defmodule Techtree.Network.Ingest do
        ) do
     payload = manifest["payload"]
     identity = payload["executor_identity"]
-    result = report["primary_result"]
     model = get_in(campaign, ["agents", "subject", "model"])
     harness = execution_plan["subject"]
 
@@ -415,15 +415,17 @@ defmodule Techtree.Network.Ingest do
       skill_digest: bundle.candidate_skill_digest,
       skill_name: metadata.skill_name,
       skill_github_url: metadata.skill_github_url,
-      baseline_mean: result["baseline_mean"] / 1,
-      candidate_mean: result["candidate_mean"] / 1,
-      absolute_delta: result["absolute_delta"] / 1,
-      wins: result["wins"],
-      losses: result["losses"],
-      ties: result["ties"],
+      # The result as this site recomputed it, which the bundle check has
+      # already shown agrees with what the report wrote.
+      baseline_mean: Decimal.to_float(result.baseline_mean),
+      candidate_mean: Decimal.to_float(result.candidate_mean),
+      absolute_delta: Decimal.to_float(result.absolute_delta),
+      wins: result.wins,
+      losses: result.losses,
+      ties: result.ties,
       task_count: length(report["task_deltas"]),
-      statuses: report["statuses"] || %{},
-      decision: report["decision"],
+      statuses: report["statuses"],
+      decision: result.decision,
       proof_grade: report["proof_grade"],
       verification_checks_run: Bundle.check_count(),
       verification_checks_passed: Bundle.check_count(),

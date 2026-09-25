@@ -39,7 +39,8 @@ defmodule Techtree.Network.Error do
           | :submission_key_id_mismatch
           | :submission_report_missing
           | :submission_campaign_unpublished
-          | :submission_counts_inconsistent
+          | :submission_result_inconsistent
+          | :submission_skill_change_invalid
           | :submission_task_membership_mismatch
           | :submission_data_policy_forbids_publication
           | :submission_private_content

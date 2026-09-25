@@ -294,6 +294,7 @@ defmodule TechtreeWeb.StartLive do
   defp example_commands(install_argv, reference) do
     [
       {:command, install_argv},
+      {:command, ["techtree", "setup"]},
       {:command, ["techtree", "doctor", "--climb", reference]},
       {:command, ["techtree", "skill", "starter"]},
       {:comment, "Prepare with the Skill it placed, then run the start command it prints:"},

@@ -9,11 +9,12 @@ defmodule TechtreeWeb.RunsLive.Show do
   again. The full task list and the fingerprints sit underneath, folded, so a
   narrow screen reads the answer before the evidence.
 
-  Every fact on the page is read from the published Result or from the
-  Campaign this site publishes; `TechtreeWeb.ResultAssessment` says how. Where
-  the Result holds nothing to show, the page says so rather than filling the
-  gap. The standing gap is a rerun by anybody else: this site keeps no record
-  of one, so the page never claims one.
+  The verdict, the means and the counts are this site's own: the stored
+  report is worked out again under its Campaign's rule by
+  `Techtree.Network.Result`, the same recomputation that let it be published.
+  `TechtreeWeb.ResultAssessment` puts that into words. The standing gap is a
+  rerun by anybody else: this site keeps no record of one, so the page never
+  claims one.
 
   What this page does **not** offer is the submitted bytes. Those are stored
   immutably, every field here was derived from them, and they have an address
@@ -27,7 +28,9 @@ defmodule TechtreeWeb.RunsLive.Show do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query, as: Catalog
+  alias Techtree.Network.Bundle
   alias Techtree.Network.Query
+  alias Techtree.Network.Result
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.Providers
@@ -90,19 +93,22 @@ defmodule TechtreeWeb.RunsLive.Show do
 
       <section
         id="run-assessment"
-        class={["assessment", "assessment--#{@verdict.outcome}"]}
+        class={["assessment", "assessment--#{@result.verdict}"]}
         aria-labelledby="run-verdict"
       >
-        <p class="eyebrow">Should you keep this Skill change?</p>
-        <h2 id="run-verdict" class="assessment__verdict">{verdict_label(@verdict.outcome)}</h2>
-        <p class="assessment__reason">{@verdict.reason}</p>
+        <h2 id="run-verdict" class="assessment__verdict">
+          <span class="eyebrow">Keep this Skill change?</span>
+          <span>{ResultAssessment.verdict_label(@result)}</span>
+        </h2>
+        <p class="assessment__reason">{ResultAssessment.reason(@result)}</p>
         <p id="run-outcome" class="assessment__outcome">
-          <strong>{ResultAssessment.mean_change(@entry)}</strong>
-          · {@entry.wins} better, {@entry.ties} same, {@entry.losses} worse.
+          <strong>{ResultAssessment.mean_change(@result)}</strong>
+          · {@result.wins} better, {@result.ties} same, {@result.losses} worse.
         </p>
         <p class="assessment__means">
-          Without the Skill {ResultAssessment.score(@entry.baseline_mean)} · With the Skill {ResultAssessment.score(
-            @entry.candidate_mean
+          Without the Skill {ResultAssessment.mean(@result, :baseline_mean)} · With the Skill {ResultAssessment.mean(
+            @result,
+            :candidate_mean
           )}
         </p>
         <ul class="assessment__tasks">
@@ -152,16 +158,22 @@ defmodule TechtreeWeb.RunsLive.Show do
       <section id="run-skill-change" class="section">
         <p class="eyebrow">The Skill change</p>
         <h2>What differed between the two runs</h2>
-        <p class="section-note">{controlled_words(@skill_change.controlled?)}</p>
+        <p class="section-note">
+          The signed report compared the settings of the two runs and found only this
+          difference, which is the one the Climb allows.
+        </p>
         <ul class="skill-change">
-          <li :for={difference <- @skill_change.differences} class="skill-change__item">
-            <p><strong>{difference.place}</strong></p>
+          <li :for={change <- @changes} class="skill-change__item">
+            <p><strong>{ResultAssessment.change_label(change, @one_skill?)}</strong></p>
             <.definition_list>
-              <:fact term="Without the Skill"><.change_value value={difference.without} /></:fact>
-              <:fact term="With the Skill"><.change_value value={difference.with} /></:fact>
+              <:fact term="Without the Skill"><.change_value value={change.without} /></:fact>
+              <:fact term="With the Skill"><.change_value value={change.with} /></:fact>
             </.definition_list>
           </li>
         </ul>
+        <p :if={@result.model_build_unproven?} id="run-model-build" class="section-note">
+          {Providers.name!(@entry.subject_provider)} does not publish a build number for {@entry.subject_model}, so both runs are known to have asked for the same model name, not shown to have used the same build of it.
+        </p>
         <p class="small quiet section-note">
           The signed report names the Skill by its fingerprint, not by the name this page
           shows for it.
@@ -172,16 +184,16 @@ defmodule TechtreeWeb.RunsLive.Show do
         <p class="eyebrow">Evidence</p>
         <h2>What stands behind these numbers</h2>
         <ul class="evidence-badges">
-          <li :if={@files_verified?} id="badge-files-verified" class="evidence-badge">
+          <li id="badge-files-verified" class="evidence-badge">
             <Regent.Primitives.status tone="success" class="badge">
               Files verified
             </Regent.Primitives.status>
             <p>
-              This site ran its {@entry.verification_checks_run} checks on the Result's files and every one passed.
+              This site ran its {@entry.verification_checks_run} checks on the Result's files, including working out the scores, the change and the decision again from the task results, and every check passed.
               <a href={~p"/proofs"}>How verification works.</a>
             </p>
           </li>
-          <li :if={@reported_by_runner?} id="badge-reported" class="evidence-badge">
+          <li id="badge-reported" class="evidence-badge">
             <Regent.Primitives.status tone="success" class="badge">
               Reported by the person who ran it
             </Regent.Primitives.status>
@@ -230,23 +242,20 @@ defmodule TechtreeWeb.RunsLive.Show do
         </p>
 
         <h3 class="rerun__heading">Limits</h3>
-        <.definition_list :if={@limits}>
+        <.definition_list>
           <:fact term="Each try">
             Stops starting model calls at {@limits.calls} calls, {@limits.input_tokens} input tokens or {@limits.output_tokens} output tokens, whichever comes first.
           </:fact>
           <:fact term="Whole run">
-            {@limits.tasks} tasks, each tried once without the Skill and once with it: {@limits.tries} tries. At most {@limits.run_calls} model calls. The token limits add up to {@limits.run_input_tokens} input tokens and {@limits.run_output_tokens} output tokens.
+            {@limits.plan}: up to {@limits.tries} tries. At most {@limits.run_calls} model calls. The token limits add up to {@limits.run_input_tokens} input tokens and {@limits.run_output_tokens} output tokens.
           </:fact>
           <:fact term="Before it starts">
             Techtree shows the most the run may spend and waits for your yes.
           </:fact>
         </.definition_list>
-        <p :if={!@limits} class="section-note">
-          This site does not publish this Result's Climb, so its limits are not shown.
-        </p>
-        <p :if={@limits} class="small quiet section-note">
-          The call that crosses a limit still finishes, so a try can end a little past its
-          token limits.
+        <p class="small quiet section-note">
+          The call that crosses a limit still finishes, so a try can go past its token limits
+          by up to one full request and its reply.
         </p>
 
         <h3 class="rerun__heading">What a new run can tell you</h3>
@@ -275,7 +284,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         >
           <div class="tasks__filters" aria-label="Filter task outcomes">
             <Regent.Primitives.button
-              :for={{filter, label, count} <- task_filters(@entry)}
+              :for={{filter, label, count} <- task_filters(@entry, @result)}
               variant="secondary"
               id={"task-filter-#{filter}"}
               type="button"
@@ -334,7 +343,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         >
           <.definition_list>
             <:fact term="Climb">
-              <a :if={@slug} href={~p"/climbs/#{@slug}"}>{@title}</a>
+              <a :if={@slug} href={~p"/climbs/#{@slug}"}>{@campaign_name}</a>
               <span :if={is_nil(@slug)}>{@entry.climb_reference}</span>
             </:fact>
             <:fact term="Tasks">
@@ -363,7 +372,7 @@ defmodule TechtreeWeb.RunsLive.Show do
             </:fact>
             <:fact term="Result ID">{@entry.run_id}</:fact>
             <:fact term="Log sequence">{@entry.log_sequence}</:fact>
-            <:fact term="Protocol grade">{@entry.proof_grade}</:fact>
+            <:fact term="What the report can claim">{claim_words(@result)}</:fact>
             <:fact term="Publisher key"><.digest value={@entry.participant_key_id} /></:fact>
           </.definition_list>
         </Regent.Primitives.disclosure>
@@ -394,24 +403,33 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   attr :value, :any, required: true
 
-  defp change_value(%{value: :no_skill} = assigns), do: ~H"No Skill"
+  defp change_value(%{value: :none} = assigns), do: ~H"No Skill"
   defp change_value(%{value: :not_set} = assigns), do: ~H"Not set"
 
-  defp change_value(%{value: {:artifact, _digest, _size}} = assigns) do
+  defp change_value(%{value: {:skill, _digest, _size}} = assigns) do
     ~H"""
     <.digest value={elem(@value, 1)} />
     <span class="small quiet">{CampaignFacts.count(elem(@value, 2))} bytes</span>
     """
   end
 
+  defp change_value(%{value: {:digest, _digest}} = assigns),
+    do: ~H"<.digest value={elem(@value, 1)} />"
+
+  defp change_value(%{value: {:size, _size}} = assigns),
+    do: ~H"{CampaignFacts.count(elem(@value, 1))} bytes"
+
   defp change_value(%{value: {:text, _text}} = assigns), do: ~H"<code>{elem(@value, 1)}</code>"
 
+  # Ingest only publishes a Result whose Campaign this site publishes and whose
+  # result and Skill change recompute under it, and a Climb is retired rather
+  # than removed, so each of these holds for every published Result.
   defp assigns_for(entry) do
-    climb =
-      case Catalog.get_any_climb_by_campaign_digest(entry.campaign_spec_digest) do
-        {:ok, found} -> found
-        {:error, _reason} -> nil
-      end
+    {:ok, climb} = Catalog.get_any_climb_by_campaign_digest(entry.campaign_spec_digest)
+    campaign = CampaignFacts.campaign!(climb)
+    report = Bundle.stored_report!(entry.submission_bytes)
+    {:ok, result} = Result.assess(report, campaign)
+    {:ok, changes} = Result.skill_change(report, campaign)
 
     skill_name = skill_name(entry, climb)
     tasks = ResultAssessment.tasks(entry.task_deltas)
@@ -424,33 +442,29 @@ defmodule TechtreeWeb.RunsLive.Show do
       skill_name: skill_name,
       github_url: github_url(entry),
       withdrawn?: Query.withdrawn?(entry),
-      verdict: ResultAssessment.verdict(entry),
+      result: result,
       groups: groups,
       examples: ResultAssessment.examples(groups),
-      skill_change: ResultAssessment.skill_change(entry),
-      files_verified?: ResultAssessment.files_verified?(entry),
-      reported_by_runner?: ResultAssessment.reported_by_runner?(entry),
+      changes: changes,
+      one_skill?: campaign["mutation_contract"]["maximum_skills"] == 1,
       tasks: tasks,
       task_filter: :all,
       published: CampaignFacts.for_climb(climb),
-      limits: limits(climb),
-      rerun: rerun(entry),
-      slug: climb && climb.projection["slug"],
-      title: campaign_name(entry, climb)
+      limits: limits(campaign),
+      rerun: rerun(entry, ResultAssessment.skill_fingerprint(changes)),
+      slug: climb.projection["slug"]
     }
   end
 
   # The limits the Result's own Campaign set, per try and over the whole run.
-  defp limits(nil), do: nil
-
-  defp limits(climb) do
-    trial = CampaignFacts.trial!(climb)
+  defp limits(campaign) do
+    trial = CampaignFacts.trial(campaign)
     total = CampaignFacts.run_total(trial)
 
     %{
       provider: Providers.name!(trial.provider),
       credential_env: trial.credential_env,
-      tasks: CampaignFacts.count(trial.tasks),
+      plan: plan_words(trial),
       calls: CampaignFacts.count(trial.calls),
       input_tokens: CampaignFacts.count(trial.input_tokens),
       output_tokens: CampaignFacts.count(trial.output_tokens),
@@ -461,14 +475,36 @@ defmodule TechtreeWeb.RunsLive.Show do
     }
   end
 
+  # How many tries the whole run is made of, in words.
+  defp plan_words(trial) do
+    times =
+      case trial.rollouts do
+        1 -> "once"
+        rollouts -> "#{rollouts} times"
+      end
+
+    retries =
+      case trial.retries do
+        0 -> ""
+        1 -> ", with up to 1 more attempt for a try that fails"
+        retries -> ", with up to #{retries} more attempts for a try that fails"
+      end
+
+    "#{CampaignFacts.count(trial.tasks)} tasks, each tried #{times} without the Skill and " <>
+      "#{times} with it#{retries}"
+  end
+
   # The commands only exist when the release served now installs and still
   # carries this Result's Climb; a retired Climb cannot be run by it.
-  defp rerun(entry) do
+  defp rerun(entry, fingerprint) do
     case ReleaseInfo.current() do
       %{installable?: true, install_argv: [_ | _] = install_argv, minimums: minimums} ->
         case Catalog.get_climb_by_campaign_digest(entry.campaign_spec_digest) do
           {:ok, climb} ->
-            %{minimums: minimums, commands: rerun_commands(install_argv, climb.reference)}
+            %{
+              minimums: minimums,
+              commands: rerun_commands(install_argv, climb.reference, fingerprint)
+            }
 
           {:error, _retired} ->
             :climb_retired
@@ -479,30 +515,39 @@ defmodule TechtreeWeb.RunsLive.Show do
     end
   end
 
-  defp rerun_commands(install_argv, reference) do
+  defp rerun_commands(install_argv, reference, fingerprint) do
     [
       {:command, install_argv},
+      {:command, ["techtree", "setup"]},
       {:command, ["techtree", "doctor", "--climb", reference]},
       {:comment, "Put the Skill's files in a folder, then prepare it:"},
-      {:command, ["techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]},
-      {:comment, "Start the draft it names. Techtree shows the most it may spend first:"},
-      {:command, ["techtree", "climb", "start", "DRAFT_ID"]},
-      {:comment, "When it finishes, check the run and read its result:"},
-      {:command, ["techtree", "run", "result", "RUN_ID"]}
-    ]
+      {:command, ["techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]}
+    ] ++
+      fingerprint_check(fingerprint) ++
+      [
+        {:comment, "Start the draft it names. Techtree shows the most it may spend first:"},
+        {:command, ["techtree", "climb", "start", "DRAFT_ID"]},
+        {:comment, "When it finishes, check the run and read its result:"},
+        {:command, ["techtree", "run", "result", "RUN_ID"]}
+      ]
   end
 
+  defp fingerprint_check(nil), do: []
+
+  defp fingerprint_check(fingerprint),
+    do: [{:comment, "Check that the Skill content digest it prints is #{fingerprint}"}]
+
   defp campaign_name(entry, climb) do
-    copy = climb && ClimbCopy.for_reference(climb.reference)
+    copy = ClimbCopy.for_reference(climb.reference)
 
     present(Map.get(entry, :campaign_name)) ||
-      (climb && climb.title) ||
+      climb.title ||
       (copy && copy.campaign_title) ||
       entry.climb_reference
   end
 
   defp skill_name(entry, climb) do
-    copy = climb && ClimbCopy.for_reference(climb.reference)
+    copy = ClimbCopy.for_reference(climb.reference)
 
     present(Map.get(entry, :skill_name)) ||
       (copy && copy.candidate_skill_label) ||
@@ -526,10 +571,6 @@ defmodule TechtreeWeb.RunsLive.Show do
   # address a reader could not compare against the one they hold.
   defp object_url(digest), do: "/api/v1/objects/" <> digest
 
-  defp verdict_label(:improved), do: "Improved"
-  defp verdict_label(:regressed), do: "Regressed"
-  defp verdict_label(:not_enough_evidence), do: "Not enough evidence"
-
   defp task_group_words(:better, count), do: "Better on #{tasks_words(count)}#{colon(count)}"
   defp task_group_words(:worse, count), do: "Worse on #{tasks_words(count)}#{colon(count)}"
   defp task_group_words(:same, count), do: "No change on #{tasks_words(count)}."
@@ -545,15 +586,11 @@ defmodule TechtreeWeb.RunsLive.Show do
   defp outcome_label(:worse), do: "Worse with the Skill"
   defp outcome_label(:same), do: "No change"
 
-  defp controlled_words(true) do
-    "The signed report compared the settings of the two runs and found only this " <>
-      "difference, which is the one the Climb allows."
-  end
+  defp claim_words(%{decision: "development_only"}),
+    do: "No call. The report states its scores and holds back a decision."
 
-  defp controlled_words(false) do
-    "The signed report found differences the Climb does not allow, so the Skill was not " <>
-      "the only thing that changed."
-  end
+  defp claim_words(_result),
+    do: "A call, signed by the person who ran it. Not repeated by anybody else."
 
   defp filtered_tasks(tasks, :all), do: tasks
   defp filtered_tasks(tasks, outcome), do: Enum.filter(tasks, &(&1.outcome == outcome))
@@ -572,12 +609,12 @@ defmodule TechtreeWeb.RunsLive.Show do
   defp empty_filter_words(:worse), do: "No tasks were worse."
   defp empty_filter_words(:all), do: "No tasks are available."
 
-  defp task_filters(entry) do
+  defp task_filters(entry, result) do
     [
       {:all, "All", entry.task_count},
-      {:better, "Better", entry.wins},
-      {:same, "Same", entry.ties},
-      {:worse, "Worse", entry.losses}
+      {:better, "Better", result.wins},
+      {:same, "Same", result.ties},
+      {:worse, "Worse", result.losses}
     ]
   end
 

@@ -56,6 +56,7 @@ defmodule TechtreeWeb.StartLiveTest do
       expected_example =
         [
           Enum.join(release.install_argv, " "),
+          "techtree setup",
           "techtree doctor --climb #{release.introductory_reference}",
           "techtree skill starter",
           "# Prepare with the Skill it placed, then run the start command it prints:",

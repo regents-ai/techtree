@@ -341,22 +341,80 @@ defmodule Techtree.Network.IngestTest do
       files =
         rewritten_report(&update_in(&1, ["primary_result", "wins"], fn wins -> wins + 1 end))
 
-      assert {:error, %{code: :submission_counts_inconsistent}} =
+      assert {:error, %{code: :submission_result_inconsistent}} =
                NetworkFixture.publish(NetworkFixture.submission(files))
     end
 
-    test "14. a result scoring tasks the campaign did not commit to is refused" do
+    test "13. a signed report calling every task worse an improvement is refused" do
+      every_task_worse = fn report ->
+        report
+        |> Map.update!("task_deltas", fn deltas ->
+          Enum.map(
+            deltas,
+            &%{&1 | "baseline_reward" => 1, "candidate_reward" => 0, "delta" => -1}
+          )
+        end)
+        |> update_in(
+          ["primary_result"],
+          &Map.merge(&1, %{"wins" => 0, "losses" => 36, "ties" => 0})
+        )
+      end
+
+      # The means and change still claim the improvement: they are refused.
+      files = rewritten_report(every_task_worse)
+
+      assert {:error, %{code: :submission_result_inconsistent, details: %{"field" => _field}}} =
+               NetworkFixture.publish(NetworkFixture.submission(files))
+
+      # The means and change are true, and only the decision still says accepted.
+      files =
+        rewritten_report(fn report ->
+          report
+          |> every_task_worse.()
+          |> update_in(
+            ["primary_result"],
+            &Map.merge(&1, %{
+              "baseline_mean" => 1.0,
+              "candidate_mean" => 0.0,
+              "absolute_delta" => -1.0,
+              "relative_delta" => -1.0
+            })
+          )
+        end)
+
+      assert {:error, %{code: :submission_result_inconsistent, details: details}} =
+               NetworkFixture.publish(NetworkFixture.submission(files))
+
+      assert details == %{"decision" => "accepted", "recomputed" => "rejected"}
+      assert Network.list_publication_entries!() == []
+    end
+
+    test "14. a difference between the runs that is not a Skill the campaign allows is refused" do
+      files =
+        rewritten_report(
+          &update_in(&1, ["manifest_comparison", "differences"], fn [difference] ->
+            [%{difference | "pointer" => "/agents/subject/harness/skills/1"}]
+          end)
+        )
+
+      assert {:error, %{code: :submission_skill_change_invalid, details: details}} =
+               NetworkFixture.publish(NetworkFixture.submission(files))
+
+      assert details["pointer"] == "/agents/subject/harness/skills/1"
+    end
+
+    test "15. a result scoring tasks the campaign did not commit to is refused" do
       for damage <- [&Enum.reverse/1, &Enum.drop(&1, 1), &(&1 ++ &1)] do
         files = rewritten_report(&update_in(&1, ["task_deltas"], damage))
 
         assert {:error, %{code: code}} =
                  NetworkFixture.publish(NetworkFixture.submission(files))
 
-        assert code in [:submission_task_membership_mismatch, :submission_counts_inconsistent]
+        assert code in [:submission_task_membership_mismatch, :submission_result_inconsistent]
       end
     end
 
-    test "14. one task hash swapped for another is refused even with the counts intact" do
+    test "15. one task hash swapped for another is refused even with the counts intact" do
       files =
         rewritten_report(fn report ->
           update_in(report, ["task_deltas"], fn [first | rest] ->
@@ -368,7 +426,7 @@ defmodule Techtree.Network.IngestTest do
                NetworkFixture.publish(NetworkFixture.submission(files))
     end
 
-    test "15. terms that do not make the result public refuse the publication" do
+    test "16. terms that do not make the result public refuse the publication" do
       for member <- ["uplift_report", "aggregate_scores"] do
         files =
           NetworkFixture.files()
@@ -390,7 +448,7 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_publication_entries!() == []
     end
 
-    test "15. a bundle that does not carry the terms it names is refused" do
+    test "16. a bundle that does not carry the terms it names is refused" do
       absent = "sha256:" <> String.duplicate("9", 64)
       files = NetworkFixture.resign(NetworkFixture.files(), data_policy_digest: absent)
 
@@ -400,7 +458,7 @@ defmodule Techtree.Network.IngestTest do
       assert details["data_policy_digest"] == absent
     end
 
-    test "16. a document carrying a transcript is not a proof bundle" do
+    test "17. a document carrying a transcript is not a proof bundle" do
       for member <- ["transcript", "messages", "prompt", "stdout", "episodes"] do
         files =
           NetworkFixture.files()
@@ -423,7 +481,7 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_publication_entries!() == []
     end
 
-    test "16. a document naming a location on the machine that made it is refused" do
+    test "17. a document naming a location on the machine that made it is refused" do
       for location <- [
             "/Users/somebody/techtree/runs/run_x",
             "/home/somebody/.techtree",
@@ -442,7 +500,7 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_publication_entries!() == []
     end
 
-    test "17. a declared digest that is not the bundle's own is refused" do
+    test "18. a declared digest that is not the bundle's own is refused" do
       wrong = "sha256:" <> String.duplicate("e", 64)
 
       assert {:error, %{code: :submission_bundle_digest_mismatch, details: details}} =
@@ -455,7 +513,7 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_publication_entries!() == []
     end
 
-    test "17. a declared run the signed report does not name is refused" do
+    test "18. a declared run the signed report does not name is refused" do
       assert {:error, %{code: :submission_run_id_mismatch, details: details}} =
                NetworkFixture.publish(
                  NetworkFixture.submission(NetworkFixture.files(), run_id: "run_somebody_else")
@@ -466,7 +524,7 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_publication_entries!() == []
     end
 
-    test "17. is checked after the bundle itself, not instead of it" do
+    test "18. is checked after the bundle itself, not instead of it" do
       # A bundle with a broken signature and a wrong declaration is refused for
       # the signature. What the submitter claims about a bundle means nothing
       # until the bundle has been shown to hold together.

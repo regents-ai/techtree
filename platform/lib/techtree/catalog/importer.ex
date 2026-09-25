@@ -30,19 +30,24 @@ defmodule Techtree.Catalog.Importer do
   @internal [authorize?: false]
 
   # What a page tells a person before they run a Climb: the model and provider
-  # its calls go to, the key they are charged to, how many tasks it runs, and
-  # the limits on each try. Pages read these from the Campaign and show them as
-  # facts, so every Climb's Campaign must state them.
+  # its calls go to, the key they are charged to, how many tasks and tries it
+  # runs, and the limits on each try. And what this site decides a published
+  # result by: the Campaign's rule, the model build it names or does not, and
+  # how many Skills may differ. Pages and the publication check read these
+  # from the Campaign as facts, so every Climb's Campaign must state them.
   @trial_names [
     ["agents", "subject", "model", "provider"],
     ["agents", "subject", "model", "model_id"],
-    ["agents", "subject", "model", "credential_env"]
+    ["agents", "subject", "model", "credential_env"],
+    ["scoring", "primary_reward"]
   ]
   @trial_counts [
     ["budgets", "maximum_model_calls"],
     ["budgets", "maximum_input_tokens"],
     ["budgets", "maximum_output_tokens"],
-    ["taskset", "selection", "num_tasks"]
+    ["taskset", "selection", "num_tasks"],
+    ["taskset", "selection", "num_rollouts"],
+    ["mutation_contract", "maximum_skills"]
   ]
 
   @doc """
@@ -425,6 +430,18 @@ defmodule Techtree.Catalog.Importer do
     Enum.each(
       @trial_counts,
       &require!(campaign, &1, entry, fn count -> is_integer(count) and count > 0 end)
+    )
+
+    require!(campaign, ["execution", "retry_limit"], entry, &(is_integer(&1) and &1 >= 0))
+    require!(campaign, ["scoring", "aggregation"], entry, &(&1 == "mean"))
+    require!(campaign, ["scoring", "require_candidate_above_baseline"], entry, &is_boolean/1)
+    require!(campaign, ["scoring", "minimum_absolute_delta"], entry, &(is_number(&1) and &1 >= 0))
+
+    require!(
+      campaign,
+      ["agents", "subject", "model", "revision"],
+      entry,
+      &(is_nil(&1) or (is_binary(&1) and &1 != ""))
     )
   end
 
