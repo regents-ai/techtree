@@ -13,10 +13,14 @@ hides from the agent: for a repository task the reference patch, the tests,
 and the tests' names; for a task written from a Skill its reference
 solutions and its tests, and for a held-out task of a collection also its
 instruction and its inputs, which the agent that wrote the revision never
-saw. Screening is evidence-based and recorded, not a refusal — a Skill may
-legitimately name the function it repairs — so every line the Skill shares
-with that material is written on the revision for the person who approves
-the run to see, and the run's report carries it.
+saw. Only what the revision adds is screened: a line the Skill it revises
+already had, or one that also appears in what the reviser was shown (the
+instruction and inputs of a collection's tasks it may study), is not
+evidence of anything it learned. Screening is evidence-based and recorded,
+not a refusal — a Skill may legitimately name the function it repairs — so
+every added line the Skill shares with that material is written on the
+revision for the person who approves the run to see, and the run's report
+carries it.
 
 Measuring runs the new arm on every task and compares it against the same
 baseline the parent was compared against. The revision then names its run,
@@ -47,7 +51,7 @@ from techtree.forge.comparability import (
 from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.experiment import run_spec_digest
 from techtree.forge.hermes import hermes_version
-from techtree.forge.improvement import require_study_tasks
+from techtree.forge.improvement import require_whole_collection
 from techtree.forge.models import (
     FORGE_REVISION_SCHEMA_VERSION,
     VERDICT_MINIMUM_PAIRS,
@@ -61,11 +65,18 @@ from techtree.forge.models import (
     ForgeRunSpec,
     ForgeRunStatus,
     ForgeScreeningFinding,
+    ForgeSkillSpec,
+    ForgeSourceLineage,
 )
 from techtree.forge.qualify import read_task_facts
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import read_build_status
-from techtree.forge.skill import SKILL_DIRNAME, scan_skill_spec, snapshot_skill
+from techtree.forge.skill import (
+    SKILL_DIRNAME,
+    read_owned_skill,
+    scan_skill_spec,
+    snapshot_skill,
+)
 from techtree.fs import atomic_write_bytes, atomic_write_json
 from techtree.ids import new_id, validate_id
 from techtree.paths import TechtreePaths
@@ -75,6 +86,7 @@ __all__ = [
     "REVISION_FILENAME",
     "SPEC_FILENAME",
     "MeasuredRevision",
+    "lineage_from_revision",
     "measure_revision",
     "prepare_revision",
     "read_revision_status",
@@ -108,7 +120,7 @@ def prepare_revision(
             code="forge_candidate_without_skill",
             details={"comparison_id": comparison_id},
         )
-    require_study_tasks(comparison)
+    require_whole_collection(paths, comparison)
     try:
         skill, files = scan_skill_spec(skill_root, name=label)
     except ModelValidationError as error:
@@ -140,7 +152,11 @@ def prepare_revision(
     comparability = compare_run_specs(baseline.spec, spec)
     assert_comparable_run_specs(comparability)
     screening = screen_skill(
-        paths, tasks_from=spec.tasks_from, task_ids=spec.task_ids, files=files
+        paths,
+        tasks_from=spec.tasks_from,
+        task_ids=spec.task_ids,
+        files=files,
+        known=_inherited(parent.spec.skill, parent),
     )
 
     revision_id = new_id("forgerev")
@@ -250,6 +266,30 @@ def read_revision_status(paths: TechtreePaths, revision_id: str) -> ForgeRevisio
     )
 
 
+def lineage_from_revision(paths: TechtreePaths, revision_id: str) -> ForgeSourceLineage:
+    """The lineage of a revised Skill looked at as a Source Skill: it joins
+    the line of the collection it was revised on."""
+    record = read_revision_status(paths, revision_id).record
+    match record.tasks_from:
+        case ForgeBuildTasks():
+            raise ValidationError(
+                f"revision {revision_id} was made on a repository's tasks, not "
+                "on a collection of tasks written from a Skill, so there is no "
+                "line of collections for this Skill to join. Look at it without "
+                "--derived-from",
+                code="forge_revision_without_line",
+                details={"revision_id": revision_id},
+            )
+        case ForgeCollectionTasks(collection_id=collection_id):
+            line = read_collection_status(paths, collection_id).record.review
+            return ForgeSourceLineage(
+                kind="revision",
+                parent_id=revision_id,
+                parent_digest=record.skill.root_digest,
+                root_digest=line.line_digest,
+            )
+
+
 # ---------------------------------------------------------------------------
 # Screening
 # ---------------------------------------------------------------------------
@@ -266,8 +306,10 @@ def screen_skill(
     tasks_from: ForgeBuildTasks | ForgeCollectionTasks,
     task_ids: list[str],
     files: list[tuple[Path, str]],
+    known: set[str],
 ) -> list[ForgeScreeningFinding]:
-    """Record every Skill line that also occurs in a task's hidden material.
+    """Record every line a revision adds that also occurs in a task's hidden
+    material.
 
     A repository task hides three kinds of material: the added lines of the
     reference patch, every line of every file under ``tests``, and the test
@@ -276,19 +318,23 @@ def screen_skill(
     a collection also hides every line of its ``instruction.md`` and of its
     inputs, the files under ``environment`` other than the ``Dockerfile``
     that only builds its image. A Skill line is compared after stripping,
-    and only when it is long enough to be more than coincidence.
+    and only when it is long enough to be more than coincidence. Lines in
+    ``known`` (those of the Skill being revised) are not screened, and on a
+    collection neither are lines of the instruction or inputs of a task the
+    reviser may study: the reviser had them without seeing anything hidden.
     """
-    skill_lines = [
-        (relative, number, line)
+    hidden, shown = _material(paths, tasks_from, task_ids)
+    added = [
+        (relative, number, stripped)
         for source, relative in files
         for number, line in _text_lines(source)
+        if len(stripped := line.strip()) >= _MINIMUM_LINE
+        and stripped not in known
+        and stripped not in shown
     ]
     findings: list[ForgeScreeningFinding] = []
-    for task_id, materials, names in _hidden_material(paths, tasks_from, task_ids):
-        for relative, number, line in skill_lines:
-            stripped = line.strip()
-            if len(stripped) < _MINIMUM_LINE:
-                continue
+    for task_id, materials, names in hidden:
+        for relative, number, stripped in added:
             for material, haystack in materials:
                 if stripped in haystack:
                     findings.append(
@@ -313,12 +359,24 @@ def screen_skill(
     return findings
 
 
-def _hidden_material(
+def _inherited(skill: ForgeSkillSpec, parent: ForgeRunStatus) -> set[str]:
+    """Every stripped line of the Skill a revision revises, as its run kept
+    it, each file proved against the digest the run recorded."""
+    directory = Path(parent.path) / SKILL_DIRNAME
+    read_owned_skill(skill, directory, owner_id=parent.run_id)
+    return {line for file in skill.files for line in _lines_of(directory / file.path)}
+
+
+_Hidden = list[tuple[str, list[tuple[_Material, set[str]]], set[str]]]
+
+
+def _material(
     paths: TechtreePaths,
     tasks_from: ForgeBuildTasks | ForgeCollectionTasks,
     task_ids: list[str],
-) -> list[tuple[str, list[tuple[_Material, set[str]]], set[str]]]:
-    """Return, per task, the hidden lines by kind and the test names it grades by."""
+) -> tuple[_Hidden, set[str]]:
+    """Return, per task, the hidden lines by kind and the test names it
+    grades by; and the lines of what the reviser was shown."""
     match tasks_from:
         case ForgeBuildTasks(build_id=build_id):
             build = read_build_status(paths, build_id).build
@@ -347,7 +405,7 @@ def _hidden_material(
                     ("tests", _lines_under(task_dir / "tests")),
                 ]
                 hidden.append((task_id, materials, names))
-            return hidden
+            return hidden, set()
         case ForgeCollectionTasks(collection_id=collection_id):
             members = {
                 member.task_id: member
@@ -356,23 +414,22 @@ def _hidden_material(
                 ).record.review.members
             }
             hidden = []
+            shown: set[str] = set()
             for task_id in task_ids:
                 member = members[task_id]
                 task_dir = paths.forge_build_dir(member.build_id) / "tasks" / task_id
+                given = _lines_of(task_dir / "instruction.md")
+                inputs = _lines_under(task_dir / "environment", "Dockerfile")
                 materials = [
                     ("reference_solution", _lines_under(task_dir / "solution")),
                     ("tests", _lines_under(task_dir / "tests")),
                 ]
                 if member.part == "held_out":
-                    materials += [
-                        ("instruction", _lines_of(task_dir / "instruction.md")),
-                        (
-                            "inputs",
-                            _lines_under(task_dir / "environment", "Dockerfile"),
-                        ),
-                    ]
+                    materials += [("instruction", given), ("inputs", inputs)]
+                else:
+                    shown |= given | inputs
                 hidden.append((task_id, materials, set()))
-            return hidden
+            return hidden, shown
 
 
 def _lines_under(directory: Path, *leaving_out: str) -> set[str]:

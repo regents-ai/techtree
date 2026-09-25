@@ -178,8 +178,14 @@ def verify_task_set(tasks_dir: Path, expected: TaskSetCommitment) -> None:
 
 def task_fingerprint(manifest: TaskContentManifest) -> str:
     """Return what identifies a task whatever it was built as: the digest of
-    its files, leaving out the ``task.toml`` Techtree writes around them,
-    which names the package and so differs every time the task is built."""
+    its files, leaving out the ``task.toml`` Techtree writes around them.
+
+    That file names the package, so it differs every time a task is built,
+    and it also holds what the creator declared around the files: the task's
+    description, its keywords and the outputs it requires. None of those
+    count, so two tasks whose files are the same but whose required outputs
+    differ are one task twice, and a task built again with only those
+    changed keeps its part."""
     return digest_object(
         [entry for entry in manifest.entries if entry.path != "task.toml"]
     )

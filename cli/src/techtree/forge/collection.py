@@ -23,13 +23,15 @@ task an earlier version of the collection held under its name or with its
 files, and is studied when those disagree, so a task built again keeps its
 part and a task once studied is never held out; only a task that shares
 neither with an earlier one is given a part by its fingerprint. Earlier
-versions are the chain ``--previous`` names, and a Skill's versions form one
-line: a collection is prepared and accepted only as a new version of the
-latest accepted collection of the same Skill, or as the first when there is
-none, and is refused otherwise. A collection holds at least one task in
-each part and no two tasks with the same files, and preparing refuses one
-that would not; tasks whose files differ only slightly are not recognised as
-the same.
+versions are the chain ``--previous`` names, and one line of versions holds
+the collections of a Skill and of every Skill derived from it (a reduced
+copy looked at with ``--derived-from``, or a revision uplift wrote), keyed
+by the Skill at the root of that derivation: a collection is prepared and
+accepted only as a new version of the latest accepted collection of its
+line, or as the first when there is none, and is refused otherwise. A
+collection holds at least one task in each part and no two tasks with the
+same files, and preparing refuses one that would not; tasks whose files
+differ only slightly are not recognised as the same.
 
 Verifying an accepted collection makes its review again from what is on disk
 now: every member's files are hashed against their build's commitment, every
@@ -74,12 +76,14 @@ from techtree.forge.models import (
 )
 from techtree.forge.planning import read_proposal_status
 from techtree.forge.service import read_build_status
+from techtree.forge.source import read_source_status
 from techtree.fs import atomic_write_json
 from techtree.ids import new_id, validate_id
 from techtree.paths import TechtreePaths
 
 __all__ = [
     "accept_collection",
+    "already_collected",
     "changed_member_files",
     "check_collection",
     "latest_collection",
@@ -125,30 +129,67 @@ def prepare_collection(
 def latest_collection(
     paths: TechtreePaths, construction_id: str
 ) -> ForgeCollectionStatus | None:
-    """Return the latest accepted collection of the same Skill as a
-    construction's tasks, if the home holds one."""
-    return _latest(paths, _chain(paths, construction_id)[0].record.review.source_digest)
+    """Return the latest accepted collection in the line of a construction's
+    Skill, if the home holds one."""
+    return _latest(paths, _line(paths, _chain(paths, construction_id)))
 
 
-def _latest(paths: TechtreePaths, source_digest: str) -> ForgeCollectionStatus | None:
-    """Return the latest accepted collection of a Skill, if the home holds one.
+def already_collected(paths: TechtreePaths, construction_id: str) -> bool:
+    """Whether the latest accepted collection in the line of a construction's
+    Skill holds exactly the builds collecting its qualified tasks would take,
+    so that collecting them again would make no new version."""
+    chain = _chain(paths, construction_id)
+    latest = _latest(paths, _line(paths, chain))
+    if latest is None:
+        return False
+    proposal = read_proposal_status(paths, chain[0].record.review.proposal_id).record
+    taken = {
+        (candidate.task_name, candidate.build_id)
+        for candidate in (_candidate(task.name, chain) for task in proposal.tasks)
+        if candidate.usable
+    }
+    return taken == {
+        (member.task_name, member.build_id) for member in latest.record.review.members
+    }
 
-    Collections are of the same Skill when their Source Skills have the same
-    admitted files: the tasks are written from those bytes, whichever time
-    the Skill was looked at or planned for. The latest is the highest
-    version.
+
+def _line(paths: TechtreePaths, chain: list[ForgeConstructionStatus]) -> str:
+    """The line of collections a construction's tasks belong to: that of the
+    Source Skill they were written from."""
+    source_id = chain[0].record.review.source_id
+    return read_source_status(paths, source_id).record.line_digest
+
+
+def _latest(paths: TechtreePaths, line_digest: str) -> ForgeCollectionStatus | None:
+    """Return the latest accepted collection of a line, if the home holds one.
+
+    A line is a Skill and every Skill derived from it: the collections whose
+    Source Skills share the root of what they were derived from, whichever
+    time a Skill was looked at or planned for. The latest is the highest
+    version. Every collection in the home is read, so one that cannot be read
+    is refused by its path, for a person to fix or move.
     """
     directory = paths.forge_collections_dir
-    accepted = [
-        status
-        for status in (
-            read_collection_status(paths, child.name)
-            for child in (sorted(directory.iterdir()) if directory.is_dir() else [])
-            if (child / COLLECTION_FILENAME).is_file()
-        )
-        if status.acceptance is not None
-        and status.record.review.source_digest == source_digest
-    ]
+    accepted = []
+    for child in sorted(directory.iterdir()) if directory.is_dir() else []:
+        if not (child / COLLECTION_FILENAME).is_file():
+            continue
+        try:
+            status = read_collection_status(paths, child.name)
+        except TechtreeError as error:
+            raise ValidationError(
+                f"the collection record in {child} cannot be read "
+                f"({error.message}), and every collection in {directory} is "
+                "read to find the latest version of a Skill's tasks. Fix it, or "
+                f"move its folder out of {directory}",
+                code="forge_collection_unreadable",
+                details={"path": str(child), "cause": error.code},
+            ) from error
+        if (
+            status.acceptance is not None
+            and status.record.review.line_digest == line_digest
+        ):
+            accepted.append(status)
     return max(accepted, key=lambda status: status.record.review.version, default=None)
 
 
@@ -156,7 +197,7 @@ def _require_latest(paths: TechtreePaths, review: ForgeCollectionReview) -> None
     """Refuse a collection that does not replace the latest accepted
     collection of its Skill, so a Skill's versions form one line and a task
     seen in one keeps its part in every later one."""
-    latest = _latest(paths, review.source_digest)
+    latest = _latest(paths, review.line_digest)
     previous = None if review.previous is None else review.previous.collection_id
     if latest is None or latest.collection_id == previous:
         return
@@ -165,10 +206,10 @@ def _require_latest(paths: TechtreePaths, review: ForgeCollectionReview) -> None
         (
             f"collection {latest.collection_id} (version "
             f"{latest.record.review.version}) already holds accepted tasks of "
-            "this Skill"
+            "this Skill or one it was derived from"
             if previous is None
-            else f"collection {previous} is not the latest version of this "
-            f"Skill's collection; {latest.collection_id} (version "
+            else f"collection {previous} is not the latest version in this "
+            f"Skill's line of collections; {latest.collection_id} (version "
             f"{latest.record.review.version}) is"
         )
         + ", and a task keeps its part only along one line of versions. Make "
@@ -300,6 +341,7 @@ _CHANGED_WORDS: Final = {
     "claims": "the proposal",
     "source_id": "the Skill",
     "source_digest": "the Skill",
+    "line_digest": "the Skill",
     "constructions": "the constructions",
     "previous": "the version it replaces",
     "version": "the version number",
@@ -377,9 +419,8 @@ def _review(
                 "minimum": MINIMUM_COLLECTION_TASKS,
             },
         )
-    parent = (
-        None if previous is None else _parent(paths, previous, newest.source_digest)
-    )
+    line_digest = read_source_status(paths, newest.source_id).record.line_digest
+    parent = None if previous is None else _parent(paths, previous, line_digest)
     committed = [_commit(paths, _last_try(name, chain)[1]) for name in names]
     for index, task in enumerate(committed):
         if same := next(
@@ -449,6 +490,7 @@ def _review(
         claims=proposal.claims,
         source_id=newest.source_id,
         source_digest=newest.source_digest,
+        line_digest=line_digest,
         constructions=[status.construction_id for status in chain],
         previous=parent,
         version=1 if parent is None else parent.version + 1,
@@ -570,9 +612,9 @@ def _commit(paths: TechtreePaths, task: ForgeConstructionTaskStatus) -> _Committ
 
 
 def _parent(
-    paths: TechtreePaths, previous: str, source_digest: str
+    paths: TechtreePaths, previous: str, line_digest: str
 ) -> ForgeCollectionParent:
-    """Return the accepted collection a new version of the same Skill replaces."""
+    """Return the accepted collection a new version in the same line replaces."""
     status = read_collection_status(paths, previous)
     if status.acceptance is None:
         raise ValidationError(
@@ -581,13 +623,13 @@ def _parent(
             code="forge_collection_not_accepted",
             details={"collection_id": previous},
         )
-    if status.record.review.source_digest != source_digest:
+    if status.record.review.line_digest != line_digest:
         raise ValidationError(
-            f"collection {previous} holds tasks of Skill "
-            f"{status.record.review.source_digest[:19]}, not {source_digest[:19]}; "
-            "a new version is of a Skill with the same files",
+            f"collection {previous} holds tasks of another Skill; a new version "
+            "is of the same Skill or of one derived from it, as forge look "
+            "--derived-from records",
             code="forge_collection_other_source",
-            details={"collection_id": previous, "source_digest": source_digest},
+            details={"collection_id": previous, "line_digest": line_digest},
         )
     return ForgeCollectionParent(
         collection_id=previous,

@@ -19,7 +19,11 @@ from typer.testing import CliRunner
 
 from techtree.cli.app import create_app
 from techtree.errors import ValidationError
-from techtree.forge.source import SOURCE_FILENAME, inspect_source_skill
+from techtree.forge.source import (
+    SOURCE_FILENAME,
+    inspect_source_skill,
+    lineage_from_source,
+)
 from techtree.manifests.builder import skill_content_digest
 from techtree.paths import paths_from_root
 
@@ -187,8 +191,10 @@ def test_a_reduced_copy_is_a_new_source_with_lineage_to_the_original(
         ).read_bytes()
     )
     assert record["lineage"] == {
-        "parent_source_id": parent_id,
-        "parent_admitted_digest": parent["admitted_digest"],
+        "kind": "source",
+        "parent_id": parent_id,
+        "parent_digest": parent["admitted_digest"],
+        "root_digest": parent["admitted_digest"],
     }
     assert record["admitted_digest"] != parent["admitted_digest"]
 
@@ -198,10 +204,12 @@ def test_a_copy_that_admits_what_its_original_admits_is_not_a_derivative(
 ) -> None:
     paths = paths_from_root(temp_techtree_home)
     root = write_source(tmp_path / "demo-skill", "Read the failing test.\n", {})
-    first = inspect_source_skill(paths, root, derived_from=None)
+    first = inspect_source_skill(paths, root, lineage=None)
 
     with pytest.raises(ValidationError) as raised:
-        inspect_source_skill(paths, root, derived_from=first.source_id)
+        inspect_source_skill(
+            paths, root, lineage=lineage_from_source(paths, first.source_id)
+        )
 
     assert raised.value.code == "forge_source_unchanged"
     assert source_dirs(temp_techtree_home) == [Path(first.path)]
@@ -223,7 +231,7 @@ def test_a_link_the_skill_cannot_satisfy_refuses_it(
     root = write_source(tmp_path / "demo-skill", body, {})
 
     status = inspect_source_skill(
-        paths_from_root(temp_techtree_home), root, derived_from=None
+        paths_from_root(temp_techtree_home), root, lineage=None
     )
 
     [refusal] = status.record.refusals
@@ -240,7 +248,7 @@ def test_a_link_is_recorded_and_never_followed(
     os.symlink(outside, root / "guide.md")
 
     status = inspect_source_skill(
-        paths_from_root(temp_techtree_home), root, derived_from=None
+        paths_from_root(temp_techtree_home), root, lineage=None
     )
 
     [entry] = [e for e in status.record.entries if e.path == "guide.md"]
@@ -275,7 +283,7 @@ def test_a_header_techtree_does_not_read_refuses_the_skill(
     (root / "SKILL.md").write_text(header + "\nBody.\n", encoding="utf-8")
 
     status = inspect_source_skill(
-        paths_from_root(temp_techtree_home), root, derived_from=None
+        paths_from_root(temp_techtree_home), root, lineage=None
     )
 
     [refusal] = status.record.refusals

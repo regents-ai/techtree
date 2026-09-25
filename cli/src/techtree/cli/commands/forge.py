@@ -47,6 +47,7 @@ from techtree.engines.installer import find_uv
 from techtree.errors import PolicyError, RunError, TechtreeError, ValidationError
 from techtree.forge.collection import (
     accept_collection,
+    already_collected,
     check_collection,
     latest_collection,
     prepare_collection,
@@ -68,6 +69,7 @@ from techtree.forge.models import (
     MINIMUM_COLLECTION_TASKS,
     TASK_KIND_WORDS,
     TASK_KINDS_EXPLAINED,
+    VERDICT_MINIMUM_PAIRS,
     ForgeArm,
     ForgeArmTotals,
     ForgeAttemptOutcome,
@@ -122,12 +124,13 @@ from techtree.forge.report import (
     task_verdict,
     verdict_words,
 )
-from techtree.forge.revision import read_revision_status
+from techtree.forge.revision import lineage_from_revision, read_revision_status
 from techtree.forge.run import ForgeRunner, read_run_status
 from techtree.forge.service import ForgeService, read_build_status
 from techtree.forge.source import (
     UNSUPPORTED_WORDS,
     inspect_source_skill,
+    lineage_from_source,
     read_source_status,
 )
 from techtree.ids import id_prefix
@@ -423,9 +426,10 @@ def inspect_skill_forge_command(
         str | None,
         typer.Option(
             "--derived-from",
-            metavar="SOURCE_ID",
-            help="The Skill this one is a reduced copy of, as an earlier look "
-            "recorded it.",
+            metavar="ID",
+            help="What this Skill was made from: the Skill it is a reduced copy "
+            "of, as an earlier look recorded it, or the uplift revision that "
+            "wrote it.",
         ),
     ] = None,
 ) -> None:
@@ -433,7 +437,14 @@ def inspect_skill_forge_command(
     context = cli_context(ctx)
 
     def action() -> CommandResult[ForgeSourceStatus]:
-        status = inspect_source_skill(context.paths, skill, derived_from=derived_from)
+        lineage = (
+            None
+            if derived_from is None
+            else lineage_from_revision(context.paths, derived_from)
+            if id_prefix(derived_from) == "forgerev"
+            else lineage_from_source(context.paths, derived_from)
+        )
+        status = inspect_source_skill(context.paths, skill, lineage=lineage)
         record = status.record
         if record.state == "refused":
             raise ValidationError(
@@ -1115,16 +1126,11 @@ def run_review_lines(spec: ForgeRunSpec, *, held_out: frozenset[str]) -> list[st
     counted, not named, for a caller that may be the improving agent."""
     shown = [task_id for task_id in spec.task_ids if task_id not in held_out]
     hidden = len(spec.task_ids) - len(shown)
-    listed = ", and ".join(
-        words
-        for words in (
-            ", ".join(shown),
-            f"{hidden} held-out {'task' if hidden == 1 else 'tasks'} the "
-            "improving agent never sees"
-            if hidden
-            else "",
-        )
-        if words
+    listed = ", ".join(shown) + (
+        f", and {hidden} held-out {'task' if hidden == 1 else 'tasks'} the "
+        "improving agent never sees"
+        if hidden
+        else ""
     )
     return [
         f"Arm: {spec.arm.value}"
@@ -1753,8 +1759,7 @@ def render_forge_source(status: ForgeSourceStatus, console: Console) -> None:
         pairs.append(
             (
                 "Derived from",
-                f"{record.lineage.parent_source_id} "
-                f"({record.lineage.parent_admitted_digest[:19]})",
+                f"{record.lineage.parent_id} ({record.lineage.parent_digest[:19]})",
             )
         )
     if declaration is not None:
@@ -2379,6 +2384,7 @@ def construction_next_actions(
         ended
         and len(qualified_tasks(paths, status.construction_id))
         >= MINIMUM_COLLECTION_TASKS
+        and not already_collected(paths, status.construction_id)
     ):
         latest = latest_collection(paths, status.construction_id)
         actions.append(
@@ -2404,7 +2410,7 @@ def construction_next_actions(
                     ""
                     if latest is None
                     else f" It is the next version of {latest.collection_id}, "
-                    "the latest accepted collection of this Skill."
+                    "the latest accepted collection in this Skill's line."
                 ),
             )
         )
@@ -2618,20 +2624,46 @@ def _accept_when_agreed(status: ForgeCollectionStatus) -> NextAction:
 
 
 def collection_warnings(status: ForgeCollectionStatus) -> list[CliWarning]:
-    """Say when a collection holds too few tasks to say much."""
-    members = len(status.record.review.members)
-    if members >= FEW_TASKS:
-        return []
+    """Say when a collection holds too few tasks to say much, and when too
+    few are held out for a revision's verdict on one attempt each."""
+    members = status.record.review.members
+    held_out = sum(member.part == "held_out" for member in members)
+    repetitions = -(-VERDICT_MINIMUM_PAIRS // held_out)
     return [
-        CliWarning(
-            id="forge_few_tasks",
-            text=(
-                f"Only {members} {_plural(members, 'task is', 'tasks are')} in "
-                "this collection. A run on so few can say how one attempt "
-                "went, not whether a Skill helps."
-            ),
-            resolvable_by=None,
-        )
+        *(
+            [
+                CliWarning(
+                    id="forge_few_tasks",
+                    text=(
+                        f"Only {len(members)} "
+                        f"{_plural(len(members), 'task is', 'tasks are')} in "
+                        "this collection. A run on so few can say how one "
+                        "attempt went, not whether a Skill helps."
+                    ),
+                    resolvable_by=None,
+                )
+            ]
+            if len(members) < FEW_TASKS
+            else []
+        ),
+        *(
+            [
+                CliWarning(
+                    id="forge_few_held_out",
+                    text=(
+                        f"Only {held_out} "
+                        f"{_plural(held_out, 'task is', 'tasks are')} held out. "
+                        "A revised Skill's verdict needs at least "
+                        f"{VERDICT_MINIMUM_PAIRS} graded attempts on them, so "
+                        f"runs for one need at least {repetitions} repetitions "
+                        "per task."
+                    ),
+                    resolvable_by=None,
+                )
+            ]
+            if held_out < VERDICT_MINIMUM_PAIRS
+            else []
+        ),
     ]
 
 

@@ -1514,10 +1514,21 @@ class ForgeSourceRefusal(ProtocolModel):
 
 
 class ForgeSourceLineage(ProtocolModel):
-    """The inspected Skill a reduced derivative was made from."""
+    """What an inspected Skill was made from, and the Skill its line starts at.
 
-    parent_source_id: NonEmptyString
-    parent_admitted_digest: Digest
+    ``kind`` says what the parent is: ``source``, an earlier look at a Skill
+    this one is a reduced copy of, or ``revision``, a revised Skill uplift
+    wrote on a collection's tasks. ``parent_id`` names it and
+    ``parent_digest`` is its content digest. ``root_digest`` is the admitted
+    digest of the Skill at the start of the chain, which every Skill derived
+    from it carries: the collections of all of them form one line of
+    versions.
+    """
+
+    kind: Literal["source", "revision"]
+    parent_id: NonEmptyString
+    parent_digest: Digest
+    root_digest: Digest
 
 
 class ForgeSourceRecord(ProtocolModel):
@@ -1541,6 +1552,14 @@ class ForgeSourceRecord(ProtocolModel):
     admitted_digest: Digest
     refusals: list[ForgeSourceRefusal]
     lineage: ForgeSourceLineage | None
+
+    @property
+    def line_digest(self) -> str:
+        """The Skill this one's line of collections starts at: the root of
+        what it was derived from, or itself."""
+        return (
+            self.admitted_digest if self.lineage is None else self.lineage.root_digest
+        )
 
     @model_validator(mode="after")
     def validate_record(self) -> Self:
@@ -2334,7 +2353,10 @@ class ForgeCollectionReview(ProtocolModel):
     each by its content and qualification digests and the part it is in,
     with at least one task in each part. ``claims`` are the proposal's
     claims, which the members name. ``constructions`` is the retry chain the
-    outcomes come from, newest first.
+    outcomes come from, newest first. ``line_digest`` is the Skill the
+    source's line starts at (``ForgeSourceRecord.line_digest``): the
+    collections of a Skill and of every Skill derived from it form one line
+    of versions.
     """
 
     proposal_id: NonEmptyString
@@ -2342,6 +2364,7 @@ class ForgeCollectionReview(ProtocolModel):
     claims: list[ForgeSkillClaim] = Field(min_length=1, max_length=MAX_CLAIMS)
     source_id: NonEmptyString
     source_digest: Digest
+    line_digest: Digest
     constructions: list[NonEmptyString] = Field(min_length=1)
     previous: ForgeCollectionParent | None
     version: int = Field(ge=1)

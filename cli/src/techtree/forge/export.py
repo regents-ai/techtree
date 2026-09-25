@@ -330,16 +330,21 @@ def export_readme(export: ForgeExport) -> str:
         "Skill on this collection, and a revised Skill's verdict is worked out "
         "on them alone. Which tasks are held out follows from a fixed rule; "
         "nobody chose it. A task keeps its part in every later version of the "
-        "collection, even when it is built again or appears under another name "
-        "with the same files; one that was ever studied is never held out. "
-        "Tasks whose files differ only slightly are not recognised as the "
-        "same task.",
+        "collections for this Skill and Skills derived from it, even when it is "
+        "built again or appears under another name with the same files; one "
+        "that was ever studied is never held out. Tasks whose files differ only "
+        "slightly are not recognised as the same task.",
         "",
         "## What the tasks test",
         "",
         *(
-            f"- {claim.claim_id}: {claim.statement} What shows it: {claim.observable}"
+            line
             for claim in review.claims
+            if claim.claim_id in {member.claim for member in review.members}
+            for line in (
+                f"- {claim.claim_id}: {claim.statement}",
+                f"  - What shows it: {claim.observable}",
+            )
         ),
         "",
         TASK_KINDS_EXPLAINED,

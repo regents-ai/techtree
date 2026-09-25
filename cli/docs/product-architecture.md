@@ -370,7 +370,7 @@ src/techtree/
 ```
 
 **Forge source (a Source Skill, looked at without running it).** `forge
-inspect-skill PATH [--derived-from SOURCE_ID]` (`forge/source.py`,
+inspect-skill PATH [--derived-from ID]` (`forge/source.py`,
 `docs/plan/v0.3.0-skill-environments.md` U3a) is the first record of a
 Skill-created environment. It lists every entry under the Skill's directory and
 executes, follows and guesses nothing: a hidden path is recorded and never
@@ -399,10 +399,16 @@ declaration and grants nothing. The record
 `forge/sources/<forgesrc_id>/source.json`; an admitted source also keeps the
 admitted bytes, exactly those hashed, under `skill/` beside it, and its
 `admitted_digest` is the same content digest a Skill copy carries elsewhere. A
-reduced copy is looked at with `--derived-from`: it is a new source whose
-`lineage` names the original record and its digest, and a copy that admits
-exactly what the original admits is refused as `forge_source_unchanged`
-without writing anything. Nothing is run, no model is called and nothing
+Skill made from another is looked at with `--derived-from`: a reduced copy
+names the source it was reduced from, and a Skill revised by `uplift prepare`
+names that revision. It is a new source whose `lineage` records its `kind`
+(`source` or `revision`), the parent's id and the digest of the Skill it was
+made from, and `root_digest`, the admitted digest of the source its line of
+derivation starts at, which is the line of collections its tasks join. A
+reduced copy that admits exactly what the original admits is refused as
+`forge_source_unchanged`, and a revision of a build's tasks, which belongs to
+no line of collections, as `forge_revision_without_line`, both without
+writing anything. Nothing is run, no model is called and nothing
 leaves the machine.
 
 **Forge planning (one approved planner call, then a proposal to review).**
@@ -508,7 +514,10 @@ and the members, the qualified tasks being accepted (all of them unless
 `--task` names fewer), each by the claim it tests and its kind (as its
 construction package recorded them), its build, task id, content digest, its
 `fingerprint` (the digest of its files other than the `task.toml` Techtree
-writes, which names the package and so differs every time a task is built)
+writes, which holds the package's name, description and keywords and the
+outputs the task requires, and so differs every time a task is built; two
+tasks that differ only in their required outputs therefore count as the same
+task twice, and a rebuild that changes only those keeps its part)
 and the digest of its qualification evidence, after its files are hashed
 against the build's commitment, and its `part`, `study` or `held_out`.
 Nobody chooses the parts, and a part follows the task, not its bytes: a new
@@ -523,20 +532,30 @@ earlier task is given a part: those are ordered by the sha256 of
 tie), and the first half, rounded down, are held out; a single one takes the
 part that leaves the collection more even, held out when either would. The
 earlier tasks are those of the chain `--previous` names, and a Skill's
-collections form one line of versions: `forge collect` and `forge accept`
-refuse a collection that is not a new version of the latest accepted
-collection whose Source Skill has the same admitted files, naming that
-latest and the `--previous` to use; without `--previous` when one exists
-(`forge_collection_has_versions`), and with `--previous` naming an older
-one (`forge_collection_not_latest`). Checking again at acceptance keeps two
-versions prepared from the same collection from both being accepted, so the
-highest version is always the latest, and `forge construct`'s next action
-offers that `--previous`. The link is the
-Source Skill's admitted digest, not its `source_id` or the proposal: the
-tasks are written from those bytes, and looking at the same Skill again or
-planning it again gives a new source or proposal that would otherwise start
-a new line silently; `--previous` likewise requires a collection of a Skill
-with the same admitted files (`forge_collection_other_source`). A collection
+collections, and those of every Skill derived from it, form one line of
+versions: `forge collect` and `forge accept` refuse a collection that is not
+a new version of the latest accepted collection in its Source Skill's line,
+naming that latest and the `--previous` to use; without `--previous` when one
+exists (`forge_collection_has_versions`), and with `--previous` naming an
+older one (`forge_collection_not_latest`). Checking again at acceptance keeps
+two versions prepared from the same collection from both being accepted, so
+the highest version is always the latest, and `forge construct`'s next action
+offers `forge collect` with that `--previous` only while it would make a new
+version, and `forge status` offers none once the construction's tasks are
+already the latest version's. The line is keyed on `line_digest`, the
+admitted digest of the source the Skill's derivation starts at (the Skill's
+own when nothing was derived, its lineage's `root_digest` otherwise), not
+its `source_id` or the proposal: the tasks are written from those bytes, and
+looking at the same Skill again or planning it again gives a new source or
+proposal that would otherwise start a new line silently, while a reduced
+copy or a revised Skill looked at with `--derived-from` stays in the line,
+so a task keeps its part in every later version of the collections for this
+Skill and Skills derived from it. `--previous` likewise requires a
+collection of the same line (`forge_collection_other_source`). Every
+collection record is read to find the latest, and one that cannot be read
+refuses `forge collect`, `forge accept` and `forge status` alike
+(`forge_collection_unreadable`, naming its path) rather than being skipped,
+since skipping it could hand out a part twice. A collection
 whose members include two tasks with the same fingerprint is refused
 (`forge_collection_duplicate_task`, naming both). Tasks whose files differ
 even slightly have different fingerprints, so near-duplicates, such as the
@@ -553,7 +572,10 @@ which tasks are held out and says the improving agent will never see them. `forg
 makes the review again, refuses one that changed (`forge_collection_stale`)
 or no longer replaces the latest version, asks, and writes `acceptance.json` with that digest; an accepted collection is
 frozen and never accepted again (`forge_collection_accepted`). A collection of
-fewer than three tasks is accepted with the `forge_few_tasks` warning. Any
+fewer than three tasks is accepted with the `forge_few_tasks` warning, and
+one with fewer than three held-out tasks with `forge_few_held_out`, which
+says how many repetitions per task a revision's runs need for the three
+graded held-out pairs its verdict requires. Any
 change is a new collection: `--previous` names the latest accepted collection
 of the same Skill, the new one is its version plus one, and one with exactly its
 members is refused (`forge_collection_unchanged`). `forge verify
@@ -869,9 +891,10 @@ it on a Climb run, with the same review-before-spend and the same refusal to
 hand a reviser hidden material. `uplift context FORGECMP_ID`
 (`forge/improvement.py`) writes `improvement/context.json`
 (`techtree.forge-improvement-context.v1alpha3`) beside the comparison, and
-refuses before writing anything when the compared runs cover no task of a
-collection the reviser may study (`forge_revision_no_study_task`, the same
-refusal as `uplift prepare`'s): where
+refuses before writing anything when the compared runs do not cover every
+task of their collection, studied and held out alike
+(`forge_revision_partial_collection`, the same refusal as `uplift
+prepare`'s, which gives only the counts): where
 the tasks came from in `tasks_from` (a build with its repository and commit,
 or a collection with its version and how many tasks are held out), the
 measured Skill's name and digests, the paired totals (for a collection, those
@@ -892,12 +915,16 @@ that covered them. `uplift
 prepare --from-run FORGECMP_ID --candidate-skill PATH [--label NAME]`
 (`forge/revision.py`) makes one revision: the candidate run's specification
 with the Skill alone replaced, refused when the Skill is unchanged
-(`forge_revision_unchanged`), when the compared runs cover no task of a
-collection the reviser may study (`forge_revision_no_study_task`, before
-anything is written), when Hermes no longer reports the version the
+(`forge_revision_unchanged`), when the compared runs do not cover every task
+of their collection (`forge_revision_partial_collection`, before anything is
+written, so a revision's `uplift start` always measures the whole
+collection), when Hermes no longer reports the version the
 comparison used (`forge_agent_changed`), or when `compare_run_specs` finds any
-other difference against the baseline. The revised Skill is then screened
-against every task's hidden material: each line of 24 characters or more that
+other difference against the baseline. What the revision adds is then
+screened against every task's hidden material. Only lines it adds are
+screened: a line the measured Skill already had, or one that appears in the
+instruction or inputs of a task the reviser was shown, is not the reviser's
+doing and is skipped. Each added line of 24 characters or more that
 appears verbatim in a reference fix or a test file, and each scored test name
 it mentions (`reference_patch`, `tests`, `test_names`), or for a Skill task
 in any file of its reference solutions or tests (`reference_solution`,

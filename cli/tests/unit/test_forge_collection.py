@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import stat
 import subprocess
 from collections.abc import Sequence
@@ -125,17 +126,21 @@ def profiles(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
-    """The planner's proposal, corrected by a person to the five tasks of AE5
-    and one more that qualifies, so that a collection has a task in each part."""
     root = tmp_path / "branch-code"
     root.mkdir()
     (root / "SKILL.md").write_text(SKILL, encoding="utf-8")
+    source = inspect_source_skill(paths_from_root(home), root, lineage=None)
+    return propose(tmp_path, home, profiles, source.source_id)
+
+
+def propose(tmp_path: Path, home: Path, profiles: Path, source_id: str) -> str:
+    """The planner's proposal, corrected by a person to the five tasks of AE5
+    and one more that qualifies, so that a collection has a task in each part."""
     paths = paths_from_root(home)
-    source = inspect_source_skill(paths, root, derived_from=None)
     code, envelope = invoke(
         home,
         "plan",
-        source.source_id,
+        source_id,
         "--provider",
         "openai-codex",
         "--model",
@@ -163,7 +168,7 @@ def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
     )
     for name in (TIMES_OUT, DOES_NOT_QUALIFY, ALSO_QUALIFIES):
         edited["tasks"].append({**edited["tasks"][0], "name": name})
-    corrected = tmp_path / "corrected.json"
+    corrected = tmp_path / f"corrected-{source_id}.json"
     corrected.write_text(json.dumps(edited), encoding="utf-8")
     code, envelope = invoke(
         home, "correct-proposal", attempt.proposal_id, str(corrected)
@@ -290,8 +295,10 @@ def test_six_proposed_two_qualified_all_shown_and_frozen_only_when_accepted(
         ALSO_QUALIFIES,
     ]
     assert review["version"] == 1 and review["previous"] is None
-    [warning] = envelope["warnings"]
-    assert warning["id"] == "forge_few_tasks"
+    assert [warning["id"] for warning in envelope["warnings"]] == [
+        "forge_few_tasks",
+        "forge_few_held_out",
+    ]
     [accept] = envelope["next_actions"]
     assert accept["prepared_arguments"]["command"] == ["forge", "accept"]
     assert accept["expected_state_digest"] == status["record"]["collection_digest"]
@@ -313,14 +320,19 @@ def test_six_proposed_two_qualified_all_shown_and_frozen_only_when_accepted(
     assert "outcome unknown" in result.output
     assert "Accept these tasks as the collection?" in result.output
     assert "Only 2 tasks are in this collection" in result.output
+    assert "at least 3 repetitions per task" in " ".join(result.output.split())
     accepted = read_collection_status(paths_from_root(home), collection_id)
     assert accepted.state == "accepted" and accepted.acceptance is not None
     assert accepted.acceptance.answered_with == "prompt"
     assert accepted.acceptance.collection_digest == accepted.record.collection_digest
 
     code, verified = invoke(home, "verify", collection_id)
+    _, collected = invoke(home, "status", construction_id)
 
     assert code == 0, verified
+    assert ["forge", "collect"] not in [
+        action["prepared_arguments"]["command"] for action in collected["next_actions"]
+    ]
     assert verified["operation"] == "proof.verify"
     assert verified["warnings"][0]["id"] == "forge_few_tasks"
     code, again = invoke(home, "accept", collection_id, "--yes")
@@ -449,7 +461,9 @@ def test_a_retried_task_joins_as_a_new_version(
         TIMES_OUT,
         ALSO_QUALIFIES,
     ]
-    assert envelope["warnings"] == []
+    [warning] = envelope["warnings"]
+    assert warning["id"] == "forge_few_held_out"
+    assert "at least 2 repetitions per task" in warning["text"]
     assert invoke(home, "verify", v1)[0] == 0
 
 
@@ -768,6 +782,18 @@ def test_skill_v1_to_v2_on_the_collection_keeps_every_role_and_is_revised_there(
         "the revised Skill contains material from held-out tasks"
         in (measured["verdict"])
     )
+    revised = shutil.copytree(v3, tmp_path / "revised" / "branch-code")
+    _, looked = invoke(
+        home, "inspect-skill", str(revised), "--derived-from", revision.revision_id
+    )
+    assert looked["facts"]["record"]["lineage"] == {
+        "kind": "revision",
+        "parent_id": revision.revision_id,
+        "parent_digest": revision.record.skill.root_digest,
+        "root_digest": read_collection_status(
+            paths, collection_id
+        ).record.review.line_digest,
+    }
 
     # Paths in the task's own sandbox reach the reviser; a home folder does not.
     [member] = [member for member in members if member.part == "study"]
@@ -1023,6 +1049,10 @@ def test_an_export_is_checked_from_its_folder_alone_and_holds_nothing_private(
         assert secret.encode() not in data, path
         assert b"keep only the letters a to z" not in data, path
     assert stat.S_IMODE(moved.stat().st_mode) == 0o700
+    readme = (moved / "README.md").read_text(encoding="utf-8")
+    assert {member.claim for member in members} == {"C1"}
+    assert "- C1: " in readme and "  - What shows it: " in readme
+    assert "C2" not in readme
 
 
 def test_a_changed_or_added_file_in_an_export_is_refused_by_name(
@@ -1118,8 +1148,9 @@ def test_the_improving_agent_never_sees_a_held_out_task(
 ) -> None:
     """Invariant (b): no held-out id, name or instruction, though its runs did,
     in the context or in preparing, reviewing and measuring a revision, even
-    one that copies a held-out task's instruction; runs on held-out tasks
-    alone give no context and no revision."""
+    one that copies a held-out task's instruction; runs that leave out tasks
+    of either part give no context and no revision, and naming a task that
+    is not in the collection lists none that are."""
     collection_id = accepted(home, proposal_id, profiles)
     paths = paths_from_root(home)
     members = read_collection_status(paths, collection_id).record.review.members
@@ -1229,28 +1260,40 @@ def test_the_improving_agent_never_sees_a_held_out_task(
             for hidden in (held_out.task_id, held_out.task_name, held_out.build_id):
                 assert hidden not in text
 
-    only_held_out = compare_runs(
-        paths,
-        run(ForgeArm.BASELINE, tmp_path / "branch-code", 0.0, [held_out.task_id]),
-        run(ForgeArm.CANDIDATE, v2, 1.0, [held_out.task_id]),
-    )
-    refusals = [
-        CliRunner().invoke(create_app(), ["--home", str(home), "--json", *arguments])
+    for part in (studied, held_out):
+        partial = compare_runs(
+            paths,
+            run(ForgeArm.BASELINE, tmp_path / "branch-code", 0.0, [part.task_id]),
+            run(ForgeArm.CANDIDATE, v2, 1.0, [part.task_id]),
+        )
         for arguments in (
-            ["uplift", "context", only_held_out.comparison_id],
+            ["uplift", "context", partial.comparison_id],
             [
-                *("uplift", "prepare", "--from-run", only_held_out.comparison_id),
+                *("uplift", "prepare", "--from-run", partial.comparison_id),
                 *("--candidate-skill", str(v3)),
             ],
-        )
-    ]
-    for refused in refusals:
-        assert refused.exit_code != 0
-        assert '"forge_revision_no_study_task"' in refused.stdout
-        for hidden in (held_out.task_id, held_out.task_name, held_out.build_id):
-            assert hidden not in refused.stdout
-    assert not (Path(only_held_out.path) / "improvement").exists()
+        ):
+            refused = CliRunner().invoke(
+                create_app(), ["--home", str(home), "--json", *arguments]
+            )
+            assert refused.exit_code != 0
+            assert '"forge_revision_partial_collection"' in refused.stdout
+            for hidden in (held_out.task_id, held_out.task_name, held_out.build_id):
+                assert hidden not in refused.stdout
+        assert not (Path(partial.path) / "improvement").exists()
     assert {path.name for path in paths.forge_revisions_dir.iterdir()} == revisions
+    with pytest.raises(ValidationError) as unknown:
+        baseline(home, collection_id, task_ids=["local__other-000000000002"])
+    said = unknown.value.message + json.dumps(unknown.value.details)
+    assert unknown.value.code == "forge_task_not_qualified"
+    assert held_out.task_id not in said and studied.task_id not in said
+
+
+#: The line the tasks' reference solution runs, which only a Skill may hold
+#: that already had it.
+SOLVE_LINE = (
+    "python3 -c \"print(sum(map(int, open('/app/amounts.txt'))))\" > /app/result.txt"
+)
 
 
 class RewardByTask(FakeDocker):
@@ -1278,8 +1321,30 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
     tmp_path: Path, home: Path, proposal_id: str, profiles: Path
 ) -> None:
     """Invariant (c): the verdict follows the held-out pairs, whatever the rest
-    do, and needs as many graded pairs as every other verdict."""
-    collection_id = accepted(home, proposal_id, profiles)
+    do, and needs as many graded pairs as every other verdict; a line the
+    revision kept from the Skill it revised, or had from a task it could
+    see, does not stop it being judged."""
+    shared = "Each line of amounts.txt holds one whole number, nothing else."
+
+    def with_notes(name: str) -> FakePlanner:
+        answer = json.loads(created_package(name))
+        answer["files"].append(
+            {
+                "path": "environment/notes.txt",
+                "text": shared + "\n",
+                "executable": False,
+            }
+        )
+        return FakePlanner(answer=json.dumps(answer).encode())
+
+    creator = ae5_creator()
+    creator.calls.update(
+        {name: with_notes(name) for name in (QUALIFIES, ALSO_QUALIFIES)}
+    )
+    collection_id = collect(home, construct(home, proposal_id, profiles, creator))[
+        "facts"
+    ]["collection_id"]
+    assert invoke(home, "accept", collection_id, "--yes")[0] == 0
     paths = paths_from_root(home)
     parts = read_collection_status(paths, collection_id).record.review.parts()
     [studied] = [task_id for task_id, part in parts.items() if part == "study"]
@@ -1307,7 +1372,9 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
         )
         return runner(FakeDocker(reward=0.0)).run(spec, skill_root).run_id
 
-    v2 = write_skill(tmp_path / "v2", name="branch-code", body="Sum, then write.")
+    v2 = write_skill(
+        tmp_path / "v2", name="branch-code", body=f"Sum, then write.\n\n{SOLVE_LINE}"
+    )
 
     def compared(repetitions: int) -> str:
         return compare_runs(
@@ -1326,11 +1393,14 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
 
     for index, (comparison_id, rewards, verdict, study_verdict) in enumerate(cases):
         v3 = write_skill(
-            tmp_path / f"v3-{index}", name="branch-code", body="Add them, then write."
+            tmp_path / f"v3-{index}",
+            name="branch-code",
+            body=f"Add them, then write.\n\n{SOLVE_LINE}\n\n{shared}",
         )
         revision = prepare_revision(
             paths, comparison_id=comparison_id, skill_root=v3, label=None
         )
+        assert revision.record.screening == []
 
         record = measure_revision(
             paths, revision.revision_id, runner(RewardByTask(rewards))
@@ -1343,12 +1413,12 @@ def test_a_revision_is_judged_on_its_held_out_tasks_alone(
 
 
 def test_a_task_keeps_its_part_in_every_later_version(
-    home: Path, proposal_id: str, profiles: Path
+    tmp_path: Path, home: Path, proposal_id: str, profiles: Path
 ) -> None:
     """Invariant: a task's part, once given, holds as tasks are added,
     removed, added again and built again, and a new first version of the
     same Skill's tasks, a version of an older one, and a second version of
-    the same one are refused."""
+    the same one are refused; a Skill derived from it stays in its line."""
     first = construct(home, proposal_id, profiles, ae5_creator())
     retry = construct(home, proposal_id, profiles, FakeCreator(), retry_of=first)
     paths = paths_from_root(home)
@@ -1385,6 +1455,19 @@ def test_a_task_keeps_its_part_in_every_later_version(
     ]
     v5 = accepted_version(rebuilt, "--previous", versions[-1])
     _, second = invoke(home, "accept", sibling, "--yes")
+    reduced = tmp_path / "reduced" / "branch-code"
+    reduced.mkdir(parents=True)
+    (reduced / "SKILL.md").write_text(SKILL + "2. Keep it short.\n", encoding="utf-8")
+    original = read_collection_status(paths, versions[0]).record.review.source_id
+    _, looked = invoke(home, "inspect-skill", str(reduced), "--derived-from", original)
+    derived = construct(
+        home,
+        propose(tmp_path, home, profiles, looked["facts"]["source_id"]),
+        profiles,
+        FakeCreator(),
+    )
+    _, fresh_derived = invoke(home, "collect", derived)
+    v6 = accepted_version(derived, "--previous", versions[-1])
 
     assert len(v1) < len(v2) and dropped not in v3 and dropped in v4
     assert fresh["error"]["code"] == "forge_collection_has_versions"
@@ -1393,6 +1476,8 @@ def test_a_task_keeps_its_part_in_every_later_version(
     for refused, latest in ((fresh, versions[3]), (older, versions[3])):
         assert f"--previous {latest}" in refused["error"]["message"]
     assert f"--previous {versions[4]}" in second["error"]["message"]
+    assert fresh_derived["error"]["code"] == "forge_collection_has_versions"
+    assert f"--previous {versions[4]}" in fresh_derived["error"]["message"]
     assert read_collection_status(paths, sibling).acceptance is None
     fingerprints = [
         {
@@ -1401,8 +1486,16 @@ def test_a_task_keeps_its_part_in_every_later_version(
         }
         for version in versions
     ]
-    assert not fingerprints[-1] & set().union(*fingerprints[:-1])
+    assert not fingerprints[4] & set().union(*fingerprints[:4])
     given: dict[str, str] = {}
-    for version in (v1, v2, v3, v4, v5):
+    for version in (v1, v2, v3, v4, v5, v6):
         for name, part in version.items():
             assert given.setdefault(name, part) == part, name
+
+    unreadable = paths.forge_collections_dir / ("forgecol_" + "0" * 32)
+    unreadable.mkdir()
+    (unreadable / "collection.json").write_text("{}", encoding="utf-8")
+    for arguments in (("status", derived), ("collect", derived)):
+        _, refused = invoke(home, *arguments)
+        assert refused["error"]["code"] == "forge_collection_unreadable"
+        assert str(unreadable) in refused["error"]["message"]

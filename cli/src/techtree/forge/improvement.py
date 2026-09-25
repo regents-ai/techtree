@@ -16,15 +16,16 @@ out about a collection's held-out tasks, not even when the runs covered
 them: no id, no name, no instruction and no result; only how many there are.
 They are the tasks a revision's verdict is computed on, so the agent writing
 it never sees them (founder decision 2a). The headline and the examples are
-the tasks it may study alone, and runs that cover none of those are refused
-before anything is written. A task is named by its id, a repository by its
-build slug and commit, and a collection by its id and version. Every
-free-text field is checked for control sequences and absolute paths before
-the context is returned, and a value that carries one is refused, not
-edited. The one exception is a Skill task's own sandbox: its
-instruction may name paths under the folders its required outputs go in,
-such as ``/app``, because those are inside the task, not on anyone's
-computer.
+the tasks it may study alone. On a collection both runs must have covered
+every task, the ones it may study and the ones held out, or nothing is
+written: a revision is learned from the first and judged on the second.
+A task is named by its id, a repository by its build slug and commit, and
+a collection by its id and version. Every free-text field is checked for
+control sequences and absolute paths before the context is returned, and a
+value that carries one is refused, not edited. The one exception is a
+Skill task's own sandbox: its instruction may name paths under the folders
+its required outputs go in, such as ``/app``, because those are inside the
+task, not on anyone's computer.
 
 The context is derived, not evidence: it is rewritten on every call, nothing
 signs it, and nothing uploads it.
@@ -80,7 +81,7 @@ __all__ = [
     "ForgeImprovementRepository",
     "ForgeImprovementResult",
     "build_forge_improvement_context",
-    "require_study_tasks",
+    "require_whole_collection",
 ]
 
 FORGE_IMPROVEMENT_CONTEXT_SCHEMA_VERSION: Final = (
@@ -232,7 +233,7 @@ def build_forge_improvement_context(
             code=IMPROVEMENT_CONTEXT_INVALID,
             details={"comparison_id": comparison_id},
         )
-    require_study_tasks(comparison)
+    require_whole_collection(paths, comparison)
     tasks_from, tasks = _tasks(paths, comparison_id, candidate.spec)
     entrypoint = next(
         (file.digest for file in skill.files if file.path == SKILL_ENTRY_FILE), None
@@ -280,19 +281,34 @@ def build_forge_improvement_context(
     return context
 
 
-def require_study_tasks(comparison: ForgeComparisonRecord) -> None:
-    """Refuse a comparison of a collection whose runs cover none of the tasks
-    the agent revising the Skill may study."""
-    if comparison.study is not None and not comparison.study.task_ids:
-        raise ValidationError(
-            f"the runs compared in {comparison.comparison_id} cover only "
-            "held-out tasks, so the agent revising the Skill has no task it may "
-            "learn from. Run the baseline and the candidate on tasks that "
-            "include ones it may study, compare them, and revise from that "
-            "comparison",
-            code="forge_revision_no_study_task",
-            details={"comparison_id": comparison.comparison_id},
-        )
+def require_whole_collection(
+    paths: TechtreePaths, comparison: ForgeComparisonRecord
+) -> None:
+    """Refuse a comparison of a collection whose runs left any of its tasks
+    out: the agent revising the Skill learns from the tasks it may study, and
+    the revision is judged on the ones held out from it."""
+    if not isinstance(comparison.tasks_from, ForgeCollectionTasks):
+        return
+    collection_id = comparison.tasks_from.collection_id
+    tasks = len(read_collection_status(paths, collection_id).record.review.members)
+    covered = len({pair.task_id for pair in comparison.pairs})
+    if covered == tasks:
+        return
+    raise ValidationError(
+        f"the runs compared in {comparison.comparison_id} cover {covered} of the "
+        f"{tasks} tasks of collection {collection_id}. A revision is learned "
+        "from the tasks the agent may study and judged on the ones held out "
+        "from it, so both runs cover every task. Run the baseline and the "
+        "candidate on the whole collection, without --tasks, compare them, and "
+        "revise from that comparison",
+        code="forge_revision_partial_collection",
+        details={
+            "comparison_id": comparison.comparison_id,
+            "collection_id": collection_id,
+            "covered": covered,
+            "tasks": tasks,
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
