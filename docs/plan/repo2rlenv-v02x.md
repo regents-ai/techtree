@@ -1,6 +1,6 @@
 # Approved narrow Repo2RLEnv expansion
 
-> Historical (2026-09-25): superseded by [the 0.3.0 plan](v0.3.0-skill-environments.md) and [its task set](v0.3.0-task-set.md). Kept as a record.
+> Historical (2026-09-25): shipped in 0.2.0 and 0.2.1 as repository tasks (Experimental); see [release compatibility](../../README.md#release-compatibility). Kept as a record.
 
 Status: founder-approved scope amendment, 2026-09-08. Implementation and runtime
 qualification remain separate from approval. This document overrides only the

@@ -24,8 +24,10 @@ change crosses components, update the contract producer and consumer together
 and verify the integration through `make -C cli check-plugin`.
 
 Follow the workspace `regent-workflow`. A single engineering agent works each
-lane, verifies its own result, and the founder reviews it. Current requests
-define work; historical ticket maps and exports are reference material only.
+lane, verifies its own result, and the founder reviews it. Security-relevant
+tasks, where a mistake could let untrusted content run or leak, also get an
+independent reviewer. Current requests define work; historical ticket maps and
+exports are reference material only.
 Product requirements for the release in preparation are in
 [`docs/plan/v0.3.0-skill-environments.md`](docs/plan/v0.3.0-skill-environments.md),
 and its bounded tasks and definition of done are in

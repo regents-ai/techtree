@@ -36,7 +36,8 @@ are run only with explicit founder approval.
 
 Use the founder's current task and the workspace `regent-workflow`. A single
 engineering agent works each lane and verifies its own result; the founder
-reviews it. The current plan is
+reviews it. Security-relevant tasks, where a mistake could let untrusted
+content run or leak, also get an independent reviewer. The current plan is
 [`docs/plan/v0.3.0-skill-environments.md`](docs/plan/v0.3.0-skill-environments.md)
 with its [task set](docs/plan/v0.3.0-task-set.md). Historical ticket maps remain
 available as context; no tracker command is required.

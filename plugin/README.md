@@ -412,11 +412,13 @@ not the plugin's to delete:
 ## Release status
 
 This directory carries the release contract in `release-core.json`, release
-`climb-v0.2.1`, with host Hermes 0.21.3 as its minimum (an unreleased change
-listed at the top of the changelog). It names the
+`climb-v0.2.1`, with host Hermes 0.21.3 as its minimum. It names the
 starter Skill and the founder-frozen `skill-improver`, so the installed plugin
 can prepare Techtree Hello World and offer one guided revision after a finished
-comparison. Which plugin commit is installable is decided by the active
+comparison. The 0.21.3 minimum is an unreleased change, listed under 0.2.2 in
+the changelog; the published `climb-v0.2.1` record requires Hermes 0.20.1, and
+that is what applies to the plugin commit it installs.
+Which plugin commit is installable is decided by the active
 release that [techtree.sh/start](https://techtree.sh/start) publishes;
 repository presence alone is not a public release signal. The monorepo
 [README](../README.md#release-compatibility) lists every released plugin commit

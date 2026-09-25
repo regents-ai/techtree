@@ -8,8 +8,8 @@ Status note, 2026-09-07: this audit is a dated snapshot. Its ticket IDs and
 tracker statuses are historical reference, not authority; the founder's current
 request defines scope and the workspace `regent-workflow` coordinates
 Hermes/Astra and Claude/Fable work. Where it says to dispatch, claim or update a
-ticket, read that as the current assignment. Current status lives in
-[`HANDOFF.md`](../../HANDOFF.md). The audit body is preserved as written.
+ticket, read that as the current assignment. Current work is tracked in
+[`v0.3.0-task-set.md`](v0.3.0-task-set.md). The audit body is preserved as written.
 
 This is an evidence-backed delivery plan for the founder’s Techtree assignment.
 It explains the existing contracts and proposes the missing collaboration work;

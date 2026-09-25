@@ -76,11 +76,23 @@ are read from those records (`bootstrap.json`, `release-core.json`,
 
 The evaluated subject in all three records is Hermes 0.19.0, and each names
 the Hello World Climb (`hello-world-climb@1`) as its introduction. The full
-40-character revisions and digests are in the records themselves. The site at
-techtree.sh serves one active release per channel; the live answer is always
-[`/api/v1/bootstrap`](https://techtree.sh/api/v1/bootstrap). Changes made since
-0.2.1 and not yet released are listed at the top of the
-[changelog](CHANGELOG.md).
+40-character revisions and digests are in the records themselves.
+
+Host Hermes is the minimum Hermes version each published record accepts, and
+that published value is the one that applies. `plugin/release-core.json` in
+this repository names 0.21.3 instead; that is an unreleased change and applies
+to no published release.
+
+The site at techtree.sh serves one active release per channel; the live answer
+is always [`/api/v1/bootstrap`](https://techtree.sh/api/v1/bootstrap). Which
+revision of the site itself is deployed is known only from
+`deployed_source_revision` on [`/healthz`](https://techtree.sh/healthz). On
+2026-09-25 it reported site revision `7e713d7` serving `climb-v0.2.1` on the
+stable channel.
+
+The top of the [changelog](CHANGELOG.md) lists changes accepted for 0.2.2,
+which is not released. The 0.3.0 changes will be listed there when 0.3.0 is
+released.
 
 ## Start with Hello World
 
@@ -168,7 +180,7 @@ harness runtime, trajectory format, or trainer.
 
 | System | Role | Status |
 | --- | --- | --- |
-| [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. The Hello World Climb runs through a pinned Verifiers engine; repository and Skill tasks use the Harbor task format and are graded the way Verifiers grades a Harbor task. | Available now |
+| [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. The Hello World Climb runs through a pinned Verifiers engine. | Available now |
 | Repo2RLEnv | Turns a repository's history into repair tasks, pinned to version 0.8.8. | Experimental |
 | [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental, in preparation for 0.3.0 |
 | [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs, so other agents can be evaluated. | Planned |

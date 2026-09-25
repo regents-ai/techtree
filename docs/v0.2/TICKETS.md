@@ -4,8 +4,9 @@ Status note, 2026-09-07: this ledger is historical reference. The ticket IDs
 below name work packages; they are not a live tracker and do not assign work.
 The founder's current request defines scope and the workspace `regent-workflow`
 coordinates it. Where this ledger names the retired `ash-regents` skill, use the
-workspace `ash-stack` skill and its specialists. Current status lives in
-[`HANDOFF.md`](../../HANDOFF.md). The text below is preserved as written.
+workspace `ash-stack` skill and its specialists. Current work is tracked in
+[`docs/plan/v0.3.0-task-set.md`](../plan/v0.3.0-task-set.md). The text below is
+preserved as written.
 
 This is the monorepo backlog for the binding
 [`v0.2 implementation contract`](../plan/v0.2.md) and

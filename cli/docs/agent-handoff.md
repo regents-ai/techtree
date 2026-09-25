@@ -3,8 +3,8 @@
 Status note, 2026-09-07: this is the historical v0.1 handoff from the
 three-repository era, preserved as written. The repositories it names now live
 in this monorepo; current instructions are the root `AGENTS.md` and
-`HANDOFF.md`. The beads tracker and the `ash-regents` skill it requires are
-retired: the founder's current request defines scope, the workspace
+`docs/plan/v0.3.0-task-set.md`. The beads tracker and the `ash-regents` skill it
+requires are retired: the founder's current request defines scope, the workspace
 `regent-workflow` coordinates, and Ash work uses the workspace `ash-stack`
 skill and its specialists.
 
