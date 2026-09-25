@@ -159,20 +159,20 @@ defmodule TechtreeWeb.ResearchContent do
         <li>native Verifiers evidence, optionally supplemented by NeMo Relay.</li>
       </ul>
       <p>
-        Each admitted variant will be a separate immutable Campaign. Changing the
-        execution, subject, or evidence backend will never silently change what an
-        existing Campaign means.
+        Each admitted variant will be a separate immutable Campaign. Changing where a run
+        executes, which agent is tested, or how its evidence is recorded will never
+        silently change what an existing Campaign means.
       </p>
       <p>
-        One small deterministic Prime environment will validate the hosted path. It is
-        infrastructure conformance material, not an environment-authoring product or a
-        benchmark of model capability.
+        One small, deterministic Prime environment will check that the hosted path
+        behaves like a local run. It is not a benchmark of model capability.
       </p>
       <p>
         Creating an environment from a Skill and building tasks from a repository are
         experimental today; <.link navigate={~p"/start"}>Start</.link> shows both.
-        Automatic Skill optimization, held-out proving workflows, training, and a local
-        control-plane dashboard remain later work.
+        Techtree can also prepare a comparison between a Skill and one revision of it
+        that you name. Nothing revises a Skill or repeats that comparison on its own:
+        automatic Skill improvement, training, and a local dashboard remain later work.
       </p>
     </section>
 

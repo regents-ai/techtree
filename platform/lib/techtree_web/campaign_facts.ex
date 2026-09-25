@@ -4,8 +4,9 @@ defmodule TechtreeWeb.CampaignFacts do
   not carry, read from the published documents themselves.
 
   A Climb's summary is a projection, and projections are deliberately small.
-  Two things a reader looking at evidence needs are not in it: what the run is
-  allowed to spend, and what the publisher's own check of the tasks concluded.
+  Three things a reader needs are not in it: what the run is allowed to spend,
+  which key the subject's model calls use, and what the publisher's own check
+  of the tasks concluded.
   Both are written in documents this site already publishes under a content
   address, so they are read from those exact bytes here rather than added to
   the summary — a page that shows them is showing the document, not a copy of
@@ -21,15 +22,17 @@ defmodule TechtreeWeb.CampaignFacts do
 
   @type t :: %{
           budget: map(),
+          credential_env: String.t() | nil,
           membership: map(),
           validation: map()
         }
 
-  @empty %{budget: %{}, membership: %{}, validation: %{}}
+  @empty %{budget: %{}, credential_env: nil, membership: %{}, validation: %{}}
 
   @doc """
-  The published budget, task membership, and validation outcome behind one
-  Climb, or empty maps when this release publishes none of them.
+  The published budget, credential name, task membership, and validation
+  outcome behind one Climb, or empty values when this release publishes none of
+  them.
   """
   @spec for_climb(map() | nil) :: t()
   def for_climb(nil), do: @empty
@@ -42,6 +45,7 @@ defmodule TechtreeWeb.CampaignFacts do
       campaign ->
         %{
           budget: budget(campaign),
+          credential_env: get_in(campaign, ["agents", "subject", "model", "credential_env"]),
           membership: membership(campaign),
           validation: validation(facts["validation_receipt_digest"])
         }

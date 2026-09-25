@@ -57,43 +57,6 @@ defmodule TechtreeWeb.CoreComponents do
   end
 
   @doc """
-  The word "verifiers", with what it is one hover away.
-
-  Founder ruling 2026-08-26: wherever the library is named, a reader can hover
-  (or focus, on a keyboard or a phone) to learn that verifiers is Prime
-  Intellect's library for building evaluation environments, with one link to
-  its repository. The card is plain markup — no script, nothing submitted.
-  """
-  attr :label, :string, default: "verifiers"
-  attr :code, :boolean, default: false
-
-  def verifiers_term(assigns) do
-    ~H"""
-    <span class="hoverdef">
-      <%= if @code do %>
-        <code class="hoverdef__term" tabindex="0">{@label}</code>
-      <% else %>
-        <span class="hoverdef__term" tabindex="0">{@label}</span>
-      <% end %>
-      <span class="hoverdef__card" role="note">
-        <span>
-          verifiers is a library by Prime Intellect for creating environments to
-          train and evaluate LLMs.
-        </span>
-        <a
-          class="hoverdef__button"
-          href="https://github.com/PrimeIntellect-ai/verifiers"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          GitHub
-        </a>
-      </span>
-    </span>
-    """
-  end
-
-  @doc """
   Show one command, built from the arguments that make it up.
 
   The copy control hands over exactly the characters shown, and nothing on this
@@ -207,24 +170,6 @@ defmodule TechtreeWeb.CoreComponents do
   end
 
   @doc """
-  Set two things side by side that are easy to confuse.
-  """
-  slot :side do
-    attr :title, :string, required: true
-  end
-
-  def comparison_boundary(assigns) do
-    ~H"""
-    <div class="boundary">
-      <section :for={side <- @side} class="boundary__side">
-        <h3 class="boundary__title">{side.title}</h3>
-        {render_slot(side)}
-      </section>
-    </div>
-    """
-  end
-
-  @doc """
   Say something the reader would be worse off for missing.
   """
   attr :title, :string, required: true
@@ -237,21 +182,6 @@ defmodule TechtreeWeb.CoreComponents do
       <p class="callout__title">{@title}</p>
       {render_slot(@inner_block)}
     </aside>
-    """
-  end
-
-  @doc """
-  One step of something the reader is being asked to do.
-  """
-  attr :title, :string, required: true
-  slot :inner_block
-
-  def next_step(assigns) do
-    ~H"""
-    <li>
-      <p class="next-step-title">{@title}</p>
-      {render_slot(@inner_block)}
-    </li>
     """
   end
 

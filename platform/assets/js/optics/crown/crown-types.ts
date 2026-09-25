@@ -121,7 +121,8 @@ export const CROWN_LIGHT = {
   rainbowFalloffPower: 3.7,
 } as const;
 
-export type CrownVariant = 1 | 2 | 3 | 4;
+/** The light theme's crown (2) and the dark theme's crown (4). */
+export type CrownVariant = 2 | 4;
 
 const GRAZE_LIGHT = {
   sourceSides: [1],
@@ -145,17 +146,6 @@ const GRAZE_LIGHT = {
 } as const;
 
 export const CROWN_VARIANTS = {
-  1: {
-    ...GRAZE_LIGHT,
-    backgroundColor: [0, 0, 0, 1],
-    absorption: [1, 1, 0.54],
-    glassDispersion: 0.02,
-    reflectionStrength: 0.9,
-    environmentExposure: 1.15,
-    environmentRotation: [0, -18, 0],
-    bloomThreshold: 0.1,
-    bloomStrength: 0.7,
-  },
   2: {
     ...GRAZE_LIGHT,
     // Orange and Titanium share one slate hero field. The cool opposing-color
@@ -169,17 +159,6 @@ export const CROWN_VARIANTS = {
     environmentRotation: [0, -30, 0],
     bloomThreshold: 0.85,
     bloomStrength: 0.45,
-  },
-  3: {
-    ...GRAZE_LIGHT,
-    backgroundColor: [0.002, 0.002, 0.0025, 1],
-    absorption: [0.12, 0.12, 0.12],
-    glassDispersion: 0.016,
-    reflectionStrength: 1.25,
-    environmentExposure: 1.3,
-    environmentRotation: [0, 14, 0],
-    bloomThreshold: 0.12,
-    bloomStrength: 0.5,
   },
   4: {
     ...GRAZE_LIGHT,
@@ -205,9 +184,8 @@ export const CROWN_VARIANTS = {
   },
 } as const;
 
-export function crownVariant(value: string | number | undefined): CrownVariant {
-  const parsed = Number(value);
-  return parsed === 2 || parsed === 3 || parsed === 4 ? parsed : 1;
+export function crownVariant(value: string | undefined): CrownVariant {
+  return value === "4" ? 4 : 2;
 }
 
 export function quantizeCrownAim(aim: Vec2): Vec2 {

@@ -153,32 +153,14 @@ function syncCrownTheme(theme) {
 
 }
 
-function requestedBackgroundPreset() {
-  const value = new URLSearchParams(window.location.search).get("bg") || "10"
-  return /^(?:[1-9]|10)$/.test(value) ? value : "10"
-}
-
-function syncBackgroundPreset() {
-  const preset = requestedBackgroundPreset()
-
-  document.querySelectorAll("[data-optics-kind]").forEach(root => {
-    const canvas = root.querySelector("[data-optics-canvas]")
-    root.dataset.backgroundPreset = preset
-    if (canvas) canvas.dataset.backgroundPreset = preset
-  })
-
-  return preset
-}
-
 function applyTheme(theme) {
   const selected = THEMES[theme]
   document.documentElement.dataset.theme = theme
   document.querySelector("meta[name='theme-color']")?.setAttribute("content", selected.browserColor)
   syncThemeControl(theme)
   syncCrownTheme(theme)
-  const backgroundPreset = syncBackgroundPreset()
   document.dispatchEvent(new CustomEvent("techtree:themechange", {
-    detail: {theme, crownVariant: selected.crownVariant, backgroundPreset},
+    detail: {theme, crownVariant: selected.crownVariant},
   }))
 }
 
@@ -205,7 +187,6 @@ const Hooks = {
       // A connected render can restore server attributes after initial theme sync.
       // Resolve them before the existing controller creates its first renderer.
       syncCrownTheme(pageTheme())
-      syncBackgroundPreset()
       Optics.mounted.call(this)
     },
   },

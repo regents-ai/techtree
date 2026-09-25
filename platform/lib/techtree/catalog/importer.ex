@@ -367,8 +367,9 @@ defmodule Techtree.Catalog.Importer do
     }
   end
 
-  # The model is named, never credentialed: the environment variable a
-  # participant would supply their own key through is not public information.
+  # The summary names the model and leaves out the environment variable a
+  # participant supplies their key through; a page that needs that name reads
+  # it from the Campaign document itself.
   defp subject_model(campaign) do
     take(campaign, ["agents", "subject", "model"], ["provider", "model_id", "revision"])
   end

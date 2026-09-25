@@ -8,8 +8,6 @@ defmodule TechtreeWeb.StartLiveTest do
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
 
-  @title "Choose where to start."
-
   describe "with an installable release" do
     setup %{tmp_dir: tmp_dir} do
       bundle = CatalogFixture.copy!(tmp_dir)
@@ -48,7 +46,6 @@ defmodule TechtreeWeb.StartLiveTest do
 
       escape = fn text -> text |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string() end
 
-      assert visible_text(html) =~ @title
       assert instruction =~ url(~p"/skill.md")
       assert instruction =~ "Ask me where my Skill is."
       assert instruction =~ "Never approve anything for me."
@@ -93,7 +90,6 @@ defmodule TechtreeWeb.StartLiveTest do
     test "query parameters do not create alternate installation paths", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/start?install=me")
 
-      assert visible_text(html) =~ @title
       assert html =~ "copy-start-instruction"
       refute html =~ "Prefer installing it yourself?"
     end

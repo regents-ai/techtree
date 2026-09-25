@@ -25,7 +25,6 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert text =~ "Improve a Skill."
       assert text =~ "Prove it worked."
       assert text =~ "Same agent. Same tasks. One Skill upgraded."
-      assert text =~ "Built on Prime Intellect and Nous"
 
       assert has_element?(
                live,
@@ -41,8 +40,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               ".hero__source-link[href='https://github.com/NousResearch/hermes-agent']",
-               "Nous"
+               ".hero__source-link[href='https://github.com/NousResearch/hermes-agent']"
              )
 
       assert has_element?(
@@ -79,7 +77,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               ~s|a.hero__more[href="#controlled-comparison"][aria-label="How a comparison works"] svg|
+               ~s|a.hero__more[href="#controlled-comparison"] svg|
              )
     end
 
@@ -88,7 +86,6 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, ~s|a[href="/start"]|, "Choose where to start")
       assert has_element?(live, "#copy-home-agent-line")
       assert text =~ "Or use the CLI directly"
       refute text =~ "Release integrity"
@@ -162,7 +159,6 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute text =~ "standing on giants"
       refute text =~ "What it demonstrates is that the three pin together tightly enough"
       refute text =~ "Run. Improve. Prove."
-      assert text =~ "The introductory Climb is"
       assert text =~ "Your work stays local."
     end
 
@@ -218,7 +214,6 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert text =~ "Improve a Skill."
     refute text =~ "Evidence graph"
-    assert text =~ "Choose where to start"
     assert text =~ StartLive.instruction()
     refute html =~ "copy-home-cli"
   end

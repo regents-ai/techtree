@@ -170,12 +170,17 @@ defmodule TechtreeWeb.HomeLive do
         </Regent.Structure.section_bar>
         <div class="service-intro__body">
           <div>
-            <h2 id="service-intro-title">Your repo. A repeatable environment.</h2>
+            <h2 id="service-intro-title">Your repo. Tasks from its own history.</h2>
             <p>
-              Techtree can turn past fixes in a local git repository into repair tasks and check
-              each one on your computer. The hosted Repo2RLEnv service, which will do this for a
-              pinned repository and deliver a buildable runtime, tasks, a scorer and an evidence
-              report, is planned.
+              From a local checkout with its history, Techtree finds past fixes whose tests fail
+              before the fix and pass after it, and turns each one into a repair task. Every task
+              is checked again in a fresh container on your computer, and no model is called.
+            </p>
+            <p class="service-intro__later">
+              <.capability_status capability={:hosted_building} />
+              <span>
+                The hosted Repo2RLEnv service, which will do this for a pinned repository, comes later.
+              </span>
             </p>
             <div class="service-intro__actions">
               <.link navigate={~p"/start#repository"} class="rg-button rg-button--secondary">
@@ -186,15 +191,15 @@ defmodule TechtreeWeb.HomeLive do
               </.link>
             </div>
           </div>
-          <ol class="service-flow" aria-label="From a repository to an environment">
+          <ol class="service-flow" aria-label="How tasks are built from your repository">
             <li>
-              <span>01 / Source</span><strong>Pinned repository</strong><small>Commit + rights</small>
+              <span>01 / Source</span><strong>Local checkout</strong><small>Committed history</small>
             </li>
             <li>
-              <span>02 / Build</span><strong>RL environment</strong><small>Runtime + tasks + scorer</small>
+              <span>02 / Tasks</span><strong>Past fixes</strong><small>Tests fail before, pass after</small>
             </li>
             <li>
-              <span>03 / Evidence</span><strong>Validation report</strong><small>What passed. What did not.</small>
+              <span>03 / Check</span><strong>Fresh containers</strong><small>Kept or rejected, with reasons</small>
             </li>
           </ol>
         </div>

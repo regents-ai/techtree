@@ -61,7 +61,7 @@ export interface CrownLightMeshData {
 type VariantConfig = (typeof CROWN_VARIANTS)[CrownVariant]
 
 export function crownLightMeshData(
-  variant: CrownVariant = 1,
+  variant: CrownVariant,
   aim: Vec2 = [0, 0],
   aspect = 16 / 9,
 ): CrownLightMeshData {

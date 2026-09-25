@@ -13,7 +13,7 @@ defmodule TechtreeWeb.Capabilities do
   @capabilities [
     %{
       id: :climb,
-      name: "Compare two Skills on a fixed challenge (Climb)",
+      name: "Compare with and without a Skill on a fixed challenge (Climb)",
       status: :available
     },
     %{id: :skill_environment, name: "Create an environment from a Skill", status: :experimental},

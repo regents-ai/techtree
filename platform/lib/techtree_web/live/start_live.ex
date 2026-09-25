@@ -4,8 +4,10 @@ defmodule TechtreeWeb.StartLive do
   Climb, evaluate their own Skill, or build tasks from their own repository.
 
   Each path names what it needs, roughly how long it takes and where its data
-  goes. Every requirement and command is read from the active release, so the
-  page cannot ask for a version the release does not publish.
+  goes. The version requirements and the install line come from the active
+  release, and the example's model and ceilings from the Climb that release
+  introduces; the steps after the install line are written for the release
+  being installed.
 
   The page holds no state and no authority: every review and approval happens
   in Techtree on the person's machine.
@@ -13,6 +15,8 @@ defmodule TechtreeWeb.StartLive do
 
   use TechtreeWeb, :live_view
 
+  alias Techtree.Catalog.Query
+  alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ReleaseInfo
 
   @title "Choose where to start."
@@ -28,6 +32,7 @@ defmodule TechtreeWeb.StartLive do
        title: @title,
        instruction: instruction(),
        minimums: minimums,
+       example: example(release),
        setup_commands: setup_commands(release)
      )}
   end
@@ -96,13 +101,21 @@ defmodule TechtreeWeb.StartLive do
           </header>
           <.definition_list>
             <:fact term="You need">
-              <.requirements minimums={@minimums} provider hermes={false} />
+              <.requirements minimums={@minimums} provider={false} hermes={false}>
+                <li :if={@example}>
+                  An API key for <code>{@example.provider}</code>, set as <code>{@example.credential_env}</code>; the model calls are charged to your account
+                </li>
+              </.requirements>
+            </:fact>
+            <:fact :if={@example} term="Model">
+              The Climb fixes the model: <code>{@example.model_id}</code>
+              from <code>{@example.provider}</code>. A run stops at {@example.ceiling}, and Techtree shows its spending cap and waits for your yes before anything runs.
             </:fact>
             <:fact term="Time">
-              About 15 minutes to set up. The run itself depends on your model and your provider.
+              About 15 minutes to set up. The run is small; how long it takes depends on your provider.
             </:fact>
             <:fact term="Where your data goes">
-              The model calls go to your provider, only after you approve the spending limit Techtree shows you. Episodes and traces stay on your computer. Publishing a finished result is optional and uploads its proof bundle to Techtree.
+              The model calls go to the Climb's provider on your key, only after you approve. Episodes and traces stay on your computer. Publishing a finished result is optional and uploads its proof bundle to Techtree.
             </:fact>
           </.definition_list>
           <.command_block
@@ -181,10 +194,11 @@ defmodule TechtreeWeb.StartLive do
           </header>
           <.definition_list>
             <:fact term="You need">
-              <.requirements minimums={@minimums} provider={false} hermes={false} />
-              <p>
-                A git repository with a test command. Without your own Dockerfile, it must be a Python project managed by uv.
-              </p>
+              <.requirements minimums={@minimums} provider={false} hermes={false}>
+                <li>
+                  A git repository with a test command; without your own Dockerfile, a Python project managed by uv
+                </li>
+              </.requirements>
             </:fact>
             <:fact term="Time">
               A few minutes to set up. A build looks at ten past fixes by default and can take longer on a large project.
@@ -222,6 +236,7 @@ defmodule TechtreeWeb.StartLive do
   attr :minimums, :map, required: true
   attr :provider, :boolean, required: true
   attr :hermes, :boolean, required: true
+  slot :inner_block
 
   defp requirements(assigns) do
     ~H"""
@@ -233,7 +248,8 @@ defmodule TechtreeWeb.StartLive do
       <li :if={@hermes && @minimums["hermes_version"]}>
         Hermes {@minimums["hermes_version"]} or later
       </li>
-      <li :if={@provider}>An account with a model provider; its calls may cost money</li>
+      <li :if={@provider}>An account with a model provider you choose; its calls may cost money</li>
+      {render_slot(@inner_block)}
     </ul>
     """
   end
@@ -271,6 +287,26 @@ defmodule TechtreeWeb.StartLive do
   end
 
   defp setup_commands(_release), do: nil
+
+  # The model, key and ceiling of the Climb this release introduces, read from
+  # its published Campaign.
+  defp example(%{introductory_reference: reference}) when is_binary(reference) do
+    with %{projection: %{"subject_model" => model}} = climb <-
+           Enum.find(Query.list_climbs(), &(&1.reference == reference)),
+         %{budget: budget, credential_env: credential_env} when is_binary(credential_env) <-
+           CampaignFacts.for_climb(climb) do
+      %{
+        provider: model["provider"],
+        model_id: model["model_id"],
+        credential_env: credential_env,
+        ceiling: CampaignFacts.budget_words(budget)
+      }
+    else
+      _missing -> nil
+    end
+  end
+
+  defp example(_release), do: nil
 
   defp example_commands(install_argv, reference) when is_binary(reference) do
     [

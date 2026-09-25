@@ -50,7 +50,7 @@ function loadRenderer(kind, source, module) {
 }
 
 function opticsVariant(canvas) {
-  return `${canvas.dataset.crownVariant || ""}:${canvas.dataset.backgroundPreset || "10"}`
+  return canvas.dataset.crownVariant
 }
 
 export function createOpticsController(root) {
@@ -266,12 +266,9 @@ export function createOpticsController(root) {
     }
     const onThemeChange = event => {
       const crownVariant = event.detail?.crownVariant
-      const backgroundPreset = event.detail?.backgroundPreset || "10"
       if (root.dataset.opticsKind !== "crown" || !crownVariant) return
       root.dataset.crownVariant = crownVariant
       canvas.dataset.crownVariant = crownVariant
-      root.dataset.backgroundPreset = backgroundPreset
-      canvas.dataset.backgroundPreset = backgroundPreset
 
       const variant = opticsVariant(canvas)
       if (rendererVariant === variant) return

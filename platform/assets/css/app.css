@@ -46,7 +46,7 @@ body {
 }
 :is(h1, h2, h3, h4, h5, h6),
 :is(.hero__mechanism, .boundary__title, .callout__title, .entry__title,
-    .docs-nav__group > p, .error-page__name, .next-step-title) {
+    .docs-nav__group > p, .error-page__name) {
   font-family: var(--font-family-title);
   font-weight: 400;
   font-style: normal;
@@ -276,8 +276,7 @@ section.section:not(.doc-section):not(.verification-boundary) { padding-top: var
 .verification-boundary { display: grid; gap: var(--space-4); }
 .verification-summary { margin-top: var(--space-3); }
 ul.verification-summary { display: grid; gap: var(--space-2); list-style: square; padding-left: var(--space-3); }
-.boundary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--rg-track-gap); margin-top: var(--space-3); }
-.boundary__side:not(.rg-panel), .callout { padding: var(--rg-panel-padding); border: 1px solid var(--rule); background: var(--panel); }
+.callout { padding: var(--rg-panel-padding); border: 1px solid var(--rule); background: var(--panel); }
 .boundary__title, .callout__title { font-size: 1.125rem; }
 .callout { margin-block: var(--space-3); }
 .callout--attention { border-color: var(--running); }
@@ -331,11 +330,6 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 .entry__title { font-size: 1.25rem; }
 .steps, .quickstart { list-style: decimal; padding-left: var(--space-3); margin-top: var(--space-3); }
 .steps > li + li, .quickstart > li + li { margin-top: var(--space-3); }
-.hoverdef { position: relative; display: inline-block; }
-.hoverdef__term { border-bottom: 1px dashed currentColor; cursor: help; }
-.hoverdef__card { position: absolute; left: 0; bottom: 100%; z-index: 30; display: flex; flex-direction: column; gap: var(--space-2); width: 19rem; max-width: 75vw; padding: var(--space-3); border: 1px solid var(--rule-strong); background: var(--panel); color: var(--ink); font-size: .875rem; visibility: hidden; }
-.hoverdef:is(:hover, :focus-within) .hoverdef__card { visibility: visible; }
-.hoverdef__button { display: inline-flex; align-items: center; min-height: 2.75rem; }
 
 /* Standalone error documents. */
 .error-page { min-height: 100vh; display: grid; align-content: center; gap: var(--space-3); padding: var(--space-6) var(--rg-panel-padding); border-bottom: 1px solid var(--rule); }
@@ -364,7 +358,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .hero__optics { inset: auto 0 6rem; height: 18rem; mask-image: linear-gradient(transparent, #000 25%, #000 80%, transparent); }
   .hero__products { width: 100%; margin-top: 14rem; }
   .home-setup { grid-template-columns: minmax(0, 1fr); }
-  .featured, .boundary, .offline-verify, .capabilities { grid-template-columns: minmax(0, 1fr); }
+  .featured, .offline-verify, .capabilities { grid-template-columns: minmax(0, 1fr); }
   .product-links > .rg-disclosure { margin-left: 0; max-width: 100%; }
 }
 @media (max-width: 36rem) {
