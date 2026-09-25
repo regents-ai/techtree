@@ -1,5 +1,7 @@
 # Techtree v0.2 CLI machine contract
 
+> Historical (2026-09-25): the v0.2 decision record for `techtree.cli.v2`, superseded as a description by [the CLI JSON contract](../../cli/docs/cli-json-contract.md). Tests still check this record against the code. Kept as a record.
+
 Status: binding for v0.2 (WP0.6 decision)
 Envelope version: `techtree.cli.v2`
 Authority: [`docs/plan/v0.2.md`](../plan/v0.2.md), sections "Operator contract"

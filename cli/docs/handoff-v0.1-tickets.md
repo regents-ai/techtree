@@ -1,10 +1,12 @@
 # Climb v0.1 — Ticket Handoff
 
+> Historical (2026-09-25): superseded by [the 0.3.0 plan](../../docs/plan/v0.3.0-skill-environments.md). Kept as a record.
+
 Written 2026-08-14 by the chief-of-staff session. Covers every ticket in
-the beads tracker (DB lives in this repo; run `bd show <id>` for full
-text). Two questions per ticket: what is it for, and is its written
-description enough for a coding agent to complete it without this
-session's context?
+the beads tracker, which has since been retired: the ticket ids below are
+historical and can no longer be looked up. Two questions per ticket: what is
+it for, and is its written description enough for a coding agent to complete
+it without this session's context?
 
 **Context a fresh agent MUST have:**
 
@@ -178,7 +180,8 @@ when their children close.
 
 ## Closed — complete record
 
-One line each; `bd show <id>` has full close reasons.
+One line each. The ticket ids are historical; the full close reasons lived
+in the retired tracker.
 
 ### WP0–WP5, local substrate (epic 3jj — closed with all children)
 - **3jj.1.1 / PR1** — repo, pyproject, Makefile gates, docs skeleton.

@@ -1,5 +1,7 @@
 # Techtree Market, Foundry, and Skill Climb roadmap
 
+> Historical (2026-09-25): superseded by [the 0.3.0 plan](v0.3.0-skill-environments.md) and [its task set](v0.3.0-task-set.md). Kept as a record.
+
 Status: binding plan for post-v0.2.0 work  
 Audience: product, protocol, CLI, plugin, platform, security, and release implementers  
 Scope: v0.2.x, v0.3, and deferred v0.3.x studies

@@ -1,5 +1,7 @@
 # Approved narrow Repo2RLEnv expansion
 
+> Historical (2026-09-25): superseded by [the 0.3.0 plan](v0.3.0-skill-environments.md) and [its task set](v0.3.0-task-set.md). Kept as a record.
+
 Status: founder-approved scope amendment, 2026-09-08. Implementation and runtime
 qualification remain separate from approval. This document overrides only the
 conflicting post-v0.2.0 sequencing and artifact restrictions in `techtree-market.md`.

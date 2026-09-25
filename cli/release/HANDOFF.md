@@ -1,5 +1,7 @@
 # Handoff — Climb v0.1.1 released
 
+> Historical (2026-09-25): superseded by [release compatibility](../../README.md#release-compatibility). Kept as a record.
+
 Updated 2026-08-29 after the final CLI/Hermes fixes, public-route change,
 v0.1.1 release re-pin, and public release. This supersedes every older
 coordinate and scanner statement formerly in this file.

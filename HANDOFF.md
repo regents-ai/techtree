@@ -1,5 +1,7 @@
 # Handoff — Techtree v0.2.0, WP0 closed, WP1 protocol cutover in progress
 
+> Historical (2026-09-25): superseded by [the 0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and [release compatibility](README.md#release-compatibility). Kept as a record.
+
 ## Delivery — 2026-09-08
 
 The accumulated Techtree work is published to GitHub. Required Regent UI, Privy

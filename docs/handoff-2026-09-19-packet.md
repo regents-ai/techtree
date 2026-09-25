@@ -1,5 +1,7 @@
 # Techtree 0.2.1 packet handoff, 2026-09-19 19:54Z
 
+> Historical (2026-09-25): superseded by [the 0.3.0 plan](plan/v0.3.0-skill-environments.md) and [release compatibility](../README.md#release-compatibility). Kept as a record.
+
 For the Claude account taking over the Techtree lane from the Fable 5.1
 thread that ran it since 2026-09-18. This document is the current state; the
 earlier `docs/handoff-2026-09-19.md` is the long-form reference for the

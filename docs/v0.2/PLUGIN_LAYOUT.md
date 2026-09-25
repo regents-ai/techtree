@@ -1,5 +1,7 @@
 # Techtree v0.2 plugin layout
 
+> Historical (2026-09-25): superseded by [the plugin README](../../plugin/README.md). Kept as a record.
+
 Status: binding target layout for v0.2 (WP0.6 decision)
 Authority: [`docs/plan/v0.2.md`](../plan/v0.2.md), section "Operator contract";
 founder answers in [`DECISION_LEDGER.md`](DECISION_LEDGER.md)

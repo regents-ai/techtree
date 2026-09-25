@@ -1,5 +1,7 @@
 # WP0 planning retrospective
 
+> Historical (2026-09-25): superseded by [the 0.3.0 plan](../plan/v0.3.0-skill-environments.md). Kept as a record.
+
 This retrospective records two planning failures. It does not describe either
 one as production implementation work.
 
