@@ -56,6 +56,7 @@ from techtree.forge.models import (
     ForgeCollectionStatus,
     ForgeConstructionStatus,
     ForgeConstructionTaskStatus,
+    ForgeTaskKind,
     collection_parts,
 )
 from techtree.forge.planning import read_proposal_status
@@ -214,6 +215,7 @@ def _require_same(
 _CHANGED_WORDS: Final = {
     "proposal_id": "the proposal",
     "proposal_digest": "the proposal",
+    "claims": "the proposal",
     "source_id": "the Skill",
     "source_digest": "the Skill",
     "constructions": "the constructions",
@@ -294,7 +296,7 @@ def _review(
             },
         )
     parent = None if previous is None else _parent(paths, previous, newest.source_id)
-    committed = [_commit(paths, by_name[name]) for name in names]
+    committed = [_commit(paths, _last_try(name, chain)[1]) for name in names]
     parts = collection_parts(
         proposal.proposal_digest,
         [(task.task_name, task.content_digest) for task in committed],
@@ -341,6 +343,7 @@ def _review(
     return ForgeCollectionReview(
         proposal_id=proposal.proposal_id,
         proposal_digest=proposal.proposal_digest,
+        claims=proposal.claims,
         source_id=newest.source_id,
         source_digest=newest.source_digest,
         constructions=[status.construction_id for status in chain],
@@ -381,12 +384,7 @@ def _candidate(
     name: str, chain: list[ForgeConstructionStatus]
 ) -> ForgeCollectionCandidate:
     """How a task went the last time a construction in the chain tried it."""
-    construction, task = next(
-        (status, task)
-        for status in chain
-        for task in status.tasks
-        if task.task_name == name
-    )
+    construction, task = _last_try(name, chain)
     package = task.package
     return ForgeCollectionCandidate(
         task_name=name,
@@ -398,6 +396,18 @@ def _candidate(
     )
 
 
+def _last_try(
+    name: str, chain: list[ForgeConstructionStatus]
+) -> tuple[ForgeConstructionStatus, ForgeConstructionTaskStatus]:
+    """Return the newest construction in the chain that tried a task, and how."""
+    return next(
+        (status, task)
+        for status in chain
+        for task in status.tasks
+        if task.task_name == name
+    )
+
+
 def _why(task: ForgeConstructionTaskStatus) -> str | None:
     if task.call is not None and task.call.failure is not None:
         return task.call.failure.message
@@ -405,19 +415,24 @@ def _why(task: ForgeConstructionTaskStatus) -> str | None:
 
 
 class _Committed(NamedTuple):
-    """One qualified task by its files and its qualification, before its part."""
+    """One qualified task by its claim, its files and its qualification,
+    before its part."""
 
     task_name: str
+    claim: str
+    kind: ForgeTaskKind
     build_id: str
     task_id: str
     content_digest: str
     qualification_digest: str
 
 
-def _commit(paths: TechtreePaths, candidate: ForgeCollectionCandidate) -> _Committed:
-    """Commit one qualified task by its files, checked on disk, and qualification."""
-    assert candidate.build_id is not None  # a usable candidate names its build
-    status = read_build_status(paths, candidate.build_id)
+def _commit(paths: TechtreePaths, task: ForgeConstructionTaskStatus) -> _Committed:
+    """Commit one qualified task by its package's claim, its files, checked on
+    disk, and its qualification."""
+    package = task.package
+    assert package is not None  # a qualified task's last try wrote a package
+    status = read_build_status(paths, package.build_id)
     build, qualification = status.build, status.qualification
     assert build is not None and qualification is not None  # it qualified
     verify_task_set(Path(status.tasks_path), build.task_set)
@@ -427,8 +442,10 @@ def _commit(paths: TechtreePaths, candidate: ForgeCollectionCandidate) -> _Commi
         task for task in qualification.tasks if task.task_id == manifest.task_id
     )
     return _Committed(
-        task_name=candidate.task_name,
-        build_id=candidate.build_id,
+        task_name=package.task_name,
+        claim=package.claim,
+        kind=package.kind,
+        build_id=package.build_id,
         task_id=manifest.task_id,
         content_digest=manifest.content_digest,
         qualification_digest=digest_object(evidence),

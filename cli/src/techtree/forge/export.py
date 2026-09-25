@@ -297,6 +297,14 @@ def _changed(root: Path, what: str) -> ValidationError:
 # ---------------------------------------------------------------------------
 
 
+#: Which case of its claim a task is, in words.
+_KIND_WORDS: Final = {
+    "positive": "positive case",
+    "boundary": "boundary case",
+    "counterexample": "counterexample",
+}
+
+
 def export_readme(export: ForgeExport) -> str:
     """The README an export carries, made from its ``export.json`` alone."""
     record = export.collection
@@ -314,8 +322,9 @@ def export_readme(export: ForgeExport) -> str:
         *(
             f"- `{TASKS_DIRNAME}/{member.task_id}/`: the task {member.task_name}"
             + (" (held out)" if member.part == "held_out" else "")
-            + ", with its instruction, the files it starts from, its tests and "
-            "its reference solutions."
+            + f", a {_KIND_WORDS[member.kind]} for claim {member.claim}, with its "
+            "instruction, the files it starts from, its tests and its reference "
+            "solutions."
             for member in review.members
         ),
         f"- `{EXPORT_FILENAME}`: the collection as it was accepted on "
@@ -327,6 +336,18 @@ def export_readme(export: ForgeExport) -> str:
         "on them alone. Which tasks are held out follows from the tasks' "
         "fingerprints; nobody chose it, and a task keeps its part in every "
         "later version of the collection.",
+        "",
+        "## What the tasks test",
+        "",
+        *(
+            f"- {claim.claim_id}: {claim.statement} What shows it: {claim.observable}"
+            for claim in review.claims
+        ),
+        "",
+        "A positive case is one where following the Skill should give the "
+        "right result; a boundary case sits at the edge of where the claim "
+        "applies; a counterexample is one where applying the Skill too eagerly "
+        "would give a wrong result.",
         "",
         "## What it leaves out",
         "",

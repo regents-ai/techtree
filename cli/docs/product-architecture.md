@@ -501,11 +501,12 @@ CONSTRUCTION_ID [--task NAME]... [--previous COLLECTION_ID]`
 the construction and every construction it retried, and writes
 `forge/collections/<forgecol_id>/collection.json`
 (`techtree.forge-collection.v1alpha2`): the proposal and Source Skill with
-their digests, the constructions, every proposed task in proposal order with
+their digests, the proposal's claims, the constructions, every proposed task in proposal order with
 how it went the last time it was tried (the call's state, the build its
 package became, whether that build qualified it, or what stopped the call),
 and the members, the qualified tasks being accepted (all of them unless
-`--task` names fewer), each by its build, task id, content digest and the
+`--task` names fewer), each by the claim it tests and its kind (as its
+construction package recorded them), its build, task id, content digest and the
 digest of its qualification evidence, after its files are hashed against the
 build's commitment, and its `part`, `study` or `held_out`. Nobody chooses the
 parts, and a task keeps its part for good: a new version carries, in
@@ -549,7 +550,8 @@ entry by entry from its build's commitment without following links;
 `export.json` (`techtree.forge-export.v1alpha2`), the collection record and
 acceptance with each member's build record and qualification evidence; and a
 `README.md` made from `export.json` alone, saying what the folder holds and
-leaves out, which tasks are held out, and that its tests and reference
+leaves out, which tasks are held out, the claims and which claim and kind
+each task tests, and that its tests and reference
 solutions let anyone who has it read the answers. The Source Skill's bytes, the planning, construction and
 qualification logs, run material and everything else in the home are never
 read. `forge verify-export FOLDER` needs no home: it refuses anything in the

@@ -137,7 +137,7 @@ def proposal_id(tmp_path: Path, home: Path, profiles: Path) -> str:
         "--model",
         "gpt-5.6-sol",
         "--tasks",
-        "5",
+        str(len(PROPOSED)),
     )
     assert code == 0, envelope
     plan_id = envelope["facts"]["plan_id"]

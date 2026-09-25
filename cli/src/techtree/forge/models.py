@@ -2258,10 +2258,14 @@ def collection_parts(
 class ForgeCollectionMember(ProtocolModel):
     """One accepted task: exactly the bytes and the qualification it had.
 
-    ``part`` is given by :func:`collection_parts`, not by the author.
+    ``claim`` and ``kind`` are the claim the task tests and which case of it,
+    as its construction package recorded them. ``part`` is given by
+    :func:`collection_parts`, not by the author.
     """
 
     task_name: ForgeProposedTaskName
+    claim: ForgeClaimId
+    kind: ForgeTaskKind
     build_id: NonEmptyString
     task_id: ForgeTaskId
     content_digest: Digest
@@ -2301,12 +2305,14 @@ class ForgeCollectionReview(ProtocolModel):
     Every task of the proposal with its outcome, so nothing that failed is
     out of sight, and the exact members: the qualified tasks being accepted,
     each by its content and qualification digests and the part it is in,
-    with at least one task in each part. ``constructions`` is the retry chain
-    the outcomes come from, newest first.
+    with at least one task in each part. ``claims`` are the proposal's
+    claims, which the members name. ``constructions`` is the retry chain the
+    outcomes come from, newest first.
     """
 
     proposal_id: NonEmptyString
     proposal_digest: Digest
+    claims: list[ForgeSkillClaim] = Field(min_length=1, max_length=MAX_CLAIMS)
     source_id: NonEmptyString
     source_digest: Digest
     constructions: list[NonEmptyString] = Field(min_length=1)
@@ -2322,6 +2328,9 @@ class ForgeCollectionReview(ProtocolModel):
         names = [member.task_name for member in self.members]
         if len(set(names)) != len(names) or not set(names) <= usable:
             raise ValueError("members are distinct tasks that qualified")
+        claims = {claim.claim_id for claim in self.claims}
+        if not {member.claim for member in self.members} <= claims:
+            raise ValueError("every member tests one of the proposal's claims")
         if [member.part for member in self.members] != collection_parts(
             self.proposal_digest,
             [(member.task_name, member.content_digest) for member in self.members],
