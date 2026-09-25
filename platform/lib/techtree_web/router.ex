@@ -62,6 +62,7 @@ defmodule TechtreeWeb.Router do
     live "/repo2rlenv", Repo2RLEnvLive
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show
+    live "/examples/tdd", TddShowcaseLive
     get "/skill.md", SkillController, :show
 
     # The addresses release documents already point at, unchanged.

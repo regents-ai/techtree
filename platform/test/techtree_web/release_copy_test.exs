@@ -39,7 +39,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/start",
     "/climbs/hello-world-climb",
     "/results",
-    "/results/" <> Techtree.NetworkFixture.bundle_digest()
+    "/results/" <> Techtree.NetworkFixture.bundle_digest(),
+    "/examples/tdd"
   ]
 
   @pages_without_catalog [
@@ -47,7 +48,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "/docs",
     "/proofs",
     "/start",
-    "/results"
+    "/results",
+    "/examples/tdd"
   ]
 
   # A claim that the machine keeps everything, which the remote model calls a
@@ -167,9 +169,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   ]
 
   # A pinned address is the whole promise: what a reader reads today is what
-  # they get tomorrow. A branch, a tag, or a stand-in revision is not one.
+  # they get tomorrow. A branch, a tag, or a stand-in revision is not one; a
+  # folder inside one full revision is.
   @repository_address ~r|https://github\.com/[^"\s<>]+|
-  @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}\z|
+  @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}(?:/[\w.-]+)*\z|
 
   # The GitHub addresses that are informational rather than installable: the
   # verifiers hover card links the library's home, and the masthead links this

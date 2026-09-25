@@ -82,6 +82,9 @@ defmodule TechtreeWeb.HomeLive do
               <a class="text-link" href={~p"/results"}>
                 View published Results <span aria-hidden="true">→</span>
               </a>
+              <a class="text-link" href={~p"/examples/tdd"}>
+                See an example comparison <span aria-hidden="true">→</span>
+              </a>
             </div>
           </div>
         </div>

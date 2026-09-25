@@ -43,6 +43,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /changelog",
              "get /climbs/:slug",
              "get /docs",
+             "get /examples/tdd",
              "get /healthz",
              "get /proofs",
              "get /repo2rlenv",
