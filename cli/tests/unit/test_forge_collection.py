@@ -1118,7 +1118,8 @@ def test_the_improving_agent_never_sees_a_held_out_task(
 ) -> None:
     """Invariant (b): no held-out id, name or instruction, though its runs did,
     in the context or in preparing, reviewing and measuring a revision, even
-    one that copies a held-out task's instruction."""
+    one that copies a held-out task's instruction; runs on held-out tasks
+    alone give no context and no revision."""
     collection_id = accepted(home, proposal_id, profiles)
     paths = paths_from_root(home)
     members = read_collection_status(paths, collection_id).record.review.members
@@ -1136,12 +1137,17 @@ def test_the_improving_agent_never_sees_a_held_out_task(
         )
     )
 
-    def run(arm: ForgeArm, skill_root: Path, reward: float) -> str:
+    def run(
+        arm: ForgeArm,
+        skill_root: Path,
+        reward: float,
+        task_ids: list[str] | None = None,
+    ) -> str:
         spec = declare_run_spec(
             paths,
             arm=arm,
             collection_id=collection_id,
-            task_ids=None,
+            task_ids=task_ids,
             skill_root=skill_root,
             provider="openai-codex",
             model_id="gpt-5.6-sol",
@@ -1222,6 +1228,29 @@ def test_the_improving_agent_never_sees_a_held_out_task(
             assert studied.task_id in text
             for hidden in (held_out.task_id, held_out.task_name, held_out.build_id):
                 assert hidden not in text
+
+    only_held_out = compare_runs(
+        paths,
+        run(ForgeArm.BASELINE, tmp_path / "branch-code", 0.0, [held_out.task_id]),
+        run(ForgeArm.CANDIDATE, v2, 1.0, [held_out.task_id]),
+    )
+    refusals = [
+        CliRunner().invoke(create_app(), ["--home", str(home), "--json", *arguments])
+        for arguments in (
+            ["uplift", "context", only_held_out.comparison_id],
+            [
+                *("uplift", "prepare", "--from-run", only_held_out.comparison_id),
+                *("--candidate-skill", str(v3)),
+            ],
+        )
+    ]
+    for refused in refusals:
+        assert refused.exit_code != 0
+        assert '"forge_revision_no_study_task"' in refused.stdout
+        for hidden in (held_out.task_id, held_out.task_name, held_out.build_id):
+            assert hidden not in refused.stdout
+    assert not (Path(only_held_out.path) / "improvement").exists()
+    assert {path.name for path in paths.forge_revisions_dir.iterdir()} == revisions
 
 
 class RewardByTask(FakeDocker):
@@ -1318,7 +1347,8 @@ def test_a_task_keeps_its_part_in_every_later_version(
 ) -> None:
     """Invariant: a task's part, once given, holds as tasks are added,
     removed, added again and built again, and a new first version of the
-    same Skill's tasks is refused."""
+    same Skill's tasks, a version of an older one, and a second version of
+    the same one are refused."""
     first = construct(home, proposal_id, profiles, ae5_creator())
     retry = construct(home, proposal_id, profiles, FakeCreator(), retry_of=first)
     paths = paths_from_root(home)
@@ -1348,12 +1378,22 @@ def test_a_task_keeps_its_part_in_every_later_version(
         }
     )
     rebuilt = construct(home, proposal_id, profiles, reworded)
-    _, refused = invoke(home, "collect", rebuilt)
+    _, fresh = invoke(home, "collect", rebuilt)
+    _, older = invoke(home, "collect", rebuilt, "--previous", versions[1])
+    sibling = collect(home, rebuilt, "--previous", versions[-1])["facts"][
+        "collection_id"
+    ]
     v5 = accepted_version(rebuilt, "--previous", versions[-1])
+    _, second = invoke(home, "accept", sibling, "--yes")
 
     assert len(v1) < len(v2) and dropped not in v3 and dropped in v4
-    assert refused["error"]["code"] == "forge_collection_has_versions"
-    assert f"--previous {versions[3]}" in refused["error"]["message"]
+    assert fresh["error"]["code"] == "forge_collection_has_versions"
+    assert older["error"]["code"] == "forge_collection_not_latest"
+    assert second["error"]["code"] == "forge_collection_not_latest"
+    for refused, latest in ((fresh, versions[3]), (older, versions[3])):
+        assert f"--previous {latest}" in refused["error"]["message"]
+    assert f"--previous {versions[4]}" in second["error"]["message"]
+    assert read_collection_status(paths, sibling).acceptance is None
     fingerprints = [
         {
             member.fingerprint

@@ -23,12 +23,13 @@ task an earlier version of the collection held under its name or with its
 files, and is studied when those disagree, so a task built again keeps its
 part and a task once studied is never held out; only a task that shares
 neither with an earlier one is given a part by its fingerprint. Earlier
-versions are the chain ``--previous`` names, so a Skill whose tasks were
-already accepted in a collection is collected again only as a new version of
-it: a first version is refused when the home holds an accepted collection of
-the same Skill. A collection holds at least one task in each part and no two
-tasks with the same files, and preparing refuses one that would not; tasks
-whose files differ only slightly are not recognised as the same.
+versions are the chain ``--previous`` names, and a Skill's versions form one
+line: a collection is prepared and accepted only as a new version of the
+latest accepted collection of the same Skill, or as the first when there is
+none, and is refused otherwise. A collection holds at least one task in
+each part and no two tasks with the same files, and preparing refuses one
+that would not; tasks whose files differ only slightly are not recognised as
+the same.
 
 Verifying an accepted collection makes its review again from what is on disk
 now: every member's files are hashed against their build's commitment, every
@@ -100,14 +101,13 @@ def prepare_collection(
     previous: str | None,
 ) -> ForgeCollectionStatus:
     """Write the review of one collection, accepting nothing."""
-    if previous is None:
-        _require_first(paths, construction_id)
     review = _review(
         paths,
         construction_id=construction_id,
         task_names=task_names,
         previous=previous,
     )
+    _require_latest(paths, review)
     collection_id = new_id("forgecol")
     directory = paths.forge_collection_dir(collection_id)
     directory.mkdir(parents=True, mode=0o700)
@@ -126,17 +126,21 @@ def latest_collection(
     paths: TechtreePaths, construction_id: str
 ) -> ForgeCollectionStatus | None:
     """Return the latest accepted collection of the same Skill as a
-    construction's tasks, if the home holds one.
+    construction's tasks, if the home holds one."""
+    return _latest(paths, _chain(paths, construction_id)[0].record.review.source_digest)
+
+
+def _latest(paths: TechtreePaths, source_digest: str) -> ForgeCollectionStatus | None:
+    """Return the latest accepted collection of a Skill, if the home holds one.
 
     Collections are of the same Skill when their Source Skills have the same
     admitted files: the tasks are written from those bytes, whichever time
     the Skill was looked at or planned for. The latest is the highest
-    version, the last accepted among equals.
+    version.
     """
-    source_digest = _chain(paths, construction_id)[0].record.review.source_digest
     directory = paths.forge_collections_dir
     accepted = [
-        (status, status.acceptance.accepted_at)
+        status
         for status in (
             read_collection_status(paths, child.name)
             for child in (sorted(directory.iterdir()) if directory.is_dir() else [])
@@ -145,29 +149,41 @@ def latest_collection(
         if status.acceptance is not None
         and status.record.review.source_digest == source_digest
     ]
-    if not accepted:
-        return None
-    latest, _ = max(
-        accepted, key=lambda found: (found[0].record.review.version, found[1])
-    )
-    return latest
+    return max(accepted, key=lambda status: status.record.review.version, default=None)
 
 
-def _require_first(paths: TechtreePaths, construction_id: str) -> None:
-    """Refuse a first version when a collection of the same Skill was
-    accepted, since a new line of versions could give a task seen in one the
-    other part in the other."""
-    latest = latest_collection(paths, construction_id)
-    if latest is None:
+def _require_latest(paths: TechtreePaths, review: ForgeCollectionReview) -> None:
+    """Refuse a collection that does not replace the latest accepted
+    collection of its Skill, so a Skill's versions form one line and a task
+    seen in one keeps its part in every later one."""
+    latest = _latest(paths, review.source_digest)
+    previous = None if review.previous is None else review.previous.collection_id
+    if latest is None or latest.collection_id == previous:
         return
+    construction_id = review.constructions[0]
     raise ValidationError(
-        f"collection {latest.collection_id} (version "
-        f"{latest.record.review.version}) already holds accepted tasks of this "
-        "Skill, and a task keeps its part only within one line of versions. "
-        "Make this a new version of it with forge collect "
-        f"{construction_id} --previous {latest.collection_id}",
-        code="forge_collection_has_versions",
-        details={"construction_id": construction_id, "latest": latest.collection_id},
+        (
+            f"collection {latest.collection_id} (version "
+            f"{latest.record.review.version}) already holds accepted tasks of "
+            "this Skill"
+            if previous is None
+            else f"collection {previous} is not the latest version of this "
+            f"Skill's collection; {latest.collection_id} (version "
+            f"{latest.record.review.version}) is"
+        )
+        + ", and a task keeps its part only along one line of versions. Make "
+        f"this a new version of it with forge collect {construction_id} "
+        f"--previous {latest.collection_id}",
+        code=(
+            "forge_collection_has_versions"
+            if previous is None
+            else "forge_collection_not_latest"
+        ),
+        details={
+            "construction_id": construction_id,
+            "previous": previous,
+            "latest": latest.collection_id,
+        },
     )
 
 
@@ -183,6 +199,7 @@ def check_collection(paths: TechtreePaths, collection_id: str) -> ForgeCollectio
             details={"collection_id": collection_id},
         )
     _require_same(paths, status, code="forge_collection_stale")
+    _require_latest(paths, status.record.review)
     return status
 
 

@@ -47,6 +47,7 @@ from techtree.forge.comparability import (
 from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.experiment import run_spec_digest
 from techtree.forge.hermes import hermes_version
+from techtree.forge.improvement import require_study_tasks
 from techtree.forge.models import (
     FORGE_REVISION_SCHEMA_VERSION,
     VERDICT_MINIMUM_PAIRS,
@@ -107,15 +108,7 @@ def prepare_revision(
             code="forge_candidate_without_skill",
             details={"comparison_id": comparison_id},
         )
-    if comparison.study is not None and not comparison.study.task_ids:
-        raise ValidationError(
-            f"the runs compared in {comparison_id} cover only held-out tasks, "
-            "so the agent revising the Skill has no task it may learn from. "
-            "Run the baseline and the candidate on tasks that include ones it "
-            "may study, compare them, and revise from that comparison",
-            code="forge_revision_no_study_task",
-            details={"comparison_id": comparison_id},
-        )
+    require_study_tasks(comparison)
     try:
         skill, files = scan_skill_spec(skill_root, name=label)
     except ModelValidationError as error:

@@ -16,7 +16,8 @@ out about a collection's held-out tasks, not even when the runs covered
 them: no id, no name, no instruction and no result; only how many there are.
 They are the tasks a revision's verdict is computed on, so the agent writing
 it never sees them (founder decision 2a). The headline and the examples are
-the tasks it may study alone. A task is named by its id, a repository by its
+the tasks it may study alone, and runs that cover none of those are refused
+before anything is written. A task is named by its id, a repository by its
 build slug and commit, and a collection by its id and version. Every
 free-text field is checked for control sequences and absolute paths before
 the context is returned, and a value that carries one is refused, not
@@ -79,6 +80,7 @@ __all__ = [
     "ForgeImprovementRepository",
     "ForgeImprovementResult",
     "build_forge_improvement_context",
+    "require_study_tasks",
 ]
 
 FORGE_IMPROVEMENT_CONTEXT_SCHEMA_VERSION: Final = (
@@ -230,6 +232,7 @@ def build_forge_improvement_context(
             code=IMPROVEMENT_CONTEXT_INVALID,
             details={"comparison_id": comparison_id},
         )
+    require_study_tasks(comparison)
     tasks_from, tasks = _tasks(paths, comparison_id, candidate.spec)
     entrypoint = next(
         (file.digest for file in skill.files if file.path == SKILL_ENTRY_FILE), None
@@ -275,6 +278,21 @@ def build_forge_improvement_context(
     for label, value in _free_text(context):
         _forbid(label, value)
     return context
+
+
+def require_study_tasks(comparison: ForgeComparisonRecord) -> None:
+    """Refuse a comparison of a collection whose runs cover none of the tasks
+    the agent revising the Skill may study."""
+    if comparison.study is not None and not comparison.study.task_ids:
+        raise ValidationError(
+            f"the runs compared in {comparison.comparison_id} cover only "
+            "held-out tasks, so the agent revising the Skill has no task it may "
+            "learn from. Run the baseline and the candidate on tasks that "
+            "include ones it may study, compare them, and revise from that "
+            "comparison",
+            code="forge_revision_no_study_task",
+            details={"comparison_id": comparison.comparison_id},
+        )
 
 
 # ---------------------------------------------------------------------------

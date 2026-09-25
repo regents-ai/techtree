@@ -874,8 +874,8 @@ def collect_forge_command(
         typer.Option(
             "--previous",
             metavar="COLLECTION_ID",
-            help="The accepted collection of the same Skill this one replaces, "
-            "as its next version.",
+            help="The latest accepted collection of the same Skill, which this "
+            "one replaces as its next version.",
         ),
     ] = None,
 ) -> None:

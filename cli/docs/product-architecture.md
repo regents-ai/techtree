@@ -522,12 +522,16 @@ earlier task is given a part: those are ordered by the sha256 of
 `proposal_digest + ":" + fingerprint`, ascending (the task name breaks a
 tie), and the first half, rounded down, are held out; a single one takes the
 part that leaves the collection more even, held out when either would. The
-earlier tasks are those of the chain `--previous` names, so a Skill's
-collections form one line of versions: `forge collect` without `--previous`
-is refused (`forge_collection_has_versions`) when the home holds an accepted
-collection whose Source Skill has the same admitted files, naming the latest
-(highest version, then last accepted) and the `--previous` to use, and
-`forge construct`'s next action offers that `--previous`. The link is the
+earlier tasks are those of the chain `--previous` names, and a Skill's
+collections form one line of versions: `forge collect` and `forge accept`
+refuse a collection that is not a new version of the latest accepted
+collection whose Source Skill has the same admitted files, naming that
+latest and the `--previous` to use; without `--previous` when one exists
+(`forge_collection_has_versions`), and with `--previous` naming an older
+one (`forge_collection_not_latest`). Checking again at acceptance keeps two
+versions prepared from the same collection from both being accepted, so the
+highest version is always the latest, and `forge construct`'s next action
+offers that `--previous`. The link is the
 Source Skill's admitted digest, not its `source_id` or the proposal: the
 tasks are written from those bytes, and looking at the same Skill again or
 planning it again gives a new source or proposal that would otherwise start
@@ -546,12 +550,12 @@ part (`forge_collection_too_few`): one of a single task, saying which other
 qualified tasks `--task` left out or else to propose more, and one whose
 inherited parts are all the same, naming the missing part. The review shows
 which tasks are held out and says the improving agent will never see them. `forge accept COLLECTION_ID`
-makes the review again, refuses one that changed (`forge_collection_stale`),
-asks, and writes `acceptance.json` with that digest; an accepted collection is
+makes the review again, refuses one that changed (`forge_collection_stale`)
+or no longer replaces the latest version, asks, and writes `acceptance.json` with that digest; an accepted collection is
 frozen and never accepted again (`forge_collection_accepted`). A collection of
 fewer than three tasks is accepted with the `forge_few_tasks` warning. Any
-change is a new collection: `--previous` names an accepted collection of the
-same Skill, the new one is its version plus one, and one with exactly its
+change is a new collection: `--previous` names the latest accepted collection
+of the same Skill, the new one is its version plus one, and one with exactly its
 members is refused (`forge_collection_unchanged`). `forge verify
 COLLECTION_ID` makes the review again from what is on disk and refuses a
 collection that was never accepted, or whose files, qualification, outcomes
@@ -864,7 +868,10 @@ four `uplift` commands close the loop on a forge comparison the way they close
 it on a Climb run, with the same review-before-spend and the same refusal to
 hand a reviser hidden material. `uplift context FORGECMP_ID`
 (`forge/improvement.py`) writes `improvement/context.json`
-(`techtree.forge-improvement-context.v1alpha3`) beside the comparison: where
+(`techtree.forge-improvement-context.v1alpha3`) beside the comparison, and
+refuses before writing anything when the compared runs cover no task of a
+collection the reviser may study (`forge_revision_no_study_task`, the same
+refusal as `uplift prepare`'s): where
 the tasks came from in `tasks_from` (a build with its repository and commit,
 or a collection with its version and how many tasks are held out), the
 measured Skill's name and digests, the paired totals (for a collection, those
