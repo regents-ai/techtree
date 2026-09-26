@@ -130,6 +130,66 @@ defmodule TechtreeWeb.Layouts do
   defp request_path(%{conn: %Plug.Conn{request_path: path}}), do: path
   defp request_path(_assigns), do: "/"
 
+  defp canonical_url(assigns), do: TechtreeWeb.Endpoint.url() <> request_path(assigns)
+
+  defp share_title(title) when title in [nil, ""], do: "Techtree"
+  defp share_title(title), do: title <> " · Techtree"
+
+  # Who Techtree is, for a reader that speaks schema.org. There is no postal
+  # address: none has been published.
+  defp structured_data do
+    url = TechtreeWeb.Endpoint.url()
+    organization = "https://regents.sh/#organization"
+
+    Jason.encode!(
+      %{
+        "@context" => "https://schema.org",
+        "@graph" => [
+          %{
+            "@type" => "WebSite",
+            "@id" => url <> "/#website",
+            "name" => "Techtree",
+            "url" => url,
+            "publisher" => %{"@id" => organization}
+          },
+          %{
+            "@type" => "Organization",
+            "@id" => organization,
+            "name" => "Regents Labs",
+            "url" => "https://regents.sh",
+            "logo" => "https://regents.sh/mark.png",
+            "sameAs" => ["https://github.com/regents-ai"],
+            "contactPoint" => %{
+              "@type" => "ContactPoint",
+              "email" => "build@regents.sh",
+              "contactType" => "customer support"
+            }
+          },
+          %{
+            "@type" => "SoftwareApplication",
+            "@id" => url <> "/#application",
+            "name" => "Techtree",
+            "url" => url,
+            "description" => description_for_path("/"),
+            "applicationCategory" => "DeveloperApplication",
+            "operatingSystem" => "macOS, Linux",
+            "license" => "https://opensource.org/licenses/MIT",
+            "offers" => %{"@type" => "Offer", "price" => "0", "priceCurrency" => "USD"},
+            "publisher" => %{"@id" => organization}
+          },
+          %{
+            "@type" => "SoftwareSourceCode",
+            "name" => "Techtree",
+            "codeRepository" => @repository_url,
+            "license" => "https://opensource.org/licenses/MIT",
+            "targetProduct" => %{"@id" => url <> "/#application"}
+          }
+        ]
+      },
+      escape: :html_safe
+    )
+  end
+
   defp page_description(assigns) do
     assigns
     |> request_path()
@@ -159,6 +219,15 @@ defmodule TechtreeWeb.Layouts do
   defp description_for_path("/climbs/" <> _slug),
     do: "Inspect the fixed task contract for a published Techtree Climb."
 
+  defp description_for_path("/about"),
+    do: "What Techtree is, who runs it, and the three independent parts it is built from."
+
+  defp description_for_path("/contact"),
+    do: "How to reach the people who run Techtree, and how to report a security problem."
+
+  defp description_for_path("/privacy"),
+    do: "What Techtree keeps about a visitor, what it never sees, and how to ask about either."
+
   defp description_for_path("/results/" <> _digest),
     do: "Inspect one published Techtree Result and its task-level evidence."
 
@@ -173,6 +242,9 @@ defmodule TechtreeWeb.Layouts do
         <a href="https://github.com/regents-ai/techtree" rel="noopener noreferrer">Star on GitHub</a>
         <a href="/llms.txt">For agents</a>
         <a href={~p"/repo2rlenv"}>Repo2RLEnv · Planned</a>
+        <a href={~p"/about"}>About</a>
+        <a href={~p"/contact"}>Contact</a>
+        <a href={~p"/privacy"}>Privacy</a>
         <Regent.Primitives.disclosure id="related-products" summary="Regents Labs">
           <nav aria-label="Related products" class="product-links__related">
             <a href="https://regents.sh">Regents</a>
