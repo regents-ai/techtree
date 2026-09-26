@@ -1,6 +1,7 @@
 # Security policy
 
-Please report suspected vulnerabilities privately through GitHub's private
+Please report suspected vulnerabilities privately, by email to
+[build@regents.sh](mailto:build@regents.sh) or through GitHub's private
 vulnerability reporting for this repository. Do not open a public issue with
 exploit details, credentials, private result data, or an unpatched weakness.
 
