@@ -95,7 +95,7 @@ config :techtree, TechtreeWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: TechtreeWeb.ErrorHTML, json: TechtreeWeb.ErrorJSON],
+    formats: [html: TechtreeWeb.ErrorHTML, json: TechtreeWeb.ErrorJSON, md: TechtreeWeb.ErrorMD],
     layout: false
   ],
   pubsub_server: Techtree.PubSub,

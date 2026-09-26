@@ -12,8 +12,22 @@ defmodule TechtreeWeb.Router do
                              "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   @theme_cookie "techtree_theme"
 
-  pipeline :browser do
+  # Most pages are HTML only. The home page, About, Contact and Privacy also
+  # answer `Accept: text/markdown`; `TechtreeWeb.MD` holds their Markdown.
+  pipeline :html_only do
     plug :accepts, ["html"]
+  end
+
+  pipeline :readable do
+    plug :accepts, ["html", "md"]
+  end
+
+  # The home page is a live page; its Markdown answer is sent before it mounts.
+  pipeline :home_markdown do
+    plug :answer_home_markdown
+  end
+
+  pipeline :browser do
     plug :fetch_session
     plug :fetch_cookies
     plug :fetch_live_flash
@@ -50,9 +64,22 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through :browser
+    pipe_through [:readable, :browser, :home_markdown]
 
     live "/", HomeLive
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through [:readable, :browser]
+
+    get "/about", PagesController, :about
+    get "/contact", PagesController, :contact
+    get "/privacy", PagesController, :privacy
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through [:html_only, :browser]
+
     get "/blog", BlogController, :index
     get "/blog/:slug", BlogController, :show
     live "/docs", DocsLive
@@ -73,6 +100,11 @@ defmodule TechtreeWeb.Router do
     pipe_through :api
 
     get "/healthz", HealthController, :show
+    get "/openapi.json", OpenAPIController, :show
+  end
+
+  scope "/", TechtreeWeb do
+    get "/sitemap.xml", SitemapController, :index
   end
 
   scope "/api/v1", TechtreeWeb do
@@ -106,6 +138,13 @@ defmodule TechtreeWeb.Router do
     |> put_resp_header("content-security-policy", "default-src 'none'; frame-ancestors 'none'")
     |> put_resp_header("x-frame-options", "DENY")
     |> put_resp_header("referrer-policy", "no-referrer")
+  end
+
+  defp answer_home_markdown(conn, _opts) do
+    case get_format(conn) do
+      "md" -> TechtreeWeb.MD.answer(conn, :home)
+      "html" -> conn
+    end
   end
 
   defp put_theme(conn, _opts) do
