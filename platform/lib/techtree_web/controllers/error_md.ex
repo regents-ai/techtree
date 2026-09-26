@@ -30,6 +30,16 @@ defmodule TechtreeWeb.ErrorMD do
     """
   end
 
+  def render("406.md", _assigns) do
+    """
+    # This page has no Markdown version.
+
+    Ask for it as a web page, or go to one of the pages below.
+
+    #{@map}#{MD.trailer()}\
+    """
+  end
+
   def render("500.md", _assigns) do
     """
     # Techtree could not load this page.
