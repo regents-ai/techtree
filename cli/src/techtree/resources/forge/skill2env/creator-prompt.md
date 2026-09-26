@@ -44,7 +44,12 @@ Write these files:
   criterion exactly and writes `1` to `/logs/verifier/reward.txt` when all of
   them hold and `0` otherwise, creating `/logs/verifier` first. It may use the
   Python in the image, and any helper files you put under `tests/`, which is
-  mounted at `/tests`.
+  mounted at `/tests`. No file under `tests/` or `solution/` may repeat the
+  contents of `instruction.md` or of any file under `environment/`, not even
+  a copy kept to check that an input was left unchanged or to restore it:
+  keep the input's SHA-256 digest in the tests instead, check it, and then
+  use the input as it is in the container. A task whose tests or solutions
+  carry text the agent can already see is refused.
 - `tests/rubric.md`: the success criteria in words, one per line.
 - `solution/solve.sh`: a reference solution, run by `bash` as
   `/solution/solve.sh` in a fresh container, that leaves a result the tests
