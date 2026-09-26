@@ -51,12 +51,10 @@ MAX_TASK_BYTES = 128 * 1024 * 1024
 MAX_TASK_ENTRIES = 4096
 MAX_TASK_DEPTH = 32
 _DIRECTORY_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+#: Names a task may not carry because the task's own integrity depends on them:
+#: the Skill under test, the agent's standing instructions, the creator's own
+#: record, and the reward the tests alone may write.
 _PRIVATE_NAMES = {
-    "auth.json",
-    "credentials",
-    "credentials.json",
-    "id_rsa",
-    "id_ed25519",
     "skill.md",
     "agents.md",
     "skill-card.md",
@@ -66,10 +64,6 @@ _PRIVATE_NAMES = {
     "reward.txt",
     "reward.json",
 }
-_SECRET = re.compile(
-    rb"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|"
-    rb"\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})\b"
-)
 
 
 def local_source_skill(name: str) -> str:
@@ -107,7 +101,7 @@ def _snapshot(root: Path) -> dict[str, _Entry]:
                     f"duplicate/case-colliding path or too many entries: {relative}"
                 )
             names_seen.add(key)
-            # Refuse private filenames before opening their contents, including .env.
+            # Refuse hidden and reserved names before opening their contents.
             if name.startswith(".") or name.casefold() in _PRIVATE_NAMES:
                 raise ValueError(f"private or hidden task material: {relative}")
             info = os.stat(name, dir_fd=directory, follow_symlinks=False)
@@ -139,8 +133,6 @@ def _snapshot(root: Path) -> dict[str, _Entry]:
                     ) != stat_signature(os.fstat(stream.fileno())):
                         raise ValueError(f"file changed while reading: {relative}")
                 total += len(data)
-                if _SECRET.search(data):
-                    raise ValueError(f"credential material: {relative}")
                 entries[relative] = _Entry(data, bool(info.st_mode & stat.S_IXUSR))
             else:
                 raise ValueError(f"symlink or special file: {relative}")

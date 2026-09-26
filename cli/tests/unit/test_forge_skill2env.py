@@ -545,7 +545,7 @@ def test_unsafe_or_unbounded_trees_never_create_a_build(
         with asset.open("wb") as stream:
             stream.truncate(MAX_TASK_BYTES + 1)
     elif unsafe == "private":
-        (task / "environment" / "auth.json").write_bytes(b"{}")
+        (task / "environment" / "reward.txt").write_bytes(b"1\n")
     elif unsafe == "case":
         (task / "environment" / "dockerfile").write_bytes(b"FROM scratch\n")
         if (task / "environment" / "dockerfile").samefile(

@@ -44,11 +44,12 @@ no fallback schemas, supplied images, host environment variables, MCP servers,
 alternate verifier environments or multi-step tasks.
 
 The local package is bounded to 128 MiB, 4096 entries and 32 directory levels.
-Symlinks, special files, hidden/private filenames, recognized credential
-signatures, source-digest disclosure outside task.toml, changing files and
-case-colliding paths are rejected. Executable bits are retained. Filename and
-signature checks cannot establish that arbitrary task text is free of secrets;
-source disclosure review remains necessary before authoring or export.
+Symlinks, special files, hidden files, the names a task's own integrity
+reserves (the Skill's own files, the creator's record and the reward files),
+source-digest disclosure outside task.toml, changing files and case-colliding
+paths are rejected. Executable bits are retained. Nothing reads a task's text
+for credentials (decision 0036): a task carries whatever its files hold, so
+review what it contains before authoring or export.
 
 Only those five root members are accepted; any other root file or directory
 rejects the task (upstream tolerates stray files). The Dockerfile must be
