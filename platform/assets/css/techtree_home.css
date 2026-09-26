@@ -11,11 +11,14 @@
   width: min(52%, 38rem);
   padding: 0;
   background: transparent;
+  container-type: inline-size;
 }
 .hero--landing .hero__copy > .eyebrow { color: var(--accent-deep); }
 .hero--landing .hero-title {
   margin-top: var(--space-2);
-  font-size: clamp(2.5rem, 4.75vw, 5.5rem);
+  /* Each phrase is about 9.1em wide, so capping the size at 10.8% of the copy
+     column keeps "Improve a Skill." and "Prove it worked." on one line apiece. */
+  font-size: min(clamp(2.5rem, 4.75vw, 5.5rem), 10.8cqi);
   line-height: 1.1;
   letter-spacing: -.035em;
 }
@@ -31,12 +34,9 @@
 .hero--landing .hero__mechanism > span { display: block; }
 .hero--landing .hero__source-link {
   position: relative;
-  display: inline-block;
-  padding-inline-end: .85em;
   white-space: nowrap;
   text-decoration: none;
 }
-.hero--landing .hero__source-link:first-of-type { margin-inline-end: -.25em; }
 .hero--landing .hero__source-link:is(:hover, :focus-visible) {
   text-decoration: underline dotted;
   text-decoration-thickness: 1px;
@@ -45,10 +45,10 @@
 .hero--landing .hero__source-link::after {
   content: "";
   position: absolute;
-  inset-inline-end: 0;
-  top: .35em;
-  width: .75em;
-  height: .75em;
+  inset-inline-start: 100%;
+  top: .05em;
+  width: .5em;
+  height: .5em;
   background: currentColor;
   mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M7%2017%2017%207M7%207h10v10%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
   opacity: 0;
@@ -89,7 +89,7 @@
   body:has(.hero--landing) .masthead__service { grid-column: 1 / -1; }
   .hero--landing .hero__stage { min-height: 0; padding-block: var(--space-4) 0; }
   .hero--landing .hero__copy { width: 100%; order: 1; }
-  .hero--landing .hero-title { font-size: clamp(2rem, 7.5vw, 3.5rem); }
+  .hero--landing .hero-title { font-size: min(clamp(2rem, 7.5vw, 3.5rem), 10.8cqi); }
   .hero--landing .hero__optics {
     position: relative;
     inset: auto;

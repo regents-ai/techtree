@@ -28,6 +28,8 @@
 .needs { display: grid; gap: var(--space-1); list-style: square; padding-left: var(--space-3); }
 .needs + p { margin-top: var(--space-2); }
 .later-note { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); margin-top: var(--space-2); font-size: .875rem; color: var(--ink-quiet); }
+.later-note--inline { display: block; }
+.later-note--inline > .badge { display: inline-flex; margin-inline-end: var(--space-1); vertical-align: baseline; }
 .start-steps h3 { margin-top: var(--space-2); font-size: 1.375rem; letter-spacing: -.025em; }
 .start-guide__direct > h3 { font-size: 1.375rem; letter-spacing: -.025em; }
 .setup-unavailable h2 { max-width: 36ch; font-size: 1.75rem; }

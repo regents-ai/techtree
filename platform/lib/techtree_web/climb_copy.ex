@@ -16,6 +16,7 @@ defmodule TechtreeWeb.ClimbCopy do
   @type t :: %{
           subtitle: String.t(),
           scope: String.t(),
+          introduction: String.t(),
           question: String.t(),
           input: String.t(),
           output: String.t(),
@@ -36,6 +37,8 @@ defmodule TechtreeWeb.ClimbCopy do
       subtitle: "A toy Skill-uplift Climb",
       scope:
         "A toy introductory demonstration of the mechanism, not a measure of broad capability.",
+      introduction:
+        "a small demonstration of how a Climb works rather than a measure of broad capability",
       question:
         "Does adding the Hello World Skill improve exact-match scores across 36 fixed tasks?",
       input: "A short lowercase string for each task.",
