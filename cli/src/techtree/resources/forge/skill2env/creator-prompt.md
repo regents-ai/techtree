@@ -31,7 +31,13 @@ Write these files:
   grading. The task is given to agents with and without the Skill, to show
   whether the Skill helps, so ask for the result the way someone who uses
   the Skill would: do not restate the Skill's procedure, rules or reference
-  material, in the instruction or in the input files.
+  material, in the instruction or in the input files. Leave the choice the
+  claim is about to the agent: do not state it, do not point the agent to
+  the document or file that settles it, and do not give input files that
+  have already made it, such as code that already has the interface or
+  structure the Skill recommends. If the task needs a tool the base image
+  does not have, such as `git`, say in the instruction exactly what stands
+  in for it and which of its commands work.
 - `environment/Dockerfile`: the container the agent starts in. Its first line
   is exactly `FROM {base_image}`, and no other image may be named. Use only
   `FROM`, `RUN`, `COPY`, `WORKDIR` and `ENV`; `COPY` takes files from the
@@ -41,8 +47,9 @@ Write these files:
 - Any input files the Dockerfile copies, under `environment/`.
 - `tests/test.sh`: the grading program, run by `bash` as `/tests/test.sh`
   in the same container after the agent has finished. It checks each success
-  criterion exactly and writes `1` to `/logs/verifier/reward.txt` when all of
-  them hold and `0` otherwise, creating `/logs/verifier` first. It may use the
+  criterion exactly, and nothing else about how the result is written, and
+  writes `1` to `/logs/verifier/reward.txt` when all of them hold and `0`
+  otherwise, creating `/logs/verifier` first. It may use the
   Python in the image, and any helper files you put under `tests/`, which is
   mounted at `/tests`. No file under `tests/` or `solution/` may repeat the
   contents of `instruction.md` or of any file under `environment/`, not even
@@ -66,7 +73,12 @@ Write these files:
 Techtree runs each of them in a fresh container before anyone may use the
 task. The tests must fail when the agent does nothing, pass for `solve.sh`
 and for `alternative.sh`, and fail for `wrong.sh`. They must accept every
-correct result and reject every wrong one, not only these. Mark
+correct result and reject every wrong one, not only these: whatever a
+correct result's layout, names, helpers or style, unless the instruction or
+the claim's observable fixes that detail. Never forbid ordinary language
+features, syntax or names to catch a wrong approach; check what the result
+does, or the observable itself, instead. When a check
+fails, print one line saying what was wrong. Mark
 `tests/test.sh` and the three solutions executable.
 
 Do not include the Skill's own files, `SKILL.md`, `task.toml`, hidden files,

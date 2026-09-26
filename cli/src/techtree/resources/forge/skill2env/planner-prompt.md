@@ -42,6 +42,23 @@ result; it does not repeat the Skill's instructions. Different tasks exercise
 different parts of the Skill; do not propose the same workflow twice with new
 inputs.
 
+Each task is given to agents with and without the Skill, to show whether the
+Skill helps, so it must leave the choice its claim is about to the agent.
+Neither the summary nor the scenario may state that choice, point the agent
+to the document or file that settles it, or start from files that have
+already made it, such as code that already has the interface or structure
+the Skill recommends. An agent without the Skill must be able to get the
+task wrong in the way the claim describes. Leave out a claim that cannot be
+tested like this: a claim about how the agent works, such as the order of
+its steps, is testable only if that order shows in what it leaves without
+the task asking for it.
+
+Success criteria check that the result is correct and shows the claim's
+observable, and nothing else about how it is written. They accept every
+correct result, whatever its layout, names, helpers or style, unless the
+task or the observable fixes that detail, and they never forbid ordinary
+language features, syntax or names to catch a wrong approach.
+
 For each task give:
 
 - `name`: a short lowercase name, letters, digits and hyphens;
