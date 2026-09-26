@@ -185,7 +185,6 @@ code { font-size: .9em; }
 .hero-product--patchbay { --hero-product-fill: var(--palette-platinum); }
 .hero-product h2 { font-size: clamp(1.125rem, 1.8vw, 1.5rem); line-height: 1.2; letter-spacing: -.025em; }
 .hero-product__destination { display: flex; justify-content: space-between; gap: var(--space-1); margin-top: var(--space-3); font-size: .8125rem; }
-.hero-product:active { transform: scale(.97); }
 .hero-product:focus-visible { outline-color: var(--ink); transition: none; }
 @media (hover: hover) and (pointer: fine) {
   .hero-product:hover { transform: translateY(-2px); text-decoration: none; }
@@ -251,7 +250,7 @@ code { font-size: .9em; }
 .pagecopy details { position: static; }
 .pagecopy summary { min-height: 100%; display: flex; align-items: center; padding: var(--space-1) var(--space-2); border: 1px solid var(--rule-strong); cursor: pointer; list-style: none; }
 .pagecopy summary::-webkit-details-marker { display: none; }
-.pagecopy__menu { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: 30; width: 20rem; max-width: calc(100vw - 4rem); border: 1px solid var(--rule-strong); background: var(--panel); padding: var(--space-1); }
+.pagecopy__menu { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: 30; width: 20rem; max-width: calc(100vw - 4rem); border: 1px solid var(--rule-strong); background: var(--panel); padding: var(--space-1); transform-origin: 100% 0; }
 .pagecopy__item { display: block; width: 100%; text-align: left; font-size: .875rem; }
 .pagecopy__item small { display: block; font-size: .8125rem; font-weight: 400; }
 

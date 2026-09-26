@@ -31,6 +31,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   alias Techtree.Network.Query
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.Motion
   alias TechtreeWeb.Providers
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.ResultAssessment
@@ -313,8 +314,19 @@ defmodule TechtreeWeb.RunsLive.Show do
             <p :if={@filtered_tasks == []} class="empty-state tasks__empty">
               {empty_filter_words(@task_filter)}
             </p>
-            <ol>
-              <li :for={task <- @filtered_tasks} class="tasks__row">
+            <ol
+              id="task-list"
+              phx-hook="MotionList"
+              data-layout-id="task-list"
+              data-children="[data-task]"
+              data-variant={Motion.standard("list")}
+            >
+              <li
+                :for={task <- @filtered_tasks}
+                class="tasks__row"
+                data-task
+                data-layout-id={"task-#{task.hash}"}
+              >
                 <span class="tasks__task" title={task.hash}>
                   <strong>{task.label}</strong>
                   <code>{task.short_hash}</code>

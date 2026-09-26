@@ -33,6 +33,7 @@ function mountCopyButton(
     idleLabel,
     successMessage,
     failureMessage,
+    refuse,
     writeText = value => navigator.clipboard.writeText(value),
   },
 ) {
@@ -52,6 +53,7 @@ function mountCopyButton(
       scheduleCopyFeedbackReset(hook, label, idleLabel, status, 1800)
     } catch (_error) {
       label.textContent = "Copy failed"
+      refuse(hook.el)
       announceCopyStatus(hook, status, failureMessage)
       scheduleCopyFeedbackReset(hook, label, idleLabel, status, 4000)
     } finally {
@@ -60,23 +62,26 @@ function mountCopyButton(
   })
 }
 
-export function mountCommandCopyButton(hook, copyValue, writeText) {
+// `refuse` answers a copy that could not happen, beside the words that say so.
+export function mountCommandCopyButton(hook, copyValue, {refuse, writeText}) {
   mountCopyButton(hook, {
     copyValue,
     idleLabel: "Copy",
     successMessage: "Copied.",
     failureMessage: "Copy failed. Select the text and copy it manually.",
+    refuse,
     writeText,
   })
 }
 
-export function mountPageCopyButton(hook, copyValue, writeText) {
+export function mountPageCopyButton(hook, copyValue, {refuse, writeText}) {
   mountCopyButton(hook, {
     copyValue,
     idleLabel: "Copy page",
     successMessage: "Page copied as Markdown.",
     failureMessage:
       "Copy failed. Use View as Markdown to open the Markdown, then copy it manually.",
+    refuse,
     writeText,
   })
 }

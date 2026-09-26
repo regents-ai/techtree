@@ -5,6 +5,7 @@
   "description": "Vendored browser dependencies for the Techtree site. esbuild bundles them from here into priv/static/assets, so the strict script-src 'self' policy holds and nothing is fetched at runtime.",
   "license": "MIT",
   "dependencies": {
+    "animejs": "4.5.0",
     "vgpu": "0.4.0"
   }
 }
