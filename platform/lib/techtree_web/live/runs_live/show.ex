@@ -192,7 +192,7 @@ defmodule TechtreeWeb.RunsLive.Show do
             </p>
           </li>
           <li id="badge-reported" class="evidence-badge">
-            <Regent.Primitives.status tone="success" class="badge">
+            <Regent.Primitives.status tone="neutral" class="badge">
               Reported by the person who ran it
             </Regent.Primitives.status>
             <p>
