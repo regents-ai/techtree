@@ -16,4 +16,4 @@ Send security reports to [build@regents.sh](mailto:build@regents.sh) first, or u
 
 ## Regents Labs
 
-Regents Labs builds tools for agents and the people who run them: [Regents](https://regents.sh), [Autolaunch](https://autolaunch.sh), [Patchbay](https://patchbay.help) and Techtree. Each product has its own contact page; this one is for Techtree.
+Regents Labs builds tools for agents and the people who run them: [Regents](https://regents.sh), [Autolaunch](https://autolaunch.sh), [Patchbay](https://patchbay.help) and Techtree.

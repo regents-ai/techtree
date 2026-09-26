@@ -8,7 +8,7 @@ Comparisons, test tasks and runs happen on your own computer, and Techtree doesn
 
 ## Reading the site
 
-Reading any page or public address needs no account, and Techtree has no accounts to make. The site runs no analytics and no advertising trackers. Its pages may load scripts only from Techtree itself, and may connect only to Techtree and to GitHub's public API.
+Reading any page or public address needs no account and no sign-in. The site runs no analytics and no advertising trackers. Its pages may load scripts only from Techtree itself, and may connect only to Techtree and to GitHub's public API.
 
 ## Cookies
 

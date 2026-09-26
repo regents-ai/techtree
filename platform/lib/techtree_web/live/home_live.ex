@@ -23,7 +23,7 @@ defmodule TechtreeWeb.HomeLive do
 
     {:ok,
      assign(socket,
-       page_title: nil,
+       page_title: "Improve a Skill. Prove it worked.",
        agent_line: StartLive.instruction(),
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
