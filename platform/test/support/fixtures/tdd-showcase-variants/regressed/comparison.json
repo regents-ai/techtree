@@ -1,0 +1,329 @@
+{
+  "baseline": {
+    "agent_seconds": 12.0,
+    "api_calls": 16,
+    "attempts_graded": 8,
+    "attempts_planned": 8,
+    "attempts_recorded": 8,
+    "cost_statuses": [
+      "unavailable"
+    ],
+    "cost_usd": null,
+    "mean_reward": 0.5,
+    "run_id": "forgerun_e4d2cb796c8d425b8be5b65d808e24dc",
+    "state": "completed",
+    "total_tokens": 960
+  },
+  "baseline_run_id": "forgerun_e4d2cb796c8d425b8be5b65d808e24dc",
+  "baseline_skill": null,
+  "candidate": {
+    "agent_seconds": 12.0,
+    "api_calls": 16,
+    "attempts_graded": 8,
+    "attempts_planned": 8,
+    "attempts_recorded": 8,
+    "cost_statuses": [
+      "unavailable"
+    ],
+    "cost_usd": null,
+    "mean_reward": 0.5,
+    "run_id": "forgerun_aa953c6d6b25438f8f8c360e29cd02be",
+    "state": "completed",
+    "total_tokens": 960
+  },
+  "candidate_run_id": "forgerun_aa953c6d6b25438f8f8c360e29cd02be",
+  "candidate_skill": {
+    "digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+    "name": "tdd"
+  },
+  "comparability": {
+    "allowed_differences": [
+      "/arm",
+      "/skill"
+    ],
+    "baseline_configuration_digest": "sha256:ed8505a1cc15515873cc9a34e60db9746cb354d5e3f5ddd89a77d1c52a24ba4c",
+    "candidate_configuration_digest": "sha256:74f6a861eab78448958e071d4b981124d98d681fd26ded161b9cb578cbce7c4f",
+    "controlled": true,
+    "differences": [
+      {
+        "baseline": "baseline",
+        "candidate": "candidate",
+        "pointer": "/arm"
+      },
+      {
+        "baseline": null,
+        "candidate": {
+          "exposure": "preloaded",
+          "files": [
+            {
+              "digest": "sha256:0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
+              "media_type": "text/plain",
+              "path": "LICENSE.txt",
+              "size": 1068
+            },
+            {
+              "digest": "sha256:cb01f66bebfaa25fa1f88e6b7e769cd9fd9f35b1120b8563749820738814c927",
+              "media_type": "text/markdown",
+              "path": "SKILL.md",
+              "size": 3549
+            },
+            {
+              "digest": "sha256:ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b",
+              "media_type": "application/yaml",
+              "path": "agents/openai.yaml",
+              "size": 87
+            },
+            {
+              "digest": "sha256:3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef",
+              "media_type": "text/markdown",
+              "path": "mocking.md",
+              "size": 1481
+            },
+            {
+              "digest": "sha256:859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a",
+              "media_type": "text/markdown",
+              "path": "tests.md",
+              "size": 2214
+            }
+          ],
+          "name": "tdd",
+          "root_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099"
+        },
+        "pointer": "/skill"
+      }
+    ],
+    "violations": []
+  },
+  "comparison_id": "forgecmp_52b09a5bd19247bca668e6e9352d7349",
+  "complete": true,
+  "consistency": [
+    {
+      "losses": 0,
+      "task_id": "task_tdd-cart-total_8b53544a",
+      "ties": 0,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 1
+    },
+    {
+      "losses": 1,
+      "task_id": "task_tdd-date-ranges_8b53544a",
+      "ties": 0,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 0
+    },
+    {
+      "losses": 1,
+      "task_id": "task_tdd-cache-rewrite_8b53544a",
+      "ties": 0,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 0
+    },
+    {
+      "losses": 0,
+      "task_id": "task_tdd-slugify_8b53544a",
+      "ties": 1,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 0
+    },
+    {
+      "losses": 0,
+      "task_id": "task_tdd-roman-numerals_8b53544a",
+      "ties": 0,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 1
+    },
+    {
+      "losses": 0,
+      "task_id": "task_tdd-parser-kept_8b53544a",
+      "ties": 1,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 0
+    },
+    {
+      "losses": 0,
+      "task_id": "task_tdd-rate-limiter_8b53544a",
+      "ties": 1,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 0
+    },
+    {
+      "losses": 0,
+      "task_id": "task_tdd-csv-report_8b53544a",
+      "ties": 1,
+      "unresolved": 0,
+      "went_both_ways": false,
+      "wins": 0
+    }
+  ],
+  "created_at": "2026-09-25T18:48:08.946103Z",
+  "held_out": {
+    "baseline_mean_reward": 0.75,
+    "candidate_mean_reward": 0.25,
+    "complete": true,
+    "losses": 2,
+    "mean_delta": -0.5,
+    "pairs_graded": 4,
+    "pairs_planned": 4,
+    "task_ids": [
+      "task_tdd-date-ranges_8b53544a",
+      "task_tdd-cache-rewrite_8b53544a",
+      "task_tdd-slugify_8b53544a",
+      "task_tdd-parser-kept_8b53544a"
+    ],
+    "ties": 2,
+    "unresolved": 0,
+    "verdict": "regressed",
+    "wins": 0
+  },
+  "losses": 2,
+  "mean_delta": 0.0,
+  "not_established": [
+    "which model the provider actually served: Hermes' usage report is the only witness, and it is self-reported",
+    "that the Hermes executable is unmodified: its version is what it prints",
+    "the provider's sampling settings: Hermes exposes no temperature or seed, so every attempt uses the provider's default"
+  ],
+  "pairs": [
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 0.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "result": "win",
+      "task_id": "task_tdd-cart-total_8b53544a"
+    },
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 1.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 0.0,
+      "delta": -1.0,
+      "result": "loss",
+      "task_id": "task_tdd-date-ranges_8b53544a"
+    },
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 1.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 0.0,
+      "delta": -1.0,
+      "result": "loss",
+      "task_id": "task_tdd-cache-rewrite_8b53544a"
+    },
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 1.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 1.0,
+      "delta": 0.0,
+      "result": "tie",
+      "task_id": "task_tdd-slugify_8b53544a"
+    },
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 0.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 1.0,
+      "delta": 1.0,
+      "result": "win",
+      "task_id": "task_tdd-roman-numerals_8b53544a"
+    },
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 0.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "result": "tie",
+      "task_id": "task_tdd-parser-kept_8b53544a"
+    },
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 1.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 1.0,
+      "delta": 0.0,
+      "result": "tie",
+      "task_id": "task_tdd-rate-limiter_8b53544a"
+    },
+    {
+      "attempt": 1,
+      "baseline_outcome": "graded",
+      "baseline_reward": 0.0,
+      "candidate_outcome": "graded",
+      "candidate_reward": 0.0,
+      "delta": 0.0,
+      "result": "tie",
+      "task_id": "task_tdd-csv-report_8b53544a"
+    }
+  ],
+  "pairs_graded": 8,
+  "pairs_planned": 8,
+  "regressions": [
+    {
+      "attempts_lost": [
+        1
+      ],
+      "attempts_won": [],
+      "task_id": "task_tdd-date-ranges_8b53544a"
+    },
+    {
+      "attempts_lost": [
+        1
+      ],
+      "attempts_won": [],
+      "task_id": "task_tdd-cache-rewrite_8b53544a"
+    }
+  ],
+  "repetitions": 1,
+  "schema_version": "techtree.forge-comparison.v1alpha5",
+  "source_skill": {
+    "digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+    "name": "tdd"
+  },
+  "study": {
+    "baseline_mean_reward": 0.25,
+    "candidate_mean_reward": 0.75,
+    "complete": true,
+    "losses": 0,
+    "mean_delta": 0.5,
+    "pairs_graded": 4,
+    "pairs_planned": 4,
+    "task_ids": [
+      "task_tdd-cart-total_8b53544a",
+      "task_tdd-roman-numerals_8b53544a",
+      "task_tdd-rate-limiter_8b53544a",
+      "task_tdd-csv-report_8b53544a"
+    ],
+    "ties": 2,
+    "unresolved": 0,
+    "verdict": "improved",
+    "wins": 2
+  },
+  "summary": "Mixed. Over 8 graded pairs, tdd won 2, lost 2 and tied 4; mean reward 0.50 without it and 0.50 with it (+0.00). The Skill lost on 2 tasks: task_tdd-date-ranges_8b53544a, task_tdd-cache-rewrite_8b53544a. One attempt per task; consistency across attempts was not measured. On the held-out tasks alone: regressed with the Skill, 0 won, 2 lost and 2 tied of 4 planned pairs.",
+  "tasks_from": {
+    "collection_digest": "sha256:c4bba332549a39cb6d208a24a64f946010178561b5cf4952d23895cd5459f6d1",
+    "collection_id": "forgecol_78d715e07d1f435c90dd22ebffd77593",
+    "kind": "collection",
+    "membership_digest": "sha256:3ba01d6af6a9e24f596eb191a6a9b263217e34d7ba8e98b5a0720ee1f2308cc1",
+    "version": 1
+  },
+  "ties": 4,
+  "unresolved": 0,
+  "verdict": "mixed",
+  "wins": 2
+}

@@ -1,0 +1,1617 @@
+{
+  "acceptance": {
+    "accepted_at": "2026-09-25T18:48:08.681759Z",
+    "answered_with": "yes-flag",
+    "collection_digest": "sha256:c4bba332549a39cb6d208a24a64f946010178561b5cf4952d23895cd5459f6d1",
+    "collection_id": "forgecol_78d715e07d1f435c90dd22ebffd77593",
+    "reviewed_on": "cli",
+    "schema_version": "techtree.forge-collection-acceptance.v1alpha1"
+  },
+  "collection": {
+    "collection_digest": "sha256:c4bba332549a39cb6d208a24a64f946010178561b5cf4952d23895cd5459f6d1",
+    "collection_id": "forgecol_78d715e07d1f435c90dd22ebffd77593",
+    "created_at": "2026-09-25T18:48:08.643963Z",
+    "review": {
+      "claims": [
+        {
+          "claim_id": "C1",
+          "observable": "The agent's tests pass against a second correct implementation of the same module that shares none of the first one's internal names.",
+          "statement": "Tests written test-first check behaviour through the public interface, so they still pass when a correct implementation is written another way."
+        },
+        {
+          "claim_id": "C2",
+          "observable": "The agent's tests fail against each deliberately wrong implementation the checker keeps back.",
+          "statement": "Tests written with the red-green loop catch wrong behaviour instead of restating the code."
+        },
+        {
+          "claim_id": "C3",
+          "observable": "Removing any one asked-for behaviour from a correct implementation makes at least one of the agent's tests fail, and no test replaces a function of the module under test.",
+          "statement": "The loop leaves one test for each behaviour asked for, without mocking the module's own parts."
+        }
+      ],
+      "constructions": [
+        "forgecon_8b53544a8016436191f9cbf06f48d58a"
+      ],
+      "inherited": [],
+      "line_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+      "members": [
+        {
+          "build_id": "build_a7e9afb628b34fb0ba9040f2a9cfaa66",
+          "claim": "C1",
+          "content_digest": "sha256:e2691bc3f48e10b7a203273ee0c9ce9ce250d9fbc6be84b6771753b73c6a526f",
+          "fingerprint": "sha256:697f2175e02f431ab54fea550af9584d9db7e0bc019563d44e0226e9301adf7c",
+          "kind": "positive",
+          "part": "study",
+          "qualification_digest": "sha256:9121f3737c99eea52402511318de4a5d8d3f595d56268c4cc0008072df4dd3cf",
+          "task_id": "task_tdd-cart-total_8b53544a",
+          "task_name": "tdd-cart-total"
+        },
+        {
+          "build_id": "build_7cbe511be51a42749c788d54f9f2974d",
+          "claim": "C1",
+          "content_digest": "sha256:fe7818b422b71e3500d4bdf7dc6dd9a9089774e854298c8785a5f133906381d6",
+          "fingerprint": "sha256:3d5ad19a8a9f88bf85234ddcf4729bccaa0dc27239fcdac49f995a898d867187",
+          "kind": "boundary",
+          "part": "held_out",
+          "qualification_digest": "sha256:9c8cc5c43d1f3f397f425ae53801a2ace68f30c47d3f14dcccde6426f09f8762",
+          "task_id": "task_tdd-date-ranges_8b53544a",
+          "task_name": "tdd-date-ranges"
+        },
+        {
+          "build_id": "build_cc480b309f3d49d0bbe97ad6063f6099",
+          "claim": "C1",
+          "content_digest": "sha256:487e6dd2d2389041dda3b909fe146f8d72c50527c1aadd9aca0595c758a8c7d3",
+          "fingerprint": "sha256:545167becba45cdf7a1ecac88779354019de3e7b71bd4d6c3840e311301acf67",
+          "kind": "counterexample",
+          "part": "held_out",
+          "qualification_digest": "sha256:c1ae0d7a01b0bb8158017f2ec0d6dcbef70d0d4248fdb35ec17d5d7231d3deed",
+          "task_id": "task_tdd-cache-rewrite_8b53544a",
+          "task_name": "tdd-cache-rewrite"
+        },
+        {
+          "build_id": "build_4c6e082b20ab4254b56bed075bf7cb49",
+          "claim": "C2",
+          "content_digest": "sha256:d79334ccd705a76398071d871920f4d98de5e1b8ce97c889d3fb1dc81f587415",
+          "fingerprint": "sha256:d99c04973b74085b4e8f4092f805ffe349adff003687da13f1307380dc5ec5fb",
+          "kind": "positive",
+          "part": "held_out",
+          "qualification_digest": "sha256:e3c055ded3b53daedc5faae34e72a127ce082c11c8f4b873741523f301c25cc3",
+          "task_id": "task_tdd-slugify_8b53544a",
+          "task_name": "tdd-slugify"
+        },
+        {
+          "build_id": "build_f0ed98ca4f764c74b3cbc3ca48ecb2e9",
+          "claim": "C2",
+          "content_digest": "sha256:4f2344c6dcd549b94852a0d05f38153b60feb94d8b755e450eab13f04d78a704",
+          "fingerprint": "sha256:089b34c835930274aa6207001882f105a3563f67bf591e90d5e84ef7523067b7",
+          "kind": "boundary",
+          "part": "study",
+          "qualification_digest": "sha256:3ee4164dd0e394dcdd2d273bc18571b80025635426d6943aed725d921250ec98",
+          "task_id": "task_tdd-roman-numerals_8b53544a",
+          "task_name": "tdd-roman-numerals"
+        },
+        {
+          "build_id": "build_6ae14539b23746419d57e9530184014c",
+          "claim": "C2",
+          "content_digest": "sha256:ee09fcb1d5a009524406907fb07bece0e45b1d01ed0d684d4034e53170814c4f",
+          "fingerprint": "sha256:745365772502b5fcb59b63039a5af38a862c95191effc9431b34f867675eb5d7",
+          "kind": "counterexample",
+          "part": "held_out",
+          "qualification_digest": "sha256:d7f040c3dbf3595a31fd80e7ac048f03a17755a9ab41537b450807468e18afaa",
+          "task_id": "task_tdd-parser-kept_8b53544a",
+          "task_name": "tdd-parser-kept"
+        },
+        {
+          "build_id": "build_af88036e1b764f9ab39acf4768042ce1",
+          "claim": "C3",
+          "content_digest": "sha256:96ba2972fcd49e4a33a211071b1eb4e655159bc39f727c455e7b5947f864a58c",
+          "fingerprint": "sha256:32263f9b1c8721e2af2a2b651ca91575102bd4a6bc0440c9f04fa848b8293545",
+          "kind": "positive",
+          "part": "study",
+          "qualification_digest": "sha256:47c95bcda4712d966750da56030119578ff6384b9e0ae8933e9f7351abb3b475",
+          "task_id": "task_tdd-rate-limiter_8b53544a",
+          "task_name": "tdd-rate-limiter"
+        },
+        {
+          "build_id": "build_d221401117174fb18751b7dc92041f8f",
+          "claim": "C3",
+          "content_digest": "sha256:da423827992f27476790a4658dd5fecdfc1e52dc78f1002c7bb5453ab2390785",
+          "fingerprint": "sha256:140150b18a1f4ed10d0976721a43726a26f4f47cd42361eb505f0b6f23b2260b",
+          "kind": "counterexample",
+          "part": "study",
+          "qualification_digest": "sha256:92fdedc17c4fd43eee62e36bda0e0aa4c3773f72ce4a045fb034d9e3e07893ce",
+          "task_id": "task_tdd-csv-report_8b53544a",
+          "task_name": "tdd-csv-report"
+        }
+      ],
+      "membership_digest": "sha256:3ba01d6af6a9e24f596eb191a6a9b263217e34d7ba8e98b5a0720ee1f2308cc1",
+      "previous": null,
+      "proposal_digest": "sha256:c5102076e06e8848f084911863f7dcfbf3ef9c58249934f6c15e7b17b87d83b7",
+      "proposal_id": "forgeprop_411ea114977042088ad8d02b6f4d2740",
+      "source_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+      "source_id": "forgesrc_e828511adc5442988758687afd0102c0",
+      "source_name": "tdd",
+      "tasks": [
+        {
+          "build_id": "build_a7e9afb628b34fb0ba9040f2a9cfaa66",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-cart-total",
+          "usable": true,
+          "why": null
+        },
+        {
+          "build_id": "build_7cbe511be51a42749c788d54f9f2974d",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-date-ranges",
+          "usable": true,
+          "why": null
+        },
+        {
+          "build_id": "build_cc480b309f3d49d0bbe97ad6063f6099",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-cache-rewrite",
+          "usable": true,
+          "why": null
+        },
+        {
+          "build_id": "build_4c6e082b20ab4254b56bed075bf7cb49",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-slugify",
+          "usable": true,
+          "why": null
+        },
+        {
+          "build_id": "build_f0ed98ca4f764c74b3cbc3ca48ecb2e9",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-roman-numerals",
+          "usable": true,
+          "why": null
+        },
+        {
+          "build_id": "build_6ae14539b23746419d57e9530184014c",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-parser-kept",
+          "usable": true,
+          "why": null
+        },
+        {
+          "build_id": "build_af88036e1b764f9ab39acf4768042ce1",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-rate-limiter",
+          "usable": true,
+          "why": null
+        },
+        {
+          "build_id": "build_d221401117174fb18751b7dc92041f8f",
+          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "state": "succeeded",
+          "task_name": "tdd-csv-report",
+          "usable": true,
+          "why": null
+        }
+      ],
+      "version": 1
+    },
+    "schema_version": "techtree.forge-collection.v1alpha3"
+  },
+  "exported_at": "2026-09-25T18:48:09.383346Z",
+  "readme_digest": "sha256:bb9a7fe13b9c3b59b838c625d7e9a03edd81ae49fb1b45d91ebfb0181c9191df",
+  "schema_version": "techtree.forge-export.v1alpha3",
+  "tasks": [
+    {
+      "build": {
+        "build_id": "build_a7e9afb628b34fb0ba9040f2a9cfaa66",
+        "created_at": "2026-09-25T18:48:08.514721Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:c5498e295d34cd9f97fef65d5240c55f86f1268116d2382f15d8f7cb6cb5c7d8",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:e2691bc3f48e10b7a203273ee0c9ce9ce250d9fbc6be84b6771753b73c6a526f",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:f9682dcab42e2b0f318a4241f8c7599cfb67b1268b0d62a8ac7e41719025767b",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 83
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:2c5b82bb405fd769bf012035af6773d0097c79d283e5d2132052bea2b5d840e3",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 765
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-cart-total_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-cart-total_8b53544a:40f2a9cfaa66",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:e2691bc3f48e10b7a203273ee0c9ce9ce250d9fbc6be84b6771753b73c6a526f",
+        "task_id": "task_tdd-cart-total_8b53544a",
+        "wrong_reward": 0.0
+      }
+    },
+    {
+      "build": {
+        "build_id": "build_7cbe511be51a42749c788d54f9f2974d",
+        "created_at": "2026-09-25T18:48:08.529065Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:50c2319466d8f5bb612a4dad4084a2294326406ec5cc945dee604079175c8737",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:fe7818b422b71e3500d4bdf7dc6dd9a9089774e854298c8785a5f133906381d6",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:e85a37bc71bb022757fa34258c7cb9aba052355bcf7c2e94fa02fbeb47442fbe",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 84
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:6cf38e9a1ef0f6fe279423d9d40c59b12545c95d50491f5696820b4130019a1e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 767
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-date-ranges_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-date-ranges_8b53544a:8d54f9f2974d",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:fe7818b422b71e3500d4bdf7dc6dd9a9089774e854298c8785a5f133906381d6",
+        "task_id": "task_tdd-date-ranges_8b53544a",
+        "wrong_reward": 0.0
+      }
+    },
+    {
+      "build": {
+        "build_id": "build_cc480b309f3d49d0bbe97ad6063f6099",
+        "created_at": "2026-09-25T18:48:08.545661Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:2aa171e9e24022733c93f0ffdba5148cdd3762bd0f57c03aafd18db2b151d706",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:487e6dd2d2389041dda3b909fe146f8d72c50527c1aadd9aca0595c758a8c7d3",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:a73fbefe6ca1260d49ab35bee722c7694aa1056f0e5a80e2335e4f3af7340fe8",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 86
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:06925062bdb68d8e7fbacbc03b3c8a14a582e1afbbee791d14c3fbd00e164d5a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 771
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-cache-rewrite_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-cache-rewrite_8b53544a:7ad6063f6099",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:487e6dd2d2389041dda3b909fe146f8d72c50527c1aadd9aca0595c758a8c7d3",
+        "task_id": "task_tdd-cache-rewrite_8b53544a",
+        "wrong_reward": 0.0
+      }
+    },
+    {
+      "build": {
+        "build_id": "build_4c6e082b20ab4254b56bed075bf7cb49",
+        "created_at": "2026-09-25T18:48:08.558933Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:809ec1170e0fb35f75a87a769adb44084552ae16a96833bfbe0d4805dd3e178d",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:d79334ccd705a76398071d871920f4d98de5e1b8ce97c889d3fb1dc81f587415",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:3886791d9c49b9ea8e638cb739937ae6d8560dd8fad5125a6348ea668218f0dc",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 80
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:3803733c9f5dee2b03eba2188701fa0c9985372d9a51b8b17f2258a819316266",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 759
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-slugify_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-slugify_8b53544a:ed075bf7cb49",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:d79334ccd705a76398071d871920f4d98de5e1b8ce97c889d3fb1dc81f587415",
+        "task_id": "task_tdd-slugify_8b53544a",
+        "wrong_reward": 0.0
+      }
+    },
+    {
+      "build": {
+        "build_id": "build_f0ed98ca4f764c74b3cbc3ca48ecb2e9",
+        "created_at": "2026-09-25T18:48:08.572550Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:c3f864b5ba09882b01e20f9bd379496e0a94223d5d54263e72f7cbbb83ad8ee6",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:4f2344c6dcd549b94852a0d05f38153b60feb94d8b755e450eab13f04d78a704",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:3fe2a85391102535b8d29594fe29ffaf3e10d2186a3290cd1f4c83c5c723c026",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 87
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:ebc627fd747c34a2990937c3850837079ae25ee7c95599ebfebfbdee5bf007f4",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 773
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-roman-numerals_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-roman-numerals_8b53544a:c3ca48ecb2e9",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:4f2344c6dcd549b94852a0d05f38153b60feb94d8b755e450eab13f04d78a704",
+        "task_id": "task_tdd-roman-numerals_8b53544a",
+        "wrong_reward": 0.0
+      }
+    },
+    {
+      "build": {
+        "build_id": "build_6ae14539b23746419d57e9530184014c",
+        "created_at": "2026-09-25T18:48:08.585102Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:95bdc8727b1ff784440167261457c7f575d0a16c488e401a623ed8d9d8df3184",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:ee09fcb1d5a009524406907fb07bece0e45b1d01ed0d684d4034e53170814c4f",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:be37638d53c7a63676594e9451ba0ea7ab303d7828e59792d223114f56cbbb5d",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 84
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:d1fcaf59ba9a43dae3e9353b6a15c591a188e8373d03cd0351723be0cac3eb91",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 767
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-parser-kept_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-parser-kept_8b53544a:e9530184014c",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:ee09fcb1d5a009524406907fb07bece0e45b1d01ed0d684d4034e53170814c4f",
+        "task_id": "task_tdd-parser-kept_8b53544a",
+        "wrong_reward": 0.0
+      }
+    },
+    {
+      "build": {
+        "build_id": "build_af88036e1b764f9ab39acf4768042ce1",
+        "created_at": "2026-09-25T18:48:08.599367Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:3d6fb683b85dd031239a19b9ca11023377bb445edd185647e3d7b03f434b79ec",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:96ba2972fcd49e4a33a211071b1eb4e655159bc39f727c455e7b5947f864a58c",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:a0a007d2785ddfe6c5f33d841b781dc7e1367ce9c4f71803b597352bb32a30de",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 85
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:848843863651e3496be28fe3cb8c53134c916dc7d853a14bf903346d9c725c4e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 769
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-rate-limiter_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-rate-limiter_8b53544a:cf4768042ce1",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:96ba2972fcd49e4a33a211071b1eb4e655159bc39f727c455e7b5947f864a58c",
+        "task_id": "task_tdd-rate-limiter_8b53544a",
+        "wrong_reward": 0.0
+      }
+    },
+    {
+      "build": {
+        "build_id": "build_d221401117174fb18751b7dc92041f8f",
+        "created_at": "2026-09-25T18:48:08.613617Z",
+        "platform": "linux/arm64",
+        "schema_version": "techtree.forge-build.v1alpha3",
+        "source": {
+          "base_images": [
+            {
+              "image_id": "sha256:707974686f6e3a332e31322d736c696d407368613235363a3266313766633034",
+              "reference": "python:3.12-slim@sha256:2f17fc044b579bab302c2e8054d3a686e2cb9a83de48e70534b94cd8ebbe06a9"
+            }
+          ],
+          "harbor_version": "0.16.0",
+          "kind": "skill",
+          "producer": "skill2env",
+          "producer_version": "0.3.0",
+          "recipe": "skill2env",
+          "recipe_version": "sha256:dc9f4390f326e4760cb74c07f8ed00a12d6d3ad3f7d4c29d866a4c2762aae5d1",
+          "source_skill_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
+          "upstream_revision": "9beb0b64a70290f862c8374bbef21f2ac88992ab",
+          "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
+        },
+        "task_set": {
+          "membership_digest": "sha256:7e76ccdaf016094014041e14f8dd2a385621aaa36e3591b46628a3fcf9b93951",
+          "schema_version": "techtree.forge-task-set.v1alpha1",
+          "tasks": [
+            {
+              "content_digest": "sha256:da423827992f27476790a4658dd5fecdfc1e52dc78f1002c7bb5453ab2390785",
+              "entries": [
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "environment",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:6c38d52ac35a80551437ebf0034bbe66d46c0322a66dcfa99b58693e1907b195",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/Dockerfile",
+                  "size": 141
+                },
+                {
+                  "digest": "sha256:fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "environment/amounts.txt",
+                  "size": 4
+                },
+                {
+                  "digest": "sha256:3884ffee648f3ceffbaf5c8c4fed54bfd0585af72dac46a4a2bbee86ce90535b",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "instruction.md",
+                  "size": 83
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "solution",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:7ff8abb002b840c70f51f6b5519f21d1adb938ae0b0c2f19919b7300975660d5",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/alternative.sh",
+                  "size": 127
+                },
+                {
+                  "digest": "sha256:268463c132dc77ec68cdb5548f9dbc6a7599de2939fc8553b8b5a846a53f4871",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/solve.sh",
+                  "size": 88
+                },
+                {
+                  "digest": "sha256:2cdf0d9e48c5b3486d3e684af6145e14d6dd7e7c16e5651d2efd7bcf164f7f1a",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "solution/wrong.sh",
+                  "size": 53
+                },
+                {
+                  "digest": "sha256:b7e8a371c9f3fba1293df5f50f1432adeaafe88abbc153cfd7b2e95a5feaec39",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "task.toml",
+                  "size": 765
+                },
+                {
+                  "digest": null,
+                  "executable": true,
+                  "kind": "directory",
+                  "path": "tests",
+                  "size": 0
+                },
+                {
+                  "digest": "sha256:1e764b4db392a5c522f395706ed2bd45625239b8e1331b536f9514dcfe39784e",
+                  "executable": false,
+                  "kind": "file",
+                  "path": "tests/rubric.md",
+                  "size": 42
+                },
+                {
+                  "digest": "sha256:c280e639009a9dcf320e962e4f22151c4e7223b9f2d73d01c203d465f1532974",
+                  "executable": true,
+                  "kind": "file",
+                  "path": "tests/test.sh",
+                  "size": 170
+                }
+              ],
+              "schema_version": "techtree.forge-task-content.v1alpha1",
+              "task_id": "task_tdd-csv-report_8b53544a"
+            }
+          ]
+        }
+      },
+      "qualification": {
+        "alternative_reward": 1.0,
+        "checks": [
+          {
+            "detail": "no tests or solution file appears in the instruction or environment",
+            "name": "hidden_material_private",
+            "passed": true
+          },
+          {
+            "detail": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+            "name": "image_build",
+            "passed": true
+          },
+          {
+            "detail": "the image holds no /tests, /solution or /logs",
+            "name": "verifier_material_absent",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 with nothing done",
+            "name": "no_op_fails",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the reference solution",
+            "name": "reference_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 1.0 after the other correct solution",
+            "name": "alternative_solution_passes",
+            "passed": true
+          },
+          {
+            "detail": "reward 0.0 after the deliberately wrong solution",
+            "name": "wrong_solution_fails",
+            "passed": true
+          },
+          {
+            "detail": "16 bytes across 4 entries",
+            "name": "verifier_output_bounded",
+            "passed": true
+          }
+        ],
+        "control_reward": 0.0,
+        "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
+        "image_tag": "techtree-forge/skill2env/task_tdd-csv-report_8b53544a:b7dc92041f8f",
+        "kind": "skill",
+        "qualified": true,
+        "reference_reward": 1.0,
+        "task_content_digest": "sha256:da423827992f27476790a4658dd5fecdfc1e52dc78f1002c7bb5453ab2390785",
+        "task_id": "task_tdd-csv-report_8b53544a",
+        "wrong_reward": 0.0
+      }
+    }
+  ]
+}

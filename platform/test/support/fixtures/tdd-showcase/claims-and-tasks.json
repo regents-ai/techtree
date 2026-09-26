@@ -1,0 +1,109 @@
+{
+  "claims": [
+    {
+      "claim_id": "C1",
+      "observable": "The agent's tests pass against a second correct implementation of the same module that shares none of the first one's internal names.",
+      "statement": "Tests written test-first check behaviour through the public interface, so they still pass when a correct implementation is written another way."
+    },
+    {
+      "claim_id": "C2",
+      "observable": "The agent's tests fail against each deliberately wrong implementation the checker keeps back.",
+      "statement": "Tests written with the red-green loop catch wrong behaviour instead of restating the code."
+    },
+    {
+      "claim_id": "C3",
+      "observable": "Removing any one asked-for behaviour from a correct implementation makes at least one of the agent's tests fail, and no test replaces a function of the module under test.",
+      "statement": "The loop leaves one test for each behaviour asked for, without mocking the module's own parts."
+    }
+  ],
+  "tasks": [
+    {
+      "claim": "C1",
+      "kind": "positive",
+      "name": "tdd-cart-total",
+      "scenario": "The agent starts in /app with the files for tdd-cart-total and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Write unittest tests for a shopping cart total with discounts, then make them pass.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    },
+    {
+      "claim": "C1",
+      "kind": "boundary",
+      "name": "tdd-date-ranges",
+      "scenario": "The agent starts in /app with the files for tdd-date-ranges and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Test and write a function that says whether two date ranges overlap, including ranges that only touch.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    },
+    {
+      "claim": "C1",
+      "kind": "counterexample",
+      "name": "tdd-cache-rewrite",
+      "scenario": "The agent starts in /app with the files for tdd-cache-rewrite and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Add tests for a small cache before its storage is rewritten, without tying them to how it stores entries.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    },
+    {
+      "claim": "C2",
+      "kind": "positive",
+      "name": "tdd-slugify",
+      "scenario": "The agent starts in /app with the files for tdd-slugify and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Test and write a function that turns a title into a web address slug.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    },
+    {
+      "claim": "C2",
+      "kind": "boundary",
+      "name": "tdd-roman-numerals",
+      "scenario": "The agent starts in /app with the files for tdd-roman-numerals and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Test and write a converter to Roman numerals, including the smallest and largest numbers it accepts.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    },
+    {
+      "claim": "C2",
+      "kind": "counterexample",
+      "name": "tdd-parser-kept",
+      "scenario": "The agent starts in /app with the files for tdd-parser-kept and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Extend a parser whose existing tests are already good, without weakening them.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    },
+    {
+      "claim": "C3",
+      "kind": "positive",
+      "name": "tdd-rate-limiter",
+      "scenario": "The agent starts in /app with the files for tdd-rate-limiter and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Test and write a rate limiter that allows a set number of requests in each window.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    },
+    {
+      "claim": "C3",
+      "kind": "counterexample",
+      "name": "tdd-csv-report",
+      "scenario": "The agent starts in /app with the files for tdd-csv-report and Python's unittest.",
+      "success_criteria": [
+        "The agent's tests and code are left in /app."
+      ],
+      "summary": "Test a report writer through its output file rather than by replacing its own helpers.",
+      "verifier_strategy": "The checker runs the agent's tests against correct and wrong implementations it keeps back."
+    }
+  ]
+}
