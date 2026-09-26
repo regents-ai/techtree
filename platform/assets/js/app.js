@@ -1,9 +1,9 @@
 import "../vendor/regent_ui/blog.mjs"
 
 // The pages are read-only documents. This bundle keeps the live connection,
-// copies published commands, remembers the reader's color preference, and
-// reads the repository's public star
-// count. It never runs a command or sends the color preference anywhere.
+// copies published commands, remembers the reader's color preference, reads
+// the repository's public star count, and plays the standard motion. It never
+// runs a command or sends the color preference anywhere.
 
 import "phoenix_html"
 import {Socket} from "phoenix"
@@ -11,6 +11,12 @@ import {LiveSocket} from "phoenix_live_view"
 
 import {mountCommandCopyButton, mountPageCopyButton} from "./copy_feedback.mjs"
 import {Optics} from "./optics_controller"
+import {mountMotion} from "./motion.js"
+import {deny} from "./hooks/motion/press.js"
+import {MotionList} from "./hooks/motion/moments.js"
+import {MotionMenu} from "./hooks/motion/slides.js"
+
+mountMotion()
 
 const GITHUB_STAR_CACHE = "techtree-github-stars"
 const GITHUB_STAR_REFRESH_MS = 2 * 60 * 1000
@@ -185,6 +191,8 @@ const Hooks = {
       Optics.mounted.call(this)
     },
   },
+  MotionList,
+  MotionMenu,
 }
 
 Hooks.AgentVersions = {
@@ -208,10 +216,14 @@ Hooks.AgentVersions = {
 
 Hooks.CopyCommand = {
   mounted() {
-    mountCommandCopyButton(this, () => {
-      const visibleCopy = this.el.closest(".command")?.querySelector(".command__block")
-      return visibleCopy?.textContent ?? this.el.dataset.copyValue
-    })
+    mountCommandCopyButton(
+      this,
+      () => {
+        const visibleCopy = this.el.closest(".command")?.querySelector(".command__block")
+        return visibleCopy?.textContent ?? this.el.dataset.copyValue
+      },
+      {refuse: deny},
+    )
   },
 }
 
@@ -291,7 +303,7 @@ const docsRoot = () => document.querySelector("[data-markdown-root]") ?? documen
 
 Hooks.CopyCommandPage = {
   mounted() {
-    mountPageCopyButton(this, () => pageAsMarkdown(docsRoot()))
+    mountPageCopyButton(this, () => pageAsMarkdown(docsRoot()), {refuse: deny})
   },
 }
 

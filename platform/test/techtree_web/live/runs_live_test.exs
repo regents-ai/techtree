@@ -537,7 +537,7 @@ defmodule TechtreeWeb.RunsLiveTest do
     |> Enum.uniq()
   end
 
-  defp task_row_count(html), do: length(Regex.scan(~r/<li class="tasks__row">/, html))
+  defp task_row_count(html), do: length(Regex.scan(~r/<li class="tasks__row"[ >]/, html))
 
   defp publish_a_run(_context) do
     keys = NetworkFixture.key_pair()

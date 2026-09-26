@@ -12,6 +12,8 @@ defmodule TechtreeWeb.PageCopy do
 
   use Phoenix.Component
 
+  alias TechtreeWeb.Motion
+
   @doc "The Copy page split button. Place inside a page heading."
   def page_copy(assigns) do
     ~H"""
@@ -32,9 +34,9 @@ defmodule TechtreeWeb.PageCopy do
         aria-live="polite"
         aria-atomic="true"
       ></span>
-      <details>
+      <details id="copy-page-options" phx-hook="MotionMenu" data-menu={Motion.standard("menu")}>
         <summary aria-label="More ways to take this page">⌄</summary>
-        <div class="pagecopy__menu">
+        <div class="pagecopy__menu" data-panel>
           <Regent.Primitives.button
             type="button"
             variant="quiet"

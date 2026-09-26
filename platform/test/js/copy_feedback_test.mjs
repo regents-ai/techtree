@@ -128,10 +128,14 @@ test("command copy blocks overlap and reannounces repeated success", async () =>
   const button = new TestButton("Copy")
   const firstWrite = deferred()
   const writes = []
+  const refused = []
 
-  mountCommandCopyButton({el: button}, () => "techtree climb", value => {
-    writes.push(value)
-    return writes.length === 1 ? firstWrite.promise : Promise.resolve()
+  mountCommandCopyButton({el: button}, () => "techtree climb", {
+    refuse: el => refused.push(el),
+    writeText: value => {
+      writes.push(value)
+      return writes.length === 1 ? firstWrite.promise : Promise.resolve()
+    },
   })
 
   const firstClick = button.click()
@@ -170,6 +174,7 @@ test("command copy blocks overlap and reannounces repeated success", async () =>
   assert.equal(clock.runFrame(thirdFrameId), true)
 
   assert.deepEqual(writes, ["techtree climb", "techtree climb", "techtree climb"])
+  assert.deepEqual(refused, [])
   assert.equal(button.label.textContent, "Copied")
   assert.equal(button.classList.contains("is-copied"), true)
   assert.deepEqual(button.nextElementSibling.values, [
@@ -194,9 +199,14 @@ test("page copy blocks overlap and reannounces repeated Markdown failure", async
   const failureMessage =
     "Copy failed. Use View as Markdown to open the Markdown, then copy it manually."
 
-  mountPageCopyButton({el: button}, () => "# Techtree\n", value => {
-    writes.push(value)
-    return writes.length === 1 ? firstWrite.promise : Promise.reject(new Error("denied"))
+  const refused = []
+
+  mountPageCopyButton({el: button}, () => "# Techtree\n", {
+    refuse: el => refused.push(el),
+    writeText: value => {
+      writes.push(value)
+      return writes.length === 1 ? firstWrite.promise : Promise.reject(new Error("denied"))
+    },
   })
 
   const firstClick = button.click()
@@ -235,6 +245,7 @@ test("page copy blocks overlap and reannounces repeated Markdown failure", async
   assert.equal(clock.runFrame(thirdFrameId), true)
 
   assert.deepEqual(writes, ["# Techtree\n", "# Techtree\n", "# Techtree\n"])
+  assert.deepEqual(refused, [button, button, button])
   assert.equal(button.label.textContent, "Copy failed")
   assert.deepEqual(button.nextElementSibling.values, ["", "", failureMessage, "", failureMessage])
   assert.deepEqual(clock.pendingTimerIds(), [thirdTimerId])
