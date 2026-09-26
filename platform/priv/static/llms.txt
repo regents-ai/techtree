@@ -4,6 +4,26 @@
 
 [Website](https://techtree.sh) · [Source](https://github.com/regents-ai/techtree)
 
+## When to use Techtree
+
+- Deciding whether a change to a Skill is worth keeping.
+- Comparing an agent with and without a Skill on the same fixed tasks.
+- Making test tasks from a Skill (experimental).
+- Building repair tasks from a repository's own history (experimental).
+- Verifying someone else's published Result offline, without trusting this site.
+
+When not to use it: Techtree is not a general benchmark of a model's broad
+capability, and it does not run your agent for you in the cloud. Runs happen on
+the person's own computer.
+
+## Site and API
+
+- [Docs](https://techtree.sh/docs): install, run, verify, publish and integrate.
+- [OpenAPI description](https://techtree.sh/openapi.json): every public API address, typed.
+- [Sitemap](https://techtree.sh/sitemap.xml): every public page.
+- [About](https://techtree.sh/about), [Contact](https://techtree.sh/contact) and [Privacy](https://techtree.sh/privacy).
+- The home page, About, Contact and Privacy answer `Accept: text/markdown` with Markdown.
+
 ## Local work and optional publication
 
 - [Start](https://techtree.sh/start): three ways to begin: try the example Climb, evaluate a Skill by creating an environment from it (with one instruction for the person's local agent), or build tasks from a local repository. Each names what it needs and where its data goes.

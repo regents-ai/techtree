@@ -23,7 +23,7 @@ defmodule TechtreeWeb.HomeLive do
 
     {:ok,
      assign(socket,
-       page_title: nil,
+       page_title: "Improve a Skill. Prove it worked.",
        agent_line: StartLive.instruction(),
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
@@ -108,9 +108,8 @@ defmodule TechtreeWeb.HomeLive do
             comes from the Skill. Techtree calls this a Climb.
           </p>
           <p :if={@campaign}>
-            The introductory Climb is <strong>{@campaign.title}</strong>. {(@campaign_copy &&
-                                                                              @campaign_copy.scope) ||
-              "A fixed comparison that changes one Skill and nothing else."}
+            The first Climb is
+            <strong>{@campaign.title}</strong><span :if={@campaign_copy}>, {@campaign_copy.introduction}</span>.
           </p>
         </div>
         <dl :if={@campaign} class="featured__facts">
@@ -179,11 +178,9 @@ defmodule TechtreeWeb.HomeLive do
               before the fix and pass after it, and turns each one into a repair task. Every task
               is checked again in a fresh container on your computer, and no model is called.
             </p>
-            <p class="later-note">
+            <p class="later-note later-note--inline">
               <.capability_status capability={:hosted_building} />
-              <span>
-                The hosted Repo2RLEnv service, which will do this for a pinned repository, comes later.
-              </span>
+              The hosted Repo2RLEnv service, which will do this for a pinned repository, comes later.
             </p>
             <div class="service-intro__actions">
               <.link navigate={~p"/start#repository"} class="rg-button rg-button--secondary">
@@ -214,8 +211,8 @@ defmodule TechtreeWeb.HomeLive do
           <h2 id="trust-title">Your work stays local.</h2>
         </div>
         <p class="trust__summary">
-          Techtree does not observe the Run. Your work stays local unless you choose to publish
-          the finished Result bundle. Model calls still go to the provider selected by the Climb,
+          Techtree doesn’t watch your runs. Your work stays local unless you choose to publish
+          the finished Result bundle. Model calls go to the model provider you run with,
           under that provider’s policies.
         </p>
         <p class="trust__links">
