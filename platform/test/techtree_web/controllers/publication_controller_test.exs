@@ -570,6 +570,28 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
       assert Enum.count(Network.list_publication_events!(), &(&1.kind == :withdrawn)) == 1
     end
+
+    test "a repeat after this site changes its signing key is handed the original receipt",
+         context do
+      # Invariant: a stored withdrawal receipt outlives the key that signed it,
+      # and still verifies under the key it names.
+      %{conn: conn, entry: entry, keys: keys} = context
+      request = NetworkFixture.withdrawal(entry.bundle_digest, keys)
+      {:ok, signer} = Key.load()
+
+      first = publish(conn, request)
+      again = with_another_key(fn -> conn |> again() |> publish(request) end)
+
+      assert again.status == 200
+      assert again.resp_body == first.resp_body
+
+      receipt = json_response(again, 200)
+
+      assert receipt["payload"]["public_key"]["key_id"] == signer.key_id
+      assert verify(receipt, signer.public)
+      assert {:ok, %{withdrawal_network_key_id: key_id}} = Query.get_entry(entry.bundle_digest)
+      assert key_id == signer.key_id
+    end
   end
 
   describe "an address a publisher volunteers" do
@@ -774,6 +796,50 @@ defmodule TechtreeWeb.PublicationControllerTest do
       end)
     end
 
+    test "answers a checked repeat from what it stored, and records nothing new", %{conn: conn} do
+      # Invariant: with no key, only a fully checked repeat of something already
+      # recorded is answered, with its stored receipt; anything that would need
+      # a new signature records nothing and is refused as retryable.
+      keys = NetworkFixture.key_pair()
+      files = NetworkFixture.resign(NetworkFixture.files(), keys: keys)
+      submission = NetworkFixture.submission(files)
+
+      published = publish(conn, submission)
+      digest = json_response(published, 201)["payload"]["bundle_digest"]
+      request = NetworkFixture.withdrawal(digest, keys)
+
+      without_a_key(fn ->
+        repeat = conn |> again() |> publish(submission)
+
+        assert repeat.status == 200
+        assert repeat.resp_body == published.resp_body
+
+        refused = conn |> again() |> publish(request)
+
+        assert %{"error" => %{"code" => "network_key_unavailable", "retryable" => true}} =
+                 json_response(refused, 503)
+
+        assert {:ok, %{withdrawn_at: nil}} = Query.get_entry(digest)
+      end)
+
+      withdrawn = conn |> again() |> publish(request)
+
+      assert withdrawn.status == 200
+
+      without_a_key(fn ->
+        repeat = conn |> again() |> publish(request)
+
+        assert repeat.status == 200
+        assert repeat.resp_body == withdrawn.resp_body
+
+        forged =
+          conn |> again() |> publish(NetworkFixture.withdrawal(digest, NetworkFixture.key_pair()))
+
+        assert %{"error" => %{"code" => "withdrawal_signature_invalid"}} =
+                 json_response(forged, 422)
+      end)
+    end
+
     test "accepts the identical bundle once a key is there", %{conn: conn} do
       without_a_key(fn -> assert publish(conn, NetworkFixture.submission()).status == 503 end)
 
@@ -843,6 +909,25 @@ defmodule TechtreeWeb.PublicationControllerTest do
       Application.put_env(:techtree, Key, configured)
     end
   end
+
+  defp with_another_key(body) do
+    configured = Application.get_env(:techtree, Key)
+    {_public, private} = :crypto.generate_key(:eddsa, :ed25519)
+
+    Application.put_env(
+      :techtree,
+      Key,
+      Keyword.put(configured, :private_key, Base.encode64(private))
+    )
+
+    try do
+      body.()
+    after
+      Application.put_env(:techtree, Key, configured)
+    end
+  end
+
+  defp again(conn), do: conn |> recycle() |> from_own_address()
 
   defp from_own_address(conn), do: Map.put(conn, :remote_ip, own_address())
 

@@ -20,14 +20,22 @@ defmodule Techtree.Network.PublicationEntry do
   ## The row is written once and never rewritten
 
   There are two update actions here: the one that records that a signed
-  withdrawal arrived, and the one that stores an assessment for an entry
-  published before assessments were stored with entries, which writes nothing
-  over an assessment already there. There is no destroy action at all.
+  withdrawal arrived, together with the withdrawal receipt this site handed back
+  for it, and one that stores an assessment for an entry written before entries
+  carried one. There is no destroy action at all.
   Everything else an entry will ever say is written in the single insert that
-  creates it —
-  including its own log sequence, when it was accepted, and the receipt this
-  site handed back — because a row that is completed by a second write is a row
-  that can exist half-written.
+  creates it — including its own log sequence, when it was accepted, and the
+  receipt this site handed back — because a row that is completed by a second
+  write is a row that can exist half-written.
+
+  A withdrawal is written once too, in one statement: `withdrawn_at`, the
+  withdrawal receipt and the fingerprint of the key that signed it arrive
+  together, and the database refuses a withdrawn entry without its receipt. It
+  is written once because it follows the entry's one withdrawal event, which a
+  unique index keeps to one per entry (`Techtree.Network.PublicationEvent`).
+  A retry of the
+  same withdrawal, after a lost response, a restart or a new signing key, is
+  handed the stored receipt, which still verifies under the key it names.
 
   That is also what makes the retry safe. `log_sequence`, `id` and `accepted_at`
   are chosen before the insert, the receipt is built and signed over them, and
@@ -81,6 +89,13 @@ defmodule Techtree.Network.PublicationEntry do
   postgres do
     table "network_publication_entries"
     repo Techtree.Repo
+
+    check_constraints do
+      check_constraint :withdrawn_at, "withdrawn_with_receipt",
+        check:
+          "withdrawn_at IS NULL OR (withdrawal_receipt_bytes IS NOT NULL AND withdrawal_receipt_digest IS NOT NULL AND withdrawal_network_key_id IS NOT NULL)",
+        message: "a withdrawn entry carries the receipt it was withdrawn with"
+    end
 
     custom_statements do
       # The log sequence is handed out by the database rather than counted in
@@ -233,12 +248,21 @@ defmodule Techtree.Network.PublicationEntry do
     end
 
     update :mark_withdrawn do
-      description "Record that an appended withdrawal took this entry off the log."
-      accept []
+      description "Record that an appended withdrawal took this entry off the log, with its receipt."
 
-      argument :withdrawn_at, :utc_datetime_usec, allow_nil?: false
+      accept [
+        :withdrawn_at,
+        :withdrawal_receipt_bytes,
+        :withdrawal_receipt_digest,
+        :withdrawal_network_key_id
+      ]
 
-      change set_attribute(:withdrawn_at, arg(:withdrawn_at))
+      require_attributes [
+        :withdrawn_at,
+        :withdrawal_receipt_bytes,
+        :withdrawal_receipt_digest,
+        :withdrawal_network_key_id
+      ]
     end
   end
 
@@ -484,6 +508,21 @@ defmodule Techtree.Network.PublicationEntry do
 
     attribute :withdrawn_at, :utc_datetime_usec do
       description "When an appended withdrawal marked this entry withdrawn."
+      public? true
+    end
+
+    attribute :withdrawal_receipt_bytes, :binary do
+      description "The countersigned withdrawal receipt this site handed back, byte for byte."
+      public? false
+    end
+
+    attribute :withdrawal_receipt_digest, :string do
+      description "The digest of that withdrawal receipt's own signed payload."
+      public? true
+    end
+
+    attribute :withdrawal_network_key_id, :string do
+      description "The fingerprint of the key this site countersigned the withdrawal with."
       public? true
     end
   end

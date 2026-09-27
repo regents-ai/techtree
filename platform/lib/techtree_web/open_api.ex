@@ -237,7 +237,8 @@ defmodule TechtreeWeb.OpenAPI do
             "200" =>
               json(
                 "The same submission was already published, and its original receipt is " <>
-                  "returned; or a withdrawal was recorded.",
+                  "returned; or a withdrawal was recorded, or was already recorded and its " <>
+                  "original receipt is returned.",
                 %{"oneOf" => [ref("SignedReceipt"), ref("SignedWithdrawalReceipt")]}
               ),
             "201" =>
@@ -264,7 +265,10 @@ defmodule TechtreeWeb.OpenAPI do
                 }
               }),
             "503" =>
-              error("The site cannot countersign right now; the same body can be sent again.")
+              error(
+                "The site cannot sign a new receipt right now, so nothing was recorded; " <>
+                  "the same body can be sent again."
+              )
           }
         }
       },

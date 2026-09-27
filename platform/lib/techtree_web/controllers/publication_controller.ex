@@ -75,11 +75,18 @@ defmodule TechtreeWeb.PublicationController do
   this is the network signing that it accepted it. A withdrawal comes back as a
   `techtree.publication-withdrawal-receipt.v1alpha1` payload in the same
   envelope, naming where the entry still lives rather than saying it is gone.
-  `Techtree.Network.Key` holds the key, and it is loaded before the body is read
-  rather than after anything is written, because this address owes a receipt for
-  what it accepts — so a build that cannot countersign refuses outright instead
-  of recording something it cannot answer for. The participant can send the
-  identical document again once the key is there.
+  Both receipts are stored with the entry when they are issued, and a retry is
+  handed the stored one, byte for byte, still verifying under the key it names
+  after a restart or a change of key.
+
+  `Techtree.Network.Key` holds the key, and it is loaded before anything is
+  written, because this address owes a receipt for what it records — so a build
+  that cannot countersign records nothing. It can still answer a retry of
+  something already recorded, because that answer is a stored receipt: the
+  document is checked exactly as it would be with the key, and only a matching
+  entry already on the log is answered from. Anything that would need a new
+  signature is refused as retryable, and the participant can send the identical
+  document again once the key is there.
   """
 
   use TechtreeWeb, :controller
@@ -91,7 +98,6 @@ defmodule TechtreeWeb.PublicationController do
   alias Techtree.Network.Key
   alias Techtree.Network.Projection
   alias Techtree.Network.Query
-  alias Techtree.Network.Receipt
   alias TechtreeWeb.ExactResponse
 
   @doc """
@@ -230,54 +236,56 @@ defmodule TechtreeWeb.PublicationController do
   end
 
   defp received(conn, bytes) do
-    with {:ok, kind} <- Document.kind(bytes),
-         {:ok, key} <- countersigning_key() do
-      case kind do
-        :submission -> record(conn, bytes, key)
-        :withdrawal -> withdraw(conn, bytes, key)
-      end
-    else
+    case Document.kind(bytes) do
+      {:ok, :submission} -> record(conn, bytes, Key.load())
+      {:ok, :withdrawal} -> withdraw(conn, bytes, Key.load())
       {:error, %Error{} = error} -> refuse(conn, error)
-      :error -> refuse_uncountersignable(conn)
     end
   end
 
-  defp countersigning_key, do: Key.load()
+  defp record(conn, bytes, loaded) do
+    options = [
+      contributor_address: volunteered(conn),
+      skill_name: header(conn, "x-techtree-skill-name"),
+      skill_github_url: header(conn, "x-techtree-skill-github-url"),
+      origin: origin()
+    ]
 
-  defp record(conn, bytes, key) do
     accepted =
-      Ingest.accept(bytes, key,
-        contributor_address: volunteered(conn),
-        skill_name: header(conn, "x-techtree-skill-name"),
-        skill_github_url: header(conn, "x-techtree-skill-github-url"),
-        origin: origin()
-      )
+      case loaded do
+        {:ok, key} -> Ingest.accept(bytes, key, options)
+        :error -> Ingest.recall(bytes, options)
+      end
 
     case accepted do
       {:ok, entry, :recorded} -> receipt(conn, entry, 201)
       {:ok, entry, :existing} -> receipt(conn, entry, 200)
+      :unrecorded -> refuse_uncountersignable(conn)
       {:error, %Error{} = error} -> refuse(conn, error)
     end
   end
 
   # A withdrawal is answered with its own countersigned envelope rather than
   # with the entry's projection, so that the participant has a signed record of
-  # the thing they asked for, checkable against the same key as their receipt.
-  # It is built for this response rather than stored, because the entry it
-  # describes carries the date it is about: two withdrawals of the same entry
-  # produce the same document.
-  defp withdraw(conn, bytes, key) do
-    case Ingest.withdraw(bytes) do
-      {:ok, entry, _outcome} ->
-        sent =
-          entry
-          |> Receipt.issue_withdrawal(origin(), key)
-          |> Receipt.encode()
+  # the thing they asked for. It is the one stored with the entry when the
+  # withdrawal was recorded, so every answer about one withdrawal is the same
+  # document, whichever key this site holds now.
+  defp withdraw(conn, bytes, loaded) do
+    withdrawn =
+      case loaded do
+        {:ok, key} -> Ingest.withdraw(bytes, key, origin())
+        :error -> Ingest.recall_withdrawal(bytes)
+      end
 
+    case withdrawn do
+      {:ok, entry, _outcome} ->
         conn
         |> put_resp_content_type("application/json")
         |> put_resp_header("cache-control", "no-store")
-        |> send_resp(200, sent)
+        |> send_resp(200, entry.withdrawal_receipt_bytes)
+
+      :unrecorded ->
+        refuse_uncountersignable(conn)
 
       {:error, %Error{} = error} ->
         refuse(conn, error)
@@ -332,9 +340,9 @@ defmodule TechtreeWeb.PublicationController do
       conn,
       503,
       :network_key_unavailable,
-      "this site countersigns every run it publishes and cannot countersign " <>
-        "one right now, so it is not accepting one; the same bundle can be " <>
-        "published again unchanged",
+      "this site signs a receipt for every run it publishes or withdraws and " <>
+        "cannot sign one right now, so nothing was recorded; the same document " <>
+        "can be sent again unchanged",
       true
     )
   end

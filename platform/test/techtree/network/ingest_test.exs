@@ -706,7 +706,7 @@ defmodule Techtree.Network.IngestTest do
       %{keys: keys, entry: entry} = context
 
       assert {:ok, withdrawn, :recorded} =
-               Ingest.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+               NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
 
       assert withdrawn.id == entry.id
       assert withdrawn.log_sequence == entry.log_sequence
@@ -723,7 +723,7 @@ defmodule Techtree.Network.IngestTest do
     test "leaves the entry on the log, at its own address", context do
       %{keys: keys, entry: entry} = context
 
-      Ingest.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+      NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
 
       assert %{entries: [listed]} = Techtree.Network.Query.page()
       assert listed.bundle_digest == entry.bundle_digest
@@ -736,7 +736,7 @@ defmodule Techtree.Network.IngestTest do
       %{entry: entry} = context
 
       assert {:error, %{code: :withdrawal_signature_invalid}} =
-               Ingest.withdraw(
+               NetworkFixture.withdraw(
                  NetworkFixture.withdrawal(entry.bundle_digest, NetworkFixture.key_pair())
                )
 
@@ -750,7 +750,7 @@ defmodule Techtree.Network.IngestTest do
       other = NetworkFixture.key_pair()
 
       assert {:error, %{code: :withdrawal_signature_invalid}} =
-               Ingest.withdraw(
+               NetworkFixture.withdraw(
                  NetworkFixture.withdrawal(entry.bundle_digest, other,
                    key_id: entry.participant_key_id
                  )
@@ -761,7 +761,7 @@ defmodule Techtree.Network.IngestTest do
       %{keys: keys, entry: entry} = context
 
       assert {:error, %{code: :withdrawal_malformed}} =
-               Ingest.withdraw(
+               NetworkFixture.withdraw(
                  NetworkFixture.withdrawal(entry.bundle_digest, keys,
                    payload_digest: "sha256:" <> String.duplicate("a", 64)
                  )
@@ -781,7 +781,7 @@ defmodule Techtree.Network.IngestTest do
       # fourth member and the missing one rather than about the shape being
       # wrong in some other way this test cannot see.
       assert {:ok, _entry, :recorded} =
-               Ingest.withdraw(
+               NetworkFixture.withdraw(
                  NetworkFixture.withdrawal(entry.bundle_digest, keys, payload: settled)
                )
 
@@ -791,7 +791,7 @@ defmodule Techtree.Network.IngestTest do
             Map.delete(settled, "bundle_digest") |> Map.put("bundle", entry.bundle_digest)
           ] do
         assert {:error, %{code: :withdrawal_malformed}} =
-                 Ingest.withdraw(
+                 NetworkFixture.withdraw(
                    NetworkFixture.withdrawal(entry.bundle_digest, keys, payload: payload)
                  )
       end
@@ -803,17 +803,17 @@ defmodule Techtree.Network.IngestTest do
       absent = "sha256:" <> String.duplicate("7", 64)
 
       assert {:error, %{code: :withdrawal_entry_missing}} =
-               Ingest.withdraw(NetworkFixture.withdrawal(absent, keys))
+               NetworkFixture.withdraw(NetworkFixture.withdrawal(absent, keys))
     end
 
     test "twice appends one event", context do
       %{keys: keys, entry: entry} = context
 
       assert {:ok, _first, :recorded} =
-               Ingest.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+               NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
 
       assert {:ok, _second, :existing} =
-               Ingest.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+               NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
 
       assert Enum.count(Ingest.events(entry), &(&1.kind == :withdrawn)) == 1
     end

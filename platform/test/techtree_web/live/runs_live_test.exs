@@ -22,7 +22,6 @@ defmodule TechtreeWeb.RunsLiveTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
-  alias Techtree.Network.Ingest
   alias Techtree.NetworkFixture
 
   setup do
@@ -234,7 +233,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       withdrawn = Enum.at(entries, 1)
 
       {:ok, marked, :recorded} =
-        Ingest.withdraw(
+        NetworkFixture.withdraw(
           NetworkFixture.withdrawal(withdrawn.bundle_digest, keys[withdrawn.bundle_digest])
         )
 
@@ -495,7 +494,7 @@ defmodule TechtreeWeb.RunsLiveTest do
     test "a withdrawn entry keeps its page and is marked at the top of it",
          %{conn: conn, entry: entry, keys: keys} do
       {:ok, marked, :recorded} =
-        Ingest.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+        NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
 
       {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
       text = visible_text(html)
