@@ -38,6 +38,10 @@ defmodule TechtreeWeb.PublicationControllerTest do
   alias Techtree.NetworkFixture
   alias TechtreeWeb.Endpoint
 
+  # The peer every public request has in production: Fly's proxy, IPv4-mapped
+  # because the release listens on `::`.
+  @fly_proxy {0, 0, 0, 0, 0, 0xFFFF, 0xAC10, 0x0602}
+
   @address "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
 
   setup %{conn: conn} do
@@ -167,6 +171,22 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert Network.list_publication_entries!() == []
     end
 
+    test "every spelling of the address, and every other address, meets the same cap",
+         %{conn: conn} do
+      oversized = ~s({"files":{"bundle.json":") <> String.duplicate("a", 3_000_000) <> ~s("}})
+
+      for path <- ["/api/v1/publications/", "/api/v1/publication%73", "/api/v1/nothing"] do
+        refused =
+          assert_raise Plug.Parsers.RequestTooLargeError, fn ->
+            conn
+            |> put_req_header("content-type", "application/json")
+            |> post(path, oversized)
+          end
+
+        assert Plug.Exception.status(refused) == 413
+      end
+    end
+
     test "a body under it reaches the checks", %{conn: conn} do
       assert publish(conn, NetworkFixture.submission()).status == 201
     end
@@ -221,6 +241,69 @@ defmodule TechtreeWeb.PublicationControllerTest do
              |> from_own_address()
              |> publish(NetworkFixture.submission())
              |> Map.fetch!(:status) == 201
+    end
+
+    test "a caller already over the limit is refused before their body is read" do
+      caller = own_address()
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
+
+      for _attempt <- 1..10 do
+        Phoenix.ConnTest.build_conn() |> Map.put(:remote_ip, caller) |> publish(body)
+      end
+
+      # Read and decoded, this body would raise a parse error instead.
+      refused =
+        Phoenix.ConnTest.build_conn() |> Map.put(:remote_ip, caller) |> publish("{not json")
+
+      assert refused.status == 429
+      assert refused.body_params == %Plug.Conn.Unfetched{aspect: :body_params}
+
+      # The router decodes each segment, so an escaped letter is the same address.
+      assert Phoenix.ConnTest.build_conn()
+             |> Map.put(:remote_ip, caller)
+             |> put_req_header("content-type", "application/json")
+             |> post("/api/v1/publication%73", body)
+             |> Map.fetch!(:status) == 429
+    end
+
+    test "behind Fly's proxy each visitor has their own limit, which no header they write escapes",
+         %{conn: conn} do
+      flooder = own_address() |> :inet.ntoa() |> to_string()
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
+
+      statuses =
+        for attempt <- 1..12 do
+          Phoenix.ConnTest.build_conn()
+          |> Map.put(:remote_ip, @fly_proxy)
+          |> put_req_header("fly-client-ip", flooder)
+          |> put_req_header("x-forwarded-for", "203.0.113.#{attempt}")
+          |> publish(body)
+          |> Map.fetch!(:status)
+        end
+
+      assert Enum.count(statuses, &(&1 == 429)) == 2
+
+      assert conn
+             |> Map.put(:remote_ip, @fly_proxy)
+             |> put_req_header("fly-client-ip", own_address() |> :inet.ntoa() |> to_string())
+             |> publish(NetworkFixture.submission())
+             |> Map.fetch!(:status) == 201
+    end
+
+    test "a caller not behind Fly's proxy cannot name itself with the proxy's header" do
+      caller = own_address()
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
+
+      statuses =
+        for attempt <- 1..12 do
+          Phoenix.ConnTest.build_conn()
+          |> Map.put(:remote_ip, caller)
+          |> put_req_header("fly-client-ip", "203.0.113.#{attempt}")
+          |> publish(body)
+          |> Map.fetch!(:status)
+        end
+
+      assert Enum.count(statuses, &(&1 == 429)) == 2
     end
   end
 

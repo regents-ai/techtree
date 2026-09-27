@@ -12,11 +12,12 @@ defmodule TechtreeWeb.Endpoint do
   answer. And a static file is served with the same refusals a page is, because
   a file opened directly in a browser is a document like any other.
 
-  The one address that does take a body reads it through
-  `TechtreeWeb.PublicationBody`, which keeps the exact bytes for the checks
-  that are made against a digest of them and stops an oversized body at the
-  parser. Every other address is unchanged by that: nothing is kept for one and
-  no body is read for one.
+  The parser reads at most the publication cap from any address, so a body
+  larger than the one document this site accepts is stopped before it is
+  decoded, wherever it was sent. The one address that does take a body is also
+  guarded before the parser: `TechtreeWeb.PublicationRate` refuses a caller who
+  is over the limit before their body is read, and `TechtreeWeb.PublicationBody`
+  keeps the exact bytes for the checks made against a digest of them.
   """
 
   use Phoenix.Endpoint, otp_app: :techtree
@@ -77,12 +78,17 @@ defmodule TechtreeWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # Before the parser, so a caller over the publication limit costs no read.
+  plug TechtreeWeb.PublicationRate
+
   # One route reads a request body, and nothing here needs to accept a file. A
   # body in a content type this does not parse is passed along untouched and
-  # meets the same refusal it would have met anyway.
+  # meets the same refusal it would have met anyway. No address accepts more
+  # than the publication cap (`Techtree.Network.maximum_body_bytes/0`).
   plug Plug.Parsers,
     parsers: [:urlencoded, :json],
     pass: ["*/*"],
+    length: Application.compile_env!(:techtree, [Techtree.Network, :maximum_body_bytes]),
     body_reader: {TechtreeWeb.PublicationBody, :read_body, []},
     json_decoder: Phoenix.json_library()
 

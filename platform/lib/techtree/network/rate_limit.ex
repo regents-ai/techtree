@@ -11,13 +11,14 @@ defmodule Techtree.Network.RateLimit do
   A fixed window, counted in a table this process owns. It is per node and it
   is not persisted, because a limit that survives a restart would need a store,
   and a store for this would be a larger thing than the problem. Old windows are
-  swept rather than left to grow.
+  swept rather than left to grow, and the sweep deletes them inside the table
+  rather than copying the table out to look at it, so its cost does not grow
+  with this process's memory however many callers there have been. Each sweep
+  reports how long it took, how many windows it deleted and how many remain, as
+  the `[:techtree, :rate_limit, :sweep]` event.
 
-  The caller is identified by the address the connection came from, which is
-  what this application can actually see. It does not read a forwarding header,
-  because a header is written by whoever is upstream and trusting one that has
-  not been proven to come from a proxy this deployment controls is how a per-
-  caller limit becomes no limit at all.
+  Who the caller is is decided before the count, by
+  `TechtreeWeb.ClientAddress`; this module counts whatever key it is handed.
   """
 
   use GenServer
@@ -71,9 +72,16 @@ defmodule Techtree.Network.RateLimit do
     window = Keyword.fetch!(Network.rate_limit(), :window_seconds)
     current = div(System.system_time(:second), window)
 
-    for {{_caller, bucket} = key, _count} <- :ets.tab2list(@table), bucket < current do
-      :ets.delete(@table, key)
-    end
+    {microseconds, deleted} =
+      :timer.tc(fn ->
+        :ets.select_delete(@table, [{{{:_, :"$1"}, :_}, [{:<, :"$1", current}], [true]}])
+      end)
+
+    :telemetry.execute(
+      [:techtree, :rate_limit, :sweep],
+      %{duration: microseconds, deleted: deleted, size: :ets.info(@table, :size)},
+      %{}
+    )
 
     schedule()
     {:noreply, state}

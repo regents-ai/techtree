@@ -49,14 +49,6 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
-  # The pipeline in front of the only write the public may make; the
-  # owner-only profile writes authenticate through RegentIdentity on :api.
-  pipeline :publishing do
-    plug :accepts, ["json"]
-    plug :put_public_api_headers
-    plug TechtreeWeb.PublicationRate
-  end
-
   # The public profile page is temporarily withdrawn. Keep the owner-only
   # API and implementation intact for its later return.
   scope "/api/v1", TechtreeWeb do
@@ -125,25 +117,17 @@ defmodule TechtreeWeb.Router do
     get "/publication-keys/:key_id", PublicationKeyController, :show
   end
 
-  # The one public write address, on its own so that what stands in front of
-  # it is visible here rather than buried in a pipeline everything shares. The
-  # profile routes above accept bodies only from the signed-in owner.
+  # The one public write address. Its rate limit and exact-byte reader stand
+  # in the endpoint, in front of the parser (`TechtreeWeb.PublicationRate`,
+  # `TechtreeWeb.PublicationBody`). The profile routes above accept bodies only
+  # from the signed-in owner.
   scope "/api/v1", TechtreeWeb do
-    pipe_through :publishing
+    pipe_through :api
 
     post "/publications", PublicationController, :create
   end
 
-  # An API response is data, never a document: nothing in it may be sniffed into
-  # a content type it did not declare, loaded as a page resource, framed, or
-  # allowed to leak a referrer.
-  defp put_public_api_headers(conn, _opts) do
-    conn
-    |> put_resp_header("x-content-type-options", "nosniff")
-    |> put_resp_header("content-security-policy", "default-src 'none'; frame-ancestors 'none'")
-    |> put_resp_header("x-frame-options", "DENY")
-    |> put_resp_header("referrer-policy", "no-referrer")
-  end
+  defp put_public_api_headers(conn, _opts), do: TechtreeWeb.ExactResponse.put_api_headers(conn)
 
   defp answer_home_markdown(conn, _opts) do
     case get_format(conn) do

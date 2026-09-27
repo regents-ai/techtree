@@ -37,6 +37,21 @@ defmodule TechtreeWeb.ExactResponse do
   @type caching :: :immutable | :revalidated | :no_store
 
   @doc """
+  Mark a response as data, never a document.
+
+  Nothing in an API response may be sniffed into a content type it did not
+  declare, loaded as a page resource, framed, or allowed to leak a referrer.
+  """
+  @spec put_api_headers(Plug.Conn.t()) :: Plug.Conn.t()
+  def put_api_headers(conn) do
+    conn
+    |> put_resp_header("x-content-type-options", "nosniff")
+    |> put_resp_header("content-security-policy", "default-src 'none'; frame-ancestors 'none'")
+    |> put_resp_header("x-frame-options", "DENY")
+    |> put_resp_header("referrer-policy", "no-referrer")
+  end
+
+  @doc """
   Send exact bytes, or a `304` if the caller already holds this digest.
   """
   @spec send_exact(Plug.Conn.t(), binary(), String.t(), String.t(), caching()) :: Plug.Conn.t()
