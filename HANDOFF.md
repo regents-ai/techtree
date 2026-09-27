@@ -95,8 +95,8 @@ Changes remain uncommitted and undeployed; founder UI review remains outstanding
 
 ## Read first
 
-- `AGENTS.md` at the root; `cli/CLAUDE.md` before editing `cli/`;
-  `platform/AGENTS.md` before editing `platform/`.
+- `AGENTS.md` at the root; `cli/CLAUDE.md` before editing `cli/`; the Regent
+  template's skills, starting with `ash-stack`, before editing `platform/`.
 - `docs/plan/v0.2.md` governs v0.2.0. `docs/plan/techtree-market.md` governs
   v0.2.x Market, v0.3 Foundry and the first Skill Climb, and deferred studies.
 - `docs/v0.2/DECISION_LEDGER.md` records founder decisions and protected gates.
