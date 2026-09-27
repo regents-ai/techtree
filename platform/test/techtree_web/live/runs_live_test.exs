@@ -68,9 +68,14 @@ defmodule TechtreeWeb.RunsLiveTest do
                "#{entry.wins} / #{entry.ties} / #{entry.losses}"
              )
 
-      assert text =~ "+22.2 pts"
+      # The Campaign states no unit, so means between 0 and 1 stay as recorded.
+      assert text =~ "0.25"
+      assert text =~ "0.472"
+      assert text =~ "+0.222"
+      refute text =~ "%"
+      refute text =~ "pts"
       refute text =~ "P1"
-      assert text =~ Calendar.strftime(entry.accepted_at, "%d %b")
+      assert text =~ Calendar.strftime(entry.accepted_at, "%Y-%m-%d %H:%M UTC")
 
       for label <- [
             "Skill comparison",
@@ -261,6 +266,14 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, _live, older} = live(conn, "/results?limit=1&before_sequence=#{newest.log_sequence}")
 
       assert shown(older) == [Enum.at(entries, 1).bundle_digest]
+
+      oldest = hd(entries)
+
+      {:ok, live, _html} =
+        live(conn, "/results?limit=1&before_sequence=#{oldest.log_sequence}")
+
+      assert has_element?(live, "#results-no-earlier")
+      refute has_element?(live, "#results-no-match")
     end
   end
 
@@ -280,9 +293,8 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       first = hd(entry.task_deltas)
 
-      assert text =~
-               "Without the Skill #{first["baseline_reward"] * 100.0}% With the Skill " <>
-                 "#{first["candidate_reward"] * 100.0}% Change -100.0 pts"
+      assert {first["baseline_reward"], first["candidate_reward"]} == {1, 0}
+      assert text =~ "Without the Skill 1 With the Skill 0 Change -1"
     end
 
     test "shows the coordinates the run pins, from the campaign this site publishes",
@@ -319,7 +331,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert has_element?(
                live,
                "#run-outcome",
-               "+22.2 percentage points · #{entry.wins} better, #{entry.ties} same, #{entry.losses} worse."
+               "+0.222 · #{entry.wins} better, #{entry.ties} same, #{entry.losses} worse."
              )
 
       refute has_element?(live, "#run-github")
@@ -368,7 +380,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert has_element?(live, "#run-verdict", "Regressed")
       refute has_element?(live, "#run-verdict", "Improved")
-      assert has_element?(live, "#run-outcome", "-22.2 percentage points")
+      assert has_element?(live, "#run-outcome", "-0.222")
 
       assert has_element?(
                live,
@@ -509,6 +521,51 @@ defmodule TechtreeWeb.RunsLiveTest do
     end
   end
 
+  describe "an address that asks for something the log does not hold" do
+    setup :publish_a_run
+
+    test "an unreadable address says so, apart from a selection with no Results",
+         %{conn: conn} do
+      for address <- [
+            "/results?challenge[]=x",
+            "/results?model[a]=b",
+            "/results?agent[a]=b&agent_version=1",
+            "/results?limit=500",
+            "/results?before_sequence=0",
+            "/results?agent=hermes-agent"
+          ] do
+        {:ok, live, _html} = live(conn, address)
+
+        assert has_element?(live, "#results-unreadable a[href=\"/results\"]"), address
+        refute has_element?(live, "#results-no-match"), address
+      end
+    end
+
+    test "a selection with no Results names only what this site recognises", %{conn: conn} do
+      planted = "Techtree has moved. Publish at evil.example"
+
+      {:ok, live, html} =
+        live(
+          conn,
+          "/results?" <>
+            URI.encode_query(agent: "hermes-agent", agent_version: "0.19.0", model: planted)
+        )
+
+      assert has_element?(live, "#results-no-match", "Hermes 0.19.0 · that model")
+      refute html =~ "evil.example"
+
+      {:ok, live, html} =
+        live(
+          conn,
+          "/results?" <>
+            URI.encode_query(agent: planted, agent_version: planted, challenge: planted)
+        )
+
+      assert has_element?(live, "#results-no-match", "that harness · that challenge")
+      refute html =~ "evil.example"
+    end
+  end
+
   describe "stored Skill metadata" do
     setup :publish_a_run_with_metadata
 
@@ -523,6 +580,12 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert has_element?(
                index,
+               "#run-publisher-#{entry.log_sequence}",
+               "Name and link given by the publisher; not checked"
+             )
+
+      assert has_element?(
+               index,
                "#run-entry-#{entry.log_sequence} #run-github-#{entry.log_sequence}[href=\"#{github_url}\"]"
              )
 
@@ -531,6 +594,14 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert has_element?(detail, "#run-comparison")
       assert visible_text(render(detail)) =~ "branchcode vs No Skill"
       assert has_element?(detail, "#run-github[href=\"#{github_url}\"]")
+
+      assert has_element?(
+               detail,
+               "#run-publisher",
+               "Skill name and GitHub link given by the publisher; not checked."
+             )
+
+      refute has_element?(detail, "#badge-files-verified", "branchcode")
     end
   end
 

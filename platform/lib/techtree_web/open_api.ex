@@ -216,11 +216,14 @@ defmodule TechtreeWeb.OpenAPI do
             ),
             header_parameter(
               "x-techtree-skill-name",
-              "A name for the Skill, shown with the published Result."
+              "A name for the Skill, sent beside the signed bundle. It is shown with the " <>
+                "published Result as given by the publisher, and Techtree does not check it."
             ),
             header_parameter(
               "x-techtree-skill-github-url",
-              "A GitHub link to the Skill, shown with the published Result."
+              "A GitHub address for the Skill, sent beside the signed bundle. It is shown with " <>
+                "the published Result as given by the publisher. Techtree does not check it, and " <>
+                "it says nothing about who owns the repository or what it holds."
             )
           ],
           "requestBody" => %{
@@ -536,8 +539,17 @@ defmodule TechtreeWeb.OpenAPI do
           "campaign_name" => %{"type" => ["string", "null"]},
           "data_policy_digest" => ref("Digest"),
           "skill_digest" => ref("Digest"),
-          "skill_name" => %{"type" => ["string", "null"]},
-          "skill_github_url" => %{"type" => ["string", "null"]},
+          "skill_name" => %{
+            "type" => ["string", "null"],
+            "description" =>
+              "A label the publisher sent beside the signed bundle. It is not signed and not checked."
+          },
+          "skill_github_url" => %{
+            "type" => ["string", "null"],
+            "description" =>
+              "A GitHub address the publisher sent beside the signed bundle. It is not signed and " <>
+                "not checked, and says nothing about who owns the repository or what it holds."
+          },
           "subject" => %{
             "type" => "object",
             "required" => ["harness", "harness_version", "provider", "model"],

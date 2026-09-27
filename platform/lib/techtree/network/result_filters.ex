@@ -14,7 +14,7 @@ defmodule Techtree.Network.ResultFilters do
 
   def select(nil, params) do
     if Map.has_key?(params, "model") or Map.has_key?(params, "challenge"),
-      do: {:error, "No published Results match that model and challenge."},
+      do: :error,
       else: {:ok, empty()}
   end
 
@@ -30,10 +30,10 @@ defmodule Techtree.Network.ResultFilters do
       if Enum.any?(challenges, &(&1.campaign_spec_digest == challenge)) do
         {:ok, %{models: models, model: model, challenges: challenges, challenge: challenge}}
       else
-        {:error, "No published Results match that challenge for this harness and model."}
+        :error
       end
     else
-      {:error, "No published Results match that model for this harness version."}
+      :error
     end
   end
 end

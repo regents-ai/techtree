@@ -388,12 +388,12 @@ defmodule Techtree.Network.PublicationEntry do
     end
 
     attribute :skill_name, :string do
-      description "The public label supplied for the candidate Skill."
+      description "The label the publisher sent beside the signed bundle; not signed, not checked."
       public? true
     end
 
     attribute :skill_github_url, :string do
-      description "The optional canonical HTTPS GitHub repository URL supplied for the Skill."
+      description "The GitHub URL the publisher sent beside the signed bundle; not signed, not checked."
       public? true
     end
 

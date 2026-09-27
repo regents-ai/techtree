@@ -16,6 +16,19 @@ defmodule TechtreeWeb.RunsLive.Show do
   rerun by anybody else: this site keeps no record of one, so the page never
   claims one.
 
+  The Skill's name and GitHub link are the publisher's word, sent beside the
+  signed bundle rather than inside it. Nothing checks them, so wherever the
+  page shows them it says so, and nothing it shows under "Files verified"
+  comes from them. A link to a repository is not a claim that the publisher
+  owns it or that its files are the Skill that ran; the Skill's fingerprint is.
+
+  Scores are rounded to three decimal places, under the name the Campaign
+  gives its score. A Campaign states no unit or range for it, so the page
+  never turns a mean into a percentage.
+
+  The page's title, which a browser tab and a shared link show on their own,
+  is the Climb's name, never the publisher's name for the Skill.
+
   What this page does **not** offer is the submitted bytes. Those are stored
   immutably, every field here was derived from them, and they have an address
   of their own on the API rather than a control on this page.
@@ -86,8 +99,11 @@ defmodule TechtreeWeb.RunsLive.Show do
           <svg viewBox="0 0 16 16" aria-hidden="true">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 4.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
           </svg>
-          View this Skill on GitHub
+          GitHub link from the publisher
         </a>
+        <p :if={@publisher_words} id="run-publisher" class="small quiet">
+          {@publisher_words}
+        </p>
       </header>
 
       <section
@@ -109,6 +125,10 @@ defmodule TechtreeWeb.RunsLive.Show do
             @assessment,
             :candidate
           )}
+        </p>
+        <p id="run-score-scale" class="assessment__means">
+          Each is the mean <code>{@score_name}</code>
+          over the tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
         </p>
         <ul class="assessment__tasks">
           <li :for={outcome <- [:better, :worse, :same]} id={"tasks-#{outcome}"}>
@@ -175,7 +195,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </p>
         <p class="small quiet section-note">
           The signed report names the Skill by its fingerprint, not by the name this page
-          shows for it.
+          shows for it. <span :if={@publisher_words}>{@publisher_words}</span>
         </p>
       </section>
 
@@ -221,8 +241,11 @@ defmodule TechtreeWeb.RunsLive.Show do
                 An API key for {@limits.provider}, set as <code>{@limits.credential_env}</code>; the model calls are charged to your account
               </li>
               <li :if={@github_url}>
-                The Skill's files, from
-                <a href={@github_url} target="_blank" rel="noopener noreferrer">its GitHub page</a>
+                The Skill's files. The publisher pointed to <a
+                  href={@github_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >this GitHub page</a>, which this site has not checked; the fingerprint check in the commands tells you whether you have the files that ran
               </li>
               <li :if={!@github_url}>
                 The Skill's files. This Result does not say where to get them.
@@ -450,16 +473,18 @@ defmodule TechtreeWeb.RunsLive.Show do
     {:ok, climb} = Catalog.get_any_climb_by_campaign_digest(entry.campaign_spec_digest)
     campaign = CampaignFacts.campaign!(climb)
 
-    skill_name = skill_name(entry, climb)
+    campaign_name = campaign_name(entry, climb)
     tasks = ResultAssessment.tasks(entry.task_deltas)
     groups = ResultAssessment.by_outcome(tasks)
 
     %{
-      page_title: "#{skill_name} vs No Skill",
+      page_title: "#{campaign_name} · Published Result",
       entry: entry,
-      campaign_name: campaign_name(entry, climb),
-      skill_name: skill_name,
+      campaign_name: campaign_name,
+      skill_name: skill_name(entry, climb),
       github_url: github_url(entry),
+      publisher_words: publisher_words(entry),
+      score_name: climb.projection["scoring"]["primary_reward"],
       withdrawn?: Query.withdrawn?(entry),
       assessment: entry.assessment,
       groups: groups,
@@ -569,6 +594,17 @@ defmodule TechtreeWeb.RunsLive.Show do
     case Map.get(entry, :skill_github_url) do
       "https://github.com/" <> _ = url -> url
       _other -> nil
+    end
+  end
+
+  # The name and the link travel beside the signed bundle, not inside it, so
+  # the page says whose word they are.
+  defp publisher_words(entry) do
+    case {present(Map.get(entry, :skill_name)), github_url(entry)} do
+      {nil, nil} -> nil
+      {_name, nil} -> "Skill name given by the publisher; not checked."
+      {nil, _url} -> "GitHub link given by the publisher; not checked."
+      {_name, _url} -> "Skill name and GitHub link given by the publisher; not checked."
     end
   end
 

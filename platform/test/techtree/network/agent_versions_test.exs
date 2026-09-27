@@ -28,7 +28,7 @@ defmodule Techtree.Network.AgentVersionsTest do
     assert Enum.map(next.entries, & &1.log_sequence) == [28, 27]
     assert Enum.all?(next.entries, &(&1.subject_harness_version == "0.9.0"))
 
-    assert {:error, _} =
+    assert :error =
              AgentVersions.select(families, %{"agent" => "codex", "agent_version" => "0.21.0"})
   end
 

@@ -24,7 +24,7 @@ defmodule Techtree.Network.AgentVersions do
 
   def select([], params) do
     if Map.has_key?(params, "agent") or Map.has_key?(params, "agent_version"),
-      do: {:error, "No published Results match that agent and version."},
+      do: :error,
       else: {:ok, nil}
   end
 
@@ -45,7 +45,7 @@ defmodule Techtree.Network.AgentVersions do
          older: Enum.at(versions, index + 1)
        }}
     else
-      _ -> {:error, "No published Results match that agent and version."}
+      _ -> :error
     end
   end
 

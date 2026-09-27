@@ -9,11 +9,24 @@ defmodule TechtreeWeb.RunsLive.Index do
   ordering is a ranking whatever it is called, and the Climb these runs belong
   to says in its own manifest that it has no leaderboard.
 
-  Everything on a row was recomputed from bytes that verify. The publisher is
-  the fingerprint of the key that signed the bundle; the agent and the model
-  are what the campaign pinned; the scores come from a signed report whose own
-  digest was checked. There is no field here a submitter could write a sentence
-  into, which is why there is nothing on this page to moderate.
+  Everything on a row was recomputed from bytes that verify, with one named
+  exception. The publisher is the fingerprint of the key that signed the
+  bundle; the agent and the model are what the campaign pinned; the scores come
+  from a signed report whose own digest was checked. The exception is the
+  Skill's name and GitHub link, which the publisher may send beside the signed
+  bundle rather than inside it. Nothing checks them, so a row that shows either
+  says, in its own words, that the publisher gave it and that it was not
+  checked. Both are short labels of a fixed shape, never a sentence, which is
+  why there is nothing on this page to moderate.
+
+  Scores are rounded to three decimal places and otherwise shown as recorded.
+  A Campaign names its score and the rule that decides between the two runs,
+  and states no unit or range, so no mean is turned into a percentage and no
+  bar pretends to know where the scale ends.
+
+  The page repeats nothing typed into its address. An address it cannot read
+  says so; one naming a selection with no Results names only the parts this
+  site recognises.
 
   A withdrawn run keeps its row and says so. Withdrawal is an event appended to
   the log rather than a hole punched in it, and a log that quietly dropped its
@@ -41,10 +54,12 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   use TechtreeWeb, :live_view
 
-  alias Techtree.Network.Query
-  alias TechtreeWeb.ClimbCopy
+  alias Techtree.Catalog.Query, as: Catalog
   alias Techtree.Network.AgentVersions
+  alias Techtree.Network.Query
   alias Techtree.Network.ResultFilters
+  alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.ResultAssessment
 
   @impl true
   def mount(_params, _session, socket) do
@@ -55,58 +70,83 @@ defmodule TechtreeWeb.RunsLive.Index do
   def handle_params(params, _uri, socket) do
     families = Query.agent_families()
 
-    {selection, filters, page, error} =
-      with {:ok, options} <- Query.read_page_options(params),
-           {:ok, selection} <- AgentVersions.select(families, params),
-           {:ok, filters} <- ResultFilters.select(selection, params) do
-        options =
-          if selection,
-            do:
-              Keyword.merge(options,
-                agent: selection.family.id,
-                agent_version: selection.version,
-                model: filters.model,
-                challenge: filters.challenge
-              ),
-            else: options
-
-        {selection, filters, Query.page(options), nil}
-      else
-        {:error, message} ->
-          {nil, ResultFilters.empty(), %{entries: [], next_before_sequence: nil}, message}
+    socket =
+      case Query.read_page_options(params) do
+        {:ok, options} -> show_selection(socket, families, params, options)
+        {:error, _reason} -> show_empty(socket, families, :unreadable, [])
       end
 
-    socket =
-      assign(socket,
+    {:noreply, socket}
+  end
+
+  defp show_selection(socket, families, params, options) do
+    with {:ok, selection} <- AgentVersions.select(families, params),
+         {:ok, filters} <- ResultFilters.select(selection, params) do
+      page = Query.page(page_options(options, selection, filters))
+
+      socket
+      |> assign(
         families: families,
         selection: selection,
         filters: filters,
         page_limit: Map.get(params, "limit"),
-        selection_error: error,
         entries: page.entries,
-        next_before_sequence: page.next_before_sequence
+        next_before_sequence: page.next_before_sequence,
+        score_name: score_name(filters.challenge),
+        empty: empty(page.entries, families, Map.has_key?(params, "before_sequence")),
+        asked_for: []
       )
+      |> pin_selection(selection, filters, params)
+    else
+      :error -> show_empty(socket, families, :no_match, asked_for(families, params))
+    end
+  end
 
-    # Resolve "latest" once, then retain that exact version through reloads
-    # and reconnects even when a newer runtime is subsequently submitted.
-    socket =
-      if connected?(socket) && selection &&
-           Enum.any?(~w(agent agent_version model challenge), &(!Map.has_key?(params, &1))) do
-        push_patch(socket,
-          to:
-            AgentVersions.url(selection.family.id, selection.version,
-              model: filters.model,
-              challenge: filters.challenge,
-              before_sequence: Map.get(params, "before_sequence"),
-              limit: Map.get(params, "limit")
-            ),
-          replace: true
-        )
-      else
-        socket
-      end
+  defp show_empty(socket, families, empty, asked_for) do
+    assign(socket,
+      families: families,
+      selection: nil,
+      filters: ResultFilters.empty(),
+      page_limit: nil,
+      entries: [],
+      next_before_sequence: nil,
+      score_name: nil,
+      empty: empty,
+      asked_for: asked_for
+    )
+  end
 
-    {:noreply, socket}
+  defp page_options(options, nil, _filters), do: options
+
+  defp page_options(options, selection, filters) do
+    Keyword.merge(options,
+      agent: selection.family.id,
+      agent_version: selection.version,
+      model: filters.model,
+      challenge: filters.challenge
+    )
+  end
+
+  # Resolve "latest" once, then retain that exact version through reloads
+  # and reconnects even when a newer runtime is subsequently submitted.
+  defp pin_selection(socket, nil, _filters, _params), do: socket
+
+  defp pin_selection(socket, selection, filters, params) do
+    if connected?(socket) &&
+         Enum.any?(~w(agent agent_version model challenge), &(!Map.has_key?(params, &1))) do
+      push_patch(socket,
+        to:
+          AgentVersions.url(selection.family.id, selection.version,
+            model: filters.model,
+            challenge: filters.challenge,
+            before_sequence: Map.get(params, "before_sequence"),
+            limit: Map.get(params, "limit")
+          ),
+        replace: true
+      )
+    else
+      socket
+    end
   end
 
   @impl true
@@ -215,21 +255,30 @@ defmodule TechtreeWeb.RunsLive.Index do
           <span>Participant-attested · Not independently reproduced</span>
         </p>
 
-        <p :if={@selection_error} id="agent-version-error" role="alert">{@selection_error}</p>
-        <.link :if={@selection_error} patch={~p"/results"} class="text-link">Reset filters →</.link>
-
-        <p
-          :if={@entries == [] && !@selection_error && @families == []}
-          class="runs-index__empty empty-state"
-        >
+        <p :if={@empty == :log} class="runs-index__empty empty-state">
           Nobody has published a Result yet. Each Result comes from a Climb: the same agent on the same tasks, once without a Skill and once with it.
           <.link navigate={~p"/start"}>Start your first Climb</.link>
           to make one on your computer.
         </p>
 
-        <p :if={@entries == [] && @selection} class="empty-state">
-          No earlier Results for this agent version.
-          <.link patch={results_url(@selection, @filters, @page_limit)}>Newest Results</.link>
+        <p :if={@empty == :no_match} id="results-no-match" class="runs-index__empty empty-state">
+          {no_match_words(@asked_for)}<br />
+          <.link patch={~p"/results"}>Show the newest Results</.link>
+        </p>
+
+        <p :if={@empty == :unreadable} id="results-unreadable" class="runs-index__empty empty-state">
+          This address doesn't describe a list of Results.<br />
+          <.link patch={~p"/results"}>Show the newest Results</.link>
+        </p>
+
+        <p :if={@empty == :no_earlier} id="results-no-earlier" class="runs-index__empty empty-state">
+          There are no earlier Results for {selection_words(@selection, @filters)}.
+          <.link patch={results_url(@selection, @filters, @page_limit)}>Back to the newest page</.link>
+        </p>
+
+        <p :if={@entries != []} id="results-score-scale" class="section-note small quiet">
+          Scores are each run's mean <code>{@score_name}</code>
+          over its tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
         </p>
 
         <div
@@ -241,8 +290,8 @@ defmodule TechtreeWeb.RunsLive.Index do
         >
           <table class="results-ledger">
             <caption>
-              Published Results, newest first. Means within 0–1 are shown as percentages;
-              other scores retain their raw scale. Δ is candidate minus baseline, not a rank.
+              Published Results, newest first. Scores are rounded to three decimal places. Δ is
+              candidate minus baseline, not a rank.
             </caption>
             <thead>
               <tr>
@@ -271,31 +320,18 @@ defmodule TechtreeWeb.RunsLive.Index do
                       href={github_url(entry)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={"View #{skill_name(entry)} on GitHub"}
+                      aria-label={"GitHub link the publisher gave for #{skill_name(entry)}, not checked"}
                     >· GitHub ↗</a>
+                  </small>
+                  <small :if={publisher_words(entry)} id={"run-publisher-#{entry.log_sequence}"}>
+                    {publisher_words(entry)}
                   </small>
                 </th>
                 <td :for={branch <- [:baseline_mean, :candidate_mean]} class="results-ledger__numeric">
-                  <span>{score_label(entry, branch)}</span>
-                  <svg
-                    :if={normalized_pair?(entry)}
-                    class={["score-strip", branch == :candidate_mean && "score-strip--candidate"]}
-                    viewBox="0 0 100 4"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
-                  >
-                    <path d="M0 2H100" stroke="currentColor" stroke-opacity="0.18" stroke-width="4" />
-                    <rect
-                      x="0"
-                      y="0"
-                      width={Float.round(Map.fetch!(entry, branch) * 100, 1)}
-                      height="4"
-                      fill="currentColor"
-                    />
-                  </svg>
+                  {ResultAssessment.reward(Map.fetch!(entry, branch))}
                 </td>
                 <td class="results-ledger__numeric results-ledger__delta">
-                  <strong>{uplift_value(entry)}</strong>
+                  <strong>{ResultAssessment.change(entry.absolute_delta)}</strong>
                 </td>
                 <td class="results-ledger__tasks">
                   <span aria-label={task_words(entry)} title={task_words(entry)}>
@@ -303,11 +339,8 @@ defmodule TechtreeWeb.RunsLive.Index do
                   </span>
                 </td>
                 <td class="results-ledger__date">
-                  <time
-                    datetime={DateTime.to_iso8601(entry.accepted_at)}
-                    title={arrived(entry.accepted_at)}
-                  >
-                    {compact_arrived(entry.accepted_at)}
+                  <time datetime={DateTime.to_iso8601(entry.accepted_at)}>
+                    {arrived(entry.accepted_at)}
                   </time>
                 </td>
                 <td class="results-ledger__evidence">
@@ -366,6 +399,84 @@ defmodule TechtreeWeb.RunsLive.Index do
     end
   end
 
+  # The name and the link travel beside the signed bundle, not inside it, so
+  # the row says whose word they are.
+  defp publisher_words(entry) do
+    case {present(Map.get(entry, :skill_name)), github_url(entry)} do
+      {nil, nil} -> nil
+      {_name, nil} -> "Name given by the publisher; not checked"
+      {nil, _url} -> "Link given by the publisher; not checked"
+      {_name, _url} -> "Name and link given by the publisher; not checked"
+    end
+  end
+
+  # The score a Campaign decides on, by the name it gives it. Ingest only
+  # publishes a Result whose Campaign this site publishes, and a Climb is
+  # retired rather than removed, so a chosen challenge always has one.
+  defp score_name(nil), do: nil
+
+  defp score_name(challenge) do
+    {:ok, climb} = Catalog.get_any_climb_by_campaign_digest(challenge)
+    climb.projection["scoring"]["primary_reward"]
+  end
+
+  # Which empty page a readable selection is, if any: nothing published at
+  # all, a page past the oldest entry of a selection that has entries, or a
+  # selection with no entries. An address the page cannot read at all, or one
+  # naming a selection that does not exist, never gets this far.
+  defp empty([_entry | _entries], _families, _earlier?), do: nil
+  defp empty([], [], _earlier?), do: :log
+  defp empty([], _families, true), do: :no_earlier
+  defp empty([], _families, false), do: :no_match
+
+  # What the address asked for, naming only what this site recognises: a
+  # harness it has Results for, a version of that harness, a model a Result
+  # names, and a Campaign this site publishes. Anything else is "that harness",
+  # "that model" or "that challenge", so no text from an address is repeated.
+  defp asked_for(families, params) do
+    [
+      params["agent"] && harness_words(families, params["agent"], params["agent_version"]),
+      params["model"] && model_words(params["model"]),
+      params["challenge"] && challenge_words(params["challenge"])
+    ]
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp harness_words(families, agent, version) do
+    case Enum.find(families, &(&1.id == agent)) do
+      nil ->
+        "that harness"
+
+      family ->
+        if version in family.versions,
+          do: "#{family.label} #{version}",
+          else: "that version of #{family.label}"
+    end
+  end
+
+  defp model_words(model) do
+    if model in Query.result_models(), do: model, else: "that model"
+  end
+
+  defp challenge_words(challenge) do
+    case Catalog.get_any_climb_by_campaign_digest(challenge) do
+      {:ok, _climb} -> "challenge " <> ResultAssessment.short_digest(challenge)
+      {:error, _unknown} -> "that challenge"
+    end
+  end
+
+  defp no_match_words([]), do: "No published Results match this address."
+
+  defp no_match_words(asked_for),
+    do: "No published Results match this selection: " <> Enum.join(asked_for, " · ")
+
+  defp selection_words(selection, filters) do
+    challenge =
+      Enum.find(filters.challenges, &(&1.campaign_spec_digest == filters.challenge))
+
+    "#{selection.family.label} #{selection.version} · #{filters.model} · #{campaign_name(challenge)}"
+  end
+
   defp legacy_copy(entry), do: ClimbCopy.for_reference(entry.climb_reference) || %{}
 
   defp present(value) when is_binary(value) do
@@ -383,39 +494,6 @@ defmodule TechtreeWeb.RunsLive.Index do
         before_sequence: sequence
       )
 
-  defp normalized_pair?(entry),
-    do: normalized_score?(entry.baseline_mean) and normalized_score?(entry.candidate_mean)
-
-  defp score_label(entry, branch) do
-    value = Map.fetch!(entry, branch)
-
-    if normalized_pair?(entry),
-      do: "#{Float.round(value * 100, 1)}%",
-      else: "#{Float.round(value, 3)}"
-  end
-
-  defp uplift_value(entry) do
-    if normalized_score?(entry.baseline_mean) and normalized_score?(entry.candidate_mean) do
-      score_points(entry.absolute_delta)
-    else
-      signed_delta(entry.absolute_delta)
-    end
-  end
-
-  defp score_points(delta) do
-    percent = Float.round(delta * 100, 1)
-
-    if percent > 0, do: "+#{percent} pts", else: "#{percent} pts"
-  end
-
-  defp signed_delta(delta) do
-    rounded = Float.round(delta, 3)
-
-    if rounded > 0, do: "+#{rounded}", else: to_string(rounded)
-  end
-
-  defp normalized_score?(score), do: score >= 0 and score <= 1
-
   defp task_words(entry) do
     "#{entry.wins} better, #{entry.ties} same, #{entry.losses} worse"
   end
@@ -425,8 +503,6 @@ defmodule TechtreeWeb.RunsLive.Index do
     |> DateTime.truncate(:second)
     |> Calendar.strftime("%Y-%m-%d %H:%M UTC")
   end
-
-  defp compact_arrived(at), do: Calendar.strftime(at, "%d %b · %H:%M")
 
   defp withdrawn_words(at) do
     "Withdrawn by the participant on " <> Calendar.strftime(at, "%-d %B %Y")
