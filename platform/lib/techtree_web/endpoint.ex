@@ -48,6 +48,7 @@ defmodule TechtreeWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  plug TechtreeWeb.CanonicalHost
   plug TechtreeWeb.SourceRevision
 
   # Serve at "/" the static files from "priv/static" directory.
