@@ -11,7 +11,9 @@ defmodule Techtree.Network.RateLimit do
   A fixed window, counted in a table this process owns. It is per node and it
   is not persisted, because a limit that survives a restart would need a store,
   and a store for this would be a larger thing than the problem. Old windows are
-  swept rather than left to grow.
+  swept rather than left to grow, and the sweep deletes them inside the table
+  rather than copying the table out to look at it, so its cost does not grow
+  with this process's memory however many callers there have been.
 
   The caller is identified by the address the connection came from, which is
   what this application can actually see. It does not read a forwarding header,
@@ -71,9 +73,7 @@ defmodule Techtree.Network.RateLimit do
     window = Keyword.fetch!(Network.rate_limit(), :window_seconds)
     current = div(System.system_time(:second), window)
 
-    for {{_caller, bucket} = key, _count} <- :ets.tab2list(@table), bucket < current do
-      :ets.delete(@table, key)
-    end
+    :ets.select_delete(@table, [{{{:_, :"$1"}, :_}, [{:<, :"$1", current}], [true]}])
 
     schedule()
     {:noreply, state}
