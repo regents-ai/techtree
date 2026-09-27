@@ -100,28 +100,6 @@ defmodule Techtree.Network.IngestTest do
                payload |> Techtree.Canonical.encode!() |> Techtree.Catalog.Digest.hash_bytes()
     end
 
-    test "stored with no assessment, gets one worked out again from its stored bytes" do
-      {:ok, entry, :recorded} = NetworkFixture.publish()
-
-      # The state a Result published before assessments were stored is in.
-      {1, _rows} =
-        Techtree.Repo.update_all(
-          from(row in "network_publication_entries",
-            where: row.id == type(^entry.id, Ecto.UUID)
-          ),
-          set: [assessment: nil]
-        )
-
-      assert [{%{id: id}, :ok}] = Ingest.record_assessments()
-      assert id == entry.id
-
-      stored = Network.get_publication_entry_by_digest!(entry.bundle_digest)
-      assert stored.assessment.reason == entry.assessment.reason
-      assert Decimal.eq?(stored.assessment.candidate_total, entry.assessment.candidate_total)
-      assert stored.assessment.skill_changes == entry.assessment.skill_changes
-      assert Ingest.record_assessments() == []
-    end
-
     test "appends an acceptance event carrying the participant's own signature" do
       assert {:ok, entry, :recorded} = NetworkFixture.publish()
 

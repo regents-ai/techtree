@@ -152,13 +152,6 @@ defmodule Techtree.Network.PublicationEntry do
       filter expr(bundle_digest == ^arg(:bundle_digest))
     end
 
-    read :unassessed do
-      description "Entries with no stored assessment, oldest first. The release task only."
-
-      filter expr(is_nil(assessment))
-      prepare build(sort: [log_sequence: :asc])
-    end
-
     read :for_campaign do
       description "Published proofs for one Campaign, newest arrival first."
 
@@ -237,14 +230,6 @@ defmodule Techtree.Network.PublicationEntry do
       ]
 
       require_attributes [:assessment]
-    end
-
-    update :record_assessment do
-      description "Store the assessment of an entry that has none. The release task only."
-      accept [:assessment]
-      require_attributes [:assessment]
-
-      change filter(expr(is_nil(assessment)))
     end
 
     update :mark_withdrawn do

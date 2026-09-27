@@ -166,33 +166,6 @@ defmodule Techtree.Network.Ingest do
   end
 
   @doc """
-  Store an assessment for every entry that has none, worked out again from its
-  stored bytes under the Campaign it names.
-
-  An entry whose bytes do not pass the result and Skill change checks is left
-  exactly as it is and comes back with the reason. Nothing is deleted or
-  withdrawn.
-  """
-  @spec record_assessments() :: [{PublicationEntry.t(), :ok | {:error, Error.t()}}]
-  def record_assessments do
-    Enum.map(Network.list_unassessed_publication_entries!(@internal), fn entry ->
-      case Bundle.reassess(entry.submission_bytes) do
-        {:ok, assessment} ->
-          Network.record_publication_entry_assessment!(
-            entry,
-            %{assessment: assessment},
-            @internal
-          )
-
-          {entry, :ok}
-
-        {:error, error} ->
-          {entry, {:error, error}}
-      end
-    end)
-  end
-
-  @doc """
   Take one published entry off the log, on the signed word of whoever published
   it.
 

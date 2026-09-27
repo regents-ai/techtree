@@ -300,30 +300,6 @@ defmodule Techtree.Network.Bundle do
   end
 
   @doc """
-  The assessment of a submission this site already stored, worked out again
-  from its stored bytes under the Campaign it names.
-
-  Only the result and the Skill change are checked again. The stored bytes
-  passed every check on the way in and are never rewritten, so they are read
-  the same way the checks read them without running the others. Bytes that do
-  not hold a signed report are not stored bytes, and raise.
-  """
-  @spec reassess(binary()) :: {:ok, assessment()} | {:error, Error.t()}
-  def reassess(raw) when is_binary(raw) do
-    {:ok, document} = decode_submission(raw)
-    {:ok, files} = decode_files(document)
-    {:ok, manifest} = manifest(files)
-    {:ok, envelopes} = payload_digests(files)
-    {:ok, report} = report(manifest, envelopes)
-    digest = get_in(manifest, ["payload", "campaign_spec_digest"])
-
-    with {:ok, campaign} <- stored_campaign(digest),
-         {:ok, assessment, _skills} <- assessment(report, campaign, files) do
-      {:ok, assessment}
-    end
-  end
-
-  @doc """
   The digest that addresses this bundle: the manifest's own payload digest.
   """
   @spec digest(t()) :: String.t()
@@ -816,23 +792,6 @@ defmodule Techtree.Network.Bundle do
   end
 
   defp published_object(_digest), do: :error
-
-  # A Campaign a stored Result names, retired or not: the catalog keeps
-  # serving a retired Climb's documents.
-  defp stored_campaign(digest) do
-    case published_object(digest) do
-      {:ok, campaign} ->
-        {:ok, campaign}
-
-      :error ->
-        {:error,
-         Error.new(
-           :submission_campaign_unpublished,
-           "this site cannot read the campaign that fingerprint names",
-           %{"campaign_spec_digest" => digest}
-         )}
-    end
-  end
 
   # -- 13 and 14. The result and the Skill change ----------------------------
   #
