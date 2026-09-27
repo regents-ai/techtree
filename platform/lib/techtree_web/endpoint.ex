@@ -48,7 +48,7 @@ defmodule TechtreeWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
-  plug TechtreeWeb.CanonicalHost
+  plug TechtreeWeb.Plugs.CanonicalHost
   plug TechtreeWeb.SourceRevision
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -90,7 +90,7 @@ defmodule TechtreeWeb.Endpoint do
   plug :secure_browser_headers
 
   # Before the parser, so a body it refuses on an `/api` path is answered
-  # in JSON (`TechtreeWeb.Parsers`).
+  # in JSON (`TechtreeWeb.Plugs.Parsers`).
   plug RegentAgentAccess.Plug,
     documents: &TechtreeWeb.PublicDocuments.document/1,
     guide: "/llms.txt"
@@ -99,7 +99,7 @@ defmodule TechtreeWeb.Endpoint do
   # body in a content type this does not parse is passed along untouched and
   # meets the same refusal it would have met anyway. No address accepts more
   # than the publication cap (`Techtree.Network.maximum_body_bytes/0`).
-  plug TechtreeWeb.Parsers,
+  plug TechtreeWeb.Plugs.Parsers,
     parsers: [:urlencoded, :json],
     pass: ["*/*"],
     length: Application.compile_env!(:techtree, [Techtree.Network, :maximum_body_bytes]),

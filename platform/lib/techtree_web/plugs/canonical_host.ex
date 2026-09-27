@@ -1,8 +1,8 @@
-defmodule TechtreeWeb.CanonicalHost do
+defmodule TechtreeWeb.Plugs.CanonicalHost do
   @moduledoc """
   The site lives at one address. A visit to its www. name is sent to the same
   page there, because a page opened on www. could never connect back to the
-  server.
+  server: every reading, wallet and account on it would stay unloaded.
   """
 
   @behaviour Plug
