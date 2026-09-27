@@ -1,4 +1,4 @@
-defmodule TechtreeWeb.PagesHTML do
+defmodule TechtreeWeb.PublicPagesHTML do
   @moduledoc "About, Contact and Privacy, in the site's document layout."
 
   use TechtreeWeb, :html

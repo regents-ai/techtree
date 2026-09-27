@@ -8,28 +8,32 @@
  * Every animation ends with the menu at rest and hands it back to its
  * stylesheet, so no offset, scale or fade is left behind.
  */
-import {createScope} from "animejs"
-import {BASE, SLOW, byPointer, halt, move, still} from "./shared.js"
+import {createScope, type AnimationParams, type Scope} from "animejs"
+import {BASE, SLOW, byPointer, halt, move, still} from "./shared"
 
 const CLOSE = {duration: BASE, ease: "in(3)"}
 
-const PANELS = {
+type Away = Record<string, number>
+
+const PANELS: {menu: Record<string, {away: Away; open: AnimationParams}>} = {
   menu: {
     pop: {away: {y: -6, scale: 0.9, opacity: 0}, open: {duration: SLOW, ease: "outBack(2.2)"}},
   },
 }
 
 // Where a panel rests when it is open: no offset, full size.
-const REST = {y: 0, scale: 1, opacity: 1}
-const rest = away => Object.fromEntries(Object.keys(away).map(key => [key, REST[key]]))
-const from = away => Object.fromEntries(Object.entries(away).map(([key, value]) => [key, {from: value}]))
+const REST: Record<string, number> = {y: 0, scale: 1, opacity: 1}
+const rest = (away: Away) => Object.fromEntries(Object.keys(away).map(key => [key, REST[key]]))
+const from = (away: Away) => Object.fromEntries(Object.entries(away).map(([key, value]) => [key, {from: value}]))
+
+type MenuHook = {el: HTMLDetailsElement; scope?: Scope}
 
 export const MotionMenu = {
-  mounted() {
+  mounted(this: MenuHook) {
     const scope = createScope({root: this.el})
-    const summary = this.el.querySelector(":scope > summary")
-    const panel = this.el.querySelector("[data-panel]")
-    const variant = () => PANELS.menu[this.el.dataset.menu]
+    const summary = this.el.querySelector<HTMLElement>(":scope > summary")!
+    const panel = this.el.querySelector<HTMLElement>("[data-panel]")!
+    const variant = () => PANELS.menu[this.el.dataset.menu!]
 
     this.scope = scope.add(() => {
       let moving = false
@@ -69,8 +73,8 @@ export const MotionMenu = {
         settle()
       })
 
-      const onClick = event => {
-        if (!summary.contains(event.target)) return
+      const onClick = (event: MouseEvent) => {
+        if (!summary.contains(event.target as Node | null)) return
         if (!byPointer(event) || still()) return scope.methods.stop()
 
         if (!this.el.open) return scope.methods.open()
@@ -86,7 +90,7 @@ export const MotionMenu = {
     })
   },
 
-  destroyed() {
+  destroyed(this: MenuHook) {
     this.scope?.revert()
   },
 }

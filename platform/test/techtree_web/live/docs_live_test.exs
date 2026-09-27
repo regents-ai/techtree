@@ -121,7 +121,7 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert has_element?(live, "article.docs-content[data-markdown-root] #method")
     assert has_element?(live, "article.docs-content[data-markdown-root] #research-start")
 
-    app_js = File.read!("assets/js/app.js")
+    app_js = File.read!("assets/js/app.ts")
     assert app_js =~ ~s|document.querySelector("[data-markdown-root]")|
     assert app_js =~ "new URL(href, window.location.href).href"
   end

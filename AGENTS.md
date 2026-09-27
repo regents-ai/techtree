@@ -10,7 +10,8 @@ to the component that owns the behavior:
 - `platform/` owns techtree.sh, publication ingestion, and public result views.
 
 The root instructions apply everywhere. Before editing `cli/`, also read
-`cli/CLAUDE.md`; before editing `platform/`, also read `platform/AGENTS.md`.
+`cli/CLAUDE.md`. For `platform/`, use the Regent template's skills, starting
+with `ash-stack` (in `ash-template/skills`, linked into the workspace).
 `plugin/` has no separate instruction file. Do not invent duplicate component
 `AGENTS.md` files.
 
@@ -35,5 +36,5 @@ and its bounded tasks and definition of done are in
 under `docs/plan/` and `docs/v0.2/` are historical records.
 
 For product orientation and related Regent products, see [README.md](README.md).
-The public agent entry point is [platform/priv/static/llms.txt](platform/priv/static/llms.txt);
+The public agent entry point is [platform/priv/public/llms.md](platform/priv/public/llms.md), served at `/llms.txt`;
 keep its advertised commands consistent with the owning CLI and HTTP contracts.

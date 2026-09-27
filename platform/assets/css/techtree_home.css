@@ -13,7 +13,7 @@
   background: transparent;
   container-type: inline-size;
 }
-.hero--landing .hero__copy > .eyebrow { color: var(--accent-deep); }
+.hero--landing .hero__copy > .eyebrow { color: var(--color-link); }
 .hero--landing .hero-title {
   margin-top: var(--space-2);
   /* Each phrase is about 9.1em wide, so capping the size at 10.8% of the copy
@@ -29,7 +29,7 @@
   font-size: clamp(1rem, 1.2vw, 1.25rem);
   font-weight: 600;
   line-height: 1.55;
-  color: var(--ink);
+  color: var(--color-fg);
 }
 .hero--landing .hero__optics {
   inset: 0;
@@ -44,7 +44,7 @@
 .hero--landing .installer__manual { margin-top: var(--space-2); }
 .hero--landing .installer__manual > summary {
   width: fit-content;
-  color: var(--ink-quiet);
+  color: var(--color-fg-muted);
   font-family: var(--font-family-ui);
   font-size: .875rem;
   cursor: pointer;
@@ -60,10 +60,10 @@
   gap: var(--space-3);
 }
 .hero--landing .hero__actions .text-link { font-weight: 600; }
-.hero--landing .hero__actions .text-link span { color: var(--accent-deep); }
+.hero--landing .hero__actions .text-link span { color: var(--color-link); }
 .hero--landing .hero__terms {
   margin-top: var(--space-3);
-  color: var(--ink-quiet);
+  color: var(--color-fg-muted);
   font-family: var(--font-family-ui);
   font-size: .8125rem;
 }

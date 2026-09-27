@@ -22,6 +22,8 @@ defmodule TechtreeWeb.Endpoint do
 
   use Phoenix.Endpoint, otp_app: :techtree
 
+  import Phoenix.Controller, only: [put_secure_browser_headers: 2]
+
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
@@ -94,7 +96,24 @@ defmodule TechtreeWeb.Endpoint do
 
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug TechtreeWeb.AgentFormats
+
+  # Every page, and every Markdown or refusal the next plug answers before the
+  # router, carries these. Browser agents may use the tools every page
+  # registers, from this site only. API responses replace them with their own.
+  plug :put_secure_browser_headers, %{
+    "content-security-policy" =>
+      "default-src 'none'; script-src 'self'; style-src 'self'; " <>
+        "img-src 'self' data:; font-src 'self'; " <>
+        "connect-src 'self' https://api.github.com; " <>
+        "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "referrer-policy" => "no-referrer",
+    "permissions-policy" => "tools=(self)"
+  }
+
+  plug RegentAgentAccess.Plug,
+    documents: &TechtreeWeb.PublicDocuments.document/1,
+    guide: "/llms.txt"
+
   plug TechtreeWeb.MethodSurface
   plug TechtreeWeb.Router
 end

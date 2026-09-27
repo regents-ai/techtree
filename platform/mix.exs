@@ -68,6 +68,7 @@ defmodule Techtree.MixProject do
       # regent_identity names regent_privy by a sibling path; this pin replaces it.
       {:regent_privy,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
+      {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
       {:regent_identity, git: @regents, ref: @regents_ref, sparse: "identity"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_phoenix, "~> 2.0"},
@@ -105,7 +106,12 @@ defmodule Techtree.MixProject do
       test: ["ash.setup --quiet", "test"],
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
-      check: ["format --check-formatted", "compile --warnings-as-errors", "test"],
+      check: [
+        "format --check-formatted",
+        "compile --warnings-as-errors",
+        "cmd --cd assets npm run typecheck",
+        "test"
+      ],
       "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
       "assets.build": [
         "compile",

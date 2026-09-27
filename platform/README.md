@@ -254,8 +254,8 @@ protocol names them; everywhere else, a fingerprint is a fingerprint.
 
 ## Shared dependencies
 
-The shared Regent libraries (`regent_ui` from design-system, `regent_blog` and
-`regent_privy` from elixir-utils, `regent_identity` from regents) are git
+The shared Regent libraries (`regent_ui` from design-system, `regent_blog`,
+`regent_privy` and `regent_agent_access` from elixir-utils, `regent_identity` from regents) are git
 dependencies pinned to one commit per repository at the top of `mix.exs`, and
 `mix deps.get` fetches them. To move a pin, change its ref and run
 `mix deps.update <name>`. `make check-required-fixes` from the monorepo root
@@ -264,11 +264,13 @@ Do not clone recursive Solidity submodules for a web-only change.
 
 ## Development
 
-Requires Elixir/Erlang, Node and PostgreSQL 14 or newer. Run from `platform/`; registry-contract checks separately require Foundry.
+Requires Elixir/Erlang, Node 22.18 or newer (a test loads the TypeScript
+directly) and PostgreSQL 14 or newer. Run from `platform/`; registry-contract
+checks separately require Foundry.
 
 ```bash
 mix setup   # deps, database, assets
-mix check   # formatting, warnings-as-errors, tests
+mix check   # formatting, warnings-as-errors, TypeScript typecheck, tests
 ```
 
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database
