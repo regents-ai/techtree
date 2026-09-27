@@ -68,7 +68,7 @@ jobs:
         run: mix assets.setup && mix assets.build
       - name: Check platform
         working-directory: platform
-        run: mix check
+        run: mix precommit
 
   contracts:
     name: Registry contracts

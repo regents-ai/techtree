@@ -50,7 +50,7 @@ defmodule Techtree.MixProject do
 
   def cli do
     [
-      preferred_envs: [check: :test]
+      preferred_envs: [precommit: :test]
     ]
   end
 
@@ -115,7 +115,7 @@ defmodule Techtree.MixProject do
       test: ["ash.setup --quiet", "test"],
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
-      check: [
+      precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --check-unused",
         "cmd mix hex.audit",

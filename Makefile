@@ -14,7 +14,7 @@ check-plugin-integration:
 	$(MAKE) -C cli check-plugin
 
 check-platform:
-	cd platform && mix deps.get && mix assets.setup && mix assets.build && mix check
+	cd platform && mix deps.get && mix assets.setup && mix assets.build && mix precommit
 
 # Every site runs the same check against ash-template's current main branch, so a
 # newly published required fix reaches every site's next gate. Needs `gh auth login`.

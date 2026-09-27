@@ -63,7 +63,7 @@ the guard.
 ## Checks
 
 ```
-mix check
+mix precommit
 ```
 
 must be fully green before any change is proposed: formatting,

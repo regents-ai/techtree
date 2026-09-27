@@ -52,7 +52,7 @@ Rigor stays internal; the user experience stays almost trivial.
   Serves the catalog and content-addressed objects (refuses drifted
   bytes), the agent-first install pages, and the BootstrapRelease
   behind an active-release pointer. GET/HEAD only; a 405 test locks
-  the surface. Gate: `PGUSER="${PGUSER:-postgres}" mix check`. ALWAYS use the `ash-regents` skill for
+  the surface. Gate: `PGUSER="${PGUSER:-postgres}" mix precommit`. ALWAYS use the `ash-regents` skill for
   any work in this repository (founder standing rule, 2026-08-21) — it is
   the canonical Ash playbook: resource design, queries, policies, AshOban,
   AshPhoenix, extensions.
