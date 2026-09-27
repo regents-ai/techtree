@@ -51,10 +51,8 @@ defmodule TechtreeWeb.ProofsLiveTest do
     {:ok, live, html} = live(conn, ~p"/proofs")
     text = visible_text(html)
 
-    assert has_element?(
-             live,
-             ~s|#copy-proof-verify[data-copy-value="techtree proof verify path/to/result-bundle"]|
-           )
+    assert copied_text(html, "copy-proof-verify") ==
+             "techtree proof verify path/to/result-bundle"
 
     refute text =~ "arrives in a later release"
     refute text =~ "USDC"

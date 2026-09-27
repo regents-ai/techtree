@@ -490,17 +490,15 @@ defmodule TechtreeWeb.RunsLiveTest do
 
     test "offers the bundle download and the command that checks it",
          %{conn: conn, entry: entry} do
-      {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
+      {:ok, live, html} = live(conn, "/results/#{entry.bundle_digest}")
 
       assert has_element?(
                live,
                ~s|#download-result-bundle[href="/api/v1/publications/#{entry.bundle_digest}/bundle"][download="techtree-result.json"]|
              )
 
-      assert has_element?(
-               live,
-               ~s|#copy-runs-verify[data-copy-value="techtree proof verify techtree-result.json"]|
-             )
+      assert copied_text(html, "copy-runs-verify") ==
+               "techtree proof verify techtree-result.json"
     end
 
     test "a withdrawn entry keeps its page and is marked at the top of it",

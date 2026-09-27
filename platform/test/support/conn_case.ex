@@ -49,4 +49,17 @@ defmodule TechtreeWeb.ConnCase do
     |> String.replace(~r/<[^>]*>/, " ")
     |> String.replace(~r/\s+/, " ")
   end
+
+  @doc """
+  What pressing the copy button `button_id` puts on the clipboard: the text of
+  the element its `data-copy-target` names, exactly as the browser reads it.
+  """
+  def copied_text(html, button_id) do
+    document = LazyHTML.from_document(html)
+
+    [target] =
+      document |> LazyHTML.query("#" <> button_id) |> LazyHTML.attribute("data-copy-target")
+
+    document |> LazyHTML.query("#" <> target) |> LazyHTML.text()
+  end
 end

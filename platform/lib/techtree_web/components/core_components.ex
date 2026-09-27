@@ -85,27 +85,22 @@ defmodule TechtreeWeb.CoreComponents do
     <Regent.Structure.panel class="command rg-support-panel">
       <div class="command__head">
         <p class="command__label">{@label || "Command"}</p>
-        <Regent.Primitives.button
+        <Regent.Primitives.copy_button
           :if={@copy}
-          variant="secondary"
           id={@copy_id}
+          target={"#{@copy_id}-text"}
           class="command__copy"
-          type="button"
-          phx-hook="CopyCommand"
-          phx-update="ignore"
-          data-copy-value={@command}
         >
-          <span data-copy-label>Copy</span>
-        </Regent.Primitives.button>
-        <span
-          class="offscreen"
-          data-copy-status
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        ></span>
+          Copy
+        </Regent.Primitives.copy_button>
       </div>
-      <pre class="command__block" tabindex="0" role="region" aria-label="Command"><code>{@command}</code></pre>
+      <pre
+        id={"#{@copy_id}-text"}
+        class="command__block"
+        tabindex="0"
+        role="region"
+        aria-label="Command"
+      ><code>{@command}</code></pre>
     </Regent.Structure.panel>
     """
   end
@@ -128,26 +123,16 @@ defmodule TechtreeWeb.CoreComponents do
     <Regent.Structure.panel class="command command--prose rg-support-panel">
       <div class="command__head">
         <p class="command__label">{@label}</p>
-        <Regent.Primitives.button
-          variant={@copy_variant}
+        <Regent.Primitives.copy_button
           id={@id}
+          target={"#{@id}-text"}
+          variant={@copy_variant}
           class="command__copy"
-          type="button"
-          phx-hook="CopyCommand"
-          phx-update="ignore"
-          data-copy-value={@text}
         >
-          <span data-copy-label>Copy</span>
-        </Regent.Primitives.button>
-        <span
-          class="offscreen"
-          data-copy-status
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        ></span>
+          Copy
+        </Regent.Primitives.copy_button>
       </div>
-      <p class="command__block">{@text}</p>
+      <p id={"#{@id}-text"} class="command__block">{@text}</p>
     </Regent.Structure.panel>
     """
   end

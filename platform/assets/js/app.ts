@@ -9,7 +9,8 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
-import {mountCommandCopyButton, mountPageCopyButton, type CopyHook} from "./copy_feedback"
+import {mountPageCopyButton, type CopyHook} from "./copy_feedback"
+import {installCopyButtons} from "./copy_buttons"
 import {Optics, type OpticsHook} from "./optics_controller"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
@@ -19,6 +20,7 @@ import {installPublicTools} from "./public_tools"
 
 mountMotion()
 installPublicTools()
+installCopyButtons()
 
 const GITHUB_STAR_CACHE = "techtree-github-stars"
 const GITHUB_STAR_REFRESH_MS = 2 * 60 * 1000
@@ -227,19 +229,6 @@ Hooks.AgentVersions = {
     const selectedBounds = selected.getBoundingClientRect()
     strip.scrollLeft += selectedBounds.left - stripBounds.left -
       (strip.clientWidth - selectedBounds.width) / 2
-  },
-}
-
-Hooks.CopyCommand = {
-  mounted(this: CopyHook) {
-    mountCommandCopyButton(
-      this,
-      () => {
-        const visibleCopy = this.el.closest(".command")?.querySelector(".command__block")
-        return visibleCopy?.textContent ?? this.el.dataset.copyValue!
-      },
-      {refuse: deny},
-    )
   },
 }
 

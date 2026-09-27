@@ -95,7 +95,7 @@ defmodule TechtreeWeb.HomeLiveTest do
           "techtree forge inspect-skill path/to/your-skill"
 
       assert has_element?(live, "#copy-home-cli")
-      assert html =~ ~s|data-copy-value="#{expected}"|
+      assert copied_text(html, "copy-home-cli") == expected
       refute html =~ "Doctor checks prerequisites"
 
       assert has_element?(live, ".installer__manual .command", "Install, then look at your Skill")
@@ -170,10 +170,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert text =~ "Paste into your agent’s chat"
       assert text =~ HomeLive.agent_line()
 
-      assert has_element?(
-               live,
-               ~s|#copy-home-agent-line[data-copy-value="#{HomeLive.agent_line()}"]|
-             )
+      assert copied_text(html, "copy-home-agent-line") == HomeLive.agent_line()
 
       refute text =~ "One concrete Result"
       refute text =~ "Instructional Skill vs No Skill"

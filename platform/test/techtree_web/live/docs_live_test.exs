@@ -68,7 +68,7 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "Only Climb runs can be published today."
     assert text =~ "techtree publish RUN_ID"
     assert text =~ "techtree withdraw BUNDLE_DIGEST"
-    assert has_element?(live, "#copy-docs-hermes[data-copy-value*=\"skill.md\"]")
+    assert copied_text(html, "copy-docs-hermes") =~ "skill.md"
     assert has_element?(live, "#copy-docs-hermes-plugin")
     assert text =~ "GET /api/v1/bootstrap"
     assert text =~ "GET /api/v1/publications/:digest"

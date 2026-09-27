@@ -149,7 +149,8 @@ defmodule TechtreeWeb.PagesTest do
               Regex.scan(~r/<button([^>]*)>/, markup, capture: :all_but_first) do
           assert attributes =~ ~s|type="button"|, "#{page} has a button that could submit"
 
-          assert attributes =~ "copycommand" or attributes =~ "data-theme-toggle" or
+          assert attributes =~ "rg-copy" or attributes =~ "copycommand" or
+                   attributes =~ "data-theme-toggle" or
                    attributes =~ ~s|phx-click="filter_tasks"|,
                  "#{page} has a button that is not a local-only control"
 

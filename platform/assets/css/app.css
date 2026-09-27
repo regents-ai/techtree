@@ -126,7 +126,6 @@ code { font-size: .9em; }
 }
 .command__label { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }
 .command__copy { min-height: 2.75rem; font-size: .8125rem; }
-.command__copy.is-copied { border-style: double; border-width: 3px; }
 .command__block { min-width: 0; max-width: 100%; margin: 0; padding: var(--rg-panel-padding); overflow-x: auto; font-size: .875rem; line-height: 1.6; white-space: pre; }
 .command__block code { color: inherit; font-size: inherit; }
 .command__block code::before { content: "$ "; }

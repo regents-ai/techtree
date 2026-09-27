@@ -35,8 +35,6 @@ defmodule TechtreeWeb.StartLiveTest do
         ]
         |> Enum.join("\n")
 
-      escape = fn text -> text |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string() end
-
       assert instruction =~ url(~p"/skill.md")
 
       assert instruction =~
@@ -44,8 +42,8 @@ defmodule TechtreeWeb.StartLiveTest do
 
       assert instruction =~ "make the tasks, run them both ways and compare"
       assert instruction =~ "Never approve anything for me."
-      assert html =~ ~s|data-copy-value="#{escape.(instruction)}"|
-      assert html =~ ~s|data-copy-value="#{escape.(expected_cli)}"|
+      assert copied_text(html, "copy-start-instruction") == instruction
+      assert copied_text(html, "copy-setup-cli") == expected_cli
 
       expected_example =
         [
@@ -58,7 +56,7 @@ defmodule TechtreeWeb.StartLiveTest do
         ]
         |> Enum.join("\n")
 
-      assert html =~ ~s|data-copy-value="#{escape.(expected_example)}"|
+      assert copied_text(html, "copy-start-example") == expected_example
 
       for id <- [
             "copy-start-example",
@@ -67,7 +65,7 @@ defmodule TechtreeWeb.StartLiveTest do
             "copy-start-repository"
           ] do
         assert has_element?(live, "##{id}", "Copy")
-        assert has_element?(live, "##{id} + [data-copy-status][role=status][aria-live=polite]")
+        assert has_element?(live, "##{id}-status[role=status]")
       end
 
       [instruction_at, cli_at] =

@@ -1,28 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import {
-  mountCommandCopyButton,
-  mountPageCopyButton,
-} from "../../assets/js/copy_feedback.ts"
-
-class TestClassList {
-  constructor() {
-    this.values = new Set()
-  }
-
-  add(value) {
-    this.values.add(value)
-  }
-
-  remove(value) {
-    this.values.delete(value)
-  }
-
-  contains(value) {
-    return this.values.has(value)
-  }
-}
+import {mountPageCopyButton} from "../../assets/js/copy_feedback.ts"
 
 class TestStatus {
   constructor() {
@@ -48,7 +27,6 @@ class TestButton {
   constructor(idleLabel) {
     this.label = {textContent: idleLabel}
     this.nextElementSibling = new TestStatus()
-    this.classList = new TestClassList()
     this.listeners = []
   }
 
@@ -123,81 +101,13 @@ function deferred() {
   return {promise, resolve, reject}
 }
 
-test("command copy blocks overlap and reannounces repeated success", async () => {
-  const clock = installWindow()
-  const button = new TestButton("Copy")
-  const firstWrite = deferred()
-  const writes = []
-  const refused = []
-
-  mountCommandCopyButton({el: button}, () => "techtree climb", {
-    refuse: el => refused.push(el),
-    writeText: value => {
-      writes.push(value)
-      return writes.length === 1 ? firstWrite.promise : Promise.resolve()
-    },
-  })
-
-  const firstClick = button.click()
-  await button.click()
-  assert.deepEqual(writes, ["techtree climb"])
-
-  firstWrite.resolve()
-  await firstClick
-  const [firstFrameId] = clock.pendingFrameIds()
-  const [firstTimerId] = clock.pendingTimerIds()
-
-  assert.equal(button.nextElementSibling.textContent, "")
-  assert.equal(clock.timerDelay(firstTimerId), 1800)
-
-  await button.click()
-  const [secondFrameId] = clock.pendingFrameIds()
-  const [secondTimerId] = clock.pendingTimerIds()
-
-  assert.notEqual(secondFrameId, firstFrameId)
-  assert.notEqual(secondTimerId, firstTimerId)
-  assert.equal(clock.runFrame(firstFrameId), false)
-  assert.equal(clock.runTimer(firstTimerId), false)
-  assert.equal(button.nextElementSibling.textContent, "")
-  assert.equal(button.label.textContent, "Copied")
-  assert.equal(clock.runFrame(secondFrameId), true)
-  assert.equal(button.nextElementSibling.textContent, "Copied.")
-
-  await button.click()
-  const [thirdFrameId] = clock.pendingFrameIds()
-  const [thirdTimerId] = clock.pendingTimerIds()
-
-  assert.notEqual(thirdFrameId, secondFrameId)
-  assert.notEqual(thirdTimerId, secondTimerId)
-  assert.equal(clock.runTimer(secondTimerId), false)
-  assert.equal(button.nextElementSibling.textContent, "")
-  assert.equal(clock.runFrame(thirdFrameId), true)
-
-  assert.deepEqual(writes, ["techtree climb", "techtree climb", "techtree climb"])
-  assert.deepEqual(refused, [])
-  assert.equal(button.label.textContent, "Copied")
-  assert.equal(button.classList.contains("is-copied"), true)
-  assert.deepEqual(button.nextElementSibling.values, [
-    "",
-    "",
-    "Copied.",
-    "",
-    "Copied.",
-  ])
-  assert.deepEqual(clock.pendingTimerIds(), [thirdTimerId])
-  assert.equal(clock.timerDelay(thirdTimerId), 1800)
-  assert.equal(clock.runTimer(thirdTimerId), true)
-  assert.equal(button.label.textContent, "Copy")
-  assert.equal(button.nextElementSibling.textContent, "")
-})
-
 test("page copy blocks overlap and reannounces repeated Markdown failure", async () => {
   const clock = installWindow()
   const button = new TestButton("Copy page")
   const firstWrite = deferred()
   const writes = []
   const failureMessage =
-    "Copy failed. Use View as Markdown to open the Markdown, then copy it manually."
+    "Couldn't copy. Use View as Markdown to open the Markdown, then copy it manually."
 
   const refused = []
 
@@ -230,7 +140,7 @@ test("page copy blocks overlap and reannounces repeated Markdown failure", async
   assert.equal(clock.runFrame(firstFrameId), false)
   assert.equal(clock.runTimer(firstTimerId), false)
   assert.equal(button.nextElementSibling.textContent, "")
-  assert.equal(button.label.textContent, "Copy failed")
+  assert.equal(button.label.textContent, "Couldn't copy")
   assert.equal(clock.runFrame(secondFrameId), true)
   assert.equal(button.nextElementSibling.textContent, failureMessage)
 
@@ -246,7 +156,7 @@ test("page copy blocks overlap and reannounces repeated Markdown failure", async
 
   assert.deepEqual(writes, ["# Techtree\n", "# Techtree\n", "# Techtree\n"])
   assert.deepEqual(refused, [button, button, button])
-  assert.equal(button.label.textContent, "Copy failed")
+  assert.equal(button.label.textContent, "Couldn't copy")
   assert.deepEqual(button.nextElementSibling.values, ["", "", failureMessage, "", failureMessage])
   assert.deepEqual(clock.pendingTimerIds(), [thirdTimerId])
   assert.equal(clock.timerDelay(thirdTimerId), 4000)

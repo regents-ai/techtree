@@ -43,8 +43,7 @@ defmodule TechtreeWeb.TddShowcaseLiveTest do
     readme = File.read!(Path.join([TddShowcase.folder(), "export", "README.md"]))
     [_, block] = Regex.run(~r/### The commands, in order\n\n```\n(.*?)\n```/s, readme)
 
-    button = view |> element("#copy-showcase-rerun") |> render()
-    assert [_, ^block] = Regex.run(~r/data-copy-value="([^"]*)"/, button)
+    assert copied_text(render(view), "copy-showcase-rerun") == block
   end
 
   test "the export folder link is the configured one", %{view: view} do
