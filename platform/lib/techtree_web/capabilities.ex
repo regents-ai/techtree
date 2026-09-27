@@ -12,24 +12,34 @@ defmodule TechtreeWeb.Capabilities do
 
   @capabilities [
     %{
-      id: :climb,
-      name: "Compare with and without a Skill on a fixed challenge (Climb)",
-      status: :available
+      id: :skill_test,
+      name:
+        "Test a Skill: make tasks from it, then compare with and without it, or with its earlier version",
+      status: :experimental
     },
-    %{id: :skill_environment, name: "Create an environment from a Skill", status: :experimental},
-    %{id: :repository_tasks, name: "Build tasks from a repository", status: :experimental},
     %{
       id: :skill_revision,
       name: "Revise a Skill once and compare the revision with it",
       status: :experimental
+    },
+    %{id: :repository_tasks, name: "Build tasks from a repository", status: :experimental},
+    %{
+      id: :climb,
+      name: "Try the Hello World Climb, a small fixed comparison with a starter Skill",
+      status: :available
+    },
+    %{
+      id: :browser_tools,
+      name: "Tools for agents built into a browser (WebMCP)",
+      status: :available
     },
     %{
       id: :hosted_building,
       name: "Hosted environment building (Repo2RLEnv service)",
       status: :planned
     },
-    %{id: :nemo, name: "NVIDIA NeMo Fabric and NeMo Relay support", status: :planned},
-    %{id: :agent_connectors, name: "Agent connectors (MCP, WebMCP)", status: :planned}
+    %{id: :mcp_connector, name: "An MCP connector for other agents", status: :planned},
+    %{id: :nemo, name: "NVIDIA NeMo Fabric and NeMo Relay support", status: :planned}
   ]
 
   @doc "Every capability, in the order pages list them."

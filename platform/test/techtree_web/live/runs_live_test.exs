@@ -468,7 +468,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert has_element?(live, "#task-results .tasks__empty", "No tasks were better.")
     end
 
-    test "offers the verified projection and never the submitted bytes",
+    test "links the recorded data and the bundle download, never the bytes inline",
          %{conn: conn, entry: entry} do
       {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
 
@@ -477,13 +477,18 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute html =~ entry.submission_bytes
     end
 
-    test "uses an honest local bundle placeholder for offline verification",
+    test "offers the bundle download and the command that checks it",
          %{conn: conn, entry: entry} do
       {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
       assert has_element?(
                live,
-               ~s|#copy-runs-verify[data-copy-value="techtree proof verify path/to/result-bundle"]|
+               ~s|#download-result-bundle[href="/api/v1/publications/#{entry.bundle_digest}/bundle"][download="techtree-result.json"]|
+             )
+
+      assert has_element?(
+               live,
+               ~s|#copy-runs-verify[data-copy-value="techtree proof verify techtree-result.json"]|
              )
     end
 

@@ -27,7 +27,12 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
             We’re building toward a place where your agent can help create the challenges,
             learn from the work, and return with an upgrade worth keeping.
           </p>
-          <p class="service-availability">Build submission and checkout are not open yet.</p>
+          <p class="service-availability">
+            Build submission and checkout are not open yet.
+            <a href="mailto:build@regents.sh?subject=Tell%20me%20when%20Repo2RLEnv%20opens">
+              Tell me when it opens
+            </a>
+          </p>
         </header>
 
         <section class="repo-service__contract" aria-labelledby="repo-service-stack-title">

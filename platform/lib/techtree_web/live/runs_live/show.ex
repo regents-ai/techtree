@@ -394,14 +394,24 @@ defmodule TechtreeWeb.RunsLive.Show do
         <div>
           <p class="eyebrow">Check this copy</p>
           <h2>Verify this Result offline.</h2>
-          <p class="small quiet">
-            <a href={"/api/v1/publications/" <> @entry.bundle_digest}>View the recorded data</a>
-            or run the verifier against a copy of the participant’s Result bundle.
+          <p :if={!@withdrawn?} class="small quiet">
+            <a
+              id="download-result-bundle"
+              href={"/api/v1/publications/" <> @entry.bundle_digest <> "/bundle"}
+              download="techtree-result.json"
+            >
+              Download the Result bundle
+            </a>
+            and check it with Techtree on your own computer, without trusting this site. <a href={"/api/v1/publications/" <> @entry.bundle_digest}>View the recorded data</a>.
+          </p>
+          <p :if={@withdrawn?} class="small quiet">
+            The participant withdrew this Result, so its bundle is no longer offered. <a href={"/api/v1/publications/" <> @entry.bundle_digest}>View the recorded data</a>.
           </p>
         </div>
         <.command_block
+          :if={!@withdrawn?}
           id="copy-runs-verify"
-          argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
+          argv={["techtree", "proof", "verify", "techtree-result.json"]}
           label="Verify offline"
         />
       </section>

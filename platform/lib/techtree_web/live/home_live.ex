@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
-  Why Techtree exists, what a controlled comparison is, what works today, and
-  one copyable instruction for getting started.
+  Why Techtree exists, how testing a Skill works, a quick look at the Hello
+  World Climb, what works today, and one copyable instruction for getting
+  started.
   """
 
   use TechtreeWeb, :live_view
@@ -75,21 +76,21 @@ defmodule TechtreeWeb.HomeLive do
               <.link
                 id="hero-start"
                 class="rg-button rg-button--primary button--primary"
-                navigate={~p"/start"}
+                navigate={~p"/start#skill"}
               >
-                <span class="rg-button__label">Choose where to start</span>
+                <span class="rg-button__label">Test your Skill</span>
               </.link>
-              <a class="text-link" href={~p"/results"}>
-                View published Results <span aria-hidden="true">→</span>
-              </a>
               <a class="text-link" href={~p"/examples/tdd"}>
-                See an example comparison <span aria-hidden="true">→</span>
+                See a real comparison <span aria-hidden="true">→</span>
+              </a>
+              <a class="text-link" href={~p"/start"}>
+                Other ways to start <span aria-hidden="true">→</span>
               </a>
             </div>
           </div>
         </div>
 
-        <a class="hero__more" href="#controlled-comparison" aria-label="How a comparison works">
+        <a class="hero__more" href="#skill-test" aria-label="How testing a Skill works">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m6 5 6 6 6-6" />
             <path d="m6 12 6 6 6-6" />
@@ -97,21 +98,59 @@ defmodule TechtreeWeb.HomeLive do
         </a>
       </section>
 
-      <section
-        id="controlled-comparison"
-        class="home-section featured"
-        aria-labelledby="featured-title"
-      >
+      <section id="skill-test" class="home-section service-intro" aria-labelledby="skill-test-title">
+        <Regent.Structure.section_bar>
+          <p class="rg-section-bar__label">Test your Skill</p>
+          <.capability_status capability={:skill_test} />
+        </Regent.Structure.section_bar>
+        <div class="service-intro__body">
+          <div>
+            <h2 id="skill-test-title">Only the Skill changes.</h2>
+            <p>
+              Techtree makes practice tasks from what your Skill teaches. Your agent then works
+              the same tasks twice: once without the Skill, or with its earlier version, and once
+              with it. The model, the tools and the limits stay the same, so any difference comes
+              from the Skill.
+            </p>
+            <p>
+              Some tasks are held out from anyone improving the Skill. Their result is the one
+              to trust when you ask “should I keep this change?”, because no revision could have
+              studied them.
+            </p>
+            <div class="service-intro__actions">
+              <.link navigate={~p"/start#skill"} class="rg-button rg-button--secondary">
+                Test your Skill <span aria-hidden="true">→</span>
+              </.link>
+              <.link navigate={~p"/examples/tdd"} class="text-link">
+                See a real comparison <span aria-hidden="true">→</span>
+              </.link>
+            </div>
+          </div>
+          <ol class="service-flow" aria-label="How a Skill is tested">
+            <li>
+              <span>01 / Tasks</span><strong>Made from your Skill</strong><small>You review the plan and keep the tasks that work</small>
+            </li>
+            <li>
+              <span>02 / Compare</span><strong>Run twice</strong><small>Without the Skill or its earlier version, then with it</small>
+            </li>
+            <li>
+              <span>03 / Decide</span><strong>Held-out tasks</strong><small>Improved, regressed, mixed or no difference</small>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="quick-look" class="home-section featured" aria-labelledby="featured-title">
         <div>
-          <p class="eyebrow">A controlled comparison</p>
-          <h2 id="featured-title">Only the Skill changes.</h2>
+          <p class="eyebrow">A quick look</p>
+          <h2 id="featured-title">See how a comparison runs.</h2>
           <p>
-            Your agent works the same fixed tasks twice: once without the Skill and once with it.
-            The model, the tools and the limits stay the same, so any difference in the results
-            comes from the Skill. Techtree calls this a Climb.
+            The Hello World Climb ships with every release: a small, fixed set of tasks run once
+            without a starter Skill and once with it. It shows how a run is approved, what it
+            records and what a Result looks like. Its toy tasks say nothing about your own Skill.
           </p>
           <p :if={@campaign}>
-            The first Climb is
+            It is
             <strong>{@campaign.title}</strong><span :if={@campaign_copy}>, {@campaign_copy.introduction}</span>.
           </p>
         </div>
@@ -132,9 +171,17 @@ defmodule TechtreeWeb.HomeLive do
             <dd>{CampaignFacts.validation_words(@campaign_facts.validation) || "Not published"}</dd>
           </div>
         </dl>
-        <a :if={@campaign} class="text-link" href={~p"/climbs/#{@campaign.projection["slug"]}"}>
-          Inspect the Climb <span aria-hidden="true">→</span>
-        </a>
+        <p class="featured__links">
+          <.link navigate={~p"/start#example"} class="text-link">
+            Try the example <span aria-hidden="true">→</span>
+          </.link>
+          <a :if={@campaign} class="text-link" href={~p"/climbs/#{@campaign.projection["slug"]}"}>
+            Inspect the Climb <span aria-hidden="true">→</span>
+          </a>
+          <a class="text-link" href={~p"/results"}>
+            Published Results <span aria-hidden="true">→</span>
+          </a>
+        </p>
       </section>
 
       <section id="capabilities" class="home-section" aria-labelledby="capabilities-title">

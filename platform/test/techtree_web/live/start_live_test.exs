@@ -35,23 +35,17 @@ defmodule TechtreeWeb.StartLiveTest do
         ]
         |> Enum.join("\n")
 
-      expected_hermes =
-        [
-          Enum.join(release.plugin_install_argv, " "),
-          Enum.join(release.plugin_doctor_argv, " "),
-          "# In a fresh Hermes session, enter:",
-          "/techtree setup"
-        ]
-        |> Enum.join("\n")
-
       escape = fn text -> text |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string() end
 
       assert instruction =~ url(~p"/skill.md")
-      assert instruction =~ "Ask me where my Skill is."
+
+      assert instruction =~
+               "Ask me where my Skill is, and whether to compare it with no Skill or with an earlier version of it."
+
+      assert instruction =~ "make the tasks, run them both ways and compare"
       assert instruction =~ "Never approve anything for me."
       assert html =~ ~s|data-copy-value="#{escape.(instruction)}"|
       assert html =~ ~s|data-copy-value="#{escape.(expected_cli)}"|
-      assert html =~ ~s|data-copy-value="#{escape.(expected_hermes)}"|
 
       expected_example =
         [
@@ -70,7 +64,6 @@ defmodule TechtreeWeb.StartLiveTest do
             "copy-start-example",
             "copy-start-instruction",
             "copy-setup-cli",
-            "copy-setup-hermes",
             "copy-start-repository"
           ] do
         assert has_element?(live, "##{id}", "Copy")
@@ -85,6 +78,15 @@ defmodule TechtreeWeb.StartLiveTest do
 
       assert instruction_at < cli_at
       assert has_element?(live, "#setup-direct", "Or set it up yourself")
+      assert has_element?(live, ~s|.start-guide__direct a[href="/docs#test-skill"]|)
+
+      [skill_at, example_at, repository_at] =
+        Enum.map(
+          [~s|id="skill"|, ~s|id="example"|, ~s|id="repository"|],
+          &(:binary.match(html, &1) |> elem(0))
+        )
+
+      assert skill_at < example_at and example_at < repository_at
     end
 
     @tag :tmp_dir
@@ -148,7 +150,6 @@ defmodule TechtreeWeb.StartLiveTest do
           "copy-start-example",
           "copy-start-instruction",
           "copy-setup-cli",
-          "copy-setup-hermes",
           "copy-start-repository"
         ] do
       refute html =~ id

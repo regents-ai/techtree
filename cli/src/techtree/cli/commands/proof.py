@@ -62,13 +62,17 @@ from techtree.models.cli import (
     SideEffect,
     invocation,
 )
+from techtree.publication.downloaded import (
+    is_downloaded_bundle,
+    verify_downloaded_bundle,
+)
 from techtree.publication.offer import publish_action
 from techtree.receipts.bundle import (
     BUNDLE_MANIFEST_FILENAME,
     PROOF_BUNDLE_INVALID,
     proof_bundle_dir,
 )
-from techtree.receipts.dispatch import verify_proof
+from techtree.receipts.dispatch import ProofVerification, verify_proof
 
 __all__ = [
     "PROOF_TARGET_NOT_FOUND",
@@ -82,12 +86,14 @@ __all__ = [
 #: 15 ``proof_bundle_invalid``.
 PROOF_TARGET_NOT_FOUND: Final = "proof_target_not_found"
 
+type ProofTargetKind = Literal["bundle", "report", "published"]
+
 
 class ProofVerificationPayload(ProtocolModel):
     """What was verified, and every check that was run on it."""
 
     target: NonEmptyString
-    kind: Literal["bundle", "report"]
+    kind: ProofTargetKind
     verified: bool
     summary: list[VerificationMessage]
     checks: list[VerificationMessage]
@@ -100,8 +106,8 @@ def verify_proof_command(
         typer.Argument(
             metavar="TARGET",
             help=(
-                "A run identifier, a proof bundle directory, or a signed "
-                "uplift-report file."
+                "A run identifier, a proof bundle directory, a Result bundle "
+                "downloaded from the run log, or a signed uplift-report file."
             ),
         ),
     ],
@@ -121,7 +127,7 @@ def verify_proof_command(
 
     def action() -> CommandResult[ProofVerificationPayload]:
         path, kind = resolve_proof_target(target, runs_dir=context.paths.runs_dir)
-        verification = verify_proof(path, kind)
+        verification = _verify(path, kind)
         result = verification.result
         payload = ProofVerificationPayload(
             target=target,
@@ -150,13 +156,15 @@ def verify_proof_command(
 
 def resolve_proof_target(
     target: str, *, runs_dir: Path
-) -> tuple[Path, Literal["bundle", "report"]]:
+) -> tuple[Path, ProofTargetKind]:
     """Turn what a caller typed into a directory or a file to verify.
 
-    Three spellings are accepted (spec section 7.21) and each one is decided by
+    Four spellings are accepted (spec section 7.21) and each one is decided by
     what is actually there rather than by how it looks: a directory is a
-    bundle, a file is a signed report, and anything else is read as a run
-    identifier and looked up in this machine's runs.
+    bundle, a file that declares itself a published Result bundle is one
+    downloaded from the run log, any other file is a signed report, and
+    anything else is read as a run identifier and looked up in this machine's
+    runs.
     """
     candidate = Path(target).expanduser()
     if candidate.is_dir():
@@ -164,6 +172,8 @@ def resolve_proof_target(
     if candidate.is_file():
         if candidate.name == BUNDLE_MANIFEST_FILENAME:
             return candidate.parent, "bundle"
+        if is_downloaded_bundle(candidate):
+            return candidate, "published"
         return candidate, "report"
 
     missing = NotFoundError(
@@ -180,6 +190,12 @@ def resolve_proof_target(
     if directory.is_dir():
         return directory, "bundle"
     raise missing
+
+
+def _verify(path: Path, kind: ProofTargetKind) -> ProofVerification:
+    if kind == "published":
+        return verify_downloaded_bundle(path)
+    return verify_proof(path, kind)
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +242,7 @@ def _warnings(result: VerificationResult) -> list[CliWarning]:
 def _publication_offer(
     context: CliContext,
     path: Path,
-    kind: Literal["bundle", "report"],
+    kind: ProofTargetKind,
     *,
     verified: bool,
 ) -> list[NextAction]:

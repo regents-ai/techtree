@@ -204,6 +204,9 @@ made and keeps. The signed documents travel together in a proof bundle inside
 the run directory, and `techtree proof verify` checks that bundle from its
 stored bytes. The proof check needs no network, no Techtree account, and no
 Techtree service state, so a copied bundle can be checked on another machine.
+A published Result's page offers its bundle as one downloaded file, and
+`techtree proof verify` checks that file the same way, and also checks that it
+is the bundle the Result names.
 
 A verified proof makes a bounded claim: the participant’s key vouches for
 bytes that verify against one another. Nobody else witnessed the computation,

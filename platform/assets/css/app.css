@@ -218,7 +218,7 @@ code { font-size: .9em; }
 .featured__facts > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--rule); }
 .featured__facts dt { font-size: .75rem; text-transform: uppercase; }
 .featured__facts dd { font-size: .875rem; }
-.featured > .text-link { grid-column: 1 / -1; }
+.featured__links { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 .trust__summary { max-width: var(--measure); margin-top: var(--space-3); }
 .trust__links { margin-top: var(--space-3); }
 

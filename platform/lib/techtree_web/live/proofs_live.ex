@@ -118,8 +118,8 @@ defmodule TechtreeWeb.ProofsLive do
             <p class="eyebrow">Check it yourself</p>
             <h2>Verify a Result offline.</h2>
             <p class="small quiet">
-              Anyone holding the participant’s bundle can run the same verifier on their own
-              machine.
+              Every published Result offers its bundle for download on its own page. Anyone
+              holding a bundle can run the same verifier on their own machine.
             </p>
           </div>
           <.command_block

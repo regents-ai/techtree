@@ -35,6 +35,13 @@
   task whether it went both ways across attempts; with one attempt per task it
   says plainly that consistency was not measured. The terminal output and the
   machine-readable record carry the same three facts.
+- Every published Result's page now offers its bundle for download, and
+  `techtree proof verify` checks the downloaded file directly, including that
+  it is the bundle the Result names.
+- The home page, Start, Docs and the agent installation guide now lead with
+  testing your own Skill: make tasks from it, run them without it (or with its
+  earlier version) and with it, and compare. The Hello World Climb is the quick
+  look.
 
 ## v0.2.1 (2026-09-19)
 

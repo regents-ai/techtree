@@ -76,13 +76,6 @@ defmodule TechtreeWeb.Layouts do
             <a href={~p"/changelog"} aria-current={current_section(@current_path, "/changelog")}>
               Changelog
             </a>
-            <a
-              class="masthead__service"
-              href={~p"/repo2rlenv"}
-              aria-current={current_section(@current_path, "/repo2rlenv")}
-            >
-              Repo2RLEnv Service
-            </a>
           </span>
           <a
             class="masthead__github"

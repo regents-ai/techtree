@@ -244,6 +244,13 @@ defmodule TechtreeWeb.TddShowcaseLive do
             Whether yours agrees is for you to judge. This site keeps no record that ties a new
             run to this one.
           </li>
+          <li>
+            To test your own change to this Skill, give the baseline run the earlier version with
+            <code>--skill</code>
+            instead of no Skill, and the candidate run your new version. The comparison then says
+            whether the change is worth keeping.
+            <.link navigate={~p"/docs#two-versions"}>How to compare two versions →</.link>
+          </li>
         </ul>
       </section>
 

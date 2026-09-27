@@ -28,9 +28,17 @@ defmodule TechtreeWeb.SkillControllerTest do
     assert conn.resp_body =~ "techtree forge inspect-skill PATH"
     assert conn.resp_body =~ "`--yes --reviewed-on host-agent`"
     assert conn.resp_body =~ "Never approve anything on\n   the person's behalf"
-    assert conn.resp_body =~ "techtree setup\ntechtree doctor --climb hello-world-climb@1"
+
+    assert conn.resp_body =~
+             "techtree setup\ntechtree doctor --climb hello-world-climb@1\ntechtree skill starter"
+
     assert conn.resp_body =~ "macOS or Linux · Python 3.12, provided by the installer"
-    assert conn.resp_body =~ "Creating an environment uploads nothing to Techtree."
+    assert conn.resp_body =~ "techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID"
+
+    assert conn.resp_body =~
+             "adding `--skill OLD_PATH` only to measure against the earlier version"
+
+    assert conn.resp_body =~ "Testing a Skill uploads nothing to Techtree."
 
     refute conn.resp_body =~ ~r/\btechtree up\b/
     assert get_resp_header(conn, "content-type") == ["text/markdown; charset=utf-8"]

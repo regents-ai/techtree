@@ -1,14 +1,14 @@
 # Techtree
 
-> Environments created from a person's Skill, controlled Skill evaluations, and signed, independently verifiable results.
+> Test a person's Skill: tasks made from it, the agent run without it (or with its earlier version) and with it, and a comparison that says whether to keep the change.
 
 [Website](https://techtree.sh) · [Source](https://github.com/regents-ai/techtree)
 
 ## When to use Techtree
 
-- Deciding whether a change to a Skill is worth keeping.
-- Comparing an agent with and without a Skill on the same fixed tasks.
-- Making test tasks from a Skill (experimental).
+- Deciding whether a change to a Skill is worth keeping: make tasks from the Skill, then compare the earlier version with the new one (experimental).
+- Comparing an agent with and without a Skill on tasks made from it (experimental).
+- A quick look at how a comparison runs, with the Hello World Climb and a starter Skill.
 - Building repair tasks from a repository's own history (experimental).
 - Verifying someone else's published Result offline, without trusting this site.
 
@@ -26,18 +26,21 @@ the person's own computer.
 
 ## Local work and optional publication
 
-- [Start](https://techtree.sh/start): three ways to begin: try the example Climb, evaluate a Skill by creating an environment from it (with one instruction for the person's local agent), or build tasks from a local repository. Each names what it needs and where its data goes.
-- [Agent installation guide](https://techtree.sh/skill.md): the exact release to install, and the steps to follow. Each review waits for the person's own answer; never approve on their behalf.
+- [Start](https://techtree.sh/start): three ways to begin: test a Skill (with one instruction for the person's local agent or Hermes), take a quick look with the example Climb, or build tasks from a local repository. Each names what it needs and where its data goes.
+- [Agent installation guide](https://techtree.sh/skill.md): the exact release to install, and every step from making the tasks to comparing the two runs. Each review waits for the person's own answer; never approve on their behalf.
+- [A real comparison](https://techtree.sh/examples/tdd): a tdd Skill tested on tasks made from it, with its task files to rerun.
 - [Bootstrap contract](https://techtree.sh/api/v1/bootstrap): use its exact released versions and arguments. Reject placeholder releases.
 - [Catalog](https://techtree.sh/api/v1/catalog).
 - [CLI](https://github.com/regents-ai/techtree/blob/main/cli/README.md) and [Hermes plugin](https://github.com/regents-ai/techtree/blob/main/plugin/README.md).
-- [Published results](https://techtree.sh/results).
+- [Published results](https://techtree.sh/results). Only Climb runs can be published today; each Result page links its bundle for offline checking with `techtree proof verify`.
 
 The Python CLI owns local environments, campaigns and offline proof
-verification. Creating an environment uploads nothing to Techtree; its planning
-and building steps send the Skill's files to the model provider the person
-chose, only after they approve that review. The plugin
-operates the CLI; it is not a second evaluation engine. Running models can spend
+verification. Testing a Skill uploads nothing to Techtree; planning, building
+and the two runs send the Skill's files and the tasks to the model provider the
+person chose, only after they approve that review. The Hermes plugin covers the
+Hello World Climb and publishing; for testing a Skill, Hermes follows the same
+agent installation guide. The plugin operates the CLI; it is not a second
+evaluation engine. Running models can spend
 the participant's budget. Publishing is optional and uses signed publication
 material; a web profile does not grant authority over another publication key.
 Private Episodes and Traces stay local.

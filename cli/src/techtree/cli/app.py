@@ -284,7 +284,8 @@ def create_app() -> typer.Typer:
         help="Withdraw a published entry from the public run log.",
     )(withdraw_run_command)
 
-    app.add_typer(_profile_app(), name="profile")
+    # Hidden until the public profile page returns.
+    app.add_typer(_profile_app(), name="profile", hidden=True)
     app.add_typer(_climb_app(), name="climb")
     app.add_typer(_skill_app(), name="skill")
     app.add_typer(_run_app(), name="run")

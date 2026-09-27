@@ -68,12 +68,12 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert css =~ ~s|@import "./techtree_home.css"|
     end
 
-    test "the hero points to the controlled comparison below it", %{conn: conn} do
+    test "the hero points to how a Skill is tested below it", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(
                live,
-               ~s|a.hero__more[href="#controlled-comparison"] svg|
+               ~s|a.hero__more[href="#skill-test"] svg|
              )
     end
 
@@ -134,12 +134,19 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert live |> element(~s|a.button--primary[href="/start"]|) |> has_element?()
-      assert live |> element(~s|a[href="/results"]|, "View published Results") |> has_element?()
+      assert live
+             |> element(~s|a.button--primary[href="/start#skill"]|, "Test your Skill")
+             |> has_element?()
 
       assert live
-             |> element(~s|a[href="/examples/tdd"]|, "See an example comparison")
+             |> element(~s|.hero__actions a[href="/examples/tdd"]|, "See a real comparison")
              |> has_element?()
+
+      assert live
+             |> element(~s|.hero__actions a[href="/start"]|, "Other ways to start")
+             |> has_element?()
+
+      assert live |> element(~s|a[href="/results"]|, "Published Results") |> has_element?()
 
       refute text =~ "My agent is installing"
       refute text =~ "I’m installing"
@@ -153,7 +160,8 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, "#capabilities")
       refute has_element?(live, "#home-evidence-graph")
       refute has_element?(live, ".home-section.process")
-      assert has_element?(live, ".home-section.featured")
+      assert has_element?(live, "#skill-test")
+      assert has_element?(live, "#quick-look.featured")
       assert has_element?(live, ".home-section.trust")
     end
 

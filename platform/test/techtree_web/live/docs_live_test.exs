@@ -7,7 +7,7 @@ defmodule TechtreeWeb.DocsLiveTest do
   alias Techtree.CatalogFixture
 
   @section_ids ~w(
-    install first-climb hermes verify publish integration data-boundary troubleshooting
+    install test-skill two-versions first-climb hermes verify publish integration data-boundary troubleshooting
     method proof-bundle trust-boundary hello-world beyond-model environments agent-stack regents
     research-start
   )
@@ -24,8 +24,8 @@ defmodule TechtreeWeb.DocsLiveTest do
 
     assert text =~ "Operation Guide and Mechanism Docs"
     assert text =~ "Install the released CLI"
-    assert text =~ "run your first A/B eval"
-    assert text =~ "publish it to the public Results log"
+    assert text =~ "test a Skill against no Skill or its earlier version"
+    assert text =~ "publish a Climb Result to the public Results log"
 
     assert text =~
              "For the info on Prime Intellect’s verifiers mechanism, go to the section Method."
@@ -62,7 +62,14 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "techtree doctor --climb"
     assert text =~ "techtree climb prepare"
     assert text =~ "techtree proof verify path/to/result-bundle"
+    assert text =~ "techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID"
+    assert text =~ "--arm baseline --collection COLLECTION_ID"
+    assert text =~ "--skill path/to/earlier-skill"
+    assert text =~ "Only Climb runs can be published today."
     assert text =~ "techtree publish RUN_ID"
+    assert text =~ "techtree withdraw BUNDLE_DIGEST"
+    assert has_element?(live, "#copy-docs-hermes[data-copy-value*=\"skill.md\"]")
+    assert has_element?(live, "#copy-docs-hermes-plugin")
     assert text =~ "GET /api/v1/bootstrap"
     assert text =~ "GET /api/v1/publications/:digest"
     assert has_element?(live, ~s|a[href="#method"]|, "Method.")

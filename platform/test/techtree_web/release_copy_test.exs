@@ -105,12 +105,11 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   @forbidden_name ~r/helloworldbench/i
 
-  # This release publishes nothing and receives nothing, and the pages that
-  # describe a finished comparison are exactly the pages tempted to offer the
-  # parts of it that do not exist yet: something to download, somebody else's
-  # attestation, a place to publish.
+  # The pages that describe a finished comparison are exactly the pages tempted
+  # to offer parts of it that do not exist: somebody else's attestation, or a
+  # place on the site to publish or upload from. Publishing happens in the CLI.
+  # A published Result's own bundle is offered for download on its page.
   @offered_publication [
-    ~r/\bdownload\b[^.]{0,60}\bbundle\b/i,
     ~r/reproduction attestations?/i,
     ~r/\bpublish (your|the) (proof|result|bundle)\b/i,
     ~r/\bupload (your|the|a) (proof|result bundle)\b/i
@@ -510,8 +509,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   defp refute_offered_publication(sources) do
     for {label, text} <- sources, pattern <- @offered_publication do
       refute text =~ pattern,
-             "#{label} matches #{inspect(pattern)}: this release publishes nothing, " <>
-               "receives nothing, and has no result of anyone's to hand over"
+             "#{label} matches #{inspect(pattern)}: the site offers no attestation " <>
+               "of anyone else's and takes no publication itself"
     end
   end
 

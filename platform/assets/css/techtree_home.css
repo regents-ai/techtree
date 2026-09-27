@@ -80,13 +80,6 @@
 @media (max-width: 47.99rem) {
   body:has(.hero--landing) .masthead__inner { row-gap: var(--space-2); }
   body:has(.hero--landing) .masthead__nav { width: 100%; gap: var(--space-1); }
-  body:has(.hero--landing) .masthead__selector {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    width: 100%;
-  }
-  body:has(.hero--landing) .masthead__selector a { padding-inline: .25rem; font-size: .8125rem; }
-  body:has(.hero--landing) .masthead__service { grid-column: 1 / -1; }
   .hero--landing .hero__stage { min-height: 0; padding-block: var(--space-4) 0; }
   .hero--landing .hero__copy { width: 100%; order: 1; }
   .hero--landing .hero-title { font-size: min(clamp(2rem, 7.5vw, 3.5rem), 10.8cqi); }

@@ -122,6 +122,11 @@ defmodule TechtreeWeb.RunsLive.Index do
               One harness. One model. One challenge. Inspect what changed when a Skill changed.
               Newest submissions first, not ranked by score.
             </p>
+            <p id="results-scope" class="small quiet">
+              Only Climb runs can be published today. A test of your own Skill stays on your
+              computer; <.link navigate={~p"/examples/tdd"}>the tdd example</.link>
+              shows what one looks like.
+            </p>
           </header>
         </section>
 
