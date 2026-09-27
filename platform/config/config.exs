@@ -88,7 +88,8 @@ config :techtree, Techtree.Release, starter_skill_root: {:priv, "release"}
 # it is set in the commit after that one, and the page cannot load without it.
 config :techtree, TechtreeWeb.TddShowcase,
   folder: {:priv, "examples/tdd-showcase"},
-  repository_url: "https://github.com/regents-ai/techtree"
+  repository_url: "https://github.com/regents-ai/techtree",
+  export_revision: "808c280608a0599bbd5825e61534de8570992715"
 
 # Configure the endpoint
 config :techtree, TechtreeWeb.Endpoint,
