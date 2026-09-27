@@ -93,6 +93,7 @@ defmodule TechtreeWeb.Router do
     live "/repo2rlenv", Repo2RLEnvLive
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show
+    live "/examples/tdd", TddShowcaseLive
 
     # The addresses release documents already point at, unchanged.
     live "/start", StartLive

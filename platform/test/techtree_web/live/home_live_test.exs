@@ -137,6 +137,10 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert live |> element(~s|a.button--primary[href="/start"]|) |> has_element?()
       assert live |> element(~s|a[href="/results"]|, "View published Results") |> has_element?()
 
+      assert live
+             |> element(~s|a[href="/examples/tdd"]|, "See an example comparison")
+             |> has_element?()
+
       refute text =~ "My agent is installing"
       refute text =~ "I’m installing"
       refute text =~ "Give this to your Hermes agent"
